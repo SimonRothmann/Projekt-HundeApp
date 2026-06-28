@@ -186,3 +186,22 @@ npm run dev   # läuft auf http://localhost:3000
 
 Login/Registrierung unter `/login` bzw. `/register`, danach Dashboard,
 Hunde-Verwaltung und Sportarten-Katalog unter `/dashboard`, `/dogs`, `/sports`.
+
+## 4. Von einem anderen Gerät im selben Netzwerk testen (z.B. Smartphone)
+
+Backend (`launchSettings.json`, Profil `http`) bindet bereits an `0.0.0.0:5080`
+und ist damit im LAN erreichbar; CORS ist in Development bewusst permissiv
+(siehe `Program.cs`). Lediglich `NEXT_PUBLIC_API_URL` in `frontend/.env.local`
+nicht auf eine feste, abweichende Adresse setzen - bleibt sie leer oder auf
+`localhost`, ermittelt das Frontend die Backend-Adresse automatisch passend
+zum aufgerufenen Host (siehe `lib/api.ts`).
+
+```bash
+# Rechner-IP im lokalen Netz ermitteln (Windows):
+ipconfig   # IPv4-Adresse, z.B. 192.168.1.50
+
+# Frontend mit Netzwerkzugriff starten (statt "npm run dev"):
+npm run dev -- -H 0.0.0.0
+```
+
+Auf dem Smartphone (im selben WLAN) `http://<Rechner-IP>:3000` aufrufen.

@@ -142,6 +142,20 @@
   html {
     @apply font-sans;
   }
+
+  /* Native <select>-Elemente (mehrfach im Code mit eigenen Tailwind-Klassen
+     statt der shadcn-Select-Komponente verwendet, z.B. Sportart-/Übungs-
+     Dropdowns) erben über "text-foreground" auf <body> die Textfarbe, das
+     native Dropdown-Popup selbst bleibt aber browserseitig hell - im
+     Dark Mode also helle Schrift auf hellem Hintergrund, faktisch
+     unlesbar. color-scheme weist den Browser an, das native Popup passend
+     zum aktuellen Theme (inkl. Kontrastfarben) zu rendern. */
+  select {
+    color-scheme: light;
+  }
+  .dark select {
+    color-scheme: dark;
+  }
 }
 
 @layer components {

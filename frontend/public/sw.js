@@ -31,7 +31,15 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           return response;
         })
-        .catch(() => caches.match(request).then((cached) => cached || caches.match("/offline"))),
+        .catch(() =>
+          caches
+            .match(request)
+            .then((cached) => cached || caches.match("/offline"))
+            // Weder Seite noch /offline gecacht (z.B. allererster Aufruf ohne
+            // Internet) - respondWith() darf nie mit undefined aufgelöst
+            // werden, sonst "Failed to convert value to 'Response'".
+            .then((response) => response || new Response("Offline", { status: 503, statusText: "Offline" })),
+        ),
     );
     return;
   }
@@ -45,7 +53,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           return response;
         })
-        .catch(() => cached);
+        .catch(() => cached || new Response("", { status: 503, statusText: "Offline" }));
     }),
   );
 });
