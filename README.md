@@ -154,9 +154,11 @@ siehe [DEPLOYMENT.md](DEPLOYMENT.md) "Lokal ohne Docker").
 ## 1. Datenbank
 
 ```bash
-# Einmalig: App-Rolle und Dev-Datenbank anlegen (passend zu
-# backend/src/CanisTrack.Api/appsettings.Development.json)
-psql -U postgres -c "CREATE ROLE canistrack LOGIN PASSWORD 'canistrack_dev_pw';"
+# Einmalig: App-Rolle und Dev-Datenbank anlegen. Eigenes Passwort wählen
+# und in der (gitignored) backend/src/CanisTrack.Api/appsettings.Development.json
+# unter ConnectionStrings:Default eintragen - NICHT hier oder anderswo im
+# Repo im Klartext speichern.
+psql -U postgres -c "CREATE ROLE canistrack LOGIN PASSWORD '<eigenes-passwort>';"
 psql -U postgres -c "CREATE DATABASE canistrack_dev OWNER canistrack;"
 ```
 
