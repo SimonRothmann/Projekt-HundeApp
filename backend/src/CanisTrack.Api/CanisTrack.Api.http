@@ -1,0 +1,6 @@
+@CanisTrack.Api_HostAddress = http://localhost:5265
+
+GET {{CanisTrack.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

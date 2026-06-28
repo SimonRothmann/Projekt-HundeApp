@@ -1,0 +1,10 @@
+using CanisTrack.Application.Common;
+
+namespace CanisTrack.Application.Tracking;
+
+public interface IGpsTrackService
+{
+    Task<Result<IReadOnlyList<GpsTrackDto>>> GetByTrainingSessionAsync(Guid userId, Guid trainingSessionId, CancellationToken ct = default);
+    Task<Result<GpsTrackDto>> CreateAsync(Guid userId, CreateGpsTrackRequest request, CancellationToken ct = default);
+    Task<Result> DeleteAsync(Guid userId, Guid trackId, CancellationToken ct = default);
+}

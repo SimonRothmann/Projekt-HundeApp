@@ -1,0 +1,41 @@
+# .NET
+backend/**/bin/
+backend/**/obj/
+*.user
+*.suo
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/coverage/
+frontend/next-env.d.ts
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# PostgreSQL local data
+pgdata/
+
+# Offizielle Prüfungsordnungen (urheberrechtlich geschützt, nur lokale
+# Referenz für Admin-Pflege - nicht Teil des Repos)
+/Prüfungsordnung/
+
+# IDE
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
