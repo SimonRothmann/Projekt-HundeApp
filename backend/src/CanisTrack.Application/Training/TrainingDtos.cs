@@ -35,4 +35,13 @@ public record CreateTrainingSessionRequest(
     DateOnly Date,
     int DurationMinutes,
     string? Notes,
-    IReadOnlyList<CreateTrainingExerciseRequest> Exercises);
+    IReadOnlyList<CreateTrainingExerciseRequest> Exercises,
+    /// <summary>
+    /// Optional vom Client vorgegebene Id (siehe ARCHITECTURE.md "Offline
+    /// Architektur"): erlaubt es dem Frontend, die Id schon beim Start einer
+    /// Fährtenaufnahme zu kennen und sie sofort für den zugehörigen
+    /// GpsTrack zu verwenden, ohne auf die Server-Antwort warten zu müssen
+    /// - wichtig für die Offline-Warteschlange, da sonst zwei voneinander
+    /// abhängige Requests nicht unabhängig nachsynchronisiert werden könnten.
+    /// </summary>
+    Guid? Id = null);

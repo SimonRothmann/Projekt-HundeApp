@@ -13,6 +13,7 @@ import { Dog as DogIcon, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
+import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
 import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
 import { enqueueRequest } from "@/lib/offline-queue";
 
@@ -161,6 +162,8 @@ export default function DogDetailPage() {
       </div>
 
       <GoalsSection dogId={id} sports={sports} />
+
+      <FahrteRecorder dogId={id} onSaved={loadAll} />
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Trainingstagebuch</h2>

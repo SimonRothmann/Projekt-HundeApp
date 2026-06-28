@@ -63,6 +63,7 @@ if (app.Environment.IsDevelopment())
     await RoleSeeder.SeedAsync(scope.ServiceProvider);
     await SportCatalogSeeder.SeedAsync(scope.ServiceProvider);
     await AdminBootstrapper.SeedAsync(scope.ServiceProvider, builder.Configuration);
+    await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 app.UseHttpsRedirection();
