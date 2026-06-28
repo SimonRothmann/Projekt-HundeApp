@@ -10,6 +10,7 @@ public class TrainingSessionConfiguration : IEntityTypeConfiguration<TrainingSes
     {
         builder.ToTable("training_sessions");
         builder.Property(t => t.Notes).HasMaxLength(4000);
+        builder.Property(t => t.TrainerFeedback).HasMaxLength(2000);
         builder.HasIndex(t => new { t.UserId, t.DogId, t.Date });
     }
 }

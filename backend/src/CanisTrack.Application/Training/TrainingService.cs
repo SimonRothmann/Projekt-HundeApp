@@ -44,6 +44,16 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
         if (!await db.HasDogAccessAsync(userId, request.DogId, ct))
             return Result<TrainingSessionDto>.Failure("Hund nicht gefunden.");
 
+        if (request.Id is { } existingId)
+        {
+            // Idempotenz für die Offline-Warteschlange: falls dieselbe
+            // client-generierte Id schon synchronisiert wurde (z.B. erneuter
+            // Sync-Versuch), nicht doppelt anlegen.
+            var alreadyCreated = await GetOwnedSessionAsync(userId, existingId, ct);
+            if (alreadyCreated is not null)
+                return Result<TrainingSessionDto>.Success(ToDto(alreadyCreated));
+        }
+
         var exerciseIds = request.Exercises.Select(e => e.ExerciseId).ToList();
         var existingExerciseCount = await db.Exercises.CountAsync(e => exerciseIds.Contains(e.Id), ct);
         if (existingExerciseCount != exerciseIds.Distinct().Count())
@@ -57,6 +67,9 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
             DurationMinutes = request.DurationMinutes,
             Notes = request.Notes
         };
+
+        if (request.Id is { } id)
+            session.Id = id;
 
         foreach (var exercise in request.Exercises)
         {
@@ -85,6 +98,26 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
             return Result.Failure("Training nicht gefunden.");
 
         session.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> SetFeedbackAsync(Guid trainerId, Guid sessionId, SetFeedbackRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Feedback))
+            return Result.Failure("Feedback darf nicht leer sein.");
+
+        var session = await db.TrainingSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        if (session is null)
+            return Result.Failure("Training nicht gefunden.");
+
+        var isAssignedTrainer = await db.TrainerAssignments.AnyAsync(t => t.DogId == session.DogId && t.TrainerId == trainerId, ct);
+        if (!isAssignedTrainer)
+            return Result.Failure("Nur ein für diesen Hund zugewiesener Trainer kann Feedback geben.");
+
+        session.TrainerFeedback = request.Feedback.Trim();
+        session.FeedbackByTrainerId = trainerId;
+        session.FeedbackAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
@@ -123,5 +156,7 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
             e.Rating,
             e.Difficulty,
             e.Success,
-            e.Notes)).ToList());
+            e.Notes)).ToList(),
+        s.TrainerFeedback,
+        s.FeedbackAt);
 }

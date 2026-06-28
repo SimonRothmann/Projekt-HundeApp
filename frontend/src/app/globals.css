@@ -51,73 +51,85 @@
 
 :root {
   /* CanisTrack Design System (siehe DESIGN_SYSTEM.md): naturorientierte
-     Palette - dunkles Waldgrün (Primär), Sand (Sekundär), Orange/Gold (Akzent). */
-  --background: oklch(0.99 0.004 80);
-  --foreground: oklch(0.22 0.02 150);
+     Palette - dunkles Waldgrün (Primär), Sand (Sekundär), Orange/Gold (Akzent).
+     Gegenüber der ursprünglichen Version satter/kontrastreicher abgestimmt
+     (höhere Chroma bei Primär/Akzent, wärmerer Sand-Ton) für einen
+     moderneren, weniger ausgewaschenen Eindruck - Markenidentität bleibt
+     unverändert. */
+  --background: oklch(0.985 0.006 85);
+  --foreground: oklch(0.2 0.025 150);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.02 150);
+  --card-foreground: oklch(0.2 0.025 150);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.02 150);
-  --primary: oklch(0.32 0.06 152);
-  --primary-foreground: oklch(0.98 0.005 80);
-  --secondary: oklch(0.94 0.025 80);
-  --secondary-foreground: oklch(0.3 0.03 100);
-  --muted: oklch(0.96 0.012 80);
-  --muted-foreground: oklch(0.5 0.02 130);
-  --accent: oklch(0.78 0.14 70);
-  --accent-foreground: oklch(0.25 0.04 70);
+  --popover-foreground: oklch(0.2 0.025 150);
+  --primary: oklch(0.3 0.085 154);
+  --primary-foreground: oklch(0.99 0.005 80);
+  --secondary: oklch(0.93 0.035 75);
+  --secondary-foreground: oklch(0.28 0.035 95);
+  --muted: oklch(0.955 0.014 80);
+  --muted-foreground: oklch(0.48 0.025 135);
+  --accent: oklch(0.74 0.16 62);
+  --accent-foreground: oklch(0.22 0.045 65);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0.015 90);
-  --input: oklch(0.9 0.015 90);
-  --ring: oklch(0.32 0.06 152 / 50%);
-  --chart-1: oklch(0.32 0.06 152);
-  --chart-2: oklch(0.78 0.14 70);
-  --chart-3: oklch(0.6 0.08 150);
-  --chart-4: oklch(0.7 0.06 90);
-  --chart-5: oklch(0.45 0.05 140);
-  --radius: 0.75rem;
-  --sidebar: oklch(0.97 0.012 90);
-  --sidebar-foreground: oklch(0.22 0.02 150);
-  --sidebar-primary: oklch(0.32 0.06 152);
-  --sidebar-primary-foreground: oklch(0.98 0.005 80);
-  --sidebar-accent: oklch(0.94 0.025 80);
-  --sidebar-accent-foreground: oklch(0.3 0.03 100);
-  --sidebar-border: oklch(0.9 0.015 90);
-  --sidebar-ring: oklch(0.32 0.06 152 / 50%);
+  --border: oklch(0.89 0.018 88);
+  --input: oklch(0.89 0.018 88);
+  --ring: oklch(0.3 0.085 154 / 50%);
+  --chart-1: oklch(0.3 0.085 154);
+  --chart-2: oklch(0.74 0.16 62);
+  --chart-3: oklch(0.58 0.1 150);
+  --chart-4: oklch(0.68 0.07 90);
+  --chart-5: oklch(0.42 0.06 140);
+  --radius: 0.85rem;
+  --shadow-color: 150 30% 20%;
+  --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.06), 0 1px 1px hsl(var(--shadow-color) / 0.04);
+  --shadow-md: 0 4px 10px -2px hsl(var(--shadow-color) / 0.1), 0 2px 4px -2px hsl(var(--shadow-color) / 0.06);
+  --shadow-lg: 0 12px 24px -6px hsl(var(--shadow-color) / 0.14), 0 4px 8px -4px hsl(var(--shadow-color) / 0.08);
+  --sidebar: oklch(0.965 0.014 88);
+  --sidebar-foreground: oklch(0.2 0.025 150);
+  --sidebar-primary: oklch(0.3 0.085 154);
+  --sidebar-primary-foreground: oklch(0.99 0.005 80);
+  --sidebar-accent: oklch(0.93 0.035 75);
+  --sidebar-accent-foreground: oklch(0.28 0.035 95);
+  --sidebar-border: oklch(0.89 0.018 88);
+  --sidebar-ring: oklch(0.3 0.085 154 / 50%);
 }
 
 .dark {
-  --background: oklch(0.17 0.015 150);
+  --background: oklch(0.16 0.02 152);
   --foreground: oklch(0.96 0.01 80);
-  --card: oklch(0.22 0.018 150);
+  --card: oklch(0.21 0.022 152);
   --card-foreground: oklch(0.96 0.01 80);
-  --popover: oklch(0.22 0.018 150);
+  --popover: oklch(0.21 0.022 152);
   --popover-foreground: oklch(0.96 0.01 80);
-  --primary: oklch(0.78 0.1 145);
-  --primary-foreground: oklch(0.18 0.02 150);
-  --secondary: oklch(0.28 0.02 90);
-  --secondary-foreground: oklch(0.94 0.015 80);
-  --muted: oklch(0.26 0.015 150);
-  --muted-foreground: oklch(0.72 0.015 90);
-  --accent: oklch(0.75 0.14 70);
-  --accent-foreground: oklch(0.18 0.03 70);
+  --primary: oklch(0.8 0.13 148);
+  --primary-foreground: oklch(0.16 0.025 150);
+  --secondary: oklch(0.29 0.03 88);
+  --secondary-foreground: oklch(0.95 0.015 80);
+  --muted: oklch(0.25 0.02 150);
+  --muted-foreground: oklch(0.74 0.018 90);
+  --accent: oklch(0.78 0.16 64);
+  --accent-foreground: oklch(0.18 0.04 65);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.78 0.1 145 / 50%);
-  --chart-1: oklch(0.78 0.1 145);
-  --chart-2: oklch(0.75 0.14 70);
-  --chart-3: oklch(0.6 0.08 150);
-  --chart-4: oklch(0.7 0.06 90);
-  --chart-5: oklch(0.5 0.05 140);
-  --sidebar: oklch(0.2 0.018 150);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.8 0.13 148 / 50%);
+  --chart-1: oklch(0.8 0.13 148);
+  --chart-2: oklch(0.78 0.16 64);
+  --chart-3: oklch(0.62 0.1 150);
+  --chart-4: oklch(0.7 0.07 90);
+  --chart-5: oklch(0.5 0.06 140);
+  --shadow-color: 150 40% 2%;
+  --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.4), 0 1px 1px hsl(var(--shadow-color) / 0.3);
+  --shadow-md: 0 4px 10px -2px hsl(var(--shadow-color) / 0.45), 0 2px 4px -2px hsl(var(--shadow-color) / 0.35);
+  --shadow-lg: 0 12px 24px -6px hsl(var(--shadow-color) / 0.55), 0 4px 8px -4px hsl(var(--shadow-color) / 0.4);
+  --sidebar: oklch(0.19 0.022 152);
   --sidebar-foreground: oklch(0.96 0.01 80);
-  --sidebar-primary: oklch(0.78 0.1 145);
-  --sidebar-primary-foreground: oklch(0.18 0.02 150);
-  --sidebar-accent: oklch(0.28 0.02 90);
-  --sidebar-accent-foreground: oklch(0.94 0.015 80);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.78 0.1 145 / 50%);
+  --sidebar-primary: oklch(0.8 0.13 148);
+  --sidebar-primary-foreground: oklch(0.16 0.025 150);
+  --sidebar-accent: oklch(0.29 0.03 88);
+  --sidebar-accent-foreground: oklch(0.95 0.015 80);
+  --sidebar-border: oklch(1 0 0 / 11%);
+  --sidebar-ring: oklch(0.8 0.13 148 / 50%);
 }
 
 @layer base {
@@ -129,5 +141,35 @@
   }
   html {
     @apply font-sans;
+  }
+
+  /* Native <select>-Elemente (mehrfach im Code mit eigenen Tailwind-Klassen
+     statt der shadcn-Select-Komponente verwendet, z.B. Sportart-/Übungs-
+     Dropdowns) erben über "text-foreground" auf <body> die Textfarbe, das
+     native Dropdown-Popup selbst bleibt aber browserseitig hell - im
+     Dark Mode also helle Schrift auf hellem Hintergrund, faktisch
+     unlesbar. color-scheme weist den Browser an, das native Popup passend
+     zum aktuellen Theme (inkl. Kontrastfarben) zu rendern. */
+  select {
+    color-scheme: light;
+  }
+  .dark select {
+    color-scheme: dark;
+  }
+}
+
+@layer components {
+  /* Dezente Elevation + Hover-Lift für alle Cards (siehe DESIGN_SYSTEM.md
+     "Cards: Hauptdarstellung") - ein zentraler Ort statt Anpassung jeder
+     einzelnen Card-Verwendung. Setzt --tw-shadow statt box-shadow direkt,
+     da Card zusätzlich "ring-1" nutzt und Tailwinds ring-Utility ebenfalls
+     box-shadow komponiert - eine direkte box-shadow-Deklaration würde den
+     Ring-Schatten überschreiben statt sich damit zu kombinieren. */
+  [data-slot="card"] {
+    --tw-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  [data-slot="card"]:hover {
+    --tw-shadow: var(--shadow-md);
   }
 }

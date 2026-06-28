@@ -1,4 +1,23 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5080";
+/**
+ * Ermittelt die Backend-URL. NEXT_PUBLIC_API_URL wird zur Build-Zeit fest
+ * in das Client-Bundle eingebacken - "localhost" funktioniert dort aber
+ * nur auf dem Entwicklungsrechner selbst. Beim Zugriff von einem anderen
+ * Gerät im selben Netzwerk (z.B. Smartphone über die LAN-IP) zeigt
+ * "localhost" sonst auf das Smartphone selbst statt auf den Rechner mit
+ * dem Backend. Ist NEXT_PUBLIC_API_URL nicht gesetzt oder zeigt explizit
+ * auf localhost/127.0.0.1, wird daher zur Laufzeit der tatsächlich
+ * aufgerufene Host der Seite verwendet (gleicher Rechner, Backend-Port).
+ */
+function resolveApiUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window === "undefined") return configured ?? "http://localhost:5080";
+
+  const isLocalhostConfigured = !configured || /^https?:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(configured);
+  if (!isLocalhostConfigured) return configured;
+
+  const port = configured ? new URL(configured).port || "5080" : "5080";
+  return `${window.location.protocol}//${window.location.hostname}:${port}`;
+}
 
 export class ApiError extends Error {
   constructor(public status: number, public errors: string[]) {
@@ -19,7 +38,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${API_URL}${path}`, { ...init, headers });
+  const res = await fetch(`${resolveApiUrl()}${path}`, { ...init, headers });
 
   if (!res.ok) {
     let errors: string[] = [`HTTP ${res.status}`];

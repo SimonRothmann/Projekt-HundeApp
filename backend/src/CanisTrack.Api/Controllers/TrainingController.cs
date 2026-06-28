@@ -36,4 +36,11 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         var result = await trainingService.DeleteAsync(CurrentUserId, id, ct);
         return FromResult(result);
     }
+
+    [HttpPut("{id:guid}/feedback")]
+    public async Task<IActionResult> SetFeedback(Guid id, SetFeedbackRequest request, CancellationToken ct)
+    {
+        var result = await trainingService.SetFeedbackAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
 }

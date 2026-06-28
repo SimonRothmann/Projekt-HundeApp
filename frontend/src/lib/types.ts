@@ -89,6 +89,8 @@ export type TrainingSession = {
   durationMinutes: number;
   notes: string | null;
   exercises: TrainingExercise[];
+  trainerFeedback: string | null;
+  feedbackAt: string | null;
 };
 
 export type GoalStatus = 0 | 1 | 2; // 0 = Active, 1 = Achieved, 2 = Cancelled

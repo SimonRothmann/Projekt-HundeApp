@@ -46,8 +46,20 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-        policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+        if (builder.Environment.IsDevelopment())
+        {
+            // Bewusst permissiv in Development: erlaubt z.B. das Testen von
+            // einem Smartphone im selben WLAN über die LAN-IP des Rechners,
+            // ohne diese (dynamische, oft per DHCP wechselnde) IP fest in
+            // Cors:AllowedOrigins eintragen zu müssen. In Production bleibt
+            // die feste Origin-Liste aus der Konfiguration Pflicht.
+            policy.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod();
+        }
+        else
+        {
+            var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+            policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+        }
     });
 });
 
@@ -63,6 +75,7 @@ if (app.Environment.IsDevelopment())
     await RoleSeeder.SeedAsync(scope.ServiceProvider);
     await SportCatalogSeeder.SeedAsync(scope.ServiceProvider);
     await AdminBootstrapper.SeedAsync(scope.ServiceProvider, builder.Configuration);
+    await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 app.UseHttpsRedirection();
