@@ -41,8 +41,9 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
 
 - [ ] Dropdowns sind trotz `color-scheme`-Fix immer noch nicht richtig gestyled. Vermutung: native `<select>`-Elemente lassen sich browserübergreifend nicht weiter anpassen (Popup-Liste bleibt natives Browser-Rendering) - vermutlich nötig: Umstieg auf eine selbst gerenderte, mit dem Design-System gestylte Select-Komponente (z.B. auf Basis von `@base-ui/react/select`, analog zu `components/ui/button.tsx`) statt natives `<select>`. Betrifft u.a. `admin/page.tsx`, `dogs/page.tsx`, `dogs/[id]/page.tsx`, `trainer/page.tsx`, `global-exercises-section.tsx`, `regulation-import-section.tsx`, `goals-section.tsx`, `club-exercises-section.tsx`.
 - [ ] Fährtenaufzeichnung: deutlich mehr GPS-Punkte aufzeichnen (aktuell `watchPosition` mit `maximumAge: 1000` - Aufzeichnungsdichte/-frequenz erhöhen bzw. konfigurierbar machen für genauere Fährtenlinien).
-- [ ] Fährtenaufzeichnung: während der Aufnahme manuell Punkte für gefundene Gegenstände setzen können (separat von den automatischen GPS-Punkten), inkl. Markierung/Anzeige auf der Karte.
+- [ ] Fährtenaufzeichnung: während der Aufnahme manuell Punkte für gelegte Gegenstände setzen können (separat von den automatischen GPS-Punkten), inkl. Markierung/Anzeige auf der Karte.
 - [ ] Fährte erneut ablaufen können: nach dem Legen der Fährte muss sie mit dem Hund noch einmal abgelaufen werden (separate Aufzeichnung/Vergleich zur gelegten Fährte) - aktuell unterstützt das Modell nur eine Aufzeichnung pro Fährte/Training.
+- [ ] Fährtenaufzeichnung: Es kann mehr als 1 Fährte pro Training gelegt  und wieder abgelaufen werden
 
 ## Aktuell keine weiteren offenen Punkte (außer den oben gelisteten)
 
