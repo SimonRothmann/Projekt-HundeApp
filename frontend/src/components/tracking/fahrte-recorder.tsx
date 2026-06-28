@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { GpsPoint, TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,20 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
   const [surface, setSurface] = useState("");
   const watchIdRef = useRef<number | null>(null);
   const startedAtRef = useRef<number>(0);
+
+  useEffect(() => {
+    // Falls die Seite verlassen wird, während noch aufgezeichnet wird (z.B.
+    // Navigation ohne vorher "Stoppen" zu klicken): GPS-Watch beenden, sonst
+    // läuft watchPosition unbegrenzt im Hintergrund weiter und ruft den
+    // Callback einer längst unmounteten Komponente weiter auf - mit jeder
+    // vergessenen Aufnahme ein weiterer, nie endender hochfrequenter
+    // GPS-Listener, der die App zunehmend träge macht.
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
 
   function startRecording() {
     if (!("geolocation" in navigator)) {
