@@ -17,5 +17,15 @@ public class TrainingSession : Entity
     public int DurationMinutes { get; set; }
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// Rückmeldung eines betreuenden Trainers zu dieser Trainingseinheit
+    /// (siehe DATABASE.md "Berechtigungen": Trainer kann "Feedback geben").
+    /// Nur von einem über <see cref="Domain.Community.TrainerAssignment"/>
+    /// zugeordneten Trainer setzbar, nicht vom Hundebesitzer selbst.
+    /// </summary>
+    public string? TrainerFeedback { get; set; }
+    public Guid? FeedbackByTrainerId { get; set; }
+    public DateTimeOffset? FeedbackAt { get; set; }
+
     public ICollection<TrainingExercise> Exercises { get; set; } = new List<TrainingExercise>();
 }

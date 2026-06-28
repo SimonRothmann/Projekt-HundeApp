@@ -89,6 +89,26 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
         return Result.Success();
     }
 
+    public async Task<Result> SetFeedbackAsync(Guid trainerId, Guid sessionId, SetFeedbackRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Feedback))
+            return Result.Failure("Feedback darf nicht leer sein.");
+
+        var session = await db.TrainingSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        if (session is null)
+            return Result.Failure("Training nicht gefunden.");
+
+        var isAssignedTrainer = await db.TrainerAssignments.AnyAsync(t => t.DogId == session.DogId && t.TrainerId == trainerId, ct);
+        if (!isAssignedTrainer)
+            return Result.Failure("Nur ein für diesen Hund zugewiesener Trainer kann Feedback geben.");
+
+        session.TrainerFeedback = request.Feedback.Trim();
+        session.FeedbackByTrainerId = trainerId;
+        session.FeedbackAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
     private async Task<TrainingSession?> GetOwnedSessionAsync(Guid userId, Guid sessionId, CancellationToken ct) =>
         await db.TrainingSessions
             .Where(s => s.Id == sessionId)
@@ -123,5 +143,7 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
             e.Rating,
             e.Difficulty,
             e.Success,
-            e.Notes)).ToList());
+            e.Notes)).ToList(),
+        s.TrainerFeedback,
+        s.FeedbackAt);
 }

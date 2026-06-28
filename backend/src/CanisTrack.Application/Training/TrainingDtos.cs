@@ -17,7 +17,11 @@ public record TrainingSessionDto(
     DateOnly Date,
     int DurationMinutes,
     string? Notes,
-    IReadOnlyList<TrainingExerciseDto> Exercises);
+    IReadOnlyList<TrainingExerciseDto> Exercises,
+    string? TrainerFeedback,
+    DateTimeOffset? FeedbackAt);
+
+public record SetFeedbackRequest(string Feedback);
 
 public record CreateTrainingExerciseRequest(
     Guid ExerciseId,

@@ -13,6 +13,7 @@ import { Dog as DogIcon, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
+import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
 import { enqueueRequest } from "@/lib/offline-queue";
 
 type ExerciseRow = {
@@ -40,6 +41,7 @@ export default function DogDetailPage() {
   const [sessions, setSessions] = useState<TrainingSession[] | null>(null);
   const [sports, setSports] = useState<Sport[]>([]);
   const [exercisesBySport, setExercisesBySport] = useState<Record<string, Exercise[]>>({});
+  const [isOwner, setIsOwner] = useState(true);
 
   const [showForm, setShowForm] = useState(false);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -50,14 +52,16 @@ export default function DogDetailPage() {
 
   async function loadAll() {
     try {
-      const [dogData, sessionData, sportsData] = await Promise.all([
+      const [dogData, sessionData, sportsData, myDogs] = await Promise.all([
         api.get<Dog>(`/api/dogs/${id}`),
         api.get<TrainingSession[]>(`/api/trainings?dogId=${id}`),
         api.get<Sport[]>("/api/sports"),
+        api.get<Dog[]>("/api/dogs"),
       ]);
       setDog(dogData);
       setSessions(sessionData);
       setSports(sportsData);
+      setIsOwner(myDogs.some((d) => d.id === id));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Daten konnten nicht geladen werden.");
     }
@@ -327,6 +331,7 @@ export default function DogDetailPage() {
                   ))}
                 </ul>
                 <GpsTrackSection trainingSessionId={session.id} />
+                <TrainerFeedback session={session} isOwner={isOwner} onUpdated={loadAll} />
               </CardContent>
             </Card>
           ))}
