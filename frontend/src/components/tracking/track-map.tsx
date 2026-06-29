@@ -15,6 +15,12 @@ type MapPoint = { latitude: number; longitude: number; pointType?: number; label
 // Versuche als Farben vorhanden sind).
 const WALK_RUN_COLORS = ["#2563eb", "#9333ea", "#0d9488", "#dc2626"];
 
+// Fester Farbwert statt einer Theme-CSS-Variable: Leaflet setzt "color" als
+// reines SVG-Attribut (stroke="..."), nicht als CSS-Eigenschaft - var(...)
+// wird in einem XML-Attribut nicht aufgelöst, die Linie blieb dadurch
+// unsichtbar (nur Kacheln/Marker waren zu sehen).
+const TRACK_LINE_COLOR = "#16a34a";
+
 // Schrittgeschwindigkeit, kurze Distanzen - ein nahes Zoom-Level zeigt
 // einzelne Abbiegungen deutlich, statt die ganze (noch kurze) Strecke winzig
 // in der Bildmitte darzustellen.
@@ -110,7 +116,7 @@ export function TrackMap({
     const latLngs = automaticPoints.map((p) => [p.latitude, p.longitude] as [number, number]);
 
     if (latLngs.length > 0) {
-      L.polyline(latLngs, { color: "var(--color-primary)" }).addTo(layerGroup);
+      L.polyline(latLngs, { color: TRACK_LINE_COLOR }).addTo(layerGroup);
       L.circleMarker(latLngs[0], { radius: 6, color: "green" }).addTo(layerGroup).bindTooltip("Start (gelegt)");
       if (!live) {
         L.circleMarker(latLngs[latLngs.length - 1], { radius: 6, color: "red" })
