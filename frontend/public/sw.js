@@ -1,4 +1,4 @@
-const CACHE_NAME = "canistrack-shell-v1";
+const CACHE_NAME = "canistrack-shell-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -12,6 +12,13 @@ self.addEventListener("activate", (event) => {
       .then(() => self.clients.claim()),
   );
 });
+
+// Next.js Build-Assets unter /_next/static/ sind inhaltsbasiert gehasht (der
+// Dateiname ändert sich, wenn sich der Inhalt ändert) - dafür ist cache-first
+// sicher und schnell, da eine alte URL niemals neuen Inhalt bekommt.
+function isImmutableBuildAsset(url) {
+  return url.pathname.startsWith("/_next/static/");
+}
 
 // API-Aufrufe an das Backend werden bewusst nicht gecacht - Schreibvorgänge
 // laufen offline über die IndexedDB-Warteschlange (siehe lib/offline-queue.ts),
@@ -44,16 +51,34 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request)
-        .then((response) => {
+  if (isImmutableBuildAsset(url)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           return response;
-        })
-        .catch(() => cached || new Response("", { status: 503, statusText: "Offline" }));
-    }),
+        });
+      }),
+    );
+    return;
+  }
+
+  // Alles andere (Icons, Manifest, Seiten-Daten/RSC-Payloads) bewusst
+  // network-first statt cache-first: diese Dateien sind NICHT inhaltsbasiert
+  // benannt, eine veraltete gecachte Antwort würde sonst auf unbestimmte Zeit
+  // ausgeliefert, sobald sie einmal im Cache liegt (auch nach einem neuen
+  // Deployment, solange CACHE_NAME unverändert bleibt) - das war die Ursache
+  // für "App zeigt veraltete Inhalte, nur Browserdaten löschen hilft".
+  // Cache dient hier nur als Offline-Fallback, nicht als primäre Quelle.
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        return response;
+      })
+      .catch(() => caches.match(request).then((cached) => cached || new Response("", { status: 503, statusText: "Offline" }))),
   );
 });

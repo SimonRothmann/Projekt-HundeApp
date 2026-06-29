@@ -25,9 +25,26 @@ export class ApiError extends Error {
   }
 }
 
+export const TOKEN_KEY = "canistrack_token";
+export const USER_KEY = "canistrack_user";
+
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem("canistrack_token");
+  return window.localStorage.getItem(TOKEN_KEY);
+}
+
+// Räumt eine ungültig gewordene Session auf (abgelaufenes/invalides JWT) und
+// schickt zum Login. Ohne das bleibt die App nach Tokenablauf in einem
+// kaputten Zustand stecken (alte Nutzerdaten im State, jeder weitere Request
+// schlägt mit 401 fehl) - Nutzer empfinden das als "App ist kaputt" und
+// löschen Browserdaten, um es zu beheben, statt dass die App selbst
+// reagiert.
+function handleExpiredSession() {
+  window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(USER_KEY);
+  if (!window.location.pathname.startsWith("/login")) {
+    window.location.href = "/login";
+  }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -41,6 +58,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${resolveApiUrl()}${path}`, { ...init, headers });
 
   if (!res.ok) {
+    // Nur Sessions mit zuvor gesendetem Token automatisch ausloggen - ein
+    // 401 ohne Token (z.B. falsches Passwort beim Login) ist eine normale,
+    // im jeweiligen Formular anzuzeigende Fehlermeldung, keine abgelaufene
+    // Session.
+    if (res.status === 401 && token) handleExpiredSession();
+
     let errors: string[] = [`HTTP ${res.status}`];
     try {
       const body = await res.json();
