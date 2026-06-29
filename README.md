@@ -205,3 +205,24 @@ npm run dev -- -H 0.0.0.0
 ```
 
 Auf dem Smartphone (im selben WLAN) `http://<Rechner-IP>:3000` aufrufen.
+
+## 5. Besonderheiten auf macOS (Homebrew)
+
+- **PostgreSQL@17 startet ggf. nicht** mit `FATAL: postmaster became
+  multithreaded during startup`, wenn `LC_ALL`/`LANG` nicht gesetzt sind.
+  Workaround: [`scripts/db-start.sh`](scripts/db-start.sh) /
+  [`scripts/db-stop.sh`](scripts/db-stop.sh) verwenden (setzt `LC_ALL`
+  nur für den Postgres-Prozess, ohne die Shell-Konfiguration global zu
+  ändern). `brew services start` funktioniert zudem nicht, falls
+  `~/Library/LaunchAgents` nicht für den eigenen Nutzer beschreibbar ist
+  (root-owned auf manchen Systemen) - die Skripte starten Postgres daher
+  direkt über `pg_ctl`, ohne launchd.
+- **`brew install dotnet` installiert nur die jeweils neueste Major-Version**
+  (aktuell .NET 10), das Backend braucht aber .NET 9 (`net9.0` in den
+  `.csproj`-Dateien). Zusätzlich `brew install dotnet@9` installieren (kann
+  parallel zu .NET 10 koexistieren, ist aber "keg-only" und landet nicht
+  automatisch im PATH). Backend-Befehle (`dotnet run`, `dotnet build`,
+  `dotnet ef ...`) dann mit vorangestelltem PATH ausführen:
+  ```bash
+  export PATH="/opt/homebrew/opt/dotnet@9/libexec:$PATH"
+  ```
