@@ -39,6 +39,8 @@ public interface IApplicationDbContext
 
     DbSet<GpsTrack> GpsTracks { get; }
     DbSet<GpsPoint> GpsPoints { get; }
+    DbSet<GpsWalkRun> GpsWalkRuns { get; }
+    DbSet<GpsWalkPoint> GpsWalkPoints { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

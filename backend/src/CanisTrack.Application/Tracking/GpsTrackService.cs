@@ -21,9 +21,14 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
         var tracks = await db.GpsTracks
             .Where(t => t.TrainingSessionId == trainingSessionId)
             .Include(t => t.Points)
+            .Include(t => t.WalkRuns).ThenInclude(r => r.Points)
+            .AsNoTracking()
             .ToListAsync(ct);
 
-        return Result<IReadOnlyList<GpsTrackDto>>.Success(tracks.Select(ToDto).ToList());
+        // Vereinfachung nur auf dem Lesepfad - der Client hat die Rohpunkte
+        // einer soeben erstellten Aufzeichnung (CreateAsync/AddWalkRunAsync)
+        // bereits selbst im Speicher, eine Vereinfachung dort brächte nichts.
+        return Result<IReadOnlyList<GpsTrackDto>>.Success(tracks.Select(t => ToDto(t, simplify: true)).ToList());
     }
 
     public async Task<Result<GpsTrackDto>> CreateAsync(Guid userId, CreateGpsTrackRequest request, CancellationToken ct = default)
@@ -53,7 +58,9 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
                 Latitude = point.Latitude,
                 Longitude = point.Longitude,
                 Timestamp = point.Timestamp,
-                Accuracy = point.Accuracy
+                Accuracy = point.Accuracy,
+                PointType = point.PointType,
+                Label = point.Label
             });
         }
 
@@ -61,6 +68,40 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
         await db.SaveChangesAsync(ct);
 
         return Result<GpsTrackDto>.Success(ToDto(track));
+    }
+
+    public async Task<Result<GpsWalkRunDto>> AddWalkRunAsync(Guid userId, Guid trackId, CreateGpsWalkRunRequest request, CancellationToken ct = default)
+    {
+        var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
+        if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
+            return Result<GpsWalkRunDto>.Failure("Fährte nicht gefunden.");
+
+        if (request.Points.Count == 0)
+            return Result<GpsWalkRunDto>.Failure("Ein Ablauf-Versuch benötigt mindestens einen GPS-Punkt.");
+
+        var walkRun = new GpsWalkRun
+        {
+            TrackId = trackId,
+            LengthMeters = request.LengthMeters,
+            Comment = request.Comment
+        };
+
+        foreach (var point in request.Points)
+        {
+            walkRun.Points.Add(new GpsWalkPoint
+            {
+                WalkRunId = walkRun.Id,
+                Latitude = point.Latitude,
+                Longitude = point.Longitude,
+                Timestamp = point.Timestamp,
+                Accuracy = point.Accuracy
+            });
+        }
+
+        db.GpsWalkRuns.Add(walkRun);
+        await db.SaveChangesAsync(ct);
+
+        return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
     }
 
     public async Task<Result> DeleteAsync(Guid userId, Guid trackId, CancellationToken ct = default)
@@ -84,17 +125,43 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
         return dogId != Guid.Empty && await db.HasDogAccessAsync(userId, dogId, ct);
     }
 
-    private static GpsTrackDto ToDto(GpsTrack t) => new(
-        t.Id,
-        t.TrainingSessionId,
-        t.LengthMeters,
-        t.AgeMinutes,
-        t.Surface,
-        t.Weather,
-        t.Wind,
-        t.Comment,
-        t.Points
-            .OrderBy(p => p.Timestamp)
-            .Select(p => new GpsPointDto(p.Latitude, p.Longitude, p.Timestamp, p.Accuracy))
-            .ToList());
+    private static GpsTrackDto ToDto(GpsTrack t, bool simplify = false)
+    {
+        var ordered = t.Points.OrderBy(p => p.Timestamp).ToList();
+        var points = ordered;
+        if (simplify)
+        {
+            // Manuelle Marker (gelegte Gegenstände) bleiben immer vollständig
+            // erhalten - nur die automatische GPS-Linie wird reduziert.
+            var automatic = ordered.Where(p => p.PointType != GpsPointType.Manual).ToList();
+            var manual = ordered.Where(p => p.PointType == GpsPointType.Manual);
+            points = GpsTrackSimplifier.Simplify(automatic).Concat(manual).OrderBy(p => p.Timestamp).ToList();
+        }
+
+        return new(
+            t.Id,
+            t.TrainingSessionId,
+            t.LengthMeters,
+            t.AgeMinutes,
+            t.Surface,
+            t.Weather,
+            t.Wind,
+            t.Comment,
+            points.Select(p => new GpsPointDto(p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, p.PointType, p.Label)).ToList(),
+            t.WalkRuns.OrderBy(r => r.CreatedAt).Select(r => ToWalkRunDto(r, simplify)).ToList());
+    }
+
+    private static GpsWalkRunDto ToWalkRunDto(GpsWalkRun r, bool simplify = false)
+    {
+        var ordered = r.Points.OrderBy(p => p.Timestamp).ToList();
+        var points = simplify ? GpsTrackSimplifier.Simplify(ordered) : ordered;
+
+        return new(
+            r.Id,
+            r.TrackId,
+            r.CreatedAt,
+            r.LengthMeters,
+            r.Comment,
+            points.Select(p => new GpsWalkPointDto(p.Latitude, p.Longitude, p.Timestamp, p.Accuracy)).ToList());
+    }
 }

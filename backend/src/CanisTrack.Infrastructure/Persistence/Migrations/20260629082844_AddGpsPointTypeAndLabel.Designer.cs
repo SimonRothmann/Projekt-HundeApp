@@ -3,6 +3,7 @@ using System;
 using CanisTrack.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CanisTrack.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260629082844_AddGpsPointTypeAndLabel")]
+    partial class AddGpsPointTypeAndLabel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -672,75 +675,6 @@ namespace CanisTrack.Infrastructure.Persistence.Migrations
                     b.ToTable("gps_tracks", (string)null);
                 });
 
-            modelBuilder.Entity("CanisTrack.Domain.Tracking.GpsWalkPoint", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<double?>("Accuracy")
-                        .HasColumnType("double precision");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<double>("Latitude")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Longitude")
-                        .HasColumnType("double precision");
-
-                    b.Property<DateTimeOffset>("Timestamp")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("WalkRunId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WalkRunId", "Timestamp");
-
-                    b.ToTable("gps_walk_points", (string)null);
-                });
-
-            modelBuilder.Entity("CanisTrack.Domain.Tracking.GpsWalkRun", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Comment")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<double?>("LengthMeters")
-                        .HasColumnType("double precision");
-
-                    b.Property<Guid>("TrackId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TrackId");
-
-                    b.ToTable("gps_walk_runs", (string)null);
-                });
-
             modelBuilder.Entity("CanisTrack.Domain.Training.TrainingExercise", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1178,28 +1112,6 @@ namespace CanisTrack.Infrastructure.Persistence.Migrations
                     b.Navigation("Track");
                 });
 
-            modelBuilder.Entity("CanisTrack.Domain.Tracking.GpsWalkPoint", b =>
-                {
-                    b.HasOne("CanisTrack.Domain.Tracking.GpsWalkRun", "WalkRun")
-                        .WithMany("Points")
-                        .HasForeignKey("WalkRunId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("WalkRun");
-                });
-
-            modelBuilder.Entity("CanisTrack.Domain.Tracking.GpsWalkRun", b =>
-                {
-                    b.HasOne("CanisTrack.Domain.Tracking.GpsTrack", "Track")
-                        .WithMany("WalkRuns")
-                        .HasForeignKey("TrackId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Track");
-                });
-
             modelBuilder.Entity("CanisTrack.Domain.Training.TrainingExercise", b =>
                 {
                     b.HasOne("CanisTrack.Domain.Sports.Exercise", "Exercise")
@@ -1320,13 +1232,6 @@ namespace CanisTrack.Infrastructure.Persistence.Migrations
                 });
 
             modelBuilder.Entity("CanisTrack.Domain.Tracking.GpsTrack", b =>
-                {
-                    b.Navigation("Points");
-
-                    b.Navigation("WalkRuns");
-                });
-
-            modelBuilder.Entity("CanisTrack.Domain.Tracking.GpsWalkRun", b =>
                 {
                     b.Navigation("Points");
                 });

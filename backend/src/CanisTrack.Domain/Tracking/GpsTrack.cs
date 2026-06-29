@@ -19,4 +19,11 @@ public class GpsTrack : Entity
     public string? Comment { get; set; }
 
     public ICollection<GpsPoint> Points { get; set; } = new List<GpsPoint>();
+
+    /// <summary>
+    /// Aufzeichnungen, bei denen die gelegte Fährte mit dem Hund abgelaufen
+    /// wurde (siehe <see cref="GpsWalkRun"/>). Mehrere Abläufe pro gelegter
+    /// Fährte sind möglich (z.B. Wiederholungsversuche).
+    /// </summary>
+    public ICollection<GpsWalkRun> WalkRuns { get; set; } = new List<GpsWalkRun>();
 }

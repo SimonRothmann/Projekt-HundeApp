@@ -1,15 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { GpsPoint, TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Square } from "lucide-react";
+import { MapPin, MapPinPlus, Square } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
+import { estimateLengthMeters } from "@/lib/geo";
+import { useGpsRecorder } from "@/lib/use-gps-recorder";
+
+function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
+  return {
+    latitude: position.coords.latitude,
+    longitude: position.coords.longitude,
+    timestamp: new Date(position.timestamp).toISOString(),
+    accuracy: position.coords.accuracy,
+    pointType: 0,
+    label: null,
+  };
+}
 
 /**
  * Direkter Einstiegspunkt für die GPS-Fährtenaufzeichnung, ohne vorher ein
@@ -19,55 +32,32 @@ import { enqueueRequest } from "@/lib/offline-queue";
  * voneinander - auch offline - synchronisiert werden können.
  */
 export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () => Promise<void> }) {
-  const [isRecording, setIsRecording] = useState(false);
-  const [points, setPoints] = useState<GpsPoint[]>([]);
+  const { isRecording, points, setPoints, start, stop, markPoint } = useGpsRecorder(toAutomaticPoint);
   const [surface, setSurface] = useState("");
-  const watchIdRef = useRef<number | null>(null);
+  const [markLabel, setMarkLabel] = useState("");
+  const [isMarking, setIsMarking] = useState(false);
   const startedAtRef = useRef<number>(0);
 
-  useEffect(() => {
-    // Falls die Seite verlassen wird, während noch aufgezeichnet wird (z.B.
-    // Navigation ohne vorher "Stoppen" zu klicken): GPS-Watch beenden, sonst
-    // läuft watchPosition unbegrenzt im Hintergrund weiter und ruft den
-    // Callback einer längst unmounteten Komponente weiter auf - mit jeder
-    // vergessenen Aufnahme ein weiterer, nie endender hochfrequenter
-    // GPS-Listener, der die App zunehmend träge macht.
-    return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-    };
-  }, []);
-
   function startRecording() {
-    if (!("geolocation" in navigator)) {
-      toast.error("Geolocation wird von diesem Browser nicht unterstützt.");
-      return;
-    }
-    setPoints([]);
     startedAtRef.current = Date.now();
-    setIsRecording(true);
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const point: GpsPoint = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          timestamp: new Date(position.timestamp).toISOString(),
-          accuracy: position.coords.accuracy,
-        };
-        setPoints((prev) => [...prev, point]);
+    start();
+  }
+
+  function markObject() {
+    setIsMarking(true);
+    markPoint(
+      (point) => {
+        setPoints((prev) => [...prev, { ...point, pointType: 1, label: markLabel.trim() || null }]);
+        setMarkLabel("");
+        setIsMarking(false);
+        toast.success("Gegenstand markiert.");
       },
-      (error) => toast.error(`GPS-Fehler: ${error.message}`),
-      { enableHighAccuracy: true, maximumAge: 1000 },
+      () => setIsMarking(false),
     );
   }
 
   async function stopRecording() {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-    setIsRecording(false);
+    stop();
 
     if (points.length === 0) {
       toast.error("Keine GPS-Punkte aufgezeichnet.");
@@ -148,32 +138,29 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
                 onChange={(e) => setSurface(e.target.value)}
               />
             </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="flex flex-col gap-2 sm:w-64">
+                <Label htmlFor="fahrte-mark-label">Gegenstand markieren (optional)</Label>
+                <Input
+                  id="fahrte-mark-label"
+                  placeholder="z.B. Schussstelle, Apportel"
+                  value={markLabel}
+                  onChange={(e) => setMarkLabel(e.target.value)}
+                />
+              </div>
+              <Button type="button" variant="outline" onClick={markObject} disabled={isMarking}>
+                <MapPinPlus className="size-4" />
+                {isMarking ? "Markiere…" : "Punkt setzen"}
+              </Button>
+            </div>
             <Button variant="destructive" onClick={stopRecording} className="self-start">
               <Square className="size-4" />
-              Stoppen ({points.length} Punkte)
+              Stoppen ({points.filter((p) => p.pointType !== 1).length} Punkte,{" "}
+              {points.filter((p) => p.pointType === 1).length} Marker)
             </Button>
           </>
         )}
       </CardContent>
     </Card>
   );
-}
-
-function estimateLengthMeters(points: GpsPoint[]): number {
-  let total = 0;
-  for (let i = 1; i < points.length; i++) {
-    total += haversineMeters(points[i - 1], points[i]);
-  }
-  return Math.round(total);
-}
-
-function haversineMeters(a: GpsPoint, b: GpsPoint): number {
-  const earthRadiusMeters = 6371000;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(b.latitude - a.latitude);
-  const dLon = toRad(b.longitude - a.longitude);
-  const sinDLat = Math.sin(dLat / 2);
-  const sinDLon = Math.sin(dLon / 2);
-  const h = sinDLat * sinDLat + Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * sinDLon * sinDLon;
-  return 2 * earthRadiusMeters * Math.asin(Math.sqrt(h));
 }

@@ -1,22 +1,43 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { GpsPoint, GpsTrack } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TrackMap } from "@/components/tracking/track-map";
-import { MapPin, Square } from "lucide-react";
+import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
+import { MapPin, MapPinPlus, Square } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
+import { estimateLengthMeters } from "@/lib/geo";
+import { useGpsRecorder } from "@/lib/use-gps-recorder";
+
+function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
+  return {
+    latitude: position.coords.latitude,
+    longitude: position.coords.longitude,
+    timestamp: new Date(position.timestamp).toISOString(),
+    accuracy: position.coords.accuracy,
+    pointType: 0,
+    label: null,
+  };
+}
 
 export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: string }) {
   const [tracks, setTracks] = useState<GpsTrack[] | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordedPoints, setRecordedPoints] = useState<GpsPoint[]>([]);
+  const {
+    isRecording,
+    points: recordedPoints,
+    setPoints: setRecordedPoints,
+    start: startRecording,
+    stop,
+    markPoint,
+  } = useGpsRecorder(toAutomaticPoint);
   const [surface, setSurface] = useState("");
-  const watchIdRef = useRef<number | null>(null);
+  const [markLabel, setMarkLabel] = useState("");
+  const [isMarking, setIsMarking] = useState(false);
 
   async function loadTracks() {
     try {
@@ -34,47 +55,21 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trainingSessionId]);
 
-  useEffect(() => {
-    // Falls die Seite verlassen wird, während noch aufgezeichnet wird (z.B.
-    // Navigation ohne vorher "Stoppen" zu klicken): GPS-Watch beenden, sonst
-    // läuft watchPosition unbegrenzt im Hintergrund weiter - mit jeder
-    // vergessenen Aufnahme ein weiterer, nie endender hochfrequenter
-    // GPS-Listener, der die App zunehmend träge macht.
-    return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-    };
-  }, []);
-
-  function startRecording() {
-    if (!("geolocation" in navigator)) {
-      toast.error("Geolocation wird von diesem Browser nicht unterstützt.");
-      return;
-    }
-    setRecordedPoints([]);
-    setIsRecording(true);
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const point: GpsPoint = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          timestamp: new Date(position.timestamp).toISOString(),
-          accuracy: position.coords.accuracy,
-        };
-        setRecordedPoints((prev) => [...prev, point]);
+  function markObject() {
+    setIsMarking(true);
+    markPoint(
+      (point) => {
+        setRecordedPoints((prev) => [...prev, { ...point, pointType: 1, label: markLabel.trim() || null }]);
+        setMarkLabel("");
+        setIsMarking(false);
+        toast.success("Gegenstand markiert.");
       },
-      (error) => toast.error(`GPS-Fehler: ${error.message}`),
-      { enableHighAccuracy: true, maximumAge: 1000 },
+      () => setIsMarking(false),
     );
   }
 
   async function stopRecording() {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-    setIsRecording(false);
+    stop();
 
     if (recordedPoints.length === 0) {
       toast.error("Keine GPS-Punkte aufgezeichnet.");
@@ -123,20 +118,38 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
         ) : (
           <Button size="sm" variant="destructive" onClick={stopRecording}>
             <Square className="size-4" />
-            Stoppen ({recordedPoints.length} Punkte)
+            Stoppen ({recordedPoints.filter((p) => p.pointType !== 1).length} Punkte,{" "}
+            {recordedPoints.filter((p) => p.pointType === 1).length} Marker)
           </Button>
         )}
       </div>
 
       {isRecording && (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={`surface-${trainingSessionId}`}>Untergrund</Label>
-          <Input
-            id={`surface-${trainingSessionId}`}
-            placeholder="z.B. Wiese, Acker, Wald"
-            value={surface}
-            onChange={(e) => setSurface(e.target.value)}
-          />
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={`surface-${trainingSessionId}`}>Untergrund</Label>
+            <Input
+              id={`surface-${trainingSessionId}`}
+              placeholder="z.B. Wiese, Acker, Wald"
+              value={surface}
+              onChange={(e) => setSurface(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="flex flex-col gap-2 sm:w-64">
+              <Label htmlFor={`mark-label-${trainingSessionId}`}>Gegenstand markieren (optional)</Label>
+              <Input
+                id={`mark-label-${trainingSessionId}`}
+                placeholder="z.B. Schussstelle, Apportel"
+                value={markLabel}
+                onChange={(e) => setMarkLabel(e.target.value)}
+              />
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={markObject} disabled={isMarking}>
+              <MapPinPlus className="size-4" />
+              {isMarking ? "Markiere…" : "Punkt setzen"}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -148,35 +161,24 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
         <div className="flex flex-col gap-4">
           {tracks.map((track) => (
             <div key={track.id} className="flex flex-col gap-2">
-              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
-                {track.surface && <span>{track.surface}</span>}
-                {track.comment && <span>{track.comment}</span>}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                  {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
+                  {track.surface && <span>{track.surface}</span>}
+                  {track.comment && <span>{track.comment}</span>}
+                </div>
+                <WalkRunRecorder trackId={track.id} onSaved={loadTracks} />
               </div>
-              <TrackMap points={track.points} />
+              <TrackMap points={track.points} walkRuns={track.walkRuns} />
+              {track.walkRuns.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {track.walkRuns.length} Ablauf-Versuch(e) - gestrichelt auf der Karte zum Vergleich.
+                </p>
+              )}
             </div>
           ))}
         </div>
       )}
     </div>
   );
-}
-
-function estimateLengthMeters(points: GpsPoint[]): number {
-  let total = 0;
-  for (let i = 1; i < points.length; i++) {
-    total += haversineMeters(points[i - 1], points[i]);
-  }
-  return Math.round(total);
-}
-
-function haversineMeters(a: GpsPoint, b: GpsPoint): number {
-  const earthRadiusMeters = 6371000;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(b.latitude - a.latitude);
-  const dLon = toRad(b.longitude - a.longitude);
-  const sinDLat = Math.sin(dLat / 2);
-  const sinDLon = Math.sin(dLon / 2);
-  const h = sinDLat * sinDLat + Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * sinDLon * sinDLon;
-  return 2 * earthRadiusMeters * Math.asin(Math.sqrt(h));
 }

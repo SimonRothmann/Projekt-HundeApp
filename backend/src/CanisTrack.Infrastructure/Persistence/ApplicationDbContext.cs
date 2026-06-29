@@ -45,6 +45,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<GpsTrack> GpsTracks => Set<GpsTrack>();
     public DbSet<GpsPoint> GpsPoints => Set<GpsPoint>();
+    public DbSet<GpsWalkRun> GpsWalkRuns => Set<GpsWalkRun>();
+    public DbSet<GpsWalkPoint> GpsWalkPoints => Set<GpsWalkPoint>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -83,5 +85,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<ClubTrainer>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsTrack>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsPoint>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GpsWalkRun>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GpsWalkPoint>().HasQueryFilter(e => e.DeletedAt == null);
     }
 }

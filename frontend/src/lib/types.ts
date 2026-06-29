@@ -26,7 +26,7 @@ export type Sport = {
   description: string | null;
 };
 
-export type ExerciseDifficulty = "Beginner" | "Intermediate" | "Advanced";
+export type ExerciseDifficulty = 0 | 1 | 2; // 0 = Beginner, 1 = Intermediate, 2 = Advanced (siehe Domain.Sports.ExerciseDifficulty)
 
 export type Exercise = {
   id: string;
@@ -190,11 +190,31 @@ export type AdminUser = {
   roles: string[];
 };
 
+export type GpsPointType = 0 | 1; // 0 = Automatic, 1 = Manual (siehe Domain.Tracking.GpsPointType)
+
 export type GpsPoint = {
   latitude: number;
   longitude: number;
   timestamp: string;
   accuracy: number | null;
+  pointType: GpsPointType;
+  label: string | null;
+};
+
+export type GpsWalkPoint = {
+  latitude: number;
+  longitude: number;
+  timestamp: string;
+  accuracy: number | null;
+};
+
+export type GpsWalkRun = {
+  id: string;
+  trackId: string;
+  createdAt: string;
+  lengthMeters: number | null;
+  comment: string | null;
+  points: GpsWalkPoint[];
 };
 
 export type GpsTrack = {
@@ -207,4 +227,5 @@ export type GpsTrack = {
   wind: string | null;
   comment: string | null;
   points: GpsPoint[];
+  walkRuns: GpsWalkRun[];
 };
