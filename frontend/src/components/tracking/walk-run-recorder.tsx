@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { estimateLengthMeters } from "@/lib/geo";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
+import { TrackMap } from "@/components/tracking/track-map";
 
 function toWalkPoint(position: GeolocationPosition): GpsWalkPoint {
   return {
@@ -65,9 +66,12 @@ export function WalkRunRecorder({ trackId, onSaved }: { trackId: string; onSaved
   }
 
   return (
-    <Button size="sm" variant="destructive" onClick={stopRecording}>
-      <Square className="size-4" />
-      Stoppen ({points.length} Punkte)
-    </Button>
+    <div className="flex flex-col gap-2">
+      <Button size="sm" variant="destructive" onClick={stopRecording} className="self-start">
+        <Square className="size-4" />
+        Stoppen ({points.length} Punkte)
+      </Button>
+      <TrackMap points={points} live />
+    </div>
   );
 }

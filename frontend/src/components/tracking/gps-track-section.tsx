@@ -150,6 +150,7 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
               {isMarking ? "Markiere…" : "Punkt setzen"}
             </Button>
           </div>
+          <TrackMap points={recordedPoints} live />
         </div>
       )}
 
@@ -161,14 +162,12 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
         <div className="flex flex-col gap-4">
           {tracks.map((track) => (
             <div key={track.id} className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                  {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
-                  {track.surface && <span>{track.surface}</span>}
-                  {track.comment && <span>{track.comment}</span>}
-                </div>
-                <WalkRunRecorder trackId={track.id} onSaved={loadTracks} />
+              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
+                {track.surface && <span>{track.surface}</span>}
+                {track.comment && <span>{track.comment}</span>}
               </div>
+              <WalkRunRecorder trackId={track.id} onSaved={loadTracks} />
               <TrackMap points={track.points} walkRuns={track.walkRuns} />
               {track.walkRuns.length > 0 && (
                 <p className="text-xs text-muted-foreground">

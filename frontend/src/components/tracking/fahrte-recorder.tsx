@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { estimateLengthMeters } from "@/lib/geo";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
+import { TrackMap } from "@/components/tracking/track-map";
 
 function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
   return {
@@ -158,6 +159,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
               Stoppen ({points.filter((p) => p.pointType !== 1).length} Punkte,{" "}
               {points.filter((p) => p.pointType === 1).length} Marker)
             </Button>
+            <TrackMap points={points} live />
           </>
         )}
       </CardContent>

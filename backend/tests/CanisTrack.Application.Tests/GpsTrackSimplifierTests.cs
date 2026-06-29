@@ -11,7 +11,7 @@ public class GpsTrackSimplifierTests
     [Fact]
     public void Simplify_BelowThreshold_ReturnsAllPointsUnchanged()
     {
-        var points = Enumerable.Range(0, 50)
+        var points = Enumerable.Range(0, 1000)
             .Select(i => MakePoint(52.5 + i * 0.0001, 13.4 + i * 0.0001))
             .ToList();
 
@@ -24,10 +24,10 @@ public class GpsTrackSimplifierTests
     [Fact]
     public void Simplify_StraightLineWithManyPoints_ReducesToEndpoints()
     {
-        // 300 Punkte exakt auf einer Geraden - alle Zwischenpunkte sind
+        // 2500 Punkte exakt auf einer Geraden - alle Zwischenpunkte sind
         // redundant und sollten entfernt werden.
-        var points = Enumerable.Range(0, 300)
-            .Select(i => MakePoint(52.5 + i * 0.00001, 13.4 + i * 0.00001))
+        var points = Enumerable.Range(0, 2500)
+            .Select(i => MakePoint(52.5 + i * 0.000001, 13.4 + i * 0.000001))
             .ToList();
 
         var result = GpsTrackSimplifier.Simplify(points);
@@ -40,11 +40,11 @@ public class GpsTrackSimplifierTests
     [Fact]
     public void Simplify_KeepsSignificantDetour()
     {
-        // 250 Punkte auf einer Geraden, aber ein Punkt in der Mitte weicht
-        // deutlich (>3m Toleranz) ab - dieser muss erhalten bleiben, damit
+        // 2200 Punkte auf einer Geraden, aber ein Punkt in der Mitte weicht
+        // deutlich (>1m Toleranz) ab - dieser muss erhalten bleiben, damit
         // die Linienführung nicht verfälscht wird.
-        var points = Enumerable.Range(0, 250)
-            .Select(i => MakePoint(52.5 + i * 0.00001, 13.4))
+        var points = Enumerable.Range(0, 2200)
+            .Select(i => MakePoint(52.5 + i * 0.000001, 13.4))
             .ToList();
         var detourIndex = points.Count / 2;
         points[detourIndex] = MakePoint(points[detourIndex].Latitude, 13.4 + 0.001);
@@ -57,8 +57,8 @@ public class GpsTrackSimplifierTests
     [Fact]
     public void Simplify_AlwaysKeepsFirstAndLastPoint()
     {
-        var points = Enumerable.Range(0, 400)
-            .Select(i => MakePoint(52.5 + i * 0.00002, 13.4 + i * 0.00003))
+        var points = Enumerable.Range(0, 2100)
+            .Select(i => MakePoint(52.5 + i * 0.000002, 13.4 + i * 0.000003))
             .ToList();
 
         var result = GpsTrackSimplifier.Simplify(points);

@@ -13,14 +13,20 @@ namespace CanisTrack.Application.Tracking;
 /// </summary>
 public static class GpsTrackSimplifier
 {
-    // Handelsübliche Smartphone-GPS-Empfänger haben ohnehin nur eine
-    // Genauigkeit von wenigen Metern - eine Vereinfachung innerhalb dieser
-    // Toleranz verändert die sichtbare Linienführung praktisch nicht.
-    private const double ToleranceMeters = 3.0;
+    // Bewusst eng: bei Schrittgeschwindigkeit liegen aufeinanderfolgende
+    // Punkte oft nur ~1m auseinander, eine scharfe Abbiegung (z.B. 90°-Winkel
+    // einer Fährte) weicht dann nur 0,5-1m von der Geraden zwischen
+    // Vorgänger- und Nachfolgepunkt ab. Eine zu großzügige Toleranz würde
+    // genau die Abbiegungen wegglätten, die für die Fährtenarbeit zählen
+    // (siehe TODO.md) - 1m liegt knapp unterhalb solcher Winkel, entfernt
+    // aber noch redundante Punkte auf wirklich geraden Abschnitten.
+    private const double ToleranceMeters = 1.0;
 
-    // Kurze Fährten (die meisten Trainingseinheiten) lohnen den
-    // Rechenaufwand nicht und sollen unverändert bleiben.
-    private const int MinPointsBeforeSimplifying = 200;
+    // Nur als Sicherheitsnetz für pathologisch lange Aufzeichnungen (z.B.
+    // versehentlich stundenlang laufen gelassen) - reguläre Trainingstracks
+    // (auch bei mehreren Punkten/Sekunde) sollen unverändert bleiben, damit
+    // keine Abbiegung verloren geht.
+    private const int MinPointsBeforeSimplifying = 2000;
 
     public static IReadOnlyList<T> Simplify<T>(IReadOnlyList<T> points) where T : IGeoPoint
     {
