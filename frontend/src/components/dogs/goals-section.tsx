@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Target } from "lucide-react";
 import { toast } from "sonner";
 
@@ -95,19 +96,18 @@ export function GoalsSection({ dogId, sports }: { dogId: string; sports: Sport[]
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label>Sportart</Label>
-                  <select
-                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-                    required
-                    value={sportId}
-                    onChange={(e) => setSportId(e.target.value)}
-                  >
-                    <option value="">Auswählen…</option>
-                    {sports.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Select required value={sportId} onValueChange={(value) => setSportId(value ?? "")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Auswählen…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sports.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="targetDate">Zieldatum</Label>

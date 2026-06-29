@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dog as DogIcon, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
@@ -16,6 +17,7 @@ import { GpsTrackSection } from "@/components/tracking/gps-track-section";
 import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
 import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
 import { enqueueRequest } from "@/lib/offline-queue";
+import { difficultyLabel } from "@/lib/constants";
 
 type ExerciseRow = {
   sportId: string;
@@ -23,12 +25,6 @@ type ExerciseRow = {
   rating: number;
   success: boolean;
   notes: string;
-};
-
-const difficultyLabel: Record<Exercise["difficulty"], string> = {
-  Beginner: "Einsteiger",
-  Intermediate: "Fortgeschritten",
-  Advanced: "Erfahren",
 };
 
 function emptyRow(): ExerciseRow {
@@ -208,34 +204,40 @@ export default function DogDetailPage() {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                       <div className="flex flex-col gap-2 sm:w-48">
                         <Label>Sportart</Label>
-                        <select
-                          className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                        <Select
                           value={row.sportId}
-                          onChange={(e) => handleSportChange(index, e.target.value)}
+                          onValueChange={(value) => handleSportChange(index, value ?? "")}
                         >
-                          <option value="">Auswählen…</option>
-                          {sports.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                        </select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Auswählen…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {sports.map((s) => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="flex flex-col gap-2 sm:w-56">
                         <Label>Übung</Label>
-                        <select
-                          className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                        <Select
                           value={row.exerciseId}
                           disabled={!row.sportId}
-                          onChange={(e) => updateRow(index, { exerciseId: e.target.value })}
+                          onValueChange={(value) => updateRow(index, { exerciseId: value ?? "" })}
                         >
-                          <option value="">Auswählen…</option>
-                          {exercises.map((ex) => (
-                            <option key={ex.id} value={ex.id}>
-                              {ex.name} ({difficultyLabel[ex.difficulty]})
-                            </option>
-                          ))}
-                        </select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Auswählen…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {exercises.map((ex) => (
+                              <SelectItem key={ex.id} value={ex.id}>
+                                {ex.name} ({difficultyLabel[ex.difficulty]})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="flex flex-col gap-2">
                         <Label>Bewertung</Label>

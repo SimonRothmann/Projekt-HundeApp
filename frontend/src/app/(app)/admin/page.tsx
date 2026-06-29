@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, Dog, Users2, ClipboardList, MapPin, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 import { ClubsSection } from "@/components/admin/clubs-section";
@@ -120,34 +121,37 @@ export default function AdminPage() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex flex-col gap-2 sm:w-56">
                 <Label>Sportart</Label>
-                <select
-                  className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-                  value={selectedSportId}
-                  onChange={(e) => handleSportChange(e.target.value)}
-                >
-                  <option value="">Auswählen…</option>
-                  {sports?.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
+                <Select value={selectedSportId} onValueChange={(value) => handleSportChange(value ?? "")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Auswählen…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sports?.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex flex-col gap-2 sm:w-56">
                 <Label>Prüfungsordnung</Label>
-                <select
-                  className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                <Select
                   value={selectedRegulationId}
                   disabled={!selectedSportId}
-                  onChange={(e) => handleRegulationChange(e.target.value)}
+                  onValueChange={(value) => handleRegulationChange(value ?? "")}
                 >
-                  <option value="">Auswählen…</option>
-                  {regulations.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Auswählen…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regulations.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             {selectedRegulationId && (

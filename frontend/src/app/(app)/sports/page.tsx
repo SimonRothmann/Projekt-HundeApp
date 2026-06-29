@@ -7,12 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, ChevronDown, ChevronRight, ScrollText } from "lucide-react";
 import { toast } from "sonner";
-
-const difficultyLabel: Record<Exercise["difficulty"], string> = {
-  Beginner: "Einsteiger",
-  Intermediate: "Fortgeschritten",
-  Advanced: "Erfahren",
-};
+import { difficultyLabel } from "@/lib/constants";
 
 export default function SportsPage() {
   const [sports, setSports] = useState<Sport[] | null>(null);

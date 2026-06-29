@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { ClubExercisesSection } from "@/components/trainer/club-exercises-section";
@@ -89,18 +90,19 @@ export default function TrainerPage() {
             {myClubs.length > 0 && (
               <div className="flex flex-col gap-2 sm:w-48">
                 <Label>Verein (optional)</Label>
-                <select
-                  className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-                  value={clubId}
-                  onChange={(e) => setClubId(e.target.value)}
-                >
-                  <option value="">Kein Verein</option>
-                  {myClubs.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <Select value={clubId} onValueChange={(value) => setClubId(value ?? "")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Kein Verein</SelectItem>
+                    {myClubs.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
             <Button type="submit" disabled={submitting}>

@@ -7,14 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dumbbell, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
-const difficultyLabel: Record<ExerciseDifficulty, string> = {
-  Beginner: "Einsteiger",
-  Intermediate: "Fortgeschritten",
-  Advanced: "Erfahren",
-};
+import { difficultyLabel } from "@/lib/constants";
 
 export function ClubExercisesSection({ clubs }: { clubs: Club[] }) {
   const [sports, setSports] = useState<Sport[]>([]);
@@ -23,7 +19,7 @@ export function ClubExercisesSection({ clubs }: { clubs: Club[] }) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [name, setName] = useState("");
   const [scoringCriteria, setScoringCriteria] = useState("");
-  const [difficulty, setDifficulty] = useState<ExerciseDifficulty>("Beginner");
+  const [difficulty, setDifficulty] = useState<ExerciseDifficulty>(0);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -104,33 +100,34 @@ export function ClubExercisesSection({ clubs }: { clubs: Club[] }) {
           {clubs.length > 1 && (
             <div className="flex flex-col gap-2 sm:w-56">
               <Label>Verein</Label>
-              <select
-                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-                value={selectedClubId}
-                onChange={(e) => handleClubChange(e.target.value)}
-              >
-                {clubs.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <Select value={selectedClubId} onValueChange={(value) => handleClubChange(value ?? "")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {clubs.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
           <div className="flex flex-col gap-2 sm:w-56">
             <Label>Sportart</Label>
-            <select
-              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-              value={selectedSportId}
-              onChange={(e) => handleSportChange(e.target.value)}
-            >
-              <option value="">Auswählen…</option>
-              {sports.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedSportId} onValueChange={(value) => handleSportChange(value ?? "")}>
+              <SelectTrigger>
+                <SelectValue placeholder="Auswählen…" />
+              </SelectTrigger>
+              <SelectContent>
+                {sports.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -151,17 +148,21 @@ export function ClubExercisesSection({ clubs }: { clubs: Club[] }) {
               </div>
               <div className="flex flex-col gap-2 sm:w-40">
                 <Label>Schwierigkeit</Label>
-                <select
-                  className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                <Select
                   value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value as ExerciseDifficulty)}
+                  onValueChange={(value) => setDifficulty(value as ExerciseDifficulty)}
                 >
-                  {Object.entries(difficultyLabel).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(difficultyLabel).map(([value, label]) => (
+                      <SelectItem key={value} value={Number(value) as ExerciseDifficulty}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <Button type="submit" disabled={submitting}>
                 <Plus className="size-4" />

@@ -7,14 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dumbbell, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
-const difficultyLabel: Record<ExerciseDifficulty, string> = {
-  Beginner: "Einsteiger",
-  Intermediate: "Fortgeschritten",
-  Advanced: "Erfahren",
-};
+import { difficultyLabel } from "@/lib/constants";
 
 export function GlobalExercisesSection() {
   const [sports, setSports] = useState<Sport[]>([]);
@@ -22,7 +18,7 @@ export function GlobalExercisesSection() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
-  const [difficulty, setDifficulty] = useState<ExerciseDifficulty>("Beginner");
+  const [difficulty, setDifficulty] = useState<ExerciseDifficulty>(0);
   const [scoringCriteria, setScoringCriteria] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -98,18 +94,18 @@ export function GlobalExercisesSection() {
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-2 sm:w-64">
           <Label>Sportart</Label>
-          <select
-            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-            value={selectedSportId}
-            onChange={(e) => handleSportChange(e.target.value)}
-          >
-            <option value="">Auswählen…</option>
-            {sports.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <Select value={selectedSportId} onValueChange={(value) => handleSportChange(value ?? "")}>
+            <SelectTrigger>
+              <SelectValue placeholder="Auswählen…" />
+            </SelectTrigger>
+            <SelectContent>
+              {sports.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {selectedSportId && (
@@ -126,17 +122,21 @@ export function GlobalExercisesSection() {
                 </div>
                 <div className="flex flex-col gap-2 sm:w-40">
                   <Label>Schwierigkeit</Label>
-                  <select
-                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                  <Select
                     value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value as ExerciseDifficulty)}
+                    onValueChange={(value) => setDifficulty(value as ExerciseDifficulty)}
                   >
-                    {Object.entries(difficultyLabel).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(difficultyLabel).map(([value, label]) => (
+                        <SelectItem key={value} value={Number(value) as ExerciseDifficulty}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="flex flex-col gap-2">

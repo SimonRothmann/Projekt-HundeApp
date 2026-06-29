@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dog as DogIcon, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -87,15 +88,18 @@ export default function DogsPage() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="gender">Geschlecht</Label>
-                  <select
-                    id="gender"
-                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                  <Select
                     value={gender}
-                    onChange={(e) => setGender(Number(e.target.value) as 0 | 1)}
+                    onValueChange={(value) => setGender(value as 0 | 1)}
                   >
-                    <option value={0}>Rüde</option>
-                    <option value={1}>Hündin</option>
-                  </select>
+                    <SelectTrigger id="gender">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={0}>Rüde</SelectItem>
+                      <SelectItem value={1}>Hündin</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <Button type="submit" className="self-start" disabled={isSubmitting}>

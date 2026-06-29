@@ -10,6 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PawPrint } from "lucide-react";
 
+// Nur für die lokale Dev-Datenbank (DemoDataSeeder, siehe TODO.md) - existiert
+// nicht in Production und wird daher dort nicht angezeigt.
+const DEMO_ACCOUNTS = [
+  { label: "Admin", email: "admin@canistrack.test" },
+  { label: "Trainer", email: "trainer@canistrack.test" },
+  { label: "Mitglied 1", email: "mitglied1@canistrack.test" },
+  { label: "Mitglied 2", email: "mitglied2@canistrack.test" },
+] as const;
+const DEMO_PASSWORD = "Demo1234!";
+
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
@@ -18,18 +28,22 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function doLogin(loginEmail: string, loginPassword: string) {
     setError(null);
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(loginEmail, loginPassword);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Anmeldung fehlgeschlagen.");
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    await doLogin(email, password);
   }
 
   return (
@@ -75,6 +89,27 @@ export default function LoginPage() {
               Registrieren
             </Link>
           </p>
+          {process.env.NODE_ENV !== "production" && (
+            <div className="mt-6 border-t pt-4">
+              <p className="mb-2 text-center text-xs text-muted-foreground">
+                Demo-Login (nur lokale Entwicklung)
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {DEMO_ACCOUNTS.map((account) => (
+                  <Button
+                    key={account.email}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isSubmitting}
+                    onClick={() => doLogin(account.email, DEMO_PASSWORD)}
+                  >
+                    {account.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </main>
