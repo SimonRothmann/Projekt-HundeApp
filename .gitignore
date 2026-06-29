@@ -4,6 +4,9 @@ backend/**/obj/
 *.user
 *.suo
 
+# Lokale mkcert-Zertifikate für HTTPS-Tests im LAN (private Keys, gerätespezifisch)
+/certs/
+
 # Node / Next.js
 frontend/node_modules/
 frontend/.next/

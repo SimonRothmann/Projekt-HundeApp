@@ -1,3 +1,10 @@
+// Kestrel-Ports aus backend/src/CanisTrack.Api/Properties/launchSettings.json.
+// HTTPS ist nötig, um die App von einem iPhone aus testen zu können -
+// Safari verweigert navigator.geolocation außerhalb von localhost ohne
+// HTTPS komplett, sogar ohne den System-Berechtigungsdialog anzuzeigen.
+const BACKEND_HTTP_PORT = "5080";
+const BACKEND_HTTPS_PORT = "7297";
+
 /**
  * Ermittelt die Backend-URL. NEXT_PUBLIC_API_URL wird zur Build-Zeit fest
  * in das Client-Bundle eingebacken - "localhost" funktioniert dort aber
@@ -7,6 +14,10 @@
  * dem Backend. Ist NEXT_PUBLIC_API_URL nicht gesetzt oder zeigt explizit
  * auf localhost/127.0.0.1, wird daher zur Laufzeit der tatsächlich
  * aufgerufene Host der Seite verwendet (gleicher Rechner, Backend-Port).
+ * Der Port richtet sich nach dem Protokoll der aufrufenden Seite, nicht
+ * nach dem in NEXT_PUBLIC_API_URL konfigurierten - läuft das Frontend per
+ * `npm run dev:https` über HTTPS, muss auch das Backend über seinen
+ * HTTPS-Port angesprochen werden, sonst schlägt die Verbindung fehl.
  */
 function resolveApiUrl(): string {
   const configured = process.env.NEXT_PUBLIC_API_URL;
@@ -15,7 +26,7 @@ function resolveApiUrl(): string {
   const isLocalhostConfigured = !configured || /^https?:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(configured);
   if (!isLocalhostConfigured) return configured;
 
-  const port = configured ? new URL(configured).port || "5080" : "5080";
+  const port = window.location.protocol === "https:" ? BACKEND_HTTPS_PORT : BACKEND_HTTP_PORT;
   return `${window.location.protocol}//${window.location.hostname}:${port}`;
 }
 

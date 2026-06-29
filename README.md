@@ -194,7 +194,10 @@ und ist damit im LAN erreichbar; CORS ist in Development bewusst permissiv
 (siehe `Program.cs`). Lediglich `NEXT_PUBLIC_API_URL` in `frontend/.env.local`
 nicht auf eine feste, abweichende Adresse setzen - bleibt sie leer oder auf
 `localhost`, ermittelt das Frontend die Backend-Adresse automatisch passend
-zum aufgerufenen Host (siehe `lib/api.ts`).
+zum aufgerufenen Host (siehe `lib/api.ts`). `next.config.ts` enthält außerdem
+`allowedDevOrigins` (LAN-Subnetz) - ohne das blockt Next.js 15+ standardmäßig
+Cross-Origin-Zugriffe auf Dev-Server-Assets, die Seite lädt zwar, React
+hydratisiert aber nie (Formulare lösen dann nur einen Browser-Reload aus).
 
 ```bash
 # Rechner-IP im lokalen Netz ermitteln (Windows):
@@ -205,6 +208,40 @@ npm run dev -- -H 0.0.0.0
 ```
 
 Auf dem Smartphone (im selben WLAN) `http://<Rechner-IP>:3000` aufrufen.
+
+### GPS/Fährtenaufzeichnung vom iPhone testen: HTTPS nötig
+
+iOS Safari erlaubt `navigator.geolocation` nur in einem Secure Context
+(HTTPS), außerhalb von `localhost` ohne Ausnahme - ohne HTTPS verweigert es
+den Zugriff sofort, **ohne den Systemdialog überhaupt anzuzeigen** (wirkt wie
+"keine Berechtigung", obwohl nie gefragt wurde). Einmaliges Setup über
+[mkcert](https://github.com/FiloSottile/mkcert) (kostenlos, komplett lokal):
+
+```bash
+brew install mkcert
+mkcert -install                       # installiert die lokale CA im macOS-Schlüsselbund
+mkdir -p certs && cd certs
+mkcert -cert-file lan-cert.pem -key-file lan-key.pem <Rechner-IP> localhost 127.0.0.1 ::1
+```
+
+Backend: `appsettings.Development.json` um einen `Kestrel:Certificates:Default`-
+Block mit `Path`/`KeyPath` auf die beiden Dateien ergänzen, dann mit dem
+`https`-Profil starten: `dotnet run --launch-profile https` (Port `7297`).
+
+Frontend: `npm run dev:https` statt `npm run dev` (nutzt
+`--experimental-https-key`/`-cert` mit denselben Dateien, Port bleibt `3000`).
+
+Auf dem iPhone einmalig der lokalen CA vertrauen (`certs/mkcert-rootCA.pem`,
+Kopie von `$(mkcert -CAROOT)/rootCA.pem`): per AirDrop aufs iPhone schicken →
+Profil installieren (**Einstellungen → Allgemein → VPN & Geräteverwaltung**)
+→ **Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen** →
+Schalter für die mkcert-CA aktivieren. Danach `https://<Rechner-IP>:3000`
+aufrufen (Schema **explizit** eintippen, sonst kann der Browser auf eine
+vorher besuchte `http://`-Adresse zurückfallen).
+
+Das Zertifikat ist an die aktuelle LAN-IP gebunden - vergibt der Router per
+DHCP eine andere Adresse, muss es mit der neuen IP neu erzeugt werden
+(`certs/` ist gitignored, da `lan-key.pem` ein privater Schlüssel ist).
 
 ## 5. Besonderheiten auf macOS (Homebrew)
 
