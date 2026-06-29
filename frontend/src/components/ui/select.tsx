@@ -6,8 +6,45 @@ import { CheckIcon, ChevronDownIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-function Select<Value>({ ...props }: SelectPrimitive.Root.Props<Value>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />
+// Base UI rendert in <Select.Value> standardmäßig den rohen value (bei uns
+// fast immer eine DB-Id) statt eines Labels - das Auflösen passiert nur,
+// wenn dem Root explizit eine "items"-Liste {value, label} übergeben wird
+// (siehe base-ui Doku zu Select.Root "items"). Statt das an jeder der ca.
+// ein Dutzend Verwendungsstellen im Code manuell zu pflegen, werden die
+// Items hier einmalig automatisch aus den als Kindern übergebenen
+// <SelectItem value=...>Label</SelectItem>-Elementen extrahiert.
+function flattenToText(node: React.ReactNode): string {
+  if (node == null || typeof node === "boolean") return ""
+  if (typeof node === "string" || typeof node === "number") return String(node)
+  if (Array.isArray(node)) return node.map(flattenToText).join("")
+  if (React.isValidElement(node)) {
+    return flattenToText((node.props as { children?: React.ReactNode }).children)
+  }
+  return ""
+}
+
+function collectSelectItems(node: React.ReactNode): Array<{ value: unknown; label: string }> {
+  const items: Array<{ value: unknown; label: string }> = []
+  React.Children.forEach(node, (child) => {
+    if (!React.isValidElement(child)) return
+    if (child.type === SelectItem) {
+      const itemProps = child.props as SelectPrimitive.Item.Props
+      items.push({ value: itemProps.value, label: flattenToText(itemProps.children) })
+      return
+    }
+    const childChildren = (child.props as { children?: React.ReactNode } | undefined)?.children
+    if (childChildren != null) items.push(...collectSelectItems(childChildren))
+  })
+  return items
+}
+
+function Select<Value>({ children, items, ...props }: SelectPrimitive.Root.Props<Value>) {
+  const resolvedItems = items ?? (collectSelectItems(children) as never)
+  return (
+    <SelectPrimitive.Root data-slot="select" items={resolvedItems} {...props}>
+      {children}
+    </SelectPrimitive.Root>
+  )
 }
 
 function SelectValue({ ...props }: SelectPrimitive.Value.Props) {
