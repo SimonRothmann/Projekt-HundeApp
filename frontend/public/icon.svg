@@ -1,10 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="32" fill="#007aff"/>
-  <g fill="#ffffff">
-    <ellipse cx="96" cy="118" rx="34" ry="28"/>
-    <ellipse cx="56" cy="74" rx="16" ry="20"/>
-    <ellipse cx="136" cy="74" rx="16" ry="20"/>
-    <ellipse cx="74" cy="50" rx="13" ry="16"/>
-    <ellipse cx="118" cy="50" rx="13" ry="16"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a93ff"/>
+      <stop offset="1" stop-color="#0a6cf0"/>
+    </linearGradient>
+    <linearGradient id="paw" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef5ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="43" fill="url(#bg)"/>
+  <g fill="url(#paw)">
+    <ellipse cx="96" cy="120" rx="33" ry="27"/>
+    <ellipse cx="57" cy="77" rx="15" ry="19"/>
+    <ellipse cx="135" cy="77" rx="15" ry="19"/>
+    <ellipse cx="75" cy="52" rx="12.5" ry="15.5"/>
+    <ellipse cx="117" cy="52" rx="12.5" ry="15.5"/>
   </g>
 </svg>

@@ -162,18 +162,24 @@ Basis:
 
 Apple-orientiert (siehe Design Vision "Apple Fitness") - reduziert, neutrale
 Graustufen als Grundlage, ein klar erkennbarer Akzentton statt mehrerer
-konkurrierender Markenfarben. Hoher Kontrast, kein "ausgewaschener" Look.
+konkurrierender Markenfarben. Ausreichend Kontrast für WCAG AA, aber bewusst
+kein maximaler Kontrast (kein reines Schwarz auf Weiß bzw. Weiß auf
+Schwarz) - Apple selbst nutzt für Fließtext/Flächen gedämpfte Grautöne statt
+der vollen Extreme, das wirkt ruhiger und weniger "blockig". Zustands- und
+Theme-Wechsel (Hover, Light/Dark) blenden weich über, statt hart umzuschalten.
 
 Beispiele:
 
 Primär:
 
-Systemblau (wie iOS/macOS "System Blue")
+Systemblau (wie iOS/macOS "System Blue"), etwas zurückhaltender in Sättigung
+als das reine #007AFF
 
 Sekundär/Neutral:
 
-Helles, leicht kühles Grau (Light Mode) bzw. nahes Schwarz (Dark Mode) -
-analog zu Apples "Grouped Background"
+Helles, leicht kühles Grau (Light Mode) bzw. gestuftes Dunkelgrau statt
+reinem Schwarz (Dark Mode) - analog zu Apples "Grouped Background", Karten/
+Flächen heben sich durch sanfte Stufung statt durch harte Kanten ab
 
 Akzent:
 

@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     // DESIGN_SYSTEM.md "Farben"): Systemblau als Markenfarbe, neutrales,
     // fast weißes Grau als Hintergrund statt der vorherigen Sand/Waldgrün-Töne.
     background_color: "#f7f8fa",
-    theme_color: "#007aff",
+    theme_color: "#3d86f0",
     icons: [
       { src: "/icon.svg", sizes: "192x192", type: "image/svg+xml", purpose: "any" },
       { src: "/icon.svg", sizes: "512x512", type: "image/svg+xml", purpose: "any" },

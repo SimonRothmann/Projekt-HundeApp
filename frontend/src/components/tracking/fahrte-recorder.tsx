@@ -95,6 +95,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
         return;
       }
       await enqueueRequest({ path: "/api/trainings", method: "POST", body: sessionPayload, label: "Fährten-Training" });
+      toast.success("Training offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist.");
     }
 
     try {
