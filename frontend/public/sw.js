@@ -1,4 +1,4 @@
-const CACHE_NAME = "canistrack-shell-v2";
+const CACHE_NAME = "dogity-shell-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

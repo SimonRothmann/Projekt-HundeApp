@@ -1,4 +1,4 @@
-# CanisTrack Design System
+# Dogity Design System
 
 Version:
 1.0
@@ -7,7 +7,7 @@ Version:
 
 # Design Vision
 
-CanisTrack soll sich an modernen Premium-SaaS-Produkten orientieren.
+Dogity soll sich an modernen Premium-SaaS-Produkten orientieren.
 
 Referenzen:
 
@@ -24,7 +24,7 @@ Das Design muss vermitteln:
 - Präzision
 - Fortschritt
 - Gemeinschaft
-- Naturverbundenheit
+- Klarheit
 
 ---
 
@@ -160,21 +160,25 @@ Kommentar
 
 Basis:
 
-Naturorientiert.
+Apple-orientiert (siehe Design Vision "Apple Fitness") - reduziert, neutrale
+Graustufen als Grundlage, ein klar erkennbarer Akzentton statt mehrerer
+konkurrierender Markenfarben. Hoher Kontrast, kein "ausgewaschener" Look.
 
 Beispiele:
 
 Primär:
 
-Dunkles Waldgrün
+Systemblau (wie iOS/macOS "System Blue")
 
-Sekundär:
+Sekundär/Neutral:
 
-Sand
+Helles, leicht kühles Grau (Light Mode) bzw. nahes Schwarz (Dark Mode) -
+analog zu Apples "Grouped Background"
 
 Akzent:
 
-Orange / Gold
+Systemgrün (Erfolg/Fortschritt), ergänzt um Orange und Violett für
+Diagramme/Status (analog Apples Health-/Fitness-App-Palette)
 
 
 ---

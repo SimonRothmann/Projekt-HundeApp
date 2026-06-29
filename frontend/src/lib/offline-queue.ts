@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
  * synchronisiert, sobald die Verbindung wieder verfügbar ist.
  */
 
-const DB_NAME = "canistrack-offline";
+const DB_NAME = "dogity-offline";
 const STORE_NAME = "pending-requests";
 const DB_VERSION = 1;
 

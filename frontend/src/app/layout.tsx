@@ -17,13 +17,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CanisTrack",
+  title: "Dogity",
   description: "Die digitale Plattform für modernen Hundesport",
   manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2c3b2d",
+  themeColor: "#007aff",
   width: "device-width",
   initialScale: 1,
 };

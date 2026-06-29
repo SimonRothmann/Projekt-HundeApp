@@ -1,4 +1,4 @@
-# CanisTrack
+# Dogity
 ## Die digitale Plattform für modernen Hundesport
 
 Version: 0.1.0
@@ -7,7 +7,7 @@ Version: 0.1.0
 
 # Vision
 
-CanisTrack ist eine moderne, mobile-first Plattform für Hundesportler,
+Dogity ist eine moderne, mobile-first Plattform für Hundesportler,
 Trainer, Vereine und Prüfungsorganisationen im deutschsprachigen Raum.
 
 Die Plattform verbindet:
@@ -117,7 +117,7 @@ Die Plattform unterstützt diese Strukturen.
 
 # Langfristiges Ziel
 
-CanisTrack soll die zentrale Plattform für Hundesport im deutschsprachigen Raum werden.
+Dogity soll die zentrale Plattform für Hundesport im deutschsprachigen Raum werden.
 
 Mögliche spätere Funktionen:
 
@@ -155,11 +155,11 @@ siehe [DEPLOYMENT.md](DEPLOYMENT.md) "Lokal ohne Docker").
 
 ```bash
 # Einmalig: App-Rolle und Dev-Datenbank anlegen. Eigenes Passwort wählen
-# und in der (gitignored) backend/src/CanisTrack.Api/appsettings.Development.json
+# und in der (gitignored) backend/src/Dogity.Api/appsettings.Development.json
 # unter ConnectionStrings:Default eintragen - NICHT hier oder anderswo im
 # Repo im Klartext speichern.
-psql -U postgres -c "CREATE ROLE canistrack LOGIN PASSWORD '<eigenes-passwort>';"
-psql -U postgres -c "CREATE DATABASE canistrack_dev OWNER canistrack;"
+psql -U postgres -c "CREATE ROLE dogity LOGIN PASSWORD '<eigenes-passwort>';"
+psql -U postgres -c "CREATE DATABASE dogity_dev OWNER dogity;"
 ```
 
 ## 2. Backend
@@ -167,8 +167,8 @@ psql -U postgres -c "CREATE DATABASE canistrack_dev OWNER canistrack;"
 ```bash
 cd backend
 dotnet tool install --global dotnet-ef   # einmalig
-dotnet ef database update --project src/CanisTrack.Infrastructure --startup-project src/CanisTrack.Api
-cd src/CanisTrack.Api
+dotnet ef database update --project src/Dogity.Infrastructure --startup-project src/Dogity.Api
+cd src/Dogity.Api
 dotnet run   # läuft auf http://localhost:5080, Swagger unter /swagger
 ```
 

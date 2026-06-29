@@ -1,7 +1,7 @@
 # Database Design Document
 
 Projekt:
-CanisTrack
+Dogity
 
 Datenbank:
 PostgreSQL
@@ -750,7 +750,7 @@ Beispiel:
 
 
 
-CanisTrack
+Dogity
 
 |
 

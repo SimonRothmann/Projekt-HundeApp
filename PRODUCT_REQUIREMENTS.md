@@ -1,7 +1,7 @@
 # Product Requirements Document
 
 Projekt:
-CanisTrack
+Dogity
 
 ---
 

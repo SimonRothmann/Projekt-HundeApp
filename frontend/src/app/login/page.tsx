@@ -13,10 +13,10 @@ import { PawPrint } from "lucide-react";
 // Nur für die lokale Dev-Datenbank (DemoDataSeeder, siehe TODO.md) - existiert
 // nicht in Production und wird daher dort nicht angezeigt.
 const DEMO_ACCOUNTS = [
-  { label: "Admin", email: "admin@canistrack.test" },
-  { label: "Trainer", email: "trainer@canistrack.test" },
-  { label: "Mitglied 1", email: "mitglied1@canistrack.test" },
-  { label: "Mitglied 2", email: "mitglied2@canistrack.test" },
+  { label: "Admin", email: "admin@dogity.test" },
+  { label: "Trainer", email: "trainer@dogity.test" },
+  { label: "Mitglied 1", email: "mitglied1@dogity.test" },
+  { label: "Mitglied 2", email: "mitglied2@dogity.test" },
 ] as const;
 const DEMO_PASSWORD = "Demo1234!";
 
@@ -51,7 +51,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
           <PawPrint className="size-8 text-primary" />
-          <CardTitle className="text-xl">Bei CanisTrack anmelden</CardTitle>
+          <CardTitle className="text-xl">Bei Dogity anmelden</CardTitle>
           <CardDescription>Trainingstagebuch & Hundesport-Plattform</CardDescription>
         </CardHeader>
         <CardContent>

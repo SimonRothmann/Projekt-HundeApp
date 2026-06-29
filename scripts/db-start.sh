@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Startet die lokale PostgreSQL@17-Instanz (Homebrew) für die CanisTrack-Entwicklung.
+# Startet die lokale PostgreSQL@17-Instanz (Homebrew) für die Dogity-Entwicklung.
 #
 # Auf manchen macOS-Versionen bricht "postgres" beim Start mit
 # "postmaster became multithreaded during startup" ab, wenn LC_ALL/LANG

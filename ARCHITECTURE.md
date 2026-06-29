@@ -1,7 +1,7 @@
 # Software Architecture Document
 
 Projekt:
-CanisTrack
+Dogity
 
 Version:
 1.0
@@ -10,7 +10,7 @@ Version:
 
 # Architekturziel
 
-CanisTrack soll:
+Dogity soll:
 
 - mit minimalen Kosten starten
 - einfach deploybar sein
@@ -27,7 +27,7 @@ Keine unnötige Komplexität am Anfang.
 
 # Architekturprinzip
 
-CanisTrack wird als modularer Monolith gestartet.
+Dogity wird als modularer Monolith gestartet.
 
 Warum kein Microservice-System?
 
@@ -251,7 +251,7 @@ Beispiele:
 
 # Offline Architektur
 
-CanisTrack wird als Progressive Web App umgesetzt.
+Dogity wird als Progressive Web App umgesetzt.
 
 ---
 

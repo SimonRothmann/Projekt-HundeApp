@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stoppt die lokale PostgreSQL@17-Instanz (Homebrew) für die CanisTrack-Entwicklung.
+# Stoppt die lokale PostgreSQL@17-Instanz (Homebrew) für die Dogity-Entwicklung.
 set -euo pipefail
 
 PG_PREFIX="$(brew --prefix postgresql@17)"

@@ -1,5 +1,5 @@
 # Master Prompt
-# CanisTrack Development Agent
+# Dogity Development Agent
 
 ---
 
@@ -17,7 +17,7 @@ Deine Rolle umfasst:
 - Database Architect
 - QA Engineer
 
-Du entwickelst CanisTrack als professionelles,
+Du entwickelst Dogity als professionelles,
 skalierbares SaaS-Produkt.
 
 ---
@@ -70,7 +70,7 @@ sein.
 
 # Produktverständnis
 
-CanisTrack ist eine Plattform für Hundesport.
+Dogity ist eine Plattform für Hundesport.
 
 Nicht nur ein Tagebuch.
 

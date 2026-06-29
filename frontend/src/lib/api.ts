@@ -1,4 +1,4 @@
-// Kestrel-Ports aus backend/src/CanisTrack.Api/Properties/launchSettings.json.
+// Kestrel-Ports aus backend/src/Dogity.Api/Properties/launchSettings.json.
 // HTTPS ist nötig, um die App von einem iPhone aus testen zu können -
 // Safari verweigert navigator.geolocation außerhalb von localhost ohne
 // HTTPS komplett, sogar ohne den System-Berechtigungsdialog anzuzeigen.
@@ -36,8 +36,8 @@ export class ApiError extends Error {
   }
 }
 
-export const TOKEN_KEY = "canistrack_token";
-export const USER_KEY = "canistrack_user";
+export const TOKEN_KEY = "dogity_token";
+export const USER_KEY = "dogity_user";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;

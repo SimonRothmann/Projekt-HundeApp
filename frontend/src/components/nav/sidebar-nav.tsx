@@ -22,7 +22,7 @@ export function SidebarNav() {
     <aside className="hidden w-60 shrink-0 flex-col border-r bg-sidebar p-4 md:flex">
       <div className="mb-6 flex items-center gap-2 px-2">
         <PawPrint className="size-6 text-primary" />
-        <span className="text-lg font-semibold">CanisTrack</span>
+        <span className="text-lg font-semibold">Dogity</span>
       </div>
       <nav className="flex flex-1 flex-col gap-1">
         {items.map(({ href, label, icon: Icon }) => {

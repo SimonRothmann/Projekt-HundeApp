@@ -1,6 +1,6 @@
 # Kernbereiche
 
-CanisTrack basiert auf folgenden Domänen:
+Dogity basiert auf folgenden Domänen:
 
 
 ## Identity
