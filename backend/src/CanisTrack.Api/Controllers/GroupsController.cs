@@ -13,6 +13,13 @@ public class GroupsController(IGroupService groupService, IClubService clubServi
         return FromResult(result);
     }
 
+    [HttpGet("my-trainer-status")]
+    public async Task<ActionResult<object>> GetMyTrainerStatus(CancellationToken ct)
+    {
+        var isTrainer = await groupService.IsTrainerAsync(CurrentUserId, ct);
+        return Ok(new { isTrainer });
+    }
+
     [HttpGet("my-clubs")]
     public async Task<ActionResult<IReadOnlyList<ClubDto>>> GetMyClubs(CancellationToken ct)
     {

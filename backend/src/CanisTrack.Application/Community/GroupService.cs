@@ -24,6 +24,20 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         return Result<IReadOnlyList<GroupDto>>.Success(groups);
     }
 
+    /// <summary>
+    /// "Trainer-Sein" ist bewusst rein datengetrieben (siehe TODO.md
+    /// "Rollenswitch"): wer mindestens eine Gruppe leitet oder als Trainer
+    /// einem Verein zugewiesen ist, bekommt die Trainer-Perspektive im
+    /// Frontend angezeigt - unabhängig von der Identity-Rolle.
+    /// </summary>
+    public async Task<bool> IsTrainerAsync(Guid userId, CancellationToken ct = default)
+    {
+        var leadsGroup = await db.Groups.AnyAsync(g => g.TrainerId == userId, ct);
+        if (leadsGroup) return true;
+
+        return await db.ClubTrainers.AnyAsync(t => t.UserId == userId, ct);
+    }
+
     public async Task<Result<GroupDetailDto>> GetDetailAsync(Guid userId, Guid groupId, CancellationToken ct = default)
     {
         var group = await GetAccessibleGroupAsync(userId, groupId, ct);
@@ -144,11 +158,13 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         return Result.Success();
     }
 
+    // Nur von GetDetailAsync (reiner Lesezugriff) verwendet - daher AsNoTracking.
     private async Task<Group?> GetAccessibleGroupAsync(Guid userId, Guid groupId, CancellationToken ct) =>
         await db.Groups
             .Include(g => g.Members)
             .Where(g => g.Id == groupId)
             .Where(g => g.TrainerId == userId || g.Members.Any(m => m.UserId == userId))
+            .AsNoTracking()
             .FirstOrDefaultAsync(ct);
 
     private async Task<bool> IsGroupMemberAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct)

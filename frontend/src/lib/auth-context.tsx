@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, TOKEN_KEY, USER_KEY } from "@/lib/api";
 import type { AuthResponse } from "@/lib/types";
 
 type AuthUser = Pick<AuthResponse, "userId" | "email" | "firstName" | "lastName" | "roles">;
@@ -9,6 +9,11 @@ type AuthUser = Pick<AuthResponse, "userId" | "email" | "firstName" | "lastName"
 type AuthContextValue = {
   user: AuthUser | null;
   isLoading: boolean;
+  // null = noch nicht ermittelt (z.B. während des ersten Requests nach
+  // Login). "Trainer-Sein" ist bewusst rein datengetrieben (mind. eine
+  // geleitete Gruppe oder Vereins-Trainer-Zuweisung, siehe TODO.md
+  // "Rollenswitch") statt über eine eigene Identity-Rolle abgebildet.
+  isTrainer: boolean | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => void;
@@ -16,12 +21,10 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const TOKEN_KEY = "canistrack_token";
-const USER_KEY = "canistrack_user";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTrainer, setIsTrainer] = useState<boolean | null>(null);
 
   useEffect(() => {
     const storedUser = window.localStorage.getItem(USER_KEY);
@@ -34,6 +37,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    // Reset bei Logout passiert direkt in logout(), nicht hier - sonst
+    // synchrones setState im Effect-Body (siehe react-hooks/set-state-in-effect).
+    if (!user) return;
+
+    let cancelled = false;
+    api
+      .get<{ isTrainer: boolean }>("/api/groups/my-trainer-status")
+      .then((res) => {
+        if (!cancelled) setIsTrainer(res.isTrainer);
+      })
+      .catch(() => {
+        if (!cancelled) setIsTrainer(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   function persist(response: AuthResponse) {
     const authUser: AuthUser = {
@@ -67,10 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(USER_KEY);
     setUser(null);
+    setIsTrainer(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, isTrainer, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

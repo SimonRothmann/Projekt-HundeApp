@@ -3,15 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { navItems, adminNavItem } from "@/components/nav/nav-items";
+import { coreNavItems, profileNavItem, trainerNavItem, adminNavItem } from "@/components/nav/nav-items";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/lib/auth-context";
 import { PawPrint } from "lucide-react";
 
 export function SidebarNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const items = user?.roles.includes("ADMIN") ? [...navItems, adminNavItem] : navItems;
+  const { user, isTrainer } = useAuth();
+  const items = [
+    ...coreNavItems,
+    ...(isTrainer ? [trainerNavItem] : []),
+    profileNavItem,
+    ...(user?.roles.includes("ADMIN") ? [adminNavItem] : []),
+  ];
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r bg-sidebar p-4 md:flex">
