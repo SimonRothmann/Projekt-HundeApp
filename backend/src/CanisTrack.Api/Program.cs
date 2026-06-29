@@ -4,12 +4,23 @@ using CanisTrack.Infrastructure.Identity;
 using CanisTrack.Infrastructure.Persistence;
 using CanisTrack.Infrastructure.Persistence.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+// JSON-Antworten (Trainingslisten, GPS-Tracks mit vielen Punkten) sind gut
+// kompressibel - spart auf mobilen Verbindungen auf dem Hundeplatz Bandbreite
+// und Ladezeit bei vernachlässigbarem CPU-Overhead.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -77,6 +88,8 @@ if (app.Environment.IsDevelopment())
     await AdminBootstrapper.SeedAsync(scope.ServiceProvider, builder.Configuration);
     await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
 }
+
+app.UseResponseCompression();
 
 app.UseHttpsRedirection();
 

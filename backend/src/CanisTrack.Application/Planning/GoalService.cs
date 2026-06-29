@@ -21,6 +21,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         var goals = await LoadGoalsQuery()
             .Where(g => g.DogId == dogId)
             .OrderBy(g => g.TargetDate)
+            .AsNoTracking()
             .ToListAsync(ct);
 
         var sportNames = await GetSportNamesAsync(goals, ct);
@@ -29,7 +30,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
 
     public async Task<Result<GoalDto>> GetByIdAsync(Guid userId, Guid goalId, CancellationToken ct = default)
     {
-        var goal = await GetOwnedGoalAsync(userId, goalId, ct);
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct, track: false);
         if (goal is null)
             return Result<GoalDto>.Failure("Ziel nicht gefunden.");
 
@@ -71,7 +72,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         db.Goals.Add(goal);
         await db.SaveChangesAsync(ct);
 
-        var created = await GetOwnedGoalAsync(userId, goal.Id, ct);
+        var created = await GetOwnedGoalAsync(userId, goal.Id, ct, track: false);
         var sportNames = await GetSportNamesAsync([created!], ct);
         return Result<GoalDto>.Success(ToDto(created!, sportNames));
     }
@@ -107,13 +108,21 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
             .ThenInclude(p => p!.Items)
             .ThenInclude(i => i.Exercise);
 
-    private async Task<Goal?> GetOwnedGoalAsync(Guid userId, Guid goalId, CancellationToken ct) =>
-        await LoadGoalsQuery()
+    // track: false fuer reine Lesezugriffe (kein SaveChangesAsync im selben
+    // Aufruf) - vermeidet unnoetiges Change-Tracking. UpdateStatusAsync/
+    // DeleteAsync brauchen weiterhin ein getracktes Entity (Default true).
+    private async Task<Goal?> GetOwnedGoalAsync(Guid userId, Guid goalId, CancellationToken ct, bool track = true)
+    {
+        var query = LoadGoalsQuery();
+        if (!track) query = query.AsNoTracking();
+
+        return await query
             .Where(g => g.Id == goalId)
             .Where(g =>
                 db.DogOwners.Any(o => o.DogId == g.DogId && o.UserId == userId) ||
                 db.TrainerAssignments.Any(t => t.DogId == g.DogId && t.TrainerId == userId))
             .FirstOrDefaultAsync(ct);
+    }
 
     private async Task<Dictionary<Guid, string>> GetSportNamesAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
     {

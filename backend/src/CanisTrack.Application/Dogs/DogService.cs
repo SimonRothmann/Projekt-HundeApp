@@ -28,7 +28,7 @@ public class DogService(IApplicationDbContext db) : IDogService
         if (!await db.HasDogAccessAsync(userId, dogId, ct))
             return Result<DogDto>.Failure("Hund nicht gefunden.");
 
-        var dog = await db.Dogs.FirstOrDefaultAsync(d => d.Id == dogId, ct);
+        var dog = await db.Dogs.AsNoTracking().FirstOrDefaultAsync(d => d.Id == dogId, ct);
         return dog is null
             ? Result<DogDto>.Failure("Hund nicht gefunden.")
             : Result<DogDto>.Success(ToDto(dog));

@@ -22,6 +22,7 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
             .OrderByDescending(s => s.Date)
             .Include(s => s.Exercises)
             .ThenInclude(e => e.Exercise)
+            .AsNoTracking()
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<TrainingSessionDto>>.Success(sessions.Select(ToDto).ToList());
@@ -29,7 +30,7 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
 
     public async Task<Result<TrainingSessionDto>> GetByIdAsync(Guid userId, Guid sessionId, CancellationToken ct = default)
     {
-        var session = await GetOwnedSessionAsync(userId, sessionId, ct);
+        var session = await GetOwnedSessionAsync(userId, sessionId, ct, track: false);
         return session is null
             ? Result<TrainingSessionDto>.Failure("Training nicht gefunden.")
             : Result<TrainingSessionDto>.Success(ToDto(session));
@@ -49,7 +50,7 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
             // Idempotenz für die Offline-Warteschlange: falls dieselbe
             // client-generierte Id schon synchronisiert wurde (z.B. erneuter
             // Sync-Versuch), nicht doppelt anlegen.
-            var alreadyCreated = await GetOwnedSessionAsync(userId, existingId, ct);
+            var alreadyCreated = await GetOwnedSessionAsync(userId, existingId, ct, track: false);
             if (alreadyCreated is not null)
                 return Result<TrainingSessionDto>.Success(ToDto(alreadyCreated));
         }
@@ -87,7 +88,7 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
         db.TrainingSessions.Add(session);
         await db.SaveChangesAsync(ct);
 
-        var created = await GetOwnedSessionAsync(userId, session.Id, ct);
+        var created = await GetOwnedSessionAsync(userId, session.Id, ct, track: false);
         return Result<TrainingSessionDto>.Success(ToDto(created!));
     }
 
@@ -122,15 +123,23 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
         return Result.Success();
     }
 
-    private async Task<TrainingSession?> GetOwnedSessionAsync(Guid userId, Guid sessionId, CancellationToken ct) =>
-        await db.TrainingSessions
+    // track: false fuer reine Lesezugriffe (kein SaveChangesAsync im selben
+    // Aufruf) - vermeidet unnoetiges Change-Tracking. DeleteAsync braucht
+    // weiterhin ein getracktes Entity (Default true).
+    private async Task<TrainingSession?> GetOwnedSessionAsync(Guid userId, Guid sessionId, CancellationToken ct, bool track = true)
+    {
+        IQueryable<TrainingSession> query = db.TrainingSessions
             .Where(s => s.Id == sessionId)
             .Where(s =>
                 db.DogOwners.Any(o => o.DogId == s.DogId && o.UserId == userId) ||
                 db.TrainerAssignments.Any(t => t.DogId == s.DogId && t.TrainerId == userId))
             .Include(s => s.Exercises)
-            .ThenInclude(e => e.Exercise)
-            .FirstOrDefaultAsync(ct);
+            .ThenInclude(e => e.Exercise);
+
+        if (!track) query = query.AsNoTracking();
+
+        return await query.FirstOrDefaultAsync(ct);
+    }
 
     private static string? Validate(CreateTrainingSessionRequest request)
     {

@@ -31,6 +31,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         var club = await db.Clubs
             .Include(c => c.Trainers)
             .Include(c => c.Groups)
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == clubId, ct);
 
         if (club is null)

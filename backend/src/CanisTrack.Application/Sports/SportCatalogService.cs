@@ -51,13 +51,14 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
 
     public async Task<Result<RegulationDetailDto>> GetRegulationDetailAsync(Guid regulationId, CancellationToken ct = default)
     {
-        var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.Id == regulationId, ct);
+        var regulation = await db.Regulations.AsNoTracking().FirstOrDefaultAsync(r => r.Id == regulationId, ct);
         if (regulation is null)
             return Result<RegulationDetailDto>.Failure("Prüfungsordnung nicht gefunden.");
 
         var currentVersion = await db.RegulationVersions
             .Where(v => v.RegulationId == regulationId)
             .OrderByDescending(v => v.ValidFrom)
+            .AsNoTracking()
             .FirstOrDefaultAsync(ct);
         if (currentVersion is null)
             return Result<RegulationDetailDto>.Failure("Keine gültige Version für diese Prüfungsordnung gefunden.");
