@@ -43,4 +43,25 @@ public class DogsController(IDogService dogService) : ApiControllerBase
         var result = await dogService.DeleteAsync(CurrentUserId, id, ct);
         return FromResult(result);
     }
+
+    [HttpGet("{id:guid}/owners")]
+    public async Task<ActionResult<IReadOnlyList<DogOwnerDto>>> GetOwners(Guid id, CancellationToken ct)
+    {
+        var result = await dogService.GetOwnersAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
+    [HttpPost("{id:guid}/owners")]
+    public async Task<IActionResult> AddOwner(Guid id, AddDogOwnerRequest request, CancellationToken ct)
+    {
+        var result = await dogService.AddOwnerAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
+
+    [HttpDelete("{id:guid}/owners/{userId:guid}")]
+    public async Task<IActionResult> RemoveOwner(Guid id, Guid userId, CancellationToken ct)
+    {
+        var result = await dogService.RemoveOwnerAsync(CurrentUserId, id, userId, ct);
+        return FromResult(result);
+    }
 }

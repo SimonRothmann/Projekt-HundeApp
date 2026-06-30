@@ -158,12 +158,89 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         return Result.Success();
     }
 
+    public async Task<Result<IReadOnlyList<GroupDto>>> GetGroupsByClubAsync(Guid userId, Guid clubId, CancellationToken ct = default)
+    {
+        var isClubMember = await db.ClubMemberships.AnyAsync(
+            m => m.ClubId == clubId && m.UserId == userId && m.Status == ClubMembershipStatus.Approved, ct);
+        var isClubTrainer = await db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
+
+        if (!isClubMember && !isClubTrainer)
+            return Result<IReadOnlyList<GroupDto>>.Failure("Keine Berechtigung für diesen Verein.");
+
+        var groups = await db.Groups
+            .Where(g => g.ClubId == clubId)
+            .Select(g => new GroupDto(g.Id, g.Name, g.Description, g.TrainerId, g.ClubId, g.Members.Count(m => m.Status == GroupMemberStatus.Active)))
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        return Result<IReadOnlyList<GroupDto>>.Success(groups);
+    }
+
+    public async Task<Result> RequestJoinGroupAsync(Guid userId, Guid groupId, CancellationToken ct = default)
+    {
+        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
+        if (group is null)
+            return Result.Failure("Gruppe nicht gefunden.");
+
+        var existing = await db.GroupMembers.FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (existing is not null)
+            return existing.Status == GroupMemberStatus.Pending
+                ? Result.Failure("Du hast bereits eine ausstehende Beitrittsanfrage für diese Gruppe.")
+                : Result.Failure("Du bist bereits Mitglied dieser Gruppe.");
+
+        db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = userId, Status = GroupMemberStatus.Pending });
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result<IReadOnlyList<GroupJoinRequestDto>>> GetGroupJoinRequestsAsync(Guid trainerId, Guid groupId, CancellationToken ct = default)
+    {
+        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId && g.TrainerId == trainerId, ct);
+        if (group is null)
+            return Result<IReadOnlyList<GroupJoinRequestDto>>.Failure("Gruppe nicht gefunden.");
+
+        var pending = await db.GroupMembers
+            .Where(m => m.GroupId == groupId && m.Status == GroupMemberStatus.Pending)
+            .Select(m => new { m.UserId, m.JoinedAt })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var lookup = await userLookup.FindByIdsAsync(pending.Select(p => p.UserId).ToList(), ct);
+        var dtos = pending
+            .Select(p => lookup.TryGetValue(p.UserId, out var info)
+                ? new GroupJoinRequestDto(p.UserId, info.Email, info.FirstName, info.LastName, p.JoinedAt)
+                : new GroupJoinRequestDto(p.UserId, "(unbekannt)", "", "", p.JoinedAt))
+            .ToList();
+
+        return Result<IReadOnlyList<GroupJoinRequestDto>>.Success(dtos);
+    }
+
+    public async Task<Result> DecideGroupJoinRequestAsync(Guid trainerId, Guid groupId, Guid memberId, bool approve, CancellationToken ct = default)
+    {
+        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId && g.TrainerId == trainerId, ct);
+        if (group is null)
+            return Result.Failure("Gruppe nicht gefunden.");
+
+        var memberRow = await db.GroupMembers.FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == memberId && m.Status == GroupMemberStatus.Pending, ct);
+        if (memberRow is null)
+            return Result.Failure("Beitrittsanfrage nicht gefunden.");
+
+        if (approve)
+            memberRow.Status = GroupMemberStatus.Active;
+        else
+            memberRow.DeletedAt = DateTimeOffset.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
     // Nur von GetDetailAsync (reiner Lesezugriff) verwendet - daher AsNoTracking.
+    // Nur Active-Mitglieder zählen als Mitglieder (Pending = noch nicht freigegebene Anfragen).
     private async Task<Group?> GetAccessibleGroupAsync(Guid userId, Guid groupId, CancellationToken ct) =>
         await db.Groups
-            .Include(g => g.Members)
+            .Include(g => g.Members.Where(m => m.Status == GroupMemberStatus.Active))
             .Where(g => g.Id == groupId)
-            .Where(g => g.TrainerId == userId || g.Members.Any(m => m.UserId == userId))
+            .Where(g => g.TrainerId == userId || g.Members.Any(m => m.UserId == userId && m.Status == GroupMemberStatus.Active))
             .AsNoTracking()
             .FirstOrDefaultAsync(ct);
 
@@ -172,6 +249,6 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         var ownsGroup = await db.Groups.AnyAsync(g => g.Id == groupId && g.TrainerId == trainerId, ct);
         if (!ownsGroup) return false;
 
-        return await db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == memberId, ct);
+        return await db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == memberId && m.Status == GroupMemberStatus.Active, ct);
     }
 }

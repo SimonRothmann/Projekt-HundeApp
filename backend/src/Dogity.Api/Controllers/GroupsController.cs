@@ -71,4 +71,32 @@ public class GroupsController(IGroupService groupService, IClubService clubServi
         var result = await groupService.AssignTrainerToDogAsync(CurrentUserId, id, request, ct);
         return FromResult(result);
     }
+
+    [HttpPost("{id:guid}/join-requests")]
+    public async Task<IActionResult> RequestJoin(Guid id, CancellationToken ct)
+    {
+        var result = await groupService.RequestJoinGroupAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
+    [HttpGet("{id:guid}/join-requests")]
+    public async Task<ActionResult<IReadOnlyList<GroupJoinRequestDto>>> GetJoinRequests(Guid id, CancellationToken ct)
+    {
+        var result = await groupService.GetGroupJoinRequestsAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
+    [HttpPost("{id:guid}/join-requests/{memberId:guid}/approve")]
+    public async Task<IActionResult> ApproveJoinRequest(Guid id, Guid memberId, CancellationToken ct)
+    {
+        var result = await groupService.DecideGroupJoinRequestAsync(CurrentUserId, id, memberId, approve: true, ct);
+        return FromResult(result);
+    }
+
+    [HttpPost("{id:guid}/join-requests/{memberId:guid}/reject")]
+    public async Task<IActionResult> RejectJoinRequest(Guid id, Guid memberId, CancellationToken ct)
+    {
+        var result = await groupService.DecideGroupJoinRequestAsync(CurrentUserId, id, memberId, approve: false, ct);
+        return FromResult(result);
+    }
 }

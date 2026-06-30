@@ -6,6 +6,8 @@ public record GroupDto(Guid Id, string Name, string? Description, Guid TrainerId
 
 public record GroupMemberDto(Guid UserId, string Email, string FirstName, string LastName, GroupMemberRole Role, DateTimeOffset JoinedAt);
 
+public record GroupJoinRequestDto(Guid MemberId, string Email, string FirstName, string LastName, DateTimeOffset RequestedAt);
+
 public record MemberDogDto(Guid Id, string Name, string? Breed, bool IsTrainerAssigned);
 
 public record GroupDetailDto(GroupDto Group, IReadOnlyList<GroupMemberDto> Members);

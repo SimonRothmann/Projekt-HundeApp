@@ -11,6 +11,14 @@ public record DogDto(
     string? ImageUrl,
     string? Notes);
 
+public record DogOwnerDto(
+    Guid UserId,
+    string Email,
+    string FirstName,
+    string LastName,
+    DogOwnerRole Role,
+    DateTimeOffset AddedAt);
+
 public record CreateDogRequest(
     string Name,
     string? Breed,
@@ -26,3 +34,5 @@ public record UpdateDogRequest(
     DogGender Gender,
     string? ImageUrl,
     string? Notes);
+
+public record AddDogOwnerRequest(string Email);

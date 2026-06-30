@@ -13,7 +13,7 @@ namespace Dogity.Api.Controllers;
 /// Trainer ohne Mitgliedschaftsvoraussetzung zuweisen).
 /// </summary>
 [Route("api/clubs")]
-public class ClubsController(IClubService clubService) : ApiControllerBase
+public class ClubsController(IClubService clubService, IGroupService groupService) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ClubSummaryDto>>> GetClubs(CancellationToken ct)
@@ -75,6 +75,13 @@ public class ClubsController(IClubService clubService) : ApiControllerBase
     public async Task<IActionResult> LeaveClub(Guid id, CancellationToken ct)
     {
         var result = await clubService.LeaveClubAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
+    [HttpGet("{id:guid}/groups")]
+    public async Task<ActionResult<IReadOnlyList<GroupDto>>> GetClubGroups(Guid id, CancellationToken ct)
+    {
+        var result = await groupService.GetGroupsByClubAsync(CurrentUserId, id, ct);
         return FromResult(result);
     }
 }

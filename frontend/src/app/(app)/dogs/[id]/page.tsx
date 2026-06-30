@@ -4,14 +4,14 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import type { Dog, Exercise, Goal, Sport, TrainingSession } from "@/lib/types";
+import type { Dog, DogOwner, Exercise, Goal, Sport, TrainingSession } from "@/lib/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dog as DogIcon, ListChecks, PenLine, Plus, Printer, Trash2 } from "lucide-react";
+import { Dog as DogIcon, ListChecks, PenLine, Plus, Printer, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
@@ -19,6 +19,7 @@ import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
 import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { difficultyLabel } from "@/lib/constants";
+import { useAuth } from "@/lib/auth-context";
 
 type ExerciseRow = {
   sportId: string;
@@ -49,6 +50,7 @@ function emptyRow(): ExerciseRow {
 
 export default function DogDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
 
   const [dog, setDog] = useState<Dog | null>(null);
   const [sessions, setSessions] = useState<TrainingSession[] | null>(null);
@@ -56,6 +58,10 @@ export default function DogDetailPage() {
   const [exercisesBySport, setExercisesBySport] = useState<Record<string, Exercise[]>>({});
   const [goals, setGoals] = useState<Goal[] | null>(null);
   const [isOwner, setIsOwner] = useState(true);
+
+  const [owners, setOwners] = useState<DogOwner[]>([]);
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [addingOwner, setAddingOwner] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -66,18 +72,20 @@ export default function DogDetailPage() {
 
   async function loadAll() {
     try {
-      const [dogData, sessionData, sportsData, myDogs, goalData] = await Promise.all([
+      const [dogData, sessionData, sportsData, myDogs, goalData, ownersData] = await Promise.all([
         api.get<Dog>(`/api/dogs/${id}`),
         api.get<TrainingSession[]>(`/api/trainings?dogId=${id}`),
         api.get<Sport[]>("/api/sports"),
         api.get<Dog[]>("/api/dogs"),
         api.get<Goal[]>(`/api/goals?dogId=${id}`),
+        api.get<DogOwner[]>(`/api/dogs/${id}/owners`).catch(() => [] as DogOwner[]),
       ]);
       setDog(dogData);
       setSessions(sessionData);
       setSports(sportsData);
       setIsOwner(myDogs.some((d) => d.id === id));
       setGoals(goalData);
+      setOwners(ownersData);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Daten konnten nicht geladen werden.");
     }
@@ -126,6 +134,34 @@ export default function DogDetailPage() {
 
   function removeRow(index: number) {
     setRows((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleAddOwner(e: FormEvent) {
+    e.preventDefault();
+    if (!ownerEmail.trim()) return;
+    setAddingOwner(true);
+    try {
+      await api.post(`/api/dogs/${id}/owners`, { email: ownerEmail.trim() });
+      toast.success("Mitbesitzer hinzugefügt.");
+      setOwnerEmail("");
+      const updated = await api.get<DogOwner[]>(`/api/dogs/${id}/owners`);
+      setOwners(updated);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Fehler beim Hinzufügen.");
+    } finally {
+      setAddingOwner(false);
+    }
+  }
+
+  async function handleRemoveOwner(userId: string) {
+    try {
+      await api.delete(`/api/dogs/${id}/owners/${userId}`);
+      toast.success("Mitbesitzer entfernt.");
+      const updated = await api.get<DogOwner[]>(`/api/dogs/${id}/owners`);
+      setOwners(updated);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Fehler beim Entfernen.");
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -433,6 +469,51 @@ export default function DogDetailPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {isOwner && (
+        <Card>
+          <CardHeader className="flex-row items-center gap-2 space-y-0">
+            <UserPlus className="size-5 text-primary" />
+            <CardTitle className="text-base">Mitbesitzer</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {owners.length > 0 && (
+              <ul className="flex flex-col gap-2">
+                {owners.map((o) => (
+                  <li key={o.userId} className="flex items-center justify-between text-sm">
+                    <span>
+                      {o.firstName} {o.lastName}{" "}
+                      <span className="text-muted-foreground text-xs">{o.email}</span>
+                    </span>
+                    {o.userId !== user?.userId && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-7"
+                        onClick={() => handleRemoveOwner(o.userId)}
+                      >
+                        <X className="size-3.5" />
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form onSubmit={handleAddOwner} className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="E-Mail des neuen Mitbesitzers"
+                value={ownerEmail}
+                onChange={(e) => setOwnerEmail(e.target.value)}
+              />
+              <Button type="submit" size="sm" disabled={addingOwner}>
+                <Plus className="size-4" />
+                Hinzufügen
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

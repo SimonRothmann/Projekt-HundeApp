@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ClubExercisesSection } from "@/components/trainer/club-exercises-section";
 import { ClubJoinRequestsSection } from "@/components/trainer/club-join-requests-section";
 import { ClubMembersSection } from "@/components/trainer/club-members-section";
+import { GroupJoinRequestsSection } from "@/components/trainer/group-join-requests-section";
 import { PendingFeedbackSection } from "@/components/trainer/pending-feedback-section";
 
 export default function TrainerPage() {
@@ -151,6 +152,10 @@ export default function TrainerPage() {
       )}
 
       <PendingFeedbackSection />
+
+      {groups !== null && groups.length > 0 && (
+        <GroupJoinRequestsSection groups={groups} />
+      )}
 
       {myClubs.length > 0 && (
         <>

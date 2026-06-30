@@ -305,3 +305,43 @@ export type PendingFeedback = {
   date: string;
   durationMinutes: number;
 };
+
+export type DogOwnerRole = 0 | 1; // 0 = Owner, 1 = Trainer
+
+export type DogOwner = {
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: DogOwnerRole;
+  addedAt: string;
+};
+
+export type WeeklyActivity = {
+  week: string;
+  count: number;
+};
+
+export type DogStats = {
+  dogId: string;
+  dogName: string;
+  sessionCount: number;
+  sessionsLast30d: number;
+  activeGoals: number;
+  avgRating30d: number | null;
+  planItemsCompleted: number;
+  planItemsTotal: number;
+};
+
+export type DashboardStats = {
+  weeklyActivity: WeeklyActivity[];
+  perDog: DogStats[];
+};
+
+export type GroupJoinRequest = {
+  memberId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  requestedAt: string;
+};

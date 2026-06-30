@@ -4,6 +4,7 @@ using Dogity.Application.Dogs;
 using Dogity.Application.Notifications;
 using Dogity.Application.Planning;
 using Dogity.Application.Sports;
+using Dogity.Application.Stats;
 using Dogity.Application.Tracking;
 using Dogity.Application.Training;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IStatsService, StatsService>();
         return services;
     }
 }
