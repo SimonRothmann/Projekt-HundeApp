@@ -24,18 +24,28 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, TimePro
 
     public async Task<IReadOnlyList<UserDirectoryEntry>> ListAllAsync(CancellationToken ct = default)
     {
-        var users = await userManager.Users.OrderBy(u => u.Email).ToListAsync(ct);
-        var entries = new List<UserDirectoryEntry>(users.Count);
-        var now = timeProvider.GetUtcNow();
+        var (users, _) = await ListPagedAsync(1, int.MaxValue, ct);
+        return users;
+    }
 
-        foreach (var user in users)
+    public async Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    {
+        var totalCount = await userManager.Users.CountAsync(ct);
+        var rawUsers = await userManager.Users
+            .OrderBy(u => u.Email)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        var now = timeProvider.GetUtcNow();
+        var entries = new List<UserDirectoryEntry>(rawUsers.Count);
+        foreach (var user in rawUsers)
         {
             var roles = await userManager.GetRolesAsync(user);
             var isLockedOut = user.LockoutEnd is not null && user.LockoutEnd > now;
             entries.Add(new UserDirectoryEntry(user.Id, user.Email!, user.FirstName, user.LastName, roles.ToArray(), isLockedOut));
         }
-
-        return entries;
+        return (entries, totalCount);
     }
 
     public async Task<bool> LockUserAsync(Guid userId, CancellationToken ct = default)

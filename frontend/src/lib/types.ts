@@ -207,6 +207,14 @@ export type AdminUser = {
   isLockedOut: boolean;
 };
 
+export type AdminUserPage = {
+  users: AdminUser[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+};
+
 export type ClubSummary = {
   id: string;
   name: string;

@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { AdminStats, AdminUser, Regulation, Sport } from "@/lib/types";
+import type { AdminStats, AdminUser, AdminUserPage, Regulation, Sport } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Dog, Users2, ClipboardList, MapPin, ScrollText, Lock, Unlock, Trash2 } from "lucide-react";
+import { Users, Dog, Users2, ClipboardList, MapPin, ScrollText, Lock, Unlock, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { ClubsSection } from "@/components/admin/clubs-section";
 import { GlobalExercisesSection } from "@/components/admin/global-exercises-section";
@@ -17,7 +17,8 @@ import { RegulationImportSection } from "@/components/admin/regulation-import-se
 
 export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
-  const [users, setUsers] = useState<AdminUser[] | null>(null);
+  const [userPage, setUserPage] = useState<AdminUserPage | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [sports, setSports] = useState<Sport[] | null>(null);
   const [selectedSportId, setSelectedSportId] = useState("");
   const [regulations, setRegulations] = useState<Regulation[]>([]);
@@ -26,10 +27,11 @@ export default function AdminPage() {
   const [versionLabel, setVersionLabel] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function loadUsers() {
+  async function loadUsers(page: number) {
     try {
-      const data = await api.get<AdminUser[]>("/api/admin/users");
-      setUsers(data);
+      const data = await api.get<AdminUserPage>(`/api/admin/users?page=${page}&pageSize=50`);
+      setUserPage(data);
+      setCurrentPage(page);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Nutzer konnten nicht geladen werden.");
     }
@@ -38,12 +40,12 @@ export default function AdminPage() {
   useEffect(() => {
     Promise.all([
       api.get<AdminStats>("/api/admin/stats"),
-      api.get<AdminUser[]>("/api/admin/users"),
+      api.get<AdminUserPage>("/api/admin/users?page=1&pageSize=50"),
       api.get<Sport[]>("/api/sports"),
     ])
       .then(([statsData, usersData, sportsData]) => {
         setStats(statsData);
-        setUsers(usersData);
+        setUserPage(usersData);
         setSports(sportsData);
       })
       .catch((err) => toast.error(err instanceof ApiError ? err.message : "Admin-Daten konnten nicht geladen werden."));
@@ -53,7 +55,7 @@ export default function AdminPage() {
     try {
       await api.post(`/api/admin/users/${user.id}/${user.isLockedOut ? "unlock" : "lock"}`);
       toast.success(user.isLockedOut ? "Konto entsperrt." : "Konto gesperrt.");
-      await loadUsers();
+      await loadUsers(currentPage);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Aktion fehlgeschlagen.");
     }
@@ -64,7 +66,7 @@ export default function AdminPage() {
     try {
       await api.delete(`/api/admin/users/${user.id}`);
       toast.success("Nutzer gelöscht.");
-      await loadUsers();
+      await loadUsers(currentPage);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
     }
@@ -214,36 +216,65 @@ export default function AdminPage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Nutzer</CardTitle>
+          {userPage && (
+            <span className="text-xs text-muted-foreground">
+              {userPage.totalCount} gesamt · Seite {userPage.page} / {userPage.totalPages}
+            </span>
+          )}
         </CardHeader>
         <CardContent>
-          {users === null ? (
+          {userPage === null ? (
             <p className="text-sm text-muted-foreground">Lädt…</p>
           ) : (
-            <ul className="flex flex-col gap-2">
-              {users.map((u) => (
-                <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
-                  <span>
-                    {u.firstName} {u.lastName} <span className="text-muted-foreground">({u.email})</span>
-                  </span>
-                  <div className="flex items-center gap-1">
-                    {u.roles.map((role) => (
-                      <Badge key={role} variant="secondary">
-                        {role}
-                      </Badge>
-                    ))}
-                    {u.isLockedOut && <Badge variant="destructive">Gesperrt</Badge>}
-                    <Button size="icon-sm" variant="ghost" title={u.isLockedOut ? "Entsperren" : "Sperren"} onClick={() => handleToggleLock(u)}>
-                      {u.isLockedOut ? <Unlock className="size-3.5" /> : <Lock className="size-3.5" />}
-                    </Button>
-                    <Button size="icon-sm" variant="ghost" title="Löschen" onClick={() => handleDeleteUser(u)}>
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="flex flex-col gap-2">
+                {userPage.users.map((u) => (
+                  <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+                    <span>
+                      {u.firstName} {u.lastName} <span className="text-muted-foreground">({u.email})</span>
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {u.roles.map((role) => (
+                        <Badge key={role} variant="secondary">
+                          {role}
+                        </Badge>
+                      ))}
+                      {u.isLockedOut && <Badge variant="destructive">Gesperrt</Badge>}
+                      <Button size="icon-sm" variant="ghost" title={u.isLockedOut ? "Entsperren" : "Sperren"} onClick={() => handleToggleLock(u)}>
+                        {u.isLockedOut ? <Unlock className="size-3.5" /> : <Lock className="size-3.5" />}
+                      </Button>
+                      <Button size="icon-sm" variant="ghost" title="Löschen" onClick={() => handleDeleteUser(u)}>
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {userPage.totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={currentPage <= 1}
+                    onClick={() => loadUsers(currentPage - 1)}
+                  >
+                    <ChevronLeft className="size-4" />
+                    Zurück
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={currentPage >= userPage.totalPages}
+                    onClick={() => loadUsers(currentPage + 1)}
+                  >
+                    Weiter
+                    <ChevronRight className="size-4" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

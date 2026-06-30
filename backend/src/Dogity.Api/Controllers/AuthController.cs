@@ -12,6 +12,7 @@ namespace Dogity.Api.Controllers;
 [Route("api/auth")]
 public class AuthController(
     UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager,
     IJwtTokenGenerator jwtTokenGenerator,
     IEmailSender emailSender,
     IConfiguration configuration) : ControllerBase
@@ -47,11 +48,21 @@ public class AuthController(
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)
     {
         var user = await userManager.FindByEmailAsync(request.Email);
-        if (user is null || !await userManager.CheckPasswordAsync(user, request.Password))
+        if (user is null)
             return Unauthorized(new { errors = new[] { "E-Mail oder Passwort ist falsch." } });
 
-        if (await userManager.IsLockedOutAsync(user))
+        // CheckPasswordSignInAsync (statt CheckPasswordAsync) statt: prüft
+        // Lockout VOR dem Passwort, zählt bei falschem Passwort
+        // AccessFailedCount hoch und sperrt automatisch nach
+        // Lockout:MaxFailedAccessAttempts (siehe DependencyInjection.cs) -
+        // ohne das blieb der eingebaute Brute-Force-Schutz von ASP.NET
+        // Identity bisher wirkungslos, weil CheckPasswordAsync ihn nicht
+        // anstößt.
+        var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+        if (result.IsLockedOut)
             return Unauthorized(new { errors = new[] { "Dieses Konto wurde gesperrt." } });
+        if (!result.Succeeded)
+            return Unauthorized(new { errors = new[] { "E-Mail oder Passwort ist falsch." } });
 
         var roles = await userManager.GetRolesAsync(user);
         return Ok(BuildAuthResponse(user, roles));

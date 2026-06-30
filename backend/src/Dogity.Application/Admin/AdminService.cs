@@ -25,11 +25,16 @@ public class AdminService(IApplicationDbContext db, IUserLookupService userLooku
         return Result<AdminStatsDto>.Success(stats);
     }
 
-    public async Task<Result<IReadOnlyList<AdminUserDto>>> GetUsersAsync(CancellationToken ct = default)
+    public async Task<Result<AdminUserPageDto>> GetUsersAsync(int page = 1, int pageSize = 50, CancellationToken ct = default)
     {
-        var users = await userLookup.ListAllAsync(ct);
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 200);
+
+        var (users, total) = await userLookup.ListPagedAsync(page, pageSize, ct);
         var dtos = users.Select(u => new AdminUserDto(u.UserId, u.Email, u.FirstName, u.LastName, u.Roles, u.IsLockedOut)).ToList();
-        return Result<IReadOnlyList<AdminUserDto>>.Success(dtos);
+        var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+
+        return Result<AdminUserPageDto>.Success(new AdminUserPageDto(dtos, total, totalPages, page, pageSize));
     }
 
     public async Task<Result> LockUserAsync(Guid userId, CancellationToken ct = default)

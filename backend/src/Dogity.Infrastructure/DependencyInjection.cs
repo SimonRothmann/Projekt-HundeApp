@@ -27,6 +27,15 @@ public static class DependencyInjection
                 options.Password.RequiredLength = 8;
                 options.Password.RequireNonAlphanumeric = false;
                 options.User.RequireUniqueEmail = true;
+
+                // Brute-Force-Schutz: nach 5 falschen Passwörtern in Folge
+                // wird das Konto für 5 Minuten automatisch gesperrt (siehe
+                // AuthController.Login - CheckPasswordSignInAsync stößt das
+                // an). Das sind die ASP.NET-Identity-Standardwerte, hier
+                // bewusst explizit gesetzt statt implizit zu verlassen.
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+                options.Lockout.AllowedForNewUsers = true;
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();

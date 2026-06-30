@@ -4,4 +4,6 @@ public record AdminStatsDto(int UserCount, int DogCount, int GroupCount, int Tra
 
 public record AdminUserDto(Guid Id, string Email, string FirstName, string LastName, string[] Roles, bool IsLockedOut);
 
+public record AdminUserPageDto(IReadOnlyList<AdminUserDto> Users, int TotalCount, int TotalPages, int Page, int PageSize);
+
 public record UpdateRegulationSourceRequest(string? SourceUrl, string? LatestKnownVersionLabel);

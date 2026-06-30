@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.*" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
@@ -18,9 +19,16 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- Referenz auf Infrastructure nötig, um ApplicationDbContext für
+       InMemory-Tests instanziieren zu können (mit korrekten Query-Filtern). -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dogity.Application\Dogity.Application.csproj" />
     <ProjectReference Include="..\..\src\Dogity.Domain\Dogity.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Dogity.Infrastructure\Dogity.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>
