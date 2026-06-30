@@ -1,19 +1,4 @@
-const CACHE_NAME = "dogity-shell-v3";
-
-// pwa-register.tsx registriert diese Datei mit "?env=development" bzw.
-// "?env=production" im Pfad - der Query-String der Registrierungs-URL wird
-// laut Spec Teil von self.location, eine separate Build-Variante dieser
-// (unverarbeitet aus public/ ausgelieferten) Datei ist dafür nicht nötig.
-// Grund für die Unterscheidung: Next.js' Dev-Modus serviert /_next/static/
-// nicht inhaltsbasiert-stabil wie ein Produktions-Build, sondern über den
-// Hot-Reload-Mechanismus mit sich änderndem Inhalt unter denselben Pfaden -
-// cache-first wie im Production-Zweig würde dort veraltete Chunks ausliefern
-// und Hot Reload kaputt machen. Damit sich Dev und Production trotzdem
-// möglichst gleich verhalten (siehe Nutzer-Feedback "sonst macht Dev keinen
-// Sinn"), bleibt im Dev-Modus nur dieser eine Unterschied; die eigentlich
-// relevante Offline-Fähigkeit (Seite/Navigation übersteht Verbindungsverlust,
-// Fallback auf /offline) ist in beiden Modi identisch aktiv.
-const IS_DEV = new URLSearchParams(self.location.search).get("env") === "development";
+const CACHE_NAME = "dogity-shell-v4";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -37,21 +22,18 @@ function isImmutableBuildAsset(url) {
 
 // API-Aufrufe an das Backend werden bewusst nicht gecacht - Schreibvorgänge
 // laufen offline über die IndexedDB-Warteschlange (siehe lib/offline-queue.ts),
-// nicht über den Service Worker.
+// nicht über den Service Worker. Registriert wird diese Datei laut
+// pwa-register.tsx nur bei NODE_ENV=production - ein Versuch, sie auch im
+// Dev-Modus zu registrieren, hat einen reproduzierbaren Reload-Loop
+// verursacht (clients.claim() übernimmt sofort offene Tabs und cacht dabei
+// auch Next.js' RSC-/Datenabrufe bei der Client-Navigation, was den
+// Next-Router aus dem Tritt brachte) - siehe TODO.md.
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-
-  // Im Dev-Modus alles unter /_next/ unangetastet lassen, nicht nur die
-  // statischen Chunks (isImmutableBuildAsset unten) - darunter liegt u.a.
-  // Turbopacks Hot-Reload-Endpoint (lang offene, gestreamte Verbindung).
-  // Würde der Service Worker den abfangen (cache.put() liest den Body bis
-  // zum Ende), bliebe das für eine absichtlich nie endende Stream-Antwort
-  // hängen bzw. störte die HMR-Verbindung.
-  if (IS_DEV && url.pathname.startsWith("/_next/") && !isImmutableBuildAsset(url)) return;
 
   if (request.mode === "navigate") {
     event.respondWith(
@@ -75,11 +57,6 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isImmutableBuildAsset(url)) {
-    // Im Dev-Modus unangetastet lassen (siehe IS_DEV-Kommentar oben) - kein
-    // respondWith() heißt, der Browser behandelt den Request normal, ohne
-    // Service-Worker-Eingriff.
-    if (IS_DEV) return;
-
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
