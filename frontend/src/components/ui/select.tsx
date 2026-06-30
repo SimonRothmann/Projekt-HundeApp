@@ -39,7 +39,12 @@ function collectSelectItems(node: React.ReactNode): Array<{ value: unknown; labe
 }
 
 function Select<Value>({ children, items, ...props }: SelectPrimitive.Root.Props<Value>) {
-  const resolvedItems = items ?? (collectSelectItems(children) as never)
+  // Ohne useMemo entsteht bei jedem Render ein neues Array (auch bei
+  // unverändertem Inhalt) - Base UI reicht "items" durchs Rendering bis in
+  // mehrere Hooks/Effects durch, eine neue Referenz pro Render kann dort
+  // unnötige Folge-Updates auslösen. Besonders relevant, seit deutlich mehr
+  // Selects gleichzeitig im DOM stehen (Trainingsplan-Items pro Woche).
+  const resolvedItems = React.useMemo(() => items ?? (collectSelectItems(children) as never), [children, items])
   return (
     <SelectPrimitive.Root data-slot="select" items={resolvedItems} {...props}>
       {children}

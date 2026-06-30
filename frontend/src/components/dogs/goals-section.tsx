@@ -61,6 +61,53 @@ export function GoalsSection({
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Direktes Eintragen "diese Übung gemacht" pro Plan-Ziel, ohne den Umweg
+  // über das volle Trainingstagebuch-Formular - Feedback war, dass sich
+  // einzelne Wochenziele nicht selbstständig auswählen ließen, nur das
+  // ganze Ziel über "Als erreicht markieren".
+  const [quickLogItemId, setQuickLogItemId] = useState<string | null>(null);
+  const [quickLogRating, setQuickLogRating] = useState(5);
+  const [quickLogSuccess, setQuickLogSuccess] = useState(true);
+  const [quickLogNotes, setQuickLogNotes] = useState("");
+  const [isQuickLogging, setIsQuickLogging] = useState(false);
+
+  function openQuickLog(itemId: string) {
+    setQuickLogItemId((current) => (current === itemId ? null : itemId));
+    setQuickLogRating(5);
+    setQuickLogSuccess(true);
+    setQuickLogNotes("");
+  }
+
+  async function submitQuickLog(item: TrainingPlanItem) {
+    if (!item.exerciseId) return;
+    setIsQuickLogging(true);
+    try {
+      await api.post("/api/trainings", {
+        dogId,
+        date: new Date().toISOString().slice(0, 10),
+        durationMinutes: 10,
+        notes: null,
+        exercises: [
+          {
+            exerciseId: item.exerciseId,
+            rating: quickLogRating,
+            difficulty: 0,
+            success: quickLogSuccess,
+            notes: quickLogNotes || null,
+            trainingPlanItemId: item.id,
+          },
+        ],
+      });
+      toast.success("Eintrag gespeichert.");
+      setQuickLogItemId(null);
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Eintrag konnte nicht gespeichert werden.");
+    } finally {
+      setIsQuickLogging(false);
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setIsSubmitting(true);
@@ -180,7 +227,11 @@ export function GoalsSection({
                         ) : (
                           items.map((item) => (
                             <div key={item.id} className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2 text-sm">
+                              <button
+                                type="button"
+                                onClick={() => openQuickLog(item.id)}
+                                className="flex items-center gap-2 text-left text-sm"
+                              >
                                 {item.isComplete ? (
                                   <CheckCircle2 className="size-4 shrink-0 text-accent" />
                                 ) : (
@@ -192,7 +243,7 @@ export function GoalsSection({
                                 <span className="text-xs text-muted-foreground">
                                   {item.completedCount}/{item.repetitionsTarget}x erledigt
                                 </span>
-                              </div>
+                              </button>
                               {item.logs.length > 0 && (
                                 <ul className="ml-6 flex flex-col gap-0.5 border-l pl-2.5">
                                   {item.logs.map((log) => (
@@ -204,6 +255,53 @@ export function GoalsSection({
                                     </li>
                                   ))}
                                 </ul>
+                              )}
+                              {quickLogItemId === item.id && (
+                                <div className="ml-6 flex flex-col gap-2 rounded-md border bg-muted/40 p-2.5">
+                                  <div className="flex gap-1">
+                                    {[1, 2, 3, 4, 5].map((value) => (
+                                      <button
+                                        key={value}
+                                        type="button"
+                                        onClick={() => setQuickLogRating(value)}
+                                        className={cn(
+                                          "flex size-7 items-center justify-center rounded-md border text-xs",
+                                          quickLogRating >= value
+                                            ? "border-accent bg-accent text-accent-foreground"
+                                            : "border-input text-muted-foreground",
+                                        )}
+                                      >
+                                        {value}
+                                      </button>
+                                    ))}
+                                    <label className="ml-2 flex items-center gap-1.5 text-xs">
+                                      <input
+                                        type="checkbox"
+                                        checked={quickLogSuccess}
+                                        onChange={(e) => setQuickLogSuccess(e.target.checked)}
+                                      />
+                                      Erfolgreich
+                                    </label>
+                                  </div>
+                                  <Input
+                                    placeholder="Kommentar (optional)"
+                                    value={quickLogNotes}
+                                    onChange={(e) => setQuickLogNotes(e.target.value)}
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      disabled={isQuickLogging}
+                                      onClick={() => submitQuickLog(item)}
+                                    >
+                                      {isQuickLogging ? "Wird gespeichert…" : "Eintragen"}
+                                    </Button>
+                                    <Button type="button" size="sm" variant="ghost" onClick={() => setQuickLogItemId(null)}>
+                                      Abbrechen
+                                    </Button>
+                                  </div>
+                                </div>
                               )}
                             </div>
                           ))
