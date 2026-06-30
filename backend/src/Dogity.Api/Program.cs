@@ -76,17 +76,28 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+// Migrationen, Rollen, Sportarten-/Übungskatalog und Admin-Bootstrap laufen
+// IMMER beim Start, nicht nur in Development - das sind keine Demo-/
+// Testdaten, sondern die Daten, die die App auch in Production für ihre
+// Kernfunktion (Trainingspläne gegen echte Prüfungsordnungen) zwingend
+// braucht. Ohne das würde eine Production-Instanz mit leerem Sportarten-
+// katalog starten. Swagger-UI und die erfundenen Demo-Accounts/-Daten
+// bleiben dagegen bewusst auf Development beschränkt.
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-
-    using var scope = app.Services.CreateScope();
     await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
     await RoleSeeder.SeedAsync(scope.ServiceProvider);
     await SportCatalogSeeder.SeedAsync(scope.ServiceProvider);
     await AdminBootstrapper.SeedAsync(scope.ServiceProvider, builder.Configuration);
-    await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
+
+    if (app.Environment.IsDevelopment())
+        await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
+}
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseResponseCompression();

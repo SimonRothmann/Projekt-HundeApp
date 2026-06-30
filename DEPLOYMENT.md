@@ -41,22 +41,19 @@ Pfade werden über `RegulationImport:PdfPath` (lokale PDF, gitignored) und
 `RegulationImport:PdftotextPath` (Standard: `pdftotext`, muss im PATH
 sein) konfiguriert.
 
-## Mit Docker (sobald verfügbar / auf der VPS)
+## Mit Docker (auf der VPS)
 
-Docker Compose Services:
+Umgesetzt: `docker-compose.yml` (Repo-Wurzel) + `backend/Dockerfile` +
+`frontend/Dockerfile`. Prod UND Test laufen auf derselben VPS, mit
+gemeinsamer Postgres-Instanz (getrennte Datenbanken) und Caddy als
+gemeinsamem Reverse Proxy mit automatischem TLS. Vollständige
+Schritt-für-Schritt-Anleitung (Ersteinrichtung, laufende Deployments,
+Backups): [deploy/README.md](deploy/README.md).
 
-
-frontend
-
-backend
-
-database
-
-storage
-
-worker
-
-
+Services: `postgres`, `backend-prod`, `frontend-prod`, `backend-test`,
+`frontend-test`, `caddy`. Storage/Worker (siehe unten) sind noch nicht
+Teil des Compose-Setups - erst bei tatsächlichem Bedarf (Dateiuploads,
+Hintergrundjobs) ergänzen, kein Premature-Setup für ungenutzte Services.
 
 ---
 
@@ -102,23 +99,16 @@ Developer (lokal)
 
 ↓
 
-Build (`dotnet build`, `npm run build`)
+`scripts/deploy.sh` (siehe [deploy/README.md](deploy/README.md)):
+Build (`dotnet build`, `npm run build`) + Tests lokal als Vorab-Check
 
 ↓
 
-Tests (lokal ausführen)
+Code-Sync per `rsync` auf die VPS (kein Image-Registry nötig)
 
 ↓
 
-Docker Image bauen
-
-↓
-
-Image per SSH/`docker compose` auf die VPS übertragen
-
-↓
-
-`docker compose up -d` auf der VPS
+`docker compose build && docker compose up -d` AUF der VPS
 
 ---
 

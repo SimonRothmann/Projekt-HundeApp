@@ -1,0 +1,23 @@
+# Reverse Proxy für Prod + Test, automatisches Let's-Encrypt-TLS pro Domain
+# (HTTP-01-Challenge, daher müssen alle vier Domains/Subdomains per DNS
+# A-Record auf die VPS-IP zeigen, bevor Caddy startet). Werte aus
+# Umgebungsvariablen (siehe docker-compose.yml/.env.example).
+{
+	email {$ACME_EMAIL}
+}
+
+{$PROD_DOMAIN} {
+	reverse_proxy frontend-prod:3000
+}
+
+{$PROD_API_DOMAIN} {
+	reverse_proxy backend-prod:8080
+}
+
+{$TEST_DOMAIN} {
+	reverse_proxy frontend-test:3000
+}
+
+{$TEST_API_DOMAIN} {
+	reverse_proxy backend-test:8080
+}

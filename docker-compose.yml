@@ -1,0 +1,109 @@
+# Prod + Test auf einem VPS, eine gemeinsame Postgres-Instanz mit getrennten
+# Datenbanken/Rollen (siehe deploy/postgres-init), Caddy als gemeinsamer
+# Reverse Proxy mit automatischem Let's-Encrypt-TLS. Secrets/Domains kommen
+# aus .env (siehe .env.example) - niemals mit echten Werten committen.
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      POSTGRES_DB: postgres
+      DOGITY_PROD_DB_PASSWORD: ${DOGITY_PROD_DB_PASSWORD}
+      DOGITY_TEST_DB_PASSWORD: ${DOGITY_TEST_DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend-prod:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Host=postgres;Database=dogity_prod;Username=dogity_prod;Password=${DOGITY_PROD_DB_PASSWORD}"
+      Jwt__Secret: ${PROD_JWT_SECRET}
+      Jwt__Issuer: Dogity
+      Jwt__Audience: Dogity
+      Cors__AllowedOrigins__0: "https://${PROD_DOMAIN}"
+      AdminBootstrap__Email: ${PROD_ADMIN_EMAIL:-}
+
+  frontend-prod:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "https://${PROD_API_DOMAIN}"
+    restart: unless-stopped
+    depends_on:
+      - backend-prod
+
+  backend-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Bewusst "Development" statt "Production": nur dann laufen
+      # Migrationen + Seeder (Sportarten-/Übungskatalog, Demo-Account)
+      # automatisch beim Start (siehe Program.cs) - für eine Testumgebung
+      # mit Demo-Daten genau das gewünschte Verhalten. CORS ist dadurch in
+      # Test permissiv (jede Origin erlaubt) statt auf Cors:AllowedOrigins
+      # beschränkt - für eine nicht öffentlich beworbene Testumgebung
+      # akzeptabel, für Prod bewusst NICHT verwendet.
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: "Host=postgres;Database=dogity_test;Username=dogity_test;Password=${DOGITY_TEST_DB_PASSWORD}"
+      Jwt__Secret: ${TEST_JWT_SECRET}
+      Jwt__Issuer: Dogity
+      Jwt__Audience: Dogity
+      AdminBootstrap__Email: ${TEST_ADMIN_EMAIL:-}
+
+  frontend-test:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "https://${TEST_API_DOMAIN}"
+    restart: unless-stopped
+    depends_on:
+      - backend-test
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}
+      PROD_DOMAIN: ${PROD_DOMAIN}
+      PROD_API_DOMAIN: ${PROD_API_DOMAIN}
+      TEST_DOMAIN: ${TEST_DOMAIN}
+      TEST_API_DOMAIN: ${TEST_API_DOMAIN}
+    depends_on:
+      - frontend-prod
+      - backend-prod
+      - frontend-test
+      - backend-test
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:
