@@ -127,6 +127,8 @@ export type Goal = {
   dogId: string;
   sportId: string;
   sportName: string;
+  regulationId: string | null;
+  regulationName: string | null;
   targetDate: string;
   status: GoalStatus;
   notes: string | null;

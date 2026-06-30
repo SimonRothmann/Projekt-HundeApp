@@ -2,17 +2,17 @@
 
 import { useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Goal, Sport } from "@/lib/types";
+import type { Exercise, Goal, Regulation, Sport, TrainingPlanItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, Circle, Plus, Target } from "lucide-react";
+import { CheckCircle2, Circle, Plus, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import type { TrainingPlanItem } from "@/lib/types";
+import { difficultyLabel } from "@/lib/constants";
 
 // Eine Woche kann jetzt mehrere Plan-Ziele haben (siehe TrainingPlanGenerator
 // "ItemsPerWeek") statt wie vorher genau eines - für die Anzeige nach
@@ -57,9 +57,90 @@ export function GoalsSection({
 }) {
   const [showForm, setShowForm] = useState(false);
   const [sportId, setSportId] = useState("");
+  const [regulations, setRegulations] = useState<Regulation[]>([]);
+  const [regulationId, setRegulationId] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Übungen pro Sportart, lazy geladen für die "Übung hinzufügen"-Auswahl
+  // im Plan (siehe addItemGoalId unten) - dieselbe Sportart kann für
+  // mehrere Ziele/Hunde wiederverwendet werden, daher pro sportId gecacht.
+  const [exercisesBySport, setExercisesBySport] = useState<Record<string, Exercise[]>>({});
+
+  async function ensureExercisesLoaded(forSportId: string) {
+    if (exercisesBySport[forSportId]) return;
+    try {
+      const data = await api.get<Exercise[]>(`/api/sports/${forSportId}/exercises`);
+      setExercisesBySport((prev) => ({ ...prev, [forSportId]: data }));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Übungen konnten nicht geladen werden.");
+    }
+  }
+
+  async function handleSportChange(value: string) {
+    setSportId(value);
+    setRegulationId("");
+    setRegulations([]);
+    if (!value) return;
+    try {
+      const data = await api.get<Regulation[]>(`/api/sports/${value}/regulations`);
+      setRegulations(data);
+    } catch {
+      // Prüfungsauswahl ist optional - bleibt leer, Plan wird dann aus
+      // allen Übungen der Sportart generiert (Fallback, siehe Backend).
+    }
+  }
+
+  // Manuelles Hinzufügen einer weiteren Plan-Übung (siehe TODO.md
+  // "Trainingsplan überarbeitet") - z.B. eine zweite Übungseinheit in
+  // derselben Woche oder eine zusätzliche Übung in einer bestehenden.
+  const [addItemGoalId, setAddItemGoalId] = useState<string | null>(null);
+  const [addItemWeek, setAddItemWeek] = useState(1);
+  const [addItemExerciseId, setAddItemExerciseId] = useState("");
+  const [addItemTarget, setAddItemTarget] = useState(2);
+  const [isAddingItem, setIsAddingItem] = useState(false);
+
+  async function openAddItem(goal: Goal) {
+    const isOpening = addItemGoalId !== goal.id;
+    setAddItemGoalId(isOpening ? goal.id : null);
+    setAddItemWeek(1);
+    setAddItemExerciseId("");
+    setAddItemTarget(2);
+    if (isOpening) await ensureExercisesLoaded(goal.sportId);
+  }
+
+  async function submitAddItem(goal: Goal) {
+    if (!addItemExerciseId) {
+      toast.error("Übung auswählen.");
+      return;
+    }
+    setIsAddingItem(true);
+    try {
+      await api.post(`/api/goals/${goal.id}/plan-items`, {
+        weekNumber: addItemWeek,
+        exerciseId: addItemExerciseId,
+        repetitionsTarget: addItemTarget,
+      });
+      toast.success("Übung zum Plan hinzugefügt.");
+      setAddItemGoalId(null);
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Übung konnte nicht hinzugefügt werden.");
+    } finally {
+      setIsAddingItem(false);
+    }
+  }
+
+  async function removePlanItem(goal: Goal, itemId: string) {
+    try {
+      await api.delete(`/api/goals/${goal.id}/plan-items/${itemId}`);
+      toast.success("Übung aus dem Plan entfernt.");
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Übung konnte nicht entfernt werden.");
+    }
+  }
 
   // Direktes Eintragen "diese Übung gemacht" pro Plan-Ziel, ohne den Umweg
   // über das volle Trainingstagebuch-Formular - Feedback war, dass sich
@@ -112,10 +193,18 @@ export function GoalsSection({
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await api.post<Goal>("/api/goals", { dogId, sportId, targetDate, notes: notes || null });
+      await api.post<Goal>("/api/goals", {
+        dogId,
+        sportId,
+        regulationId: regulationId || null,
+        targetDate,
+        notes: notes || null,
+      });
       toast.success("Ziel angelegt - Trainingsplan wurde generiert.");
       setShowForm(false);
       setSportId("");
+      setRegulationId("");
+      setRegulations([]);
       setTargetDate("");
       setNotes("");
       await onChanged();
@@ -156,7 +245,7 @@ export function GoalsSection({
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label>Sportart</Label>
-                  <Select required value={sportId} onValueChange={(value) => setSportId(value ?? "")}>
+                  <Select required value={sportId} onValueChange={(value) => handleSportChange(value ?? "")}>
                     <SelectTrigger>
                       <SelectValue placeholder="Auswählen…" />
                     </SelectTrigger>
@@ -180,6 +269,28 @@ export function GoalsSection({
                   />
                 </div>
               </div>
+              {regulations.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <Label>Prüfung</Label>
+                  <Select value={regulationId} onValueChange={(value) => setRegulationId(value ?? "")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Allgemein (alle Übungen der Sportart)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Allgemein (alle Übungen der Sportart)</SelectItem>
+                      {regulations.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Legt fest, aus welcher Pflichtübungsliste der Plan generiert wird - mehrere Prüfungsordnungen
+                    derselben Sportart (z.B. Fährte A/B/C) haben unterschiedliche Anforderungen.
+                  </p>
+                </div>
+              )}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="goalNotes">Notizen</Label>
                 <Input id="goalNotes" value={notes} onChange={(e) => setNotes(e.target.value)} />
@@ -207,7 +318,10 @@ export function GoalsSection({
             <Card key={goal.id}>
               <CardHeader className="flex-row items-center justify-between space-y-0">
                 <div>
-                  <CardTitle className="text-base">{goal.sportName}</CardTitle>
+                  <CardTitle className="text-base">
+                    {goal.sportName}
+                    {goal.regulationName && <span className="font-normal text-muted-foreground"> · {goal.regulationName}</span>}
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground">
                     Ziel: {new Date(goal.targetDate).toLocaleDateString("de-DE")}
                   </p>
@@ -227,23 +341,34 @@ export function GoalsSection({
                         ) : (
                           items.map((item) => (
                             <div key={item.id} className="flex flex-col gap-1">
-                              <button
-                                type="button"
-                                onClick={() => openQuickLog(item.id)}
-                                className="flex items-center gap-2 text-left text-sm"
-                              >
-                                {item.isComplete ? (
-                                  <CheckCircle2 className="size-4 shrink-0 text-accent" />
-                                ) : (
-                                  <Circle className="size-4 shrink-0 text-muted-foreground" />
-                                )}
-                                <span className={cn(item.isComplete && "text-muted-foreground line-through")}>
-                                  {item.exerciseName}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {item.completedCount}/{item.repetitionsTarget}x erledigt
-                                </span>
-                              </button>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => openQuickLog(item.id)}
+                                  className="flex flex-1 items-center gap-2 text-left text-sm"
+                                >
+                                  {item.isComplete ? (
+                                    <CheckCircle2 className="size-4 shrink-0 text-accent" />
+                                  ) : (
+                                    <Circle className="size-4 shrink-0 text-muted-foreground" />
+                                  )}
+                                  <span className={cn(item.isComplete && "text-muted-foreground line-through")}>
+                                    {item.exerciseName}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {item.completedCount}/{item.repetitionsTarget}x erledigt
+                                  </span>
+                                </button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  onClick={() => removePlanItem(goal, item.id)}
+                                  title="Aus dem Plan entfernen"
+                                >
+                                  <Trash2 className="size-3.5 text-muted-foreground" />
+                                </Button>
+                              </div>
                               {item.logs.length > 0 && (
                                 <ul className="ml-6 flex flex-col gap-0.5 border-l pl-2.5">
                                   {item.logs.map((log) => (
@@ -312,14 +437,77 @@ export function GoalsSection({
                 )}
 
                 {goal.status === 0 && (
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => updateStatus(goal.id, 1)}>
-                      Als erreicht markieren
+                  <>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="self-start"
+                      onClick={() => openAddItem(goal)}
+                    >
+                      <Plus className="size-4" />
+                      Übung hinzufügen
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => updateStatus(goal.id, 2)}>
-                      Abbrechen
-                    </Button>
-                  </div>
+
+                    {addItemGoalId === goal.id && (
+                      <div className="flex flex-col gap-3 rounded-md border p-3">
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="flex flex-col gap-2">
+                            <Label>Woche</Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={12}
+                              value={addItemWeek}
+                              onChange={(e) => setAddItemWeek(Number(e.target.value))}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label>Übung</Label>
+                            <Select value={addItemExerciseId} onValueChange={(value) => setAddItemExerciseId(value ?? "")}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Auswählen…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(exercisesBySport[goal.sportId] ?? []).map((ex) => (
+                                  <SelectItem key={ex.id} value={ex.id}>
+                                    {ex.name} ({difficultyLabel[ex.difficulty]})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label>Zielwert (x diese Woche)</Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={10}
+                              value={addItemTarget}
+                              onChange={(e) => setAddItemTarget(Number(e.target.value))}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button type="button" size="sm" disabled={isAddingItem} onClick={() => submitAddItem(goal)}>
+                            {isAddingItem ? "Wird hinzugefügt…" : "Hinzufügen"}
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setAddItemGoalId(null)}>
+                            Abbrechen
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => updateStatus(goal.id, 1)}>
+                        Als erreicht markieren
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => updateStatus(goal.id, 2)}>
+                        Abbrechen
+                      </Button>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>

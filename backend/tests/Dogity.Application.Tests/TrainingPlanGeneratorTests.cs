@@ -5,27 +5,27 @@ namespace Dogity.Application.Tests;
 
 public class TrainingPlanGeneratorTests
 {
-    private static Exercise MakeExercise(string name, ExerciseDifficulty difficulty) =>
-        new() { Name = name, Difficulty = difficulty, SportId = Guid.NewGuid() };
+    private static PlanExerciseCandidate Candidate(string name, ExerciseDifficulty difficulty, bool isMandatory = true) =>
+        new(Guid.NewGuid(), name, difficulty, isMandatory);
 
     [Fact]
     public void Generate_EveryFourthWeek_IsRestWeek()
     {
-        var exercises = new[] { MakeExercise("Sitz", ExerciseDifficulty.Beginner) };
-        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 2, 26), exercises);
+        var candidates = new[] { Candidate("Sitz", ExerciseDifficulty.Beginner) };
+        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 2, 26), candidates);
 
-        Assert.True(items[3].IsRestWeek);
-        Assert.Null(items[3].ExerciseId);
-        Assert.False(items[0].IsRestWeek);
+        Assert.True(items.Single(i => i.WeekNumber == 4).IsRestWeek);
+        Assert.Null(items.Single(i => i.WeekNumber == 4).ExerciseId);
+        Assert.False(items.Single(i => i.WeekNumber == 1).IsRestWeek);
     }
 
     [Fact]
     public void Generate_ClampsToMaxTwelveWeeks()
     {
-        var exercises = new[] { MakeExercise("Sitz", ExerciseDifficulty.Beginner) };
-        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2030, 1, 1), exercises);
+        var candidates = new[] { Candidate("Sitz", ExerciseDifficulty.Beginner) };
+        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2030, 1, 1), candidates);
 
-        Assert.Equal(12, items.Count);
+        Assert.Equal(12, items.Select(i => i.WeekNumber).Distinct().Count());
     }
 
     [Fact]
@@ -39,34 +39,49 @@ public class TrainingPlanGeneratorTests
     [Fact]
     public void Generate_AssignsHigherRepetitionsToBeginnerExercises()
     {
-        var exercises = new[] { MakeExercise("Sitz", ExerciseDifficulty.Beginner) };
-        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 8), exercises);
+        var candidates = new[] { Candidate("Sitz", ExerciseDifficulty.Beginner) };
+        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 8), candidates);
 
         Assert.Equal(3, items[0].RepetitionsTarget);
     }
 
     [Fact]
-    public void Generate_NonRestWeek_HasTwoDistinctExerciseItemsWhenAvailable()
+    public void Generate_CoversEveryMandatoryExerciseAtLeastOnceBeforeTargetDate()
     {
-        var exercises = new[]
+        var candidates = new[]
         {
-            MakeExercise("Sitz", ExerciseDifficulty.Beginner),
-            MakeExercise("Platz", ExerciseDifficulty.Beginner),
-            MakeExercise("Fuß", ExerciseDifficulty.Intermediate),
+            Candidate("Sitz", ExerciseDifficulty.Beginner),
+            Candidate("Platz", ExerciseDifficulty.Beginner),
+            Candidate("Fuß", ExerciseDifficulty.Intermediate),
         };
-        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 8), exercises);
-        var week1Items = items.Where(i => i.WeekNumber == 1).ToList();
+        // Nur eine Woche bis zum Zieldatum - trotzdem müssen alle drei
+        // Pflichtübungen mindestens einmal vorkommen statt nur ein fixes Kontingent.
+        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 8), candidates);
+        var week1ExerciseIds = items.Where(i => i.WeekNumber == 1).Select(i => i.ExerciseId).ToList();
 
-        Assert.Equal(2, week1Items.Count);
-        Assert.Equal(2, week1Items.Select(i => i.ExerciseId).Distinct().Count());
-        Assert.All(week1Items, item => Assert.False(item.IsRestWeek));
+        Assert.Equal(3, week1ExerciseIds.Distinct().Count());
+        Assert.All(candidates, c => Assert.Contains(c.ExerciseId, week1ExerciseIds));
     }
 
     [Fact]
-    public void Generate_NonRestWeek_NeverDuplicatesExerciseWithinSameWeekWhenOnlyOneAvailable()
+    public void Generate_IgnoresNonMandatoryExercisesWhenMandatoryOnesExist()
     {
-        var exercises = new[] { MakeExercise("Sitz", ExerciseDifficulty.Beginner) };
-        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 8), exercises);
+        var candidates = new[]
+        {
+            Candidate("Sitz", ExerciseDifficulty.Beginner),
+            Candidate("Kür-Trick", ExerciseDifficulty.Beginner, isMandatory: false),
+        };
+        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 8), candidates);
+        var usedExerciseIds = items.Select(i => i.ExerciseId).Where(id => id != null).Distinct().ToList();
+
+        Assert.DoesNotContain(candidates[1].ExerciseId, usedExerciseIds);
+    }
+
+    [Fact]
+    public void Generate_NeverDuplicatesExerciseWithinSameWeekWhenOnlyOneAvailable()
+    {
+        var candidates = new[] { Candidate("Sitz", ExerciseDifficulty.Beginner) };
+        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 8), candidates);
         var week1Items = items.Where(i => i.WeekNumber == 1).ToList();
 
         Assert.Single(week1Items);

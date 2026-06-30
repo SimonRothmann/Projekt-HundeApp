@@ -8,8 +8,10 @@ namespace Dogity.Application.Planning;
 /// <summary>
 /// Use Cases für die Zielplanung (siehe FEATURE_MODULE.md "Planning").
 /// Erzeugt beim Anlegen eines Ziels automatisch einen Trainingsplan
-/// (siehe <see cref="TrainingPlanGenerator"/>). Zugriff ist immer auf
-/// Ziele beschränkt, deren Hund dem aufrufenden Benutzer zugeordnet ist.
+/// (siehe <see cref="TrainingPlanGenerator"/>) und erlaubt ihn danach
+/// manuell zu erweitern (AddPlanItemAsync/RemovePlanItemAsync). Zugriff ist
+/// immer auf Ziele beschränkt, deren Hund dem aufrufenden Benutzer
+/// zugeordnet ist.
 /// </summary>
 public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : IGoalService
 {
@@ -25,8 +27,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
             .ToListAsync(ct);
 
         var sportNames = await GetSportNamesAsync(goals, ct);
+        var regulationNames = await GetRegulationNamesAsync(goals, ct);
         var logsByPlanItem = await GetLogsByPlanItemAsync(goals, ct);
-        return Result<IReadOnlyList<GoalDto>>.Success(goals.Select(g => ToDto(g, sportNames, logsByPlanItem)).ToList());
+        return Result<IReadOnlyList<GoalDto>>.Success(goals.Select(g => ToDto(g, sportNames, regulationNames, logsByPlanItem)).ToList());
     }
 
     public async Task<Result<GoalDto>> GetByIdAsync(Guid userId, Guid goalId, CancellationToken ct = default)
@@ -36,8 +39,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
             return Result<GoalDto>.Failure("Ziel nicht gefunden.");
 
         var sportNames = await GetSportNamesAsync([goal], ct);
+        var regulationNames = await GetRegulationNamesAsync([goal], ct);
         var logsByPlanItem = await GetLogsByPlanItemAsync([goal], ct);
-        return Result<GoalDto>.Success(ToDto(goal, sportNames, logsByPlanItem));
+        return Result<GoalDto>.Success(ToDto(goal, sportNames, regulationNames, logsByPlanItem));
     }
 
     public async Task<Result<GoalDto>> CreateAsync(Guid userId, CreateGoalRequest request, CancellationToken ct = default)
@@ -53,18 +57,26 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         if (!sportExists)
             return Result<GoalDto>.Failure("Sportart nicht gefunden.");
 
-        var exercises = await db.Exercises.Where(e => e.SportId == request.SportId).ToListAsync(ct);
+        if (request.RegulationId is { } regulationId)
+        {
+            var regulationBelongsToSport = await db.Regulations.AnyAsync(r => r.Id == regulationId && r.SportId == request.SportId, ct);
+            if (!regulationBelongsToSport)
+                return Result<GoalDto>.Failure("Prüfungsordnung gehört nicht zu dieser Sportart.");
+        }
+
+        var candidates = await ResolvePlanCandidatesAsync(request.SportId, request.RegulationId, ct);
 
         var goal = new Goal
         {
             DogId = request.DogId,
             SportId = request.SportId,
+            RegulationId = request.RegulationId,
             TargetDate = request.TargetDate,
             Notes = request.Notes
         };
 
         var plan = new TrainingPlan { GoalId = goal.Id, Goal = goal };
-        foreach (var item in TrainingPlanGenerator.Generate(today, request.TargetDate, exercises))
+        foreach (var item in TrainingPlanGenerator.Generate(today, request.TargetDate, candidates))
         {
             item.TrainingPlanId = plan.Id;
             plan.Items.Add(item);
@@ -76,8 +88,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
 
         var created = await GetOwnedGoalAsync(userId, goal.Id, ct, track: false);
         var sportNames = await GetSportNamesAsync([created!], ct);
+        var regulationNames = await GetRegulationNamesAsync([created!], ct);
         var logsByPlanItem = await GetLogsByPlanItemAsync([created!], ct);
-        return Result<GoalDto>.Success(ToDto(created!, sportNames, logsByPlanItem));
+        return Result<GoalDto>.Success(ToDto(created!, sportNames, regulationNames, logsByPlanItem));
     }
 
     public async Task<Result<GoalDto>> UpdateStatusAsync(Guid userId, Guid goalId, GoalStatus status, CancellationToken ct = default)
@@ -91,8 +104,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         await db.SaveChangesAsync(ct);
 
         var sportNames = await GetSportNamesAsync([goal], ct);
+        var regulationNames = await GetRegulationNamesAsync([goal], ct);
         var logsByPlanItem = await GetLogsByPlanItemAsync([goal], ct);
-        return Result<GoalDto>.Success(ToDto(goal, sportNames, logsByPlanItem));
+        return Result<GoalDto>.Success(ToDto(goal, sportNames, regulationNames, logsByPlanItem));
     }
 
     public async Task<Result> DeleteAsync(Guid userId, Guid goalId, CancellationToken ct = default)
@@ -106,6 +120,60 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         return Result.Success();
     }
 
+    public async Task<Result<GoalDto>> AddPlanItemAsync(Guid userId, Guid goalId, AddTrainingPlanItemRequest request, CancellationToken ct = default)
+    {
+        if (request.WeekNumber < 1)
+            return Result<GoalDto>.Failure("Wochennummer muss mindestens 1 sein.");
+        if (request.RepetitionsTarget < 1)
+            return Result<GoalDto>.Failure("Zielwert muss mindestens 1 sein.");
+
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct);
+        if (goal is null)
+            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+        if (goal.TrainingPlan is null)
+            return Result<GoalDto>.Failure("Dieses Ziel hat keinen Trainingsplan.");
+
+        var exerciseBelongsToSport = await db.Exercises.AnyAsync(e => e.Id == request.ExerciseId && e.SportId == goal.SportId, ct);
+        if (!exerciseBelongsToSport)
+            return Result<GoalDto>.Failure("Übung gehört nicht zur Sportart dieses Ziels.");
+
+        // Reinen Pausenwochen-Platzhalter ersetzen, sobald die Woche eine
+        // echte Übung bekommt - sonst stünden "Pause" und eine echte Übung
+        // gleichzeitig in derselben Woche (siehe goals-section.tsx, das pro
+        // Woche entweder "Pause" ODER die Liste der Übungen anzeigt).
+        var restPlaceholder = goal.TrainingPlan.Items.FirstOrDefault(i => i.WeekNumber == request.WeekNumber && i.IsRestWeek);
+        if (restPlaceholder is not null)
+            restPlaceholder.DeletedAt = DateTimeOffset.UtcNow;
+
+        db.TrainingPlanItems.Add(new TrainingPlanItem
+        {
+            TrainingPlanId = goal.TrainingPlan.Id,
+            WeekNumber = request.WeekNumber,
+            ExerciseId = request.ExerciseId,
+            RepetitionsTarget = request.RepetitionsTarget,
+            IsRestWeek = false
+        });
+        await db.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(userId, goalId, ct);
+    }
+
+    public async Task<Result<GoalDto>> RemovePlanItemAsync(Guid userId, Guid goalId, Guid itemId, CancellationToken ct = default)
+    {
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct);
+        if (goal is null)
+            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+
+        var item = goal.TrainingPlan?.Items.FirstOrDefault(i => i.Id == itemId);
+        if (item is null)
+            return Result<GoalDto>.Failure("Plan-Ziel nicht gefunden.");
+
+        item.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(userId, goalId, ct);
+    }
+
     private IQueryable<Goal> LoadGoalsQuery() =>
         db.Goals
             .Include(g => g.TrainingPlan)
@@ -114,7 +182,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
 
     // track: false fuer reine Lesezugriffe (kein SaveChangesAsync im selben
     // Aufruf) - vermeidet unnoetiges Change-Tracking. UpdateStatusAsync/
-    // DeleteAsync brauchen weiterhin ein getracktes Entity (Default true).
+    // DeleteAsync/AddPlanItemAsync/RemovePlanItemAsync brauchen weiterhin
+    // ein getracktes Entity (Default true).
     private async Task<Goal?> GetOwnedGoalAsync(Guid userId, Guid goalId, CancellationToken ct, bool track = true)
     {
         var query = LoadGoalsQuery();
@@ -128,12 +197,52 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
             .FirstOrDefaultAsync(ct);
     }
 
+    // Liefert die Kandidatenliste für den Generator: bei gewählter
+    // Prüfungsordnung die Pflicht-/Kür-Übungen ihrer aktuellsten Version
+    // (siehe SportCatalogService.GetRegulationDetailAsync - dieselbe
+    // "neueste Version per ValidFrom"-Logik), sonst alle Übungen der
+    // Sportart als Fallback (z.B. für Sportarten ohne hinterlegte
+    // Prüfungsordnung), jeweils als Pflicht behandelt.
+    private async Task<List<PlanExerciseCandidate>> ResolvePlanCandidatesAsync(Guid sportId, Guid? regulationId, CancellationToken ct)
+    {
+        if (regulationId is { } regId)
+        {
+            var currentVersion = await db.RegulationVersions
+                .Where(v => v.RegulationId == regId)
+                .OrderByDescending(v => v.ValidFrom)
+                .FirstOrDefaultAsync(ct);
+
+            if (currentVersion is not null)
+            {
+                return await db.RegulationExercises
+                    .Where(re => re.RegulationVersionId == currentVersion.Id)
+                    .Select(re => new PlanExerciseCandidate(re.ExerciseId, re.Exercise!.Name, re.Exercise!.Difficulty, re.IsMandatory))
+                    .ToListAsync(ct);
+            }
+        }
+
+        return await db.Exercises
+            .Where(e => e.SportId == sportId)
+            .Select(e => new PlanExerciseCandidate(e.Id, e.Name, e.Difficulty, true))
+            .ToListAsync(ct);
+    }
+
     private async Task<Dictionary<Guid, string>> GetSportNamesAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
     {
         var sportIds = goals.Select(g => g.SportId).Distinct().ToList();
         return await db.Sports
             .Where(s => sportIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s.Name, ct);
+    }
+
+    private async Task<Dictionary<Guid, string>> GetRegulationNamesAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
+    {
+        var regulationIds = goals.Where(g => g.RegulationId is not null).Select(g => g.RegulationId!.Value).Distinct().ToList();
+        if (regulationIds.Count == 0) return new Dictionary<Guid, string>();
+
+        return await db.Regulations
+            .Where(r => regulationIds.Contains(r.Id))
+            .ToDictionaryAsync(r => r.Id, r => r.Name, ct);
     }
 
     // Fortschritt eines Plan-Ziels ergibt sich aus echten, damit verknüpften
@@ -174,9 +283,11 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
     private static GoalDto ToDto(
         Goal g,
         IReadOnlyDictionary<Guid, string> sportNames,
+        IReadOnlyDictionary<Guid, string> regulationNames,
         IReadOnlyDictionary<Guid, IReadOnlyList<TrainingPlanItemLogDto>> logsByPlanItem)
     {
         var sportName = sportNames.GetValueOrDefault(g.SportId, string.Empty);
+        var regulationName = g.RegulationId is { } regId ? regulationNames.GetValueOrDefault(regId) : null;
         TrainingPlanDto? planDto = g.TrainingPlan is null
             ? null
             : new TrainingPlanDto(
@@ -201,6 +312,6 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
                     })
                     .ToList());
 
-        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.TargetDate, g.Status, g.Notes, planDto);
+        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, planDto);
     }
 }

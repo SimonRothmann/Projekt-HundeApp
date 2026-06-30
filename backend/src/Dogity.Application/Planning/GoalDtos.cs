@@ -37,11 +37,15 @@ public record GoalDto(
     Guid DogId,
     Guid SportId,
     string SportName,
+    Guid? RegulationId,
+    string? RegulationName,
     DateOnly TargetDate,
     GoalStatus Status,
     string? Notes,
     TrainingPlanDto? TrainingPlan);
 
-public record CreateGoalRequest(Guid DogId, Guid SportId, DateOnly TargetDate, string? Notes);
+public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, DateOnly TargetDate, string? Notes);
 
 public record UpdateGoalStatusRequest(GoalStatus Status);
+
+public record AddTrainingPlanItemRequest(int WeekNumber, Guid ExerciseId, int RepetitionsTarget);

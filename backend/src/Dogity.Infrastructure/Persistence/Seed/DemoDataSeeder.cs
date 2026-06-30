@@ -137,10 +137,13 @@ public static class DemoDataSeeder
         }
         db.GpsTracks.Add(track);
 
+        var bhRegulation = await db.Regulations.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.SportId == bh.Id);
+
         var goal = new Goal
         {
             DogId = bello.Id,
             SportId = bh.Id,
+            RegulationId = bhRegulation?.Id,
             TargetDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(2),
             Status = GoalStatus.Active,
             Notes = "BH-Prüfung im Hundesportverein."
@@ -148,7 +151,8 @@ public static class DemoDataSeeder
         db.Goals.Add(goal);
 
         var bhExercises = await db.Exercises.IgnoreQueryFilters().Where(e => e.SportId == bh.Id && e.ClubId == null).ToListAsync();
-        var planItems = TrainingPlanGenerator.Generate(DateOnly.FromDateTime(DateTime.UtcNow), goal.TargetDate, bhExercises);
+        var bhCandidates = bhExercises.Select(e => new PlanExerciseCandidate(e.Id, e.Name, e.Difficulty, true)).ToList();
+        var planItems = TrainingPlanGenerator.Generate(DateOnly.FromDateTime(DateTime.UtcNow), goal.TargetDate, bhCandidates);
         var plan = new TrainingPlan { GoalId = goal.Id };
         foreach (var item in planItems)
             plan.Items.Add(item);
