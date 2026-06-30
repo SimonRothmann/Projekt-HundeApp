@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Dog, Users2, ClipboardList, MapPin, ScrollText } from "lucide-react";
+import { Users, Dog, Users2, ClipboardList, MapPin, ScrollText, Lock, Unlock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ClubsSection } from "@/components/admin/clubs-section";
 import { GlobalExercisesSection } from "@/components/admin/global-exercises-section";
@@ -26,6 +26,15 @@ export default function AdminPage() {
   const [versionLabel, setVersionLabel] = useState("");
   const [saving, setSaving] = useState(false);
 
+  async function loadUsers() {
+    try {
+      const data = await api.get<AdminUser[]>("/api/admin/users");
+      setUsers(data);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Nutzer konnten nicht geladen werden.");
+    }
+  }
+
   useEffect(() => {
     Promise.all([
       api.get<AdminStats>("/api/admin/stats"),
@@ -39,6 +48,27 @@ export default function AdminPage() {
       })
       .catch((err) => toast.error(err instanceof ApiError ? err.message : "Admin-Daten konnten nicht geladen werden."));
   }, []);
+
+  async function handleToggleLock(user: AdminUser) {
+    try {
+      await api.post(`/api/admin/users/${user.id}/${user.isLockedOut ? "unlock" : "lock"}`);
+      toast.success(user.isLockedOut ? "Konto entsperrt." : "Konto gesperrt.");
+      await loadUsers();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Aktion fehlgeschlagen.");
+    }
+  }
+
+  async function handleDeleteUser(user: AdminUser) {
+    if (!window.confirm(`${user.firstName} ${user.lastName} (${user.email}) wirklich endgültig löschen?`)) return;
+    try {
+      await api.delete(`/api/admin/users/${user.id}`);
+      toast.success("Nutzer gelöscht.");
+      await loadUsers();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+    }
+  }
 
   async function handleSportChange(sportId: string) {
     setSelectedSportId(sportId);
@@ -197,12 +227,19 @@ export default function AdminPage() {
                   <span>
                     {u.firstName} {u.lastName} <span className="text-muted-foreground">({u.email})</span>
                   </span>
-                  <div className="flex gap-1">
+                  <div className="flex items-center gap-1">
                     {u.roles.map((role) => (
                       <Badge key={role} variant="secondary">
                         {role}
                       </Badge>
                     ))}
+                    {u.isLockedOut && <Badge variant="destructive">Gesperrt</Badge>}
+                    <Button size="icon-sm" variant="ghost" title={u.isLockedOut ? "Entsperren" : "Sperren"} onClick={() => handleToggleLock(u)}>
+                      {u.isLockedOut ? <Unlock className="size-3.5" /> : <Lock className="size-3.5" />}
+                    </Button>
+                    <Button size="icon-sm" variant="ghost" title="Löschen" onClick={() => handleDeleteUser(u)}>
+                      <Trash2 className="size-3.5" />
+                    </Button>
                   </div>
                 </li>
               ))}

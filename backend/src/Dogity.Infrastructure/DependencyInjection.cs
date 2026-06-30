@@ -1,4 +1,5 @@
 using Dogity.Application.Abstractions;
+using Dogity.Infrastructure.Email;
 using Dogity.Infrastructure.Identity;
 using Dogity.Infrastructure.Import;
 using Dogity.Infrastructure.Persistence;
@@ -37,6 +38,12 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IUserLookupService, UserLookupService>();
         services.AddScoped<IRegulationPdfParser, RegulationPdfParser>();
+
+        services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
+        // LoggingEmailSender ist aktiv, bis echte SMTP-Zugangsdaten vorliegen
+        // (siehe SmtpEmailSender-Kommentar) - dann hier auf
+        // AddTransient<IEmailSender, SmtpEmailSender>() umstellen.
+        services.AddTransient<IEmailSender, LoggingEmailSender>();
 
         var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();
 

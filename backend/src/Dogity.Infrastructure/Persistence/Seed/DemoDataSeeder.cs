@@ -42,6 +42,11 @@ public static class DemoDataSeeder
         var trainer = await CreateUserAsync(userManager, "trainer@dogity.test", "Anna", "Trainer", [Roles.User]);
         var member1 = await CreateUserAsync(userManager, "mitglied1@dogity.test", "Max", "Mustermann", [Roles.User]);
         var member2 = await CreateUserAsync(userManager, "mitglied2@dogity.test", "Lisa", "Beispiel", [Roles.User]);
+        // Eigener Account ohne jede Vereinszugehörigkeit: deckt sowohl den
+        // "Beitrittsanfrage offen"-Zustand (Trainer-Sicht: Beitrittsanfragen-
+        // Liste ist nicht leer) als auch den Dashboard-Hinweis "Tritt einem
+        // Verein bei" (Mitglied-Sicht) ohne manuelles Nachstellen ab.
+        var interessent = await CreateUserAsync(userManager, "interessent@dogity.test", "Tom", "Neuling", [Roles.User]);
 
         var club = new Club { Name = "Hundesportverein Musterstadt e.V.", Description = "Demo-Verein für Testzwecke." };
         db.Clubs.Add(club);
@@ -57,6 +62,18 @@ public static class DemoDataSeeder
         db.Groups.Add(group);
         db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = member1.Id });
         db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = member2.Id });
+
+        // member1/member2 sind bereits Gruppenmitglieder (oben) - die
+        // allgemeine Vereinsmitgliedschaft (unabhängig von einer konkreten
+        // Trainingsgruppe, siehe ClubMembership-Doku) wird hier passend dazu
+        // als bereits genehmigt nachgezogen, damit z.B. die
+        // Mitgliederliste des Trainers ("Zum Trainer machen") sofort
+        // Testdaten zeigt. interessent hat bewusst nur eine offene
+        // Pending-Anfrage, noch keine Gruppenmitgliedschaft.
+        var now = DateTimeOffset.UtcNow;
+        db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = member1.Id, Status = ClubMembershipStatus.Approved, RequestedAt = now.AddDays(-30), DecidedAt = now.AddDays(-29), DecidedByUserId = trainer.Id });
+        db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = member2.Id, Status = ClubMembershipStatus.Approved, RequestedAt = now.AddDays(-20), DecidedAt = now.AddDays(-19), DecidedByUserId = trainer.Id });
+        db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = interessent.Id, Status = ClubMembershipStatus.Pending, RequestedAt = now.AddDays(-1) });
 
         var bello = new Dog { Name = "Bello", Breed = "Labrador Retriever", Gender = DogGender.Male, Birthday = new DateOnly(2022, 3, 15) };
         var luna = new Dog { Name = "Luna", Breed = "Border Collie", Gender = DogGender.Female, Birthday = new DateOnly(2021, 7, 1) };

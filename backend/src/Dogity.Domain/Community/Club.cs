@@ -14,4 +14,5 @@ public class Club : Entity
 
     public ICollection<Group> Groups { get; set; } = new List<Group>();
     public ICollection<ClubTrainer> Trainers { get; set; } = new List<ClubTrainer>();
+    public ICollection<ClubMembership> Memberships { get; set; } = new List<ClubMembership>();
 }

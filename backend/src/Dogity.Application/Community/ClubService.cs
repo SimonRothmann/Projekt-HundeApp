@@ -1,11 +1,12 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Notifications;
 using Dogity.Domain.Community;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Community;
 
-public class ClubService(IApplicationDbContext db, IUserLookupService userLookup) : IClubService
+public class ClubService(IApplicationDbContext db, IUserLookupService userLookup, INotificationService notifications) : IClubService
 {
     public async Task<Result<IReadOnlyList<ClubDto>>> GetClubsAsync(CancellationToken ct = default)
     {
@@ -87,6 +88,142 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
         entry.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result<IReadOnlyList<ClubSummaryDto>>> GetBrowsableClubsAsync(CancellationToken ct = default)
+    {
+        var clubs = await db.Clubs
+            .Select(c => new ClubSummaryDto(c.Id, c.Name, c.Description))
+            .ToListAsync(ct);
+
+        return Result<IReadOnlyList<ClubSummaryDto>>.Success(clubs);
+    }
+
+    public async Task<Result<IReadOnlyList<ClubMembershipDto>>> GetMyMembershipsAsync(Guid userId, CancellationToken ct = default)
+    {
+        var memberships = await db.ClubMemberships
+            .Where(m => m.UserId == userId)
+            .Select(m => new ClubMembershipDto(m.Id, m.ClubId, m.Club!.Name, m.Status, m.RequestedAt, m.DecidedAt))
+            .ToListAsync(ct);
+
+        return Result<IReadOnlyList<ClubMembershipDto>>.Success(memberships);
+    }
+
+    public async Task<Result<ClubMembershipDto>> RequestJoinAsync(Guid userId, Guid clubId, CancellationToken ct = default)
+    {
+        var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
+        if (club is null)
+            return Result<ClubMembershipDto>.Failure("Verein nicht gefunden.");
+
+        var existing = await db.ClubMemberships
+            .Where(m => m.ClubId == clubId && m.UserId == userId)
+            .OrderByDescending(m => m.RequestedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (existing is not null && existing.Status is ClubMembershipStatus.Pending or ClubMembershipStatus.Approved)
+            return Result<ClubMembershipDto>.Failure("Du hast bereits eine Anfrage oder Mitgliedschaft für diesen Verein.");
+
+        var membership = new ClubMembership { ClubId = clubId, UserId = userId };
+        db.ClubMemberships.Add(membership);
+        await db.SaveChangesAsync(ct);
+
+        return Result<ClubMembershipDto>.Success(new ClubMembershipDto(membership.Id, clubId, club.Name, membership.Status, membership.RequestedAt, membership.DecidedAt));
+    }
+
+    public async Task<Result<IReadOnlyList<ClubMemberDto>>> GetJoinRequestsAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
+    {
+        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+            return Result<IReadOnlyList<ClubMemberDto>>.Failure("Verein nicht gefunden.");
+
+        var pending = await db.ClubMemberships
+            .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Pending)
+            .ToListAsync(ct);
+
+        var lookup = await userLookup.FindByIdsAsync(pending.Select(m => m.UserId).ToList(), ct);
+        var dtos = pending
+            .Select(m => lookup.TryGetValue(m.UserId, out var info)
+                ? new ClubMemberDto(m.Id, m.UserId, info.Email, info.FirstName, info.LastName, m.RequestedAt, m.DecidedAt)
+                : new ClubMemberDto(m.Id, m.UserId, "(unbekannt)", "", "", m.RequestedAt, m.DecidedAt))
+            .ToList();
+
+        return Result<IReadOnlyList<ClubMemberDto>>.Success(dtos);
+    }
+
+    public async Task<Result> DecideJoinRequestAsync(Guid callerId, Guid clubId, Guid membershipId, bool approve, CancellationToken ct = default)
+    {
+        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+            return Result.Failure("Verein nicht gefunden.");
+
+        var membership = await db.ClubMemberships.FirstOrDefaultAsync(m => m.Id == membershipId && m.ClubId == clubId, ct);
+        if (membership is null || membership.Status != ClubMembershipStatus.Pending)
+            return Result.Failure("Beitrittsanfrage nicht gefunden.");
+
+        membership.Status = approve ? ClubMembershipStatus.Approved : ClubMembershipStatus.Rejected;
+        membership.DecidedAt = DateTimeOffset.UtcNow;
+        membership.DecidedByUserId = callerId;
+        await db.SaveChangesAsync(ct);
+
+        var club = await db.Clubs.AsNoTracking().FirstAsync(c => c.Id == clubId, ct);
+        var message = approve
+            ? $"Dein Beitritt zu \"{club.Name}\" wurde angenommen."
+            : $"Dein Beitritt zu \"{club.Name}\" wurde abgelehnt.";
+        await notifications.CreateAsync(membership.UserId, message, "/clubs", ct);
+
+        return Result.Success();
+    }
+
+    public async Task<Result> LeaveClubAsync(Guid userId, Guid clubId, CancellationToken ct = default)
+    {
+        var membership = await db.ClubMemberships
+            .FirstOrDefaultAsync(m => m.ClubId == clubId && m.UserId == userId && m.Status == ClubMembershipStatus.Approved, ct);
+        if (membership is null)
+            return Result.Failure("Keine aktive Mitgliedschaft gefunden.");
+
+        membership.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result<IReadOnlyList<ClubMemberDto>>> GetMembersAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
+    {
+        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+            return Result<IReadOnlyList<ClubMemberDto>>.Failure("Verein nicht gefunden.");
+
+        var members = await db.ClubMemberships
+            .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Approved)
+            .ToListAsync(ct);
+
+        var lookup = await userLookup.FindByIdsAsync(members.Select(m => m.UserId).ToList(), ct);
+        var dtos = members
+            .Select(m => lookup.TryGetValue(m.UserId, out var info)
+                ? new ClubMemberDto(m.Id, m.UserId, info.Email, info.FirstName, info.LastName, m.RequestedAt, m.DecidedAt)
+                : new ClubMemberDto(m.Id, m.UserId, "(unbekannt)", "", "", m.RequestedAt, m.DecidedAt))
+            .ToList();
+
+        return Result<IReadOnlyList<ClubMemberDto>>.Success(dtos);
+    }
+
+    public async Task<Result> PromoteMemberToTrainerAsync(Guid callerId, Guid clubId, Guid targetUserId, CancellationToken ct = default)
+    {
+        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+            return Result.Failure("Verein nicht gefunden.");
+
+        var isApprovedMember = await db.ClubMemberships
+            .AnyAsync(m => m.ClubId == clubId && m.UserId == targetUserId && m.Status == ClubMembershipStatus.Approved, ct);
+        if (!isApprovedMember)
+            return Result.Failure("Nur bestehende Mitglieder dieses Vereins können zu Trainern gemacht werden.");
+
+        var alreadyTrainer = await db.IsClubTrainerAsync(targetUserId, clubId, ct);
+        if (alreadyTrainer)
+            return Result.Failure("Dieser Benutzer ist bereits Trainer dieses Vereins.");
+
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = clubId, UserId = targetUserId });
+        await db.SaveChangesAsync(ct);
+
+        var club = await db.Clubs.AsNoTracking().FirstAsync(c => c.Id == clubId, ct);
+        await notifications.CreateAsync(targetUserId, $"Du bist jetzt Trainer bei \"{club.Name}\".", "/trainer", ct);
+
         return Result.Success();
     }
 }

@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-context";
 const GRID_COLS_CLASS: Record<number, string> = {
   4: "grid-cols-4",
   5: "grid-cols-5",
+  6: "grid-cols-6",
 };
 
 export function BottomNav() {
@@ -21,7 +22,7 @@ export function BottomNav() {
   const navItems = [...coreNavItems, ...(isTrainer ? [trainerNavItem] : []), profileNavItem];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 md:hidden print:hidden">
       <ul className={cn("grid", GRID_COLS_CLASS[navItems.length])}>
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href);

@@ -70,3 +70,24 @@ public class ClubTrainerConfiguration : IEntityTypeConfiguration<ClubTrainer>
         builder.HasIndex(t => t.UserId);
     }
 }
+
+public class ClubMembershipConfiguration : IEntityTypeConfiguration<ClubMembership>
+{
+    public void Configure(EntityTypeBuilder<ClubMembership> builder)
+    {
+        builder.ToTable("club_memberships");
+        builder.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
+
+        builder.HasOne(m => m.Club)
+            .WithMany(c => c.Memberships)
+            .HasForeignKey(m => m.ClubId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Kein Unique-Index auf (ClubId, UserId): nach einer Ablehnung soll
+        // erneutes Anfragen möglich sein, ohne die alte Rejected-Zeile zu
+        // löschen - der Service prüft stattdessen gezielt auf existierende
+        // Pending/Approved-Zeilen vor dem Insert.
+        builder.HasIndex(m => new { m.ClubId, m.UserId });
+        builder.HasIndex(m => m.UserId);
+    }
+}

@@ -2,15 +2,16 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { Dog, Exercise, Goal, Sport, TrainingSession } from "@/lib/types";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dog as DogIcon, ListChecks, PenLine, Plus, Trash2 } from "lucide-react";
+import { Dog as DogIcon, ListChecks, PenLine, Plus, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
@@ -180,14 +181,20 @@ export default function DogDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <div className="flex size-12 items-center justify-center rounded-full bg-secondary">
-          <DogIcon className="size-6 text-secondary-foreground" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex size-12 items-center justify-center rounded-full bg-secondary">
+            <DogIcon className="size-6 text-secondary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">{dog.name}</h1>
+            <p className="text-muted-foreground">{dog.breed ?? "Unbekannte Rasse"}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{dog.name}</h1>
-          <p className="text-muted-foreground">{dog.breed ?? "Unbekannte Rasse"}</p>
-        </div>
+        <Link href={`/dogs/${id}/print`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <Printer className="size-4" />
+          Drucken / Exportieren
+        </Link>
       </div>
 
       <GoalsSection dogId={id} sports={sports} goals={goals} onChanged={loadAll} />

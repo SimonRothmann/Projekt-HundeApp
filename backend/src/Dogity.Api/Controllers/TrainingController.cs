@@ -43,4 +43,11 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         var result = await trainingService.SetFeedbackAsync(CurrentUserId, id, request, ct);
         return FromResult(result);
     }
+
+    [HttpGet("pending-feedback")]
+    public async Task<ActionResult<IReadOnlyList<PendingFeedbackDto>>> GetPendingFeedback(CancellationToken ct)
+    {
+        var result = await trainingService.GetPendingFeedbackAsync(CurrentUserId, ct);
+        return FromResult(result);
+    }
 }

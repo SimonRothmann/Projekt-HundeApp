@@ -1,10 +1,11 @@
-import { LayoutDashboard, Dog, Trophy, Users, User, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Dog, Trophy, Users, User, ShieldCheck, Building2 } from "lucide-react";
 
 // Für jede Person immer sichtbar - unabhängig von Rolle/Perspektive.
 export const coreNavItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/dogs", label: "Hunde", icon: Dog },
   { href: "/sports", label: "Sportarten", icon: Trophy },
+  { href: "/clubs", label: "Vereine", icon: Building2 },
 ];
 
 export const profileNavItem = { href: "/profile", label: "Profil", icon: User };

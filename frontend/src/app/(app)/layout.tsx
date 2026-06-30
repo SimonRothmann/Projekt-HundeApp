@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { SidebarNav } from "@/components/nav/sidebar-nav";
 import { BottomNav } from "@/components/nav/bottom-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationBell } from "@/components/nav/notification-bell";
 import { OfflineSyncListener } from "@/components/offline-sync-listener";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -24,12 +25,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-1">
       <SidebarNav />
       <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b px-4 py-3 md:hidden">
+        <header className="flex items-center justify-between border-b px-4 py-3 md:hidden print:hidden">
           <span className="text-lg font-semibold text-primary">Dogity</span>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <ThemeToggle />
+          </div>
         </header>
         <OfflineSyncListener />
-        <main className="flex-1 px-4 py-6 pb-24 md:px-8 md:pb-8">{children}</main>
+        <main className="flex-1 px-4 py-6 pb-24 md:px-8 md:pb-8 print:p-0">{children}</main>
       </div>
       <BottomNav />
     </div>

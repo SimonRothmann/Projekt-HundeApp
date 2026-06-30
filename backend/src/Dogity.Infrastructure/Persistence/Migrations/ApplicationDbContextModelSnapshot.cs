@@ -50,6 +50,50 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.ToTable("clubs", (string)null);
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Community.ClubMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClubId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecidedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ClubId", "UserId");
+
+                    b.ToTable("club_memberships", (string)null);
+                });
+
             modelBuilder.Entity("Dogity.Domain.Community.ClubTrainer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -269,6 +313,43 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("dog_owners", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Notifications.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LinkPath")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("notifications", (string)null);
                 });
 
             modelBuilder.Entity("Dogity.Domain.Planning.Goal", b =>
@@ -1057,6 +1138,17 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.ToTable("user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Community.ClubMembership", b =>
+                {
+                    b.HasOne("Dogity.Domain.Community.Club", "Club")
+                        .WithMany("Memberships")
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+                });
+
             modelBuilder.Entity("Dogity.Domain.Community.ClubTrainer", b =>
                 {
                     b.HasOne("Dogity.Domain.Community.Club", "Club")
@@ -1303,6 +1395,8 @@ namespace Dogity.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Dogity.Domain.Community.Club", b =>
                 {
                     b.Navigation("Groups");
+
+                    b.Navigation("Memberships");
 
                     b.Navigation("Trainers");
                 });

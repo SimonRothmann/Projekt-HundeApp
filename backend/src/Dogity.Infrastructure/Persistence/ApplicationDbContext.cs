@@ -1,6 +1,7 @@
 using Dogity.Application.Abstractions;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
+using Dogity.Domain.Notifications;
 using Dogity.Domain.Planning;
 using Dogity.Domain.Sports;
 using Dogity.Domain.Tracking;
@@ -42,11 +43,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<TrainerAssignment> TrainerAssignments => Set<TrainerAssignment>();
     public DbSet<ClubTrainer> ClubTrainers => Set<ClubTrainer>();
+    public DbSet<ClubMembership> ClubMemberships => Set<ClubMembership>();
 
     public DbSet<GpsTrack> GpsTracks => Set<GpsTrack>();
     public DbSet<GpsPoint> GpsPoints => Set<GpsPoint>();
     public DbSet<GpsWalkRun> GpsWalkRuns => Set<GpsWalkRun>();
     public DbSet<GpsWalkPoint> GpsWalkPoints => Set<GpsWalkPoint>();
+
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -83,9 +87,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<GroupMember>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<TrainerAssignment>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<ClubTrainer>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<ClubMembership>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsTrack>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsPoint>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkRun>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkPoint>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null);
     }
 }

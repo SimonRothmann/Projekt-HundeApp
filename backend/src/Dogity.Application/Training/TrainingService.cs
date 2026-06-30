@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Notifications;
 using Dogity.Domain.Training;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +11,7 @@ namespace Dogity.Application.Training;
 /// Zugriff ist immer auf Trainingseinheiten beschränkt, deren Hund dem
 /// aufrufenden Benutzer über <see cref="Domain.Dogs.DogOwner"/> zugeordnet ist.
 /// </summary>
-public class TrainingService(IApplicationDbContext db) : ITrainingService
+public class TrainingService(IApplicationDbContext db, INotificationService notifications, IUserLookupService userLookup) : ITrainingService
 {
     public async Task<Result<IReadOnlyList<TrainingSessionDto>>> GetByDogAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
@@ -129,7 +130,34 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
         session.FeedbackByTrainerId = trainerId;
         session.FeedbackAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
+
+        await notifications.CreateAsync(
+            session.UserId,
+            $"Dein Trainer hat Feedback zu deinem Training vom {session.Date:dd.MM.yyyy} hinterlassen.",
+            $"/dogs/{session.DogId}",
+            ct);
+
         return Result.Success();
+    }
+
+    public async Task<Result<IReadOnlyList<PendingFeedbackDto>>> GetPendingFeedbackAsync(Guid trainerId, CancellationToken ct = default)
+    {
+        var sessions = await db.TrainingSessions
+            .Where(s => s.TrainerFeedback == null)
+            .Where(s => db.TrainerAssignments.Any(t => t.DogId == s.DogId && t.TrainerId == trainerId))
+            .Join(db.Dogs, s => s.DogId, d => d.Id, (s, d) => new { s.Id, s.DogId, DogName = d.Name, s.UserId, s.Date, s.DurationMinutes })
+            .OrderBy(s => s.Date)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var lookup = await userLookup.FindByIdsAsync(sessions.Select(s => s.UserId).Distinct().ToList(), ct);
+        var dtos = sessions
+            .Select(s => lookup.TryGetValue(s.UserId, out var owner)
+                ? new PendingFeedbackDto(s.Id, s.DogId, s.DogName, $"{owner.FirstName} {owner.LastName}", s.Date, s.DurationMinutes)
+                : new PendingFeedbackDto(s.Id, s.DogId, s.DogName, "(unbekannt)", s.Date, s.DurationMinutes))
+            .ToList();
+
+        return Result<IReadOnlyList<PendingFeedbackDto>>.Success(dtos);
     }
 
     // track: false fuer reine Lesezugriffe (kein SaveChangesAsync im selben

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { coreNavItems, profileNavItem, trainerNavItem, adminNavItem } from "@/components/nav/nav-items";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationBell } from "@/components/nav/notification-bell";
 import { useAuth } from "@/lib/auth-context";
 import { PawPrint } from "lucide-react";
 
@@ -19,10 +20,13 @@ export function SidebarNav() {
   ];
 
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r bg-sidebar p-4 md:flex">
-      <div className="mb-6 flex items-center gap-2 px-2">
-        <PawPrint className="size-6 text-primary" />
-        <span className="text-lg font-semibold">Dogity</span>
+    <aside className="hidden w-60 shrink-0 flex-col border-r bg-sidebar p-4 md:flex print:hidden">
+      <div className="mb-6 flex items-center justify-between gap-2 px-2">
+        <div className="flex items-center gap-2">
+          <PawPrint className="size-6 text-primary" />
+          <span className="text-lg font-semibold">Dogity</span>
+        </div>
+        <NotificationBell />
       </div>
       <nav className="flex flex-1 flex-col gap-1">
         {items.map(({ href, label, icon: Icon }) => {

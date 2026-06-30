@@ -1,5 +1,6 @@
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
+using Dogity.Domain.Notifications;
 using Dogity.Domain.Planning;
 using Dogity.Domain.Sports;
 using Dogity.Domain.Tracking;
@@ -36,11 +37,14 @@ public interface IApplicationDbContext
     DbSet<GroupMember> GroupMembers { get; }
     DbSet<TrainerAssignment> TrainerAssignments { get; }
     DbSet<ClubTrainer> ClubTrainers { get; }
+    DbSet<ClubMembership> ClubMemberships { get; }
 
     DbSet<GpsTrack> GpsTracks { get; }
     DbSet<GpsPoint> GpsPoints { get; }
     DbSet<GpsWalkRun> GpsWalkRuns { get; }
     DbSet<GpsWalkPoint> GpsWalkPoints { get; }
+
+    DbSet<Notification> Notifications { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

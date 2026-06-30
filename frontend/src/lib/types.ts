@@ -204,6 +204,34 @@ export type AdminUser = {
   firstName: string;
   lastName: string;
   roles: string[];
+  isLockedOut: boolean;
+};
+
+export type ClubSummary = {
+  id: string;
+  name: string;
+  description: string | null;
+};
+
+export type ClubMembershipStatus = 0 | 1 | 2; // 0 = Pending, 1 = Approved, 2 = Rejected
+
+export type ClubMembership = {
+  id: string;
+  clubId: string;
+  clubName: string;
+  status: ClubMembershipStatus;
+  requestedAt: string;
+  decidedAt: string | null;
+};
+
+export type ClubMemberRequest = {
+  membershipId: string;
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  requestedAt: string;
+  decidedAt: string | null;
 };
 
 export type GpsPointType = 0 | 1; // 0 = Automatic, 1 = Manual (siehe Domain.Tracking.GpsPointType)
@@ -244,4 +272,28 @@ export type GpsTrack = {
   comment: string | null;
   points: GpsPoint[];
   walkRuns: GpsWalkRun[];
+};
+
+export type Notification = {
+  id: string;
+  message: string;
+  linkPath: string | null;
+  isRead: boolean;
+  createdAt: string;
+};
+
+export type Profile = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatarUrl: string | null;
+};
+
+export type PendingFeedback = {
+  sessionId: string;
+  dogId: string;
+  dogName: string;
+  ownerName: string;
+  date: string;
+  durationMinutes: number;
 };

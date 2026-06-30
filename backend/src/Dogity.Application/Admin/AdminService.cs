@@ -28,8 +28,26 @@ public class AdminService(IApplicationDbContext db, IUserLookupService userLooku
     public async Task<Result<IReadOnlyList<AdminUserDto>>> GetUsersAsync(CancellationToken ct = default)
     {
         var users = await userLookup.ListAllAsync(ct);
-        var dtos = users.Select(u => new AdminUserDto(u.UserId, u.Email, u.FirstName, u.LastName, u.Roles)).ToList();
+        var dtos = users.Select(u => new AdminUserDto(u.UserId, u.Email, u.FirstName, u.LastName, u.Roles, u.IsLockedOut)).ToList();
         return Result<IReadOnlyList<AdminUserDto>>.Success(dtos);
+    }
+
+    public async Task<Result> LockUserAsync(Guid userId, CancellationToken ct = default)
+    {
+        var ok = await userLookup.LockUserAsync(userId, ct);
+        return ok ? Result.Success() : Result.Failure("Benutzer nicht gefunden.");
+    }
+
+    public async Task<Result> UnlockUserAsync(Guid userId, CancellationToken ct = default)
+    {
+        var ok = await userLookup.UnlockUserAsync(userId, ct);
+        return ok ? Result.Success() : Result.Failure("Benutzer nicht gefunden.");
+    }
+
+    public async Task<Result> DeleteUserAsync(Guid userId, CancellationToken ct = default)
+    {
+        var ok = await userLookup.DeleteUserAsync(userId, ct);
+        return ok ? Result.Success() : Result.Failure("Benutzer nicht gefunden oder Löschung fehlgeschlagen.");
     }
 
     public async Task<Result> UpdateRegulationSourceAsync(Guid regulationId, UpdateRegulationSourceRequest request, CancellationToken ct = default)

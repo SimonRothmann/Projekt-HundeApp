@@ -17,6 +17,7 @@ const DEMO_ACCOUNTS = [
   { label: "Trainer", email: "trainer@dogity.test" },
   { label: "Mitglied 1", email: "mitglied1@dogity.test" },
   { label: "Mitglied 2", email: "mitglied2@dogity.test" },
+  { label: "Interessent", email: "interessent@dogity.test" },
 ] as const;
 const DEMO_PASSWORD = "Demo1234!";
 
@@ -68,7 +69,12 @@ export default function LoginPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Passwort</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Passwort</Label>
+                <Link href="/forgot-password" className="text-xs text-primary underline-offset-4 hover:underline">
+                  Passwort vergessen?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"

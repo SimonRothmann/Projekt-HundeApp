@@ -14,8 +14,11 @@ type AuthContextValue = {
   // geleitete Gruppe oder Vereins-Trainer-Zuweisung, siehe TODO.md
   // "Rollenswitch") statt über eine eigene Identity-Rolle abgebildet.
   isTrainer: boolean | null;
+  unreadNotificationCount: number;
+  refreshUnreadNotificationCount: () => void;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  updateUser: (patch: Partial<Pick<AuthUser, "firstName" | "lastName" | "email">>) => void;
   logout: () => void;
 };
 
@@ -25,6 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTrainer, setIsTrainer] = useState<boolean | null>(null);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
     const storedUser = window.localStorage.getItem(USER_KEY);
@@ -56,6 +61,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let cancelled = false;
+    function fetchUnreadCount() {
+      api
+        .get<number>("/api/notifications/unread-count")
+        .then((count) => {
+          if (!cancelled) setUnreadNotificationCount(count);
+        })
+        .catch(() => {
+          // Stiller Fehlschlag - die Glocke ist nur ein Komfort-Hinweis.
+        });
+    }
+
+    fetchUnreadCount();
+    // Kein WebSocket/SignalR (siehe Plan) - einfaches Polling reicht für die
+    // Vereinsgröße dieser App, analog zum isTrainer-Abruf-Muster oben.
+    const interval = setInterval(fetchUnreadCount, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [user, refreshTick]);
+
+  function refreshUnreadNotificationCount() {
+    setRefreshTick((t) => t + 1);
+  }
+
+  function updateUser(patch: Partial<Pick<AuthUser, "firstName" | "lastName" | "email">>) {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      window.localStorage.setItem(USER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
 
   function persist(response: AuthResponse) {
     const authUser: AuthUser = {
@@ -90,10 +133,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.localStorage.removeItem(USER_KEY);
     setUser(null);
     setIsTrainer(null);
+    setUnreadNotificationCount(0);
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isTrainer, login, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isTrainer,
+        unreadNotificationCount,
+        refreshUnreadNotificationCount,
+        login,
+        register,
+        updateUser,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

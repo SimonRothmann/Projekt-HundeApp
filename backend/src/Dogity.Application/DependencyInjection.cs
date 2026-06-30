@@ -1,6 +1,7 @@
 using Dogity.Application.Admin;
 using Dogity.Application.Community;
 using Dogity.Application.Dogs;
+using Dogity.Application.Notifications;
 using Dogity.Application.Planning;
 using Dogity.Application.Sports;
 using Dogity.Application.Tracking;
@@ -24,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<INotificationService, NotificationService>();
         return services;
     }
 }

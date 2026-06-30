@@ -13,6 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { ClubExercisesSection } from "@/components/trainer/club-exercises-section";
+import { ClubJoinRequestsSection } from "@/components/trainer/club-join-requests-section";
+import { ClubMembersSection } from "@/components/trainer/club-members-section";
+import { PendingFeedbackSection } from "@/components/trainer/pending-feedback-section";
 
 export default function TrainerPage() {
   const [groups, setGroups] = useState<Group[] | null>(null);
@@ -147,7 +150,15 @@ export default function TrainerPage() {
         </div>
       )}
 
-      {myClubs.length > 0 && <ClubExercisesSection clubs={myClubs} />}
+      <PendingFeedbackSection />
+
+      {myClubs.length > 0 && (
+        <>
+          <ClubJoinRequestsSection clubs={myClubs} />
+          <ClubMembersSection clubs={myClubs} />
+          <ClubExercisesSection clubs={myClubs} />
+        </>
+      )}
     </div>
   );
 }

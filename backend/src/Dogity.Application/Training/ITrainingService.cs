@@ -11,4 +11,7 @@ public interface ITrainingService
 
     /// <summary>Nur für Trainer mit TrainerAssignment auf den Hund - nicht für den Besitzer selbst.</summary>
     Task<Result> SetFeedbackAsync(Guid trainerId, Guid sessionId, SetFeedbackRequest request, CancellationToken ct = default);
+
+    /// <summary>Trainings betreuter Hunde ohne Trainer-Feedback, älteste zuerst.</summary>
+    Task<Result<IReadOnlyList<PendingFeedbackDto>>> GetPendingFeedbackAsync(Guid trainerId, CancellationToken ct = default);
 }

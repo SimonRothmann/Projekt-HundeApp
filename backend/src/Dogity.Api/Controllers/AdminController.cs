@@ -64,6 +64,33 @@ public class AdminController(IAdminService adminService, IClubService clubServic
         return FromResult(result);
     }
 
+    [HttpPost("users/{id:guid}/lock")]
+    public async Task<IActionResult> LockUser(Guid id, CancellationToken ct)
+    {
+        if (id == CurrentUserId)
+            return BadRequest(new { errors = new[] { "Eigenes Konto kann nicht gesperrt werden." } });
+
+        var result = await adminService.LockUserAsync(id, ct);
+        return FromResult(result);
+    }
+
+    [HttpPost("users/{id:guid}/unlock")]
+    public async Task<IActionResult> UnlockUser(Guid id, CancellationToken ct)
+    {
+        var result = await adminService.UnlockUserAsync(id, ct);
+        return FromResult(result);
+    }
+
+    [HttpDelete("users/{id:guid}")]
+    public async Task<IActionResult> DeleteUser(Guid id, CancellationToken ct)
+    {
+        if (id == CurrentUserId)
+            return BadRequest(new { errors = new[] { "Eigenes Konto kann nicht gelöscht werden." } });
+
+        var result = await adminService.DeleteUserAsync(id, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("regulations/{id:guid}/source")]
     public async Task<IActionResult> UpdateRegulationSource(Guid id, UpdateRegulationSourceRequest request, CancellationToken ct)
     {
