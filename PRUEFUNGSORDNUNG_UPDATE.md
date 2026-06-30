@@ -84,13 +84,48 @@ Stolperfallen aus dem letzten Durchlauf, auf die explizit achten:
   2. Eine NEUE `RegulationVersion` mit höherem `ValidFrom`-Datum anlegen
      (z.B. altes Label "2025" → neues Label "2025-2" oder das tatsächliche
      Versionsdatum aus der PDF), die ausschließlich auf die korrekten
-     Übungen verweist.
-  3. Die alte, falsche Version NICHT löschen - sie wird durch
-     `GetRegulationDetailAsync`s "neueste Version per `ValidFrom`"-Logik
-     automatisch nicht mehr verwendet, bleibt aber als Historie/wegen
-     möglicher Altreferenzen (Trainingspläne, Tagebucheinträge) bestehen.
-  Grund: kein Hard-Delete von Daten, auf die in einer bereits laufenden
-  Installation (lokal oder produktiv) schon verwiesen werden könnte.
+     Übungen verweist. `GetRegulationDetailAsync`s "neueste Version per
+     `ValidFrom`"-Logik sorgt dafür, dass ab sofort nur noch diese
+     verwendet wird.
+  3. **Erst danach** prüfen, ob die alte Version wirklich folgenlos
+     entfernt werden kann (siehe "Aufräumen" unten) - nicht vorher
+     löschen, sonst gehen ggf. echte Verweise (Trainingspläne,
+     Tagebucheinträge) kaputt, bevor die neue Version überhaupt steht.
+
+  ### Aufräumen: alte, jetzt unbenutzte Übungen/Versionen entfernen
+
+  Eine neue Version lässt die alte, falsch benannte automatisch
+  "verwaisen" (keine `RegulationExercise`-Zeile verweist mehr darauf,
+  sie taucht aber weiterhin in `/api/sports/{id}/exercises` auf - genau
+  das wurde im Juni 2026 als "Abweichungen/Dopplungen" gemeldet, siehe
+  TODO.md). Vor dem endgültigen Löschen **immer per SQL prüfen**, dass
+  wirklich nichts Reales mehr referenziert:
+
+  ```sql
+  SELECT e."Name",
+    (SELECT count(*) FROM training_exercises te WHERE te."ExerciseId" = e."Id") AS te_count,
+    (SELECT count(*) FROM training_plan_items tpi WHERE tpi."ExerciseId" = e."Id") AS tpi_count
+  FROM exercises e
+  WHERE e."ClubId" IS NULL AND e."Name" IN ('<alter Übungsname 1>', '<...>');
+  -- te_count und tpi_count müssen 0 sein, sonst NICHT löschen.
+  ```
+
+  Sind alle Zähler 0, im `SeedAsync`-Hauptmethodenkörper (nach den
+  `SeedRegulationAsync`-Aufrufen) ergänzen:
+
+  ```csharp
+  await RemoveSupersededVersionAsync(db, ibgh1, "IBGH1", "<altes VersionLabel>");
+  await RemoveOrphanedExercisesAsync(db, ibgh1);
+  ```
+
+  `RemoveSupersededVersionAsync` löscht nur die alte `RegulationVersion`
+  (cascade-entfernt automatisch ihre `RegulationExercise`-Zeilen, lässt
+  von der neuen Version weiterhin genutzte, gemeinsame Übungen aber
+  unberührt). `RemoveOrphanedExercisesAsync` entfernt anschließend
+  Übungen, auf die wirklich gar nichts mehr verweist (vereinsspezifische
+  Übungen mit gesetzter `ClubId` sind davon immer ausgenommen). Beide
+  sind idempotent - auf einer bereits bereinigten Datenbank passiert
+  beim nächsten Lauf einfach nichts.
 - Bestehende `RegulationExercise`-Zeilen werden bei jedem Seed-Lauf
   automatisch aktualisiert (siehe `SeedRegulationAsync`s
   Upsert-Logik) - eine Punktkorrektur an einer bereits existierenden

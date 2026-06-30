@@ -531,6 +531,27 @@ public static class SportCatalogSeeder
             new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", true, 15, "Erneuter Angriff im Anschluss an \"Angriff auf den Hund aus der Bewegung\", voller fester Griff."),
         ]));
 
+        // Durch die obigen Korrekturversionen abgelöste, fehlerhafte
+        // Versionen entfernen (siehe PRUEFUNGSORDNUNG_UPDATE.md
+        // "Versions-Supersession") - nur sicher, weil keine echten
+        // Trainingsdaten auf die betroffenen Übungen verweisen (geprüft vor
+        // Einführung dieser Bereinigung). Idempotent: auf einer bereits
+        // bereinigten Datenbank finden die Lookups einfach nichts mehr.
+        await RemoveSupersededVersionAsync(db, ibgh1, "IBGH1", "2024");
+        await RemoveSupersededVersionAsync(db, ibgh2, "IBGH2", "2024");
+        await RemoveSupersededVersionAsync(db, ibgh3, "IBGH3", "2024");
+        await RemoveSupersededVersionAsync(db, igp1, "FCI-IGP 1", "2025");
+        await RemoveSupersededVersionAsync(db, igp2, "FCI-IGP 2", "2025");
+        await RemoveSupersededVersionAsync(db, igp3, "FCI-IGP 3", "2025");
+
+        await RemoveOrphanedExercisesAsync(db, bh);
+        await RemoveOrphanedExercisesAsync(db, ibgh1);
+        await RemoveOrphanedExercisesAsync(db, ibgh2);
+        await RemoveOrphanedExercisesAsync(db, ibgh3);
+        await RemoveOrphanedExercisesAsync(db, igp1);
+        await RemoveOrphanedExercisesAsync(db, igp2);
+        await RemoveOrphanedExercisesAsync(db, igp3);
+
         await db.SaveChangesAsync();
     }
 
@@ -639,6 +660,51 @@ public static class SportCatalogSeeder
             }
         }
 
+        await db.SaveChangesAsync();
+    }
+
+    // Entfernt eine durch eine neuere, korrigierte Version abgelöste,
+    // fehlerhafte RegulationVersion (siehe PRUEFUNGSORDNUNG_UPDATE.md
+    // "Versions-Supersession") - Cascade-Delete entfernt automatisch deren
+    // RegulationExercise-Zeilen. Von der neuen Version weiterhin genutzte,
+    // gemeinsame Exercise-Zeilen (z.B. "Freifolge", die in alter wie neuer
+    // Version vorkommt) bleiben unberührt, da nur die JOIN-Zeile der alten
+    // Version gelöscht wird, nicht die Übung selbst.
+    private static async Task RemoveSupersededVersionAsync(ApplicationDbContext db, Sport sport, string regulationName, string oldVersionLabel)
+    {
+        var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.SportId == sport.Id && r.Name == regulationName);
+        if (regulation is null) return;
+
+        var oldVersion = await db.RegulationVersions
+            .FirstOrDefaultAsync(v => v.RegulationId == regulation.Id && v.VersionLabel == oldVersionLabel);
+        if (oldVersion is null) return;
+
+        var oldRegulationExercises = await db.RegulationExercises
+            .Where(re => re.RegulationVersionId == oldVersion.Id)
+            .ToListAsync();
+        db.RegulationExercises.RemoveRange(oldRegulationExercises);
+        db.RegulationVersions.Remove(oldVersion);
+        await db.SaveChangesAsync();
+    }
+
+    // Entfernt globale (nicht vereinsspezifische) Übungen, auf die nach
+    // RemoveSupersededVersionAsync keine RegulationExercise- oder
+    // Trainingsdaten mehr verweisen - Rückstände aus inzwischen abgelösten,
+    // fehlerhaft benannten Prüfungsordnungs-Versionen (z.B. "Fußarbeit"
+    // statt "Leinenführigkeit" bei IBGH). Vereinsspezifische Übungen
+    // (ClubId gesetzt) sind bewusst nie Teil einer globalen
+    // Prüfungsordnung und daher hiervon ausgenommen.
+    private static async Task RemoveOrphanedExercisesAsync(ApplicationDbContext db, Sport sport)
+    {
+        var orphaned = await db.Exercises
+            .Where(e => e.SportId == sport.Id && e.ClubId == null)
+            .Where(e => !db.RegulationExercises.Any(re => re.ExerciseId == e.Id))
+            .Where(e => !db.TrainingExercises.Any(te => te.ExerciseId == e.Id))
+            .Where(e => !db.TrainingPlanItems.Any(tpi => tpi.ExerciseId == e.Id))
+            .ToListAsync();
+        if (orphaned.Count == 0) return;
+
+        db.Exercises.RemoveRange(orphaned);
         await db.SaveChangesAsync();
     }
 }
