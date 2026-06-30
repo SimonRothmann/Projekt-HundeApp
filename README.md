@@ -243,21 +243,23 @@ Das Zertifikat ist an die aktuelle LAN-IP gebunden - vergibt der Router per
 DHCP eine andere Adresse, muss es mit der neuen IP neu erzeugt werden
 (`certs/` ist gitignored, da `lan-key.pem` ein privater Schlüssel ist).
 
-### Echtes Offline-Verhalten testen: Produktions-Build nötig, nicht `npm run dev`
+### Offline-Verhalten testen
 
-`npm run dev` / `npm run dev:https` taugen nicht zum Testen von "Verbindung
-komplett weg" (z.B. Flugmodus auf dem Handy): Next.js' Dev-Client hält für
+Der Service Worker (`public/sw.js`) registriert sich in Dev und Production
+gleichermaßen (siehe Kommentar dort) - Navigation übersteht Verbindungsverlust
+in beiden Modi (Fallback auf `/offline`), ebenso die IndexedDB-Schreib-
+warteschlange (`lib/offline-queue.ts`) für offline erfasste Trainings/Fährten.
+Ein Unterschied bleibt bewusst bestehen: `npm run dev`/`dev:https` hält für
 Hot-Reload eine WebSocket-Verbindung zum Dev-Server offen und versucht bei
-Verbindungsverlust automatisch neu zu verbinden bzw. die Seite neu zu laden
-- genau das wirkt dann wie "App versucht ständig neuzuladen und erreicht den
-Server nicht", obwohl die eigentliche Offline-Logik (Service Worker +
-IndexedDB-Warteschlange, siehe `offline-queue.ts`) gar nicht das Problem
-ist. Zusätzlich registriert sich der Service Worker laut
-`pwa-register.tsx` nur bei `NODE_ENV=production` - im Dev-Modus wird ein
-ggf. vorhandener sogar aktiv deinstalliert, die Offline-App-Shell existiert
-im Dev-Modus also schlicht nicht.
+Verbindungsverlust ständig neu zu verbinden - das kann sich wie ein
+hängender Reload anfühlen, ist aber reines Dev-Tooling-Rauschen und hat mit
+der eigentlichen Offline-Fähigkeit der App nichts zu tun. Außerdem cacht der
+Service Worker im Dev-Modus die `/_next/`-Build-Assets bewusst nicht (dort
+nicht inhaltsbasiert-stabil wie im Production-Build - cache-first würde
+veraltete Chunks ausliefern und Hot Reload kaputt machen).
 
-Für einen echten Test:
+Für einen Test, der dem späteren echten Deployment am nächsten kommt (kein
+Dev-Tooling-Rauschen, vollständig gecachte App-Shell inkl. `/_next/`-Assets):
 
 ```bash
 cd frontend
@@ -267,11 +269,11 @@ npm run start:https   # HTTPS-Server für den Produktions-Build, Port 3000
 
 `start:https` ist ein kleiner Custom-Server (`server.mjs`), da `next start`
 anders als `next dev` kein `--experimental-https` kennt; nutzt dieselben
-mkcert-Zertifikate wie `dev:https`. Danach: Seite einmal regulär online
-aufrufen (lädt den Service Worker, der die App-Shell cacht), erst danach
-die Verbindung trennen (WLAN aus/Flugmodus) und die Fährtenaufzeichnung
-testen - ohne diesen ersten Online-Aufruf hat der Service Worker nichts zum
-Ausliefern und ein komplett kalter Offline-Start scheitert ebenfalls.
+mkcert-Zertifikate wie `dev:https`. In beiden Fällen (Dev wie Production)
+gilt: Seite einmal regulär online aufrufen, damit der Service Worker etwas
+zum Ausliefern hat, erst danach die Verbindung trennen (WLAN aus/Flugmodus)
+und testen - ein komplett kalter Start ganz ohne vorherigen Online-Besuch
+scheitert in beiden Modi.
 
 ## 5. Besonderheiten auf macOS (Homebrew)
 
