@@ -598,7 +598,20 @@ public static class SportCatalogSeeder
         {
             var exercise = await db.Exercises.FirstOrDefaultAsync(e => e.SportId == sport.Id && e.Name == exerciseSeed.ExerciseName);
             if (exercise is null)
-                continue;
+            {
+                // Bewusst ein harter Fehler statt stillschweigendem Überspringen:
+                // ein RegulationSeed-Eintrag, der auf eine nicht (mehr) unter
+                // diesem exakten Namen existierende Übung verweist (Tippfehler,
+                // vergessene Ergänzung im zugehörigen SeedSportAsync-Aufruf),
+                // führte sonst dazu, dass eine ganze Pflichtübung einfach
+                // unbemerkt fehlte - genau die Art von Lücke, die zum
+                // Nutzer-Feedback "Bausteine fehlen" geführt hat. Läuft nur in
+                // Development (siehe Program.cs), bricht also nie Production.
+                throw new InvalidOperationException(
+                    $"Seed-Fehler: Übung \"{exerciseSeed.ExerciseName}\" für Prüfungsordnung \"{seed.Name}\" ({seed.VersionLabel}) " +
+                    $"ist nicht in der Exercise-Liste der Sportart \"{sport.Code}\" deklariert (SeedSportAsync-Aufruf prüfen - " +
+                    "Name muss exakt übereinstimmen).");
+            }
 
             var regulationExercise = await db.RegulationExercises
                 .FirstOrDefaultAsync(re => re.RegulationVersionId == version.Id && re.ExerciseId == exercise.Id);

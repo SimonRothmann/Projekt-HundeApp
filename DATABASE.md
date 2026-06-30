@@ -294,6 +294,11 @@ Version 2027
 gültig ab 01.01.2027
 
 
+Wie eine neue Prüfungsordnungs-Revision in den Übungskatalog eingepflegt
+wird (PDF → `SportCatalogSeeder.cs`), ist Schritt für Schritt in
+[PRUEFUNGSORDNUNG_UPDATE.md](PRUEFUNGSORDNUNG_UPDATE.md) festgehalten.
+
+
 ---
 
 ## exercises
