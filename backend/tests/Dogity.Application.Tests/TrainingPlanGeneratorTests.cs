@@ -44,4 +44,31 @@ public class TrainingPlanGeneratorTests
 
         Assert.Equal(3, items[0].RepetitionsTarget);
     }
+
+    [Fact]
+    public void Generate_NonRestWeek_HasTwoDistinctExerciseItemsWhenAvailable()
+    {
+        var exercises = new[]
+        {
+            MakeExercise("Sitz", ExerciseDifficulty.Beginner),
+            MakeExercise("Platz", ExerciseDifficulty.Beginner),
+            MakeExercise("Fuß", ExerciseDifficulty.Intermediate),
+        };
+        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 8), exercises);
+        var week1Items = items.Where(i => i.WeekNumber == 1).ToList();
+
+        Assert.Equal(2, week1Items.Count);
+        Assert.Equal(2, week1Items.Select(i => i.ExerciseId).Distinct().Count());
+        Assert.All(week1Items, item => Assert.False(item.IsRestWeek));
+    }
+
+    [Fact]
+    public void Generate_NonRestWeek_NeverDuplicatesExerciseWithinSameWeekWhenOnlyOneAvailable()
+    {
+        var exercises = new[] { MakeExercise("Sitz", ExerciseDifficulty.Beginner) };
+        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 8), exercises);
+        var week1Items = items.Where(i => i.WeekNumber == 1).ToList();
+
+        Assert.Single(week1Items);
+    }
 }

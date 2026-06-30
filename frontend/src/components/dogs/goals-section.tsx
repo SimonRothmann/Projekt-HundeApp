@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { Goal, Sport } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,23 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Target } from "lucide-react";
+import { CheckCircle2, Circle, Plus, Target } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import type { TrainingPlanItem } from "@/lib/types";
+
+// Eine Woche kann jetzt mehrere Plan-Ziele haben (siehe TrainingPlanGenerator
+// "ItemsPerWeek") statt wie vorher genau eines - für die Anzeige nach
+// Wochennummer gruppiert, in der vom Server gelieferten Reihenfolge.
+function groupByWeek(items: TrainingPlanItem[]): [number, TrainingPlanItem[]][] {
+  const byWeek = new Map<number, TrainingPlanItem[]>();
+  for (const item of items) {
+    const group = byWeek.get(item.weekNumber);
+    if (group) group.push(item);
+    else byWeek.set(item.weekNumber, [item]);
+  }
+  return [...byWeek.entries()];
+}
 
 const statusLabel: Record<Goal["status"], string> = {
   0: "Aktiv",
@@ -24,29 +39,27 @@ const statusVariant: Record<Goal["status"], "default" | "secondary" | "outline">
   2: "outline",
 };
 
-export function GoalsSection({ dogId, sports }: { dogId: string; sports: Sport[] }) {
-  const [goals, setGoals] = useState<Goal[] | null>(null);
+// "goals"/"onChanged" kommen jetzt von der Eltern-Seite statt aus einem
+// eigenen Fetch hier (siehe dogs/[id]/page.tsx) - die Seite braucht dieselben
+// Daten ohnehin für die "Plan-Ziel"-Auswahl im Trainingstagebuch-Formular,
+// und nur ein gemeinsamer State stellt sicher, dass der Fortschritt hier
+// sofort sichtbar wird, sobald dort ein verknüpftes Training gespeichert wird.
+export function GoalsSection({
+  dogId,
+  sports,
+  goals,
+  onChanged,
+}: {
+  dogId: string;
+  sports: Sport[];
+  goals: Goal[] | null;
+  onChanged: () => Promise<void>;
+}) {
   const [showForm, setShowForm] = useState(false);
   const [sportId, setSportId] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  async function loadGoals() {
-    try {
-      const data = await api.get<Goal[]>(`/api/goals?dogId=${dogId}`);
-      setGoals(data);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Ziele konnten nicht geladen werden.");
-    }
-  }
-
-  useEffect(() => {
-    // Initialer Datenabruf bei Mount/Routenwechsel (externe Quelle: REST API).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadGoals();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dogId]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -58,7 +71,7 @@ export function GoalsSection({ dogId, sports }: { dogId: string; sports: Sport[]
       setSportId("");
       setTargetDate("");
       setNotes("");
-      await loadGoals();
+      await onChanged();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Ziel konnte nicht angelegt werden.");
     } finally {
@@ -70,7 +83,7 @@ export function GoalsSection({ dogId, sports }: { dogId: string; sports: Sport[]
     try {
       await api.put<Goal>(`/api/goals/${goalId}/status`, { status });
       toast.success(status === 1 ? "Ziel als erreicht markiert." : "Ziel abgebrochen.");
-      await loadGoals();
+      await onChanged();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Status konnte nicht aktualisiert werden.");
     }
@@ -158,20 +171,46 @@ export function GoalsSection({ dogId, sports }: { dogId: string; sports: Sport[]
                 {goal.notes && <p className="text-sm text-muted-foreground">{goal.notes}</p>}
 
                 {goal.trainingPlan && (
-                  <ul className="flex flex-col gap-1">
-                    {goal.trainingPlan.items.map((item) => (
-                      <li key={item.id} className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">KW {item.weekNumber}</span>
-                        {item.isRestWeek ? (
-                          <span>Pause</span>
+                  <div className="flex flex-col gap-3">
+                    {groupByWeek(goal.trainingPlan.items).map(([weekNumber, items]) => (
+                      <div key={weekNumber} className="flex flex-col gap-1.5 rounded-md border p-2.5">
+                        <span className="text-xs font-medium text-muted-foreground">KW {weekNumber}</span>
+                        {items[0].isRestWeek ? (
+                          <span className="text-sm text-muted-foreground">Pause</span>
                         ) : (
-                          <span>
-                            {item.repetitionsTarget}x {item.exerciseName}
-                          </span>
+                          items.map((item) => (
+                            <div key={item.id} className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2 text-sm">
+                                {item.isComplete ? (
+                                  <CheckCircle2 className="size-4 shrink-0 text-accent" />
+                                ) : (
+                                  <Circle className="size-4 shrink-0 text-muted-foreground" />
+                                )}
+                                <span className={cn(item.isComplete && "text-muted-foreground line-through")}>
+                                  {item.exerciseName}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {item.completedCount}/{item.repetitionsTarget}x erledigt
+                                </span>
+                              </div>
+                              {item.logs.length > 0 && (
+                                <ul className="ml-6 flex flex-col gap-0.5 border-l pl-2.5">
+                                  {item.logs.map((log) => (
+                                    <li key={`${log.trainingSessionId}-${log.date}`} className="text-xs text-muted-foreground">
+                                      {new Date(log.date).toLocaleDateString("de-DE")} ·{" "}
+                                      {"★".repeat(log.rating)}
+                                      {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}
+                                      {log.notes && <span> · {log.notes}</span>}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          ))
                         )}
-                      </li>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 )}
 
                 {goal.status === 0 && (

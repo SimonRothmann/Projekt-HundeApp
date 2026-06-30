@@ -80,6 +80,7 @@ export type TrainingExercise = {
   difficulty: ExerciseDifficulty;
   success: boolean;
   notes: string | null;
+  trainingPlanItemId: string | null;
 };
 
 export type TrainingSession = {
@@ -95,6 +96,14 @@ export type TrainingSession = {
 
 export type GoalStatus = 0 | 1 | 2; // 0 = Active, 1 = Achieved, 2 = Cancelled
 
+export type TrainingPlanItemLog = {
+  trainingSessionId: string;
+  date: string;
+  rating: number;
+  success: boolean;
+  notes: string | null;
+};
+
 export type TrainingPlanItem = {
   id: string;
   weekNumber: number;
@@ -102,6 +111,9 @@ export type TrainingPlanItem = {
   exerciseName: string | null;
   repetitionsTarget: number;
   isRestWeek: boolean;
+  completedCount: number;
+  isComplete: boolean;
+  logs: TrainingPlanItemLog[];
 };
 
 export type TrainingPlan = {

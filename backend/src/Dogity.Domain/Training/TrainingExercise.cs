@@ -1,4 +1,5 @@
 using Dogity.Domain.Common;
+using Dogity.Domain.Planning;
 using Dogity.Domain.Sports;
 
 namespace Dogity.Domain.Training;
@@ -20,4 +21,15 @@ public class TrainingExercise : Entity
     public ExerciseDifficulty Difficulty { get; set; }
     public bool Success { get; set; }
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// Optionaler Bezug zu einem Wochenziel im Trainingsplan (siehe
+    /// TrainingPlanItem) - verknüpft einen echten Tagebucheintrag mit dem
+    /// Plan-Ziel, das er erfüllt, statt eine zweite, separate "erledigt"-
+    /// Verwaltung im Plan selbst zu führen. Fortschritt/Bewertung/Kommentar
+    /// eines Plan-Ziels ergeben sich dadurch direkt aus den verknüpften
+    /// Tagebucheinträgen (Rating/Success/Notes oben).
+    /// </summary>
+    public Guid? TrainingPlanItemId { get; set; }
+    public TrainingPlanItem? TrainingPlanItem { get; set; }
 }

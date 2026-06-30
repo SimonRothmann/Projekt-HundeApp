@@ -9,7 +9,8 @@ public record TrainingExerciseDto(
     int Rating,
     ExerciseDifficulty Difficulty,
     bool Success,
-    string? Notes);
+    string? Notes,
+    Guid? TrainingPlanItemId);
 
 public record TrainingSessionDto(
     Guid Id,
@@ -28,7 +29,14 @@ public record CreateTrainingExerciseRequest(
     int Rating,
     ExerciseDifficulty Difficulty,
     bool Success,
-    string? Notes);
+    string? Notes,
+    /// <summary>
+    /// Optionaler Bezug zu einem Wochenziel im Trainingsplan (siehe
+    /// TrainingExercise.TrainingPlanItemId) - ordnet diesen Tagebucheintrag
+    /// einem Plan-Ziel zu, damit dessen Fortschritt sich aus echten
+    /// Trainingseinträgen statt einem separaten Haken ergibt.
+    /// </summary>
+    Guid? TrainingPlanItemId = null);
 
 public record CreateTrainingSessionRequest(
     Guid DogId,

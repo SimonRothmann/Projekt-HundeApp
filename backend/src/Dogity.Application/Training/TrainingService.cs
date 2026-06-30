@@ -60,6 +60,10 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
         if (existingExerciseCount != exerciseIds.Distinct().Count())
             return Result<TrainingSessionDto>.Failure("Eine oder mehrere Übungen wurden nicht gefunden.");
 
+        var planItemError = await ValidatePlanItemsAsync(request, ct);
+        if (planItemError is not null)
+            return Result<TrainingSessionDto>.Failure(planItemError);
+
         var session = new TrainingSession
         {
             UserId = userId,
@@ -81,7 +85,8 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
                 Rating = exercise.Rating,
                 Difficulty = exercise.Difficulty,
                 Success = exercise.Success,
-                Notes = exercise.Notes
+                Notes = exercise.Notes,
+                TrainingPlanItemId = exercise.TrainingPlanItemId
             });
         }
 
@@ -141,6 +146,41 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
         return await query.FirstOrDefaultAsync(ct);
     }
 
+    // Stellt sicher, dass ein referenziertes Plan-Ziel (1) tatsächlich
+    // existiert, (2) zum selben Hund gehört (sonst könnte ein Tagebucheintrag
+    // fälschlich den Fortschritt eines fremden Hundes erhöhen) und (3) zur
+    // selben Übung gehört wie der Tagebucheintrag - sonst könnte z.B. ein
+    // "Sitz"-Eintrag fälschlich als Erfüllung eines "Platz"-Ziels gezählt werden.
+    private async Task<string?> ValidatePlanItemsAsync(CreateTrainingSessionRequest request, CancellationToken ct)
+    {
+        var planItemIds = request.Exercises
+            .Where(e => e.TrainingPlanItemId is not null)
+            .Select(e => e.TrainingPlanItemId!.Value)
+            .Distinct()
+            .ToList();
+        if (planItemIds.Count == 0) return null;
+
+        var planItems = await db.TrainingPlanItems
+            .Where(i => planItemIds.Contains(i.Id))
+            .Select(i => new { i.Id, i.ExerciseId, DogId = i.TrainingPlan!.Goal!.DogId })
+            .ToListAsync(ct);
+
+        if (planItems.Count != planItemIds.Count)
+            return "Ein oder mehrere Plan-Ziele wurden nicht gefunden.";
+
+        var planItemsById = planItems.ToDictionary(i => i.Id);
+        foreach (var exercise in request.Exercises.Where(e => e.TrainingPlanItemId is not null))
+        {
+            var planItem = planItemsById[exercise.TrainingPlanItemId!.Value];
+            if (planItem.DogId != request.DogId)
+                return "Ein Plan-Ziel gehört nicht zu diesem Hund.";
+            if (planItem.ExerciseId != exercise.ExerciseId)
+                return "Ein Plan-Ziel passt nicht zur ausgewählten Übung.";
+        }
+
+        return null;
+    }
+
     private static string? Validate(CreateTrainingSessionRequest request)
     {
         if (request.Date == default)
@@ -165,7 +205,8 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
             e.Rating,
             e.Difficulty,
             e.Success,
-            e.Notes)).ToList(),
+            e.Notes,
+            e.TrainingPlanItemId)).ToList(),
         s.TrainerFeedback,
         s.FeedbackAt);
 }

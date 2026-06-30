@@ -32,5 +32,14 @@ public class TrainingExerciseConfiguration : IEntityTypeConfiguration<TrainingEx
             .WithMany()
             .HasForeignKey(t => t.ExerciseId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // SetNull statt Cascade/Restrict: ein Trainingsplan kann jederzeit
+        // gelöscht werden (z.B. Ziel storniert), ohne dass dabei echte
+        // Tagebucheinträge mitgelöscht oder das Löschen blockiert wird - der
+        // Eintrag bleibt als "nicht mehr einem Plan zugeordnet" bestehen.
+        builder.HasOne(t => t.TrainingPlanItem)
+            .WithMany()
+            .HasForeignKey(t => t.TrainingPlanItemId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

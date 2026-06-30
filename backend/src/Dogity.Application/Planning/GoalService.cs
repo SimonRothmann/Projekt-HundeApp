@@ -25,7 +25,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
             .ToListAsync(ct);
 
         var sportNames = await GetSportNamesAsync(goals, ct);
-        return Result<IReadOnlyList<GoalDto>>.Success(goals.Select(g => ToDto(g, sportNames)).ToList());
+        var logsByPlanItem = await GetLogsByPlanItemAsync(goals, ct);
+        return Result<IReadOnlyList<GoalDto>>.Success(goals.Select(g => ToDto(g, sportNames, logsByPlanItem)).ToList());
     }
 
     public async Task<Result<GoalDto>> GetByIdAsync(Guid userId, Guid goalId, CancellationToken ct = default)
@@ -35,7 +36,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
             return Result<GoalDto>.Failure("Ziel nicht gefunden.");
 
         var sportNames = await GetSportNamesAsync([goal], ct);
-        return Result<GoalDto>.Success(ToDto(goal, sportNames));
+        var logsByPlanItem = await GetLogsByPlanItemAsync([goal], ct);
+        return Result<GoalDto>.Success(ToDto(goal, sportNames, logsByPlanItem));
     }
 
     public async Task<Result<GoalDto>> CreateAsync(Guid userId, CreateGoalRequest request, CancellationToken ct = default)
@@ -74,7 +76,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
 
         var created = await GetOwnedGoalAsync(userId, goal.Id, ct, track: false);
         var sportNames = await GetSportNamesAsync([created!], ct);
-        return Result<GoalDto>.Success(ToDto(created!, sportNames));
+        var logsByPlanItem = await GetLogsByPlanItemAsync([created!], ct);
+        return Result<GoalDto>.Success(ToDto(created!, sportNames, logsByPlanItem));
     }
 
     public async Task<Result<GoalDto>> UpdateStatusAsync(Guid userId, Guid goalId, GoalStatus status, CancellationToken ct = default)
@@ -88,7 +91,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         await db.SaveChangesAsync(ct);
 
         var sportNames = await GetSportNamesAsync([goal], ct);
-        return Result<GoalDto>.Success(ToDto(goal, sportNames));
+        var logsByPlanItem = await GetLogsByPlanItemAsync([goal], ct);
+        return Result<GoalDto>.Success(ToDto(goal, sportNames, logsByPlanItem));
     }
 
     public async Task<Result> DeleteAsync(Guid userId, Guid goalId, CancellationToken ct = default)
@@ -132,7 +136,45 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
             .ToDictionaryAsync(s => s.Id, s => s.Name, ct);
     }
 
-    private static GoalDto ToDto(Goal g, IReadOnlyDictionary<Guid, string> sportNames)
+    // Fortschritt eines Plan-Ziels ergibt sich aus echten, damit verknüpften
+    // Tagebucheinträgen (TrainingExercise.TrainingPlanItemId) statt aus
+    // einem separaten "erledigt"-Flag im Plan selbst - siehe TrainingPlanItem.
+    private async Task<Dictionary<Guid, IReadOnlyList<TrainingPlanItemLogDto>>> GetLogsByPlanItemAsync(
+        IReadOnlyList<Goal> goals, CancellationToken ct)
+    {
+        var planItemIds = goals
+            .Where(g => g.TrainingPlan is not null)
+            .SelectMany(g => g.TrainingPlan!.Items.Select(i => i.Id))
+            .ToList();
+        if (planItemIds.Count == 0) return new Dictionary<Guid, IReadOnlyList<TrainingPlanItemLogDto>>();
+
+        var logs = await db.TrainingExercises
+            .Where(e => e.TrainingPlanItemId != null && planItemIds.Contains(e.TrainingPlanItemId!.Value))
+            .Select(e => new
+            {
+                PlanItemId = e.TrainingPlanItemId!.Value,
+                e.TrainingSessionId,
+                Date = e.TrainingSession!.Date,
+                e.Rating,
+                e.Success,
+                e.Notes
+            })
+            .ToListAsync(ct);
+
+        return logs
+            .GroupBy(l => l.PlanItemId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<TrainingPlanItemLogDto>)g
+                    .OrderByDescending(l => l.Date)
+                    .Select(l => new TrainingPlanItemLogDto(l.TrainingSessionId, l.Date, l.Rating, l.Success, l.Notes))
+                    .ToList());
+    }
+
+    private static GoalDto ToDto(
+        Goal g,
+        IReadOnlyDictionary<Guid, string> sportNames,
+        IReadOnlyDictionary<Guid, IReadOnlyList<TrainingPlanItemLogDto>> logsByPlanItem)
     {
         var sportName = sportNames.GetValueOrDefault(g.SportId, string.Empty);
         TrainingPlanDto? planDto = g.TrainingPlan is null
@@ -142,7 +184,21 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
                 g.TrainingPlan.GeneratedAt,
                 g.TrainingPlan.Items
                     .OrderBy(i => i.WeekNumber)
-                    .Select(i => new TrainingPlanItemDto(i.Id, i.WeekNumber, i.ExerciseId, i.Exercise?.Name, i.RepetitionsTarget, i.IsRestWeek))
+                    .Select(i =>
+                    {
+                        var logs = logsByPlanItem.GetValueOrDefault(i.Id, Array.Empty<TrainingPlanItemLogDto>());
+                        var completedCount = logs.Count(l => l.Success);
+                        return new TrainingPlanItemDto(
+                            i.Id,
+                            i.WeekNumber,
+                            i.ExerciseId,
+                            i.Exercise?.Name,
+                            i.RepetitionsTarget,
+                            i.IsRestWeek,
+                            completedCount,
+                            !i.IsRestWeek && completedCount >= i.RepetitionsTarget,
+                            logs);
+                    })
                     .ToList());
 
         return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.TargetDate, g.Status, g.Notes, planDto);

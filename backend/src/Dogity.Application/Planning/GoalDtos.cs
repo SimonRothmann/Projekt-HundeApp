@@ -2,13 +2,30 @@ using Dogity.Domain.Planning;
 
 namespace Dogity.Application.Planning;
 
+/// <summary>
+/// Ein echter Tagebucheintrag (siehe TrainingExercise), der über
+/// TrainingExercise.TrainingPlanItemId als Erfüllung eines Wochenziels
+/// markiert wurde - liefert die in TrainingService.ToDto bereits
+/// vorhandenen Felder (Bewertung, Erfolg, Kommentar), nur gefiltert auf
+/// dieses eine Plan-Ziel statt auf eine ganze Trainingseinheit.
+/// </summary>
+public record TrainingPlanItemLogDto(
+    Guid TrainingSessionId,
+    DateOnly Date,
+    int Rating,
+    bool Success,
+    string? Notes);
+
 public record TrainingPlanItemDto(
     Guid Id,
     int WeekNumber,
     Guid? ExerciseId,
     string? ExerciseName,
     int RepetitionsTarget,
-    bool IsRestWeek);
+    bool IsRestWeek,
+    int CompletedCount,
+    bool IsComplete,
+    IReadOnlyList<TrainingPlanItemLogDto> Logs);
 
 public record TrainingPlanDto(
     Guid Id,

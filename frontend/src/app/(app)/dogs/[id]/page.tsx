@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
-import type { Dog, Exercise, Sport, TrainingSession } from "@/lib/types";
+import type { Dog, Exercise, Goal, Sport, TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,10 +25,11 @@ type ExerciseRow = {
   rating: number;
   success: boolean;
   notes: string;
+  trainingPlanItemId: string;
 };
 
 function emptyRow(): ExerciseRow {
-  return { sportId: "", exerciseId: "", rating: 3, success: true, notes: "" };
+  return { sportId: "", exerciseId: "", rating: 3, success: true, notes: "", trainingPlanItemId: "" };
 }
 
 export default function DogDetailPage() {
@@ -38,6 +39,7 @@ export default function DogDetailPage() {
   const [sessions, setSessions] = useState<TrainingSession[] | null>(null);
   const [sports, setSports] = useState<Sport[]>([]);
   const [exercisesBySport, setExercisesBySport] = useState<Record<string, Exercise[]>>({});
+  const [goals, setGoals] = useState<Goal[] | null>(null);
   const [isOwner, setIsOwner] = useState(true);
 
   const [showForm, setShowForm] = useState(false);
@@ -49,16 +51,18 @@ export default function DogDetailPage() {
 
   async function loadAll() {
     try {
-      const [dogData, sessionData, sportsData, myDogs] = await Promise.all([
+      const [dogData, sessionData, sportsData, myDogs, goalData] = await Promise.all([
         api.get<Dog>(`/api/dogs/${id}`),
         api.get<TrainingSession[]>(`/api/trainings?dogId=${id}`),
         api.get<Sport[]>("/api/sports"),
         api.get<Dog[]>("/api/dogs"),
+        api.get<Goal[]>(`/api/goals?dogId=${id}`),
       ]);
       setDog(dogData);
       setSessions(sessionData);
       setSports(sportsData);
       setIsOwner(myDogs.some((d) => d.id === id));
+      setGoals(goalData);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Daten konnten nicht geladen werden.");
     }
@@ -84,8 +88,21 @@ export default function DogDetailPage() {
   }
 
   async function handleSportChange(index: number, sportId: string) {
-    updateRow(index, { sportId, exerciseId: "" });
+    updateRow(index, { sportId, exerciseId: "", trainingPlanItemId: "" });
     await ensureExercisesLoaded(sportId);
+  }
+
+  // Plan-Ziele (siehe GoalsSection), die zur gewählten Übung passen - nur
+  // aus aktiven Zielen (Status 0) und ohne Pausenwochen, damit man einen
+  // Tagebucheintrag optional einem Wochenziel zuordnen kann (siehe
+  // TrainingExercise.TrainingPlanItemId). Bereits erfüllte Ziele bleiben
+  // wählbar, falls man dieselbe Übung öfter als das Ziel trainieren möchte.
+  function planItemOptionsFor(exerciseId: string) {
+    if (!exerciseId) return [];
+    return (goals ?? [])
+      .filter((g) => g.status === 0)
+      .flatMap((g) => g.trainingPlan?.items ?? [])
+      .filter((item) => !item.isRestWeek && item.exerciseId === exerciseId);
   }
 
   function addRow() {
@@ -115,6 +132,7 @@ export default function DogDetailPage() {
         difficulty: 0,
         success: r.success,
         notes: r.notes || null,
+        trainingPlanItemId: r.trainingPlanItemId || null,
       })),
     };
 
@@ -157,7 +175,7 @@ export default function DogDetailPage() {
         </div>
       </div>
 
-      <GoalsSection dogId={id} sports={sports} />
+      <GoalsSection dogId={id} sports={sports} goals={goals} onChanged={loadAll} />
 
       <FahrteRecorder dogId={id} onSaved={loadAll} />
 
@@ -199,6 +217,7 @@ export default function DogDetailPage() {
                 {rows.map((row, index) => {
                   const exercises = exercisesBySport[row.sportId] ?? [];
                   const selectedExercise = exercises.find((ex) => ex.id === row.exerciseId);
+                  const planItemOptions = planItemOptionsFor(row.exerciseId);
                   return (
                     <div key={index} className="flex flex-col gap-3 rounded-md border p-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -225,7 +244,7 @@ export default function DogDetailPage() {
                         <Select
                           value={row.exerciseId}
                           disabled={!row.sportId}
-                          onValueChange={(value) => updateRow(index, { exerciseId: value ?? "" })}
+                          onValueChange={(value) => updateRow(index, { exerciseId: value ?? "", trainingPlanItemId: "" })}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Auswählen…" />
@@ -239,6 +258,27 @@ export default function DogDetailPage() {
                           </SelectContent>
                         </Select>
                       </div>
+                      {planItemOptions.length > 0 && (
+                        <div className="flex flex-col gap-2 sm:w-48">
+                          <Label>Plan-Ziel (optional)</Label>
+                          <Select
+                            value={row.trainingPlanItemId}
+                            onValueChange={(value) => updateRow(index, { trainingPlanItemId: value ?? "" })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Kein Plan-Ziel" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Kein Plan-Ziel</SelectItem>
+                              {planItemOptions.map((item) => (
+                                <SelectItem key={item.id} value={item.id}>
+                                  KW {item.weekNumber} ({item.completedCount}/{item.repetitionsTarget}x)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="flex flex-col gap-2">
                         <Label>Bewertung</Label>
                         <div className="flex gap-1">
