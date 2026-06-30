@@ -23,15 +23,25 @@ public readonly record struct PlanExerciseCandidate(Guid ExerciseId, string Name
 /// Plan jetzt aus den Pflichtübungen der gewählten Prüfungsordnung
 /// (RegulationExercise.IsMandatory) erzeugt und stellt sicher, dass JEDE
 /// Pflichtübung vor dem Zieldatum mindestens einmal vorkommt - das Pensum
-/// pro Woche (1-4 Übungen) richtet sich danach, wie viele Pflichtübungen in
-/// der verfügbaren Zeit überhaupt untergebracht werden müssen, statt einer
-/// festen Konstante. Reicht die Zeit für mehr als eine Runde, wiederholen
-/// sich die Pflichtübungen zyklisch.
+/// pro Woche orientiert sich an einem realistischen Trainingsrhythmus
+/// (mind. 4 Übungen/Woche, ca. 2 Einheiten à 2 Übungen) und wird nur über
+/// diesen Richtwert hinaus erhöht (bis max. 6), wenn sonst nicht alle
+/// Pflichtübungen in der verfügbaren Zeit untergebracht werden könnten.
+/// Reicht die Zeit für mehr als eine Runde, wiederholen sich die
+/// Pflichtübungen zyklisch.
 /// </summary>
 public static class TrainingPlanGenerator
 {
     private const int MaxWeeks = 12;
-    private const int MaxItemsPerWeek = 4;
+
+    // Realistischer Trainingsrhythmus laut Nutzer-Feedback: im Schnitt 2
+    // Einheiten pro Woche mit je 2 Übungen = 4 Übungen/Woche als Richtwert,
+    // nicht nur "genug, um den Pflichtkatalog einmal abzudecken". MaxItemsPerWeek
+    // bleibt als Sicherheitsnetz etwas darüber, damit ein großer
+    // Pflichtkatalog bei kurzer Frist trotzdem vollständig vor dem
+    // Zieldatum untergebracht werden kann.
+    private const int MinItemsPerWeek = 4;
+    private const int MaxItemsPerWeek = 6;
 
     private static int RepetitionsFor(ExerciseDifficulty difficulty) => difficulty switch
     {
@@ -69,13 +79,15 @@ public static class TrainingPlanGenerator
             return items;
         }
 
-        // Genug Übungen pro Woche, um den gesamten Pflichtkatalog bis zum
-        // Zieldatum mindestens einmal unterzubringen, aber nicht mehr als
-        // MaxItemsPerWeek (sonst wird eine einzelne Woche unrealistisch
-        // überladen) und nicht mehr, als es überhaupt verschiedene Übungen
-        // gibt (sonst käme dieselbe Übung zweimal in derselben Woche vor).
+        // Mindestens MinItemsPerWeek (realistischer Trainingsrhythmus), mehr
+        // nur falls nötig, um den gesamten Pflichtkatalog bis zum Zieldatum
+        // unterzubringen - aber nie mehr als MaxItemsPerWeek (sonst wird eine
+        // einzelne Woche unrealistisch überladen) und nie mehr, als es
+        // überhaupt verschiedene Übungen gibt (sonst käme dieselbe Übung
+        // zweimal in derselben Woche vor - bei einem kleineren Pflichtkatalog
+        // wird stattdessen jede Übung über RepetitionsTarget öfter trainiert).
         var itemsPerWeek = Math.Clamp(
-            (int)Math.Ceiling(orderedPool.Count / (double)nonRestWeeks),
+            Math.Max(MinItemsPerWeek, (int)Math.Ceiling(orderedPool.Count / (double)nonRestWeeks)),
             1,
             Math.Min(MaxItemsPerWeek, orderedPool.Count));
 

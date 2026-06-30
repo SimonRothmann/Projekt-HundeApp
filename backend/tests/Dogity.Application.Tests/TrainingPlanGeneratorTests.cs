@@ -86,4 +86,19 @@ public class TrainingPlanGeneratorTests
 
         Assert.Single(week1Items);
     }
+
+    [Fact]
+    public void Generate_PlansAtLeastFourExercisesPerWeekWhenEnoughDistinctExercisesExist()
+    {
+        var candidates = Enumerable.Range(0, 8)
+            .Select(i => Candidate($"Übung {i}", ExerciseDifficulty.Beginner))
+            .ToArray();
+        // Lange Frist (viele Wochen) - der reine "einmal abdecken"-Bedarf
+        // wäre hier sehr gering, trotzdem soll der realistische
+        // Mindestrhythmus von 4 Übungen/Woche gelten.
+        var items = TrainingPlanGenerator.Generate(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 15), candidates);
+        var week1Items = items.Where(i => i.WeekNumber == 1).ToList();
+
+        Assert.Equal(4, week1Items.Count);
+    }
 }

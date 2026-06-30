@@ -158,6 +158,30 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         return await GetByIdAsync(userId, goalId, ct);
     }
 
+    public async Task<Result<GoalDto>> UpdatePlanItemAsync(Guid userId, Guid goalId, Guid itemId, UpdateTrainingPlanItemRequest request, CancellationToken ct = default)
+    {
+        if (request.WeekNumber < 1)
+            return Result<GoalDto>.Failure("Wochennummer muss mindestens 1 sein.");
+        if (request.RepetitionsTarget < 1)
+            return Result<GoalDto>.Failure("Zielwert muss mindestens 1 sein.");
+
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct);
+        if (goal is null)
+            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+
+        var item = goal.TrainingPlan?.Items.FirstOrDefault(i => i.Id == itemId);
+        if (item is null)
+            return Result<GoalDto>.Failure("Plan-Ziel nicht gefunden.");
+        if (item.IsRestWeek)
+            return Result<GoalDto>.Failure("Eine Pausenwoche kann nicht bearbeitet werden.");
+
+        item.WeekNumber = request.WeekNumber;
+        item.RepetitionsTarget = request.RepetitionsTarget;
+        await db.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(userId, goalId, ct);
+    }
+
     public async Task<Result<GoalDto>> RemovePlanItemAsync(Guid userId, Guid goalId, Guid itemId, CancellationToken ct = default)
     {
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
@@ -221,8 +245,13 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
             }
         }
 
+        // ClubId == null: vereinsspezifische Übungen sind nie Teil einer
+        // Prüfungsordnung (siehe Exercise.ClubId) und gehören daher auch
+        // nicht in den Fallback-Pool ohne gewählte Prüfung - sonst könnten
+        // im generierten Plan sogar Übungen eines fremden Vereins auftauchen,
+        // dem der Hundehalter gar nicht angehört.
         return await db.Exercises
-            .Where(e => e.SportId == sportId)
+            .Where(e => e.SportId == sportId && e.ClubId == null)
             .Select(e => new PlanExerciseCandidate(e.Id, e.Name, e.Difficulty, true))
             .ToListAsync(ct);
     }

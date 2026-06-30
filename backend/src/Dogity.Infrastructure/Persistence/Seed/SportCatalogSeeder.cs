@@ -155,34 +155,11 @@ public static class SportCatalogSeeder
                 "Hundeführer entfernt sich ca. 10 Meter, Leine eingesteckt oder umgehängt, während der andere Hund die Übung \"Leinenführigkeit\" zeigt. Verlässt der Hund die Ablageposition für mehr als 3 Meter: 0 Punkte, sonst maximal 5 Punkte."),
         ]));
 
-        await SeedRegulationAsync(db, ibgh1, new RegulationSeed("IBGH1", "2024", new DateOnly(2024, 1, 1),
-        [
-            new("Fußarbeit", true, 15, "Grundstellung, Wendungen, Tempowechsel (Schritt/Lauf)."),
-            new("Abrufen", true, 10, "Aus der Ferne, freudig und ohne Zögern."),
-            new("Sitz mit Ablenkung", true, 10, "Hundeführer entfernt sich ca. 15 Schritte."),
-            new("Bleib in Grundstellung", true, 5, "Kurze Haltephase ohne Kommandowiederholung."),
-        ]));
-
-        await SeedRegulationAsync(db, ibgh2, new RegulationSeed("IBGH2", "2024", new DateOnly(2024, 1, 1),
-        [
-            new("Fußarbeit mit Richtungswechsel", true, 15, "Inkl. Kehrtwendungen und Tempowechsel ohne Leine."),
-            new("Voraus mit Abliegen", true, 15, "Mind. 10 Schritte geradlinig voraus."),
-            new("Apportieren auf der Ebene", true, 10, "Gegenstand wird vom Hundeführer geworfen."),
-            new("Frontsitz nach Abrufen", true, 10, "Enges, gerades Sitzen vor dem Hundeführer."),
-        ]));
-
-        await SeedRegulationAsync(db, ibgh3, new RegulationSeed("IBGH3", "2024", new DateOnly(2024, 1, 1),
-        [
-            new("Fußarbeit ohne Leine", true, 15, "Durch eine Personengruppe, ohne Leine."),
-            new("Gruppe mit Ablenkung", true, 10, "Liegen in der Gruppe für ca. 2 Minuten."),
-            new("Voraus mit Hinlegen und Abrufen", true, 15, "Mind. 20 Schritte voraus, danach ablegen."),
-            new("Begleiten ohne Sichtkontakt", true, 10, "Kurzzeitiger Sichtverlust durch Hindernis."),
-        ]));
-
-        // Echte FCI-IBGH-Pflichtübungsliste (UTI-REG-IGP-de-2025, S. 26) - neuere
-        // RegulationVersion statt Korrektur der "2024"-Version, damit die alten,
-        // falsch benannten Übungen oben sauber abgelöst werden (siehe
-        // GetRegulationDetailAsync "neueste Version per ValidFrom").
+        // Echte FCI-IBGH-Pflichtübungsliste (UTI-REG-IGP-de-2025, S. 26). Die
+        // ursprüngliche, frei erfundene "2024"-Version (Übungen wie
+        // "Fußarbeit"/"Abrufen") wurde inzwischen aus DB und Code entfernt,
+        // nachdem RemoveOrphanedExercisesAsync (siehe unten) bestätigt hatte,
+        // dass keine echten Trainingsdaten mehr darauf verweisen.
         await SeedRegulationAsync(db, ibgh1, new RegulationSeed("IBGH1", "2025", new DateOnly(2025, 1, 1),
         [
             new("Leinenführigkeit", true, 30, "Aufmerksam, freudig, gerade und schnell an lockerer Leine, auch bei Tempo- und Richtungswechseln."),
@@ -406,70 +383,13 @@ public static class SportCatalogSeeder
                 "Hund verteidigt sich am Ende des Schutzdienstes gegen einen erneuten Angriff des Helfers durch festen, ruhigen Griff."),
         ]);
 
-        await SeedRegulationAsync(db, igp1, new RegulationSeed("FCI-IGP 1", "2025", new DateOnly(2025, 1, 1),
-        [
-            new("Fährtenarbeit (Eigenfährte)", true, 100, "Eigenfährte, min. 300 Schritte, 3 eigene Gegenstände à 7 Punkte."),
-            new("Freifolge", true, 10, "Näherungswert - exakte Aufteilung der Abteilung B vor Produktiveinsatz prüfen."),
-            new("Sitz aus der Bewegung", true, 10, "Näherungswert."),
-            new("Bringen auf ebener Erde", true, 15, "Näherungswert."),
-            new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "Näherungswert."),
-            new("Klettersprung / Bringen über die Schrägwand", true, 15, "Näherungswert."),
-            new("Voraussenden mit Hinlegen", true, 10, "Näherungswert."),
-            new("Ablegen unter Ablenkung", true, 10, "Näherungswert."),
-            new("Stellen und Verbellen", true, 10, "Näherungswert - exakte Aufteilung der Abteilung C vor Produktiveinsatz prüfen."),
-            new("Bewachen nach Rückkehr des Hundeführers", true, 10, "Näherungswert."),
-            new("Abwehr eines Angriffs aus dem Stand", true, 20, "Näherungswert."),
-            new("Seitentransport", true, 10, "Näherungswert."),
-            new("Angriff auf den Hund während des Transports", true, 20, "Näherungswert."),
-            new("Angriff auf den Hund aus der Bewegung", true, 30, "Näherungswert."),
-        ]));
-
-        await SeedRegulationAsync(db, igp2, new RegulationSeed("FCI-IGP 2", "2025", new DateOnly(2025, 1, 1),
-        [
-            new("Fährtenarbeit (Fremdfährte)", true, 100, "Fremdfährte, min. 400 Schritte, 3 fremde Gegenstände à 7 Punkte."),
-            new("Freifolge mit Leine", true, 10, "Näherungswert."),
-            new("Sitz aus der Bewegung", true, 10, "Näherungswert."),
-            new("Ablegen in Verbindung mit Herankommen", true, 10, "Näherungswert."),
-            new("Steh aus der Bewegung", true, 10, "Näherungswert."),
-            new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "Näherungswert."),
-            new("Klettersprung / Bringen über die Schrägwand", true, 10, "Näherungswert."),
-            new("Voraussenden mit Hinlegen", true, 10, "Näherungswert."),
-            new("Ablegen unter Ablenkung", true, 10, "Näherungswert."),
-            new("Stellen und Verbellen", true, 10, "Näherungswert."),
-            new("Bewachen nach Rückkehr des Hundeführers", true, 10, "Näherungswert."),
-            new("Abwehr eines Angriffs aus dem Stand", true, 15, "Näherungswert."),
-            new("Seitentransport", true, 10, "Näherungswert."),
-            new("Angriff auf den Hund während des Transports", true, 15, "Näherungswert."),
-            new("Angriff auf den Hund aus der Bewegung", true, 25, "Näherungswert."),
-            new("Distanzangriff", true, 15, "Näherungswert."),
-        ]));
-
-        await SeedRegulationAsync(db, igp3, new RegulationSeed("FCI-IGP 3", "2025", new DateOnly(2025, 1, 1),
-        [
-            new("Fährtenarbeit (Fremdfährte)", true, 100, "Fremdfährte, min. 600 Schritte, 3 fremde Gegenstände à 7 Punkte."),
-            new("Freifolge ohne Leine", true, 15, "Näherungswert."),
-            new("Sitz aus dem Laufschritt", true, 10, "Näherungswert."),
-            new("Ablegen in Verbindung mit Herankommen aus dem Laufschritt", true, 10, "Näherungswert."),
-            new("Steh aus dem Laufschritt mit Heranrufen des Hundes", true, 10, "Näherungswert."),
-            new("Freisprünge / Hin- und Rückklettersprung mit Bringen", true, 10, "Näherungswert."),
-            new("Voraussenden mit Hinlegen", true, 10, "Näherungswert."),
-            new("Ablegen unter Ablenkung", true, 10, "Näherungswert."),
-            new("Stellen und Verbellen", true, 10, "Näherungswert."),
-            new("Bewachen nach Rückkehr des Hundeführers", true, 10, "Näherungswert."),
-            new("Abwehr eines Angriffs aus dem Stand", true, 15, "Näherungswert."),
-            new("Seitentransport", true, 10, "Näherungswert."),
-            new("Angriff auf den Hund während des Transports", true, 15, "Näherungswert."),
-            new("Angriff auf den Hund aus der Bewegung", true, 25, "Näherungswert."),
-            new("Distanzangriff", true, 15, "Näherungswert."),
-        ]));
-
-        // Korrektur der oben als "Näherungswert" markierten IGP1-3-Werte: echte
-        // Übungsnamen und Punktzahlen aus UTI-REG-IGP-de-2025 (S. 18, 44, 56) -
-        // neuere RegulationVersion statt Korrektur der "2025"-Version oben, damit
-        // die teils falsch benannten/fehlenden Abteilung-B/C-Übungen sauber
-        // abgelöst werden (siehe GetRegulationDetailAsync "neueste Version per
-        // ValidFrom"). Abteilung A war bereits korrekt und wird unverändert
-        // übernommen.
+        // Echte Übungsnamen und Punktzahlen aus UTI-REG-IGP-de-2025 (S. 18, 44,
+        // 56). Eine frühere, mit "Näherungswert" markierte Version (teils
+        // falsch benannte/fehlende Abteilung-B/C-Übungen) wurde inzwischen aus
+        // DB und Code entfernt, nachdem RemoveOrphanedExercisesAsync (siehe
+        // unten) bestätigt hatte, dass keine echten Trainingsdaten mehr darauf
+        // verweisen. VersionLabel "2025-2", da "2025" bereits historisch für
+        // die entfernte Version vergeben war.
         await SeedRegulationAsync(db, igp1, new RegulationSeed("FCI-IGP 1", "2025-2", new DateOnly(2025, 2, 1),
         [
             new("Fährtenarbeit (Eigenfährte)", true, 100, "Eigenfährte, min. 300 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 20 Minuten, 3 eigene Gegenstände à 7 Punkte."),
@@ -531,19 +451,16 @@ public static class SportCatalogSeeder
             new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", true, 15, "Erneuter Angriff im Anschluss an \"Angriff auf den Hund aus der Bewegung\", voller fester Griff."),
         ]));
 
-        // Durch die obigen Korrekturversionen abgelöste, fehlerhafte
-        // Versionen entfernen (siehe PRUEFUNGSORDNUNG_UPDATE.md
-        // "Versions-Supersession") - nur sicher, weil keine echten
-        // Trainingsdaten auf die betroffenen Übungen verweisen (geprüft vor
-        // Einführung dieser Bereinigung). Idempotent: auf einer bereits
-        // bereinigten Datenbank finden die Lookups einfach nichts mehr.
-        await RemoveSupersededVersionAsync(db, ibgh1, "IBGH1", "2024");
-        await RemoveSupersededVersionAsync(db, ibgh2, "IBGH2", "2024");
-        await RemoveSupersededVersionAsync(db, ibgh3, "IBGH3", "2024");
-        await RemoveSupersededVersionAsync(db, igp1, "FCI-IGP 1", "2025");
-        await RemoveSupersededVersionAsync(db, igp2, "FCI-IGP 2", "2025");
-        await RemoveSupersededVersionAsync(db, igp3, "FCI-IGP 3", "2025");
-
+        // Die ursprünglichen fehlerhaften RegulationVersions (BH/IBGH "2024",
+        // IGP "2025") wurden inzwischen aus dem Code entfernt, nachdem die
+        // einmalige Bereinigung bestätigt hatte, dass keine echten
+        // Trainingsdaten mehr darauf verweisen - RemoveSupersededVersionAsync
+        // ist daher hier nicht mehr nötig. Verbleibt als Hilfsfunktion für
+        // künftige Prüfungsordnungs-Revisionen (siehe
+        // PRUEFUNGSORDNUNG_UPDATE.md "Versions-Supersession"). Als
+        // Sicherheitsnetz läuft RemoveOrphanedExercisesAsync weiterhin bei
+        // jedem Start - idempotent, findet auf einer bereits bereinigten
+        // Datenbank einfach nichts mehr.
         await RemoveOrphanedExercisesAsync(db, bh);
         await RemoveOrphanedExercisesAsync(db, ibgh1);
         await RemoveOrphanedExercisesAsync(db, ibgh2);

@@ -49,3 +49,12 @@ public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, Da
 public record UpdateGoalStatusRequest(GoalStatus Status);
 
 public record AddTrainingPlanItemRequest(int WeekNumber, Guid ExerciseId, int RepetitionsTarget);
+
+/// <summary>
+/// Übung des Plan-Ziels bleibt bewusst unveränderlich (Entfernen + neu
+/// Hinzufügen, falls eine andere Übung gewünscht ist) - ein bereits
+/// verknüpfter Tagebucheintrag (TrainingExercise.TrainingPlanItemId)
+/// bezieht sich sonst plötzlich auf eine andere Übung als ursprünglich
+/// geloggt.
+/// </summary>
+public record UpdateTrainingPlanItemRequest(int WeekNumber, int RepetitionsTarget);

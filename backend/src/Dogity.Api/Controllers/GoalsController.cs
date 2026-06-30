@@ -51,6 +51,13 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
         return FromResult(result);
     }
 
+    [HttpPut("{id:guid}/plan-items/{itemId:guid}")]
+    public async Task<ActionResult<GoalDto>> UpdatePlanItem(Guid id, Guid itemId, UpdateTrainingPlanItemRequest request, CancellationToken ct)
+    {
+        var result = await goalService.UpdatePlanItemAsync(CurrentUserId, id, itemId, request, ct);
+        return FromResult(result);
+    }
+
     [HttpDelete("{id:guid}/plan-items/{itemId:guid}")]
     public async Task<ActionResult<GoalDto>> RemovePlanItem(Guid id, Guid itemId, CancellationToken ct)
     {

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dog as DogIcon, Plus, Trash2 } from "lucide-react";
+import { Dog as DogIcon, ListChecks, PenLine, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
@@ -22,6 +22,11 @@ import { difficultyLabel } from "@/lib/constants";
 type ExerciseRow = {
   sportId: string;
   exerciseId: string;
+  // Für spontane Spaß-/Sonstige Übungen, die nicht im Katalog stehen und
+  // nicht extra dort angelegt werden sollen (siehe TrainingExercise.FreeTextLabel) -
+  // schließt Sportart/Übung/Plan-Ziel-Auswahl aus, dafür freier Text.
+  isFreeText: boolean;
+  freeText: string;
   rating: number;
   success: boolean;
   notes: string;
@@ -29,7 +34,16 @@ type ExerciseRow = {
 };
 
 function emptyRow(): ExerciseRow {
-  return { sportId: "", exerciseId: "", rating: 3, success: true, notes: "", trainingPlanItemId: "" };
+  return {
+    sportId: "",
+    exerciseId: "",
+    isFreeText: false,
+    freeText: "",
+    rating: 3,
+    success: true,
+    notes: "",
+    trainingPlanItemId: "",
+  };
 }
 
 export default function DogDetailPage() {
@@ -115,9 +129,9 @@ export default function DogDetailPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const validRows = rows.filter((r) => r.exerciseId);
+    const validRows = rows.filter((r) => (r.isFreeText ? r.freeText.trim() : r.exerciseId));
     if (validRows.length === 0) {
-      toast.error("Mindestens eine Übung auswählen.");
+      toast.error("Mindestens eine Übung auswählen oder eintragen.");
       return;
     }
 
@@ -127,12 +141,13 @@ export default function DogDetailPage() {
       durationMinutes: duration,
       notes: notes || null,
       exercises: validRows.map((r) => ({
-        exerciseId: r.exerciseId,
+        exerciseId: r.isFreeText ? null : r.exerciseId,
+        freeTextLabel: r.isFreeText ? r.freeText.trim() : null,
         rating: r.rating,
         difficulty: 0,
         success: r.success,
         notes: r.notes || null,
-        trainingPlanItemId: r.trainingPlanItemId || null,
+        trainingPlanItemId: r.isFreeText ? null : r.trainingPlanItemId || null,
       })),
     };
 
@@ -221,6 +236,34 @@ export default function DogDetailPage() {
                   return (
                     <div key={index} className="flex flex-col gap-3 rounded-md border p-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        title={row.isFreeText ? "Katalog-Übung auswählen" : "Sonstige/Spaß-Übung als Freitext eintragen"}
+                        onClick={() =>
+                          updateRow(index, {
+                            isFreeText: !row.isFreeText,
+                            sportId: "",
+                            exerciseId: "",
+                            trainingPlanItemId: "",
+                            freeText: "",
+                          })
+                        }
+                      >
+                        {row.isFreeText ? <ListChecks className="size-4" /> : <PenLine className="size-4" />}
+                      </Button>
+                      {row.isFreeText ? (
+                        <div className="flex flex-col gap-2 sm:w-72">
+                          <Label>Sonstige/Spaß-Übung</Label>
+                          <Input
+                            placeholder="z.B. Spaziergang mit Bällchenspiel"
+                            value={row.freeText}
+                            onChange={(e) => updateRow(index, { freeText: e.target.value })}
+                          />
+                        </div>
+                      ) : (
+                        <>
                       <div className="flex flex-col gap-2 sm:w-48">
                         <Label>Sportart</Label>
                         <Select
@@ -278,6 +321,8 @@ export default function DogDetailPage() {
                             </SelectContent>
                           </Select>
                         </div>
+                      )}
+                        </>
                       )}
                       <div className="flex flex-col gap-2">
                         <Label>Bewertung</Label>

@@ -74,7 +74,9 @@ export type RegulationDetail = {
 
 export type TrainingExercise = {
   id: string;
-  exerciseId: string;
+  // null bei einem Freitext-Eintrag (siehe exerciseName, das dann direkt
+  // den eingegebenen Freitext enthält statt eines Katalog-Übungsnamens).
+  exerciseId: string | null;
   exerciseName: string;
   rating: number;
   difficulty: ExerciseDifficulty;

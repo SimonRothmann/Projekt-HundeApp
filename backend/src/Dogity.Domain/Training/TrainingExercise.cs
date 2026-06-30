@@ -13,8 +13,21 @@ public class TrainingExercise : Entity
     public Guid TrainingSessionId { get; set; }
     public TrainingSession? TrainingSession { get; set; }
 
-    public Guid ExerciseId { get; set; }
+    /// <summary>
+    /// Null, wenn stattdessen <see cref="FreeTextLabel"/> gesetzt ist (siehe
+    /// dort) - genau eines von beiden muss gesetzt sein.
+    /// </summary>
+    public Guid? ExerciseId { get; set; }
     public Exercise? Exercise { get; set; }
+
+    /// <summary>
+    /// Freitext-Bezeichnung statt einer Katalog-Übung, z.B. für spontane
+    /// Spaß-/Sonstige Übungen, die nicht Teil einer Prüfungsordnung sind und
+    /// nicht extra im globalen Übungskatalog angelegt werden sollen. Genau
+    /// eines von ExerciseId/FreeTextLabel muss gesetzt sein (siehe
+    /// TrainingService.Validate).
+    /// </summary>
+    public string? FreeTextLabel { get; set; }
 
     /// <summary>1-5 Sterne.</summary>
     public int Rating { get; set; }

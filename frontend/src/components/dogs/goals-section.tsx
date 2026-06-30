@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, Circle, Plus, Target, Trash2 } from "lucide-react";
+import { CheckCircle2, Circle, Pencil, Plus, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { difficultyLabel } from "@/lib/constants";
@@ -142,6 +142,38 @@ export function GoalsSection({
     }
   }
 
+  // Woche/Zielwert eines bestehenden Plan-Ziels anpassen - bewusst ohne die
+  // Übung selbst änderbar zu machen, sonst würden bereits verknüpfte
+  // Tagebucheinträge plötzlich zu einer anderen Übung gehören. Für eine
+  // andere Übung: Eintrag entfernen und neu hinzufügen.
+  const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [editItemWeek, setEditItemWeek] = useState(1);
+  const [editItemTarget, setEditItemTarget] = useState(2);
+  const [isEditingItem, setIsEditingItem] = useState(false);
+
+  function openEditItem(item: TrainingPlanItem) {
+    setEditItemId((current) => (current === item.id ? null : item.id));
+    setEditItemWeek(item.weekNumber);
+    setEditItemTarget(item.repetitionsTarget);
+  }
+
+  async function submitEditItem(goal: Goal, itemId: string) {
+    setIsEditingItem(true);
+    try {
+      await api.put(`/api/goals/${goal.id}/plan-items/${itemId}`, {
+        weekNumber: editItemWeek,
+        repetitionsTarget: editItemTarget,
+      });
+      toast.success("Plan-Ziel aktualisiert.");
+      setEditItemId(null);
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Plan-Ziel konnte nicht aktualisiert werden.");
+    } finally {
+      setIsEditingItem(false);
+    }
+  }
+
   // Direktes Eintragen "diese Übung gemacht" pro Plan-Ziel, ohne den Umweg
   // über das volle Trainingstagebuch-Formular - Feedback war, dass sich
   // einzelne Wochenziele nicht selbstständig auswählen ließen, nur das
@@ -222,6 +254,19 @@ export function GoalsSection({
       await onChanged();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Status konnte nicht aktualisiert werden.");
+    }
+  }
+
+  async function deleteGoal(goalId: string) {
+    if (!window.confirm("Ziel inkl. Trainingsplan endgültig löschen? Bereits erfasste Trainingseinträge bleiben im Tagebuch erhalten.")) {
+      return;
+    }
+    try {
+      await api.delete(`/api/goals/${goalId}`);
+      toast.success("Ziel gelöscht.");
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Ziel konnte nicht gelöscht werden.");
     }
   }
 
@@ -363,12 +408,60 @@ export function GoalsSection({
                                   type="button"
                                   variant="ghost"
                                   size="icon-xs"
+                                  onClick={() => openEditItem(item)}
+                                  title="Woche/Zielwert bearbeiten"
+                                >
+                                  <Pencil className="size-3.5 text-muted-foreground" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-xs"
                                   onClick={() => removePlanItem(goal, item.id)}
                                   title="Aus dem Plan entfernen"
                                 >
                                   <Trash2 className="size-3.5 text-muted-foreground" />
                                 </Button>
                               </div>
+                              {editItemId === item.id && (
+                                <div className="ml-6 flex flex-col gap-2 rounded-md border bg-muted/40 p-2.5">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex flex-col gap-1">
+                                      <Label className="text-xs">Woche</Label>
+                                      <Input
+                                        type="number"
+                                        min={1}
+                                        max={12}
+                                        value={editItemWeek}
+                                        onChange={(e) => setEditItemWeek(Number(e.target.value))}
+                                      />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                      <Label className="text-xs">Zielwert (x diese Woche)</Label>
+                                      <Input
+                                        type="number"
+                                        min={1}
+                                        max={10}
+                                        value={editItemTarget}
+                                        onChange={(e) => setEditItemTarget(Number(e.target.value))}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      disabled={isEditingItem}
+                                      onClick={() => submitEditItem(goal, item.id)}
+                                    >
+                                      {isEditingItem ? "Wird gespeichert…" : "Speichern"}
+                                    </Button>
+                                    <Button type="button" size="sm" variant="ghost" onClick={() => setEditItemId(null)}>
+                                      Abbrechen
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
                               {item.logs.length > 0 && (
                                 <ul className="ml-6 flex flex-col gap-0.5 border-l pl-2.5">
                                   {item.logs.map((log) => (
@@ -508,6 +601,18 @@ export function GoalsSection({
                       </Button>
                     </div>
                   </>
+                )}
+
+                {goal.status !== 0 && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="self-start text-destructive hover:text-destructive"
+                    onClick={() => deleteGoal(goal.id)}
+                  >
+                    <Trash2 className="size-4" />
+                    Ziel löschen
+                  </Button>
                 )}
               </CardContent>
             </Card>

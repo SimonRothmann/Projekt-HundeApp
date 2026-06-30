@@ -55,10 +55,13 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
                 return Result<TrainingSessionDto>.Success(ToDto(alreadyCreated));
         }
 
-        var exerciseIds = request.Exercises.Select(e => e.ExerciseId).ToList();
-        var existingExerciseCount = await db.Exercises.CountAsync(e => exerciseIds.Contains(e.Id), ct);
-        if (existingExerciseCount != exerciseIds.Distinct().Count())
-            return Result<TrainingSessionDto>.Failure("Eine oder mehrere Übungen wurden nicht gefunden.");
+        var exerciseIds = request.Exercises.Where(e => e.ExerciseId is not null).Select(e => e.ExerciseId!.Value).Distinct().ToList();
+        if (exerciseIds.Count > 0)
+        {
+            var existingExerciseCount = await db.Exercises.CountAsync(e => exerciseIds.Contains(e.Id), ct);
+            if (existingExerciseCount != exerciseIds.Count)
+                return Result<TrainingSessionDto>.Failure("Eine oder mehrere Übungen wurden nicht gefunden.");
+        }
 
         var planItemError = await ValidatePlanItemsAsync(request, ct);
         if (planItemError is not null)
@@ -82,6 +85,7 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
             {
                 TrainingSessionId = session.Id,
                 ExerciseId = exercise.ExerciseId,
+                FreeTextLabel = exercise.ExerciseId is null ? exercise.FreeTextLabel!.Trim() : null,
                 Rating = exercise.Rating,
                 Difficulty = exercise.Difficulty,
                 Success = exercise.Success,
@@ -189,6 +193,17 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
             return "Dauer muss größer als 0 sein.";
         if (request.Exercises.Any(e => e.Rating < 1 || e.Rating > 5))
             return "Bewertung muss zwischen 1 und 5 liegen.";
+
+        foreach (var exercise in request.Exercises)
+        {
+            var hasExerciseId = exercise.ExerciseId is not null;
+            var hasFreeText = !string.IsNullOrWhiteSpace(exercise.FreeTextLabel);
+            if (hasExerciseId == hasFreeText)
+                return "Jede Übung braucht entweder eine Katalog-Übung oder einen Freitext, nicht beides oder keins.";
+            if (hasFreeText && exercise.TrainingPlanItemId is not null)
+                return "Eine Freitext-Übung kann nicht mit einem Plan-Ziel verknüpft werden.";
+        }
+
         return null;
     }
 
@@ -201,7 +216,7 @@ public class TrainingService(IApplicationDbContext db) : ITrainingService
         s.Exercises.Select(e => new TrainingExerciseDto(
             e.Id,
             e.ExerciseId,
-            e.Exercise?.Name ?? string.Empty,
+            e.Exercise?.Name ?? e.FreeTextLabel ?? string.Empty,
             e.Rating,
             e.Difficulty,
             e.Success,

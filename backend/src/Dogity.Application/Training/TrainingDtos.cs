@@ -4,7 +4,13 @@ namespace Dogity.Application.Training;
 
 public record TrainingExerciseDto(
     Guid Id,
-    Guid ExerciseId,
+    Guid? ExerciseId,
+    /// <summary>
+    /// Name der Katalog-Übung, oder bei einem Freitext-Eintrag (ExerciseId
+    /// null) direkt der eingegebene Freitext - die Anzeige unterscheidet
+    /// beide Fälle nicht, einzig ExerciseId verrät, ob es sich um eine
+    /// Katalog-Übung handelt.
+    /// </summary>
     string ExerciseName,
     int Rating,
     ExerciseDifficulty Difficulty,
@@ -25,7 +31,13 @@ public record TrainingSessionDto(
 public record SetFeedbackRequest(string Feedback);
 
 public record CreateTrainingExerciseRequest(
-    Guid ExerciseId,
+    /// <summary>
+    /// Genau eines von ExerciseId/FreeTextLabel muss gesetzt sein (siehe
+    /// TrainingService.Validate) - FreeTextLabel deckt spontane Spaß-/
+    /// Sonstige Übungen ab, die nicht Teil des Katalogs/einer
+    /// Prüfungsordnung sind.
+    /// </summary>
+    Guid? ExerciseId,
     int Rating,
     ExerciseDifficulty Difficulty,
     bool Success,
@@ -34,9 +46,12 @@ public record CreateTrainingExerciseRequest(
     /// Optionaler Bezug zu einem Wochenziel im Trainingsplan (siehe
     /// TrainingExercise.TrainingPlanItemId) - ordnet diesen Tagebucheintrag
     /// einem Plan-Ziel zu, damit dessen Fortschritt sich aus echten
-    /// Trainingseinträgen statt einem separaten Haken ergibt.
+    /// Trainingseinträgen statt einem separaten Haken ergibt. Nur zusammen
+    /// mit ExerciseId zulässig, nicht mit FreeTextLabel (ein Plan-Ziel
+    /// bezieht sich immer auf eine konkrete Katalog-Übung).
     /// </summary>
-    Guid? TrainingPlanItemId = null);
+    Guid? TrainingPlanItemId = null,
+    string? FreeTextLabel = null);
 
 public record CreateTrainingSessionRequest(
     Guid DogId,
