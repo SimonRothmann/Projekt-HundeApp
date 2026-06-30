@@ -187,6 +187,24 @@ npm run dev   # läuft auf http://localhost:3000
 Login/Registrierung unter `/login` bzw. `/register`, danach Dashboard,
 Hunde-Verwaltung und Sportarten-Katalog unter `/dashboard`, `/dogs`, `/sports`.
 
+> **Wichtig - Backend und Frontend immer mit demselben Schema starten.**
+> Es gibt zwei gültige Kombinationen, niemals mischen:
+> - **HTTP (Standard/einfachster Fall):** Backend `dotnet run` (Profil `http`,
+>   Port `5080`) + Frontend `npm run dev` (Port `3000`).
+> - **HTTPS (siehe Abschnitt 4, z.B. für GPS-Tests):** Backend
+>   `dotnet run --launch-profile https` (Port `7297`+`5080`) + Frontend
+>   `npm run dev:https` (Port `3000`).
+>
+> Grund: Ruft man die Seite einmal über `https://localhost:3000` auf, merkt
+> sich der Browser das per HSTS für den **Host** `localhost` - unabhängig vom
+> Port - und erzwingt bei jedem späteren Aufruf HTTPS, auch wenn nur noch
+> ein HTTP-Dev-Server läuft. Folge: `SSL_ERROR_RX_RECORD_TOO_LONG` beim
+> Frontend, dazu (weil `lib/api.ts` bei `https:` automatisch Port `7297`
+> ansteuert) ein wie CORS aussehender Fehler, falls der Backend-https-Profil
+> nicht mitläuft. Abhilfe falls es doch passiert: im Browser die Site-Daten
+> für `localhost` löschen (Cookies/Site-Settings, nicht nur Cache) und danach
+> konsequent nur eine der beiden Kombinationen oben verwenden.
+
 ## 4. Von einem anderen Gerät im selben Netzwerk testen (z.B. Smartphone)
 
 Backend (`launchSettings.json`, Profil `http`) bindet bereits an `0.0.0.0:5080`
@@ -245,6 +263,30 @@ DHCP eine andere Adresse, muss es mit der neuen IP neu erzeugt werden
 
 ### Offline-Verhalten testen
 
+**Aktueller Stand: teilweise offline-fähig, nicht vollständig.** Es gibt zwei
+unabhängige Bausteine:
+
+- **App-Shell/Navigation** (`public/sw.js`): cached die Build-Assets und
+  liefert bei Verbindungsverlust eine Fallback-Seite (`/offline`) statt eines
+  Browser-Fehlers. Bereits geladene Seiteninhalte bleiben sichtbar, solange
+  der Tab offen bleibt; ein erneuter Seitenaufruf ohne Verbindung zeigt aber
+  nur die Offline-Seite, da API-Antworten **bewusst nicht** gecacht werden
+  (siehe Kommentar in `sw.js`).
+- **Schreib-Warteschlange** (`lib/offline-queue.ts`, IndexedDB): puffert
+  Schreibvorgänge offline und synchronisiert automatisch beim Reconnect
+  (`offline-sync-listener.tsx`). Das ist aktuell **nur für zwei Funktionen
+  verdrahtet**: Trainingstagebuch-Einträge (`POST /api/trainings`,
+  `dogs/[id]/page.tsx`) und GPS-Aufzeichnungen (Fährte/Spaziergang/Lauf,
+  `components/tracking/*`).
+
+**Nicht offline-fähig** sind alle anderen Schreibvorgänge - sie schlagen
+ohne Verbindung mit einer Fehlermeldung fehl, statt zu queuen: Ziele/
+Trainingsplan anlegen/bearbeiten, Hund-Mitbesitzer verwalten, Vereins-/
+Gruppenbeitritt und -freigabe, Profil bearbeiten, Admin-Aktionen. Wer eine
+dieser Funktionen ebenfalls offline-fest braucht, muss sie analog zu
+`dogs/[id]/page.tsx:205` über `enqueueRequest` an dieselbe Warteschlange
+anschließen.
+
 Der Service Worker (`public/sw.js`) registriert sich in Dev und Production
 gleichermaßen (siehe Kommentar dort) - Navigation übersteht Verbindungsverlust
 in beiden Modi (Fallback auf `/offline`), ebenso die IndexedDB-Schreib-
@@ -295,3 +337,15 @@ scheitert in beiden Modi.
   ```bash
   export PATH="/opt/homebrew/opt/dotnet@9/libexec:$PATH"
   ```
+- **`dotnet ef` (global Tool) zieht trotzdem die .NET-10-Runtime**, selbst mit
+  obigem PATH-Eintrag, da der globale Tool-Host sich an `DOTNET_ROOT`
+  orientiert statt nur an `PATH` - Fehler `You must install or update .NET to
+  run this application` bzw. stille Fehlschläge bei `dotnet ef migrations
+  add`/`database update`. Zusätzlich `DOTNET_ROOT` setzen (oder pro Befehl
+  voranstellen):
+  ```bash
+  export DOTNET_ROOT="/opt/homebrew/opt/dotnet@9/libexec"
+  ```
+  Betrifft auch `dotnet run`/`dotnet build`, wenn diese über den global
+  installierten `dotnet`-Befehl (statt direkt `/opt/homebrew/opt/dotnet@9/bin/dotnet`)
+  aufgerufen werden.

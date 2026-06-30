@@ -34,44 +34,64 @@ public class StatsService(IApplicationDbContext db) : IStatsService
             .AsNoTracking()
             .ToListAsync(ct);
 
-        var perDog = new List<DogStatsDto>();
-        foreach (var dog in dogs)
-        {
-            var sessionCount = await db.TrainingSessions
-                .CountAsync(s => s.DogId == dog.Id, ct);
+        // Eine Batch-Abfrage je Kennzahl über alle Hunde statt einer
+        // Schleife mit mehreren Roundtrips pro Hund (N+1) - bei mehreren
+        // Hunden sonst spürbar langsam, gerade auf Mobilfunk.
+        var sessionCounts = await db.TrainingSessions
+            .Where(s => dogIds.Contains(s.DogId))
+            .GroupBy(s => s.DogId)
+            .Select(g => new { DogId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.DogId, g => g.Count, ct);
 
-            var sessionsLast30d = await db.TrainingSessions
-                .CountAsync(s => s.DogId == dog.Id && s.Date >= cutoff30d, ct);
+        var sessionsLast30dCounts = await db.TrainingSessions
+            .Where(s => dogIds.Contains(s.DogId) && s.Date >= cutoff30d)
+            .GroupBy(s => s.DogId)
+            .Select(g => new { DogId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.DogId, g => g.Count, ct);
 
-            var activeGoals = await db.Goals
-                .CountAsync(g => g.DogId == dog.Id && g.Status == GoalStatus.Active, ct);
+        var activeGoalCounts = await db.Goals
+            .Where(g => dogIds.Contains(g.DogId) && g.Status == GoalStatus.Active)
+            .GroupBy(g => g.DogId)
+            .Select(g => new { DogId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.DogId, g => g.Count, ct);
 
-            var sessionIds30d = await db.TrainingSessions
-                .Where(s => s.DogId == dog.Id && s.Date >= cutoff30d)
-                .Select(s => s.Id)
-                .ToListAsync(ct);
+        var avgRatings = await db.TrainingExercises
+            .Where(e => e.TrainingSession!.Date >= cutoff30d && dogIds.Contains(e.TrainingSession.DogId))
+            .GroupBy(e => e.TrainingSession!.DogId)
+            .Select(g => new { DogId = g.Key, Avg = g.Average(e => (double)e.Rating) })
+            .ToDictionaryAsync(g => g.DogId, g => g.Avg, ct);
 
-            double? avgRating = null;
-            if (sessionIds30d.Count > 0)
-            {
-                var ratings = await db.TrainingExercises
-                    .Where(e => sessionIds30d.Contains(e.TrainingSessionId))
-                    .Select(e => (double)e.Rating)
-                    .ToListAsync(ct);
-                if (ratings.Count > 0)
-                    avgRating = Math.Round(ratings.Average(), 1);
-            }
+        var activePlanItems = await db.TrainingPlanItems
+            .Where(i => dogIds.Contains(i.TrainingPlan!.Goal!.DogId) && i.TrainingPlan.Goal.Status == GoalStatus.Active && !i.IsRestWeek)
+            .Select(i => new { i.Id, DogId = i.TrainingPlan!.Goal!.DogId, i.RepetitionsTarget })
+            .ToListAsync(ct);
 
-            var planItemsTotal = await db.TrainingPlanItems
-                .Where(i => i.TrainingPlan!.Goal!.DogId == dog.Id && i.TrainingPlan.Goal.Status == GoalStatus.Active && !i.IsRestWeek)
-                .CountAsync(ct);
+        var planItemIds = activePlanItems.Select(i => i.Id).ToList();
+        var completedCountsByItem = await db.TrainingExercises
+            .Where(e => e.TrainingPlanItemId != null && planItemIds.Contains(e.TrainingPlanItemId.Value))
+            .GroupBy(e => e.TrainingPlanItemId!.Value)
+            .Select(g => new { ItemId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.ItemId, g => g.Count, ct);
 
-            var planItemsCompleted = await db.TrainingPlanItems
-                .Where(i => i.TrainingPlan!.Goal!.DogId == dog.Id && i.TrainingPlan.Goal.Status == GoalStatus.Active && !i.IsRestWeek)
-                .CountAsync(i => db.TrainingExercises.Count(e => e.TrainingPlanItemId == i.Id) >= i.RepetitionsTarget, ct);
+        var planItemsTotalByDog = activePlanItems
+            .GroupBy(i => i.DogId)
+            .ToDictionary(g => g.Key, g => g.Count());
 
-            perDog.Add(new DogStatsDto(dog.Id, dog.Name, sessionCount, sessionsLast30d, activeGoals, avgRating, planItemsCompleted, planItemsTotal));
-        }
+        var planItemsCompletedByDog = activePlanItems
+            .GroupBy(i => i.DogId)
+            .ToDictionary(g => g.Key, g => g.Count(i => completedCountsByItem.GetValueOrDefault(i.Id) >= i.RepetitionsTarget));
+
+        var perDog = dogs
+            .Select(dog => new DogStatsDto(
+                dog.Id,
+                dog.Name,
+                sessionCounts.GetValueOrDefault(dog.Id),
+                sessionsLast30dCounts.GetValueOrDefault(dog.Id),
+                activeGoalCounts.GetValueOrDefault(dog.Id),
+                avgRatings.TryGetValue(dog.Id, out var avg) ? Math.Round(avg, 1) : null,
+                planItemsCompletedByDog.GetValueOrDefault(dog.Id),
+                planItemsTotalByDog.GetValueOrDefault(dog.Id)))
+            .ToList();
 
         return Result<DashboardStatsDto>.Success(new DashboardStatsDto(weeklyActivity, perDog));
     }

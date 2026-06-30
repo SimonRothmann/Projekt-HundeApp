@@ -361,9 +361,9 @@ export function GoalsSection({
         <div className="flex flex-col gap-3">
           {goals.map((goal) => (
             <Card key={goal.id}>
-              <CardHeader className="flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle className="text-base">
+              <CardHeader className="flex-row flex-wrap items-start justify-between gap-2 space-y-0">
+                <div className="min-w-0">
+                  <CardTitle className="text-base break-words">
                     {goal.sportName}
                     {goal.regulationName && <span className="font-normal text-muted-foreground"> · {goal.regulationName}</span>}
                   </CardTitle>
@@ -371,7 +371,7 @@ export function GoalsSection({
                     Ziel: {new Date(goal.targetDate).toLocaleDateString("de-DE")}
                   </p>
                 </div>
-                <Badge variant={statusVariant[goal.status]}>{statusLabel[goal.status]}</Badge>
+                <Badge className="shrink-0" variant={statusVariant[goal.status]}>{statusLabel[goal.status]}</Badge>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 {goal.notes && <p className="text-sm text-muted-foreground">{goal.notes}</p>}
@@ -386,42 +386,46 @@ export function GoalsSection({
                         ) : (
                           items.map((item) => (
                             <div key={item.id} className="flex flex-col gap-1">
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-start gap-1">
                                 <button
                                   type="button"
                                   onClick={() => openQuickLog(item.id)}
-                                  className="flex flex-1 items-center gap-2 text-left text-sm"
+                                  className="flex min-w-0 flex-1 items-start gap-2 text-left text-sm"
                                 >
                                   {item.isComplete ? (
-                                    <CheckCircle2 className="size-4 shrink-0 text-accent" />
+                                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-accent" />
                                   ) : (
-                                    <Circle className="size-4 shrink-0 text-muted-foreground" />
+                                    <Circle className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                                   )}
-                                  <span className={cn(item.isComplete && "text-muted-foreground line-through")}>
-                                    {item.exerciseName}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {item.completedCount}/{item.repetitionsTarget}x erledigt
+                                  <span className="flex min-w-0 flex-col">
+                                    <span className={cn("break-words", item.isComplete && "text-muted-foreground line-through")}>
+                                      {item.exerciseName}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {item.completedCount}/{item.repetitionsTarget}x erledigt
+                                    </span>
                                   </span>
                                 </button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon-xs"
-                                  onClick={() => openEditItem(item)}
-                                  title="Woche/Zielwert bearbeiten"
-                                >
-                                  <Pencil className="size-3.5 text-muted-foreground" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon-xs"
-                                  onClick={() => removePlanItem(goal, item.id)}
-                                  title="Aus dem Plan entfernen"
-                                >
-                                  <Trash2 className="size-3.5 text-muted-foreground" />
-                                </Button>
+                                <div className="flex shrink-0 gap-0.5">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    onClick={() => openEditItem(item)}
+                                    title="Woche/Zielwert bearbeiten"
+                                  >
+                                    <Pencil className="size-3.5 text-muted-foreground" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    onClick={() => removePlanItem(goal, item.id)}
+                                    title="Aus dem Plan entfernen"
+                                  >
+                                    <Trash2 className="size-3.5 text-muted-foreground" />
+                                  </Button>
+                                </div>
                               </div>
                               {editItemId === item.id && (
                                 <div className="ml-6 flex flex-col gap-2 rounded-md border bg-muted/40 p-2.5">
