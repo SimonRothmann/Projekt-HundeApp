@@ -243,6 +243,36 @@ Das Zertifikat ist an die aktuelle LAN-IP gebunden - vergibt der Router per
 DHCP eine andere Adresse, muss es mit der neuen IP neu erzeugt werden
 (`certs/` ist gitignored, da `lan-key.pem` ein privater Schlüssel ist).
 
+### Echtes Offline-Verhalten testen: Produktions-Build nötig, nicht `npm run dev`
+
+`npm run dev` / `npm run dev:https` taugen nicht zum Testen von "Verbindung
+komplett weg" (z.B. Flugmodus auf dem Handy): Next.js' Dev-Client hält für
+Hot-Reload eine WebSocket-Verbindung zum Dev-Server offen und versucht bei
+Verbindungsverlust automatisch neu zu verbinden bzw. die Seite neu zu laden
+- genau das wirkt dann wie "App versucht ständig neuzuladen und erreicht den
+Server nicht", obwohl die eigentliche Offline-Logik (Service Worker +
+IndexedDB-Warteschlange, siehe `offline-queue.ts`) gar nicht das Problem
+ist. Zusätzlich registriert sich der Service Worker laut
+`pwa-register.tsx` nur bei `NODE_ENV=production` - im Dev-Modus wird ein
+ggf. vorhandener sogar aktiv deinstalliert, die Offline-App-Shell existiert
+im Dev-Modus also schlicht nicht.
+
+Für einen echten Test:
+
+```bash
+cd frontend
+npm run build
+npm run start:https   # HTTPS-Server für den Produktions-Build, Port 3000
+```
+
+`start:https` ist ein kleiner Custom-Server (`server.mjs`), da `next start`
+anders als `next dev` kein `--experimental-https` kennt; nutzt dieselben
+mkcert-Zertifikate wie `dev:https`. Danach: Seite einmal regulär online
+aufrufen (lädt den Service Worker, der die App-Shell cacht), erst danach
+die Verbindung trennen (WLAN aus/Flugmodus) und die Fährtenaufzeichnung
+testen - ohne diesen ersten Online-Aufruf hat der Service Worker nichts zum
+Ausliefern und ein komplett kalter Offline-Start scheitert ebenfalls.
+
 ## 5. Besonderheiten auf macOS (Homebrew)
 
 - **PostgreSQL@17 startet ggf. nicht** mit `FATAL: postmaster became
