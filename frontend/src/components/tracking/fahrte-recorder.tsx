@@ -37,9 +37,10 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     toAutomaticPoint,
     // Fährte braucht höhere Präzision als ein normaler Spaziergang: Erstaufnahme
     // und Wiederholung sollen deckungsgleich sein. Schwellwert 8 m verwirft
-    // Kaltstart-Schlechtpunkte früh; EMA α=0.35 reduziert das Grundrauschen
-    // des GPS-Chips (3-5 m) durch gewichtete Mittelung um weitere ~50 %.
-    { maxAccuracyMeters: 8, smoothAlpha: 0.35 },
+    // Kaltstart-Schlechtpunkte früh; Kalman-Filter gewichtet jede Messung
+    // adaptiv nach der gemeldeten GPS-Genauigkeit (schlechte Messung → weniger
+    // Einfluss), was besser als ein festes EMA-α abschneidet.
+    { maxAccuracyMeters: 8, kalman: true },
   );
   const [surface, setSurface] = useState("");
   const [markLabel, setMarkLabel] = useState("");

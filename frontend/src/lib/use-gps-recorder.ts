@@ -22,14 +22,14 @@ const GPS_MAX_POSITION_AGE_MS = 0;
 const POSITION_POLL_INTERVAL_MS = 500;
 
 // Standardwerte - können pro Aufzeichnungstyp überschrieben werden.
-// Punkte ungenauer als MAX_ACCURACY_METERS werden verworfen. Ohne aGPS
-// (Assisted GPS über Mobilfunk/WLAN) — also offline — braucht der GPS-Chip
-// einen Kaltstart, der mehrere Sekunden dauert und in dieser Zeit Positionen
-// mit 50–200 m Ungenauigkeit liefert.
 const DEFAULT_MAX_ACCURACY_METERS = 25;
-
-// Mindestabstand zwischen zwei aufeinanderfolgenden automatischen Trackpunkten.
 const DEFAULT_MIN_DISTANCE_METERS = 2;
+
+// Kalman-Filter: erwartete Bewegung zwischen zwei Samples in Metern.
+// Bei Gehgeschwindigkeit (~1 m/s) und 500 ms Interval ≈ 0.5 m.
+// Wird als Prozessrauschen Q genutzt: höher = mehr Vertrauen in neue Messung
+// (reagiert schneller auf Richtungswechsel), niedriger = mehr Glättung.
+const KALMAN_PROCESS_NOISE_M = 0.5;
 
 export type GpsRecorderOptions = {
   // Punkte mit größerem Fehlerkreis werden verworfen. Kleiner = genauer, aber
@@ -37,21 +37,68 @@ export type GpsRecorderOptions = {
   maxAccuracyMeters?: number;
   // Mindestabstand; eliminiert GPS-Rauschen im Stillstand.
   minDistanceMeters?: number;
-  // EMA-Glättungsfaktor α ∈ (0, 1]. Jeder aufgezeichnete Punkt wird mit dem
-  // gewichteten Mittel der Vorgänger kombiniert:
-  //   smoothed = α * gemessen + (1 - α) * smoothed_vorher
-  // Niedriger Wert → starke Glättung (mehr Verzögerung bei Kurven), hoher
-  // Wert → weniger Glättung (verhält sich eher wie roh). 0 = deaktiviert.
-  // Empfehlung Fährte: 0.35 → reduziert effektives Rauschen um ~50 % bei
-  // Gehgeschwindigkeit mit minimalem Versatz (<1 m Lag bei 1 m/s).
-  smoothAlpha?: number;
+  // Kalman-Filter: adaptiv gewichtete Positionsglättung. Im Gegensatz zu EMA
+  // variiert das Gewicht pro Messung abhängig von der gemeldeten GPS-Genauigkeit:
+  // schlechte Messung → weniger Gewicht (stärker geglättet), gute Messung →
+  // mehr Gewicht. Besser als EMA für Präzisionsanwendungen (z.B. Fährte).
+  kalman?: boolean;
 };
 
+// Kalman-Zustand pro Koordinate. P ist die Schätzunsicherheit in Grad² -
+// startet mit der ersten Messunsicherheit und konvergiert schnell gegen den
+// Gleichgewichtswert.
+type KalmanState = {
+  lat: number;
+  lon: number;
+  P_lat: number;
+  P_lon: number;
+};
+
+// Einen Kalman-Predict-Update-Schritt für eine 2D-Position (lat/lon getrennt,
+// da der Fehlerkreis rund ist und keine Kreuzkorrelation nötig ist).
+// Koordinaten bleiben in Grad; Unsicherheiten werden intern in Meter²
+// umgerechnet, damit die Prozess- und Messrauschparameter in Metern angegeben
+// werden können statt in Grad (intuitiver und von der Breitengrad-abhängigen
+// Grad-Meter-Relation entkoppelt).
+function kalmanStep(state: KalmanState, lat: number, lon: number, accuracyM: number): KalmanState {
+  const cosLat = Math.cos((state.lat * Math.PI) / 180);
+  const mPerDegLat = 111111;
+  const mPerDegLon = 111111 * (cosLat === 0 ? 1 : cosLat);
+
+  // Prozessrauschen Q: erwartete Positionsänderung zwischen Samples (in Grad²)
+  const Q_lat = (KALMAN_PROCESS_NOISE_M / mPerDegLat) ** 2;
+  const Q_lon = (KALMAN_PROCESS_NOISE_M / mPerDegLon) ** 2;
+
+  // Messrauschen R: von der GPS-API gemeldeter Fehlerkreisradius → 1-σ-Varianz.
+  // Die Geolocation-Spec definiert accuracy als 95%-Konfidenzkreis-Radius,
+  // viele Browser (inkl. iOS Safari) liefern aber de facto den 1-σ-Wert -
+  // konservativer Ansatz: als 1-σ behandeln (σ = accuracy, R = accuracy²).
+  const R_lat = (accuracyM / mPerDegLat) ** 2;
+  const R_lon = (accuracyM / mPerDegLon) ** 2;
+
+  // Predict (Random-Walk-Modell: keine Geschwindigkeitsschätzung, da Gehen
+  // unregelmäßig ist und ein Velocity-Modell bei häufigen Richtungswechseln
+  // nicht besser abschneidet)
+  const P_pred_lat = state.P_lat + Q_lat;
+  const P_pred_lon = state.P_lon + Q_lon;
+
+  // Kalman-Gain: K nahe 1 → neue Messung stark gewichten (Unsicherheit groß
+  // oder GPS-Fehler klein), K nahe 0 → alte Schätzung bevorzugen.
+  const K_lat = P_pred_lat / (P_pred_lat + R_lat);
+  const K_lon = P_pred_lon / (P_pred_lon + R_lon);
+
+  return {
+    lat: state.lat + K_lat * (lat - state.lat),
+    lon: state.lon + K_lon * (lon - state.lon),
+    P_lat: (1 - K_lat) * P_pred_lat,
+    P_lon: (1 - K_lon) * P_pred_lon,
+  };
+}
+
 // Erstellt ein synthetisches GeolocationPosition-Objekt mit überschriebenen
-// Koordinaten (für EMA-geglättete Positionen). ToPoint-Funktionen der Aufrufer
-// greifen nur auf coords.* und timestamp zu - der Rest bleibt aus der echten
-// Messung erhalten (accuracy für UI-Anzeige, heading/speed für spätere Nutzung).
-function withSmoothCoords(
+// Koordinaten (Kalman-geglättete Position). ToPoint-Funktionen der Aufrufer
+// lesen nur coords.* und timestamp - der Rest bleibt aus der echten Messung.
+function withSmoothedCoords(
   position: GeolocationPosition,
   latitude: number,
   longitude: number,
@@ -74,9 +121,7 @@ function withSmoothCoords(
 
 /**
  * Gemeinsame GPS-Aufzeichnungslogik (Poll-Loop inkl. Cleanup beim Unmount)
- * für Fährten- und Ablauf-Aufzeichnung - vorher dreifach nahezu identisch
- * dupliziert in fahrte-recorder.tsx, gps-track-section.tsx und
- * walk-run-recorder.tsx.
+ * für Fährten- und Ablauf-Aufzeichnung.
  */
 export function useGpsRecorder<T>(
   toPoint: (position: GeolocationPosition) => T,
@@ -85,7 +130,7 @@ export function useGpsRecorder<T>(
   const {
     maxAccuracyMeters = DEFAULT_MAX_ACCURACY_METERS,
     minDistanceMeters = DEFAULT_MIN_DISTANCE_METERS,
-    smoothAlpha = 0,
+    kalman = false,
   } = options;
 
   const [isRecording, setIsRecording] = useState(false);
@@ -93,19 +138,12 @@ export function useGpsRecorder<T>(
   const [currentAccuracy, setCurrentAccuracy] = useState<number | null>(null);
   const isRecordingRef = useRef(false);
   const timeoutRef = useRef<number | null>(null);
-  // Letzter aufgezeichneter Punkt (geglättet falls smoothAlpha > 0) für den
-  // Mindestabstand-Filter.
+  // Letzter aufgezeichneter (geglätteter) Punkt für den Mindestabstand-Filter.
   const lastRecordedRef = useRef<{ latitude: number; longitude: number } | null>(null);
-  // Laufender EMA-Zustand; null bis die erste akzeptierte Messung ankommt.
-  const smoothedRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  // Kalman-Filterzustand; null bis zur ersten akzeptierten Messung.
+  const kalmanRef = useRef<KalmanState | null>(null);
 
   useEffect(() => {
-    // Falls die Seite verlassen wird, während noch aufgezeichnet wird (z.B.
-    // Navigation ohne vorher "Stoppen" zu klicken): Poll-Loop beenden, sonst
-    // fragt er unbegrenzt im Hintergrund weiter nach der Position und ruft
-    // den Callback einer längst unmounteten Komponente weiter auf - mit
-    // jeder vergessenen Aufnahme ein weiterer, nie endender GPS-Poller, der
-    // die App zunehmend träge macht.
     return () => {
       isRecordingRef.current = false;
       if (timeoutRef.current !== null) {
@@ -123,22 +161,29 @@ export function useGpsRecorder<T>(
         setCurrentAccuracy(accuracy);
 
         if (accuracy > maxAccuracyMeters) {
-          // GPS noch nicht eingeschwungen (typisch beim Kaltstart ohne aGPS) -
-          // Punkt verwerfen und auf bessere Genauigkeit warten.
+          // GPS noch nicht eingeschwungen (typisch beim Kaltstart ohne aGPS).
           scheduleNextPoll();
           return;
         }
 
-        // EMA-Glättung: ersten Punkt ungeglättet übernehmen (kein Vorgänger),
-        // danach gewichtetes Mittel aus gemessener und geglätteter Position.
         let smoothedLat = latitude;
         let smoothedLon = longitude;
-        if (smoothAlpha > 0) {
-          if (smoothedRef.current !== null) {
-            smoothedLat = smoothAlpha * latitude + (1 - smoothAlpha) * smoothedRef.current.latitude;
-            smoothedLon = smoothAlpha * longitude + (1 - smoothAlpha) * smoothedRef.current.longitude;
+
+        if (kalman) {
+          if (kalmanRef.current === null) {
+            // Ersten Punkt als Initialzustand verwenden.
+            const cosLat = Math.cos((latitude * Math.PI) / 180);
+            kalmanRef.current = {
+              lat: latitude,
+              lon: longitude,
+              P_lat: (accuracy / 111111) ** 2,
+              P_lon: (accuracy / (111111 * (cosLat === 0 ? 1 : cosLat))) ** 2,
+            };
+          } else {
+            kalmanRef.current = kalmanStep(kalmanRef.current, latitude, longitude, accuracy);
           }
-          smoothedRef.current = { latitude: smoothedLat, longitude: smoothedLon };
+          smoothedLat = kalmanRef.current.lat;
+          smoothedLon = kalmanRef.current.lon;
         }
 
         const last = lastRecordedRef.current;
@@ -146,14 +191,14 @@ export function useGpsRecorder<T>(
           last !== null &&
           haversineMeters(last, { latitude: smoothedLat, longitude: smoothedLon }) < minDistanceMeters
         ) {
-          // Zu nah am letzten Punkt - GPS-Rauschen im Stillstand, nicht aufzeichnen.
           scheduleNextPoll();
           return;
         }
 
         lastRecordedRef.current = { latitude: smoothedLat, longitude: smoothedLon };
-        const recordedPosition =
-          smoothAlpha > 0 ? withSmoothCoords(position, smoothedLat, smoothedLon) : position;
+        const recordedPosition = kalman
+          ? withSmoothedCoords(position, smoothedLat, smoothedLon)
+          : position;
         setPoints((prev) => [...prev, toPoint(recordedPosition)]);
         scheduleNextPoll();
       },
@@ -167,9 +212,6 @@ export function useGpsRecorder<T>(
   }
 
   function scheduleNextPoll() {
-    // Rekursives setTimeout statt setInterval: die nächste Anfrage wird
-    // erst nach Abschluss der vorigen geplant, damit sich bei schlechtem
-    // GPS-Empfang (lange Antwortzeit) keine überlappenden Anfragen stauen.
     if (!isRecordingRef.current) return;
     timeoutRef.current = window.setTimeout(poll, POSITION_POLL_INTERVAL_MS);
   }
@@ -182,7 +224,7 @@ export function useGpsRecorder<T>(
     setPoints([]);
     setCurrentAccuracy(null);
     lastRecordedRef.current = null;
-    smoothedRef.current = null;
+    kalmanRef.current = null;
     setIsRecording(true);
     isRecordingRef.current = true;
     poll();

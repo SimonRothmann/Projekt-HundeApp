@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
+import { enqueueRequest } from "@/lib/offline-queue";
 import type { Exercise, Goal, Regulation, Sport, TrainingPlanItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -195,7 +196,7 @@ export function GoalsSection({
     if (!item.exerciseId) return;
     setIsQuickLogging(true);
     try {
-      await api.post("/api/trainings", {
+      const payload = {
         dogId,
         date: new Date().toISOString().slice(0, 10),
         durationMinutes: 10,
@@ -210,8 +211,15 @@ export function GoalsSection({
             trainingPlanItemId: item.id,
           },
         ],
-      });
-      toast.success("Eintrag gespeichert.");
+      };
+      try {
+        await api.post("/api/trainings", payload);
+        toast.success("Eintrag gespeichert.");
+      } catch (err) {
+        if (err instanceof ApiError) throw err;
+        await enqueueRequest({ path: "/api/trainings", method: "POST", body: payload, label: "Schnelleintrag" });
+        toast.success("Offline gespeichert – wird synchronisiert, sobald Internet verfügbar ist.");
+      }
       setQuickLogItemId(null);
       await onChanged();
     } catch (err) {

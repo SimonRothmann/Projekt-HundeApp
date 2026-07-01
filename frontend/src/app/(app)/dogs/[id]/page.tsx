@@ -18,6 +18,7 @@ import { GpsTrackSection } from "@/components/tracking/gps-track-section";
 import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
 import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
 import { enqueueRequest } from "@/lib/offline-queue";
+import { getCachedData, setCachedData } from "@/lib/read-cache";
 import { difficultyLabel } from "@/lib/constants";
 import { useAuth } from "@/lib/auth-context";
 
@@ -70,7 +71,32 @@ export default function DogDetailPage() {
   const [rows, setRows] = useState<ExerciseRow[]>([emptyRow()]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  type DogPageCache = {
+    dog: Dog;
+    sessions: TrainingSession[];
+    sports: Sport[];
+    myDogIds: string[];
+    goals: Goal[];
+    owners: DogOwner[];
+  };
+
+  function applyPageData(data: DogPageCache) {
+    setDog(data.dog);
+    setSessions(data.sessions);
+    setSports(data.sports);
+    setIsOwner(data.myDogIds.includes(id));
+    setGoals(data.goals);
+    setOwners(data.owners);
+  }
+
   async function loadAll() {
+    // 1. Gecachte Daten sofort anzeigen (Stale-While-Revalidate) - ermöglicht
+    //    Offline-Nutzung der letzten gesehenen Daten ohne Wartezeit.
+    const cacheKey = `dog-page-${id}`;
+    const cached = await getCachedData<DogPageCache>(cacheKey);
+    if (cached) applyPageData(cached);
+
+    // 2. Frische Daten im Hintergrund laden.
     try {
       const [dogData, sessionData, sportsData, myDogs, goalData, ownersData] = await Promise.all([
         api.get<Dog>(`/api/dogs/${id}`),
@@ -80,14 +106,20 @@ export default function DogDetailPage() {
         api.get<Goal[]>(`/api/goals?dogId=${id}`),
         api.get<DogOwner[]>(`/api/dogs/${id}/owners`).catch(() => [] as DogOwner[]),
       ]);
-      setDog(dogData);
-      setSessions(sessionData);
-      setSports(sportsData);
-      setIsOwner(myDogs.some((d) => d.id === id));
-      setGoals(goalData);
-      setOwners(ownersData);
+      const fresh: DogPageCache = {
+        dog: dogData,
+        sessions: sessionData,
+        sports: sportsData,
+        myDogIds: myDogs.map((d) => d.id),
+        goals: goalData,
+        owners: ownersData,
+      };
+      applyPageData(fresh);
+      await setCachedData(cacheKey, fresh);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Daten konnten nicht geladen werden.");
+      // Nur Fehler melden wenn kein Cache vorhanden - mit Cache sind die alten
+      // Daten bereits sichtbar und ein Toast wäre verwirrend.
+      if (!cached) toast.error(err instanceof ApiError ? err.message : "Daten konnten nicht geladen werden.");
     }
   }
 

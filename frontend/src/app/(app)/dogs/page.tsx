@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import { getCachedData, setCachedData } from "@/lib/read-cache";
 import type { Dog } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,11 +22,15 @@ export default function DogsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function loadDogs() {
+    const cached = await getCachedData<Dog[]>("dogs-list");
+    if (cached) setDogs(cached);
+
     try {
       const data = await api.get<Dog[]>("/api/dogs");
       setDogs(data);
+      await setCachedData("dogs-list", data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Hunde konnten nicht geladen werden.");
+      if (!cached) toast.error(err instanceof ApiError ? err.message : "Hunde konnten nicht geladen werden.");
     }
   }
 
