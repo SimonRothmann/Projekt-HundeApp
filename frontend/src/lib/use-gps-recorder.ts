@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { haversineMeters } from "@/lib/geo";
 
 // maximumAge: wie alt eine vom Browser zwischengespeicherte Position
 // maximal sein darf, um statt einer frischen GPS-Messung wiederverwendet zu
@@ -20,6 +21,20 @@ const GPS_MAX_POSITION_AGE_MS = 0;
 // Wiederholpunkte tragen praktisch nichts zur Streckenlänge bei).
 const POSITION_POLL_INTERVAL_MS = 500;
 
+// Punkte ungenauer als dieser Schwellwert werden verworfen. Ohne aGPS
+// (Assisted GPS über Mobilfunk/WLAN) — also offline — braucht der GPS-Chip
+// einen Kaltstart, der mehrere Sekunden dauert und in dieser Zeit Positionen
+// mit 50–200 m Ungenauigkeit liefert. Diese frühen Schlechtpunkte sind die
+// häufigste Ursache für Ausreißer im aufgezeichneten Track.
+const MAX_ACCURACY_METERS = 25;
+
+// Mindestabstand zwischen zwei aufeinanderfolgenden automatischen Trackpunkten.
+// Ist das Gerät nahezu still, liefert der GPS-Chip trotzdem leicht
+// abweichende Koordinaten (thermisches Rauschen ~1–3 m) - ohne diesen Filter
+// entsteht ein "Wackeln" rund um den Standpunkt, das die Tracklänge künstlich
+// aufbläht und den Track optisch unruhig macht.
+const MIN_DISTANCE_METERS = 2;
+
 /**
  * Gemeinsame GPS-Aufzeichnungslogik (Poll-Loop inkl. Cleanup beim Unmount)
  * für Fährten- und Ablauf-Aufzeichnung - vorher dreifach nahezu identisch
@@ -29,8 +44,11 @@ const POSITION_POLL_INTERVAL_MS = 500;
 export function useGpsRecorder<T>(toPoint: (position: GeolocationPosition) => T) {
   const [isRecording, setIsRecording] = useState(false);
   const [points, setPoints] = useState<T[]>([]);
+  const [currentAccuracy, setCurrentAccuracy] = useState<number | null>(null);
   const isRecordingRef = useRef(false);
   const timeoutRef = useRef<number | null>(null);
+  // Rohkoordinaten des letzten aufgezeichneten Punkts für den Mindestabstand-Filter.
+  const lastRawRef = useRef<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
     // Falls die Seite verlassen wird, während noch aufgezeichnet wird (z.B.
@@ -52,6 +70,24 @@ export function useGpsRecorder<T>(toPoint: (position: GeolocationPosition) => T)
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (!isRecordingRef.current) return;
+        const { latitude, longitude, accuracy } = position.coords;
+        setCurrentAccuracy(accuracy);
+
+        if (accuracy > MAX_ACCURACY_METERS) {
+          // GPS noch nicht eingeschwungen (typisch beim Kaltstart ohne aGPS) -
+          // Punkt verwerfen und auf bessere Genauigkeit warten.
+          scheduleNextPoll();
+          return;
+        }
+
+        const lastRaw = lastRawRef.current;
+        if (lastRaw !== null && haversineMeters(lastRaw, { latitude, longitude }) < MIN_DISTANCE_METERS) {
+          // Zu nah am letzten Punkt - GPS-Rauschen im Stillstand, nicht aufzeichnen.
+          scheduleNextPoll();
+          return;
+        }
+
+        lastRawRef.current = { latitude, longitude };
         setPoints((prev) => [...prev, toPoint(position)]);
         scheduleNextPoll();
       },
@@ -78,6 +114,8 @@ export function useGpsRecorder<T>(toPoint: (position: GeolocationPosition) => T)
       return;
     }
     setPoints([]);
+    setCurrentAccuracy(null);
+    lastRawRef.current = null;
     setIsRecording(true);
     isRecordingRef.current = true;
     poll();
@@ -108,5 +146,5 @@ export function useGpsRecorder<T>(toPoint: (position: GeolocationPosition) => T)
     );
   }
 
-  return { isRecording, points, setPoints, start, stop, markPoint };
+  return { isRecording, points, setPoints, currentAccuracy, start, stop, markPoint };
 }

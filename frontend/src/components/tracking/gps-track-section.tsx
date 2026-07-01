@@ -31,6 +31,7 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
     isRecording,
     points: recordedPoints,
     setPoints: setRecordedPoints,
+    currentAccuracy,
     start: startRecording,
     stop,
     markPoint,
@@ -116,11 +117,27 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
             Aufnahme starten
           </Button>
         ) : (
-          <Button size="sm" variant="destructive" onClick={stopRecording}>
-            <Square className="size-4" />
-            Stoppen ({recordedPoints.filter((p) => p.pointType !== 1).length} Punkte,{" "}
-            {recordedPoints.filter((p) => p.pointType === 1).length} Marker)
-          </Button>
+          <div className="flex items-center gap-2">
+            {currentAccuracy !== null && (
+              <span
+                className={`text-xs font-mono tabular-nums ${
+                  currentAccuracy <= 10
+                    ? "text-green-600"
+                    : currentAccuracy <= 25
+                      ? "text-yellow-600"
+                      : "text-red-600"
+                }`}
+                title="GPS-Genauigkeit (Radius des Fehlerkreises). Punkte ungenauer als 25 m werden automatisch verworfen."
+              >
+                ±{Math.round(currentAccuracy)} m
+              </span>
+            )}
+            <Button size="sm" variant="destructive" onClick={stopRecording}>
+              <Square className="size-4" />
+              Stoppen ({recordedPoints.filter((p) => p.pointType !== 1).length} Punkte,{" "}
+              {recordedPoints.filter((p) => p.pointType === 1).length} Marker)
+            </Button>
+          </div>
         )}
       </div>
 
