@@ -33,7 +33,14 @@ function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
  * voneinander - auch offline - synchronisiert werden können.
  */
 export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () => Promise<void> }) {
-  const { isRecording, points, setPoints, start, stop, markPoint } = useGpsRecorder(toAutomaticPoint);
+  const { isRecording, points, setPoints, currentAccuracy, start, stop, markPoint } = useGpsRecorder(
+    toAutomaticPoint,
+    // Fährte braucht höhere Präzision als ein normaler Spaziergang: Erstaufnahme
+    // und Wiederholung sollen deckungsgleich sein. Schwellwert 8 m verwirft
+    // Kaltstart-Schlechtpunkte früh; EMA α=0.35 reduziert das Grundrauschen
+    // des GPS-Chips (3-5 m) durch gewichtete Mittelung um weitere ~50 %.
+    { maxAccuracyMeters: 8, smoothAlpha: 0.35 },
+  );
   const [surface, setSurface] = useState("");
   const [markLabel, setMarkLabel] = useState("");
   const [isMarking, setIsMarking] = useState(false);
@@ -155,11 +162,27 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
                 {isMarking ? "Markiere…" : "Punkt setzen"}
               </Button>
             </div>
-            <Button variant="destructive" onClick={stopRecording} className="self-start">
-              <Square className="size-4" />
-              Stoppen ({points.filter((p) => p.pointType !== 1).length} Punkte,{" "}
-              {points.filter((p) => p.pointType === 1).length} Marker)
-            </Button>
+            <div className="flex flex-wrap items-center gap-3">
+              {currentAccuracy !== null && (
+                <span
+                  className={`text-xs font-mono tabular-nums ${
+                    currentAccuracy <= 8
+                      ? "text-green-600"
+                      : currentAccuracy <= 15
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                  }`}
+                  title="GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als 8 m werden für Fährten automatisch verworfen."
+                >
+                  ±{Math.round(currentAccuracy)} m
+                </span>
+              )}
+              <Button variant="destructive" onClick={stopRecording} className="self-start">
+                <Square className="size-4" />
+                Stoppen ({points.filter((p) => p.pointType !== 1).length} Punkte,{" "}
+                {points.filter((p) => p.pointType === 1).length} Marker)
+              </Button>
+            </div>
             <TrackMap points={points} live />
           </>
         )}

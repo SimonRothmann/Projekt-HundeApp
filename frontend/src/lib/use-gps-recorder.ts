@@ -21,19 +21,56 @@ const GPS_MAX_POSITION_AGE_MS = 0;
 // Wiederholpunkte tragen praktisch nichts zur Streckenlänge bei).
 const POSITION_POLL_INTERVAL_MS = 500;
 
-// Punkte ungenauer als dieser Schwellwert werden verworfen. Ohne aGPS
+// Standardwerte - können pro Aufzeichnungstyp überschrieben werden.
+// Punkte ungenauer als MAX_ACCURACY_METERS werden verworfen. Ohne aGPS
 // (Assisted GPS über Mobilfunk/WLAN) — also offline — braucht der GPS-Chip
 // einen Kaltstart, der mehrere Sekunden dauert und in dieser Zeit Positionen
-// mit 50–200 m Ungenauigkeit liefert. Diese frühen Schlechtpunkte sind die
-// häufigste Ursache für Ausreißer im aufgezeichneten Track.
-const MAX_ACCURACY_METERS = 25;
+// mit 50–200 m Ungenauigkeit liefert.
+const DEFAULT_MAX_ACCURACY_METERS = 25;
 
 // Mindestabstand zwischen zwei aufeinanderfolgenden automatischen Trackpunkten.
-// Ist das Gerät nahezu still, liefert der GPS-Chip trotzdem leicht
-// abweichende Koordinaten (thermisches Rauschen ~1–3 m) - ohne diesen Filter
-// entsteht ein "Wackeln" rund um den Standpunkt, das die Tracklänge künstlich
-// aufbläht und den Track optisch unruhig macht.
-const MIN_DISTANCE_METERS = 2;
+const DEFAULT_MIN_DISTANCE_METERS = 2;
+
+export type GpsRecorderOptions = {
+  // Punkte mit größerem Fehlerkreis werden verworfen. Kleiner = genauer, aber
+  // längere Wartezeit beim Kaltstart bis die Aufzeichnung erste Punkte liefert.
+  maxAccuracyMeters?: number;
+  // Mindestabstand; eliminiert GPS-Rauschen im Stillstand.
+  minDistanceMeters?: number;
+  // EMA-Glättungsfaktor α ∈ (0, 1]. Jeder aufgezeichnete Punkt wird mit dem
+  // gewichteten Mittel der Vorgänger kombiniert:
+  //   smoothed = α * gemessen + (1 - α) * smoothed_vorher
+  // Niedriger Wert → starke Glättung (mehr Verzögerung bei Kurven), hoher
+  // Wert → weniger Glättung (verhält sich eher wie roh). 0 = deaktiviert.
+  // Empfehlung Fährte: 0.35 → reduziert effektives Rauschen um ~50 % bei
+  // Gehgeschwindigkeit mit minimalem Versatz (<1 m Lag bei 1 m/s).
+  smoothAlpha?: number;
+};
+
+// Erstellt ein synthetisches GeolocationPosition-Objekt mit überschriebenen
+// Koordinaten (für EMA-geglättete Positionen). ToPoint-Funktionen der Aufrufer
+// greifen nur auf coords.* und timestamp zu - der Rest bleibt aus der echten
+// Messung erhalten (accuracy für UI-Anzeige, heading/speed für spätere Nutzung).
+function withSmoothCoords(
+  position: GeolocationPosition,
+  latitude: number,
+  longitude: number,
+): GeolocationPosition {
+  return {
+    coords: {
+      latitude,
+      longitude,
+      accuracy: position.coords.accuracy,
+      altitude: position.coords.altitude,
+      altitudeAccuracy: position.coords.altitudeAccuracy,
+      heading: position.coords.heading,
+      speed: position.coords.speed,
+      toJSON: () => ({}),
+    },
+    timestamp: position.timestamp,
+    toJSON: () => ({}),
+  } as GeolocationPosition;
+}
 
 /**
  * Gemeinsame GPS-Aufzeichnungslogik (Poll-Loop inkl. Cleanup beim Unmount)
@@ -41,14 +78,26 @@ const MIN_DISTANCE_METERS = 2;
  * dupliziert in fahrte-recorder.tsx, gps-track-section.tsx und
  * walk-run-recorder.tsx.
  */
-export function useGpsRecorder<T>(toPoint: (position: GeolocationPosition) => T) {
+export function useGpsRecorder<T>(
+  toPoint: (position: GeolocationPosition) => T,
+  options: GpsRecorderOptions = {},
+) {
+  const {
+    maxAccuracyMeters = DEFAULT_MAX_ACCURACY_METERS,
+    minDistanceMeters = DEFAULT_MIN_DISTANCE_METERS,
+    smoothAlpha = 0,
+  } = options;
+
   const [isRecording, setIsRecording] = useState(false);
   const [points, setPoints] = useState<T[]>([]);
   const [currentAccuracy, setCurrentAccuracy] = useState<number | null>(null);
   const isRecordingRef = useRef(false);
   const timeoutRef = useRef<number | null>(null);
-  // Rohkoordinaten des letzten aufgezeichneten Punkts für den Mindestabstand-Filter.
-  const lastRawRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  // Letzter aufgezeichneter Punkt (geglättet falls smoothAlpha > 0) für den
+  // Mindestabstand-Filter.
+  const lastRecordedRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  // Laufender EMA-Zustand; null bis die erste akzeptierte Messung ankommt.
+  const smoothedRef = useRef<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
     // Falls die Seite verlassen wird, während noch aufgezeichnet wird (z.B.
@@ -73,22 +122,39 @@ export function useGpsRecorder<T>(toPoint: (position: GeolocationPosition) => T)
         const { latitude, longitude, accuracy } = position.coords;
         setCurrentAccuracy(accuracy);
 
-        if (accuracy > MAX_ACCURACY_METERS) {
+        if (accuracy > maxAccuracyMeters) {
           // GPS noch nicht eingeschwungen (typisch beim Kaltstart ohne aGPS) -
           // Punkt verwerfen und auf bessere Genauigkeit warten.
           scheduleNextPoll();
           return;
         }
 
-        const lastRaw = lastRawRef.current;
-        if (lastRaw !== null && haversineMeters(lastRaw, { latitude, longitude }) < MIN_DISTANCE_METERS) {
+        // EMA-Glättung: ersten Punkt ungeglättet übernehmen (kein Vorgänger),
+        // danach gewichtetes Mittel aus gemessener und geglätteter Position.
+        let smoothedLat = latitude;
+        let smoothedLon = longitude;
+        if (smoothAlpha > 0) {
+          if (smoothedRef.current !== null) {
+            smoothedLat = smoothAlpha * latitude + (1 - smoothAlpha) * smoothedRef.current.latitude;
+            smoothedLon = smoothAlpha * longitude + (1 - smoothAlpha) * smoothedRef.current.longitude;
+          }
+          smoothedRef.current = { latitude: smoothedLat, longitude: smoothedLon };
+        }
+
+        const last = lastRecordedRef.current;
+        if (
+          last !== null &&
+          haversineMeters(last, { latitude: smoothedLat, longitude: smoothedLon }) < minDistanceMeters
+        ) {
           // Zu nah am letzten Punkt - GPS-Rauschen im Stillstand, nicht aufzeichnen.
           scheduleNextPoll();
           return;
         }
 
-        lastRawRef.current = { latitude, longitude };
-        setPoints((prev) => [...prev, toPoint(position)]);
+        lastRecordedRef.current = { latitude: smoothedLat, longitude: smoothedLon };
+        const recordedPosition =
+          smoothAlpha > 0 ? withSmoothCoords(position, smoothedLat, smoothedLon) : position;
+        setPoints((prev) => [...prev, toPoint(recordedPosition)]);
         scheduleNextPoll();
       },
       (error) => {
@@ -115,7 +181,8 @@ export function useGpsRecorder<T>(toPoint: (position: GeolocationPosition) => T)
     }
     setPoints([]);
     setCurrentAccuracy(null);
-    lastRawRef.current = null;
+    lastRecordedRef.current = null;
+    smoothedRef.current = null;
     setIsRecording(true);
     isRecordingRef.current = true;
     poll();
