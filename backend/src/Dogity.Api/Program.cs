@@ -3,7 +3,10 @@ using Dogity.Infrastructure;
 using Dogity.Infrastructure.Identity;
 using Dogity.Infrastructure.Persistence;
 using Dogity.Infrastructure.Persistence.Seed;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -53,6 +56,37 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Hinter Caddy (Reverse Proxy im Docker-Netzwerk) sieht Kestrel als
+// RemoteIpAddress nur die Proxy-IP. Für IP-basiertes Rate-Limiting und
+// korrekte Logs die X-Forwarded-*-Header übernehmen. KnownNetworks/-Proxies
+// leeren ist hier vertretbar: der Backend-Port ist nicht öffentlich
+// exponiert (nur Caddy erreicht ihn über das interne Docker-Netzwerk),
+// gespoofte Header von außen kommen also gar nicht erst an.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// IP-basiertes Rate-Limit für die anonymen Auth-Endpoints (Login, Register,
+// Forgot-Password): Identity-Lockout schützt nur pro Konto - ohne Drosselung
+// pro IP bleiben Passwort-Spraying über viele Konten, Massenregistrierung
+// und E-Mail-Versand-Spam über forgot-password möglich. 10 Requests/Minute
+// pro IP reicht für jede legitime Nutzung (auch Familien hinter einem NAT).
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+            }));
+});
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
@@ -100,9 +134,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Muss vor allem laufen, was die Client-IP liest (Rate-Limiter, Logging).
+app.UseForwardedHeaders();
+
 app.UseResponseCompression();
 
 app.UseHttpsRedirection();
+
+app.UseRateLimiter();
 
 app.UseCors("Frontend");
 

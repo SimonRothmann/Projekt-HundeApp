@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { getCachedData, setCachedData } from "@/lib/read-cache";
 import type { DashboardStats } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Dog } from "lucide-react";
@@ -11,10 +12,20 @@ export default function StatsPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
 
   useEffect(() => {
-    api
-      .get<DashboardStats>("/api/stats/dashboard")
-      .then(setStats)
-      .catch((err) => toast.error(err instanceof ApiError ? err.message : "Statistiken konnten nicht geladen werden."));
+    // Stale-While-Revalidate: zuletzt gesehene Statistiken sofort anzeigen
+    // (auch offline), frische Daten im Hintergrund nachladen.
+    async function load() {
+      const cached = await getCachedData<DashboardStats>("stats-dashboard");
+      if (cached) setStats(cached);
+      try {
+        const fresh = await api.get<DashboardStats>("/api/stats/dashboard");
+        setStats(fresh);
+        await setCachedData("stats-dashboard", fresh);
+      } catch (err) {
+        if (!cached) toast.error(err instanceof ApiError ? err.message : "Statistiken konnten nicht geladen werden.");
+      }
+    }
+    load();
   }, []);
 
   const maxWeekCount = stats ? Math.max(...stats.weeklyActivity.map((w) => w.count), 1) : 1;

@@ -4,12 +4,17 @@ using Dogity.Application.Abstractions;
 using Dogity.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
 
 namespace Dogity.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+// IP-Rate-Limit für alle anonymen Auth-Endpoints (siehe Program.cs):
+// Identity-Lockout greift nur pro Konto, nicht gegen Passwort-Spraying,
+// Massenregistrierung oder forgot-password-E-Mail-Spam.
+[EnableRateLimiting("auth")]
 public class AuthController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,

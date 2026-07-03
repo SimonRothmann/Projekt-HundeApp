@@ -6,18 +6,46 @@
 	email {$ACME_EMAIL}
 }
 
+# Security-Header für alle Sites. HSTS erst nach bewusster Entscheidung mit
+# langem max-age: einmal ausgeliefert, erzwingen Browser HTTPS für die Dauer
+# von max-age - Rollback auf HTTP ist dann praktisch nicht mehr möglich.
+# Kein X-Frame-Options/frame-ancestors auf der API (reine JSON-Antworten),
+# aber auf den Frontend-Domains gegen Clickjacking.
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
+(frontend_headers) {
+	import security_headers
+	header {
+		X-Frame-Options "DENY"
+		# Nur die selbst genutzten Browser-Features erlauben (Geolocation für
+		# GPS-Aufzeichnung); Kamera/Mikrofon explizit verbieten.
+		Permissions-Policy "geolocation=(self), camera=(), microphone=()"
+	}
+}
+
 {$PROD_DOMAIN} {
+	import frontend_headers
 	reverse_proxy frontend-prod:3000
 }
 
 {$PROD_API_DOMAIN} {
+	import security_headers
 	reverse_proxy backend-prod:8080
 }
 
 {$TEST_DOMAIN} {
+	import frontend_headers
 	reverse_proxy frontend-test:3000
 }
 
 {$TEST_API_DOMAIN} {
+	import security_headers
 	reverse_proxy backend-test:8080
 }

@@ -2,12 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { getCachedData, setCachedData } from "@/lib/read-cache";
 import type { Exercise, Regulation, RegulationDetail, Sport } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, ChevronDown, ChevronRight, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 import { difficultyLabel } from "@/lib/constants";
+
+// GET mit Offline-Fallback: frische Daten laden und cachen; schlägt das
+// Netz fehl (offline auf dem Hundeplatz), die zuletzt gesehene Version aus
+// dem Read-Cache liefern. Wirft nur, wenn beides fehlschlägt.
+async function getWithCache<T>(path: string): Promise<T> {
+  try {
+    const fresh = await api.get<T>(path);
+    await setCachedData(path, fresh);
+    return fresh;
+  } catch (err) {
+    const cached = await getCachedData<T>(path);
+    if (cached) return cached;
+    throw err;
+  }
+}
 
 export default function SportsPage() {
   const [sports, setSports] = useState<Sport[] | null>(null);
@@ -18,8 +34,7 @@ export default function SportsPage() {
   const [regulationDetails, setRegulationDetails] = useState<Record<string, RegulationDetail>>({});
 
   useEffect(() => {
-    api
-      .get<Sport[]>("/api/sports")
+    getWithCache<Sport[]>("/api/sports")
       .then(setSports)
       .catch((err) =>
         toast.error(err instanceof ApiError ? err.message : "Sportarten konnten nicht geladen werden."),
@@ -34,11 +49,11 @@ export default function SportsPage() {
     setExpanded(sportId);
     try {
       if (!exercisesBySport[sportId]) {
-        const exercises = await api.get<Exercise[]>(`/api/sports/${sportId}/exercises`);
+        const exercises = await getWithCache<Exercise[]>(`/api/sports/${sportId}/exercises`);
         setExercisesBySport((prev) => ({ ...prev, [sportId]: exercises }));
       }
       if (!regulationsBySport[sportId]) {
-        const regulations = await api.get<Regulation[]>(`/api/sports/${sportId}/regulations`);
+        const regulations = await getWithCache<Regulation[]>(`/api/sports/${sportId}/regulations`);
         setRegulationsBySport((prev) => ({ ...prev, [sportId]: regulations }));
       }
     } catch (err) {
@@ -54,7 +69,7 @@ export default function SportsPage() {
     setExpandedRegulation(regulationId);
     if (!regulationDetails[regulationId]) {
       try {
-        const detail = await api.get<RegulationDetail>(`/api/sports/regulations/${regulationId}`);
+        const detail = await getWithCache<RegulationDetail>(`/api/sports/regulations/${regulationId}`);
         setRegulationDetails((prev) => ({ ...prev, [regulationId]: detail }));
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : "Prüfungsordnung konnte nicht geladen werden.");
