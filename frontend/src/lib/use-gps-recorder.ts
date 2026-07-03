@@ -172,9 +172,42 @@ export function useGpsRecorder<T>(
   const lastRecordedRef = useRef<{ latitude: number; longitude: number } | null>(null);
   // Kalman-Filterzustand; null bis zur ersten akzeptierten Messung.
   const kalmanRef = useRef<KalmanState | null>(null);
+  // Screen Wake Lock: verhindert, dass das Display während der Aufzeichnung
+  // automatisch ausgeht - auf iOS pausiert Safari sonst die Geolocation
+  // sobald der Bildschirm sperrt, und die Aufzeichnung bricht ab. Gegen
+  // bewusstes Sperren per Power-Taste hilft das nicht (dann greift der
+  // visibilitychange-Reacquire beim nächsten Entsperren).
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+
+  async function acquireWakeLock() {
+    // Nicht überall verfügbar (iOS Safari ab 16.4, kein Firefox Android) -
+    // bewusst still degradieren, die Aufzeichnung selbst funktioniert auch
+    // ohne, nur eben nicht mit automatisch wachem Display.
+    if (!("wakeLock" in navigator)) return;
+    try {
+      wakeLockRef.current = await navigator.wakeLock.request("screen");
+    } catch {
+      // Z.B. abgelehnt bei niedrigem Akkustand - kein Fehler für den Nutzer.
+    }
+  }
+
+  function releaseWakeLock() {
+    wakeLockRef.current?.release().catch(() => {});
+    wakeLockRef.current = null;
+  }
 
   useEffect(() => {
+    // Der Browser gibt den Wake Lock automatisch frei, wenn der Tab in den
+    // Hintergrund geht (App-Wechsel, Sperren). Beim Zurückkehren während
+    // einer laufenden Aufzeichnung neu anfordern.
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible" && isRecordingRef.current) {
+        acquireWakeLock();
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       isRecordingRef.current = false;
       if (timeoutRef.current !== null) {
         window.clearTimeout(timeoutRef.current);
@@ -182,6 +215,7 @@ export function useGpsRecorder<T>(
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
+      releaseWakeLock();
     };
   }, []);
 
@@ -294,6 +328,9 @@ export function useGpsRecorder<T>(
       { enableHighAccuracy: true, maximumAge: GPS_MAX_POSITION_AGE_MS },
     );
 
+    // Display während der Aufzeichnung wach halten (fire-and-forget).
+    acquireWakeLock();
+
     poll();
   }
 
@@ -307,6 +344,7 @@ export function useGpsRecorder<T>(
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    releaseWakeLock();
     setIsRecording(false);
   }
 
