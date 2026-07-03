@@ -37,6 +37,13 @@ services:
       Jwt__Audience: Dogity
       Cors__AllowedOrigins__0: "https://${PROD_DOMAIN}"
       AdminBootstrap__Email: ${PROD_ADMIN_EMAIL:-}
+    volumes:
+      # DataProtection-Keys persistieren: Ohne Volume liegen sie im Container
+      # unter /root/.aspnet/DataProtection-Keys und gehen bei jedem
+      # docker compose up --force-recreate verloren. Folge: alle aktiven JWT-
+      # Refresh-States, Cookies und Passwort-Reset-Tokens werden schlagartig
+      # ungültig. Persistieren macht das Recreate transparent für Nutzer.
+      - backend-prod-dp-keys:/root/.aspnet/DataProtection-Keys
 
   frontend-prod:
     build:
@@ -70,6 +77,8 @@ services:
       Jwt__Issuer: Dogity
       Jwt__Audience: Dogity
       AdminBootstrap__Email: ${TEST_ADMIN_EMAIL:-}
+    volumes:
+      - backend-test-dp-keys:/root/.aspnet/DataProtection-Keys
 
   frontend-test:
     build:
@@ -107,3 +116,5 @@ volumes:
   postgres-data:
   caddy-data:
   caddy-config:
+  backend-prod-dp-keys:
+  backend-test-dp-keys:
