@@ -5,6 +5,11 @@
 FROM node:22-slim AS build
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Umgebungs-Label ("TEST" für die Test-Instanz, leer für Prod). Wird im
+# Client-Bundle verwendet, um Test-Umgebung visuell zu kennzeichnen und
+# den Demo-Login freizuschalten (siehe components/env-badge.tsx).
+ARG NEXT_PUBLIC_ENV_LABEL=
+ENV NEXT_PUBLIC_ENV_LABEL=$NEXT_PUBLIC_ENV_LABEL
 WORKDIR /app
 
 COPY package.json package-lock.json ./

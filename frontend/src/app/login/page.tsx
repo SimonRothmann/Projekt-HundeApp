@@ -9,9 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PawPrint } from "lucide-react";
+import { EnvBadge, isTestEnv } from "@/components/env-badge";
 
-// Nur für die lokale Dev-Datenbank (DemoDataSeeder, siehe TODO.md) - existiert
-// nicht in Production und wird daher dort nicht angezeigt.
+// Nur für die Test-/Dev-Datenbank (DemoDataSeeder, siehe TODO.md) - existiert
+// nicht in Production. Aktiv wenn NEXT_PUBLIC_ENV_LABEL=TEST beim Build war;
+// NODE_ENV ist im produktiven Next.js-Build immer "production" (auch für die
+// Test-Umgebung), reicht als Diskriminator also nicht aus.
 const DEMO_ACCOUNTS = [
   { label: "Admin", email: "admin@dogity.test" },
   { label: "Trainer", email: "trainer@dogity.test" },
@@ -52,7 +55,10 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
           <PawPrint className="size-8 text-primary" />
-          <CardTitle className="text-xl">Bei Dogity anmelden</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-xl">Bei Dogity anmelden</CardTitle>
+            <EnvBadge />
+          </div>
           <CardDescription>Trainingstagebuch & Hundesport-Plattform</CardDescription>
         </CardHeader>
         <CardContent>
@@ -95,10 +101,10 @@ export default function LoginPage() {
               Registrieren
             </Link>
           </p>
-          {process.env.NODE_ENV !== "production" && (
+          {isTestEnv && (
             <div className="mt-6 border-t pt-4">
               <p className="mb-2 text-center text-xs text-muted-foreground">
-                Demo-Login (nur lokale Entwicklung)
+                Demo-Login (nur Test-Umgebung)
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {DEMO_ACCOUNTS.map((account) => (

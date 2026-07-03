@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/nav/notification-bell";
 import { useAuth } from "@/lib/auth-context";
 import { PawPrint } from "lucide-react";
+import { EnvBadge } from "@/components/env-badge";
 
 export function SidebarNav() {
   const pathname = usePathname();
@@ -25,6 +26,7 @@ export function SidebarNav() {
         <div className="flex items-center gap-2">
           <PawPrint className="size-6 text-primary" />
           <span className="text-lg font-semibold">Dogity</span>
+          <EnvBadge />
         </div>
         <NotificationBell />
       </div>

@@ -86,6 +86,9 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: "https://${TEST_API_DOMAIN}"
+        # Aktiviert rotes "TEST"-Badge im UI und Demo-Login-Buttons auf
+        # der Login-Seite. Absichtlich NUR bei frontend-test gesetzt.
+        NEXT_PUBLIC_ENV_LABEL: TEST
     restart: unless-stopped
     depends_on:
       - backend-test

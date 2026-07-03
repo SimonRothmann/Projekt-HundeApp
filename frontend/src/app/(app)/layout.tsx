@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/nav/bottom-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/nav/notification-bell";
 import { OfflineSyncListener } from "@/components/offline-sync-listener";
+import { EnvBadge } from "@/components/env-badge";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -26,7 +27,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarNav />
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b px-4 py-3 md:hidden print:hidden">
-          <span className="text-lg font-semibold text-primary">Dogity</span>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-semibold text-primary">Dogity</span>
+            <EnvBadge />
+          </div>
           <div className="flex items-center gap-1">
             <NotificationBell />
             <ThemeToggle />
