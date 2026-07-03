@@ -35,6 +35,16 @@ export type GpsRecorderOptions = {
   // Punkte mit größerem Fehlerkreis werden verworfen. Kleiner = genauer, aber
   // längere Wartezeit beim Kaltstart bis die Aufzeichnung erste Punkte liefert.
   maxAccuracyMeters?: number;
+  // Obergrenze für die adaptive Lockerung des Genauigkeitsfilters. Ohne Netz
+  // (kein aGPS, keine WLAN-Ortung) konvergiert der GPS-Chip oft nur bis
+  // 10-20 m - ein harter 8m-Filter würde dann NIE einen Punkt akzeptieren
+  // und die Aufzeichnung bliebe komplett leer. Deshalb: startet der Filter
+  // bei maxAccuracyMeters und wird, wenn RELAX_AFTER_MS lang kein Punkt
+  // akzeptiert wurde, schrittweise bis zu dieser Obergrenze gelockert. Der
+  // Kalman-Filter gewichtet die schlechteren Messungen ohnehin schwächer -
+  // ein leicht verrauschter Track ist besser als gar keiner.
+  // Default: identisch zu maxAccuracyMeters (keine Lockerung).
+  relaxedMaxAccuracyMeters?: number;
   // Mindestabstand; eliminiert GPS-Rauschen im Stillstand.
   minDistanceMeters?: number;
   // Kalman-Filter: adaptiv gewichtete Positionsglättung. Im Gegensatz zu EMA
@@ -43,6 +53,14 @@ export type GpsRecorderOptions = {
   // mehr Gewicht. Besser als EMA für Präzisionsanwendungen (z.B. Fährte).
   kalman?: boolean;
 };
+
+// Nach so vielen ms ohne akzeptierten Punkt beginnt die Lockerung des
+// Genauigkeitsfilters (sofern relaxedMaxAccuracyMeters > maxAccuracyMeters).
+const RELAX_AFTER_MS = 15_000;
+// Pro weiterem Intervall dieser Länge wird der Schwellwert um 1 m gelockert,
+// bis relaxedMaxAccuracyMeters erreicht ist. Beispiel Fährte (8 m → 20 m):
+// nach 15 s → 9 m, nach 18 s → 10 m, ..., nach 48 s → 20 m (Maximum).
+const RELAX_STEP_MS = 3_000;
 
 // Kalman-Zustand pro Koordinate. P ist die Schätzunsicherheit in Grad² -
 // startet mit der ersten Messunsicherheit und konvergiert schnell gegen den
@@ -129,6 +147,7 @@ export function useGpsRecorder<T>(
 ) {
   const {
     maxAccuracyMeters = DEFAULT_MAX_ACCURACY_METERS,
+    relaxedMaxAccuracyMeters = maxAccuracyMeters,
     minDistanceMeters = DEFAULT_MIN_DISTANCE_METERS,
     kalman = false,
   } = options;
@@ -138,6 +157,17 @@ export function useGpsRecorder<T>(
   const [currentAccuracy, setCurrentAccuracy] = useState<number | null>(null);
   const isRecordingRef = useRef(false);
   const timeoutRef = useRef<number | null>(null);
+  // Persistentes watchPosition-Abo während der Aufzeichnung: wiederholte
+  // einzelne getCurrentPosition-Aufrufe lassen insbesondere iOS den GPS-
+  // Empfänger zwischen den Aufrufen drosseln - mit dauerhaft offenem watch
+  // bleibt der Chip aktiv und die Genauigkeit konvergiert deutlich besser
+  // (wichtig ohne Netz, wo kein aGPS beim Einschwingen hilft). Die
+  // Positions-Callbacks des Watch selbst werden nur für die Genauigkeits-
+  // anzeige genutzt; die Aufzeichnung läuft weiter über den Poll-Loop.
+  const watchIdRef = useRef<number | null>(null);
+  // Zeitpunkt des letzten akzeptierten Punkts (bzw. Aufnahmestart) für die
+  // adaptive Lockerung des Genauigkeitsfilters.
+  const lastAcceptedAtRef = useRef<number>(0);
   // Letzter aufgezeichneter (geglätteter) Punkt für den Mindestabstand-Filter.
   const lastRecordedRef = useRef<{ latitude: number; longitude: number } | null>(null);
   // Kalman-Filterzustand; null bis zur ersten akzeptierten Messung.
@@ -149,8 +179,22 @@ export function useGpsRecorder<T>(
       if (timeoutRef.current !== null) {
         window.clearTimeout(timeoutRef.current);
       }
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
     };
   }, []);
+
+  // Aktuell wirksamer Genauigkeits-Schwellwert: startet bei maxAccuracyMeters
+  // und lockert sich zeitgesteuert Richtung relaxedMaxAccuracyMeters, wenn
+  // längere Zeit kein Punkt akzeptiert wurde (siehe RELAX_AFTER_MS).
+  function effectiveMaxAccuracy(): number {
+    if (relaxedMaxAccuracyMeters <= maxAccuracyMeters) return maxAccuracyMeters;
+    const waitedMs = Date.now() - lastAcceptedAtRef.current;
+    if (waitedMs <= RELAX_AFTER_MS) return maxAccuracyMeters;
+    const extraMeters = Math.floor((waitedMs - RELAX_AFTER_MS) / RELAX_STEP_MS) + 1;
+    return Math.min(maxAccuracyMeters + extraMeters, relaxedMaxAccuracyMeters);
+  }
 
   function poll() {
     if (!isRecordingRef.current) return;
@@ -160,11 +204,18 @@ export function useGpsRecorder<T>(
         const { latitude, longitude, accuracy } = position.coords;
         setCurrentAccuracy(accuracy);
 
-        if (accuracy > maxAccuracyMeters) {
+        if (accuracy > effectiveMaxAccuracy()) {
           // GPS noch nicht eingeschwungen (typisch beim Kaltstart ohne aGPS).
+          // Der Schwellwert lockert sich über die Zeit (effectiveMaxAccuracy),
+          // damit die Aufzeichnung ohne Netz nicht dauerhaft leer bleibt.
           scheduleNextPoll();
           return;
         }
+
+        // Genauigkeitsfilter passiert - Referenzzeitpunkt zurücksetzen, auch
+        // wenn der Punkt gleich noch am Mindestabstand scheitert (Stillstand
+        // ist kein Grund, den Schwellwert zu lockern: das GPS liefert ja).
+        lastAcceptedAtRef.current = Date.now();
 
         let smoothedLat = latitude;
         let smoothedLon = longitude;
@@ -225,8 +276,24 @@ export function useGpsRecorder<T>(
     setCurrentAccuracy(null);
     lastRecordedRef.current = null;
     kalmanRef.current = null;
+    lastAcceptedAtRef.current = Date.now();
     setIsRecording(true);
     isRecordingRef.current = true;
+
+    // GPS-Chip dauerhaft aktiv halten (siehe watchIdRef-Kommentar). Der
+    // Callback aktualisiert nur die Genauigkeitsanzeige - so sieht der
+    // Nutzer das Einschwingen auch zwischen den Poll-Ticks in Echtzeit.
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        if (isRecordingRef.current) setCurrentAccuracy(position.coords.accuracy);
+      },
+      () => {
+        // Fehler meldet bereits der Poll-Loop - hier bewusst still, um
+        // doppelte Toasts für denselben GPS-Fehler zu vermeiden.
+      },
+      { enableHighAccuracy: true, maximumAge: GPS_MAX_POSITION_AGE_MS },
+    );
+
     poll();
   }
 
@@ -235,6 +302,10 @@ export function useGpsRecorder<T>(
     if (timeoutRef.current !== null) {
       window.clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
+    }
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
     }
     setIsRecording(false);
   }

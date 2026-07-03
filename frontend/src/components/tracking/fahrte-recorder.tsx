@@ -37,10 +37,11 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     toAutomaticPoint,
     // Fährte braucht höhere Präzision als ein normaler Spaziergang: Erstaufnahme
     // und Wiederholung sollen deckungsgleich sein. Schwellwert 8 m verwirft
-    // Kaltstart-Schlechtpunkte früh; Kalman-Filter gewichtet jede Messung
-    // adaptiv nach der gemeldeten GPS-Genauigkeit (schlechte Messung → weniger
-    // Einfluss), was besser als ein festes EMA-α abschneidet.
-    { maxAccuracyMeters: 8, kalman: true },
+    // Kaltstart-Schlechtpunkte früh. Ohne Netz (kein aGPS) konvergiert der
+    // Chip aber oft nur bis 10-20 m - dann lockert sich der Filter nach 15 s
+    // schrittweise bis 20 m, statt die Aufzeichnung dauerhaft leer zu lassen
+    // (der Kalman-Filter gewichtet schlechtere Messungen ohnehin schwächer).
+    { maxAccuracyMeters: 8, relaxedMaxAccuracyMeters: 20, kalman: true },
   );
   const [surface, setSurface] = useState("");
   const [markLabel, setMarkLabel] = useState("");
@@ -173,7 +174,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
                         ? "text-yellow-600"
                         : "text-red-600"
                   }`}
-                  title="GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als 8 m werden für Fährten automatisch verworfen."
+                  title="GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als 8 m werden verworfen; findet das GPS länger keinen genauen Fix (z.B. ohne Netz), lockert sich der Filter schrittweise bis 20 m."
                 >
                   ±{Math.round(currentAccuracy)} m
                 </span>
