@@ -14,6 +14,37 @@ import { enqueueRequest } from "@/lib/offline-queue";
 import { estimateLengthMeters } from "@/lib/geo";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
 
+// Für Zeitangaben in der Fährten-Übersicht: nur automatische Trackpunkte,
+// nicht die manuell gesetzten Marker (die tragen ggf. einen späteren
+// Zeitstempel und würden die Legezeit verzerren).
+function trackTimes(points: GpsPoint[]): { start: Date; durationMs: number } | null {
+  const auto = points.filter((p) => p.pointType !== 1);
+  if (auto.length < 2) return null;
+  const start = new Date(auto[0].timestamp);
+  const end = new Date(auto[auto.length - 1].timestamp);
+  return { start, durationMs: end.getTime() - start.getTime() };
+}
+
+function walkRunDurationMs(run: { points: { timestamp: string }[] }): number | null {
+  if (run.points.length < 2) return null;
+  return new Date(run.points[run.points.length - 1].timestamp).getTime() - new Date(run.points[0].timestamp).getTime();
+}
+
+function formatTime(d: Date): string {
+  return d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function formatDuration(ms: number): string {
+  const totalSec = Math.max(0, Math.round(ms / 1000));
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, "0")} min`;
+}
+
 function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
   return {
     latitude: position.coords.latitude,
@@ -177,22 +208,40 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
         <p className="text-sm text-muted-foreground">Noch keine Fährte für dieses Training.</p>
       ) : (
         <div className="flex flex-col gap-4">
-          {tracks.map((track) => (
-            <div key={track.id} className="flex flex-col gap-2">
-              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
-                {track.surface && <span>{track.surface}</span>}
-                {track.comment && <span>{track.comment}</span>}
+          {tracks.map((track) => {
+            const times = trackTimes(track.points);
+            return (
+              <div key={track.id} className="flex flex-col gap-2">
+                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                  {times && (
+                    <span title={`${formatDate(times.start)} ${formatTime(times.start)}`}>
+                      Gelegt {formatTime(times.start)} · Dauer {formatDuration(times.durationMs)}
+                    </span>
+                  )}
+                  {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
+                  {track.surface && <span>{track.surface}</span>}
+                  {track.comment && <span>{track.comment}</span>}
+                </div>
+                <WalkRunRecorder trackId={track.id} onSaved={loadTracks} />
+                <TrackMap points={track.points} walkRuns={track.walkRuns} />
+                {track.walkRuns.length > 0 && (
+                  <ul className="text-xs text-muted-foreground flex flex-col gap-0.5">
+                    {track.walkRuns.map((run, i) => {
+                      const durMs = walkRunDurationMs(run);
+                      const started = new Date(run.createdAt);
+                      return (
+                        <li key={run.id}>
+                          Ablauf {i + 1}: gestartet {formatTime(started)}
+                          {durMs !== null && ` · abgelaufen in ${formatDuration(durMs)}`}
+                          {run.lengthMeters !== null && ` · ${Math.round(run.lengthMeters)} m`}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
-              <WalkRunRecorder trackId={track.id} onSaved={loadTracks} />
-              <TrackMap points={track.points} walkRuns={track.walkRuns} />
-              {track.walkRuns.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {track.walkRuns.length} Ablauf-Versuch(e) - gestrichelt auf der Karte zum Vergleich.
-                </p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { GpsWalkRun } from "@/lib/types";
+import { bearingDegrees } from "@/lib/geo";
 
 /// <reference types="leaflet" />
 
@@ -25,6 +26,18 @@ const TRACK_LINE_COLOR = "#16a34a";
 // einzelne Abbiegungen deutlich, statt die ganze (noch kurze) Strecke winzig
 // in der Bildmitte darzustellen.
 const LIVE_INITIAL_ZOOM = 18;
+
+// Für die Peilungs-Berechnung (Karte in Laufrichtung drehen) werden nicht
+// nur die letzten zwei Punkte genommen: bei geringer Schrittgeschwindigkeit
+// liegen aufeinanderfolgende Punkte oft nur wenige Meter auseinander und die
+// gemessene Richtung springt durch GPS-Rauschen wild um. Peilung über ein
+// größeres Fenster mittelt das aus. Mindestabstand verhindert zusätzlich
+// Sprünge im Stillstand.
+const BEARING_WINDOW_POINTS = 5;
+const BEARING_MIN_DISTANCE_M = 3;
+// EMA-Glättung für die Rotation selbst: harte Sprünge in der Kartenanzeige
+// wirken schwindelerregend. α klein = langsam nachdrehen, aber ruhig.
+const HEADING_SMOOTH_ALPHA = 0.2;
 
 /**
  * Rendert eine Fährte auf einer OpenStreetMap-Karte (kostenlos, kein API-Key
@@ -55,6 +68,12 @@ export function TrackMap({
   const layerGroupRef = useRef<import("leaflet").LayerGroup | null>(null);
   const hasSetInitialViewRef = useRef(false);
   const [mapReady, setMapReady] = useState(false);
+
+  // Karten-Rotation nur im Live-Modus sinnvoll; Nutzer kann jederzeit per
+  // Kompass-Button zurück auf Nord-Ausrichtung wechseln.
+  const [rotateWithHeading, setRotateWithHeading] = useState(live);
+  const [headingDeg, setHeadingDeg] = useState(0);
+  const smoothedHeadingRef = useRef<number | null>(null);
 
   // Effect 1: Karte + Tile-Layer genau einmal erzeugen (nur beim Mount).
   useEffect(() => {
@@ -158,6 +177,35 @@ export function TrackMap({
         } else {
           map.panTo(latest);
         }
+
+        // Peilung aus einem Fenster der letzten Punkte berechnen (Rauschen
+        // dämpfen). Das älteste Ende des Fensters wird so weit zurück
+        // verschoben, bis der Abstand zum aktuellen Punkt ausreicht -
+        // beugt Sprüngen bei Stillstand vor.
+        if (automaticPoints.length >= 2) {
+          const latestPoint = automaticPoints[automaticPoints.length - 1];
+          let anchor = automaticPoints[Math.max(0, automaticPoints.length - BEARING_WINDOW_POINTS)];
+          for (let i = automaticPoints.length - 2; i >= 0; i--) {
+            anchor = automaticPoints[i];
+            const dx = (latestPoint.longitude - anchor.longitude) * 111111 * Math.cos((latestPoint.latitude * Math.PI) / 180);
+            const dy = (latestPoint.latitude - anchor.latitude) * 111111;
+            if (Math.sqrt(dx * dx + dy * dy) >= BEARING_MIN_DISTANCE_M) break;
+          }
+          const raw = bearingDegrees(anchor, latestPoint);
+          // Kürzeste Winkeldifferenz zum bisherigen (geglätteten) Wert -
+          // ohne die Behandlung würde ein Sprung von 350° auf 10° als
+          // -340°-Bewegung geglättet, obwohl es nur +20° sind.
+          const prev = smoothedHeadingRef.current;
+          if (prev === null) {
+            smoothedHeadingRef.current = raw;
+          } else {
+            let diff = raw - prev;
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+            smoothedHeadingRef.current = (prev + HEADING_SMOOTH_ALPHA * diff + 360) % 360;
+          }
+          setHeadingDeg(smoothedHeadingRef.current);
+        }
       }
     } else if (allLatLngs.length > 0) {
       // Abgeschlossene/historische Fährte: ganze Strecke ins Bild einpassen.
@@ -173,5 +221,40 @@ export function TrackMap({
     return <p className="text-sm text-muted-foreground">Keine GPS-Punkte aufgezeichnet.</p>;
   }
 
-  return <div ref={containerRef} className="h-64 w-full rounded-md" />;
+  // Rotation nur im Live-Modus und wenn aktiviert. Die Rotation wird per
+  // CSS-transform auf den Karten-Container gelegt, weil Leaflet selbst
+  // keine Rotation unterstützt. Nebeneffekt: die OSM-Attribution rotiert
+  // mit - für eine Live-Aufzeichnung akzeptabel, für die Historie deaktiviert.
+  const rotationDeg = live && rotateWithHeading ? -headingDeg : 0;
+
+  return (
+    <div className="relative h-64 w-full overflow-hidden rounded-md">
+      <div
+        ref={containerRef}
+        className="h-full w-full transition-transform duration-500 ease-out"
+        style={{ transform: `rotate(${rotationDeg}deg)` }}
+      />
+      {live && (
+        <button
+          type="button"
+          onClick={() => setRotateWithHeading((v) => !v)}
+          title={rotateWithHeading ? "Nord oben" : "In Laufrichtung drehen"}
+          className="absolute right-2 top-2 z-[400] flex size-10 items-center justify-center rounded-full border bg-background/90 shadow-md backdrop-blur"
+        >
+          {/* Kompassnadel: zeigt immer nach geografisch Nord. Bei rotierter
+              Karte kompensiert der Zeiger die Rotation, damit "N" sichtbar bleibt. */}
+          <svg
+            viewBox="0 0 24 24"
+            className="size-6 transition-transform duration-500 ease-out"
+            style={{ transform: `rotate(${rotationDeg}deg)` }}
+            aria-hidden
+          >
+            <polygon points="12,3 15,13 12,11 9,13" fill="#dc2626" />
+            <polygon points="12,21 9,11 12,13 15,11" fill="#64748b" />
+            <text x="12" y="8.5" textAnchor="middle" fontSize="4" fill="white" fontWeight="bold">N</text>
+          </svg>
+        </button>
+      )}
+    </div>
+  );
 }
