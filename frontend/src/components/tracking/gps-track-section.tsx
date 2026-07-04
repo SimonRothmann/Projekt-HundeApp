@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { GpsPoint, GpsTrack } from "@/lib/types";
+import type { GpsPoint, GpsTrack, GpsWalkPoint } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +58,20 @@ function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
 
 export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: string }) {
   const [tracks, setTracks] = useState<GpsTrack[] | null>(null);
+  // Live-Punkte des gerade laufenden Ablauf-Versuchs, pro Track-Id. Die
+  // Karte des jeweiligen Tracks zeigt diese Punkte zusätzlich zur Legung -
+  // so entsteht die neue Linie in der SELBEN Karte, statt in einer zweiten.
+  const [liveWalkPoints, setLiveWalkPoints] = useState<Record<string, GpsWalkPoint[]>>({});
+
+  // Stabile Referenz - sonst würde bei jedem Render eine neue Funktion an
+  // WalkRunRecorder gehen, was den useEffect-Depedency-Vergleich dort
+  // ständig triggern würde.
+  const handleLivePoints = useCallback(
+    (trackId: string) => (points: GpsWalkPoint[]) => {
+      setLiveWalkPoints((prev) => ({ ...prev, [trackId]: points }));
+    },
+    [],
+  );
   const {
     isRecording,
     points: recordedPoints,
@@ -222,8 +236,16 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
                   {track.surface && <span>{track.surface}</span>}
                   {track.comment && <span>{track.comment}</span>}
                 </div>
-                <WalkRunRecorder trackId={track.id} onSaved={loadTracks} />
-                <TrackMap points={track.points} walkRuns={track.walkRuns} />
+                <WalkRunRecorder
+                  trackId={track.id}
+                  onSaved={loadTracks}
+                  onLivePointsChange={handleLivePoints(track.id)}
+                />
+                <TrackMap
+                  points={track.points}
+                  walkRuns={track.walkRuns}
+                  liveWalkRunPoints={liveWalkPoints[track.id]}
+                />
                 {track.walkRuns.length > 0 && (
                   <ul className="text-xs text-muted-foreground flex flex-col gap-0.5">
                     {track.walkRuns.map((run, i) => {

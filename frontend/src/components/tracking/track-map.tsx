@@ -57,11 +57,22 @@ export function TrackMap({
   points,
   walkRuns = [],
   live = false,
+  liveWalkRunPoints,
 }: {
   points: MapPoint[];
   walkRuns?: GpsWalkRun[];
   live?: boolean;
+  // Punkte eines aktuell laufenden Ablauf-Versuchs. Wenn gesetzt und nicht
+  // leer, verhält sich die Karte wie im Live-Modus (folgt der Position,
+  // Rotation, Kompass) UND zeigt weiter die Legung + historische Abläufe -
+  // der neue Versuch entsteht dabei live in derselben Karte, statt in einer
+  // zweiten daneben.
+  liveWalkRunPoints?: MapPoint[];
 }) {
+  // Live entweder weil eine neue Fährte gelegt wird (bisheriges Verhalten)
+  // oder weil ein Ablauf-Versuch mitten in der Aufzeichnung ist.
+  const hasLiveWalkRun = !!(liveWalkRunPoints && liveWalkRunPoints.length > 0);
+  const isLive = live || hasLiveWalkRun;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
@@ -71,7 +82,7 @@ export function TrackMap({
 
   // Karten-Rotation nur im Live-Modus sinnvoll; Nutzer kann jederzeit per
   // Kompass-Button zurück auf Nord-Ausrichtung wechseln.
-  const [rotateWithHeading, setRotateWithHeading] = useState(live);
+  const [rotateWithHeading, setRotateWithHeading] = useState(isLive);
   const [headingDeg, setHeadingDeg] = useState(0);
   const smoothedHeadingRef = useRef<number | null>(null);
 
@@ -164,13 +175,37 @@ export function TrackMap({
         .bindTooltip(`Ablauf-Versuch ${index + 1}`);
     });
 
+    // Aktuell laufender Ablauf-Versuch (falls einer aktiv ist): nächste Farbe
+    // im Zyklus, breiter und dichter gestrichelt, damit sich die frische
+    // Linie visuell klar von den gespeicherten Versuchen abhebt.
+    let liveWalkLatLngs: [number, number][] = [];
+    if (hasLiveWalkRun && liveWalkRunPoints) {
+      const liveColor = WALK_RUN_COLORS[walkRuns.length % WALK_RUN_COLORS.length];
+      liveWalkLatLngs = liveWalkRunPoints.map((p) => [p.latitude, p.longitude] as [number, number]);
+      if (liveWalkLatLngs.length > 0) {
+        L.polyline(liveWalkLatLngs, { color: liveColor, dashArray: "3 4", weight: 4 })
+          .addTo(layerGroup)
+          .bindTooltip(`Ablauf-Versuch ${walkRuns.length + 1} (läuft)`);
+        L.circleMarker(liveWalkLatLngs[liveWalkLatLngs.length - 1], {
+          radius: 6,
+          color: liveColor,
+          fillColor: liveColor,
+          fillOpacity: 1,
+        }).addTo(layerGroup);
+      }
+    }
+
     const allLatLngs = [...latLngs, ...manualPoints.map((p) => [p.latitude, p.longitude] as [number, number])];
-    if (live) {
+    if (isLive) {
       // Während der Aufnahme: Kartenmitte folgt dem aktuellen Standort, der
       // Zoom bleibt unverändert, damit der Nutzer nicht laufend neu
       // hineinzoomen muss, sobald er die Karte einmal passend eingestellt hat.
-      if (latLngs.length > 0) {
-        const latest = latLngs[latLngs.length - 1];
+      // Bei einem laufenden Ablauf-Versuch folgt die Karte dessen Position,
+      // sonst dem letzten Punkt der aktuellen Legung.
+      const followSource = hasLiveWalkRun && liveWalkRunPoints ? liveWalkRunPoints : automaticPoints;
+      const followLatLngs = hasLiveWalkRun && liveWalkRunPoints ? liveWalkLatLngs : latLngs;
+      if (followLatLngs.length > 0) {
+        const latest = followLatLngs[followLatLngs.length - 1];
         if (!hasSetInitialViewRef.current) {
           map.setView(latest, LIVE_INITIAL_ZOOM);
           hasSetInitialViewRef.current = true;
@@ -182,11 +217,11 @@ export function TrackMap({
         // dämpfen). Das älteste Ende des Fensters wird so weit zurück
         // verschoben, bis der Abstand zum aktuellen Punkt ausreicht -
         // beugt Sprüngen bei Stillstand vor.
-        if (automaticPoints.length >= 2) {
-          const latestPoint = automaticPoints[automaticPoints.length - 1];
-          let anchor = automaticPoints[Math.max(0, automaticPoints.length - BEARING_WINDOW_POINTS)];
-          for (let i = automaticPoints.length - 2; i >= 0; i--) {
-            anchor = automaticPoints[i];
+        if (followSource.length >= 2) {
+          const latestPoint = followSource[followSource.length - 1];
+          let anchor = followSource[Math.max(0, followSource.length - BEARING_WINDOW_POINTS)];
+          for (let i = followSource.length - 2; i >= 0; i--) {
+            anchor = followSource[i];
             const dx = (latestPoint.longitude - anchor.longitude) * 111111 * Math.cos((latestPoint.latitude * Math.PI) / 180);
             const dy = (latestPoint.latitude - anchor.latitude) * 111111;
             if (Math.sqrt(dx * dx + dy * dy) >= BEARING_MIN_DISTANCE_M) break;
@@ -212,12 +247,13 @@ export function TrackMap({
       const allWalkRunLatLngs = walkRuns.flatMap((r) => r.points.map((p) => [p.latitude, p.longitude] as [number, number]));
       map.fitBounds([...allLatLngs, ...allWalkRunLatLngs], { padding: [16, 16] });
     }
-  }, [mapReady, points, walkRuns, live]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, points, walkRuns, live, liveWalkRunPoints]);
 
   // Im Live-Modus die Karte schon vor dem ersten Punkt anzeigen (wartet auf
   // die erste Positionsmessung), damit sie nicht erst nach einigen Sekunden
   // "einschnappt".
-  if (!live && points.length === 0 && walkRuns.length === 0) {
+  if (!isLive && points.length === 0 && walkRuns.length === 0) {
     return <p className="text-sm text-muted-foreground">Keine GPS-Punkte aufgezeichnet.</p>;
   }
 
@@ -225,7 +261,7 @@ export function TrackMap({
   // CSS-transform auf den Karten-Container gelegt, weil Leaflet selbst
   // keine Rotation unterstützt. Nebeneffekt: die OSM-Attribution rotiert
   // mit - für eine Live-Aufzeichnung akzeptabel, für die Historie deaktiviert.
-  const rotationDeg = live && rotateWithHeading ? -headingDeg : 0;
+  const rotationDeg = isLive && rotateWithHeading ? -headingDeg : 0;
 
   return (
     <div className="relative h-64 w-full overflow-hidden rounded-md">
@@ -234,7 +270,7 @@ export function TrackMap({
         className="h-full w-full transition-transform duration-500 ease-out"
         style={{ transform: `rotate(${rotationDeg}deg)` }}
       />
-      {live && (
+      {isLive && (
         <button
           type="button"
           onClick={() => setRotateWithHeading((v) => !v)}
