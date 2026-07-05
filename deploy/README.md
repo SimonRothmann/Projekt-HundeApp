@@ -45,8 +45,8 @@ siehe Hinweis unten zu `docker compose build`.
    ssh user@vps-ip "mkdir -p /opt/dogity"
    ```
 
-3. **`.env` auf der VPS anlegen** (NIE lokal committen, NIE per `scripts/deploy.sh`
-   übertragen - das Skript schließt `.env` explizit aus):
+3. **`.env` auf der VPS anlegen** (NIE lokal committen - `.env` ist gitignored,
+   die Deploy-Skripte pullen nur den Repo-Code und lassen die `.env` unangetastet):
    ```bash
    scp .env.example user@vps-ip:/opt/dogity/.env
    ssh user@vps-ip "nano /opt/dogity/.env"   # echte Werte eintragen
@@ -54,9 +54,13 @@ siehe Hinweis unten zu `docker compose build`.
    Passwörter/Secrets generieren: `openssl rand -base64 32` (DB-Passwörter),
    `openssl rand -base64 48` (JWT-Secrets).
 
-4. **Erstes Deployment**:
+4. **Erstes Deployment**: Repo direkt auf der VPS klonen (der Zwei-Stufen-
+   Workflow arbeitet mit einem Git-Checkout unter `/opt/dogity`):
    ```bash
-   VPS_HOST=user@vps-ip ./scripts/deploy.sh
+   ssh user@vps-ip
+   sudo mkdir -p /opt/dogity && sudo chown "$USER:$USER" /opt/dogity
+   git clone https://github.com/SimonRothmann/Projekt-HundeApp.git /opt/dogity
+   cd /opt/dogity && docker compose up -d --build
    ```
    Das baut alle Images auf der VPS und startet den Stack. Postgres legt
    beim allerersten Start automatisch beide Datenbanken an (siehe
@@ -69,22 +73,56 @@ siehe Hinweis unten zu `docker compose build`.
    einfach beim nächsten regulären Deploy - `AdminBootstrapper` läuft bei
    jedem Start und vergibt die Rolle nachträglich).
 
-## Laufende Deployments
+## Laufende Deployments (Zwei-Stufen-Workflow)
+
+Neuer Code wird **immer erst gegen Test deployt**, dort verifiziert und
+anschließend in einem separaten, expliziten Schritt nach Prod promotet.
+Dahinter zwei Git-Branches:
+
+- `master` = das, was auf der Test-Umgebung läuft
+- `prod`   = das, was auf der Prod-Umgebung läuft
+
+Prod-Fixes werden immer erst auf `master` gemacht und dann promotet -
+niemals direkt auf `prod` committen (der Promote-Schritt setzt einen
+Fast-Forward-Merge voraus, jeder direkte Commit auf `prod` würde ihn
+brechen).
+
+### 1. Test-Deploy (nach jedem master-Push)
 
 ```bash
-VPS_HOST=user@vps-ip ./scripts/deploy.sh
+ssh dogity /opt/dogity/scripts/deploy-test.sh
 ```
 
-Baut lokal (Checks), synct den Code, baut auf der VPS neu und startet neu
-durch. Bei reinen Code-Änderungen ohne neue Dependencies dauert der
-Docker-Build dank Layer-Caching meist nur wenige Sekunden bis Minuten.
+Zieht den aktuellen master-Stand und baut/startet nur `backend-test` +
+`frontend-test` neu. Prod-Services bleiben unangetastet.
 
-**Hinweis bei knappem RAM (2 OCPU/12 GB)**: `docker compose build` baut
-alle vier Anwendungs-Images (Prod+Test je Backend+Frontend) - der
-Next.js-Build (`npm run build`) ist dabei der speicherhungrigste Schritt.
-Bei Bedarf nacheinander statt parallel bauen:
+### 2. Prod-Promote (nach positivem Test)
+
 ```bash
-ssh user@vps-ip "cd /opt/dogity && docker compose build backend-prod && docker compose build frontend-prod && docker compose build backend-test && docker compose build frontend-test && docker compose up -d"
+./scripts/promote-to-prod.sh
+```
+
+Läuft **lokal auf dem Entwicklungsrechner**: prüft, dass der Working
+Tree sauber und auf master ist, fast-forwardet den prod-Branch auf
+master, pusht ihn, und triggert per SSH `deploy-prod.sh` auf der VPS.
+Danach steht der Working Tree wieder auf master.
+
+**Hinweis bei knappem RAM (2 OCPU/12 GB)**: der Next.js-Build
+(`npm run build`) ist der speicherhungrigste Schritt. Da wir jetzt
+Prod und Test getrennt deployen, werden nie mehr alle vier Anwendungs-
+Images gleichzeitig gebaut - das Problem ist damit implizit gelöst.
+
+## Rollback
+
+Prod-Rollback auf den vorherigen Stand:
+```bash
+# Auf dem Entwicklungsrechner: prod hart auf den vorherigen Commit setzen
+git checkout prod
+git reset --hard <vorheriger-commit-sha>
+git push --force-with-lease origin prod
+git checkout master
+# und dann auf der VPS deploy-prod neu triggern:
+ssh dogity /opt/dogity/scripts/deploy-prod.sh
 ```
 
 ## Backups

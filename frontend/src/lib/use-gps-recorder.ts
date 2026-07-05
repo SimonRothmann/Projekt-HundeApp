@@ -4,22 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { haversineMeters } from "@/lib/geo";
 
-// maximumAge: wie alt eine vom Browser zwischengespeicherte Position
-// maximal sein darf, um statt einer frischen GPS-Messung wiederverwendet zu
-// werden. 0 erzwingt bei jeder Messung eine frische Position statt einer
-// zwischengespeicherten.
-const GPS_MAX_POSITION_AGE_MS = 0;
-
-// watchPosition() hat keinen Parameter für die gewünschte Abtastrate - manche
-// Browser/Betriebssysteme drosseln die Callback-Frequenz zusätzlich aus
-// Energiespargründen, selbst mit enableHighAccuracy (beobachtet u.a. auf
-// iOS Safari). Ein eigener Poll-Loop mit getCurrentPosition() erzwingt bei
-// jedem Tick eine frische Messung im gewünschten Takt - das verbessert die
-// sichtbare Winkelauflösung von Abbiegungen deutlich. Schneller als die
-// tatsächliche Update-Rate des GPS-Chips (üblich ca. 1 Hz) liefert das
-// keine zusätzlichen echten Punkte, ist aber harmlos (nahezu identische
-// Wiederholpunkte tragen praktisch nichts zur Streckenlänge bei).
-const POSITION_POLL_INTERVAL_MS = 500;
+// maximumAge während der Aufzeichnung: erlaubt dem Browser, eine bis zu 1 s
+// alte Position wiederzuverwenden. Der GPS-Chip liefert auch bei
+// enableHighAccuracy nativ nur ~1 Hz - eine "frische" Messung darunter
+// erzwingen bringt keine echten neuen Datenpunkte, hält den Chip aber auf
+// voller Leistung und ist ein signifikanter Akku-Fresser (bisher mit
+// maximumAge:0 + 500 ms Poll-Loop kombiniert waren wir bei ~2× Chip-Last).
+const GPS_MAX_POSITION_AGE_MS = 1000;
+// Für markPoint() bleiben wir bei 0 - Nutzer erwartet dort eine wirklich
+// aktuelle Position, und der Aufruf ist einmalig statt kontinuierlich.
+const MARK_POINT_MAX_POSITION_AGE_MS = 0;
 
 // Standardwerte - können pro Aufzeichnungstyp überschrieben werden.
 const DEFAULT_MAX_ACCURACY_METERS = 25;
@@ -156,14 +150,12 @@ export function useGpsRecorder<T>(
   const [points, setPoints] = useState<T[]>([]);
   const [currentAccuracy, setCurrentAccuracy] = useState<number | null>(null);
   const isRecordingRef = useRef(false);
-  const timeoutRef = useRef<number | null>(null);
-  // Persistentes watchPosition-Abo während der Aufzeichnung: wiederholte
-  // einzelne getCurrentPosition-Aufrufe lassen insbesondere iOS den GPS-
-  // Empfänger zwischen den Aufrufen drosseln - mit dauerhaft offenem watch
-  // bleibt der Chip aktiv und die Genauigkeit konvergiert deutlich besser
-  // (wichtig ohne Netz, wo kein aGPS beim Einschwingen hilft). Die
-  // Positions-Callbacks des Watch selbst werden nur für die Genauigkeits-
-  // anzeige genutzt; die Aufzeichnung läuft weiter über den Poll-Loop.
+  // Ein einziges watchPosition-Abo während der Aufzeichnung. Bisher lief
+  // parallel dazu ein 500 ms getCurrentPosition-Poll - das hielt den GPS-
+  // Chip doppelt aktiv, ohne echte Zusatzpunkte zu liefern (der GNSS-Chip
+  // gibt nativ 1 Hz aus), und war der Hauptverbraucher der Akkulaufzeit.
+  // watchPosition liefert dieselben Punkte energieeffizienter, weil das
+  // Betriebssystem intern batched.
   const watchIdRef = useRef<number | null>(null);
   // Zeitpunkt des letzten akzeptierten Punkts (bzw. Aufnahmestart) für die
   // adaptive Lockerung des Genauigkeitsfilters.
@@ -209,9 +201,6 @@ export function useGpsRecorder<T>(
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       isRecordingRef.current = false;
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current);
-      }
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
@@ -230,75 +219,59 @@ export function useGpsRecorder<T>(
     return Math.min(maxAccuracyMeters + extraMeters, relaxedMaxAccuracyMeters);
   }
 
-  function poll() {
+  // Verarbeitet eine einzelne GPS-Messung: Accuracy-Filter, Kalman-Glättung,
+  // Mindestabstands-Filter, Punkt anhängen. Wird aus dem watchPosition-
+  // Callback aufgerufen - kein zusätzlicher Poll-Loop mehr.
+  function handlePosition(position: GeolocationPosition) {
     if (!isRecordingRef.current) return;
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (!isRecordingRef.current) return;
-        const { latitude, longitude, accuracy } = position.coords;
-        setCurrentAccuracy(accuracy);
+    const { latitude, longitude, accuracy } = position.coords;
+    setCurrentAccuracy(accuracy);
 
-        if (accuracy > effectiveMaxAccuracy()) {
-          // GPS noch nicht eingeschwungen (typisch beim Kaltstart ohne aGPS).
-          // Der Schwellwert lockert sich über die Zeit (effectiveMaxAccuracy),
-          // damit die Aufzeichnung ohne Netz nicht dauerhaft leer bleibt.
-          scheduleNextPoll();
-          return;
-        }
+    if (accuracy > effectiveMaxAccuracy()) {
+      // GPS noch nicht eingeschwungen (typisch beim Kaltstart ohne aGPS).
+      // Der Schwellwert lockert sich über die Zeit (effectiveMaxAccuracy),
+      // damit die Aufzeichnung ohne Netz nicht dauerhaft leer bleibt.
+      return;
+    }
 
-        // Genauigkeitsfilter passiert - Referenzzeitpunkt zurücksetzen, auch
-        // wenn der Punkt gleich noch am Mindestabstand scheitert (Stillstand
-        // ist kein Grund, den Schwellwert zu lockern: das GPS liefert ja).
-        lastAcceptedAtRef.current = Date.now();
+    // Genauigkeitsfilter passiert - Referenzzeitpunkt zurücksetzen, auch
+    // wenn der Punkt gleich noch am Mindestabstand scheitert (Stillstand
+    // ist kein Grund, den Schwellwert zu lockern: das GPS liefert ja).
+    lastAcceptedAtRef.current = Date.now();
 
-        let smoothedLat = latitude;
-        let smoothedLon = longitude;
+    let smoothedLat = latitude;
+    let smoothedLon = longitude;
 
-        if (kalman) {
-          if (kalmanRef.current === null) {
-            // Ersten Punkt als Initialzustand verwenden.
-            const cosLat = Math.cos((latitude * Math.PI) / 180);
-            kalmanRef.current = {
-              lat: latitude,
-              lon: longitude,
-              P_lat: (accuracy / 111111) ** 2,
-              P_lon: (accuracy / (111111 * (cosLat === 0 ? 1 : cosLat))) ** 2,
-            };
-          } else {
-            kalmanRef.current = kalmanStep(kalmanRef.current, latitude, longitude, accuracy);
-          }
-          smoothedLat = kalmanRef.current.lat;
-          smoothedLon = kalmanRef.current.lon;
-        }
+    if (kalman) {
+      if (kalmanRef.current === null) {
+        // Ersten Punkt als Initialzustand verwenden.
+        const cosLat = Math.cos((latitude * Math.PI) / 180);
+        kalmanRef.current = {
+          lat: latitude,
+          lon: longitude,
+          P_lat: (accuracy / 111111) ** 2,
+          P_lon: (accuracy / (111111 * (cosLat === 0 ? 1 : cosLat))) ** 2,
+        };
+      } else {
+        kalmanRef.current = kalmanStep(kalmanRef.current, latitude, longitude, accuracy);
+      }
+      smoothedLat = kalmanRef.current.lat;
+      smoothedLon = kalmanRef.current.lon;
+    }
 
-        const last = lastRecordedRef.current;
-        if (
-          last !== null &&
-          haversineMeters(last, { latitude: smoothedLat, longitude: smoothedLon }) < minDistanceMeters
-        ) {
-          scheduleNextPoll();
-          return;
-        }
+    const last = lastRecordedRef.current;
+    if (
+      last !== null &&
+      haversineMeters(last, { latitude: smoothedLat, longitude: smoothedLon }) < minDistanceMeters
+    ) {
+      return;
+    }
 
-        lastRecordedRef.current = { latitude: smoothedLat, longitude: smoothedLon };
-        const recordedPosition = kalman
-          ? withSmoothedCoords(position, smoothedLat, smoothedLon)
-          : position;
-        setPoints((prev) => [...prev, toPoint(recordedPosition)]);
-        scheduleNextPoll();
-      },
-      (error) => {
-        if (!isRecordingRef.current) return;
-        toast.error(`GPS-Fehler: ${error.message}`);
-        scheduleNextPoll();
-      },
-      { enableHighAccuracy: true, maximumAge: GPS_MAX_POSITION_AGE_MS, timeout: POSITION_POLL_INTERVAL_MS * 4 },
-    );
-  }
-
-  function scheduleNextPoll() {
-    if (!isRecordingRef.current) return;
-    timeoutRef.current = window.setTimeout(poll, POSITION_POLL_INTERVAL_MS);
+    lastRecordedRef.current = { latitude: smoothedLat, longitude: smoothedLon };
+    const recordedPosition = kalman
+      ? withSmoothedCoords(position, smoothedLat, smoothedLon)
+      : position;
+    setPoints((prev) => [...prev, toPoint(recordedPosition)]);
   }
 
   function start() {
@@ -314,32 +287,25 @@ export function useGpsRecorder<T>(
     setIsRecording(true);
     isRecordingRef.current = true;
 
-    // GPS-Chip dauerhaft aktiv halten (siehe watchIdRef-Kommentar). Der
-    // Callback aktualisiert nur die Genauigkeitsanzeige - so sieht der
-    // Nutzer das Einschwingen auch zwischen den Poll-Ticks in Echtzeit.
+    // Einziger GPS-Datenzugriff während der Aufzeichnung. watchPosition
+    // lässt das OS die Sample-Rate intern batchen - im Gegensatz zu einem
+    // eigenen 500 ms-Poll mit getCurrentPosition, der den Chip auf voller
+    // Leistung hielt und der Hauptverbraucher der Akkulaufzeit war.
     watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        if (isRecordingRef.current) setCurrentAccuracy(position.coords.accuracy);
-      },
-      () => {
-        // Fehler meldet bereits der Poll-Loop - hier bewusst still, um
-        // doppelte Toasts für denselben GPS-Fehler zu vermeiden.
+      handlePosition,
+      (error) => {
+        if (!isRecordingRef.current) return;
+        toast.error(`GPS-Fehler: ${error.message}`);
       },
       { enableHighAccuracy: true, maximumAge: GPS_MAX_POSITION_AGE_MS },
     );
 
     // Display während der Aufzeichnung wach halten (fire-and-forget).
     acquireWakeLock();
-
-    poll();
   }
 
   function stop() {
     isRecordingRef.current = false;
-    if (timeoutRef.current !== null) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -360,7 +326,7 @@ export function useGpsRecorder<T>(
         toast.error(`GPS-Fehler: ${error.message}`);
         onError?.();
       },
-      { enableHighAccuracy: true, maximumAge: GPS_MAX_POSITION_AGE_MS },
+      { enableHighAccuracy: true, maximumAge: MARK_POINT_MAX_POSITION_AGE_MS },
     );
   }
 
