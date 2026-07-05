@@ -134,6 +134,7 @@ export type Goal = {
   targetDate: string;
   status: GoalStatus;
   notes: string | null;
+  isCustom: boolean;
   trainingPlan: TrainingPlan | null;
 };
 

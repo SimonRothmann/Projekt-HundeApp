@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TrackMap } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
-import { MapPin, MapPinPlus, Square } from "lucide-react";
+import { MapPin, MapPinPlus, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { estimateLengthMeters } from "@/lib/geo";
@@ -236,11 +236,32 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
                   {track.surface && <span>{track.surface}</span>}
                   {track.comment && <span>{track.comment}</span>}
                 </div>
-                <WalkRunRecorder
-                  trackId={track.id}
-                  onSaved={loadTracks}
-                  onLivePointsChange={handleLivePoints(track.id)}
-                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <WalkRunRecorder
+                    trackId={track.id}
+                    onSaved={loadTracks}
+                    onLivePointsChange={handleLivePoints(track.id)}
+                    laidTrackPoints={track.points}
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      if (!confirm("Fährte wirklich löschen?")) return;
+                      try {
+                        await api.delete(`/api/gps-tracks/${track.id}`);
+                        toast.success("Fährte gelöscht.");
+                        await loadTracks();
+                      } catch (err) {
+                        toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+                      }
+                    }}
+                  >
+                    <Trash2 className="size-4" />
+                    Löschen
+                  </Button>
+                </div>
                 <TrackMap
                   points={track.points}
                   walkRuns={track.walkRuns}

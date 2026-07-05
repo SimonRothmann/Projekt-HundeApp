@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dog as DogIcon, ListChecks, PenLine, Plus, Printer, Trash2, UserPlus, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Dog as DogIcon, ListChecks, PenLine, Plus, Printer, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
@@ -35,6 +35,16 @@ type ExerciseRow = {
   notes: string;
   trainingPlanItemId: string;
 };
+
+// Monatsschlüssel im Format "2026-07" für die Gruppierung; toLocaleDateString
+// mit month:"long" liefert die Anzeige-Version ("Juli 2026").
+function monthKey(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+}
+function monthLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+}
 
 function emptyRow(): ExerciseRow {
   return {
@@ -70,6 +80,20 @@ export default function DogDetailPage() {
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<ExerciseRow[]>([emptyRow()]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Aufgeklappte Monate im Trainingstagebuch. Der neueste Monat wird beim
+  // Erstrender automatisch aufgeklappt, ältere bleiben zunächst zu.
+  const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
+
+  async function deleteSession(sessionId: string) {
+    if (!confirm("Training wirklich löschen? Zugehörige Fährten werden ebenfalls entfernt.")) return;
+    try {
+      await api.delete(`/api/trainings/${sessionId}`);
+      toast.success("Training gelöscht.");
+      await loadAll();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+    }
+  }
 
   type DogPageCache = {
     dog: Dog;
@@ -473,34 +497,95 @@ export default function DogDetailPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-3">
-          {sessions.map((session) => (
-            <Card key={session.id}>
-              <CardHeader className="flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-base">
-                  {new Date(session.date).toLocaleDateString("de-DE")}
-                </CardTitle>
-                <Badge variant="secondary">{session.durationMinutes} Min.</Badge>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                {session.notes && <p className="text-sm text-muted-foreground">{session.notes}</p>}
-                <ul className="flex flex-col gap-1">
-                  {session.exercises.map((ex) => (
-                    <li key={ex.id} className="flex items-center justify-between text-sm">
-                      <span>{ex.exerciseName}</span>
-                      <span className="text-muted-foreground">
-                        {"★".repeat(ex.rating)}
-                        {"☆".repeat(5 - ex.rating)} {ex.success ? "✓" : "✗"}
+        (() => {
+          // Nach Monat gruppieren, Reihenfolge: neuester Monat zuerst.
+          // Sessions kommen sortiert nach Datum absteigend vom Backend.
+          const groups = new Map<string, TrainingSession[]>();
+          for (const s of sessions) {
+            const key = monthKey(s.date);
+            const list = groups.get(key);
+            if (list) list.push(s);
+            else groups.set(key, [s]);
+          }
+          const orderedKeys = Array.from(groups.keys());
+          // Neuesten Monat automatisch aufklappen, sofern der Nutzer die
+          // Sichtbarkeit noch nicht selbst gesteuert hat.
+          const effectiveOpen = openMonths.size === 0 && orderedKeys.length > 0
+            ? new Set([orderedKeys[0]])
+            : openMonths;
+          function toggleMonth(key: string) {
+            setOpenMonths((prev) => {
+              const next = new Set(prev.size === 0 ? [orderedKeys[0]] : prev);
+              if (next.has(key)) next.delete(key);
+              else next.add(key);
+              return next;
+            });
+          }
+          return (
+            <div className="flex flex-col gap-2">
+              {orderedKeys.map((key) => {
+                const list = groups.get(key)!;
+                const isOpen = effectiveOpen.has(key);
+                return (
+                  <div key={key} className="rounded-md border">
+                    <button
+                      type="button"
+                      onClick={() => toggleMonth(key)}
+                      className="flex w-full items-center justify-between px-3 py-2 text-left"
+                    >
+                      <span className="flex items-center gap-2 font-medium capitalize">
+                        {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                        {monthLabel(list[0].date)}
                       </span>
-                    </li>
-                  ))}
-                </ul>
-                <GpsTrackSection trainingSessionId={session.id} />
-                <TrainerFeedback session={session} isOwner={isOwner} onUpdated={loadAll} />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                      <Badge variant="secondary">{list.length}</Badge>
+                    </button>
+                    {isOpen && (
+                      <div className="flex flex-col gap-3 border-t p-3">
+                        {list.map((session) => (
+                          <Card key={session.id}>
+                            <CardHeader className="flex-row items-center justify-between space-y-0">
+                              <CardTitle className="text-base">
+                                {new Date(session.date).toLocaleDateString("de-DE")}
+                              </CardTitle>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary">{session.durationMinutes} Min.</Badge>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => deleteSession(session.id)}
+                                  title="Training löschen"
+                                >
+                                  <Trash2 className="size-4" />
+                                </Button>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="flex flex-col gap-2">
+                              {session.notes && <p className="text-sm text-muted-foreground">{session.notes}</p>}
+                              <ul className="flex flex-col gap-1">
+                                {session.exercises.map((ex) => (
+                                  <li key={ex.id} className="flex items-center justify-between text-sm">
+                                    <span>{ex.exerciseName}</span>
+                                    <span className="text-muted-foreground">
+                                      {"★".repeat(ex.rating)}
+                                      {"☆".repeat(5 - ex.rating)} {ex.success ? "✓" : "✗"}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                              <GpsTrackSection trainingSessionId={session.id} />
+                              <TrainerFeedback session={session} isOwner={isOwner} onUpdated={loadAll} />
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()
       )}
 
       {isOwner && (

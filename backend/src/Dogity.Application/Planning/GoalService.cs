@@ -57,29 +57,38 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         if (!sportExists)
             return Result<GoalDto>.Failure("Sportart nicht gefunden.");
 
-        if (request.RegulationId is { } regulationId)
+        // Individueller Plan schließt eine Prüfungsordnung aus - Nutzer legt
+        // die Wochenübungen ohnehin manuell fest.
+        var regulationId = request.IsCustom ? (Guid?)null : request.RegulationId;
+        if (regulationId is { } regId)
         {
-            var regulationBelongsToSport = await db.Regulations.AnyAsync(r => r.Id == regulationId && r.SportId == request.SportId, ct);
+            var regulationBelongsToSport = await db.Regulations.AnyAsync(r => r.Id == regId && r.SportId == request.SportId, ct);
             if (!regulationBelongsToSport)
                 return Result<GoalDto>.Failure("Prüfungsordnung gehört nicht zu dieser Sportart.");
         }
-
-        var candidates = await ResolvePlanCandidatesAsync(request.SportId, request.RegulationId, ct);
 
         var goal = new Goal
         {
             DogId = request.DogId,
             SportId = request.SportId,
-            RegulationId = request.RegulationId,
+            RegulationId = regulationId,
             TargetDate = request.TargetDate,
-            Notes = request.Notes
+            Notes = request.Notes,
+            IsCustom = request.IsCustom
         };
 
         var plan = new TrainingPlan { GoalId = goal.Id, Goal = goal };
-        foreach (var item in TrainingPlanGenerator.Generate(today, request.TargetDate, candidates))
+        // Individueller Plan startet leer - der Nutzer legt die Wochenübungen
+        // über AddPlanItemAsync selbst an. Auto-Generieren nur bei geführten
+        // Zielen mit Sport/Prüfungsordnung.
+        if (!request.IsCustom)
         {
-            item.TrainingPlanId = plan.Id;
-            plan.Items.Add(item);
+            var candidates = await ResolvePlanCandidatesAsync(request.SportId, regulationId, ct);
+            foreach (var item in TrainingPlanGenerator.Generate(today, request.TargetDate, candidates))
+            {
+                item.TrainingPlanId = plan.Id;
+                plan.Items.Add(item);
+            }
         }
         goal.TrainingPlan = plan;
 
@@ -341,6 +350,6 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
                     })
                     .ToList());
 
-        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, planDto);
+        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, g.IsCustom, planDto);
     }
 }

@@ -62,6 +62,7 @@ export function GoalsSection({
   const [regulationId, setRegulationId] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [isCustom, setIsCustom] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Übungen pro Sportart, lazy geladen für die "Übung hinzufügen"-Auswahl
@@ -236,17 +237,23 @@ export function GoalsSection({
       await api.post<Goal>("/api/goals", {
         dogId,
         sportId,
-        regulationId: regulationId || null,
+        regulationId: isCustom ? null : (regulationId || null),
         targetDate,
         notes: notes || null,
+        isCustom,
       });
-      toast.success("Ziel angelegt - Trainingsplan wurde generiert.");
+      toast.success(
+        isCustom
+          ? "Individueller Plan angelegt - füge jetzt Wochenübungen hinzu."
+          : "Ziel angelegt - Trainingsplan wurde generiert.",
+      );
       setShowForm(false);
       setSportId("");
       setRegulationId("");
       setRegulations([]);
       setTargetDate("");
       setNotes("");
+      setIsCustom(false);
       await onChanged();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Ziel konnte nicht angelegt werden.");
@@ -295,6 +302,17 @@ export function GoalsSection({
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  checked={isCustom}
+                  onChange={(e) => setIsCustom(e.target.checked)}
+                />
+                <span>
+                  Individueller Plan (ohne Prüfungsziel) &ndash; leere Wochen, Übungen manuell festlegen
+                </span>
+              </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label>Sportart</Label>
@@ -322,7 +340,7 @@ export function GoalsSection({
                   />
                 </div>
               </div>
-              {regulations.length > 0 && (
+              {!isCustom && regulations.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <Label>Prüfung</Label>
                   <Select value={regulationId} onValueChange={(value) => setRegulationId(value ?? "")}>
@@ -349,7 +367,13 @@ export function GoalsSection({
                 <Input id="goalNotes" value={notes} onChange={(e) => setNotes(e.target.value)} />
               </div>
               <Button type="submit" className="self-start" disabled={isSubmitting}>
-                {isSubmitting ? "Wird generiert…" : "Ziel anlegen & Plan generieren"}
+                {isSubmitting
+                  ? isCustom
+                    ? "Wird angelegt…"
+                    : "Wird generiert…"
+                  : isCustom
+                    ? "Individuellen Plan anlegen"
+                    : "Ziel anlegen & Plan generieren"}
               </Button>
             </form>
           </CardContent>

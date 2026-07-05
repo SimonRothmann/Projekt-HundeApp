@@ -35,5 +35,14 @@ public class Goal : Entity
     public GoalStatus Status { get; set; } = GoalStatus.Active;
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// Kein festes Prüfungsziel: der TrainingPlan bleibt beim Anlegen leer
+    /// (kein Auto-Fill durch <see cref="TrainingPlanGenerator"/>) und der
+    /// Nutzer legt Wochenübungen manuell an. RegulationId ist dann immer null.
+    /// TargetDate wird trotzdem gebraucht, um den Wochenraster (Wie viele
+    /// Wochen umfasst der Plan?) für die manuellen Einträge zu spannen.
+    /// </summary>
+    public bool IsCustom { get; set; }
+
     public TrainingPlan? TrainingPlan { get; set; }
 }

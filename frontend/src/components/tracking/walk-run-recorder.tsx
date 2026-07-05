@@ -2,13 +2,14 @@
 
 import { useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { GpsWalkPoint, GpsWalkRun } from "@/lib/types";
+import type { GpsPoint, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Footprints, Square } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { estimateLengthMeters } from "@/lib/geo";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
+import { useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
 
 function toWalkPoint(position: GeolocationPosition): GpsWalkPoint {
   return {
@@ -33,16 +34,30 @@ export function WalkRunRecorder({
   trackId,
   onSaved,
   onLivePointsChange,
+  laidTrackPoints,
 }: {
   trackId: string;
   onSaved: () => Promise<void>;
   onLivePointsChange?: (points: GpsWalkPoint[]) => void;
+  // Punkte der gelegten Fährte - Grundlage für die Vibration vor
+  // Gegenständen und Abbiegungen. Optional, damit Aufrufer, die keine
+  // Legung haben, den Recorder ohne Haptics-Nebeneffekt nutzen können.
+  laidTrackPoints?: GpsPoint[];
 }) {
   const { isRecording, points, setPoints, currentAccuracy, start: startRecording, stop } = useGpsRecorder(toWalkPoint);
 
   useEffect(() => {
     onLivePointsChange?.(isRecording ? points : []);
   }, [points, isRecording, onLivePointsChange]);
+
+  // Vibriere 10 Schritte (~8 m) vor jedem markierten Gegenstand und vor
+  // jeder erkannten Abbiegung der Legung. sessionKey = trackId+isRecording:
+  // beim Neustart der Aufnahme wird die "schon-vibriert"-Menge zurückgesetzt.
+  useWalkRunHaptics(
+    laidTrackPoints,
+    isRecording && points.length > 0 ? points[points.length - 1] : null,
+    `${trackId}:${isRecording ? "on" : "off"}`,
+  );
 
   async function stopRecording() {
     stop();

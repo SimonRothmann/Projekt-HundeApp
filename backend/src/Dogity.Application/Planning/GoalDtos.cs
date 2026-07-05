@@ -42,9 +42,10 @@ public record GoalDto(
     DateOnly TargetDate,
     GoalStatus Status,
     string? Notes,
+    bool IsCustom,
     TrainingPlanDto? TrainingPlan);
 
-public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, DateOnly TargetDate, string? Notes);
+public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, DateOnly TargetDate, string? Notes, bool IsCustom = false);
 
 public record UpdateGoalStatusRequest(GoalStatus Status);
 
