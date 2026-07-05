@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { estimateLengthMeters } from "@/lib/geo";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
-import { useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
+import { primeHapticsAudio, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
 
 function toWalkPoint(position: GeolocationPosition): GpsWalkPoint {
   return {
@@ -89,7 +89,16 @@ export function WalkRunRecorder({
 
   if (!isRecording) {
     return (
-      <Button size="sm" variant="outline" onClick={startRecording}>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          // Muss aus dem Klick-Handler synchron passieren, sonst bleibt der
+          // AudioContext auf iOS suspended und die späteren Alarmtöne bleiben stumm.
+          primeHapticsAudio();
+          startRecording();
+        }}
+      >
         <Footprints className="size-4" />
         Fährte erneut ablaufen
       </Button>

@@ -80,11 +80,24 @@ export function TrackMap({
   const hasSetInitialViewRef = useRef(false);
   const [mapReady, setMapReady] = useState(false);
 
-  // Karten-Rotation nur im Live-Modus sinnvoll; Nutzer kann jederzeit per
-  // Kompass-Button zurück auf Nord-Ausrichtung wechseln.
-  const [rotateWithHeading, setRotateWithHeading] = useState(isLive);
+  // Kartenausrichtung: nur im Live-Modus umschaltbar; Nutzer kann per
+  // Kompass-Button zwischen den drei Modi zyklen.
+  // - "north-arrow": Nord oben, Richtungspfeil an der eigenen Position
+  //   (klassisch, wie Google Maps 'North Up' - keine dreh-bedingten Glitches)
+  // - "heading": Karte selbst in Fahrtrichtung gedreht (klassischer Navi-Modus)
+  // - "north": Nord oben ohne Zusatzpfeil (statische Ansicht)
+  type OrientationMode = "north-arrow" | "heading" | "north";
+  const [orientation, setOrientation] = useState<OrientationMode>(isLive ? "north-arrow" : "north");
   const [headingDeg, setHeadingDeg] = useState(0);
   const smoothedHeadingRef = useRef<number | null>(null);
+
+  const rotateWithHeading = orientation === "heading";
+  const showPositionArrow = isLive && orientation === "north-arrow";
+  function cycleOrientation() {
+    setOrientation((prev) =>
+      prev === "north-arrow" ? "heading" : prev === "heading" ? "north" : "north-arrow",
+    );
+  }
 
   // Effect 1: Karte + Tile-Layer genau einmal erzeugen (nur beim Mount).
   useEffect(() => {
@@ -186,12 +199,27 @@ export function TrackMap({
         L.polyline(liveWalkLatLngs, { color: liveColor, dashArray: "3 4", weight: 4 })
           .addTo(layerGroup)
           .bindTooltip(`Ablauf-Versuch ${walkRuns.length + 1} (läuft)`);
-        L.circleMarker(liveWalkLatLngs[liveWalkLatLngs.length - 1], {
-          radius: 6,
-          color: liveColor,
-          fillColor: liveColor,
-          fillOpacity: 1,
-        }).addTo(layerGroup);
+        const last = liveWalkLatLngs[liveWalkLatLngs.length - 1];
+        // Modus "Nord oben + Richtungspfeil": statt einfachem Punkt ein
+        // rotierendes SVG-Icon, dessen Spitze in die aktuelle Bewegungs-
+        // richtung zeigt - so sieht der Nutzer die Ausrichtung, ohne dass
+        // sich die ganze Karte drehen muss.
+        if (showPositionArrow) {
+          const arrowIcon = L.divIcon({
+            className: "",
+            html: `<svg viewBox="0 0 24 24" width="28" height="28" style="transform: rotate(${smoothedHeadingRef.current ?? 0}deg); transform-origin: 50% 50%;"><circle cx="12" cy="12" r="10" fill="${liveColor}" fill-opacity="0.25"/><polygon points="12,3 18,20 12,16 6,20" fill="${liveColor}" stroke="white" stroke-width="1"/></svg>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          });
+          L.marker(last, { icon: arrowIcon }).addTo(layerGroup);
+        } else {
+          L.circleMarker(last, {
+            radius: 6,
+            color: liveColor,
+            fillColor: liveColor,
+            fillOpacity: 1,
+          }).addTo(layerGroup);
+        }
       }
     }
 
@@ -248,7 +276,7 @@ export function TrackMap({
       map.fitBounds([...allLatLngs, ...allWalkRunLatLngs], { padding: [16, 16] });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady, points, walkRuns, live, liveWalkRunPoints]);
+  }, [mapReady, points, walkRuns, live, liveWalkRunPoints, showPositionArrow, headingDeg]);
 
   // Im Live-Modus die Karte schon vor dem ersten Punkt anzeigen (wartet auf
   // die erste Positionsmessung), damit sie nicht erst nach einigen Sekunden
@@ -257,24 +285,38 @@ export function TrackMap({
     return <p className="text-sm text-muted-foreground">Keine GPS-Punkte aufgezeichnet.</p>;
   }
 
-  // Rotation nur im Live-Modus und wenn aktiviert. Die Rotation wird per
-  // CSS-transform auf den Karten-Container gelegt, weil Leaflet selbst
-  // keine Rotation unterstützt. Nebeneffekt: die OSM-Attribution rotiert
-  // mit - für eine Live-Aufzeichnung akzeptabel, für die Historie deaktiviert.
-  const rotationDeg = isLive && rotateWithHeading ? -headingDeg : 0;
+  // Rotation nur im "heading"-Modus. Die Rotation wird per CSS-transform auf
+  // den Karten-Container gelegt, weil Leaflet selbst keine Rotation kennt.
+  // Kompass-Button und OSM-Attribution werden per Counter-Rotation aufrecht
+  // gehalten, damit Text/Steuerelemente immer lesbar bleiben.
+  const rotationDeg = rotateWithHeading ? -headingDeg : 0;
+  const orientationTitle =
+    orientation === "north-arrow"
+      ? "Nord oben + Richtungspfeil (klicken für 'in Laufrichtung')"
+      : orientation === "heading"
+        ? "Karte in Laufrichtung (klicken für 'Nord oben ohne Pfeil')"
+        : "Nord oben, statisch (klicken für 'Nord + Pfeil')";
 
   return (
     <div className="relative h-64 w-full overflow-hidden rounded-md">
       <div
         ref={containerRef}
-        className="h-full w-full transition-transform duration-500 ease-out"
+        className="h-full w-full transition-transform duration-500 ease-out [&_.leaflet-control-attribution]:origin-bottom-right"
         style={{ transform: `rotate(${rotationDeg}deg)` }}
       />
+      {/* OSM-Attribution wieder aufrichten wenn Karte rotiert: gegenrotieren
+          um denselben Winkel. Selector greift die Leaflet-Attribution direkt
+          im rotierten Container. */}
+      {rotateWithHeading && (
+        <style>
+          {`.leaflet-control-attribution { transform: rotate(${headingDeg}deg); transform-origin: 100% 100%; }`}
+        </style>
+      )}
       {isLive && (
         <button
           type="button"
-          onClick={() => setRotateWithHeading((v) => !v)}
-          title={rotateWithHeading ? "Nord oben" : "In Laufrichtung drehen"}
+          onClick={cycleOrientation}
+          title={orientationTitle}
           className="absolute right-2 top-2 z-[400] flex size-10 items-center justify-center rounded-full border bg-background/90 shadow-md backdrop-blur"
         >
           {/* Kompassnadel: zeigt immer nach geografisch Nord. Bei rotierter
@@ -282,7 +324,7 @@ export function TrackMap({
           <svg
             viewBox="0 0 24 24"
             className="size-6 transition-transform duration-500 ease-out"
-            style={{ transform: `rotate(${rotationDeg}deg)` }}
+            style={{ transform: `rotate(${headingDeg}deg)` }}
             aria-hidden
           >
             <polygon points="12,3 15,13 12,11 9,13" fill="#dc2626" />

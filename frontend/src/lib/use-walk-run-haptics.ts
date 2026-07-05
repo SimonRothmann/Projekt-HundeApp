@@ -28,6 +28,59 @@ const TURN_SEGMENT_MIN_LENGTH_M = 5;
 const VIBRATE_OBJECT = [200, 80, 200, 80, 200];
 const VIBRATE_TURN = [120, 80, 120];
 
+// Fallback-Ton für Geräte ohne Vibrations-API (allen voran iOS Safari, das
+// navigator.vibrate bewusst nicht implementiert). Web Audio funktioniert auf
+// allen relevanten Plattformen inkl. iOS - Voraussetzung: der Kontext wird
+// nach einer User-Geste (Start-Button) erzeugt. Frequenz und Dauer
+// unterscheiden Gegenstand (höher, doppelt) von Abbiegung (tiefer, einzeln)
+// analog zu den Vibrationsmustern.
+type ChimeStep = { freq: number; ms: number; gap?: number };
+const CHIME_OBJECT: ChimeStep[] = [
+  { freq: 1200, ms: 180, gap: 90 },
+  { freq: 1500, ms: 220 },
+];
+const CHIME_TURN: ChimeStep[] = [{ freq: 700, ms: 250 }];
+
+// Lazy AudioContext: der Kontext startet suspended, bis eine User-Geste
+// (start-Button-Klick beim Rekorder) den Weg freimacht - danach kann bis
+// zum Reload ohne weitere Interaktion Ton abgespielt werden.
+let audioCtx: AudioContext | null = null;
+function getAudioCtx(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (audioCtx) return audioCtx;
+  const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctor) return null;
+  try {
+    audioCtx = new Ctor();
+    return audioCtx;
+  } catch {
+    return null;
+  }
+}
+
+function playChime(steps: ChimeStep[]) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  // Falls Kontext (z.B. auf iOS nach Tab-Wechsel) suspended ist, wieder wecken.
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
+
+  let t = ctx.currentTime;
+  for (const step of steps) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = step.freq;
+    // Kurzes Fade-In/Fade-Out damit es nicht klickt.
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.35, t + 0.02);
+    gain.gain.linearRampToValueAtTime(0, t + step.ms / 1000);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + step.ms / 1000 + 0.05);
+    t += step.ms / 1000 + (step.gap ?? 0) / 1000;
+  }
+}
+
 type Poi = {
   key: string;
   latitude: number;
@@ -89,7 +142,8 @@ export function useWalkRunHaptics(
 
   useEffect(() => {
     if (!currentPoint || pois.length === 0) return;
-    if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
+
+    const canVibrate = typeof navigator !== "undefined" && typeof navigator.vibrate === "function";
 
     for (const poi of pois) {
       if (notifiedRef.current.has(poi.key)) continue;
@@ -99,8 +153,24 @@ export function useWalkRunHaptics(
       );
       if (dist <= TRIGGER_RADIUS_M) {
         notifiedRef.current.add(poi.key);
-        navigator.vibrate(poi.kind === "object" ? VIBRATE_OBJECT : VIBRATE_TURN);
+        // Ton IMMER (funktioniert überall, iPhone eingeschlossen).
+        // Vibration ZUSÄTZLICH wo verfügbar - iOS Safari ignoriert das still.
+        playChime(poi.kind === "object" ? CHIME_OBJECT : CHIME_TURN);
+        if (canVibrate) {
+          navigator.vibrate(poi.kind === "object" ? VIBRATE_OBJECT : VIBRATE_TURN);
+        }
       }
     }
   }, [currentPoint, pois]);
+}
+
+/**
+ * Weckt den Audio-Kontext nach einer User-Geste. Muss von einem Klick-Handler
+ * (Aufnahme starten) synchron aufgerufen werden, sonst bleibt der Kontext
+ * auf iOS suspended und playChime spielt nichts.
+ */
+export function primeHapticsAudio() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
 }
