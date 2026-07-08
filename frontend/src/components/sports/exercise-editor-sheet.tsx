@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Club, Exercise, ExerciseDifficulty, Sport } from "@/lib/types";
+import type { Exercise, ExerciseDifficulty, Sport } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,33 +18,32 @@ import {
 import { toast } from "sonner";
 
 const NO_SPORT_SENTINEL = "__none__";
-const GLOBAL_SENTINEL = "__global__";
 
 /**
- * Sheet-basierter Editor zum Anlegen einer neuen Übung.
- * Sportart ist optional (sportartlose Übungen wie „Aufmerksamkeit halten"
- * werden ohne Sport-Zuordnung geführt). Sichtbarkeit analog zum Sport-
- * Editor: Admin darf global, Trainer nur für seine Vereine.
+ * Der Übungs-Editor kennt denselben Scope wie der Sport-Editor: der aufrufende
+ * Kontext (Admin- vs. Trainer-Bereich) legt fest, ob eine neu angelegte Übung
+ * global oder vereinsspezifisch ist. Die Sichtbarkeitsauswahl entfällt damit
+ * im Editor selbst und der Nutzer sieht sofort, wohin die Übung geht.
  */
+export type ExerciseScope = { kind: "global" } | { kind: "club"; clubId: string; clubName: string };
+
 export function ExerciseEditorSheet({
   open,
   onOpenChange,
-  isAdmin,
+  scope,
   sports,
-  clubs,
   presetSportId,
-  presetClubId,
   onCreated,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isAdmin: boolean;
+  scope: ExerciseScope;
+  // Auswahlbare Sportarten. Aufrufer filtert - im Trainer-Bereich reine
+  // Vereinssportarten + globale, im Admin-Bereich nur globale.
   sports: Sport[];
-  clubs: Club[];
-  // Wenn gesetzt, wird die Sportart-Auswahl im Editor vorbelegt (z. B. wenn
-  // der Nutzer auf einer Sportart-Karte "Übung hinzufügen" klickt).
+  // Wenn gesetzt, wird die Sportart-Auswahl vorbelegt (Klick auf "+ Übung"
+  // in einer bestimmten Sport-Karte).
   presetSportId?: string | null;
-  presetClubId?: string | null;
   onCreated: (exercise: Exercise) => void;
 }) {
   const [sportId, setSportId] = useState<string>(NO_SPORT_SENTINEL);
@@ -53,7 +52,6 @@ export function ExerciseEditorSheet({
   const [difficulty, setDifficulty] = useState<ExerciseDifficulty>(0);
   const [category, setCategory] = useState("");
   const [scoringCriteria, setScoringCriteria] = useState("");
-  const [scope, setScope] = useState<string>(isAdmin ? GLOBAL_SENTINEL : clubs[0]?.id ?? "");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -65,13 +63,9 @@ export function ExerciseEditorSheet({
       setDifficulty(0);
       setCategory("");
       setScoringCriteria("");
-      // Wenn eine Preset-Sportart eine ClubId hat, ist die Sichtbarkeit
-      // durch die Sportart implizit fixiert - ansonsten die letzte Wahl
-      // oder Admin-Default.
-      setScope(presetClubId ?? (isAdmin ? GLOBAL_SENTINEL : clubs[0]?.id ?? ""));
       /* eslint-enable react-hooks/set-state-in-effect */
     }
-  }, [open, isAdmin, clubs, presetSportId, presetClubId]);
+  }, [open, presetSportId]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -85,7 +79,7 @@ export function ExerciseEditorSheet({
         difficulty,
         category: category.trim() || null,
         scoringCriteria: scoringCriteria.trim() || null,
-        clubId: scope === GLOBAL_SENTINEL ? null : scope,
+        clubId: scope.kind === "club" ? scope.clubId : null,
       });
       toast.success("Übung angelegt.");
       onCreated(created);
@@ -109,8 +103,10 @@ export function ExerciseEditorSheet({
         <SheetHeader>
           <SheetTitle>Neue Übung</SheetTitle>
           <SheetDescription>
-            Sportart ist optional &ndash; sportartübergreifende Übungen (z. B. Grundlagen) laufen ohne
-            Zuordnung.
+            {scope.kind === "global"
+              ? "Wird für alle Nutzer sichtbar (globaler VDH-Katalog)."
+              : `Nur für Mitglieder und Trainer des Vereins „${scope.clubName}“ sichtbar.`}
+            {" "}Sportart ist optional – sportartübergreifende Übungen laufen ohne Zuordnung.
           </SheetDescription>
         </SheetHeader>
 
@@ -190,35 +186,13 @@ export function ExerciseEditorSheet({
               placeholder="Tempo, Position, Sauberkeit, ..."
             />
           </div>
-
-          <div className="flex flex-col gap-2">
-            <Label>Sichtbarkeit</Label>
-            <Select value={scope} onValueChange={(v) => v && setScope(v)} disabled={!!presetClubId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Auswählen…" />
-              </SelectTrigger>
-              <SelectContent>
-                {isAdmin && <SelectItem value={GLOBAL_SENTINEL}>Global (für alle sichtbar)</SelectItem>}
-                {clubs.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    Nur für Verein &bdquo;{c.name}&ldquo;
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {presetClubId && (
-              <p className="text-xs text-muted-foreground">
-                Übernommen aus der übergeordneten Sportart.
-              </p>
-            )}
-          </div>
         </form>
 
         <SheetFooter className="flex-row justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Abbrechen
           </Button>
-          <Button type="submit" onClick={handleSubmit} disabled={submitting || !name.trim() || !scope}>
+          <Button type="submit" onClick={handleSubmit} disabled={submitting || !name.trim()}>
             {submitting ? "Wird angelegt…" : "Übung anlegen"}
           </Button>
         </SheetFooter>

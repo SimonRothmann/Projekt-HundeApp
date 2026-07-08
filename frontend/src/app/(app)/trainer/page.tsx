@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { ClubExercisesSection } from "@/components/trainer/club-exercises-section";
+import { CatalogSection } from "@/components/sports/catalog-section";
 import { ClubJoinRequestsSection } from "@/components/trainer/club-join-requests-section";
 import { ClubMembersSection } from "@/components/trainer/club-members-section";
 import { GroupJoinRequestsSection } from "@/components/trainer/group-join-requests-section";
@@ -161,7 +161,14 @@ export default function TrainerPage() {
         <>
           <ClubJoinRequestsSection clubs={myClubs} />
           <ClubMembersSection clubs={myClubs} />
-          <ClubExercisesSection clubs={myClubs} />
+          {myClubs.map((club) => (
+            <CatalogSection
+              key={club.id}
+              scope={{ kind: "club", clubId: club.id, clubName: club.name }}
+              title={`Vereinseigener Katalog · ${club.name}`}
+              description="Eigene Sportarten und Übungen dieses Vereins - nur für Mitglieder und Trainer sichtbar."
+            />
+          ))}
         </>
       )}
     </div>

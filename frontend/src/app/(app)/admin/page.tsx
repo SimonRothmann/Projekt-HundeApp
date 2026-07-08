@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Dog, Users2, ClipboardList, MapPin, ScrollText, Lock, Unlock, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { ClubsSection } from "@/components/admin/clubs-section";
-import { GlobalExercisesSection } from "@/components/admin/global-exercises-section";
+import { CatalogSection } from "@/components/sports/catalog-section";
 import { RegulationImportSection } from "@/components/admin/regulation-import-section";
 
 export default function AdminPage() {
@@ -137,7 +137,11 @@ export default function AdminPage() {
         </div>
       )}
 
-      <GlobalExercisesSection />
+      <CatalogSection
+        scope={{ kind: "global" }}
+        title="Globaler Sportarten-Katalog"
+        description="Pflegt die für alle Nutzer sichtbaren Sportarten und Übungen nach VDH-Prüfungsordnungen."
+      />
 
       <RegulationImportSection sports={sports ?? []} />
 

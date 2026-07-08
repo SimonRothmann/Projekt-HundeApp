@@ -3,24 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
-import type { Club, Exercise, Regulation, RegulationDetail, Sport } from "@/lib/types";
-import { useAuth } from "@/lib/auth-context";
+import type { Exercise, Regulation, RegulationDetail, Sport } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Trophy,
   ChevronDown,
   ChevronRight,
   ScrollText,
-  Plus,
   Sparkles,
   Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { difficultyLabel } from "@/lib/constants";
-import { SportEditorSheet } from "@/components/sports/sport-editor-sheet";
-import { ExerciseEditorSheet } from "@/components/sports/exercise-editor-sheet";
 
 // GET mit Offline-Fallback: frische Daten laden und cachen; schlägt das
 // Netz fehl (offline auf dem Hundeplatz), die zuletzt gesehene Version aus
@@ -38,28 +33,14 @@ async function getWithCache<T>(path: string): Promise<T> {
 }
 
 export default function SportsPage() {
-  const { user, isTrainer } = useAuth();
-  const isAdmin = !!user?.roles.includes("ADMIN");
-  const canManage = isAdmin || !!isTrainer;
-
   const [sports, setSports] = useState<Sport[] | null>(null);
   const [uncategorized, setUncategorized] = useState<Exercise[]>([]);
-  const [myClubs, setMyClubs] = useState<Club[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showUncategorized, setShowUncategorized] = useState(false);
   const [exercisesBySport, setExercisesBySport] = useState<Record<string, Exercise[]>>({});
   const [regulationsBySport, setRegulationsBySport] = useState<Record<string, Regulation[]>>({});
   const [expandedRegulation, setExpandedRegulation] = useState<string | null>(null);
   const [regulationDetails, setRegulationDetails] = useState<Record<string, RegulationDetail>>({});
-
-  // Editor-State: welche Sportart bzw. welcher Verein wird beim Öffnen des
-  // Übungseditors vorbelegt (z. B. beim "+ Übung"-Klick auf einer Karte).
-  const [sportEditorOpen, setSportEditorOpen] = useState(false);
-  const [exerciseEditor, setExerciseEditor] = useState<{
-    open: boolean;
-    sportId: string | null;
-    clubId: string | null;
-  }>({ open: false, sportId: null, clubId: null });
 
   const globalSports = useMemo(() => sports?.filter((s) => !s.clubId) ?? [], [sports]);
   const clubSports = useMemo(() => sports?.filter((s) => s.clubId) ?? [], [sports]);
@@ -70,27 +51,12 @@ export default function SportsPage() {
       .catch((err) =>
         toast.error(err instanceof ApiError ? err.message : "Sportarten konnten nicht geladen werden."),
       );
-    // Sportartlose Übungen (getrennt geladen, damit sie als eigene Karte
-    // erscheinen können).
     getWithCache<Exercise[]>("/api/exercises/uncategorized")
       .then(setUncategorized)
       .catch(() => {
-        // Kein Toast: für Nutzer ohne Zugriff (unauthenticated) erwartet fehlend.
+        // Kein Toast: erwartet fehlend für Nutzer ohne Zugriff.
       });
-    if (canManage) {
-      // Vereine, in denen der Nutzer als Trainer geführt wird - Basis für die
-      // Sichtbarkeits-Auswahl beim Anlegen. Admins sehen alle Vereine als
-      // Auswahl (nicht "meine").
-      const clubsPath = isAdmin ? "/api/admin/clubs" : "/api/groups/my-clubs";
-      api
-        .get<Club[]>(clubsPath)
-        .then(setMyClubs)
-        .catch(() => {
-          // Stille: Auswahl bleibt leer, User bekommt Fehlermeldung erst
-          // beim Anlegen (Fall unwahrscheinlich für Admin/Trainer).
-        });
-    }
-  }, [canManage, isAdmin]);
+  }, []);
 
   async function toggleExpand(sportId: string) {
     if (expanded === sportId) {
@@ -128,53 +94,16 @@ export default function SportsPage() {
     }
   }
 
-  function handleSportCreated(sport: Sport) {
-    setSports((prev) => (prev ? [...prev, sport].sort((a, b) => a.name.localeCompare(b.name, "de")) : [sport]));
-    // Übungsliste dieser Sportart als "leer" vormerken, damit beim Aufklappen
-    // sofort "Keine Übungen" statt "Lädt…" erscheint.
-    setExercisesBySport((prev) => ({ ...prev, [sport.id]: [] }));
-    setRegulationsBySport((prev) => ({ ...prev, [sport.id]: [] }));
-    setExpanded(sport.id);
-  }
-
-  function handleExerciseCreated(exercise: Exercise) {
-    if (exercise.sportId === null) {
-      setUncategorized((prev) => [...prev, exercise].sort((a, b) => a.name.localeCompare(b.name, "de")));
-      setShowUncategorized(true);
-    } else {
-      setExercisesBySport((prev) => {
-        const list = prev[exercise.sportId!] ?? [];
-        return {
-          ...prev,
-          [exercise.sportId!]: [...list, exercise].sort((a, b) => a.name.localeCompare(b.name, "de")),
-        };
-      });
-      setExpanded(exercise.sportId);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Sportarten</h1>
-          <p className="text-muted-foreground">
-            Datengetriebener Katalog aus Übungen und Prüfungsordnungen. Übungstexte und Bewertungs-
-            kriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.
-          </p>
-        </div>
-        {canManage && (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setSportEditorOpen(true)}>
-              <Plus className="size-4" />
-              Sportart
-            </Button>
-            <Button onClick={() => setExerciseEditor({ open: true, sportId: null, clubId: null })}>
-              <Plus className="size-4" />
-              Übung
-            </Button>
-          </div>
-        )}
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Sportarten</h1>
+        <p className="text-muted-foreground">
+          Informativer Katalog nach VDH-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind
+          eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen. Globale Sportarten pflegt
+          der Admin; jeder Verein kann zusätzlich eigene Übungen und Sportarten anlegen (siehe
+          Trainer-Bereich).
+        </p>
       </div>
 
       {sports === null ? (
@@ -183,7 +112,7 @@ export default function SportsPage() {
         <div className="flex flex-col gap-3">
           {/* Sportartlose Übungen als eigene Karte - direkt oben, weil sie
               kontextlos existieren und sonst leicht übersehen werden. */}
-          {(uncategorized.length > 0 || canManage) && (
+          {uncategorized.length > 0 && (
             <Card className="border-dashed">
               <CardHeader
                 className="flex-row cursor-pointer items-center justify-between space-y-0"
@@ -237,11 +166,6 @@ export default function SportsPage() {
               expandedRegulation={expandedRegulation}
               onToggle={() => toggleExpand(sport.id)}
               onToggleRegulation={toggleRegulation}
-              onAddExercise={
-                canManage
-                  ? () => setExerciseEditor({ open: true, sportId: sport.id, clubId: sport.clubId })
-                  : null
-              }
             />
           ))}
 
@@ -263,33 +187,11 @@ export default function SportsPage() {
               expandedRegulation={expandedRegulation}
               onToggle={() => toggleExpand(sport.id)}
               onToggleRegulation={toggleRegulation}
-              onAddExercise={
-                canManage
-                  ? () => setExerciseEditor({ open: true, sportId: sport.id, clubId: sport.clubId })
-                  : null
-              }
             />
           ))}
         </div>
       )}
 
-      <SportEditorSheet
-        open={sportEditorOpen}
-        onOpenChange={setSportEditorOpen}
-        isAdmin={isAdmin}
-        clubs={myClubs}
-        onCreated={handleSportCreated}
-      />
-      <ExerciseEditorSheet
-        open={exerciseEditor.open}
-        onOpenChange={(open) => setExerciseEditor((prev) => ({ ...prev, open }))}
-        isAdmin={isAdmin}
-        sports={sports ?? []}
-        clubs={myClubs}
-        presetSportId={exerciseEditor.sportId}
-        presetClubId={exerciseEditor.clubId}
-        onCreated={handleExerciseCreated}
-      />
     </div>
   );
 }
@@ -303,7 +205,6 @@ function SportCard({
   expandedRegulation,
   onToggle,
   onToggleRegulation,
-  onAddExercise,
 }: {
   sport: Sport;
   isOpen: boolean;
@@ -313,7 +214,6 @@ function SportCard({
   expandedRegulation: string | null;
   onToggle: () => void;
   onToggleRegulation: (id: string) => void;
-  onAddExercise: (() => void) | null;
 }) {
   return (
     <Card>
@@ -340,22 +240,7 @@ function SportCard({
       {isOpen && (
         <CardContent className="flex flex-col gap-5">
           <div>
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-muted-foreground">Übungen</h3>
-              {onAddExercise && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddExercise();
-                  }}
-                >
-                  <Plus className="size-4" />
-                  Übung
-                </Button>
-              )}
-            </div>
+            <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Übungen</h3>
             {!exercises ? (
               <p className="text-sm text-muted-foreground">Lädt Übungen…</p>
             ) : exercises.length === 0 ? (
