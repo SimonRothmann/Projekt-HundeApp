@@ -18,6 +18,11 @@ public interface IClubService
     Task<Result> AssignTrainerAsync(Guid clubId, AssignClubTrainerRequest request, CancellationToken ct = default);
     Task<Result> RemoveTrainerAsync(Guid clubId, Guid userId, CancellationToken ct = default);
 
+    /// <summary>Admin-Weg zur direkten Aufnahme eines Mitglieds ohne Beitrittsanfrage-Workflow.</summary>
+    Task<Result> AddMemberAsync(Guid clubId, AssignClubMemberRequest request, CancellationToken ct = default);
+    /// <summary>Admin-Weg zum Entfernen eines aktiven Mitglieds aus einem Verein.</summary>
+    Task<Result> RemoveMemberAsync(Guid clubId, Guid userId, CancellationToken ct = default);
+
     /// <summary>Browsbare Liste aller Vereine für jeden eingeloggten User (nur Stammdaten, keine Trainer-/Mitgliederdetails).</summary>
     Task<Result<IReadOnlyList<ClubSummaryDto>>> GetBrowsableClubsAsync(CancellationToken ct = default);
 

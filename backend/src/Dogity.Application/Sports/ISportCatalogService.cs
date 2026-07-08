@@ -10,7 +10,18 @@ namespace Dogity.Application.Sports;
 /// </summary>
 public interface ISportCatalogService
 {
-    Task<Result<IReadOnlyList<SportDto>>> GetSportsAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Globale Sportarten plus vereinsspezifische Sportarten der Vereine,
+    /// in denen der Nutzer Trainer oder aktives Mitglied ist. Für nicht
+    /// eingeloggte Aufrufe (userId=null) nur globale Sportarten.
+    /// </summary>
+    Task<Result<IReadOnlyList<SportDto>>> GetSportsAsync(Guid? userId = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Erstellt eine neue Sportart. Globaler Katalog nur für Admins;
+    /// vereinsspezifische Sportarten für zugewiesene Vereinstrainer.
+    /// </summary>
+    Task<Result<SportDto>> CreateSportAsync(Guid actingUserId, bool isAdmin, CreateSportRequest request, CancellationToken ct = default);
 
     /// <summary>
     /// Liefert globale Übungen plus vereinsspezifische Übungen der Vereine,

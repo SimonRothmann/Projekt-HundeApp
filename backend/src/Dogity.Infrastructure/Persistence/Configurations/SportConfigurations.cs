@@ -11,7 +11,10 @@ public class SportConfiguration : IEntityTypeConfiguration<Sport>
         builder.ToTable("sports");
         builder.Property(s => s.Code).HasMaxLength(30).IsRequired();
         builder.Property(s => s.Name).HasMaxLength(100).IsRequired();
-        builder.HasIndex(s => s.Code).IsUnique();
+        // Code eindeutig im Scope einer ClubId - so kann jeder Verein einen
+        // "GRUNDLAGEN"-Code haben, ohne mit dem globalen Katalog zu kollidieren.
+        builder.HasIndex(s => new { s.Code, s.ClubId }).IsUnique();
+        builder.HasIndex(s => s.ClubId);
     }
 }
 
@@ -55,10 +58,14 @@ public class ExerciseConfiguration : IEntityTypeConfiguration<Exercise>
         builder.Property(e => e.Category).HasMaxLength(100);
         builder.Property(e => e.ScoringCriteria).HasMaxLength(1000);
 
+        // SportId ist optional (siehe Exercise.SportId-Kommentar). SetNull statt
+        // Cascade: eine gelöschte Sportart lässt bestehende Übungen unangetastet
+        // und stellt sie damit als "sportartlose" Übungen dar, statt sie
+        // ungewollt gleich mit zu löschen.
         builder.HasOne(e => e.Sport)
             .WithMany(s => s.Exercises)
             .HasForeignKey(e => e.SportId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull);
 
         // Kein DB-Fremdschlüssel zu Club (anderes Modul, siehe Community) -
         // analog zu anderen modulübergreifenden Guid-Referenzen wie

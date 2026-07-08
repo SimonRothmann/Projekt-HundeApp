@@ -2,11 +2,13 @@ using Dogity.Domain.Sports;
 
 namespace Dogity.Application.Sports;
 
-public record SportDto(Guid Id, string Code, string Name, string? Description);
+public record SportDto(Guid Id, string Code, string Name, string? Description, Guid? ClubId);
+
+public record CreateSportRequest(string Code, string Name, string? Description, Guid? ClubId);
 
 public record ExerciseDto(
     Guid Id,
-    Guid SportId,
+    Guid? SportId,
     string Name,
     string? Description,
     ExerciseDifficulty Difficulty,
@@ -15,7 +17,7 @@ public record ExerciseDto(
     Guid? ClubId);
 
 public record CreateExerciseRequest(
-    Guid SportId,
+    Guid? SportId,
     string Name,
     string? Description,
     ExerciseDifficulty Difficulty,

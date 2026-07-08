@@ -50,6 +50,20 @@ public class AdminController(IAdminService adminService, IClubService clubServic
         return FromResult(result);
     }
 
+    [HttpPost("clubs/{id:guid}/members")]
+    public async Task<IActionResult> AddClubMember(Guid id, AssignClubMemberRequest request, CancellationToken ct)
+    {
+        var result = await clubService.AddMemberAsync(id, request, ct);
+        return FromResult(result);
+    }
+
+    [HttpDelete("clubs/{id:guid}/members/{userId:guid}")]
+    public async Task<IActionResult> RemoveClubMember(Guid id, Guid userId, CancellationToken ct)
+    {
+        var result = await clubService.RemoveMemberAsync(id, userId, ct);
+        return FromResult(result);
+    }
+
     [HttpGet("stats")]
     public async Task<ActionResult<AdminStatsDto>> GetStats(CancellationToken ct)
     {

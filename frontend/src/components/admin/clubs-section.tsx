@@ -19,6 +19,7 @@ export function ClubsSection() {
   const [expandedClubId, setExpandedClubId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ClubDetail | null>(null);
   const [trainerEmail, setTrainerEmail] = useState("");
+  const [memberEmail, setMemberEmail] = useState("");
 
   async function loadClubs() {
     try {
@@ -90,6 +91,45 @@ export function ClubsSection() {
       await loadClubs();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Entfernen fehlgeschlagen.");
+    }
+  }
+
+  async function handleAddMember(clubId: string, e: React.FormEvent) {
+    e.preventDefault();
+    if (!memberEmail.trim()) return;
+    try {
+      await api.post(`/api/admin/clubs/${clubId}/members`, { email: memberEmail });
+      toast.success("Mitglied hinzugefügt.");
+      setMemberEmail("");
+      const data = await api.get<ClubDetail>(`/api/admin/clubs/${clubId}`);
+      setDetail(data);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Zuweisung fehlgeschlagen.");
+    }
+  }
+
+  async function handleRemoveMember(clubId: string, userId: string) {
+    try {
+      await api.delete(`/api/admin/clubs/${clubId}/members/${userId}`);
+      toast.success("Mitglied entfernt.");
+      const data = await api.get<ClubDetail>(`/api/admin/clubs/${clubId}`);
+      setDetail(data);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Entfernen fehlgeschlagen.");
+    }
+  }
+
+  async function handlePromoteMember(clubId: string, userEmail: string) {
+    // Beförderung zum Trainer: wir nutzen den bestehenden Trainer-Assign-
+    // Endpoint, der eine E-Mail entgegennimmt.
+    try {
+      await api.post(`/api/admin/clubs/${clubId}/trainers`, { email: userEmail });
+      toast.success("Mitglied zum Trainer befördert.");
+      const data = await api.get<ClubDetail>(`/api/admin/clubs/${clubId}`);
+      setDetail(data);
+      await loadClubs();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Beförderung fehlgeschlagen.");
     }
   }
 
@@ -166,6 +206,7 @@ export function ClubsSection() {
                           {detail.trainers.map((t) => (
                             <li key={t.userId} className="flex items-center justify-between text-sm">
                               <span>
+                                <Badge variant="secondary" className="mr-2">Trainer</Badge>
                                 {t.firstName} {t.lastName} ({t.email})
                               </span>
                               <Button
@@ -173,6 +214,7 @@ export function ClubsSection() {
                                 size="icon-sm"
                                 variant="ghost"
                                 onClick={() => handleRemoveTrainer(club.id, t.userId)}
+                                title="Trainer-Rolle entfernen"
                               >
                                 <Trash2 className="size-3.5" />
                               </Button>
@@ -180,6 +222,55 @@ export function ClubsSection() {
                           ))}
                         </ul>
                       )}
+
+                      <div className="border-t pt-3">
+                        <form onSubmit={(e) => handleAddMember(club.id, e)} className="flex gap-2">
+                          <Input
+                            type="email"
+                            placeholder="mitglied@example.com"
+                            value={memberEmail}
+                            onChange={(e) => setMemberEmail(e.target.value)}
+                            required
+                          />
+                          <Button type="submit" size="sm" variant="outline">
+                            <UserPlus className="size-4" />
+                            Mitglied hinzufügen
+                          </Button>
+                        </form>
+                        {detail.members.length === 0 ? (
+                          <p className="mt-2 text-sm text-muted-foreground">Noch keine Mitglieder.</p>
+                        ) : (
+                          <ul className="mt-2 flex flex-col gap-1">
+                            {detail.members.map((m) => (
+                              <li key={m.userId} className="flex items-center justify-between text-sm">
+                                <span>
+                                  {m.firstName} {m.lastName} ({m.email})
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handlePromoteMember(club.id, m.email)}
+                                    title="Zum Trainer befördern"
+                                  >
+                                    Zum Trainer
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="icon-sm"
+                                    variant="ghost"
+                                    onClick={() => handleRemoveMember(club.id, m.userId)}
+                                    title="Aus Verein entfernen"
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                     </div>
                   )}
                 </li>

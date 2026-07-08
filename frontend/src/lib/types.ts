@@ -24,13 +24,14 @@ export type Sport = {
   code: string;
   name: string;
   description: string | null;
+  clubId: string | null;
 };
 
 export type ExerciseDifficulty = 0 | 1 | 2; // 0 = Beginner, 1 = Intermediate, 2 = Advanced (siehe Domain.Sports.ExerciseDifficulty)
 
 export type Exercise = {
   id: string;
-  sportId: string;
+  sportId: string | null;
   name: string;
   description: string | null;
   difficulty: ExerciseDifficulty;
@@ -165,9 +166,20 @@ export type ClubTrainerInfo = {
   assignedAt: string;
 };
 
+export type ClubMemberInfo = {
+  membershipId: string;
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  requestedAt: string;
+  decidedAt: string | null;
+};
+
 export type ClubDetail = {
   club: Club;
   trainers: ClubTrainerInfo[];
+  members: ClubMemberInfo[];
 };
 
 export type GroupMember = {

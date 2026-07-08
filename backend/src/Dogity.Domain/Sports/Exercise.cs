@@ -16,7 +16,15 @@ public enum ExerciseDifficulty
 /// </summary>
 public class Exercise : Entity
 {
-    public Guid SportId { get; set; }
+    /// <summary>
+    /// Optional: eine Übung kann einer Sportart zugeordnet sein (Standardfall,
+    /// z.B. "Fußarbeit" gehört zu IBGH) oder sportartlos existieren (z.B.
+    /// vereinseigene Grundlagen-Übungen wie "Aufmerksamkeit halten", die
+    /// in mehreren Trainings-Kontexten genutzt werden). Sportartlose Übungen
+    /// erscheinen im Trainingstagebuch unter einer eigenen Kategorie
+    /// "Ohne Sportart" statt in einer Sport-Sparte.
+    /// </summary>
+    public Guid? SportId { get; set; }
     public Sport? Sport { get; set; }
 
     public string Name { get; set; } = string.Empty;

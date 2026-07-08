@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Dogity.Application.Sports;
+using Dogity.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +21,24 @@ public class SportsController(ISportCatalogService catalogService) : ControllerB
     [AllowAnonymous]
     public async Task<ActionResult<IReadOnlyList<SportDto>>> GetSports(CancellationToken ct)
     {
-        var result = await catalogService.GetSportsAsync(ct);
+        // Vereinsspezifische Sportarten (Sport.ClubId != null) sind nur für
+        // eingeloggte Nutzer sichtbar, die im entsprechenden Verein Trainer
+        // oder aktives Mitglied sind. Anonyme Aufrufer sehen nur globale.
+        Guid? userId = User.Identity?.IsAuthenticated == true
+            ? Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!)
+            : null;
+        var result = await catalogService.GetSportsAsync(userId, ct);
+        return Ok(result.Value);
+    }
+
+    [HttpPost]
+    [Authorize]
+    public async Task<ActionResult<SportDto>> CreateSport(CreateSportRequest request, CancellationToken ct)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole(Roles.Admin);
+        var result = await catalogService.CreateSportAsync(userId, isAdmin, request, ct);
+        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
         return Ok(result.Value);
     }
 

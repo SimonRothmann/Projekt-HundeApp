@@ -12,9 +12,14 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
         if (string.IsNullOrWhiteSpace(request.Name))
             return Result<ExerciseDto>.Failure("Name ist erforderlich.");
 
-        var sportExists = await db.Sports.AnyAsync(s => s.Id == request.SportId, ct);
-        if (!sportExists)
-            return Result<ExerciseDto>.Failure("Sportart nicht gefunden.");
+        // SportId optional: sportartlose Übungen sind erlaubt (z.B. Grundlagen-
+        // Training, das in mehreren Kontexten genutzt wird).
+        if (request.SportId is { } sportId)
+        {
+            var sportExists = await db.Sports.AnyAsync(s => s.Id == sportId, ct);
+            if (!sportExists)
+                return Result<ExerciseDto>.Failure("Sportart nicht gefunden.");
+        }
 
         var authError = await CheckScopeAuthorizationAsync(actingUserId, isAdmin, request.ClubId, ct);
         if (authError is not null)

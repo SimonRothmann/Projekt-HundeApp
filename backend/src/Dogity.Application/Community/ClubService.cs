@@ -38,14 +38,30 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         if (club is null)
             return Result<ClubDetailDto>.Failure("Verein nicht gefunden.");
 
-        var lookup = await userLookup.FindByIdsAsync(club.Trainers.Select(t => t.UserId).ToList(), ct);
+        var approvedMemberships = await db.ClubMemberships
+            .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Approved)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var userIds = club.Trainers.Select(t => t.UserId)
+            .Concat(approvedMemberships.Select(m => m.UserId))
+            .Distinct()
+            .ToList();
+        var lookup = await userLookup.FindByIdsAsync(userIds, ct);
+
         var trainers = club.Trainers
             .Select(t => lookup.TryGetValue(t.UserId, out var info)
                 ? new ClubTrainerDto(t.UserId, info.Email, info.FirstName, info.LastName, t.CreatedAt)
                 : new ClubTrainerDto(t.UserId, "(unbekannt)", "", "", t.CreatedAt))
             .ToList();
 
-        var dto = new ClubDetailDto(new ClubDto(club.Id, club.Name, club.Description, trainers.Count, club.Groups.Count), trainers);
+        var members = approvedMemberships
+            .Select(m => lookup.TryGetValue(m.UserId, out var info)
+                ? new ClubMemberDto(m.Id, m.UserId, info.Email, info.FirstName, info.LastName, m.RequestedAt, m.DecidedAt)
+                : new ClubMemberDto(m.Id, m.UserId, "(unbekannt)", "", "", m.RequestedAt, m.DecidedAt))
+            .ToList();
+
+        var dto = new ClubDetailDto(new ClubDto(club.Id, club.Name, club.Description, trainers.Count, club.Groups.Count), trainers, members);
         return Result<ClubDetailDto>.Success(dto);
     }
 
@@ -87,6 +103,63 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             return Result.Failure("Trainer-Zuweisung nicht gefunden.");
 
         entry.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Admin-Weg, ein Mitglied direkt (ohne Beitrittsanfrage-Workflow) in
+    /// einen Verein aufzunehmen. Nutzt dieselbe ClubMembership-Tabelle wie
+    /// der Antrag-Weg, setzt Status aber sofort auf <see cref="ClubMembershipStatus.Approved"/>.
+    /// </summary>
+    public async Task<Result> AddMemberAsync(Guid clubId, AssignClubMemberRequest request, CancellationToken ct = default)
+    {
+        var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
+        if (club is null)
+            return Result.Failure("Verein nicht gefunden.");
+
+        var user = await userLookup.FindByEmailAsync(request.Email, ct);
+        if (user is null)
+            return Result.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
+
+        var existing = await db.ClubMemberships
+            .Where(m => m.ClubId == clubId && m.UserId == user.UserId)
+            .OrderByDescending(m => m.RequestedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (existing is not null && existing.Status == ClubMembershipStatus.Approved)
+            return Result.Failure("Dieser Benutzer ist bereits Mitglied dieses Vereins.");
+
+        if (existing is not null && existing.Status == ClubMembershipStatus.Pending)
+        {
+            // Bestehende Anfrage direkt genehmigen statt eine zweite Zeile anzulegen.
+            existing.Status = ClubMembershipStatus.Approved;
+            existing.DecidedAt = DateTimeOffset.UtcNow;
+        }
+        else
+        {
+            db.ClubMemberships.Add(new ClubMembership
+            {
+                ClubId = clubId,
+                UserId = user.UserId,
+                Status = ClubMembershipStatus.Approved,
+                DecidedAt = DateTimeOffset.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync(ct);
+        await notifications.CreateAsync(user.UserId, $"Du wurdest zum Verein \"{club.Name}\" hinzugefügt.", "/clubs", ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> RemoveMemberAsync(Guid clubId, Guid userId, CancellationToken ct = default)
+    {
+        var membership = await db.ClubMemberships
+            .FirstOrDefaultAsync(m => m.ClubId == clubId && m.UserId == userId && m.Status == ClubMembershipStatus.Approved, ct);
+        if (membership is null)
+            return Result.Failure("Mitgliedschaft nicht gefunden.");
+
+        membership.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }

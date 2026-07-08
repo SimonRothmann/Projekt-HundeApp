@@ -6,11 +6,12 @@ public record ClubDto(Guid Id, string Name, string? Description, int TrainerCoun
 
 public record ClubTrainerDto(Guid UserId, string Email, string FirstName, string LastName, DateTimeOffset AssignedAt);
 
-public record ClubDetailDto(ClubDto Club, IReadOnlyList<ClubTrainerDto> Trainers);
+public record ClubDetailDto(ClubDto Club, IReadOnlyList<ClubTrainerDto> Trainers, IReadOnlyList<ClubMemberDto> Members);
 
 public record CreateClubRequest(string Name, string? Description);
 
 public record AssignClubTrainerRequest(string Email);
+public record AssignClubMemberRequest(string Email);
 
 /// <summary>Schlanke, für jeden eingeloggten User browsbare Vereinsliste ohne Trainer-/Gruppendetails.</summary>
 public record ClubSummaryDto(Guid Id, string Name, string? Description);

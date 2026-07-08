@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Domain.Sports;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Sports;
@@ -24,14 +25,51 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
         return Result<IReadOnlyList<ExerciseDto>>.Success(exercises);
     }
 
-    public async Task<Result<IReadOnlyList<SportDto>>> GetSportsAsync(CancellationToken ct = default)
+    public async Task<Result<IReadOnlyList<SportDto>>> GetSportsAsync(Guid? userId = null, CancellationToken ct = default)
     {
+        IReadOnlyCollection<Guid> visibleClubIds = userId is { } uid
+            ? await db.GetVisibleClubIdsAsync(uid, ct)
+            : Array.Empty<Guid>();
+
         var sports = await db.Sports
+            .Where(s => s.ClubId == null || visibleClubIds.Contains(s.ClubId.Value))
             .OrderBy(s => s.Name)
-            .Select(s => new SportDto(s.Id, s.Code, s.Name, s.Description))
+            .Select(s => new SportDto(s.Id, s.Code, s.Name, s.Description, s.ClubId))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<SportDto>>.Success(sports);
+    }
+
+    public async Task<Result<SportDto>> CreateSportAsync(Guid actingUserId, bool isAdmin, CreateSportRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Code) || string.IsNullOrWhiteSpace(request.Name))
+            return Result<SportDto>.Failure("Code und Name sind erforderlich.");
+
+        if (request.ClubId is null)
+        {
+            if (!isAdmin) return Result<SportDto>.Failure("Nur Admins dürfen globale Sportarten anlegen.");
+        }
+        else
+        {
+            var isClubTrainer = await db.IsClubTrainerAsync(actingUserId, request.ClubId.Value, ct);
+            if (!isClubTrainer) return Result<SportDto>.Failure("Du bist für diesen Verein nicht als Trainer eingetragen.");
+        }
+
+        var code = request.Code.Trim();
+        var codeTaken = await db.Sports.AnyAsync(s => s.Code == code && s.ClubId == request.ClubId, ct);
+        if (codeTaken) return Result<SportDto>.Failure("Ein Sportart-Code muss innerhalb seines Sichtbarkeitsbereichs eindeutig sein.");
+
+        var sport = new Sport
+        {
+            Code = code,
+            Name = request.Name.Trim(),
+            Description = request.Description,
+            ClubId = request.ClubId,
+        };
+        db.Sports.Add(sport);
+        await db.SaveChangesAsync(ct);
+
+        return Result<SportDto>.Success(new SportDto(sport.Id, sport.Code, sport.Name, sport.Description, sport.ClubId));
     }
 
     public async Task<Result<IReadOnlyList<RegulationDto>>> GetRegulationsAsync(Guid sportId, CancellationToken ct = default)

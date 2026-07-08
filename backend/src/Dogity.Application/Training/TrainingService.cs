@@ -1,6 +1,7 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Application.Notifications;
+using Dogity.Domain.Community;
 using Dogity.Domain.Training;
 using Microsoft.EntityFrameworkCore;
 
@@ -142,9 +143,22 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
     public async Task<Result<IReadOnlyList<PendingFeedbackDto>>> GetPendingFeedbackAsync(Guid trainerId, CancellationToken ct = default)
     {
+        // Trainer sieht offenes Feedback ausschließlich für Hunde von aktiven
+        // Mitgliedern SEINER Gruppen. Die zusätzliche Berücksichtigung von
+        // TrainerAssignments (direkte Hund-Trainer-Zuweisung) bleibt erhalten
+        // - so kann ein Trainer auch außerhalb einer Gruppen-Struktur einzelne
+        // Hunde betreuen (siehe DogService.AssignTrainer).
+        var groupMemberUserIds = db.Groups
+            .Where(g => g.TrainerId == trainerId)
+            .SelectMany(g => g.Members
+                .Where(m => m.Status == GroupMemberStatus.Active)
+                .Select(m => m.UserId));
+
         var sessions = await db.TrainingSessions
             .Where(s => s.TrainerFeedback == null)
-            .Where(s => db.TrainerAssignments.Any(t => t.DogId == s.DogId && t.TrainerId == trainerId))
+            .Where(s =>
+                db.DogOwners.Any(o => o.DogId == s.DogId && groupMemberUserIds.Contains(o.UserId)) ||
+                db.TrainerAssignments.Any(t => t.DogId == s.DogId && t.TrainerId == trainerId))
             .Join(db.Dogs, s => s.DogId, d => d.Id, (s, d) => new { s.Id, s.DogId, DogName = d.Name, s.UserId, s.Date, s.DurationMinutes })
             .OrderBy(s => s.Date)
             .AsNoTracking()
