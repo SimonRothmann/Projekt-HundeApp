@@ -106,17 +106,28 @@ export function GoalsSection({
   // Trainingstagebuch-Freitext.
   const [addItemUseFreeText, setAddItemUseFreeText] = useState(false);
   const [addItemTarget, setAddItemTarget] = useState(2);
+  // "inline" = Formular klappt unter der jeweiligen Woche auf, Woche-Feld
+  // wird ausgeblendet (der Nutzer hat die Woche schon durch den Klick
+  // ausgewählt). "central" = zentraler "+ Übung hinzufügen"-Button unter
+  // dem gesamten Plan, mit freier Woche-Wahl - relevant für Wochen, die
+  // noch gar keinen Eintrag haben (typisch: individueller Plan startet leer).
+  const [addItemLocation, setAddItemLocation] = useState<"central" | "inline">("central");
   const [isAddingItem, setIsAddingItem] = useState(false);
 
-  async function openAddItem(goal: Goal) {
-    const isOpening = addItemGoalId !== goal.id;
-    setAddItemGoalId(isOpening ? goal.id : null);
-    setAddItemWeek(1);
+  async function openAddItem(goal: Goal, location: "central" | "inline" = "central", week = 1) {
+    const isSame = addItemGoalId === goal.id && addItemLocation === location && addItemWeek === week;
+    if (isSame) {
+      setAddItemGoalId(null);
+      return;
+    }
+    setAddItemGoalId(goal.id);
+    setAddItemLocation(location);
+    setAddItemWeek(week);
     setAddItemExerciseId("");
     setAddItemFreeText("");
     setAddItemUseFreeText(false);
     setAddItemTarget(2);
-    if (isOpening) await ensureExercisesLoaded(goal.sportId);
+    await ensureExercisesLoaded(goal.sportId);
   }
 
   async function submitAddItem(goal: Goal) {
@@ -425,7 +436,21 @@ export function GoalsSection({
                   <div className="flex flex-col gap-3">
                     {groupByWeek(goal.trainingPlan.items).map(([weekNumber, items]) => (
                       <div key={weekNumber} className="flex flex-col gap-1.5 rounded-md border p-2.5">
-                        <span className="text-xs font-medium text-muted-foreground">KW {weekNumber}</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">KW {weekNumber}</span>
+                          {goal.status === 0 && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => openAddItem(goal, "inline", weekNumber)}
+                            >
+                              <Plus className="size-3" />
+                              Übung
+                            </Button>
+                          )}
+                        </div>
                         {items[0].isRestWeek ? (
                           <span className="text-sm text-muted-foreground">Pause</span>
                         ) : (
@@ -578,6 +603,10 @@ export function GoalsSection({
                             </div>
                           ))
                         )}
+                        {addItemGoalId === goal.id &&
+                          addItemLocation === "inline" &&
+                          addItemWeek === weekNumber &&
+                          renderAddItemForm(goal, { showWeekField: false })}
                       </div>
                     ))}
                   </div>
@@ -590,91 +619,15 @@ export function GoalsSection({
                       size="sm"
                       variant="outline"
                       className="self-start"
-                      onClick={() => openAddItem(goal)}
+                      onClick={() => openAddItem(goal, "central", 1)}
                     >
                       <Plus className="size-4" />
-                      Übung hinzufügen
+                      Übung hinzufügen (freie Woche)
                     </Button>
 
-                    {addItemGoalId === goal.id && (
-                      <div className="flex flex-col gap-3 rounded-md border p-3">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            className="size-4 accent-primary"
-                            checked={addItemUseFreeText}
-                            onChange={(e) => setAddItemUseFreeText(e.target.checked)}
-                          />
-                          <span>Freitext-Übung (nicht aus dem Katalog)</span>
-                        </label>
-                        <div className="grid gap-3 sm:grid-cols-3">
-                          <div className="flex flex-col gap-2">
-                            <Label>Woche</Label>
-                            <Input
-                              type="number"
-                              min={1}
-                              max={12}
-                              value={addItemWeek}
-                              onChange={(e) => setAddItemWeek(Number(e.target.value))}
-                            />
-                          </div>
-                          <div className="flex flex-col gap-2 sm:col-span-1">
-                            <Label>{addItemUseFreeText ? "Freitext" : "Übung"}</Label>
-                            {addItemUseFreeText ? (
-                              <Input
-                                value={addItemFreeText}
-                                onChange={(e) => setAddItemFreeText(e.target.value)}
-                                placeholder="z.B. Kopfarbeit ausprobieren"
-                                maxLength={150}
-                              />
-                            ) : (
-                              <Select
-                                value={addItemExerciseId}
-                                onValueChange={(value) => setAddItemExerciseId(value ?? "")}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Auswählen…" />
-                                </SelectTrigger>
-                                {/* max-h-[60vh] als Sicherheitsnetz zum
-                                    UI-Default (max-h aus --available-height):
-                                    Base-UI errechnet available-height aus der
-                                    Trigger-Position im Viewport; bei einem
-                                    weit unten sitzenden Trigger auf iOS
-                                    Safari wird das schnell zu klein für den
-                                    Scroll-Rand, das Feld wird scheinbar
-                                    "nicht scrollbar". 60 vh + touch-pan-y
-                                    ist bequem und funktioniert überall. */}
-                                <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
-                                  {(exercisesBySport[goal.sportId] ?? []).map((ex) => (
-                                    <SelectItem key={ex.id} value={ex.id}>
-                                      {ex.name} ({difficultyLabel[ex.difficulty]})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label>Zielwert (x diese Woche)</Label>
-                            <Input
-                              type="number"
-                              min={1}
-                              max={10}
-                              value={addItemTarget}
-                              onChange={(e) => setAddItemTarget(Number(e.target.value))}
-                            />
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button type="button" size="sm" disabled={isAddingItem} onClick={() => submitAddItem(goal)}>
-                            {isAddingItem ? "Wird hinzugefügt…" : "Hinzufügen"}
-                          </Button>
-                          <Button type="button" size="sm" variant="ghost" onClick={() => setAddItemGoalId(null)}>
-                            Abbrechen
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                    {addItemGoalId === goal.id &&
+                      addItemLocation === "central" &&
+                      renderAddItemForm(goal, { showWeekField: true })}
 
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => updateStatus(goal.id, 1)}>
@@ -705,4 +658,90 @@ export function GoalsSection({
       )}
     </div>
   );
+
+  /**
+   * Wiederverwendbares Formular zum Anlegen eines Plan-Items. Wird sowohl
+   * zentral (mit Woche-Feld, unter dem Plan) als auch inline pro Woche
+   * (ohne Woche-Feld) gerendert - genau ein Ort ist gleichzeitig sichtbar,
+   * gesteuert über `addItemGoalId + addItemLocation + addItemWeek`.
+   */
+  function renderAddItemForm(goal: Goal, options: { showWeekField: boolean }) {
+    return (
+      <div className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="size-4 accent-primary"
+            checked={addItemUseFreeText}
+            onChange={(e) => setAddItemUseFreeText(e.target.checked)}
+          />
+          <span>Freitext-Übung (nicht aus dem Katalog)</span>
+        </label>
+        <div className={cn("grid gap-3", options.showWeekField ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+          {options.showWeekField && (
+            <div className="flex flex-col gap-2">
+              <Label>Woche</Label>
+              <Input
+                type="number"
+                min={1}
+                max={12}
+                value={addItemWeek}
+                onChange={(e) => setAddItemWeek(Number(e.target.value))}
+              />
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <Label>{addItemUseFreeText ? "Freitext" : "Übung"}</Label>
+            {addItemUseFreeText ? (
+              <Input
+                value={addItemFreeText}
+                onChange={(e) => setAddItemFreeText(e.target.value)}
+                placeholder="z.B. Kopfarbeit ausprobieren"
+                maxLength={150}
+                autoFocus
+              />
+            ) : (
+              <Select value={addItemExerciseId} onValueChange={(value) => setAddItemExerciseId(value ?? "")}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Auswählen…" />
+                </SelectTrigger>
+                {/* max-h-[60vh] als Sicherheitsnetz zum UI-Default
+                    (max-h aus --available-height): Base-UI errechnet
+                    available-height aus der Trigger-Position im Viewport;
+                    bei einem weit unten sitzenden Trigger auf iOS Safari
+                    wird das schnell zu klein für den Scroll-Rand, das
+                    Feld wird scheinbar "nicht scrollbar". 60vh +
+                    touch-pan-y ist bequem und funktioniert überall. */}
+                <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
+                  {(exercisesBySport[goal.sportId] ?? []).map((ex) => (
+                    <SelectItem key={ex.id} value={ex.id}>
+                      {ex.name} ({difficultyLabel[ex.difficulty]})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Zielwert (x diese Woche)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={10}
+              value={addItemTarget}
+              onChange={(e) => setAddItemTarget(Number(e.target.value))}
+            />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" size="sm" disabled={isAddingItem} onClick={() => submitAddItem(goal)}>
+            {isAddingItem ? "Wird hinzugefügt…" : "Hinzufügen"}
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setAddItemGoalId(null)}>
+            Abbrechen
+          </Button>
+        </div>
+      </div>
+    );
+  }
 }
