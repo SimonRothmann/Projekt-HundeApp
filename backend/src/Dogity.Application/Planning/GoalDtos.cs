@@ -60,10 +60,13 @@ public record UpdateGoalStatusRequest(GoalStatus Status);
 public record AddTrainingPlanItemRequest(int WeekNumber, Guid? ExerciseId, string? FreeTextLabel, int RepetitionsTarget);
 
 /// <summary>
-/// Übung des Plan-Ziels bleibt bewusst unveränderlich (Entfernen + neu
-/// Hinzufügen, falls eine andere Übung gewünscht ist) - ein bereits
-/// verknüpfter Tagebucheintrag (TrainingExercise.TrainingPlanItemId)
-/// bezieht sich sonst plötzlich auf eine andere Übung als ursprünglich
-/// geloggt.
+/// Übung / Freitext / Woche / Zielwert eines Plan-Ziels bearbeiten. Genau
+/// eines von <paramref name="ExerciseId"/> oder <paramref name="FreeTextLabel"/>
+/// muss gesetzt sein. Bereits verknüpfte Tagebucheinträge
+/// (TrainingExercise.TrainingPlanItemId) bleiben auf dem Plan-Item bestehen -
+/// ihr Fortschritt zählt danach für die neue Übung. Das ist bewusst so:
+/// eine Umbenennung "Sitz" → "Sitz-Distanz" darf den bisherigen Fortschritt
+/// nicht auf null zurücksetzen. Ein echter Wechsel der Übungssemantik sollte
+/// als "altes Item entfernen + neues anlegen" gemacht werden.
 /// </summary>
-public record UpdateTrainingPlanItemRequest(int WeekNumber, int RepetitionsTarget);
+public record UpdateTrainingPlanItemRequest(int WeekNumber, Guid? ExerciseId, string? FreeTextLabel, int RepetitionsTarget);

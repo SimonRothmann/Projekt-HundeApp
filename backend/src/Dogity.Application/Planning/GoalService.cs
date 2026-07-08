@@ -185,6 +185,11 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         if (request.RepetitionsTarget < 1)
             return Result<GoalDto>.Failure("Zielwert muss mindestens 1 sein.");
 
+        var hasExercise = request.ExerciseId is not null;
+        var hasFreeText = !string.IsNullOrWhiteSpace(request.FreeTextLabel);
+        if (hasExercise == hasFreeText)
+            return Result<GoalDto>.Failure("Entweder eine Übung ODER einen Freitext angeben.");
+
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
         if (goal is null)
             return Result<GoalDto>.Failure("Ziel nicht gefunden.");
@@ -195,8 +200,19 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         if (item.IsRestWeek)
             return Result<GoalDto>.Failure("Eine Pausenwoche kann nicht bearbeitet werden.");
 
+        if (request.ExerciseId is { } exerciseId)
+        {
+            // Zielsport-Konsistenz nur bei Katalog-Übung; Freitext hat keinen
+            // Sport-Bezug.
+            var exerciseBelongsToSport = await db.Exercises.AnyAsync(e => e.Id == exerciseId && e.SportId == goal.SportId, ct);
+            if (!exerciseBelongsToSport)
+                return Result<GoalDto>.Failure("Übung gehört nicht zur Sportart dieses Ziels.");
+        }
+
         item.WeekNumber = request.WeekNumber;
         item.RepetitionsTarget = request.RepetitionsTarget;
+        item.ExerciseId = request.ExerciseId;
+        item.FreeTextLabel = hasFreeText ? request.FreeTextLabel!.Trim() : null;
         await db.SaveChangesAsync(ct);
 
         return await GetByIdAsync(userId, goalId, ct);

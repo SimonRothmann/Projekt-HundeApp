@@ -168,26 +168,46 @@ export function GoalsSection({
     }
   }
 
-  // Woche/Zielwert eines bestehenden Plan-Ziels anpassen - bewusst ohne die
-  // Übung selbst änderbar zu machen, sonst würden bereits verknüpfte
-  // Tagebucheinträge plötzlich zu einer anderen Übung gehören. Für eine
-  // andere Übung: Eintrag entfernen und neu hinzufügen.
+  // Bestehendes Plan-Ziel bearbeiten: Woche, Zielwert UND Übung (bzw.
+  // Freitext) sind änderbar. Bereits verknüpfte Tagebucheinträge zählen
+  // dann für die neue Übung weiter - für einen "sauberen" Wechsel der
+  // Übungssemantik: altes Item entfernen und neues anlegen.
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const [editItemWeek, setEditItemWeek] = useState(1);
   const [editItemTarget, setEditItemTarget] = useState(2);
+  const [editItemExerciseId, setEditItemExerciseId] = useState("");
+  const [editItemFreeText, setEditItemFreeText] = useState("");
+  const [editItemUseFreeText, setEditItemUseFreeText] = useState(false);
   const [isEditingItem, setIsEditingItem] = useState(false);
 
-  function openEditItem(item: TrainingPlanItem) {
-    setEditItemId((current) => (current === item.id ? null : item.id));
+  async function openEditItem(item: TrainingPlanItem, goal: Goal) {
+    const isSame = editItemId === item.id;
+    setEditItemId(isSame ? null : item.id);
+    if (isSame) return;
     setEditItemWeek(item.weekNumber);
     setEditItemTarget(item.repetitionsTarget);
+    setEditItemExerciseId(item.exerciseId ?? "");
+    setEditItemFreeText(item.freeTextLabel ?? "");
+    setEditItemUseFreeText(item.freeTextLabel !== null);
+    await ensureExercisesLoaded(goal.sportId);
   }
 
   async function submitEditItem(goal: Goal, itemId: string) {
+    if (editItemUseFreeText) {
+      if (!editItemFreeText.trim()) {
+        toast.error("Freitext eingeben.");
+        return;
+      }
+    } else if (!editItemExerciseId) {
+      toast.error("Übung auswählen.");
+      return;
+    }
     setIsEditingItem(true);
     try {
       await api.put(`/api/goals/${goal.id}/plan-items/${itemId}`, {
         weekNumber: editItemWeek,
+        exerciseId: editItemUseFreeText ? null : editItemExerciseId,
+        freeTextLabel: editItemUseFreeText ? editItemFreeText.trim() : null,
         repetitionsTarget: editItemTarget,
       });
       toast.success("Plan-Ziel aktualisiert.");
@@ -486,8 +506,8 @@ export function GoalsSection({
                                     type="button"
                                     variant="ghost"
                                     size="icon-xs"
-                                    onClick={() => openEditItem(item)}
-                                    title="Woche/Zielwert bearbeiten"
+                                    onClick={() => openEditItem(item, goal)}
+                                    title="Übung, Woche oder Zielwert bearbeiten"
                                   >
                                     <Pencil className="size-3.5 text-muted-foreground" />
                                   </Button>
@@ -504,6 +524,44 @@ export function GoalsSection({
                               </div>
                               {editItemId === item.id && (
                                 <div className="ml-6 flex flex-col gap-2 rounded-md border bg-muted/40 p-2.5">
+                                  <label className="flex items-center gap-2 text-xs">
+                                    <input
+                                      type="checkbox"
+                                      className="size-3.5 accent-primary"
+                                      checked={editItemUseFreeText}
+                                      onChange={(e) => setEditItemUseFreeText(e.target.checked)}
+                                    />
+                                    <span>Freitext-Übung</span>
+                                  </label>
+                                  <div className="flex flex-col gap-1">
+                                    <Label className="text-xs">
+                                      {editItemUseFreeText ? "Freitext" : "Übung"}
+                                    </Label>
+                                    {editItemUseFreeText ? (
+                                      <Input
+                                        value={editItemFreeText}
+                                        onChange={(e) => setEditItemFreeText(e.target.value)}
+                                        placeholder="z.B. Kopfarbeit ausprobieren"
+                                        maxLength={150}
+                                      />
+                                    ) : (
+                                      <Select
+                                        value={editItemExerciseId}
+                                        onValueChange={(v) => setEditItemExerciseId(v ?? "")}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Auswählen…" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
+                                          {(exercisesBySport[goal.sportId] ?? []).map((ex) => (
+                                            <SelectItem key={ex.id} value={ex.id}>
+                                              {ex.name} ({difficultyLabel[ex.difficulty]})
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                  </div>
                                   <div className="grid grid-cols-2 gap-2">
                                     <div className="flex flex-col gap-1">
                                       <Label className="text-xs">Woche</Label>
