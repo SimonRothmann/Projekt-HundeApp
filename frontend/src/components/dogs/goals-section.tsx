@@ -100,6 +100,11 @@ export function GoalsSection({
   const [addItemGoalId, setAddItemGoalId] = useState<string | null>(null);
   const [addItemWeek, setAddItemWeek] = useState(1);
   const [addItemExerciseId, setAddItemExerciseId] = useState("");
+  const [addItemFreeText, setAddItemFreeText] = useState("");
+  // Toggle "Freitext statt Katalog-Übung": nützlich für spontane Wochenziele,
+  // die nicht als eigene Katalog-Übung angelegt werden sollen. Analog zum
+  // Trainingstagebuch-Freitext.
+  const [addItemUseFreeText, setAddItemUseFreeText] = useState(false);
   const [addItemTarget, setAddItemTarget] = useState(2);
   const [isAddingItem, setIsAddingItem] = useState(false);
 
@@ -108,12 +113,19 @@ export function GoalsSection({
     setAddItemGoalId(isOpening ? goal.id : null);
     setAddItemWeek(1);
     setAddItemExerciseId("");
+    setAddItemFreeText("");
+    setAddItemUseFreeText(false);
     setAddItemTarget(2);
     if (isOpening) await ensureExercisesLoaded(goal.sportId);
   }
 
   async function submitAddItem(goal: Goal) {
-    if (!addItemExerciseId) {
+    if (addItemUseFreeText) {
+      if (!addItemFreeText.trim()) {
+        toast.error("Freitext eingeben.");
+        return;
+      }
+    } else if (!addItemExerciseId) {
       toast.error("Übung auswählen.");
       return;
     }
@@ -121,7 +133,8 @@ export function GoalsSection({
     try {
       await api.post(`/api/goals/${goal.id}/plan-items`, {
         weekNumber: addItemWeek,
-        exerciseId: addItemExerciseId,
+        exerciseId: addItemUseFreeText ? null : addItemExerciseId,
+        freeTextLabel: addItemUseFreeText ? addItemFreeText.trim() : null,
         repetitionsTarget: addItemTarget,
       });
       toast.success("Übung zum Plan hinzugefügt.");
@@ -431,9 +444,14 @@ export function GoalsSection({
                                   )}
                                   <span className="flex min-w-0 flex-col">
                                     <span className={cn("break-words", item.isComplete && "text-muted-foreground line-through")}>
-                                      {item.exerciseName}
+                                      {item.exerciseName ?? item.freeTextLabel}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
+                                      {item.freeTextLabel && !item.exerciseName && (
+                                        <span className="mr-1 rounded bg-muted px-1 py-0.5 text-[10px] uppercase tracking-wide">
+                                          Freitext
+                                        </span>
+                                      )}
                                       {item.completedCount}/{item.repetitionsTarget}x erledigt
                                     </span>
                                   </span>
@@ -580,6 +598,15 @@ export function GoalsSection({
 
                     {addItemGoalId === goal.id && (
                       <div className="flex flex-col gap-3 rounded-md border p-3">
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            className="size-4 accent-primary"
+                            checked={addItemUseFreeText}
+                            onChange={(e) => setAddItemUseFreeText(e.target.checked)}
+                          />
+                          <span>Freitext-Übung (nicht aus dem Katalog)</span>
+                        </label>
                         <div className="grid gap-3 sm:grid-cols-3">
                           <div className="flex flex-col gap-2">
                             <Label>Woche</Label>
@@ -591,20 +618,41 @@ export function GoalsSection({
                               onChange={(e) => setAddItemWeek(Number(e.target.value))}
                             />
                           </div>
-                          <div className="flex flex-col gap-2">
-                            <Label>Übung</Label>
-                            <Select value={addItemExerciseId} onValueChange={(value) => setAddItemExerciseId(value ?? "")}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Auswählen…" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {(exercisesBySport[goal.sportId] ?? []).map((ex) => (
-                                  <SelectItem key={ex.id} value={ex.id}>
-                                    {ex.name} ({difficultyLabel[ex.difficulty]})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                          <div className="flex flex-col gap-2 sm:col-span-1">
+                            <Label>{addItemUseFreeText ? "Freitext" : "Übung"}</Label>
+                            {addItemUseFreeText ? (
+                              <Input
+                                value={addItemFreeText}
+                                onChange={(e) => setAddItemFreeText(e.target.value)}
+                                placeholder="z.B. Kopfarbeit ausprobieren"
+                                maxLength={150}
+                              />
+                            ) : (
+                              <Select
+                                value={addItemExerciseId}
+                                onValueChange={(value) => setAddItemExerciseId(value ?? "")}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Auswählen…" />
+                                </SelectTrigger>
+                                {/* max-h-[60vh] als Sicherheitsnetz zum
+                                    UI-Default (max-h aus --available-height):
+                                    Base-UI errechnet available-height aus der
+                                    Trigger-Position im Viewport; bei einem
+                                    weit unten sitzenden Trigger auf iOS
+                                    Safari wird das schnell zu klein für den
+                                    Scroll-Rand, das Feld wird scheinbar
+                                    "nicht scrollbar". 60 vh + touch-pan-y
+                                    ist bequem und funktioniert überall. */}
+                                <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
+                                  {(exercisesBySport[goal.sportId] ?? []).map((ex) => (
+                                    <SelectItem key={ex.id} value={ex.id}>
+                                      {ex.name} ({difficultyLabel[ex.difficulty]})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                           </div>
                           <div className="flex flex-col gap-2">
                             <Label>Zielwert (x diese Woche)</Label>

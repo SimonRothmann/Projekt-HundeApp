@@ -112,6 +112,7 @@ export type TrainingPlanItem = {
   weekNumber: number;
   exerciseId: string | null;
   exerciseName: string | null;
+  freeTextLabel: string | null;
   repetitionsTarget: number;
   isRestWeek: boolean;
   completedCount: number;

@@ -21,6 +21,8 @@ public record TrainingPlanItemDto(
     int WeekNumber,
     Guid? ExerciseId,
     string? ExerciseName,
+    // Freitext-Alternative zu ExerciseId (siehe TrainingPlanItem.FreeTextLabel).
+    string? FreeTextLabel,
     int RepetitionsTarget,
     bool IsRestWeek,
     int CompletedCount,
@@ -49,7 +51,13 @@ public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, Da
 
 public record UpdateGoalStatusRequest(GoalStatus Status);
 
-public record AddTrainingPlanItemRequest(int WeekNumber, Guid ExerciseId, int RepetitionsTarget);
+/// <summary>
+/// Entweder <paramref name="ExerciseId"/> ODER <paramref name="FreeTextLabel"/>
+/// setzen. Freitext-Plan-Items landen ohne Exercise-Referenz im Plan und
+/// tragen auch keinen Fortschritts-Fortschritt aus Tagebucheinträgen (die
+/// verknüpfen sich per PlanItem+ExerciseId).
+/// </summary>
+public record AddTrainingPlanItemRequest(int WeekNumber, Guid? ExerciseId, string? FreeTextLabel, int RepetitionsTarget);
 
 /// <summary>
 /// Übung des Plan-Ziels bleibt bewusst unveränderlich (Entfernen + neu

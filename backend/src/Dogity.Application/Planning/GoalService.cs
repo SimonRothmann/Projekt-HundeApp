@@ -136,15 +136,25 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         if (request.RepetitionsTarget < 1)
             return Result<GoalDto>.Failure("Zielwert muss mindestens 1 sein.");
 
+        var hasExercise = request.ExerciseId is not null;
+        var hasFreeText = !string.IsNullOrWhiteSpace(request.FreeTextLabel);
+        if (hasExercise == hasFreeText)
+            return Result<GoalDto>.Failure("Entweder eine Übung ODER einen Freitext angeben.");
+
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
         if (goal is null)
             return Result<GoalDto>.Failure("Ziel nicht gefunden.");
         if (goal.TrainingPlan is null)
             return Result<GoalDto>.Failure("Dieses Ziel hat keinen Trainingsplan.");
 
-        var exerciseBelongsToSport = await db.Exercises.AnyAsync(e => e.Id == request.ExerciseId && e.SportId == goal.SportId, ct);
-        if (!exerciseBelongsToSport)
-            return Result<GoalDto>.Failure("Übung gehört nicht zur Sportart dieses Ziels.");
+        if (request.ExerciseId is { } exerciseId)
+        {
+            // Nur bei zielbezogenem Plan die Sport-Zugehörigkeit prüfen;
+            // Freitext hat keinen Sport-Bezug.
+            var exerciseBelongsToSport = await db.Exercises.AnyAsync(e => e.Id == exerciseId && e.SportId == goal.SportId, ct);
+            if (!exerciseBelongsToSport)
+                return Result<GoalDto>.Failure("Übung gehört nicht zur Sportart dieses Ziels.");
+        }
 
         // Reinen Pausenwochen-Platzhalter ersetzen, sobald die Woche eine
         // echte Übung bekommt - sonst stünden "Pause" und eine echte Übung
@@ -159,6 +169,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
             TrainingPlanId = goal.TrainingPlan.Id,
             WeekNumber = request.WeekNumber,
             ExerciseId = request.ExerciseId,
+            FreeTextLabel = hasFreeText ? request.FreeTextLabel!.Trim() : null,
             RepetitionsTarget = request.RepetitionsTarget,
             IsRestWeek = false
         });
@@ -342,6 +353,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
                             i.WeekNumber,
                             i.ExerciseId,
                             i.Exercise?.Name,
+                            i.FreeTextLabel,
                             i.RepetitionsTarget,
                             i.IsRestWeek,
                             completedCount,
