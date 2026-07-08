@@ -11,8 +11,17 @@ namespace Dogity.Api.Controllers;
 /// Route je nach ClubId unterschiedliche Rollen erfordert.
 /// </summary>
 [Route("api/exercises")]
-public class ExercisesController(IExerciseManagementService exerciseService) : ApiControllerBase
+public class ExercisesController(
+    IExerciseManagementService exerciseService,
+    ISportCatalogService catalogService) : ApiControllerBase
 {
+    [HttpGet("uncategorized")]
+    public async Task<ActionResult<IReadOnlyList<ExerciseDto>>> GetUncategorized(CancellationToken ct)
+    {
+        var result = await catalogService.GetUncategorizedExercisesAsync(CurrentUserId, ct);
+        return Ok(result.Value);
+    }
+
     [HttpPost]
     public async Task<ActionResult<ExerciseDto>> Create(CreateExerciseRequest request, CancellationToken ct)
     {

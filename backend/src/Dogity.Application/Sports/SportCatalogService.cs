@@ -25,6 +25,18 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
         return Result<IReadOnlyList<ExerciseDto>>.Success(exercises);
     }
 
+    public async Task<Result<IReadOnlyList<ExerciseDto>>> GetUncategorizedExercisesAsync(Guid userId, CancellationToken ct = default)
+    {
+        var visibleClubIds = await db.GetVisibleClubIdsAsync(userId, ct);
+        var exercises = await db.Exercises
+            .Where(e => e.SportId == null)
+            .Where(e => e.ClubId == null || visibleClubIds.Contains(e.ClubId.Value))
+            .OrderBy(e => e.Name)
+            .Select(e => new ExerciseDto(e.Id, e.SportId, e.Name, e.Description, e.Difficulty, e.Category, e.ScoringCriteria, e.ClubId))
+            .ToListAsync(ct);
+        return Result<IReadOnlyList<ExerciseDto>>.Success(exercises);
+    }
+
     public async Task<Result<IReadOnlyList<SportDto>>> GetSportsAsync(Guid? userId = null, CancellationToken ct = default)
     {
         IReadOnlyCollection<Guid> visibleClubIds = userId is { } uid

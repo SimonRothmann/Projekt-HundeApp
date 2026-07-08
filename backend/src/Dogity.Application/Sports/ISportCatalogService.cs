@@ -28,6 +28,13 @@ public interface ISportCatalogService
     /// denen der Nutzer als Trainer oder Gruppenmitglied zugeordnet ist.
     /// </summary>
     Task<Result<IReadOnlyList<ExerciseDto>>> GetExercisesAsync(Guid sportId, Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sportartlose Übungen (SportId = null), gefiltert nach Sichtbarkeit
+    /// wie <see cref="GetExercisesAsync"/> - globale plus vereinsspezifische
+    /// des Nutzers.
+    /// </summary>
+    Task<Result<IReadOnlyList<ExerciseDto>>> GetUncategorizedExercisesAsync(Guid userId, CancellationToken ct = default);
     Task<Result<IReadOnlyList<RegulationDto>>> GetRegulationsAsync(Guid sportId, CancellationToken ct = default);
     Task<Result<RegulationDetailDto>> GetRegulationDetailAsync(Guid regulationId, CancellationToken ct = default);
 }
