@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { Dog, DogOwner, Exercise, Goal, Sport, TrainingSession } from "@/lib/types";
@@ -61,6 +61,7 @@ function emptyRow(): ExerciseRow {
 
 export default function DogDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { user } = useAuth();
 
   const [dog, setDog] = useState<Dog | null>(null);
@@ -83,6 +84,26 @@ export default function DogDetailPage() {
   // Aufgeklappte Monate im Trainingstagebuch. Der neueste Monat wird beim
   // Erstrender automatisch aufgeklappt, ältere bleiben zunächst zu.
   const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
+
+  async function deleteDog() {
+    if (!dog) return;
+    // Doppelte Bestätigung: Hunde-Löschen entfernt Trainings, Fährten, Ziele
+    // und Trainerzuweisungen mit - deutlich schwerwiegender als das Löschen
+    // einer einzelnen Session, deshalb zusätzlich Name-Bestätigung.
+    if (!confirm(`Hund „${dog.name}" wirklich löschen? Alle Trainings, Fährten, Ziele und Trainerzuweisungen werden entfernt.`)) return;
+    const confirmName = prompt(`Zum Bestätigen bitte den Namen des Hundes eingeben: „${dog.name}"`);
+    if (confirmName?.trim() !== dog.name) {
+      if (confirmName !== null) toast.error("Name stimmt nicht - Löschen abgebrochen.");
+      return;
+    }
+    try {
+      await api.delete(`/api/dogs/${id}`);
+      toast.success(`Hund „${dog.name}" gelöscht.`);
+      router.push("/dogs");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+    }
+  }
 
   async function deleteSession(sessionId: string) {
     if (!confirm("Training wirklich löschen? Zugehörige Fährten werden ebenfalls entfernt.")) return;
@@ -283,10 +304,24 @@ export default function DogDetailPage() {
             <p className="text-muted-foreground">{dog.breed ?? "Unbekannte Rasse"}</p>
           </div>
         </div>
-        <Link href={`/dogs/${id}/print`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          <Printer className="size-4" />
-          Drucken / Exportieren
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={`/dogs/${id}/print`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Printer className="size-4" />
+            Drucken / Exportieren
+          </Link>
+          {isOwner && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              onClick={deleteDog}
+              title="Hund löschen"
+            >
+              <Trash2 className="size-4" />
+              <span className="hidden sm:inline">Hund löschen</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       <GoalsSection dogId={id} sports={sports} goals={goals} onChanged={loadAll} />
