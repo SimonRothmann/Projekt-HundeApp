@@ -183,7 +183,8 @@ public static class SportCatalogSeeder
         ],
         Description: "FCI-Internationale Begleithundprüfung Stufe 1 (100 Punkte, bestanden ab 70).\n" +
             "5 Übungen der Unterordnung: Leinenführigkeit (30), Freifolge (30), Absitzen (15), Ablegen (15), Ablage unter Ablenkung (10).\n" +
-            "Voraussetzung: bestandene BH/VT.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 15 Monate.\n" +
             "Hinweis: keine Schussgleichgültigkeitsprüfung, kein Bringen - reine Unterordnungsprüfung."));
 
         await SeedRegulationAsync(db, ibgh2, new RegulationSeed("IBGH2", "2025", new DateOnly(2025, 1, 1),
@@ -199,7 +200,8 @@ public static class SportCatalogSeeder
         Description: "FCI-Internationale Begleithundprüfung Stufe 2 (100 Punkte, bestanden ab 70).\n" +
             "7 Übungen: Leinenführigkeit (20), Freifolge (20), Absitzen (15), Ablegen (15), Bringen (10), Voraussenden (10), Ablage (10).\n" +
             "Neu gegenüber IBGH 1: Bringen auf ebener Erde und Voraussenden mit Hinlegen.\n" +
-            "Voraussetzung: bestandene IBGH 1 oder BH/VT."));
+            "Startvoraussetzung: bestandene FCI-IBGH 1.\n" +
+            "Mindestalter: 15 Monate."));
 
         await SeedRegulationAsync(db, ibgh3, new RegulationSeed("IBGH3", "2025", new DateOnly(2025, 1, 1),
         [
@@ -215,7 +217,8 @@ public static class SportCatalogSeeder
         Description: "FCI-Internationale Begleithundprüfung Stufe 3 - höchste IBGH-Stufe (100 Punkte, bestanden ab 70).\n" +
             "8 Übungen: Freifolge (20), Absitzen (10), Ablegen (10), Steh aus dem Schritt (10), Bringen (15), Bringen über Schrägwand (15), Voraussenden (10), Ablage (10).\n" +
             "Neu gegenüber IBGH 2: Steh aus dem Schritt und Bringen über die 140-cm-Schrägwand; komplette Arbeit ohne Leine.\n" +
-            "Voraussetzung: bestandene IBGH 2 oder BH/VT."));
+            "Startvoraussetzung: bestandene FCI-IBGH 2, FCI-Obedience 1 oder FCI-IGP 1.\n" +
+            "Mindestalter: 15 Monate."));
 
         await SeedRegulationAsync(db, faerte, new RegulationSeed("Fährte A", "2024", new DateOnly(2024, 1, 1),
         [
@@ -274,7 +277,8 @@ public static class SportCatalogSeeder
             "Fährte: Eigenfährte, min. 800 Schritte, 5 Schenkel, 4 Winkel (ca. 90°).\n" +
             "Gegenstände: 3 eigene Gegenstände (je 7 Punkte).\n" +
             "Fährtenalter: min. 90 Minuten - Ausarbeitungszeit: max. 30 Minuten.\n" +
-            "Voraussetzung: bestandene BH/VT."));
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 18 Monate."));
 
         await SeedRegulationAsync(db, faerte, new RegulationSeed("FCI-IFH 2", "2025", new DateOnly(2025, 1, 1),
         [
@@ -287,7 +291,8 @@ public static class SportCatalogSeeder
             "Gegenstände: 4 fremde Gegenstände (3 x 5 + 1 x 6 Punkte).\n" +
             "Fährtenalter: min. 120 Minuten - Ausarbeitungszeit: max. 30 Minuten.\n" +
             "Besonderheit: 2 Verleitungen, 30 Minuten vor dem Ansatz gelegt.\n" +
-            "Voraussetzung: bestandene FCI-IFH 1."));
+            "Startvoraussetzung: bestandene FCI-IFH 1.\n" +
+            "Mindestalter: 19 Monate."));
 
         await SeedRegulationAsync(db, faerte, new RegulationSeed("FCI-IFH 3", "2025", new DateOnly(2025, 1, 1),
         [
@@ -301,7 +306,8 @@ public static class SportCatalogSeeder
             "Gegenstände: 7 fremde Gegenstände (je 3 Punkte).\n" +
             "Fährtenalter: min. 180 Minuten - Ausarbeitungszeit: max. 45 Minuten.\n" +
             "Besonderheit: Verleitungen 30 Minuten vor dem Ansatz.\n" +
-            "Voraussetzung: bestandene FCI-IFH 2."));
+            "Startvoraussetzung: bestandene FCI-IFH 2.\n" +
+            "Mindestalter: 20 Monate."));
 
         var igp1 = await SeedSportAsync(db, "IGP1", "FCI-Internationale Gebrauchshundeprüfung 1",
         [
@@ -470,7 +476,8 @@ public static class SportCatalogSeeder
             "Abteilung B - Unterordnung (100 Punkte): 8 Übungen inkl. Schussgleichgültigkeitsprüfung.\n" +
             "Abteilung C - Schutzdienst (100 Punkte): 5 Übungen, 2 Verstecke beim Revieren.\n" +
             "Bestanden: mindestens 70 Punkte in JEDER Abteilung.\n" +
-            "Voraussetzung: bestandene BH/VT, Mindestalter 18 Monate."));
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 18 Monate."));
 
         await SeedRegulationAsync(db, igp2, new RegulationSeed("FCI-IGP 2", "2025-2", new DateOnly(2025, 2, 1),
         [
@@ -497,7 +504,8 @@ public static class SportCatalogSeeder
             "Abteilung B - Unterordnung (100 Punkte): 9 Übungen, zusätzlich Steh aus der Bewegung, Bringholz 1000 Gramm.\n" +
             "Abteilung C - Schutzdienst (100 Punkte): 7 Übungen, 4 Verstecke, zusätzlich Rückentransport.\n" +
             "Bestanden: mindestens 70 Punkte in JEDER Abteilung.\n" +
-            "Voraussetzung: bestandene FCI-IGP 1."));
+            "Startvoraussetzung: bestandene FCI-IGP 1.\n" +
+            "Mindestalter: 19 Monate."));
 
         await SeedRegulationAsync(db, igp3, new RegulationSeed("FCI-IGP 3", "2025-2", new DateOnly(2025, 2, 1),
         [
@@ -525,7 +533,8 @@ public static class SportCatalogSeeder
             "Abteilung B - Unterordnung (100 Punkte): 9 Übungen aus dem Laufschritt, Bringholz 2000 Gramm, Hin- und Rückklettersprung.\n" +
             "Abteilung C - Schutzdienst (100 Punkte): 8 Übungen, 6 Verstecke, zusätzlich Überfall aus dem Rückentransport.\n" +
             "Bestanden: mindestens 70 Punkte in JEDER Abteilung.\n" +
-            "Voraussetzung: bestandene FCI-IGP 2. WM-/Championats-Stufe."));
+            "Startvoraussetzung: bestandene FCI-IGP 2.\n" +
+            "Mindestalter: 20 Monate. WM-/Championats-Stufe."));
 
         // Die ursprünglichen fehlerhaften RegulationVersions (BH/IBGH "2024",
         // IGP "2025") wurden inzwischen aus dem Code entfernt, nachdem die
