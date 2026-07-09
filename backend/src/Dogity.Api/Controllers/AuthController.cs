@@ -1,6 +1,7 @@
 using System.Net;
 using Dogity.Api.Contracts;
 using Dogity.Application.Abstractions;
+using Dogity.Application.Notifications;
 using Dogity.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,8 @@ public class AuthController(
     SignInManager<ApplicationUser> signInManager,
     IJwtTokenGenerator jwtTokenGenerator,
     IEmailSender emailSender,
+    INotificationService notifications,
+    IUserLookupService userLookup,
     IConfiguration configuration) : ControllerBase
 {
     [HttpPost("register")]
@@ -90,6 +93,20 @@ public class AuthController(
                 user.Email!,
                 "Dogity: Passwort zurücksetzen",
                 $"Hallo {user.FirstName},\n\nüber diesen Link kannst du dein Passwort zurücksetzen:\n{link}\n\nWenn du das nicht angefordert hast, kannst du diese Mail ignorieren.");
+
+            // Solange der E-Mail-Versand noch manuell läuft (kein SMTP-Relay),
+            // bekommen zusätzlich alle Admins eine In-App-Benachrichtigung,
+            // damit sie das Passwort direkt in der Nutzerverwaltung neu setzen
+            // können. LinkPath zeigt auf die Admin-Seite mit dem betroffenen
+            // Nutzer vorselektiert.
+            var adminIds = await userLookup.ListUserIdsInRoleAsync(Roles.Admin);
+            foreach (var adminId in adminIds)
+            {
+                await notifications.CreateAsync(
+                    adminId,
+                    $"{user.FirstName} {user.LastName} ({user.Email}) möchte das Passwort zurücksetzen.",
+                    $"/admin?resetUser={user.Id}");
+            }
         }
 
         return Ok(new { message = "Falls diese E-Mail-Adresse registriert ist, wurde ein Link zum Zurücksetzen verschickt." });

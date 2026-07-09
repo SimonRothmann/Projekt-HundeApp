@@ -7,3 +7,5 @@ public record AdminUserDto(Guid Id, string Email, string FirstName, string LastN
 public record AdminUserPageDto(IReadOnlyList<AdminUserDto> Users, int TotalCount, int TotalPages, int Page, int PageSize);
 
 public record UpdateRegulationSourceRequest(string? SourceUrl, string? LatestKnownVersionLabel);
+
+public record SetUserPasswordRequest(string NewPassword);

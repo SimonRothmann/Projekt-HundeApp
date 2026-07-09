@@ -116,7 +116,6 @@ export function CatalogSection({
     // hier gewollt (externe Datenquelle) und darum bewusst gedämpft.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSports();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadUncategorized();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope.kind, scope.kind === "club" ? scope.clubId : null]);

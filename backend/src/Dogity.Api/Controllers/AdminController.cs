@@ -105,6 +105,13 @@ public class AdminController(IAdminService adminService, IClubService clubServic
         return FromResult(result);
     }
 
+    [HttpPost("users/{id:guid}/set-password")]
+    public async Task<IActionResult> SetUserPassword(Guid id, SetUserPasswordRequest request, CancellationToken ct)
+    {
+        var result = await adminService.SetUserPasswordAsync(id, request.NewPassword, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("regulations/{id:guid}/source")]
     public async Task<IActionResult> UpdateRegulationSource(Guid id, UpdateRegulationSourceRequest request, CancellationToken ct)
     {

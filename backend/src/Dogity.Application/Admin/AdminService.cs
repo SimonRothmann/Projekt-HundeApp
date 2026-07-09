@@ -55,6 +55,15 @@ public class AdminService(IApplicationDbContext db, IUserLookupService userLooku
         return ok ? Result.Success() : Result.Failure("Benutzer nicht gefunden oder Löschung fehlgeschlagen.");
     }
 
+    public async Task<Result> SetUserPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(newPassword))
+            return Result.Failure("Passwort ist erforderlich.");
+
+        var (success, errors) = await userLookup.SetPasswordAsync(userId, newPassword, ct);
+        return success ? Result.Success() : Result.Failure(errors);
+    }
+
     public async Task<Result> UpdateRegulationSourceAsync(Guid regulationId, UpdateRegulationSourceRequest request, CancellationToken ct = default)
     {
         var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.Id == regulationId, ct);

@@ -78,4 +78,27 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, TimePro
         var result = await userManager.DeleteAsync(user);
         return result.Succeeded;
     }
+
+    public async Task<IReadOnlyList<Guid>> ListUserIdsInRoleAsync(string role, CancellationToken ct = default)
+    {
+        var users = await userManager.GetUsersInRoleAsync(role);
+        return users.Select(u => u.Id).ToList();
+    }
+
+    public async Task<(bool Success, string[] Errors)> SetPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+            return (false, ["Benutzer nicht gefunden."]);
+
+        // Token statt RemovePassword+AddPassword: ResetPasswordAsync erzeugt
+        // einen gültigen Reset-Token und wendet ihn sofort an - so läuft die
+        // Passwortrichtlinien-Prüfung genau wie beim Self-Service-Reset, und
+        // ein etwaiger Lockout wird zurückgesetzt (SecurityStamp erneuert).
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await userManager.ResetPasswordAsync(user, token, newPassword);
+        return result.Succeeded
+            ? (true, [])
+            : (false, result.Errors.Select(e => e.Description).ToArray());
+    }
 }

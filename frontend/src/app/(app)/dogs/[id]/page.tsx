@@ -172,7 +172,6 @@ export default function DogDetailPage() {
     // Initialer Datenabruf bei Mount/Routenwechsel (externe Quelle: REST API).
     // loadAll() wird bei jedem Render neu erzeugt, daher absichtlich nicht in
     // den Dependencies - nur "id" soll einen erneuten Abruf auslösen.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);

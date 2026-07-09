@@ -27,4 +27,14 @@ public interface IUserLookupService
 
     /// <summary>Löscht das Identity-Konto hart. False, falls Benutzer nicht existiert oder Löschung fehlschlägt.</summary>
     Task<bool> DeleteUserAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>UserIds aller Benutzer in der angegebenen Rolle (z.B. um alle Admins zu benachrichtigen).</summary>
+    Task<IReadOnlyList<Guid>> ListUserIdsInRoleAsync(string role, CancellationToken ct = default);
+
+    /// <summary>
+    /// Setzt das Passwort eines Benutzers administrativ neu (ohne den
+    /// Token-basierten Self-Service-Reset). Gibt bei Fehlschlag die
+    /// Identity-Fehlermeldungen zurück (z.B. Passwortrichtlinie verletzt).
+    /// </summary>
+    Task<(bool Success, string[] Errors)> SetPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default);
 }

@@ -11,4 +11,7 @@ public interface IAdminService
     Task<Result> LockUserAsync(Guid userId, CancellationToken ct = default);
     Task<Result> UnlockUserAsync(Guid userId, CancellationToken ct = default);
     Task<Result> DeleteUserAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>Setzt das Passwort eines Benutzers administrativ neu.</summary>
+    Task<Result> SetUserPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default);
 }

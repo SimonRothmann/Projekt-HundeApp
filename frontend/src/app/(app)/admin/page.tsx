@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import type { AdminStats, AdminUser, AdminUserPage, Regulation, Sport } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,13 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Dog, Users2, ClipboardList, MapPin, ScrollText, Lock, Unlock, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, Dog, Users2, ClipboardList, MapPin, ScrollText, Lock, Unlock, Trash2, ChevronLeft, ChevronRight, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { ClubsSection } from "@/components/admin/clubs-section";
 import { CatalogSection } from "@/components/sports/catalog-section";
 import { RegulationImportSection } from "@/components/admin/regulation-import-section";
 
 export default function AdminPage() {
+  const searchParams = useSearchParams();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [userPage, setUserPage] = useState<AdminUserPage | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -26,6 +28,12 @@ export default function AdminPage() {
   const [sourceUrl, setSourceUrl] = useState("");
   const [versionLabel, setVersionLabel] = useState("");
   const [saving, setSaving] = useState(false);
+  // Passwort-Setzen: welcher Nutzer hat das Inline-Formular offen + Eingabe.
+  // Vorselektiert über ?resetUser=<id> (Link aus der Admin-Benachrichtigung,
+  // wenn ein Nutzer einen Passwort-Reset angefordert hat).
+  const [pwUserId, setPwUserId] = useState<string | null>(searchParams.get("resetUser"));
+  const [newPassword, setNewPassword] = useState("");
+  const [settingPassword, setSettingPassword] = useState(false);
 
   async function loadUsers(page: number) {
     try {
@@ -69,6 +77,29 @@ export default function AdminPage() {
       await loadUsers(currentPage);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+    }
+  }
+
+  function togglePasswordForm(userId: string) {
+    setPwUserId((current) => (current === userId ? null : userId));
+    setNewPassword("");
+  }
+
+  async function handleSetPassword(user: AdminUser) {
+    if (newPassword.length < 8) {
+      toast.error("Passwort muss mindestens 8 Zeichen lang sein.");
+      return;
+    }
+    setSettingPassword(true);
+    try {
+      await api.post(`/api/admin/users/${user.id}/set-password`, { newPassword });
+      toast.success(`Neues Passwort für ${user.email} gesetzt. Bitte dem Nutzer sicher mitteilen.`);
+      setPwUserId(null);
+      setNewPassword("");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Passwort konnte nicht gesetzt werden.");
+    } finally {
+      setSettingPassword(false);
     }
   }
 
@@ -235,24 +266,67 @@ export default function AdminPage() {
             <>
               <ul className="flex flex-col gap-2">
                 {userPage.users.map((u) => (
-                  <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
-                    <span>
-                      {u.firstName} {u.lastName} <span className="text-muted-foreground">({u.email})</span>
-                    </span>
-                    <div className="flex items-center gap-1">
-                      {u.roles.map((role) => (
-                        <Badge key={role} variant="secondary">
-                          {role}
-                        </Badge>
-                      ))}
-                      {u.isLockedOut && <Badge variant="destructive">Gesperrt</Badge>}
-                      <Button size="icon-sm" variant="ghost" title={u.isLockedOut ? "Entsperren" : "Sperren"} onClick={() => handleToggleLock(u)}>
-                        {u.isLockedOut ? <Unlock className="size-3.5" /> : <Lock className="size-3.5" />}
-                      </Button>
-                      <Button size="icon-sm" variant="ghost" title="Löschen" onClick={() => handleDeleteUser(u)}>
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                  <li
+                    key={u.id}
+                    className={`flex flex-col gap-2 rounded-md border px-3 py-2 text-sm ${
+                      pwUserId === u.id ? "border-primary/50 bg-primary/5" : ""
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span>
+                        {u.firstName} {u.lastName} <span className="text-muted-foreground">({u.email})</span>
+                      </span>
+                      <div className="flex items-center gap-1">
+                        {u.roles.map((role) => (
+                          <Badge key={role} variant="secondary">
+                            {role}
+                          </Badge>
+                        ))}
+                        {u.isLockedOut && <Badge variant="destructive">Gesperrt</Badge>}
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          title="Passwort setzen"
+                          onClick={() => togglePasswordForm(u.id)}
+                        >
+                          <KeyRound className="size-3.5" />
+                        </Button>
+                        <Button size="icon-sm" variant="ghost" title={u.isLockedOut ? "Entsperren" : "Sperren"} onClick={() => handleToggleLock(u)}>
+                          {u.isLockedOut ? <Unlock className="size-3.5" /> : <Lock className="size-3.5" />}
+                        </Button>
+                        <Button size="icon-sm" variant="ghost" title="Löschen" onClick={() => handleDeleteUser(u)}>
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
                     </div>
+                    {pwUserId === u.id && (
+                      <div className="flex flex-col gap-2 border-t pt-2">
+                        <Label htmlFor={`pw-${u.id}`} className="text-xs">
+                          Neues Passwort für {u.email}
+                        </Label>
+                        <div className="flex flex-wrap gap-2">
+                          <Input
+                            id={`pw-${u.id}`}
+                            type="text"
+                            autoComplete="off"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Mindestens 8 Zeichen"
+                            className="sm:w-64"
+                          />
+                          <Button size="sm" disabled={settingPassword} onClick={() => handleSetPassword(u)}>
+                            {settingPassword ? "Wird gesetzt…" : "Passwort setzen"}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => togglePasswordForm(u.id)}>
+                            Abbrechen
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Das Passwort wird im Klartext angezeigt, damit du es dem Nutzer sicher mitteilen kannst.
+                          Nach dem Setzen wird es nicht erneut angezeigt.
+                        </p>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

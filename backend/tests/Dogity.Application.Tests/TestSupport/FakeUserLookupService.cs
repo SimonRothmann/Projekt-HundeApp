@@ -52,4 +52,10 @@ public class FakeUserLookupService : IUserLookupService
     public Task<bool> LockUserAsync(Guid userId, CancellationToken ct = default) => Task.FromResult(_users.ContainsKey(userId));
     public Task<bool> UnlockUserAsync(Guid userId, CancellationToken ct = default) => Task.FromResult(_users.ContainsKey(userId));
     public Task<bool> DeleteUserAsync(Guid userId, CancellationToken ct = default) => Task.FromResult(_users.Remove(userId));
+
+    public Task<IReadOnlyList<Guid>> ListUserIdsInRoleAsync(string role, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Guid>>([]);
+
+    public Task<(bool Success, string[] Errors)> SetPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)
+        => Task.FromResult(_users.ContainsKey(userId) ? (true, Array.Empty<string>()) : (false, new[] { "Benutzer nicht gefunden." }));
 }
