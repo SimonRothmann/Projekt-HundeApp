@@ -93,7 +93,8 @@ type Poi = {
 // stark abknickt. Bei kleinen Segmenten ignorieren wir das Ergebnis
 // (Rauschen). Manuell gesetzte Marker (pointType=1) fließen hier nicht ein,
 // die kommen als "object"-POIs separat.
-function findTurnPoints(points: GpsPoint[]): Poi[] {
+// Exportiert für Unit-Tests (reine Geometrie-Logik ohne Hook-Kontext).
+export function findTurnPoints(points: GpsPoint[]): Poi[] {
   const auto = points.filter((p) => p.pointType !== 1);
   const turns: Poi[] = [];
   for (let i = 1; i < auto.length - 1; i++) {

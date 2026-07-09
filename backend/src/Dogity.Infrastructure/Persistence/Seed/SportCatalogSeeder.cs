@@ -180,7 +180,11 @@ public static class SportCatalogSeeder
             new("Absitzen aus der Bewegung", true, 15, "Aus 10-15 Schritten Entwicklung, sofort und gerade."),
             new("Ablegen aus der Bewegung", true, 15, "Aus 10-15 Schritten Entwicklung, sofort und gerade."),
             new("Ablegen unter Ablenkung", true, 10, "Während der Vorführung des anderen Hundes, Hundeführer mindestens 10 Schritte entfernt in Sichtweite."),
-        ]));
+        ],
+        Description: "FCI-Internationale Begleithundprüfung Stufe 1 (100 Punkte, bestanden ab 70).\n" +
+            "5 Übungen der Unterordnung: Leinenführigkeit (30), Freifolge (30), Absitzen (15), Ablegen (15), Ablage unter Ablenkung (10).\n" +
+            "Voraussetzung: bestandene BH/VT.\n" +
+            "Hinweis: keine Schussgleichgültigkeitsprüfung, kein Bringen - reine Unterordnungsprüfung."));
 
         await SeedRegulationAsync(db, ibgh2, new RegulationSeed("IBGH2", "2025", new DateOnly(2025, 1, 1),
         [
@@ -191,7 +195,11 @@ public static class SportCatalogSeeder
             new("Bringen auf ebener Erde", true, 10, "Gegenstand wird vom Hundeführer geworfen."),
             new("Voraussenden mit Hinlegen", true, 10, "Mindestens 30 Schritte voraus, danach Ablegen auf HZ."),
             new("Ablegen unter Ablenkung", true, 10, "Hundeführer mit dem Rücken zum Hund, mindestens 20 Schritte entfernt in Sichtweite."),
-        ]));
+        ],
+        Description: "FCI-Internationale Begleithundprüfung Stufe 2 (100 Punkte, bestanden ab 70).\n" +
+            "7 Übungen: Leinenführigkeit (20), Freifolge (20), Absitzen (15), Ablegen (15), Bringen (10), Voraussenden (10), Ablage (10).\n" +
+            "Neu gegenüber IBGH 1: Bringen auf ebener Erde und Voraussenden mit Hinlegen.\n" +
+            "Voraussetzung: bestandene IBGH 1 oder BH/VT."));
 
         await SeedRegulationAsync(db, ibgh3, new RegulationSeed("IBGH3", "2025", new DateOnly(2025, 1, 1),
         [
@@ -203,7 +211,11 @@ public static class SportCatalogSeeder
             new("Bringen über die Schrägwand", true, 15, "140 cm hohe Schrägwand, mindestens ein Klettersprung mit Bringholz."),
             new("Voraussenden mit Hinlegen", true, 10, "Mit größerer Distanz als IBGH2."),
             new("Ablegen unter Ablenkung", true, 10, "Hundeführer mindestens 30 Meter entfernt, außer Sicht des Hundes."),
-        ]));
+        ],
+        Description: "FCI-Internationale Begleithundprüfung Stufe 3 - höchste IBGH-Stufe (100 Punkte, bestanden ab 70).\n" +
+            "8 Übungen: Freifolge (20), Absitzen (10), Ablegen (10), Steh aus dem Schritt (10), Bringen (15), Bringen über Schrägwand (15), Voraussenden (10), Ablage (10).\n" +
+            "Neu gegenüber IBGH 2: Steh aus dem Schritt und Bringen über die 140-cm-Schrägwand; komplette Arbeit ohne Leine.\n" +
+            "Voraussetzung: bestandene IBGH 2 oder BH/VT."));
 
         await SeedRegulationAsync(db, faerte, new RegulationSeed("Fährte A", "2024", new DateOnly(2024, 1, 1),
         [
@@ -452,7 +464,13 @@ public static class SportCatalogSeeder
             new("Verhinderung eines Fluchtversuches", true, 20, "Energisches und entschlossenes Verhindern der Flucht des Helfers."),
             new("Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch)", true, 30, "Voller, fester und ruhiger Griff, Selbstsicherheit und Belastbarkeit bei Schlagandrohung mit dem Softstock."),
             new("Angriff auf den Hund aus der Bewegung", true, 30, "Helfer greift aus ca. 20 Metern Entfernung mit Vertreibungslauten frontal an."),
-        ]));
+        ],
+        Description: "FCI-Internationale Gebrauchshundprüfung Stufe 1 (300 Punkte gesamt).\n" +
+            "Abteilung A - Fährte (100 Punkte): Eigenfährte, min. 300 Schritte, 3 Schenkel, 2 Winkel, Fährtenalter min. 20 Minuten, 3 eigene Gegenstände.\n" +
+            "Abteilung B - Unterordnung (100 Punkte): 8 Übungen inkl. Schussgleichgültigkeitsprüfung.\n" +
+            "Abteilung C - Schutzdienst (100 Punkte): 5 Übungen, 2 Verstecke beim Revieren.\n" +
+            "Bestanden: mindestens 70 Punkte in JEDER Abteilung.\n" +
+            "Voraussetzung: bestandene BH/VT, Mindestalter 18 Monate."));
 
         await SeedRegulationAsync(db, igp2, new RegulationSeed("FCI-IGP 2", "2025-2", new DateOnly(2025, 2, 1),
         [
@@ -473,7 +491,13 @@ public static class SportCatalogSeeder
             new("Rückentransport", true, 5, "Ca. 30 Schritte Rücktransport zum Leistungsrichter, Hund läuft beobachtend neben dem Helfer."),
             new("Angriff auf den Hund aus der Bewegung", true, 20, "Aus der Lauerstellung, mit Vertreibungslauten frontal."),
             new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", true, 20, "Erneuter Angriff im Anschluss an \"Angriff auf den Hund aus der Bewegung\", voller fester Griff."),
-        ]));
+        ],
+        Description: "FCI-Internationale Gebrauchshundprüfung Stufe 2 (300 Punkte gesamt).\n" +
+            "Abteilung A - Fährte (100 Punkte): Fremdfährte, min. 400 Schritte, 3 Schenkel, 2 Winkel, Fährtenalter min. 30 Minuten, 3 fremde Gegenstände.\n" +
+            "Abteilung B - Unterordnung (100 Punkte): 9 Übungen, zusätzlich Steh aus der Bewegung, Bringholz 1000 Gramm.\n" +
+            "Abteilung C - Schutzdienst (100 Punkte): 7 Übungen, 4 Verstecke, zusätzlich Rückentransport.\n" +
+            "Bestanden: mindestens 70 Punkte in JEDER Abteilung.\n" +
+            "Voraussetzung: bestandene FCI-IGP 1."));
 
         await SeedRegulationAsync(db, igp3, new RegulationSeed("FCI-IGP 3", "2025-2", new DateOnly(2025, 2, 1),
         [
@@ -495,7 +519,13 @@ public static class SportCatalogSeeder
             new("Überfall auf den Hund aus dem Rückentransport", true, 15, "Unmittelbar aus dem Rückentransport, ohne anzuhalten, mit dynamischer Wendung des Helfers."),
             new("Angriff auf den Hund aus der Bewegung", true, 15, "Helfer läuft das Vorführgelände im Laufschritt bis zur Mittellinie und greift dann frontal an."),
             new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", true, 15, "Erneuter Angriff im Anschluss an \"Angriff auf den Hund aus der Bewegung\", voller fester Griff."),
-        ]));
+        ],
+        Description: "FCI-Internationale Gebrauchshundprüfung Stufe 3 - höchste Stufe (300 Punkte gesamt).\n" +
+            "Abteilung A - Fährte (100 Punkte): Fremdfährte, min. 600 Schritte, 5 Schenkel, 4 Winkel, Fährtenalter min. 60 Minuten, 3 fremde Gegenstände.\n" +
+            "Abteilung B - Unterordnung (100 Punkte): 9 Übungen aus dem Laufschritt, Bringholz 2000 Gramm, Hin- und Rückklettersprung.\n" +
+            "Abteilung C - Schutzdienst (100 Punkte): 8 Übungen, 6 Verstecke, zusätzlich Überfall aus dem Rückentransport.\n" +
+            "Bestanden: mindestens 70 Punkte in JEDER Abteilung.\n" +
+            "Voraussetzung: bestandene FCI-IGP 2. WM-/Championats-Stufe."));
 
         // Die ursprünglichen fehlerhaften RegulationVersions (BH/IBGH "2024",
         // IGP "2025") wurden inzwischen aus dem Code entfernt, nachdem die

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { haversineMeters } from "@/lib/geo";
+import { kalmanInit, kalmanStep, type KalmanState } from "@/lib/kalman";
 
 // maximumAge während der Aufzeichnung: erlaubt dem Browser, eine bis zu 1 s
 // alte Position wiederzuverwenden. Der GPS-Chip liefert auch bei
@@ -18,12 +19,6 @@ const MARK_POINT_MAX_POSITION_AGE_MS = 0;
 // Standardwerte - können pro Aufzeichnungstyp überschrieben werden.
 const DEFAULT_MAX_ACCURACY_METERS = 25;
 const DEFAULT_MIN_DISTANCE_METERS = 2;
-
-// Kalman-Filter: erwartete Bewegung zwischen zwei Samples in Metern.
-// Bei Gehgeschwindigkeit (~1 m/s) und 500 ms Interval ≈ 0.5 m.
-// Wird als Prozessrauschen Q genutzt: höher = mehr Vertrauen in neue Messung
-// (reagiert schneller auf Richtungswechsel), niedriger = mehr Glättung.
-const KALMAN_PROCESS_NOISE_M = 0.5;
 
 export type GpsRecorderOptions = {
   // Punkte mit größerem Fehlerkreis werden verworfen. Kleiner = genauer, aber
@@ -55,57 +50,6 @@ const RELAX_AFTER_MS = 15_000;
 // bis relaxedMaxAccuracyMeters erreicht ist. Beispiel Fährte (8 m → 20 m):
 // nach 15 s → 9 m, nach 18 s → 10 m, ..., nach 48 s → 20 m (Maximum).
 const RELAX_STEP_MS = 3_000;
-
-// Kalman-Zustand pro Koordinate. P ist die Schätzunsicherheit in Grad² -
-// startet mit der ersten Messunsicherheit und konvergiert schnell gegen den
-// Gleichgewichtswert.
-type KalmanState = {
-  lat: number;
-  lon: number;
-  P_lat: number;
-  P_lon: number;
-};
-
-// Einen Kalman-Predict-Update-Schritt für eine 2D-Position (lat/lon getrennt,
-// da der Fehlerkreis rund ist und keine Kreuzkorrelation nötig ist).
-// Koordinaten bleiben in Grad; Unsicherheiten werden intern in Meter²
-// umgerechnet, damit die Prozess- und Messrauschparameter in Metern angegeben
-// werden können statt in Grad (intuitiver und von der Breitengrad-abhängigen
-// Grad-Meter-Relation entkoppelt).
-function kalmanStep(state: KalmanState, lat: number, lon: number, accuracyM: number): KalmanState {
-  const cosLat = Math.cos((state.lat * Math.PI) / 180);
-  const mPerDegLat = 111111;
-  const mPerDegLon = 111111 * (cosLat === 0 ? 1 : cosLat);
-
-  // Prozessrauschen Q: erwartete Positionsänderung zwischen Samples (in Grad²)
-  const Q_lat = (KALMAN_PROCESS_NOISE_M / mPerDegLat) ** 2;
-  const Q_lon = (KALMAN_PROCESS_NOISE_M / mPerDegLon) ** 2;
-
-  // Messrauschen R: von der GPS-API gemeldeter Fehlerkreisradius → 1-σ-Varianz.
-  // Die Geolocation-Spec definiert accuracy als 95%-Konfidenzkreis-Radius,
-  // viele Browser (inkl. iOS Safari) liefern aber de facto den 1-σ-Wert -
-  // konservativer Ansatz: als 1-σ behandeln (σ = accuracy, R = accuracy²).
-  const R_lat = (accuracyM / mPerDegLat) ** 2;
-  const R_lon = (accuracyM / mPerDegLon) ** 2;
-
-  // Predict (Random-Walk-Modell: keine Geschwindigkeitsschätzung, da Gehen
-  // unregelmäßig ist und ein Velocity-Modell bei häufigen Richtungswechseln
-  // nicht besser abschneidet)
-  const P_pred_lat = state.P_lat + Q_lat;
-  const P_pred_lon = state.P_lon + Q_lon;
-
-  // Kalman-Gain: K nahe 1 → neue Messung stark gewichten (Unsicherheit groß
-  // oder GPS-Fehler klein), K nahe 0 → alte Schätzung bevorzugen.
-  const K_lat = P_pred_lat / (P_pred_lat + R_lat);
-  const K_lon = P_pred_lon / (P_pred_lon + R_lon);
-
-  return {
-    lat: state.lat + K_lat * (lat - state.lat),
-    lon: state.lon + K_lon * (lon - state.lon),
-    P_lat: (1 - K_lat) * P_pred_lat,
-    P_lon: (1 - K_lon) * P_pred_lon,
-  };
-}
 
 // Erstellt ein synthetisches GeolocationPosition-Objekt mit überschriebenen
 // Koordinaten (Kalman-geglättete Position). ToPoint-Funktionen der Aufrufer
@@ -243,18 +187,9 @@ export function useGpsRecorder<T>(
     let smoothedLon = longitude;
 
     if (kalman) {
-      if (kalmanRef.current === null) {
-        // Ersten Punkt als Initialzustand verwenden.
-        const cosLat = Math.cos((latitude * Math.PI) / 180);
-        kalmanRef.current = {
-          lat: latitude,
-          lon: longitude,
-          P_lat: (accuracy / 111111) ** 2,
-          P_lon: (accuracy / (111111 * (cosLat === 0 ? 1 : cosLat))) ** 2,
-        };
-      } else {
-        kalmanRef.current = kalmanStep(kalmanRef.current, latitude, longitude, accuracy);
-      }
+      kalmanRef.current = kalmanRef.current === null
+        ? kalmanInit(latitude, longitude, accuracy)
+        : kalmanStep(kalmanRef.current, latitude, longitude, accuracy);
       smoothedLat = kalmanRef.current.lat;
       smoothedLon = kalmanRef.current.lon;
     }
