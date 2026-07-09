@@ -51,6 +51,9 @@ export type Regulation = {
   sourceUrl: string | null;
   lastSyncedAt: string | null;
   latestKnownVersionLabel: string | null;
+  // Mehrzeilige Kurzbeschreibung der Prüfungs-Rahmenbedingungen (Schrittzahl,
+  // Winkel, Fährtenalter, Voraussetzungen, Bestehensgrenze, ...).
+  description: string | null;
 };
 
 export type RegulationVersionInfo = {

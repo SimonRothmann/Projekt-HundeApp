@@ -26,5 +26,13 @@ public class Regulation : Entity
     public DateTimeOffset? LastSyncedAt { get; set; }
     public string? LatestKnownVersionLabel { get; set; }
 
+    /// <summary>
+    /// Eigene Kurzbeschreibung der Prüfungs-Rahmenbedingungen (mehrzeilig):
+    /// z.B. bei Fährtenprüfungen Schrittzahl, Schenkel/Winkel, Fährtenalter,
+    /// Ausarbeitungszeit, Zulassungsvoraussetzungen und Bestehensgrenze.
+    /// Eigene Formulierung, kein PO-Volltext (Urheberrecht, siehe SourceUrl).
+    /// </summary>
+    public string? Description { get; set; }
+
     public ICollection<RegulationVersion> Versions { get; set; } = new List<RegulationVersion>();
 }

@@ -26,6 +26,7 @@ public class RegulationConfiguration : IEntityTypeConfiguration<Regulation>
         builder.Property(r => r.Name).HasMaxLength(100).IsRequired();
         builder.Property(r => r.SourceUrl).HasMaxLength(500);
         builder.Property(r => r.LatestKnownVersionLabel).HasMaxLength(50);
+        builder.Property(r => r.Description).HasMaxLength(2000);
 
         builder.HasOne(r => r.Sport)
             .WithMany(s => s.Regulations)

@@ -93,7 +93,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
         var regulations = await db.Regulations
             .Where(r => r.SportId == sportId)
             .OrderBy(r => r.Name)
-            .Select(r => new RegulationDto(r.Id, r.Name, r.SourceUrl, r.LastSyncedAt, r.LatestKnownVersionLabel))
+            .Select(r => new RegulationDto(r.Id, r.Name, r.SourceUrl, r.LastSyncedAt, r.LatestKnownVersionLabel, r.Description))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<RegulationDto>>.Success(regulations);
@@ -119,7 +119,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
             .ToListAsync(ct);
 
         var detail = new RegulationDetailDto(
-            new RegulationDto(regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel),
+            new RegulationDto(regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description),
             new RegulationVersionDto(currentVersion.Id, currentVersion.VersionLabel, currentVersion.ValidFrom),
             exercises);
 

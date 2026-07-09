@@ -288,6 +288,19 @@ function SportCard({
                                 Version {detail.currentVersion.versionLabel} · gültig ab{" "}
                                 {new Date(detail.currentVersion.validFrom).toLocaleDateString("de-DE")}
                               </p>
+                              {detail.regulation.description && (
+                                <div className="mb-3 rounded-md bg-primary/5 px-3 py-2.5">
+                                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                                    Rahmenbedingungen
+                                  </p>
+                                  {/* whitespace-pre-line: die Beschreibung ist im Seed
+                                      bewusst mehrzeilig strukturiert (eine Zeile pro
+                                      Parameter: Fährte, Gegenstände, Fährtenalter, ...) */}
+                                  <p className="whitespace-pre-line text-sm leading-relaxed">
+                                    {detail.regulation.description}
+                                  </p>
+                                </div>
+                              )}
                               <ul className="flex flex-col gap-2">
                                 {detail.exercises.map((re) => (
                                   <li key={re.exerciseId} className="text-sm">

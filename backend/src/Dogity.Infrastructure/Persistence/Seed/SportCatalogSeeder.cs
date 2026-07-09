@@ -38,30 +38,38 @@ public static class SportCatalogSeeder
 
     private sealed record RegulationExerciseSeed(string ExerciseName, bool IsMandatory, int MaxPoints, string ScoringNotes);
 
-    private sealed record RegulationSeed(string Name, string VersionLabel, DateOnly ValidFrom, RegulationExerciseSeed[] Exercises);
+    private sealed record RegulationSeed(string Name, string VersionLabel, DateOnly ValidFrom, RegulationExerciseSeed[] Exercises, string? Description = null);
 
     public static async Task SeedAsync(IServiceProvider services)
     {
         var db = services.GetRequiredService<ApplicationDbContext>();
 
+        // Übungsstruktur folgt der tatsächlichen VDH-BH/VT (Teil A: 5 bewertete
+        // Übungen à 15/15/10/10/10 = 60 Punkte, bestanden ab 42; Teil B ohne
+        // Einzelpunkte). "Freifolge" fehlte in früheren Seed-Durchläufen komplett,
+        // "Sitz aus der Bewegung"/"Ablegen mit Abrufen" trugen inoffizielle Namen -
+        // mit Genehmigung des Auftraggebers als VDH-Vorstand korrigiert (analog
+        // IBGH/IGP, siehe Klassenkommentar oben).
         var bh = await SeedSportAsync(db, "BH", "Begleithundeprüfung",
         [
             new("Leinenführigkeit", ExerciseDifficulty.Beginner, "Unterordnung",
                 "Hund läuft eng und aufmerksam neben dem Hundeführer, auch bei Tempo- und Richtungswechseln, ohne Leinenspannung."),
-            new("Sitz aus der Bewegung", ExerciseDifficulty.Beginner, "Unterordnung",
-                "Hund setzt sich auf Kommando sofort und bleibt sitzen, während der Hundeführer ohne Tempoveränderung weitergeht."),
-            new("Ablegen mit Abrufen", ExerciseDifficulty.Intermediate, "Unterordnung",
-                "Hund legt sich ab und bleibt liegen, kommt auf Kommando zügig und freudig zum Hundeführer."),
+            new("Freifolge", ExerciseDifficulty.Intermediate, "Unterordnung",
+                "Wie Leinenführigkeit, jedoch ohne Leine - Hund bleibt auch beim Durchschreiten der Personengruppe aufmerksam beim Hundeführer."),
+            new("Sitzübung", ExerciseDifficulty.Beginner, "Unterordnung",
+                "Hund setzt sich aus der Bewegung auf ein Hörzeichen sofort hin und bleibt ruhig sitzen, während der Hundeführer sich mindestens 15 Schritte entfernt."),
+            new("Ablegen in Verbindung mit Herankommen", ExerciseDifficulty.Intermediate, "Unterordnung",
+                "Hund legt sich aus der Bewegung ab, bleibt liegen und kommt auf Hörzeichen zügig und freudig zum Hundeführer."),
+            new("Ablegen unter Ablenkung", ExerciseDifficulty.Intermediate, "Unterordnung",
+                "Hund bleibt während der Vorführung des anderen Hundes ruhig in der Ablage liegen, ohne Einwirkung des Hundeführers."),
             new("Verhalten im Verkehr", ExerciseDifficulty.Intermediate, "Verhalten",
                 "Hund bleibt ruhig bei vorbeifahrenden Fahrzeugen und Radfahrern, zeigt keine Anzeichen von Angst oder Aggression."),
             new("Begegnung mit Personengruppe", ExerciseDifficulty.Intermediate, "Verhalten",
                 "Hund bleibt ruhig und unaufgeregt beim Passieren einer Gruppe von Personen."),
             new("Verhalten gegenüber anderen Hunden", ExerciseDifficulty.Intermediate, "Verhalten",
                 "Hund zeigt keine aggressive oder ängstliche Reaktion beim Begegnen eines fremden Hundes."),
-            new("Zurücklassen des Hundes", ExerciseDifficulty.Advanced, "Unterordnung",
-                "Hund bleibt an der vereinbarten Stelle, bis der Hundeführer zurückkehrt, ohne der Gruppe zu folgen."),
-            new("Ablegen unter Ablenkung", ExerciseDifficulty.Intermediate, "Unterordnung",
-                "Hund bleibt während der Vorführung der Übung \"Leinenführigkeit\" des anderen Hundes ruhig in der Ablage liegen, ohne Einwirkung des Hundeführers."),
+            new("Zurücklassen des Hundes", ExerciseDifficulty.Advanced, "Verhalten",
+                "Hund bleibt angeleint an der vereinbarten Stelle ruhig, während der Hundeführer außer Sicht ist und ein anderer Hund vorbeigeführt wird."),
         ]);
 
         // Übungsnamen/Punkte aus früheren Seed-Durchläufen waren frei erfunden, nicht die
@@ -137,23 +145,28 @@ public static class SportCatalogSeeder
                 "Hund nimmt eine von einer fremden Person gelegte Fährte sicher auf und arbeitet sie konzentriert aus."),
         ]);
 
-        await SeedRegulationAsync(db, bh, new RegulationSeed("BH", "2024", new DateOnly(2024, 1, 1),
+        // Korrekte VDH-BH/VT-Struktur (Teil A: 60 Punkte, bestanden ab 42 = 70%;
+        // Teil B ohne Einzelpunkte, nur Gesamteindruck "bestanden/nicht
+        // bestanden"). Ersetzt die fehlerhafte "2024"-Version (Leinenführigkeit
+        // 30 statt 15, Freifolge fehlte komplett, Ablage 5 statt 10) - siehe
+        // RemoveSupersededVersionAsync-Aufruf unten.
+        await SeedRegulationAsync(db, bh, new RegulationSeed("BH", "2025", new DateOnly(2025, 1, 1),
         [
-            // Leinenführigkeit/Sitz/Ablegen mit Abrufen (Teil A, auf dem Übungsplatz)
-            // werden tatsächlich bewertet (siehe S. 22-23) - waren zuvor fälschlich
-            // mit 0 Punkten hinterlegt. Teil B (Verkehr, ab "Verhalten im Verkehr")
-            // wird laut PO bewusst NICHT einzeln gepunktet, nur als Gesamteindruck
-            // beurteilt - 0 Punkte dort ist korrekt, kein Fehler.
-            new("Leinenführigkeit", true, 30, "Auf Wegen, Plätzen und im Verkehr; keine durchgehende Leinenspannung."),
-            new("Sitz aus der Bewegung", true, 10, "Aus normalem Gehen, ohne Geschwindigkeitsänderung des Hundeführers."),
-            new("Ablegen mit Abrufen", true, 10, "Hund bleibt liegen, bis er abgerufen wird."),
-            new("Verhalten im Verkehr", true, 0, "Begegnung mit mind. einem Fahrzeug und Radfahrer."),
-            new("Begegnung mit Personengruppe", true, 0, "Gruppe aus mind. 6 Personen, normales Tempo."),
-            new("Verhalten gegenüber anderen Hunden", true, 0, "Begegnung mit einem fremden, angeleinten Hund."),
-            new("Zurücklassen des Hundes", true, 0, "Hundeführer entfernt sich außer Sichtweite für ca. 1 Minute."),
-            new("Ablegen unter Ablenkung", true, 5,
-                "Hundeführer entfernt sich ca. 10 Meter, Leine eingesteckt oder umgehängt, während der andere Hund die Übung \"Leinenführigkeit\" zeigt. Verlässt der Hund die Ablageposition für mehr als 3 Meter: 0 Punkte, sonst maximal 5 Punkte."),
-        ]));
+            new("Leinenführigkeit", true, 15, "Normalschritt, Laufschritt, langsamer Schritt, Wendungen und Durchschreiten der Personengruppe - an lockerer Leine."),
+            new("Freifolge", true, 15, "Gleicher Ablauf wie Leinenführigkeit, jedoch ohne Leine, inkl. Personengruppe."),
+            new("Sitzübung", true, 10, "Aus der Bewegung; Hundeführer entfernt sich mind. 15 Schritte, Hund bleibt ruhig sitzen."),
+            new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus der Bewegung ablegen, mind. 30 Schritte Entfernung, Abrufen mit Hörzeichen, Endgrundstellung."),
+            new("Ablegen unter Ablenkung", true, 10, "Während der Teil-A-Vorführung des anderen Hundes; Hundeführer ca. 30 Schritte entfernt in Sichtweite, Rücken zum Hund."),
+            new("Verhalten im Verkehr", true, 0, "Teil B - Begegnung mit Fußgängern, Fahrzeugen, Radfahrer und Jogger; keine Einzelpunkte, Gesamteindruck entscheidet."),
+            new("Begegnung mit Personengruppe", true, 0, "Teil B - unbefangenes Verhalten in einer dichten Personengruppe."),
+            new("Verhalten gegenüber anderen Hunden", true, 0, "Teil B - Begegnung mit einem fremden, angeleinten Hund ohne aggressive Reaktion."),
+            new("Zurücklassen des Hundes", true, 0, "Teil B - Hund wird angeleint zurückgelassen, Hundeführer außer Sicht, ein anderer Hund wird vorbeigeführt."),
+        ],
+        Description: "VDH-Begleithundprüfung mit Verhaltenstest (BH/VT).\n" +
+            "Teil A (Übungsplatz): 5 bewertete Übungen, 60 Punkte gesamt - bestanden ab 42 Punkten (70 %).\n" +
+            "Teil B (öffentlicher Verkehrsraum): keine Einzelpunkte, der Leistungsrichter beurteilt den Gesamteindruck.\n" +
+            "Voraussetzungen: Mindestalter des Hundes 15 Monate, Sachkundenachweis des Hundeführers, Identitätsnachweis (Chip/Tätowierung).\n" +
+            "Teil B wird nur geprüft, wenn Teil A bestanden wurde."));
 
         // Echte FCI-IBGH-Pflichtübungsliste (UTI-REG-IGP-de-2025, S. 26). Die
         // ursprüngliche, frei erfundene "2024"-Version (Übungen wie
@@ -197,21 +210,36 @@ public static class SportCatalogSeeder
             new("Fährtenaufnahme", true, 0, "Eigene Fährte, ca. 300 Schritte, 3 gerade Schenkel, 2 Winkel, Fährtenalter ca. 20 Minuten."),
             new("Winkelarbeit", true, 0, "2 Winkel auf der Fährte."),
             new("Gegenstände verweisen", true, 0, "2 Gegenstände auf der Fährte."),
-        ]));
+        ],
+        Description: "Vereinsinterne Einsteiger-Fährtenprüfung (Trainingsstufe).\n" +
+            "Fährte: Eigenfährte, ca. 300 Schritte, 3 Schenkel, 2 Winkel (ca. 90°).\n" +
+            "Gegenstände: 2 eigene Gegenstände.\n" +
+            "Fährtenalter: ca. 20 Minuten.\n" +
+            "Ziel: sichere Fährtenaufnahme und ruhige, konzentrierte Nasenarbeit auf kurzer Strecke."));
 
         await SeedRegulationAsync(db, faerte, new RegulationSeed("Fährte B", "2024", new DateOnly(2024, 1, 1),
         [
             new("Eigenfährte vertiefen", true, 0, "Eigene Fährte, ca. 400 Schritte, 4 Schenkel, Fährtenalter ca. 30 Minuten."),
             new("Winkelarbeit", true, 0, "3 Winkel auf der Fährte."),
             new("Gegenstände verweisen", true, 0, "3 Gegenstände auf der Fährte."),
-        ]));
+        ],
+        Description: "Vereinsinterne Aufbau-Fährtenprüfung (Trainingsstufe).\n" +
+            "Fährte: Eigenfährte, ca. 400 Schritte, 4 Schenkel, 3 Winkel.\n" +
+            "Gegenstände: 3 eigene Gegenstände.\n" +
+            "Fährtenalter: ca. 30 Minuten.\n" +
+            "Ziel: längere Konzentrationsphasen und sauberes Ausarbeiten mehrerer Winkel."));
 
         await SeedRegulationAsync(db, faerte, new RegulationSeed("Fährte C (Fremdfährte)", "2024", new DateOnly(2024, 1, 1),
         [
             new("Fremde Fährte folgen", true, 0, "Fremde Fährte, ca. 600 Schritte, 5 Schenkel, 5 Winkel, Fährtenalter ca. 60 Minuten."),
             new("Winkelarbeit", true, 0, "5 Winkel auf der Fährte."),
             new("Gegenstände verweisen", true, 0, "4 Gegenstände auf der Fährte."),
-        ]));
+        ],
+        Description: "Vereinsinterne Fortgeschrittenen-Fährtenprüfung (Trainingsstufe).\n" +
+            "Fährte: Fremdfährte, ca. 600 Schritte, 5 Schenkel, 5 Winkel.\n" +
+            "Gegenstände: 4 fremde Gegenstände.\n" +
+            "Fährtenalter: ca. 60 Minuten.\n" +
+            "Ziel: Übergang zur Fremdfährte als Vorbereitung auf FCI-IFH 1."));
 
         // FCI-Fährtenhundprüfungen (FCI-IFH 1-3, UTI-REG-IGP-de-2025 S. 69-79) -
         // eigenständige Prüfungsordnungen derselben Sportart "Fährte" (wie schon
@@ -229,21 +257,39 @@ public static class SportCatalogSeeder
             new("Fährtenaufnahme", true, 40, "Eigenfährte, min. 800 Schritte, 5 Schenkel, 4 Winkel ca. 90°, Fährtenalter min. 90 Minuten, Ausarbeitungszeit max. 30 Minuten."),
             new("Winkelarbeit", true, 39, "4 Winkel mit ca. 90° auf der Fährte, Abstand zwischen den Winkeln min. 50 Schritte."),
             new("Gegenstände verweisen", true, 21, "3 dem Hundeführer gehörende Gegenstände, je 7 Punkte. Voraussetzung: bestandene FCI-BH/VT."),
-        ]));
+        ],
+        Description: "FCI-Fährtenhundprüfung Stufe 1 (100 Punkte, bestanden ab 70).\n" +
+            "Fährte: Eigenfährte, min. 800 Schritte, 5 Schenkel, 4 Winkel (ca. 90°).\n" +
+            "Gegenstände: 3 eigene Gegenstände (je 7 Punkte).\n" +
+            "Fährtenalter: min. 90 Minuten - Ausarbeitungszeit: max. 30 Minuten.\n" +
+            "Voraussetzung: bestandene BH/VT."));
 
         await SeedRegulationAsync(db, faerte, new RegulationSeed("FCI-IFH 2", "2025", new DateOnly(2025, 1, 1),
         [
             new("Fährtenaufnahme", true, 40, "Fremdfährte, min. 1200 Schritte, 7 Schenkel, Fährtenalter min. 120 Minuten, Ausarbeitungszeit max. 30 Minuten, 2 Verleitungen 30 Minuten vor dem Ansatz. Voraussetzung: FCI-IFH 1."),
             new("Winkelarbeit", true, 39, "6 Winkel: die ersten 5 mit ca. 90°, der letzte als spitzer Winkel mit 30°-60°."),
             new("Gegenstände verweisen", true, 21, "4 fremde Gegenstände, 3 x 5 und 1 x 6 Punkte."),
-        ]));
+        ],
+        Description: "FCI-Fährtenhundprüfung Stufe 2 (100 Punkte, bestanden ab 70).\n" +
+            "Fährte: Fremdfährte, min. 1200 Schritte, 7 Schenkel, 6 Winkel (5 x ca. 90°, 1 spitzer Winkel 30-60°).\n" +
+            "Gegenstände: 4 fremde Gegenstände (3 x 5 + 1 x 6 Punkte).\n" +
+            "Fährtenalter: min. 120 Minuten - Ausarbeitungszeit: max. 30 Minuten.\n" +
+            "Besonderheit: 2 Verleitungen, 30 Minuten vor dem Ansatz gelegt.\n" +
+            "Voraussetzung: bestandene FCI-IFH 1."));
 
         await SeedRegulationAsync(db, faerte, new RegulationSeed("FCI-IFH 3", "2025", new DateOnly(2025, 1, 1),
         [
             new("Fährtenaufnahme", true, 40, "Fremdfährte, min. 1800 Schritte, 8 Schenkel (einer als Halbkreis mit ca. 30 Meter Radius), Fährtenalter min. 180 Minuten, Ausarbeitungszeit max. 45 Minuten, Verleitungen 30 Minuten vor dem Ansatz. Voraussetzung: FCI-IFH 2."),
             new("Winkelarbeit", true, 39, "7 Winkel: 2 spitze Winkel zwischen 30° und 60°, die übrigen ca. 90°."),
             new("Gegenstände verweisen", true, 21, "7 fremde Gegenstände, je 3 Punkte."),
-        ]));
+        ],
+        Description: "FCI-Fährtenhundprüfung Stufe 3 - höchste Fährtenstufe (100 Punkte, bestanden ab 70).\n" +
+            "Fährte: Fremdfährte, min. 1800 Schritte, 8 Schenkel, davon einer als Halbkreis (ca. 30 m Radius).\n" +
+            "Winkel: 7, davon 2 spitze Winkel (30-60°).\n" +
+            "Gegenstände: 7 fremde Gegenstände (je 3 Punkte).\n" +
+            "Fährtenalter: min. 180 Minuten - Ausarbeitungszeit: max. 45 Minuten.\n" +
+            "Besonderheit: Verleitungen 30 Minuten vor dem Ansatz.\n" +
+            "Voraussetzung: bestandene FCI-IFH 2."));
 
         var igp1 = await SeedSportAsync(db, "IGP1", "FCI-Internationale Gebrauchshundeprüfung 1",
         [
@@ -461,6 +507,11 @@ public static class SportCatalogSeeder
         // Sicherheitsnetz läuft RemoveOrphanedExercisesAsync weiterhin bei
         // jedem Start - idempotent, findet auf einer bereits bereinigten
         // Datenbank einfach nichts mehr.
+        // Fehlerhafte BH-Version "2024" (Leinenführigkeit 30 statt 15,
+        // Freifolge fehlte, Ablage 5 statt 10) durch die korrekte
+        // "2025"-Version abgelöst - siehe RegulationSeed "BH" oben.
+        await RemoveSupersededVersionAsync(db, bh, "BH", "2024");
+
         await RemoveOrphanedExercisesAsync(db, bh);
         await RemoveOrphanedExercisesAsync(db, ibgh1);
         await RemoveOrphanedExercisesAsync(db, ibgh2);
@@ -513,9 +564,16 @@ public static class SportCatalogSeeder
         var regulation = await db.Regulations.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.SportId == sport.Id && r.Name == seed.Name);
         if (regulation is null)
         {
-            regulation = new Regulation { SportId = sport.Id, Name = seed.Name };
+            regulation = new Regulation { SportId = sport.Id, Name = seed.Name, Description = seed.Description };
             db.Regulations.Add(regulation);
             await db.SaveChangesAsync();
+        }
+        else if (seed.Description is not null && regulation.Description != seed.Description)
+        {
+            // Beschreibung aus späteren Seed-Durchläufen nachpflegen - der
+            // Seed ist für den globalen Katalog die Quelle der Wahrheit
+            // (analog zur MaxPoints-Nachpflege unten).
+            regulation.Description = seed.Description;
         }
 
         var version = await db.RegulationVersions.IgnoreQueryFilters()

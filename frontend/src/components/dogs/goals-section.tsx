@@ -404,6 +404,18 @@ export function GoalsSection({
                     Legt fest, aus welcher Pflichtübungsliste der Plan generiert wird - mehrere Prüfungsordnungen
                     derselben Sportart (z.B. Fährte A/B/C) haben unterschiedliche Anforderungen.
                   </p>
+                  {(() => {
+                    const selected = regulations.find((r) => r.id === regulationId);
+                    if (!selected?.description) return null;
+                    return (
+                      <div className="rounded-md bg-primary/5 px-3 py-2.5">
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                          Rahmenbedingungen
+                        </p>
+                        <p className="whitespace-pre-line text-sm leading-relaxed">{selected.description}</p>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               <div className="flex flex-col gap-2">

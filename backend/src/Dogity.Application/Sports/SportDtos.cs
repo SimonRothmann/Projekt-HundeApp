@@ -32,7 +32,7 @@ public record UpdateExerciseRequest(
     string? Category,
     string? ScoringCriteria);
 
-public record RegulationDto(Guid Id, string Name, string? SourceUrl, DateTimeOffset? LastSyncedAt, string? LatestKnownVersionLabel);
+public record RegulationDto(Guid Id, string Name, string? SourceUrl, DateTimeOffset? LastSyncedAt, string? LatestKnownVersionLabel, string? Description);
 
 public record RegulationVersionDto(Guid Id, string VersionLabel, DateOnly ValidFrom);
 
