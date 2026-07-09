@@ -38,15 +38,23 @@ function collectSelectItems(node: React.ReactNode): Array<{ value: unknown; labe
   return items
 }
 
-function Select<Value>({ children, items, ...props }: SelectPrimitive.Root.Props<Value>) {
+function Select<Value>({ children, items, modal = false, ...props }: SelectPrimitive.Root.Props<Value>) {
   // Ohne useMemo entsteht bei jedem Render ein neues Array (auch bei
   // unverändertem Inhalt) - Base UI reicht "items" durchs Rendering bis in
   // mehrere Hooks/Effects durch, eine neue Referenz pro Render kann dort
   // unnötige Folge-Updates auslösen. Besonders relevant, seit deutlich mehr
   // Selects gleichzeitig im DOM stehen (Trainingsplan-Items pro Woche).
   const resolvedItems = React.useMemo(() => items ?? (collectSelectItems(children) as never), [children, items])
+  // modal={false} als Default (Base UI ist standardmäßig modal=true): der
+  // modale Modus rendert eine InternalBackdrop (position:fixed; inset:0),
+  // die alle Klicks abfängt, solange das Popup offen ist. Wird das Select
+  // zusammen mit seinem Formular unmountet, WÄHREND das Popup noch offen ist
+  // (z.B. Plan-Item bearbeiten/abbrechen -> Formular schließt), kann dieses
+  // unsichtbare Vollbild-Overlay hängenbleiben und die ganze Seite
+  // unklickbar machen ("Seite hängt"). Ohne Modal gibt es kein Overlay;
+  // Klick-außerhalb schließt das Dropdown weiterhin normal (Floating UI).
   return (
-    <SelectPrimitive.Root data-slot="select" items={resolvedItems} {...props}>
+    <SelectPrimitive.Root data-slot="select" items={resolvedItems} modal={modal} {...props}>
       {children}
     </SelectPrimitive.Root>
   )
