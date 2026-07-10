@@ -11,6 +11,10 @@ import { estimateLengthMeters } from "@/lib/geo";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
 import { primeHapticsAudio, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
 
+// Stabile Leerreferenz für den Idle-Fall (keine Aufzeichnung läuft) - siehe
+// onLivePointsChange-Effect. Ein Inline-[] wäre bei jedem Render neu.
+const EMPTY_WALK_POINTS: GpsWalkPoint[] = [];
+
 function toWalkPoint(position: GeolocationPosition): GpsWalkPoint {
   return {
     latitude: position.coords.latitude,
@@ -38,7 +42,11 @@ export function WalkRunRecorder({
 }: {
   trackId: string;
   onSaved: () => Promise<void>;
-  onLivePointsChange?: (points: GpsWalkPoint[]) => void;
+  // (trackId, points): der Aufrufer kann so EINEN stabilen Callback für alle
+  // Tracks nutzen, statt pro Track eine neue Funktion zu erzeugen - Letzteres
+  // führte zu einer Endlos-Render-Schleife (Effect unten hängt von
+  // onLivePointsChange ab).
+  onLivePointsChange?: (trackId: string, points: GpsWalkPoint[]) => void;
   // Punkte der gelegten Fährte - Grundlage für die Vibration vor
   // Gegenständen und Abbiegungen. Optional, damit Aufrufer, die keine
   // Legung haben, den Recorder ohne Haptics-Nebeneffekt nutzen können.
@@ -47,8 +55,11 @@ export function WalkRunRecorder({
   const { isRecording, points, setPoints, currentAccuracy, start: startRecording, stop } = useGpsRecorder(toWalkPoint);
 
   useEffect(() => {
-    onLivePointsChange?.(isRecording ? points : []);
-  }, [points, isRecording, onLivePointsChange]);
+    // EMPTY_WALK_POINTS ist eine stabile Referenz (Modul-Konstante), damit der
+    // Idle-Fall NICHT bei jedem Render ein neues [] meldet und so einen
+    // Update-Loop im Aufrufer auslöst.
+    onLivePointsChange?.(trackId, isRecording ? points : EMPTY_WALK_POINTS);
+  }, [points, isRecording, onLivePointsChange, trackId]);
 
   // Vibriere 10 Schritte (~8 m) vor jedem markierten Gegenstand und vor
   // jeder erkannten Abbiegung der Legung. sessionKey = trackId+isRecording:

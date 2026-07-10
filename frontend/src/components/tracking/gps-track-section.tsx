@@ -63,15 +63,16 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
   // so entsteht die neue Linie in der SELBEN Karte, statt in einer zweiten.
   const [liveWalkPoints, setLiveWalkPoints] = useState<Record<string, GpsWalkPoint[]>>({});
 
-  // Stabile Referenz - sonst würde bei jedem Render eine neue Funktion an
-  // WalkRunRecorder gehen, was den useEffect-Depedency-Vergleich dort
-  // ständig triggern würde.
-  const handleLivePoints = useCallback(
-    (trackId: string) => (points: GpsWalkPoint[]) => {
-      setLiveWalkPoints((prev) => ({ ...prev, [trackId]: points }));
-    },
-    [],
-  );
+  // EINE stabile Funktion für alle Tracks (trackId als Parameter statt
+  // curried) - eine curried Variante `handleLivePoints(track.id)` erzeugte pro
+  // Render eine neue Funktion, wodurch der onLivePointsChange-Effect im
+  // WalkRunRecorder bei jedem Render feuerte und einen Endlos-Update-Loop
+  // ("Maximum update depth exceeded") auslöste, der den Router blockierte.
+  // Der Gleichheits-Guard verhindert zusätzlich einen State-Update, wenn sich
+  // die Referenz nicht geändert hat (Idle-Fall meldet die stabile Leerliste).
+  const handleLivePoints = useCallback((trackId: string, points: GpsWalkPoint[]) => {
+    setLiveWalkPoints((prev) => (prev[trackId] === points ? prev : { ...prev, [trackId]: points }));
+  }, []);
   const {
     isRecording,
     points: recordedPoints,
@@ -240,7 +241,7 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
                   <WalkRunRecorder
                     trackId={track.id}
                     onSaved={loadTracks}
-                    onLivePointsChange={handleLivePoints(track.id)}
+                    onLivePointsChange={handleLivePoints}
                     laidTrackPoints={track.points}
                   />
                   <Button
