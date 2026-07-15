@@ -56,7 +56,17 @@ function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
   };
 }
 
-export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: string }) {
+// readOnly: für abgeschlossene Trainings (Datum in der Vergangenheit). Dann
+// entfällt die komplette Aufnahme-Funktion (neue Fährte legen UND erneutes
+// Ablaufen) - eine Live-GPS-Aufzeichnung ergibt nur für das laufende Training
+// von heute Sinn. Bereits gespeicherte Fährten bleiben als Karten sichtbar.
+export function GpsTrackSection({
+  trainingSessionId,
+  readOnly = false,
+}: {
+  trainingSessionId: string;
+  readOnly?: boolean;
+}) {
   const [tracks, setTracks] = useState<GpsTrack[] | null>(null);
   // Live-Punkte des gerade laufenden Ablauf-Versuchs, pro Track-Id. Die
   // Karte des jeweiligen Tracks zeigt diese Punkte zusätzlich zur Legung -
@@ -153,11 +163,17 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
     }
   }
 
+  // Abgeschlossenes Training ohne Fährte: nichts anzeigen (kein leerer Block,
+  // da hier weder aufgezeichnet werden kann noch etwas zu sehen ist).
+  if (readOnly && tracks !== null && tracks.length === 0) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-3 rounded-md border p-3">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold">Fährte</h4>
-        {!isRecording ? (
+        {readOnly ? null : !isRecording ? (
           <Button size="sm" variant="outline" onClick={startRecording}>
             <MapPin className="size-4" />
             Aufnahme starten
@@ -187,7 +203,7 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
         )}
       </div>
 
-      {isRecording && (
+      {!readOnly && isRecording && (
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-2">
             <Label htmlFor={`surface-${trainingSessionId}`}>Untergrund</Label>
@@ -238,12 +254,14 @@ export function GpsTrackSection({ trainingSessionId }: { trainingSessionId: stri
                   {track.comment && <span>{track.comment}</span>}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <WalkRunRecorder
-                    trackId={track.id}
-                    onSaved={loadTracks}
-                    onLivePointsChange={handleLivePoints}
-                    laidTrackPoints={track.points}
-                  />
+                  {!readOnly && (
+                    <WalkRunRecorder
+                      trackId={track.id}
+                      onSaved={loadTracks}
+                      onLivePointsChange={handleLivePoints}
+                      laidTrackPoints={track.points}
+                    />
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"

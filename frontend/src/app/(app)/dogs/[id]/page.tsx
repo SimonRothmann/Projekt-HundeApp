@@ -46,6 +46,18 @@ function monthLabel(iso: string): string {
   return new Date(iso).toLocaleDateString("de-DE", { month: "long", year: "numeric" });
 }
 
+// Ein Training gilt als abgeschlossen, sobald sein Datum in der Vergangenheit
+// liegt (vor dem heutigen Tag). Für solche Trainings entfällt die
+// Fährten-Aufnahme - eine Live-GPS-Aufzeichnung ergibt nur für das Training
+// von heute Sinn.
+function isCompletedSession(iso: string): boolean {
+  const d = new Date(iso);
+  d.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d.getTime() < today.getTime();
+}
+
 function emptyRow(): ExerciseRow {
   return {
     sportId: "",
@@ -607,7 +619,10 @@ export default function DogDetailPage() {
                                   </li>
                                 ))}
                               </ul>
-                              <GpsTrackSection trainingSessionId={session.id} />
+                              <GpsTrackSection
+                                trainingSessionId={session.id}
+                                readOnly={isCompletedSession(session.date)}
+                              />
                               <TrainerFeedback session={session} isOwner={isOwner} onUpdated={loadAll} />
                             </CardContent>
                           </Card>
