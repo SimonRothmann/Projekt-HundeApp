@@ -18,10 +18,18 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
         if (!await HasSessionAccessAsync(userId, trainingSessionId, ct))
             return Result<IReadOnlyList<GpsTrackDto>>.Failure("Training nicht gefunden.");
 
+        // AsSplitQuery: zwei Collection-Includes (Points + WalkRuns.Points) in
+        // EINEM Query erzeugen im JOIN eine kartesische Zeilenexplosion
+        // (Zeilen ~ TrackPoints x WalkRunPoints) - bei 300 Punkten Legung und
+        // 3 Abläufen à 300 Punkten überträgt Postgres ein Vielfaches der
+        // Nutzdaten. Split zerlegt das in schlanke Einzelqueries pro
+        // Collection; die Tracks sind append-only pro Nutzer, das
+        // Konsistenzfenster zwischen den Teilqueries ist daher unkritisch.
         var tracks = await db.GpsTracks
             .Where(t => t.TrainingSessionId == trainingSessionId)
             .Include(t => t.Points)
             .Include(t => t.WalkRuns).ThenInclude(r => r.Points)
+            .AsSplitQuery()
             .AsNoTracking()
             .ToListAsync(ct);
 

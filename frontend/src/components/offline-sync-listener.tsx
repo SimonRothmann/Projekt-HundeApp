@@ -15,7 +15,14 @@ export function OfflineSyncListener() {
 
   useEffect(() => {
     async function trySync() {
-      const count = await syncQueuedRequests();
+      const count = await syncQueuedRequests(undefined, (item, error) => {
+        // Dauerhaft aussichtsloser Eintrag (z.B. 404 auf ein inzwischen
+        // gelöschtes Training) wurde aus der Queue verworfen - dem Nutzer
+        // sagen, WAS verloren ging, statt still zu scheitern.
+        toast.error(`"${item.label}" konnte nicht synchronisiert werden und wurde verworfen: ${error.message}`, {
+          duration: 10000,
+        });
+      });
       if (count > 0) {
         toast.success(`${count} offline gespeicherte Eintragung${count > 1 ? "en" : ""} synchronisiert.`);
       }

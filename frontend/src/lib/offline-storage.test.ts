@@ -5,11 +5,14 @@ import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
 import { enqueueRequest, listQueuedRequests, syncQueuedRequests } from "@/lib/offline-queue";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 
-// api wird nur von syncQueuedRequests genutzt - komplett mocken, damit kein
-// fetch stattfindet.
-vi.mock("@/lib/api", () => ({
+// Nur das api-Objekt mocken, damit kein fetch stattfindet - die echte
+// ApiError-Klasse muss erhalten bleiben, weil syncQueuedRequests per
+// instanceof zwischen permanenten 4xx-Fehlern und Netzwerkfehlern
+// unterscheidet.
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
   api: {
     post: vi.fn(),
     put: vi.fn(),
@@ -80,5 +83,48 @@ describe("offline-queue", () => {
     expect(synced).toBe(0);
     expect(await listQueuedRequests()).toHaveLength(2);
     expect(api.post).toHaveBeenCalledTimes(1);
+  });
+
+  it("spielt Einträge in Einfüge-Reihenfolge ab (FIFO trotz IndexedDB-Key-Sortierung)", async () => {
+    vi.mocked(api.post).mockResolvedValue(undefined);
+    await enqueueRequest({ path: "/api/1", method: "POST", body: {}, label: "A" });
+    await enqueueRequest({ path: "/api/2", method: "POST", body: {}, label: "B" });
+    await enqueueRequest({ path: "/api/3", method: "POST", body: {}, label: "C" });
+
+    await syncQueuedRequests();
+
+    // getAll() sortiert nach Key - mit den früheren Zufalls-UUID-Keys war
+    // diese Reihenfolge zufällig, seit den Zeitstempel-Keys ist sie FIFO.
+    expect(vi.mocked(api.post).mock.calls.map((c) => c[0])).toEqual(["/api/1", "/api/2", "/api/3"]);
+  });
+
+  it("verwirft dauerhaft aussichtslose Einträge (4xx) und synchronisiert den Rest weiter", async () => {
+    vi.mocked(api.post)
+      .mockRejectedValueOnce(new ApiError(404, ["Training nicht gefunden."]))
+      .mockResolvedValue(undefined);
+    await enqueueRequest({ path: "/api/gps-tracks", method: "POST", body: {}, label: "Fährte" });
+    await enqueueRequest({ path: "/api/trainings", method: "POST", body: {}, label: "Training" });
+
+    const failed: string[] = [];
+    const synced = await syncQueuedRequests(undefined, (item) => failed.push(item.label));
+
+    // 404 blockiert die Queue nicht mehr: Eintrag verworfen + gemeldet,
+    // der nachfolgende Eintrag wird trotzdem synchronisiert.
+    expect(synced).toBe(1);
+    expect(failed).toEqual(["Fährte"]);
+    expect(await listQueuedRequests()).toHaveLength(0);
+    expect(api.post).toHaveBeenCalledTimes(2);
+  });
+
+  it("bricht bei 401 ab und behält den Eintrag (Retry nach erneutem Login)", async () => {
+    vi.mocked(api.post).mockRejectedValueOnce(new ApiError(401, []));
+    await enqueueRequest({ path: "/api/trainings", method: "POST", body: {}, label: "Training" });
+
+    const failed: string[] = [];
+    const synced = await syncQueuedRequests(undefined, (item) => failed.push(item.label));
+
+    expect(synced).toBe(0);
+    expect(failed).toEqual([]);
+    expect(await listQueuedRequests()).toHaveLength(1);
   });
 });

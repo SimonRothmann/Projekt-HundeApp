@@ -101,8 +101,8 @@ Ergebnis eines vollständigen Code-Audits (Sicherheit, Performance, Wartbarkeit)
 
 ### 2. Quick-Wins Performance/Resilienz
 
-- [ ] `GpsTrackService`-Query mit zwei Collection-Includes (`Points` + `WalkRuns.Points`) erzeugt kartesische Zeilenexplosion im JOIN - `.AsSplitQuery()` anhängen. Aufwand: <1 h.
-- [ ] Offline-Queue (`offline-queue.ts`): `syncQueuedRequests` bricht bei JEDEM Fehler ab (`catch { break; }`) - ein permanent fehlschlagendes Item (z. B. 404 auf gelöschtes Training) blockiert die Queue dauerhaft. Fix: 4xx (außer 401/408/429) → Item verwerfen + Toast; nur Netzwerkfehler/5xx → Abbruch mit Retry. Aufwand: <1 h.
+- [x] `GpsTrackService`-Query mit zwei Collection-Includes (`Points` + `WalkRuns.Points`) erzeugt kartesische Zeilenexplosion im JOIN - ERLEDIGT: `.AsSplitQuery()` ergänzt (dafür `Microsoft.EntityFrameworkCore.Relational` als Paketreferenz in Dogity.Application, provider-neutral).
+- [x] Offline-Queue (`offline-queue.ts`): `syncQueuedRequests` bricht bei JEDEM Fehler ab - ERLEDIGT: 4xx (außer 401/408/429) → Item verwerfen + Toast mit Label des verlorenen Eintrags; Netzwerkfehler/5xx/401 → Abbruch mit Retry. Dabei einen ECHTEN vorbestehenden Bug gefunden und behoben: Die Queue-Keys waren zufällige UUIDs, IndexedDB `getAll()` liefert aber in KEY-Reihenfolge - die versprochene FIFO-Abspielreihenfolge ("Training vor Fährte") war daher effektiv zufällig. Jetzt chronologisch sortierbare Keys (Zeitstempel + monotone Sequenz + UUID-Suffix); expliziter FIFO-Test ergänzt, Testlauf 5x in Folge grün (vorher flaky).
 
 ### 3. Katalog fachlich korrekt (eine PO-Review-Session, keine Doppelarbeit)
 
