@@ -78,7 +78,7 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
 
 Im Rahmen eines vollständigen Performance-Audits identifiziert, aber bewusst zurückgestellt, da der Nutzen beim aktuellen Datenvolumen (Demo-Daten, einstellige bis niedrige zweistellige Nutzerzahl) den Implementierungsaufwand noch nicht rechtfertigt - sobald die Nutzerzahl wächst, hier zuerst ansetzen:
 
-- [ ] `GET /api/admin/users` liefert alle Nutzer ohne Paging zurück - bei großer Nutzerzahl ein wachsendes Payload-Problem für die Admin-Übersicht (aktuell nur eine Handvoll Demo-Nutzer, daher kein akutes Problem).
+- [x] `GET /api/admin/users` liefert alle Nutzer ohne Paging zurück - erledigt: Endpoint hat inzwischen `page`/`pageSize`-Parameter (`AdminUserPageDto`, Default 50/Seite).
 - [ ] `global-exercises-section.tsx`/`club-exercises-section.tsx` laden alle für den Nutzer sichtbaren Übungen und filtern client-seitig auf `clubId === null` bzw. den gewählten Verein - ein Query-Parameter am bestehenden `/api/sports/{sportId}/exercises`-Endpoint würde das vermeiden, spart aber nur wenige KB pro Aufruf in der Admin/Trainer-Verwaltung (kein Endnutzer-Pfad auf dem Hundeplatz).
 
 - [x] Vier Trainingsplan/-tagebuch-Wünsche umgesetzt: **(1)** Abgebrochene/erreichte Ziele lassen sich jetzt löschen ("Ziel löschen"-Button, `window.confirm`-Bestätigung, ruft den schon vorhandenen DELETE-Endpoint). **(2)** Plan-Items lassen sich jetzt direkt bearbeiten statt nur entfernen+neu anlegen (neuer `PUT /api/goals/{id}/plan-items/{itemId}`-Endpoint, `UpdatePlanItemAsync`) - Woche und Zielwert änderbar, die Übung selbst bewusst nicht (sonst würden bereits verknüpfte Tagebucheinträge plötzlich zu einer anderen Übung gehören). **(3)** `TrainingPlanGenerator` plant jetzt mindestens 4 Übungen/Woche (Richtwert: 2 Einheiten x 2 Übungen) statt nur so viele wie nötig, um den Pflichtkatalog einmal abzudecken - skaliert nur darüber hinaus (bis max. 6), wenn ein großer Pflichtkatalog sonst nicht rechtzeitig vor dem Zieldatum vollständig untergebracht werden könnte. **(4)** Trainingstagebuch-Einträge können jetzt als Freitext statt als Katalog-Übung erfasst werden (für spontane Spaß-/Sonstige Übungen, die nicht Teil einer Prüfungsordnung sind) - `TrainingExercise.ExerciseId` ist jetzt nullable, neues `FreeTextLabel`-Feld (Migration `AddFreeTextExercises`), Frontend bekommt einen Umschalt-Button pro Übungszeile zwischen Katalog-Auswahl und Freitext-Eingabe. Dabei zwei echte Bugs gefunden und behoben: (a) die alten, beim IBGH/IGP-Korrekturdurchlauf ersetzten `RegulationSeed`-Blöcke ("Fußarbeit" etc.) referenzierten Übungen, die nicht mehr deklariert waren - mit der seit dem letzten Mal scharf geschalteten Fehlerprüfung crashte der Server beim Neustart; die toten Code-Blöcke wurden komplett entfernt (nicht nur ihre DB-Daten). (b) Ohne gewählte Prüfungsordnung zog der Generator versehentlich auch fremde, vereinsspezifische Übungen in den Plan (`Exercise.ClubId` wurde im Fallback-Pool nicht gefiltert) - teils sogar doppelt, da zwei Vereine identisch benannte Übungen angelegt hatten. Backend-Tests erweitert (Mindestpensum-Test), Typecheck/Lint/Build grün, alle vier Features live per curl verifiziert.
@@ -91,6 +91,44 @@ Im Rahmen eines vollständigen Performance-Audits identifiziert, aber bewusst zu
 
 - [x] Fünf weitere Komfort-Features umgesetzt, statt E-Mail-Versand bewusst **In-App-Benachrichtigungen** (Nutzerwunsch: "mach keine emails sondern am besten app benachrichtigungen"). **(1) Benachrichtigungssystem**: neue `Notification`-Entity (Migration `AddNotifications`), `INotificationService`/`NotificationsController` (`GET /api/notifications`, `GET .../unread-count`, `POST .../{id}/read`, `POST .../read-all`), als Nebeneffekt ausgelöst in `ClubService.DecideJoinRequestAsync` (Beitritt angenommen/abgelehnt), `ClubService.PromoteMemberToTrainerAsync` (zum Trainer befördert) und `TrainingService.SetFeedbackAsync` (Trainer-Feedback erhalten). Frontend: Glocken-Icon (`notification-bell.tsx`, neue `components/ui/popover.tsx` auf Basis von `@base-ui/react/popover`) in Sidebar + mobilem Header, `auth-context.tsx` pollt den Ungelesen-Zähler alle 60s (kein WebSocket, Overkill für die Vereinsgröße). **(2) Verein verlassen**: `ClubService.LeaveClubAsync` + `DELETE /api/clubs/{id}/membership`, Button auf `/clubs` bei aktiver Mitgliedschaft - bewusst nur die `ClubMembership` betroffen, keine automatische Gruppen-/Trainer-Bereinigung. **(3) Profil bearbeiten**: neuer `ProfileController` (`GET/PUT /api/profile`, `PUT .../email` mit Passwort-Bestätigung gegen Account-Übernahme, `PUT .../password`) - Avatar bewusst nur als URL-Feld, kein Datei-Upload (keine Storage-Anbindung vorhanden). **(4) Trainer-Feedback-Erinnerung**: `TrainingService.GetPendingFeedbackAsync` + `GET /api/trainings/pending-feedback`, neue Sektion auf der Trainer-Seite - die im Seeder absichtlich unkommentierte `openFeedbackSession` diente als ideales Live-Testmaterial. **(5) Druckansicht**: neue Route `/dogs/[id]/print` mit Trainingsplan + -historie, `window.print()` statt einer neuen PDF-Bibliothek (Supply-Chain-Vorsicht, siehe `pdftotext`-Konvention) - `print:hidden` auf Sidebar/BottomNav/mobilem Header ergänzt, damit nur der Inhalt gedruckt wird. Backend-Tests grün, Typecheck/Lint/Build grün, alle fünf Flows live per curl verifiziert (Beitritt→Freigabe→Benachrichtigung, Beförderung→Benachrichtigung, Verein verlassen, Trainer-Feedback→Benachrichtigung+Pending-Liste schrumpft korrekt, Profil-Update inkl. abgelehnter E-Mail-Änderung bei falschem Passwort und vollständigem Passwort-Wechsel-Roundtrip).
 
-## Aktuell keine weiteren offenen Punkte (außer den oben gelisteten)
+## Roadmap: Technische Schulden × Features (Audit 2026-07-16)
 
-Alle bisher beauftragten Features sind umgesetzt und verifiziert (Build, Lint, Typecheck, End-to-End-Tests per curl). Nächste sinnvolle Kandidaten laut ROADMAP.md Phase 3 "Vereinsplattform": Termine/Veranstaltungen, Prüfungsanmeldung. Folgen auf Zuruf.
+Ergebnis eines vollständigen Code-Audits (Sicherheit, Performance, Wartbarkeit) auf Stand `64ba3b9`, verzahnt mit den offenen Feature-Wünschen. Reihenfolge ist strikt - jeder Schritt ist einzeln über den Test→Prod-Flow deploybar, es ist immer nur eine Baustelle offen. **Entscheidung Auftraggeber: E-Mail-Versand ganz nach hinten** - bis dahin bleibt der bestehende Workflow (Admin bekommt In-App-Benachrichtigung bei Passwort-Reset-Anfragen und setzt das Passwort in der Nutzerverwaltung neu).
+
+### 1. Sicherheits-Sofortfix: Reset-Tokens raus aus den Prod-Logs
+
+- [ ] `LoggingEmailSender` loggt den kompletten Passwort-Reset-Link inkl. gültigem Token - auf der Prod-VPS landet das in den Container-Logs (Retention unbegrenzt bis zum nächsten Recreate). Fix: in Production nur Empfänger + Betreff loggen, Body unterdrücken (Umgebungs-Check in `LoggingEmailSender` oder eigener `ProductionEmailSender`). Bewusst OHNE den SMTP-Umbau, der kommt erst in Schritt 7. Danach Container recreaten, damit die alten Logs mit Tokens rotieren. Aufwand: <1 h.
+
+### 2. Quick-Wins Performance/Resilienz
+
+- [ ] `GpsTrackService`-Query mit zwei Collection-Includes (`Points` + `WalkRuns.Points`) erzeugt kartesische Zeilenexplosion im JOIN - `.AsSplitQuery()` anhängen. Aufwand: <1 h.
+- [ ] Offline-Queue (`offline-queue.ts`): `syncQueuedRequests` bricht bei JEDEM Fehler ab (`catch { break; }`) - ein permanent fehlschlagendes Item (z. B. 404 auf gelöschtes Training) blockiert die Queue dauerhaft. Fix: 4xx (außer 401/408/429) → Item verwerfen + Toast; nur Netzwerkfehler/5xx → Abbruch mit Retry. Aufwand: <1 h.
+
+### 3. Katalog fachlich korrekt (eine PO-Review-Session, keine Doppelarbeit)
+
+- [ ] IGP-1-3-Punktaufteilungen gegen die offizielle VDH-PO prüfen/korrigieren (aktuell Näherungswerte, siehe "Offener Punkt: IGP1-3 Punktaufteilung" oben) - fachlicher Input vom Auftraggeber (VDH-Vorstand) nötig.
+- [ ] Im selben Seeder-Durchgang die fehlenden Prüfungsstufen einpflegen: FCI-FPr 1-3, UPr 1-3, GPr 1-3, SPr 1-3, StöPr 1-3, IGP-FH, IAD (Startvoraussetzungen + Mindestalter liegen bereits als bestätigte Tabelle vor, siehe Chat-Verlauf/Zulassungsvoraussetzungs-Korrektur).
+
+### 4. Content-Security-Policy
+
+- [ ] CSP auf den Frontend-Domains fehlt (Caddy setzt nur HSTS/XCTO/XFO/Referrer-Policy) - verschärft das localStorage-JWT-Risiko. Rollout via `headers()` in `next.config.ts`, ZUERST als `Content-Security-Policy-Report-Only`, eine Woche Verstöße beobachten (Leaflet-Tiles `https://*.tile.openstreetmap.org`, Tailwind-Inline-Styles einplanen), dann scharf schalten. Muss vor Schritt 6 (JWT-Härtung) liegen.
+
+### 5. Paket "Hundeseite schnell + wartbar" (strikt zweistufig, größtes Paket)
+
+- [ ] **Stufe A (Backend, abwärtskompatibel):** `bool hasGpsTrack` in `TrainingSessionDto` (EXISTS-Subselect) + `?from=&to=`-Zeitraumparameter an `GET /api/trainings` - OHNE Parameter bleibt das Verhalten unverändert (Statistik-Dashboard, Druckansicht `/dogs/[id]/print` und Plan-Fortschritt nutzen weiterhin den Vollpfad).
+- [ ] **Stufe B (Frontend):** `dogs/[id]/page.tsx` nach dem Goals-Muster zerlegen (Trainingsformular / Monatshistorie / Mitbesitzer als eigene Komponenten), `GpsTrackSection` nur noch bei `hasGpsTrack || !readOnly` mounten (beseitigt das HTTP-N+1: aktuell ein GPS-Request pro Trainings-Karte), initial nur die letzten 3 Monate laden, ältere Monate beim Aufklappen nachladen. Zwischen Stufe A und B auf Test verifizieren.
+
+### 6. JWT-Härtung Stufe 1
+
+- [ ] `SecurityStamp`-Validierung beim Token-Check (Admin-Sperre wirkt damit sofort statt erst nach Tokenablauf) + `ExpiryMinutes` von 1440 auf 120 senken. Bewusst NACH scharfer CSP und ohne offene Frontend-Baustelle, da kürzere Sessions das Nutzererlebnis ändern und isoliert beobachtbar sein sollen.
+
+### 7. E-Mail-Versand (bewusst ganz hinten, Entscheidung Auftraggeber)
+
+- [ ] `IEmailSender`-Registrierung konfigurationsgetrieben machen (`Email:Mode` = `Logging`/`Smtp` statt Code-Änderung in `DependencyInjection.cs`), Provider-Entscheidung (Resend / Brevo / Hoster-SMTP) einholen, Zugangsdaten via `.env`, Testversand auf Test-Env. Bis dahin trägt der Admin-Benachrichtigungs-Workflow den Passwort-Reset vollständig.
+
+### Zurückgestellt (Nice-to-have, bewusst NICHT auf der Roadmap)
+
+- Cookie-Auth + Refresh-Token-Rotation (JWT-Härtung Stufe 2): bricht `api.ts`, 401-Handling, Offline-Queue und Dev-CORS gleichzeitig - erst vor einer öffentlichen Beta mit Fremdnutzern angehen. CSP + SecurityStamp senken das Risiko bis dahin ausreichend.
+- Test-Env von `Development` auf eigenes `Staging`-Environment umstellen (Demo-Seeder an explizites `Seed:Demo`-Flag koppeln, CORS festnageln, Swagger schützen): erst nötig, wenn die Test-Domain öffentlich sichtbar beworben wird.
+- PDF-Export: Druckansicht `/dogs/[id]/print` + Browser-Print deckt den Bedarf.
+- Exercises-Endpoint-Query-Parameter (siehe Performance-Backlog oben): spart nur wenige KB in der Admin/Trainer-Verwaltung.
