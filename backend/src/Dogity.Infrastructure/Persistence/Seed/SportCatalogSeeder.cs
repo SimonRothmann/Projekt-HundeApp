@@ -15,15 +15,15 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// Bewertungskriterien sind eigene, fachlich an gängige
 /// Hundesport-Standards angelehnte Beschreibungen.
 ///
-/// Ausnahme IGP1-3: Übungsnamen und Punktzahlen sind direkt der FCI/VDH
-/// Prüfungsordnung 2025 (UTI-REG-IGP-de-2025) entnommen. Dies erfolgt mit
-/// expliziter Genehmigung des Auftraggebers in seiner Funktion als
-/// VDH-Vorstand (siehe TODO.md), abweichend von der sonst im Projekt
-/// geltenden Vorsichtsregel. Die Punktaufteilung der Abteilung B/C basiert
-/// auf einer manuellen Durchsicht des PDF-Texts; einzelne Werte aus
-/// mehrspaltigen Tabellen waren beim Extrahieren nicht zweifelsfrei einer
-/// Prüfungsstufe zuzuordnen und sind daher als Näherung zu verstehen -
-/// vor Produktiveinsatz durch den Auftraggeber zu prüfen.
+/// Ausnahme IGP1-3 sowie FPr/UPr/SPr/GPr/StöPr/IGP-FH/IAD: Übungsnamen und
+/// Punktzahlen sind direkt der FCI Prüfungsordnung 2025 (UTI-REG-IGP-de-2025,
+/// gültig ab 01.01.2025) entnommen. Dies erfolgt mit expliziter Genehmigung
+/// des Auftraggebers in seiner Funktion als VDH-Vorstand (siehe TODO.md),
+/// abweichend von der sonst im Projekt geltenden Vorsichtsregel.
+/// Die Punktaufteilungen der IGP-Abteilungen B/C wurden am 2026-07-16
+/// seitenweise gegen das offizielle PDF verifiziert (Abt. B: S. 44,
+/// Abt. C: S. 56, Fährte: S. 36) - der frühere "Näherungswert"-Vorbehalt
+/// aus der ersten Text-Extraktion ist damit erledigt.
 ///
 /// <see cref="Regulation.SourceUrl"/> kann später von einem Admin auf die
 /// offizielle Quelle verweisen.
@@ -464,7 +464,7 @@ public static class SportCatalogSeeder
             new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "2 Sprünge über die Hürde, ohne Bringen."),
             new("Klettersprung / Bringen über die Schrägwand", true, 15, "Ein Klettersprung über die 191cm hohe Schrägwand, ohne Bringen."),
             new("Voraussenden mit Hinlegen", true, 10, "Mindestens 30 Schritte voraus, danach Ablegen auf HZ \"Platz\"."),
-            new("Ablegen unter Ablenkung", true, 10, "Hundeführer mindestens 30 Meter entfernt, außer Sicht des Hundes."),
+            new("Ablegen unter Ablenkung", true, 10, "Hundeführer mindestens 10 Meter entfernt in Sichtweite, seitwärts zum Hund stehend."),
             new("Revieren", true, 5, "2 Verstecke, Hund läuft Mittellinie ab und umläuft die Verstecke auf HZ \"Revier\"/\"Voran\"."),
             new("Stellen und Verbellen", true, 15, "Anhaltendes, selbstbewusstes Verbellen am Versteck, ca. 20 Sekunden."),
             new("Verhinderung eines Fluchtversuches", true, 20, "Energisches und entschlossenes Verhindern der Flucht des Helfers."),
@@ -490,12 +490,12 @@ public static class SportCatalogSeeder
             new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "Hin- und Rücksprung mit Bringen, Bringholz 650 Gramm."),
             new("Klettersprung / Bringen über die Schrägwand", true, 10, "Ein Klettersprung über die Schrägwand, ohne Bringen."),
             new("Voraussenden mit Hinlegen", true, 10, "Mit größerer Distanz als IGP1."),
-            new("Ablegen unter Ablenkung", true, 10, "Mit größerer Ablenkung als IGP1."),
+            new("Ablegen unter Ablenkung", true, 10, "Hundeführer mit dem Rücken zum Hund, mindestens 20 Meter entfernt in Sichtweite."),
             new("Revieren", true, 5, "4 Verstecke."),
             new("Stellen und Verbellen", true, 15, "Wie IGP1, mit höheren Anforderungen an Selbstsicherheit."),
             new("Verhinderung eines Fluchtversuches", true, 15, "Wie IGP1, mit höheren Anforderungen."),
             new("Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch)", true, 20, "Wie IGP1, mit höheren Anforderungen."),
-            new("Rückentransport", true, 5, "Ca. 30 Schritte Rücktransport zum Leistungsrichter, Hund läuft beobachtend neben dem Helfer."),
+            new("Rückentransport", true, 5, "Rückentransport über ca. 30 Schritte, anschließend Seitentransport zum Leistungsrichter über ca. 20 Schritte."),
             new("Angriff auf den Hund aus der Bewegung", true, 20, "Aus der Lauerstellung, mit Vertreibungslauten frontal."),
             new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", true, 20, "Erneuter Angriff im Anschluss an \"Angriff auf den Hund aus der Bewegung\", voller fester Griff."),
         ],
@@ -518,12 +518,12 @@ public static class SportCatalogSeeder
             new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "Hin- und Rücksprung mit Bringen, Bringholz 650 Gramm."),
             new("Klettersprung / Bringen über die Schrägwand", true, 10, "Hin- und Rückklettersprung mit Bringen, Bringholz 650 Gramm."),
             new("Voraussenden mit Hinlegen", true, 10, "Mit größter Distanz und Ablenkung der drei Stufen."),
-            new("Ablegen unter Ablenkung", true, 10, "Höchste Ablenkungsstufe der drei Stufen."),
+            new("Ablegen unter Ablenkung", true, 10, "Hundeführer mindestens 30 Meter entfernt, außer Sicht des Hundes."),
             new("Revieren", true, 10, "6 Verstecke."),
             new("Stellen und Verbellen", true, 15, "Wie IGP2, mit höheren Anforderungen."),
             new("Verhinderung eines Fluchtversuches", true, 10, "Wie IGP2, mit höheren Anforderungen."),
             new("Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch)", true, 15, "Wie IGP2, mit höheren Anforderungen."),
-            new("Rückentransport", true, 5, "Ca. 30 Schritte Rücktransport zum Leistungsrichter."),
+            new("Rückentransport", true, 5, "Rückentransport über ca. 30 Schritte, endet mit dem Beginn des Überfalls aus dem Rückentransport."),
             new("Überfall auf den Hund aus dem Rückentransport", true, 15, "Unmittelbar aus dem Rückentransport, ohne anzuhalten, mit dynamischer Wendung des Helfers."),
             new("Angriff auf den Hund aus der Bewegung", true, 15, "Helfer läuft das Vorführgelände im Laufschritt bis zur Mittellinie und greift dann frontal an."),
             new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", true, 15, "Erneuter Angriff im Anschluss an \"Angriff auf den Hund aus der Bewegung\", voller fester Griff."),
@@ -535,6 +535,421 @@ public static class SportCatalogSeeder
             "Bestanden: mindestens 70 Punkte in JEDER Abteilung.\n" +
             "Startvoraussetzung: bestandene FCI-IGP 2.\n" +
             "Mindestalter: 20 Monate. WM-/Championats-Stufe."));
+
+        // ---------------------------------------------------------------
+        // Zusätzliche Prüfungen (UTI-REG-IGP-de-2025, S. 68): FPr/UPr/SPr
+        // bestehen jeweils NUR aus der Abteilung A/B/C der entsprechenden
+        // IGP-Stufe, GPr aus B+C. Punktwerte sind daher identisch mit den
+        // IGP-Tabellen (Abt. B: S. 44, Abt. C: S. 56). Es wird kein
+        // Ausbildungstitel im Sinne der Ausstellungs-/Zuchtordnung vergeben.
+        // Modelliert wie die Fährte: EINE Sportart pro Prüfungsfamilie mit
+        // einer Regulation je Stufe (statt einer Sportart pro Stufe wie bei
+        // den historisch früher angelegten IGP1-3).
+        // ---------------------------------------------------------------
+
+        var fpr = await SeedSportAsync(db, "FPR", "FCI-Fährtenprüfung (FPr)",
+        [
+            new("Fährtenarbeit (Eigenfährte)", ExerciseDifficulty.Beginner, "Abteilung A",
+                "Eigene Fährte nach den IGP-Regeln für Abteilung A: sichere Aufnahme, tiefe Nase, gleichmäßiges Tempo, überzeugendes Verweisen der Gegenstände."),
+            new("Fährtenarbeit (Fremdfährte)", ExerciseDifficulty.Intermediate, "Abteilung A",
+                "Fremde Fährte nach den IGP-Regeln für Abteilung A: sichere Aufnahme, tiefe Nase, gleichmäßiges Tempo, überzeugendes Verweisen der Gegenstände."),
+        ]);
+
+        await SeedRegulationAsync(db, fpr, new RegulationSeed("FCI-FPr 1", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Fährtenarbeit (Eigenfährte)", true, 100, "Wie FCI-IGP 1 Abteilung A: Eigenfährte, min. 300 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 20 Minuten, 3 eigene Gegenstände à 7 Punkte, Ausarbeitungszeit max. 15 Minuten."),
+        ],
+        Description: "FCI-Fährtenprüfung Stufe 1 (100 Punkte, bestanden ab 70).\n" +
+            "Besteht nur aus der Abteilung A der FCI-IGP 1.\n" +
+            "Die Stufe ist frei wählbar; die Prüfungen müssen nicht in der Reihenfolge 1 bis 3 abgelegt werden.\n" +
+            "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 15 Monate."));
+
+        await SeedRegulationAsync(db, fpr, new RegulationSeed("FCI-FPr 2", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Fährtenarbeit (Fremdfährte)", true, 100, "Wie FCI-IGP 2 Abteilung A: Fremdfährte, min. 400 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 30 Minuten, 3 fremde Gegenstände à 7 Punkte, Ausarbeitungszeit max. 15 Minuten."),
+        ],
+        Description: "FCI-Fährtenprüfung Stufe 2 (100 Punkte, bestanden ab 70).\n" +
+            "Besteht nur aus der Abteilung A der FCI-IGP 2.\n" +
+            "Die Stufe ist frei wählbar; die Prüfungen müssen nicht in der Reihenfolge 1 bis 3 abgelegt werden.\n" +
+            "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 15 Monate."));
+
+        await SeedRegulationAsync(db, fpr, new RegulationSeed("FCI-FPr 3", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Fährtenarbeit (Fremdfährte)", true, 100, "Wie FCI-IGP 3 Abteilung A: Fremdfährte, min. 600 Schritte, 5 Schenkel, 4 Winkel ca. 90°, Fährtenalter min. 60 Minuten, 3 fremde Gegenstände à 7 Punkte, Ausarbeitungszeit max. 20 Minuten."),
+        ],
+        Description: "FCI-Fährtenprüfung Stufe 3 (100 Punkte, bestanden ab 70).\n" +
+            "Besteht nur aus der Abteilung A der FCI-IGP 3.\n" +
+            "Die Stufe ist frei wählbar; die Prüfungen müssen nicht in der Reihenfolge 1 bis 3 abgelegt werden.\n" +
+            "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 15 Monate."));
+
+        var upr = await SeedSportAsync(db, "UPR", "FCI-Unterordnungsprüfung (UPr)",
+        [
+            new("Freifolge", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Hund folgt ohne Leine konzentriert in Grundstellung, auch bei Tempo- und Richtungswechseln, inkl. Schussgleichgültigkeit und Personengruppe."),
+            new("Sitz aus der Bewegung", ExerciseDifficulty.Beginner, "Abteilung B",
+                "Hund setzt sich aus der Bewegung sofort und gerade hin, ohne dass der Hundeführer seine Bewegung verändert."),
+            new("Ablegen in Verbindung mit Herankommen", ExerciseDifficulty.Beginner, "Abteilung B",
+                "Hund legt sich aus der Bewegung sofort hin und wird nach Entfernung des Hundeführers herangerufen."),
+            new("Steh aus der Bewegung", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Hund bleibt auf Hörzeichen aus der Bewegung sofort und gerade stehen."),
+            new("Bringen auf ebener Erde", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Hund bringt das geworfene Bringholz zügig und übergibt es in der Grundstellung."),
+            new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Sprünge über die 100 cm hohe Hürde, je nach Stufe mit oder ohne Bringen."),
+            new("Klettersprung / Bringen über die Schrägwand", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Klettersprünge über die 191 cm hohe Schrägwand, je nach Stufe mit oder ohne Bringen."),
+            new("Voraussenden mit Hinlegen", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Hund läuft geradlinig mindestens 30 Schritte voraus und legt sich auf Hörzeichen sofort ab."),
+            new("Ablegen unter Ablenkung", ExerciseDifficulty.Advanced, "Abteilung B",
+                "Hund bleibt während der Vorführung des anderen Hundes ruhig in der Ablage liegen."),
+        ]);
+
+        await SeedRegulationAsync(db, upr, new RegulationSeed("FCI-UPr 1", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Freifolge", true, 15, "Mit Schussgleichgültigkeitsprüfung (2 Schüsse Kaliber 6mm)."),
+            new("Sitz aus der Bewegung", true, 10, "Aus 10-15 Schritten Entwicklung im Normalschritt."),
+            new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus dem Normalschritt, Herankommen nach mind. 30 Schritten Entfernung."),
+            new("Bringen auf ebener Erde", true, 15, "Bringholz 650 Gramm, geworfen in markiertes Quadrat 4x4m."),
+            new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "2 Sprünge über die Hürde, ohne Bringen."),
+            new("Klettersprung / Bringen über die Schrägwand", true, 15, "Ein Klettersprung über die Schrägwand, ohne Bringen."),
+            new("Voraussenden mit Hinlegen", true, 10, "Mindestens 30 Schritte voraus, danach Ablegen auf HZ \"Platz\"."),
+            new("Ablegen unter Ablenkung", true, 10, "Hundeführer mindestens 10 Meter entfernt in Sichtweite, seitwärts zum Hund stehend."),
+        ],
+        Description: "FCI-Unterordnungsprüfung Stufe 1 (100 Punkte, bestanden ab 70).\n" +
+            "Besteht nur aus der Abteilung B der FCI-IGP 1 (8 Übungen).\n" +
+            "Die Stufe ist frei wählbar; die Prüfungen müssen nicht in der Reihenfolge 1 bis 3 abgelegt werden.\n" +
+            "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 15 Monate."));
+
+        await SeedRegulationAsync(db, upr, new RegulationSeed("FCI-UPr 2", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Freifolge", true, 15, "Mit größerer Ablenkung als UPr 1."),
+            new("Sitz aus der Bewegung", true, 10, "Aus dem Normalschritt."),
+            new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus dem Normalschritt."),
+            new("Steh aus der Bewegung", true, 10, "Aus dem Normalschritt mit Abholen des Hundes."),
+            new("Bringen auf ebener Erde", true, 10, "Bringholz 1000 Gramm."),
+            new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "Hin- und Rücksprung mit Bringen, Bringholz 650 Gramm."),
+            new("Klettersprung / Bringen über die Schrägwand", true, 10, "Ein Klettersprung über die Schrägwand, ohne Bringen."),
+            new("Voraussenden mit Hinlegen", true, 10, "Mit größerer Distanz als UPr 1."),
+            new("Ablegen unter Ablenkung", true, 10, "Hundeführer mit dem Rücken zum Hund, mindestens 20 Meter entfernt in Sichtweite."),
+        ],
+        Description: "FCI-Unterordnungsprüfung Stufe 2 (100 Punkte, bestanden ab 70).\n" +
+            "Besteht nur aus der Abteilung B der FCI-IGP 2 (9 Übungen, zusätzlich Steh aus der Bewegung).\n" +
+            "Die Stufe ist frei wählbar; die Prüfungen müssen nicht in der Reihenfolge 1 bis 3 abgelegt werden.\n" +
+            "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 15 Monate."));
+
+        await SeedRegulationAsync(db, upr, new RegulationSeed("FCI-UPr 3", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Freifolge", true, 15, "Höchste Stufe, auch durch eine Personengruppe."),
+            new("Sitz aus der Bewegung", true, 10, "Aus dem Laufschritt."),
+            new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus dem Laufschritt."),
+            new("Steh aus der Bewegung", true, 10, "Aus dem Laufschritt mit Heranrufen des Hundes."),
+            new("Bringen auf ebener Erde", true, 10, "Bringholz 2000 Gramm."),
+            new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "Hin- und Rücksprung mit Bringen, Bringholz 650 Gramm."),
+            new("Klettersprung / Bringen über die Schrägwand", true, 10, "Hin- und Rückklettersprung mit Bringen, Bringholz 650 Gramm."),
+            new("Voraussenden mit Hinlegen", true, 10, "Mit größter Distanz und Ablenkung der drei Stufen."),
+            new("Ablegen unter Ablenkung", true, 10, "Hundeführer mindestens 30 Meter entfernt, außer Sicht des Hundes."),
+        ],
+        Description: "FCI-Unterordnungsprüfung Stufe 3 (100 Punkte, bestanden ab 70).\n" +
+            "Besteht nur aus der Abteilung B der FCI-IGP 3 (9 Übungen aus dem Laufschritt, Bringholz 2000 Gramm).\n" +
+            "Die Stufe ist frei wählbar; die Prüfungen müssen nicht in der Reihenfolge 1 bis 3 abgelegt werden.\n" +
+            "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 15 Monate."));
+
+        var spr = await SeedSportAsync(db, "SPR", "FCI-Schutzdienstprüfung (SPr)",
+        [
+            new("Revieren", ExerciseDifficulty.Intermediate, "Abteilung C",
+                "Hund durchsucht zielstrebig und konzentriert die Verstecke nach dem Helfer, eng und aufmerksam umlaufend."),
+            new("Stellen und Verbellen", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund stellt den Helfer selbstbewusst und verbellt ihn anhaltend (ca. 20 Sekunden), ohne zu beißen."),
+            new("Verhinderung eines Fluchtversuches", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund verhindert einen Fluchtversuch des Helfers durch energisches und entschlossenes Zufassen."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch)", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund verteidigt sich nach der Bewachungsphase gegen einen Angriff des Helfers durch festen, ruhigen Griff."),
+            new("Rückentransport", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund begleitet Hundeführer und Helfer beim Rückentransport aufmerksam, ohne zu bedrängen oder anzuspringen."),
+            new("Überfall auf den Hund aus dem Rückentransport", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Helfer überfällt den Hund unmittelbar aus dem Rückentransport heraus; Hund verteidigt sich durch energisches, festes Zufassen."),
+            new("Angriff auf den Hund aus der Bewegung", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund verteidigt sich gegen den frontalen Angriff des Helfers mit vollem, ruhigem Griff und bewacht danach selbstsicher."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund verteidigt sich am Ende des Schutzdienstes gegen einen erneuten Angriff des Helfers durch festen, ruhigen Griff."),
+        ]);
+
+        await SeedRegulationAsync(db, spr, new RegulationSeed("FCI-SPr 1", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Revieren", true, 5, "2 Verstecke."),
+            new("Stellen und Verbellen", true, 15, "10 Punkte für das Stellen, 5 für das Verbellen (ca. 20 Sekunden)."),
+            new("Verhinderung eines Fluchtversuches", true, 20, "Energisches und entschlossenes Verhindern der Flucht des Helfers."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch)", true, 30, "Voller, fester und ruhiger Griff, Selbstsicherheit und Belastbarkeit bei Schlagandrohung mit dem Softstock."),
+            new("Angriff auf den Hund aus der Bewegung", true, 30, "Helfer greift aus ca. 20 Metern Entfernung mit Vertreibungslauten frontal an."),
+        ],
+        Description: "FCI-Schutzdienstprüfung Stufe 1 (100 Punkte, bestanden ab 70).\n" +
+            "Besteht nur aus der Abteilung C der FCI-IGP 1 (5 Übungen, 2 Verstecke).\n" +
+            "Die Stufe ist frei wählbar; reine Schutzdienstveranstaltungen (nur Teilnehmende in der Abteilung C) sind nicht zulässig.\n" +
+            "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 18 Monate."));
+
+        await SeedRegulationAsync(db, spr, new RegulationSeed("FCI-SPr 2", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Revieren", true, 5, "4 Verstecke."),
+            new("Stellen und Verbellen", true, 15, "10 Punkte für das Stellen, 5 für das Verbellen."),
+            new("Verhinderung eines Fluchtversuches", true, 15, "Wie SPr 1, mit höheren Anforderungen."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch)", true, 20, "Wie SPr 1, mit höheren Anforderungen."),
+            new("Rückentransport", true, 5, "Rückentransport über ca. 30 Schritte, anschließend Seitentransport zum Leistungsrichter über ca. 20 Schritte."),
+            new("Angriff auf den Hund aus der Bewegung", true, 20, "Aus der Lauerstellung (ca. 30 Meter), mit Vertreibungslauten frontal."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", true, 20, "Erneuter Angriff im Anschluss, voller fester Griff."),
+        ],
+        Description: "FCI-Schutzdienstprüfung Stufe 2 (100 Punkte, bestanden ab 70).\n" +
+            "Besteht nur aus der Abteilung C der FCI-IGP 2 (7 Übungen, 4 Verstecke, zusätzlich Rückentransport).\n" +
+            "Die Stufe ist frei wählbar; reine Schutzdienstveranstaltungen sind nicht zulässig.\n" +
+            "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 18 Monate."));
+
+        await SeedRegulationAsync(db, spr, new RegulationSeed("FCI-SPr 3", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Revieren", true, 10, "6 Verstecke."),
+            new("Stellen und Verbellen", true, 15, "10 Punkte für das Stellen, 5 für das Verbellen."),
+            new("Verhinderung eines Fluchtversuches", true, 10, "Wie SPr 2, mit höheren Anforderungen."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch)", true, 15, "Wie SPr 2, mit höheren Anforderungen."),
+            new("Rückentransport", true, 5, "Rückentransport über ca. 30 Schritte, endet mit dem Beginn des Überfalls aus dem Rückentransport."),
+            new("Überfall auf den Hund aus dem Rückentransport", true, 15, "Unmittelbar aus dem Rückentransport, ohne anzuhalten."),
+            new("Angriff auf den Hund aus der Bewegung", true, 15, "Helfer läuft bis zur Mittellinie und greift frontal an, Freigabe bei ca. 50 Metern."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", true, 15, "Erneuter Angriff im Anschluss, voller fester Griff."),
+        ],
+        Description: "FCI-Schutzdienstprüfung Stufe 3 (100 Punkte, bestanden ab 70).\n" +
+            "Besteht nur aus der Abteilung C der FCI-IGP 3 (8 Übungen, 6 Verstecke, zusätzlich Überfall aus dem Rückentransport).\n" +
+            "Die Stufe ist frei wählbar; reine Schutzdienstveranstaltungen sind nicht zulässig.\n" +
+            "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 18 Monate."));
+
+        // GPr = Abteilungen B UND C der jeweiligen IGP-Stufe (200 Punkte).
+        var gpr = await SeedSportAsync(db, "GPR", "FCI-Gebrauchshundeprüfung (GPr)",
+        [
+            new("Freifolge", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Hund folgt ohne Leine konzentriert in Grundstellung, inkl. Schussgleichgültigkeit und Personengruppe."),
+            new("Sitz aus der Bewegung", ExerciseDifficulty.Beginner, "Abteilung B",
+                "Hund setzt sich aus der Bewegung sofort und gerade hin."),
+            new("Ablegen in Verbindung mit Herankommen", ExerciseDifficulty.Beginner, "Abteilung B",
+                "Hund legt sich aus der Bewegung sofort hin und wird herangerufen."),
+            new("Steh aus der Bewegung", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Hund bleibt auf Hörzeichen aus der Bewegung sofort und gerade stehen."),
+            new("Bringen auf ebener Erde", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Hund bringt das geworfene Bringholz zügig und übergibt es in der Grundstellung."),
+            new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Sprünge über die 100 cm hohe Hürde, je nach Stufe mit oder ohne Bringen."),
+            new("Klettersprung / Bringen über die Schrägwand", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Klettersprünge über die 191 cm hohe Schrägwand, je nach Stufe mit oder ohne Bringen."),
+            new("Voraussenden mit Hinlegen", ExerciseDifficulty.Intermediate, "Abteilung B",
+                "Hund läuft geradlinig mindestens 30 Schritte voraus und legt sich auf Hörzeichen ab."),
+            new("Ablegen unter Ablenkung", ExerciseDifficulty.Advanced, "Abteilung B",
+                "Hund bleibt während der Vorführung des anderen Hundes ruhig in der Ablage liegen."),
+            new("Revieren", ExerciseDifficulty.Intermediate, "Abteilung C",
+                "Hund durchsucht zielstrebig und konzentriert die Verstecke nach dem Helfer."),
+            new("Stellen und Verbellen", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund stellt den Helfer selbstbewusst und verbellt ihn anhaltend, ohne zu beißen."),
+            new("Verhinderung eines Fluchtversuches", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund verhindert einen Fluchtversuch des Helfers durch energisches Zufassen."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch)", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund verteidigt sich gegen einen Angriff des Helfers durch festen, ruhigen Griff."),
+            new("Rückentransport", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund begleitet Hundeführer und Helfer beim Rückentransport aufmerksam."),
+            new("Überfall auf den Hund aus dem Rückentransport", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund verteidigt sich gegen den Überfall unmittelbar aus dem Rückentransport."),
+            new("Angriff auf den Hund aus der Bewegung", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund verteidigt sich gegen den frontalen Angriff mit vollem, ruhigem Griff."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", ExerciseDifficulty.Advanced, "Abteilung C",
+                "Hund verteidigt sich am Ende des Schutzdienstes gegen einen erneuten Angriff."),
+        ]);
+
+        await SeedRegulationAsync(db, gpr, new RegulationSeed("FCI-GPr 1", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Freifolge", true, 15, "Mit Schussgleichgültigkeitsprüfung."),
+            new("Sitz aus der Bewegung", true, 10, "Aus dem Normalschritt."),
+            new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus dem Normalschritt."),
+            new("Bringen auf ebener Erde", true, 15, "Bringholz 650 Gramm."),
+            new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "2 Sprünge ohne Bringen."),
+            new("Klettersprung / Bringen über die Schrägwand", true, 15, "Ein Klettersprung ohne Bringen."),
+            new("Voraussenden mit Hinlegen", true, 10, "Mindestens 30 Schritte voraus."),
+            new("Ablegen unter Ablenkung", true, 10, "Hundeführer mindestens 10 Meter entfernt in Sichtweite, seitwärts zum Hund stehend."),
+            new("Revieren", true, 5, "2 Verstecke."),
+            new("Stellen und Verbellen", true, 15, "10 Punkte Stellen, 5 Punkte Verbellen."),
+            new("Verhinderung eines Fluchtversuches", true, 20, "Energisches Verhindern der Flucht."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch)", true, 30, "Voller, fester und ruhiger Griff."),
+            new("Angriff auf den Hund aus der Bewegung", true, 30, "Aus ca. 20 Metern, mit Vertreibungslauten frontal."),
+        ],
+        Description: "FCI-Gebrauchshundeprüfung Stufe 1 (200 Punkte, bestanden ab 70 % je Abteilung).\n" +
+            "Besteht aus den Abteilungen B und C der FCI-IGP 1 - ohne Fährte.\n" +
+            "Die Stufe ist frei wählbar; kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 18 Monate."));
+
+        await SeedRegulationAsync(db, gpr, new RegulationSeed("FCI-GPr 2", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Freifolge", true, 15, "Mit größerer Ablenkung als GPr 1."),
+            new("Sitz aus der Bewegung", true, 10, "Aus dem Normalschritt."),
+            new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus dem Normalschritt."),
+            new("Steh aus der Bewegung", true, 10, "Aus dem Normalschritt mit Abholen des Hundes."),
+            new("Bringen auf ebener Erde", true, 10, "Bringholz 1000 Gramm."),
+            new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "Hin- und Rücksprung mit Bringen."),
+            new("Klettersprung / Bringen über die Schrägwand", true, 10, "Ein Klettersprung ohne Bringen."),
+            new("Voraussenden mit Hinlegen", true, 10, "Mit größerer Distanz als GPr 1."),
+            new("Ablegen unter Ablenkung", true, 10, "Hundeführer mit dem Rücken zum Hund, mindestens 20 Meter entfernt in Sichtweite."),
+            new("Revieren", true, 5, "4 Verstecke."),
+            new("Stellen und Verbellen", true, 15, "10 Punkte Stellen, 5 Punkte Verbellen."),
+            new("Verhinderung eines Fluchtversuches", true, 15, "Wie GPr 1, mit höheren Anforderungen."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch)", true, 20, "Wie GPr 1, mit höheren Anforderungen."),
+            new("Rückentransport", true, 5, "Über ca. 30 Schritte, anschließend Seitentransport zum Leistungsrichter."),
+            new("Angriff auf den Hund aus der Bewegung", true, 20, "Aus der Lauerstellung (ca. 30 Meter)."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", true, 20, "Erneuter Angriff im Anschluss."),
+        ],
+        Description: "FCI-Gebrauchshundeprüfung Stufe 2 (200 Punkte, bestanden ab 70 % je Abteilung).\n" +
+            "Besteht aus den Abteilungen B und C der FCI-IGP 2 - ohne Fährte.\n" +
+            "Die Stufe ist frei wählbar; kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 18 Monate."));
+
+        await SeedRegulationAsync(db, gpr, new RegulationSeed("FCI-GPr 3", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Freifolge", true, 15, "Höchste Stufe, auch durch eine Personengruppe."),
+            new("Sitz aus der Bewegung", true, 10, "Aus dem Laufschritt."),
+            new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus dem Laufschritt."),
+            new("Steh aus der Bewegung", true, 10, "Aus dem Laufschritt mit Heranrufen des Hundes."),
+            new("Bringen auf ebener Erde", true, 10, "Bringholz 2000 Gramm."),
+            new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "Hin- und Rücksprung mit Bringen."),
+            new("Klettersprung / Bringen über die Schrägwand", true, 10, "Hin- und Rückklettersprung mit Bringen."),
+            new("Voraussenden mit Hinlegen", true, 10, "Mit größter Distanz und Ablenkung der drei Stufen."),
+            new("Ablegen unter Ablenkung", true, 10, "Hundeführer mindestens 30 Meter entfernt, außer Sicht des Hundes."),
+            new("Revieren", true, 10, "6 Verstecke."),
+            new("Stellen und Verbellen", true, 15, "10 Punkte Stellen, 5 Punkte Verbellen."),
+            new("Verhinderung eines Fluchtversuches", true, 10, "Wie GPr 2, mit höheren Anforderungen."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch)", true, 15, "Wie GPr 2, mit höheren Anforderungen."),
+            new("Rückentransport", true, 5, "Über ca. 30 Schritte, endet mit dem Überfall aus dem Rückentransport."),
+            new("Überfall auf den Hund aus dem Rückentransport", true, 15, "Unmittelbar aus dem Rückentransport, ohne anzuhalten."),
+            new("Angriff auf den Hund aus der Bewegung", true, 15, "Helfer läuft bis zur Mittellinie, Freigabe bei ca. 50 Metern."),
+            new("Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)", true, 15, "Erneuter Angriff im Anschluss."),
+        ],
+        Description: "FCI-Gebrauchshundeprüfung Stufe 3 (200 Punkte, bestanden ab 70 % je Abteilung).\n" +
+            "Besteht aus den Abteilungen B und C der FCI-IGP 3 - ohne Fährte.\n" +
+            "Die Stufe ist frei wählbar; kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 18 Monate."));
+
+        // Stöberprüfung (UTI-REG-IGP-de-2025, S. 80-82): EINE Suchleistung,
+        // bewertet über 5 feste Kriterien (20/20/10/10/40 = 100 Punkte) -
+        // die Kriterien sind hier als Übungen modelliert, weil sie genau die
+        // trainierbaren Aspekte der Stöberarbeit sind. Die Stufen
+        // unterscheiden sich in Feldgröße, Gegenständen und Suchzeit.
+        var stoepr = await SeedSportAsync(db, "STOEPR", "FCI-Stöberprüfung (StöPr)",
+        [
+            new("Führigkeit (Hör- und Sichtzeichen)", ExerciseDifficulty.Intermediate, "Stöbern",
+                "Hund befolgt die Hör- und Sichtzeichen des Hundeführers sofort; der Hundeführer bewegt sich nur auf der gedachten Mittellinie."),
+            new("Arbeitsintensität", ExerciseDifficulty.Intermediate, "Stöbern",
+                "Entschlossenheit und Arbeitswille: konsequentes, ruhiges, flüssiges, selbstsicheres und freies Arbeiten ohne Stress."),
+            new("Ausdauer der Sucharbeit", ExerciseDifficulty.Intermediate, "Stöbern",
+                "Keine Unterbrechung der Sucharbeit, bis der Gegenstand gefunden ist; ausdauerndes und zielgerichtetes Arbeiten mit weiten Seitenschlägen."),
+            new("Sucheinteilung und Lenken (Hundeführer)", ExerciseDifficulty.Intermediate, "Stöbern",
+                "Verhalten des Hundeführers: sinnvolle Sucheinteilung und Lenken des Hundes von der Mittellinie aus."),
+            new("Finden und Anzeigen der Gegenstände", ExerciseDifficulty.Advanced, "Stöbern",
+                "Überzeugendes, sicheres Verweisen, Aufnehmen oder Apportieren der gefundenen Gegenstände; Gegenstand im Bereich bis 20 cm der Vorderpfoten."),
+        ]);
+
+        await SeedRegulationAsync(db, stoepr, new RegulationSeed("FCI-StöPr 1", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Führigkeit (Hör- und Sichtzeichen)", true, 20, "Bewertungskriterium für die gesamte Suche."),
+            new("Arbeitsintensität", true, 20, "Bewertungskriterium für die gesamte Suche."),
+            new("Ausdauer der Sucharbeit", true, 10, "Bewertungskriterium für die gesamte Suche."),
+            new("Sucheinteilung und Lenken (Hundeführer)", true, 10, "Bewertungskriterium für die gesamte Suche."),
+            new("Finden und Anzeigen der Gegenstände", true, 40, "2 HF-eigene Gegenstände (10 x 3 x 0,5 cm, je 20 Punkte), 1 links / 1 rechts der Mittellinie."),
+        ],
+        Description: "FCI-Stöberprüfung Stufe 1 (100 Punkte, bestanden ab 70).\n" +
+            "Stöberfeld: 20 x 30 m - Suchzeit: max. 10 Minuten.\n" +
+            "Gegenstände: 2 HF-eigene Gegenstände (10 x 3 x 0,5 cm, unterschiedliches Material), je einer links und rechts der Mittellinie (je 20 Punkte).\n" +
+            "Bewertung: Führigkeit (20), Arbeitsintensität (20), Ausdauer (10), Verhalten des Hundeführers (10), Finden der Gegenstände (40).\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 15 Monate."));
+
+        await SeedRegulationAsync(db, stoepr, new RegulationSeed("FCI-StöPr 2", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Führigkeit (Hör- und Sichtzeichen)", true, 20, "Bewertungskriterium für die gesamte Suche."),
+            new("Arbeitsintensität", true, 20, "Bewertungskriterium für die gesamte Suche."),
+            new("Ausdauer der Sucharbeit", true, 10, "Bewertungskriterium für die gesamte Suche."),
+            new("Sucheinteilung und Lenken (Hundeführer)", true, 10, "Bewertungskriterium für die gesamte Suche."),
+            new("Finden und Anzeigen der Gegenstände", true, 40, "4 Fremdgegenstände (10 x 3 x 0,5 cm, je 10 Punkte), 2 links / 2 rechts der Mittellinie."),
+        ],
+        Description: "FCI-Stöberprüfung Stufe 2 (100 Punkte, bestanden ab 70).\n" +
+            "Stöberfeld: 20 x 40 m - Suchzeit: max. 12 Minuten.\n" +
+            "Gegenstände: 4 Fremdgegenstände (10 x 3 x 0,5 cm, unterschiedliches Material), je 2 links und rechts der Mittellinie (je 10 Punkte).\n" +
+            "Bewertung: Führigkeit (20), Arbeitsintensität (20), Ausdauer (10), Verhalten des Hundeführers (10), Finden der Gegenstände (40).\n" +
+            "Startvoraussetzung: bestandene FCI-StöPr 1.\n" +
+            "Mindestalter: 15 Monate."));
+
+        await SeedRegulationAsync(db, stoepr, new RegulationSeed("FCI-StöPr 3", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Führigkeit (Hör- und Sichtzeichen)", true, 20, "Bewertungskriterium für die gesamte Suche."),
+            new("Arbeitsintensität", true, 20, "Bewertungskriterium für die gesamte Suche."),
+            new("Ausdauer der Sucharbeit", true, 10, "Bewertungskriterium für die gesamte Suche."),
+            new("Sucheinteilung und Lenken (Hundeführer)", true, 10, "Bewertungskriterium für die gesamte Suche."),
+            new("Finden und Anzeigen der Gegenstände", true, 40, "5 Fremdgegenstände (kleiner: 5 x 3 x 0,5 cm, je 8 Punkte), beliebig ausgelegt."),
+        ],
+        Description: "FCI-Stöberprüfung Stufe 3 - höchste Stöberstufe (100 Punkte, bestanden ab 70).\n" +
+            "Stöberfeld: 30 x 50 m - Suchzeit: max. 15 Minuten.\n" +
+            "Gegenstände: 5 Fremdgegenstände (kleiner: 5 x 3 x 0,5 cm, unterschiedliches Material), beliebig ausgelegt (je 8 Punkte).\n" +
+            "Bewertung: Führigkeit (20), Arbeitsintensität (20), Ausdauer (10), Verhalten des Hundeführers (10), Finden der Gegenstände (40).\n" +
+            "Startvoraussetzung: bestandene FCI-StöPr 2.\n" +
+            "Mindestalter: 15 Monate."));
+
+        // IGP-FH (S. 70): an 2 Tagen je eine komplette FCI-IFH-3-Fährte auf
+        // verschiedenem Gelände, von verschiedenen Fährtenlegern - gehört wie
+        // die IFH-Stufen zur Sportart "Fährte" und nutzt deren Übungen.
+        await SeedRegulationAsync(db, faerte, new RegulationSeed("FCI-IGP FH", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Fährtenaufnahme", true, 40, "Zwei FCI-IFH-3-Fährten an 2 Tagen: Fremdfährte, min. 1800 Schritte, 8 Schenkel (einer als Halbkreis), Fährtenalter min. 180 Minuten, Ausarbeitungszeit max. 45 Minuten."),
+            new("Winkelarbeit", true, 39, "7 Winkel je Fährte: 2 spitze Winkel zwischen 30° und 60°, die übrigen ca. 90°."),
+            new("Gegenstände verweisen", true, 21, "7 fremde Gegenstände je Fährte, je 3 Punkte."),
+        ],
+        Description: "FCI-IGP Fährtenhundprüfung - Königsklasse der Fährtenarbeit (2 x 100 Punkte).\n" +
+            "An 2 Tagen muss jeweils eine FCI-IFH-3-Fährte bestanden werden - auf verschiedenem Gelände und von verschiedenen Fährtenlegern gelegt.\n" +
+            "Bestanden: in beiden Fährten mindestens ein befriedigendes Ergebnis (70 Punkte).\n" +
+            "Wertung: die höhere Einzelfährte zählt; bei Punktgleichheit gleiche Platzierung.\n" +
+            "Startvoraussetzung: bestandene FCI-IFH 3.\n" +
+            "Mindestalter: 20 Monate."));
+
+        // Ausdauerprüfung (S. 83-84): keine Punkte, nur bestanden/nicht
+        // bestanden - modelliert wie BH Teil B (MaxPoints 0).
+        var iad = await SeedSportAsync(db, "IAD", "FCI-Ausdauerprüfung (IAD)",
+        [
+            new("Laufübung am Fahrrad", ExerciseDifficulty.Intermediate, "Ausdauer",
+                "Hund läuft angeleint an der rechten Seite des Hundeführers in normalem Trab neben dem Fahrrad, ohne überhastetes Laufen oder ständiges Nachhängen."),
+            new("Verfassungsprüfung in den Pausen", ExerciseDifficulty.Beginner, "Ausdauer",
+                "Leistungsrichter kontrolliert in den Pausen Ermüdungserscheinungen und Pfoten; Hund kann sich frei und zwanglos bewegen."),
+        ]);
+
+        await SeedRegulationAsync(db, iad, new RegulationSeed("FCI-IAD", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Laufübung am Fahrrad", true, 0, "20 km Gesamtstrecke bei 12-15 km/h auf Straßen und Wegen: 8 km, Pause 15 Minuten, 7 km, Pause 20 Minuten, 5 km, Schlusspause 15 Minuten. Keine Punkte - nur bestanden/nicht bestanden."),
+            new("Verfassungsprüfung in den Pausen", true, 0, "Kontrolle auf Ermüdung und wundgelaufene Pfoten in jeder Pause; übermüdete Hunde werden ausgeschlossen."),
+        ],
+        Description: "FCI-Ausdauerprüfung (IAD) - Nachweis körperlicher Fitness, keine Punktevergabe.\n" +
+            "Strecke: 20 km bei 12-15 km/h am Fahrrad, auf Straßen und Wegen verschiedener Beschaffenheit.\n" +
+            "Ablauf: 8 km - Pause 15 Min. - 7 km - Pause 20 Min. - 5 km - Schlusspause 15 Min. mit Verfassungsprüfung.\n" +
+            "Bewertung: nur \"Bestanden\" / \"Nicht bestanden\".\n" +
+            "Durchführung im Sommer nur früh vormittags oder spätnachmittags, Außentemperatur max. 22 °C.\n" +
+            "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
+            "Mindestalter: 16 Monate."));
 
         // Die ursprünglichen fehlerhaften RegulationVersions (BH/IBGH "2024",
         // IGP "2025") wurden inzwischen aus dem Code entfernt, nachdem die
