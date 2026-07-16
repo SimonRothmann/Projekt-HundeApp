@@ -97,7 +97,7 @@ Ergebnis eines vollständigen Code-Audits (Sicherheit, Performance, Wartbarkeit)
 
 ### 1. Sicherheits-Sofortfix: Reset-Tokens raus aus den Prod-Logs
 
-- [ ] `LoggingEmailSender` loggt den kompletten Passwort-Reset-Link inkl. gültigem Token - auf der Prod-VPS landet das in den Container-Logs (Retention unbegrenzt bis zum nächsten Recreate). Fix: in Production nur Empfänger + Betreff loggen, Body unterdrücken (Umgebungs-Check in `LoggingEmailSender` oder eigener `ProductionEmailSender`). Bewusst OHNE den SMTP-Umbau, der kommt erst in Schritt 7. Danach Container recreaten, damit die alten Logs mit Tokens rotieren. Aufwand: <1 h.
+- [x] `LoggingEmailSender` loggt den kompletten Passwort-Reset-Link inkl. gültigem Token - auf der Prod-VPS landet das in den Container-Logs (Retention unbegrenzt bis zum nächsten Recreate). ERLEDIGT: Body wird nur noch in Development geloggt (`IHostEnvironment.IsDevelopment()`-Check), außerhalb nur Empfänger + Betreff. Bewusst OHNE den SMTP-Umbau (kommt erst in Schritt 7). Der alte Log-Bestand mit Tokens rotiert durch das Container-Recreate beim Prod-Deploy.
 
 ### 2. Quick-Wins Performance/Resilienz
 
