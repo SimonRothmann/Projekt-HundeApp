@@ -208,7 +208,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
         var planItems = await db.TrainingPlanItems
             .Where(i => planItemIds.Contains(i.Id))
-            .Select(i => new { i.Id, i.ExerciseId, DogId = i.TrainingPlan!.Goal!.DogId })
+            .Select(i => new { i.Id, i.ExerciseId, i.IsRestWeek, DogId = i.TrainingPlan!.Goal!.DogId })
             .ToListAsync(ct);
 
         if (planItems.Count != planItemIds.Count)
@@ -220,6 +220,13 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             var planItem = planItemsById[exercise.TrainingPlanItemId!.Value];
             if (planItem.DogId != request.DogId)
                 return "Ein Plan-Ziel gehört nicht zu diesem Hund.";
+            // Pausenwochen haben wie Freitext-Ziele ExerciseId null - ohne
+            // diesen Check würde der ExerciseId-Vergleich darunter einen
+            // Freitext-Eintrag fälschlich auf eine Pausenwoche buchen lassen.
+            if (planItem.IsRestWeek)
+                return "Eine Pausenwoche kann nicht als Übung eingetragen werden.";
+            // Katalog-Übung muss zu Katalog-Plan-Ziel passen (gleiche Übung),
+            // Freitext-Eintrag (ExerciseId null) nur zu Freitext-Plan-Ziel.
             if (planItem.ExerciseId != exercise.ExerciseId)
                 return "Ein Plan-Ziel passt nicht zur ausgewählten Übung.";
         }
@@ -242,8 +249,10 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             var hasFreeText = !string.IsNullOrWhiteSpace(exercise.FreeTextLabel);
             if (hasExerciseId == hasFreeText)
                 return "Jede Übung braucht entweder eine Katalog-Übung oder einen Freitext, nicht beides oder keins.";
-            if (hasFreeText && exercise.TrainingPlanItemId is not null)
-                return "Eine Freitext-Übung kann nicht mit einem Plan-Ziel verknüpft werden.";
+            // Freitext + Plan-Ziel ist erlaubt, seit Plan-Items selbst Freitext
+            // sein können - dass Übungsart und Plan-Ziel-Art zusammenpassen
+            // (Katalog zu Katalog, Freitext zu Freitext), stellt
+            // ValidatePlanItemsAsync über den ExerciseId-Vergleich sicher.
         }
 
         return null;

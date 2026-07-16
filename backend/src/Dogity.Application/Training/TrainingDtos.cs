@@ -48,9 +48,9 @@ public record CreateTrainingExerciseRequest(
     /// Optionaler Bezug zu einem Wochenziel im Trainingsplan (siehe
     /// TrainingExercise.TrainingPlanItemId) - ordnet diesen Tagebucheintrag
     /// einem Plan-Ziel zu, damit dessen Fortschritt sich aus echten
-    /// Trainingseinträgen statt einem separaten Haken ergibt. Nur zusammen
-    /// mit ExerciseId zulässig, nicht mit FreeTextLabel (ein Plan-Ziel
-    /// bezieht sich immer auf eine konkrete Katalog-Übung).
+    /// Trainingseinträgen statt einem separaten Haken ergibt. Die Art muss
+    /// zum Plan-Ziel passen: Katalog-Übung zu Katalog-Plan-Ziel, Freitext zu
+    /// Freitext-Plan-Ziel (geprüft in TrainingService.ValidatePlanItemsAsync).
     /// </summary>
     Guid? TrainingPlanItemId = null,
     string? FreeTextLabel = null);

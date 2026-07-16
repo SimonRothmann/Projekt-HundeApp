@@ -176,7 +176,6 @@ export function GoalPlanCard({
   }
 
   async function submitQuickLog(item: TrainingPlanItem) {
-    if (!item.exerciseId) return;
     setIsQuickLogging(true);
     try {
       const payload = {
@@ -186,7 +185,12 @@ export function GoalPlanCard({
         notes: null,
         exercises: [
           {
+            // Freitext-Plan-Ziele (exerciseId null) tragen ihren eigenen
+            // Freitext in den Tagebucheintrag - ein früheres
+            // `if (!item.exerciseId) return;` ließ den "Eintragen"-Klick
+            // für solche Items kommentarlos verpuffen.
             exerciseId: item.exerciseId,
+            freeTextLabel: item.exerciseId ? null : item.freeTextLabel,
             rating: qlRating,
             difficulty: 0,
             success: qlSuccess,
