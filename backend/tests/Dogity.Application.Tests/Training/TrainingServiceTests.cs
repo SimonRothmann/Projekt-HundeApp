@@ -107,6 +107,50 @@ public class TrainingServiceTests
     }
 
     [Fact]
+    public async Task GetByDog_WithDateRange_ReturnsOnlySessionsInRange()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        foreach (var daysAgo in new[] { 0, 10, 40 })
+        {
+            db.TrainingSessions.Add(new Dogity.Domain.Training.TrainingSession
+            {
+                UserId = setup.UserId,
+                DogId = setup.DogId,
+                Date = today.AddDays(-daysAgo),
+                DurationMinutes = 30,
+            });
+        }
+        await db.SaveChangesAsync();
+
+        var all = await service.GetByDogAsync(setup.UserId, setup.DogId);
+        var lastMonth = await service.GetByDogAsync(setup.UserId, setup.DogId, from: today.AddDays(-30), to: today);
+
+        Assert.Equal(3, all.Value!.Count);
+        Assert.Equal(2, lastMonth.Value!.Count);
+        Assert.All(lastMonth.Value, s => Assert.True(s.Date >= today.AddDays(-30)));
+    }
+
+    [Fact]
+    public async Task GetByDog_SetsHasGpsTrackOnlyForSessionsWithTrack()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var withTrack = new Dogity.Domain.Training.TrainingSession { UserId = setup.UserId, DogId = setup.DogId, Date = today, DurationMinutes = 30 };
+        var withoutTrack = new Dogity.Domain.Training.TrainingSession { UserId = setup.UserId, DogId = setup.DogId, Date = today.AddDays(-1), DurationMinutes = 30 };
+        db.TrainingSessions.AddRange(withTrack, withoutTrack);
+        db.GpsTracks.Add(new Dogity.Domain.Tracking.GpsTrack { TrainingSessionId = withTrack.Id });
+        await db.SaveChangesAsync();
+
+        var result = await service.GetByDogAsync(setup.UserId, setup.DogId);
+
+        Assert.True(result.Value!.Single(s => s.Id == withTrack.Id).HasGpsTrack);
+        Assert.False(result.Value!.Single(s => s.Id == withoutTrack.Id).HasGpsTrack);
+    }
+
+    [Fact]
     public async Task Create_CatalogExercise_LinkedToMatchingPlanItem_Succeeds()
     {
         var service = MakeService(out var db);

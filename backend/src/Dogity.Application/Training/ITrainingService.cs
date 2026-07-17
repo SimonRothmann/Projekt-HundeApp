@@ -4,7 +4,11 @@ namespace Dogity.Application.Training;
 
 public interface ITrainingService
 {
-    Task<Result<IReadOnlyList<TrainingSessionDto>>> GetByDogAsync(Guid userId, Guid dogId, CancellationToken ct = default);
+    /// <summary>
+    /// Trainings eines Hundes, optional auf einen Datumsbereich beschränkt
+    /// (beide Grenzen inklusiv). Ohne from/to: komplette Historie.
+    /// </summary>
+    Task<Result<IReadOnlyList<TrainingSessionDto>>> GetByDogAsync(Guid userId, Guid dogId, DateOnly? from = null, DateOnly? to = null, CancellationToken ct = default);
     Task<Result<TrainingSessionDto>> GetByIdAsync(Guid userId, Guid sessionId, CancellationToken ct = default);
     Task<Result<TrainingSessionDto>> CreateAsync(Guid userId, CreateTrainingSessionRequest request, CancellationToken ct = default);
     Task<Result> DeleteAsync(Guid userId, Guid sessionId, CancellationToken ct = default);

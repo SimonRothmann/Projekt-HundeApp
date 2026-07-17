@@ -14,20 +14,42 @@ namespace Dogity.Application.Training;
 /// </summary>
 public class TrainingService(IApplicationDbContext db, INotificationService notifications, IUserLookupService userLookup) : ITrainingService
 {
-    public async Task<Result<IReadOnlyList<TrainingSessionDto>>> GetByDogAsync(Guid userId, Guid dogId, CancellationToken ct = default)
+    /// <summary>
+    /// Trainings eines Hundes, optional auf einen Datumsbereich beschränkt
+    /// (beide Grenzen inklusiv). OHNE from/to bleibt das Verhalten unverändert
+    /// (komplette Historie) - Statistik, Druckansicht und Plan-Fortschritt
+    /// nutzen weiterhin den Vollpfad, nur die Hundeseite lädt gezielt
+    /// Zeiträume nach (siehe TODO.md Roadmap 5).
+    /// </summary>
+    public async Task<Result<IReadOnlyList<TrainingSessionDto>>> GetByDogAsync(Guid userId, Guid dogId, DateOnly? from = null, DateOnly? to = null, CancellationToken ct = default)
     {
         if (!await db.HasDogAccessAsync(userId, dogId, ct))
             return Result<IReadOnlyList<TrainingSessionDto>>.Failure("Hund nicht gefunden.");
 
-        var sessions = await db.TrainingSessions
-            .Where(s => s.DogId == dogId)
+        var query = db.TrainingSessions.Where(s => s.DogId == dogId);
+        if (from is { } fromDate)
+            query = query.Where(s => s.Date >= fromDate);
+        if (to is { } toDate)
+            query = query.Where(s => s.Date <= toDate);
+
+        var sessions = await query
             .OrderByDescending(s => s.Date)
             .Include(s => s.Exercises)
             .ThenInclude(e => e.Exercise)
             .AsNoTracking()
             .ToListAsync(ct);
 
-        return Result<IReadOnlyList<TrainingSessionDto>>.Success(sessions.Select(ToDto).ToList());
+        // EIN Existenz-Lookup für alle geladenen Sessions statt eines
+        // GPS-Requests pro Trainings-Karte im Frontend (HTTP-N+1).
+        var sessionIds = sessions.Select(s => s.Id).ToList();
+        var idsWithTrack = (await db.GpsTracks
+            .Where(t => sessionIds.Contains(t.TrainingSessionId))
+            .Select(t => t.TrainingSessionId)
+            .Distinct()
+            .ToListAsync(ct)).ToHashSet();
+
+        return Result<IReadOnlyList<TrainingSessionDto>>.Success(
+            sessions.Select(s => ToDto(s, idsWithTrack.Contains(s.Id))).ToList());
     }
 
     public async Task<Result<TrainingSessionDto>> GetByIdAsync(Guid userId, Guid sessionId, CancellationToken ct = default)
@@ -35,8 +57,11 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         var session = await GetOwnedSessionAsync(userId, sessionId, ct, track: false);
         return session is null
             ? Result<TrainingSessionDto>.Failure("Training nicht gefunden.")
-            : Result<TrainingSessionDto>.Success(ToDto(session));
+            : Result<TrainingSessionDto>.Success(ToDto(session, await HasGpsTrackAsync(session.Id, ct)));
     }
+
+    private Task<bool> HasGpsTrackAsync(Guid sessionId, CancellationToken ct)
+        => db.GpsTracks.AnyAsync(t => t.TrainingSessionId == sessionId, ct);
 
     public async Task<Result<TrainingSessionDto>> CreateAsync(Guid userId, CreateTrainingSessionRequest request, CancellationToken ct = default)
     {
@@ -54,7 +79,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             // Sync-Versuch), nicht doppelt anlegen.
             var alreadyCreated = await GetOwnedSessionAsync(userId, existingId, ct, track: false);
             if (alreadyCreated is not null)
-                return Result<TrainingSessionDto>.Success(ToDto(alreadyCreated));
+                return Result<TrainingSessionDto>.Success(ToDto(alreadyCreated, await HasGpsTrackAsync(alreadyCreated.Id, ct)));
         }
 
         var exerciseIds = request.Exercises.Where(e => e.ExerciseId is not null).Select(e => e.ExerciseId!.Value).Distinct().ToList();
@@ -100,7 +125,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         await db.SaveChangesAsync(ct);
 
         var created = await GetOwnedSessionAsync(userId, session.Id, ct, track: false);
-        return Result<TrainingSessionDto>.Success(ToDto(created!));
+        // Frisch angelegtes Training kann noch keine Fährte haben.
+        return Result<TrainingSessionDto>.Success(ToDto(created!, hasGpsTrack: false));
     }
 
     public async Task<Result> DeleteAsync(Guid userId, Guid sessionId, CancellationToken ct = default)
@@ -258,7 +284,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return null;
     }
 
-    private static TrainingSessionDto ToDto(TrainingSession s) => new(
+    private static TrainingSessionDto ToDto(TrainingSession s, bool hasGpsTrack) => new(
         s.Id,
         s.DogId,
         s.Date,
@@ -274,5 +300,6 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             e.Notes,
             e.TrainingPlanItemId)).ToList(),
         s.TrainerFeedback,
-        s.FeedbackAt);
+        s.FeedbackAt,
+        hasGpsTrack);
 }

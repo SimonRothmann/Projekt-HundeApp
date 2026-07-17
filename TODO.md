@@ -116,7 +116,7 @@ Ergebnis eines vollständigen Code-Audits (Sicherheit, Performance, Wartbarkeit)
 
 ### 5. Paket "Hundeseite schnell + wartbar" (strikt zweistufig, größtes Paket)
 
-- [ ] **Stufe A (Backend, abwärtskompatibel):** `bool hasGpsTrack` in `TrainingSessionDto` (EXISTS-Subselect) + `?from=&to=`-Zeitraumparameter an `GET /api/trainings` - OHNE Parameter bleibt das Verhalten unverändert (Statistik-Dashboard, Druckansicht `/dogs/[id]/print` und Plan-Fortschritt nutzen weiterhin den Vollpfad).
+- [x] **Stufe A (Backend, abwärtskompatibel):** ERLEDIGT (2026-07-16) - `bool hasGpsTrack` in `TrainingSessionDto` (ein Existenz-Lookup für alle geladenen Sessions statt N Frontend-Requests) + `?from=&to=`-Zeitraumparameter (inklusiv) an `GET /api/trainings`. OHNE Parameter unverändert komplette Historie (Statistik-Dashboard, Druckansicht und Plan-Fortschritt unangetastet). 2 neue TrainingService-Tests (Zeitraumfilter, Flag).
 - [ ] **Stufe B (Frontend):** `dogs/[id]/page.tsx` nach dem Goals-Muster zerlegen (Trainingsformular / Monatshistorie / Mitbesitzer als eigene Komponenten), `GpsTrackSection` nur noch bei `hasGpsTrack || !readOnly` mounten (beseitigt das HTTP-N+1: aktuell ein GPS-Request pro Trainings-Karte), initial nur die letzten 3 Monate laden, ältere Monate beim Aufklappen nachladen. Zwischen Stufe A und B auf Test verifizieren.
 
 ### 6. JWT-Härtung Stufe 1

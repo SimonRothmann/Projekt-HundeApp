@@ -7,9 +7,13 @@ namespace Dogity.Api.Controllers;
 public class TrainingController(ITrainingService trainingService) : ApiControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<TrainingSessionDto>>> GetByDog([FromQuery] Guid dogId, CancellationToken ct)
+    public async Task<ActionResult<IReadOnlyList<TrainingSessionDto>>> GetByDog(
+        [FromQuery] Guid dogId,
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        CancellationToken ct)
     {
-        var result = await trainingService.GetByDogAsync(CurrentUserId, dogId, ct);
+        var result = await trainingService.GetByDogAsync(CurrentUserId, dogId, from, to, ct);
         return FromResult(result);
     }
 

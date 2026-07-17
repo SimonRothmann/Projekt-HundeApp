@@ -26,7 +26,14 @@ public record TrainingSessionDto(
     string? Notes,
     IReadOnlyList<TrainingExerciseDto> Exercises,
     string? TrainerFeedback,
-    DateTimeOffset? FeedbackAt);
+    DateTimeOffset? FeedbackAt,
+    /// <summary>
+    /// Ob zu diesem Training mindestens eine Fährte (GpsTrack) existiert.
+    /// Erspart dem Frontend einen GPS-Request pro Trainings-Karte, nur um
+    /// festzustellen, dass es nichts anzuzeigen gibt (HTTP-N+1 auf der
+    /// Hundeseite, siehe TODO.md Roadmap 5).
+    /// </summary>
+    bool HasGpsTrack);
 
 public record SetFeedbackRequest(string Feedback);
 
