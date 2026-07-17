@@ -1,76 +1,39 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import type { Dog, DogOwner, Exercise, Goal, Sport, TrainingSession } from "@/lib/types";
+import type { Dog, DogOwner, Goal, Sport, TrainingSession } from "@/lib/types";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronRight, Dog as DogIcon, ListChecks, PenLine, Plus, Printer, Trash2, UserPlus, X } from "lucide-react";
+import { Dog as DogIcon, Plus, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
-import { GpsTrackSection } from "@/components/tracking/gps-track-section";
+import { TrainingForm } from "@/components/dogs/training-form";
+import { SessionHistory } from "@/components/dogs/session-history";
+import { CoOwnersSection } from "@/components/dogs/co-owners-section";
 import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
-import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
-import { enqueueRequest } from "@/lib/offline-queue";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
-import { difficultyLabel } from "@/lib/constants";
 import { useAuth } from "@/lib/auth-context";
 
-type ExerciseRow = {
-  sportId: string;
-  exerciseId: string;
-  // Für spontane Spaß-/Sonstige Übungen, die nicht im Katalog stehen und
-  // nicht extra dort angelegt werden sollen (siehe TrainingExercise.FreeTextLabel) -
-  // schließt Sportart/Übung/Plan-Ziel-Auswahl aus, dafür freier Text.
-  isFreeText: boolean;
-  freeText: string;
-  rating: number;
-  success: boolean;
-  notes: string;
-  trainingPlanItemId: string;
-};
-
-// Monatsschlüssel im Format "2026-07" für die Gruppierung; toLocaleDateString
-// mit month:"long" liefert die Anzeige-Version ("Juli 2026").
-function monthKey(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}`;
-}
-function monthLabel(iso: string): string {
-  return new Date(iso).toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+// Initial werden nur die Trainings der letzten 3 Monate geladen (die
+// Historie wächst unbegrenzt) - ältere Monate holt SessionHistory über
+// "Ältere Trainings anzeigen" nach. Statistik und Druckansicht laden ihre
+// Daten separat und sind davon unberührt.
+function threeMonthsAgoIso(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 3);
+  return d.toISOString().slice(0, 10);
 }
 
-// Ein Training gilt als abgeschlossen, sobald sein Datum in der Vergangenheit
-// liegt (vor dem heutigen Tag). Für solche Trainings entfällt die
-// Fährten-Aufnahme - eine Live-GPS-Aufzeichnung ergibt nur für das Training
-// von heute Sinn.
-function isCompletedSession(iso: string): boolean {
-  const d = new Date(iso);
-  d.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return d.getTime() < today.getTime();
-}
-
-function emptyRow(): ExerciseRow {
-  return {
-    sportId: "",
-    exerciseId: "",
-    isFreeText: false,
-    freeText: "",
-    rating: 3,
-    success: true,
-    notes: "",
-    trainingPlanItemId: "",
-  };
-}
-
+/**
+ * Hundeseite: orchestriert Kopfzeile, Ziele, Fährten-Recorder,
+ * Trainingstagebuch (TrainingForm + SessionHistory) und Mitbesitzer.
+ * Die eigentliche Logik lebt in den Sektions-Komponenten - Zerlegung nach
+ * dem goals-section-Muster (siehe TODO.md Roadmap 5b), nachdem die
+ * frühere 686-Zeilen-Variante derselbe Wartbarkeits-Risikofall war wie
+ * goals-section.tsx vor ihrem Refactor.
+ */
 export default function DogDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -79,23 +42,90 @@ export default function DogDetailPage() {
   const [dog, setDog] = useState<Dog | null>(null);
   const [sessions, setSessions] = useState<TrainingSession[] | null>(null);
   const [sports, setSports] = useState<Sport[]>([]);
-  const [exercisesBySport, setExercisesBySport] = useState<Record<string, Exercise[]>>({});
   const [goals, setGoals] = useState<Goal[] | null>(null);
   const [isOwner, setIsOwner] = useState(true);
-
   const [owners, setOwners] = useState<DogOwner[]>([]);
-  const [ownerEmail, setOwnerEmail] = useState("");
-  const [addingOwner, setAddingOwner] = useState(false);
-
   const [showForm, setShowForm] = useState(false);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [duration, setDuration] = useState(30);
-  const [notes, setNotes] = useState("");
-  const [rows, setRows] = useState<ExerciseRow[]>([emptyRow()]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  // Aufgeklappte Monate im Trainingstagebuch. Der neueste Monat wird beim
-  // Erstrender automatisch aufgeklappt, ältere bleiben zunächst zu.
-  const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
+  // false = nur die letzten 3 Monate geladen, true = komplette Historie.
+  const [showAllHistory, setShowAllHistory] = useState(false);
+
+  type DogPageCache = {
+    dog: Dog;
+    sessions: TrainingSession[];
+    sports: Sport[];
+    myDogIds: string[];
+    goals: Goal[];
+    owners: DogOwner[];
+  };
+
+  function applyPageData(data: DogPageCache) {
+    setDog(data.dog);
+    setSessions(data.sessions);
+    setSports(data.sports);
+    setIsOwner(data.myDogIds.includes(id));
+    setGoals(data.goals);
+    setOwners(data.owners);
+  }
+
+  async function loadAll(all = showAllHistory) {
+    // 1. Gecachte Daten sofort anzeigen (Stale-While-Revalidate) - ermöglicht
+    //    Offline-Nutzung der letzten gesehenen Daten ohne Wartezeit.
+    const cacheKey = `dog-page-${id}`;
+    const cached = await getCachedData<DogPageCache>(cacheKey);
+    if (cached) applyPageData(cached);
+
+    // 2. Frische Daten im Hintergrund laden.
+    try {
+      const sessionsPath = all
+        ? `/api/trainings?dogId=${id}`
+        : `/api/trainings?dogId=${id}&from=${threeMonthsAgoIso()}`;
+      const [dogData, sessionDataRaw, sportsData, myDogs, goalData, ownersData] = await Promise.all([
+        api.get<Dog>(`/api/dogs/${id}`),
+        api.get<TrainingSession[]>(sessionsPath),
+        api.get<Sport[]>("/api/sports"),
+        api.get<Dog[]>("/api/dogs"),
+        api.get<Goal[]>(`/api/goals?dogId=${id}`),
+        api.get<DogOwner[]>(`/api/dogs/${id}/owners`).catch(() => [] as DogOwner[]),
+      ]);
+      // Leeres 3-Monats-Fenster: automatisch auf die komplette Historie
+      // zurückfallen, damit ein lange nicht trainierter Hund nicht
+      // fälschlich "Noch keine Trainingseinheiten" anzeigt.
+      let sessionData = sessionDataRaw;
+      if (!all && sessionData.length === 0) {
+        sessionData = await api.get<TrainingSession[]>(`/api/trainings?dogId=${id}`);
+        setShowAllHistory(true);
+      }
+      const fresh: DogPageCache = {
+        dog: dogData,
+        sessions: sessionData,
+        sports: sportsData,
+        myDogIds: myDogs.map((d) => d.id),
+        goals: goalData,
+        owners: ownersData,
+      };
+      applyPageData(fresh);
+      await setCachedData(cacheKey, fresh);
+    } catch (err) {
+      // Nur Fehler melden wenn kein Cache vorhanden - mit Cache sind die alten
+      // Daten bereits sichtbar und ein Toast wäre verwirrend.
+      const cachedAvailable = cached !== null;
+      if (!cachedAvailable) toast.error(err instanceof ApiError ? err.message : "Daten konnten nicht geladen werden.");
+    }
+  }
+
+  useEffect(() => {
+    // Initialer Datenabruf bei Mount/Routenwechsel (externe Quelle: REST API).
+    // loadAll() wird bei jedem Render neu erzeugt, daher absichtlich nicht in
+    // den Dependencies - nur "id" soll einen erneuten Abruf auslösen.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  async function loadOlderSessions() {
+    setShowAllHistory(true);
+    await loadAll(true);
+  }
 
   async function deleteDog() {
     if (!dog) return;
@@ -117,188 +147,11 @@ export default function DogDetailPage() {
     }
   }
 
-  async function deleteSession(sessionId: string) {
-    if (!confirm("Training wirklich löschen? Zugehörige Fährten werden ebenfalls entfernt.")) return;
-    try {
-      await api.delete(`/api/trainings/${sessionId}`);
-      toast.success("Training gelöscht.");
-      await loadAll();
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
-    }
-  }
-
-  type DogPageCache = {
-    dog: Dog;
-    sessions: TrainingSession[];
-    sports: Sport[];
-    myDogIds: string[];
-    goals: Goal[];
-    owners: DogOwner[];
-  };
-
-  function applyPageData(data: DogPageCache) {
-    setDog(data.dog);
-    setSessions(data.sessions);
-    setSports(data.sports);
-    setIsOwner(data.myDogIds.includes(id));
-    setGoals(data.goals);
-    setOwners(data.owners);
-  }
-
-  async function loadAll() {
-    // 1. Gecachte Daten sofort anzeigen (Stale-While-Revalidate) - ermöglicht
-    //    Offline-Nutzung der letzten gesehenen Daten ohne Wartezeit.
-    const cacheKey = `dog-page-${id}`;
-    const cached = await getCachedData<DogPageCache>(cacheKey);
-    if (cached) applyPageData(cached);
-
-    // 2. Frische Daten im Hintergrund laden.
-    try {
-      const [dogData, sessionData, sportsData, myDogs, goalData, ownersData] = await Promise.all([
-        api.get<Dog>(`/api/dogs/${id}`),
-        api.get<TrainingSession[]>(`/api/trainings?dogId=${id}`),
-        api.get<Sport[]>("/api/sports"),
-        api.get<Dog[]>("/api/dogs"),
-        api.get<Goal[]>(`/api/goals?dogId=${id}`),
-        api.get<DogOwner[]>(`/api/dogs/${id}/owners`).catch(() => [] as DogOwner[]),
-      ]);
-      const fresh: DogPageCache = {
-        dog: dogData,
-        sessions: sessionData,
-        sports: sportsData,
-        myDogIds: myDogs.map((d) => d.id),
-        goals: goalData,
-        owners: ownersData,
-      };
-      applyPageData(fresh);
-      await setCachedData(cacheKey, fresh);
-    } catch (err) {
-      // Nur Fehler melden wenn kein Cache vorhanden - mit Cache sind die alten
-      // Daten bereits sichtbar und ein Toast wäre verwirrend.
-      if (!cached) toast.error(err instanceof ApiError ? err.message : "Daten konnten nicht geladen werden.");
-    }
-  }
-
-  useEffect(() => {
-    // Initialer Datenabruf bei Mount/Routenwechsel (externe Quelle: REST API).
-    // loadAll() wird bei jedem Render neu erzeugt, daher absichtlich nicht in
-    // den Dependencies - nur "id" soll einen erneuten Abruf auslösen.
-    loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  async function ensureExercisesLoaded(sportId: string) {
-    if (exercisesBySport[sportId] || !sportId) return;
-    const exercises = await api.get<Exercise[]>(`/api/sports/${sportId}/exercises`);
-    setExercisesBySport((prev) => ({ ...prev, [sportId]: exercises }));
-  }
-
-  function updateRow(index: number, patch: Partial<ExerciseRow>) {
-    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
-  }
-
-  async function handleSportChange(index: number, sportId: string) {
-    updateRow(index, { sportId, exerciseId: "", trainingPlanItemId: "" });
-    await ensureExercisesLoaded(sportId);
-  }
-
-  // Plan-Ziele (siehe GoalsSection), die zur gewählten Übung passen - nur
-  // aus aktiven Zielen (Status 0) und ohne Pausenwochen, damit man einen
-  // Tagebucheintrag optional einem Wochenziel zuordnen kann (siehe
-  // TrainingExercise.TrainingPlanItemId). Bereits erfüllte Ziele bleiben
-  // wählbar, falls man dieselbe Übung öfter als das Ziel trainieren möchte.
-  function planItemOptionsFor(exerciseId: string) {
-    if (!exerciseId) return [];
-    return (goals ?? [])
-      .filter((g) => g.status === 0)
-      .flatMap((g) => g.trainingPlan?.items ?? [])
-      .filter((item) => !item.isRestWeek && item.exerciseId === exerciseId);
-  }
-
-  function addRow() {
-    setRows((prev) => [...prev, emptyRow()]);
-  }
-
-  function removeRow(index: number) {
-    setRows((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  async function handleAddOwner(e: FormEvent) {
-    e.preventDefault();
-    if (!ownerEmail.trim()) return;
-    setAddingOwner(true);
-    try {
-      await api.post(`/api/dogs/${id}/owners`, { email: ownerEmail.trim() });
-      toast.success("Mitbesitzer hinzugefügt.");
-      setOwnerEmail("");
-      const updated = await api.get<DogOwner[]>(`/api/dogs/${id}/owners`);
-      setOwners(updated);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Fehler beim Hinzufügen.");
-    } finally {
-      setAddingOwner(false);
-    }
-  }
-
-  async function handleRemoveOwner(userId: string) {
-    try {
-      await api.delete(`/api/dogs/${id}/owners/${userId}`);
-      toast.success("Mitbesitzer entfernt.");
-      const updated = await api.get<DogOwner[]>(`/api/dogs/${id}/owners`);
-      setOwners(updated);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Fehler beim Entfernen.");
-    }
-  }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    const validRows = rows.filter((r) => (r.isFreeText ? r.freeText.trim() : r.exerciseId));
-    if (validRows.length === 0) {
-      toast.error("Mindestens eine Übung auswählen oder eintragen.");
-      return;
-    }
-
-    const payload = {
-      dogId: id,
-      date,
-      durationMinutes: duration,
-      notes: notes || null,
-      exercises: validRows.map((r) => ({
-        exerciseId: r.isFreeText ? null : r.exerciseId,
-        freeTextLabel: r.isFreeText ? r.freeText.trim() : null,
-        rating: r.rating,
-        difficulty: 0,
-        success: r.success,
-        notes: r.notes || null,
-        trainingPlanItemId: r.isFreeText ? null : r.trainingPlanItemId || null,
-      })),
-    };
-
-    setIsSubmitting(true);
-    try {
-      await api.post<TrainingSession>("/api/trainings", payload);
-      toast.success("Training gespeichert.");
-      setShowForm(false);
-      setRows([emptyRow()]);
-      setNotes("");
-      await loadAll();
-    } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-      } else {
-        // Kein HTTP-Fehler vom Server, sondern ein Netzwerkfehler (offline) -
-        // siehe PRODUCT_REQUIREMENTS.md "Offline": Training ohne Internet erfassen.
-        await enqueueRequest({ path: "/api/trainings", method: "POST", body: payload, label: "Training" });
-        toast.success("Offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist.");
-        setShowForm(false);
-        setRows([emptyRow()]);
-        setNotes("");
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+  async function handleTrainingSaved(offline: boolean) {
+    setShowForm(false);
+    // Offline gespeicherte Trainings liegen nur in der Warteschlange - ein
+    // Server-Reload würde sie nicht enthalten und nur verwirren.
+    if (!offline) await loadAll();
   }
 
   if (!dog) return <p className="text-muted-foreground">Lädt…</p>;
@@ -347,340 +200,16 @@ export default function DogDetailPage() {
         </Button>
       </div>
 
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Neues Training</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="date">Datum</Label>
-                  <Input id="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="duration">Dauer (Minuten)</Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    min={1}
-                    required
-                    value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
-                  />
-                </div>
-              </div>
+      {showForm && <TrainingForm dogId={id} sports={sports} goals={goals} onSaved={handleTrainingSaved} />}
 
-              <div className="flex flex-col gap-3">
-                <Label>Übungen</Label>
-                {rows.map((row, index) => {
-                  const exercises = exercisesBySport[row.sportId] ?? [];
-                  const selectedExercise = exercises.find((ex) => ex.id === row.exerciseId);
-                  const planItemOptions = planItemOptionsFor(row.exerciseId);
-                  return (
-                    <div key={index} className="flex flex-col gap-3 rounded-md border p-3">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        title={row.isFreeText ? "Katalog-Übung auswählen" : "Sonstige/Spaß-Übung als Freitext eintragen"}
-                        onClick={() =>
-                          updateRow(index, {
-                            isFreeText: !row.isFreeText,
-                            sportId: "",
-                            exerciseId: "",
-                            trainingPlanItemId: "",
-                            freeText: "",
-                          })
-                        }
-                      >
-                        {row.isFreeText ? <ListChecks className="size-4" /> : <PenLine className="size-4" />}
-                      </Button>
-                      {row.isFreeText ? (
-                        <div className="flex flex-col gap-2 sm:w-72">
-                          <Label>Sonstige/Spaß-Übung</Label>
-                          <Input
-                            placeholder="z.B. Spaziergang mit Bällchenspiel"
-                            value={row.freeText}
-                            onChange={(e) => updateRow(index, { freeText: e.target.value })}
-                          />
-                        </div>
-                      ) : (
-                        <>
-                      <div className="flex flex-col gap-2 sm:w-48">
-                        <Label>Sportart</Label>
-                        <Select
-                          value={row.sportId}
-                          onValueChange={(value) => handleSportChange(index, value ?? "")}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Auswählen…" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {sports.map((s) => (
-                              <SelectItem key={s.id} value={s.id}>
-                                {s.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex flex-col gap-2 sm:w-56">
-                        <Label>Übung</Label>
-                        <Select
-                          value={row.exerciseId}
-                          disabled={!row.sportId}
-                          onValueChange={(value) => updateRow(index, { exerciseId: value ?? "", trainingPlanItemId: "" })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Auswählen…" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {exercises.map((ex) => (
-                              <SelectItem key={ex.id} value={ex.id}>
-                                {ex.name} ({difficultyLabel[ex.difficulty]})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {planItemOptions.length > 0 && (
-                        <div className="flex flex-col gap-2 sm:w-48">
-                          <Label>Plan-Ziel (optional)</Label>
-                          <Select
-                            value={row.trainingPlanItemId}
-                            onValueChange={(value) => updateRow(index, { trainingPlanItemId: value ?? "" })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Kein Plan-Ziel" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">Kein Plan-Ziel</SelectItem>
-                              {planItemOptions.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  KW {item.weekNumber} ({item.completedCount}/{item.repetitionsTarget}x)
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                        </>
-                      )}
-                      <div className="flex flex-col gap-2">
-                        <Label>Bewertung</Label>
-                        <div className="flex gap-1">
-                          {[1, 2, 3, 4, 5].map((value) => (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => updateRow(index, { rating: value })}
-                              className={`flex size-8 items-center justify-center rounded-md border text-sm ${
-                                row.rating >= value
-                                  ? "border-accent bg-accent text-accent-foreground"
-                                  : "border-input text-muted-foreground"
-                              }`}
-                            >
-                              {value}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={row.success}
-                          onChange={(e) => updateRow(index, { success: e.target.checked })}
-                        />
-                        Erfolgreich
-                      </label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeRow(index)}
-                        disabled={rows.length === 1}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                    {selectedExercise?.scoringCriteria && (
-                      <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                        <strong className="text-foreground">Bewertungskriterien:</strong>{" "}
-                        {selectedExercise.scoringCriteria}
-                      </p>
-                    )}
-                    </div>
-                  );
-                })}
-                <Button type="button" variant="outline" size="sm" className="self-start" onClick={addRow}>
-                  <Plus className="size-4" />
-                  Übung hinzufügen
-                </Button>
-              </div>
+      <SessionHistory
+        sessions={sessions}
+        isOwner={isOwner}
+        onChanged={loadAll}
+        onLoadOlder={showAllHistory ? null : loadOlderSessions}
+      />
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="notes">Notizen</Label>
-                <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-              </div>
-
-              <Button type="submit" className="self-start" disabled={isSubmitting}>
-                {isSubmitting ? "Wird gespeichert…" : "Training speichern"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {sessions === null ? (
-        <p className="text-muted-foreground">Lädt…</p>
-      ) : sessions.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
-            Noch keine Trainingseinheiten erfasst.
-          </CardContent>
-        </Card>
-      ) : (
-        (() => {
-          // Nach Monat gruppieren, Reihenfolge: neuester Monat zuerst.
-          // Sessions kommen sortiert nach Datum absteigend vom Backend.
-          const groups = new Map<string, TrainingSession[]>();
-          for (const s of sessions) {
-            const key = monthKey(s.date);
-            const list = groups.get(key);
-            if (list) list.push(s);
-            else groups.set(key, [s]);
-          }
-          const orderedKeys = Array.from(groups.keys());
-          // Neuesten Monat automatisch aufklappen, sofern der Nutzer die
-          // Sichtbarkeit noch nicht selbst gesteuert hat.
-          const effectiveOpen = openMonths.size === 0 && orderedKeys.length > 0
-            ? new Set([orderedKeys[0]])
-            : openMonths;
-          function toggleMonth(key: string) {
-            setOpenMonths((prev) => {
-              const next = new Set(prev.size === 0 ? [orderedKeys[0]] : prev);
-              if (next.has(key)) next.delete(key);
-              else next.add(key);
-              return next;
-            });
-          }
-          return (
-            <div className="flex flex-col gap-2">
-              {orderedKeys.map((key) => {
-                const list = groups.get(key)!;
-                const isOpen = effectiveOpen.has(key);
-                return (
-                  <div key={key} className="rounded-md border">
-                    <button
-                      type="button"
-                      onClick={() => toggleMonth(key)}
-                      className="flex w-full items-center justify-between px-3 py-2 text-left"
-                    >
-                      <span className="flex items-center gap-2 font-medium capitalize">
-                        {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-                        {monthLabel(list[0].date)}
-                      </span>
-                      <Badge variant="secondary">{list.length}</Badge>
-                    </button>
-                    {isOpen && (
-                      <div className="flex flex-col gap-3 border-t p-3">
-                        {list.map((session) => (
-                          <Card key={session.id}>
-                            <CardHeader className="flex-row items-center justify-between space-y-0">
-                              <CardTitle className="text-base">
-                                {new Date(session.date).toLocaleDateString("de-DE")}
-                              </CardTitle>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="secondary">{session.durationMinutes} Min.</Badge>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-destructive hover:text-destructive"
-                                  onClick={() => deleteSession(session.id)}
-                                  title="Training löschen"
-                                >
-                                  <Trash2 className="size-4" />
-                                </Button>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="flex flex-col gap-2">
-                              {session.notes && <p className="text-sm text-muted-foreground">{session.notes}</p>}
-                              <ul className="flex flex-col gap-1">
-                                {session.exercises.map((ex) => (
-                                  <li key={ex.id} className="flex items-center justify-between text-sm">
-                                    <span>{ex.exerciseName}</span>
-                                    <span className="text-muted-foreground">
-                                      {"★".repeat(ex.rating)}
-                                      {"☆".repeat(5 - ex.rating)} {ex.success ? "✓" : "✗"}
-                                    </span>
-                                  </li>
-                                ))}
-                              </ul>
-                              <GpsTrackSection
-                                trainingSessionId={session.id}
-                                readOnly={isCompletedSession(session.date)}
-                              />
-                              <TrainerFeedback session={session} isOwner={isOwner} onUpdated={loadAll} />
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()
-      )}
-
-      {isOwner && (
-        <Card>
-          <CardHeader className="flex-row items-center gap-2 space-y-0">
-            <UserPlus className="size-5 text-primary" />
-            <CardTitle className="text-base">Mitbesitzer</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {owners.length > 0 && (
-              <ul className="flex flex-col gap-2">
-                {owners.map((o) => (
-                  <li key={o.userId} className="flex items-center justify-between text-sm">
-                    <span>
-                      {o.firstName} {o.lastName}{" "}
-                      <span className="text-muted-foreground text-xs">{o.email}</span>
-                    </span>
-                    {o.userId !== user?.userId && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="size-7"
-                        onClick={() => handleRemoveOwner(o.userId)}
-                      >
-                        <X className="size-3.5" />
-                      </Button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <form onSubmit={handleAddOwner} className="flex gap-2">
-              <Input
-                type="email"
-                placeholder="E-Mail des neuen Mitbesitzers"
-                value={ownerEmail}
-                onChange={(e) => setOwnerEmail(e.target.value)}
-              />
-              <Button type="submit" size="sm" disabled={addingOwner}>
-                <Plus className="size-4" />
-                Hinzufügen
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+      {isOwner && <CoOwnersSection dogId={id} owners={owners} currentUserId={user?.userId} onChanged={loadAll} />}
     </div>
   );
 }

@@ -98,6 +98,10 @@ export type TrainingSession = {
   exercises: TrainingExercise[];
   trainerFeedback: string | null;
   feedbackAt: string | null;
+  // Ob mindestens eine Fährte existiert - erspart den GPS-Request pro
+  // Trainings-Karte (GpsTrackSection wird bei abgeschlossenen Trainings
+  // ohne Fährte gar nicht erst gemountet, siehe SessionHistory).
+  hasGpsTrack: boolean;
 };
 
 export type GoalStatus = 0 | 1 | 2; // 0 = Active, 1 = Achieved, 2 = Cancelled
