@@ -117,7 +117,7 @@ Ergebnis eines vollständigen Code-Audits (Sicherheit, Performance, Wartbarkeit)
 ### 5. Paket "Hundeseite schnell + wartbar" (strikt zweistufig, größtes Paket)
 
 - [x] **Stufe A (Backend, abwärtskompatibel):** ERLEDIGT (2026-07-16) - `bool hasGpsTrack` in `TrainingSessionDto` (ein Existenz-Lookup für alle geladenen Sessions statt N Frontend-Requests) + `?from=&to=`-Zeitraumparameter (inklusiv) an `GET /api/trainings`. OHNE Parameter unverändert komplette Historie (Statistik-Dashboard, Druckansicht und Plan-Fortschritt unangetastet). 2 neue TrainingService-Tests (Zeitraumfilter, Flag).
-- [ ] **Stufe B (Frontend):** `dogs/[id]/page.tsx` nach dem Goals-Muster zerlegen (Trainingsformular / Monatshistorie / Mitbesitzer als eigene Komponenten), `GpsTrackSection` nur noch bei `hasGpsTrack || !readOnly` mounten (beseitigt das HTTP-N+1: aktuell ein GPS-Request pro Trainings-Karte), initial nur die letzten 3 Monate laden, ältere Monate beim Aufklappen nachladen. Zwischen Stufe A und B auf Test verifizieren.
+- [x] **Stufe B (Frontend):** ERLEDIGT (2026-07-16) - `dogs/[id]/page.tsx` 686 → 215 Zeilen, zerlegt in `training-form.tsx` / `session-history.tsx` / `co-owners-section.tsx`. `GpsTrackSection` nur noch bei `hasGpsTrack || !readOnly` gemountet (Live auf Test: 6 Juli-Sessions, nur 4 GPS-Sektionen = die mit Fährte). Initial nur letzte 3 Monate (`?from=`), "Ältere Trainings anzeigen" lädt Rest (verschwindet danach); leeres 3-Monats-Fenster fällt auf Voll-Historie zurück. Browser-verifiziert auf test.dogity.net: keine Konsolen-Fehler, 36/36 OSM-Kacheln geladen (CSP-Report-Only blockt nicht), Monatsgruppen + Mitbesitzer korrekt.
 
 ### 6. JWT-Härtung Stufe 1
 
