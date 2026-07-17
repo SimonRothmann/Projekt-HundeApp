@@ -111,7 +111,8 @@ Ergebnis eines vollständigen Code-Audits (Sicherheit, Performance, Wartbarkeit)
 
 ### 4. Content-Security-Policy
 
-- [ ] CSP auf den Frontend-Domains fehlt (Caddy setzt nur HSTS/XCTO/XFO/Referrer-Policy) - verschärft das localStorage-JWT-Risiko. Rollout via `headers()` in `next.config.ts`, ZUERST als `Content-Security-Policy-Report-Only`, eine Woche Verstöße beobachten (Leaflet-Tiles `https://*.tile.openstreetmap.org`, Tailwind-Inline-Styles einplanen), dann scharf schalten. Muss vor Schritt 6 (JWT-Härtung) liegen.
+- [x] Report-Only-Phase ausgerollt (2026-07-16): CSP via `headers()` in `next.config.ts` als `Content-Security-Policy-Report-Only`. Policy: script/style 'self'+'unsafe-inline' (Next-Hydration bzw. Leaflet-style-Attribute), img 'self'+data:+blob:+https: (freie Avatar-URLs + OSM-Kacheln), connect 'self'+beide API-Domains (statisch, da NEXT_PUBLIC_API_URL zur Laufzeit fehlt), worker/manifest 'self', frame-ancestors 'none'. Verstöße gehen an den neuen Route-Handler `/csp-report` (same-origin, loggt einzeilig in die Frontend-Container-Logs - `docker compose logs frontend-prod | grep CSP-Report`), damit auch iPhone-PWA-Verstöße zentral sichtbar sind.
+- [ ] Nach der Beobachtungswoche (ab ca. 2026-07-23): Reports sichten, Policy ggf. nachziehen, dann Header-Name von `Content-Security-Policy-Report-Only` auf `Content-Security-Policy` umstellen (scharf schalten). Muss vor Schritt 6 (JWT-Härtung) liegen.
 
 ### 5. Paket "Hundeseite schnell + wartbar" (strikt zweistufig, größtes Paket)
 
