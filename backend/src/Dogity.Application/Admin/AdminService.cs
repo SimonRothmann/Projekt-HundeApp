@@ -11,7 +11,7 @@ namespace Dogity.Application.Admin;
 /// ist bewusst nicht Teil dieses Moduls (siehe PRODUCT_REQUIREMENTS.md
 /// "Vereine" - Später/Post-MVP).
 /// </summary>
-public class AdminService(IApplicationDbContext db, IUserLookupService userLookup) : IAdminService
+public class AdminService(IApplicationDbContext db, IUserLookupService userLookup, IRefreshTokenService refreshTokens) : IAdminService
 {
     public async Task<Result<AdminStatsDto>> GetStatsAsync(CancellationToken ct = default)
     {
@@ -40,7 +40,12 @@ public class AdminService(IApplicationDbContext db, IUserLookupService userLooku
     public async Task<Result> LockUserAsync(Guid userId, CancellationToken ct = default)
     {
         var ok = await userLookup.LockUserAsync(userId, ct);
-        return ok ? Result.Success() : Result.Failure("Benutzer nicht gefunden.");
+        if (!ok) return Result.Failure("Benutzer nicht gefunden.");
+        // Refresh-Tokens widerrufen, damit die Sperre sofort greift - sonst
+        // könnte der Nutzer bis zum Ablauf seines Access-Tokens (60 min)
+        // weiter neue Access-Tokens nachladen.
+        await refreshTokens.RevokeAllForUserAsync(userId, ct);
+        return Result.Success();
     }
 
     public async Task<Result> UnlockUserAsync(Guid userId, CancellationToken ct = default)
@@ -52,7 +57,9 @@ public class AdminService(IApplicationDbContext db, IUserLookupService userLooku
     public async Task<Result> DeleteUserAsync(Guid userId, CancellationToken ct = default)
     {
         var ok = await userLookup.DeleteUserAsync(userId, ct);
-        return ok ? Result.Success() : Result.Failure("Benutzer nicht gefunden oder Löschung fehlgeschlagen.");
+        if (!ok) return Result.Failure("Benutzer nicht gefunden oder Löschung fehlgeschlagen.");
+        await refreshTokens.RevokeAllForUserAsync(userId, ct);
+        return Result.Success();
     }
 
     public async Task<Result> SetUserPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)

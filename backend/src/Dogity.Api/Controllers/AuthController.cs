@@ -20,6 +20,7 @@ public class AuthController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     IJwtTokenGenerator jwtTokenGenerator,
+    IRefreshTokenService refreshTokens,
     IEmailSender emailSender,
     INotificationService notifications,
     IUserLookupService userLookup,
@@ -49,7 +50,7 @@ public class AuthController(
 
         await userManager.AddToRoleAsync(user, Roles.User);
 
-        return Ok(BuildAuthResponse(user, [Roles.User]));
+        return Ok(await BuildAuthResponseAsync(user, [Roles.User]));
     }
 
     [HttpPost("login")]
@@ -73,7 +74,40 @@ public class AuthController(
             return Unauthorized(new { errors = new[] { "E-Mail oder Passwort ist falsch." } });
 
         var roles = await userManager.GetRolesAsync(user);
-        return Ok(BuildAuthResponse(user, roles));
+        return Ok(await BuildAuthResponseAsync(user, roles));
+    }
+
+    [HttpPost("refresh")]
+    public async Task<ActionResult<AuthResponse>> Refresh(RefreshTokenRequest request)
+    {
+        // Rotation: der vorgelegte Refresh-Token wird entwertet und ein neuer
+        // ausgestellt. Bei Wiedervorlage eines bereits verbrauchten Tokens
+        // widerruft der Service alle Tokens des Nutzers (Reuse-Erkennung).
+        var rotation = await refreshTokens.RotateAsync(request.RefreshToken);
+        if (!rotation.Succeeded)
+            return Unauthorized(new { errors = new[] { "Sitzung abgelaufen. Bitte neu anmelden." } });
+
+        var user = await userManager.FindByIdAsync(rotation.UserId.ToString());
+        // Nutzer inzwischen gesperrt/gelöscht: kein neuer Access-Token.
+        if (user is null || await userManager.IsLockedOutAsync(user))
+        {
+            await refreshTokens.RevokeAllForUserAsync(rotation.UserId);
+            return Unauthorized(new { errors = new[] { "Sitzung abgelaufen. Bitte neu anmelden." } });
+        }
+
+        var roles = await userManager.GetRolesAsync(user);
+        var accessToken = jwtTokenGenerator.GenerateToken(user.Id, user.Email!, roles.ToArray());
+        return Ok(new AuthResponse(accessToken, rotation.NewRawToken!, user.Id, user.Email!, user.FirstName, user.LastName, roles.ToArray()));
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(RefreshTokenRequest request)
+    {
+        // Nur den Refresh-Token dieses Geräts widerrufen - andere Sitzungen
+        // (weitere Geräte) bleiben bestehen. Kein Auth nötig: der Besitz des
+        // Tokens genügt, und ein ungültiger Token ist einfach ein No-Op.
+        await refreshTokens.RevokeAsync(request.RefreshToken);
+        return NoContent();
     }
 
     [HttpPost("forgot-password")]
@@ -126,10 +160,11 @@ public class AuthController(
         return Ok(new { message = "Passwort wurde geändert." });
     }
 
-    private AuthResponse BuildAuthResponse(ApplicationUser user, IEnumerable<string> roles)
+    private async Task<AuthResponse> BuildAuthResponseAsync(ApplicationUser user, IEnumerable<string> roles)
     {
         var roleArray = roles.ToArray();
         var token = jwtTokenGenerator.GenerateToken(user.Id, user.Email!, roleArray);
-        return new AuthResponse(token, user.Id, user.Email!, user.FirstName, user.LastName, roleArray);
+        var refreshToken = await refreshTokens.IssueAsync(user.Id);
+        return new AuthResponse(token, refreshToken, user.Id, user.Email!, user.FirstName, user.LastName, roleArray);
     }
 }

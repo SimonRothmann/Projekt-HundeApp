@@ -38,27 +38,60 @@ export class ApiError extends Error {
 
 export const TOKEN_KEY = "dogity_token";
 export const USER_KEY = "dogity_user";
+export const REFRESH_KEY = "dogity_refresh";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(TOKEN_KEY);
 }
 
-// Räumt eine ungültig gewordene Session auf (abgelaufenes/invalides JWT) und
-// schickt zum Login. Ohne das bleibt die App nach Tokenablauf in einem
-// kaputten Zustand stecken (alte Nutzerdaten im State, jeder weitere Request
-// schlägt mit 401 fehl) - Nutzer empfinden das als "App ist kaputt" und
-// löschen Browserdaten, um es zu beheben, statt dass die App selbst
-// reagiert.
+// Räumt eine ungültig gewordene Session auf (abgelaufenes/invalides JWT und
+// toter Refresh-Token) und schickt zum Login. Ohne das bleibt die App nach
+// Tokenablauf in einem kaputten Zustand stecken (alte Nutzerdaten im State,
+// jeder weitere Request schlägt mit 401 fehl) - Nutzer empfinden das als
+// "App ist kaputt" und löschen Browserdaten, um es zu beheben, statt dass die
+// App selbst reagiert.
 function handleExpiredSession() {
   window.localStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
+  window.localStorage.removeItem(REFRESH_KEY);
   if (!window.location.pathname.startsWith("/login")) {
     window.location.href = "/login";
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+// Single-Flight: Laufen mehrere Requests gleichzeitig in ein 401 (typisch
+// beim Seitenaufruf, der parallel mehrere Endpoints lädt), soll NUR EIN
+// Refresh-Aufruf passieren - alle warten auf dasselbe Promise. Sonst würden
+// mehrere parallele Rotationen mit demselben Refresh-Token die Reuse-
+// Erkennung des Backends auslösen und den Nutzer fälschlich ausloggen.
+let refreshInFlight: Promise<boolean> | null = null;
+
+// Holt mit dem gespeicherten Refresh-Token einen neuen Access-Token. Bewusst
+// ein roher fetch (nicht request()), damit ein 401 hier NICHT rekursiv wieder
+// einen Refresh anstößt. true = neuer Token liegt im localStorage bereit.
+async function tryRefreshToken(): Promise<boolean> {
+  const refreshToken = window.localStorage.getItem(REFRESH_KEY);
+  if (!refreshToken) return false;
+  try {
+    const res = await fetch(`${resolveApiUrl()}/api/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { token: string; refreshToken: string };
+    window.localStorage.setItem(TOKEN_KEY, data.token);
+    window.localStorage.setItem(REFRESH_KEY, data.refreshToken);
+    return true;
+  } catch {
+    // Netzwerkfehler (offline): kein Logout - der ursprüngliche Aufruf läuft
+    // ohnehin in seinen eigenen Offline-Pfad (Warteschlange).
+    return false;
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit, isRetry = false): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -69,11 +102,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${resolveApiUrl()}${path}`, { ...init, headers });
 
   if (!res.ok) {
-    // Nur Sessions mit zuvor gesendetem Token automatisch ausloggen - ein
-    // 401 ohne Token (z.B. falsches Passwort beim Login) ist eine normale,
-    // im jeweiligen Formular anzuzeigende Fehlermeldung, keine abgelaufene
-    // Session.
-    if (res.status === 401 && token) handleExpiredSession();
+    // 401 mit vorhandenem Token = abgelaufener Access-Token: EINMAL versuchen,
+    // ihn per Refresh-Token zu erneuern und den Request zu wiederholen. Erst
+    // wenn auch das scheitert, wird die Session aufgeräumt. (Ein 401 ohne
+    // Token - z.B. falsches Passwort beim Login - ist dagegen eine normale
+    // Formular-Fehlermeldung und löst keinen Refresh aus.)
+    if (res.status === 401 && token && !isRetry) {
+      refreshInFlight ??= tryRefreshToken().finally(() => {
+        refreshInFlight = null;
+      });
+      const refreshed = await refreshInFlight;
+      if (refreshed) return request<T>(path, init, true);
+      handleExpiredSession();
+    }
 
     let errors: string[] = [`HTTP ${res.status}`];
     try {

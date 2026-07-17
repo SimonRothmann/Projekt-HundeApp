@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IUserLookupService, UserLookupService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IRegulationPdfParser, RegulationPdfParser>();
 
         services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));

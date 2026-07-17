@@ -10,11 +10,14 @@ namespace Dogity.Application.Tests.Admin;
 /// </summary>
 public class AdminServiceTests
 {
-    private static AdminService MakeService(out FakeUserLookupService lookup)
+    private static AdminService MakeService(out FakeUserLookupService lookup) => MakeService(out lookup, out _);
+
+    private static AdminService MakeService(out FakeUserLookupService lookup, out FakeRefreshTokenService refreshTokens)
     {
         var db = InMemoryDbContext.Create();
         lookup = new FakeUserLookupService();
-        return new AdminService(db, lookup);
+        refreshTokens = new FakeRefreshTokenService();
+        return new AdminService(db, lookup, refreshTokens);
     }
 
     [Fact]
@@ -27,6 +30,20 @@ public class AdminServiceTests
         var result = await service.LockUserAsync(userId);
 
         Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task LockUser_RevokesRefreshTokens()
+    {
+        var service = MakeService(out var lookup, out var refreshTokens);
+        var userId = Guid.NewGuid();
+        lookup.Register(userId, "user@test.de");
+
+        await service.LockUserAsync(userId);
+
+        // Sperre muss die Sitzungen sofort beenden - sonst könnte der Nutzer
+        // bis zum Access-Token-Ablauf weiter neue Tokens nachladen.
+        Assert.Contains(userId, refreshTokens.RevokedAllForUsers);
     }
 
     [Fact]

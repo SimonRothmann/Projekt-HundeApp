@@ -1,5 +1,9 @@
 export type AuthResponse = {
   token: string;
+  // Langlebiger Refresh-Token: der Client holt damit lautlos einen neuen
+  // Access-Token (token), wenn dieser abläuft - so bleibt man eingeloggt,
+  // ohne sich neu anmelden zu müssen (siehe api.ts, Roadmap 6).
+  refreshToken: string;
   userId: string;
   email: string;
   firstName: string;

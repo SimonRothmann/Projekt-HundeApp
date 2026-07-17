@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { api, ApiError, TOKEN_KEY, USER_KEY } from "@/lib/api";
+import { api, ApiError, REFRESH_KEY, TOKEN_KEY, USER_KEY } from "@/lib/api";
 import type { AuthResponse } from "@/lib/types";
 
 type AuthUser = Pick<AuthResponse, "userId" | "email" | "firstName" | "lastName" | "roles">;
@@ -109,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       roles: response.roles,
     };
     window.localStorage.setItem(TOKEN_KEY, response.token);
+    window.localStorage.setItem(REFRESH_KEY, response.refreshToken);
     window.localStorage.setItem(USER_KEY, JSON.stringify(authUser));
     setUser(authUser);
   }
@@ -129,8 +130,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    // Refresh-Token serverseitig widerrufen (nur dieses Gerät), damit ein
+    // evtl. noch kopierter Token nach dem Logout wertlos ist. Fire-and-forget:
+    // der lokale Logout darf nicht an einem Netzwerkfehler hängen.
+    const refreshToken = window.localStorage.getItem(REFRESH_KEY);
+    if (refreshToken) {
+      api.post("/api/auth/logout", { refreshToken }).catch(() => {
+        // Offline/Fehler: lokaler Logout genügt, der Token läuft ohnehin ab.
+      });
+    }
     window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(USER_KEY);
+    window.localStorage.removeItem(REFRESH_KEY);
     setUser(null);
     setIsTrainer(null);
     setUnreadNotificationCount(0);
