@@ -14,6 +14,12 @@ public interface ITrainingService
     Task<Result> DeleteAsync(Guid userId, Guid sessionId, CancellationToken ct = default);
 
     /// <summary>
+    /// Ändert die Tages-/Einheitsnotiz (TrainingSession.Notes) - im Tagebuch
+    /// als "Kommentar für den gesamten Tag" bearbeitbar.
+    /// </summary>
+    Task<Result> UpdateSessionNotesAsync(Guid userId, Guid sessionId, string? notes, CancellationToken ct = default);
+
+    /// <summary>
     /// Ändert die Notiz einer einzelnen durchgeführten Übung (siehe
     /// TrainingExercise.Notes). Editierbar sowohl aus dem Trainingstagebuch
     /// als auch aus dem Trainingsplan-Log. Auth: der Hund der zugehörigen

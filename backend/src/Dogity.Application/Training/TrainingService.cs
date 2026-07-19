@@ -94,6 +94,56 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         if (planItemError is not null)
             return Result<TrainingSessionDto>.Failure(planItemError);
 
+        // Tages-Zusammenfassung: Existiert für diesen Hund an diesem Datum
+        // bereits eine Trainingseinheit, werden die Übungen ANGEHÄNGT statt
+        // eine neue Einheit anzulegen - das Tagebuch soll pro Trainingstag
+        // EIN Feld zeigen, nicht pro abgehaktem Plan-Durchgang einen eigenen
+        // Eintrag. Ausnahme: Requests mit client-generierter Id (Offline-
+        // Idempotenz, z.B. FahrteRecorder) - dort referenzieren nachfolgende
+        // gequeute Requests (GPS-Track) genau diese Id, ein Merge würde die
+        // Referenz brechen. Die UI gruppiert solche Einheiten trotzdem in
+        // dieselbe Tages-Karte.
+        if (request.Id is null)
+        {
+            var daySession = await db.TrainingSessions
+                .FirstOrDefaultAsync(s => s.DogId == request.DogId && s.Date == request.Date, ct);
+            if (daySession is not null)
+            {
+                foreach (var exercise in request.Exercises)
+                {
+                    // Explizit über das DbSet hinzufügen (nicht über die
+                    // Navigation der getrackten Session): die Entities tragen
+                    // client-generierte Guid-Keys, per Collection-Fixup würde
+                    // EF sie als Modified statt Added einstufen.
+                    db.TrainingExercises.Add(new TrainingExercise
+                    {
+                        TrainingSessionId = daySession.Id,
+                        ExerciseId = exercise.ExerciseId,
+                        FreeTextLabel = exercise.ExerciseId is null ? exercise.FreeTextLabel!.Trim() : null,
+                        Rating = exercise.Rating,
+                        Difficulty = exercise.Difficulty,
+                        Success = exercise.Success,
+                        Notes = exercise.Notes,
+                        TrainingPlanItemId = exercise.TrainingPlanItemId
+                    });
+                }
+
+                daySession.DurationMinutes += request.DurationMinutes;
+                var newNotes = request.Notes?.Trim();
+                if (!string.IsNullOrEmpty(newNotes))
+                {
+                    daySession.Notes = string.IsNullOrWhiteSpace(daySession.Notes)
+                        ? newNotes
+                        : $"{daySession.Notes}\n{newNotes}";
+                }
+
+                await db.SaveChangesAsync(ct);
+
+                var merged = await GetOwnedSessionAsync(userId, daySession.Id, ct, track: false);
+                return Result<TrainingSessionDto>.Success(ToDto(merged!, await HasGpsTrackAsync(daySession.Id, ct)));
+            }
+        }
+
         var session = new TrainingSession
         {
             UserId = userId,
@@ -136,6 +186,18 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             return Result.Failure("Training nicht gefunden.");
 
         session.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> UpdateSessionNotesAsync(Guid userId, Guid sessionId, string? notes, CancellationToken ct = default)
+    {
+        var session = await GetOwnedSessionAsync(userId, sessionId, ct);
+        if (session is null)
+            return Result.Failure("Training nicht gefunden.");
+
+        var trimmed = notes?.Trim();
+        session.Notes = string.IsNullOrEmpty(trimmed) ? null : trimmed;
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }

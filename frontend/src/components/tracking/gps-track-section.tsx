@@ -4,16 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { GpsPoint, GpsTrack, GpsWalkPoint } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { TrackMap } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 import { WalkRunComment } from "@/components/tracking/walk-run-comment";
-import { MapPin, MapPinPlus, Square, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { enqueueRequest } from "@/lib/offline-queue";
-import { estimateLengthMeters } from "@/lib/geo";
-import { useGpsRecorder } from "@/lib/use-gps-recorder";
 
 // Für Zeitangaben in der Fährten-Übersicht: nur automatische Trackpunkte,
 // nicht die manuell gesetzten Marker (die tragen ggf. einen späteren
@@ -46,21 +41,18 @@ function formatDuration(ms: number): string {
   return `${min}:${sec.toString().padStart(2, "0")} min`;
 }
 
-function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
-  return {
-    latitude: position.coords.latitude,
-    longitude: position.coords.longitude,
-    timestamp: new Date(position.timestamp).toISOString(),
-    accuracy: position.coords.accuracy,
-    pointType: 0,
-    label: null,
-  };
-}
-
-// readOnly: für abgeschlossene Trainings (Datum in der Vergangenheit). Dann
-// entfällt die komplette Aufnahme-Funktion (neue Fährte legen UND erneutes
-// Ablaufen) - eine Live-GPS-Aufzeichnung ergibt nur für das laufende Training
-// von heute Sinn. Bereits gespeicherte Fährten bleiben als Karten sichtbar.
+/**
+ * Zeigt die Fährten eines Trainings (Karte, Metadaten, Ablauf-Versuche).
+ * Das AUFNEHMEN neuer Fährten passiert bewusst NICHT mehr hier, sondern
+ * ausschließlich über den "Fährte aufnehmen"-Recorder oberhalb des
+ * Tagebuchs (FahrteRecorder) - die aufgenommene Fährte erscheint dann als
+ * Bestandteil des jeweiligen Trainingstags (siehe SessionHistory).
+ *
+ * readOnly (Trainingstag in der Vergangenheit): blendet zusätzlich das
+ * erneute Ablaufen aus - eine Live-GPS-Aufzeichnung ergibt nur für den
+ * heutigen Trainingstag Sinn. Kommentare zu Ablauf-Versuchen bleiben immer
+ * bearbeitbar (nachträgliche Notiz, keine Aufzeichnung).
+ */
 export function GpsTrackSection({
   trainingSessionId,
   readOnly = false,
@@ -84,18 +76,6 @@ export function GpsTrackSection({
   const handleLivePoints = useCallback((trackId: string, points: GpsWalkPoint[]) => {
     setLiveWalkPoints((prev) => (prev[trackId] === points ? prev : { ...prev, [trackId]: points }));
   }, []);
-  const {
-    isRecording,
-    points: recordedPoints,
-    setPoints: setRecordedPoints,
-    currentAccuracy,
-    start: startRecording,
-    stop,
-    markPoint,
-  } = useGpsRecorder(toAutomaticPoint);
-  const [surface, setSurface] = useState("");
-  const [markLabel, setMarkLabel] = useState("");
-  const [isMarking, setIsMarking] = useState(false);
 
   async function loadTracks() {
     try {
@@ -113,203 +93,86 @@ export function GpsTrackSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trainingSessionId]);
 
-  function markObject() {
-    setIsMarking(true);
-    markPoint(
-      (point) => {
-        setRecordedPoints((prev) => [...prev, { ...point, pointType: 1, label: markLabel.trim() || null }]);
-        setMarkLabel("");
-        setIsMarking(false);
-        toast.success("Gegenstand markiert.");
-      },
-      () => setIsMarking(false),
-    );
-  }
-
-  async function stopRecording() {
-    stop();
-
-    if (recordedPoints.length === 0) {
-      toast.error("Keine GPS-Punkte aufgezeichnet.");
-      return;
-    }
-
-    const payload = {
-      trainingSessionId,
-      lengthMeters: estimateLengthMeters(recordedPoints),
-      ageMinutes: null,
-      surface: surface || null,
-      weather: null,
-      wind: null,
-      comment: null,
-      points: recordedPoints,
-    };
-
-    try {
-      await api.post<GpsTrack>("/api/gps-tracks", payload);
-      toast.success("Fährte gespeichert.");
-      setRecordedPoints([]);
-      setSurface("");
-      await loadTracks();
-    } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-      } else {
-        // Netzwerkfehler (offline) - siehe PRODUCT_REQUIREMENTS.md "Offline": GPS speichern ohne Internet.
-        await enqueueRequest({ path: "/api/gps-tracks", method: "POST", body: payload, label: "Fährte" });
-        toast.success("Fährte offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist.");
-        setRecordedPoints([]);
-        setSurface("");
-      }
-    }
-  }
-
-  // Abgeschlossenes Training ohne Fährte: nichts anzeigen (kein leerer Block,
-  // da hier weder aufgezeichnet werden kann noch etwas zu sehen ist).
-  if (readOnly && tracks !== null && tracks.length === 0) {
+  // Ohne Fährte nichts anzeigen: aufgenommen wird hier nicht mehr (siehe
+  // Klassenkommentar), ein leerer Block hätte also keinen Zweck.
+  if (tracks === null || tracks.length === 0) {
     return null;
   }
 
   return (
     <div className="flex flex-col gap-3 rounded-md border p-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold">Fährte</h4>
-        {readOnly ? null : !isRecording ? (
-          <Button size="sm" variant="outline" onClick={startRecording}>
-            <MapPin className="size-4" />
-            Aufnahme starten
-          </Button>
-        ) : (
-          <div className="flex items-center gap-2">
-            {currentAccuracy !== null && (
-              <span
-                className={`text-xs font-mono tabular-nums ${
-                  currentAccuracy <= 10
-                    ? "text-green-600"
-                    : currentAccuracy <= 25
-                      ? "text-yellow-600"
-                      : "text-red-600"
-                }`}
-                title="GPS-Genauigkeit (Radius des Fehlerkreises). Punkte ungenauer als 25 m werden automatisch verworfen."
-              >
-                ±{Math.round(currentAccuracy)} m
-              </span>
-            )}
-            <Button size="sm" variant="destructive" onClick={stopRecording}>
-              <Square className="size-4" />
-              Stoppen ({recordedPoints.filter((p) => p.pointType !== 1).length} Punkte,{" "}
-              {recordedPoints.filter((p) => p.pointType === 1).length} Marker)
-            </Button>
-          </div>
-        )}
-      </div>
+      <h4 className="text-sm font-semibold">Fährte</h4>
 
-      {!readOnly && isRecording && (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={`surface-${trainingSessionId}`}>Untergrund</Label>
-            <Input
-              id={`surface-${trainingSessionId}`}
-              placeholder="z.B. Wiese, Acker, Wald"
-              value={surface}
-              onChange={(e) => setSurface(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-            <div className="flex flex-col gap-2 sm:w-64">
-              <Label htmlFor={`mark-label-${trainingSessionId}`}>Gegenstand markieren (optional)</Label>
-              <Input
-                id={`mark-label-${trainingSessionId}`}
-                placeholder="z.B. Schussstelle, Apportel"
-                value={markLabel}
-                onChange={(e) => setMarkLabel(e.target.value)}
-              />
-            </div>
-            <Button type="button" size="sm" variant="outline" onClick={markObject} disabled={isMarking}>
-              <MapPinPlus className="size-4" />
-              {isMarking ? "Markiere…" : "Punkt setzen"}
-            </Button>
-          </div>
-          <TrackMap points={recordedPoints} live />
-        </div>
-      )}
-
-      {tracks === null ? (
-        <p className="text-sm text-muted-foreground">Lädt…</p>
-      ) : tracks.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Noch keine Fährte für dieses Training.</p>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {tracks.map((track) => {
-            const times = trackTimes(track.points);
-            return (
-              <div key={track.id} className="flex flex-col gap-2">
-                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                  {times && (
-                    <span title={`${formatDate(times.start)} ${formatTime(times.start)}`}>
-                      Gelegt {formatTime(times.start)} · Dauer {formatDuration(times.durationMs)}
-                    </span>
-                  )}
-                  {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
-                  {track.surface && <span>{track.surface}</span>}
-                  {track.comment && <span>{track.comment}</span>}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {!readOnly && (
-                    <WalkRunRecorder
-                      trackId={track.id}
-                      onSaved={loadTracks}
-                      onLivePointsChange={handleLivePoints}
-                      laidTrackPoints={track.points}
-                    />
-                  )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive hover:text-destructive"
-                    onClick={async () => {
-                      if (!confirm("Fährte wirklich löschen?")) return;
-                      try {
-                        await api.delete(`/api/gps-tracks/${track.id}`);
-                        toast.success("Fährte gelöscht.");
-                        await loadTracks();
-                      } catch (err) {
-                        toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
-                      }
-                    }}
-                  >
-                    <Trash2 className="size-4" />
-                    Löschen
-                  </Button>
-                </div>
-                <TrackMap
-                  points={track.points}
-                  walkRuns={track.walkRuns}
-                  liveWalkRunPoints={liveWalkPoints[track.id]}
-                />
-                {track.walkRuns.length > 0 && (
-                  <ul className="text-xs text-muted-foreground flex flex-col gap-1">
-                    {track.walkRuns.map((run, i) => {
-                      const durMs = walkRunDurationMs(run);
-                      const started = new Date(run.createdAt);
-                      return (
-                        <li key={run.id} className="flex flex-col gap-0.5">
-                          <span>
-                            Ablauf {i + 1}: gestartet {formatTime(started)}
-                            {durMs !== null && ` · abgelaufen in ${formatDuration(durMs)}`}
-                            {run.lengthMeters !== null && ` · ${Math.round(run.lengthMeters)} m`}
-                          </span>
-                          <WalkRunComment trackId={track.id} run={run} onSaved={loadTracks} />
-                        </li>
-                      );
-                    })}
-                  </ul>
+      <div className="flex flex-col gap-4">
+        {tracks.map((track) => {
+          const times = trackTimes(track.points);
+          return (
+            <div key={track.id} className="flex flex-col gap-2">
+              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                {times && (
+                  <span title={`${formatDate(times.start)} ${formatTime(times.start)}`}>
+                    Gelegt {formatTime(times.start)} · Dauer {formatDuration(times.durationMs)}
+                  </span>
                 )}
+                {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
+                {track.surface && <span>{track.surface}</span>}
+                {track.comment && <span>{track.comment}</span>}
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="flex flex-wrap items-center gap-2">
+                {!readOnly && (
+                  <WalkRunRecorder
+                    trackId={track.id}
+                    onSaved={loadTracks}
+                    onLivePointsChange={handleLivePoints}
+                    laidTrackPoints={track.points}
+                  />
+                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive"
+                  onClick={async () => {
+                    if (!confirm("Fährte wirklich löschen?")) return;
+                    try {
+                      await api.delete(`/api/gps-tracks/${track.id}`);
+                      toast.success("Fährte gelöscht.");
+                      await loadTracks();
+                    } catch (err) {
+                      toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+                    }
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                  Löschen
+                </Button>
+              </div>
+              <TrackMap
+                points={track.points}
+                walkRuns={track.walkRuns}
+                liveWalkRunPoints={liveWalkPoints[track.id]}
+              />
+              {track.walkRuns.length > 0 && (
+                <ul className="text-xs text-muted-foreground flex flex-col gap-1">
+                  {track.walkRuns.map((run, i) => {
+                    const durMs = walkRunDurationMs(run);
+                    const started = new Date(run.createdAt);
+                    return (
+                      <li key={run.id} className="flex flex-col gap-0.5">
+                        <span>
+                          Ablauf {i + 1}: gestartet {formatTime(started)}
+                          {durMs !== null && ` · abgelaufen in ${formatDuration(durMs)}`}
+                          {run.lengthMeters !== null && ` · ${Math.round(run.lengthMeters)} m`}
+                        </span>
+                        <WalkRunComment trackId={track.id} run={run} onSaved={loadTracks} />
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

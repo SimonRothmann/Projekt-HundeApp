@@ -48,6 +48,13 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         return FromResult(result);
     }
 
+    [HttpPut("{id:guid}/notes")]
+    public async Task<IActionResult> UpdateSessionNotes(Guid id, UpdateSessionNotesRequest request, CancellationToken ct)
+    {
+        var result = await trainingService.UpdateSessionNotesAsync(CurrentUserId, id, request.Notes, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("exercises/{exerciseId:guid}/notes")]
     public async Task<IActionResult> UpdateExerciseNotes(Guid exerciseId, UpdateExerciseNotesRequest request, CancellationToken ct)
     {

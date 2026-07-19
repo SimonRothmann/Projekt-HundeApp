@@ -39,6 +39,8 @@ public record SetFeedbackRequest(string Feedback);
 
 public record UpdateExerciseNotesRequest(string? Notes);
 
+public record UpdateSessionNotesRequest(string? Notes);
+
 public record PendingFeedbackDto(Guid SessionId, Guid DogId, string DogName, string OwnerName, DateOnly Date, int DurationMinutes);
 
 public record CreateTrainingExerciseRequest(

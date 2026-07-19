@@ -151,6 +151,90 @@ public class TrainingServiceTests
     }
 
     [Fact]
+    public async Task Create_SameDayWithoutClientId_MergesIntoExistingSession()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+
+        var first = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null, setup.CatalogItemId)));
+        var second = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(null, 5, ExerciseDifficulty.Beginner, true, null, setup.FreeTextItemId, "Kopfarbeit ausprobieren")));
+
+        // Zweiter Eintrag am selben Tag hängt sich an die bestehende Einheit
+        // an (Tagebuch: EIN Feld pro Trainingstag), statt eine neue anzulegen.
+        Assert.Equal(first.Value!.Id, second.Value!.Id);
+        Assert.Equal(2, second.Value!.Exercises.Count);
+        Assert.Equal(20, second.Value!.DurationMinutes); // 10 + 10 summiert
+
+        var all = await service.GetByDogAsync(setup.UserId, setup.DogId);
+        Assert.Single(all.Value!);
+    }
+
+    [Fact]
+    public async Task Create_SameDayWithClientId_KeepsSeparateSession()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null, setup.CatalogItemId)));
+        // FahrteRecorder-Pfad: client-generierte Id (Offline-Idempotenz, der
+        // GPS-Track referenziert genau diese Id) - darf NICHT gemergt werden.
+        var withId = new CreateTrainingSessionRequest(
+            setup.DogId, DateOnly.FromDateTime(DateTime.Today), 5, "Fährtenaufnahme", [], Id: Guid.NewGuid());
+        var second = await service.CreateAsync(setup.UserId, withId);
+
+        Assert.True(second.Succeeded);
+        var all = await service.GetByDogAsync(setup.UserId, setup.DogId);
+        Assert.Equal(2, all.Value!.Count);
+    }
+
+    [Fact]
+    public async Task Create_SameDay_MergesNotes()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+
+        await service.CreateAsync(setup.UserId, new CreateTrainingSessionRequest(
+            setup.DogId, DateOnly.FromDateTime(DateTime.Today), 10, "Morgens gut drauf",
+            [new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null, setup.CatalogItemId)]));
+        var second = await service.CreateAsync(setup.UserId, new CreateTrainingSessionRequest(
+            setup.DogId, DateOnly.FromDateTime(DateTime.Today), 10, "Abends müde",
+            [new CreateTrainingExerciseRequest(null, 3, ExerciseDifficulty.Beginner, false, null, null, "Spaziergang")]));
+
+        Assert.Equal("Morgens gut drauf\nAbends müde", second.Value!.Notes);
+    }
+
+    [Fact]
+    public async Task UpdateSessionNotes_ByOwner_ChangesDayComment()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var created = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null, setup.CatalogItemId)));
+
+        var result = await service.UpdateSessionNotesAsync(setup.UserId, created.Value!.Id, "  Guter Tag  ");
+
+        Assert.True(result.Succeeded);
+        var reloaded = await service.GetByIdAsync(setup.UserId, created.Value!.Id);
+        Assert.Equal("Guter Tag", reloaded.Value!.Notes);
+    }
+
+    [Fact]
+    public async Task UpdateSessionNotes_ByOtherUser_Fails()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var created = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null, setup.CatalogItemId)));
+
+        var result = await service.UpdateSessionNotesAsync(Guid.NewGuid(), created.Value!.Id, "fremd");
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
     public async Task UpdateExerciseNotes_ByOwner_ChangesNote()
     {
         var service = MakeService(out var db);
