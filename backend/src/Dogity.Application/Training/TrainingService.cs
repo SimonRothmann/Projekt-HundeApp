@@ -140,6 +140,21 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return Result.Success();
     }
 
+    public async Task<Result> UpdateExerciseNotesAsync(Guid userId, Guid exerciseId, string? notes, CancellationToken ct = default)
+    {
+        // Übung über ihre Trainingseinheit dem Hund zuordnen und Zugriff prüfen.
+        var exercise = await db.TrainingExercises
+            .Include(e => e.TrainingSession)
+            .FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
+        if (exercise?.TrainingSession is null || !await db.HasDogAccessAsync(userId, exercise.TrainingSession.DogId, ct))
+            return Result.Failure("Übung nicht gefunden.");
+
+        var trimmed = notes?.Trim();
+        exercise.Notes = string.IsNullOrEmpty(trimmed) ? null : trimmed;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
     public async Task<Result> SetFeedbackAsync(Guid trainerId, Guid sessionId, SetFeedbackRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.Feedback))

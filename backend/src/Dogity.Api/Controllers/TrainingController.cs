@@ -48,6 +48,13 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         return FromResult(result);
     }
 
+    [HttpPut("exercises/{exerciseId:guid}/notes")]
+    public async Task<IActionResult> UpdateExerciseNotes(Guid exerciseId, UpdateExerciseNotesRequest request, CancellationToken ct)
+    {
+        var result = await trainingService.UpdateExerciseNotesAsync(CurrentUserId, exerciseId, request.Notes, ct);
+        return FromResult(result);
+    }
+
     [HttpGet("pending-feedback")]
     public async Task<ActionResult<IReadOnlyList<PendingFeedbackDto>>> GetPendingFeedback(CancellationToken ct)
     {

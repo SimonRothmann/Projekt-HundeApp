@@ -10,6 +10,7 @@ import { ChevronDown, ChevronRight, History, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
 import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
+import { ExerciseNotes } from "@/components/dogs/exercise-notes";
 
 // Monatsschlüssel im Format "2026-07" für die Gruppierung; toLocaleDateString
 // mit month:"long" liefert die Anzeige-Version ("Juli 2026").
@@ -162,14 +163,17 @@ export function SessionHistory({
                       </CardHeader>
                       <CardContent className="flex flex-col gap-2">
                         {session.notes && <p className="text-sm text-muted-foreground">{session.notes}</p>}
-                        <ul className="flex flex-col gap-1">
+                        <ul className="flex flex-col gap-2">
                           {session.exercises.map((ex) => (
-                            <li key={ex.id} className="flex items-center justify-between text-sm">
-                              <span>{ex.exerciseName}</span>
-                              <span className="text-muted-foreground">
-                                {"★".repeat(ex.rating)}
-                                {"☆".repeat(5 - ex.rating)} {ex.success ? "✓" : "✗"}
-                              </span>
+                            <li key={ex.id} className="flex flex-col gap-0.5">
+                              <div className="flex items-center justify-between text-sm">
+                                <span>{ex.exerciseName}</span>
+                                <span className="text-muted-foreground">
+                                  {"★".repeat(ex.rating)}
+                                  {"☆".repeat(5 - ex.rating)} {ex.success ? "✓" : "✗"}
+                                </span>
+                              </div>
+                              <ExerciseNotes exerciseId={ex.id} notes={ex.notes} onSaved={onChanged} />
                             </li>
                           ))}
                         </ul>

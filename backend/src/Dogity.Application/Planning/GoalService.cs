@@ -327,6 +327,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
             .Select(e => new
             {
                 PlanItemId = e.TrainingPlanItemId!.Value,
+                TrainingExerciseId = e.Id,
                 e.TrainingSessionId,
                 Date = e.TrainingSession!.Date,
                 e.Rating,
@@ -341,7 +342,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
                 g => g.Key,
                 g => (IReadOnlyList<TrainingPlanItemLogDto>)g
                     .OrderByDescending(l => l.Date)
-                    .Select(l => new TrainingPlanItemLogDto(l.TrainingSessionId, l.Date, l.Rating, l.Success, l.Notes))
+                    .Select(l => new TrainingPlanItemLogDto(l.TrainingSessionId, l.TrainingExerciseId, l.Date, l.Rating, l.Success, l.Notes))
                     .ToList());
     }
 

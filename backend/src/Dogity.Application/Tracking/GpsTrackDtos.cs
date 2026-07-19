@@ -56,3 +56,5 @@ public record CreateGpsWalkRunRequest(
     double? LengthMeters,
     string? Comment,
     IReadOnlyList<CreateGpsWalkPointRequest> Points);
+
+public record UpdateGpsWalkRunRequest(string? Comment);

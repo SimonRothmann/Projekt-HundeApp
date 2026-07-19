@@ -112,6 +112,9 @@ export type GoalStatus = 0 | 1 | 2; // 0 = Active, 1 = Achieved, 2 = Cancelled
 
 export type TrainingPlanItemLog = {
   trainingSessionId: string;
+  // Id der durchgeführten Übung - nötig, um die Notiz auch aus dem Plan-Log
+  // heraus bearbeiten zu können (siehe ExerciseNotes / Wunsch 2).
+  trainingExerciseId: string;
   date: string;
   rating: number;
   success: boolean;

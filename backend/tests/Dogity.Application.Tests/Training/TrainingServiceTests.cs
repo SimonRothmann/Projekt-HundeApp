@@ -151,6 +151,51 @@ public class TrainingServiceTests
     }
 
     [Fact]
+    public async Task UpdateExerciseNotes_ByOwner_ChangesNote()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var created = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, "alte Notiz", setup.CatalogItemId)));
+        var exerciseId = Assert.Single(created.Value!.Exercises).Id;
+
+        var result = await service.UpdateExerciseNotesAsync(setup.UserId, exerciseId, "  neue Notiz  ");
+
+        Assert.True(result.Succeeded);
+        var reloaded = await service.GetByIdAsync(setup.UserId, created.Value!.Id);
+        Assert.Equal("neue Notiz", Assert.Single(reloaded.Value!.Exercises).Notes);
+    }
+
+    [Fact]
+    public async Task UpdateExerciseNotes_EmptyString_ClearsNote()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var created = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, "eine Notiz", setup.CatalogItemId)));
+        var exerciseId = Assert.Single(created.Value!.Exercises).Id;
+
+        await service.UpdateExerciseNotesAsync(setup.UserId, exerciseId, "   ");
+
+        var reloaded = await service.GetByIdAsync(setup.UserId, created.Value!.Id);
+        Assert.Null(Assert.Single(reloaded.Value!.Exercises).Notes);
+    }
+
+    [Fact]
+    public async Task UpdateExerciseNotes_ByOtherUser_Fails()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var created = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null, setup.CatalogItemId)));
+        var exerciseId = Assert.Single(created.Value!.Exercises).Id;
+
+        var result = await service.UpdateExerciseNotesAsync(Guid.NewGuid(), exerciseId, "fremd");
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
     public async Task Create_CatalogExercise_LinkedToMatchingPlanItem_Succeeds()
     {
         var service = MakeService(out var db);

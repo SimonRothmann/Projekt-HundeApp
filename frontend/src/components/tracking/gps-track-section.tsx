@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TrackMap } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
+import { WalkRunComment } from "@/components/tracking/walk-run-comment";
 import { MapPin, MapPinPlus, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
@@ -287,15 +288,18 @@ export function GpsTrackSection({
                   liveWalkRunPoints={liveWalkPoints[track.id]}
                 />
                 {track.walkRuns.length > 0 && (
-                  <ul className="text-xs text-muted-foreground flex flex-col gap-0.5">
+                  <ul className="text-xs text-muted-foreground flex flex-col gap-1">
                     {track.walkRuns.map((run, i) => {
                       const durMs = walkRunDurationMs(run);
                       const started = new Date(run.createdAt);
                       return (
-                        <li key={run.id}>
-                          Ablauf {i + 1}: gestartet {formatTime(started)}
-                          {durMs !== null && ` · abgelaufen in ${formatDuration(durMs)}`}
-                          {run.lengthMeters !== null && ` · ${Math.round(run.lengthMeters)} m`}
+                        <li key={run.id} className="flex flex-col gap-0.5">
+                          <span>
+                            Ablauf {i + 1}: gestartet {formatTime(started)}
+                            {durMs !== null && ` · abgelaufen in ${formatDuration(durMs)}`}
+                            {run.lengthMeters !== null && ` · ${Math.round(run.lengthMeters)} m`}
+                          </span>
+                          <WalkRunComment trackId={track.id} run={run} onSaved={loadTracks} />
                         </li>
                       );
                     })}

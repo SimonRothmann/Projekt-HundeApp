@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { GpsPoint, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Footprints, Square } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
@@ -53,6 +54,9 @@ export function WalkRunRecorder({
   laidTrackPoints?: GpsPoint[];
 }) {
   const { isRecording, points, setPoints, currentAccuracy, start: startRecording, stop } = useGpsRecorder(toWalkPoint);
+  // Optionaler Kommentar zu diesem Ablauf-Versuch (z.B. "bei Regen", "Hund
+  // hat an Winkel 2 verloren") - wird beim Stoppen mitgespeichert.
+  const [comment, setComment] = useState("");
 
   useEffect(() => {
     // EMPTY_WALK_POINTS ist eine stabile Referenz (Modul-Konstante), damit der
@@ -79,12 +83,13 @@ export function WalkRunRecorder({
     }
 
     const path = `/api/gps-tracks/${trackId}/walk-runs`;
-    const payload = { lengthMeters: estimateLengthMeters(points), comment: null, points };
+    const payload = { lengthMeters: estimateLengthMeters(points), comment: comment.trim() || null, points };
 
     try {
       await api.post<GpsWalkRun>(path, payload);
       toast.success("Ablauf-Versuch gespeichert.");
       setPoints([]);
+      setComment("");
       await onSaved();
     } catch (err) {
       if (err instanceof ApiError) {
@@ -94,6 +99,7 @@ export function WalkRunRecorder({
         await enqueueRequest({ path, method: "POST", body: payload, label: "Ablauf-Versuch" });
         toast.success("Ablauf-Versuch offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist.");
         setPoints([]);
+        setComment("");
       }
     }
   }
@@ -117,21 +123,29 @@ export function WalkRunRecorder({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant="destructive" onClick={stopRecording}>
-        <Square className="size-4" />
-        Stoppen ({points.length} Punkte)
-      </Button>
-      {currentAccuracy !== null && (
-        <span
-          className={`text-xs font-mono tabular-nums ${
-            currentAccuracy <= 10 ? "text-green-600" : currentAccuracy <= 25 ? "text-yellow-600" : "text-red-600"
-          }`}
-          title="GPS-Genauigkeit (Radius des Fehlerkreises)."
-        >
-          ±{Math.round(currentAccuracy)} m
-        </span>
-      )}
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="destructive" onClick={stopRecording}>
+          <Square className="size-4" />
+          Stoppen ({points.length} Punkte)
+        </Button>
+        {currentAccuracy !== null && (
+          <span
+            className={`text-xs font-mono tabular-nums ${
+              currentAccuracy <= 10 ? "text-green-600" : currentAccuracy <= 25 ? "text-yellow-600" : "text-red-600"
+            }`}
+            title="GPS-Genauigkeit (Radius des Fehlerkreises)."
+          >
+            ±{Math.round(currentAccuracy)} m
+          </span>
+        )}
+      </div>
+      <Input
+        className="sm:max-w-xs"
+        placeholder="Kommentar zum Ablauf (optional)"
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+      />
     </div>
   );
 }

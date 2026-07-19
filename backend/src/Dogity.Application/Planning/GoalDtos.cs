@@ -11,6 +11,10 @@ namespace Dogity.Application.Planning;
 /// </summary>
 public record TrainingPlanItemLogDto(
     Guid TrainingSessionId,
+    // Id der durchgeführten Übung (TrainingExercise) - nötig, damit die Notiz
+    // auch aus dem Plan-Log heraus bearbeitet werden kann (PUT
+    // /api/trainings/exercises/{id}/notes), nicht nur im Trainingstagebuch.
+    Guid TrainingExerciseId,
     DateOnly Date,
     int Rating,
     bool Success,

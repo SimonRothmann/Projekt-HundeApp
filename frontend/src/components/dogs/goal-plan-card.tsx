@@ -14,6 +14,7 @@ import { CheckCircle2, Circle, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { difficultyLabel } from "@/lib/constants";
+import { ExerciseNotes } from "@/components/dogs/exercise-notes";
 
 // Eine Woche kann mehrere Plan-Ziele haben (siehe TrainingPlanGenerator
 // "ItemsPerWeek") - für die Anzeige nach Wochennummer gruppiert.
@@ -447,12 +448,14 @@ export function GoalPlanCard({
                         </div>
                       )}
                       {item.logs.length > 0 && (
-                        <ul className="ml-6 flex flex-col gap-0.5 border-l pl-2.5">
+                        <ul className="ml-6 flex flex-col gap-1 border-l pl-2.5">
                           {item.logs.map((log) => (
-                            <li key={`${log.trainingSessionId}-${log.date}`} className="text-xs text-muted-foreground">
-                              {new Date(log.date).toLocaleDateString("de-DE")} · {"★".repeat(log.rating)}
-                              {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}
-                              {log.notes && <span> · {log.notes}</span>}
+                            <li key={log.trainingExerciseId} className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+                              <span>
+                                {new Date(log.date).toLocaleDateString("de-DE")} · {"★".repeat(log.rating)}
+                                {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}
+                              </span>
+                              <ExerciseNotes exerciseId={log.trainingExerciseId} notes={log.notes} onSaved={onChanged} compact />
                             </li>
                           ))}
                         </ul>

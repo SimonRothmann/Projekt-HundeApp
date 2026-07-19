@@ -112,6 +112,27 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
         return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
     }
 
+    public async Task<Result<GpsWalkRunDto>> UpdateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsWalkRunRequest request, CancellationToken ct = default)
+    {
+        var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
+        if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
+            return Result<GpsWalkRunDto>.Failure("Fährte nicht gefunden.");
+
+        var walkRun = await db.GpsWalkRuns
+            .Include(r => r.Points)
+            .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
+        if (walkRun is null)
+            return Result<GpsWalkRunDto>.Failure("Ablauf-Versuch nicht gefunden.");
+
+        // Nur der Kommentar ist editierbar - die GPS-Punkte einer Aufzeichnung
+        // sind Messdaten und werden bewusst nicht nachträglich verändert.
+        var comment = request.Comment?.Trim();
+        walkRun.Comment = string.IsNullOrEmpty(comment) ? null : comment;
+        await db.SaveChangesAsync(ct);
+
+        return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
+    }
+
     public async Task<Result> DeleteAsync(Guid userId, Guid trackId, CancellationToken ct = default)
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
