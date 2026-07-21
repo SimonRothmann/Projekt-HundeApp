@@ -120,4 +120,55 @@ public class StatsServiceTests
         var stats = result.Value!.PerDog.Single();
         Assert.Equal(4, stats.AvgRating30d);
     }
+
+    [Fact]
+    public async Task GetDogExerciseStats_GroupsPerExercise_WeakestFirst()
+    {
+        var service = MakeService(out var db);
+        var userId = Guid.NewGuid();
+        var dog = new Dog { Name = "Bello" };
+        db.Dogs.Add(dog);
+        db.DogOwners.Add(new DogOwner { DogId = dog.Id, UserId = userId });
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var s1 = new TrainingSession { UserId = userId, DogId = dog.Id, Date = today, DurationMinutes = 20 };
+        var s2 = new TrainingSession { UserId = userId, DogId = dog.Id, Date = today.AddDays(-1), DurationMinutes = 20 };
+        db.TrainingSessions.AddRange(s1, s2);
+        await db.SaveChangesAsync();
+
+        // "Sitz": stark (Ø 5, 100 %). "Platz": schwach (Ø 2, 50 %).
+        db.TrainingExercises.Add(new TrainingExercise { TrainingSessionId = s1.Id, FreeTextLabel = "Sitz", Rating = 5, Success = true });
+        db.TrainingExercises.Add(new TrainingExercise { TrainingSessionId = s2.Id, FreeTextLabel = "Sitz", Rating = 5, Success = true });
+        db.TrainingExercises.Add(new TrainingExercise { TrainingSessionId = s1.Id, FreeTextLabel = "Platz", Rating = 3, Success = true });
+        db.TrainingExercises.Add(new TrainingExercise { TrainingSessionId = s2.Id, FreeTextLabel = "Platz", Rating = 1, Success = false });
+        await db.SaveChangesAsync();
+
+        var result = await service.GetDogExerciseStatsAsync(userId, dog.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.Value!.Count);
+        // Schwächste zuerst = "Platz" (Ø 2), das ist zugleich die Fokus-Empfehlung.
+        Assert.Equal("Platz", result.Value[0].ExerciseName);
+        Assert.Equal(2, result.Value[0].AvgRating);
+        Assert.Equal(0.5, result.Value[0].SuccessRate);
+        Assert.Equal("Sitz", result.Value[1].ExerciseName);
+        Assert.Equal(5, result.Value[1].AvgRating);
+        Assert.Equal(1.0, result.Value[1].SuccessRate);
+    }
+
+    [Fact]
+    public async Task GetDogExerciseStats_ForeignDog_Fails()
+    {
+        var service = MakeService(out var db);
+        var userId = Guid.NewGuid();
+        var otherId = Guid.NewGuid();
+        var dog = new Dog { Name = "Fremder Hund" };
+        db.Dogs.Add(dog);
+        db.DogOwners.Add(new DogOwner { DogId = dog.Id, UserId = otherId });
+        await db.SaveChangesAsync();
+
+        var result = await service.GetDogExerciseStatsAsync(userId, dog.Id);
+
+        Assert.False(result.Succeeded);
+    }
 }

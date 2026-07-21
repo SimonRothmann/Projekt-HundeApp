@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
 import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
 import { ExerciseNotes } from "@/components/dogs/exercise-notes";
+import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
 // Monatsschlüssel im Format "2026-07" für die Gruppierung; toLocaleDateString
 // mit month:"long" liefert die Anzeige-Version ("Juli 2026").
@@ -276,6 +277,13 @@ export function SessionHistory({
                                   </span>
                                 </div>
                                 <ExerciseNotes exerciseId={ex.id} notes={ex.notes} onSaved={onChanged} />
+                                <ExerciseTrainerRating
+                                  exerciseId={ex.id}
+                                  rating={ex.trainerRating}
+                                  note={ex.trainerNote}
+                                  canEdit={!isOwner}
+                                  onSaved={onChanged}
+                                />
                               </li>
                             ))}
                           </ul>

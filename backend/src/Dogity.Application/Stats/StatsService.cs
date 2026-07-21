@@ -96,6 +96,64 @@ public class StatsService(IApplicationDbContext db) : IStatsService
         return Result<DashboardStatsDto>.Success(new DashboardStatsDto(weeklyActivity, perDog));
     }
 
+    public async Task<Result<IReadOnlyList<DogExerciseStatDto>>> GetDogExerciseStatsAsync(Guid userId, Guid dogId, CancellationToken ct = default)
+    {
+        if (!await db.HasDogAccessAsync(userId, dogId, ct))
+            return Result<IReadOnlyList<DogExerciseStatDto>>.Failure("Hund nicht gefunden.");
+
+        // Nur die für die Aggregation nötigen Felder laden. Der Anzeigename ist
+        // die Katalog-Übung oder - bei Freitext-Einträgen (ExerciseId null) -
+        // der Freitext selbst; nach diesem Namen wird gruppiert.
+        var rows = await db.TrainingExercises
+            .Where(e => e.TrainingSession!.DogId == dogId)
+            .Select(e => new ExerciseRow(
+                e.Exercise != null ? e.Exercise.Name : e.FreeTextLabel!,
+                e.Rating,
+                e.Success,
+                e.TrainingSession!.Date))
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var stats = rows
+            .GroupBy(r => r.Name)
+            .Select(g =>
+            {
+                var ordered = g.OrderBy(x => x.Date).ToList();
+                var count = ordered.Count;
+                var avg = ordered.Average(x => (double)x.Rating);
+                var successRate = ordered.Count(x => x.Success) / (double)count;
+
+                // Trend nur bei genug Datenpunkten (>= 4): jüngere vs. ältere
+                // Hälfte. So wird eine einzelne gute/schlechte Einheit nicht als
+                // Trend fehlgedeutet.
+                double? trend = null;
+                if (count >= 4)
+                {
+                    var half = count / 2;
+                    var older = ordered.Take(half).Average(x => (double)x.Rating);
+                    var recent = ordered.Skip(count - half).Average(x => (double)x.Rating);
+                    trend = Math.Round(recent - older, 1);
+                }
+
+                return new DogExerciseStatDto(
+                    g.Key,
+                    count,
+                    Math.Round(avg, 1),
+                    Math.Round(successRate, 2),
+                    trend,
+                    ordered[^1].Date);
+            })
+            // Schwächste Übung zuerst - die Reihenfolge ist zugleich die
+            // regelbasierte "Fokus"-Empfehlung ohne externe KI.
+            .OrderBy(s => s.AvgRating)
+            .ThenByDescending(s => s.Count)
+            .ToList();
+
+        return Result<IReadOnlyList<DogExerciseStatDto>>.Success(stats);
+    }
+
+    private record ExerciseRow(string Name, int Rating, bool Success, DateOnly Date);
+
     private static IReadOnlyList<WeeklyActivityDto> BuildWeeklyActivity(List<DateOnly> dates)
     {
         var grouped = dates

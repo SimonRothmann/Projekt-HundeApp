@@ -244,6 +244,35 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return Result.Success();
     }
 
+    public async Task<Result> SetExerciseTrainerRatingAsync(Guid trainerId, Guid exerciseId, int rating, string? note, CancellationToken ct = default)
+    {
+        if (rating < 1 || rating > 5)
+            return Result.Failure("Bewertung muss zwischen 1 und 5 liegen.");
+
+        // Übung über ihre Trainingseinheit dem Hund zuordnen und Trainer-Zugriff
+        // prüfen. Wie SetFeedbackAsync ist das dem zugewiesenen Trainer
+        // vorbehalten - nicht dem Besitzer (der bewertet über Rating selbst).
+        var exercise = await db.TrainingExercises
+            .Include(e => e.TrainingSession)
+            .FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
+        if (exercise?.TrainingSession is null)
+            return Result.Failure("Übung nicht gefunden.");
+
+        var isAssignedTrainer = await db.TrainerAssignments.AnyAsync(t => t.DogId == exercise.TrainingSession.DogId && t.TrainerId == trainerId, ct);
+        if (!isAssignedTrainer)
+            return Result.Failure("Nur ein für diesen Hund zugewiesener Trainer kann Übungen bewerten.");
+
+        exercise.TrainerRating = rating;
+        var trimmedNote = note?.Trim();
+        exercise.TrainerNote = string.IsNullOrEmpty(trimmedNote) ? null : trimmedNote;
+        await db.SaveChangesAsync(ct);
+
+        // Bewusst KEINE Benachrichtigung pro Übung - ein Trainer bewertet
+        // typischerweise mehrere Übungen einer Einheit; die Session-weite
+        // Feedback-Notiz (SetFeedbackAsync) benachrichtigt bereits einmal.
+        return Result.Success();
+    }
+
     public async Task<Result<IReadOnlyList<PendingFeedbackDto>>> GetPendingFeedbackAsync(Guid trainerId, CancellationToken ct = default)
     {
         // Trainer sieht offenes Feedback ausschließlich für Hunde von aktiven
@@ -375,7 +404,9 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             e.Difficulty,
             e.Success,
             e.Notes,
-            e.TrainingPlanItemId)).ToList(),
+            e.TrainingPlanItemId,
+            e.TrainerRating,
+            e.TrainerNote)).ToList(),
         s.TrainerFeedback,
         s.FeedbackAt,
         hasGpsTrack);

@@ -36,6 +36,16 @@ public class TrainingExercise : Entity
     public string? Notes { get; set; }
 
     /// <summary>
+    /// Optionale Bewertung durch einen für den Hund zugewiesenen Trainer
+    /// (1-5 Sterne), getrennt von der Selbstbewertung des Besitzers
+    /// (<see cref="Rating"/>). Null, solange kein Trainer die Übung bewertet
+    /// hat. Nur ein zugewiesener Trainer darf sie setzen, nicht der Besitzer
+    /// selbst (siehe TrainingService.SetExerciseTrainerRatingAsync).
+    /// </summary>
+    public int? TrainerRating { get; set; }
+    public string? TrainerNote { get; set; }
+
+    /// <summary>
     /// Optionaler Bezug zu einem Wochenziel im Trainingsplan (siehe
     /// TrainingPlanItem) - verknüpft einen echten Tagebucheintrag mit dem
     /// Plan-Ziel, das er erfüllt, statt eine zweite, separate "erledigt"-

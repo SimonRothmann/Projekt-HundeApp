@@ -12,4 +12,11 @@ public class StatsController(IStatsService statsService) : ApiControllerBase
         var result = await statsService.GetDashboardAsync(CurrentUserId, ct);
         return FromResult(result);
     }
+
+    [HttpGet("dogs/{dogId:guid}/exercises")]
+    public async Task<ActionResult<IReadOnlyList<DogExerciseStatDto>>> GetDogExerciseStats(Guid dogId, CancellationToken ct)
+    {
+        var result = await statsService.GetDogExerciseStatsAsync(CurrentUserId, dogId, ct);
+        return FromResult(result);
+    }
 }

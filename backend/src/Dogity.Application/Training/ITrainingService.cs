@@ -30,6 +30,13 @@ public interface ITrainingService
     /// <summary>Nur für Trainer mit TrainerAssignment auf den Hund - nicht für den Besitzer selbst.</summary>
     Task<Result> SetFeedbackAsync(Guid trainerId, Guid sessionId, SetFeedbackRequest request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Setzt die strukturierte Trainer-Bewertung (1-5 + optionale Notiz) einer
+    /// einzelnen Übung. Wie <see cref="SetFeedbackAsync"/> nur für einen für den
+    /// Hund zugewiesenen Trainer erlaubt, nicht für den Besitzer selbst.
+    /// </summary>
+    Task<Result> SetExerciseTrainerRatingAsync(Guid trainerId, Guid exerciseId, int rating, string? note, CancellationToken ct = default);
+
     /// <summary>Trainings betreuter Hunde ohne Trainer-Feedback, älteste zuerst.</summary>
     Task<Result<IReadOnlyList<PendingFeedbackDto>>> GetPendingFeedbackAsync(Guid trainerId, CancellationToken ct = default);
 }

@@ -1,5 +1,6 @@
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Application.Training;
+using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Planning;
 using Dogity.Domain.Sports;
@@ -290,5 +291,65 @@ public class TrainingServiceTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(setup.CatalogItemId, Assert.Single(result.Value!.Exercises).TrainingPlanItemId);
+    }
+
+    // Legt eine Übung an und weist dem Hund einen Trainer zu; gibt Trainer-Id,
+    // Session-Id und Übungs-Id für die Trainer-Bewertungstests zurück.
+    private static async Task<(Guid TrainerId, Guid SessionId, Guid ExerciseId)> SetupTrainerAndExerciseAsync(
+        TrainingService service, Dogity.Infrastructure.Persistence.ApplicationDbContext db, Setup setup)
+    {
+        var created = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 3, ExerciseDifficulty.Beginner, true, null, setup.CatalogItemId)));
+        var trainerId = Guid.NewGuid();
+        db.TrainerAssignments.Add(new TrainerAssignment
+        {
+            DogId = setup.DogId,
+            TrainerId = trainerId,
+            MemberId = setup.UserId,
+            StartDate = DateOnly.FromDateTime(DateTime.Today)
+        });
+        await db.SaveChangesAsync();
+        return (trainerId, created.Value!.Id, Assert.Single(created.Value.Exercises).Id);
+    }
+
+    [Fact]
+    public async Task SetExerciseTrainerRating_AssignedTrainer_SetsRatingAndTrimmedNote()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (trainerId, sessionId, exerciseId) = await SetupTrainerAndExerciseAsync(service, db, setup);
+
+        var result = await service.SetExerciseTrainerRatingAsync(trainerId, exerciseId, 5, "  Sauber ausgeführt  ");
+
+        Assert.True(result.Succeeded);
+        var reloaded = await service.GetByIdAsync(trainerId, sessionId);
+        var saved = Assert.Single(reloaded.Value!.Exercises);
+        Assert.Equal(5, saved.TrainerRating);
+        Assert.Equal("Sauber ausgeführt", saved.TrainerNote);
+    }
+
+    [Fact]
+    public async Task SetExerciseTrainerRating_OwnerNotAssignedTrainer_Fails()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (_, _, exerciseId) = await SetupTrainerAndExerciseAsync(service, db, setup);
+
+        // Der Besitzer selbst darf keine Trainer-Bewertung setzen (bewertet über Rating).
+        var result = await service.SetExerciseTrainerRatingAsync(setup.UserId, exerciseId, 4, null);
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task SetExerciseTrainerRating_RatingOutOfRange_Fails()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (trainerId, _, exerciseId) = await SetupTrainerAndExerciseAsync(service, db, setup);
+
+        var result = await service.SetExerciseTrainerRatingAsync(trainerId, exerciseId, 6, null);
+
+        Assert.False(result.Succeeded);
     }
 }

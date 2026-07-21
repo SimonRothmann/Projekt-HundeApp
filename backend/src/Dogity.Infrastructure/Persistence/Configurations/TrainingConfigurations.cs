@@ -22,6 +22,7 @@ public class TrainingExerciseConfiguration : IEntityTypeConfiguration<TrainingEx
         builder.ToTable("training_exercises");
         builder.Property(t => t.Difficulty).HasConversion<string>().HasMaxLength(20);
         builder.Property(t => t.Notes).HasMaxLength(2000);
+        builder.Property(t => t.TrainerNote).HasMaxLength(2000);
         builder.Property(t => t.FreeTextLabel).HasMaxLength(150);
 
         builder.HasOne(t => t.TrainingSession)

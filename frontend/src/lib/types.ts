@@ -91,6 +91,10 @@ export type TrainingExercise = {
   success: boolean;
   notes: string | null;
   trainingPlanItemId: string | null;
+  // Bewertung eines zugewiesenen Trainers (1-5), getrennt von der
+  // Selbstbewertung (rating). null, solange kein Trainer bewertet hat.
+  trainerRating: number | null;
+  trainerNote: string | null;
 };
 
 export type TrainingSession = {
@@ -364,6 +368,17 @@ export type DogStats = {
 export type DashboardStats = {
   weeklyActivity: WeeklyActivity[];
   perDog: DogStats[];
+};
+
+// Kennzahlen pro Übung eines Hundes - schwächste zuerst (aufsteigend nach
+// avgRating). Grundlage der lokalen, regelbasierten Fokus-Empfehlung.
+export type DogExerciseStat = {
+  exerciseName: string;
+  count: number;
+  avgRating: number;
+  successRate: number; // 0..1
+  ratingTrend: number | null; // Ø jüngere Hälfte − Ø ältere Hälfte, null bei <4 Durchgängen
+  lastTrained: string;
 };
 
 export type GroupJoinRequest = {

@@ -16,7 +16,14 @@ public record TrainingExerciseDto(
     ExerciseDifficulty Difficulty,
     bool Success,
     string? Notes,
-    Guid? TrainingPlanItemId);
+    Guid? TrainingPlanItemId,
+    /// <summary>
+    /// Bewertung eines zugewiesenen Trainers (1-5), getrennt von der
+    /// Selbstbewertung <see cref="Rating"/>. Null, solange kein Trainer die
+    /// Übung bewertet hat (siehe TrainingExercise.TrainerRating).
+    /// </summary>
+    int? TrainerRating,
+    string? TrainerNote);
 
 public record TrainingSessionDto(
     Guid Id,
@@ -36,6 +43,12 @@ public record TrainingSessionDto(
     bool HasGpsTrack);
 
 public record SetFeedbackRequest(string Feedback);
+
+/// <summary>
+/// Strukturierte Trainer-Bewertung einer einzelnen Übung (1-5 Sterne + optionale
+/// Notiz), siehe TrainingService.SetExerciseTrainerRatingAsync.
+/// </summary>
+public record SetExerciseTrainerRatingRequest(int Rating, string? Note);
 
 public record UpdateExerciseNotesRequest(string? Notes);
 
