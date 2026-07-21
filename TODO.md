@@ -128,11 +128,13 @@ Ausgelöst durch die Nutzerfrage "wie verhindern wir, dass Nutzer, die 3x/Woche 
 - [x] Lokal End-to-End verifiziert (curl): Login liefert beide Tokens → Refresh rotiert → alter Token tot → Reuse killt Kette → Logout isoliert pro Gerät → Access-Token-Laufzeit 60 min. Backend 62 Tests grün, Frontend Typecheck/Lint/31 Tests/Build grün.
 - Zurückgestellt als spätere Härtung: Refresh-Token vom localStorage in ein HttpOnly-Cookie (nur `/api/auth/refresh`-scoped) verlagern - XSS-fest, aber zieht CORS-Credentials + Cookie-Tuning über cross-subdomain/Mobile-LAN-http/Offline-PWA herein; erst mit Zeit für sorgfältigen Test aller Umgebungen.
 
-### 7. E-Mail-Versand (bewusst ganz hinten, Entscheidung Auftraggeber)
+### Nur noch offen: CSP scharf schalten
 
-- [ ] `IEmailSender`-Registrierung konfigurationsgetrieben machen (`Email:Mode` = `Logging`/`Smtp` statt Code-Änderung in `DependencyInjection.cs`), Provider-Entscheidung (Resend / Brevo / Hoster-SMTP) einholen, Zugangsdaten via `.env`, Testversand auf Test-Env. Bis dahin trägt der Admin-Benachrichtigungs-Workflow den Passwort-Reset vollständig.
+- [ ] Nach der Beobachtungswoche (ab ca. 2026-07-23): CSP-Reports aus den Prod-Frontend-Logs sichten (`docker compose logs frontend-prod | grep CSP-Report`), Policy ggf. nachziehen, dann Header von `Content-Security-Policy-Report-Only` auf `Content-Security-Policy` umstellen.
 
 ### Zurückgestellt (Nice-to-have, bewusst NICHT auf der Roadmap)
+
+- **E-Mail-Versand: Prio SEHR SEHR NIEDRIG (vom Nutzer als irrelevant markiert, 2026-07-17).** Der In-App-Benachrichtigungs-Workflow (Admin bekommt Notification bei Passwort-Reset-Anfrage, setzt das Passwort in der Nutzerverwaltung) deckt den Bedarf vollständig. Falls je gewünscht: `IEmailSender`-Registrierung konfigurationsgetrieben (`Email:Mode` = `Logging`/`Smtp`), Provider (Resend/Brevo/Hoster-SMTP), Zugangsdaten via `.env`. Kein aktiver Task.
 
 - Cookie-Auth + Refresh-Token-Rotation (JWT-Härtung Stufe 2): bricht `api.ts`, 401-Handling, Offline-Queue und Dev-CORS gleichzeitig - erst vor einer öffentlichen Beta mit Fremdnutzern angehen. CSP + SecurityStamp senken das Risiko bis dahin ausreichend.
 - Test-Env von `Development` auf eigenes `Staging`-Environment umstellen (Demo-Seeder an explizites `Seed:Demo`-Flag koppeln, CORS festnageln, Swagger schützen): erst nötig, wenn die Test-Domain öffentlich sichtbar beworben wird.

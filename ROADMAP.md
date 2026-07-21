@@ -1,26 +1,28 @@
 # Entwicklungsroadmap
 
 
-# Aktuelle Umsetzungsreihenfolge (Audit 2026-07-16)
+# Aktuelle Umsetzungsreihenfolge (Audit 2026-07-16, Stand 2026-07-17)
 
-Integrierte Sequenz aus technischen Schulden und offenen Feature-Wünschen
-(Details je Schritt in TODO.md, Abschnitt "Roadmap: Technische Schulden ×
-Features"). Reihenfolge ist strikt, jeder Schritt einzeln deploybar:
+Integrierte Sequenz aus technischen Schulden und Feature-Wünschen (Details je
+Schritt in TODO.md). Fast alles erledigt und auf Prod:
 
-1. **Sicherheits-Sofortfix:** Passwort-Reset-Tokens nicht mehr in Prod-Logs
-2. **Quick-Wins:** `AsSplitQuery` (GPS-Query) + Offline-Queue-4xx-Handling
-3. **Katalog fachlich korrekt:** IGP-1-3-Punktwerte gegen offizielle VDH-PO
-   prüfen + fehlende Prüfungsstufen (FPr, UPr, GPr, SPr, StöPr, IGP-FH, IAD)
-   in einem Seeder-Durchgang
-4. **Content-Security-Policy:** erst Report-Only, dann scharf
-5. **Hundeseite schnell + wartbar:** Backend (`hasGpsTrack`-Flag,
-   Zeitraum-Pagination) → Frontend (Page-Zerlegung, Lazy-Loading) - zweistufig
-6. **JWT-Härtung Stufe 1:** SecurityStamp-Validierung + kürzere Token-Laufzeit
-7. **E-Mail-Versand** (bewusst ganz hinten, Entscheidung Auftraggeber):
-   konfigurationsgetriebener Umschalter + Provider-Anbindung; bis dahin trägt
-   der Admin-Benachrichtigungs-Workflow den Passwort-Reset
+1. ✅ **Sicherheits-Sofortfix:** Passwort-Reset-Tokens nicht mehr in Prod-Logs
+2. ✅ **Quick-Wins:** `AsSplitQuery` (GPS-Query) + Offline-Queue-4xx-Handling
+3. ✅ **Katalog fachlich korrekt:** IGP-1-3-Punktwerte gegen offizielle FCI-PO
+   geprüft + 6 fehlende Prüfungsfamilien (FPr, UPr, GPr, SPr, StöPr, IAD, IGP-FH)
+4. ⏳ **Content-Security-Policy:** Report-Only auf Prod - scharf schalten nach
+   Beobachtungswoche (ab ~2026-07-23), EINZIGER offener Punkt
+5. ✅ **Hundeseite schnell + wartbar:** `hasGpsTrack`-Flag + Zeitraum-Pagination
+   + Page-Zerlegung + GPS-Lazy-Loading
+6. ✅ **Refresh-Token-Rotation** (statt nur JWT-Härtung): eingeloggt bleiben ohne
+   Neu-Login, kurzer Access-Token (60 min), widerrufbare Sessions
+7. ✅ **Tagebuch auf Tages-Ebene** + Übungs-/Tages-/Ablauf-Kommentare
 
-Zurückgestellt: Cookie-Auth/Refresh-Tokens (erst vor öffentlicher Beta),
+**E-Mail-Versand: Prio sehr sehr niedrig / zurückgestellt** (Nutzer:
+irrelevant, 2026-07-17). Der In-App-Benachrichtigungs-Workflow deckt den
+Passwort-Reset vollständig.
+
+Zurückgestellt: Cookie-Auth für den Refresh-Token (spätere Härtung),
 Test-Env → Staging, PDF-Export (Druckansicht deckt ab).
 
 
