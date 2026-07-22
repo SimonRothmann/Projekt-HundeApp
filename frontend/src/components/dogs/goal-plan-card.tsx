@@ -450,8 +450,12 @@ export function GoalPlanCard({
                       {item.logs.length > 0 && (
                         <ul className="ml-6 flex flex-col gap-1 border-l pl-2.5">
                           {item.logs.map((log) => (
-                            <li key={log.trainingExerciseId} className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
-                              <span>
+                            // Mobile-First: Meta-Zeile (Datum/Sterne) und Kommentar
+                            // vertikal stapeln, damit der Kommentar auf schmalen
+                            // Screens sauber darunter steht statt umzubrechen; ab
+                            // sm wieder platzsparend nebeneinander.
+                            <li key={log.trainingExerciseId} className="flex flex-col gap-0.5 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-1">
+                              <span className="whitespace-nowrap">
                                 {new Date(log.date).toLocaleDateString("de-DE")} · {"★".repeat(log.rating)}
                                 {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}
                               </span>

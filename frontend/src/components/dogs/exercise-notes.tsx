@@ -90,8 +90,8 @@ export function ExerciseNotes({
   }
 
   return (
-    <span className={`inline-flex items-start gap-1 ${compact ? "text-[11px]" : "text-xs"} text-muted-foreground`}>
-      <span className="italic">„{notes}“</span>
+    <span className={`inline-flex max-w-full items-start gap-1 ${compact ? "text-[11px]" : "text-xs"} text-muted-foreground`}>
+      <span className="min-w-0 break-words italic">„{notes}“</span>
       <Button
         size="icon"
         variant="ghost"
