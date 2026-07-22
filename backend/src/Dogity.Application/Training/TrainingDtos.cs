@@ -56,6 +56,21 @@ public record UpdateSessionNotesRequest(string? Notes);
 
 public record PendingFeedbackDto(Guid SessionId, Guid DogId, string DogName, string OwnerName, DateOnly Date, int DurationMinutes);
 
+/// <summary>
+/// Eine noch nicht vom Trainer bewertete Übung eines betreuten Hundes - für
+/// die direkte Bewertung auf der Trainerseite (welche Übung, welcher Hund,
+/// welcher Hundeführer). Rating ist die Selbstbewertung des Hundeführers.
+/// </summary>
+public record TrainerExerciseToRateDto(
+    Guid ExerciseId,
+    Guid DogId,
+    string DogName,
+    string HandlerName,
+    DateOnly Date,
+    string ExerciseName,
+    int Rating,
+    bool Success);
+
 public record CreateTrainingExerciseRequest(
     /// <summary>
     /// Genau eines von ExerciseId/FreeTextLabel muss gesetzt sein (siehe

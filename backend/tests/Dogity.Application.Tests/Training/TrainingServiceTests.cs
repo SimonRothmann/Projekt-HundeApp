@@ -352,4 +352,43 @@ public class TrainingServiceTests
 
         Assert.False(result.Succeeded);
     }
+
+    [Fact]
+    public async Task GetExercisesToRate_ReturnsUnratedExercisesWithHandler_AndDropsAfterRating()
+    {
+        var db = InMemoryDbContext.Create();
+        var lookup = new FakeUserLookupService();
+        var service = new TrainingService(db, new FakeNotificationService(), lookup);
+        var setup = await SetupPlanAsync(db);
+        lookup.Register(setup.UserId, "max@dogity.test", "Max", "Mustermann");
+        var (trainerId, _, exerciseId) = await SetupTrainerAndExerciseAsync(service, db, setup);
+
+        var before = await service.GetExercisesToRateAsync(trainerId);
+        Assert.True(before.Succeeded);
+        var item = Assert.Single(before.Value!);
+        Assert.Equal(exerciseId, item.ExerciseId);
+        Assert.Equal("Bello", item.DogName);
+        Assert.Equal("Max Mustermann", item.HandlerName);
+
+        // Nach dem Bewerten verschwindet die Übung aus der Trainer-Liste.
+        await service.SetExerciseTrainerRatingAsync(trainerId, exerciseId, 4, null);
+        var after = await service.GetExercisesToRateAsync(trainerId);
+        Assert.True(after.Succeeded);
+        Assert.Empty(after.Value!);
+    }
+
+    [Fact]
+    public async Task GetExercisesToRate_ExcludesDogsWithoutTrainerAssignment()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        // Übung anlegen, aber KEINE TrainerAssignment für den anfragenden Trainer.
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 3, ExerciseDifficulty.Beginner, true, null, setup.CatalogItemId)));
+
+        var result = await service.GetExercisesToRateAsync(Guid.NewGuid());
+
+        Assert.True(result.Succeeded);
+        Assert.Empty(result.Value!);
+    }
 }

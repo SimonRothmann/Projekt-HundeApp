@@ -338,6 +338,20 @@ export type PendingFeedback = {
   durationMinutes: number;
 };
 
+// Eine vom Trainer noch nicht bewertete Übung eines betreuten Hundes -
+// für die direkte Bewertung auf der Trainerseite. rating = Selbstbewertung
+// des Hundeführers.
+export type TrainerExerciseToRate = {
+  exerciseId: string;
+  dogId: string;
+  dogName: string;
+  handlerName: string;
+  date: string;
+  exerciseName: string;
+  rating: number;
+  success: boolean;
+};
+
 export type DogOwnerRole = 0 | 1; // 0 = Owner, 1 = Trainer
 
 export type DogOwner = {

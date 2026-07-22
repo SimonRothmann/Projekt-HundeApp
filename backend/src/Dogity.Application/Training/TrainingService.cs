@@ -306,6 +306,53 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return Result<IReadOnlyList<PendingFeedbackDto>>.Success(dtos);
     }
 
+    public async Task<Result<IReadOnlyList<TrainerExerciseToRateDto>>> GetExercisesToRateAsync(Guid trainerId, CancellationToken ct = default)
+    {
+        // Nur Hunde mit direkter Trainer-Zuweisung: genau diese darf der Trainer
+        // auch bewerten (siehe SetExerciseTrainerRatingAsync) - so enthält die
+        // Liste keine Übungen, an denen der Bewerten-Button später 403 liefert.
+        var assignedDogIds = await db.TrainerAssignments
+            .Where(t => t.TrainerId == trainerId)
+            .Select(t => t.DogId)
+            .ToListAsync(ct);
+        if (assignedDogIds.Count == 0)
+            return Result<IReadOnlyList<TrainerExerciseToRateDto>>.Success([]);
+
+        var rows = await (
+            from e in db.TrainingExercises
+            where e.TrainerRating == null && assignedDogIds.Contains(e.TrainingSession!.DogId)
+            join d in db.Dogs on e.TrainingSession!.DogId equals d.Id
+            orderby e.TrainingSession!.Date descending
+            select new
+            {
+                ExerciseId = e.Id,
+                DogId = d.Id,
+                DogName = d.Name,
+                HandlerUserId = e.TrainingSession!.UserId,
+                Date = e.TrainingSession!.Date,
+                ExerciseName = e.Exercise != null ? e.Exercise.Name : e.FreeTextLabel!,
+                e.Rating,
+                e.Success
+            })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var lookup = await userLookup.FindByIdsAsync(rows.Select(r => r.HandlerUserId).Distinct().ToList(), ct);
+        var dtos = rows
+            .Select(r => new TrainerExerciseToRateDto(
+                r.ExerciseId,
+                r.DogId,
+                r.DogName,
+                lookup.TryGetValue(r.HandlerUserId, out var handler) ? $"{handler.FirstName} {handler.LastName}" : "(unbekannt)",
+                r.Date,
+                r.ExerciseName,
+                r.Rating,
+                r.Success))
+            .ToList();
+
+        return Result<IReadOnlyList<TrainerExerciseToRateDto>>.Success(dtos);
+    }
+
     // track: false fuer reine Lesezugriffe (kein SaveChangesAsync im selben
     // Aufruf) - vermeidet unnoetiges Change-Tracking. DeleteAsync braucht
     // weiterhin ein getracktes Entity (Default true).

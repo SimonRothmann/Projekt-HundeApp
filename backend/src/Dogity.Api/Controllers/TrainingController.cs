@@ -75,4 +75,11 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         var result = await trainingService.GetPendingFeedbackAsync(CurrentUserId, ct);
         return FromResult(result);
     }
+
+    [HttpGet("trainer/exercises")]
+    public async Task<ActionResult<IReadOnlyList<TrainerExerciseToRateDto>>> GetExercisesToRate(CancellationToken ct)
+    {
+        var result = await trainingService.GetExercisesToRateAsync(CurrentUserId, ct);
+        return FromResult(result);
+    }
 }

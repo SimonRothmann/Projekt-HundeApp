@@ -39,4 +39,11 @@ public interface ITrainingService
 
     /// <summary>Trainings betreuter Hunde ohne Trainer-Feedback, älteste zuerst.</summary>
     Task<Result<IReadOnlyList<PendingFeedbackDto>>> GetPendingFeedbackAsync(Guid trainerId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Übungen betreuter Hunde (per TrainerAssignment), die der Trainer noch
+    /// nicht bewertet hat - für die direkte Bewertung auf der Trainerseite.
+    /// Zeigt je Übung Hund + Hundeführer + Selbstbewertung, neueste zuerst.
+    /// </summary>
+    Task<Result<IReadOnlyList<TrainerExerciseToRateDto>>> GetExercisesToRateAsync(Guid trainerId, CancellationToken ct = default);
 }
