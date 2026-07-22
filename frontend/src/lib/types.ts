@@ -329,27 +329,27 @@ export type Profile = {
   avatarUrl: string | null;
 };
 
-export type PendingFeedback = {
-  sessionId: string;
-  dogId: string;
-  dogName: string;
-  ownerName: string;
-  date: string;
-  durationMinutes: number;
+// Ein vom Trainer zu bewertendes Training eines betreuten Hundes: Gesamt-
+// Feedback + alle Übungen in einer Ansicht. rating je Übung = Selbstbewertung
+// des Hundeführers, trainerRating = Bewertung des Trainers (null = offen).
+export type TrainerSessionExercise = {
+  exerciseId: string;
+  exerciseName: string;
+  rating: number;
+  success: boolean;
+  trainerRating: number | null;
+  trainerNote: string | null;
 };
 
-// Eine vom Trainer noch nicht bewertete Übung eines betreuten Hundes -
-// für die direkte Bewertung auf der Trainerseite. rating = Selbstbewertung
-// des Hundeführers.
-export type TrainerExerciseToRate = {
-  exerciseId: string;
+export type TrainerSessionToRate = {
+  sessionId: string;
   dogId: string;
   dogName: string;
   handlerName: string;
   date: string;
-  exerciseName: string;
-  rating: number;
-  success: boolean;
+  durationMinutes: number;
+  trainerFeedback: string | null;
+  exercises: TrainerSessionExercise[];
 };
 
 export type DogOwnerRole = 0 | 1; // 0 = Owner, 1 = Trainer

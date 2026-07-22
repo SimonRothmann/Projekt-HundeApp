@@ -54,22 +54,30 @@ public record UpdateExerciseNotesRequest(string? Notes);
 
 public record UpdateSessionNotesRequest(string? Notes);
 
-public record PendingFeedbackDto(Guid SessionId, Guid DogId, string DogName, string OwnerName, DateOnly Date, int DurationMinutes);
-
 /// <summary>
-/// Eine noch nicht vom Trainer bewertete Übung eines betreuten Hundes - für
-/// die direkte Bewertung auf der Trainerseite (welche Übung, welcher Hund,
-/// welcher Hundeführer). Rating ist die Selbstbewertung des Hundeführers.
+/// Ein vom Trainer zu bewertendes Training eines betreuten Hundes: Gesamt-
+/// Feedback UND alle Übungen in einer Ansicht, damit der Trainer alles auf
+/// einen Blick bewerten kann. Erscheint auf der Trainerseite, solange noch
+/// etwas offen ist - kein Gesamt-Feedback ODER mindestens eine unbewertete
+/// Übung. HandlerName = Hundeführer, Rating je Übung = dessen Selbstbewertung.
 /// </summary>
-public record TrainerExerciseToRateDto(
-    Guid ExerciseId,
+public record TrainerSessionToRateDto(
+    Guid SessionId,
     Guid DogId,
     string DogName,
     string HandlerName,
     DateOnly Date,
+    int DurationMinutes,
+    string? TrainerFeedback,
+    IReadOnlyList<TrainerSessionExerciseDto> Exercises);
+
+public record TrainerSessionExerciseDto(
+    Guid ExerciseId,
     string ExerciseName,
     int Rating,
-    bool Success);
+    bool Success,
+    int? TrainerRating,
+    string? TrainerNote);
 
 public record CreateTrainingExerciseRequest(
     /// <summary>

@@ -22,12 +22,6 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, TimePro
 
     public Task<int> CountAsync(CancellationToken ct = default) => userManager.Users.CountAsync(ct);
 
-    public async Task<IReadOnlyList<UserDirectoryEntry>> ListAllAsync(CancellationToken ct = default)
-    {
-        var (users, _) = await ListPagedAsync(1, int.MaxValue, ct);
-        return users;
-    }
-
     public async Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, CancellationToken ct = default)
     {
         var totalCount = await userManager.Users.CountAsync(ct);

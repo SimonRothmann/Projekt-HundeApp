@@ -31,14 +31,6 @@ public class FakeUserLookupService : IUserLookupService
 
     public Task<int> CountAsync(CancellationToken ct = default) => Task.FromResult(_users.Count);
 
-    public Task<IReadOnlyList<UserDirectoryEntry>> ListAllAsync(CancellationToken ct = default)
-    {
-        var entries = _users.Select(kvp =>
-            new UserDirectoryEntry(kvp.Key, kvp.Value.Email, kvp.Value.FirstName, kvp.Value.LastName, [], false))
-            .ToList();
-        return Task.FromResult<IReadOnlyList<UserDirectoryEntry>>(entries);
-    }
-
     public Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, CancellationToken ct = default)
     {
         var all = _users.Select(kvp =>

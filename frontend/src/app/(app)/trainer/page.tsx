@@ -16,8 +16,7 @@ import { CatalogSection } from "@/components/sports/catalog-section";
 import { ClubJoinRequestsSection } from "@/components/trainer/club-join-requests-section";
 import { ClubMembersSection } from "@/components/trainer/club-members-section";
 import { GroupJoinRequestsSection } from "@/components/trainer/group-join-requests-section";
-import { PendingFeedbackSection } from "@/components/trainer/pending-feedback-section";
-import { TrainerExerciseRatingSection } from "@/components/trainer/trainer-exercise-rating-section";
+import { TrainerReviewSection } from "@/components/trainer/trainer-review-section";
 
 export default function TrainerPage() {
   const [groups, setGroups] = useState<Group[] | null>(null);
@@ -152,9 +151,7 @@ export default function TrainerPage() {
         </div>
       )}
 
-      <TrainerExerciseRatingSection />
-
-      <PendingFeedbackSection />
+      <TrainerReviewSection />
 
       {groups !== null && groups.length > 0 && (
         <GroupJoinRequestsSection groups={groups} />

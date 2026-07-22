@@ -6,7 +6,7 @@
 // Gehgeschwindigkeit (~1 m/s) und ~1 Hz GPS-Rate ≈ 0.5-1 m. Wird als
 // Prozessrauschen Q genutzt: höher = mehr Vertrauen in neue Messung
 // (reagiert schneller auf Richtungswechsel), niedriger = mehr Glättung.
-export const KALMAN_PROCESS_NOISE_M = 0.5;
+const KALMAN_PROCESS_NOISE_M = 0.5;
 
 // Kalman-Zustand pro Koordinate. P ist die Schätzunsicherheit in Grad² -
 // startet mit der ersten Messunsicherheit und konvergiert schnell gegen den

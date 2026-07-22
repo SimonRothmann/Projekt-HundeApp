@@ -1,7 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Application.Notifications;
-using Dogity.Domain.Community;
 using Dogity.Domain.Training;
 using Microsoft.EntityFrameworkCore;
 
@@ -273,84 +272,58 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return Result.Success();
     }
 
-    public async Task<Result<IReadOnlyList<PendingFeedbackDto>>> GetPendingFeedbackAsync(Guid trainerId, CancellationToken ct = default)
-    {
-        // Trainer sieht offenes Feedback ausschließlich für Hunde von aktiven
-        // Mitgliedern SEINER Gruppen. Die zusätzliche Berücksichtigung von
-        // TrainerAssignments (direkte Hund-Trainer-Zuweisung) bleibt erhalten
-        // - so kann ein Trainer auch außerhalb einer Gruppen-Struktur einzelne
-        // Hunde betreuen (siehe DogService.AssignTrainer).
-        var groupMemberUserIds = db.Groups
-            .Where(g => g.TrainerId == trainerId)
-            .SelectMany(g => g.Members
-                .Where(m => m.Status == GroupMemberStatus.Active)
-                .Select(m => m.UserId));
-
-        var sessions = await db.TrainingSessions
-            .Where(s => s.TrainerFeedback == null)
-            .Where(s =>
-                db.DogOwners.Any(o => o.DogId == s.DogId && groupMemberUserIds.Contains(o.UserId)) ||
-                db.TrainerAssignments.Any(t => t.DogId == s.DogId && t.TrainerId == trainerId))
-            .Join(db.Dogs, s => s.DogId, d => d.Id, (s, d) => new { s.Id, s.DogId, DogName = d.Name, s.UserId, s.Date, s.DurationMinutes })
-            .OrderBy(s => s.Date)
-            .AsNoTracking()
-            .ToListAsync(ct);
-
-        var lookup = await userLookup.FindByIdsAsync(sessions.Select(s => s.UserId).Distinct().ToList(), ct);
-        var dtos = sessions
-            .Select(s => lookup.TryGetValue(s.UserId, out var owner)
-                ? new PendingFeedbackDto(s.Id, s.DogId, s.DogName, $"{owner.FirstName} {owner.LastName}", s.Date, s.DurationMinutes)
-                : new PendingFeedbackDto(s.Id, s.DogId, s.DogName, "(unbekannt)", s.Date, s.DurationMinutes))
-            .ToList();
-
-        return Result<IReadOnlyList<PendingFeedbackDto>>.Success(dtos);
-    }
-
-    public async Task<Result<IReadOnlyList<TrainerExerciseToRateDto>>> GetExercisesToRateAsync(Guid trainerId, CancellationToken ct = default)
+    public async Task<Result<IReadOnlyList<TrainerSessionToRateDto>>> GetSessionsToRateAsync(Guid trainerId, CancellationToken ct = default)
     {
         // Nur Hunde mit direkter Trainer-Zuweisung: genau diese darf der Trainer
-        // auch bewerten (siehe SetExerciseTrainerRatingAsync) - so enthält die
-        // Liste keine Übungen, an denen der Bewerten-Button später 403 liefert.
+        // auch kommentieren UND bewerten (siehe SetFeedbackAsync /
+        // SetExerciseTrainerRatingAsync). Gleiche Reichweite für beides - so
+        // enthält die Liste keine Trainings, an denen eine Aktion später 403
+        // liefert (frühere Gruppen-Reichweite des offenen Feedbacks entfällt).
         var assignedDogIds = await db.TrainerAssignments
             .Where(t => t.TrainerId == trainerId)
             .Select(t => t.DogId)
             .ToListAsync(ct);
         if (assignedDogIds.Count == 0)
-            return Result<IReadOnlyList<TrainerExerciseToRateDto>>.Success([]);
+            return Result<IReadOnlyList<TrainerSessionToRateDto>>.Success([]);
 
-        var rows = await (
-            from e in db.TrainingExercises
-            where e.TrainerRating == null && assignedDogIds.Contains(e.TrainingSession!.DogId)
-            join d in db.Dogs on e.TrainingSession!.DogId equals d.Id
-            orderby e.TrainingSession!.Date descending
-            select new
-            {
-                ExerciseId = e.Id,
-                DogId = d.Id,
-                DogName = d.Name,
-                HandlerUserId = e.TrainingSession!.UserId,
-                Date = e.TrainingSession!.Date,
-                ExerciseName = e.Exercise != null ? e.Exercise.Name : e.FreeTextLabel!,
-                e.Rating,
-                e.Success
-            })
+        // Offen = kein Gesamt-Feedback ODER mindestens eine unbewertete Übung.
+        // Geladen werden ALLE Übungen des Trainings (auch bereits bewertete),
+        // damit der Trainer den ganzen Trainingstag auf einen Blick sieht.
+        var sessions = await db.TrainingSessions
+            .Where(s => assignedDogIds.Contains(s.DogId))
+            .Where(s => s.TrainerFeedback == null || s.Exercises.Any(e => e.TrainerRating == null))
+            .OrderByDescending(s => s.Date)
+            .Include(s => s.Exercises)
+            .ThenInclude(e => e.Exercise)
             .AsNoTracking()
             .ToListAsync(ct);
 
-        var lookup = await userLookup.FindByIdsAsync(rows.Select(r => r.HandlerUserId).Distinct().ToList(), ct);
-        var dtos = rows
-            .Select(r => new TrainerExerciseToRateDto(
-                r.ExerciseId,
-                r.DogId,
-                r.DogName,
-                lookup.TryGetValue(r.HandlerUserId, out var handler) ? $"{handler.FirstName} {handler.LastName}" : "(unbekannt)",
-                r.Date,
-                r.ExerciseName,
-                r.Rating,
-                r.Success))
+        var dogNames = await db.Dogs
+            .Where(d => assignedDogIds.Contains(d.Id))
+            .ToDictionaryAsync(d => d.Id, d => d.Name, ct);
+        var lookup = await userLookup.FindByIdsAsync(sessions.Select(s => s.UserId).Distinct().ToList(), ct);
+
+        var dtos = sessions
+            .Select(s => new TrainerSessionToRateDto(
+                s.Id,
+                s.DogId,
+                dogNames.GetValueOrDefault(s.DogId, "(unbekannt)"),
+                lookup.TryGetValue(s.UserId, out var handler) ? $"{handler.FirstName} {handler.LastName}" : "(unbekannt)",
+                s.Date,
+                s.DurationMinutes,
+                s.TrainerFeedback,
+                s.Exercises
+                    .Select(e => new TrainerSessionExerciseDto(
+                        e.Id,
+                        e.Exercise?.Name ?? e.FreeTextLabel ?? string.Empty,
+                        e.Rating,
+                        e.Success,
+                        e.TrainerRating,
+                        e.TrainerNote))
+                    .ToList()))
             .ToList();
 
-        return Result<IReadOnlyList<TrainerExerciseToRateDto>>.Success(dtos);
+        return Result<IReadOnlyList<TrainerSessionToRateDto>>.Success(dtos);
     }
 
     // track: false fuer reine Lesezugriffe (kein SaveChangesAsync im selben

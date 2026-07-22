@@ -354,39 +354,47 @@ public class TrainingServiceTests
     }
 
     [Fact]
-    public async Task GetExercisesToRate_ReturnsUnratedExercisesWithHandler_AndDropsAfterRating()
+    public async Task GetSessionsToRate_ShowsSessionWithHandlerAndExercises_UntilFeedbackAndAllRated()
     {
         var db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService();
         var service = new TrainingService(db, new FakeNotificationService(), lookup);
         var setup = await SetupPlanAsync(db);
         lookup.Register(setup.UserId, "max@dogity.test", "Max", "Mustermann");
-        var (trainerId, _, exerciseId) = await SetupTrainerAndExerciseAsync(service, db, setup);
+        var (trainerId, sessionId, exerciseId) = await SetupTrainerAndExerciseAsync(service, db, setup);
 
-        var before = await service.GetExercisesToRateAsync(trainerId);
+        var before = await service.GetSessionsToRateAsync(trainerId);
         Assert.True(before.Succeeded);
-        var item = Assert.Single(before.Value!);
-        Assert.Equal(exerciseId, item.ExerciseId);
-        Assert.Equal("Bello", item.DogName);
-        Assert.Equal("Max Mustermann", item.HandlerName);
+        var session = Assert.Single(before.Value!);
+        Assert.Equal(sessionId, session.SessionId);
+        Assert.Equal("Bello", session.DogName);
+        Assert.Equal("Max Mustermann", session.HandlerName);
+        Assert.Null(session.TrainerFeedback);
+        var ex = Assert.Single(session.Exercises);
+        Assert.Equal(exerciseId, ex.ExerciseId);
+        Assert.Null(ex.TrainerRating);
 
-        // Nach dem Bewerten verschwindet die Übung aus der Trainer-Liste.
+        // Nur Übung bewertet, aber noch kein Gesamt-Feedback -> Training bleibt offen.
         await service.SetExerciseTrainerRatingAsync(trainerId, exerciseId, 4, null);
-        var after = await service.GetExercisesToRateAsync(trainerId);
-        Assert.True(after.Succeeded);
-        Assert.Empty(after.Value!);
+        var afterRating = await service.GetSessionsToRateAsync(trainerId);
+        Assert.Single(afterRating.Value!);
+
+        // Zusätzlich Gesamt-Feedback -> Training ist vollständig bearbeitet und verschwindet.
+        await service.SetFeedbackAsync(trainerId, sessionId, new SetFeedbackRequest("Gut gemacht."));
+        var afterAll = await service.GetSessionsToRateAsync(trainerId);
+        Assert.Empty(afterAll.Value!);
     }
 
     [Fact]
-    public async Task GetExercisesToRate_ExcludesDogsWithoutTrainerAssignment()
+    public async Task GetSessionsToRate_ExcludesDogsWithoutTrainerAssignment()
     {
         var service = MakeService(out var db);
         var setup = await SetupPlanAsync(db);
-        // Übung anlegen, aber KEINE TrainerAssignment für den anfragenden Trainer.
+        // Training anlegen, aber KEINE TrainerAssignment für den anfragenden Trainer.
         await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
             new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 3, ExerciseDifficulty.Beginner, true, null, setup.CatalogItemId)));
 
-        var result = await service.GetExercisesToRateAsync(Guid.NewGuid());
+        var result = await service.GetSessionsToRateAsync(Guid.NewGuid());
 
         Assert.True(result.Succeeded);
         Assert.Empty(result.Value!);

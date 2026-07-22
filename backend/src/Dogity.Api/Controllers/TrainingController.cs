@@ -69,17 +69,10 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         return FromResult(result);
     }
 
-    [HttpGet("pending-feedback")]
-    public async Task<ActionResult<IReadOnlyList<PendingFeedbackDto>>> GetPendingFeedback(CancellationToken ct)
+    [HttpGet("trainer/sessions")]
+    public async Task<ActionResult<IReadOnlyList<TrainerSessionToRateDto>>> GetSessionsToRate(CancellationToken ct)
     {
-        var result = await trainingService.GetPendingFeedbackAsync(CurrentUserId, ct);
-        return FromResult(result);
-    }
-
-    [HttpGet("trainer/exercises")]
-    public async Task<ActionResult<IReadOnlyList<TrainerExerciseToRateDto>>> GetExercisesToRate(CancellationToken ct)
-    {
-        var result = await trainingService.GetExercisesToRateAsync(CurrentUserId, ct);
+        var result = await trainingService.GetSessionsToRateAsync(CurrentUserId, ct);
         return FromResult(result);
     }
 }
