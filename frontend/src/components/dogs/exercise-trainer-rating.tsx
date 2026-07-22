@@ -57,17 +57,20 @@ export function ExerciseTrainerRating({
       <div className="flex flex-col gap-1 rounded-md border border-dashed p-2">
         <div className="flex items-center gap-1">
           <span className="text-xs font-medium text-muted-foreground">Trainer:</span>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setValue(n)}
-              title={`${n} von 5`}
-              className="text-base leading-none text-primary"
-            >
-              {n <= value ? "★" : "☆"}
-            </button>
-          ))}
+          <span role="group" aria-label="Trainer-Bewertung, 1 bis 5 Sterne" className="inline-flex items-center">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setValue(n)}
+                aria-label={`${n} von 5`}
+                aria-pressed={value === n}
+                className="inline-flex size-8 items-center justify-center rounded text-base leading-none text-primary coarse:size-11"
+              >
+                {n <= value ? "★" : "☆"}
+              </button>
+            ))}
+          </span>
           <Button size="icon" variant="ghost" className="size-7" onClick={save} disabled={saving} title="Speichern">
             <Check className="size-3.5" />
           </Button>

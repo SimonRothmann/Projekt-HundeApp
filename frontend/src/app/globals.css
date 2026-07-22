@@ -4,6 +4,10 @@
 @import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
+/* Touch-Geräte (grober Zeiger): erlaubt "coarse:"-Utilities, um Touch-
+   Trefferflächen auf >=44px zu vergrößern, ohne die kompakte Maus-Ansicht
+   (feiner Zeiger) auf dem Desktop zu verändern - Mobile-First-Ergonomie. */
+@custom-variant coarse (@media (pointer: coarse));
 
 @theme inline {
   --color-background: var(--background);
@@ -163,6 +167,37 @@
   }
   .dark select {
     color-scheme: dark;
+  }
+
+  /* P0 Barrierefreiheit - sichtbarer Tastatur-Fokus für ROHE interaktive
+     Elemente, die nicht das Button-Primitive nutzen (Bewertungs-Picker,
+     Akkordeon-Header, Karten-verlinkende <a>). Das Button-Primitive
+     (data-slot="button") bringt einen eigenen Ring mit und ist bewusst
+     ausgenommen, um doppelte Indikatoren zu vermeiden. :where() hält die
+     Spezifität bei 0. (WCAG 2.4.7) */
+  :where(
+    button:not([data-slot="button"]),
+    [role="button"]:not([data-slot="button"]),
+    [role="radio"],
+    summary,
+    a
+  ):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* P0 Barrierefreiheit - Touch: Formularfelder mit >=16px Schrift rendern.
+     Unter 16px zoomt iOS-Safari beim Fokus und das Layout springt.
+     Zusätzlich Mindesthöhe 44px (Apple HIG / Fitts). !important nötig, weil
+     Inline-Overrides (text-sm/text-xs, Klassenspezifität) sonst gewinnen. */
+  @media (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    textarea,
+    select {
+      font-size: 16px !important;
+      min-height: 44px;
+    }
   }
 }
 

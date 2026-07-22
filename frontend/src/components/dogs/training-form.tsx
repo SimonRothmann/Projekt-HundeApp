@@ -276,13 +276,15 @@ export function TrainingForm({
                   )}
                   <div className="flex flex-col gap-2">
                     <Label>Bewertung</Label>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1" role="group" aria-label="Bewertung, 1 bis 5">
                       {[1, 2, 3, 4, 5].map((value) => (
                         <button
                           key={value}
                           type="button"
                           onClick={() => updateRow(index, { rating: value })}
-                          className={`flex size-8 items-center justify-center rounded-md border text-sm ${
+                          aria-label={`${value} von 5`}
+                          aria-pressed={row.rating === value}
+                          className={`flex size-8 items-center justify-center rounded-md border text-sm coarse:size-11 ${
                             row.rating >= value
                               ? "border-accent bg-accent text-accent-foreground"
                               : "border-input text-muted-foreground"

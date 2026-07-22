@@ -230,7 +230,8 @@ export function SessionHistory({
             <button
               type="button"
               onClick={() => toggleMonth(mKey)}
-              className="flex w-full items-center justify-between px-3 py-2 text-left"
+              aria-expanded={isOpen}
+              className="flex w-full items-center justify-between px-3 py-2 text-left coarse:min-h-11"
             >
               <span className="flex items-center gap-2 font-medium capitalize">
                 {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}

@@ -37,7 +37,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <OfflineSyncListener />
-        <main className="flex-1 px-4 py-6 pb-24 md:px-8 md:pb-8 print:p-0">{children}</main>
+        {/* pb-28 (mobil) hält den Inhalt frei von der fixierten BottomNav
+            (~64px) inkl. iOS-Safe-Area; Desktop nutzt md:pb-8 (keine BottomNav). */}
+        <main className="flex-1 px-4 py-6 pb-28 md:px-8 md:pb-8 print:p-0">{children}</main>
       </div>
       <BottomNav />
     </div>

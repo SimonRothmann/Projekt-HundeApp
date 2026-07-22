@@ -462,14 +462,16 @@ export function GoalPlanCard({
                       )}
                       {quickLogItemId === item.id && (
                         <div className="ml-6 flex flex-col gap-2 rounded-md border bg-muted/40 p-2.5">
-                          <div className="flex gap-1">
+                          <div className="flex gap-1" role="group" aria-label="Bewertung, 1 bis 5">
                             {[1, 2, 3, 4, 5].map((value) => (
                               <button
                                 key={value}
                                 type="button"
                                 onClick={() => setQlRating(value)}
+                                aria-label={`${value} von 5`}
+                                aria-pressed={qlRating === value}
                                 className={cn(
-                                  "flex size-7 items-center justify-center rounded-md border text-xs",
+                                  "flex size-7 items-center justify-center rounded-md border text-xs coarse:size-11",
                                   qlRating >= value
                                     ? "border-accent bg-accent text-accent-foreground"
                                     : "border-input text-muted-foreground",
