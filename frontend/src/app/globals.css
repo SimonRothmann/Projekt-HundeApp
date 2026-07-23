@@ -187,15 +187,22 @@
     border-radius: var(--radius-sm);
   }
 
-  /* P0 Barrierefreiheit - Touch: Formularfelder mit >=16px Schrift rendern.
-     Unter 16px zoomt iOS-Safari beim Fokus und das Layout springt.
-     Zusätzlich Mindesthöhe 44px (Apple HIG / Fitts). !important nötig, weil
-     Inline-Overrides (text-sm/text-xs, Klassenspezifität) sonst gewinnen. */
-  @media (pointer: coarse) {
+  /* iOS-Safari zoomt beim Fokus auf Felder mit <16px Schrift und springt das
+     Layout. Die 16px an TOUCH-Geräte UND schmale Viewports koppeln: die
+     Oder-Kombination fängt auch Geräte, die pointer:coarse nicht sauber
+     melden (dann greift max-width). !important schlägt Inline-text-xs/-sm. */
+  @media (pointer: coarse), (max-width: 639px) {
     input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
     textarea,
     select {
       font-size: 16px !important;
+    }
+  }
+  /* 44px Mindesthöhe nur auf Touch (Apple HIG / Fitts). */
+  @media (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    textarea,
+    select {
       min-height: 44px;
     }
   }
