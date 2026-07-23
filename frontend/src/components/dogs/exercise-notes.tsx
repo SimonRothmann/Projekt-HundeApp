@@ -101,11 +101,11 @@ export function ExerciseNotes({
         // "…" ab, Stift bleibt daneben. Nicht-compact (Tagebuch): eigener
         // Block, langer Kommentar bricht um.
         compact
-          ? "flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground"
+          ? "flex min-w-0 flex-1 items-center gap-1 text-[11px] text-muted-foreground"
           : "inline-flex max-w-full items-start gap-1 text-xs text-muted-foreground"
       }
     >
-      <span className={compact ? "truncate italic" : "min-w-0 break-words italic"}>„{notes}“</span>
+      <span className={compact ? "min-w-0 truncate italic" : "min-w-0 break-words italic"}>„{notes}“</span>
       <Button
         size="icon"
         variant="ghost"
