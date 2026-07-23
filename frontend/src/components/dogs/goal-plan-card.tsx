@@ -450,12 +450,13 @@ export function GoalPlanCard({
                       {item.logs.length > 0 && (
                         <ul className="ml-6 flex flex-col gap-1 border-l pl-2.5">
                           {item.logs.map((log) => (
-                            // Eine Zeile pro Log: die feste Meta (Datum/Sterne)
-                            // links, der Kommentar füllt den Rest und kürzt sich
-                            // bei Platzmangel mit "…" ab (statt umzubrechen), der
-                            // Bearbeiten-/Notiz-Button bleibt direkt daneben am
-                            // Zeilenende - so bleibt die Aktion beim Kommentar.
-                            <li key={log.trainingExerciseId} className="flex items-center gap-1 text-xs text-muted-foreground">
+                            // Eine Zeile pro Log: feste Meta (Datum/Sterne) links,
+                            // Kommentar füllt den Rest und kürzt sich bei Platz-
+                            // mangel mit "…" ab, Bearbeiten-/Notiz-Button daneben.
+                            // flex-wrap: der Editor (w-full) darf beim Bearbeiten
+                            // auf eine EIGENE volle Zeile umbrechen - die Anzeige
+                            // (gekürzt, min-w-0) bleibt dagegen einzeilig.
+                            <li key={log.trainingExerciseId} className="flex flex-wrap items-center gap-x-1 gap-y-1 text-xs text-muted-foreground">
                               <span className="shrink-0 whitespace-nowrap">
                                 {new Date(log.date).toLocaleDateString("de-DE")} · {"★".repeat(log.rating)}
                                 {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}

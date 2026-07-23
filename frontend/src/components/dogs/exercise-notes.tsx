@@ -44,9 +44,14 @@ export function ExerciseNotes({
 
   if (editing) {
     return (
-      <span className="flex items-center gap-1">
+      {/* w-full: der Editor nimmt in der (flex-wrap) Plan-Log-Zeile eine
+          EIGENE volle Zeile ein (bricht unter die Meta), damit das Eingabefeld
+          breit genug ist, um den getippten Text zu sehen - statt neben der
+          Meta eingequetscht zu werden. flex-1/min-w-0 am Input: füllt die
+          Zeile bis zu den Speichern/Abbrechen-Buttons, ohne überzulaufen. */}
+      <span className="flex w-full min-w-0 items-center gap-1">
         <Input
-          className="h-7 text-xs"
+          className="h-7 min-w-0 flex-1 text-xs"
           placeholder="Notiz zur Übung"
           value={value}
           onChange={(e) => setValue(e.target.value)}
