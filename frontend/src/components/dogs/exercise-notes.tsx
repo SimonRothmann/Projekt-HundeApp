@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Check, MessageSquarePlus, Pencil, X } from "lucide-react";
+import { Check, MessageSquarePlus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 /**
@@ -28,6 +27,20 @@ export function ExerciseNotes({
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(notes ?? "");
   const [saving, setSaving] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Textarea mit dem Inhalt mitwachsen lassen (bis zu einer Maximalhöhe, danach
+  // scrollt sie intern) - so sieht man den kompletten getippten Text umgebrochen
+  // statt einzeiliger, horizontal gequetschter Wortfetzen.
+  function autoGrow() {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }
+  useEffect(() => {
+    if (editing) autoGrow();
+  }, [editing]);
 
   async function save() {
     setSaving(true);
@@ -43,35 +56,41 @@ export function ExerciseNotes({
   }
 
   if (editing) {
-    // w-full: der Editor nimmt in der (flex-wrap) Plan-Log-Zeile eine EIGENE
-    // volle Zeile ein (bricht unter die Meta), damit das Eingabefeld breit
-    // genug ist, um den getippten Text zu sehen - statt neben der Meta
-    // eingequetscht zu werden. flex-1/min-w-0 am Input: füllt die Zeile bis
-    // zu den Speichern/Abbrechen-Buttons, ohne überzulaufen.
+    // w-full + flex-col: der Editor nimmt in der (flex-wrap) Plan-Log-Zeile eine
+    // EIGENE volle Zeile ein (bricht unter die Meta). Statt eines einzeiligen,
+    // horizontal gequetschten Inputs eine mehrzeilige Textarea, die mit dem
+    // Inhalt mitwächst - so bricht ein langer Kommentar um und man sieht den
+    // ganzen Text (Mobile-App-first, kein horizontaler Scroll).
     return (
-      <span className="flex w-full min-w-0 items-center gap-1">
-        <Input
-          className="h-7 min-w-0 flex-1 text-xs"
+      <span className="flex w-full min-w-0 flex-col gap-1.5">
+        <textarea
+          ref={textareaRef}
+          className="max-h-[200px] min-h-16 w-full min-w-0 resize-none rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
           placeholder="Notiz zur Übung"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            autoGrow();
+          }}
+          rows={2}
           autoFocus
         />
-        <Button size="icon" variant="ghost" className="size-7" onClick={save} disabled={saving} title="Speichern">
-          <Check className="size-3.5" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-7"
-          onClick={() => {
-            setValue(notes ?? "");
-            setEditing(false);
-          }}
-          title="Abbrechen"
-        >
-          <X className="size-3.5" />
-        </Button>
+        <span className="flex items-center justify-end gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setValue(notes ?? "");
+              setEditing(false);
+            }}
+          >
+            Abbrechen
+          </Button>
+          <Button size="sm" onClick={save} disabled={saving}>
+            <Check className="size-3.5" />
+            Speichern
+          </Button>
+        </span>
       </span>
     );
   }

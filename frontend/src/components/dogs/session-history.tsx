@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Check, ChevronDown, ChevronRight, History, MessageSquarePlus, Pencil, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, History, MessageSquarePlus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
 import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
@@ -49,6 +48,19 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(joined);
   const [saving, setSaving] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Textarea mit dem Inhalt mitwachsen lassen - langer Tages-Kommentar bricht um
+  // statt einzeilig gequetscht zu werden (Mobile-App-first, kein H-Scroll).
+  function autoGrow() {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }
+  useEffect(() => {
+    if (editing) autoGrow();
+  }, [editing]);
 
   async function save() {
     setSaving(true);
@@ -70,29 +82,35 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
 
   if (editing) {
     return (
-      <div className="flex items-center gap-1">
-        <Input
-          className="h-8 text-sm"
+      <div className="flex w-full min-w-0 flex-col gap-1.5">
+        <textarea
+          ref={textareaRef}
+          className="max-h-[200px] min-h-16 w-full min-w-0 resize-none rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
           placeholder="Kommentar zum Trainingstag"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            autoGrow();
+          }}
+          rows={2}
           autoFocus
         />
-        <Button size="icon" variant="ghost" className="size-7" onClick={save} disabled={saving} title="Speichern">
-          <Check className="size-3.5" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-7"
-          onClick={() => {
-            setValue(joined);
-            setEditing(false);
-          }}
-          title="Abbrechen"
-        >
-          <X className="size-3.5" />
-        </Button>
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setValue(joined);
+              setEditing(false);
+            }}
+          >
+            Abbrechen
+          </Button>
+          <Button size="sm" onClick={save} disabled={saving}>
+            <Check className="size-3.5" />
+            Speichern
+          </Button>
+        </div>
       </div>
     );
   }
