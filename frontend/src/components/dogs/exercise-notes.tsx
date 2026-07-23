@@ -77,7 +77,7 @@ export function ExerciseNotes({
       <Button
         size="sm"
         variant="ghost"
-        className={compact ? "h-6 px-1 text-[11px] text-muted-foreground" : "h-7 self-start px-2 text-xs text-muted-foreground"}
+        className={compact ? "h-6 self-start px-1 text-[11px] text-muted-foreground" : "h-7 self-start px-2 text-xs text-muted-foreground"}
         onClick={() => {
           setValue("");
           setEditing(true);

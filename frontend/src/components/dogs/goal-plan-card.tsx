@@ -454,7 +454,7 @@ export function GoalPlanCard({
                             // vertikal stapeln, damit der Kommentar auf schmalen
                             // Screens sauber darunter steht statt umzubrechen; ab
                             // sm wieder platzsparend nebeneinander.
-                            <li key={log.trainingExerciseId} className="flex flex-col gap-0.5 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-1">
+                            <li key={log.trainingExerciseId} className="flex flex-col items-start gap-0.5 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-1">
                               <span className="whitespace-nowrap">
                                 {new Date(log.date).toLocaleDateString("de-DE")} · {"★".repeat(log.rating)}
                                 {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}
