@@ -77,7 +77,7 @@ export function ExerciseNotes({
       <Button
         size="sm"
         variant="ghost"
-        className={compact ? "h-6 self-start px-1 text-[11px] text-muted-foreground" : "h-7 self-start px-2 text-xs text-muted-foreground"}
+        className={compact ? "h-6 px-1 text-[11px] text-muted-foreground" : "h-7 self-start px-2 text-xs text-muted-foreground"}
         onClick={() => {
           setValue("");
           setEditing(true);
@@ -90,8 +90,17 @@ export function ExerciseNotes({
   }
 
   return (
-    <span className={`inline-flex max-w-full items-start gap-1 ${compact ? "text-[11px]" : "text-xs"} text-muted-foreground`}>
-      <span className="min-w-0 break-words italic">„{notes}“</span>
+    <span
+      className={
+        // compact (Trainingsplan-Log): eine Zeile, Kommentar kürzt sich mit
+        // "…" ab, Stift bleibt daneben. Nicht-compact (Tagebuch): eigener
+        // Block, langer Kommentar bricht um.
+        compact
+          ? "flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground"
+          : "inline-flex max-w-full items-start gap-1 text-xs text-muted-foreground"
+      }
+    >
+      <span className={compact ? "truncate italic" : "min-w-0 break-words italic"}>„{notes}“</span>
       <Button
         size="icon"
         variant="ghost"

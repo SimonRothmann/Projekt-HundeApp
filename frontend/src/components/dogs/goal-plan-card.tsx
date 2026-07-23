@@ -450,12 +450,13 @@ export function GoalPlanCard({
                       {item.logs.length > 0 && (
                         <ul className="ml-6 flex flex-col gap-1 border-l pl-2.5">
                           {item.logs.map((log) => (
-                            // Mobile-First: Meta-Zeile (Datum/Sterne) und Kommentar
-                            // vertikal stapeln, damit der Kommentar auf schmalen
-                            // Screens sauber darunter steht statt umzubrechen; ab
-                            // sm wieder platzsparend nebeneinander.
-                            <li key={log.trainingExerciseId} className="flex flex-col items-start gap-0.5 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-1">
-                              <span className="whitespace-nowrap">
+                            // Eine Zeile pro Log: die feste Meta (Datum/Sterne)
+                            // links, der Kommentar füllt den Rest und kürzt sich
+                            // bei Platzmangel mit "…" ab (statt umzubrechen), der
+                            // Bearbeiten-/Notiz-Button bleibt direkt daneben am
+                            // Zeilenende - so bleibt die Aktion beim Kommentar.
+                            <li key={log.trainingExerciseId} className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <span className="shrink-0 whitespace-nowrap">
                                 {new Date(log.date).toLocaleDateString("de-DE")} · {"★".repeat(log.rating)}
                                 {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}
                               </span>
