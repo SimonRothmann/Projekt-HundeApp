@@ -1,5 +1,7 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Notifications;
+using Dogity.Domain.Dogs;
 using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +15,7 @@ namespace Dogity.Application.Planning;
 /// immer auf Ziele beschränkt, deren Hund dem aufrufenden Benutzer
 /// zugeordnet ist.
 /// </summary>
-public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : IGoalService
+public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, INotificationService notifications) : IGoalService
 {
     public async Task<Result<IReadOnlyList<GoalDto>>> GetByDogAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
@@ -301,10 +303,29 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
                 continue; // keine zukünftige Planwoche mehr (Ziel läuft aus)
 
             await RegenerateWeekCoreAsync(goal, targetWeek, ct);
+            await NotifyOwnersOfAutoRegenerationAsync(goal, targetWeek, ct);
             count++;
         }
 
         return count;
+    }
+
+    // Nur der automatische (Scheduler-)Pfad benachrichtigt die Besitzer - beim
+    // manuellen "Neu generieren" hat der Nutzer die Änderung selbst ausgelöst.
+    private async Task NotifyOwnersOfAutoRegenerationAsync(Goal goal, int weekNumber, CancellationToken ct)
+    {
+        var dogName = await db.Dogs.Where(d => d.Id == goal.DogId).Select(d => d.Name).FirstOrDefaultAsync(ct) ?? "deinen Hund";
+        var ownerIds = await db.DogOwners
+            .Where(o => o.DogId == goal.DogId && o.Role == DogOwnerRole.Owner)
+            .Select(o => o.UserId)
+            .ToListAsync(ct);
+
+        foreach (var ownerId in ownerIds)
+            await notifications.CreateAsync(
+                ownerId,
+                $"Der Trainingsplan für {dogName} wurde für Woche {weekNumber} automatisch angepasst.",
+                $"/dogs/{goal.DogId}",
+                ct);
     }
 
     // Kern der Wochen-Regenerierung (Aufrufer stellt sicher: getracktes,

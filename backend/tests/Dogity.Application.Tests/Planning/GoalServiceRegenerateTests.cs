@@ -20,7 +20,7 @@ public class GoalServiceRegenerateTests
     private static GoalService MakeService(out Dogity.Infrastructure.Persistence.ApplicationDbContext db)
     {
         db = InMemoryDbContext.Create();
-        return new GoalService(db, TimeProvider.System);
+        return new GoalService(db, TimeProvider.System, new FakeNotificationService());
     }
 
     private static async Task<Setup> SetupAsync(Dogity.Infrastructure.Persistence.ApplicationDbContext db, bool custom = false)
@@ -143,9 +143,11 @@ public class GoalServiceRegenerateTests
     }
 
     [Fact]
-    public async Task RegenerateDuePlans_RegeneratesUpcomingWeek_OfDueGoal()
+    public async Task RegenerateDuePlans_RegeneratesUpcomingWeek_AndNotifiesOwner()
     {
-        var service = MakeService(out var db);
+        var db = InMemoryDbContext.Create();
+        var notifications = new FakeNotificationService();
+        var service = new GoalService(db, TimeProvider.System, notifications);
         var goalId = await SetupDueGoalAsync(db);
 
         var count = await service.RegenerateDuePlansAsync();
@@ -153,6 +155,7 @@ public class GoalServiceRegenerateTests
         Assert.Equal(1, count);
         var goal = await db.Goals.FirstAsync(g => g.Id == goalId);
         Assert.NotNull(goal.LastPlanGeneratedAt);
+        Assert.NotEmpty(notifications.Created); // Besitzer wurde benachrichtigt
     }
 
     [Fact]

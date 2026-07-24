@@ -75,7 +75,10 @@ Statt reinem Score-Ranking ein festes Budget je Woche (N = `WeeklyExerciseCount`
 - **P4a – Regenerierung + Endpoint:** ✅ erledigt. `GoalService.RegenerateWeekAsync` verdrahtet den adaptiven Generator: erhält manuelle/Trainer-Items UND Auto-Items mit geloggtem Fortschritt, ersetzt nur fortschrittslose Auto-Items (mastery-basiert), schließt erhaltene Übungen aus, setzt `LastPlanGeneratedAt`. `PUT /api/goals/{id}/regenerate-week`. 3 Unit-Tests. (Wichtig: neue Items über das DbSet adden, nicht die getrackte Navigation.)
 - **P4b – Scheduler:** ✅ erledigt. `GoalService.RegenerateDuePlansAsync` (System-Pass) + `PlanRegenerationBackgroundService` (täglicher `PeriodicTimer`). Zeitanker `Goal.CreatedAt`; regeneriert nur die KOMMENDE Woche (currentWeek+1) fälliger Ziele (LastPlanGeneratedAt null oder älter als ~6 Tage), laufende Woche bleibt unberührt. 2 Unit-Tests.
 - **P5 – Frontend (Kern):** ✅ erledigt. `reason` gesurfaced; **Grund-Badges** je Übung; **„Neu generieren"-Button** pro Woche.
-- **P5b – Frontend (Rest):** ✅ weitgehend erledigt. `DayIndex` + `WeeklyExerciseCount`/`TrainingDaysPerWeek` in DTOs/Types gesurfaced; **Ziel-Konfig-Editor** (Übungen/Woche, Trainingstage) via `PUT /api/goals/{id}/config`; **tages-gruppierte** Wochenansicht („Tag N", nur wenn eine Woche >1 Trainingstag hat). Offen: Benachrichtigung, wenn der Scheduler einen Plan automatisch ändert.
+- **P5b – Frontend (Rest):** ✅ erledigt. `DayIndex` + `WeeklyExerciseCount`/`TrainingDaysPerWeek` in DTOs/Types gesurfaced; **Ziel-Konfig-Editor** (Übungen/Woche, Trainingstage) via `PUT /api/goals/{id}/config`; **tages-gruppierte** Wochenansicht („Tag N", nur wenn eine Woche >1 Trainingstag hat).
+- **P5c – Benachrichtigung:** ✅ erledigt. Nur der **automatische** Scheduler-Pfad benachrichtigt die Hundebesitzer („Trainingsplan für <Hund> wurde für Woche X automatisch angepasst.", Link zur Hundeseite); der manuelle „Neu generieren"-Button nicht (Nutzer hat es selbst ausgelöst). 1 Test.
+
+**Damit ist die adaptive Trainingsplan-Reihe (P1–P5c) funktional komplett.**
 
 ## 11. Tests (Generator v2 als pure Funktion)
 Input: Katalog (Regulations-Übungen + Schwierigkeit) + Mastery/Historie + `today` + Ziel-Konfig → deterministisch.
