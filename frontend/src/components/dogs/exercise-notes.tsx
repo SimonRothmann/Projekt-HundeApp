@@ -56,13 +56,14 @@ export function ExerciseNotes({
   }
 
   if (editing) {
-    // w-full + flex-col: der Editor nimmt in der (flex-wrap) Plan-Log-Zeile eine
-    // EIGENE volle Zeile ein (bricht unter die Meta). Statt eines einzeiligen,
-    // horizontal gequetschten Inputs eine mehrzeilige Textarea, die mit dem
-    // Inhalt mitwächst - so bricht ein langer Kommentar um und man sieht den
-    // ganzen Text (Mobile-App-first, kein horizontaler Scroll).
+    // col-span-2 + w-full + flex-col: im Plan-Log-Grid spannt der Editor beide
+    // Spalten und bekommt so eine EIGENE volle Zeile unter der Meta (in Flex-
+    // Kontexten wie der Session-History ist col-span-2 wirkungslos). Statt eines
+    // einzeiligen, horizontal gequetschten Inputs eine mehrzeilige Textarea, die
+    // mit dem Inhalt mitwächst - langer Kommentar bricht um und ist ganz sichtbar
+    // (Mobile-App-first, kein horizontaler Scroll).
     return (
-      <span className="flex w-full min-w-0 flex-col gap-1.5">
+      <span className="col-span-2 flex w-full min-w-0 flex-col gap-1.5">
         <textarea
           ref={textareaRef}
           className="max-h-[200px] min-h-16 w-full min-w-0 resize-none rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"

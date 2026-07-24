@@ -450,13 +450,16 @@ export function GoalPlanCard({
                       {item.logs.length > 0 && (
                         <ul className="ml-6 flex flex-col gap-1 border-l pl-2.5">
                           {item.logs.map((log) => (
-                            // Eine Zeile pro Log: feste Meta (Datum/Sterne) links,
-                            // Kommentar füllt den Rest und kürzt sich bei Platz-
-                            // mangel mit "…" ab, Bearbeiten-/Notiz-Button daneben.
-                            // flex-wrap: der Editor (w-full) darf beim Bearbeiten
-                            // auf eine EIGENE volle Zeile umbrechen - die Anzeige
-                            // (gekürzt, min-w-0) bleibt dagegen einzeilig.
-                            <li key={log.trainingExerciseId} className="flex flex-wrap items-center gap-x-1 gap-y-1 text-xs text-muted-foreground">
+                            // Eine Zeile pro Log als GRID: Spalte 1 = feste Meta
+                            // (Datum/Sterne, auto), Spalte 2 = minmax(0,1fr) für den
+                            // Kommentar. Das 0-Minimum ist ein DEFINITER Wert und
+                            // deckelt die Spaltenbreite zuverlässig - so kürzt sich
+                            // der Kommentar mit "…" ab, OHNE dass seine volle Textbreite
+                            // als min-content die Seite aufbläht (früher flex-wrap +
+                            // flex-1: dort zog der Browser die max-content heran ->
+                            // horizontaler Scroll). Der Editor spannt beide Spalten
+                            // (col-span-2) und bekommt so eine eigene volle Zeile.
+                            <li key={log.trainingExerciseId} className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-1 gap-y-1 text-xs text-muted-foreground">
                               <span className="shrink-0 whitespace-nowrap">
                                 {new Date(log.date).toLocaleDateString("de-DE")} · {"★".repeat(log.rating)}
                                 {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}
