@@ -35,7 +35,9 @@ public record TrainingPlanItemDto(
     // Warum der adaptive Generator diese Übung geplant hat (Schwäche/
     // Wiederholung/Neu) - für ein informatives Badge in der UI. Null bei
     // manuellen Einträgen/Pausenwochen.
-    PlanItemReason? Reason);
+    PlanItemReason? Reason,
+    // Welcher Trainingstag der Woche (1..Goal.TrainingDaysPerWeek).
+    int DayIndex);
 
 public record TrainingPlanDto(
     Guid Id,
@@ -53,6 +55,8 @@ public record GoalDto(
     GoalStatus Status,
     string? Notes,
     bool IsCustom,
+    int WeeklyExerciseCount,
+    int TrainingDaysPerWeek,
     TrainingPlanDto? TrainingPlan);
 
 public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, DateOnly TargetDate, string? Notes, bool IsCustom = false);
@@ -66,6 +70,13 @@ public record UpdateGoalStatusRequest(GoalStatus Status);
 /// Auto-Items werden durch eine frische, mastery-basierte Auswahl ersetzt.
 /// </summary>
 public record RegenerateWeekRequest(int WeekNumber);
+
+/// <summary>
+/// Plan-Konfiguration eines Ziels (siehe docs/SMART_TRAINING_PLAN.md): wie
+/// viele Übungen pro Woche und auf wie viele Trainingstage verteilt der
+/// adaptive Generator plant.
+/// </summary>
+public record UpdateGoalConfigRequest(int WeeklyExerciseCount, int TrainingDaysPerWeek);
 
 /// <summary>
 /// Entweder <paramref name="ExerciseId"/> ODER <paramref name="FreeTextLabel"/>

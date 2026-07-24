@@ -118,6 +118,25 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         return Result<GoalDto>.Success(ToDto(goal, sportNames, regulationNames, logsByPlanItem));
     }
 
+    public async Task<Result<GoalDto>> UpdateConfigAsync(Guid userId, Guid goalId, int weeklyExerciseCount, int trainingDaysPerWeek, CancellationToken ct = default)
+    {
+        if (weeklyExerciseCount < 1 || weeklyExerciseCount > 12)
+            return Result<GoalDto>.Failure("Übungen pro Woche muss zwischen 1 und 12 liegen.");
+        if (trainingDaysPerWeek < 1 || trainingDaysPerWeek > 7)
+            return Result<GoalDto>.Failure("Trainingstage pro Woche muss zwischen 1 und 7 liegen.");
+
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct);
+        if (goal is null)
+            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+
+        goal.WeeklyExerciseCount = weeklyExerciseCount;
+        goal.TrainingDaysPerWeek = trainingDaysPerWeek;
+        goal.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(userId, goalId, ct);
+    }
+
     public async Task<Result> DeleteAsync(Guid userId, Guid goalId, CancellationToken ct = default)
     {
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
@@ -513,10 +532,11 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
                             completedCount,
                             !i.IsRestWeek && completedCount >= i.RepetitionsTarget,
                             logs,
-                            i.Reason);
+                            i.Reason,
+                            i.DayIndex);
                     })
                     .ToList());
 
-        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, g.IsCustom, planDto);
+        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, planDto);
     }
 }

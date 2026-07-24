@@ -144,6 +144,7 @@ export type TrainingPlanItem = {
   isComplete: boolean;
   logs: TrainingPlanItemLog[];
   reason: PlanItemReason | null;
+  dayIndex: number;
 };
 
 export type TrainingPlan = {
@@ -163,6 +164,8 @@ export type Goal = {
   status: GoalStatus;
   notes: string | null;
   isCustom: boolean;
+  weeklyExerciseCount: number;
+  trainingDaysPerWeek: number;
   trainingPlan: TrainingPlan | null;
 };
 

@@ -9,6 +9,13 @@ public interface IGoalService
     Task<Result<GoalDto>> GetByIdAsync(Guid userId, Guid goalId, CancellationToken ct = default);
     Task<Result<GoalDto>> CreateAsync(Guid userId, CreateGoalRequest request, CancellationToken ct = default);
     Task<Result<GoalDto>> UpdateStatusAsync(Guid userId, Guid goalId, GoalStatus status, CancellationToken ct = default);
+
+    /// <summary>
+    /// Setzt die Plan-Konfiguration eines Ziels (Übungen/Woche, Trainingstage/
+    /// Woche) für den adaptiven Generator.
+    /// </summary>
+    Task<Result<GoalDto>> UpdateConfigAsync(Guid userId, Guid goalId, int weeklyExerciseCount, int trainingDaysPerWeek, CancellationToken ct = default);
+
     Task<Result> DeleteAsync(Guid userId, Guid goalId, CancellationToken ct = default);
 
     /// <summary>

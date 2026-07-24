@@ -28,6 +28,19 @@ function groupByWeek(items: TrainingPlanItem[]): [number, TrainingPlanItem[]][] 
   return [...byWeek.entries()];
 }
 
+// Innerhalb einer Woche nach Trainingstag gruppieren (aufsteigend). Wird nur
+// als sichtbare "Tag N"-Struktur genutzt, wenn eine Woche tatsächlich mehr als
+// einen Trainingstag hat (Alt-Pläne liegen alle auf Tag 1 -> flache Ansicht).
+function groupByDay(items: TrainingPlanItem[]): [number, TrainingPlanItem[]][] {
+  const byDay = new Map<number, TrainingPlanItem[]>();
+  for (const item of items) {
+    const group = byDay.get(item.dayIndex);
+    if (group) group.push(item);
+    else byDay.set(item.dayIndex, [item]);
+  }
+  return [...byDay.entries()].sort(([a], [b]) => a - b);
+}
+
 const statusLabel: Record<Goal["status"], string> = { 0: "Aktiv", 1: "Erreicht", 2: "Abgebrochen" };
 const statusVariant: Record<Goal["status"], "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
 
@@ -57,6 +70,12 @@ export function GoalPlanCard({
   // Trainingswoche (erste noch nicht vollständig erledigte, Nicht-Pause-Woche).
   const [openWeeks, setOpenWeeks] = useState<Set<number>>(new Set());
   const [regeneratingWeek, setRegeneratingWeek] = useState<number | null>(null);
+
+  // Plan-Konfiguration (Übungen/Woche, Trainingstage) des adaptiven Generators.
+  const [editingConfig, setEditingConfig] = useState(false);
+  const [cfgWeekly, setCfgWeekly] = useState(goal.weeklyExerciseCount);
+  const [cfgDays, setCfgDays] = useState(goal.trainingDaysPerWeek);
+  const [savingConfig, setSavingConfig] = useState(false);
 
   async function ensureExercisesLoaded() {
     if (exercises !== null) return;
@@ -139,6 +158,26 @@ export function GoalPlanCard({
       toast.error(err instanceof ApiError ? err.message : "Woche konnte nicht neu generiert werden.");
     } finally {
       setRegeneratingWeek(null);
+    }
+  }
+
+  function startEditConfig() {
+    setCfgWeekly(goal.weeklyExerciseCount);
+    setCfgDays(goal.trainingDaysPerWeek);
+    setEditingConfig(true);
+  }
+
+  async function saveConfig() {
+    setSavingConfig(true);
+    try {
+      await api.put(`/api/goals/${goal.id}/config`, { weeklyExerciseCount: cfgWeekly, trainingDaysPerWeek: cfgDays });
+      toast.success("Plan-Einstellungen gespeichert.");
+      setEditingConfig(false);
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Einstellungen konnten nicht gespeichert werden.");
+    } finally {
+      setSavingConfig(false);
     }
   }
 
@@ -362,6 +401,38 @@ export function GoalPlanCard({
       <CardContent className="flex flex-col gap-3">
         {goal.notes && <p className="text-sm text-muted-foreground">{goal.notes}</p>}
 
+        {goal.status === 0 && !goal.isCustom && goal.trainingPlan &&
+          (editingConfig ? (
+            <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-2.5">
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs">Übungen/Woche</Label>
+                <Input type="number" min={1} max={12} className="h-8 w-20" value={cfgWeekly} onChange={(e) => setCfgWeekly(Number(e.target.value))} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs">Trainingstage</Label>
+                <Input type="number" min={1} max={7} className="h-8 w-20" value={cfgDays} onChange={(e) => setCfgDays(Number(e.target.value))} />
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" size="sm" disabled={savingConfig} onClick={saveConfig}>
+                  {savingConfig ? "Speichert…" : "Speichern"}
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setEditingConfig(false)}>
+                  Abbrechen
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <span>
+                Plan: {goal.weeklyExerciseCount} Übungen/Woche · {goal.trainingDaysPerWeek} Trainingstage
+              </span>
+              <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={startEditConfig}>
+                <Pencil className="size-3" />
+                Anpassen
+              </Button>
+            </div>
+          ))}
+
         {goal.trainingPlan && (
           <div className="flex flex-col gap-3">
             {weeks.map(([weekNumber, items]) => {
@@ -421,7 +492,14 @@ export function GoalPlanCard({
                       {isRest ? (
                         <span className="text-sm text-muted-foreground">Pause</span>
                       ) : (
-                        items.map((item) => (
+                        groupByDay(items).map(([dayNumber, dayItems], _dayIdx, dayGroups) => (
+                          <div key={dayNumber} className="flex flex-col gap-1">
+                            {dayGroups.length > 1 && (
+                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                Tag {dayNumber}
+                              </span>
+                            )}
+                            {dayItems.map((item) => (
                     <div key={item.id} className="flex flex-col gap-1">
                       <div className="flex items-start gap-1">
                         <button
@@ -587,6 +665,8 @@ export function GoalPlanCard({
                         </div>
                       )}
                     </div>
+                            ))}
+                          </div>
                         ))
                       )}
                       {addForm?.location === "inline" && addForm.week === weekNumber && renderAddForm(false)}

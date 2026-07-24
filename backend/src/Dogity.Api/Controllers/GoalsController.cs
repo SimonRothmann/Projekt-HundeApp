@@ -37,6 +37,13 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
         return FromResult(result);
     }
 
+    [HttpPut("{id:guid}/config")]
+    public async Task<ActionResult<GoalDto>> UpdateConfig(Guid id, UpdateGoalConfigRequest request, CancellationToken ct)
+    {
+        var result = await goalService.UpdateConfigAsync(CurrentUserId, id, request.WeeklyExerciseCount, request.TrainingDaysPerWeek, ct);
+        return FromResult(result);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
