@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, Circle, Pencil, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, Circle, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { difficultyLabel } from "@/lib/constants";
@@ -49,6 +49,10 @@ export function GoalPlanCard({
 }) {
   // Übungen der Ziel-Sportart, lazy für die Add-/Edit-Auswahl geladen.
   const [exercises, setExercises] = useState<Exercise[] | null>(null);
+
+  // Wochen-Akkordeon: standardmäßig eingeklappt, offen ist nur die aktuelle
+  // Trainingswoche (erste noch nicht vollständig erledigte, Nicht-Pause-Woche).
+  const [openWeeks, setOpenWeeks] = useState<Set<number>>(new Set());
 
   async function ensureExercisesLoaded() {
     if (exercises !== null) return;
@@ -305,6 +309,22 @@ export function GoalPlanCard({
     );
   }
 
+  const weeks = goal.trainingPlan ? groupByWeek(goal.trainingPlan.items) : [];
+  // Aktuelle Trainingswoche = erste Nicht-Pause-Woche mit noch offener Übung
+  // (Fallback: erste Woche). Nur sie ist standardmäßig aufgeklappt.
+  const currentWeek =
+    weeks.find(([, items]) => !items[0].isRestWeek && items.some((i) => !i.isComplete))?.[0] ?? weeks[0]?.[0];
+  const effectiveOpenWeeks =
+    openWeeks.size === 0 && currentWeek != null ? new Set([currentWeek]) : openWeeks;
+  function toggleWeek(week: number) {
+    setOpenWeeks((prev) => {
+      const next = new Set(prev.size === 0 && currentWeek != null ? [currentWeek] : prev);
+      if (next.has(week)) next.delete(week);
+      else next.add(week);
+      return next;
+    });
+  }
+
   return (
     <Card>
       <CardHeader className="flex-row flex-wrap items-start justify-between gap-2 space-y-0">
@@ -324,27 +344,48 @@ export function GoalPlanCard({
 
         {goal.trainingPlan && (
           <div className="flex flex-col gap-3">
-            {groupByWeek(goal.trainingPlan.items).map(([weekNumber, items]) => (
-              <div key={weekNumber} className="flex flex-col gap-1.5 rounded-md border p-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">KW {weekNumber}</span>
-                  {goal.status === 0 && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 px-2 text-xs"
-                      onClick={() => openAdd("inline", weekNumber)}
-                    >
-                      <Plus className="size-3" />
-                      Übung
-                    </Button>
-                  )}
-                </div>
-                {items[0].isRestWeek ? (
-                  <span className="text-sm text-muted-foreground">Pause</span>
-                ) : (
-                  items.map((item) => (
+            {weeks.map(([weekNumber, items]) => {
+              const isOpen = effectiveOpenWeeks.has(weekNumber);
+              const isRest = items[0].isRestWeek;
+              const doneCount = items.filter((i) => i.isComplete).length;
+              return (
+                <div key={weekNumber} className="rounded-md border">
+                  <button
+                    type="button"
+                    onClick={() => toggleWeek(weekNumber)}
+                    aria-expanded={isOpen}
+                    className="flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left coarse:min-h-11"
+                  >
+                    <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                      Woche {weekNumber}
+                    </span>
+                    {isRest ? (
+                      <span className="text-xs text-muted-foreground">Pause</span>
+                    ) : (
+                      <Badge variant="secondary">
+                        {doneCount}/{items.length}
+                      </Badge>
+                    )}
+                  </button>
+                  {isOpen && (
+                    <div className="flex flex-col gap-1.5 border-t p-2.5">
+                      {goal.status === 0 && !isRest && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 self-end px-2 text-xs"
+                          onClick={() => openAdd("inline", weekNumber)}
+                        >
+                          <Plus className="size-3" />
+                          Übung
+                        </Button>
+                      )}
+                      {isRest ? (
+                        <span className="text-sm text-muted-foreground">Pause</span>
+                      ) : (
+                        items.map((item) => (
                     <div key={item.id} className="flex flex-col gap-1">
                       <div className="flex items-start gap-1">
                         <button
@@ -505,11 +546,14 @@ export function GoalPlanCard({
                         </div>
                       )}
                     </div>
-                  ))
-                )}
-                {addForm?.location === "inline" && addForm.week === weekNumber && renderAddForm(false)}
-              </div>
-            ))}
+                        ))
+                      )}
+                      {addForm?.location === "inline" && addForm.week === weekNumber && renderAddForm(false)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
