@@ -1,3 +1,4 @@
+using Dogity.Api.Hosting;
 using Dogity.Application;
 using Dogity.Application.Planning;
 using Dogity.Infrastructure;
@@ -56,6 +57,9 @@ builder.Services.AddSwaggerGen(options =>
 // Application definierten Abstraktionen erfüllen.
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Adaptive Trainingsplan-Regenerierung im Hintergrund (P4b).
+builder.Services.AddHostedService<PlanRegenerationBackgroundService>();
 
 // Hinter Caddy (Reverse Proxy im Docker-Netzwerk) sieht Kestrel als
 // RemoteIpAddress nur die Proxy-IP. Für IP-basiertes Rate-Limiting und

@@ -31,7 +31,11 @@ public record TrainingPlanItemDto(
     bool IsRestWeek,
     int CompletedCount,
     bool IsComplete,
-    IReadOnlyList<TrainingPlanItemLogDto> Logs);
+    IReadOnlyList<TrainingPlanItemLogDto> Logs,
+    // Warum der adaptive Generator diese Übung geplant hat (Schwäche/
+    // Wiederholung/Neu) - für ein informatives Badge in der UI. Null bei
+    // manuellen Einträgen/Pausenwochen.
+    PlanItemReason? Reason);
 
 public record TrainingPlanDto(
     Guid Id,

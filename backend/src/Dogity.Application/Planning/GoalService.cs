@@ -249,13 +249,55 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         if (goal.IsCustom)
             return Result<GoalDto>.Failure("Ein individueller Plan wird nicht automatisch generiert.");
 
-        var weekItems = goal.TrainingPlan.Items
+        await RegenerateWeekCoreAsync(goal, weekNumber, ct);
+        return await GetByIdAsync(userId, goalId, ct);
+    }
+
+    public async Task<int> RegenerateDuePlansAsync(CancellationToken ct = default)
+    {
+        var now = timeProvider.GetUtcNow();
+        // Wochen-Kadenz: ein Ziel wird höchstens etwa wöchentlich neu generiert
+        // (LastPlanGeneratedAt steuert die Frequenz, der Aufruf-Takt selbst darf
+        // öfter sein).
+        var cutoff = now.AddDays(-6);
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+
+        var goals = await LoadGoalsQuery()
+            .Where(g => g.Status == GoalStatus.Active && !g.IsCustom && g.TrainingPlan != null)
+            .Where(g => g.LastPlanGeneratedAt == null || g.LastPlanGeneratedAt < cutoff)
+            .ToListAsync(ct);
+
+        var count = 0;
+        foreach (var goal in goals)
+        {
+            // Zeitanker Goal.CreatedAt: aktuelle Woche = vergangene volle Wochen
+            // seit Erstellung + 1. Nur die KOMMENDE Woche adaptiv frisch halten,
+            // damit die laufende Woche nicht mitten im Training umgebaut wird.
+            var created = DateOnly.FromDateTime(goal.CreatedAt.UtcDateTime);
+            var currentWeek = Math.Max(0, (today.DayNumber - created.DayNumber) / 7) + 1;
+            var targetWeek = currentWeek + 1;
+
+            var maxWeek = goal.TrainingPlan!.Items.Count == 0 ? 0 : goal.TrainingPlan.Items.Max(i => i.WeekNumber);
+            if (targetWeek > maxWeek)
+                continue; // keine zukünftige Planwoche mehr (Ziel läuft aus)
+
+            await RegenerateWeekCoreAsync(goal, targetWeek, ct);
+            count++;
+        }
+
+        return count;
+    }
+
+    // Kern der Wochen-Regenerierung (Aufrufer stellt sicher: getracktes,
+    // nicht-individuelles Ziel mit Plan). Erhält manuelle/Trainer-Items und
+    // Auto-Items mit geloggtem Fortschritt, ersetzt nur fortschrittslose
+    // Auto-Items durch eine frische, mastery-basierte Auswahl.
+    private async Task RegenerateWeekCoreAsync(Goal goal, int weekNumber, CancellationToken ct)
+    {
+        var weekItems = goal.TrainingPlan!.Items
             .Where(i => i.WeekNumber == weekNumber && !i.IsRestWeek)
             .ToList();
 
-        // Auto-Items mit bereits geloggtem Fortschritt (verknüpfte
-        // Tagebucheinträge) NICHT anfassen - der Fortschritt soll erhalten
-        // bleiben. Manuelle/Trainer-Items sowieso nie überschreiben.
         var autoItemIds = weekItems.Where(i => i.Source == PlanItemSource.Auto).Select(i => i.Id).ToList();
         var itemIdsWithLogs = autoItemIds.Count == 0
             ? new HashSet<Guid>()
@@ -275,8 +317,6 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         foreach (var item in removable)
             item.DeletedAt = DateTimeOffset.UtcNow;
 
-        // Bereits (erhalten) verplante Übungen ausschließen, damit sie nicht
-        // doppelt in derselben Woche landen.
         var preservedExerciseIds = preserved.Where(i => i.ExerciseId is not null).Select(i => i.ExerciseId!.Value).ToHashSet();
         var candidates = await BuildAdaptiveCandidatesAsync(goal, preservedExerciseIds, ct);
 
@@ -287,7 +327,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
             var config = new AdaptivePlanConfig(remainingSlots, goal.TrainingDaysPerWeek);
             foreach (var generated in AdaptivePlanGenerator.GenerateWeek(today, weekNumber, candidates, config))
             {
-                generated.TrainingPlanId = goal.TrainingPlan.Id;
+                generated.TrainingPlanId = goal.TrainingPlan!.Id;
                 // Über das DbSet, nicht die getrackte Navigation: sonst stuft EF
                 // die neuen Items per Collection-Fixup als Modified statt Added
                 // ein (siehe TrainingService.CreateAsync).
@@ -297,8 +337,6 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
 
         goal.LastPlanGeneratedAt = timeProvider.GetUtcNow();
         await db.SaveChangesAsync(ct);
-
-        return await GetByIdAsync(userId, goalId, ct);
     }
 
     // Baut die Kandidatenliste für den adaptiven Generator: Katalog der Prüfung/
@@ -474,7 +512,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
                             i.IsRestWeek,
                             completedCount,
                             !i.IsRestWeek && completedCount >= i.RepetitionsTarget,
-                            logs);
+                            logs,
+                            i.Reason);
                     })
                     .ToList());
 

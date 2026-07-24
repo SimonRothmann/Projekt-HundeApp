@@ -128,6 +128,10 @@ export type TrainingPlanItemLog = {
   notes: string | null;
 };
 
+// Grund, warum der adaptive Generator eine Übung geplant hat (siehe
+// Domain.Planning.PlanItemReason). null bei manuellen Einträgen/Pausenwochen.
+export type PlanItemReason = 0 | 1 | 2; // 0 = Schwäche, 1 = Wiederholung, 2 = Neu
+
 export type TrainingPlanItem = {
   id: string;
   weekNumber: number;
@@ -139,6 +143,7 @@ export type TrainingPlanItem = {
   completedCount: number;
   isComplete: boolean;
   logs: TrainingPlanItemLog[];
+  reason: PlanItemReason | null;
 };
 
 export type TrainingPlan = {

@@ -108,4 +108,64 @@ public class GoalServiceRegenerateTests
 
         Assert.False(result.Succeeded);
     }
+
+    private static async Task<Guid> SetupDueGoalAsync(Dogity.Infrastructure.Persistence.ApplicationDbContext db)
+    {
+        var ownerId = Guid.NewGuid();
+        var sportId = Guid.NewGuid();
+        var dog = new Dog { Name = "Rex" };
+        db.Dogs.Add(dog);
+        db.DogOwners.Add(new DogOwner { DogId = dog.Id, UserId = ownerId, Role = DogOwnerRole.Owner });
+        var exercises = new[] { "A", "B", "C", "D" }
+            .Select(n => new Exercise { Name = n, SportId = sportId, Difficulty = ExerciseDifficulty.Beginner })
+            .ToArray();
+        db.Exercises.AddRange(exercises);
+
+        // CreatedAt = jetzt -> aktuelle Woche 1, kommende Woche 2.
+        var goal = new Goal
+        {
+            DogId = dog.Id,
+            SportId = sportId,
+            TargetDate = DateOnly.FromDateTime(DateTime.Today).AddMonths(2),
+            Status = GoalStatus.Active,
+            IsCustom = false,
+            WeeklyExerciseCount = 2,
+            TrainingDaysPerWeek = 1,
+            LastPlanGeneratedAt = null
+        };
+        var plan = new TrainingPlan { GoalId = goal.Id, Goal = goal };
+        plan.Items.Add(new TrainingPlanItem { TrainingPlanId = plan.Id, WeekNumber = 1, ExerciseId = exercises[0].Id, RepetitionsTarget = 2, Source = PlanItemSource.Auto });
+        plan.Items.Add(new TrainingPlanItem { TrainingPlanId = plan.Id, WeekNumber = 2, ExerciseId = exercises[1].Id, RepetitionsTarget = 2, Source = PlanItemSource.Auto });
+        goal.TrainingPlan = plan;
+        db.Goals.Add(goal);
+        await db.SaveChangesAsync();
+        return goal.Id;
+    }
+
+    [Fact]
+    public async Task RegenerateDuePlans_RegeneratesUpcomingWeek_OfDueGoal()
+    {
+        var service = MakeService(out var db);
+        var goalId = await SetupDueGoalAsync(db);
+
+        var count = await service.RegenerateDuePlansAsync();
+
+        Assert.Equal(1, count);
+        var goal = await db.Goals.FirstAsync(g => g.Id == goalId);
+        Assert.NotNull(goal.LastPlanGeneratedAt);
+    }
+
+    [Fact]
+    public async Task RegenerateDuePlans_SkipsRecentlyGenerated()
+    {
+        var service = MakeService(out var db);
+        var goalId = await SetupDueGoalAsync(db);
+        var goal = await db.Goals.FirstAsync(g => g.Id == goalId);
+        goal.LastPlanGeneratedAt = DateTimeOffset.UtcNow; // frisch -> nicht fällig
+        await db.SaveChangesAsync();
+
+        var count = await service.RegenerateDuePlansAsync();
+
+        Assert.Equal(0, count);
+    }
 }

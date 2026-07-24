@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { enqueueRequest } from "@/lib/offline-queue";
-import type { Exercise, Goal, TrainingPlanItem } from "@/lib/types";
+import type { Exercise, Goal, PlanItemReason, TrainingPlanItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, ChevronDown, ChevronRight, Circle, Pencil, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, Circle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { difficultyLabel } from "@/lib/constants";
@@ -30,6 +30,9 @@ function groupByWeek(items: TrainingPlanItem[]): [number, TrainingPlanItem[]][] 
 
 const statusLabel: Record<Goal["status"], string> = { 0: "Aktiv", 1: "Erreicht", 2: "Abgebrochen" };
 const statusVariant: Record<Goal["status"], "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
+
+// Warum der adaptive Generator eine Übung geplant hat (siehe PlanItemReason).
+const reasonLabel: Record<PlanItemReason, string> = { 0: "Schwäche", 1: "Wiederholung", 2: "Neu" };
 
 /**
  * Ein einzelnes Ziel mit seinem Wochenplan. Jede Karte hält ihren eigenen
@@ -53,6 +56,7 @@ export function GoalPlanCard({
   // Wochen-Akkordeon: standardmäßig eingeklappt, offen ist nur die aktuelle
   // Trainingswoche (erste noch nicht vollständig erledigte, Nicht-Pause-Woche).
   const [openWeeks, setOpenWeeks] = useState<Set<number>>(new Set());
+  const [regeneratingWeek, setRegeneratingWeek] = useState<number | null>(null);
 
   async function ensureExercisesLoaded() {
     if (exercises !== null) return;
@@ -119,6 +123,22 @@ export function GoalPlanCard({
       await onChanged();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Übung konnte nicht entfernt werden.");
+    }
+  }
+
+  // Adaptive Neugenerierung einer Woche (siehe docs/SMART_TRAINING_PLAN.md):
+  // ersetzt nur fortschrittslose Auto-Übungen, manuelle Einträge und bereits
+  // trainierte Übungen bleiben erhalten.
+  async function regenerateWeek(weekNumber: number) {
+    setRegeneratingWeek(weekNumber);
+    try {
+      await api.put(`/api/goals/${goal.id}/regenerate-week`, { weekNumber });
+      toast.success(`Woche ${weekNumber} neu generiert.`);
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Woche konnte nicht neu generiert werden.");
+    } finally {
+      setRegeneratingWeek(null);
     }
   }
 
@@ -371,16 +391,32 @@ export function GoalPlanCard({
                   {isOpen && (
                     <div className="flex flex-col gap-1.5 border-t p-2.5">
                       {goal.status === 0 && !isRest && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 self-end px-2 text-xs"
-                          onClick={() => openAdd("inline", weekNumber)}
-                        >
-                          <Plus className="size-3" />
-                          Übung
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          {!goal.isCustom && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs"
+                              disabled={regeneratingWeek === weekNumber}
+                              onClick={() => regenerateWeek(weekNumber)}
+                              title="Diese Woche adaptiv neu generieren (erhält manuelle & bereits trainierte Übungen)"
+                            >
+                              <RefreshCw className={cn("size-3", regeneratingWeek === weekNumber && "animate-spin")} />
+                              {regeneratingWeek === weekNumber ? "Generiere…" : "Neu generieren"}
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => openAdd("inline", weekNumber)}
+                          >
+                            <Plus className="size-3" />
+                            Übung
+                          </Button>
+                        </div>
                       )}
                       {isRest ? (
                         <span className="text-sm text-muted-foreground">Pause</span>
@@ -406,6 +442,11 @@ export function GoalPlanCard({
                               {item.freeTextLabel && !item.exerciseName && (
                                 <span className="mr-1 rounded bg-muted px-1 py-0.5 text-[10px] uppercase tracking-wide">
                                   Freitext
+                                </span>
+                              )}
+                              {item.reason !== null && (
+                                <span className="mr-1 rounded bg-muted px-1 py-0.5 text-[10px] uppercase tracking-wide">
+                                  {reasonLabel[item.reason]}
                                 </span>
                               )}
                               {item.completedCount}/{item.repetitionsTarget}x erledigt

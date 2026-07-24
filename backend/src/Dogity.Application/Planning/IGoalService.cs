@@ -28,4 +28,13 @@ public interface IGoalService
     /// Auto-Items durch eine frische, mastery-basierte Auswahl.
     /// </summary>
     Task<Result<GoalDto>> RegenerateWeekAsync(Guid userId, Guid goalId, int weekNumber, CancellationToken ct = default);
+
+    /// <summary>
+    /// System-Pass (kein Benutzerkontext): regeneriert für alle aktiven,
+    /// nicht-individuellen Ziele die KOMMENDE Woche adaptiv neu, sofern sie
+    /// fällig ist (LastPlanGeneratedAt null oder älter als ~6 Tage). Wird vom
+    /// Hintergrund-Scheduler aufgerufen. Gibt die Anzahl regenerierter Ziele
+    /// zurück.
+    /// </summary>
+    Task<int> RegenerateDuePlansAsync(CancellationToken ct = default);
 }
