@@ -44,5 +44,18 @@ public class Goal : Entity
     /// </summary>
     public bool IsCustom { get; set; }
 
+    /// <summary>
+    /// Konfiguration für den adaptiven Wochenplan-Generator (siehe
+    /// docs/SMART_TRAINING_PLAN.md): wie viele Übungen pro Woche geplant werden
+    /// (<see cref="WeeklyExerciseCount"/>) und auf wie viele Trainingstage der
+    /// Woche sie verteilt werden (<see cref="TrainingDaysPerWeek"/>).
+    /// <see cref="LastPlanGeneratedAt"/> merkt sich, wann der Plan zuletzt (neu)
+    /// erzeugt wurde - Grundlage für die wöchentliche Neugenerierung. Die
+    /// Defaults bleiben abwärtskompatibel zum bisherigen Generatorverhalten.
+    /// </summary>
+    public int WeeklyExerciseCount { get; set; } = 5;
+    public int TrainingDaysPerWeek { get; set; } = 2;
+    public DateTimeOffset? LastPlanGeneratedAt { get; set; }
+
     public TrainingPlan? TrainingPlan { get; set; }
 }

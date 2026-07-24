@@ -31,6 +31,7 @@ public interface IApplicationDbContext
     DbSet<Goal> Goals { get; }
     DbSet<TrainingPlan> TrainingPlans { get; }
     DbSet<TrainingPlanItem> TrainingPlanItems { get; }
+    DbSet<ExerciseMastery> ExerciseMasteries { get; }
 
     DbSet<Club> Clubs { get; }
     DbSet<Group> Groups { get; }
