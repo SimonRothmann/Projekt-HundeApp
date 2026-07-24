@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dog as DogIcon, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -63,6 +64,32 @@ export default function DogsPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  // Archivierte Hunde (z.B. verstorben) getrennt vom aktiven Bestand anzeigen -
+  // sie bleiben erreichbar, verstellen aber nicht die tägliche Liste.
+  const activeDogs = dogs?.filter((d) => !d.archivedAt) ?? [];
+  const archivedDogs = dogs?.filter((d) => d.archivedAt) ?? [];
+
+  function dogCard(dog: Dog, archived = false) {
+    return (
+      <Link key={dog.id} href={`/dogs/${dog.id}`}>
+        <Card className={`transition-colors hover:bg-accent/10 ${archived ? "opacity-70" : ""}`}>
+          <CardHeader className="flex-row items-center gap-3 space-y-0">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary">
+              <DogIcon className="size-6 text-secondary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-base">{dog.name}</CardTitle>
+                {archived && <Badge variant="secondary">Archiviert</Badge>}
+              </div>
+              <p className="text-sm text-muted-foreground">{dog.breed ?? "Unbekannte Rasse"}</p>
+            </div>
+          </CardHeader>
+        </Card>
+      </Link>
+    );
   }
 
   return (
@@ -125,23 +152,24 @@ export default function DogsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {dogs.map((dog) => (
-            <Link key={dog.id} href={`/dogs/${dog.id}`}>
-              <Card className="transition-colors hover:bg-accent/10">
-                <CardHeader className="flex-row items-center gap-3 space-y-0">
-                  <div className="flex size-12 items-center justify-center rounded-full bg-secondary">
-                    <DogIcon className="size-6 text-secondary-foreground" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">{dog.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{dog.breed ?? "Unbekannte Rasse"}</p>
-                  </div>
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        <>
+          {activeDogs.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {activeDogs.map((dog) => dogCard(dog))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Alle Hunde sind archiviert.</p>
+          )}
+
+          {archivedDogs.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium text-muted-foreground">Archivierte Hunde</h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {archivedDogs.map((dog) => dogCard(dog, true))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -37,6 +37,13 @@ public class DogsController(IDogService dogService) : ApiControllerBase
         return FromResult(result);
     }
 
+    [HttpPut("{id:guid}/archive")]
+    public async Task<IActionResult> SetArchived(Guid id, ArchiveDogRequest request, CancellationToken ct)
+    {
+        var result = await dogService.SetArchivedAsync(CurrentUserId, id, request.Archived, ct);
+        return FromResult(result);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {

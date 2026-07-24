@@ -9,7 +9,8 @@ public record DogDto(
     DateOnly? Birthday,
     DogGender Gender,
     string? ImageUrl,
-    string? Notes);
+    string? Notes,
+    DateTimeOffset? ArchivedAt);
 
 public record DogOwnerDto(
     Guid UserId,
@@ -36,3 +37,5 @@ public record UpdateDogRequest(
     string? Notes);
 
 public record AddDogOwnerRequest(string Email);
+
+public record ArchiveDogRequest(bool Archived);

@@ -142,4 +142,46 @@ public class DogServiceTests
 
         Assert.False(result.Succeeded);
     }
+
+    [Fact]
+    public async Task SetArchived_ByOwner_MarksArchivedButKeepsDogAccessible()
+    {
+        var service = MakeService(out var db, out _);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+
+        var result = await service.SetArchivedAsync(ownerId, dogId, archived: true);
+
+        Assert.True(result.Succeeded);
+        // Archivierung ist KEIN Soft-Delete: der Hund bleibt abrufbar, nur mit
+        // gesetztem ArchivedAt (das Frontend blendet ihn aus der aktiven Liste aus).
+        var dog = await service.GetByIdAsync(ownerId, dogId);
+        Assert.True(dog.Succeeded);
+        Assert.NotNull(dog.Value!.ArchivedAt);
+    }
+
+    [Fact]
+    public async Task SetArchived_Unarchive_ClearsArchivedAt()
+    {
+        var service = MakeService(out var db, out _);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        await service.SetArchivedAsync(ownerId, dogId, archived: true);
+
+        var result = await service.SetArchivedAsync(ownerId, dogId, archived: false);
+
+        Assert.True(result.Succeeded);
+        var dog = await service.GetByIdAsync(ownerId, dogId);
+        Assert.Null(dog.Value!.ArchivedAt);
+    }
+
+    [Fact]
+    public async Task SetArchived_ByNonOwner_Fails()
+    {
+        var service = MakeService(out var db, out _);
+        var (_, dogId, _) = await SetupOwnedDogAsync(db, service);
+        var strangerId = Guid.NewGuid();
+
+        var result = await service.SetArchivedAsync(strangerId, dogId, archived: true);
+
+        Assert.False(result.Succeeded);
+    }
 }

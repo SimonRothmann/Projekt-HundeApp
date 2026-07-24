@@ -79,6 +79,20 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
         return Result<DogDto>.Success(ToDto(dog));
     }
 
+    public async Task<Result> SetArchivedAsync(Guid userId, Guid dogId, bool archived, CancellationToken ct = default)
+    {
+        var dog = await GetOwnedDogAsync(userId, dogId, ct);
+        if (dog is null)
+            return Result.Failure("Hund nicht gefunden.");
+
+        // Archivieren blendet den Hund nur aus (kein Soft-Delete) - die Historie
+        // bleibt vollständig erhalten und die Aktion ist jederzeit reversibel.
+        dog.ArchivedAt = archived ? DateTimeOffset.UtcNow : null;
+        dog.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
     public async Task<Result> DeleteAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
         var dog = await GetOwnedDogAsync(userId, dogId, ct);
@@ -160,5 +174,5 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
         string.IsNullOrWhiteSpace(name) ? "Name ist erforderlich." : null;
 
     private static DogDto ToDto(Dog d) =>
-        new(d.Id, d.Name, d.Breed, d.Birthday, d.Gender, d.ImageUrl, d.Notes);
+        new(d.Id, d.Name, d.Breed, d.Birthday, d.Gender, d.ImageUrl, d.Notes, d.ArchivedAt);
 }

@@ -6,7 +6,9 @@ import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { Dog, DogOwner, Goal, Sport, TrainingSession } from "@/lib/types";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Dog as DogIcon, Plus, Printer, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Archive, ArchiveRestore, Dog as DogIcon, Plus, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { TrainingForm } from "@/components/dogs/training-form";
@@ -147,6 +149,20 @@ export default function DogDetailPage() {
     }
   }
 
+  async function setArchived(archived: boolean) {
+    if (!dog) return;
+    // Archivieren blendet den Hund nur aus (reversibel, Daten bleiben) - daher
+    // nur beim Archivieren eine leichte Rückfrage, das Aufheben ist harmlos.
+    if (archived && !confirm(`Hund „${dog.name}" archivieren? Er wird aus deiner aktiven Liste ausgeblendet, alle Daten bleiben erhalten.`)) return;
+    try {
+      await api.put(`/api/dogs/${id}/archive`, { archived });
+      toast.success(archived ? `„${dog.name}" archiviert.` : `„${dog.name}" wieder aktiviert.`);
+      await loadAll();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Aktion fehlgeschlagen.");
+    }
+  }
+
   async function handleTrainingSaved(offline: boolean) {
     setShowForm(false);
     // Offline gespeicherte Trainings liegen nur in der Warteschlange - ein
@@ -163,8 +179,11 @@ export default function DogDetailPage() {
           <div className="flex size-12 items-center justify-center rounded-full bg-secondary">
             <DogIcon className="size-6 text-secondary-foreground" />
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{dog.name}</h1>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-tight">{dog.name}</h1>
+              {dog.archivedAt && <Badge variant="secondary">Archiviert</Badge>}
+            </div>
             <p className="text-muted-foreground">{dog.breed ?? "Unbekannte Rasse"}</p>
           </div>
         </div>
@@ -173,18 +192,6 @@ export default function DogDetailPage() {
             <Printer className="size-4" />
             Drucken / Exportieren
           </Link>
-          {isOwner && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
-              onClick={deleteDog}
-              title="Hund löschen"
-            >
-              <Trash2 className="size-4" />
-              <span className="hidden sm:inline">Hund löschen</span>
-            </Button>
-          )}
         </div>
       </div>
 
@@ -210,6 +217,52 @@ export default function DogDetailPage() {
       />
 
       {isOwner && <CoOwnersSection dogId={id} owners={owners} currentUserId={user?.userId} onChanged={loadAll} />}
+
+      {isOwner && (
+        <Card>
+          <CardContent className="flex flex-col gap-4 pt-6">
+            {/* Archivieren: reversibel, blendet nur aus. */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="font-medium">{dog.archivedAt ? "Hund ist archiviert" : "Hund archivieren"}</p>
+                <p className="text-sm text-muted-foreground">
+                  {dog.archivedAt
+                    ? "Ausgeblendet aus deiner aktiven Liste – alle Daten bleiben erhalten. Du kannst die Archivierung jederzeit aufheben."
+                    : "Blendet den Hund aus deiner Liste aus – Trainings, Fährten und Ziele bleiben vollständig erhalten. Ideal, wenn dein Hund verstorben ist oder pausiert."}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 self-start"
+                onClick={() => setArchived(!dog.archivedAt)}
+              >
+                {dog.archivedAt ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+                {dog.archivedAt ? "Archivierung aufheben" : "Archivieren"}
+              </Button>
+            </div>
+
+            {/* Endgültig löschen: unwiderruflich, deshalb klar abgesetzt. */}
+            <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="font-medium">Hund endgültig löschen</p>
+                <p className="text-sm text-muted-foreground">
+                  Entfernt den Hund samt aller Trainings, Fährten, Ziele und Trainerzuweisungen unwiderruflich.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 self-start text-destructive hover:text-destructive"
+                onClick={deleteDog}
+              >
+                <Trash2 className="size-4" />
+                Endgültig löschen
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

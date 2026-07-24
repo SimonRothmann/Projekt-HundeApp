@@ -21,6 +21,9 @@ export type Dog = {
   gender: DogGender;
   imageUrl: string | null;
   notes: string | null;
+  // Gesetzt, wenn der Hund archiviert ist (z.B. verstorben) - dann aus der
+  // aktiven Liste ausgeblendet, Daten bleiben erhalten. null = aktiv.
+  archivedAt: string | null;
 };
 
 export type Sport = {

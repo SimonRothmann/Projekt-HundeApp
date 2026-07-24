@@ -21,5 +21,15 @@ public class Dog : Entity
     public string? ImageUrl { get; set; }
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// Zeitpunkt der Archivierung (z.B. wenn der Hund verstorben ist). Anders als
+    /// <see cref="Entity.DeletedAt"/> ist dies KEIN Soft-Delete: der Hund bleibt
+    /// mit seiner gesamten Historie erhalten und abrufbar, wird aber aus der
+    /// aktiven Hundeliste ausgeblendet. Reversibel (Archivierung aufhebbar).
+    /// </summary>
+    public DateTimeOffset? ArchivedAt { get; set; }
+
+    public bool IsArchived => ArchivedAt is not null;
+
     public ICollection<DogOwner> Owners { get; set; } = new List<DogOwner>();
 }
