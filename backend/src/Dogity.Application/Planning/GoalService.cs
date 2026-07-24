@@ -234,6 +234,105 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider) : 
         return await GetByIdAsync(userId, goalId, ct);
     }
 
+    public async Task<Result<GoalDto>> RegenerateWeekAsync(Guid userId, Guid goalId, int weekNumber, CancellationToken ct = default)
+    {
+        if (weekNumber < 1)
+            return Result<GoalDto>.Failure("Wochennummer muss mindestens 1 sein.");
+
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct);
+        if (goal is null)
+            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+        if (goal.TrainingPlan is null)
+            return Result<GoalDto>.Failure("Dieses Ziel hat keinen Trainingsplan.");
+        // Individuelle Pläne legt der Nutzer bewusst komplett manuell an - hier
+        // wird nichts automatisch generiert (siehe Goal.IsCustom).
+        if (goal.IsCustom)
+            return Result<GoalDto>.Failure("Ein individueller Plan wird nicht automatisch generiert.");
+
+        var weekItems = goal.TrainingPlan.Items
+            .Where(i => i.WeekNumber == weekNumber && !i.IsRestWeek)
+            .ToList();
+
+        // Auto-Items mit bereits geloggtem Fortschritt (verknüpfte
+        // Tagebucheinträge) NICHT anfassen - der Fortschritt soll erhalten
+        // bleiben. Manuelle/Trainer-Items sowieso nie überschreiben.
+        var autoItemIds = weekItems.Where(i => i.Source == PlanItemSource.Auto).Select(i => i.Id).ToList();
+        var itemIdsWithLogs = autoItemIds.Count == 0
+            ? new HashSet<Guid>()
+            : (await db.TrainingExercises
+                .Where(e => e.TrainingPlanItemId != null && autoItemIds.Contains(e.TrainingPlanItemId!.Value))
+                .Select(e => e.TrainingPlanItemId!.Value)
+                .Distinct()
+                .ToListAsync(ct)).ToHashSet();
+
+        var preserved = weekItems
+            .Where(i => i.Source != PlanItemSource.Auto || itemIdsWithLogs.Contains(i.Id))
+            .ToList();
+        var removable = weekItems
+            .Where(i => i.Source == PlanItemSource.Auto && !itemIdsWithLogs.Contains(i.Id))
+            .ToList();
+
+        foreach (var item in removable)
+            item.DeletedAt = DateTimeOffset.UtcNow;
+
+        // Bereits (erhalten) verplante Übungen ausschließen, damit sie nicht
+        // doppelt in derselben Woche landen.
+        var preservedExerciseIds = preserved.Where(i => i.ExerciseId is not null).Select(i => i.ExerciseId!.Value).ToHashSet();
+        var candidates = await BuildAdaptiveCandidatesAsync(goal, preservedExerciseIds, ct);
+
+        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var remainingSlots = Math.Max(0, goal.WeeklyExerciseCount - preserved.Count);
+        if (remainingSlots > 0 && candidates.Count > 0)
+        {
+            var config = new AdaptivePlanConfig(remainingSlots, goal.TrainingDaysPerWeek);
+            foreach (var generated in AdaptivePlanGenerator.GenerateWeek(today, weekNumber, candidates, config))
+            {
+                generated.TrainingPlanId = goal.TrainingPlan.Id;
+                // Über das DbSet, nicht die getrackte Navigation: sonst stuft EF
+                // die neuen Items per Collection-Fixup als Modified statt Added
+                // ein (siehe TrainingService.CreateAsync).
+                db.TrainingPlanItems.Add(generated);
+            }
+        }
+
+        goal.LastPlanGeneratedAt = timeProvider.GetUtcNow();
+        await db.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(userId, goalId, ct);
+    }
+
+    // Baut die Kandidatenliste für den adaptiven Generator: Katalog der Prüfung/
+    // Sportart (wie bei der Erstgenerierung) angereichert um den Mastery-Zustand
+    // je Übung des Hundes; bereits verplante (erhaltene) Übungen werden
+    // ausgeschlossen.
+    private async Task<List<AdaptiveCandidate>> BuildAdaptiveCandidatesAsync(Goal goal, HashSet<Guid> excludeExerciseIds, CancellationToken ct)
+    {
+        var pool = await ResolvePlanCandidatesAsync(goal.SportId, goal.RegulationId, ct);
+        var mandatory = pool.Where(c => c.IsMandatory).ToList();
+        if (mandatory.Count == 0) mandatory = pool;
+
+        var exerciseIds = mandatory.Select(c => c.ExerciseId).ToList();
+        var masteries = await db.ExerciseMasteries
+            .Where(m => m.DogId == goal.DogId && exerciseIds.Contains(m.ExerciseId))
+            .ToDictionaryAsync(m => m.ExerciseId, ct);
+
+        return mandatory
+            .Where(c => !excludeExerciseIds.Contains(c.ExerciseId))
+            .Select(c =>
+            {
+                masteries.TryGetValue(c.ExerciseId, out var m);
+                return new AdaptiveCandidate(
+                    c.ExerciseId,
+                    c.Name,
+                    c.Difficulty,
+                    m?.SessionCount ?? 0,
+                    m?.RecentAvgRating ?? 0,
+                    m?.DueAt is { } due ? DateOnly.FromDateTime(due.UtcDateTime) : null,
+                    m?.ManualPriority ?? 0);
+            })
+            .ToList();
+    }
+
     private IQueryable<Goal> LoadGoalsQuery() =>
         db.Goals
             .Include(g => g.TrainingPlan)

@@ -20,4 +20,12 @@ public interface IGoalService
     Task<Result<GoalDto>> AddPlanItemAsync(Guid userId, Guid goalId, AddTrainingPlanItemRequest request, CancellationToken ct = default);
     Task<Result<GoalDto>> UpdatePlanItemAsync(Guid userId, Guid goalId, Guid itemId, UpdateTrainingPlanItemRequest request, CancellationToken ct = default);
     Task<Result<GoalDto>> RemovePlanItemAsync(Guid userId, Guid goalId, Guid itemId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Generiert eine Woche des Plans adaptiv neu (siehe
+    /// docs/SMART_TRAINING_PLAN.md, P4). Erhält manuelle/Trainer-Items und
+    /// Auto-Items mit geloggtem Fortschritt; ersetzt nur fortschrittslose
+    /// Auto-Items durch eine frische, mastery-basierte Auswahl.
+    /// </summary>
+    Task<Result<GoalDto>> RegenerateWeekAsync(Guid userId, Guid goalId, int weekNumber, CancellationToken ct = default);
 }

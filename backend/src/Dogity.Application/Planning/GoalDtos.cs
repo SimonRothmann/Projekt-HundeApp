@@ -56,6 +56,14 @@ public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, Da
 public record UpdateGoalStatusRequest(GoalStatus Status);
 
 /// <summary>
+/// Generiert die angegebene Woche des Plans adaptiv neu (siehe
+/// docs/SMART_TRAINING_PLAN.md). Manuelle/Trainer-Items und Auto-Items mit
+/// bereits geloggtem Fortschritt bleiben erhalten; nur fortschrittslose
+/// Auto-Items werden durch eine frische, mastery-basierte Auswahl ersetzt.
+/// </summary>
+public record RegenerateWeekRequest(int WeekNumber);
+
+/// <summary>
 /// Entweder <paramref name="ExerciseId"/> ODER <paramref name="FreeTextLabel"/>
 /// setzen. Freitext-Plan-Items landen ohne Exercise-Referenz im Plan und
 /// tragen auch keinen Fortschritts-Fortschritt aus Tagebucheinträgen (die

@@ -64,4 +64,11 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
         var result = await goalService.RemovePlanItemAsync(CurrentUserId, id, itemId, ct);
         return FromResult(result);
     }
+
+    [HttpPut("{id:guid}/regenerate-week")]
+    public async Task<ActionResult<GoalDto>> RegenerateWeek(Guid id, RegenerateWeekRequest request, CancellationToken ct)
+    {
+        var result = await goalService.RegenerateWeekAsync(CurrentUserId, id, request.WeekNumber, ct);
+        return FromResult(result);
+    }
 }
