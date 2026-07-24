@@ -1,3 +1,4 @@
+using Dogity.Application.Planning;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Application.Training;
 using Dogity.Domain.Community;
@@ -19,7 +20,7 @@ public class TrainingServiceTests
     private static TrainingService MakeService(out Dogity.Infrastructure.Persistence.ApplicationDbContext db)
     {
         db = InMemoryDbContext.Create();
-        return new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService());
+        return new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db));
     }
 
     private sealed record Setup(Guid UserId, Guid DogId, Guid CatalogExerciseId, Guid CatalogItemId, Guid FreeTextItemId, Guid RestWeekItemId);
@@ -358,7 +359,7 @@ public class TrainingServiceTests
     {
         var db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService();
-        var service = new TrainingService(db, new FakeNotificationService(), lookup);
+        var service = new TrainingService(db, new FakeNotificationService(), lookup, new ExerciseMasteryService(db));
         var setup = await SetupPlanAsync(db);
         lookup.Register(setup.UserId, "max@dogity.test", "Max", "Mustermann");
         var (trainerId, sessionId, exerciseId) = await SetupTrainerAndExerciseAsync(service, db, setup);

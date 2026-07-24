@@ -70,7 +70,7 @@ Statt reinem Score-Ranking ein festes Budget je Woche (N = `WeeklyExerciseCount`
 
 ## 10. Phasen (spätere Umsetzung in Scheiben)
 - **P1 – Datenmodell:** ✅ erledigt (Migration `AddAdaptivePlanningModel`). Goal: `WeeklyExerciseCount` (Default 5), `TrainingDaysPerWeek` (Default 2), `LastPlanGeneratedAt`. `TrainingPlanItem`: `DayIndex` (Default 1), `Source` (Default Auto), `Reason`, `Difficulty`. Neue Entity `ExerciseMastery` (inkl. `ManualPriority`) + Unique-Index (Dog, Übung).
-- **P2 – Mastery-Update:** Leitner-Update in `TrainingService` bei jedem Log; Backfill bestehender Logs (einmalig).
+- **P2 – Mastery-Update:** ✅ erledigt. `ExerciseMasteryService` (Leitner-Boxen 2/4/7/14/28 Tage + EMA der Bewertungen); Hook in `TrainingService.CreateAsync` (beide Zweige, im selben SaveChanges); einmaliger, idempotenter Backfill (`BackfillIfEmptyAsync`, beim Anwendungsstart nach den Seedern). 5 Unit-Tests.
 - **P3 – Generator v2:** pure Auswahlfunktion (Slot-Budget + Score + Tagesverteilung + Schwierigkeits-Sortierung), idempotent, unit-getestet.
 - **P4 – Scheduler + API:** `BackgroundService`, `regenerate-week`, Schutz manueller/geloggter Items.
 - **P5 – Frontend:** Konfig-UI, tages-gruppierte Ansicht, Grund-Badges, Regen-Button, Notification.

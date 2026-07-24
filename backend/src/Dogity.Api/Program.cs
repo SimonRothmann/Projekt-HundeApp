@@ -1,4 +1,5 @@
 using Dogity.Application;
+using Dogity.Application.Planning;
 using Dogity.Infrastructure;
 using Dogity.Infrastructure.Identity;
 using Dogity.Infrastructure.Persistence;
@@ -126,6 +127,11 @@ using (var scope = app.Services.CreateScope())
 
     if (app.Environment.IsDevelopment())
         await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
+
+    // Einmaliger Backfill der Übungs-Mastery aus der bestehenden Historie
+    // (P2, siehe docs/SMART_TRAINING_PLAN.md). Läuft NACH allen Seedern und
+    // vor dem Serving; ist idempotent (nur solange keine Mastery-Zeilen da sind).
+    await scope.ServiceProvider.GetRequiredService<IExerciseMasteryService>().BackfillIfEmptyAsync();
 }
 
 if (app.Environment.IsDevelopment())

@@ -1,6 +1,7 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Application.Notifications;
+using Dogity.Application.Planning;
 using Dogity.Domain.Training;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,7 @@ namespace Dogity.Application.Training;
 /// Zugriff ist immer auf Trainingseinheiten beschränkt, deren Hund dem
 /// aufrufenden Benutzer über <see cref="Domain.Dogs.DogOwner"/> zugeordnet ist.
 /// </summary>
-public class TrainingService(IApplicationDbContext db, INotificationService notifications, IUserLookupService userLookup) : ITrainingService
+public class TrainingService(IApplicationDbContext db, INotificationService notifications, IUserLookupService userLookup, IExerciseMasteryService mastery) : ITrainingService
 {
     /// <summary>
     /// Trainings eines Hundes, optional auf einen Datumsbereich beschränkt
@@ -125,6 +126,11 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                         Notes = exercise.Notes,
                         TrainingPlanItemId = exercise.TrainingPlanItemId
                     });
+
+                    // Wiedervorlage-Zustand der Katalog-Übung mitziehen (P2) - wird
+                    // vom gemeinsamen SaveChanges unten mitgespeichert.
+                    if (exercise.ExerciseId is { } exId)
+                        await mastery.ApplyLogAsync(request.DogId, exId, exercise.Rating, exercise.Success, request.Date, ct);
                 }
 
                 daySession.DurationMinutes += request.DurationMinutes;
@@ -168,6 +174,10 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                 Notes = exercise.Notes,
                 TrainingPlanItemId = exercise.TrainingPlanItemId
             });
+
+            // Wiedervorlage-Zustand der Katalog-Übung mitziehen (P2).
+            if (exercise.ExerciseId is { } exId)
+                await mastery.ApplyLogAsync(request.DogId, exId, exercise.Rating, exercise.Success, request.Date, ct);
         }
 
         db.TrainingSessions.Add(session);
