@@ -450,20 +450,19 @@ export function GoalPlanCard({
                       {item.logs.length > 0 && (
                         <ul className="ml-6 flex flex-col gap-1 border-l pl-2.5">
                           {item.logs.map((log) => (
-                            // Eine Zeile pro Log als GRID: Spalte 1 = feste Meta
-                            // (Datum/Sterne, auto), Spalte 2 = minmax(0,1fr) für den
-                            // Kommentar. Das 0-Minimum ist ein DEFINITER Wert und
-                            // deckelt die Spaltenbreite zuverlässig - so kürzt sich
-                            // der Kommentar mit "…" ab, OHNE dass seine volle Textbreite
-                            // als min-content die Seite aufbläht (früher flex-wrap +
-                            // flex-1: dort zog der Browser die max-content heran ->
-                            // horizontaler Scroll). Der Editor spannt beide Spalten
-                            // (col-span-2) und bekommt so eine eigene volle Zeile.
-                            <li key={log.trainingExerciseId} className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-1 gap-y-1 text-xs text-muted-foreground">
-                              <span className="shrink-0 whitespace-nowrap">
+                            // Eine Zeile pro Log als reiner Textfluss: Meta (Datum/
+                            // Sterne) nowrap, dann der Kommentar im selben Fluss -
+                            // kurze Kommentare stehen neben der Meta, lange brechen um
+                            // und sind voll lesbar (Stift folgt am Textende). Das
+                            // overflow-wrap:anywhere deckelt die min-content (bricht
+                            // notfalls überlange Wörter), sodass die nowrap-Meta das
+                            // einzige Breiten-Minimum ist und nichts die Seite aufbläht
+                            // (Mobile-App-first, kein horizontaler Scroll).
+                            <li key={log.trainingExerciseId} className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                              <span className="whitespace-nowrap">
                                 {new Date(log.date).toLocaleDateString("de-DE")} · {"★".repeat(log.rating)}
                                 {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}
-                              </span>
+                              </span>{" "}
                               <ExerciseNotes exerciseId={log.trainingExerciseId} notes={log.notes} onSaved={onChanged} compact />
                             </li>
                           ))}

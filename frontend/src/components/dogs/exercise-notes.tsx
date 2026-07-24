@@ -56,14 +56,12 @@ export function ExerciseNotes({
   }
 
   if (editing) {
-    // col-span-2 + w-full + flex-col: im Plan-Log-Grid spannt der Editor beide
-    // Spalten und bekommt so eine EIGENE volle Zeile unter der Meta (in Flex-
-    // Kontexten wie der Session-History ist col-span-2 wirkungslos). Statt eines
-    // einzeiligen, horizontal gequetschten Inputs eine mehrzeilige Textarea, die
-    // mit dem Inhalt mitwächst - langer Kommentar bricht um und ist ganz sichtbar
-    // (Mobile-App-first, kein horizontaler Scroll).
+    // Block-Editor (flex-col) bricht im Textfluss der Plan-Log-Zeile auf eine
+    // EIGENE volle Zeile um (unter die Meta). Statt eines einzeiligen, horizontal
+    // gequetschten Inputs eine mehrzeilige Textarea, die mit dem Inhalt mitwächst -
+    // langer Kommentar bricht um und ist ganz sichtbar (Mobile-App-first).
     return (
-      <span className="col-span-2 flex w-full min-w-0 flex-col gap-1.5">
+      <span className="flex w-full min-w-0 flex-col gap-1.5">
         <textarea
           ref={textareaRef}
           className="max-h-[200px] min-h-16 w-full min-w-0 resize-none rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
@@ -102,7 +100,7 @@ export function ExerciseNotes({
       <Button
         size="sm"
         variant="ghost"
-        className={compact ? "h-6 px-1 text-[11px] text-muted-foreground" : "h-7 self-start px-2 text-xs text-muted-foreground"}
+        className={compact ? "h-6 px-1 align-middle text-xs text-muted-foreground" : "h-7 self-start px-2 text-xs text-muted-foreground"}
         onClick={() => {
           setValue("");
           setEditing(true);
@@ -114,18 +112,34 @@ export function ExerciseNotes({
     );
   }
 
+  // compact (Trainingsplan-Log): fließt inline im Textfluss der Zeile mit -
+  // der Kommentar steht (bei kurzem Text) neben der Meta bzw. bricht (bei langem
+  // Text) um, der Stift folgt direkt am Textende. Kein eigener Flex-Container,
+  // damit nichts eine feste Breite erzwingt (kein horizontaler Scroll).
+  if (compact) {
+    return (
+      <>
+        <span className="italic">„{notes}“</span>{" "}
+        <Button
+          size="icon"
+          variant="ghost"
+          className="inline-flex size-5 shrink-0 align-middle"
+          onClick={() => {
+            setValue(notes ?? "");
+            setEditing(true);
+          }}
+          title="Notiz bearbeiten"
+        >
+          <Pencil className="size-3" />
+        </Button>
+      </>
+    );
+  }
+
+  // Nicht-compact (Tagebuch): eigener Block, langer Kommentar bricht um.
   return (
-    <span
-      className={
-        // compact (Trainingsplan-Log): eine Zeile, Kommentar kürzt sich mit
-        // "…" ab, Stift bleibt daneben. Nicht-compact (Tagebuch): eigener
-        // Block, langer Kommentar bricht um.
-        compact
-          ? "flex min-w-0 flex-1 items-center gap-1 text-[11px] text-muted-foreground"
-          : "inline-flex max-w-full items-start gap-1 text-xs text-muted-foreground"
-      }
-    >
-      <span className={compact ? "min-w-0 truncate italic" : "min-w-0 break-words italic"}>„{notes}“</span>
+    <span className="inline-flex max-w-full items-start gap-1 text-xs text-muted-foreground">
+      <span className="min-w-0 break-words italic">„{notes}“</span>
       <Button
         size="icon"
         variant="ghost"
