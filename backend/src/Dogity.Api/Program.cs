@@ -127,6 +127,7 @@ using (var scope = app.Services.CreateScope())
     await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
     await RoleSeeder.SeedAsync(scope.ServiceProvider);
     await SportCatalogSeeder.SeedAsync(scope.ServiceProvider);
+    await GroupTrainingSeeder.SeedAsync(scope.ServiceProvider);
     await AdminBootstrapper.SeedAsync(scope.ServiceProvider, builder.Configuration);
 
     if (app.Environment.IsDevelopment())

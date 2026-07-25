@@ -45,6 +45,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<TrainerAssignment> TrainerAssignments => Set<TrainerAssignment>();
     public DbSet<ClubTrainer> ClubTrainers => Set<ClubTrainer>();
     public DbSet<ClubMembership> ClubMemberships => Set<ClubMembership>();
+    public DbSet<GroupTrainingUnit> GroupTrainingUnits => Set<GroupTrainingUnit>();
+    public DbSet<GroupTrainingUnitItem> GroupTrainingUnitItems => Set<GroupTrainingUnitItem>();
 
     public DbSet<GpsTrack> GpsTracks => Set<GpsTrack>();
     public DbSet<GpsPoint> GpsPoints => Set<GpsPoint>();
@@ -92,6 +94,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<TrainerAssignment>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<ClubTrainer>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<ClubMembership>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GroupTrainingUnit>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GroupTrainingUnitItem>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsTrack>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsPoint>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkRun>().HasQueryFilter(e => e.DeletedAt == null);

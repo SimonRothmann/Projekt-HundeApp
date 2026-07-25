@@ -91,3 +91,42 @@ public class ClubMembershipConfiguration : IEntityTypeConfiguration<ClubMembersh
         builder.HasIndex(m => m.UserId);
     }
 }
+
+public class GroupTrainingUnitConfiguration : IEntityTypeConfiguration<GroupTrainingUnit>
+{
+    public void Configure(EntityTypeBuilder<GroupTrainingUnit> builder)
+    {
+        builder.ToTable("group_training_units");
+        builder.Property(u => u.Title).HasMaxLength(200).IsRequired();
+        builder.Property(u => u.Description).HasMaxLength(2000);
+        builder.Property(u => u.Category).HasConversion<string>().HasMaxLength(20);
+
+        // Kopiert ein Trainer eine Vorlage in seine Gruppe, wird die Gruppe
+        // referenziert; wird die Gruppe gelöscht, verschwinden ihre Einheiten mit.
+        builder.HasOne(u => u.Group)
+            .WithMany()
+            .HasForeignKey(u => u.GroupId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(u => u.GroupId);
+        builder.HasIndex(u => new { u.Category, u.CreatedByUserId });
+    }
+}
+
+public class GroupTrainingUnitItemConfiguration : IEntityTypeConfiguration<GroupTrainingUnitItem>
+{
+    public void Configure(EntityTypeBuilder<GroupTrainingUnitItem> builder)
+    {
+        builder.ToTable("group_training_unit_items");
+        builder.Property(i => i.Title).HasMaxLength(200).IsRequired();
+        builder.Property(i => i.Description).HasMaxLength(2000);
+        builder.Property(i => i.Focus).HasMaxLength(80);
+
+        builder.HasOne(i => i.Unit)
+            .WithMany(u => u.Items)
+            .HasForeignKey(i => i.GroupTrainingUnitId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(i => i.GroupTrainingUnitId);
+    }
+}

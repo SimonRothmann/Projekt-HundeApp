@@ -39,6 +39,8 @@ public interface IApplicationDbContext
     DbSet<TrainerAssignment> TrainerAssignments { get; }
     DbSet<ClubTrainer> ClubTrainers { get; }
     DbSet<ClubMembership> ClubMemberships { get; }
+    DbSet<GroupTrainingUnit> GroupTrainingUnits { get; }
+    DbSet<GroupTrainingUnitItem> GroupTrainingUnitItems { get; }
 
     DbSet<GpsTrack> GpsTracks { get; }
     DbSet<GpsPoint> GpsPoints { get; }
