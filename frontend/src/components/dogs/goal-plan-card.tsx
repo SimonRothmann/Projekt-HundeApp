@@ -28,6 +28,32 @@ function groupByWeek(items: TrainingPlanItem[]): [number, TrainingPlanItem[]][] 
   return [...byWeek.entries()];
 }
 
+// Bestimmt die aktuelle Trainingswoche kalendarisch: Woche 1 startet mit der
+// Plan-Erstellung (generatedAt), jede weitere angebrochene 7-Tage-Woche zählt
+// eins hoch. Ergebnis wird auf die tatsächlich vorhandenen Wochennummern
+// begrenzt (vor Planstart -> erste Woche, nach Planende -> letzte Woche).
+// Fällt auf die erste Woche zurück, wenn kein/ungültiges Startdatum vorliegt.
+function computeCurrentWeek(
+  weeks: [number, TrainingPlanItem[]][],
+  generatedAt: string | undefined,
+): number | undefined {
+  if (weeks.length === 0) return undefined;
+  const weekNumbers = weeks.map(([n]) => n);
+  const minWeek = Math.min(...weekNumbers);
+  const maxWeek = Math.max(...weekNumbers);
+
+  const start = generatedAt ? new Date(generatedAt).getTime() : NaN;
+  if (Number.isNaN(start)) return weekNumbers[0];
+
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const byDate = Math.floor((Date.now() - start) / weekMs) + 1;
+  const clamped = Math.min(Math.max(byDate, minWeek), maxWeek);
+  // Bei (seltenen) Lücken die nächste vorhandene Wochennummer wählen.
+  return weekNumbers.includes(clamped)
+    ? clamped
+    : (weekNumbers.filter((n) => n >= clamped).sort((a, b) => a - b)[0] ?? maxWeek);
+}
+
 // Innerhalb einer Woche nach Trainingstag gruppieren (aufsteigend). Wird nur
 // als sichtbare "Tag N"-Struktur genutzt, wenn eine Woche tatsächlich mehr als
 // einen Trainingstag hat (Alt-Pläne liegen alle auf Tag 1 -> flache Ansicht).
@@ -369,10 +395,11 @@ export function GoalPlanCard({
   }
 
   const weeks = goal.trainingPlan ? groupByWeek(goal.trainingPlan.items) : [];
-  // Aktuelle Trainingswoche = erste Nicht-Pause-Woche mit noch offener Übung
-  // (Fallback: erste Woche). Nur sie ist standardmäßig aufgeklappt.
-  const currentWeek =
-    weeks.find(([, items]) => !items[0].isRestWeek && items.some((i) => !i.isComplete))?.[0] ?? weeks[0]?.[0];
+  // Aktuelle Trainingswoche kalendarisch bestimmen: Woche 1 beginnt mit der
+  // Plan-Erstellung (generatedAt), danach zählt jede angebrochene 7-Tage-Woche
+  // hoch. Nur die aktuelle Woche ist standardmäßig aufgeklappt (nicht immer
+  // Woche 1). Auf die tatsächlich vorhandenen Wochennummern begrenzt.
+  const currentWeek = computeCurrentWeek(weeks, goal.trainingPlan?.generatedAt);
   const effectiveOpenWeeks =
     openWeeks.size === 0 && currentWeek != null ? new Set([currentWeek]) : openWeeks;
   function toggleWeek(week: number) {
