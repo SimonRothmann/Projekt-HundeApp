@@ -197,6 +197,37 @@ export type Club = {
   groupCount: number;
 };
 
+// Gruppen-Trainingseinheiten (siehe Domain.Community.GroupTrainingCategory).
+export type GroupTrainingCategory = 0 | 1 | 2; // 0 = Welpen, 1 = Junghunde, 2 = Allgemein
+
+export type GroupTrainingItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  focus: string | null;
+  durationMinutes: number | null;
+  sortOrder: number;
+};
+
+export type GroupTrainingUnit = {
+  id: string;
+  title: string;
+  description: string | null;
+  category: GroupTrainingCategory;
+  groupId: string | null;
+  // true = vorgefertigte System-Vorlage (nicht bearbeitbar).
+  isTemplate: boolean;
+  // true = vom aktuellen Trainer erstellt (bearbeit-/löschbar).
+  isMine: boolean;
+  totalMinutes: number;
+  items: GroupTrainingItem[];
+};
+
+export type GroupTrainingLibrary = {
+  templates: GroupTrainingUnit[];
+  mine: GroupTrainingUnit[];
+};
+
 export type ClubTrainerInfo = {
   userId: string;
   email: string;

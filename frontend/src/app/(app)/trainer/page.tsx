@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus } from "lucide-react";
+import { Users, Plus, ClipboardList, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { CatalogSection } from "@/components/sports/catalog-section";
 import { ClubJoinRequestsSection } from "@/components/trainer/club-join-requests-section";
@@ -72,6 +72,23 @@ export default function TrainerPage() {
           individuellen Trainingsplänen.
         </p>
       </div>
+
+      <Link href="/trainer/group-training">
+        <Card className="transition-colors hover:bg-accent/30">
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-3">
+              <ClipboardList className="size-6 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <CardTitle className="text-base">Gruppentraining</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Fertige Einheiten für Welpen &amp; Junghunde übernehmen oder eigene zusammenstellen
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+          </CardHeader>
+        </Card>
+      </Link>
 
       <Card>
         <CardHeader>
