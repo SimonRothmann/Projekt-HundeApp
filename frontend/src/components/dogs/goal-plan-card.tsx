@@ -103,6 +103,11 @@ export function GoalPlanCard({
   const [cfgDays, setCfgDays] = useState(goal.trainingDaysPerWeek);
   const [savingConfig, setSavingConfig] = useState(false);
 
+  // Pro-Woche abweichende Trainingstage: welche Woche gerade bearbeitet wird.
+  const [editingWeekDays, setEditingWeekDays] = useState<number | null>(null);
+  const [weekDaysDraft, setWeekDaysDraft] = useState(2);
+  const [savingWeekDays, setSavingWeekDays] = useState(false);
+
   async function ensureExercisesLoaded() {
     if (exercises !== null) return;
     try {
@@ -121,7 +126,14 @@ export function GoalPlanCard({
   const [addUseFreeText, setAddUseFreeText] = useState(false);
   const [addWeek, setAddWeek] = useState(1);
   const [addTarget, setAddTarget] = useState(2);
+  const [addDay, setAddDay] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
+
+  // Effektive Trainingstage einer Woche: Pro-Woche-Überschreibung, sonst
+  // der Plan-Default. Bestimmt, wie viele Tage beim Hinzufügen/Bearbeiten
+  // einer Übung wählbar sind.
+  const daysForWeek = (week: number) =>
+    goal.weekConfigs.find((w) => w.weekNumber === week)?.trainingDaysPerWeek ?? goal.trainingDaysPerWeek;
 
   async function openAdd(location: "central" | "inline", week: number) {
     const isSame = addForm?.location === location && addForm.week === week;
@@ -135,6 +147,7 @@ export function GoalPlanCard({
     setAddFreeText("");
     setAddUseFreeText(false);
     setAddTarget(2);
+    setAddDay(1);
     await ensureExercisesLoaded();
   }
 
@@ -150,6 +163,7 @@ export function GoalPlanCard({
         exerciseId: addUseFreeText ? null : addExerciseId,
         freeTextLabel: addUseFreeText ? addFreeText.trim() : null,
         repetitionsTarget: addTarget,
+        dayIndex: addDay,
       });
       toast.success("Übung zum Plan hinzugefügt.");
       setAddForm(null);
@@ -193,6 +207,25 @@ export function GoalPlanCard({
     setEditingConfig(true);
   }
 
+  function startEditWeekDays(weekNumber: number) {
+    setWeekDaysDraft(daysForWeek(weekNumber));
+    setEditingWeekDays(weekNumber);
+  }
+
+  async function saveWeekDays(weekNumber: number) {
+    setSavingWeekDays(true);
+    try {
+      await api.put(`/api/goals/${goal.id}/weeks/${weekNumber}/config`, { trainingDaysPerWeek: weekDaysDraft });
+      toast.success(`Trainingstage für Woche ${weekNumber} gespeichert.`);
+      setEditingWeekDays(null);
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Trainingstage konnten nicht gespeichert werden.");
+    } finally {
+      setSavingWeekDays(false);
+    }
+  }
+
   async function saveConfig() {
     setSavingConfig(true);
     try {
@@ -211,6 +244,7 @@ export function GoalPlanCard({
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const [editWeek, setEditWeek] = useState(1);
   const [editTarget, setEditTarget] = useState(2);
+  const [editDay, setEditDay] = useState(1);
   const [editExerciseId, setEditExerciseId] = useState("");
   const [editFreeText, setEditFreeText] = useState("");
   const [editUseFreeText, setEditUseFreeText] = useState(false);
@@ -222,6 +256,7 @@ export function GoalPlanCard({
     if (isSame) return;
     setEditWeek(item.weekNumber);
     setEditTarget(item.repetitionsTarget);
+    setEditDay(item.dayIndex);
     setEditExerciseId(item.exerciseId ?? "");
     setEditFreeText(item.freeTextLabel ?? "");
     setEditUseFreeText(item.freeTextLabel !== null);
@@ -240,6 +275,7 @@ export function GoalPlanCard({
         exerciseId: editUseFreeText ? null : editExerciseId,
         freeTextLabel: editUseFreeText ? editFreeText.trim() : null,
         repetitionsTarget: editTarget,
+        dayIndex: editDay,
       });
       toast.success("Plan-Ziel aktualisiert.");
       setEditItemId(null);
@@ -381,6 +417,18 @@ export function GoalPlanCard({
             <Label>Zielwert (x diese Woche)</Label>
             <Input type="number" min={1} max={10} value={addTarget} onChange={(e) => setAddTarget(Number(e.target.value))} />
           </div>
+          {daysForWeek(addWeek) > 1 && (
+            <div className="flex flex-col gap-2">
+              <Label>Trainingstag</Label>
+              <Input
+                type="number"
+                min={1}
+                max={daysForWeek(addWeek)}
+                value={addDay}
+                onChange={(e) => setAddDay(Number(e.target.value))}
+              />
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
           <Button type="button" size="sm" disabled={isAdding} onClick={submitAdd}>
@@ -489,31 +537,64 @@ export function GoalPlanCard({
                   {isOpen && (
                     <div className="flex flex-col gap-1.5 border-t p-2.5">
                       {goal.status === 0 && !isRest && (
-                        <div className="flex items-center justify-end gap-2">
-                          {!goal.isCustom && (
+                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                          {/* Pro-Woche abweichende Trainingstage (überschreibt den
+                              Plan-Default nur für diese Woche). */}
+                          {editingWeekDays === weekNumber ? (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <span>Trainingstage:</span>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={7}
+                                className="h-6 w-14"
+                                value={weekDaysDraft}
+                                onChange={(e) => setWeekDaysDraft(Number(e.target.value))}
+                              />
+                              <Button type="button" size="sm" className="h-6 px-2 text-xs" disabled={savingWeekDays} onClick={() => saveWeekDays(weekNumber)}>
+                                {savingWeekDays ? "…" : "OK"}
+                              </Button>
+                              <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingWeekDays(null)}>
+                                Abbrechen
+                              </Button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                              onClick={() => startEditWeekDays(weekNumber)}
+                              title="Trainingstage dieser Woche anpassen"
+                            >
+                              {daysForWeek(weekNumber)} Trainingstag{daysForWeek(weekNumber) > 1 ? "e" : ""}
+                              <Pencil className="size-3" />
+                            </button>
+                          )}
+                          <div className="flex items-center gap-2">
+                            {!goal.isCustom && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-xs"
+                                disabled={regeneratingWeek === weekNumber}
+                                onClick={() => regenerateWeek(weekNumber)}
+                                title="Diese Woche adaptiv neu generieren (erhält manuelle & bereits trainierte Übungen)"
+                              >
+                                <RefreshCw className={cn("size-3", regeneratingWeek === weekNumber && "animate-spin")} />
+                                {regeneratingWeek === weekNumber ? "Generiere…" : "Neu generieren"}
+                              </Button>
+                            )}
                             <Button
                               type="button"
                               size="sm"
                               variant="ghost"
                               className="h-6 px-2 text-xs"
-                              disabled={regeneratingWeek === weekNumber}
-                              onClick={() => regenerateWeek(weekNumber)}
-                              title="Diese Woche adaptiv neu generieren (erhält manuelle & bereits trainierte Übungen)"
+                              onClick={() => openAdd("inline", weekNumber)}
                             >
-                              <RefreshCw className={cn("size-3", regeneratingWeek === weekNumber && "animate-spin")} />
-                              {regeneratingWeek === weekNumber ? "Generiere…" : "Neu generieren"}
+                              <Plus className="size-3" />
+                              Übung
                             </Button>
-                          )}
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-2 text-xs"
-                            onClick={() => openAdd("inline", weekNumber)}
-                          >
-                            <Plus className="size-3" />
-                            Übung
-                          </Button>
+                          </div>
                         </div>
                       )}
                       {isRest ? (
@@ -623,6 +704,12 @@ export function GoalPlanCard({
                               <Label className="text-xs">Zielwert (x diese Woche)</Label>
                               <Input type="number" min={1} max={10} value={editTarget} onChange={(e) => setEditTarget(Number(e.target.value))} />
                             </div>
+                            {daysForWeek(editWeek) > 1 && (
+                              <div className="flex flex-col gap-1">
+                                <Label className="text-xs">Trainingstag</Label>
+                                <Input type="number" min={1} max={daysForWeek(editWeek)} value={editDay} onChange={(e) => setEditDay(Number(e.target.value))} />
+                              </div>
+                            )}
                           </div>
                           <div className="flex gap-2">
                             <Button type="button" size="sm" disabled={isEditing} onClick={() => submitEdit(item.id)}>

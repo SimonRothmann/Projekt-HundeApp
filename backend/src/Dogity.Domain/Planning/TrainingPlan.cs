@@ -17,4 +17,11 @@ public class TrainingPlan : Entity
     public DateTimeOffset GeneratedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public ICollection<TrainingPlanItem> Items { get; set; } = new List<TrainingPlanItem>();
+
+    /// <summary>
+    /// Pro-Woche-Überschreibungen der Trainingstage (siehe
+    /// <see cref="TrainingPlanWeekConfig"/>). Wochen ohne Eintrag nutzen den
+    /// Plan-Default <see cref="Goal.TrainingDaysPerWeek"/>.
+    /// </summary>
+    public ICollection<TrainingPlanWeekConfig> WeekConfigs { get; set; } = new List<TrainingPlanWeekConfig>();
 }

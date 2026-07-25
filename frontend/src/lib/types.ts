@@ -153,6 +153,14 @@ export type TrainingPlan = {
   items: TrainingPlanItem[];
 };
 
+// Pro-Woche-Überschreibung der Trainingstage (siehe
+// Domain.Planning.TrainingPlanWeekConfig). Nur Wochen mit abweichendem Wert
+// sind enthalten; alle übrigen nutzen Goal.trainingDaysPerWeek.
+export type WeekConfig = {
+  weekNumber: number;
+  trainingDaysPerWeek: number;
+};
+
 export type Goal = {
   id: string;
   dogId: string;
@@ -166,6 +174,7 @@ export type Goal = {
   isCustom: boolean;
   weeklyExerciseCount: number;
   trainingDaysPerWeek: number;
+  weekConfigs: WeekConfig[];
   trainingPlan: TrainingPlan | null;
 };
 

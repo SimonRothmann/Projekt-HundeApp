@@ -37,6 +37,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Goal> Goals => Set<Goal>();
     public DbSet<TrainingPlan> TrainingPlans => Set<TrainingPlan>();
     public DbSet<TrainingPlanItem> TrainingPlanItems => Set<TrainingPlanItem>();
+    public DbSet<TrainingPlanWeekConfig> TrainingPlanWeekConfigs => Set<TrainingPlanWeekConfig>();
     public DbSet<ExerciseMastery> ExerciseMasteries => Set<ExerciseMastery>();
 
     public DbSet<Club> Clubs => Set<Club>();
@@ -87,6 +88,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<Goal>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<TrainingPlan>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<TrainingPlanItem>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<TrainingPlanWeekConfig>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<ExerciseMastery>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<Club>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<Group>().HasQueryFilter(e => e.DeletedAt == null);

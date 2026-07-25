@@ -44,6 +44,13 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
         return FromResult(result);
     }
 
+    [HttpPut("{id:guid}/weeks/{week:int}/config")]
+    public async Task<ActionResult<GoalDto>> UpdateWeekConfig(Guid id, int week, UpdateWeekConfigRequest request, CancellationToken ct)
+    {
+        var result = await goalService.UpdateWeekConfigAsync(CurrentUserId, id, week, request.TrainingDaysPerWeek, ct);
+        return FromResult(result);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {

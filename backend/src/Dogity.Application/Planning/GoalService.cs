@@ -139,6 +139,47 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         return await GetByIdAsync(userId, goalId, ct);
     }
 
+    public async Task<Result<GoalDto>> UpdateWeekConfigAsync(Guid userId, Guid goalId, int weekNumber, int trainingDaysPerWeek, CancellationToken ct = default)
+    {
+        if (weekNumber < 1)
+            return Result<GoalDto>.Failure("Wochennummer muss mindestens 1 sein.");
+        if (trainingDaysPerWeek < 1 || trainingDaysPerWeek > 7)
+            return Result<GoalDto>.Failure("Trainingstage pro Woche muss zwischen 1 und 7 liegen.");
+
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct);
+        if (goal is null)
+            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+        if (goal.TrainingPlan is null)
+            return Result<GoalDto>.Failure("Dieses Ziel hat keinen Trainingsplan.");
+
+        var config = goal.TrainingPlan.WeekConfigs.FirstOrDefault(w => w.WeekNumber == weekNumber);
+        if (config is null)
+        {
+            // Neue Überschreibung bewusst über das DbSet anlegen (nicht die
+            // getrackte Navigation), sonst würde EF sie per Collection-Fixup als
+            // Modified statt Added einstufen (dokumentierter Fallstrick).
+            db.TrainingPlanWeekConfigs.Add(new TrainingPlanWeekConfig
+            {
+                TrainingPlanId = goal.TrainingPlan.Id,
+                WeekNumber = weekNumber,
+                TrainingDaysPerWeek = trainingDaysPerWeek
+            });
+        }
+        else
+        {
+            config.TrainingDaysPerWeek = trainingDaysPerWeek;
+            config.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        // Übungen dieser Woche, die auf einem nun entfallenden Tag lägen, auf den
+        // letzten gültigen Tag holen (statt sie unsichtbar zu machen).
+        foreach (var item in goal.TrainingPlan.Items.Where(i => i.WeekNumber == weekNumber && !i.IsRestWeek && i.DayIndex > trainingDaysPerWeek))
+            item.DayIndex = trainingDaysPerWeek;
+
+        await db.SaveChangesAsync(ct);
+        return await GetByIdAsync(userId, goalId, ct);
+    }
+
     public async Task<Result> DeleteAsync(Guid userId, Guid goalId, CancellationToken ct = default)
     {
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
@@ -192,7 +233,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             ExerciseId = request.ExerciseId,
             FreeTextLabel = hasFreeText ? request.FreeTextLabel!.Trim() : null,
             RepetitionsTarget = request.RepetitionsTarget,
-            IsRestWeek = false
+            IsRestWeek = false,
+            DayIndex = Math.Clamp(request.DayIndex, 1, EffectiveDaysForWeek(goal, request.WeekNumber)),
+            Source = PlanItemSource.Manual
         });
         await db.SaveChangesAsync(ct);
 
@@ -234,6 +277,10 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         item.RepetitionsTarget = request.RepetitionsTarget;
         item.ExerciseId = request.ExerciseId;
         item.FreeTextLabel = hasFreeText ? request.FreeTextLabel!.Trim() : null;
+        item.DayIndex = Math.Clamp(request.DayIndex, 1, EffectiveDaysForWeek(goal, request.WeekNumber));
+        // Eine manuell bearbeitete Übung gilt als vom Nutzer festgelegt und wird
+        // bei der Wochen-Neugenerierung nicht mehr überschrieben.
+        item.Source = PlanItemSource.Manual;
         await db.SaveChangesAsync(ct);
 
         return await GetByIdAsync(userId, goalId, ct);
@@ -364,7 +411,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         var remainingSlots = Math.Max(0, goal.WeeklyExerciseCount - preserved.Count);
         if (remainingSlots > 0 && candidates.Count > 0)
         {
-            var config = new AdaptivePlanConfig(remainingSlots, goal.TrainingDaysPerWeek);
+            var config = new AdaptivePlanConfig(remainingSlots, EffectiveDaysForWeek(goal, weekNumber));
             foreach (var generated in AdaptivePlanGenerator.GenerateWeek(today, weekNumber, candidates, config))
             {
                 generated.TrainingPlanId = goal.TrainingPlan!.Id;
@@ -414,8 +461,19 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     private IQueryable<Goal> LoadGoalsQuery() =>
         db.Goals
             .Include(g => g.TrainingPlan)
+            .ThenInclude(p => p!.WeekConfigs)
+            .Include(g => g.TrainingPlan)
             .ThenInclude(p => p!.Items)
             .ThenInclude(i => i.Exercise);
+
+    // Effektive Trainingstage einer Woche: Pro-Woche-Überschreibung, sonst
+    // der Plan-Default. Auf [1, 7] begrenzt.
+    private static int EffectiveDaysForWeek(Goal goal, int weekNumber)
+    {
+        var days = goal.TrainingPlan?.WeekConfigs.FirstOrDefault(w => w.WeekNumber == weekNumber)?.TrainingDaysPerWeek
+                   ?? goal.TrainingDaysPerWeek;
+        return Math.Clamp(days, 1, 7);
+    }
 
     // track: false fuer reine Lesezugriffe (kein SaveChangesAsync im selben
     // Aufruf) - vermeidet unnoetiges Change-Tracking. UpdateStatusAsync/
@@ -558,6 +616,11 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
                     })
                     .ToList());
 
-        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, planDto);
+        var weekConfigs = g.TrainingPlan?.WeekConfigs
+            .OrderBy(w => w.WeekNumber)
+            .Select(w => new WeekConfigDto(w.WeekNumber, w.TrainingDaysPerWeek))
+            .ToList() ?? new List<WeekConfigDto>();
+
+        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, weekConfigs, planDto);
     }
 }

@@ -44,6 +44,13 @@ public record TrainingPlanDto(
     DateTimeOffset GeneratedAt,
     IReadOnlyList<TrainingPlanItemDto> Items);
 
+/// <summary>
+/// Pro-Woche-Überschreibung der Trainingstage (siehe TrainingPlanWeekConfig).
+/// Nur Wochen mit abweichendem Wert sind enthalten; alle übrigen nutzen
+/// <see cref="GoalDto.TrainingDaysPerWeek"/>.
+/// </summary>
+public record WeekConfigDto(int WeekNumber, int TrainingDaysPerWeek);
+
 public record GoalDto(
     Guid Id,
     Guid DogId,
@@ -57,6 +64,7 @@ public record GoalDto(
     bool IsCustom,
     int WeeklyExerciseCount,
     int TrainingDaysPerWeek,
+    IReadOnlyList<WeekConfigDto> WeekConfigs,
     TrainingPlanDto? TrainingPlan);
 
 public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, DateOnly TargetDate, string? Notes, bool IsCustom = false);
@@ -79,12 +87,19 @@ public record RegenerateWeekRequest(int WeekNumber);
 public record UpdateGoalConfigRequest(int WeeklyExerciseCount, int TrainingDaysPerWeek);
 
 /// <summary>
+/// Setzt die Trainingstage für EINE Woche abweichend vom Plan-Default (siehe
+/// TrainingPlanWeekConfig). Bestehende Übungen der Woche, die auf einem nun
+/// nicht mehr vorhandenen Tag lägen, werden auf den letzten gültigen Tag geholt.
+/// </summary>
+public record UpdateWeekConfigRequest(int TrainingDaysPerWeek);
+
+/// <summary>
 /// Entweder <paramref name="ExerciseId"/> ODER <paramref name="FreeTextLabel"/>
 /// setzen. Freitext-Plan-Items landen ohne Exercise-Referenz im Plan und
 /// tragen auch keinen Fortschritts-Fortschritt aus Tagebucheinträgen (die
 /// verknüpfen sich per PlanItem+ExerciseId).
 /// </summary>
-public record AddTrainingPlanItemRequest(int WeekNumber, Guid? ExerciseId, string? FreeTextLabel, int RepetitionsTarget);
+public record AddTrainingPlanItemRequest(int WeekNumber, Guid? ExerciseId, string? FreeTextLabel, int RepetitionsTarget, int DayIndex = 1);
 
 /// <summary>
 /// Übung / Freitext / Woche / Zielwert eines Plan-Ziels bearbeiten. Genau
@@ -96,4 +111,4 @@ public record AddTrainingPlanItemRequest(int WeekNumber, Guid? ExerciseId, strin
 /// nicht auf null zurücksetzen. Ein echter Wechsel der Übungssemantik sollte
 /// als "altes Item entfernen + neues anlegen" gemacht werden.
 /// </summary>
-public record UpdateTrainingPlanItemRequest(int WeekNumber, Guid? ExerciseId, string? FreeTextLabel, int RepetitionsTarget);
+public record UpdateTrainingPlanItemRequest(int WeekNumber, Guid? ExerciseId, string? FreeTextLabel, int RepetitionsTarget, int DayIndex = 1);

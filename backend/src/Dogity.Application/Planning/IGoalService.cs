@@ -16,6 +16,13 @@ public interface IGoalService
     /// </summary>
     Task<Result<GoalDto>> UpdateConfigAsync(Guid userId, Guid goalId, int weeklyExerciseCount, int trainingDaysPerWeek, CancellationToken ct = default);
 
+    /// <summary>
+    /// Setzt die Trainingstage für EINE Woche abweichend vom Plan-Default
+    /// (siehe TrainingPlanWeekConfig). Bestehende Übungen der Woche auf einem
+    /// entfallenden Tag werden auf den letzten gültigen Tag geholt.
+    /// </summary>
+    Task<Result<GoalDto>> UpdateWeekConfigAsync(Guid userId, Guid goalId, int weekNumber, int trainingDaysPerWeek, CancellationToken ct = default);
+
     Task<Result> DeleteAsync(Guid userId, Guid goalId, CancellationToken ct = default);
 
     /// <summary>

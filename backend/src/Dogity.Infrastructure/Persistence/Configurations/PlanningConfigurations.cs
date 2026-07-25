@@ -65,6 +65,22 @@ public class TrainingPlanItemConfiguration : IEntityTypeConfiguration<TrainingPl
     }
 }
 
+public class TrainingPlanWeekConfigConfiguration : IEntityTypeConfiguration<TrainingPlanWeekConfig>
+{
+    public void Configure(EntityTypeBuilder<TrainingPlanWeekConfig> builder)
+    {
+        builder.ToTable("training_plan_week_configs");
+
+        builder.HasOne(w => w.TrainingPlan)
+            .WithMany(p => p.WeekConfigs)
+            .HasForeignKey(w => w.TrainingPlanId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Höchstens eine Überschreibung je (Plan, Woche).
+        builder.HasIndex(w => new { w.TrainingPlanId, w.WeekNumber }).IsUnique();
+    }
+}
+
 public class ExerciseMasteryConfiguration : IEntityTypeConfiguration<ExerciseMastery>
 {
     public void Configure(EntityTypeBuilder<ExerciseMastery> builder)
