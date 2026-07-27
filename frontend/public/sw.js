@@ -1,4 +1,4 @@
-const CACHE_NAME = "dogity-shell-v4";
+const CACHE_NAME = "dogity-shell-v5";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -39,8 +39,12 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          // Nur erfolgreiche Antworten cachen - sonst würde z.B. eine 404/5xx
+          // als Offline-Fallback konserviert.
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
           return response;
         })
         .catch(() =>
@@ -61,8 +65,12 @@ self.addEventListener("fetch", (event) => {
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          // Einen 404 für einen nicht mehr existierenden (alten) Chunk NICHT
+          // cachen - sonst bliebe der Fehlzustand für diese URL bestehen.
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
           return response;
         });
       }),
@@ -80,8 +88,10 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
         return response;
       })
       .catch(() => caches.match(request).then((cached) => cached || new Response("", { status: 503, statusText: "Offline" }))),

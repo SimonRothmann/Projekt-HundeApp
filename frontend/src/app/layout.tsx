@@ -6,6 +6,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/pwa-register";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { ChunkErrorReloader } from "@/components/chunk-error-reloader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,6 +49,7 @@ export default function RootLayout({
             <Toaster />
             <PwaRegister />
             <PwaInstallPrompt />
+            <ChunkErrorReloader />
           </AuthProvider>
         </ThemeProvider>
       </body>
