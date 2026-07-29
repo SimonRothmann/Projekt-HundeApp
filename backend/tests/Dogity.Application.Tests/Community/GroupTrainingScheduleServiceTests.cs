@@ -179,4 +179,62 @@ public class GroupTrainingScheduleServiceTests
         var after = await service.GetMemberScheduleAsync(memberId, Today);
         Assert.Single(after.Value!);
     }
+
+    private static async Task AddExAsync(Dogity.Infrastructure.Persistence.ApplicationDbContext db, Guid clubId, GroupTrainingCategory cat, string focus, string title)
+    {
+        db.GroupTrainingExercises.Add(new GroupTrainingExercise { ClubId = clubId, Category = cat, Title = title, Focus = focus, DurationMinutes = 10 });
+        await db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task GenerateContent_Puppy_FollowsSkeleton_AnkommenFirst_SpielenLast()
+    {
+        var service = MakeService(out var db);
+        var s = await SetupAsync(db);
+        var p = GroupTrainingCategory.Puppy;
+        await AddExAsync(db, s.ClubId, p, "Ankommen", "Ankommen A");
+        await AddExAsync(db, s.ClubId, p, "Entspannung", "Ruhe");
+        await AddExAsync(db, s.ClubId, p, "Futterhand", "Futterhand folgen");
+        await AddExAsync(db, s.ClubId, p, "Sozialisierung", "Sozialkontakt");
+        await AddExAsync(db, s.ClubId, p, "Hinterhandarbeit", "Podest");
+        await AddExAsync(db, s.ClubId, p, "Spielen", "Freies Spiel");
+
+        var result = await service.GenerateContentAsync(s.UserId, s.ClubId, p);
+
+        Assert.True(result.Succeeded);
+        var focuses = result.Value!.Select(e => e.Focus).ToList();
+        Assert.Equal("Ankommen", focuses.First());
+        Assert.Equal("Spielen", focuses.Last());
+        Assert.Contains("Futterhand", focuses);
+    }
+
+    [Fact]
+    public async Task GenerateContent_YoungDog_StartsWithLeinenfuehrigkeit()
+    {
+        var service = MakeService(out var db);
+        var s = await SetupAsync(db);
+        var j = GroupTrainingCategory.YoungDog;
+        await AddExAsync(db, s.ClubId, j, "Leinenführigkeit", "LF lockere Leine");
+        await AddExAsync(db, s.ClubId, j, "Ablenkung", "Bleib mit Ablenkung");
+        await AddExAsync(db, s.ClubId, j, "Ablage", "Ablage auf Distanz");
+        await AddExAsync(db, s.ClubId, j, "Hinterhandarbeit", "Pivot");
+
+        var result = await service.GenerateContentAsync(s.UserId, s.ClubId, j);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("Leinenführigkeit", result.Value!.First().Focus);
+        Assert.True(result.Value.Count >= 2);
+    }
+
+    [Fact]
+    public async Task GenerateContent_EmptyPool_ReturnsEmpty_NoCrash()
+    {
+        var service = MakeService(out var db);
+        var s = await SetupAsync(db);
+
+        var result = await service.GenerateContentAsync(s.UserId, s.ClubId, GroupTrainingCategory.Basis);
+
+        Assert.True(result.Succeeded);
+        Assert.Empty(result.Value!);
+    }
 }

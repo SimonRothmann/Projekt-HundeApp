@@ -24,4 +24,12 @@ public interface IGroupTrainingScheduleService
 
     /// <summary>Erzeugt eine Serie eigenständiger Termine und gibt sie zurück.</summary>
     Task<Result<IReadOnlyList<GroupTrainingSessionDto>>> GenerateSeriesAsync(Guid userId, Guid clubId, GenerateSeriesRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Komponiert einen Inhalts-Entwurf für einen Termin der angegebenen
+    /// Kategorie aus den Bausteinen des Vereins (Mix-Generator). Liefert die
+    /// gewählten Bausteine in Reihenfolge; das Frontend übernimmt sie in den
+    /// Termin und lässt sie frei anpassen.
+    /// </summary>
+    Task<Result<IReadOnlyList<GroupTrainingExerciseDto>>> GenerateContentAsync(Guid userId, Guid clubId, GroupTrainingCategory category, CancellationToken ct = default);
 }

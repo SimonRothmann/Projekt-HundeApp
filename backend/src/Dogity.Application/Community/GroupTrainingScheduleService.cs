@@ -165,6 +165,20 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         return Result<IReadOnlyList<GroupTrainingSessionDto>>.Success(await MapAsync(sessions, ct));
     }
 
+    public async Task<Result<IReadOnlyList<GroupTrainingExerciseDto>>> GenerateContentAsync(Guid userId, Guid clubId, GroupTrainingCategory category, CancellationToken ct = default)
+    {
+        if (!await IsClubTrainerAsync(userId, clubId, ct))
+            return Result<IReadOnlyList<GroupTrainingExerciseDto>>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
+
+        var pool = await db.GroupTrainingExercises
+            .Where(e => e.ClubId == clubId && e.Category == category)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var picked = GroupTrainingMixGenerator.Generate(category, pool, Random.Shared);
+        return Result<IReadOnlyList<GroupTrainingExerciseDto>>.Success(picked.Select(ToExerciseDto).ToList());
+    }
+
     // ---- Helfer ----
 
     private async Task<string?> ValidateAsync(Guid clubId, Guid groupId, IReadOnlyList<Guid> trainerIds, IReadOnlyList<SessionContentInput> items, CancellationToken ct)

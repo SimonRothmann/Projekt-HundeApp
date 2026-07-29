@@ -48,6 +48,14 @@ public class GroupTrainingScheduleController(IGroupTrainingScheduleService servi
         return FromResult(result);
     }
 
+    /// <summary>Mix-Generator: liefert einen Baustein-Entwurf für die Kategorie.</summary>
+    [HttpGet("clubs/{clubId:guid}/generate-content")]
+    public async Task<ActionResult<IReadOnlyList<GroupTrainingExerciseDto>>> GenerateContent(Guid clubId, [FromQuery] GroupTrainingCategory category, CancellationToken ct)
+    {
+        var result = await service.GenerateContentAsync(CurrentUserId, clubId, category, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("sessions/{id:guid}")]
     public async Task<ActionResult<GroupTrainingSessionDto>> Update(Guid id, UpdateSessionRequest request, CancellationToken ct)
     {
