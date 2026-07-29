@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ChevronDown, ChevronRight, ChevronUp, Clock, Copy, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, ChevronUp, Clock, Copy, Download, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 const CATS: GroupTrainingCategory[] = [0, 1, 2];
@@ -58,8 +58,23 @@ export default function GroupTrainingPage() {
   const [exForm, setExForm] = useState<ExerciseForm | null>(null);
   const [unitForm, setUnitForm] = useState<UnitForm | null>(null);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [addExerciseId, setAddExerciseId] = useState("");
+
+  async function importStarter() {
+    if (!window.confirm("Best-Practice-Bausteine und Einheiten in diesen Verein übernehmen? Du kannst danach alles frei anpassen oder löschen.")) return;
+    setImporting(true);
+    try {
+      const data = await api.post<GroupTrainingLibrary>(`/api/group-training/clubs/${clubId}/import-starter`);
+      setLibrary(data);
+      toast.success("Starter-Katalog übernommen.");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Katalog konnte nicht übernommen werden.");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   const loadLibrary = useCallback(async (id: string) => {
     try {
@@ -287,6 +302,27 @@ export default function GroupTrainingPage() {
             <p className="text-muted-foreground">Lädt…</p>
           ) : (
             <>
+              {library.exercises.length === 0 && library.units.length === 0 && (
+                <Card className="border-primary/40 bg-primary/5">
+                  <CardContent className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3">
+                      <Sparkles className="mt-0.5 size-6 shrink-0 text-primary" />
+                      <div>
+                        <p className="font-medium">Mit einem fertigen Katalog starten?</p>
+                        <p className="text-sm text-muted-foreground">
+                          Übernimm einen Best-Practice-Satz an Bausteinen und Einheiten (Welpen, Junghunde, Basis) –
+                          danach alles frei anpassbar.
+                        </p>
+                      </div>
+                    </div>
+                    <Button className="shrink-0" disabled={importing} onClick={importStarter}>
+                      <Download className="size-4" />
+                      {importing ? "Übernehme…" : "Starter-Katalog übernehmen"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* ===================== Bausteine ===================== */}
               <section className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -295,10 +331,18 @@ export default function GroupTrainingPage() {
                     <p className="text-sm text-muted-foreground">Wiederverwendbare Übungen – Grundlage für die Einheiten.</p>
                   </div>
                   {!exForm && (
-                    <Button size="sm" onClick={() => setExForm(emptyExerciseForm())}>
-                      <Plus className="size-4" />
-                      Neuer Baustein
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      {(library.exercises.length > 0 || library.units.length > 0) && (
+                        <Button size="sm" variant="outline" disabled={importing} onClick={importStarter} title="Fehlende Best-Practice-Inhalte ergänzen">
+                          <Download className="size-4" />
+                          Starter-Katalog
+                        </Button>
+                      )}
+                      <Button size="sm" onClick={() => setExForm(emptyExerciseForm())}>
+                        <Plus className="size-4" />
+                        Neuer Baustein
+                      </Button>
+                    </div>
                   )}
                 </div>
 

@@ -18,6 +18,14 @@ public class GroupTrainingController(IGroupTrainingService service) : ApiControl
         return FromResult(result);
     }
 
+    /// <summary>Übernimmt den Best-Practice-Starterkatalog in die Bibliothek des Vereins.</summary>
+    [HttpPost("clubs/{clubId:guid}/import-starter")]
+    public async Task<ActionResult<GroupTrainingLibraryDto>> ImportStarter(Guid clubId, CancellationToken ct)
+    {
+        var result = await service.ImportStarterCatalogAsync(CurrentUserId, clubId, ct);
+        return FromResult(result);
+    }
+
     // ---- Bausteine ----
 
     [HttpPost("clubs/{clubId:guid}/exercises")]

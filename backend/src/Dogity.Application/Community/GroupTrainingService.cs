@@ -44,6 +44,73 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
         return Result<GroupTrainingLibraryDto>.Success(dto);
     }
 
+    public async Task<Result<GroupTrainingLibraryDto>> ImportStarterCatalogAsync(Guid userId, Guid clubId, CancellationToken ct = default)
+    {
+        if (!await IsClubTrainerAsync(userId, clubId, ct))
+            return Result<GroupTrainingLibraryDto>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
+
+        // Bestehende Titel je Verein -> Idempotenz (kein Duplizieren bei erneutem
+        // Übernehmen). Titel -> Baustein-Id, um Einheiten auf vorhandene ODER neu
+        // angelegte Bausteine zeigen zu lassen.
+        var existing = await db.GroupTrainingExercises
+            .Where(e => e.ClubId == clubId)
+            .ToListAsync(ct);
+        var idByTitle = existing
+            .GroupBy(e => e.Title)
+            .ToDictionary(g => g.Key, g => g.First().Id);
+
+        foreach (var spec in GroupTrainingStarterCatalog.Exercises)
+        {
+            if (idByTitle.ContainsKey(spec.Title)) continue;
+            var exercise = new GroupTrainingExercise
+            {
+                ClubId = clubId,
+                Category = spec.Category,
+                Title = spec.Title,
+                Focus = spec.Focus,
+                DurationMinutes = spec.DurationMinutes,
+                Description = spec.Description,
+                ExamTargets = spec.Exams,
+                CreatedByUserId = userId
+            };
+            db.GroupTrainingExercises.Add(exercise);
+            idByTitle[spec.Title] = exercise.Id;
+        }
+
+        var existingUnitTitles = (await db.GroupTrainingUnits
+            .Where(u => u.ClubId == clubId)
+            .Select(u => u.Title)
+            .ToListAsync(ct)).ToHashSet();
+
+        foreach (var unitSpec in GroupTrainingStarterCatalog.Units)
+        {
+            if (existingUnitTitles.Contains(unitSpec.Title)) continue;
+            var unit = new GroupTrainingUnit
+            {
+                ClubId = clubId,
+                Category = unitSpec.Category,
+                Title = unitSpec.Title,
+                Description = unitSpec.Description,
+                CreatedByUserId = userId
+            };
+            db.GroupTrainingUnits.Add(unit);
+            var order = 0;
+            foreach (var exTitle in unitSpec.ExerciseTitles)
+            {
+                if (!idByTitle.TryGetValue(exTitle, out var exerciseId)) continue; // Sicherheitsnetz
+                db.GroupTrainingUnitItems.Add(new GroupTrainingUnitItem
+                {
+                    GroupTrainingUnitId = unit.Id,
+                    GroupTrainingExerciseId = exerciseId,
+                    SortOrder = order++
+                });
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+        return await GetLibraryAsync(userId, clubId, ct);
+    }
+
     // ---- Bausteine ----
 
     public async Task<Result<GroupTrainingExerciseDto>> CreateExerciseAsync(Guid userId, Guid clubId, UpsertExerciseRequest request, CancellationToken ct = default)

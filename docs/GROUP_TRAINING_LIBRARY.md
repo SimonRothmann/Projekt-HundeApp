@@ -31,11 +31,18 @@ führt Richtung BH/IBGH). `GroupTrainingCategory` = Puppy / YoungDog / Basis.
 - Bei mehreren Vereinen wählt das Frontend den Verein-Kontext (die eigenen
   Vereine kommen aus `GET /api/groups/my-clubs`).
 
-## Kein Seed
+## Kein Seed, aber ein Starthilfe-Katalog
 
-Der `GroupTrainingSeeder` wurde entfernt. Inhalte kommen ausschließlich von
-Trainer:innen. Der `SportCatalogSeeder` (individuelle Prüfungs-/Sportübungen)
-bleibt davon unberührt.
+Der `GroupTrainingSeeder` wurde entfernt – nichts wird automatisch angelegt.
+Als Starthilfe kann ein Trainer den fachlichen Best-Practice-Starterkatalog
+(`GroupTrainingStarterCatalog`) **per Klick** in seinen Verein übernehmen
+(`POST clubs/{clubId}/import-starter`, idempotent auf Titel-Ebene). Danach sind
+die Inhalte ganz normale, frei editier-/löschbare Vereins-Bausteine/-Einheiten.
+
+Der Katalog deckt Welpen/Junghunde/Basis ab, enthält Alltagstraining und
+Hinterhandarbeit in allen Stufen; Junghunde-/Basis-Einheiten beginnen jeweils
+mit einer anderen Leinenführigkeits-/Freifolge-Übung. Der `SportCatalogSeeder`
+(individuelle Prüfungs-/Sportübungen) bleibt davon unberührt.
 
 ## Datenmodell
 
@@ -54,6 +61,7 @@ ersetzten Modells und baut die Tabellen um).
 ## API (`api/group-training`, alle ClubTrainer-gated)
 
 - `GET clubs/{clubId}/library` → `{ clubId, clubName, exercises[], units[] }`
+- `POST clubs/{clubId}/import-starter` → übernimmt den Starterkatalog (idempotent)
 - `POST clubs/{clubId}/exercises` · `PUT exercises/{id}` · `DELETE exercises/{id}`
 - `POST clubs/{clubId}/units` · `PUT units/{id}` · `DELETE units/{id}` ·
   `POST units/{id}/duplicate`

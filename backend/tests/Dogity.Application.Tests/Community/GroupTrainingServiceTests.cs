@@ -198,4 +198,56 @@ public class GroupTrainingServiceTests
         Assert.Empty(lib.Value!.Units);
         Assert.Single(lib.Value.Exercises); // Baustein bleibt erhalten
     }
+
+    [Fact]
+    public async Task ImportStarter_PopulatesLibrary_WithOrderedUnits()
+    {
+        var service = MakeService(out var db);
+        var userId = Guid.NewGuid();
+        var clubId = await MakeClubTrainerAsync(db, userId);
+
+        var result = await service.ImportStarterCatalogAsync(userId, clubId);
+
+        Assert.True(result.Succeeded);
+        Assert.NotEmpty(result.Value!.Exercises);
+        Assert.NotEmpty(result.Value.Units);
+        // Alle drei Stufen vertreten.
+        Assert.Contains(result.Value.Exercises, e => e.Category == GroupTrainingCategory.Puppy);
+        Assert.Contains(result.Value.Exercises, e => e.Category == GroupTrainingCategory.YoungDog);
+        Assert.Contains(result.Value.Exercises, e => e.Category == GroupTrainingCategory.Basis);
+        // Junghunde-/Basis-Einheiten beginnen mit einer Leinenführigkeit/Freifolge.
+        foreach (var unit in result.Value.Units.Where(u => u.Category != GroupTrainingCategory.Puppy))
+        {
+            Assert.NotEmpty(unit.Items);
+            var firstFocus = unit.Items[0].Exercise.Focus;
+            Assert.True(firstFocus is "Leinenführigkeit" or "Freifolge",
+                $"Einheit '{unit.Title}' beginnt mit Fokus '{firstFocus}'");
+        }
+    }
+
+    [Fact]
+    public async Task ImportStarter_IsIdempotent()
+    {
+        var service = MakeService(out var db);
+        var userId = Guid.NewGuid();
+        var clubId = await MakeClubTrainerAsync(db, userId);
+
+        var first = await service.ImportStarterCatalogAsync(userId, clubId);
+        var second = await service.ImportStarterCatalogAsync(userId, clubId);
+
+        Assert.True(second.Succeeded);
+        Assert.Equal(first.Value!.Exercises.Count, second.Value!.Exercises.Count);
+        Assert.Equal(first.Value.Units.Count, second.Value.Units.Count);
+    }
+
+    [Fact]
+    public async Task ImportStarter_NonTrainer_Fails()
+    {
+        var service = MakeService(out var db);
+        var clubId = await MakeClubTrainerAsync(db, Guid.NewGuid());
+
+        var result = await service.ImportStarterCatalogAsync(Guid.NewGuid(), clubId);
+
+        Assert.False(result.Succeeded);
+    }
 }
