@@ -153,3 +153,68 @@ public class GroupTrainingUnitItemConfiguration : IEntityTypeConfiguration<Group
         builder.HasIndex(i => i.GroupTrainingExerciseId);
     }
 }
+
+public class GroupTrainingSessionConfiguration : IEntityTypeConfiguration<GroupTrainingSession>
+{
+    public void Configure(EntityTypeBuilder<GroupTrainingSession> builder)
+    {
+        builder.ToTable("group_training_sessions");
+        builder.Property(s => s.Category).HasConversion<string>().HasMaxLength(20);
+        builder.Property(s => s.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(s => s.Location).HasMaxLength(200);
+        builder.Property(s => s.Notes).HasMaxLength(2000);
+
+        builder.HasOne(s => s.Club)
+            .WithMany()
+            .HasForeignKey(s => s.ClubId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Wird die Gruppe gelöscht, verschwinden ihre Termine mit.
+        builder.HasOne(s => s.Group)
+            .WithMany()
+            .HasForeignKey(s => s.GroupId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(s => new { s.ClubId, s.StartsAt });
+        builder.HasIndex(s => new { s.GroupId, s.StartsAt });
+    }
+}
+
+public class GroupTrainingSessionItemConfiguration : IEntityTypeConfiguration<GroupTrainingSessionItem>
+{
+    public void Configure(EntityTypeBuilder<GroupTrainingSessionItem> builder)
+    {
+        builder.ToTable("group_training_session_items");
+        builder.Property(i => i.FreeText).HasMaxLength(500);
+
+        builder.HasOne(i => i.Session)
+            .WithMany(s => s.Items)
+            .HasForeignKey(i => i.GroupTrainingSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Baustein-Referenz optional (Freitext-Positionen haben keine);
+        // Restrict, damit ein gelöschter Baustein einen Termin nicht kaputt macht.
+        builder.HasOne(i => i.Exercise)
+            .WithMany()
+            .HasForeignKey(i => i.GroupTrainingExerciseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(i => i.GroupTrainingSessionId);
+    }
+}
+
+public class GroupTrainingSessionTrainerConfiguration : IEntityTypeConfiguration<GroupTrainingSessionTrainer>
+{
+    public void Configure(EntityTypeBuilder<GroupTrainingSessionTrainer> builder)
+    {
+        builder.ToTable("group_training_session_trainers");
+
+        builder.HasOne(t => t.Session)
+            .WithMany(s => s.Trainers)
+            .HasForeignKey(t => t.GroupTrainingSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(t => new { t.GroupTrainingSessionId, t.UserId }).IsUnique();
+        builder.HasIndex(t => t.UserId);
+    }
+}

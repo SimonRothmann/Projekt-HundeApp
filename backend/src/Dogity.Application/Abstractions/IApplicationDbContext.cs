@@ -43,6 +43,9 @@ public interface IApplicationDbContext
     DbSet<GroupTrainingExercise> GroupTrainingExercises { get; }
     DbSet<GroupTrainingUnit> GroupTrainingUnits { get; }
     DbSet<GroupTrainingUnitItem> GroupTrainingUnitItems { get; }
+    DbSet<GroupTrainingSession> GroupTrainingSessions { get; }
+    DbSet<GroupTrainingSessionItem> GroupTrainingSessionItems { get; }
+    DbSet<GroupTrainingSessionTrainer> GroupTrainingSessionTrainers { get; }
 
     DbSet<GpsTrack> GpsTracks { get; }
     DbSet<GpsPoint> GpsPoints { get; }

@@ -49,6 +49,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GroupTrainingExercise> GroupTrainingExercises => Set<GroupTrainingExercise>();
     public DbSet<GroupTrainingUnit> GroupTrainingUnits => Set<GroupTrainingUnit>();
     public DbSet<GroupTrainingUnitItem> GroupTrainingUnitItems => Set<GroupTrainingUnitItem>();
+    public DbSet<GroupTrainingSession> GroupTrainingSessions => Set<GroupTrainingSession>();
+    public DbSet<GroupTrainingSessionItem> GroupTrainingSessionItems => Set<GroupTrainingSessionItem>();
+    public DbSet<GroupTrainingSessionTrainer> GroupTrainingSessionTrainers => Set<GroupTrainingSessionTrainer>();
 
     public DbSet<GpsTrack> GpsTracks => Set<GpsTrack>();
     public DbSet<GpsPoint> GpsPoints => Set<GpsPoint>();
@@ -100,6 +103,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<GroupTrainingExercise>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GroupTrainingUnit>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GroupTrainingUnitItem>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GroupTrainingSession>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GroupTrainingSessionItem>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GroupTrainingSessionTrainer>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsTrack>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsPoint>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkRun>().HasQueryFilter(e => e.DeletedAt == null);
