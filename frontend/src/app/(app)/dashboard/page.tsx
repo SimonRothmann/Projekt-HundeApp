@@ -7,6 +7,7 @@ import type { ClubMembership } from "@/lib/types";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dog, Trophy, Building2 } from "lucide-react";
 import Link from "next/link";
+import { UpcomingTrainingsSection } from "@/components/schedule/upcoming-trainings-section";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -52,6 +53,8 @@ export default function DashboardPage() {
           </Card>
         </Link>
       )}
+
+      <UpcomingTrainingsSection />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Link href="/dogs">

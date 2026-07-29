@@ -241,6 +241,35 @@ export type GroupTrainingLibrary = {
   units: GroupTrainingUnit[];
 };
 
+// Terminplanung (siehe docs/GROUP_TRAINING_SCHEDULE.md).
+export type GroupTrainingSessionStatus = 0 | 1; // 0 = Geplant, 1 = Abgesagt
+
+export type SessionItem = {
+  id: string;
+  exerciseId: string | null;
+  freeText: string | null;
+  sortOrder: number;
+  exercise: GroupTrainingExercise | null;
+};
+
+export type SessionTrainer = { userId: string; firstName: string; lastName: string };
+
+export type GroupTrainingSession = {
+  id: string;
+  clubId: string;
+  groupId: string;
+  groupName: string;
+  category: GroupTrainingCategory;
+  startsAt: string;
+  durationMinutes: number;
+  location: string | null;
+  notes: string | null;
+  status: GroupTrainingSessionStatus;
+  plannedMinutes: number;
+  items: SessionItem[];
+  trainers: SessionTrainer[];
+};
+
 export type ClubTrainerInfo = {
   userId: string;
   email: string;
