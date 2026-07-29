@@ -132,8 +132,11 @@ export function GoalPlanCard({
   // Effektive Trainingstage einer Woche: Pro-Woche-Überschreibung, sonst
   // der Plan-Default. Bestimmt, wie viele Tage beim Hinzufügen/Bearbeiten
   // einer Übung wählbar sind.
+  // Null-Guard auf weekConfigs: der Stale-While-Revalidate-Cache (IndexedDB)
+  // kann beim Öffnen zuerst ältere Ziel-Daten OHNE dieses (neuere) Feld
+  // liefern - ohne Guard würde .find() auf undefined die Seite crashen.
   const daysForWeek = (week: number) =>
-    goal.weekConfigs.find((w) => w.weekNumber === week)?.trainingDaysPerWeek ?? goal.trainingDaysPerWeek;
+    (goal.weekConfigs ?? []).find((w) => w.weekNumber === week)?.trainingDaysPerWeek ?? goal.trainingDaysPerWeek;
 
   async function openAdd(location: "central" | "inline", week: number) {
     const isSame = addForm?.location === location && addForm.week === week;
