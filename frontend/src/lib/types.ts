@@ -197,35 +197,48 @@ export type Club = {
   groupCount: number;
 };
 
-// Gruppen-Trainingseinheiten (siehe Domain.Community.GroupTrainingCategory).
-export type GroupTrainingCategory = 0 | 1 | 2; // 0 = Welpen, 1 = Junghunde, 2 = Allgemein
+// Vereins-Trainingsbibliothek (siehe docs/GROUP_TRAINING_LIBRARY.md).
+export type GroupTrainingCategory = 0 | 1 | 2; // 0 = Welpen, 1 = Junghunde, 2 = Basis
 
-export type GroupTrainingItem = {
+// Prüfungs-Tags als Bitmaske (siehe Domain.Community.GroupExamTarget [Flags]).
+export const GROUP_EXAM = { BH: 1, IBGH1: 2, IBGH2: 4, IBGH3: 8 } as const;
+
+// Wiederverwendbarer Übungs-Baustein eines Vereins.
+export type GroupTrainingExercise = {
   id: string;
+  clubId: string;
+  category: GroupTrainingCategory;
   title: string;
-  description: string | null;
   focus: string | null;
   durationMinutes: number | null;
-  sortOrder: number;
+  description: string | null;
+  examTargets: number; // Bitmaske aus GROUP_EXAM
 };
 
+// Ein Baustein an einer Position innerhalb einer Einheit.
+export type GroupTrainingUnitItem = {
+  id: string;
+  exerciseId: string;
+  sortOrder: number;
+  exercise: GroupTrainingExercise;
+};
+
+// Geordnete Zusammenstellung von Bausteinen (verein-weit geteilte Vorlage).
 export type GroupTrainingUnit = {
   id: string;
+  clubId: string;
+  category: GroupTrainingCategory;
   title: string;
   description: string | null;
-  category: GroupTrainingCategory;
-  groupId: string | null;
-  // true = vorgefertigte System-Vorlage (nicht bearbeitbar).
-  isTemplate: boolean;
-  // true = vom aktuellen Trainer erstellt (bearbeit-/löschbar).
-  isMine: boolean;
   totalMinutes: number;
-  items: GroupTrainingItem[];
+  items: GroupTrainingUnitItem[];
 };
 
 export type GroupTrainingLibrary = {
-  templates: GroupTrainingUnit[];
-  mine: GroupTrainingUnit[];
+  clubId: string;
+  clubName: string;
+  exercises: GroupTrainingExercise[];
+  units: GroupTrainingUnit[];
 };
 
 export type ClubTrainerInfo = {
