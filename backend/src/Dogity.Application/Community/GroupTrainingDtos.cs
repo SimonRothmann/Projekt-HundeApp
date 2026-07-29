@@ -2,52 +2,50 @@ using Dogity.Domain.Community;
 
 namespace Dogity.Application.Community;
 
-public record GroupTrainingItemDto(
+// ---- Baustein (wiederverwendbare Übung) ----
+
+public record GroupTrainingExerciseDto(
     Guid Id,
+    Guid ClubId,
+    GroupTrainingCategory Category,
     string Title,
-    string? Description,
     string? Focus,
     int? DurationMinutes,
-    int SortOrder);
+    string? Description,
+    GroupExamTarget ExamTargets);
+
+public record UpsertExerciseRequest(
+    GroupTrainingCategory Category,
+    string Title,
+    string? Focus,
+    int? DurationMinutes,
+    string? Description,
+    GroupExamTarget ExamTargets = GroupExamTarget.None);
+
+// ---- Einheit (geordnete Zusammenstellung von Bausteinen) ----
+
+public record GroupTrainingUnitItemDto(Guid Id, Guid ExerciseId, int SortOrder, GroupTrainingExerciseDto Exercise);
 
 public record GroupTrainingUnitDto(
     Guid Id,
+    Guid ClubId,
+    GroupTrainingCategory Category,
     string Title,
     string? Description,
-    GroupTrainingCategory Category,
-    Guid? GroupId,
-    // true = vorgefertigte System-Vorlage (nicht bearbeitbar, für alle Trainer sichtbar).
-    bool IsTemplate,
-    // true = vom aktuellen Trainer erstellt (bearbeit-/löschbar).
-    bool IsMine,
     int TotalMinutes,
-    IReadOnlyList<GroupTrainingItemDto> Items);
+    IReadOnlyList<GroupTrainingUnitItemDto> Items);
 
-/// <summary>
-/// Die Bibliothek, die ein Trainer sieht: vorgefertigte Vorlagen (Welpen/
-/// Junghunde/...) plus die selbst zusammengestellten Einheiten.
-/// </summary>
+/// <summary>ExerciseIds in der gewünschten Reihenfolge der Einheit.</summary>
+public record UpsertUnitRequest(
+    GroupTrainingCategory Category,
+    string Title,
+    string? Description,
+    IReadOnlyList<Guid> ExerciseIds);
+
+// ---- Bibliothek eines Vereins ----
+
 public record GroupTrainingLibraryDto(
-    IReadOnlyList<GroupTrainingUnitDto> Templates,
-    IReadOnlyList<GroupTrainingUnitDto> Mine);
-
-public record GroupTrainingItemInput(
-    string Title,
-    string? Description = null,
-    string? Focus = null,
-    int? DurationMinutes = null);
-
-public record CreateGroupTrainingUnitRequest(
-    string Title,
-    string? Description,
-    GroupTrainingCategory Category,
-    Guid? GroupId,
-    IReadOnlyList<GroupTrainingItemInput> Items);
-
-public record UpdateGroupTrainingUnitRequest(
-    string Title,
-    string? Description,
-    GroupTrainingCategory Category,
-    IReadOnlyList<GroupTrainingItemInput> Items);
-
-public record CopyGroupTrainingUnitRequest(Guid GroupId);
+    Guid ClubId,
+    string ClubName,
+    IReadOnlyList<GroupTrainingExerciseDto> Exercises,
+    IReadOnlyList<GroupTrainingUnitDto> Units);

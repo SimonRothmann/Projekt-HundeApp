@@ -6,231 +6,241 @@ using Microsoft.EntityFrameworkCore;
 namespace Dogity.Application.Community;
 
 /// <summary>
-/// Use Cases für Gruppen-Trainingseinheiten (siehe docs/GROUP_TRAINING_PLANS.md).
-/// Jeder Trainer (leitet eine Gruppe oder ist Vereinstrainer) sieht die
-/// vorgefertigten Vorlagen für Welpen/Junghunde, kann eigene Einheiten
-/// zusammenstellen und Vorlagen in seine Gruppen kopieren + anpassen.
-/// System-Vorlagen (CreatedByUserId == null) sind nie bearbeitbar.
+/// Vereins-Trainingsbibliothek (siehe docs/GROUP_TRAINING_LIBRARY.md).
+/// Alles ist verein-weit geteilt und von jeder/jedem Vereinstrainer:in
+/// (ClubTrainer) voll pflegbar. Bausteine (<see cref="GroupTrainingExercise"/>)
+/// sind wiederverwendbare Übungen; Einheiten (<see cref="GroupTrainingUnit"/>)
+/// sind geordnete Zusammenstellungen daraus.
 /// </summary>
 public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingService
 {
-    public async Task<Result<GroupTrainingLibraryDto>> GetLibraryAsync(Guid userId, CancellationToken ct = default)
+    public async Task<Result<GroupTrainingLibraryDto>> GetLibraryAsync(Guid userId, Guid clubId, CancellationToken ct = default)
     {
-        if (!await IsTrainerAsync(userId, ct))
-            return Result<GroupTrainingLibraryDto>.Failure("Nur Trainer haben Zugriff auf Gruppen-Trainingseinheiten.");
+        if (!await IsClubTrainerAsync(userId, clubId, ct))
+            return Result<GroupTrainingLibraryDto>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
 
-        var units = await db.GroupTrainingUnits
-            .Include(u => u.Items)
-            .Where(u => (u.CreatedByUserId == null && u.GroupId == null) || u.CreatedByUserId == userId)
+        var club = await db.Clubs.AsNoTracking().FirstOrDefaultAsync(c => c.Id == clubId, ct);
+        if (club is null)
+            return Result<GroupTrainingLibraryDto>.Failure("Verein nicht gefunden.");
+
+        var exercises = await db.GroupTrainingExercises
+            .Where(e => e.ClubId == clubId)
             .AsNoTracking()
+            .OrderBy(e => e.Category).ThenBy(e => e.Title)
             .ToListAsync(ct);
 
-        var templates = units
-            .Where(u => u.CreatedByUserId == null)
-            .OrderBy(u => u.Category).ThenBy(u => u.SortOrder).ThenBy(u => u.Title)
-            .Select(u => ToDto(u, u.Items, userId))
-            .ToList();
-
-        var mine = units
-            .Where(u => u.CreatedByUserId == userId)
-            .OrderBy(u => u.Category).ThenByDescending(u => u.CreatedAt)
-            .Select(u => ToDto(u, u.Items, userId))
-            .ToList();
-
-        return Result<GroupTrainingLibraryDto>.Success(new GroupTrainingLibraryDto(templates, mine));
-    }
-
-    public async Task<Result<GroupTrainingUnitDto>> GetUnitAsync(Guid userId, Guid unitId, CancellationToken ct = default)
-    {
-        var unit = await db.GroupTrainingUnits
-            .Include(u => u.Items)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == unitId, ct);
-
-        if (unit is null || !await CanViewAsync(userId, unit, ct))
-            return Result<GroupTrainingUnitDto>.Failure("Trainingseinheit nicht gefunden.");
-
-        return Result<GroupTrainingUnitDto>.Success(ToDto(unit, unit.Items, userId));
-    }
-
-    public async Task<Result<IReadOnlyList<GroupTrainingUnitDto>>> GetGroupUnitsAsync(Guid userId, Guid groupId, CancellationToken ct = default)
-    {
-        if (!await IsGroupTrainerAsync(userId, groupId, ct))
-            return Result<IReadOnlyList<GroupTrainingUnitDto>>.Failure("Gruppe nicht gefunden.");
-
         var units = await db.GroupTrainingUnits
-            .Include(u => u.Items)
-            .Where(u => u.GroupId == groupId)
+            .Include(u => u.Items).ThenInclude(i => i.Exercise)
+            .Where(u => u.ClubId == clubId)
             .AsNoTracking()
-            .OrderByDescending(u => u.CreatedAt)
+            .OrderBy(u => u.Category).ThenBy(u => u.Title)
             .ToListAsync(ct);
 
-        return Result<IReadOnlyList<GroupTrainingUnitDto>>.Success(units.Select(u => ToDto(u, u.Items, userId)).ToList());
+        var dto = new GroupTrainingLibraryDto(
+            clubId,
+            club.Name,
+            exercises.Select(ToDto).ToList(),
+            units.Select(ToDto).ToList());
+        return Result<GroupTrainingLibraryDto>.Success(dto);
     }
 
-    public async Task<Result<GroupTrainingUnitDto>> CreateUnitAsync(Guid userId, CreateGroupTrainingUnitRequest request, CancellationToken ct = default)
-    {
-        if (!await IsTrainerAsync(userId, ct))
-            return Result<GroupTrainingUnitDto>.Failure("Nur Trainer können Trainingseinheiten anlegen.");
+    // ---- Bausteine ----
 
+    public async Task<Result<GroupTrainingExerciseDto>> CreateExerciseAsync(Guid userId, Guid clubId, UpsertExerciseRequest request, CancellationToken ct = default)
+    {
+        if (!await IsClubTrainerAsync(userId, clubId, ct))
+            return Result<GroupTrainingExerciseDto>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
         if (string.IsNullOrWhiteSpace(request.Title))
-            return Result<GroupTrainingUnitDto>.Failure("Titel ist erforderlich.");
+            return Result<GroupTrainingExerciseDto>.Failure("Titel ist erforderlich.");
 
-        if (request.GroupId is { } groupId && !await IsGroupTrainerAsync(userId, groupId, ct))
-            return Result<GroupTrainingUnitDto>.Failure("Du leitest diese Gruppe nicht.");
+        var exercise = new GroupTrainingExercise
+        {
+            ClubId = clubId,
+            Category = request.Category,
+            Title = request.Title.Trim(),
+            Focus = Clean(request.Focus),
+            DurationMinutes = request.DurationMinutes,
+            Description = Clean(request.Description),
+            ExamTargets = request.ExamTargets,
+            CreatedByUserId = userId
+        };
+        db.GroupTrainingExercises.Add(exercise);
+        await db.SaveChangesAsync(ct);
+        return Result<GroupTrainingExerciseDto>.Success(ToDto(exercise));
+    }
+
+    public async Task<Result<GroupTrainingExerciseDto>> UpdateExerciseAsync(Guid userId, Guid exerciseId, UpsertExerciseRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title))
+            return Result<GroupTrainingExerciseDto>.Failure("Titel ist erforderlich.");
+
+        var exercise = await db.GroupTrainingExercises.FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
+        if (exercise is null || !await IsClubTrainerAsync(userId, exercise.ClubId, ct))
+            return Result<GroupTrainingExerciseDto>.Failure("Baustein nicht gefunden.");
+
+        exercise.Category = request.Category;
+        exercise.Title = request.Title.Trim();
+        exercise.Focus = Clean(request.Focus);
+        exercise.DurationMinutes = request.DurationMinutes;
+        exercise.Description = Clean(request.Description);
+        exercise.ExamTargets = request.ExamTargets;
+        exercise.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result<GroupTrainingExerciseDto>.Success(ToDto(exercise));
+    }
+
+    public async Task<Result> DeleteExerciseAsync(Guid userId, Guid exerciseId, CancellationToken ct = default)
+    {
+        var exercise = await db.GroupTrainingExercises.FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
+        if (exercise is null || !await IsClubTrainerAsync(userId, exercise.ClubId, ct))
+            return Result.Failure("Baustein nicht gefunden.");
+
+        var now = DateTimeOffset.UtcNow;
+        // Referenzen in Einheiten mit-entfernen, damit keine Einheit auf einen
+        // gelöschten Baustein zeigt.
+        var referencing = await db.GroupTrainingUnitItems.Where(i => i.GroupTrainingExerciseId == exerciseId).ToListAsync(ct);
+        foreach (var item in referencing)
+            item.DeletedAt = now;
+        exercise.DeletedAt = now;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    // ---- Einheiten ----
+
+    public async Task<Result<GroupTrainingUnitDto>> CreateUnitAsync(Guid userId, Guid clubId, UpsertUnitRequest request, CancellationToken ct = default)
+    {
+        if (!await IsClubTrainerAsync(userId, clubId, ct))
+            return Result<GroupTrainingUnitDto>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
+        var error = await ValidateUnitAsync(clubId, request, ct);
+        if (error is not null)
+            return Result<GroupTrainingUnitDto>.Failure(error);
 
         var unit = new GroupTrainingUnit
         {
-            Title = request.Title.Trim(),
-            Description = request.Description,
+            ClubId = clubId,
             Category = request.Category,
-            CreatedByUserId = userId,
-            GroupId = request.GroupId
+            Title = request.Title.Trim(),
+            Description = Clean(request.Description),
+            CreatedByUserId = userId
         };
         db.GroupTrainingUnits.Add(unit);
-        var items = BuildItems(unit.Id, request.Items);
-        db.GroupTrainingUnitItems.AddRange(items);
+        db.GroupTrainingUnitItems.AddRange(BuildItems(unit.Id, request.ExerciseIds));
         await db.SaveChangesAsync(ct);
-
-        return Result<GroupTrainingUnitDto>.Success(ToDto(unit, items, userId));
+        return Result<GroupTrainingUnitDto>.Success(await LoadUnitDtoAsync(unit.Id, ct));
     }
 
-    public async Task<Result<GroupTrainingUnitDto>> UpdateUnitAsync(Guid userId, Guid unitId, UpdateGroupTrainingUnitRequest request, CancellationToken ct = default)
+    public async Task<Result<GroupTrainingUnitDto>> UpdateUnitAsync(Guid userId, Guid unitId, UpsertUnitRequest request, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Title))
-            return Result<GroupTrainingUnitDto>.Failure("Titel ist erforderlich.");
+        var unit = await db.GroupTrainingUnits.Include(u => u.Items).FirstOrDefaultAsync(u => u.Id == unitId, ct);
+        if (unit is null || !await IsClubTrainerAsync(userId, unit.ClubId, ct))
+            return Result<GroupTrainingUnitDto>.Failure("Einheit nicht gefunden.");
+        var error = await ValidateUnitAsync(unit.ClubId, request, ct);
+        if (error is not null)
+            return Result<GroupTrainingUnitDto>.Failure(error);
 
-        var unit = await db.GroupTrainingUnits
-            .Include(u => u.Items)
-            .FirstOrDefaultAsync(u => u.Id == unitId && u.CreatedByUserId == userId, ct);
-
-        if (unit is null)
-            return Result<GroupTrainingUnitDto>.Failure("Trainingseinheit nicht gefunden oder nicht bearbeitbar.");
-
-        unit.Title = request.Title.Trim();
-        unit.Description = request.Description;
         unit.Category = request.Category;
+        unit.Title = request.Title.Trim();
+        unit.Description = Clean(request.Description);
         unit.UpdatedAt = DateTimeOffset.UtcNow;
 
-        // Items werden komplett ersetzt (reine Besitzkinder ohne Fremdbezüge).
-        // Neue Items bewusst über das DbSet (nicht die getrackte Navigation)
-        // hinzufügen - sonst würde die Collection-Fixup sie als Modified statt
-        // Added markieren (dokumentierter EF-Fallstrick, siehe GoalService).
+        // Items komplett ersetzen; neue bewusst über das DbSet (nicht die
+        // getrackte Navigation) - sonst Collection-Fixup Modified statt Added.
         db.GroupTrainingUnitItems.RemoveRange(unit.Items);
-        var items = BuildItems(unit.Id, request.Items);
-        db.GroupTrainingUnitItems.AddRange(items);
-
+        db.GroupTrainingUnitItems.AddRange(BuildItems(unit.Id, request.ExerciseIds));
         await db.SaveChangesAsync(ct);
-
-        return Result<GroupTrainingUnitDto>.Success(ToDto(unit, items, userId));
+        return Result<GroupTrainingUnitDto>.Success(await LoadUnitDtoAsync(unit.Id, ct));
     }
 
     public async Task<Result> DeleteUnitAsync(Guid userId, Guid unitId, CancellationToken ct = default)
     {
-        var unit = await db.GroupTrainingUnits
-            .Include(u => u.Items)
-            .FirstOrDefaultAsync(u => u.Id == unitId && u.CreatedByUserId == userId, ct);
-
-        if (unit is null)
-            return Result.Failure("Trainingseinheit nicht gefunden oder nicht löschbar.");
+        var unit = await db.GroupTrainingUnits.Include(u => u.Items).FirstOrDefaultAsync(u => u.Id == unitId, ct);
+        if (unit is null || !await IsClubTrainerAsync(userId, unit.ClubId, ct))
+            return Result.Failure("Einheit nicht gefunden.");
 
         var now = DateTimeOffset.UtcNow;
         unit.DeletedAt = now;
         foreach (var item in unit.Items)
             item.DeletedAt = now;
-
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
 
-    public async Task<Result<GroupTrainingUnitDto>> CopyUnitToGroupAsync(Guid userId, Guid unitId, Guid groupId, CancellationToken ct = default)
+    public async Task<Result<GroupTrainingUnitDto>> DuplicateUnitAsync(Guid userId, Guid unitId, CancellationToken ct = default)
     {
-        var source = await db.GroupTrainingUnits
-            .Include(u => u.Items)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == unitId, ct);
-
-        // Kopiert werden dürfen System-Vorlagen und eigene Einheiten.
-        if (source is null || (source.CreatedByUserId != null && source.CreatedByUserId != userId))
-            return Result<GroupTrainingUnitDto>.Failure("Trainingseinheit nicht gefunden.");
-
-        if (!await IsGroupTrainerAsync(userId, groupId, ct))
-            return Result<GroupTrainingUnitDto>.Failure("Du leitest diese Gruppe nicht.");
+        var src = await db.GroupTrainingUnits.Include(u => u.Items).AsNoTracking().FirstOrDefaultAsync(u => u.Id == unitId, ct);
+        if (src is null || !await IsClubTrainerAsync(userId, src.ClubId, ct))
+            return Result<GroupTrainingUnitDto>.Failure("Einheit nicht gefunden.");
 
         var copy = new GroupTrainingUnit
         {
-            Title = source.Title,
-            Description = source.Description,
-            Category = source.Category,
-            CreatedByUserId = userId,
-            GroupId = groupId
+            ClubId = src.ClubId,
+            Category = src.Category,
+            Title = $"{src.Title} (Kopie)",
+            Description = src.Description,
+            CreatedByUserId = userId
         };
         db.GroupTrainingUnits.Add(copy);
-        var items = BuildItems(copy.Id, source.Items
-            .OrderBy(i => i.SortOrder)
-            .Select(i => new GroupTrainingItemInput(i.Title, i.Description, i.Focus, i.DurationMinutes))
-            .ToList());
-        db.GroupTrainingUnitItems.AddRange(items);
+        var orderedExerciseIds = src.Items.OrderBy(i => i.SortOrder).Select(i => i.GroupTrainingExerciseId).ToList();
+        db.GroupTrainingUnitItems.AddRange(BuildItems(copy.Id, orderedExerciseIds));
         await db.SaveChangesAsync(ct);
-
-        return Result<GroupTrainingUnitDto>.Success(ToDto(copy, items, userId));
+        return Result<GroupTrainingUnitDto>.Success(await LoadUnitDtoAsync(copy.Id, ct));
     }
 
-    private static List<GroupTrainingUnitItem> BuildItems(Guid unitId, IReadOnlyList<GroupTrainingItemInput>? inputs)
+    // ---- Helfer ----
+
+    private async Task<string?> ValidateUnitAsync(Guid clubId, UpsertUnitRequest request, CancellationToken ct)
     {
-        var result = new List<GroupTrainingUnitItem>();
-        if (inputs is null) return result;
+        if (string.IsNullOrWhiteSpace(request.Title))
+            return "Titel ist erforderlich.";
+        if (request.ExerciseIds is null || request.ExerciseIds.Count == 0)
+            return "Mindestens einen Baustein wählen.";
+
+        var distinct = request.ExerciseIds.Distinct().ToList();
+        var found = await db.GroupTrainingExercises.CountAsync(e => e.ClubId == clubId && distinct.Contains(e.Id), ct);
+        if (found != distinct.Count)
+            return "Mindestens ein Baustein gehört nicht zu diesem Verein.";
+        return null;
+    }
+
+    private static List<GroupTrainingUnitItem> BuildItems(Guid unitId, IReadOnlyList<Guid> exerciseIds)
+    {
         var order = 0;
-        foreach (var input in inputs)
+        return exerciseIds.Select(id => new GroupTrainingUnitItem
         {
-            if (string.IsNullOrWhiteSpace(input.Title)) continue;
-            result.Add(new GroupTrainingUnitItem
-            {
-                GroupTrainingUnitId = unitId,
-                Title = input.Title.Trim(),
-                Description = input.Description,
-                Focus = string.IsNullOrWhiteSpace(input.Focus) ? null : input.Focus.Trim(),
-                DurationMinutes = input.DurationMinutes,
-                SortOrder = order++
-            });
-        }
-        return result;
+            GroupTrainingUnitId = unitId,
+            GroupTrainingExerciseId = id,
+            SortOrder = order++
+        }).ToList();
     }
 
-    private async Task<bool> CanViewAsync(Guid userId, GroupTrainingUnit unit, CancellationToken ct)
+    private async Task<GroupTrainingUnitDto> LoadUnitDtoAsync(Guid unitId, CancellationToken ct)
     {
-        if (unit.CreatedByUserId == null || unit.CreatedByUserId == userId)
-            return await IsTrainerAsync(userId, ct);
-        if (unit.GroupId is { } groupId)
-            return await IsGroupTrainerAsync(userId, groupId, ct);
-        return false;
+        var unit = await db.GroupTrainingUnits
+            .Include(u => u.Items).ThenInclude(i => i.Exercise)
+            .AsNoTracking()
+            .FirstAsync(u => u.Id == unitId, ct);
+        return ToDto(unit);
     }
 
-    // "Trainer-Sein" datengetrieben (analog GroupService.IsTrainerAsync): wer
-    // eine Gruppe leitet oder Vereinstrainer ist.
-    private async Task<bool> IsTrainerAsync(Guid userId, CancellationToken ct) =>
-        await db.Groups.AnyAsync(g => g.TrainerId == userId, ct)
-        || await db.ClubTrainers.AnyAsync(t => t.UserId == userId, ct);
+    private Task<bool> IsClubTrainerAsync(Guid userId, Guid clubId, CancellationToken ct) =>
+        db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
 
-    private async Task<bool> IsGroupTrainerAsync(Guid userId, Guid groupId, CancellationToken ct) =>
-        await db.Groups.AnyAsync(g => g.Id == groupId && g.TrainerId == userId, ct);
+    private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
-    private static GroupTrainingUnitDto ToDto(GroupTrainingUnit unit, IEnumerable<GroupTrainingUnitItem> source, Guid userId)
+    private static GroupTrainingExerciseDto ToDto(GroupTrainingExercise e) =>
+        new(e.Id, e.ClubId, e.Category, e.Title, e.Focus, e.DurationMinutes, e.Description, e.ExamTargets);
+
+    private static GroupTrainingUnitDto ToDto(GroupTrainingUnit u)
     {
-        var items = source
+        var items = u.Items
+            .Where(i => i.Exercise != null)
             .OrderBy(i => i.SortOrder)
-            .Select(i => new GroupTrainingItemDto(i.Id, i.Title, i.Description, i.Focus, i.DurationMinutes, i.SortOrder))
+            .Select(i => new GroupTrainingUnitItemDto(i.Id, i.GroupTrainingExerciseId, i.SortOrder, ToDto(i.Exercise!)))
             .ToList();
-
         return new GroupTrainingUnitDto(
-            unit.Id,
-            unit.Title,
-            unit.Description,
-            unit.Category,
-            unit.GroupId,
-            IsTemplate: unit.CreatedByUserId == null,
-            IsMine: unit.CreatedByUserId == userId,
-            TotalMinutes: items.Sum(i => i.DurationMinutes ?? 0),
+            u.Id, u.ClubId, u.Category, u.Title, u.Description,
+            items.Sum(i => i.Exercise.DurationMinutes ?? 0),
             items);
     }
 }

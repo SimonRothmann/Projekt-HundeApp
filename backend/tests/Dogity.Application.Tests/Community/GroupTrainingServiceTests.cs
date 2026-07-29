@@ -6,10 +6,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Dogity.Application.Tests.Community;
 
 /// <summary>
-/// Testet GroupTrainingService (siehe docs/GROUP_TRAINING_PLANS.md): Trainer-
-/// Gating, Bibliothek (System-Vorlagen + eigene), Erstellen/Bearbeiten/Löschen
-/// eigener Einheiten sowie das Kopieren einer Vorlage in eine eigene Gruppe.
-/// System-Vorlagen (CreatedByUserId == null) dürfen nie verändert werden.
+/// Testet die Vereins-Trainingsbibliothek (siehe docs/GROUP_TRAINING_LIBRARY.md):
+/// verein-weit geteilte Bausteine + daraus zusammengestellte Einheiten,
+/// Zugriff nur für ClubTrainer.
 /// </summary>
 public class GroupTrainingServiceTests
 {
@@ -19,92 +18,106 @@ public class GroupTrainingServiceTests
         return new GroupTrainingService(db);
     }
 
-    /// <summary>Macht den Nutzer datengetrieben zum Trainer (leitet eine Gruppe) und gibt die GroupId zurück.</summary>
-    private static async Task<Guid> MakeTrainerWithGroupAsync(Dogity.Infrastructure.Persistence.ApplicationDbContext db, Guid trainerId)
+    /// <summary>Legt einen Verein an und macht userId zum Vereinstrainer. Gibt die ClubId zurück.</summary>
+    private static async Task<Guid> MakeClubTrainerAsync(Dogity.Infrastructure.Persistence.ApplicationDbContext db, Guid userId, string name = "Verein")
     {
-        var group = new Group { TrainerId = trainerId, Name = "Gruppe" };
-        db.Groups.Add(group);
+        var club = new Club { Name = name };
+        db.Clubs.Add(club);
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = userId });
         await db.SaveChangesAsync();
-        return group.Id;
+        return club.Id;
     }
 
-    private static async Task<GroupTrainingUnit> AddTemplateAsync(
-        Dogity.Infrastructure.Persistence.ApplicationDbContext db, GroupTrainingCategory category, string title, int items = 2)
-    {
-        var unit = new GroupTrainingUnit { Title = title, Category = category, CreatedByUserId = null, GroupId = null };
-        for (var i = 0; i < items; i++)
-            unit.Items.Add(new GroupTrainingUnitItem { Title = $"Übung {i + 1}", Focus = "Sozialisierung", DurationMinutes = 10, SortOrder = i });
-        db.GroupTrainingUnits.Add(unit);
-        await db.SaveChangesAsync();
-        return unit;
-    }
+    private static UpsertExerciseRequest Ex(string title, int? min = 10, GroupTrainingCategory cat = GroupTrainingCategory.Puppy, GroupExamTarget exams = GroupExamTarget.None) =>
+        new(cat, title, "Fokus", min, "Ablauf", exams);
 
     [Fact]
-    public async Task GetLibrary_NonTrainer_Fails()
+    public async Task GetLibrary_NonClubTrainer_Fails()
     {
         var service = MakeService(out var db);
-        await AddTemplateAsync(db, GroupTrainingCategory.Puppy, "Welpen 1");
+        var clubId = await MakeClubTrainerAsync(db, Guid.NewGuid());
 
-        var result = await service.GetLibraryAsync(Guid.NewGuid());
+        var result = await service.GetLibraryAsync(Guid.NewGuid(), clubId);
 
         Assert.False(result.Succeeded);
     }
 
     [Fact]
-    public async Task GetLibrary_Trainer_ReturnsTemplatesAndOwnUnits()
+    public async Task CreateExercise_ClubTrainer_AppearsInLibrary()
     {
         var service = MakeService(out var db);
-        var trainerId = Guid.NewGuid();
-        await MakeTrainerWithGroupAsync(db, trainerId);
-        await AddTemplateAsync(db, GroupTrainingCategory.Puppy, "Welpen 1");
-        await AddTemplateAsync(db, GroupTrainingCategory.YoungDog, "Junghunde 1");
-        await service.CreateUnitAsync(trainerId, new CreateGroupTrainingUnitRequest(
-            "Meine Einheit", null, GroupTrainingCategory.General, null,
-            [new GroupTrainingItemInput("Aufwärmen")]));
+        var userId = Guid.NewGuid();
+        var clubId = await MakeClubTrainerAsync(db, userId);
 
-        var result = await service.GetLibraryAsync(trainerId);
+        var created = await service.CreateExerciseAsync(userId, clubId, Ex("Sitz aus Bewegung"));
+        Assert.True(created.Succeeded);
 
-        Assert.True(result.Succeeded);
-        Assert.Equal(2, result.Value!.Templates.Count);
-        Assert.All(result.Value.Templates, t => Assert.True(t.IsTemplate));
-        Assert.Single(result.Value.Mine);
-        Assert.True(result.Value.Mine[0].IsMine);
-        Assert.False(result.Value.Mine[0].IsTemplate);
+        var lib = await service.GetLibraryAsync(userId, clubId);
+        Assert.True(lib.Succeeded);
+        Assert.Single(lib.Value!.Exercises);
+        Assert.Equal("Sitz aus Bewegung", lib.Value.Exercises[0].Title);
+        Assert.Equal("Verein", lib.Value.ClubName);
     }
 
     [Fact]
-    public async Task CreateUnit_Trainer_PersistsWithItemsAndTotalMinutes()
+    public async Task CreateExercise_NonTrainer_Fails()
     {
         var service = MakeService(out var db);
-        var trainerId = Guid.NewGuid();
-        await MakeTrainerWithGroupAsync(db, trainerId);
+        var clubId = await MakeClubTrainerAsync(db, Guid.NewGuid());
 
-        var result = await service.CreateUnitAsync(trainerId, new CreateGroupTrainingUnitRequest(
-            "Welpenstunde", "Beschreibung", GroupTrainingCategory.Puppy, null,
-            [
-                new GroupTrainingItemInput("Sozialkontakt", "…", "Sozialisierung", 10),
-                new GroupTrainingItemInput("Ruheübung", "…", "Entspannung", 5),
-            ]));
+        var result = await service.CreateExerciseAsync(Guid.NewGuid(), clubId, Ex("X"));
 
-        Assert.True(result.Succeeded);
-        Assert.Equal(2, result.Value!.Items.Count);
-        Assert.Equal(15, result.Value.TotalMinutes);
-        // Leere Titel werden übersprungen.
-        Assert.Equal("Sozialkontakt", result.Value.Items[0].Title);
+        Assert.False(result.Succeeded);
     }
 
     [Fact]
-    public async Task CreateUnit_ForGroupNotLed_Fails()
+    public async Task ExamTargets_Flags_RoundTrip()
     {
         var service = MakeService(out var db);
-        var trainerId = Guid.NewGuid();
-        await MakeTrainerWithGroupAsync(db, trainerId);
-        // Fremde Gruppe eines anderen Trainers.
-        var foreignGroupId = await MakeTrainerWithGroupAsync(db, Guid.NewGuid());
+        var userId = Guid.NewGuid();
+        var clubId = await MakeClubTrainerAsync(db, userId);
 
-        var result = await service.CreateUnitAsync(trainerId, new CreateGroupTrainingUnitRequest(
-            "Fremd", null, GroupTrainingCategory.General, foreignGroupId,
-            [new GroupTrainingItemInput("X")]));
+        var created = await service.CreateExerciseAsync(userId, clubId,
+            Ex("Leinenführigkeit", cat: GroupTrainingCategory.Basis, exams: GroupExamTarget.BH | GroupExamTarget.IBGH1));
+
+        Assert.True(created.Succeeded);
+        Assert.True(created.Value!.ExamTargets.HasFlag(GroupExamTarget.BH));
+        Assert.True(created.Value.ExamTargets.HasFlag(GroupExamTarget.IBGH1));
+        Assert.False(created.Value.ExamTargets.HasFlag(GroupExamTarget.IBGH3));
+    }
+
+    [Fact]
+    public async Task CreateUnit_ComposesExercisesInGivenOrder_AndSumsMinutes()
+    {
+        var service = MakeService(out var db);
+        var userId = Guid.NewGuid();
+        var clubId = await MakeClubTrainerAsync(db, userId);
+        var a = (await service.CreateExerciseAsync(userId, clubId, Ex("A", min: 10))).Value!;
+        var b = (await service.CreateExerciseAsync(userId, clubId, Ex("B", min: 5))).Value!;
+
+        var unit = await service.CreateUnitAsync(userId, clubId,
+            new UpsertUnitRequest(GroupTrainingCategory.Puppy, "Welpenstunde 1", "Beschr", [b.Id, a.Id]));
+
+        Assert.True(unit.Succeeded);
+        Assert.Equal(new[] { "B", "A" }, unit.Value!.Items.Select(i => i.Exercise.Title).ToArray());
+        Assert.Equal(15, unit.Value.TotalMinutes);
+        Assert.Equal(0, unit.Value.Items[0].SortOrder);
+        Assert.Equal(1, unit.Value.Items[1].SortOrder);
+    }
+
+    [Fact]
+    public async Task CreateUnit_WithForeignClubExercise_Fails()
+    {
+        var service = MakeService(out var db);
+        var userId = Guid.NewGuid();
+        var clubId = await MakeClubTrainerAsync(db, userId);
+        // Baustein eines fremden Vereins direkt einfügen.
+        var foreign = new GroupTrainingExercise { ClubId = Guid.NewGuid(), Title = "Fremd", Category = GroupTrainingCategory.Puppy };
+        db.GroupTrainingExercises.Add(foreign);
+        await db.SaveChangesAsync();
+
+        var result = await service.CreateUnitAsync(userId, clubId,
+            new UpsertUnitRequest(GroupTrainingCategory.Puppy, "Stunde", null, [foreign.Id]));
 
         Assert.False(result.Succeeded);
     }
@@ -113,121 +126,76 @@ public class GroupTrainingServiceTests
     public async Task UpdateUnit_ReplacesItems()
     {
         var service = MakeService(out var db);
-        var trainerId = Guid.NewGuid();
-        await MakeTrainerWithGroupAsync(db, trainerId);
-        var created = await service.CreateUnitAsync(trainerId, new CreateGroupTrainingUnitRequest(
-            "Titel", null, GroupTrainingCategory.General, null,
-            [new GroupTrainingItemInput("A"), new GroupTrainingItemInput("B")]));
+        var userId = Guid.NewGuid();
+        var clubId = await MakeClubTrainerAsync(db, userId);
+        var a = (await service.CreateExerciseAsync(userId, clubId, Ex("A"))).Value!;
+        var b = (await service.CreateExerciseAsync(userId, clubId, Ex("B"))).Value!;
+        var unit = (await service.CreateUnitAsync(userId, clubId, new UpsertUnitRequest(GroupTrainingCategory.Puppy, "U", null, [a.Id, b.Id]))).Value!;
 
-        var result = await service.UpdateUnitAsync(trainerId, created.Value!.Id, new UpdateGroupTrainingUnitRequest(
-            "Neuer Titel", "neu", GroupTrainingCategory.Puppy,
-            [new GroupTrainingItemInput("C", null, "Rückruf", 8)]));
+        var updated = await service.UpdateUnitAsync(userId, unit.Id,
+            new UpsertUnitRequest(GroupTrainingCategory.YoungDog, "U neu", null, [b.Id]));
 
-        Assert.True(result.Succeeded);
-        Assert.Equal("Neuer Titel", result.Value!.Title);
-        Assert.Equal(GroupTrainingCategory.Puppy, result.Value.Category);
-        Assert.Single(result.Value.Items);
-        Assert.Equal("C", result.Value.Items[0].Title);
-        // Alte Items sind wirklich entfernt (auch ohne QueryFilter).
-        var remaining = await db.GroupTrainingUnitItems.IgnoreQueryFilters()
-            .Where(i => i.GroupTrainingUnitId == created.Value.Id && i.DeletedAt == null)
-            .CountAsync();
-        Assert.Equal(1, remaining);
+        Assert.True(updated.Succeeded);
+        Assert.Equal(GroupTrainingCategory.YoungDog, updated.Value!.Category);
+        Assert.Single(updated.Value.Items);
+        Assert.Equal("B", updated.Value.Items[0].Exercise.Title);
     }
 
     [Fact]
-    public async Task UpdateUnit_SystemTemplate_Fails()
+    public async Task DeleteExercise_RemovesItFromUnits()
     {
         var service = MakeService(out var db);
-        var trainerId = Guid.NewGuid();
-        await MakeTrainerWithGroupAsync(db, trainerId);
-        var template = await AddTemplateAsync(db, GroupTrainingCategory.Puppy, "Welpen 1");
+        var userId = Guid.NewGuid();
+        var clubId = await MakeClubTrainerAsync(db, userId);
+        var a = (await service.CreateExerciseAsync(userId, clubId, Ex("A"))).Value!;
+        var b = (await service.CreateExerciseAsync(userId, clubId, Ex("B"))).Value!;
+        var unit = (await service.CreateUnitAsync(userId, clubId, new UpsertUnitRequest(GroupTrainingCategory.Puppy, "U", null, [a.Id, b.Id]))).Value!;
 
-        var result = await service.UpdateUnitAsync(trainerId, template.Id, new UpdateGroupTrainingUnitRequest(
-            "Gehackt", null, GroupTrainingCategory.Puppy, [new GroupTrainingItemInput("X")]));
+        var del = await service.DeleteExerciseAsync(userId, a.Id);
+        Assert.True(del.Succeeded);
 
-        Assert.False(result.Succeeded);
+        var lib = await service.GetLibraryAsync(userId, clubId);
+        Assert.Single(lib.Value!.Exercises); // nur noch B
+        var reloadedUnit = lib.Value.Units.Single(u => u.Id == unit.Id);
+        Assert.Single(reloadedUnit.Items); // A-Referenz ist raus
+        Assert.Equal("B", reloadedUnit.Items[0].Exercise.Title);
     }
 
     [Fact]
-    public async Task DeleteUnit_Own_SoftDeletesAndDropsFromLibrary()
+    public async Task DuplicateUnit_CopiesItemsWithKopieSuffix()
     {
         var service = MakeService(out var db);
-        var trainerId = Guid.NewGuid();
-        await MakeTrainerWithGroupAsync(db, trainerId);
-        var created = await service.CreateUnitAsync(trainerId, new CreateGroupTrainingUnitRequest(
-            "Weg damit", null, GroupTrainingCategory.General, null, [new GroupTrainingItemInput("A")]));
+        var userId = Guid.NewGuid();
+        var clubId = await MakeClubTrainerAsync(db, userId);
+        var a = (await service.CreateExerciseAsync(userId, clubId, Ex("A"))).Value!;
+        var b = (await service.CreateExerciseAsync(userId, clubId, Ex("B"))).Value!;
+        var unit = (await service.CreateUnitAsync(userId, clubId, new UpsertUnitRequest(GroupTrainingCategory.Basis, "Basis 1", null, [a.Id, b.Id]))).Value!;
 
-        var del = await service.DeleteUnitAsync(trainerId, created.Value!.Id);
+        var copy = await service.DuplicateUnitAsync(userId, unit.Id);
+
+        Assert.True(copy.Succeeded);
+        Assert.NotEqual(unit.Id, copy.Value!.Id);
+        Assert.Contains("Kopie", copy.Value.Title);
+        Assert.Equal(2, copy.Value.Items.Count);
+
+        var lib = await service.GetLibraryAsync(userId, clubId);
+        Assert.Equal(2, lib.Value!.Units.Count); // Original + Kopie
+    }
+
+    [Fact]
+    public async Task DeleteUnit_RemovesFromLibrary_ExercisesRemain()
+    {
+        var service = MakeService(out var db);
+        var userId = Guid.NewGuid();
+        var clubId = await MakeClubTrainerAsync(db, userId);
+        var a = (await service.CreateExerciseAsync(userId, clubId, Ex("A"))).Value!;
+        var unit = (await service.CreateUnitAsync(userId, clubId, new UpsertUnitRequest(GroupTrainingCategory.Puppy, "U", null, [a.Id]))).Value!;
+
+        var del = await service.DeleteUnitAsync(userId, unit.Id);
 
         Assert.True(del.Succeeded);
-        var lib = await service.GetLibraryAsync(trainerId);
-        Assert.Empty(lib.Value!.Mine);
-        var row = await db.GroupTrainingUnits.IgnoreQueryFilters().SingleAsync(u => u.Id == created.Value.Id);
-        Assert.NotNull(row.DeletedAt);
-    }
-
-    [Fact]
-    public async Task DeleteUnit_SystemTemplate_Fails()
-    {
-        var service = MakeService(out var db);
-        var trainerId = Guid.NewGuid();
-        await MakeTrainerWithGroupAsync(db, trainerId);
-        var template = await AddTemplateAsync(db, GroupTrainingCategory.Puppy, "Welpen 1");
-
-        var result = await service.DeleteUnitAsync(trainerId, template.Id);
-
-        Assert.False(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task CopyUnitToGroup_FromTemplate_CreatesEditableGroupCopy()
-    {
-        var service = MakeService(out var db);
-        var trainerId = Guid.NewGuid();
-        var groupId = await MakeTrainerWithGroupAsync(db, trainerId);
-        var template = await AddTemplateAsync(db, GroupTrainingCategory.Puppy, "Welpen 1", items: 3);
-
-        var result = await service.CopyUnitToGroupAsync(trainerId, template.Id, groupId);
-
-        Assert.True(result.Succeeded);
-        Assert.Equal(groupId, result.Value!.GroupId);
-        Assert.True(result.Value.IsMine);
-        Assert.False(result.Value.IsTemplate);
-        Assert.Equal(3, result.Value.Items.Count);
-        // Die kopierte Einheit ist jetzt bearbeitbar.
-        var edit = await service.UpdateUnitAsync(trainerId, result.Value.Id, new UpdateGroupTrainingUnitRequest(
-            "Angepasst", null, GroupTrainingCategory.Puppy, [new GroupTrainingItemInput("Nur eins")]));
-        Assert.True(edit.Succeeded);
-    }
-
-    [Fact]
-    public async Task CopyUnitToGroup_NotGroupTrainer_Fails()
-    {
-        var service = MakeService(out var db);
-        var trainerId = Guid.NewGuid();
-        await MakeTrainerWithGroupAsync(db, trainerId);
-        var foreignGroupId = await MakeTrainerWithGroupAsync(db, Guid.NewGuid());
-        var template = await AddTemplateAsync(db, GroupTrainingCategory.Puppy, "Welpen 1");
-
-        var result = await service.CopyUnitToGroupAsync(trainerId, template.Id, foreignGroupId);
-
-        Assert.False(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task GetGroupUnits_OwningTrainer_ReturnsOnlyThatGroupsUnits()
-    {
-        var service = MakeService(out var db);
-        var trainerId = Guid.NewGuid();
-        var groupId = await MakeTrainerWithGroupAsync(db, trainerId);
-        var template = await AddTemplateAsync(db, GroupTrainingCategory.Puppy, "Welpen 1");
-        await service.CopyUnitToGroupAsync(trainerId, template.Id, groupId);
-
-        var result = await service.GetGroupUnitsAsync(trainerId, groupId);
-
-        Assert.True(result.Succeeded);
-        Assert.Single(result.Value!);
-        Assert.Equal(groupId, result.Value![0].GroupId);
+        var lib = await service.GetLibraryAsync(userId, clubId);
+        Assert.Empty(lib.Value!.Units);
+        Assert.Single(lib.Value.Exercises); // Baustein bleibt erhalten
     }
 }

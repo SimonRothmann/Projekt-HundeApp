@@ -92,6 +92,27 @@ public class ClubMembershipConfiguration : IEntityTypeConfiguration<ClubMembersh
     }
 }
 
+public class GroupTrainingExerciseConfiguration : IEntityTypeConfiguration<GroupTrainingExercise>
+{
+    public void Configure(EntityTypeBuilder<GroupTrainingExercise> builder)
+    {
+        builder.ToTable("group_training_exercises");
+        builder.Property(e => e.Title).HasMaxLength(200).IsRequired();
+        builder.Property(e => e.Focus).HasMaxLength(80);
+        builder.Property(e => e.Description).HasMaxLength(2000);
+        builder.Property(e => e.Category).HasConversion<string>().HasMaxLength(20);
+        // Prüfungs-Tags als [Flags]-Enum in einer int-Spalte (Mehrfach-Auswahl).
+        builder.Property(e => e.ExamTargets).HasConversion<int>();
+
+        builder.HasOne(e => e.Club)
+            .WithMany()
+            .HasForeignKey(e => e.ClubId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(e => new { e.ClubId, e.Category });
+    }
+}
+
 public class GroupTrainingUnitConfiguration : IEntityTypeConfiguration<GroupTrainingUnit>
 {
     public void Configure(EntityTypeBuilder<GroupTrainingUnit> builder)
@@ -101,15 +122,12 @@ public class GroupTrainingUnitConfiguration : IEntityTypeConfiguration<GroupTrai
         builder.Property(u => u.Description).HasMaxLength(2000);
         builder.Property(u => u.Category).HasConversion<string>().HasMaxLength(20);
 
-        // Kopiert ein Trainer eine Vorlage in seine Gruppe, wird die Gruppe
-        // referenziert; wird die Gruppe gelöscht, verschwinden ihre Einheiten mit.
-        builder.HasOne(u => u.Group)
+        builder.HasOne(u => u.Club)
             .WithMany()
-            .HasForeignKey(u => u.GroupId)
+            .HasForeignKey(u => u.ClubId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(u => u.GroupId);
-        builder.HasIndex(u => new { u.Category, u.CreatedByUserId });
+        builder.HasIndex(u => new { u.ClubId, u.Category });
     }
 }
 
@@ -118,15 +136,20 @@ public class GroupTrainingUnitItemConfiguration : IEntityTypeConfiguration<Group
     public void Configure(EntityTypeBuilder<GroupTrainingUnitItem> builder)
     {
         builder.ToTable("group_training_unit_items");
-        builder.Property(i => i.Title).HasMaxLength(200).IsRequired();
-        builder.Property(i => i.Description).HasMaxLength(2000);
-        builder.Property(i => i.Focus).HasMaxLength(80);
 
         builder.HasOne(i => i.Unit)
             .WithMany(u => u.Items)
             .HasForeignKey(i => i.GroupTrainingUnitId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Löschen eines Bausteins darf eine Einheit nicht kaputt machen -
+        // Restrict; der Service entfernt/ersetzt die Referenz bewusst.
+        builder.HasOne(i => i.Exercise)
+            .WithMany()
+            .HasForeignKey(i => i.GroupTrainingExerciseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(i => i.GroupTrainingUnitId);
+        builder.HasIndex(i => i.GroupTrainingExerciseId);
     }
 }

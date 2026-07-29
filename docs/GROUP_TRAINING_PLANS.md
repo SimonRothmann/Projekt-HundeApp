@@ -1,5 +1,10 @@
 # Gruppentrainings-Pläne — Feature-Brief
 
+> ⚠️ **ÜBERHOLT (2026-07-29).** Dieses Modell (geseedete Welpen-/Junghunde-
+> Vorlagen zum „in Gruppe kopieren") wurde nach einem Grilling-Interview
+> verworfen und durch die **Vereins-Trainingsbibliothek** ersetzt — siehe
+> `docs/GROUP_TRAINING_LIBRARY.md`. Dieses Dokument bleibt nur als Historie.
+
 Status: **notiert / geplant**. Umsetzung **nach** dem adaptiven Trainingsplan-Generator
 (siehe `docs/SMART_TRAINING_PLAN.md`). Dies ist eine Ideen-/Anforderungsnotiz, noch kein Detailplan.
 
