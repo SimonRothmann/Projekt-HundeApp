@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ChevronDown, ChevronRight, ChevronUp, Clock, Copy, Download, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const CATS: GroupTrainingCategory[] = [0, 1, 2];
 const categoryLabel: Record<GroupTrainingCategory, string> = { 0: "Welpen", 1: "Junghunde", 2: "Basis" };
@@ -61,6 +62,10 @@ export default function GroupTrainingPage() {
   const [importing, setImporting] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [addExerciseId, setAddExerciseId] = useState("");
+  // Aktive Kategorie-Registerkarte: zeigt jeweils nur EINE Alterklasse
+  // (Welpen/Junghunde/Basis) statt aller drei gleichzeitig - klare Trennung
+  // und deutlich weniger Scrollen, besonders auf dem Handy.
+  const [activeCat, setActiveCat] = useState<GroupTrainingCategory>(0);
 
   async function importStarter() {
     if (!window.confirm("Best-Practice-Bausteine und Einheiten in diesen Verein übernehmen? Du kannst danach alles frei anpassen oder löschen.")) return;
@@ -152,6 +157,7 @@ export default function GroupTrainingPage() {
   }
 
   function editExercise(ex: GroupTrainingExercise) {
+    setActiveCat(ex.category);
     setExForm({
       id: ex.id,
       category: ex.category,
@@ -241,7 +247,7 @@ export default function GroupTrainingPage() {
               <Badge key={l} variant="outline">{l}</Badge>
             ))}
           </div>
-          {ex.description && <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{ex.description}</p>}
+          {ex.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">{ex.description}</p>}
         </div>
         <div className="flex shrink-0 gap-0.5">
           <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => editExercise(ex)} aria-label="Bearbeiten">
@@ -255,6 +261,10 @@ export default function GroupTrainingPage() {
     );
   }
 
+  // Nur die Inhalte der aktiven Kategorie-Registerkarte anzeigen.
+  const catExercises = library ? library.exercises.filter((e) => e.category === activeCat) : [];
+  const catUnits = library ? library.units.filter((u) => u.category === activeCat) : [];
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -263,9 +273,8 @@ export default function GroupTrainingPage() {
           Zur Trainer-Übersicht
         </Link>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Gruppentraining</h1>
-        <p className="text-muted-foreground">
-          Die gemeinsame Trainingsbibliothek deines Vereins: wiederverwendbare Übungs-Bausteine (Welpen, Junghunde,
-          Basis) und daraus zusammengestellte Einheiten – von allen Vereinstrainer:innen pflegbar.
+        <p className="text-sm text-muted-foreground">
+          Die gemeinsame Trainingsbibliothek deines Vereins – wähle eine Altersklasse.
         </p>
       </div>
 
@@ -323,26 +332,48 @@ export default function GroupTrainingPage() {
                 </Card>
               )}
 
+              {/* Kategorie-Umschalter (Segmented Control): zeigt jeweils nur
+                  EINE Altersklasse - klare Trennung, wenig Scrollen. Klebt beim
+                  Scrollen unter dem Header, damit ein Wechsel jederzeit geht. */}
+              <div className="sticky top-14 z-20 -mx-4 border-b border-border/60 bg-background/85 px-4 py-2 backdrop-blur md:top-0 md:-mx-8 md:px-8">
+                <div className="flex gap-1 rounded-lg bg-muted p-1">
+                  {CATS.map((cat) => {
+                    const count = library.exercises.filter((e) => e.category === cat).length + library.units.filter((u) => u.category === cat).length;
+                    const active = activeCat === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setActiveCat(cat)}
+                        aria-pressed={active}
+                        className={cn(
+                          "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium transition-colors",
+                          active ? "bg-background text-foreground shadow-[var(--shadow-sm)]" : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {categoryLabel[cat]}
+                        {count > 0 && (
+                          <span className={cn("rounded-full px-1.5 text-xs tabular-nums", active ? "bg-primary/10 text-primary" : "bg-foreground/10 text-muted-foreground")}>
+                            {count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* ===================== Bausteine ===================== */}
-              <section className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h2 className="text-lg font-semibold">Bausteine</h2>
-                    <p className="text-sm text-muted-foreground">Wiederverwendbare Übungen – Grundlage für die Einheiten.</p>
-                  </div>
+              <section className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-base font-semibold">
+                    Bausteine <span className="font-normal text-muted-foreground">· {catExercises.length}</span>
+                  </h2>
                   {!exForm && (
-                    <div className="flex flex-wrap gap-2">
-                      {(library.exercises.length > 0 || library.units.length > 0) && (
-                        <Button size="sm" variant="outline" disabled={importing} onClick={importStarter} title="Fehlende Best-Practice-Inhalte ergänzen">
-                          <Download className="size-4" />
-                          Starter-Katalog
-                        </Button>
-                      )}
-                      <Button size="sm" onClick={() => setExForm(emptyExerciseForm())}>
-                        <Plus className="size-4" />
-                        Neuer Baustein
-                      </Button>
-                    </div>
+                    <Button size="sm" onClick={() => setExForm({ ...emptyExerciseForm(), category: activeCat })}>
+                      <Plus className="size-4" />
+                      Neu
+                    </Button>
                   )}
                 </div>
 
@@ -407,40 +438,30 @@ export default function GroupTrainingPage() {
                   </Card>
                 )}
 
-                {library.exercises.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-8 text-center text-sm text-muted-foreground">Noch keine Bausteine. Lege den ersten an.</CardContent>
-                  </Card>
+                {catExercises.length === 0 ? (
+                  <p className="rounded-lg border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
+                    Noch keine Bausteine für {categoryLabel[activeCat]}.
+                  </p>
                 ) : (
-                  CATS.map((cat) => {
-                    const list = library.exercises.filter((e) => e.category === cat);
-                    if (list.length === 0) return null;
-                    return (
-                      <div key={cat} className="flex flex-col gap-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">{categoryLabel[cat]}</h3>
-                        {list.map(exerciseCard)}
-                      </div>
-                    );
-                  })
+                  catExercises.map(exerciseCard)
                 )}
               </section>
 
               {/* ===================== Einheiten ===================== */}
-              <section className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h2 className="text-lg font-semibold">Einheiten</h2>
-                    <p className="text-sm text-muted-foreground">Geordnete Zusammenstellungen aus Bausteinen – Mischung &amp; Reihenfolge.</p>
-                  </div>
+              <section className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-base font-semibold">
+                    Einheiten <span className="font-normal text-muted-foreground">· {catUnits.length}</span>
+                  </h2>
                   {!unitForm && (
                     <Button
                       size="sm"
                       disabled={library.exercises.length === 0}
                       title={library.exercises.length === 0 ? "Zuerst Bausteine anlegen" : undefined}
-                      onClick={() => setUnitForm(emptyUnitForm())}
+                      onClick={() => setUnitForm({ ...emptyUnitForm(), category: activeCat })}
                     >
                       <Plus className="size-4" />
-                      Neue Einheit
+                      Neu
                     </Button>
                   )}
                 </div>
@@ -543,18 +564,12 @@ export default function GroupTrainingPage() {
                   </Card>
                 )}
 
-                {library.units.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-8 text-center text-sm text-muted-foreground">Noch keine Einheiten zusammengestellt.</CardContent>
-                  </Card>
+                {catUnits.length === 0 ? (
+                  <p className="rounded-lg border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
+                    Noch keine Einheiten für {categoryLabel[activeCat]}.
+                  </p>
                 ) : (
-                  CATS.map((cat) => {
-                    const list = library.units.filter((u) => u.category === cat);
-                    if (list.length === 0) return null;
-                    return (
-                      <div key={cat} className="flex flex-col gap-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">{categoryLabel[cat]}</h3>
-                        {list.map((unit) => {
+                  catUnits.map((unit) => {
                           const isOpen = expanded.has(unit.id);
                           return (
                             <Card key={unit.id}>
@@ -589,7 +604,7 @@ export default function GroupTrainingPage() {
                                     ))}
                                   </ol>
                                   <div className="flex flex-wrap gap-2">
-                                    <Button type="button" size="sm" variant="outline" onClick={() => { setUnitForm({ id: unit.id, category: unit.category, title: unit.title, description: unit.description ?? "", exerciseIds: unit.items.map((i) => i.exerciseId) }); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                                    <Button type="button" size="sm" variant="outline" onClick={() => { setActiveCat(unit.category); setUnitForm({ id: unit.id, category: unit.category, title: unit.title, description: unit.description ?? "", exerciseIds: unit.items.map((i) => i.exerciseId) }); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                                       <Pencil className="size-3.5" />
                                       Bearbeiten
                                     </Button>
@@ -606,12 +621,19 @@ export default function GroupTrainingPage() {
                               )}
                             </Card>
                           );
-                        })}
-                      </div>
-                    );
-                  })
+                        })
                 )}
               </section>
+
+              {/* Best-Practice-Katalog nachträglich ergänzen (dezent, am Ende). */}
+              {(library.exercises.length > 0 || library.units.length > 0) && (
+                <div>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto" disabled={importing} onClick={importStarter} title="Fehlende Best-Practice-Inhalte ergänzen">
+                    <Download className="size-4" />
+                    {importing ? "Übernehme…" : "Best-Practice-Katalog ergänzen"}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </>
