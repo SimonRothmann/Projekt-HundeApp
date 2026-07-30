@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { Club, GroupTrainingCategory, GroupTrainingExercise, GroupTrainingLibrary } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ChevronDown, ChevronRight, ChevronUp, Clock, Copy, Download, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Clock, Copy, Download, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -268,11 +267,7 @@ export default function GroupTrainingPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/trainer" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" />
-          Zur Trainer-Übersicht
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Gruppentraining</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Gruppentraining</h1>
         <p className="text-sm text-muted-foreground">
           Die gemeinsame Trainingsbibliothek deines Vereins – wähle eine Altersklasse.
         </p>

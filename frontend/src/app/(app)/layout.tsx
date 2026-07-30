@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { SidebarNav } from "@/components/nav/sidebar-nav";
 import { BottomNav } from "@/components/nav/bottom-nav";
+import { SubpageBackButton } from "@/components/nav/subpage-back-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/nav/notification-bell";
 import { OfflineSyncListener } from "@/components/offline-sync-listener";
@@ -42,7 +43,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <OfflineSyncListener />
         {/* pb-28 (mobil) hält den Inhalt frei von der fixierten BottomNav
             (~64px) inkl. iOS-Safe-Area; Desktop nutzt md:pb-8 (keine BottomNav). */}
-        <main className="relative z-10 flex-1 px-4 py-6 pb-28 md:px-8 md:pb-8 print:p-0">{children}</main>
+        <main className="relative z-10 flex-1 px-4 py-6 pb-28 md:px-8 md:pb-8 print:p-0">
+          <SubpageBackButton />
+          {children}
+        </main>
       </div>
       <BottomNav />
     </div>

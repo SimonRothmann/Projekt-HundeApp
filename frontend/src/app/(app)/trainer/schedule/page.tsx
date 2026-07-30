@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import type {
@@ -19,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ChevronDown, ChevronUp, Clock, MapPin, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, MapPin, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -281,11 +280,7 @@ export default function SchedulePage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/trainer" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" />
-          Zur Trainer-Übersicht
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Terminplanung</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Terminplanung</h1>
         <p className="text-muted-foreground">Plane Gruppentrainings: wann, welche Gruppe, was gemacht wird. Mitglieder sehen die Termine ihrer Gruppe.</p>
       </div>
 
