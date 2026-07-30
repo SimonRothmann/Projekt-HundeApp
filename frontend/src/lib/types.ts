@@ -187,6 +187,15 @@ export type Group = {
   trainerId: string;
   clubId: string | null;
   memberCount: number;
+  trainerName: string | null;
+};
+
+// Möglicher Gruppen-Trainer (alle Trainer:innen des Vereins der Gruppe).
+export type GroupTrainerOption = {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
 };
 
 export type Club = {

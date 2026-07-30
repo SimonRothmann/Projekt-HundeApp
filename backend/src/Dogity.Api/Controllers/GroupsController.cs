@@ -44,6 +44,27 @@ public class GroupsController(IGroupService groupService, IClubService clubServi
         return CreatedAtAction(nameof(GetDetail), new { id = result.Value!.Id }, result.Value);
     }
 
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<GroupDto>> Update(Guid id, UpdateGroupRequest request, CancellationToken ct)
+    {
+        var result = await groupService.UpdateGroupAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
+
+    [HttpGet("{id:guid}/trainers")]
+    public async Task<ActionResult<IReadOnlyList<GroupTrainerOptionDto>>> GetAssignableTrainers(Guid id, CancellationToken ct)
+    {
+        var result = await groupService.GetAssignableTrainersAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
+    [HttpPut("{id:guid}/trainer")]
+    public async Task<IActionResult> AssignTrainer(Guid id, AssignGroupTrainerRequest request, CancellationToken ct)
+    {
+        var result = await groupService.AssignGroupTrainerAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
+
     [HttpPost("{id:guid}/members")]
     public async Task<IActionResult> AddMember(Guid id, AddMemberRequest request, CancellationToken ct)
     {

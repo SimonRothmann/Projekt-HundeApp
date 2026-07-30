@@ -8,6 +8,9 @@ public interface IGroupService
     Task<bool> IsTrainerAsync(Guid userId, CancellationToken ct = default);
     Task<Result<GroupDetailDto>> GetDetailAsync(Guid userId, Guid groupId, CancellationToken ct = default);
     Task<Result<GroupDto>> CreateAsync(Guid trainerId, CreateGroupRequest request, CancellationToken ct = default);
+    Task<Result<GroupDto>> UpdateGroupAsync(Guid userId, Guid groupId, UpdateGroupRequest request, CancellationToken ct = default);
+    Task<Result<IReadOnlyList<GroupTrainerOptionDto>>> GetAssignableTrainersAsync(Guid userId, Guid groupId, CancellationToken ct = default);
+    Task<Result> AssignGroupTrainerAsync(Guid userId, Guid groupId, AssignGroupTrainerRequest request, CancellationToken ct = default);
     Task<Result> AddMemberAsync(Guid trainerId, Guid groupId, AddMemberRequest request, CancellationToken ct = default);
     Task<Result> RemoveMemberAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct = default);
     Task<Result<IReadOnlyList<MemberDogDto>>> GetMemberDogsAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct = default);

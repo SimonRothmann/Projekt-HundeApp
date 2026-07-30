@@ -16,13 +16,38 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 {
     public async Task<Result<IReadOnlyList<GroupDto>>> GetMyGroupsAsync(Guid trainerId, CancellationToken ct = default)
     {
-        var groups = await db.Groups
-            .Where(g => g.TrainerId == trainerId)
-            .Select(g => new GroupDto(g.Id, g.Name, g.Description, g.TrainerId, g.ClubId, g.Members.Count))
+        // Sichtbar sind eigene Gruppen UND alle Gruppen der Vereine, in denen
+        // man Trainer:in ist - so kann jede:r Vereinstrainer:in die Gruppen
+        // des Vereins sehen, bearbeiten und einer/m Trainer:in zuweisen.
+        var clubIds = await db.ClubTrainers
+            .Where(t => t.UserId == trainerId)
+            .Select(t => t.ClubId)
             .ToListAsync(ct);
+
+        var rows = await db.Groups
+            .Where(g => g.TrainerId == trainerId || (g.ClubId != null && clubIds.Contains(g.ClubId.Value)))
+            .Select(g => new
+            {
+                g.Id,
+                g.Name,
+                g.Description,
+                g.TrainerId,
+                g.ClubId,
+                MemberCount = g.Members.Count(m => m.Status == GroupMemberStatus.Active)
+            })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var trainerLookup = await userLookup.FindByIdsAsync(rows.Select(r => r.TrainerId).Distinct().ToList(), ct);
+        var groups = rows
+            .Select(r => new GroupDto(r.Id, r.Name, r.Description, r.TrainerId, r.ClubId, r.MemberCount, TrainerDisplayName(trainerLookup, r.TrainerId)))
+            .ToList();
 
         return Result<IReadOnlyList<GroupDto>>.Success(groups);
     }
+
+    private static string? TrainerDisplayName(IReadOnlyDictionary<Guid, UserLookupResult> lookup, Guid trainerId) =>
+        lookup.TryGetValue(trainerId, out var info) ? $"{info.FirstName} {info.LastName}".Trim() : null;
 
     /// <summary>
     /// "Trainer-Sein" ist bewusst rein datengetrieben (siehe TODO.md
@@ -44,14 +69,15 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (group is null)
             return Result<GroupDetailDto>.Failure("Gruppe nicht gefunden.");
 
-        var memberLookup = await userLookup.FindByIdsAsync(group.Members.Select(m => m.UserId).ToList(), ct);
+        var lookupIds = group.Members.Select(m => m.UserId).Append(group.TrainerId).ToList();
+        var memberLookup = await userLookup.FindByIdsAsync(lookupIds, ct);
         var members = group.Members
             .Select(m => memberLookup.TryGetValue(m.UserId, out var info)
                 ? new GroupMemberDto(m.UserId, info.Email, info.FirstName, info.LastName, m.Role, m.JoinedAt)
                 : new GroupMemberDto(m.UserId, "(unbekannt)", "", "", m.Role, m.JoinedAt))
             .ToList();
 
-        var dto = new GroupDetailDto(new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, members.Count), members);
+        var dto = new GroupDetailDto(new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, members.Count, TrainerDisplayName(memberLookup, group.TrainerId)), members);
         return Result<GroupDetailDto>.Success(dto);
     }
 
@@ -80,9 +106,72 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         return Result<GroupDto>.Success(new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, 0));
     }
 
+    public async Task<Result<GroupDto>> UpdateGroupAsync(Guid userId, Guid groupId, UpdateGroupRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return Result<GroupDto>.Failure("Name ist erforderlich.");
+
+        var group = await GetManageableGroupAsync(userId, groupId, ct);
+        if (group is null)
+            return Result<GroupDto>.Failure("Gruppe nicht gefunden.");
+
+        group.Name = request.Name.Trim();
+        group.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        await db.SaveChangesAsync(ct);
+
+        var memberCount = await db.GroupMembers.CountAsync(m => m.GroupId == groupId && m.Status == GroupMemberStatus.Active, ct);
+        var trainerLookup = await userLookup.FindByIdsAsync(new[] { group.TrainerId }, ct);
+        return Result<GroupDto>.Success(new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, memberCount, TrainerDisplayName(trainerLookup, group.TrainerId)));
+    }
+
+    public async Task<Result<IReadOnlyList<GroupTrainerOptionDto>>> GetAssignableTrainersAsync(Guid userId, Guid groupId, CancellationToken ct = default)
+    {
+        var group = await GetManageableGroupAsync(userId, groupId, ct);
+        if (group is null)
+            return Result<IReadOnlyList<GroupTrainerOptionDto>>.Failure("Gruppe nicht gefunden.");
+
+        // Ohne Verein gibt es keinen Trainer-Pool - nur der/die aktuelle Trainer:in.
+        if (group.ClubId is not { } clubId)
+            return Result<IReadOnlyList<GroupTrainerOptionDto>>.Success(Array.Empty<GroupTrainerOptionDto>());
+
+        var trainerIds = await db.ClubTrainers
+            .Where(t => t.ClubId == clubId)
+            .Select(t => t.UserId)
+            .ToListAsync(ct);
+
+        var lookup = await userLookup.FindByIdsAsync(trainerIds, ct);
+        var dtos = trainerIds
+            .Select(id => lookup.TryGetValue(id, out var info)
+                ? new GroupTrainerOptionDto(id, info.FirstName, info.LastName, info.Email)
+                : new GroupTrainerOptionDto(id, "", "", "(unbekannt)"))
+            .OrderBy(t => t.FirstName)
+            .ThenBy(t => t.LastName)
+            .ToList();
+
+        return Result<IReadOnlyList<GroupTrainerOptionDto>>.Success(dtos);
+    }
+
+    public async Task<Result> AssignGroupTrainerAsync(Guid userId, Guid groupId, AssignGroupTrainerRequest request, CancellationToken ct = default)
+    {
+        var group = await GetManageableGroupAsync(userId, groupId, ct);
+        if (group is null)
+            return Result.Failure("Gruppe nicht gefunden.");
+
+        if (group.ClubId is not { } clubId)
+            return Result.Failure("Nur Vereinsgruppen können einer/m anderen Trainer:in zugewiesen werden.");
+
+        var isClubTrainer = await db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == request.TrainerId, ct);
+        if (!isClubTrainer)
+            return Result.Failure("Die/der gewählte Trainer:in gehört nicht zu diesem Verein.");
+
+        group.TrainerId = request.TrainerId;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
     public async Task<Result> AddMemberAsync(Guid trainerId, Guid groupId, AddMemberRequest request, CancellationToken ct = default)
     {
-        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId && g.TrainerId == trainerId, ct);
+        var group = await GetManageableGroupAsync(trainerId, groupId, ct);
         if (group is null)
             return Result.Failure("Gruppe nicht gefunden.");
 
@@ -101,7 +190,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 
     public async Task<Result> RemoveMemberAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct = default)
     {
-        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId && g.TrainerId == trainerId, ct);
+        var group = await GetManageableGroupAsync(trainerId, groupId, ct);
         if (group is null)
             return Result.Failure("Gruppe nicht gefunden.");
 
@@ -167,11 +256,24 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (!isClubMember && !isClubTrainer)
             return Result<IReadOnlyList<GroupDto>>.Failure("Keine Berechtigung für diesen Verein.");
 
-        var groups = await db.Groups
+        var rows = await db.Groups
             .Where(g => g.ClubId == clubId)
-            .Select(g => new GroupDto(g.Id, g.Name, g.Description, g.TrainerId, g.ClubId, g.Members.Count(m => m.Status == GroupMemberStatus.Active)))
+            .Select(g => new
+            {
+                g.Id,
+                g.Name,
+                g.Description,
+                g.TrainerId,
+                g.ClubId,
+                MemberCount = g.Members.Count(m => m.Status == GroupMemberStatus.Active)
+            })
             .AsNoTracking()
             .ToListAsync(ct);
+
+        var trainerLookup = await userLookup.FindByIdsAsync(rows.Select(r => r.TrainerId).Distinct().ToList(), ct);
+        var groups = rows
+            .Select(r => new GroupDto(r.Id, r.Name, r.Description, r.TrainerId, r.ClubId, r.MemberCount, TrainerDisplayName(trainerLookup, r.TrainerId)))
+            .ToList();
 
         return Result<IReadOnlyList<GroupDto>>.Success(groups);
     }
@@ -195,7 +297,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 
     public async Task<Result<IReadOnlyList<GroupJoinRequestDto>>> GetGroupJoinRequestsAsync(Guid trainerId, Guid groupId, CancellationToken ct = default)
     {
-        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId && g.TrainerId == trainerId, ct);
+        var group = await GetManageableGroupAsync(trainerId, groupId, ct);
         if (group is null)
             return Result<IReadOnlyList<GroupJoinRequestDto>>.Failure("Gruppe nicht gefunden.");
 
@@ -217,7 +319,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 
     public async Task<Result> DecideGroupJoinRequestAsync(Guid trainerId, Guid groupId, Guid memberId, bool approve, CancellationToken ct = default)
     {
-        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId && g.TrainerId == trainerId, ct);
+        var group = await GetManageableGroupAsync(trainerId, groupId, ct);
         if (group is null)
             return Result.Failure("Gruppe nicht gefunden.");
 
@@ -236,18 +338,35 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 
     // Nur von GetDetailAsync (reiner Lesezugriff) verwendet - daher AsNoTracking.
     // Nur Active-Mitglieder zählen als Mitglieder (Pending = noch nicht freigegebene Anfragen).
+    // Zugriff hat: der/die Gruppen-Trainer:in, aktive Mitglieder ODER jede:r
+    // Trainer:in des Vereins, dem die Gruppe gehört.
     private async Task<Group?> GetAccessibleGroupAsync(Guid userId, Guid groupId, CancellationToken ct) =>
         await db.Groups
             .Include(g => g.Members.Where(m => m.Status == GroupMemberStatus.Active))
             .Where(g => g.Id == groupId)
-            .Where(g => g.TrainerId == userId || g.Members.Any(m => m.UserId == userId && m.Status == GroupMemberStatus.Active))
+            .Where(g => g.TrainerId == userId
+                || g.Members.Any(m => m.UserId == userId && m.Status == GroupMemberStatus.Active)
+                || (g.ClubId != null && db.ClubTrainers.Any(t => t.ClubId == g.ClubId && t.UserId == userId)))
             .AsNoTracking()
             .FirstOrDefaultAsync(ct);
 
+    // Ob der/die Nutzer:in die Gruppe verwalten darf: als deren Trainer:in ODER
+    // als Trainer:in des Vereins, dem die Gruppe gehört ("jede:r Vereinstrainer:in").
+    // Liefert die getrackte Entität zurück, damit Aufrufer sie direkt ändern können.
+    private async Task<Group?> GetManageableGroupAsync(Guid userId, Guid groupId, CancellationToken ct)
+    {
+        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
+        if (group is null) return null;
+        if (group.TrainerId == userId) return group;
+        if (group.ClubId is { } clubId && await db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct))
+            return group;
+        return null;
+    }
+
     private async Task<bool> IsGroupMemberAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct)
     {
-        var ownsGroup = await db.Groups.AnyAsync(g => g.Id == groupId && g.TrainerId == trainerId, ct);
-        if (!ownsGroup) return false;
+        var canManage = await GetManageableGroupAsync(trainerId, groupId, ct) is not null;
+        if (!canManage) return false;
 
         return await db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == memberId && m.Status == GroupMemberStatus.Active, ct);
     }

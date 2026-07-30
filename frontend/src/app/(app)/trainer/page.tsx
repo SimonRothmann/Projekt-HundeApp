@@ -164,12 +164,17 @@ export default function TrainerPage() {
           {groups.map((group) => (
             <Link key={group.id} href={`/trainer/${group.id}`}>
               <Card className="transition-colors hover:bg-accent/30">
-                <CardHeader className="flex-row items-center justify-between space-y-0">
-                  <div className="flex items-center gap-3">
-                    <Users className="size-6 text-primary" />
-                    <CardTitle className="text-base">{group.name}</CardTitle>
+                <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Users className="size-6 shrink-0 text-primary" />
+                    <div className="min-w-0">
+                      <CardTitle className="text-base [overflow-wrap:anywhere]">{group.name}</CardTitle>
+                      {group.trainerName && (
+                        <p className="text-xs text-muted-foreground">Trainer:in: {group.trainerName}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 flex-col items-end gap-1">
                     {group.clubId && (
                       <Badge variant="outline">{myClubs.find((c) => c.id === group.clubId)?.name ?? "Verein"}</Badge>
                     )}

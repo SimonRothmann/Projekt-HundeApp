@@ -154,4 +154,81 @@ public class GroupServiceTests
         Assert.Single(result.Value!);
         Assert.Equal(pendingUserId, result.Value![0].MemberId);
     }
+
+    // ---- Bearbeiten / Trainer:in zuweisen (jede:r Vereinstrainer:in) ----
+
+    private static async Task<(Guid ClubId, Guid OwnerTrainerId, Guid ColleagueTrainerId, Guid GroupId)> SetupClubGroupAsync(
+        Dogity.Infrastructure.Persistence.ApplicationDbContext db)
+    {
+        var club = new Club { Name = "TSV" };
+        db.Clubs.Add(club);
+        var owner = Guid.NewGuid();
+        var colleague = Guid.NewGuid();
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = owner });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = colleague });
+        var group = new Group { TrainerId = owner, Name = "Dienstagsgruppe", ClubId = club.Id };
+        db.Groups.Add(group);
+        await db.SaveChangesAsync();
+        return (club.Id, owner, colleague, group.Id);
+    }
+
+    [Fact]
+    public async Task UpdateGroup_ByClubColleagueTrainer_Succeeds()
+    {
+        var service = MakeService(out var db);
+        var (_, _, colleague, groupId) = await SetupClubGroupAsync(db);
+
+        var result = await service.UpdateGroupAsync(colleague, groupId, new UpdateGroupRequest("Neuer Name", "Neu"));
+
+        Assert.True(result.Succeeded);
+        var group = await db.Groups.SingleAsync(g => g.Id == groupId);
+        Assert.Equal("Neuer Name", group.Name);
+    }
+
+    [Fact]
+    public async Task UpdateGroup_ByUnrelatedUser_Fails()
+    {
+        var service = MakeService(out var db);
+        var (_, _, _, groupId) = await SetupClubGroupAsync(db);
+
+        var result = await service.UpdateGroupAsync(Guid.NewGuid(), groupId, new UpdateGroupRequest("X", null));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task AssignTrainer_ByClubTrainer_ReassignsToClubColleague()
+    {
+        var service = MakeService(out var db);
+        var (_, owner, colleague, groupId) = await SetupClubGroupAsync(db);
+
+        var result = await service.AssignGroupTrainerAsync(owner, groupId, new AssignGroupTrainerRequest(colleague));
+
+        Assert.True(result.Succeeded);
+        var group = await db.Groups.SingleAsync(g => g.Id == groupId);
+        Assert.Equal(colleague, group.TrainerId);
+    }
+
+    [Fact]
+    public async Task AssignTrainer_TargetNotClubTrainer_Fails()
+    {
+        var service = MakeService(out var db);
+        var (_, owner, _, groupId) = await SetupClubGroupAsync(db);
+
+        var result = await service.AssignGroupTrainerAsync(owner, groupId, new AssignGroupTrainerRequest(Guid.NewGuid()));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task GetMyGroups_IncludesClubColleagueGroups()
+    {
+        var service = MakeService(out var db);
+        var (_, _, colleague, groupId) = await SetupClubGroupAsync(db);
+
+        var result = await service.GetMyGroupsAsync(colleague);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(result.Value!, g => g.Id == groupId);
+    }
 }
