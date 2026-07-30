@@ -56,6 +56,14 @@ public class GroupTrainingScheduleController(IGroupTrainingScheduleService servi
         return FromResult(result);
     }
 
+    /// <summary>Vereinstrainer:innen für die Co-Trainer-Zuweisung.</summary>
+    [HttpGet("clubs/{clubId:guid}/trainers")]
+    public async Task<ActionResult<IReadOnlyList<SessionTrainerDto>>> GetClubTrainers(Guid clubId, CancellationToken ct)
+    {
+        var result = await service.GetClubTrainersAsync(CurrentUserId, clubId, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("sessions/{id:guid}")]
     public async Task<ActionResult<GroupTrainingSessionDto>> Update(Guid id, UpdateSessionRequest request, CancellationToken ct)
     {

@@ -56,4 +56,7 @@ public record GenerateSeriesRequest(
     int DurationMinutes,
     string? Location,
     IReadOnlyList<Guid> TrainerUserIds,
-    IReadOnlyList<SessionContentInput> Items);
+    IReadOnlyList<SessionContentInput> Items,
+    // true = pro Termin einen frischen Mix aus der Bibliothek generieren
+    // (abwechslungsreiche Serie); dann werden Items ignoriert.
+    bool AutoGenerateContent = false);

@@ -32,4 +32,7 @@ public interface IGroupTrainingScheduleService
     /// Termin und lässt sie frei anpassen.
     /// </summary>
     Task<Result<IReadOnlyList<GroupTrainingExerciseDto>>> GenerateContentAsync(Guid userId, Guid clubId, GroupTrainingCategory category, CancellationToken ct = default);
+
+    /// <summary>Vereinstrainer:innen für die Co-Trainer-Zuweisung (nur für ClubTrainer).</summary>
+    Task<Result<IReadOnlyList<SessionTrainerDto>>> GetClubTrainersAsync(Guid userId, Guid clubId, CancellationToken ct = default);
 }

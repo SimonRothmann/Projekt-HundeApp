@@ -11,6 +11,7 @@ import type {
   GroupTrainingExercise,
   GroupTrainingLibrary,
   GroupTrainingSession,
+  SessionTrainer,
 } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,11 +55,13 @@ type Form = {
   location: string;
   notes: string;
   content: ContentDraft[];
+  trainerIds: string[];
+  autoContent: boolean; // Serie: pro Termin einen frischen Mix generieren
 };
 
 const emptyForm = (): Form => ({
   editingId: null,
-  mode: "single",
+  mode: "series", // Vereinstrainings laufen meist wöchentlich – Serie als Default
   groupId: "",
   category: 0,
   date: todayIso(),
@@ -70,6 +73,8 @@ const emptyForm = (): Form => ({
   location: "",
   notes: "",
   content: [],
+  trainerIds: [],
+  autoContent: false,
 });
 
 export default function SchedulePage() {
@@ -78,6 +83,7 @@ export default function SchedulePage() {
   const [clubId, setClubId] = useState("");
   const [groups, setGroups] = useState<Group[]>([]);
   const [library, setLibrary] = useState<GroupTrainingLibrary | null>(null);
+  const [clubTrainers, setClubTrainers] = useState<SessionTrainer[]>([]);
   const [sessions, setSessions] = useState<GroupTrainingSession[] | null>(null);
 
   const [filterGroup, setFilterGroup] = useState("");
@@ -120,6 +126,7 @@ export default function SchedulePage() {
     if (!clubId) return;
     api.get<Group[]>(`/api/clubs/${clubId}/groups`).then(setGroups).catch(() => setGroups([]));
     api.get<GroupTrainingLibrary>(`/api/group-training/clubs/${clubId}/library`).then(setLibrary).catch(() => setLibrary(null));
+    api.get<SessionTrainer[]>(`/api/group-training/schedule/clubs/${clubId}/trainers`).then(setClubTrainers).catch(() => setClubTrainers([]));
   }, [clubId]);
 
   useEffect(() => {
@@ -130,6 +137,7 @@ export default function SchedulePage() {
   function openCreate() {
     const f = emptyForm();
     if (groups.length > 0) f.groupId = groups[0].id;
+    if (user) f.trainerIds = [user.userId];
     setForm(f);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -150,8 +158,20 @@ export default function SchedulePage() {
       location: s.location ?? "",
       notes: s.notes ?? "",
       content: s.items.map((i) => (i.exerciseId ? exDraft(i.exerciseId) : textDraft(i.freeText ?? ""))),
+      trainerIds: s.trainers.map((t) => t.userId),
+      autoContent: false,
     });
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function toggleTrainer(userId: string, on: boolean) {
+    setForm((f) => {
+      if (!f) return f;
+      const set = new Set(f.trainerIds);
+      if (on) set.add(userId);
+      else set.delete(userId);
+      return { ...f, trainerIds: [...set] };
+    });
   }
 
   function patch(p: Partial<Form>) {
@@ -201,7 +221,7 @@ export default function SchedulePage() {
     if (!form.groupId) return toast.error("Gruppe wählen.");
     const items = contentPayload(form.content);
     const duration = Number(form.durationMinutes) || 60;
-    const trainerUserIds = user ? [user.userId] : [];
+    const trainerUserIds = form.trainerIds;
     setSaving(true);
     try {
       if (form.mode === "single") {
@@ -213,7 +233,16 @@ export default function SchedulePage() {
       } else {
         const starts = seriesDates(form);
         if (starts.length === 0) return toast.error("Kein Termin im Zeitraum am gewählten Wochentag.");
-        const body = { groupId: form.groupId, category: form.category, starts, durationMinutes: duration, location: form.location.trim() || null, trainerUserIds, items };
+        const body = {
+          groupId: form.groupId,
+          category: form.category,
+          starts,
+          durationMinutes: duration,
+          location: form.location.trim() || null,
+          trainerUserIds,
+          items: form.autoContent ? [] : items,
+          autoGenerateContent: form.autoContent,
+        };
         const created = await api.post<GroupTrainingSession[]>(`/api/group-training/schedule/clubs/${clubId}/series`, body);
         toast.success(`${created.length} Termine angelegt.`);
       }
@@ -309,6 +338,20 @@ export default function SchedulePage() {
                   </div>
                 </div>
 
+                {clubTrainers.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Zuständige Trainer:innen</Label>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      {clubTrainers.map((t) => (
+                        <label key={t.userId} className="flex items-center gap-1.5 text-sm">
+                          <input type="checkbox" className="size-4 accent-primary" checked={form.trainerIds.includes(t.userId)} onChange={(e) => toggleTrainer(t.userId, e.target.checked)} />
+                          {t.firstName} {t.lastName}{user?.userId === t.userId ? " (du)" : ""}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {form.mode === "single" ? (
                   <div className="flex flex-wrap gap-3">
                     <div className="flex flex-col gap-1"><Label className="text-xs">Datum</Label><Input type="date" className="w-40" value={form.date} onChange={(e) => patch({ date: e.target.value })} /></div>
@@ -343,7 +386,15 @@ export default function SchedulePage() {
                   </div>
                 )}
 
+                {form.mode === "series" && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" className="size-4 accent-primary" checked={form.autoContent} onChange={(e) => patch({ autoContent: e.target.checked })} />
+                    Inhalt je Termin automatisch generieren (abwechslungsreicher Mix)
+                  </label>
+                )}
+
                 {/* Inhalt */}
+                {!(form.mode === "series" && form.autoContent) && (
                 <div className="flex flex-col gap-2 rounded-md border bg-muted/20 p-2.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Label className="text-xs">Inhalt (Übungen in Reihenfolge)</Label>
@@ -395,6 +446,7 @@ export default function SchedulePage() {
                     </div>
                   </div>
                 </div>
+                )}
 
                 <div className="flex gap-2">
                   <Button type="button" disabled={saving} onClick={submit}>{saving ? "Speichert…" : form.editingId ? "Speichern" : form.mode === "series" ? "Serie anlegen" : "Anlegen"}</Button>
@@ -444,6 +496,7 @@ export default function SchedulePage() {
                       </div>
                     </div>
                     {s.location && <p className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3" />{s.location}</p>}
+                    {s.trainers.length > 0 && <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">Trainer: {s.trainers.map((t) => `${t.firstName} ${t.lastName}`.trim() || "?").join(", ")}</p>}
                     {s.items.length > 0 && (
                       <p className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="size-3" />{s.items.length} Übungen · {s.plannedMinutes} Min</p>
                     )}

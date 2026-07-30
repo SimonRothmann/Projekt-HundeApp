@@ -140,6 +140,11 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         if (error is not null) return Result<IReadOnlyList<GroupTrainingSessionDto>>.Failure(error);
 
         var duration = request.DurationMinutes < 1 ? 60 : request.DurationMinutes;
+        // Für "je Termin generieren" den Baustein-Pool der Kategorie einmal laden.
+        var pool = request.AutoGenerateContent
+            ? await db.GroupTrainingExercises.Where(e => e.ClubId == clubId && e.Category == request.Category).AsNoTracking().ToListAsync(ct)
+            : new List<GroupTrainingExercise>();
+
         var createdIds = new List<Guid>();
         foreach (var start in request.Starts.OrderBy(s => s))
         {
@@ -155,7 +160,13 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
                 CreatedByUserId = userId
             };
             db.GroupTrainingSessions.Add(session);
-            db.GroupTrainingSessionItems.AddRange(BuildItems(session.Id, request.Items));
+
+            var items = request.AutoGenerateContent
+                ? GroupTrainingMixGenerator.Generate(request.Category, pool, Random.Shared)
+                    .Select((e, idx) => new GroupTrainingSessionItem { GroupTrainingSessionId = session.Id, GroupTrainingExerciseId = e.Id, SortOrder = idx })
+                    .ToList()
+                : BuildItems(session.Id, request.Items);
+            db.GroupTrainingSessionItems.AddRange(items);
             db.GroupTrainingSessionTrainers.AddRange(BuildTrainers(session.Id, request.TrainerUserIds));
             createdIds.Add(session.Id);
         }
@@ -177,6 +188,23 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
 
         var picked = GroupTrainingMixGenerator.Generate(category, pool, Random.Shared);
         return Result<IReadOnlyList<GroupTrainingExerciseDto>>.Success(picked.Select(ToExerciseDto).ToList());
+    }
+
+    public async Task<Result<IReadOnlyList<SessionTrainerDto>>> GetClubTrainersAsync(Guid userId, Guid clubId, CancellationToken ct = default)
+    {
+        if (!await IsClubTrainerAsync(userId, clubId, ct))
+            return Result<IReadOnlyList<SessionTrainerDto>>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
+
+        var ids = await db.ClubTrainers.Where(t => t.ClubId == clubId).Select(t => t.UserId).ToListAsync(ct);
+        if (ids.Count == 0)
+            return Result<IReadOnlyList<SessionTrainerDto>>.Success(Array.Empty<SessionTrainerDto>());
+
+        var names = await userLookup.FindByIdsAsync(ids, ct);
+        var list = ids
+            .Select(id => names.TryGetValue(id, out var n) ? new SessionTrainerDto(id, n.FirstName, n.LastName) : new SessionTrainerDto(id, "", ""))
+            .OrderBy(t => t.LastName).ThenBy(t => t.FirstName)
+            .ToList();
+        return Result<IReadOnlyList<SessionTrainerDto>>.Success(list);
     }
 
     // ---- Helfer ----

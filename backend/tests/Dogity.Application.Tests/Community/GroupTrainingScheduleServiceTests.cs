@@ -237,4 +237,41 @@ public class GroupTrainingScheduleServiceTests
         Assert.True(result.Succeeded);
         Assert.Empty(result.Value!);
     }
+
+    [Fact]
+    public async Task GetClubTrainers_ReturnsAllClubTrainers()
+    {
+        var service = MakeService(out var db);
+        var s = await SetupAsync(db);
+        var other = Guid.NewGuid();
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = s.ClubId, UserId = other });
+        await db.SaveChangesAsync();
+
+        var result = await service.GetClubTrainersAsync(s.UserId, s.ClubId);
+
+        Assert.True(result.Succeeded);
+        var ids = result.Value!.Select(t => t.UserId).ToHashSet();
+        Assert.Contains(s.UserId, ids);
+        Assert.Contains(other, ids);
+    }
+
+    [Fact]
+    public async Task GenerateSeries_AutoGenerateContent_FillsEachSession()
+    {
+        var service = MakeService(out var db);
+        var s = await SetupAsync(db);
+        var p = GroupTrainingCategory.Puppy;
+        await AddExAsync(db, s.ClubId, p, "Ankommen", "Ankommen");
+        await AddExAsync(db, s.ClubId, p, "Entspannung", "Ruhe");
+        await AddExAsync(db, s.ClubId, p, "Futterhand", "Futterhand");
+        await AddExAsync(db, s.ClubId, p, "Spielen", "Spielen");
+
+        var starts = new[] { DateTimeOffset.UtcNow.AddDays(1), DateTimeOffset.UtcNow.AddDays(8) };
+        var result = await service.GenerateSeriesAsync(s.UserId, s.ClubId,
+            new GenerateSeriesRequest(s.GroupId, p, starts, 60, null, [s.UserId], Array.Empty<SessionContentInput>(), AutoGenerateContent: true));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.Value!.Count);
+        Assert.All(result.Value, x => Assert.NotEmpty(x.Items)); // je Termin ein generierter Mix
+    }
 }
