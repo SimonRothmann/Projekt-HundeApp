@@ -21,11 +21,11 @@ export function SidebarNav() {
   ];
 
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r bg-sidebar p-4 md:flex print:hidden">
+    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border/60 bg-sidebar/80 p-4 backdrop-blur-xl md:flex print:hidden">
       <div className="mb-6 flex items-center justify-between gap-2 px-2">
         <div className="flex items-center gap-2">
           <PawPrint className="size-6 text-primary" />
-          <span className="text-lg font-semibold">Dogity</span>
+          <span className="text-gradient text-lg font-bold tracking-tight">Dogity</span>
           <EnvBadge />
         </div>
         <NotificationBell />
@@ -38,13 +38,13 @@ export function SidebarNav() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[var(--shadow-sm)] ring-1 ring-primary/15"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
               )}
             >
-              <Icon className="size-4" />
+              <Icon className={cn("size-4", isActive && "text-primary")} />
               {label}
             </Link>
           );

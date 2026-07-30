@@ -39,10 +39,12 @@ export default function DashboardPage() {
       </div>
 
       {hasNoClub && (
-        <Link href="/clubs">
-          <Card className="border-primary/40 bg-primary/5 transition-colors hover:bg-primary/10">
-            <CardHeader className="flex-row items-center gap-3 space-y-0">
-              <Building2 className="size-8 text-primary" />
+        <Link href="/clubs" className="group block">
+          <Card className="border-primary/40 bg-primary/5 transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary/10 hover:shadow-[var(--shadow-glow)]">
+            <CardHeader className="flex-row items-center gap-4 space-y-0">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/25">
+                <Building2 className="size-6" />
+              </span>
               <div>
                 <CardTitle>Tritt einem Verein bei</CardTitle>
                 <CardDescription>
@@ -57,10 +59,12 @@ export default function DashboardPage() {
       <UpcomingTrainingsSection />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Link href="/dogs">
-          <Card className="transition-colors hover:bg-accent/10">
-            <CardHeader className="flex-row items-center gap-3 space-y-0">
-              <Dog className="size-8 text-primary" />
+        <Link href="/dogs" className="group block">
+          <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
+            <CardHeader className="flex-row items-center gap-4 space-y-0">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-colors group-hover:bg-primary/15">
+                <Dog className="size-6" />
+              </span>
               <div>
                 <CardTitle>Meine Hunde</CardTitle>
                 <CardDescription>Hunde verwalten und Profile pflegen</CardDescription>
@@ -69,10 +73,12 @@ export default function DashboardPage() {
           </Card>
         </Link>
 
-        <Link href="/sports">
-          <Card className="transition-colors hover:bg-accent/10">
-            <CardHeader className="flex-row items-center gap-3 space-y-0">
-              <Trophy className="size-8 text-primary" />
+        <Link href="/sports" className="group block">
+          <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
+            <CardHeader className="flex-row items-center gap-4 space-y-0">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent ring-1 ring-accent/25 transition-colors group-hover:bg-accent/20">
+                <Trophy className="size-6" />
+              </span>
               <div>
                 <CardTitle>Sportarten</CardTitle>
                 <CardDescription>Prüfungsordnungen & Übungen entdecken</CardDescription>

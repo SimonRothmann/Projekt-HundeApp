@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/auth-context";
@@ -8,9 +8,13 @@ import { PwaRegister } from "@/components/pwa-register";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { ChunkErrorReloader } from "@/components/chunk-error-reloader";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// "Premium Sleek Modern"-Markenschrift; als CSS-Variable --font-jakarta
+// bereitgestellt und in globals.css an --font-sans/--font-heading gebunden.
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +30,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#3d86f0",
+  themeColor: "#0b0f1a",
   width: "device-width",
   initialScale: 1,
 };
@@ -39,11 +43,11 @@ export default function RootLayout({
   return (
     <html
       lang="de"
-      className={`${geistSans.variable} h-full antialiased`}
+      className={`${jakarta.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
             {children}
             <Toaster />

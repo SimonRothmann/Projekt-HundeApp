@@ -23,7 +23,7 @@ export function BottomNav() {
   const navItems = [...coreNavItems, ...(isTrainer ? [trainerNavItem] : []), profileNavItem];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-backdrop-filter:bg-background/60 md:hidden print:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/80 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl supports-backdrop-filter:bg-background/60 md:hidden print:hidden">
       <ul className={cn("grid", GRID_COLS_CLASS[navItems.length])}>
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href);
@@ -32,11 +32,18 @@ export function BottomNav() {
               <Link
                 href={href}
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 text-xs",
+                  "flex flex-col items-center gap-1 py-2 text-xs font-medium transition-transform active:scale-95",
                   isActive ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                <Icon className="size-6" />
+                <span
+                  className={cn(
+                    "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
+                    isActive && "bg-primary/12",
+                  )}
+                >
+                  <Icon className="size-5" />
+                </span>
                 {label}
               </Link>
             </li>

@@ -12,8 +12,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-heading: var(--font-sans);
+  /* "Premium Sleek Modern": Plus Jakarta Sans als Marken-/UI-Schrift, Inter als
+     naher Fallback, dann System-Stack. Wird über next/font in layout.tsx als
+     --font-jakarta bereitgestellt. */
+  --font-sans: var(--font-jakarta), "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading: var(--font-jakarta), "Inter", ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -33,6 +36,7 @@
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -53,91 +57,92 @@
 }
 
 :root {
-  /* Dogity Design System (siehe DESIGN_SYSTEM.md "Farben"): an Apples
-     System-Palette angelehnt (iOS/macOS "System Blue" als Primärfarbe,
-     neutrale Graustufen statt der vorherigen naturorientierten
-     Grün/Sand/Orange-Palette, "System Green" als Akzent für Erfolg/
-     Fortschritt). Chart-Farben entsprechen Apples Health-/Fitness-App-Set
-     (Blau/Grün/Orange/Violett/Türkis). */
-  --background: oklch(0.975 0.003 247);
-  --foreground: oklch(0.28 0.012 247);
-  --card: oklch(0.995 0.001 247);
-  --card-foreground: oklch(0.28 0.012 247);
-  --popover: oklch(0.995 0.001 247);
-  --popover-foreground: oklch(0.28 0.012 247);
-  --primary: oklch(0.58 0.17 258);
-  --primary-foreground: oklch(0.99 0.002 247);
-  --secondary: oklch(0.93 0.006 247);
-  --secondary-foreground: oklch(0.38 0.014 247);
-  --muted: oklch(0.945 0.005 247);
-  --muted-foreground: oklch(0.53 0.014 247);
-  --accent: oklch(0.7 0.15 148);
-  --accent-foreground: oklch(0.26 0.03 148);
-  --destructive: oklch(0.6 0.2 23);
-  --border: oklch(0.89 0.006 247);
-  --input: oklch(0.89 0.006 247);
-  --ring: oklch(0.58 0.17 258 / 45%);
-  --chart-1: oklch(0.58 0.17 258);
-  --chart-2: oklch(0.7 0.15 148);
-  --chart-3: oklch(0.74 0.13 55);
-  --chart-4: oklch(0.62 0.14 320);
-  --chart-5: oklch(0.74 0.1 230);
-  --radius: 1rem;
-  --shadow-color: 247 25% 18%;
-  --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.05), 0 1px 1px hsl(var(--shadow-color) / 0.04);
-  --shadow-md: 0 6px 14px -4px hsl(var(--shadow-color) / 0.08), 0 2px 4px -2px hsl(var(--shadow-color) / 0.05);
-  --shadow-lg: 0 16px 32px -8px hsl(var(--shadow-color) / 0.12), 0 4px 8px -4px hsl(var(--shadow-color) / 0.06);
-  --sidebar: oklch(0.955 0.005 247);
-  --sidebar-foreground: oklch(0.28 0.012 247);
-  --sidebar-primary: oklch(0.58 0.17 258);
-  --sidebar-primary-foreground: oklch(0.99 0.002 247);
-  --sidebar-accent: oklch(0.91 0.007 247);
-  --sidebar-accent-foreground: oklch(0.38 0.014 247);
-  --sidebar-border: oklch(0.89 0.006 247);
-  --sidebar-ring: oklch(0.58 0.17 258 / 45%);
+  /* "Premium Sleek Modern" (Linear / Vercel / Raycast / Apple):
+     Deep-Indigo-Primärfarbe (#4f46e5), kühle Slate-Neutrals, Cyan + Fuchsia als
+     dezente Akzente/Verläufe. Werte in OKLCH für gleichmäßige Helligkeit.
+     Light Mode = kühles, kontraststarkes Weiß/Slate. */
+  --background: oklch(0.985 0.002 250); /* slate-50 */
+  --foreground: oklch(0.21 0.04 265); /* slate-900 */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.04 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.04 265);
+  --primary: oklch(0.52 0.24 277); /* indigo-600 ~#4f46e5 */
+  --primary-foreground: oklch(0.99 0.005 260);
+  --secondary: oklch(0.968 0.008 255); /* slate-100 */
+  --secondary-foreground: oklch(0.3 0.04 265);
+  --muted: oklch(0.968 0.008 255);
+  --muted-foreground: oklch(0.52 0.03 262); /* slate-500 */
+  --accent: oklch(0.72 0.13 205); /* cyan */
+  --accent-foreground: oklch(0.25 0.05 235);
+  --accent-2: oklch(0.67 0.27 330); /* fuchsia (Verläufe/Highlights) */
+  --destructive: oklch(0.6 0.22 22);
+  --border: oklch(0.922 0.014 255); /* slate-200 */
+  --input: oklch(0.922 0.014 255);
+  --ring: oklch(0.52 0.24 277 / 45%);
+  --chart-1: oklch(0.52 0.24 277); /* indigo */
+  --chart-2: oklch(0.72 0.13 205); /* cyan */
+  --chart-3: oklch(0.67 0.27 330); /* fuchsia */
+  --chart-4: oklch(0.6 0.2 300); /* violet */
+  --chart-5: oklch(0.7 0.14 235); /* sky */
+  --radius: 0.75rem;
+  --shadow-color: 262 45% 20%;
+  --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.06), 0 1px 1px hsl(var(--shadow-color) / 0.04);
+  --shadow-md: 0 8px 20px -6px hsl(var(--shadow-color) / 0.1), 0 2px 6px -2px hsl(var(--shadow-color) / 0.06);
+  --shadow-lg: 0 24px 48px -12px hsl(var(--shadow-color) / 0.18), 0 8px 16px -8px hsl(var(--shadow-color) / 0.08);
+  /* Dezenter Primär-"Glow" für hervorgehobene Flächen (CTA/aktiv). */
+  --shadow-glow: 0 0 0 1px color-mix(in oklch, var(--primary) 30%, transparent), 0 8px 30px -10px color-mix(in oklch, var(--primary) 45%, transparent);
+  --sidebar: oklch(0.99 0.002 250);
+  --sidebar-foreground: oklch(0.21 0.04 265);
+  --sidebar-primary: oklch(0.52 0.24 277);
+  --sidebar-primary-foreground: oklch(0.99 0.005 260);
+  --sidebar-accent: oklch(0.968 0.008 255);
+  --sidebar-accent-foreground: oklch(0.3 0.04 265);
+  --sidebar-border: oklch(0.922 0.014 255);
+  --sidebar-ring: oklch(0.52 0.24 277 / 45%);
 }
 
 .dark {
-  /* Bewusst kein reines Schwarz/Weiß (war zu hart): Apples eigene
-     Dark-Mode-Label-Farbe ist nie reines Weiß, sondern leicht abgedunkelt
-     ("primary label" ~92% Weiß), Hintergrund/Card/Popover liegen als
-     gestufte Grautöne nah beieinander statt eines harten Sprungs auf
-     #000 - wirkt weicher, ohne den OLED-Kontrastvorteil ganz aufzugeben. */
-  --background: oklch(0.17 0.006 247);
-  --foreground: oklch(0.91 0.004 247);
-  --card: oklch(0.225 0.008 247);
-  --card-foreground: oklch(0.91 0.004 247);
-  --popover: oklch(0.235 0.008 247);
-  --popover-foreground: oklch(0.91 0.004 247);
-  --primary: oklch(0.68 0.15 258);
-  --primary-foreground: oklch(0.15 0.01 258);
-  --secondary: oklch(0.29 0.008 247);
-  --secondary-foreground: oklch(0.88 0.005 247);
-  --muted: oklch(0.255 0.007 247);
-  --muted-foreground: oklch(0.64 0.012 247);
-  --accent: oklch(0.72 0.15 148);
-  --accent-foreground: oklch(0.18 0.03 148);
-  --destructive: oklch(0.68 0.18 23);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 13%);
-  --ring: oklch(0.68 0.15 258 / 45%);
-  --chart-1: oklch(0.68 0.15 258);
-  --chart-2: oklch(0.72 0.15 148);
-  --chart-3: oklch(0.76 0.13 55);
-  --chart-4: oklch(0.68 0.13 320);
-  --chart-5: oklch(0.76 0.09 230);
-  --shadow-color: 247 35% 4%;
-  --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.3), 0 1px 1px hsl(var(--shadow-color) / 0.22);
-  --shadow-md: 0 6px 14px -4px hsl(var(--shadow-color) / 0.35), 0 2px 4px -2px hsl(var(--shadow-color) / 0.26);
-  --shadow-lg: 0 16px 32px -8px hsl(var(--shadow-color) / 0.45), 0 4px 8px -4px hsl(var(--shadow-color) / 0.3);
-  --sidebar: oklch(0.2 0.007 247);
-  --sidebar-foreground: oklch(0.91 0.004 247);
-  --sidebar-primary: oklch(0.68 0.15 258);
-  --sidebar-primary-foreground: oklch(0.15 0.01 258);
-  --sidebar-accent: oklch(0.3 0.009 247);
-  --sidebar-accent-foreground: oklch(0.88 0.005 247);
-  --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.68 0.15 258 / 45%);
+  /* Dark Mode = Default. Tiefes Navy-Slate (~slate-950) als Hintergrund,
+     leicht angehobene Slate-900-Flächen als Cards, translucente weiße Ränder
+     (Glass), heller Slate-50-Text für hohen Kontrast; Indigo leuchtet auf. */
+  --background: oklch(0.155 0.022 265); /* ~slate-950 */
+  --foreground: oklch(0.98 0.004 250); /* slate-50 */
+  --card: oklch(0.205 0.026 265); /* ~slate-900 */
+  --card-foreground: oklch(0.98 0.004 250);
+  --popover: oklch(0.195 0.024 265);
+  --popover-foreground: oklch(0.98 0.004 250);
+  --primary: oklch(0.62 0.22 277); /* leuchtendes Indigo auf Dunkel */
+  --primary-foreground: oklch(0.99 0.005 260);
+  --secondary: oklch(0.27 0.022 265);
+  --secondary-foreground: oklch(0.93 0.006 250);
+  --muted: oklch(0.25 0.02 265);
+  --muted-foreground: oklch(0.72 0.02 258); /* slate-400, gut lesbar */
+  --accent: oklch(0.75 0.14 205); /* cyan */
+  --accent-foreground: oklch(0.17 0.03 235);
+  --accent-2: oklch(0.7 0.26 330); /* fuchsia */
+  --destructive: oklch(0.68 0.2 22);
+  --border: oklch(1 0 0 / 10%); /* translucent glass */
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.62 0.22 277 / 55%);
+  --chart-1: oklch(0.62 0.22 277);
+  --chart-2: oklch(0.75 0.14 205);
+  --chart-3: oklch(0.7 0.26 330);
+  --chart-4: oklch(0.64 0.2 300);
+  --chart-5: oklch(0.72 0.13 235);
+  --shadow-color: 265 60% 3%;
+  --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.4), 0 1px 1px hsl(var(--shadow-color) / 0.28);
+  --shadow-md: 0 8px 20px -6px hsl(var(--shadow-color) / 0.5), 0 2px 6px -2px hsl(var(--shadow-color) / 0.35);
+  --shadow-lg: 0 24px 48px -12px hsl(var(--shadow-color) / 0.6), 0 8px 16px -8px hsl(var(--shadow-color) / 0.4);
+  --shadow-glow: 0 0 0 1px color-mix(in oklch, var(--primary) 40%, transparent), 0 10px 40px -12px color-mix(in oklch, var(--primary) 60%, transparent);
+  --sidebar: oklch(0.18 0.024 265);
+  --sidebar-foreground: oklch(0.98 0.004 250);
+  --sidebar-primary: oklch(0.62 0.22 277);
+  --sidebar-primary-foreground: oklch(0.99 0.005 260);
+  --sidebar-accent: oklch(0.27 0.022 265);
+  --sidebar-accent-foreground: oklch(0.93 0.006 250);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.62 0.22 277 / 55%);
 }
 
 @layer base {
@@ -217,9 +222,36 @@
      Ring-Schatten überschreiben statt sich damit zu kombinieren. */
   [data-slot="card"] {
     --tw-shadow: var(--shadow-sm);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
   }
   [data-slot="card"]:hover {
     --tw-shadow: var(--shadow-md);
+  }
+
+  /* "Premium Sleek Modern"-Signatur-Utilities. */
+
+  /* Marken-Verlauf (Indigo -> Fuchsia) als Textfarbe (z.B. Logo/Headline). */
+  .text-gradient {
+    background-image: linear-gradient(100deg, var(--primary), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Marken-Verlauf als Fläche. */
+  .bg-brand-gradient {
+    background-image: linear-gradient(120deg, var(--primary), color-mix(in oklch, var(--accent-2) 82%, var(--primary)));
+  }
+  /* Dezenter Primär-Glow (CTA/aktive Flächen). */
+  .glow-primary {
+    box-shadow: var(--shadow-glow);
+  }
+  /* Dezenter Indigo-"Aurora"-Schimmer (dekorativ, hinter dem Inhalt). */
+  .aurora {
+    background: radial-gradient(55% 100% at 50% 0%, color-mix(in oklch, var(--primary) 18%, transparent), transparent 72%);
+  }
+
+  /* Weicher Press-Effekt für Karten-Links auf Touch (Fitts/Feedback). */
+  a:active [data-slot="card"] {
+    transform: scale(0.99);
   }
 }
