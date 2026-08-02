@@ -26,7 +26,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-1">
       <SidebarNav />
-      <div className="relative flex flex-1 flex-col">
+      {/* min-w-0: verhindert, dass ein breiter Inhalt (Flex-Kind mit
+          min-width:auto) die Spalte über die Viewport-Breite hinaus dehnt und
+          so horizontales Scrollen erzeugt - Mobile-App-First, nie H-Scroll. */}
+      <div className="relative flex min-w-0 flex-1 flex-col">
         {/* Dekorativer Aurora-Schein oben, hinter dem Inhalt (z-0), fading zu
             transparent - kein eigener Platzbedarf, kein horizontaler Scroll. */}
         <div aria-hidden className="aurora pointer-events-none absolute inset-x-0 top-0 z-0 h-72 print:hidden" />
