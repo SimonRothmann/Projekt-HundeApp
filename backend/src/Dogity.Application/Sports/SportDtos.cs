@@ -32,7 +32,15 @@ public record UpdateExerciseRequest(
     string? Category,
     string? ScoringCriteria);
 
+public record UpdateSportRequest(string Name, string? Description);
+
 public record RegulationDto(Guid Id, string Name, string? SourceUrl, DateTimeOffset? LastSyncedAt, string? LatestKnownVersionLabel, string? Description);
+
+public record UpdateRegulationRequest(string Name, string? Description, string? SourceUrl);
+
+public record AddRegulationExerciseRequest(Guid ExerciseId, bool IsMandatory, int MaxPoints, string? ScoringNotes);
+
+public record UpdateRegulationExerciseRequest(bool IsMandatory, int MaxPoints, string? ScoringNotes);
 
 public record RegulationVersionDto(Guid Id, string VersionLabel, DateOnly ValidFrom);
 

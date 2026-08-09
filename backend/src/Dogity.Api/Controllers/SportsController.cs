@@ -15,8 +15,11 @@ namespace Dogity.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/sports")]
-public class SportsController(ISportCatalogService catalogService) : ControllerBase
+public class SportsController(ISportCatalogService catalogService, IRegulationManagementService regulationManagement) : ControllerBase
 {
+    private (Guid UserId, bool IsAdmin) CurrentUser() =>
+        (Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), User.IsInRole(Roles.Admin));
+
     [HttpGet]
     [AllowAnonymous]
     public async Task<ActionResult<IReadOnlyList<SportDto>>> GetSports(CancellationToken ct)
@@ -74,5 +77,57 @@ public class SportsController(ISportCatalogService catalogService) : ControllerB
             return NotFound(new { errors = result.Errors });
 
         return Ok(result.Value);
+    }
+
+    // ---- Bearbeiten (Admin global, Vereinstrainer für Vereins-Sportarten) ----
+
+    [HttpPut("{sportId:guid}")]
+    [Authorize]
+    public async Task<ActionResult<SportDto>> UpdateSport(Guid sportId, UpdateSportRequest request, CancellationToken ct)
+    {
+        var (userId, isAdmin) = CurrentUser();
+        var result = await regulationManagement.UpdateSportAsync(userId, isAdmin, sportId, request, ct);
+        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
+        return Ok(result.Value);
+    }
+
+    [HttpPut("regulations/{regulationId:guid}")]
+    [Authorize]
+    public async Task<ActionResult<RegulationDto>> UpdateRegulation(Guid regulationId, UpdateRegulationRequest request, CancellationToken ct)
+    {
+        var (userId, isAdmin) = CurrentUser();
+        var result = await regulationManagement.UpdateRegulationAsync(userId, isAdmin, regulationId, request, ct);
+        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
+        return Ok(result.Value);
+    }
+
+    [HttpPost("regulations/{regulationId:guid}/exercises")]
+    [Authorize]
+    public async Task<ActionResult<RegulationExerciseDto>> AddRegulationExercise(Guid regulationId, AddRegulationExerciseRequest request, CancellationToken ct)
+    {
+        var (userId, isAdmin) = CurrentUser();
+        var result = await regulationManagement.AddRegulationExerciseAsync(userId, isAdmin, regulationId, request, ct);
+        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
+        return Ok(result.Value);
+    }
+
+    [HttpPut("regulations/{regulationId:guid}/exercises/{exerciseId:guid}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateRegulationExercise(Guid regulationId, Guid exerciseId, UpdateRegulationExerciseRequest request, CancellationToken ct)
+    {
+        var (userId, isAdmin) = CurrentUser();
+        var result = await regulationManagement.UpdateRegulationExerciseAsync(userId, isAdmin, regulationId, exerciseId, request, ct);
+        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
+        return NoContent();
+    }
+
+    [HttpDelete("regulations/{regulationId:guid}/exercises/{exerciseId:guid}")]
+    [Authorize]
+    public async Task<IActionResult> RemoveRegulationExercise(Guid regulationId, Guid exerciseId, CancellationToken ct)
+    {
+        var (userId, isAdmin) = CurrentUser();
+        var result = await regulationManagement.RemoveRegulationExerciseAsync(userId, isAdmin, regulationId, exerciseId, ct);
+        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
+        return NoContent();
     }
 }
