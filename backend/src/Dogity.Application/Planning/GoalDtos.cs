@@ -72,6 +72,26 @@ public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, Da
 public record UpdateGoalStatusRequest(GoalStatus Status);
 
 /// <summary>
+/// Eine gewichtbare Übung eines Ziels ("mehr/weniger üben"): alle Übungen der
+/// Prüfungsordnung (bzw. der Sportart bei individuellen Zielen) mit ihrer
+/// aktuellen manuellen Gewichtung, dem Beherrschungs-Status und ob sie in der
+/// laufenden Woche geplant ist.
+/// </summary>
+public record WeightableExerciseDto(
+    Guid ExerciseId,
+    string ExerciseName,
+    // ExerciseDifficulty als Zahl (0=Einsteiger,1=Fortgeschritten,2=Erfahren).
+    int Difficulty,
+    // Manuelle Gewichtung −2..+2 (0 = normal).
+    int ManualPriority,
+    // 0 = noch nie trainiert, 1 = hängt, 2 = mittel, 3 = sitzt (aus Leitner-Box).
+    int MasteryStatus,
+    bool PlannedThisWeek);
+
+/// <summary>Setzt die manuelle Gewichtung einer Übung (−2..+2).</summary>
+public record SetExercisePriorityRequest(int Value);
+
+/// <summary>
 /// Generiert die angegebene Woche des Plans adaptiv neu (siehe
 /// docs/SMART_TRAINING_PLAN.md). Manuelle/Trainer-Items und Auto-Items mit
 /// bereits geloggtem Fortschritt bleiben erhalten; nur fortschrittslose

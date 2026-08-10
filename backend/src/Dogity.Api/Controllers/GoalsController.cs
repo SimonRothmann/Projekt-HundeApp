@@ -85,4 +85,18 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
         var result = await goalService.RegenerateWeekAsync(CurrentUserId, id, request.WeekNumber, ct);
         return FromResult(result);
     }
+
+    [HttpGet("{id:guid}/weightable-exercises")]
+    public async Task<ActionResult<IReadOnlyList<WeightableExerciseDto>>> GetWeightableExercises(Guid id, CancellationToken ct)
+    {
+        var result = await goalService.GetWeightableExercisesAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
+    [HttpPut("{id:guid}/exercises/{exerciseId:guid}/priority")]
+    public async Task<IActionResult> SetExercisePriority(Guid id, Guid exerciseId, SetExercisePriorityRequest request, CancellationToken ct)
+    {
+        var result = await goalService.SetExercisePriorityAsync(CurrentUserId, id, exerciseId, request.Value, ct);
+        return FromResult(result);
+    }
 }

@@ -21,4 +21,13 @@ public interface IExerciseMasteryService
     /// Anwendungsstart nach den Migrationen aufgerufen.
     /// </summary>
     Task BackfillIfEmptyAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Setzt die manuelle Gewichtung ("mehr/weniger üben") einer Katalog-Übung
+    /// für einen Hund. Der Wert (−2..+2) fließt als additiver Term ins Ranking
+    /// des adaptiven Generators ein (höher = eher gewählt). Legt die Mastery-
+    /// Zeile bei Bedarf an (Übung noch nie trainiert) und speichert; der Wert
+    /// wird auf [−2, +2] begrenzt.
+    /// </summary>
+    Task SetManualPriorityAsync(Guid dogId, Guid exerciseId, int value, CancellationToken ct = default);
 }

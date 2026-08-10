@@ -132,6 +132,18 @@ export type TrainingPlanItemLog = {
 // Domain.Planning.PlanItemReason). null bei manuellen Einträgen/Pausenwochen.
 export type PlanItemReason = 0 | 1 | 2; // 0 = Schwäche, 1 = Wiederholung, 2 = Neu
 
+// Eine gewichtbare Übung eines Ziels ("mehr/weniger üben"). manualPriority
+// −2..+2 (0 = normal) fließt ins Ranking des adaptiven Generators ein.
+export type WeightableExercise = {
+  exerciseId: string;
+  exerciseName: string;
+  difficulty: ExerciseDifficulty;
+  manualPriority: number;
+  // 0 = noch nie trainiert, 1 = hängt, 2 = mittel, 3 = sitzt.
+  masteryStatus: 0 | 1 | 2 | 3;
+  plannedThisWeek: boolean;
+};
+
 export type TrainingPlanItem = {
   id: string;
   weekNumber: number;

@@ -15,7 +15,7 @@ namespace Dogity.Application.Planning;
 /// immer auf Ziele beschränkt, deren Hund dem aufrufenden Benutzer
 /// zugeordnet ist.
 /// </summary>
-public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, INotificationService notifications) : IGoalService
+public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, INotificationService notifications, IExerciseMasteryService mastery) : IGoalService
 {
     public async Task<Result<IReadOnlyList<GoalDto>>> GetByDogAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
@@ -319,6 +319,92 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         await RegenerateWeekCoreAsync(goal, weekNumber, ct);
         return await GetByIdAsync(userId, goalId, ct);
+    }
+
+    public async Task<Result<IReadOnlyList<WeightableExerciseDto>>> GetWeightableExercisesAsync(Guid userId, Guid goalId, CancellationToken ct = default)
+    {
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct, track: false);
+        if (goal is null)
+            return Result<IReadOnlyList<WeightableExerciseDto>>.Failure("Ziel nicht gefunden.");
+
+        // Individuelle Ziele haben keinen adaptiven Plan - nichts zu gewichten.
+        if (goal.IsCustom)
+            return Result<IReadOnlyList<WeightableExerciseDto>>.Success([]);
+
+        var pool = await ResolvePlanCandidatesAsync(goal.SportId, goal.RegulationId, ct);
+        if (pool.Count == 0)
+            return Result<IReadOnlyList<WeightableExerciseDto>>.Success([]);
+
+        var exerciseIds = pool.Select(c => c.ExerciseId).ToList();
+        var masteries = await db.ExerciseMasteries
+            .Where(m => m.DogId == goal.DogId && exerciseIds.Contains(m.ExerciseId))
+            .AsNoTracking()
+            .ToDictionaryAsync(m => m.ExerciseId, ct);
+
+        var plannedThisWeek = PlannedThisWeekExerciseIds(goal);
+
+        var list = pool
+            .Select(c =>
+            {
+                masteries.TryGetValue(c.ExerciseId, out var m);
+                return new WeightableExerciseDto(
+                    c.ExerciseId,
+                    c.Name,
+                    (int)c.Difficulty,
+                    m?.ManualPriority ?? 0,
+                    MasteryStatusOf(m),
+                    plannedThisWeek.Contains(c.ExerciseId));
+            })
+            .OrderBy(x => x.ExerciseName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        return Result<IReadOnlyList<WeightableExerciseDto>>.Success(list);
+    }
+
+    public async Task<Result> SetExercisePriorityAsync(Guid userId, Guid goalId, Guid exerciseId, int value, CancellationToken ct = default)
+    {
+        if (value < -2 || value > 2)
+            return Result.Failure("Gewichtung muss zwischen −2 und +2 liegen.");
+
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct, track: false);
+        if (goal is null)
+            return Result.Failure("Ziel nicht gefunden.");
+        if (goal.IsCustom)
+            return Result.Failure("Ein individueller Plan wird nicht adaptiv generiert - eine Gewichtung hätte keine Wirkung.");
+
+        var pool = await ResolvePlanCandidatesAsync(goal.SportId, goal.RegulationId, ct);
+        if (pool.All(c => c.ExerciseId != exerciseId))
+            return Result.Failure("Übung gehört nicht zu diesem Ziel.");
+
+        await mastery.SetManualPriorityAsync(goal.DogId, exerciseId, value, ct);
+        return Result.Success();
+    }
+
+    // Übungen der laufenden Planwoche (gleicher Wochen-Anker wie
+    // RegenerateDuePlansAsync: volle Wochen seit Goal.CreatedAt).
+    private HashSet<Guid> PlannedThisWeekExerciseIds(Goal goal)
+    {
+        if (goal.TrainingPlan is not { } plan || plan.Items.Count == 0)
+            return [];
+
+        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var created = DateOnly.FromDateTime(goal.CreatedAt.UtcDateTime);
+        var maxWeek = plan.Items.Max(i => i.WeekNumber);
+        var currentWeek = Math.Clamp(Math.Max(0, (today.DayNumber - created.DayNumber) / 7) + 1, 1, Math.Max(1, maxWeek));
+
+        return plan.Items
+            .Where(i => i.WeekNumber == currentWeek && !i.IsRestWeek && i.ExerciseId is not null)
+            .Select(i => i.ExerciseId!.Value)
+            .ToHashSet();
+    }
+
+    // Leitner-Box -> grober Beherrschungs-Status für die Gewichtungs-Liste.
+    private static int MasteryStatusOf(ExerciseMastery? m)
+    {
+        if (m is null || m.SessionCount == 0) return 0; // nie trainiert
+        if (m.Box >= 4) return 3;                        // sitzt
+        if (m.Box == 3) return 2;                        // mittel
+        return 1;                                        // hängt (Box 1-2)
     }
 
     public async Task<int> RegenerateDuePlansAsync(CancellationToken ct = default)

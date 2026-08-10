@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { difficultyLabel } from "@/lib/constants";
 import { ExerciseNotes } from "@/components/dogs/exercise-notes";
+import { ExerciseWeightingSheet } from "@/components/dogs/exercise-weighting-sheet";
 
 // Eine Woche kann mehrere Plan-Ziele haben (siehe TrainingPlanGenerator
 // "ItemsPerWeek") - für die Anzeige nach Wochennummer gruppiert.
@@ -508,6 +509,7 @@ export function GoalPlanCard({
                 <Pencil className="size-3" />
                 Anpassen
               </Button>
+              <ExerciseWeightingSheet goalId={goal.id} />
             </div>
           ))}
 

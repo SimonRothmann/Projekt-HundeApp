@@ -97,4 +97,54 @@ public class ExerciseMasteryServiceTests
         await service.BackfillIfEmptyAsync();
         Assert.Single(await db.ExerciseMasteries.Where(x => x.DogId == dog.Id).ToListAsync());
     }
+
+    [Fact]
+    public async Task SetManualPriorityAsync_NeverTrained_UpsertsRowWithPriority()
+    {
+        var db = InMemoryDbContext.Create();
+        var service = new ExerciseMasteryService(db);
+        var dogId = Guid.NewGuid();
+        var exId = Guid.NewGuid();
+
+        await service.SetManualPriorityAsync(dogId, exId, 2);
+
+        var m = await db.ExerciseMasteries.SingleAsync(x => x.DogId == dogId && x.ExerciseId == exId);
+        Assert.Equal(2, m.ManualPriority);
+        Assert.Equal(1, m.Box);        // History unberührt (nie trainiert)
+        Assert.Equal(0, m.SessionCount);
+    }
+
+    [Fact]
+    public async Task SetManualPriorityAsync_ClampsToMinusTwoPlusTwo()
+    {
+        var db = InMemoryDbContext.Create();
+        var service = new ExerciseMasteryService(db);
+        var dogId = Guid.NewGuid();
+        var exId = Guid.NewGuid();
+
+        await service.SetManualPriorityAsync(dogId, exId, 9);
+        Assert.Equal(2, (await db.ExerciseMasteries.SingleAsync(x => x.DogId == dogId)).ManualPriority);
+
+        await service.SetManualPriorityAsync(dogId, exId, -9);
+        Assert.Equal(-2, (await db.ExerciseMasteries.SingleAsync(x => x.DogId == dogId)).ManualPriority);
+    }
+
+    [Fact]
+    public async Task SetManualPriorityAsync_ExistingRow_KeepsHistory()
+    {
+        var db = InMemoryDbContext.Create();
+        var service = new ExerciseMasteryService(db);
+        var dogId = Guid.NewGuid();
+        var exId = Guid.NewGuid();
+        await service.ApplyLogAsync(dogId, exId, 5, true, Day); // Box 2, SessionCount 1
+        await db.SaveChangesAsync();
+
+        await service.SetManualPriorityAsync(dogId, exId, -1);
+
+        var rows = await db.ExerciseMasteries.Where(x => x.DogId == dogId && x.ExerciseId == exId).ToListAsync();
+        Assert.Single(rows);
+        Assert.Equal(-1, rows[0].ManualPriority);
+        Assert.Equal(2, rows[0].Box);          // unverändert
+        Assert.Equal(1, rows[0].SessionCount);  // unverändert
+    }
 }

@@ -44,6 +44,19 @@ public interface IGoalService
     Task<Result<GoalDto>> RegenerateWeekAsync(Guid userId, Guid goalId, int weekNumber, CancellationToken ct = default);
 
     /// <summary>
+    /// Alle gewichtbaren Übungen eines Ziels (PO- bzw. Sport-Katalog) mit ihrer
+    /// aktuellen manuellen Gewichtung, Beherrschungs-Status und "diese Woche
+    /// geplant?". Leer bei individuellen Zielen (kein adaptiver Plan).
+    /// </summary>
+    Task<Result<IReadOnlyList<WeightableExerciseDto>>> GetWeightableExercisesAsync(Guid userId, Guid goalId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Setzt die manuelle Gewichtung ("mehr/weniger üben", −2..+2) einer Übung
+    /// des Ziels. Wirkt ab dem nächsten (automatischen) Wochen-Neuaufbau.
+    /// </summary>
+    Task<Result> SetExercisePriorityAsync(Guid userId, Guid goalId, Guid exerciseId, int value, CancellationToken ct = default);
+
+    /// <summary>
     /// System-Pass (kein Benutzerkontext): regeneriert für alle aktiven,
     /// nicht-individuellen Ziele die KOMMENDE Woche adaptiv neu, sofern sie
     /// fällig ist (LastPlanGeneratedAt null oder älter als ~6 Tage). Wird vom

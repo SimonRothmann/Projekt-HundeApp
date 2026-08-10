@@ -20,7 +20,7 @@ public class GoalServiceRegenerateTests
     private static GoalService MakeService(out Dogity.Infrastructure.Persistence.ApplicationDbContext db)
     {
         db = InMemoryDbContext.Create();
-        return new GoalService(db, TimeProvider.System, new FakeNotificationService());
+        return new GoalService(db, TimeProvider.System, new FakeNotificationService(), new ExerciseMasteryService(db));
     }
 
     private static async Task<Setup> SetupAsync(Dogity.Infrastructure.Persistence.ApplicationDbContext db, bool custom = false)
@@ -147,7 +147,7 @@ public class GoalServiceRegenerateTests
     {
         var db = InMemoryDbContext.Create();
         var notifications = new FakeNotificationService();
-        var service = new GoalService(db, TimeProvider.System, notifications);
+        var service = new GoalService(db, TimeProvider.System, notifications, new ExerciseMasteryService(db));
         var goalId = await SetupDueGoalAsync(db);
 
         var count = await service.RegenerateDuePlansAsync();

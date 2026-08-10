@@ -27,6 +27,25 @@ public class ExerciseMasteryService(IApplicationDbContext db) : IExerciseMastery
         ApplyOutcome(mastery, rating, success, date);
     }
 
+    public async Task SetManualPriorityAsync(Guid dogId, Guid exerciseId, int value, CancellationToken ct = default)
+    {
+        var clamped = Math.Clamp(value, -2, 2);
+
+        var mastery = await db.ExerciseMasteries.FirstOrDefaultAsync(m => m.DogId == dogId && m.ExerciseId == exerciseId, ct);
+        if (mastery is null)
+        {
+            // Übung wurde für diesen Hund noch nie trainiert - Zeile anlegen, damit
+            // die Gewichtung ab dem nächsten Wochen-Neuaufbau greift (Box/History
+            // bleiben auf Startwerten).
+            mastery = new ExerciseMastery { DogId = dogId, ExerciseId = exerciseId };
+            db.ExerciseMasteries.Add(mastery);
+        }
+
+        mastery.ManualPriority = clamped;
+        mastery.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task BackfillIfEmptyAsync(CancellationToken ct = default)
     {
         if (await db.ExerciseMasteries.AnyAsync(ct))

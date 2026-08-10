@@ -19,7 +19,7 @@ public class GoalServicePlanConfigTests
     private static GoalService MakeService(out Dogity.Infrastructure.Persistence.ApplicationDbContext db)
     {
         db = InMemoryDbContext.Create();
-        return new GoalService(db, TimeProvider.System, new FakeNotificationService());
+        return new GoalService(db, TimeProvider.System, new FakeNotificationService(), new ExerciseMasteryService(db));
     }
 
     private static async Task<Setup> SetupAsync(
