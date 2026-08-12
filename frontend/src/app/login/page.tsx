@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PawPrint } from "lucide-react";
 import { EnvBadge, isTestEnv } from "@/components/env-badge";
+import { SupportButton } from "@/components/support-button";
 
 // Nur für die Test-/Dev-Datenbank (DemoDataSeeder, siehe TODO.md) - existiert
 // nicht in Production. Aktiv wenn NEXT_PUBLIC_ENV_LABEL=TEST beim Build war;
@@ -122,6 +123,9 @@ export default function LoginPage() {
               </div>
             </div>
           )}
+          <div className="mt-6 flex justify-center">
+            <SupportButton />
+          </div>
         </CardContent>
       </Card>
     </main>
