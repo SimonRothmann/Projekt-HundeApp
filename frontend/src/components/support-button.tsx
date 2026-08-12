@@ -16,9 +16,15 @@ export function SupportButton({ className }: { className?: string }) {
       href={KOFI_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn(buttonVariants({ variant: "outline", size: "sm" }), className)}
+      // Bewusst in Ko-fi-Korall (nicht Indigo/Primary), damit die Support-CTA
+      // sich klar von den übrigen Buttons abhebt; sanfter farbiger Glow.
+      className={cn(
+        buttonVariants({ variant: "default" }),
+        "h-10 gap-2 px-5 text-sm bg-[#ff5e5b] text-white shadow-[0_8px_24px_-8px_rgba(255,94,91,0.6)] hover:bg-[#f24b48] hover:text-white hover:shadow-[0_10px_30px_-8px_rgba(255,94,91,0.75)]",
+        className,
+      )}
     >
-      <Coffee className="size-4" />
+      <Coffee className="size-[18px]" />
       Auf Ko-fi unterstützen
     </a>
   );
