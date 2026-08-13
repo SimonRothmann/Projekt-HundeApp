@@ -43,6 +43,13 @@ public class GpsTracksController(IGpsTrackService gpsTrackService) : ApiControll
         return Ok(result.Value);
     }
 
+    [HttpPost("{id:guid}/walk-runs/{runId:guid}/evaluate")]
+    public async Task<ActionResult<GpsWalkRunDto>> EvaluateWalkRun(Guid id, Guid runId, CancellationToken ct)
+    {
+        var result = await gpsTrackService.EvaluateWalkRunAsync(CurrentUserId, id, runId, ct);
+        return FromResult(result);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {

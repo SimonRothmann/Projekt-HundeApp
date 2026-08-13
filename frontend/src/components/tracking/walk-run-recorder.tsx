@@ -22,6 +22,8 @@ function toWalkPoint(position: GeolocationPosition): GpsWalkPoint {
     longitude: position.coords.longitude,
     timestamp: new Date(position.timestamp).toISOString(),
     accuracy: position.coords.accuracy,
+    // Wird erst serverseitig nach dem Speichern berechnet (GpsTrackEvaluator).
+    deviationMeters: null,
   };
 }
 

@@ -51,6 +51,7 @@ public interface IApplicationDbContext
     DbSet<GpsPoint> GpsPoints { get; }
     DbSet<GpsWalkRun> GpsWalkRuns { get; }
     DbSet<GpsWalkPoint> GpsWalkPoints { get; }
+    DbSet<GpsWalkStop> GpsWalkStops { get; }
 
     DbSet<Notification> Notifications { get; }
 

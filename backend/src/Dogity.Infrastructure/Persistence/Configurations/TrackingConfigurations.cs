@@ -64,3 +64,23 @@ public class GpsWalkPointConfiguration : IEntityTypeConfiguration<GpsWalkPoint>
         builder.HasIndex(p => new { p.WalkRunId, p.Timestamp });
     }
 }
+
+public class GpsWalkStopConfiguration : IEntityTypeConfiguration<GpsWalkStop>
+{
+    public void Configure(EntityTypeBuilder<GpsWalkStop> builder)
+    {
+        builder.ToTable("gps_walk_stops");
+
+        builder.Property(s => s.MarkerLabel).HasMaxLength(200);
+        // Als String statt int: in der DB direkt lesbar, robust gegen spätere
+        // Umsortierung der Enum-Werte (Konvention wie bei GroupTraining).
+        builder.Property(s => s.Kind).HasConversion<string>().HasMaxLength(20);
+
+        builder.HasOne(s => s.WalkRun)
+            .WithMany(r => r.Stops)
+            .HasForeignKey(s => s.WalkRunId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(s => s.WalkRunId);
+    }
+}

@@ -57,6 +57,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GpsPoint> GpsPoints => Set<GpsPoint>();
     public DbSet<GpsWalkRun> GpsWalkRuns => Set<GpsWalkRun>();
     public DbSet<GpsWalkPoint> GpsWalkPoints => Set<GpsWalkPoint>();
+    public DbSet<GpsWalkStop> GpsWalkStops => Set<GpsWalkStop>();
 
     public DbSet<Notification> Notifications => Set<Notification>();
 
@@ -110,6 +111,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<GpsPoint>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkRun>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkPoint>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GpsWalkStop>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null);
     }
 }

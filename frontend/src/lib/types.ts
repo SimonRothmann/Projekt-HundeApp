@@ -390,6 +390,11 @@ export type ClubMemberRequest = {
 
 export type GpsPointType = 0 | 1; // 0 = Automatic, 1 = Manual (siehe Domain.Tracking.GpsPointType)
 
+// Fachliche Bedeutung eines manuellen Markers (siehe Domain.Tracking.GpsMarkerType).
+// Entscheidet, wie ein Halt an dieser Stelle gewertet wird: am Gegenstand ist er
+// ein erwünschtes Verweisen, am Leckerlipot/an einer Verleitung erklärt+neutral.
+export type GpsMarkerType = 0 | 1 | 2 | 3; // Gegenstand | Leckerlipot | Verleitung | Sonstiges
+
 export type GpsPoint = {
   latitude: number;
   longitude: number;
@@ -397,6 +402,7 @@ export type GpsPoint = {
   accuracy: number | null;
   pointType: GpsPointType;
   label: string | null;
+  markerType: GpsMarkerType;
 };
 
 export type GpsWalkPoint = {
@@ -404,6 +410,19 @@ export type GpsWalkPoint = {
   longitude: number;
   timestamp: string;
   accuracy: number | null;
+  // Senkrechter Abstand zur gelegten Fährte (null = nicht ausgewertet).
+  deviationMeters: number | null;
+};
+
+// 0 = unerklärt (Warnsignal), 1 = Verweisen am Gegenstand (gut), 2 = erklärt/neutral.
+export type WalkStopKind = 0 | 1 | 2;
+
+export type GpsWalkStop = {
+  latitude: number;
+  longitude: number;
+  durationSeconds: number;
+  kind: WalkStopKind;
+  markerLabel: string | null;
 };
 
 export type GpsWalkRun = {
@@ -413,6 +432,16 @@ export type GpsWalkRun = {
   lengthMeters: number | null;
   comment: string | null;
   points: GpsWalkPoint[];
+  // Auswertung (null, solange nicht ausgewertet). Gemessen wird die Linie des
+  // HUNDEFÜHRERS - der Hund kann im Leinenradius abweichen, ohne dass es hier
+  // sichtbar wird; dafür gibt es die Stockungen (stops).
+  avgDeviationMeters: number | null;
+  maxDeviationMeters: number | null;
+  onTrackPercent: number | null;
+  articlesFound: number | null;
+  articlesTotal: number | null;
+  evaluatedAt: string | null;
+  stops: GpsWalkStop[];
 };
 
 export type GpsTrack = {
@@ -507,6 +536,24 @@ export type DogExerciseStat = {
   successRate: number; // 0..1
   ratingTrend: number | null; // Ø jüngere Hälfte − Ø ältere Hälfte, null bei <4 Durchgängen
   lastTrained: string;
+};
+
+// Fährten-Entwicklung eines Hundes (siehe StatsService.GetDogTrackStatsAsync).
+export type DogTrackRun = {
+  date: string;
+  avgDeviationMeters: number;
+  onTrackPercent: number;
+  articlesFound: number;
+  articlesTotal: number;
+  unexplainedStops: number;
+};
+
+export type DogTrackStats = {
+  runs: DogTrackRun[];
+  // Negativ = Abweichung sinkt = Verbesserung.
+  deviationTrend: number | null;
+  // Positiv = mehr Zeit auf der Fährte = Verbesserung.
+  onTrackTrend: number | null;
 };
 
 export type GroupJoinRequest = {

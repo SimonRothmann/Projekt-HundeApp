@@ -14,6 +14,22 @@ public enum GpsPointType
 }
 
 /// <summary>
+/// Fachliche Bedeutung eines manuell gesetzten Markers. Entscheidend für die
+/// Auswertung: ein Halt am Gegenstand ist ein <em>erwünschtes</em> Verweisen,
+/// ein Halt am Leckerlipot/an einer Verleitung ist erklärt und neutral - nur
+/// ein Halt fernab jedes Markers ist ein Warnsignal (siehe GpsTrackEvaluator).
+/// Bestandsdaten sind ausnahmslos Gegenstände (die UI kannte bisher nur
+/// "Gegenstand markieren"), daher ist <see cref="Article"/> der Default-Wert 0.
+/// </summary>
+public enum GpsMarkerType
+{
+    Article,
+    TreatPot,
+    Distraction,
+    Other
+}
+
+/// <summary>
 /// Ein einzelner GPS-Punkt einer Fährte (siehe DATABASE.md "gps_points").
 /// </summary>
 public class GpsPoint : Entity, IGeoPoint
@@ -27,4 +43,10 @@ public class GpsPoint : Entity, IGeoPoint
     public double? Accuracy { get; set; }
     public GpsPointType PointType { get; set; } = GpsPointType.Automatic;
     public string? Label { get; set; }
+
+    /// <summary>
+    /// Nur für manuelle Marker relevant (siehe <see cref="GpsMarkerType"/>);
+    /// bei automatischen Punkten bedeutungslos.
+    /// </summary>
+    public GpsMarkerType MarkerType { get; set; } = GpsMarkerType.Article;
 }

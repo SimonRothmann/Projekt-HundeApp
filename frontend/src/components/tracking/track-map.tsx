@@ -9,7 +9,7 @@ import { bearingDegrees } from "@/lib/geo";
 // Kompatibel zu sowohl GpsPoint (pointType/label gesetzt) als auch
 // GpsWalkPoint (kennt beide Felder nicht - zählt dann automatisch als
 // "automatischer Punkt", siehe pointType !== 1 unten).
-type MapPoint = { latitude: number; longitude: number; pointType?: number; label?: string | null };
+type MapPoint = { latitude: number; longitude: number; pointType?: number; label?: string | null; markerType?: number };
 
 // Eigene Farbe pro Ablauf-Versuch, damit mehrere Wiederholungen auf der
 // Karte unterscheidbar bleiben (zyklisch wiederverwendet, falls mehr
@@ -21,6 +21,29 @@ const WALK_RUN_COLORS = ["#2563eb", "#9333ea", "#0d9488", "#dc2626"];
 // wird in einem XML-Attribut nicht aufgelöst, die Linie blieb dadurch
 // unsichtbar (nur Kacheln/Marker waren zu sehen).
 const TRACK_LINE_COLOR = "#16a34a";
+
+// Ampelfarben für die Abweichung der Ablauf-Linie (Schwellen siehe
+// GpsTrackEvaluator im Backend - bewusst großzügig, weil der GPS-Fehler
+// selbst in derselben Größenordnung liegt).
+const DEVIATION_GREEN_MAX_M = 3;
+const DEVIATION_AMBER_MAX_M = 6;
+const DEVIATION_COLORS = { green: "#16a34a", amber: "#d97706", red: "#dc2626" } as const;
+
+function deviationColor(meters: number | null | undefined): string | null {
+  if (meters == null) return null;
+  if (meters <= DEVIATION_GREEN_MAX_M) return DEVIATION_COLORS.green;
+  if (meters <= DEVIATION_AMBER_MAX_M) return DEVIATION_COLORS.amber;
+  return DEVIATION_COLORS.red;
+}
+
+// Beschriftung manueller Marker nach fachlicher Bedeutung (GpsMarkerType).
+const MARKER_LABELS = ["Gegenstand", "Leckerlipot", "Verleitung", "Marker"] as const;
+const MARKER_COLORS = ["orange", "#a855f7", "#0ea5e9", "#94a3b8"] as const;
+
+// Stockungen: unerklärt = Warnsignal (rot), Verweisen am Gegenstand = gut
+// (grün), erklärt/neutral (grau).
+const STOP_COLORS = ["#dc2626", "#16a34a", "#94a3b8"] as const;
+const STOP_LABELS = ["Unerklärte Stockung", "Verweisen", "Halt (erklärt)"] as const;
 
 // Schrittgeschwindigkeit, kurze Distanzen - ein nahes Zoom-Level zeigt
 // einzelne Abbiegungen deutlich, statt die ganze (noch kurze) Strecke winzig
@@ -169,23 +192,56 @@ export function TrackMap({
     }
 
     manualPoints.forEach((p) => {
+      const kind = p.markerType ?? 0;
+      const color = MARKER_COLORS[kind] ?? MARKER_COLORS[3];
       L.circleMarker([p.latitude, p.longitude], {
         radius: 7,
-        color: "orange",
-        fillColor: "orange",
+        color,
+        fillColor: color,
         fillOpacity: 0.9,
       })
         .addTo(layerGroup)
-        .bindTooltip(p.label || "Gegenstand");
+        .bindTooltip(p.label || MARKER_LABELS[kind] || "Marker");
     });
 
     walkRuns.forEach((run, index) => {
       if (run.points.length === 0) return;
-      const color = WALK_RUN_COLORS[index % WALK_RUN_COLORS.length];
+      const fallbackColor = WALK_RUN_COLORS[index % WALK_RUN_COLORS.length];
       const runLatLngs = run.points.map((p) => [p.latitude, p.longitude] as [number, number]);
-      L.polyline(runLatLngs, { color, dashArray: "6 6" })
-        .addTo(layerGroup)
-        .bindTooltip(`Ablauf-Versuch ${index + 1}`);
+      const isEvaluated = run.points.some((p) => p.deviationMeters != null);
+
+      if (isEvaluated) {
+        // Je Segment die Farbe des schlechteren der beiden Endpunkte - so ist
+        // auf einen Blick sichtbar, WO das Team abgekommen ist.
+        for (let i = 0; i < runLatLngs.length - 1; i++) {
+          const worse = Math.max(run.points[i].deviationMeters ?? 0, run.points[i + 1].deviationMeters ?? 0);
+          L.polyline([runLatLngs[i], runLatLngs[i + 1]], {
+            color: deviationColor(worse) ?? fallbackColor,
+            weight: 4,
+          })
+            .addTo(layerGroup)
+            .bindTooltip(`Ablauf ${index + 1}: ${worse.toFixed(1)} m Abweichung`);
+        }
+      } else {
+        L.polyline(runLatLngs, { color: fallbackColor, dashArray: "6 6" })
+          .addTo(layerGroup)
+          .bindTooltip(`Ablauf-Versuch ${index + 1}`);
+      }
+
+      // Erkannte Halte als Ringe: zeigen die Stellen, an denen der Hund
+      // gesucht/verwiesen hat - auch dort, wo die Position gar nicht abweicht.
+      (run.stops ?? []).forEach((stop) => {
+        L.circleMarker([stop.latitude, stop.longitude], {
+          radius: 9,
+          color: STOP_COLORS[stop.kind] ?? STOP_COLORS[2],
+          fill: false,
+          weight: 3,
+        })
+          .addTo(layerGroup)
+          .bindTooltip(
+            `${STOP_LABELS[stop.kind] ?? "Halt"}: ${stop.durationSeconds}s${stop.markerLabel ? ` (${stop.markerLabel})` : ""}`,
+          );
+      });
     });
 
     // Aktuell laufender Ablauf-Versuch (falls einer aktiv ist): nächste Farbe

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { TrackMap } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 import { WalkRunComment } from "@/components/tracking/walk-run-comment";
+import { WalkRunEvaluation } from "@/components/tracking/walk-run-evaluation";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -163,6 +164,7 @@ export function GpsTrackSection({
                           {durMs !== null && ` · abgelaufen in ${formatDuration(durMs)}`}
                           {run.lengthMeters !== null && ` · ${Math.round(run.lengthMeters)} m`}
                         </span>
+                        <WalkRunEvaluation run={run} />
                         <WalkRunComment trackId={track.id} run={run} onSaved={loadTracks} />
                       </li>
                     );

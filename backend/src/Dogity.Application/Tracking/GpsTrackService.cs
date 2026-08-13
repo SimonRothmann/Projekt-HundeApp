@@ -29,6 +29,7 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
             .Where(t => t.TrainingSessionId == trainingSessionId)
             .Include(t => t.Points)
             .Include(t => t.WalkRuns).ThenInclude(r => r.Points)
+            .Include(t => t.WalkRuns).ThenInclude(r => r.Stops)
             .AsSplitQuery()
             .AsNoTracking()
             .ToListAsync(ct);
@@ -68,7 +69,8 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
                 Timestamp = point.Timestamp,
                 Accuracy = point.Accuracy,
                 PointType = point.PointType,
-                Label = point.Label
+                Label = point.Label,
+                MarkerType = point.MarkerType
             });
         }
 
@@ -109,7 +111,86 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
         db.GpsWalkRuns.Add(walkRun);
         await db.SaveChangesAsync(ct);
 
+        // Auswertung direkt nach dem Speichern - die gelegten Punkte liegen
+        // dafür ohnehin schon in der Datenbank.
+        await EvaluateAndPersistAsync(walkRun, ct);
+        await db.SaveChangesAsync(ct);
+
         return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
+    }
+
+    public async Task<Result<GpsWalkRunDto>> EvaluateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, CancellationToken ct = default)
+    {
+        var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
+        if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
+            return Result<GpsWalkRunDto>.Failure("Fährte nicht gefunden.");
+
+        var walkRun = await db.GpsWalkRuns
+            .Include(r => r.Points)
+            .Include(r => r.Stops)
+            .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
+        if (walkRun is null)
+            return Result<GpsWalkRunDto>.Failure("Ablauf-Versuch nicht gefunden.");
+
+        await EvaluateAndPersistAsync(walkRun, ct);
+        await db.SaveChangesAsync(ct);
+
+        return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
+    }
+
+    /// <summary>
+    /// Wertet einen Ablauf gegen seine gelegte Fährte aus und schreibt das
+    /// Ergebnis auf die Entitäten (ohne SaveChanges - der Aufrufer entscheidet,
+    /// wann gespeichert wird). Bestehende Halte werden ersetzt.
+    /// </summary>
+    private async Task EvaluateAndPersistAsync(GpsWalkRun walkRun, CancellationToken ct)
+    {
+        var laidPoints = await db.GpsPoints
+            .Where(p => p.TrackId == walkRun.TrackId)
+            .ToListAsync(ct);
+
+        var walkPoints = walkRun.Points.Count > 0
+            ? walkRun.Points.ToList()
+            : await db.GpsWalkPoints.Where(p => p.WalkRunId == walkRun.Id).ToListAsync(ct);
+
+        var evaluation = GpsTrackEvaluator.Evaluate(laidPoints, walkPoints);
+
+        var byId = walkPoints.ToDictionary(p => p.Id);
+        foreach (var evaluated in evaluation.Points)
+        {
+            if (byId.TryGetValue(evaluated.PointId, out var point))
+                point.DeviationMeters = evaluated.DeviationMeters;
+        }
+
+        walkRun.AvgDeviationMeters = evaluation.AvgDeviationMeters;
+        walkRun.MaxDeviationMeters = evaluation.MaxDeviationMeters;
+        walkRun.OnTrackPercent = evaluation.OnTrackPercent;
+        walkRun.ArticlesFound = evaluation.ArticlesFound;
+        walkRun.ArticlesTotal = evaluation.ArticlesTotal;
+        walkRun.EvaluatedAt = DateTimeOffset.UtcNow;
+
+        // Alte Halte hart entfernen statt soft-deleten: sie sind reine
+        // Rechenergebnisse ohne eigenen Verlauf und würden sonst bei jeder
+        // Neuberechnung als Leichen mitwachsen.
+        var existingStops = await db.GpsWalkStops.Where(s => s.WalkRunId == walkRun.Id).ToListAsync(ct);
+        if (existingStops.Count > 0) db.GpsWalkStops.RemoveRange(existingStops);
+        walkRun.Stops.Clear();
+
+        foreach (var stop in evaluation.Stops)
+        {
+            // Über das DbSet mit explizitem FK, nicht über die getrackte
+            // Navigation (sonst stuft EF die neuen Zeilen per Collection-Fixup
+            // als Modified statt Added ein - siehe TrainingService.CreateAsync).
+            db.GpsWalkStops.Add(new GpsWalkStop
+            {
+                WalkRunId = walkRun.Id,
+                Latitude = stop.Latitude,
+                Longitude = stop.Longitude,
+                DurationSeconds = stop.DurationSeconds,
+                Kind = stop.Kind,
+                MarkerLabel = stop.MarkerLabel
+            });
+        }
     }
 
     public async Task<Result<GpsWalkRunDto>> UpdateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsWalkRunRequest request, CancellationToken ct = default)
@@ -176,7 +257,7 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
             t.Weather,
             t.Wind,
             t.Comment,
-            points.Select(p => new GpsPointDto(p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, p.PointType, p.Label)).ToList(),
+            points.Select(p => new GpsPointDto(p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, p.PointType, p.Label, p.MarkerType)).ToList(),
             t.WalkRuns.OrderBy(r => r.CreatedAt).Select(r => ToWalkRunDto(r, simplify)).ToList());
     }
 
@@ -191,6 +272,15 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
             r.CreatedAt,
             r.LengthMeters,
             r.Comment,
-            points.Select(p => new GpsWalkPointDto(p.Latitude, p.Longitude, p.Timestamp, p.Accuracy)).ToList());
+            points.Select(p => new GpsWalkPointDto(p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, p.DeviationMeters)).ToList(),
+            r.AvgDeviationMeters,
+            r.MaxDeviationMeters,
+            r.OnTrackPercent,
+            r.ArticlesFound,
+            r.ArticlesTotal,
+            r.EvaluatedAt,
+            r.Stops.OrderByDescending(s => s.DurationSeconds)
+                .Select(s => new GpsWalkStopDto(s.Latitude, s.Longitude, s.DurationSeconds, s.Kind, s.MarkerLabel))
+                .ToList());
     }
 }

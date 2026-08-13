@@ -13,6 +13,7 @@ function pt(north: number, east: number, pointType: 0 | 1 = 0): GpsPoint {
     longitude: BASE_LON + east / M_PER_DEG_LON,
     timestamp: new Date().toISOString(),
     accuracy: 5,
+    markerType: 0,
     pointType,
     label: null,
   };

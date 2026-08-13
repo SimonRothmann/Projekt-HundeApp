@@ -34,3 +34,28 @@ public record DogExerciseStatDto(
     /// </summary>
     double? RatingTrend,
     DateOnly LastTrained);
+
+/// <summary>
+/// Ein ausgewerteter Fährten-Ablauf für die Entwicklungsansicht.
+/// Achtung: gemessen wird die Linie des HUNDEFÜHRERS (siehe GpsTrackEvaluator).
+/// </summary>
+public record DogTrackRunDto(
+    DateOnly Date,
+    double AvgDeviationMeters,
+    double OnTrackPercent,
+    int ArticlesFound,
+    int ArticlesTotal,
+    int UnexplainedStops);
+
+/// <summary>
+/// Fährten-Entwicklung eines Hundes: die jüngsten ausgewerteten Abläufe
+/// (chronologisch aufsteigend) plus Trend nach demselben Muster wie
+/// <see cref="DogExerciseStatDto.RatingTrend"/> - jüngere gegen ältere Hälfte,
+/// erst ab 4 Abläufen, damit Ausreißer nicht als Trend gelten.
+/// </summary>
+public record DogTrackStatsDto(
+    IReadOnlyList<DogTrackRunDto> Runs,
+    /// <summary>Negativ = Abweichung sinkt = Verbesserung.</summary>
+    double? DeviationTrend,
+    /// <summary>Positiv = mehr Zeit auf der Fährte = Verbesserung.</summary>
+    double? OnTrackTrend);

@@ -2,11 +2,12 @@
 
 import { useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { GpsPoint, TrainingSession } from "@/lib/types";
+import type { GpsMarkerType, GpsPoint, TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, MapPinPlus, Square } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
@@ -22,8 +23,19 @@ function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
     accuracy: position.coords.accuracy,
     pointType: 0,
     label: null,
+    markerType: 0,
   };
 }
+
+// Auswahl beim Markieren: entscheidet, wie ein Halt an dieser Stelle später
+// gewertet wird (Gegenstand = Verweisen erwünscht, Leckerlipot/Verleitung =
+// erklärt und neutral) - siehe GpsTrackEvaluator im Backend.
+const MARKER_TYPES = [
+  { value: 0, label: "Gegenstand" },
+  { value: 1, label: "Leckerlipot" },
+  { value: 2, label: "Verleitung" },
+  { value: 3, label: "Sonstiges" },
+] as const;
 
 /**
  * Direkter Einstiegspunkt für die GPS-Fährtenaufzeichnung, ohne vorher ein
@@ -45,6 +57,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
   );
   const [surface, setSurface] = useState("");
   const [markLabel, setMarkLabel] = useState("");
+  const [markerType, setMarkerType] = useState<GpsMarkerType>(0);
   const [isMarking, setIsMarking] = useState(false);
   const startedAtRef = useRef<number>(0);
 
@@ -57,10 +70,10 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     setIsMarking(true);
     markPoint(
       (point) => {
-        setPoints((prev) => [...prev, { ...point, pointType: 1, label: markLabel.trim() || null }]);
+        setPoints((prev) => [...prev, { ...point, pointType: 1, label: markLabel.trim() || null, markerType }]);
         setMarkLabel("");
         setIsMarking(false);
-        toast.success("Gegenstand markiert.");
+        toast.success(`${MARKER_TYPES.find((t) => t.value === markerType)?.label ?? "Marker"} markiert.`);
       },
       () => setIsMarking(false),
     );
@@ -150,8 +163,23 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
               />
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-              <div className="flex flex-col gap-2 sm:w-64">
-                <Label htmlFor="fahrte-mark-label">Gegenstand markieren (optional)</Label>
+              <div className="flex flex-col gap-2 sm:w-44">
+                <Label>Art des Markers</Label>
+                <Select value={String(markerType)} onValueChange={(v) => setMarkerType(Number(v ?? "0") as GpsMarkerType)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MARKER_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={String(t.value)}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-2 sm:w-56">
+                <Label htmlFor="fahrte-mark-label">Bezeichnung (optional)</Label>
                 <Input
                   id="fahrte-mark-label"
                   placeholder="z.B. Schussstelle, Apportel"

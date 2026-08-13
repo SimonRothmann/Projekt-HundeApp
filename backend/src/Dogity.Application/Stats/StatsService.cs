@@ -1,5 +1,6 @@
 using System.Globalization;
 using Dogity.Application.Abstractions;
+using Dogity.Domain.Tracking;
 using Dogity.Application.Common;
 using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
@@ -150,6 +151,58 @@ public class StatsService(IApplicationDbContext db) : IStatsService
             .ToList();
 
         return Result<IReadOnlyList<DogExerciseStatDto>>.Success(stats);
+    }
+
+    public async Task<Result<DogTrackStatsDto>> GetDogTrackStatsAsync(Guid userId, Guid dogId, CancellationToken ct = default)
+    {
+        if (!await db.HasDogAccessAsync(userId, dogId, ct))
+            return Result<DogTrackStatsDto>.Failure("Hund nicht gefunden.");
+
+        // Nur die Kennzahlen laden - genau dafür sind sie am Ablauf persistiert
+        // (die GPS-Punkte selbst bleiben hier außen vor).
+        // GpsTrack kennt nur die TrainingSessionId (keine Navigation), daher
+        // explizit verknüpfen.
+        var rows = await (
+            from run in db.GpsWalkRuns
+            join track in db.GpsTracks on run.TrackId equals track.Id
+            join session in db.TrainingSessions on track.TrainingSessionId equals session.Id
+            where run.EvaluatedAt != null && session.DogId == dogId
+            orderby session.Date, run.CreatedAt
+            select new DogTrackRunDto(
+                session.Date,
+                run.AvgDeviationMeters!.Value,
+                run.OnTrackPercent!.Value,
+                run.ArticlesFound ?? 0,
+                run.ArticlesTotal ?? 0,
+                run.Stops.Count(s => s.Kind == WalkStopKind.Unexplained)))
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        if (rows.Count == 0)
+            return Result<DogTrackStatsDto>.Success(new DogTrackStatsDto([], null, null));
+
+        // Anzeige auf die jüngsten 12 Abläufe begrenzen - genug für einen
+        // Verlauf, ohne die Karte auf dem Handy zu überfüllen.
+        var recent = rows.Count > 12 ? rows.Skip(rows.Count - 12).ToList() : rows;
+
+        double? deviationTrend = null;
+        double? onTrackTrend = null;
+        if (recent.Count >= 4)
+        {
+            var half = recent.Count / 2;
+            deviationTrend = Math.Round(
+                recent.Skip(recent.Count - half).Average(r => r.AvgDeviationMeters)
+                - recent.Take(half).Average(r => r.AvgDeviationMeters), 1);
+            onTrackTrend = Math.Round(
+                recent.Skip(recent.Count - half).Average(r => r.OnTrackPercent)
+                - recent.Take(half).Average(r => r.OnTrackPercent), 1);
+        }
+
+        var runs = recent
+            .Select(r => r with { AvgDeviationMeters = Math.Round(r.AvgDeviationMeters, 1), OnTrackPercent = Math.Round(r.OnTrackPercent, 0) })
+            .ToList();
+
+        return Result<DogTrackStatsDto>.Success(new DogTrackStatsDto(runs, deviationTrend, onTrackTrend));
     }
 
     private record ExerciseRow(string Name, int Rating, bool Success, DateOnly Date);
