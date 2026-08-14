@@ -21,11 +21,30 @@ Die vorhandenen Freitextfelder `GpsTrack.Weather`/`Wind` bleiben unangetastet �
 `TrainingSession` kannte bisher nur ein **Datum** — für einen Wetterabruf fehlten Uhrzeit und Ort. Beide sind jetzt optionale Felder (`StartTime`, `Latitude`/`Longitude`, `LocationName`) und lassen sich **wahlweise per Knopf oder von Hand** setzen:
 
 - Uhrzeit: „Jetzt" **oder** freie Eingabe
-- Ort: „Aktuellen Standort verwenden" **oder** Ortssuche per Name/PLZ (Geocoding)
+- Ort: siehe [Ortssuche](#ortssuche)
 
 Das ist bewusst so: Trainings werden häufig **nachgetragen**, dann stimmen „jetzt" und „hier" gerade nicht.
 
 Gesetzt über `PUT /api/trainings/{id}/context` — das verwirft den alten Wetterstand (er bezog sich auf andere Zeit/Ort) und holt ihn frisch.
+
+## Ortssuche
+
+Gesucht werden fast immer **Hundeplätze** — also benannte Orte, keine Gemeinden. Deshalb steht dahinter **Photon** (komoot) auf OpenStreetMap-Daten, ebenfalls kostenlos und ohne API-Key. OSM kennt Hundeplätze als eigene Kategorie (`amenity=animal_training`, oft auch `leisure=pitch` mit dem Namen „Hundeplatz"), dazu Vereinsheime und Adressen.
+
+Das Geocoding von Open-Meteo, das hier zuerst verbaut war, ist ein reines **Ortsverzeichnis**. Es fand „Hundeplatz Karlsruhe", „Hundesportverein Ettlingen" und sogar „Bahnhofstraße Ettlingen" jeweils mit **null Treffern** — es kennt nur Städte und Dörfer. Für die Wetterwerte hätte das gereicht (Modell-Raster im Kilometerbereich), als Tagebuch-Eintrag ist „Ettlingen" aber wertlos, wenn der Platz gemeint ist.
+
+Photon und nicht Nominatim, obwohl beide dieselben OSM-Daten nutzen: Nominatims Nutzungsbedingungen **untersagen Tipp-Suche ausdrücklich** (max. eine Anfrage pro Sekunde, kein Autocomplete). Photon ist dafür gebaut.
+
+Drei Wege zum Ort, absteigend nach Häufigkeit im Alltag:
+
+1. **„Zuletzt"** — ein Tipp. Hundeführer trainieren fast immer an denselben zwei bis fünf Plätzen; das ist der Normalfall, nicht die Suche. Kommt aus den eigenen bisherigen Trainings (`GET /api/trainings/locations`), keine eigene Tabelle.
+2. **Aktueller Standort** — wenn man gerade dort steht.
+3. **Suche oder freier Name** — beim ersten Mal. Der Name bleibt **immer** von Hand änderbar: viele Plätze sind in OSM unbenannt oder heißen offiziell anders, als man sie nennt.
+
+Zwei Eigenheiten der Rohdaten, die serverseitig geglättet werden:
+
+- **Umkreis-Gewichtung**: „Hundeplatz" gibt es hundertfach. Als Anker dient der bereits gewählte Ort, sonst der zuletzt genutzte — beides ohne zusätzliche Standort-Abfrage beim Nutzer.
+- **Dubletten**: OSM führt denselben Platz oft zweimal, als Punkt *und* als Fläche („SV OG Pfinztal" kam live doppelt zurück, 40 m versetzt). Entdoppelt wird über gleichen Namen plus echten Abstand unter 150 m. Gerundete Koordinaten taugen dafür nicht — zwei nah beieinanderliegende Werte können auf verschiedene Seiten einer Rundungsgrenze fallen.
 
 ## Endpunktwahl
 

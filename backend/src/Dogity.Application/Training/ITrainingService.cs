@@ -17,6 +17,9 @@ public interface ITrainingService
     /// </summary>
     Task<Result<TrainingSessionDto>> SetSessionContextAsync(Guid userId, Guid sessionId, UpdateSessionContextRequest request, CancellationToken ct = default);
 
+    /// <summary>Zuletzt benutzte Trainingsorte als Schnellauswahl.</summary>
+    Task<Result<IReadOnlyList<RecentLocationDto>>> GetRecentLocationsAsync(Guid userId, CancellationToken ct = default);
+
     Task<Result> DeleteAsync(Guid userId, Guid sessionId, CancellationToken ct = default);
 
     /// <summary>

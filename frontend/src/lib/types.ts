@@ -482,11 +482,20 @@ export type GpsTrack = {
 
 // Treffer der Ortssuche (Open-Meteo Geocoding, siehe WeatherController).
 export type GeocodeResult = {
+  /** Zeile, die man wiedererkennt - z.B. "Hundesportverein". */
   name: string;
-  region: string | null;
-  country: string | null;
+  /** Einordnung darunter, z.B. "Pforzheimer Straße 78 · 76275 Ettlingen". */
+  detail: string | null;
   latitude: number;
   longitude: number;
+};
+
+/** Ein Ort, an dem schon trainiert wurde (Schnellauswahl statt Suche). */
+export type RecentLocation = {
+  name: string;
+  latitude: number;
+  longitude: number;
+  lastUsed: string;
 };
 
 export type Notification = {

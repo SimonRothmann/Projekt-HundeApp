@@ -122,6 +122,13 @@ public record UpdateSessionContextRequest(
     double? Longitude,
     string? LocationName);
 
+/// <summary>
+/// Ein Ort, an dem schon trainiert wurde. Hundeführer trainieren fast immer an
+/// denselben zwei bis fünf Plätzen - deshalb ist die Liste der letzten Orte in
+/// der Praxis wertvoller als jede Suche: beim zweiten Mal genügt ein Tippen.
+/// </summary>
+public record RecentLocationDto(string Name, double Latitude, double Longitude, DateOnly LastUsed);
+
 public record CreateTrainingSessionRequest(
     Guid DogId,
     DateOnly Date,

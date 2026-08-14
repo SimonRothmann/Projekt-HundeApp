@@ -85,37 +85,6 @@ public class OpenMeteoWeatherProviderTests
         var broken = new OpenMeteoWeatherProvider(
             new HttpClient(new ThrowingHandler()), NullLogger<OpenMeteoWeatherProvider>.Instance);
         Assert.Null(await broken.GetAtAsync(48.9, 8.5, DateTimeOffset.UtcNow));
-        Assert.Empty(await broken.SearchLocationAsync("Karlsruhe"));
-    }
-
-    [Fact]
-    public async Task SearchLocationAsync_ParsesResults_AndHandlesNoMatch()
-    {
-        const string json = """
-        {"results":[{"name":"Karlsruhe","latitude":49.00937,"longitude":8.40444,"country":"Deutschland","admin1":"Baden-Württemberg"}]}
-        """;
-        var provider = Make(HttpStatusCode.OK, json);
-
-        var results = await provider.SearchLocationAsync("Karlsruhe");
-
-        var hit = Assert.Single(results);
-        Assert.Equal("Karlsruhe", hit.Name);
-        Assert.Equal("Baden-Württemberg", hit.Region);
-        Assert.Equal(49.00937, hit.Latitude);
-
-        // Ohne Treffer fehlt "results" komplett - darf nicht knallen.
-        var empty = Make(HttpStatusCode.OK, "{\"generationtime_ms\":0.1}");
-        Assert.Empty(await empty.SearchLocationAsync("gibtesnicht"));
-    }
-
-    [Fact]
-    public async Task SearchLocationAsync_BlankQuery_SkipsRequest()
-    {
-        var called = false;
-        var provider = Make(HttpStatusCode.OK, "{}", _ => called = true);
-
-        Assert.Empty(await provider.SearchLocationAsync("   "));
-        Assert.False(called);
     }
 
     private sealed class StubHandler(HttpStatusCode status, string body, Action<string>? onRequest) : HttpMessageHandler

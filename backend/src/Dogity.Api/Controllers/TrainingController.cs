@@ -41,6 +41,14 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         return FromResult(result);
     }
 
+    /// <summary>Zuletzt benutzte Trainingsorte - Schnellauswahl statt Suche.</summary>
+    [HttpGet("locations")]
+    public async Task<ActionResult<IReadOnlyList<RecentLocationDto>>> GetRecentLocations(CancellationToken ct)
+    {
+        var result = await trainingService.GetRecentLocationsAsync(CurrentUserId, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("{id:guid}/context")]
     public async Task<ActionResult<TrainingSessionDto>> SetContext(Guid id, UpdateSessionContextRequest request, CancellationToken ct)
     {

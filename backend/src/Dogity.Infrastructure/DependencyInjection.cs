@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Infrastructure.Email;
+using Dogity.Infrastructure.Geocoding;
 using Dogity.Infrastructure.Identity;
 using Dogity.Infrastructure.Weather;
 using Dogity.Infrastructure.Import;
@@ -57,6 +58,15 @@ public static class DependencyInjection
         services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherProvider>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(6);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Dogity/1.0 (Hundesport-Trainingstagebuch)");
+        });
+
+        // Ortssuche über Photon (OpenStreetMap) - getrennt vom Wetter, weil es
+        // ein anderer Dienst ist und Hundeplätze nur in OSM zu finden sind.
+        // Noch kürzerer Timeout: das läuft während des Tippens.
+        services.AddHttpClient<IGeocodingProvider, PhotonGeocodingProvider>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(4);
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Dogity/1.0 (Hundesport-Trainingstagebuch)");
         });
 

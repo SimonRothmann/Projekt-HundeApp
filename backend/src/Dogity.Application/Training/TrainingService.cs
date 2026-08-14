@@ -15,6 +15,13 @@ namespace Dogity.Application.Training;
 /// </summary>
 public class TrainingService(IApplicationDbContext db, INotificationService notifications, IUserLookupService userLookup, IExerciseMasteryService mastery, IWeatherEnrichmentService weather) : ITrainingService
 {
+    /// <summary>So viele Orte werden als Schnellauswahl angeboten.</summary>
+    private const int MaxRecentLocations = 5;
+
+    /// <summary>Obergrenze der durchsuchten Trainings (siehe GetRecentLocationsAsync).</summary>
+    private const int RecentSessionScanLimit = 200;
+
+
     /// <summary>
     /// Trainings eines Hundes, optional auf einen Datumsbereich beschränkt
     /// (beide Grenzen inklusiv). OHNE from/to bleibt das Verhalten unverändert
@@ -195,6 +202,42 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         var created = await GetOwnedSessionAsync(userId, session.Id, ct, track: false);
         // Frisch angelegtes Training kann noch keine Fährte haben.
         return Result<TrainingSessionDto>.Success(ToDto(created!, hasGpsTrack: false));
+    }
+
+    /// <summary>
+    /// Die zuletzt benutzten Trainingsorte des Nutzers, jeder Ort nur einmal
+    /// und der neueste zuerst.
+    /// </summary>
+    public async Task<Result<IReadOnlyList<RecentLocationDto>>> GetRecentLocationsAsync(Guid userId, CancellationToken ct = default)
+    {
+        var dogIds = db.DogOwners.Where(o => o.UserId == userId).Select(o => o.DogId)
+            .Union(db.TrainerAssignments.Where(t => t.TrainerId == userId).Select(t => t.DogId));
+
+        // Erst die jüngsten Trainings holen, dann im Speicher entdoppeln: den
+        // "neuesten Datensatz je Gruppe" kann EF nicht sauber übersetzen, und
+        // bei dieser Datenmenge lohnt keine Fensterfunktion. Das Limit deckelt
+        // den Aufwand - wer öfter als RecentSessionScanLimit an EINEM Ort
+        // trainiert hat, sieht ältere Orte nicht mehr; das ist hinnehmbar,
+        // weil genau dieser eine Ort dann der gesuchte ist.
+        var recent = await db.TrainingSessions
+            .Where(s => dogIds.Contains(s.DogId)
+                        && s.LocationName != null
+                        && s.Latitude != null
+                        && s.Longitude != null)
+            .OrderByDescending(s => s.Date)
+            .Select(s => new { s.LocationName, s.Latitude, s.Longitude, s.Date })
+            .Take(RecentSessionScanLimit)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var locations = recent
+            .GroupBy(s => s.LocationName!, StringComparer.OrdinalIgnoreCase)
+            .Take(MaxRecentLocations)
+            .Select(g => new RecentLocationDto(
+                g.First().LocationName!, g.First().Latitude!.Value, g.First().Longitude!.Value, g.First().Date))
+            .ToList();
+
+        return Result<IReadOnlyList<RecentLocationDto>>.Success(locations);
     }
 
     public async Task<Result<TrainingSessionDto>> SetSessionContextAsync(Guid userId, Guid sessionId, UpdateSessionContextRequest request, CancellationToken ct = default)

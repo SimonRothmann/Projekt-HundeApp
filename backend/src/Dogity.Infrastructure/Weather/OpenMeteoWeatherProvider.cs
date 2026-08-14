@@ -73,45 +73,6 @@ public class OpenMeteoWeatherProvider(HttpClient http, ILogger<OpenMeteoWeatherP
         }
     }
 
-    public async Task<IReadOnlyList<GeocodeResult>> SearchLocationAsync(string query, CancellationToken ct = default)
-    {
-        if (string.IsNullOrWhiteSpace(query)) return [];
-
-        var url = $"https://geocoding-api.open-meteo.com/v1/search?name={Uri.EscapeDataString(query.Trim())}&count=5&language=de&format=json";
-        try
-        {
-            using var response = await http.GetAsync(url, ct);
-            if (!response.IsSuccessStatusCode) return [];
-
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-
-            // "results" fehlt komplett, wenn nichts gefunden wurde.
-            if (!doc.RootElement.TryGetProperty("results", out var results)) return [];
-
-            var list = new List<GeocodeResult>();
-            foreach (var item in results.EnumerateArray())
-            {
-                if (!item.TryGetProperty("latitude", out var lat) || !item.TryGetProperty("longitude", out var lon))
-                    continue;
-
-                list.Add(new GeocodeResult(
-                    item.TryGetProperty("name", out var name) ? name.GetString() ?? query : query,
-                    item.TryGetProperty("admin1", out var admin) ? admin.GetString() : null,
-                    item.TryGetProperty("country", out var country) ? country.GetString() : null,
-                    lat.GetDouble(),
-                    lon.GetDouble()));
-            }
-
-            return list;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
-        {
-            logger.LogWarning(ex, "Ortssuche nicht möglich");
-            return [];
-        }
-    }
-
     /// <summary>Index des Stundenwerts, der dem gesuchten Zeitpunkt am nächsten liegt.</summary>
     private static int NearestHourIndex(JsonElement times, DateTimeOffset utc)
     {

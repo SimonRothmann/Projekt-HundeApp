@@ -8,9 +8,6 @@ public record WeatherReading(
     /// <summary>WMO-Wettercode (siehe Open-Meteo weather_code).</summary>
     int? WeatherCode);
 
-/// <summary>Ein Treffer der Ortssuche.</summary>
-public record GeocodeResult(string Name, string? Region, string? Country, double Latitude, double Longitude);
-
 /// <summary>
 /// Liefert Wetterdaten zu Ort und Zeitpunkt - für die Fährte der springende
 /// Punkt: die Temperaturänderung zwischen Legen und Suchen bestimmt
@@ -25,7 +22,4 @@ public record GeocodeResult(string Name, string? Region, string? Country, double
 public interface IWeatherProvider
 {
     Task<WeatherReading?> GetAtAsync(double latitude, double longitude, DateTimeOffset instant, CancellationToken ct = default);
-
-    /// <summary>Ortssuche nach Name/PLZ, damit man den Trainingsort nicht als Koordinaten eintippen muss.</summary>
-    Task<IReadOnlyList<GeocodeResult>> SearchLocationAsync(string query, CancellationToken ct = default);
 }
