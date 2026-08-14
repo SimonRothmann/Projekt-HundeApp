@@ -38,7 +38,9 @@ Photon und nicht Nominatim, obwohl beide dieselben OSM-Daten nutzen: Nominatims 
 Drei Wege zum Ort, absteigend nach Häufigkeit im Alltag:
 
 1. **„Zuletzt"** — ein Tipp. Hundeführer trainieren fast immer an denselben zwei bis fünf Plätzen; das ist der Normalfall, nicht die Suche. Kommt aus den eigenen bisherigen Trainings (`GET /api/trainings/locations`), keine eigene Tabelle.
-2. **Aktueller Standort** — wenn man gerade dort steht.
+2. **Aktueller Standort** — wenn man gerade dort steht. Die Koordinaten werden rückwärts aufgelöst, damit der Ort einen echten Namen bekommt; ohne das hieße jeder so gesetzte Platz „Aktueller Standort" und die Liste unter 1. fiele zu einem einzigen, nutzlosen Knopf zusammen.
+
+   Der Name des nächstgelegenen Objekts wird dabei **nur** übernommen, wenn es ein Gelände ist (`leisure`, `landuse`, `sport`, `natural`, `tourism`, `amenity=animal_training`). Bei Gebäuden wäre er eine Falschaussage: wer neben einer Schule auf der Wiese trainiert, bekam im Live-Test „Haus Frühling" als Trainingsort. Dann lieber „Straße, Ort" — das stimmt und lässt sich von Hand schärfen. Steht man dagegen auf dem Platz selbst, liefert OSM „Hundeplatz", und genau der Name wird übernommen.
 3. **Suche oder freier Name** — beim ersten Mal. Der Name bleibt **immer** von Hand änderbar: viele Plätze sind in OSM unbenannt oder heißen offiziell anders, als man sie nennt.
 
 Zwei Eigenheiten der Rohdaten, die serverseitig geglättet werden:

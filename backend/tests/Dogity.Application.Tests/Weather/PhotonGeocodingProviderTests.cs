@@ -113,6 +113,60 @@ public class PhotonGeocodingProviderTests
         Assert.Equal("Am Sportplatz · 75181 Pforzheim", results[1].Detail);
     }
 
+    /// <summary>
+    /// Steht jemand AUF dem Hundeplatz, ist dessen Name genau richtig.
+    /// (Live-Antwort für die Kronauer Allee in Forst.)
+    /// </summary>
+    [Fact]
+    public async Task ReverseAsync_OnTerrain_UsesItsName()
+    {
+        const string json = """
+        {"features":[{"properties":{"osm_key":"leisure","osm_value":"pitch","name":"Hundeplatz",
+          "street":"Kronauer Allee","city":"Forst","postcode":"76694"},
+          "geometry":{"coordinates":[8.5852,49.1636]}}]}
+        """;
+
+        var hit = await Make(HttpStatusCode.OK, json).ReverseAsync(49.16361, 8.58522);
+
+        Assert.NotNull(hit);
+        Assert.Equal("Hundeplatz", hit!.Name);
+        // Die eigenen Koordinaten bleiben stehen - der Treffer ist nur die
+        // Beschriftung, sein Mittelpunkt liegt daneben.
+        Assert.Equal(49.16361, hit.Latitude);
+        Assert.Equal(8.58522, hit.Longitude);
+    }
+
+    /// <summary>
+    /// Wer neben einer Schule auf der Wiese trainiert, hat NICHT in der Schule
+    /// trainiert. Live lieferte Photon hier "Haus Frühling" - als Trainingsort
+    /// wäre das schlicht falsch.
+    /// </summary>
+    [Fact]
+    public async Task ReverseAsync_NearBuilding_UsesStreetInsteadOfBuildingName()
+    {
+        const string json = """
+        {"features":[{"properties":{"osm_key":"building","osm_value":"school","name":"Haus Frühling",
+          "housenumber":"12","street":"Hauptstraße","city":"Karlsbad","postcode":"76307"},
+          "geometry":{"coordinates":[8.5058,48.9159]}}]}
+        """;
+
+        var hit = await Make(HttpStatusCode.OK, json).ReverseAsync(48.91578, 8.50596);
+
+        Assert.NotNull(hit);
+        Assert.Equal("Hauptstraße, Karlsbad", hit!.Name);
+    }
+
+    [Fact]
+    public async Task ReverseAsync_NothingFound_ReturnsNull()
+    {
+        Assert.Null(await Make(HttpStatusCode.OK, "{\"features\":[]}").ReverseAsync(0, 0));
+        Assert.Null(await Make(HttpStatusCode.ServiceUnavailable, "").ReverseAsync(48.9, 8.4));
+
+        var broken = new PhotonGeocodingProvider(
+            new HttpClient(new ThrowingHandler()), NullLogger<PhotonGeocodingProvider>.Instance);
+        Assert.Null(await broken.ReverseAsync(48.9, 8.4));
+    }
+
     [Fact]
     public async Task SearchAsync_BrokenResponses_ReturnEmptyInsteadOfThrowing()
     {

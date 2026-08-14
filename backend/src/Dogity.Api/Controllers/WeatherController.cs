@@ -21,4 +21,17 @@ public class WeatherController(IGeocodingProvider geocoding) : ApiControllerBase
         [FromQuery] double? lon,
         CancellationToken ct)
         => Ok(await geocoding.SearchAsync(query, lat, lon, ct));
+
+    /// <summary>
+    /// Bezeichnung zu Koordinaten - für "Aktuellen Standort verwenden". Ohne
+    /// das hieße jeder so gesetzte Ort gleich. 204, wenn nichts Sinnvolles
+    /// ermittelbar ist; der Name lässt sich immer von Hand eintragen.
+    /// </summary>
+    [HttpGet("locations/reverse")]
+    public async Task<ActionResult<GeocodeResult>> ReverseLocation(
+        [FromQuery] double lat, [FromQuery] double lon, CancellationToken ct)
+    {
+        var result = await geocoding.ReverseAsync(lat, lon, ct);
+        return result is null ? NoContent() : Ok(result);
+    }
 }

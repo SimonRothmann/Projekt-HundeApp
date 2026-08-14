@@ -34,4 +34,14 @@ public interface IGeocodingProvider
         double? nearLatitude = null,
         double? nearLongitude = null,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Umgekehrt: Koordinaten zu einer Bezeichnung. Gebraucht für "Aktuellen
+    /// Standort verwenden" - ohne das hieße jeder so gesetzte Ort gleich, und
+    /// die Liste der zuletzt genutzten Orte wäre wertlos.
+    ///
+    /// Liefert <c>null</c>, wenn nichts Sinnvolles ermittelbar ist; der Name
+    /// ist immer nur ein Vorschlag und bleibt von Hand änderbar.
+    /// </summary>
+    Task<GeocodeResult?> ReverseAsync(double latitude, double longitude, CancellationToken ct = default);
 }

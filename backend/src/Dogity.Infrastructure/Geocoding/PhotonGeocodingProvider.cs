@@ -78,6 +78,64 @@ public class PhotonGeocodingProvider(HttpClient http, ILogger<PhotonGeocodingPro
         }
     }
 
+    public async Task<GeocodeResult?> ReverseAsync(double latitude, double longitude, CancellationToken ct = default)
+    {
+        var url = $"https://photon.komoot.io/reverse?lat={Fmt(latitude)}&lon={Fmt(longitude)}&lang=de&limit=1";
+
+        try
+        {
+            using var response = await http.GetAsync(url, ct);
+            if (!response.IsSuccessStatusCode) return null;
+
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+
+            if (!doc.RootElement.TryGetProperty("features", out var features) ||
+                features.ValueKind != JsonValueKind.Array ||
+                features.GetArrayLength() == 0)
+                return null;
+
+            var feature = features[0];
+            var props = feature.TryGetProperty("properties", out var p) ? p : default;
+
+            // Die eigenen Koordinaten behalten - der Treffer ist nur die
+            // Beschriftung, nicht der Ort. Photon liefert den Mittelpunkt des
+            // nächsten Objekts, der etliche Meter danebenliegen kann.
+            var name = ReverseName(props);
+            return name is null ? null : new GeocodeResult(name, BuildDetail(props, name), latitude, longitude);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            logger.LogWarning(ex, "Rückwärtssuche nicht möglich");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Bezeichnung für einen Punkt, den jemand gerade betritt.
+    ///
+    /// Der Name des nächstgelegenen Objekts wird NUR übernommen, wenn es ein
+    /// Gelände ist (Sportplatz, Hundeplatz, Wiese, Park). Bei Gebäuden und
+    /// Hausadressen wäre er eine Falschaussage: wer neben einer Schule auf der
+    /// Wiese trainiert, bekäme sonst den Schulnamen als Trainingsort - live
+    /// genau so passiert ("Haus Frühling"). Dann lieber Straße und Ort, das
+    /// stimmt und lässt sich von Hand schärfen.
+    /// </summary>
+    private static string? ReverseName(JsonElement props)
+    {
+        var key = Str(props, "osm_key");
+        var isTerrain = key is "leisure" or "landuse" or "sport" or "natural" or "tourism"
+            || (key == "amenity" && Str(props, "osm_value") == "animal_training");
+
+        if (isTerrain && Str(props, "name") is { } name) return name;
+
+        var street = Str(props, "street");
+        var city = Str(props, "city") ?? Str(props, "county");
+
+        if (street is not null && city is not null) return $"{street}, {city}";
+        return street ?? city ?? Str(props, "name");
+    }
+
     /// <summary>
     /// Gleicher Name und dicht beieinander. Der Abstand wird flach gerechnet
     /// (Äquirektangular-Näherung) - auf wenigen hundert Metern ist die

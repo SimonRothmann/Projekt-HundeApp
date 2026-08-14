@@ -122,11 +122,23 @@ export function SessionContextEditor({
     }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         setLatitude(pos.coords.latitude);
         setLongitude(pos.coords.longitude);
-        // Nur vorbelegen - der Name bleibt frei änderbar.
-        setLocationName((current) => current || "Aktueller Standort");
+
+        // Namen zu den Koordinaten holen. Ohne das hieße jeder so gesetzte Ort
+        // "Aktueller Standort" - in der Liste der zuletzt genutzten Orte
+        // fielen sie zu einem Knopf zusammen, der auf die zuletzt
+        // gespeicherten Koordinaten zeigt. Nur vorbelegen, wenn noch nichts
+        // dasteht; ein selbst vergebener Name bleibt unangetastet.
+        let suggestion: string | null = null;
+        try {
+          const params = new URLSearchParams({ lat: String(pos.coords.latitude), lon: String(pos.coords.longitude) });
+          suggestion = (await api.get<GeocodeResult | null>(`/api/weather/locations/reverse?${params}`))?.name ?? null;
+        } catch {
+          // Reiner Komfort - schlägt es fehl, tippt man den Namen eben selbst.
+        }
+        setLocationName((current) => current || suggestion || "Aktueller Standort");
         setLocating(false);
         toast.success("Standort übernommen.");
       },
@@ -136,6 +148,27 @@ export function SessionContextEditor({
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
+  }
+
+  /**
+   * Formular beim Öffnen frisch aus der Trainingseinheit füllen.
+   *
+   * Zwingend nötig, weil die Hundeseite erst aus dem Lesecache rendert und
+   * die Netzantwort nachreicht: useState übernimmt den Wert nur beim ersten
+   * Rendern, das Formular hinge sonst auf dem Stand von vorhin. Wer dann
+   * speichert, schreibt den veralteten Ort zurück und überschreibt eine
+   * neuere Eingabe. Im Handler statt im Effekt, damit nichts überschrieben
+   * wird, während jemand tippt.
+   */
+  function openEditor() {
+    setTime(session.startTime?.slice(0, 5) ?? "");
+    setLatitude(session.latitude);
+    setLongitude(session.longitude);
+    setLocationName(session.locationName ?? "");
+    setQuery("");
+    setResults(null);
+    setSearching(false);
+    setOpen(true);
   }
 
   function onQueryChange(value: string) {
@@ -189,7 +222,7 @@ export function SessionContextEditor({
             {session.locationName}
           </span>
         )}
-        <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setOpen(true)}>
+        <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={openEditor}>
           {weather ? "Ort & Zeit ändern" : "Ort & Zeit für Wetter"}
         </Button>
       </div>
