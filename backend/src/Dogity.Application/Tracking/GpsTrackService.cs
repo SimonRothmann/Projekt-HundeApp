@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Weather;
 using Dogity.Domain.Tracking;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,7 @@ namespace Dogity.Application.Tracking;
 /// Trainingseinheit; Zugriff folgt daher der Zugriffsprüfung des Hundes
 /// dieser Trainingseinheit (Besitzer oder betreuender Trainer).
 /// </summary>
-public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
+public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService weather) : IGpsTrackService
 {
     public async Task<Result<IReadOnlyList<GpsTrackDto>>> GetByTrainingSessionAsync(Guid userId, Guid trainingSessionId, CancellationToken ct = default)
     {
@@ -77,6 +78,11 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
         db.GpsTracks.Add(track);
         await db.SaveChangesAsync(ct);
 
+        // Wetter zum Legezeitpunkt automatisch ermitteln (Ort + Zeit stecken
+        // in den Punkten). Schlägt der Abruf fehl, bleibt es einfach leer.
+        await weather.EnrichTrackAsync(track, ct);
+        await db.SaveChangesAsync(ct);
+
         return Result<GpsTrackDto>.Success(ToDto(track));
     }
 
@@ -114,6 +120,9 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
         // Auswertung direkt nach dem Speichern - die gelegten Punkte liegen
         // dafür ohnehin schon in der Datenbank.
         await EvaluateAndPersistAsync(walkRun, ct);
+        // Erst mit dem ersten Ablauf gibt es einen Suchzeitpunkt - jetzt lässt
+        // sich die Temperaturänderung Legen -> Suchen bestimmen.
+        await weather.EnrichTrackAsync(track, ct);
         await db.SaveChangesAsync(ct);
 
         return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
@@ -214,6 +223,22 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
         return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
     }
 
+    public async Task<Result<GpsTrackDto>> RefreshWeatherAsync(Guid userId, Guid trackId, CancellationToken ct = default)
+    {
+        var track = await db.GpsTracks
+            .Include(t => t.Points)
+            .Include(t => t.WalkRuns).ThenInclude(r => r.Points)
+            .Include(t => t.WalkRuns).ThenInclude(r => r.Stops)
+            .FirstOrDefaultAsync(t => t.Id == trackId, ct);
+        if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
+            return Result<GpsTrackDto>.Failure("Fährte nicht gefunden.");
+
+        await weather.EnrichTrackAsync(track, ct);
+        await db.SaveChangesAsync(ct);
+
+        return Result<GpsTrackDto>.Success(ToDto(track, simplify: true));
+    }
+
     public async Task<Result> DeleteAsync(Guid userId, Guid trackId, CancellationToken ct = default)
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
@@ -258,7 +283,17 @@ public class GpsTrackService(IApplicationDbContext db) : IGpsTrackService
             t.Wind,
             t.Comment,
             points.Select(p => new GpsPointDto(p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, p.PointType, p.Label, p.MarkerType)).ToList(),
-            t.WalkRuns.OrderBy(r => r.CreatedAt).Select(r => ToWalkRunDto(r, simplify)).ToList());
+            t.WalkRuns.OrderBy(r => r.CreatedAt).Select(r => ToWalkRunDto(r, simplify)).ToList(),
+            t.LaidTemperatureC,
+            t.LaidRelativeHumidity,
+            t.LaidWindSpeedKmh,
+            t.LaidWeatherCode,
+            t.SearchTemperatureC,
+            t.SearchRelativeHumidity,
+            t.SearchWindSpeedKmh,
+            t.SearchWeatherCode,
+            t.TemperatureDeltaC,
+            t.WeatherFetchedAt);
     }
 
     private static GpsWalkRunDto ToWalkRunDto(GpsWalkRun r, bool simplify = false)

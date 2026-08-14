@@ -1,6 +1,7 @@
 using Dogity.Application.Abstractions;
 using Dogity.Infrastructure.Email;
 using Dogity.Infrastructure.Identity;
+using Dogity.Infrastructure.Weather;
 using Dogity.Infrastructure.Import;
 using Dogity.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -48,6 +49,16 @@ public static class DependencyInjection
         services.AddScoped<IUserLookupService, UserLookupService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IRegulationPdfParser, RegulationPdfParser>();
+
+        // Typisierter HttpClient für Open-Meteo (kostenlos, ohne API-Key).
+        // Kurzer Timeout: Wetter ist eine Anreicherung - lieber ohne Wert
+        // speichern als den Nutzer warten lassen (der Provider gibt bei
+        // Zeitüberschreitung null zurück, siehe OpenMeteoWeatherProvider).
+        services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherProvider>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(6);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Dogity/1.0 (Hundesport-Trainingstagebuch)");
+        });
 
         services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
         // LoggingEmailSender ist aktiv, bis echte SMTP-Zugangsdaten vorliegen

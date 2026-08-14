@@ -50,6 +50,13 @@ public class GpsTracksController(IGpsTrackService gpsTrackService) : ApiControll
         return FromResult(result);
     }
 
+    [HttpPost("{id:guid}/weather")]
+    public async Task<ActionResult<GpsTrackDto>> RefreshWeather(Guid id, CancellationToken ct)
+    {
+        var result = await gpsTrackService.RefreshWeatherAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {

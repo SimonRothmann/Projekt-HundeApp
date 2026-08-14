@@ -11,6 +11,12 @@ public interface ITrainingService
     Task<Result<IReadOnlyList<TrainingSessionDto>>> GetByDogAsync(Guid userId, Guid dogId, DateOnly? from = null, DateOnly? to = null, CancellationToken ct = default);
     Task<Result<TrainingSessionDto>> GetByIdAsync(Guid userId, Guid sessionId, CancellationToken ct = default);
     Task<Result<TrainingSessionDto>> CreateAsync(Guid userId, CreateTrainingSessionRequest request, CancellationToken ct = default);
+    /// <summary>
+    /// Setzt Uhrzeit und Ort eines Trainings (auch nachträglich) und ermittelt
+    /// darauf basierend automatisch das Wetter.
+    /// </summary>
+    Task<Result<TrainingSessionDto>> SetSessionContextAsync(Guid userId, Guid sessionId, UpdateSessionContextRequest request, CancellationToken ct = default);
+
     Task<Result> DeleteAsync(Guid userId, Guid sessionId, CancellationToken ct = default);
 
     /// <summary>

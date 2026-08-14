@@ -8,8 +8,9 @@ import { TrackMap } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 import { WalkRunComment } from "@/components/tracking/walk-run-comment";
 import { WalkRunEvaluation } from "@/components/tracking/walk-run-evaluation";
-import { Trash2 } from "lucide-react";
+import { CloudSun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDelta, formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
 
 // Für Zeitangaben in der Fährten-Übersicht: nur automatische Trackpunkte,
 // nicht die manuell gesetzten Marker (die tragen ggf. einen späteren
@@ -119,6 +120,7 @@ export function GpsTrackSection({
                 {track.surface && <span>{track.surface}</span>}
                 {track.comment && <span>{track.comment}</span>}
               </div>
+              <TrackWeather track={track} onLoaded={loadTracks} />
               <div className="flex flex-wrap items-center gap-2">
                 {!readOnly && (
                   <WalkRunRecorder
@@ -175,6 +177,56 @@ export function GpsTrackSection({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Wetter zur Fährte: Temperatur beim LEGEN und beim SUCHEN plus die Änderung
+ * dazwischen - fachlich der entscheidende Wert, weil er maßgeblich bestimmt,
+ * wie sich die Geruchsspur hält.
+ *
+ * Für Fährten, die vor der Wetter-Anbindung aufgezeichnet wurden, lässt sich
+ * das Wetter nachträglich holen: Ort und beide Zeitpunkte stecken bereits in
+ * den Punkten, es muss also nichts eingetippt werden.
+ */
+function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Promise<void> }) {
+  const [loading, setLoading] = useState(false);
+
+  async function fetchWeather() {
+    setLoading(true);
+    try {
+      await api.post(`/api/gps-tracks/${track.id}/weather`);
+      await onLoaded();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Wetter konnte nicht geladen werden.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Lose Prüfung (== null): ältere Backend-Stände/Cache kennen die Felder nicht.
+  if (track.laidTemperatureC == null) {
+    return (
+      <Button size="sm" variant="ghost" className="h-6 self-start px-2 text-xs" disabled={loading} onClick={fetchWeather}>
+        <CloudSun className="size-3" />
+        {loading ? "Lädt Wetter…" : "Wetter laden"}
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span className="font-medium text-foreground">
+        {weatherIcon(track.laidWeatherCode)} Legen {formatTemperature(track.laidTemperatureC)}
+      </span>
+      {track.searchTemperatureC != null && <span>Suchen {formatTemperature(track.searchTemperatureC)}</span>}
+      {track.temperatureDeltaC != null && (
+        <span className="font-medium text-primary">{formatDelta(track.temperatureDeltaC)}</span>
+      )}
+      {weatherLabel(track.laidWeatherCode) && <span>{weatherLabel(track.laidWeatherCode)}</span>}
+      {track.laidRelativeHumidity != null && <span>{track.laidRelativeHumidity} % rF</span>}
+      {track.laidWindSpeedKmh != null && <span>{Math.round(track.laidWindSpeedKmh)} km/h Wind</span>}
     </div>
   );
 }

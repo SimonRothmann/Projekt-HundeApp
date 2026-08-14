@@ -51,7 +51,20 @@ public record GpsTrackDto(
     string? Wind,
     string? Comment,
     IReadOnlyList<GpsPointDto> Points,
-    IReadOnlyList<GpsWalkRunDto> WalkRuns);
+    IReadOnlyList<GpsWalkRunDto> WalkRuns,
+    // Automatisch ermitteltes Wetter beim LEGEN und beim SUCHEN. Die Differenz
+    // (TemperatureDeltaC) ist der fachlich interessante Wert: sie bestimmt
+    // maßgeblich, wie sich die Geruchsspur hält.
+    double? LaidTemperatureC,
+    int? LaidRelativeHumidity,
+    double? LaidWindSpeedKmh,
+    int? LaidWeatherCode,
+    double? SearchTemperatureC,
+    int? SearchRelativeHumidity,
+    double? SearchWindSpeedKmh,
+    int? SearchWeatherCode,
+    double? TemperatureDeltaC,
+    DateTimeOffset? WeatherFetchedAt);
 
 public record CreateGpsPointRequest(
     double Latitude,

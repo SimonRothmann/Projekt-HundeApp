@@ -14,5 +14,12 @@ public interface IGpsTrackService
     Task<Result<GpsWalkRunDto>> EvaluateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, CancellationToken ct = default);
 
     Task<Result<GpsWalkRunDto>> UpdateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsWalkRunRequest request, CancellationToken ct = default);
+    /// <summary>
+    /// Holt das Wetter zu Lege- und Suchzeitpunkt (neu). Für Bestandsfährten,
+    /// die vor der Wetter-Anbindung aufgezeichnet wurden - Ort und Zeit stecken
+    /// bereits in den Punkten, es muss also nichts eingetippt werden.
+    /// </summary>
+    Task<Result<GpsTrackDto>> RefreshWeatherAsync(Guid userId, Guid trackId, CancellationToken ct = default);
+
     Task<Result> DeleteAsync(Guid userId, Guid trackId, CancellationToken ct = default);
 }

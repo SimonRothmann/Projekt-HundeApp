@@ -14,6 +14,28 @@ public class TrainingSession : Entity
     public Guid DogId { get; set; }
 
     public DateOnly Date { get; set; }
+
+    /// <summary>
+    /// Startzeit des Trainings (lokal). Optional, weil Trainings auch
+    /// nachgetragen werden - dann ist die Uhrzeit ggf. nicht mehr bekannt.
+    /// Zusammen mit <see cref="Latitude"/>/<see cref="Longitude"/> die
+    /// Grundlage für die automatische Wetter-Ermittlung.
+    /// </summary>
+    public TimeOnly? StartTime { get; set; }
+
+    /// <summary>Trainingsort - per aktuellem Standort oder Ortssuche gesetzt.</summary>
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public string? LocationName { get; set; }
+
+    // ---- Wetter zum Trainingszeitpunkt (siehe IWeatherProvider) ----
+    public double? TemperatureC { get; set; }
+    public int? RelativeHumidity { get; set; }
+    public double? WindSpeedKmh { get; set; }
+    /// <summary>WMO-Wettercode (siehe Open-Meteo weather_code).</summary>
+    public int? WeatherCode { get; set; }
+    public DateTimeOffset? WeatherFetchedAt { get; set; }
+
     public int DurationMinutes { get; set; }
     public string? Notes { get; set; }
 

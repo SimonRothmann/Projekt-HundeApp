@@ -41,6 +41,13 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         return FromResult(result);
     }
 
+    [HttpPut("{id:guid}/context")]
+    public async Task<ActionResult<TrainingSessionDto>> SetContext(Guid id, UpdateSessionContextRequest request, CancellationToken ct)
+    {
+        var result = await trainingService.SetSessionContextAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("{id:guid}/feedback")]
     public async Task<IActionResult> SetFeedback(Guid id, SetFeedbackRequest request, CancellationToken ct)
     {

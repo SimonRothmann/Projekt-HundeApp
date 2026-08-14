@@ -34,6 +34,16 @@ public record TrainingSessionDto(
     IReadOnlyList<TrainingExerciseDto> Exercises,
     string? TrainerFeedback,
     DateTimeOffset? FeedbackAt,
+    // Uhrzeit + Ort: Grundlage der automatischen Wetter-Ermittlung. Beide
+    // optional, weil Trainings auch nachgetragen werden.
+    TimeOnly? StartTime,
+    double? Latitude,
+    double? Longitude,
+    string? LocationName,
+    double? TemperatureC,
+    int? RelativeHumidity,
+    double? WindSpeedKmh,
+    int? WeatherCode,
     /// <summary>
     /// Ob zu diesem Training mindestens eine Fährte (GpsTrack) existiert.
     /// Erspart dem Frontend einen GPS-Request pro Trainings-Karte, nur um
@@ -102,12 +112,26 @@ public record CreateTrainingExerciseRequest(
     Guid? TrainingPlanItemId = null,
     string? FreeTextLabel = null);
 
+/// <summary>
+/// Ort + Uhrzeit eines Trainings setzen (nachträglich möglich) - löst die
+/// automatische Wetter-Ermittlung aus.
+/// </summary>
+public record UpdateSessionContextRequest(
+    TimeOnly? StartTime,
+    double? Latitude,
+    double? Longitude,
+    string? LocationName);
+
 public record CreateTrainingSessionRequest(
     Guid DogId,
     DateOnly Date,
     int DurationMinutes,
     string? Notes,
     IReadOnlyList<CreateTrainingExerciseRequest> Exercises,
+    TimeOnly? StartTime = null,
+    double? Latitude = null,
+    double? Longitude = null,
+    string? LocationName = null,
     /// <summary>
     /// Optional vom Client vorgegebene Id (siehe ARCHITECTURE.md "Offline
     /// Architektur"): erlaubt es dem Frontend, die Id schon beim Start einer

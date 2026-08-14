@@ -18,7 +18,7 @@ public class GpsTrackServiceTests
     private static async Task<(GpsTrackService Service, Setup Setup)> MakeAsync()
     {
         var db = InMemoryDbContext.Create();
-        var service = new GpsTrackService(db);
+        var service = new GpsTrackService(db, new FakeWeatherEnrichmentService());
 
         var userId = Guid.NewGuid();
         var dog = new Dog { Name = "Bello" };

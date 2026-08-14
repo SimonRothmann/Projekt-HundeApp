@@ -6,6 +6,7 @@ using Dogity.Application.Planning;
 using Dogity.Application.Sports;
 using Dogity.Application.Stats;
 using Dogity.Application.Tracking;
+using Dogity.Application.Weather;
 using Dogity.Application.Training;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<IExerciseManagementService, ExerciseManagementService>();
         services.AddScoped<IRegulationManagementService, RegulationManagementService>();
         services.AddScoped<IGpsTrackEvaluationBackfill, GpsTrackEvaluationBackfill>();
+        services.AddScoped<IWeatherEnrichmentService, WeatherEnrichmentService>();
         services.AddScoped<IRegulationImportService, RegulationImportService>();
         services.AddScoped<ITrainingService, TrainingService>();
         services.AddScoped<IExerciseMasteryService, ExerciseMasteryService>();

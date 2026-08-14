@@ -58,5 +58,5 @@ Die Douglas-Peucker-Vereinfachung (1 m Toleranz, ab 2000 Punkten) betrifft nur d
 ## Offen / bewusst nicht enthalten
 
 - GPS am Hund (zweites Gerät / GPX-Import) — einzig echte Lösung für die Leinen-Unschärfe
-- Wetter (**nächster geplanter Punkt**: Temperaturänderung zwischen Legen und Suchen; Koordinaten + Zeitstempel liegen vor, rückwirkende Ermittlung per Historien-Wetter-API wäre möglich)
+- ~~Wetter~~ → **umgesetzt**, siehe [WEATHER.md](WEATHER.md): Temperatur beim Legen und Suchen plus die Änderung dazwischen, automatisch über Open-Meteo
 - Track-Templates offizieller Prüfungs-Layouts, Heatmaps

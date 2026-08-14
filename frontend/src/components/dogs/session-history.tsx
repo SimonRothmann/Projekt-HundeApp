@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, ChevronDown, ChevronRight, History, MessageSquarePlus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
+import { SessionContextEditor } from "@/components/dogs/session-context-editor";
 import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
 import { ExerciseNotes } from "@/components/dogs/exercise-notes";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
@@ -284,6 +285,9 @@ export function SessionHistory({
                       </CardHeader>
                       <CardContent className="flex flex-col gap-2">
                         <DayNotes sessions={daySessions} onChanged={onChanged} />
+                        {daySessions.map((s) => (
+                          <SessionContextEditor key={`ctx-${s.id}`} session={s} onSaved={onChanged} />
+                        ))}
                         {exercises.length > 0 && (
                           <ul className="flex flex-col gap-2">
                             {exercises.map((ex) => (

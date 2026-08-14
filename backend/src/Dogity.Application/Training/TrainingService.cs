@@ -2,6 +2,7 @@ using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Application.Notifications;
 using Dogity.Application.Planning;
+using Dogity.Application.Weather;
 using Dogity.Domain.Training;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,7 @@ namespace Dogity.Application.Training;
 /// Zugriff ist immer auf Trainingseinheiten beschränkt, deren Hund dem
 /// aufrufenden Benutzer über <see cref="Domain.Dogs.DogOwner"/> zugeordnet ist.
 /// </summary>
-public class TrainingService(IApplicationDbContext db, INotificationService notifications, IUserLookupService userLookup, IExerciseMasteryService mastery) : ITrainingService
+public class TrainingService(IApplicationDbContext db, INotificationService notifications, IUserLookupService userLookup, IExerciseMasteryService mastery, IWeatherEnrichmentService weather) : ITrainingService
 {
     /// <summary>
     /// Trainings eines Hundes, optional auf einen Datumsbereich beschränkt
@@ -154,6 +155,10 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             UserId = userId,
             DogId = request.DogId,
             Date = request.Date,
+            StartTime = request.StartTime,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            LocationName = request.LocationName,
             DurationMinutes = request.DurationMinutes,
             Notes = request.Notes
         };
@@ -183,9 +188,44 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         db.TrainingSessions.Add(session);
         await db.SaveChangesAsync(ct);
 
+        // Wetter automatisch nachziehen, sofern Ort UND Uhrzeit vorliegen.
+        await weather.EnrichSessionAsync(session, ct);
+        await db.SaveChangesAsync(ct);
+
         var created = await GetOwnedSessionAsync(userId, session.Id, ct, track: false);
         // Frisch angelegtes Training kann noch keine Fährte haben.
         return Result<TrainingSessionDto>.Success(ToDto(created!, hasGpsTrack: false));
+    }
+
+    public async Task<Result<TrainingSessionDto>> SetSessionContextAsync(Guid userId, Guid sessionId, UpdateSessionContextRequest request, CancellationToken ct = default)
+    {
+        var session = await GetOwnedSessionAsync(userId, sessionId, ct);
+        if (session is null)
+            return Result<TrainingSessionDto>.Failure("Training nicht gefunden.");
+
+        if (request.Latitude is { } lat && (lat < -90 || lat > 90))
+            return Result<TrainingSessionDto>.Failure("Ungültiger Breitengrad.");
+        if (request.Longitude is { } lon && (lon < -180 || lon > 180))
+            return Result<TrainingSessionDto>.Failure("Ungültiger Längengrad.");
+
+        session.StartTime = request.StartTime;
+        session.Latitude = request.Latitude;
+        session.Longitude = request.Longitude;
+        var name = request.LocationName?.Trim();
+        session.LocationName = string.IsNullOrEmpty(name) ? null : name;
+
+        // Alten Wetterstand verwerfen: er bezog sich auf Ort/Zeit von vorher.
+        session.TemperatureC = null;
+        session.RelativeHumidity = null;
+        session.WindSpeedKmh = null;
+        session.WeatherCode = null;
+        session.WeatherFetchedAt = null;
+
+        await weather.EnrichSessionAsync(session, ct);
+        await db.SaveChangesAsync(ct);
+
+        var updated = await GetOwnedSessionAsync(userId, sessionId, ct, track: false);
+        return Result<TrainingSessionDto>.Success(ToDto(updated!, await HasGpsTrackAsync(sessionId, ct)));
     }
 
     public async Task<Result> DeleteAsync(Guid userId, Guid sessionId, CancellationToken ct = default)
@@ -439,5 +479,13 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             e.TrainerNote)).ToList(),
         s.TrainerFeedback,
         s.FeedbackAt,
+        s.StartTime,
+        s.Latitude,
+        s.Longitude,
+        s.LocationName,
+        s.TemperatureC,
+        s.RelativeHumidity,
+        s.WindSpeedKmh,
+        s.WeatherCode,
         hasGpsTrack);
 }

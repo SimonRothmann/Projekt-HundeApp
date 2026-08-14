@@ -109,6 +109,16 @@ export type TrainingSession = {
   exercises: TrainingExercise[];
   trainerFeedback: string | null;
   feedbackAt: string | null;
+  // Uhrzeit + Ort: Grundlage der automatischen Wetter-Ermittlung. Beide
+  // optional, weil Trainings auch nachgetragen werden.
+  startTime: string | null; // "HH:mm:ss"
+  latitude: number | null;
+  longitude: number | null;
+  locationName: string | null;
+  temperatureC: number | null;
+  relativeHumidity: number | null;
+  windSpeedKmh: number | null;
+  weatherCode: number | null;
   // Ob mindestens eine Fährte existiert - erspart den GPS-Request pro
   // Trainings-Karte (GpsTrackSection wird bei abgeschlossenen Trainings
   // ohne Fährte gar nicht erst gemountet, siehe SessionHistory).
@@ -455,6 +465,28 @@ export type GpsTrack = {
   comment: string | null;
   points: GpsPoint[];
   walkRuns: GpsWalkRun[];
+  // Automatisch ermitteltes Wetter beim Legen und beim Suchen. Fachlich am
+  // wichtigsten ist temperatureDeltaC - die Änderung dazwischen bestimmt
+  // maßgeblich, wie sich die Geruchsspur hält.
+  laidTemperatureC: number | null;
+  laidRelativeHumidity: number | null;
+  laidWindSpeedKmh: number | null;
+  laidWeatherCode: number | null;
+  searchTemperatureC: number | null;
+  searchRelativeHumidity: number | null;
+  searchWindSpeedKmh: number | null;
+  searchWeatherCode: number | null;
+  temperatureDeltaC: number | null;
+  weatherFetchedAt: string | null;
+};
+
+// Treffer der Ortssuche (Open-Meteo Geocoding, siehe WeatherController).
+export type GeocodeResult = {
+  name: string;
+  region: string | null;
+  country: string | null;
+  latitude: number;
+  longitude: number;
 };
 
 export type Notification = {
