@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PawPrint } from "lucide-react";
 import { EnvBadge, isTestEnv } from "@/components/env-badge";
 import { SupportButton } from "@/components/support-button";
+import { AuthBackLink } from "@/components/auth-back-link";
 
 // Nur für die Test-/Dev-Datenbank (DemoDataSeeder, siehe TODO.md) - existiert
 // nicht in Production. Aktiv wenn NEXT_PUBLIC_ENV_LABEL=TEST beim Build war;
@@ -53,81 +54,84 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-full flex-1 items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="items-center text-center">
-          <PawPrint className="size-8 text-primary" />
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-xl">Bei Dogity anmelden</CardTitle>
-            <EnvBadge />
-          </div>
-          <CardDescription>Trainingstagebuch & Hundesport-Plattform</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">E-Mail</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+      <div className="flex w-full max-w-sm flex-col gap-3">
+        <AuthBackLink />
+        <Card className="w-full">
+          <CardHeader className="items-center text-center">
+            <PawPrint className="size-8 text-primary" />
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-xl">Bei Dogity anmelden</CardTitle>
+              <EnvBadge />
             </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Passwort</Label>
-                <Link href="/forgot-password" className="text-xs text-primary underline-offset-4 hover:underline">
-                  Passwort vergessen?
-                </Link>
+            <CardDescription>Trainingstagebuch & Hundesport-Plattform</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="email">E-Mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="h-11" disabled={isSubmitting}>
-              {isSubmitting ? "Anmelden…" : "Anmelden"}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Noch kein Konto?{" "}
-            <Link href="/register" className="text-primary underline-offset-4 hover:underline">
-              Registrieren
-            </Link>
-          </p>
-          {isTestEnv && (
-            <div className="mt-6 border-t pt-4">
-              <p className="mb-2 text-center text-xs text-muted-foreground">
-                Demo-Login (nur Test-Umgebung)
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {DEMO_ACCOUNTS.map((account) => (
-                  <Button
-                    key={account.email}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={isSubmitting}
-                    onClick={() => doLogin(account.email, DEMO_PASSWORD)}
-                  >
-                    {account.label}
-                  </Button>
-                ))}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Passwort</Label>
+                  <Link href="/forgot-password" className="text-xs text-primary underline-offset-4 hover:underline">
+                    Passwort vergessen?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button type="submit" className="h-11" disabled={isSubmitting}>
+                {isSubmitting ? "Anmelden…" : "Anmelden"}
+              </Button>
+            </form>
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Noch kein Konto?{" "}
+              <Link href="/register" className="text-primary underline-offset-4 hover:underline">
+                Registrieren
+              </Link>
+            </p>
+            {isTestEnv && (
+              <div className="mt-6 border-t pt-4">
+                <p className="mb-2 text-center text-xs text-muted-foreground">
+                  Demo-Login (nur Test-Umgebung)
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {DEMO_ACCOUNTS.map((account) => (
+                    <Button
+                      key={account.email}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isSubmitting}
+                      onClick={() => doLogin(account.email, DEMO_PASSWORD)}
+                    >
+                      {account.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="mt-6 flex justify-center">
+              <SupportButton />
             </div>
-          )}
-          <div className="mt-6 flex justify-center">
-            <SupportButton />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }

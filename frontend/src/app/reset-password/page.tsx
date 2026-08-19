@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PawPrint } from "lucide-react";
+import { AuthBackLink } from "@/components/auth-back-link";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -75,23 +76,26 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <main className="flex min-h-full flex-1 items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="items-center text-center">
-          <PawPrint className="size-8 text-primary" />
-          <CardTitle className="text-xl">Neues Passwort setzen</CardTitle>
-          <CardDescription>Wähle ein neues Passwort für dein Konto</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Suspense>
-            <ResetPasswordForm />
-          </Suspense>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            <Link href="/login" className="text-primary underline-offset-4 hover:underline">
-              Zurück zur Anmeldung
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex w-full max-w-sm flex-col gap-3">
+        <AuthBackLink />
+        <Card className="w-full">
+          <CardHeader className="items-center text-center">
+            <PawPrint className="size-8 text-primary" />
+            <CardTitle className="text-xl">Neues Passwort setzen</CardTitle>
+            <CardDescription>Wähle ein neues Passwort für dein Konto</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Suspense>
+              <ResetPasswordForm />
+            </Suspense>
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              <Link href="/login" className="text-primary underline-offset-4 hover:underline">
+                Zurück zur Anmeldung
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }
