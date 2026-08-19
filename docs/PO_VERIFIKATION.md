@@ -47,65 +47,93 @@ einem Duplikat aus — es steht aber genau so in der PO (zwei getrennt bewertete
 | Sitz aus der Bewegung (IGP 3, UPr 3, GPr 3) | „Aus dem Laufschritt" | Kennt in **keiner** Stufe einen Laufschritt — immer 10 bis 15 Schritte Entwicklung (S. 48) |
 | Beschreibung IGP 3 | „9 Übungen aus dem Laufschritt" | Nur **2 von 9** laufen aus dem Laufschritt: Ablegen mit Herankommen und Steh |
 
-## Offen — Entscheidung des Betreibers nötig
+## Entschieden und umgesetzt (Betreiberauskunft 2026-08-19)
 
-Diese drei Punkte sind **nicht** korrigiert, weil sie über Textkosmetik
-hinausgehen: sie verändern Übungen, auf die vorhandene Trainingseinträge,
-Bewertungen und Trainingspläne verweisen.
+### 1. BH — auf die Prüfungsordnung umgestellt
 
-### 1. Struktur der BH
+„Es gibt nur eine BH/VT, bitte die aus der Prüfungsordnung übernehmen."
 
-Hinterlegt sind **5 bewertete Übungen** mit Leinenführigkeit 15 + Freifolge 15.
+Teil A hat jetzt **4 bewertete Übungen**: Leinenführigkeit **30**, Sitz 10,
+Ablegen in Verbindung mit Herankommen 10, Ablegen unter Ablenkung 10. Die
+eigenständig bewertete „Freifolge" entfällt — der Hund wird erst am Ende der
+Leinenführigkeit abgeleint. Summe (60) und Bestehensgrenze (42) bleiben.
 
-Die FCI-PO 2025 kennt für die FCI-BH/VT dagegen **4 bewertete Übungen**:
-Leinenführigkeit **30**, Sitz 10, Ablegen in Verbindung mit Herankommen 10,
-Ablegen unter Ablenkung 10. Eine eigenständig bewertete „Freifolge" gibt es
-nicht; der Hund wird laut VDH-Information erst *nach* der Leinenführigkeit
-abgeleint.
+Bemerkenswert: Die abgelöste Version „2024" hatte mit Leinenführigkeit 30 und
+ohne Freifolge **bereits das Richtige** stehen. Die damalige „Korrektur" auf
+15 + 15 war der eigentliche Fehler.
 
-Die Summe (60) und die Bestehensgrenze (42) stimmen in beiden Varianten.
+Die Übung „Freifolge" bleibt im Katalog trainierbar, zählt aber nicht mehr zur
+Prüfung — vorhandene Trainingseinträge bleiben dadurch unangetastet.
 
-Der Seeder hält ausdrücklich fest, die Struktur folge „der tatsächlichen
-VDH-BH/VT". Ob daneben noch eine nationale BH/VT (NPO) mit geteilter
-Leinenführigkeit/Freifolge existiert, lässt sich aus den öffentlich
-zugänglichen Unterlagen nicht abschließend klären — das entscheidet der
-Betreiber in seiner Funktion als VDH-Vorstand.
+### 2. Fährtenprüfungen — erfundene Punkte entfernt
 
-### 2. Punkteaufteilung innerhalb der Fährtenprüfungen
+„Halluzination, die erfundenen Dinge entfernen, weil irrelevant."
 
-IFH 1-3 und IGP-FH sind in drei Übungen zerlegt: Fährtenaufnahme **40**,
-Winkelarbeit **39**, Gegenstände **21**.
+Aus „Fährtenaufnahme 40 + Winkelarbeit 39 + Gegenstände 21" wird
+**Fährtenarbeit 79 + Gegenstände verweisen 21**. Damit steht nur noch drin, was
+die PO auch hergibt: Einzelpunkte gibt es allein für die Gegenstände, die
+Fährte selbst wird als eine zusammenhängende Leistung bewertet.
 
-Die 21 Punkte für die Gegenstände sind korrekt. Die Aufteilung der restlichen
-79 Punkte in „Fährtenaufnahme 40" und „Winkelarbeit 39" steht so aber **nicht**
-in der PO — der Begriff „Winkelarbeit" kommt dort kein einziges Mal vor. Als
-**Trainingseinheiten** ist die Zerlegung sinnvoll; als **Punktangabe** erweckt
-sie den Eindruck einer offiziellen Wertung.
+„Fährtenaufnahme" und „Winkelarbeit" bleiben als **Katalogübungen** erhalten —
+erfunden war die Punktzahl, nicht die Übung.
 
-Vorschlag: Namen behalten, die beiden erfundenen Punktwerte auf 0 setzen und
-die 79 Punkte der Fährtenarbeit als Ganzes ausweisen.
+### 3. Teil B der BH bleibt zusammengefasst
 
-### 3. Teil B der BH ist unvollständig
+„Der B-Teil ist Auslegungssache des Richters, es kann immer Radfahrer, Autos
+usw. geben, jedoch ist das nicht einzeln zu üben."
 
-Hinterlegt sind 4 Übungen. Die PO nennt **6**: Begegnung mit Personengruppe,
-mit Radfahrern, mit Autos, mit Joggern oder Inline-Skatern, mit anderen Hunden
-sowie das Verhalten des kurzfristig angeleint allein gelassenen Hundes. Die
-drei mittleren sind derzeit zu „Verhalten im Verkehr" zusammengefasst.
+Bleibt daher als eine Position „Verhalten im Verkehr". Das ist eine bewusste
+Entscheidung, kein offener Mangel.
+
+### 4. Fährte A/B/C waren falsch beschriftet UND falsch
+
+Sie waren als „vereinsinterne Trainingsstufen" hinterlegt. Tatsächlich sind es
+die **Fährten der FCI-IGP 1-3** (Abteilung A), die sich auch einzeln laufen
+lassen — dann als FCI-FPr 1-3. Beim Abgleich mit der Fährtentabelle (S. 42)
+kamen **sieben** Fehler zutage:
+
+| | Hinterlegt | Laut PO |
+|---|---|---|
+| Fährte A — Gegenstände | 2 | **3** (3 × 7 Punkte) |
+| Fährte B — Fährtenart | Eigenfährte | **Fremdfährte** |
+| Fährte B — Schenkel | 4 | **3** |
+| Fährte B — Winkel | 3 | **2** |
+| Fährte B — Gegenstände | 3 eigene | 3 **fremde** |
+| Fährte C — Winkel | 5 | **4** |
+| Fährte C — Gegenstände | 4 | **3** |
+
+Alle korrigiert, dazu Ausarbeitungszeit und Fährtenleine ergänzt. Umbenannt in
+**„IGP 1 – Fährte"**, **„IGP 2 – Fährte"**, **„IGP 3 – Fährte"** — „Fährte A/B/C"
+sagte niemandem, worum es geht, und war als Suchbegriff wertlos.
+
+Der Doppeleintrag „Fährte C (Fremdfährte)" ist entfernt.
+
+> **Hinweis auf eine verbliebene Doppelung:** Die IGP-Fährten einzeln gelaufen
+> *sind* die FCI-FPr 1-3. Beide stehen weiterhin nebeneinander im Katalog. Das
+> ist inhaltlich nicht falsch, aber redundant — auf Wunsch zusammenlegbar.
+
+## Was der Seeder dafür können musste
+
+`SeedRegulationAsync` legte bisher nur an und pflegte nach, **entfernte aber
+nie**. Eine gestrichene Übung wäre für immer an der Prüfungsordnung hängen
+geblieben — die BH hätte ihre Freifolge in Test und Produktion nie verloren.
+Ergänzt wurde daher:
+
+- Übungen, die nicht mehr im Seed stehen, werden von der Prüfungsordnung
+  gelöst. Entfernt wird nur die **Verknüpfung**, nicht die Übung: Trainings,
+  Bewertungen und Pläne verweisen auf `Exercise`, nicht auf
+  `RegulationExercise`.
+- `RemoveRegulationAsync` entfernt eine komplette Prüfungsordnung (für
+  Doppeleinträge). Bricht ab, sobald ein Trainingsziel darauf verweist — ein
+  stillschweigend gelöschtes Ziel wäre schlimmer als ein überzähliger Eintrag.
 
 ## Weitere Beobachtungen
 
-- **„Fährte C" existiert doppelt** — einmal als „Fährte C", einmal als
-  „Fährte C (Fremdfährte)" mit identischem Inhalt. Nur die zweite steht im
-  Seeder; die erste ist ein Überbleibsel eines früheren Durchlaufs und lebt
-  nur noch in der Datenbank. Sie erzeugt eine doppelte öffentliche Seite.
 - **Der Übungskatalog der IGP 3 enthält Altlasten** aus der IPO-Zeit vor 2019
   („Seitentransport", „Distanzangriff", „Bewachen nach Rückkehr des
   Hundeführers", „Abwehr eines Angriffs aus dem Stand"). Sie hängen an keiner
   gültigen Prüfungsordnungs-Version und erscheinen daher nicht auf den
   öffentlichen Seiten, wohl aber in der Übungsauswahl.
-- **„Fährte A/B/C"** sind ausdrücklich als vereinsinterne Trainingsstufen
-  beschrieben, keine offiziellen Prüfungen. Das ist sauber gekennzeichnet,
-  steht öffentlich aber neben echten Prüfungsordnungen.
 
 ## Wie Korrekturen ankommen
 

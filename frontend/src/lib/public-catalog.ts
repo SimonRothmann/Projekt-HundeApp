@@ -107,3 +107,89 @@ export async function getCatalog(): Promise<CatalogEntry[]> {
 export async function findCatalogEntry(slug: string): Promise<CatalogEntry | null> {
   return (await getCatalog()).find((entry) => entry.slug === slug) ?? null;
 }
+
+/**
+ * Prüfungsfamilie, unter der ein Eintrag in der Übersicht steht.
+ *
+ * Ohne das zerfällt die Seite: "Internationale Begleithundeprüfung 1/2/3" sind
+ * im Backend DREI getrennte Sportarten mit je einer Prüfungsordnung, die
+ * Übersicht zeigte deshalb vierzehn Überschriften mit oft nur einem Eintrag.
+ * Wer IBGH sucht, will die drei Stufen beieinander sehen.
+ */
+export type CatalogFamily = {
+  key: string;
+  title: string;
+  description: string;
+  entries: CatalogEntry[];
+};
+
+/** Reihenfolge = Reihenfolge auf der Seite; zuerst passende Regel gewinnt. */
+const FAMILIES: { key: string; title: string; description: string; matches: (name: string) => boolean }[] = [
+  {
+    key: "bh",
+    title: "BH – Begleithundeprüfung",
+    description: "Die Einstiegsprüfung. Voraussetzung für fast alles Weitere.",
+    matches: (name) => name === "BH",
+  },
+  {
+    key: "ibgh",
+    title: "IBGH – Internationale Begleithundeprüfung",
+    description: "Reine Unterordnung in drei Stufen, ohne Fährte und ohne Schutzdienst.",
+    matches: (name) => name.startsWith("IBGH"),
+  },
+  {
+    key: "igp",
+    title: "IGP – Internationale Gebrauchshundeprüfung",
+    description: "Die Vollprüfung aus Fährte, Unterordnung und Schutzdienst, je 100 Punkte.",
+    matches: (name) => /^FCI-IGP [123]$/.test(name),
+  },
+  {
+    key: "faehrte",
+    title: "Fährtenarbeit",
+    description: "Die Fährten der IGP sowie die eigenständigen Fährtenhundprüfungen.",
+    matches: (name) => name.includes("Fährte") || name.startsWith("FCI-IFH") || name === "FCI-IGP FH",
+  },
+  {
+    key: "einzel",
+    title: "Einzelprüfungen",
+    description: "Einzelne Abteilungen der IGP, getrennt geprüft – ohne eigenes Ausbildungskennzeichen.",
+    matches: (name) => /^FCI-(FPr|UPr|GPr|SPr|StöPr) /.test(name),
+  },
+  {
+    key: "ausdauer",
+    title: "Ausdauer",
+    description: "Nachweis der körperlichen Belastbarkeit, ohne Punktewertung.",
+    matches: (name) => name.startsWith("FCI-IAD"),
+  },
+];
+
+/** Bündelt den Katalog in Familien. Alles ohne Treffer landet unter "Weitere". */
+export function groupIntoFamilies(catalog: CatalogEntry[]): CatalogFamily[] {
+  const buckets = new Map<string, CatalogEntry[]>();
+  const rest: CatalogEntry[] = [];
+
+  for (const entry of catalog) {
+    const family = FAMILIES.find((f) => f.matches(entry.regulation.name));
+    if (!family) {
+      rest.push(entry);
+      continue;
+    }
+    buckets.set(family.key, [...(buckets.get(family.key) ?? []), entry]);
+  }
+
+  const result: CatalogFamily[] = FAMILIES.filter((f) => buckets.has(f.key)).map((f) => ({
+    key: f.key,
+    title: f.title,
+    description: f.description,
+    // Innerhalb einer Familie nach Namen sortieren, damit Stufe 1 vor 2 vor 3 steht.
+    entries: [...(buckets.get(f.key) ?? [])].sort((a, b) =>
+      a.regulation.name.localeCompare(b.regulation.name, "de"),
+    ),
+  }));
+
+  if (rest.length > 0) {
+    result.push({ key: "weitere", title: "Weitere", description: "", entries: rest });
+  }
+
+  return result;
+}

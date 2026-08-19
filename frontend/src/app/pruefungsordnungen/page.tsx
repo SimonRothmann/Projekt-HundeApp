@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getCatalog, type CatalogEntry } from "@/lib/public-catalog";
+import { getCatalog, groupIntoFamilies } from "@/lib/public-catalog";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-chrome";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -11,20 +11,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/pruefungsordnungen" },
 };
 
-/** Nach Sportart bündeln, damit die Liste einer Gliederung folgt statt alphabetisch zu zerfallen. */
-function groupBySport(catalog: CatalogEntry[]) {
-  const groups = new Map<string, { sportName: string; entries: CatalogEntry[] }>();
-  for (const entry of catalog) {
-    const group = groups.get(entry.sport.id) ?? { sportName: entry.sport.name, entries: [] };
-    group.entries.push(entry);
-    groups.set(entry.sport.id, group);
-  }
-  return [...groups.values()];
-}
-
 export default async function RegulationsIndexPage() {
   const catalog = await getCatalog();
-  const groups = groupBySport(catalog);
+  const groups = groupIntoFamilies(catalog);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -63,8 +52,11 @@ export default async function RegulationsIndexPage() {
         ) : (
           <div className="mt-10 flex flex-col gap-9">
             {groups.map((group) => (
-              <section key={group.sportName} className="min-w-0">
-                <h2 className="text-xl font-bold tracking-tight">{group.sportName}</h2>
+              <section key={group.key} className="min-w-0">
+                <h2 className="text-xl font-bold tracking-tight">{group.title}</h2>
+                {group.description && (
+                  <p className="mt-1 text-sm text-muted-foreground">{group.description}</p>
+                )}
                 <ul className="mt-3 flex flex-col gap-2">
                   {group.entries.map((entry) => (
                     <li key={entry.slug} className="min-w-0">
@@ -74,7 +66,7 @@ export default async function RegulationsIndexPage() {
                       >
                         <span className="block font-medium [overflow-wrap:anywhere]">{entry.regulation.name}</span>
                         {entry.regulation.description && (
-                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                          <span className="mt-0.5 block text-xs text-muted-foreground [overflow-wrap:anywhere]">
                             {entry.regulation.description.split("\n")[0]}
                           </span>
                         )}

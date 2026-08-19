@@ -47,6 +47,17 @@ Ablauf" oder „IBGH 2 Punkte" wird gesucht — nach „Dogity" nur von denen, d
 es schon kennen. Der Inhalt ist zugleich für sich genommen nützlich, nicht bloß
 Suchmaschinenfutter.
 
+Die Übersicht bündelt in **Familien** (BH, IBGH, IGP, Fährtenarbeit,
+Einzelprüfungen, Ausdauer) statt nach Sportart: „Internationale
+Begleithundeprüfung 1/2/3" sind im Backend drei getrennte Sportarten, die Seite
+zeigte deshalb vierzehn Überschriften mit oft nur einem Eintrag. Wer IBGH sucht,
+will die drei Stufen beieinander sehen.
+
+**Reihenfolge beim Ausrollen:** Die Seiten und ihre Adressen entstehen aus den
+Daten, die beim Bauen des Frontends von der API kommen. Ändern sich Namen von
+Prüfungsordnungen, muss erst das Backend deployt werden und dann das Frontend -
+sonst baut es die alten Adressen.
+
 Die Seiten werden beim Bauen vorgerendert (`generateStaticParams`) und einmal
 täglich neu geholt. Ist das Backend beim Bauen nicht erreichbar, entsteht keine
 kaputte Seite: der Katalog kommt leer zurück und die Seiten werden beim ersten

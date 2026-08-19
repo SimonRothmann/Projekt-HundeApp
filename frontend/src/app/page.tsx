@@ -14,6 +14,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AuthedRedirect } from "@/components/marketing/authed-redirect";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-chrome";
+import { SupportButton } from "@/components/support-button";
 import { SITE } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -75,7 +76,12 @@ const FAQ = [
   {
     question: "Was kostet Dogity?",
     answer:
-      "Dogity ist kostenlos nutzbar. Es gibt kein Abonnement und keine Bezahlschranke; wer die Entwicklung unterstützen möchte, kann das freiwillig über Ko-fi tun.",
+      "Dogity ist kostenlos nutzbar. Es gibt kein Abonnement, keine Bezahlschranke und keine Werbung.",
+  },
+  {
+    question: "Wie kann ich Dogity unterstützen?",
+    answer:
+      "Freiwillig über Ko-fi. Dogity wird in der Freizeit entwickelt und aus eigener Tasche betrieben; jede Unterstützung hilft, Server und Domain zu bezahlen. Am Funktionsumfang ändert sie nichts - es gibt keine bezahlten Zusatzfunktionen.",
   },
   {
     question: "Für welche Hundesportarten ist Dogity gedacht?",
@@ -215,6 +221,15 @@ export default function HomePage() {
               </div>
             ))}
           </dl>
+        </section>
+
+        <section className="border-t border-border/60 py-12">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Dogity unterstützen</h2>
+          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+            Dogity entsteht in der Freizeit und läuft auf selbst bezahlten Servern – kostenlos, werbefrei und ohne
+            bezahlte Zusatzfunktionen. Wer mag, kann die Entwicklung freiwillig über Ko-fi unterstützen.
+          </p>
+          <SupportButton className="mt-6" />
         </section>
 
         <section className="border-t border-border/60 py-12">

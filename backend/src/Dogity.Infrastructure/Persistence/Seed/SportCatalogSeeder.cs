@@ -63,12 +63,13 @@ public static class SportCatalogSeeder
     {
         var db = services.GetRequiredService<ApplicationDbContext>();
 
-        // Übungsstruktur folgt der tatsächlichen VDH-BH/VT (Teil A: 5 bewertete
-        // Übungen à 15/15/10/10/10 = 60 Punkte, bestanden ab 42; Teil B ohne
-        // Einzelpunkte). "Freifolge" fehlte in früheren Seed-Durchläufen komplett,
-        // "Sitz aus der Bewegung"/"Ablegen mit Abrufen" trugen inoffizielle Namen -
-        // mit Genehmigung des Auftraggebers als VDH-Vorstand korrigiert (analog
-        // IBGH/IGP, siehe Klassenkommentar oben).
+        // Es gibt nur EINE BH/VT, und das ist die der FCI-Prüfungsordnung
+        // (Betreiberauskunft als VDH-Vorstand, 2026-08-19). Teil A: 4 bewertete
+        // Übungen à 30/10/10/10 = 60 Punkte, bestanden ab 42; Teil B ohne
+        // Einzelpunkte. Eine eigenständig bewertete "Freifolge" gibt es NICHT -
+        // die Leinenführigkeit läuft durchgehend angeleint, abgeleint wird erst
+        // an deren Ende. Die Übung "Freifolge" bleibt im Katalog trainierbar,
+        // zählt aber nicht mehr zur Prüfung.
         var bh = await SeedSportAsync(db, "BH", "Begleithundeprüfung",
         [
             new("Leinenführigkeit", ExerciseDifficulty.Beginner, "Unterordnung",
@@ -152,6 +153,8 @@ public static class SportCatalogSeeder
 
         var faerte = await SeedSportAsync(db, "FAERTE", "Fährte",
         [
+            new("Fährtenarbeit", ExerciseDifficulty.Intermediate, "Fährte",
+                "Ansatz, Ausarbeitung und Winkel als Ganzes - so bewertet die Prüfungsordnung die Fährte auch (Einzelpunkte gibt es nur für die Gegenstände)."),
             new("Fährtenaufnahme", ExerciseDifficulty.Beginner, "Fährte",
                 "Hund nimmt am Anfangspunkt selbstständig und sicher die Fährte auf und beginnt zügig mit der Ausarbeitung."),
             new("Winkelarbeit", ExerciseDifficulty.Intermediate, "Fährte",
@@ -164,16 +167,15 @@ public static class SportCatalogSeeder
                 "Hund nimmt eine von einer fremden Person gelegte Fährte sicher auf und arbeitet sie konzentriert aus."),
         ]);
 
-        // Korrekte VDH-BH/VT-Struktur (Teil A: 60 Punkte, bestanden ab 42 = 70%;
-        // Teil B ohne Einzelpunkte, nur Gesamteindruck "bestanden/nicht
-        // bestanden"). Ersetzt die fehlerhafte "2024"-Version (Leinenführigkeit
-        // 30 statt 15, Freifolge fehlte komplett, Ablage 5 statt 10) - siehe
-        // RemoveSupersededVersionAsync-Aufruf unten.
+        // Teil A: 60 Punkte, bestanden ab 42 (70 %); Teil B ohne Einzelpunkte,
+        // nur Gesamteindruck. Die frühere "2024"-Version hatte mit
+        // Leinenführigkeit 30 ohne Freifolge bereits das Richtige stehen; die
+        // damalige "Korrektur" auf 15+15 war der eigentliche Fehler und ist am
+        // 2026-08-19 gegen die FCI-PO 2025 zurückgenommen worden.
         await SeedRegulationAsync(db, bh, new RegulationSeed("BH", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Leinenführigkeit", true, 15, "Normalschritt, Laufschritt, langsamer Schritt, Wendungen und Durchschreiten der Personengruppe - an lockerer Leine."),
-            new("Freifolge", true, 15, "Gleicher Ablauf wie Leinenführigkeit, jedoch ohne Leine, inkl. Personengruppe."),
-            new("Sitzübung", true, 10, "Aus der Bewegung; Hundeführer entfernt sich mind. 15 Schritte, Hund bleibt ruhig sitzen."),
+            new("Leinenführigkeit", true, 30, "Angeleint: mindestens 50 Schritte geradeaus, Kehrtwendung, Laufschritt und langsamer Schritt (je 10-15 Schritte), danach eine Gruppe von mindestens 4 sich bewegenden Personen. Abgeleint wird erst am Ende der Übung."),
+            new("Sitzübung", true, 10, "Aus einer Grundstellung oder aus der Bewegung; Hundeführer entfernt sich mind. 15 Schritte, Hund bleibt ruhig sitzen."),
             new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus der Bewegung ablegen, mind. 30 Schritte Entfernung, Abrufen mit Hörzeichen, Endgrundstellung."),
             new("Ablegen unter Ablenkung", true, 10, "Während der Teil-A-Vorführung des anderen Hundes; Hundeführer ca. 30 Schritte entfernt in Sichtweite, Rücken zum Hund."),
             new("Verhalten im Verkehr", true, 0, "Teil B - Begegnung mit Fußgängern, Fahrzeugen, Radfahrer und Jogger; keine Einzelpunkte, Gesamteindruck entscheidet."),
@@ -181,8 +183,9 @@ public static class SportCatalogSeeder
             new("Verhalten gegenüber anderen Hunden", true, 0, "Teil B - Begegnung mit einem fremden, angeleinten Hund ohne aggressive Reaktion."),
             new("Zurücklassen des Hundes", true, 0, "Teil B - Hund wird angeleint zurückgelassen, Hundeführer außer Sicht, ein anderer Hund wird vorbeigeführt."),
         ],
-        Description: "VDH-Begleithundprüfung mit Verhaltenstest (BH/VT).\n" +
-            "Teil A (Übungsplatz): 5 bewertete Übungen, 60 Punkte gesamt - bestanden ab 42 Punkten (70 %).\n" +
+        Description: "Begleithundeprüfung mit Verkehrsteil (BH/VT) nach FCI-Prüfungsordnung, gültig ab 01.01.2025.\n" +
+            "Teil A (Übungsplatz): 4 bewertete Übungen, 60 Punkte gesamt - bestanden ab 42 Punkten (70 %).\n" +
+            "Leinenführigkeit 30, Sitz 10, Ablegen in Verbindung mit Herankommen 10, Ablegen unter Ablenkung 10. Der Hund wird erst nach der Leinenführigkeit abgeleint; eine eigenständig bewertete Freifolge gibt es nicht.\n" +
             "Teil B (öffentlicher Verkehrsraum): keine Einzelpunkte, der Leistungsrichter beurteilt den Gesamteindruck.\n" +
             "Voraussetzungen: Mindestalter des Hundes 15 Monate, Sachkundenachweis des Hundeführers, Identitätsnachweis (Chip/Tätowierung).\n" +
             "Teil B wird nur geprüft, wenn Teil A bestanden wurde."));
@@ -239,57 +242,55 @@ public static class SportCatalogSeeder
             "Startvoraussetzung: bestandene FCI-IBGH 2, FCI-Obedience 1 oder FCI-IGP 1.\n" +
             "Mindestalter: 15 Monate."));
 
-        await SeedRegulationAsync(db, faerte, new RegulationSeed("Fährte A", "2024", new DateOnly(2024, 1, 1),
+        await SeedRegulationAsync(db, faerte, new RegulationSeed("IGP 1 - Fährte", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Fährtenaufnahme", true, 0, "Eigene Fährte, ca. 300 Schritte, 3 gerade Schenkel, 2 Winkel, Fährtenalter ca. 20 Minuten."),
-            new("Winkelarbeit", true, 0, "2 Winkel auf der Fährte."),
-            new("Gegenstände verweisen", true, 0, "2 Gegenstände auf der Fährte."),
+            new("Fährtenarbeit", true, 79, "Eigenfährte, min. 300 Schritte, 3 Schenkel, 2 Winkel ca. 90° mit min. 50 Schritten Abstand, Fährtenalter min. 20 Minuten, Ausarbeitungszeit max. 15 Minuten, Fährtenleine 5 Meter."),
+            new("Gegenstände verweisen", true, 21, "3 dem Hundeführer gehörende Gegenstände, je 7 Punkte - auf dem ersten Schenkel, auf dem zweiten Schenkel und am Ende."),
         ],
-        Description: "Vereinsinterne Einsteiger-Fährtenprüfung (Trainingsstufe).\n" +
-            "Fährte: Eigenfährte, ca. 300 Schritte, 3 Schenkel, 2 Winkel (ca. 90°).\n" +
-            "Gegenstände: 2 eigene Gegenstände.\n" +
-            "Fährtenalter: ca. 20 Minuten.\n" +
-            "Ziel: sichere Fährtenaufnahme und ruhige, konzentrierte Nasenarbeit auf kurzer Strecke."));
+        Description: "Die Fährte der FCI-IGP 1 (Abteilung A, 100 Punkte). Sie lässt sich auch einzeln laufen - dann als FCI-FPr 1.\n" +
+            "Fährte: Eigenfährte, min. 300 Schritte, 3 Schenkel, 2 Winkel (ca. 90°).\n" +
+            "Gegenstände: 3 eigene Gegenstände (je 7 Punkte).\n" +
+            "Fährtenalter: min. 20 Minuten - Ausarbeitungszeit: max. 15 Minuten.\n" +
+            "Fährtenleine: 5 Meter."));
 
-        await SeedRegulationAsync(db, faerte, new RegulationSeed("Fährte B", "2024", new DateOnly(2024, 1, 1),
+        await SeedRegulationAsync(db, faerte, new RegulationSeed("IGP 2 - Fährte", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Eigenfährte vertiefen", true, 0, "Eigene Fährte, ca. 400 Schritte, 4 Schenkel, Fährtenalter ca. 30 Minuten."),
-            new("Winkelarbeit", true, 0, "3 Winkel auf der Fährte."),
-            new("Gegenstände verweisen", true, 0, "3 Gegenstände auf der Fährte."),
+            new("Fährtenarbeit", true, 79, "Fremdfährte, min. 400 Schritte, 3 Schenkel, 2 Winkel ca. 90° mit min. 50 Schritten Abstand, Fährtenalter min. 30 Minuten, Ausarbeitungszeit max. 15 Minuten, Fährtenleine 10 Meter."),
+            new("Gegenstände verweisen", true, 21, "3 fremde Gegenstände, je 7 Punkte - auf dem ersten Schenkel, auf dem zweiten Schenkel und am Ende."),
         ],
-        Description: "Vereinsinterne Aufbau-Fährtenprüfung (Trainingsstufe).\n" +
-            "Fährte: Eigenfährte, ca. 400 Schritte, 4 Schenkel, 3 Winkel.\n" +
-            "Gegenstände: 3 eigene Gegenstände.\n" +
-            "Fährtenalter: ca. 30 Minuten.\n" +
-            "Ziel: längere Konzentrationsphasen und sauberes Ausarbeiten mehrerer Winkel."));
+        Description: "Die Fährte der FCI-IGP 2 (Abteilung A, 100 Punkte). Sie lässt sich auch einzeln laufen - dann als FCI-FPr 2.\n" +
+            "Fährte: Fremdfährte, min. 400 Schritte, 3 Schenkel, 2 Winkel (ca. 90°).\n" +
+            "Gegenstände: 3 fremde Gegenstände (je 7 Punkte).\n" +
+            "Fährtenalter: min. 30 Minuten - Ausarbeitungszeit: max. 15 Minuten.\n" +
+            "Fährtenleine: 10 Meter."));
 
-        await SeedRegulationAsync(db, faerte, new RegulationSeed("Fährte C (Fremdfährte)", "2024", new DateOnly(2024, 1, 1),
+        await SeedRegulationAsync(db, faerte, new RegulationSeed("IGP 3 - Fährte", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Fremde Fährte folgen", true, 0, "Fremde Fährte, ca. 600 Schritte, 5 Schenkel, 5 Winkel, Fährtenalter ca. 60 Minuten."),
-            new("Winkelarbeit", true, 0, "5 Winkel auf der Fährte."),
-            new("Gegenstände verweisen", true, 0, "4 Gegenstände auf der Fährte."),
+            new("Fährtenarbeit", true, 79, "Fremdfährte, min. 600 Schritte, 5 Schenkel, 4 Winkel ca. 90° mit min. 50 Schritten Abstand, Fährtenalter min. 60 Minuten, Ausarbeitungszeit max. 20 Minuten, Fährtenleine 10 Meter."),
+            new("Gegenstände verweisen", true, 21, "3 fremde Gegenstände, je 7 Punkte - der erste nach min. 100 Schritten, der zweite auf Richteranweisung, der dritte am Ende."),
         ],
-        Description: "Vereinsinterne Fortgeschrittenen-Fährtenprüfung (Trainingsstufe).\n" +
-            "Fährte: Fremdfährte, ca. 600 Schritte, 5 Schenkel, 5 Winkel.\n" +
-            "Gegenstände: 4 fremde Gegenstände.\n" +
-            "Fährtenalter: ca. 60 Minuten.\n" +
-            "Ziel: Übergang zur Fremdfährte als Vorbereitung auf FCI-IFH 1."));
+        Description: "Die Fährte der FCI-IGP 3 (Abteilung A, 100 Punkte). Sie lässt sich auch einzeln laufen - dann als FCI-FPr 3.\n" +
+            "Fährte: Fremdfährte, min. 600 Schritte, 5 Schenkel, 4 Winkel (ca. 90°).\n" +
+            "Gegenstände: 3 fremde Gegenstände (je 7 Punkte).\n" +
+            "Fährtenalter: min. 60 Minuten - Ausarbeitungszeit: max. 20 Minuten.\n" +
+            "Fährtenleine: 10 Meter."));
 
         // FCI-Fährtenhundprüfungen (FCI-IFH 1-3, UTI-REG-IGP-de-2025 S. 69-79) -
         // eigenständige Prüfungsordnungen derselben Sportart "Fährte" (wie schon
-        // Fährte A/B/C), deutlich anspruchsvoller als diese Vereinsprüfungen
-        // (800-1800 statt 300-600 Schritte, bis zu 8 statt 5 Schenkel). Nutzt
-        // dieselben drei Übungen wie Fährte A/B/C (Fährtenaufnahme/Winkelarbeit/
-        // Gegenstände verweisen), da die FCI-PO die Fährtenarbeit als eine
-        // zusammenhängende Leistung bewertet statt in einzelne Übungen
-        // aufzuteilen - die Punkteverteilung zwischen Fährtenaufnahme und
-        // Winkelarbeit ist daher für Trainingszwecke vereinfacht; nur die
-        // Gegenstände-Punktzahl (3 x 7 / 3x5+1x6 / 7x3 = jeweils 21 Punkte)
-        // entspricht exakt der offiziellen Bewertungstabelle (S. 72).
+        // Fährte A/B/C), deutlich anspruchsvoller als die IGP-Fährten
+        // (800-1800 statt 300-600 Schritte, bis zu 8 statt 5 Schenkel).
+        //
+        // Die FCI-PO bewertet die Fährtenarbeit als EINE zusammenhängende
+        // Leistung; Einzelpunkte gibt es nur für die Gegenstände (3 x 7 /
+        // 3x5+1x6 / 7x3 = jeweils 21 Punkte, S. 72). Die restlichen 79 Punkte
+        // stehen deshalb als eine Übung "Fährtenarbeit". Die frühere Aufteilung
+        // in "Fährtenaufnahme 40" und "Winkelarbeit 39" war frei erfunden -
+        // "Winkelarbeit" kommt in der gesamten PO nicht vor. Beide bleiben als
+        // Katalogübungen zum Trainieren erhalten, tragen aber keine Punkte
+        // mehr vor.
         await SeedRegulationAsync(db, faerte, new RegulationSeed("FCI-IFH 1", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Fährtenaufnahme", true, 40, "Eigenfährte, min. 800 Schritte, 5 Schenkel, 4 Winkel ca. 90°, Fährtenalter min. 90 Minuten, Ausarbeitungszeit max. 30 Minuten."),
-            new("Winkelarbeit", true, 39, "4 Winkel mit ca. 90° auf der Fährte, Abstand zwischen den Winkeln min. 50 Schritte."),
+            new("Fährtenarbeit", true, 79, "Eigenfährte, min. 800 Schritte, 5 Schenkel, 4 Winkel ca. 90° mit min. 50 Schritten Abstand, Fährtenalter min. 90 Minuten, Ausarbeitungszeit max. 30 Minuten."),
             new("Gegenstände verweisen", true, 21, "3 dem Hundeführer gehörende Gegenstände, je 7 Punkte. Voraussetzung: bestandene FCI-BH/VT."),
         ],
         Description: "FCI-Fährtenhundprüfung Stufe 1 (100 Punkte, bestanden ab 70).\n" +
@@ -301,8 +302,7 @@ public static class SportCatalogSeeder
 
         await SeedRegulationAsync(db, faerte, new RegulationSeed("FCI-IFH 2", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Fährtenaufnahme", true, 40, "Fremdfährte, min. 1200 Schritte, 7 Schenkel, Fährtenalter min. 120 Minuten, Ausarbeitungszeit max. 30 Minuten, 2 Verleitungen 30 Minuten vor dem Ansatz. Voraussetzung: FCI-IFH 1."),
-            new("Winkelarbeit", true, 39, "6 Winkel: die ersten 5 mit ca. 90°, der letzte als spitzer Winkel mit 30°-60°."),
+            new("Fährtenarbeit", true, 79, "Fremdfährte, min. 1200 Schritte, 7 Schenkel, 6 Winkel (die ersten 5 ca. 90°, der letzte spitz mit 30°-60°), Fährtenalter min. 120 Minuten, Ausarbeitungszeit max. 30 Minuten, Verleitungen 30 Minuten vor dem Ansatz."),
             new("Gegenstände verweisen", true, 21, "4 fremde Gegenstände, 3 x 5 und 1 x 6 Punkte."),
         ],
         Description: "FCI-Fährtenhundprüfung Stufe 2 (100 Punkte, bestanden ab 70).\n" +
@@ -315,8 +315,7 @@ public static class SportCatalogSeeder
 
         await SeedRegulationAsync(db, faerte, new RegulationSeed("FCI-IFH 3", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Fährtenaufnahme", true, 40, "Fremdfährte, min. 1800 Schritte, 8 Schenkel (einer als Halbkreis mit ca. 30 Meter Radius), Fährtenalter min. 180 Minuten, Ausarbeitungszeit max. 45 Minuten, Verleitungen 30 Minuten vor dem Ansatz. Voraussetzung: FCI-IFH 2."),
-            new("Winkelarbeit", true, 39, "7 Winkel: 2 spitze Winkel zwischen 30° und 60°, die übrigen ca. 90°."),
+            new("Fährtenarbeit", true, 79, "Fremdfährte, min. 1800 Schritte, 8 Schenkel (einer als Halbkreis mit ca. 30 Meter Radius), 7 Winkel (2 spitz zwischen 30° und 60°), Fährtenalter min. 180 Minuten, Ausarbeitungszeit max. 45 Minuten, Verleitungen 30 Minuten vor dem Ansatz."),
             new("Gegenstände verweisen", true, 21, "7 fremde Gegenstände, je 3 Punkte."),
         ],
         Description: "FCI-Fährtenhundprüfung Stufe 3 - höchste Fährtenstufe (100 Punkte, bestanden ab 70).\n" +
@@ -936,8 +935,7 @@ public static class SportCatalogSeeder
         // die IFH-Stufen zur Sportart "Fährte" und nutzt deren Übungen.
         await SeedRegulationAsync(db, faerte, new RegulationSeed("FCI-IGP FH", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Fährtenaufnahme", true, 40, "Zwei FCI-IFH-3-Fährten an 2 Tagen: Fremdfährte, min. 1800 Schritte, 8 Schenkel (einer als Halbkreis), Fährtenalter min. 180 Minuten, Ausarbeitungszeit max. 45 Minuten."),
-            new("Winkelarbeit", true, 39, "7 Winkel je Fährte: 2 spitze Winkel zwischen 30° und 60°, die übrigen ca. 90°."),
+            new("Fährtenarbeit", true, 79, "Je Fährte: Fremdfährte, min. 1800 Schritte, 8 Schenkel (einer als Halbkreis), 7 Winkel (2 spitz zwischen 30° und 60°), Fährtenalter min. 180 Minuten, Ausarbeitungszeit max. 45 Minuten."),
             new("Gegenstände verweisen", true, 21, "7 fremde Gegenstände je Fährte, je 3 Punkte."),
         ],
         Description: "FCI-IGP Fährtenhundprüfung - Königsklasse der Fährtenarbeit (2 x 100 Punkte).\n" +
@@ -985,6 +983,22 @@ public static class SportCatalogSeeder
         // "2025"-Version abgelöst - siehe RegulationSeed "BH" oben.
         await RemoveSupersededVersionAsync(db, bh, "BH", "2024");
 
+        // Fährte A/B/C waren als "vereinsinterne Trainingsstufen" mit teils
+        // falschen Werten hinterlegt (Fährte B als Eigenfährte statt
+        // Fremdfährte, falsche Schenkel-/Winkel-/Gegenstandszahlen). Es sind
+        // in Wahrheit die Fährten der FCI-IGP 1-3, die sich auch einzeln
+        // laufen lassen (dann als FCI-FPr 1-3) - korrigiert am 2026-08-19 und
+        // in "IGP 1/2/3 - Fährte" umbenannt.
+        // Zugleich umbenannt: "Fährte A/B/C" sagte niemandem, worum es geht.
+        // "Fährte C (Fremdfährte)" war zusätzlich ein Doppeleintrag zu
+        // "Fährte C" und erzeugte eine zweite, gleichlautende Seite.
+        foreach (var veraltet in new[] { "Fährte A", "Fährte B", "Fährte C", "Fährte C (Fremdfährte)" })
+            await RemoveRegulationAsync(db, faerte, veraltet);
+
+        // Bewusst KEIN RemoveOrphanedExercisesAsync für "Fährte": "Winkelarbeit"
+        // und "Fährtenaufnahme" zählen nicht mehr zur Prüfung, sind zum
+        // Trainieren aber weiterhin sinnvoll - erfunden war die Punktzahl,
+        // nicht die Übung.
         await RemoveOrphanedExercisesAsync(db, bh);
         await RemoveOrphanedExercisesAsync(db, ibgh1);
         await RemoveOrphanedExercisesAsync(db, ibgh2);
@@ -1109,6 +1123,30 @@ public static class SportCatalogSeeder
         }
 
         await db.SaveChangesAsync();
+
+        // Übungen entfernen, die NICHT MEHR im Seed stehen. Ohne das bliebe eine
+        // gestrichene Übung für immer an der Prüfungsordnung hängen: Der Seed
+        // legte bisher nur an und pflegte nach, räumte aber nie auf - eine
+        // Korrektur wie "die BH hat keine eigenständig bewertete Freifolge"
+        // käme in bereits laufenden Datenbanken (Test, Produktion) nie an.
+        //
+        // Entfernt wird nur die VERKNÜPFUNG zur Prüfungsordnung, nicht die
+        // Übung selbst: Trainingseinträge, Bewertungen und Trainingspläne
+        // verweisen auf Exercise, nicht auf RegulationExercise. Vorhandene
+        // Aufzeichnungen bleiben damit unangetastet, die Übung bleibt
+        // trainierbar - sie zählt nur nicht mehr zur Prüfung.
+        var seededExerciseNames = seed.Exercises.Select(e => e.ExerciseName).ToList();
+        var obsolete = await db.RegulationExercises
+            .Where(re => re.RegulationVersionId == version.Id)
+            .Include(re => re.Exercise)
+            .Where(re => !seededExerciseNames.Contains(re.Exercise!.Name))
+            .ToListAsync();
+
+        if (obsolete.Count > 0)
+        {
+            db.RegulationExercises.RemoveRange(obsolete);
+            await db.SaveChangesAsync();
+        }
     }
 
     // Entfernt eine durch eine neuere, korrigierte Version abgelöste,
@@ -1118,6 +1156,37 @@ public static class SportCatalogSeeder
     // gemeinsame Exercise-Zeilen (z.B. "Freifolge", die in alter wie neuer
     // Version vorkommt) bleiben unberührt, da nur die JOIN-Zeile der alten
     // Version gelöscht wird, nicht die Übung selbst.
+    /// <summary>
+    /// Entfernt eine komplette Prüfungsordnung samt ihrer Versionen - für
+    /// Doppel- oder Fehleinträge, die es gar nicht geben sollte.
+    ///
+    /// Abgebrochen wird, sobald ein Trainingsziel darauf verweist: ein
+    /// stillschweigend gelöschtes Ziel wäre für den Nutzer schlimmer als ein
+    /// überzähliger Katalogeintrag.
+    /// </summary>
+    private static async Task RemoveRegulationAsync(ApplicationDbContext db, Sport sport, string regulationName)
+    {
+        var regulation = await db.Regulations.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(r => r.SportId == sport.Id && r.Name == regulationName);
+        if (regulation is null) return;
+
+        var versions = await db.RegulationVersions
+            .Where(v => v.RegulationId == regulation.Id)
+            .ToListAsync();
+        var versionIds = versions.Select(v => v.Id).ToList();
+
+        if (await db.Goals.AnyAsync(g => g.RegulationId == regulation.Id)) return;
+
+        var exercises = await db.RegulationExercises
+            .Where(re => versionIds.Contains(re.RegulationVersionId))
+            .ToListAsync();
+
+        db.RegulationExercises.RemoveRange(exercises);
+        db.RegulationVersions.RemoveRange(versions);
+        db.Regulations.Remove(regulation);
+        await db.SaveChangesAsync();
+    }
+
     private static async Task RemoveSupersededVersionAsync(ApplicationDbContext db, Sport sport, string regulationName, string oldVersionLabel)
     {
         var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.SportId == sport.Id && r.Name == regulationName);
