@@ -25,6 +25,25 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// Abt. C: S. 56, Fährte: S. 36) - der frühere "Näherungswert"-Vorbehalt
 /// aus der ersten Text-Extraktion ist damit erledigt.
 ///
+/// Vollständige Gegenprüfung am 2026-08-19 gegen UTI-REG-IGP-de-2025
+/// (fci.be, gültig ab 01.01.2025): ALLE Punktzahlen von IGP 1-3, IBGH 1-3,
+/// UPr/SPr/GPr/FPr, IFH 1-3 und IAD stimmen. Korrigiert wurden nur
+/// Beschreibungstexte:
+/// - Schrägwand: 191 cm ist die LÄNGE der beiden Wandteile, die senkrechte
+///   Hindernishöhe beträgt in allen Stufen 160 cm (PO S. 47).
+/// - "Abholen des Hundes" gehört zur Übung "Steh aus der Bewegung"
+///   (IGP 2); beim "Ablegen in Verbindung mit Herankommen" wird der Hund
+///   herangerufen, nicht abgeholt (PO S. 44 + S. 49).
+/// - "Sitz aus der Bewegung" kennt in KEINER Stufe einen Laufschritt; die
+///   Entwicklung beträgt immer 10 bis 15 Schritte (PO S. 48). Nur "Ablegen
+///   in Verbindung mit Herankommen" und "Steh" laufen in der IGP 3 aus dem
+///   Laufschritt.
+///
+/// Offen und bewusst NICHT geändert (siehe docs/PO_VERIFIKATION.md):
+/// die Übungsstruktur der BH und die Punktaufteilung der IFH-Übungen -
+/// beides berührt vorhandene Trainingsdaten und ist eine fachliche
+/// Entscheidung des Betreibers.
+///
 /// <see cref="Regulation.SourceUrl"/> kann später von einem Admin auf die
 /// offizielle Quelle verweisen.
 ///
@@ -420,9 +439,9 @@ public static class SportCatalogSeeder
             new("Distanzangriff", ExerciseDifficulty.Advanced, "Abteilung C",
                 "Größte Distanz der drei Stufen."),
             new("Sitz aus der Bewegung", ExerciseDifficulty.Advanced, "Abteilung B",
-                "Aus dem Laufschritt, höchste Ablenkungsstufe der drei Stufen."),
+                "Entwicklung von 10 bis 15 Schritten - in allen Stufen gleich, kein Laufschritt."),
             new("Ablegen in Verbindung mit Herankommen", ExerciseDifficulty.Advanced, "Abteilung B",
-                "Aus dem Laufschritt mit Abholen des Hundes, höchste Ablenkungsstufe der drei Stufen."),
+                "Entwicklung im Laufschritt; der Hund wird herangerufen."),
             new("Steh aus der Bewegung", ExerciseDifficulty.Advanced, "Abteilung B",
                 "Aus dem Laufschritt mit Heranrufen des Hundes, höchste Ablenkungsstufe der drei Stufen."),
             new("Freifolge", ExerciseDifficulty.Advanced, "Abteilung B",
@@ -462,7 +481,7 @@ public static class SportCatalogSeeder
             new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus 10-15 Schritten Entwicklung im Normalschritt, Herankommen nach mind. 30 Schritten Entfernung."),
             new("Bringen auf ebener Erde", true, 15, "Bringholz 650 Gramm, geworfen in markiertes Quadrat 4x4m."),
             new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "2 Sprünge über die Hürde, ohne Bringen."),
-            new("Klettersprung / Bringen über die Schrägwand", true, 15, "Ein Klettersprung über die 191cm hohe Schrägwand, ohne Bringen."),
+            new("Klettersprung / Bringen über die Schrägwand", true, 15, "Ein Klettersprung über die Schrägwand, ohne Bringen. Senkrechte Höhe 160 cm - die beiden Wandteile sind je 191 cm lang und schräg gegeneinander gestellt."),
             new("Voraussenden mit Hinlegen", true, 10, "Mindestens 30 Schritte voraus, danach Ablegen auf HZ \"Platz\"."),
             new("Ablegen unter Ablenkung", true, 10, "Hundeführer mindestens 10 Meter entfernt in Sichtweite, seitwärts zum Hund stehend."),
             new("Revieren", true, 5, "2 Verstecke, Hund läuft Mittellinie ab und umläuft die Verstecke auf HZ \"Revier\"/\"Voran\"."),
@@ -484,8 +503,8 @@ public static class SportCatalogSeeder
             new("Fährtenarbeit (Fremdfährte)", true, 100, "Fremdfährte, min. 400 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 30 Minuten, 3 fremde Gegenstände à 7 Punkte."),
             new("Freifolge", true, 15, "Mit größerer Ablenkung als IGP1."),
             new("Sitz aus der Bewegung", true, 10, "Mit größerer Ablenkung als IGP1."),
-            new("Ablegen in Verbindung mit Herankommen", true, 10, "Mit Abholen des Hundes durch den Hundeführer."),
-            new("Steh aus der Bewegung", true, 10, "Aus 10-15 Schritten Entwicklung, sofort und gerade stehenbleiben."),
+            new("Ablegen in Verbindung mit Herankommen", true, 10, "Entwicklung im Normalschritt; der Hund wird auf Richteranweisung herangerufen."),
+            new("Steh aus der Bewegung", true, 10, "Entwicklung im Normalschritt, sofort und gerade stehenbleiben; der Hundeführer holt den Hund ab."),
             new("Bringen auf ebener Erde", true, 10, "Bringholz 1000 Gramm."),
             new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "Hin- und Rücksprung mit Bringen, Bringholz 650 Gramm."),
             new("Klettersprung / Bringen über die Schrägwand", true, 10, "Ein Klettersprung über die Schrägwand, ohne Bringen."),
@@ -511,8 +530,8 @@ public static class SportCatalogSeeder
         [
             new("Fährtenarbeit (Fremdfährte)", true, 100, "Fremdfährte, min. 600 Schritte, 5 Schenkel, 4 Winkel ca. 90°, Fährtenalter min. 60 Minuten, 3 fremde Gegenstände à 7 Punkte."),
             new("Freifolge", true, 15, "Höchste Stufe, auch durch eine Personengruppe, ohne Leine."),
-            new("Sitz aus der Bewegung", true, 10, "Aus dem Laufschritt, höchste Ablenkungsstufe."),
-            new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus dem Laufschritt mit Abholen des Hundes, höchste Ablenkungsstufe."),
+            new("Sitz aus der Bewegung", true, 10, "Entwicklung von 10 bis 15 Schritten - in allen Stufen gleich, kein Laufschritt."),
+            new("Ablegen in Verbindung mit Herankommen", true, 10, "Entwicklung im Laufschritt; der Hund wird herangerufen."),
             new("Steh aus der Bewegung", true, 10, "Aus dem Laufschritt mit Heranrufen des Hundes, höchste Ablenkungsstufe."),
             new("Bringen auf ebener Erde", true, 10, "Bringholz 2000 Gramm."),
             new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", true, 15, "Hin- und Rücksprung mit Bringen, Bringholz 650 Gramm."),
@@ -530,7 +549,7 @@ public static class SportCatalogSeeder
         ],
         Description: "FCI-Internationale Gebrauchshundprüfung Stufe 3 - höchste Stufe (300 Punkte gesamt).\n" +
             "Abteilung A - Fährte (100 Punkte): Fremdfährte, min. 600 Schritte, 5 Schenkel, 4 Winkel, Fährtenalter min. 60 Minuten, 3 fremde Gegenstände.\n" +
-            "Abteilung B - Unterordnung (100 Punkte): 9 Übungen aus dem Laufschritt, Bringholz 2000 Gramm, Hin- und Rückklettersprung.\n" +
+            "Abteilung B - Unterordnung (100 Punkte): 9 Übungen; Ablegen mit Herankommen und Steh aus dem Laufschritt, Bringholz 2000 Gramm, Hin- und Rückklettersprung.\n" +
             "Abteilung C - Schutzdienst (100 Punkte): 8 Übungen, 6 Verstecke, zusätzlich Überfall aus dem Rückentransport.\n" +
             "Bestanden: mindestens 70 Punkte in JEDER Abteilung.\n" +
             "Startvoraussetzung: bestandene FCI-IGP 2.\n" +
@@ -603,7 +622,7 @@ public static class SportCatalogSeeder
             new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", ExerciseDifficulty.Intermediate, "Abteilung B",
                 "Sprünge über die 100 cm hohe Hürde, je nach Stufe mit oder ohne Bringen."),
             new("Klettersprung / Bringen über die Schrägwand", ExerciseDifficulty.Intermediate, "Abteilung B",
-                "Klettersprünge über die 191 cm hohe Schrägwand, je nach Stufe mit oder ohne Bringen."),
+                "Klettersprünge über die Schrägwand (senkrechte Höhe 160 cm), je nach Stufe mit oder ohne Bringen."),
             new("Voraussenden mit Hinlegen", ExerciseDifficulty.Intermediate, "Abteilung B",
                 "Hund läuft geradlinig mindestens 30 Schritte voraus und legt sich auf Hörzeichen sofort ab."),
             new("Ablegen unter Ablenkung", ExerciseDifficulty.Advanced, "Abteilung B",
@@ -650,7 +669,7 @@ public static class SportCatalogSeeder
         await SeedRegulationAsync(db, upr, new RegulationSeed("FCI-UPr 3", "2025", new DateOnly(2025, 1, 1),
         [
             new("Freifolge", true, 15, "Höchste Stufe, auch durch eine Personengruppe."),
-            new("Sitz aus der Bewegung", true, 10, "Aus dem Laufschritt."),
+            new("Sitz aus der Bewegung", true, 10, "Entwicklung von 10 bis 15 Schritten - in allen Stufen gleich, kein Laufschritt."),
             new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus dem Laufschritt."),
             new("Steh aus der Bewegung", true, 10, "Aus dem Laufschritt mit Heranrufen des Hundes."),
             new("Bringen auf ebener Erde", true, 10, "Bringholz 2000 Gramm."),
@@ -752,7 +771,7 @@ public static class SportCatalogSeeder
             new("Freisprünge / Bringen über eine 1 Meter hohe Hürde", ExerciseDifficulty.Intermediate, "Abteilung B",
                 "Sprünge über die 100 cm hohe Hürde, je nach Stufe mit oder ohne Bringen."),
             new("Klettersprung / Bringen über die Schrägwand", ExerciseDifficulty.Intermediate, "Abteilung B",
-                "Klettersprünge über die 191 cm hohe Schrägwand, je nach Stufe mit oder ohne Bringen."),
+                "Klettersprünge über die Schrägwand (senkrechte Höhe 160 cm), je nach Stufe mit oder ohne Bringen."),
             new("Voraussenden mit Hinlegen", ExerciseDifficulty.Intermediate, "Abteilung B",
                 "Hund läuft geradlinig mindestens 30 Schritte voraus und legt sich auf Hörzeichen ab."),
             new("Ablegen unter Ablenkung", ExerciseDifficulty.Advanced, "Abteilung B",
@@ -825,7 +844,7 @@ public static class SportCatalogSeeder
         await SeedRegulationAsync(db, gpr, new RegulationSeed("FCI-GPr 3", "2025", new DateOnly(2025, 1, 1),
         [
             new("Freifolge", true, 15, "Höchste Stufe, auch durch eine Personengruppe."),
-            new("Sitz aus der Bewegung", true, 10, "Aus dem Laufschritt."),
+            new("Sitz aus der Bewegung", true, 10, "Entwicklung von 10 bis 15 Schritten - in allen Stufen gleich, kein Laufschritt."),
             new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus dem Laufschritt."),
             new("Steh aus der Bewegung", true, 10, "Aus dem Laufschritt mit Heranrufen des Hundes."),
             new("Bringen auf ebener Erde", true, 10, "Bringholz 2000 Gramm."),
