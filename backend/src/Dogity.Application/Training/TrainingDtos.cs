@@ -123,6 +123,18 @@ public record UpdateSessionContextRequest(
     string? LocationName);
 
 /// <summary>
+/// Datum eines Trainings korrigieren - Trainings werden oft erst abends oder
+/// Tage später nachgetragen und landen dann auf dem falschen Tag.
+///
+/// Bewusst ein eigener Request und nicht Teil von
+/// <see cref="UpdateSessionContextRequest"/>: das Tagebuch verschiebt einen
+/// ganzen Trainingstag und hat Ort und Uhrzeit der einzelnen Einheiten dabei
+/// gar nicht in der Hand - müsste es sie mitschicken, könnte es sie mit einem
+/// veralteten Stand überschreiben.
+/// </summary>
+public record UpdateSessionDateRequest(DateOnly Date);
+
+/// <summary>
 /// Ein Ort, an dem schon trainiert wurde. Hundeführer trainieren fast immer an
 /// denselben zwei bis fünf Plätzen - deshalb ist die Liste der letzten Orte in
 /// der Praxis wertvoller als jede Suche: beim zweiten Mal genügt ein Tippen.

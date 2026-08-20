@@ -257,15 +257,47 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         var name = request.LocationName?.Trim();
         session.LocationName = string.IsNullOrEmpty(name) ? null : name;
 
-        // Alten Wetterstand verwerfen: er bezog sich auf Ort/Zeit von vorher.
-        session.TemperatureC = null;
-        session.RelativeHumidity = null;
-        session.WindSpeedKmh = null;
-        session.WeatherCode = null;
-        session.WeatherFetchedAt = null;
-
-        await weather.EnrichSessionAsync(session, ct);
+        await RefreshWeatherAsync(session, ct);
         await db.SaveChangesAsync(ct);
+
+        var updated = await GetOwnedSessionAsync(userId, sessionId, ct, track: false);
+        return Result<TrainingSessionDto>.Success(ToDto(updated!, await HasGpsTrackAsync(sessionId, ct)));
+    }
+
+    public async Task<Result<TrainingSessionDto>> MoveTrainingDayAsync(Guid userId, Guid sessionId, DateOnly date, CancellationToken ct = default)
+    {
+        var session = await GetOwnedSessionAsync(userId, sessionId, ct);
+        if (session is null)
+            return Result<TrainingSessionDto>.Failure("Training nicht gefunden.");
+
+        if (date == default)
+            return Result<TrainingSessionDto>.Failure("Datum ist erforderlich.");
+
+        if (session.Date != date)
+        {
+            // Alle Einheiten dieses Hundes am selben Tag mitnehmen (siehe
+            // ITrainingService) - der Zugriff auf den Hund ist über die
+            // gefundene Einheit bereits geprüft. Gemeinsames SaveChanges, damit
+            // der Trainingstag nicht auf halbem Weg zerfällt, falls eine der
+            // Wetterabfragen scheitert.
+            var oldDate = session.Date;
+            var daySessions = await db.TrainingSessions
+                .Where(s => s.DogId == session.DogId && s.Date == oldDate)
+                .ToListAsync(ct);
+
+            foreach (var moved in daySessions)
+            {
+                moved.Date = date;
+                await RefreshWeatherAsync(moved, ct);
+            }
+
+            // Landet der Tag auf einem Datum, an dem schon trainiert wurde,
+            // bleiben es bewusst getrennte Einheiten: das Tagebuch fasst sie
+            // ohnehin in EINER Tages-Karte zusammen (siehe SessionHistory). Ein
+            // echtes Verschmelzen würde Übungen umhängen und Dauern addieren -
+            // nicht mehr rückgängig zu machen, wenn sich jemand vertippt hat.
+            await db.SaveChangesAsync(ct);
+        }
 
         var updated = await GetOwnedSessionAsync(userId, sessionId, ct, track: false);
         return Result<TrainingSessionDto>.Success(ToDto(updated!, await HasGpsTrackAsync(sessionId, ct)));
@@ -417,6 +449,25 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             .ToList();
 
         return Result<IReadOnlyList<TrainerSessionToRateDto>>.Success(dtos);
+    }
+
+    /// <summary>
+    /// Gespeicherten Wetterstand verwerfen und neu ermitteln. Nötig nach jeder
+    /// Änderung an Datum, Uhrzeit oder Ort: die Werte gehörten zum vorherigen
+    /// Zeitpunkt und wären danach die Temperatur eines anderen Tages oder Orts.
+    /// Erst das Leeren, dann der Abruf - schlägt er fehl (Ort ohne Koordinaten,
+    /// Wetterdienst nicht erreichbar), steht lieber gar kein Wert da als ein
+    /// falscher.
+    /// </summary>
+    private async Task RefreshWeatherAsync(TrainingSession session, CancellationToken ct)
+    {
+        session.TemperatureC = null;
+        session.RelativeHumidity = null;
+        session.WindSpeedKmh = null;
+        session.WeatherCode = null;
+        session.WeatherFetchedAt = null;
+
+        await weather.EnrichSessionAsync(session, ct);
     }
 
     // track: false fuer reine Lesezugriffe (kein SaveChangesAsync im selben

@@ -6,6 +6,7 @@ import type { TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Check, ChevronDown, ChevronRight, History, MessageSquarePlus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
@@ -153,6 +154,95 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
 }
 
 /**
+ * Datum eines Trainingstags korrigieren.
+ *
+ * Trainings werden oft erst abends oder Tage später nachgetragen und landen
+ * dann auf dem Tag, an dem man sie eingetippt hat.
+ *
+ * Verschoben wird der GANZE Trainingstag - eine Karte kann mehrere Einheiten
+ * enthalten (eine Fährtenaufnahme bekommt eine eigene). Darum kümmert sich der
+ * Server in einem Rutsch, der zieht auch das Wetter neu: der gespeicherte Wert
+ * gehörte zum alten Tag (siehe TrainingService.MoveTrainingDayAsync).
+ */
+function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChanged: () => Promise<void> }) {
+  const date = sessions[0].date;
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(date);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    // Datum weggewischt oder unverändert: einfach zumachen, statt für einen
+    // abgebrochenen Versuch eine Fehlermeldung zu zeigen.
+    if (!value || value === date) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      // Ein Request für den ganzen Tag: der Server nimmt alle Einheiten dieses
+      // Tages mit (siehe MoveTrainingDayAsync). Selbst zu schleifen hieße, den
+      // Tag bei einem Fehler auf halbem Weg zerrissen zu hinterlassen.
+      await api.put(`/api/trainings/${sessions[0].id}/date`, { date: value });
+      // Neues Datum nennen: die Hundeseite lädt nur die letzten drei Monate,
+      // ein weiter zurück verschobenes Training verschwindet sonst wortlos aus
+      // der Liste und sieht wie gelöscht aus.
+      toast.success(`Training auf den ${new Date(value).toLocaleDateString("de-DE")} verschoben.`);
+      setEditing(false);
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Datum konnte nicht geändert werden.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <CardTitle className="flex min-w-0 items-center gap-0.5 text-base">
+        <span className="truncate">{new Date(date).toLocaleDateString("de-DE")}</span>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-6 shrink-0"
+          onClick={() => {
+            // Frisch aus der Einheit füllen: die Hundeseite rendert erst aus
+            // dem Lesecache und reicht die Netzantwort nach - useState hätte
+            // sonst noch den Stand von vorhin.
+            setValue(date);
+            setEditing(true);
+          }}
+          title="Datum ändern"
+        >
+          <Pencil className="size-3" />
+        </Button>
+      </CardTitle>
+    );
+  }
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+      <Input
+        type="date"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        // Auf dem Handy eine eigene Zeile: neben den beiden Knöpfen bleiben
+        // sonst gut 80px übrig und das Feld zeigt nur noch "19.0".
+        className="w-full sm:w-44"
+        aria-label="Datum des Trainingstags"
+        autoFocus
+      />
+      <Button size="sm" onClick={save} disabled={saving}>
+        <Check className="size-3.5" />
+        {saving ? "Speichert…" : "Speichern"}
+      </Button>
+      <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+        Abbrechen
+      </Button>
+    </div>
+  );
+}
+
+/**
  * Trainingstagebuch: pro TRAININGSTAG eine Karte (nicht pro Einheit) - alle
  * an einem Tag erfassten Übungen, Fährten und Kommentare in einem Feld.
  * Neue Einträge desselben Tages hängt das Backend ohnehin an die bestehende
@@ -269,7 +359,7 @@ export function SessionHistory({
                   return (
                     <Card key={date}>
                       <CardHeader className="flex-row items-center justify-between space-y-0">
-                        <CardTitle className="text-base">{new Date(date).toLocaleDateString("de-DE")}</CardTitle>
+                        <DayDate sessions={daySessions} onChanged={onChanged} />
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary">{totalMinutes} Min.</Badge>
                           <Button

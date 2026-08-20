@@ -5,6 +5,7 @@ using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Planning;
 using Dogity.Domain.Sports;
+using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Tests.Training;
 
@@ -399,5 +400,129 @@ public class TrainingServiceTests
 
         Assert.True(result.Succeeded);
         Assert.Empty(result.Value!);
+    }
+
+    // ---- Trainingstag verschieben (MoveTrainingDayAsync) ----
+
+    private static async Task<Guid> CreateSessionOnAsync(TrainingService service, Setup setup, DateOnly date)
+    {
+        var result = await service.CreateAsync(setup.UserId, new CreateTrainingSessionRequest(
+            setup.DogId, date, 30, null,
+            [new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null)]));
+        Assert.True(result.Succeeded);
+        return result.Value!.Id;
+    }
+
+    [Fact]
+    public async Task MoveTrainingDay_MovesSessionToNewDay()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var sessionId = await CreateSessionOnAsync(service, setup, today);
+
+        var moved = await service.MoveTrainingDayAsync(setup.UserId, sessionId, today.AddDays(-2));
+
+        Assert.True(moved.Succeeded);
+        Assert.Equal(today.AddDays(-2), moved.Value!.Date);
+        // Übungen ziehen mit - verschoben wird das Training, nicht sein Inhalt.
+        Assert.Single(moved.Value!.Exercises);
+
+        var reloaded = await service.GetByIdAsync(setup.UserId, sessionId);
+        Assert.Equal(today.AddDays(-2), reloaded.Value!.Date);
+    }
+
+    /// <summary>
+    /// Der gespeicherte Wetterwert gehörte zum ALTEN Tag. Bliebe er stehen,
+    /// zeigte das Tagebuch die Temperatur eines Tages, an dem gar nicht
+    /// trainiert wurde - schlimmer als gar kein Wert.
+    /// </summary>
+    [Fact]
+    public async Task MoveTrainingDay_DiscardsWeatherOfOldDay()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var sessionId = await CreateSessionOnAsync(service, setup, today);
+
+        var stored = await db.TrainingSessions.FirstAsync(s => s.Id == sessionId);
+        stored.TemperatureC = 21.5;
+        stored.WeatherCode = 3;
+        stored.WeatherFetchedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync();
+
+        var moved = await service.MoveTrainingDayAsync(setup.UserId, sessionId, today.AddDays(-5));
+
+        Assert.True(moved.Succeeded);
+        Assert.Null(moved.Value!.TemperatureC);
+        Assert.Null(moved.Value!.WeatherCode);
+    }
+
+    /// <summary>
+    /// Auf einem Tag, an dem schon trainiert wurde, dürfen beide Einheiten
+    /// bestehen bleiben: das Tagebuch fasst sie in EINER Tages-Karte zusammen,
+    /// ein Verschmelzen wäre dagegen nicht rückgängig zu machen.
+    /// </summary>
+    [Fact]
+    public async Task MoveTrainingDay_OntoDayWithExistingSession_KeepsBoth()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var target = today.AddDays(-1);
+        var existingId = await CreateSessionOnAsync(service, setup, target);
+        var movedId = await CreateSessionOnAsync(service, setup, today);
+
+        var moved = await service.MoveTrainingDayAsync(setup.UserId, movedId, target);
+
+        Assert.True(moved.Succeeded);
+        var all = await service.GetByDogAsync(setup.UserId, setup.DogId);
+        Assert.Equal(2, all.Value!.Count);
+        Assert.All(all.Value!, s => Assert.Equal(target, s.Date));
+        Assert.Contains(all.Value!, s => s.Id == existingId);
+    }
+
+    /// <summary>
+    /// An einem Tag mit Fährte liegen zwei Einheiten (Fährtenaufnahmen bekommen
+    /// wegen der Offline-Warteschlange eine eigene, siehe CreateAsync
+    /// "Tages-Zusammenfassung"). Bliebe eine davon liegen, wäre der
+    /// Trainingstag auseinandergerissen.
+    /// </summary>
+    [Fact]
+    public async Task MoveTrainingDay_TakesEverySessionOfThatDayAlong()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        var sessionId = await CreateSessionOnAsync(service, setup, today);
+        // Zweite Einheit am selben Tag - mit eigener Id, wie eine Fährtenaufnahme.
+        var trackSession = await service.CreateAsync(setup.UserId, new CreateTrainingSessionRequest(
+            setup.DogId, today, 20, null,
+            [new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 3, ExerciseDifficulty.Beginner, true, null)],
+            Id: Guid.NewGuid()));
+        Assert.True(trackSession.Succeeded);
+
+        var moved = await service.MoveTrainingDayAsync(setup.UserId, sessionId, today.AddDays(-3));
+
+        Assert.True(moved.Succeeded);
+        var all = await service.GetByDogAsync(setup.UserId, setup.DogId);
+        Assert.Equal(2, all.Value!.Count);
+        Assert.All(all.Value!, s => Assert.Equal(today.AddDays(-3), s.Date));
+    }
+
+    [Fact]
+    public async Task MoveTrainingDay_RejectsEmptyDateAndForeignSession()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var sessionId = await CreateSessionOnAsync(service, setup, DateOnly.FromDateTime(DateTime.Today));
+
+        var empty = await service.MoveTrainingDayAsync(setup.UserId, sessionId, default);
+        Assert.False(empty.Succeeded);
+
+        // Fremder Nutzer ohne Zugriff auf den Hund.
+        var foreign = await service.MoveTrainingDayAsync(Guid.NewGuid(), sessionId, DateOnly.FromDateTime(DateTime.Today.AddDays(-1)));
+        Assert.False(foreign.Succeeded);
     }
 }

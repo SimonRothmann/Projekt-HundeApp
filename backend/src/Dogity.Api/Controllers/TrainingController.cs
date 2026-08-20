@@ -56,6 +56,19 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         return FromResult(result);
     }
 
+    /// <summary>
+    /// Datum korrigieren. Trainings werden oft erst abends oder Tage später
+    /// nachgetragen und landen dann auf dem Tag, an dem man sie eingetippt hat.
+    /// Verschoben wird der ganze Trainingstag, zu dem die Einheit gehört (siehe
+    /// ITrainingService.MoveTrainingDayAsync).
+    /// </summary>
+    [HttpPut("{id:guid}/date")]
+    public async Task<ActionResult<TrainingSessionDto>> MoveDay(Guid id, UpdateSessionDateRequest request, CancellationToken ct)
+    {
+        var result = await trainingService.MoveTrainingDayAsync(CurrentUserId, id, request.Date, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("{id:guid}/feedback")]
     public async Task<IActionResult> SetFeedback(Guid id, SetFeedbackRequest request, CancellationToken ct)
     {

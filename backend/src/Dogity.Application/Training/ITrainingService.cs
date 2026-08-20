@@ -17,6 +17,20 @@ public interface ITrainingService
     /// </summary>
     Task<Result<TrainingSessionDto>> SetSessionContextAsync(Guid userId, Guid sessionId, UpdateSessionContextRequest request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Verschiebt den Trainingstag, zu dem die angegebene Einheit gehört, auf
+    /// ein anderes Datum - also ALLE Einheiten dieses Hundes an diesem Tag.
+    ///
+    /// An einem Tag mit Fährte liegen zwei Einheiten (Fährtenaufnahmen bekommen
+    /// wegen der Offline-Warteschlange eine eigene, siehe CreateAsync
+    /// "Tages-Zusammenfassung"), das Tagebuch zeigt sie aber als EINEN Tag.
+    /// Nur eine davon zu verschieben würde den Trainingstag auseinanderreißen.
+    ///
+    /// Das Wetter wird dabei neu ermittelt - es hing am alten Datum und wäre
+    /// danach schlicht die Temperatur eines anderen Tages.
+    /// </summary>
+    Task<Result<TrainingSessionDto>> MoveTrainingDayAsync(Guid userId, Guid sessionId, DateOnly date, CancellationToken ct = default);
+
     /// <summary>Zuletzt benutzte Trainingsorte als Schnellauswahl.</summary>
     Task<Result<IReadOnlyList<RecentLocationDto>>> GetRecentLocationsAsync(Guid userId, CancellationToken ct = default);
 
