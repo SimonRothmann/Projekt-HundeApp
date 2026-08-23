@@ -50,6 +50,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
+        # Wechselt je Deploy und erzwingt einen echten Next-Build (siehe Dockerfile).
+        BUILD_REF: "${BUILD_REF:-lokal}"
         NEXT_PUBLIC_API_URL: "https://${PROD_API_DOMAIN}"
     restart: unless-stopped
     depends_on:
@@ -85,6 +87,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
+        # Wechselt je Deploy und erzwingt einen echten Next-Build (siehe Dockerfile).
+        BUILD_REF: "${BUILD_REF:-lokal}"
         NEXT_PUBLIC_API_URL: "https://${TEST_API_DOMAIN}"
         # Aktiviert rotes "TEST"-Badge im UI und Demo-Login-Buttons auf
         # der Login-Seite. Absichtlich NUR bei frontend-test gesetzt.

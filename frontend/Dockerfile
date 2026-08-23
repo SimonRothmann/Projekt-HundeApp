@@ -16,6 +16,17 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+
+# Der Build ist NICHT allein aus der Quelle bestimmt: next build holt den
+# Prüfungsordnungs-Katalog über die API und backt daraus Seiten und Sitemap
+# (generateStaticParams, app/sitemap.ts). Docker weiß davon nichts und würde
+# bei unveränderter Quelle die alte Build-Schicht wiederverwenden - ein Deploy
+# nach einer reinen Datenänderung im Backend bliebe damit wirkungslos, egal wie
+# oft man ihn wiederholt (am 2026-08-23 genau so passiert). BUILD_REF wechselt
+# je Deploy und erzwingt deshalb einen echten Neubau. npm ci liegt davor und
+# bleibt gecacht - neu läuft nur der Next-Build.
+ARG BUILD_REF=lokal
+ENV BUILD_REF=$BUILD_REF
 RUN npm run build
 
 FROM node:22-slim AS runtime

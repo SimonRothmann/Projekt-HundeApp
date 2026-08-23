@@ -52,6 +52,10 @@ for i in $(seq 1 60); do
 done
 
 echo "==> Frontend bauen und starten"
+# Erzwingt einen echten Neubau statt der gecachten Build-Schicht - der
+# Next-Build hängt von den API-Daten ab, nicht nur von der Quelle (siehe
+# frontend/Dockerfile).
+export BUILD_REF="$(date -u +%Y%m%dT%H%M%SZ)"
 docker compose up -d --build --force-recreate frontend-test
 
 echo "==> Abschliessender Rauchtest"
