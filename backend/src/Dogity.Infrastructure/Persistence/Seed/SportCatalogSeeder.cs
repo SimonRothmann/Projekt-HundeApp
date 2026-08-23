@@ -39,6 +39,18 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 ///   in Verbindung mit Herankommen" und "Steh" laufen in der IGP 3 aus dem
 ///   Laufschritt.
 ///
+/// Zweite Durchsicht am 2026-08-23: Abteilung A stand in FCI-IGP 1-3 und
+/// FCI-FPr 1-3 als EINE Übung über 100 Punkte. Die PO teilt sie auf - die
+/// Gegenstände zählen einzeln (S. 36: "3 x 7 Punkte" in allen drei Stufen),
+/// also 21 Punkte, die restlichen 79 auf die Fährtenarbeit. Bei den
+/// eigenständigen Fährten-Prüfungsordnungen stand es bereits so; die sechs
+/// anderen sind jetzt nachgezogen. Die Gesamtpunktzahl bleibt gleich.
+///
+/// Turnierhundsport und Agility kommen NICHT aus der FCI-IGP-PO, sondern aus
+/// den VDH-Prüfungsordnungen (THS gültig ab 01.01.2025, Agility ab
+/// 01.01.2026). Beide werden über Zeit und Fehlerpunkte gewertet - ihre
+/// Disziplinen tragen deshalb 0 Punkte, wie schon Teil B der BH und die IAD.
+///
 /// Offen und bewusst NICHT geändert (siehe docs/PO_VERIFIKATION.md):
 /// die Übungsstruktur der BH und die Punktaufteilung der IFH-Übungen -
 /// beides berührt vorhandene Trainingsdaten und ist eine fachliche
@@ -331,6 +343,8 @@ public static class SportCatalogSeeder
         [
             new("Fährtenarbeit (Eigenfährte)", ExerciseDifficulty.Beginner, "Abteilung A",
                 "Eigene Fährte, min. 300 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 20 Minuten, 3 eigene Gegenstände."),
+            new("Gegenstände verweisen", ExerciseDifficulty.Intermediate, "Abteilung A",
+                "Direktes, überzeugendes Verweisen der Gegenstände in Fährtenrichtung - je 7 Punkte (FCI-PO 2025, S. 36)."),
             new("Freifolge", ExerciseDifficulty.Intermediate, "Abteilung B",
                 "Hund folgt ohne Leine konzentriert in Grundstellung, auch bei Tempo- und Richtungswechseln."),
             new("Sitz aus der Bewegung", ExerciseDifficulty.Beginner, "Abteilung B",
@@ -374,6 +388,8 @@ public static class SportCatalogSeeder
         [
             new("Fährtenarbeit (Fremdfährte)", ExerciseDifficulty.Intermediate, "Abteilung A",
                 "Fremde Fährte, min. 400 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 30 Minuten, 3 fremde Gegenstände."),
+            new("Gegenstände verweisen", ExerciseDifficulty.Intermediate, "Abteilung A",
+                "Direktes, überzeugendes Verweisen der Gegenstände in Fährtenrichtung - je 7 Punkte (FCI-PO 2025, S. 36)."),
             new("Freifolge mit Leine", ExerciseDifficulty.Intermediate, "Abteilung B",
                 "Hund läuft eng und aufmerksam neben dem Hundeführer, auch bei Tempo- und Richtungswechseln."),
             new("Sitz aus der Bewegung", ExerciseDifficulty.Intermediate, "Abteilung B",
@@ -419,6 +435,8 @@ public static class SportCatalogSeeder
         [
             new("Fährtenarbeit (Fremdfährte)", ExerciseDifficulty.Advanced, "Abteilung A",
                 "Fremde Fährte, min. 600 Schritte, 5 Schenkel, 4 Winkel ca. 90°, Fährtenalter min. 60 Minuten, 3 fremde Gegenstände."),
+            new("Gegenstände verweisen", ExerciseDifficulty.Intermediate, "Abteilung A",
+                "Direktes, überzeugendes Verweisen der Gegenstände in Fährtenrichtung - je 7 Punkte (FCI-PO 2025, S. 36)."),
             new("Freifolge ohne Leine", ExerciseDifficulty.Advanced, "Abteilung B",
                 "Höchste Stufe, auch durch eine Personengruppe."),
             new("Sitz aus dem Laufschritt", ExerciseDifficulty.Advanced, "Abteilung B", "Höchste Stufe, aus dem Laufschritt statt Normalschritt."),
@@ -474,7 +492,8 @@ public static class SportCatalogSeeder
         // die entfernte Version vergeben war.
         await SeedRegulationAsync(db, igp1, new RegulationSeed("FCI-IGP 1", "2025-2", new DateOnly(2025, 2, 1),
         [
-            new("Fährtenarbeit (Eigenfährte)", true, 100, "Eigenfährte, min. 300 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 20 Minuten, 3 eigene Gegenstände à 7 Punkte."),
+            new("Fährtenarbeit (Eigenfährte)", true, 79, "Eigenfährte, min. 300 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 20 Minuten."),
+            new("Gegenstände verweisen", true, 21, "3 dem Hundeführer gehörende Gegenstände, je 7 Punkte - auf dem ersten Schenkel, auf dem zweiten Schenkel und am Ende."),
             new("Freifolge", true, 15, "Mit Schussgleichgültigkeitsprüfung (2 Schüsse Kaliber 6mm)."),
             new("Sitz aus der Bewegung", true, 10, "Aus 10-15 Schritten Entwicklung im Normalschritt."),
             new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus 10-15 Schritten Entwicklung im Normalschritt, Herankommen nach mind. 30 Schritten Entfernung."),
@@ -499,7 +518,8 @@ public static class SportCatalogSeeder
 
         await SeedRegulationAsync(db, igp2, new RegulationSeed("FCI-IGP 2", "2025-2", new DateOnly(2025, 2, 1),
         [
-            new("Fährtenarbeit (Fremdfährte)", true, 100, "Fremdfährte, min. 400 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 30 Minuten, 3 fremde Gegenstände à 7 Punkte."),
+            new("Fährtenarbeit (Fremdfährte)", true, 79, "Fremdfährte, min. 400 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 30 Minuten."),
+            new("Gegenstände verweisen", true, 21, "3 fremde Gegenstände, je 7 Punkte - auf dem ersten Schenkel, auf dem zweiten Schenkel und am Ende."),
             new("Freifolge", true, 15, "Mit größerer Ablenkung als IGP1."),
             new("Sitz aus der Bewegung", true, 10, "Mit größerer Ablenkung als IGP1."),
             new("Ablegen in Verbindung mit Herankommen", true, 10, "Entwicklung im Normalschritt; der Hund wird auf Richteranweisung herangerufen."),
@@ -527,7 +547,8 @@ public static class SportCatalogSeeder
 
         await SeedRegulationAsync(db, igp3, new RegulationSeed("FCI-IGP 3", "2025-2", new DateOnly(2025, 2, 1),
         [
-            new("Fährtenarbeit (Fremdfährte)", true, 100, "Fremdfährte, min. 600 Schritte, 5 Schenkel, 4 Winkel ca. 90°, Fährtenalter min. 60 Minuten, 3 fremde Gegenstände à 7 Punkte."),
+            new("Fährtenarbeit (Fremdfährte)", true, 79, "Fremdfährte, min. 600 Schritte, 5 Schenkel, 4 Winkel ca. 90°, Fährtenalter min. 60 Minuten."),
+            new("Gegenstände verweisen", true, 21, "3 fremde Gegenstände, je 7 Punkte - der erste nach min. 100 Schritten, der zweite auf Richteranweisung, der dritte am Ende."),
             new("Freifolge", true, 15, "Höchste Stufe, auch durch eine Personengruppe, ohne Leine."),
             new("Sitz aus der Bewegung", true, 10, "Entwicklung von 10 bis 15 Schritten - in allen Stufen gleich, kein Laufschritt."),
             new("Ablegen in Verbindung mit Herankommen", true, 10, "Entwicklung im Laufschritt; der Hund wird herangerufen."),
@@ -571,11 +592,14 @@ public static class SportCatalogSeeder
                 "Eigene Fährte nach den IGP-Regeln für Abteilung A: sichere Aufnahme, tiefe Nase, gleichmäßiges Tempo, überzeugendes Verweisen der Gegenstände."),
             new("Fährtenarbeit (Fremdfährte)", ExerciseDifficulty.Intermediate, "Abteilung A",
                 "Fremde Fährte nach den IGP-Regeln für Abteilung A: sichere Aufnahme, tiefe Nase, gleichmäßiges Tempo, überzeugendes Verweisen der Gegenstände."),
+            new("Gegenstände verweisen", ExerciseDifficulty.Intermediate, "Abteilung A",
+                "Direktes, überzeugendes Verweisen der Gegenstände in Fährtenrichtung - je 7 Punkte (FCI-PO 2025, S. 36)."),
         ]);
 
         await SeedRegulationAsync(db, fpr, new RegulationSeed("FCI-FPr 1", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Fährtenarbeit (Eigenfährte)", true, 100, "Wie FCI-IGP 1 Abteilung A: Eigenfährte, min. 300 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 20 Minuten, 3 eigene Gegenstände à 7 Punkte, Ausarbeitungszeit max. 15 Minuten."),
+            new("Fährtenarbeit (Eigenfährte)", true, 79, "Wie FCI-IGP 1 Abteilung A: Eigenfährte, min. 300 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 20 Minuten, Ausarbeitungszeit max. 15 Minuten."),
+            new("Gegenstände verweisen", true, 21, "3 dem Hundeführer gehörende Gegenstände, je 7 Punkte - auf dem ersten Schenkel, auf dem zweiten Schenkel und am Ende."),
         ],
         Description: "FCI-Fährtenprüfung Stufe 1 (100 Punkte, bestanden ab 70).\n" +
             "Besteht nur aus der Abteilung A der FCI-IGP 1.\n" +
@@ -586,7 +610,8 @@ public static class SportCatalogSeeder
 
         await SeedRegulationAsync(db, fpr, new RegulationSeed("FCI-FPr 2", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Fährtenarbeit (Fremdfährte)", true, 100, "Wie FCI-IGP 2 Abteilung A: Fremdfährte, min. 400 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 30 Minuten, 3 fremde Gegenstände à 7 Punkte, Ausarbeitungszeit max. 15 Minuten."),
+            new("Fährtenarbeit (Fremdfährte)", true, 79, "Wie FCI-IGP 2 Abteilung A: Fremdfährte, min. 400 Schritte, 3 Schenkel, 2 Winkel ca. 90°, Fährtenalter min. 30 Minuten, Ausarbeitungszeit max. 15 Minuten."),
+            new("Gegenstände verweisen", true, 21, "3 fremde Gegenstände, je 7 Punkte - auf dem ersten Schenkel, auf dem zweiten Schenkel und am Ende."),
         ],
         Description: "FCI-Fährtenprüfung Stufe 2 (100 Punkte, bestanden ab 70).\n" +
             "Besteht nur aus der Abteilung A der FCI-IGP 2.\n" +
@@ -597,7 +622,8 @@ public static class SportCatalogSeeder
 
         await SeedRegulationAsync(db, fpr, new RegulationSeed("FCI-FPr 3", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Fährtenarbeit (Fremdfährte)", true, 100, "Wie FCI-IGP 3 Abteilung A: Fremdfährte, min. 600 Schritte, 5 Schenkel, 4 Winkel ca. 90°, Fährtenalter min. 60 Minuten, 3 fremde Gegenstände à 7 Punkte, Ausarbeitungszeit max. 20 Minuten."),
+            new("Fährtenarbeit (Fremdfährte)", true, 79, "Wie FCI-IGP 3 Abteilung A: Fremdfährte, min. 600 Schritte, 5 Schenkel, 4 Winkel ca. 90°, Fährtenalter min. 60 Minuten, Ausarbeitungszeit max. 20 Minuten."),
+            new("Gegenstände verweisen", true, 21, "3 fremde Gegenstände, je 7 Punkte - der erste nach min. 100 Schritten, der zweite auf Richteranweisung, der dritte am Ende."),
         ],
         Description: "FCI-Fährtenprüfung Stufe 3 (100 Punkte, bestanden ab 70).\n" +
             "Besteht nur aus der Abteilung A der FCI-IGP 3.\n" +
@@ -967,6 +993,290 @@ public static class SportCatalogSeeder
             "Durchführung im Sommer nur früh vormittags oder spätnachmittags, Außentemperatur max. 22 °C.\n" +
             "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
             "Mindestalter: 16 Monate."));
+
+        // ---------------------------------------------------------------
+        // Turnierhundsport (VDH-Prüfungsordnung Turnierhundsport, gültig ab
+        // 01.01.2025) - Leichtathletik mit Hund.
+        //
+        // Anders als die FCI-Prüfungen wird hier fast alles über die ZEIT
+        // gewertet, nicht über Punkte: In den Sprint-Disziplinen entspricht
+        // eine Laufsekunde einem Laufzeitpunkt, Fehler kommen als
+        // Fehlerpunkte hinzu. Nur der Gehorsam des Vierkampfs hat echte
+        // Übungspunkte (60). Die Sprint-Disziplinen stehen deshalb mit
+        // MaxPoints 0 - wie schon BH Teil B und die IAD; ihre Bewertung
+        // steht im Beschreibungstext.
+        //
+        // PARA-Klassen, Jedermann-/Fun-Klassen und die VDH-Vorprüfung sind
+        // bewusst nicht abgebildet: Erstere sind Varianten derselben
+        // Disziplinen, Letztere ist eine einmalige Zulassungshürde und kein
+        // Trainingsziel.
+        // ---------------------------------------------------------------
+        var ths = await SeedSportAsync(db, "THS", "Turnierhundsport",
+        [
+            new("Leinenführigkeit", ExerciseDifficulty.Beginner, "Gehorsam",
+                "Hund folgt an lockerer Leine mit dem Schulterblatt auf Kniehöhe des Hundeführers, auch bei Tempo- und Richtungswechseln."),
+            new("Freifolge", ExerciseDifficulty.Intermediate, "Gehorsam",
+                "Wie die Leinenführigkeit, jedoch ohne Leine - im Vierkampf die aufwendigste Gehorsamsaufgabe."),
+            new("Sitz mit Abholen", ExerciseDifficulty.Beginner, "Gehorsam",
+                "Hund setzt sich nach 10 bis 15 Schritten Entwicklung auf Hörzeichen sofort und bleibt sitzen, bis der Hundeführer ihn abholt."),
+            new("Ablegen mit Herankommen", ExerciseDifficulty.Intermediate, "Gehorsam",
+                "Hund legt sich nach 10 bis 15 Schritten Entwicklung ab und kommt auf Hörzeichen zügig und freudig zum Hundeführer."),
+            new("Steh mit Herankommen", ExerciseDifficulty.Intermediate, "Gehorsam",
+                "Hund bleibt nach 10 bis 15 Schritten Entwicklung stehen und kommt auf Hörzeichen zum Hundeführer."),
+            new("Ablegen aus dem Laufschritt mit Herankommen", ExerciseDifficulty.Advanced, "Gehorsam",
+                "Wie das Ablegen mit Herankommen, jedoch aus dem Laufschritt - deutlich schwerer, weil der Hund aus dem Tempo abstoppen muss."),
+            new("Steh aus dem Laufschritt mit Herankommen", ExerciseDifficulty.Advanced, "Gehorsam",
+                "Wie das Steh mit Herankommen, jedoch aus dem Laufschritt."),
+            new("Hürdenlauf", ExerciseDifficulty.Intermediate, "Sprint",
+                "60 m gemeinsam über vier 30 cm hohe Hürden, der Hund unmittelbar links vom Hundeführer. Wendestange im Uhrzeigersinn umlaufen."),
+            new("Slalomlauf", ExerciseDifficulty.Intermediate, "Sprint",
+                "Rund 55 m durch Start-, Ziel- und fünf Streckentore. Hund und Hundeführer müssen jedes Tor in Laufrichtung durchlaufen."),
+            new("Hindernislauf", ExerciseDifficulty.Advanced, "Sprint",
+                "75 m über acht Geräte - Hürde, Oxer, Tunnel, Laufdiel, Tonne, Durchsprunggerät, Hoch-Weit-Sprung, Hürde. Der Hundeführer läuft rechts neben der Bahn mit."),
+            new("Frankfurter Kreisel", ExerciseDifficulty.Advanced, "Sprint",
+                "Zusatzgerät des Combinations-Speed-Cups: der Hund umläuft den Kreisel, während der Hundeführer außen mitläuft."),
+            new("Mühlacker Harfe", ExerciseDifficulty.Advanced, "Sprint",
+                "Zusatzgerät des Combinations-Speed-Cups - eng gestellte Sprungfolge, die sauberes Timing zwischen Hund und Hundeführer verlangt."),
+            new("CaniCross", ExerciseDifficulty.Intermediate, "Ausdauer",
+                "Geländelauf mit dem Hund am Zuggeschirr und Bauchgurt, verbunden durch eine ruckdämpfende Leine."),
+        ]);
+
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-VK1", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Leinenführigkeit", true, 15, "Nach festem Laufschema. Halbe Punkte sind möglich."),
+            new("Freifolge", true, 20, "Nach festem Laufschema, ohne Leine."),
+            new("Sitz mit Abholen", true, 10, "10 bis 15 Schritte Entwicklung vor dem Hörzeichen."),
+            new("Ablegen mit Herankommen", true, 15, "10 bis 15 Schritte Entwicklung vor dem Hörzeichen."),
+            new("Hürdenlauf", true, 0, "Zeitgewertet: eine Laufsekunde = ein Laufzeitpunkt. Unterlaufene Stange 4, abgeworfene Stange 2 Fehlerpunkte."),
+            new("Slalomlauf", true, 0, "Zeitgewertet. Fehlerpunkte für ausgelassene oder falsch durchlaufene Tore."),
+            new("Hindernislauf", true, 0, "Zeitgewertet. Fehlerpunkte je nicht bewältigtem Gerät."),
+        ],
+        Description: "VDH-Vierkampf 1 - Einstiegsstufe des Turnierhundsports.\n" +
+            "Gehorsam (max. 60 Punkte): Leinenführigkeit 15, Freifolge 20, Sitz mit Abholen 10, Ablegen mit Herankommen 15.\n" +
+            "Sprint-Disziplinen: Hürdenlauf (60 m), Slalomlauf (ca. 55 m), Hindernislauf (75 m) - je ein Durchgang, in Freifolge.\n" +
+            "Bewertung: Gehorsamspunkte + 250 Ausgangspunkte der Sprint-Disziplinen abzüglich Laufzeiten und Fehlerpunkte.\n" +
+            "Bestanden: mindestens 42 Punkte im Gehorsam UND höchstens 18 Fehlerpunkte im Sport - sonst \"Ohne Bewertung\".\n" +
+            "Mindestalter: 15 Monate. Voraussetzung: bestandene VDH-Vorprüfung."));
+
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-VK2", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Freifolge", true, 20, "Nach festem Laufschema, ohne Leine."),
+            new("Sitz mit Abholen", true, 10, "10 bis 15 Schritte Entwicklung vor dem Hörzeichen."),
+            new("Ablegen mit Herankommen", true, 15, "10 bis 15 Schritte Entwicklung vor dem Hörzeichen."),
+            new("Steh mit Herankommen", true, 15, "Neu gegenüber VK1 - dafür entfällt die Leinenführigkeit."),
+            new("Hürdenlauf", true, 0, "Zeitgewertet wie im VK1."),
+            new("Slalomlauf", true, 0, "Zeitgewertet wie im VK1."),
+            new("Hindernislauf", true, 0, "Zeitgewertet, mit gegenüber VK1 erhöhten Geräten."),
+        ],
+        Description: "VDH-Vierkampf 2 - Mittelstufe des Turnierhundsports.\n" +
+            "Gehorsam (max. 60 Punkte): Freifolge 20, Sitz mit Abholen 10, Ablegen mit Herankommen 15, Steh mit Herankommen 15.\n" +
+            "Gegenüber VK1: keine Leinenführigkeit mehr, dafür das Steh mit Herankommen.\n" +
+            "Sprint-Disziplinen: Hürdenlauf, Slalomlauf, Hindernislauf - Ausgangspunktzahl 255.\n" +
+            "Bestanden: mindestens 48 Punkte im Gehorsam.\n" +
+            "Mindestalter: 15 Monate."));
+
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-VK3", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Freifolge", true, 20, "Nach festem Laufschema, ohne Leine."),
+            new("Sitz mit Abholen", true, 10, "10 bis 15 Schritte Entwicklung vor dem Hörzeichen."),
+            new("Ablegen aus dem Laufschritt mit Herankommen", true, 15, "Aus dem Laufschritt - der Hund muss aus dem Tempo abstoppen."),
+            new("Steh aus dem Laufschritt mit Herankommen", true, 15, "Aus dem Laufschritt."),
+            new("Hürdenlauf", true, 0, "Zeitgewertet wie im VK1."),
+            new("Slalomlauf", true, 0, "Zeitgewertet wie im VK1."),
+            new("Hindernislauf", true, 0, "Zeitgewertet, mit den höchsten Geräteeinstellungen."),
+        ],
+        Description: "VDH-Vierkampf 3 - höchste Stufe des Turnierhundsports.\n" +
+            "Gehorsam (max. 60 Punkte): Freifolge 20, Sitz mit Abholen 10, Ablegen aus dem Laufschritt 15, Steh aus dem Laufschritt 15.\n" +
+            "Gegenüber VK2: Ablegen und Steh werden aus dem Laufschritt verlangt.\n" +
+            "Sprint-Disziplinen: Hürdenlauf, Slalomlauf, Hindernislauf.\n" +
+            "Bestanden: mindestens 48 Punkte im Gehorsam.\n" +
+            "Mindestalter: 15 Monate."));
+
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-DK", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Hürdenlauf", true, 0, "Ein Durchgang, mit oder ohne Leine. In Freifolge gibt es 5 Bonuspunkte."),
+            new("Slalomlauf", true, 0, "Ein Durchgang, mit oder ohne Leine. In Freifolge gibt es 5 Bonuspunkte."),
+            new("Hindernislauf", true, 0, "Ein Durchgang, mit oder ohne Leine. In Freifolge gibt es 5 Bonuspunkte."),
+        ],
+        Description: "VDH-Dreikampf - die drei Sprint-Disziplinen des VDH-VK2 ohne Gehorsam.\n" +
+            "Je ein Durchgang; der Hund darf mit oder ohne Leine geführt werden.\n" +
+            "Bewertung: 240 Ausgangspunkte + Bonuspunkte (5 je in Freifolge gezeigter Disziplin) abzüglich Laufzeiten und Fehlerpunkte.\n" +
+            "Der Einstieg für alle, denen der Gehorsamsteil des Vierkampfs (noch) zu viel ist."));
+
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-HL", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Hindernislauf", true, 0, "Zwei Durchgänge über die Bahn des VDH-VK1. Je mit Leine gezeigtem Durchgang 5 Strafsekunden."),
+        ],
+        Description: "VDH-Hindernislauf als eigenständige Disziplin - der Hindernislauf des VDH-VK1 in zwei Durchgängen.\n" +
+            "Der Hund darf mit oder ohne Leine geführt werden; jeder Durchgang mit Leine kostet 5 Strafsekunden.\n" +
+            "Bewertung: Summe der Laufzeiten + Strafsekunden + Fehlerpunkte - die niedrigste Gesamtzeit gewinnt.\n" +
+            "Das Ergebnis wird nicht in den VDH-Leistungsnachweis eingetragen."));
+
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-CSC", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Slalomlauf", true, 0, "Sektion 1 des Staffelparcours."),
+            new("Hürdenlauf", true, 0, "Sektion 2: drei 30 cm hohe Hürden nach der Wendestange, gemeinsam mit dem Hundeführer zu überspringen."),
+            new("Hindernislauf", true, 0, "Sektion 3 des Staffelparcours."),
+            new("Frankfurter Kreisel", true, 0, "Zusatzgerät des CSC gegenüber dem Vierkampf."),
+            new("Mühlacker Harfe", true, 0, "Zusatzgerät des CSC gegenüber dem Vierkampf."),
+        ],
+        Description: "VDH-Combinations-Speed-Cup - Staffellauf aus den drei Laufelementen des Vierkampfs.\n" +
+            "Eine Mannschaft besteht aus drei Teilnehmern mit drei verschiedenen Hunden, die den in drei Sektionen geteilten Parcours als Staffel durchlaufen.\n" +
+            "Zwei Durchgänge, durchgehend in Freifolge.\n" +
+            "Zusätzlich zu den Vierkampf-Geräten kommen Frankfurter Kreisel und Mühlacker Harfe hinzu.\n" +
+            "Auch als Einzel-CSC möglich (ein Team läuft alle drei Sektionen) - dann ohne Eintrag in den Leistungsnachweis."));
+
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-SH", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Hürdenlauf", true, 0, "Element der verkürzten CSC-Bahn."),
+            new("Hindernislauf", true, 0, "Element der verkürzten CSC-Bahn."),
+            new("Frankfurter Kreisel", true, 0, "Element der verkürzten CSC-Bahn."),
+        ],
+        Description: "VDH-Shorty - Kurzbahn-Variante des Combinations-Speed-Cups mit zwei Sektionen.\n" +
+            "Gebildet aus den bekannten Elementen und Gerätekonfigurationen des VDH-CSC; Geräteanordnung und Ablauf sind bindend vorgegeben.\n" +
+            "Der Einstieg in den Staffelgedanken auf kürzerer Strecke."));
+
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-CC", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("CaniCross", true, 0, "Geländelauf mit dem Hund am Zuggeschirr. Reine Zeitwertung."),
+        ],
+        Description: "VDH-CaniCross - Geländelauf mit dem Hund am Zuggeschirr.\n" +
+            "Hund und Läufer sind über eine ruckdämpfende Leine mit einem Bauchgurt verbunden; der Hund läuft vor dem Läufer.\n" +
+            "Reine Zeitwertung. Eigene Vorprüfung (VDH-VP-CC) und Sozialverträglichkeitsnachweis nötig.\n" +
+            "Bei hohen Temperaturen gelten gesonderte Regeln bis hin zur Absage.\n" +
+            "Mindestalter: 15 Monate."));
+
+        // ---------------------------------------------------------------
+        // Agility (VDH-Prüfungsordnung Agility, gültig ab 01.01.2026, als
+        // nationale Ergänzung zur FCI-Wettkampfordnung Agility).
+        //
+        // Auch hier gibt es KEINE Übungspunkte: gewertet wird über
+        // Fehlerpunkte (alles in Fünfer-Schritten) und Zeitfehler gegen die
+        // Standardzeit. Die "Übungen" sind deshalb die Geräte - genau das,
+        // was man einzeln trainiert und im Tagebuch festhält.
+        //
+        // Geräteliste nach der aktuellen FCI-Wettkampfordnung (vom FCI-
+        // Vorstand im Mai 2025 beschlossen): der Tisch und der Stofftunnel
+        // sind nicht mehr dabei. Ältere deutschsprachige Fassungen führen
+        // beide noch - wer danach seedet, trägt abgeschaffte Geräte ein.
+        // ---------------------------------------------------------------
+        var agility = await SeedSportAsync(db, "AGILITY", "Agility",
+        [
+            new("Hürde", ExerciseDifficulty.Beginner, "Sprünge",
+                "Einfachsprung mit lose aufgelegter Stange. Ein Standard-Parcours enthält mindestens 14 Hürden."),
+            new("Doppelsprung (Spread)", ExerciseDifficulty.Intermediate, "Sprünge",
+                "Zwei zusammengestellte Hürden. In der Prüfungsstufe 1 nicht erlaubt."),
+            new("Mauer", ExerciseDifficulty.Beginner, "Sprünge",
+                "Sprung über eine geschlossene Fläche mit abnehmbaren Elementen auf der Oberkante."),
+            new("Reifen", ExerciseDifficulty.Intermediate, "Sprünge",
+                "Sprung durch den Reifen. Muss immer gerade angelaufen werden können."),
+            new("Weitsprung", ExerciseDifficulty.Intermediate, "Sprünge",
+                "Mehrere flache Elemente hintereinander. Muss immer gerade angelaufen werden können."),
+            new("Laufsteg", ExerciseDifficulty.Intermediate, "Kontaktzonengeräte",
+                "120 bis 135 cm hoch. Die farbigen Kontaktzonen müssen mit mindestens einer Pfote berührt werden."),
+            new("Wippe", ExerciseDifficulty.Advanced, "Kontaktzonengeräte",
+                "Der Hund darf die Wippe erst verlassen, wenn sie den Boden berührt hat."),
+            new("Schrägwand (A-Wand)", ExerciseDifficulty.Intermediate, "Kontaktzonengeräte",
+                "Zwei zu einem A gestellte Wandteile, mit Kontaktzonen an beiden Enden."),
+            new("Slalom", ExerciseDifficulty.Advanced, "Sonstige",
+                "Der erste Stab bleibt links vom Hund. Jeder falsche Eintritt ist eine Verweigerung; weitere Slalomfehler werden insgesamt nur einmal geahndet."),
+            new("Tunnel", ExerciseDifficulty.Beginner, "Sonstige",
+                "Fester Tunnel. Bis zu vier Stück im Parcours, einer davon 3 bis 4 Meter lang."),
+        ]);
+
+        await SeedRegulationAsync(db, agility, new RegulationSeed("Agility 0 (A0)", "2026", new DateOnly(2026, 1, 1),
+        [
+            new("Hürde", true, 0, "Fehlerbewertung: Abwurf 5 Fehlerpunkte."),
+            new("Mauer", true, 0, "Fehlerbewertung: Abwurf 5 Fehlerpunkte."),
+            new("Reifen", true, 0, "Verweigerung 5 Fehlerpunkte."),
+            new("Weitsprung", true, 0, "Verweigerung 5 Fehlerpunkte."),
+            new("Laufsteg", true, 0, "Kontaktzone nicht berührt: 5 Fehlerpunkte je Vorkommnis."),
+            new("Wippe", true, 0, "Verlässt der Hund die Wippe vor Bodenkontakt: 5 Fehlerpunkte."),
+            new("Schrägwand (A-Wand)", true, 0, "Kontaktzone nicht berührt: 5 Fehlerpunkte je Vorkommnis."),
+            new("Slalom", true, 0, "Falscher Eintritt = Verweigerung. Weitere Slalomfehler werden zusammen nur einmal mit 5 Fehlerpunkten geahndet."),
+            new("Tunnel", true, 0, "Verweigerung 5 Fehlerpunkte."),
+        ],
+        Description: "Agility 0 - nationale Einstiegsklasse des VDH (in der FCI gibt es sie nicht).\n" +
+            "Bewertung: Fehlerpunkte in Fünfer-Schritten (Abwurf, Verweigerung, verfehlte Kontaktzone je 5) zuzüglich Zeitfehler.\n" +
+            "Zeitfehler: je Sekunde über der Standardzeit ein Fehlerpunkt, Zehntel und Hundertstel anteilig.\n" +
+            "Aufstieg nach A1: dreimal fehlerfrei (0,00 Fehlerpunkte) oder zweimal fehlerfrei und zweimal bis 5,00 Fehlerpunkte - nur A-Läufe zählen.\n" +
+            "Im Ausland erzielte A0-Ergebnisse werden nicht anerkannt, da A0 eine reine VDH-Klasse ist.\n" +
+            "Größenklassen: S bis 34,99 cm, M ab 35 cm, I ab 43 cm, L ab 48 cm Widerristhöhe.\n" +
+            "Mindestalter: 18 Monate. Voraussetzung: FCI-BH/VT + Sachkundenachweis."));
+
+        await SeedRegulationAsync(db, agility, new RegulationSeed("Agility 1 (A1)", "2026", new DateOnly(2026, 1, 1),
+        [
+            new("Hürde", true, 0, "Abwurf 5 Fehlerpunkte."),
+            new("Mauer", true, 0, "Abwurf 5 Fehlerpunkte."),
+            new("Reifen", true, 0, "Verweigerung 5 Fehlerpunkte."),
+            new("Weitsprung", true, 0, "Verweigerung 5 Fehlerpunkte."),
+            new("Laufsteg", true, 0, "Kontaktzone nicht berührt: 5 Fehlerpunkte."),
+            new("Wippe", true, 0, "Verlässt der Hund die Wippe vor Bodenkontakt: 5 Fehlerpunkte."),
+            new("Schrägwand (A-Wand)", true, 0, "Kontaktzone nicht berührt: 5 Fehlerpunkte."),
+            new("Slalom", true, 0, "Falscher Eintritt = Verweigerung."),
+            new("Tunnel", true, 0, "Verweigerung 5 Fehlerpunkte."),
+        ],
+        Description: "Agility 1 - erste FCI-Prüfungsstufe.\n" +
+            "Der Doppelsprung ist in dieser Stufe nicht erlaubt.\n" +
+            "Bewertung: Fehlerpunkte in Fünfer-Schritten zuzüglich Zeitfehler gegen die Standardzeit.\n" +
+            "Aufstieg nach A2: dreimal eine Platzierung (Platz 1-3) mit 0,00 Fehlerpunkten im A-Lauf, unter mindestens zwei verschiedenen Richtern.\n" +
+            "Ein Verbleib in A1 ist freiwillig möglich, ohne dass erlaufene Qualifikationen verfallen.\n" +
+            "Mindestalter: 18 Monate."));
+
+        await SeedRegulationAsync(db, agility, new RegulationSeed("Agility 2 (A2)", "2026", new DateOnly(2026, 1, 1),
+        [
+            new("Hürde", true, 0, "Abwurf 5 Fehlerpunkte."),
+            new("Doppelsprung (Spread)", true, 0, "Ab dieser Stufe zugelassen. Abwurf 5 Fehlerpunkte."),
+            new("Mauer", true, 0, "Abwurf 5 Fehlerpunkte."),
+            new("Reifen", true, 0, "Verweigerung 5 Fehlerpunkte."),
+            new("Weitsprung", true, 0, "Verweigerung 5 Fehlerpunkte."),
+            new("Laufsteg", true, 0, "Kontaktzone nicht berührt: 5 Fehlerpunkte."),
+            new("Wippe", true, 0, "Verlässt der Hund die Wippe vor Bodenkontakt: 5 Fehlerpunkte."),
+            new("Schrägwand (A-Wand)", true, 0, "Kontaktzone nicht berührt: 5 Fehlerpunkte."),
+            new("Slalom", true, 0, "Falscher Eintritt = Verweigerung."),
+            new("Tunnel", true, 0, "Verweigerung 5 Fehlerpunkte."),
+        ],
+        Description: "Agility 2 - zweite FCI-Prüfungsstufe.\n" +
+            "Mindestlaufgeschwindigkeit: 3,25 m/s im A-Lauf, 3,75 m/s im Jumping.\n" +
+            "Aufstieg nach A3: fünfmal eine Platzierung (Platz 1-3) mit 0,00 Fehlerpunkten unter mindestens zwei verschiedenen Richtern, davon mindestens dreimal im A-Lauf.\n" +
+            "Ein freiwilliger Abstieg nach A1 ist jederzeit möglich und wird im Leistungsnachweis dokumentiert.\n" +
+            "Mindestalter: 18 Monate."));
+
+        await SeedRegulationAsync(db, agility, new RegulationSeed("Agility 3 (A3)", "2026", new DateOnly(2026, 1, 1),
+        [
+            new("Hürde", true, 0, "Abwurf 5 Fehlerpunkte."),
+            new("Doppelsprung (Spread)", true, 0, "Abwurf 5 Fehlerpunkte."),
+            new("Mauer", true, 0, "Abwurf 5 Fehlerpunkte."),
+            new("Reifen", true, 0, "Verweigerung 5 Fehlerpunkte."),
+            new("Weitsprung", true, 0, "Verweigerung 5 Fehlerpunkte."),
+            new("Laufsteg", true, 0, "Kontaktzone nicht berührt: 5 Fehlerpunkte."),
+            new("Wippe", true, 0, "Verlässt der Hund die Wippe vor Bodenkontakt: 5 Fehlerpunkte."),
+            new("Schrägwand (A-Wand)", true, 0, "Kontaktzone nicht berührt: 5 Fehlerpunkte."),
+            new("Slalom", true, 0, "Falscher Eintritt = Verweigerung."),
+            new("Tunnel", true, 0, "Verweigerung 5 Fehlerpunkte."),
+        ],
+        Description: "Agility 3 - höchste FCI-Prüfungsstufe.\n" +
+            "Mindestlaufgeschwindigkeit: 4,0 m/s im A-Lauf, 4,25 m/s im Jumping 3; Aufrechnungsfaktor 1,2.\n" +
+            "Verbleib in A3: im vergangenen Kalenderjahr mindestens drei fehlerfreie Ergebnisse (0,00 Fehlerpunkte), davon mindestens eines im A-Lauf.\n" +
+            "Hündinnen mit Ausfallzeit durch Wurf oder Belegung sind von dieser Nachweispflicht befreit.\n" +
+            "Ein freiwilliger Abstieg nach A2 ist jederzeit möglich.\n" +
+            "Mindestalter: 18 Monate."));
+
+        await SeedRegulationAsync(db, agility, new RegulationSeed("Jumping (JP0-JP3)", "2026", new DateOnly(2026, 1, 1),
+        [
+            new("Hürde", true, 0, "Abwurf 5 Fehlerpunkte."),
+            new("Doppelsprung (Spread)", true, 0, "Ab JP2. Abwurf 5 Fehlerpunkte."),
+            new("Mauer", true, 0, "Abwurf 5 Fehlerpunkte."),
+            new("Reifen", true, 0, "Verweigerung 5 Fehlerpunkte."),
+            new("Weitsprung", true, 0, "Verweigerung 5 Fehlerpunkte."),
+            new("Slalom", true, 0, "Falscher Eintritt = Verweigerung."),
+            new("Tunnel", true, 0, "Verweigerung 5 Fehlerpunkte."),
+        ],
+        Description: "Jumping - Parcours OHNE Kontaktzonengeräte, also ohne Laufsteg, Wippe und Schrägwand.\n" +
+            "Wird in allen Prüfungsstufen als JP0 bis JP3 gelaufen, parallel zur jeweiligen A-Klasse.\n" +
+            "Dadurch schneller als der A-Lauf - entsprechend höher liegen die Mindestlaufgeschwindigkeiten.\n" +
+            "Für den Aufstieg zählen in der Regel nur die A-Läufe; Jumping-Ergebnisse zählen ab A2 anteilig mit.\n" +
+            "Mindestalter: 18 Monate."));
 
         // Die ursprünglichen fehlerhaften RegulationVersions (BH/IBGH "2024",
         // IGP "2025") wurden inzwischen aus dem Code entfernt, nachdem die

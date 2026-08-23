@@ -127,6 +127,30 @@ Ergänzt wurde daher:
   Doppeleinträge). Bricht ab, sobald ein Trainingsziel darauf verweist — ein
   stillschweigend gelöschtes Ziel wäre schlimmer als ein überzähliger Eintrag.
 
+## Zweite Durchsicht (2026-08-23): Abteilung A war zusammengefasst
+
+Auf die Frage, ob zu den bereits eingetragenen Prüfungen alle Übungen
+vorhanden sind, wurde der komplette Katalog erneut gegen die FCI-PO 2025
+gerechnet — je Prüfungsordnung die Punktsumme und der Übungsvergleich
+zwischen IGP und den daraus abgeleiteten Einzelprüfungen.
+
+**Alle Punktsummen stimmten** (BH 60, IBGH 100, IGP 300, GPr 200, alle
+übrigen 100), und UPr/SPr/GPr enthalten exakt die Übungen der jeweiligen
+IGP-Abteilungen — kein einziger Ausreißer.
+
+Gefunden wurde eine andere Art von Lücke: **Abteilung A stand in sechs
+Prüfungsordnungen als EINE Übung über 100 Punkte** — in FCI-IGP 1/2/3 und
+FCI-FPr 1/2/3. Die PO teilt sie aber auf: die Gegenstände zählen einzeln
+(S. 36, „3 x 7 Punkte" in allen drei Stufen), also 21 Punkte, und die
+verbleibenden 79 auf die Fährtenarbeit. Genau so stand es bereits bei den
+eigenständigen Fährten-Prüfungsordnungen (IGP 1/2/3 - Fährte, IFH 1-3,
+IGP-FH) — die sechs anderen waren schlicht nie nachgezogen worden.
+
+Folge im Alltag: Wer im Tagebuch das Verweisen der Gegenstände trainierte,
+konnte das in der IGP nicht als eigene Übung festhalten, obwohl es in der
+Prüfung getrennt bewertet wird. Korrigiert; die Gesamtpunktzahl ändert sich
+dadurch nicht.
+
 ## Weitere Beobachtungen
 
 - **Der Übungskatalog der IGP 3 enthält Altlasten** aus der IPO-Zeit vor 2019
@@ -134,6 +158,21 @@ Ergänzt wurde daher:
   Hundeführers", „Abwehr eines Angriffs aus dem Stand"). Sie hängen an keiner
   gültigen Prüfungsordnungs-Version und erscheinen daher nicht auf den
   öffentlichen Seiten, wohl aber in der Übungsauswahl.
+
+- **FCI-FPr 1-3 und „IGP 1/2/3 - Fährte" sind dieselbe Prüfung** unter zwei
+  Namen (PO S. 68: „Die Fährtenprüfungen bestehen nur aus der Abteilung A der
+  entsprechenden Prüfungsstufen"). Seit der Aufteilung oben tragen beide
+  dieselben Übungen und Punkte. Zusammenlegen wäre möglich, ist aber eine
+  fachliche Entscheidung: die Fährten-Variante steht bei der Sportart
+  „Fährte", die FPr bei den Einzelprüfungen — beide Wege sucht jemand.
+
+- **Turnierhundsport und Agility** sind seit dem 2026-08-23 im Katalog
+  (VDH-PO THS gültig ab 01.01.2025, VDH-PO Agility gültig ab 01.01.2026).
+  Beide werden über Zeit und Fehlerpunkte gewertet, nicht über Übungspunkte;
+  ihre Disziplinen stehen deshalb mit 0 Punkten, wie schon Teil B der BH und
+  die IAD. Achtung bei Agility: ältere deutschsprachige Fassungen der
+  FCI-Wettkampfordnung führen noch Tisch und Stofftunnel — beide sind in der
+  aktuellen Geräteliste nicht mehr enthalten.
 
 ## Wie Korrekturen ankommen
 

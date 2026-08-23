@@ -161,6 +161,18 @@ const FAMILIES: { key: string; title: string; description: string; matches: (nam
     description: "Nachweis der körperlichen Belastbarkeit, ohne Punktewertung.",
     matches: (name) => name.startsWith("FCI-IAD"),
   },
+  {
+    key: "ths",
+    title: "Turnierhundsport",
+    description: "Leichtathletik mit Hund – gewertet wird über die Zeit, nicht über Übungspunkte.",
+    matches: (name) => name.startsWith("VDH-"),
+  },
+  {
+    key: "agility",
+    title: "Agility",
+    description: "Parcours auf Zeit, gewertet über Fehler- und Zeitfehlerpunkte.",
+    matches: (name) => name.startsWith("Agility ") || name.startsWith("Jumping"),
+  },
 ];
 
 /** Bündelt den Katalog in Familien. Alles ohne Treffer landet unter "Weitere". */
