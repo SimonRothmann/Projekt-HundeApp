@@ -10,7 +10,23 @@ public record DogDto(
     DogGender Gender,
     string? ImageUrl,
     string? Notes,
-    DateTimeOffset? ArchivedAt);
+    DateTimeOffset? ArchivedAt,
+    /// <summary>
+    /// Ob ein Profilbild hinterlegt ist. Das Bild selbst kommt über einen
+    /// eigenen Aufruf (siehe DogsController.GetImage) - in einer Hundeliste
+    /// hinge sonst an jedem Eintrag das vollständige Bild.
+    /// </summary>
+    bool HasImage);
+
+/// <summary>
+/// Ein Bild als Data-URI ("data:image/jpeg;base64,..."), in beide Richtungen.
+///
+/// Bewusst kein Datei-Upload: Der Browser rechnet das Bild ohnehin auf einer
+/// Leinwand auf Profilbildgröße herunter und hat es danach als Data-URI in der
+/// Hand. So bleibt es bei gewöhnlichem JSON - kein multipart, und die Antwort
+/// lässt sich unverändert in ein img-Element hängen.
+/// </summary>
+public record DogImageDto(string DataUrl);
 
 public record DogOwnerDto(
     Guid UserId,

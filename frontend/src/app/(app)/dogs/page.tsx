@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dog as DogIcon, Plus } from "lucide-react";
+import { DogAvatar } from "@/components/dogs/dog-avatar";
+import { formatDogAge } from "@/lib/dog-age";
 import { toast } from "sonner";
 
 export default function DogsPage() {
@@ -20,6 +22,7 @@ export default function DogsPage() {
   const [name, setName] = useState("");
   const [breed, setBreed] = useState("");
   const [gender, setGender] = useState<0 | 1>(0);
+  const [birthday, setBirthday] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function loadDogs() {
@@ -48,7 +51,7 @@ export default function DogsPage() {
       await api.post<Dog>("/api/dogs", {
         name,
         breed: breed || null,
-        birthday: null,
+        birthday: birthday || null,
         gender,
         imageUrl: null,
         notes: null,
@@ -56,6 +59,7 @@ export default function DogsPage() {
       setName("");
       setBreed("");
       setGender(0);
+      setBirthday("");
       setShowForm(false);
       toast.success("Hund angelegt.");
       await loadDogs();
@@ -76,15 +80,15 @@ export default function DogsPage() {
       <Link key={dog.id} href={`/dogs/${dog.id}`}>
         <Card className={`transition-colors hover:bg-accent/10 ${archived ? "opacity-70" : ""}`}>
           <CardHeader className="flex-row items-center gap-3 space-y-0">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary">
-              <DogIcon className="size-6 text-secondary-foreground" />
-            </div>
+            <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <CardTitle className="text-base">{dog.name}</CardTitle>
                 {archived && <Badge variant="secondary">Archiviert</Badge>}
               </div>
-              <p className="text-sm text-muted-foreground">{dog.breed ?? "Unbekannte Rasse"}</p>
+              <p className="text-sm text-muted-foreground">
+                {[dog.breed ?? "Unbekannte Rasse", formatDogAge(dog.birthday)].filter(Boolean).join(" · ")}
+              </p>
             </div>
           </CardHeader>
         </Card>
@@ -109,7 +113,7 @@ export default function DogsPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreate} className="flex flex-col gap-4">
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="name">Name</Label>
                   <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
@@ -132,6 +136,13 @@ export default function DogsPage() {
                       <SelectItem value={1}>Hündin</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="birthday">Geburtsdatum</Label>
+                  <Input id="birthday" type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">
+                    {formatDogAge(birthday) ? `Alter: ${formatDogAge(birthday)}` : "Optional - daraus wird das Alter berechnet."}
+                  </p>
                 </div>
               </div>
               <Button type="submit" className="self-start" disabled={isSubmitting}>

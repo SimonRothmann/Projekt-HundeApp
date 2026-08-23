@@ -53,6 +53,25 @@ export async function getCachedData<T>(key: string): Promise<T | null> {
   }
 }
 
+/**
+ * Einen Eintrag verwerfen. Gebraucht, wenn sich etwas geändert hat, das der
+ * Cache nicht von selbst merkt - etwa ein ausgetauschtes Hundebild: der
+ * Schlüssel bleibt gleich, der Inhalt darunter nicht.
+ */
+export async function clearCachedData(key: string): Promise<void> {
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      tx.objectStore(STORE_NAME).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // Wie beim Schreiben: der Cache ist Beiwerk, ein Fehler darf nichts brechen.
+  }
+}
+
 export async function setCachedData<T>(key: string, data: T): Promise<void> {
   try {
     const db = await openDb();

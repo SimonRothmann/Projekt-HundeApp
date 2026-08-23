@@ -24,6 +24,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public DbSet<Dog> Dogs => Set<Dog>();
     public DbSet<DogOwner> DogOwners => Set<DogOwner>();
+    public DbSet<DogImage> DogImages => Set<DogImage>();
 
     public DbSet<Sport> Sports => Set<Sport>();
     public DbSet<Regulation> Regulations => Set<Regulation>();
@@ -83,6 +84,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // Abfragen ausgeblendet (siehe AI_RULES.md "Nie: Daten löschen ohne Migration").
         builder.Entity<Dog>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<DogOwner>().HasQueryFilter(e => e.DeletedAt == null);
+        // Zusätzlich am Hund entlang gefiltert: DogImage verlangt zwingend einen
+        // Hund, und ohne diesen Zusatz warnt EF zu Recht, dass die Beziehung ins
+        // Leere zeigen kann, sobald der Hund weggefiltert ist.
+        builder.Entity<DogImage>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
         builder.Entity<Sport>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<Regulation>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<RegulationVersion>().HasQueryFilter(e => e.DeletedAt == null);

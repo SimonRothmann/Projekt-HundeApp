@@ -8,7 +8,10 @@ import type { Dog, DogOwner, Goal, Sport, TrainingSession } from "@/lib/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Archive, ArchiveRestore, Dog as DogIcon, Plus, Printer, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, Plus, Printer, Trash2 } from "lucide-react";
+import { DogAvatar } from "@/components/dogs/dog-avatar";
+import { DogEditForm } from "@/components/dogs/dog-edit-form";
+import { formatDogAge } from "@/lib/dog-age";
 import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { TrainingForm } from "@/components/dogs/training-form";
@@ -48,6 +51,7 @@ export default function DogDetailPage() {
   const [isOwner, setIsOwner] = useState(true);
   const [owners, setOwners] = useState<DogOwner[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(false);
   // false = nur die letzten 3 Monate geladen, true = komplette Historie.
   const [showAllHistory, setShowAllHistory] = useState(false);
 
@@ -174,26 +178,37 @@ export default function DogDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-full bg-secondary">
-            <DogIcon className="size-6 text-secondary-foreground" />
-          </div>
+      {/* Auf dem Handy untereinander: Name und Knöpfe nebeneinander lassen für
+          "Labrador Retriever · 4 Jahre" auf 375px nur eine schmale Spalte
+          übrig, die vierzeilig unter die Knöpfe läuft. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold tracking-tight">{dog.name}</h1>
               {dog.archivedAt && <Badge variant="secondary">Archiviert</Badge>}
             </div>
-            <p className="text-muted-foreground">{dog.breed ?? "Unbekannte Rasse"}</p>
+            <p className="text-muted-foreground">
+              {[dog.breed ?? "Unbekannte Rasse", formatDogAge(dog.birthday)].filter(Boolean).join(" · ")}
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {isOwner && (
+            <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)}>
+              <Pencil className="size-4" />
+              Bearbeiten
+            </Button>
+          )}
           <Link href={`/dogs/${id}/print`} className={buttonVariants({ variant: "outline", size: "sm" })}>
             <Printer className="size-4" />
             Drucken / Exportieren
           </Link>
         </div>
       </div>
+
+      {editing && <DogEditForm dog={dog} onSaved={loadAll} onCancel={() => setEditing(false)} />}
 
       <GoalsSection dogId={id} sports={sports} goals={goals} onChanged={loadAll} />
 

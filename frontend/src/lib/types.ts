@@ -24,6 +24,10 @@ export type Dog = {
   // Gesetzt, wenn der Hund archiviert ist (z.B. verstorben) - dann aus der
   // aktiven Liste ausgeblendet, Daten bleiben erhalten. null = aktiv.
   archivedAt: string | null;
+  // Ob ein Profilbild hinterlegt ist. Das Bild selbst kommt über einen eigenen
+  // Aufruf (/api/dogs/{id}/image), damit an Listen nicht das Bildmaterial
+  // aller Hunde hängt - siehe DogAvatar.
+  hasImage: boolean;
 };
 
 export type Sport = {

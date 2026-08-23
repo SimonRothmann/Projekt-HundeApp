@@ -16,6 +16,24 @@ public class DogConfiguration : IEntityTypeConfiguration<Dog>
     }
 }
 
+public class DogImageConfiguration : IEntityTypeConfiguration<DogImage>
+{
+    public void Configure(EntityTypeBuilder<DogImage> builder)
+    {
+        builder.ToTable("dog_images");
+        builder.Property(i => i.Data).HasColumnType("bytea").IsRequired();
+        builder.Property(i => i.ContentType).HasMaxLength(100).IsRequired();
+
+        builder.HasOne(i => i.Dog)
+            .WithOne()
+            .HasForeignKey<DogImage>(i => i.DogId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Ein Hund, höchstens ein Bild - ein zweiter Upload ersetzt das alte.
+        builder.HasIndex(i => i.DogId).IsUnique();
+    }
+}
+
 public class DogOwnerConfiguration : IEntityTypeConfiguration<DogOwner>
 {
     public void Configure(EntityTypeBuilder<DogOwner> builder)

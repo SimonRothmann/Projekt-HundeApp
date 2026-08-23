@@ -184,4 +184,107 @@ public class DogServiceTests
 
         Assert.False(result.Succeeded);
     }
+
+    // ---- Profilbild (SetImageAsync/GetImageAsync/DeleteImageAsync) ----
+
+    /// <summary>Kleinstes gültiges JPEG-Fragment - Inhalt egal, der Dienst prüft nur Typ und Größe.</summary>
+    private const string Jpeg = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+
+    [Fact]
+    public async Task SetImage_ThenGet_ReturnsSameDataUrl()
+    {
+        var service = MakeService(out var db, out _);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+
+        Assert.True((await service.SetImageAsync(ownerId, dogId, Jpeg)).Succeeded);
+
+        var image = await service.GetImageAsync(ownerId, dogId);
+        Assert.True(image.Succeeded);
+        Assert.Equal(Jpeg, image.Value!.DataUrl);
+
+        // Und der Hund meldet, dass ein Bild da ist - daran hängt die Anzeige.
+        var dog = await service.GetByIdAsync(ownerId, dogId);
+        Assert.True(dog.Value!.HasImage);
+        var list = await service.GetMyDogsAsync(ownerId);
+        Assert.True(list.Value!.Single().HasImage);
+    }
+
+    [Fact]
+    public async Task SetImage_Twice_ReplacesInsteadOfAdding()
+    {
+        var service = MakeService(out var db, out _);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+
+        await service.SetImageAsync(ownerId, dogId, Jpeg);
+        const string png = "data:image/png;base64,iVBORw0KGgo=";
+        await service.SetImageAsync(ownerId, dogId, png);
+
+        Assert.Equal(png, (await service.GetImageAsync(ownerId, dogId)).Value!.DataUrl);
+        Assert.Single(db.DogImages.Where(i => i.DogId == dogId));
+    }
+
+    /// <summary>
+    /// Der MIME-Typ landet unverändert im Content-Type der Antwort. Wäre er
+    /// frei wählbar, machte ein Upload aus dem Bildabruf eine Seite, die der
+    /// Browser ausführt.
+    /// </summary>
+    [Fact]
+    public async Task SetImage_RejectsForeignTypesAndGarbage()
+    {
+        var service = MakeService(out var db, out _);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+
+        Assert.False((await service.SetImageAsync(ownerId, dogId, "data:text/html;base64,PHNjcmlwdD4=")).Succeeded);
+        Assert.False((await service.SetImageAsync(ownerId, dogId, "data:image/svg+xml;base64,PHN2Zz4=")).Succeeded);
+        Assert.False((await service.SetImageAsync(ownerId, dogId, "einfach nur Text")).Succeeded);
+        Assert.False((await service.SetImageAsync(ownerId, dogId, "data:image/jpeg;base64,!!!keinBase64!!!")).Succeeded);
+        Assert.False((await service.SetImageAsync(ownerId, dogId, "")).Succeeded);
+
+        Assert.Empty(db.DogImages);
+    }
+
+    [Fact]
+    public async Task SetImage_RejectsOversizedImage()
+    {
+        var service = MakeService(out var db, out _);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+
+        var tooBig = "data:image/jpeg;base64," + Convert.ToBase64String(new byte[2 * 1024 * 1024 + 1]);
+
+        var result = await service.SetImageAsync(ownerId, dogId, tooBig);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("zu groß", string.Join(" ", result.Errors));
+    }
+
+    [Fact]
+    public async Task DeleteImage_RemovesItAndIsRepeatable()
+    {
+        var service = MakeService(out var db, out _);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        await service.SetImageAsync(ownerId, dogId, Jpeg);
+
+        Assert.True((await service.DeleteImageAsync(ownerId, dogId)).Succeeded);
+        Assert.False((await service.GetImageAsync(ownerId, dogId)).Succeeded);
+        Assert.False((await service.GetByIdAsync(ownerId, dogId)).Value!.HasImage);
+
+        // Nochmals löschen ist kein Fehler - das Ziel ist bereits erreicht.
+        Assert.True((await service.DeleteImageAsync(ownerId, dogId)).Succeeded);
+    }
+
+    [Fact]
+    public async Task Image_NotAccessibleForStrangers()
+    {
+        var service = MakeService(out var db, out _);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        await service.SetImageAsync(ownerId, dogId, Jpeg);
+        var stranger = Guid.NewGuid();
+
+        Assert.False((await service.GetImageAsync(stranger, dogId)).Succeeded);
+        Assert.False((await service.SetImageAsync(stranger, dogId, Jpeg)).Succeeded);
+        Assert.False((await service.DeleteImageAsync(stranger, dogId)).Succeeded);
+
+        // Und das Bild des Besitzers ist noch da.
+        Assert.True((await service.GetImageAsync(ownerId, dogId)).Succeeded);
+    }
 }

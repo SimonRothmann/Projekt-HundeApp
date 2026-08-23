@@ -18,6 +18,7 @@ public interface IApplicationDbContext
 {
     DbSet<Dog> Dogs { get; }
     DbSet<DogOwner> DogOwners { get; }
+    DbSet<DogImage> DogImages { get; }
 
     DbSet<Sport> Sports { get; }
     DbSet<Regulation> Regulations { get; }

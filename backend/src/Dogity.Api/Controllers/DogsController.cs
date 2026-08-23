@@ -51,6 +51,31 @@ public class DogsController(IDogService dogService) : ApiControllerBase
         return FromResult(result);
     }
 
+    /// <summary>
+    /// Profilbild als Data-URI - direkt in ein img-Element hängbar. 204, wenn
+    /// keines hinterlegt ist; das Frontend zeigt dann das Platzhalter-Symbol.
+    /// </summary>
+    [HttpGet("{id:guid}/image")]
+    public async Task<ActionResult<DogImageDto>> GetImage(Guid id, CancellationToken ct)
+    {
+        var result = await dogService.GetImageAsync(CurrentUserId, id, ct);
+        return result.Succeeded ? Ok(result.Value) : NoContent();
+    }
+
+    [HttpPut("{id:guid}/image")]
+    public async Task<IActionResult> SetImage(Guid id, DogImageDto request, CancellationToken ct)
+    {
+        var result = await dogService.SetImageAsync(CurrentUserId, id, request.DataUrl, ct);
+        return FromResult(result);
+    }
+
+    [HttpDelete("{id:guid}/image")]
+    public async Task<IActionResult> DeleteImage(Guid id, CancellationToken ct)
+    {
+        var result = await dogService.DeleteImageAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
     [HttpGet("{id:guid}/owners")]
     public async Task<ActionResult<IReadOnlyList<DogOwnerDto>>> GetOwners(Guid id, CancellationToken ct)
     {
