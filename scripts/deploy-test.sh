@@ -25,10 +25,36 @@ echo "==> Test-Container bauen und starten"
 # --force-recreate stellt sicher, dass auch bei unveränderten Images ein
 # frischer Container startet (relevant, wenn nur env-Werte via Volumes
 # geändert wurden - Images unverändert, aber Container muss neu).
-docker compose up -d --build --force-recreate backend-test frontend-test
+# Reihenfolge ist wichtig, nicht Geschmackssache: Das Frontend fragt beim
+# BAUEN den Prüfungsordnungs-Katalog über NEXT_PUBLIC_API_URL ab und backt
+# daraus seine Seiten und die Sitemap (generateStaticParams, app/sitemap.ts -
+# siehe docs/SEO.md). Werden beide Images in einem Rutsch gebaut, antwortet
+# waehrend des Frontend-Builds noch das ALTE Backend - neue Pruefungsordnungen
+# fehlen dann im Frontend, obwohl das Backend sie laengst kennt. Genau das ist
+# am 2026-08-23 passiert (Turnierhundsport/Agility im Backend da, im Frontend
+# 404). Deshalb: erst das Backend hochziehen, auf seinen Health-Check warten,
+# dann das Frontend bauen.
+docker compose up -d --build --force-recreate backend-test
 
-echo "==> Warte 15 s auf Backend-Migration + Health-Check"
-sleep 15
+echo "==> Warte auf das neue Backend (test)"
+# /health antwortet erst nach Migration und Seedern (siehe Program.cs) - ein
+# erfolgreicher Aufruf heisst also: der neue Katalog steht bereit.
+for i in $(seq 1 60); do
+  if curl -sfS -o /dev/null "https://api-test.dogity.net/health"; then
+    echo "    Backend ist oben (nach $((i*2))s)"
+    break
+  fi
+  if [ "$i" -eq 60 ]; then
+    echo "    Backend antwortet nach 120s nicht - Abbruch, Frontend wird NICHT gebaut." >&2
+    exit 1
+  fi
+  sleep 2
+done
+
+echo "==> Frontend bauen und starten"
+docker compose up -d --build --force-recreate frontend-test
+
+echo "==> Abschliessender Rauchtest"
 curl -sS -o /dev/null -w "test-api: HTTP %{http_code}\n" https://api-test.dogity.net/health
 curl -sS -o /dev/null -w "test:     HTTP %{http_code}\n" https://test.dogity.net/
 
