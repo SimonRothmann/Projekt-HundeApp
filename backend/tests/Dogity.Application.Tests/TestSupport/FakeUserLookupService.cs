@@ -48,6 +48,16 @@ public class FakeUserLookupService : IUserLookupService
     public Task<IReadOnlyList<Guid>> ListUserIdsInRoleAsync(string role, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<Guid>>([]);
 
+    /// <summary>Wer aktuell das TRAINER-Kennzeichen trägt - damit Tests es prüfen können.</summary>
+    public HashSet<Guid> TrainerRole { get; } = [];
+
+    public Task SetTrainerRoleAsync(Guid userId, bool isTrainer, CancellationToken ct = default)
+    {
+        if (isTrainer) TrainerRole.Add(userId);
+        else TrainerRole.Remove(userId);
+        return Task.CompletedTask;
+    }
+
     public Task<(bool Success, string[] Errors)> SetPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)
         => Task.FromResult(_users.ContainsKey(userId) ? (true, Array.Empty<string>()) : (false, new[] { "Benutzer nicht gefunden." }));
 }

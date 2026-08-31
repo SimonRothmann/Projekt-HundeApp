@@ -9,17 +9,27 @@ public record GroupMemberDto(Guid UserId, string Email, string FirstName, string
 /// <summary>Ein möglicher Gruppen-Trainer (alle Trainer:innen des Vereins der Gruppe).</summary>
 public record GroupTrainerOptionDto(Guid UserId, string FirstName, string LastName, string Email);
 
+/// <summary>
+/// Eine:r der Trainer:innen einer Gruppe. <paramref name="IsLead"/> markiert
+/// die/den Hauptverantwortliche:n aus <see cref="Domain.Community.Group.TrainerId"/> -
+/// alle anderen betreuen gleichberechtigt mit.
+/// </summary>
+public record GroupTrainerDto(Guid UserId, string Email, string FirstName, string LastName, bool IsLead);
+
 public record GroupJoinRequestDto(Guid MemberId, string Email, string FirstName, string LastName, DateTimeOffset RequestedAt);
 
 public record MemberDogDto(Guid Id, string Name, string? Breed, bool IsTrainerAssigned);
 
-public record GroupDetailDto(GroupDto Group, IReadOnlyList<GroupMemberDto> Members);
+public record GroupDetailDto(GroupDto Group, IReadOnlyList<GroupMemberDto> Members, IReadOnlyList<GroupTrainerDto> Trainers);
 
 public record CreateGroupRequest(string Name, string? Description, Guid? ClubId = null);
 
 public record UpdateGroupRequest(string Name, string? Description);
 
 public record AssignGroupTrainerRequest(Guid TrainerId);
+
+/// <summary>Weitere:n Trainer:in per E-Mail-Adresse zur Gruppe hinzufügen.</summary>
+public record AddGroupTrainerRequest(string Email);
 
 public record AddMemberRequest(string Email);
 

@@ -79,6 +79,20 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, TimePro
         return users.Select(u => u.Id).ToList();
     }
 
+    public async Task SetTrainerRoleAsync(Guid userId, bool isTrainer, CancellationToken ct = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null) return;
+
+        var hasRole = await userManager.IsInRoleAsync(user, Roles.Trainer);
+        if (isTrainer == hasRole) return;
+
+        if (isTrainer)
+            await userManager.AddToRoleAsync(user, Roles.Trainer);
+        else
+            await userManager.RemoveFromRoleAsync(user, Roles.Trainer);
+    }
+
     public async Task<(bool Success, string[] Errors)> SetPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());

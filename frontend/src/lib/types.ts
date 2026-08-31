@@ -338,9 +338,20 @@ export type GroupMember = {
   joinedAt: string;
 };
 
+// Eine:r der Trainer:innen einer Gruppe. isLead markiert die/den
+// Hauptverantwortliche:n, alle anderen betreuen gleichberechtigt mit.
+export type GroupTrainer = {
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isLead: boolean;
+};
+
 export type GroupDetail = {
   group: Group;
   members: GroupMember[];
+  trainers: GroupTrainer[];
 };
 
 export type MemberDog = {

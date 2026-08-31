@@ -35,6 +35,10 @@ export default function TrainerGroupPage() {
   const [selectedTrainerId, setSelectedTrainerId] = useState("");
   const [assigning, setAssigning] = useState(false);
 
+  // Weitere Trainer:innen (gleichberechtigt neben der/dem Hauptverantwortlichen)
+  const [coTrainerEmail, setCoTrainerEmail] = useState("");
+  const [addingCoTrainer, setAddingCoTrainer] = useState(false);
+
   async function loadDetail() {
     try {
       const data = await api.get<GroupDetail>(`/api/groups/${groupId}`);
@@ -89,6 +93,32 @@ export default function TrainerGroupPage() {
       toast.error(err instanceof ApiError ? err.message : "Trainer:in konnte nicht zugewiesen werden.");
     } finally {
       setAssigning(false);
+    }
+  }
+
+  async function addCoTrainer(e: React.FormEvent) {
+    e.preventDefault();
+    if (!coTrainerEmail.trim()) return;
+    setAddingCoTrainer(true);
+    try {
+      await api.post(`/api/groups/${groupId}/co-trainers`, { email: coTrainerEmail.trim() });
+      toast.success("Trainer:in hinzugefügt.");
+      setCoTrainerEmail("");
+      await loadDetail();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Trainer:in konnte nicht hinzugefügt werden.");
+    } finally {
+      setAddingCoTrainer(false);
+    }
+  }
+
+  async function removeCoTrainer(userId: string) {
+    try {
+      await api.delete(`/api/groups/${groupId}/co-trainers/${userId}`);
+      toast.success("Trainer:in entfernt.");
+      await loadDetail();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Trainer:in konnte nicht entfernt werden.");
     }
   }
 
@@ -204,16 +234,69 @@ export default function TrainerGroupPage() {
             )
           )}
 
-          <div className="flex flex-col gap-2 border-t pt-4">
-            <div className="flex items-center gap-2 text-sm">
+          {/* Trainer:innen der Gruppe. Mehrere sind ausdrücklich erlaubt - wer
+              hier steht, darf die Gruppe genauso verwalten und kann daneben in
+              beliebig vielen anderen Gruppen eingetragen sein. */}
+          <div className="flex flex-col gap-3 border-t pt-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
               <UserCog className="size-4 shrink-0 text-muted-foreground" />
-              <span className="text-muted-foreground">Trainer:in:</span>
-              <span className="font-medium [overflow-wrap:anywhere]">{detail.group.trainerName ?? "—"}</span>
+              Trainer:innen
             </div>
+
+            <ul className="flex flex-col gap-1.5">
+              {detail.trainers.map((trainer) => (
+                <li
+                  key={trainer.userId}
+                  className="flex items-center justify-between gap-2 rounded-md bg-muted/40 px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {`${trainer.firstName} ${trainer.lastName}`.trim() || trainer.email}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">{trainer.email}</p>
+                  </div>
+                  {trainer.isLead ? (
+                    <Badge variant="secondary" className="shrink-0">
+                      Hauptverantwortlich
+                    </Badge>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0"
+                      aria-label={`${trainer.firstName} ${trainer.lastName}`.trim() || trainer.email}
+                      title="Trainer:in entfernen"
+                      onClick={() => removeCoTrainer(trainer.userId)}
+                    >
+                      <Trash2 className="size-4 text-muted-foreground" />
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            <form onSubmit={addCoTrainer} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="flex flex-col gap-1.5 sm:flex-1">
+                <Label htmlFor="cotrainer-email">Weitere:n Trainer:in hinzufügen</Label>
+                <Input
+                  id="cotrainer-email"
+                  type="email"
+                  value={coTrainerEmail}
+                  onChange={(e) => setCoTrainerEmail(e.target.value)}
+                  placeholder="trainer@example.com"
+                />
+              </div>
+              <Button type="submit" size="sm" disabled={addingCoTrainer || !coTrainerEmail.trim()}>
+                <UserPlus className="size-4" />
+                {addingCoTrainer ? "Fügt hinzu…" : "Hinzufügen"}
+              </Button>
+            </form>
+
             {detail.group.clubId ? (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                <div className="flex flex-1 flex-col gap-1.5">
-                  <Label>Trainer:in zuweisen</Label>
+              <div className="flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-end">
+                <div className="flex flex-col gap-1.5 sm:flex-1">
+                  <Label>Hauptverantwortliche:n wechseln</Label>
                   <Select value={selectedTrainerId} onValueChange={(v) => setSelectedTrainerId(v ?? "")}>
                     <SelectTrigger>
                       <SelectValue placeholder="Trainer:in wählen…" />
@@ -234,11 +317,14 @@ export default function TrainerGroupPage() {
                   disabled={assigning || !selectedTrainerId || selectedTrainerId === detail.group.trainerId}
                   onClick={assignTrainer}
                 >
-                  {assigning ? "Weise zu…" : "Zuweisen"}
+                  {assigning ? "Weise zu…" : "Wechseln"}
                 </Button>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">Trainer:innen-Zuweisung ist nur für Vereinsgruppen möglich.</p>
+              <p className="text-xs text-muted-foreground">
+                Die/den Hauptverantwortliche:n zu wechseln geht nur bei Vereinsgruppen. Weitere Trainer:innen lassen sich
+                überall hinzufügen.
+              </p>
             )}
           </div>
         </CardContent>

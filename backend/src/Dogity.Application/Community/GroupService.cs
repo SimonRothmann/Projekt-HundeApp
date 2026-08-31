@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Notifications;
 using Dogity.Domain.Community;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,20 +13,23 @@ namespace Dogity.Application.Community;
 /// eines Mitglieds eintragen - das gewährt anschließend Zugriff auf
 /// Training/Ziele dieses Hundes (siehe <see cref="DogAccessQueries"/>).
 /// </summary>
-public class GroupService(IApplicationDbContext db, IUserLookupService userLookup) : IGroupService
+public class GroupService(IApplicationDbContext db, IUserLookupService userLookup, ITrainerRoleService trainerRoles, INotificationService notifications) : IGroupService
 {
     public async Task<Result<IReadOnlyList<GroupDto>>> GetMyGroupsAsync(Guid trainerId, CancellationToken ct = default)
     {
-        // Sichtbar sind eigene Gruppen UND alle Gruppen der Vereine, in denen
-        // man Trainer:in ist - so kann jede:r Vereinstrainer:in die Gruppen
-        // des Vereins sehen, bearbeiten und einer/m Trainer:in zuweisen.
+        // Sichtbar sind eigene Gruppen, Gruppen, in denen man als weitere:r
+        // Trainer:in mit-betreut, UND alle Gruppen der Vereine, in denen man
+        // Trainer:in ist - so kann jede:r Vereinstrainer:in die Gruppen des
+        // Vereins sehen, bearbeiten und einer/m Trainer:in zuweisen.
         var clubIds = await db.ClubTrainers
             .Where(t => t.UserId == trainerId)
             .Select(t => t.ClubId)
             .ToListAsync(ct);
 
         var rows = await db.Groups
-            .Where(g => g.TrainerId == trainerId || (g.ClubId != null && clubIds.Contains(g.ClubId.Value)))
+            .Where(g => g.TrainerId == trainerId
+                || g.Trainers.Any(t => t.UserId == trainerId)
+                || (g.ClubId != null && clubIds.Contains(g.ClubId.Value)))
             .Select(g => new
             {
                 g.Id,
@@ -49,19 +53,23 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     private static string? TrainerDisplayName(IReadOnlyDictionary<Guid, UserLookupResult> lookup, Guid trainerId) =>
         lookup.TryGetValue(trainerId, out var info) ? $"{info.FirstName} {info.LastName}".Trim() : null;
 
+    private static GroupTrainerDto ToTrainerDto(IReadOnlyDictionary<Guid, UserLookupResult> lookup, Guid userId, bool isLead) =>
+        lookup.TryGetValue(userId, out var info)
+            ? new GroupTrainerDto(userId, info.Email, info.FirstName, info.LastName, isLead)
+            : new GroupTrainerDto(userId, "(unbekannt)", "", "", isLead);
+
     /// <summary>
     /// "Trainer-Sein" ist bewusst rein datengetrieben (siehe TODO.md
-    /// "Rollenswitch"): wer mindestens eine Gruppe leitet oder als Trainer
-    /// einem Verein zugewiesen ist, bekommt die Trainer-Perspektive im
-    /// Frontend angezeigt - unabhängig von der Identity-Rolle.
+    /// "Rollenswitch"): wer eine Gruppe leitet, eine Gruppe mit-betreut oder
+    /// als Trainer:in einem Verein zugewiesen ist, bekommt die
+    /// Trainer-Perspektive im Frontend.
+    ///
+    /// Dieselbe Abfrage bestimmt auch die Identity-Rolle TRAINER
+    /// (siehe <see cref="ITrainerRoleService"/>) - deshalb steht sie an einer
+    /// gemeinsamen Stelle und nicht zweimal hier.
     /// </summary>
-    public async Task<bool> IsTrainerAsync(Guid userId, CancellationToken ct = default)
-    {
-        var leadsGroup = await db.Groups.AnyAsync(g => g.TrainerId == userId, ct);
-        if (leadsGroup) return true;
-
-        return await db.ClubTrainers.AnyAsync(t => t.UserId == userId, ct);
-    }
+    public Task<bool> IsTrainerAsync(Guid userId, CancellationToken ct = default) =>
+        db.IsAnyTrainerAsync(userId, ct);
 
     public async Task<Result<GroupDetailDto>> GetDetailAsync(Guid userId, Guid groupId, CancellationToken ct = default)
     {
@@ -69,7 +77,11 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (group is null)
             return Result<GroupDetailDto>.Failure("Gruppe nicht gefunden.");
 
-        var lookupIds = group.Members.Select(m => m.UserId).Append(group.TrainerId).ToList();
+        var coTrainerIds = group.Trainers.Select(t => t.UserId).ToList();
+        var lookupIds = group.Members.Select(m => m.UserId)
+            .Append(group.TrainerId)
+            .Concat(coTrainerIds)
+            .ToList();
         var memberLookup = await userLookup.FindByIdsAsync(lookupIds, ct);
         var members = group.Members
             .Select(m => memberLookup.TryGetValue(m.UserId, out var info)
@@ -77,7 +89,19 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
                 : new GroupMemberDto(m.UserId, "(unbekannt)", "", "", m.Role, m.JoinedAt))
             .ToList();
 
-        var dto = new GroupDetailDto(new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, members.Count, TrainerDisplayName(memberLookup, group.TrainerId)), members);
+        // Hauptverantwortliche:r zuerst, danach die weiteren Trainer:innen
+        // alphabetisch - die Liste steht so in der Oberfläche.
+        var trainers = new List<GroupTrainerDto> { ToTrainerDto(memberLookup, group.TrainerId, isLead: true) };
+        trainers.AddRange(coTrainerIds
+            .Where(id => id != group.TrainerId)
+            .Select(id => ToTrainerDto(memberLookup, id, isLead: false))
+            .OrderBy(t => t.FirstName)
+            .ThenBy(t => t.LastName));
+
+        var dto = new GroupDetailDto(
+            new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, members.Count, TrainerDisplayName(memberLookup, group.TrainerId)),
+            members,
+            trainers);
         return Result<GroupDetailDto>.Success(dto);
     }
 
@@ -102,6 +126,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         };
         db.Groups.Add(group);
         await db.SaveChangesAsync(ct);
+        await trainerRoles.SyncAsync(trainerId, ct);
 
         return Result<GroupDto>.Success(new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, 0));
     }
@@ -164,8 +189,70 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (!isClubTrainer)
             return Result.Failure("Die/der gewählte Trainer:in gehört nicht zu diesem Verein.");
 
+        var previousTrainerId = group.TrainerId;
         group.TrainerId = request.TrainerId;
         await db.SaveChangesAsync(ct);
+        // Beide Seiten abgleichen: die/der bisherige Hauptverantwortliche kann
+        // dadurch das Trainer-Kennzeichen verlieren, die/der neue es bekommen.
+        await trainerRoles.SyncAsync([previousTrainerId, request.TrainerId], ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> AddGroupTrainerAsync(Guid userId, Guid groupId, AddGroupTrainerRequest request, CancellationToken ct = default)
+    {
+        var group = await GetManageableGroupAsync(userId, groupId, ct);
+        if (group is null)
+            return Result.Failure("Gruppe nicht gefunden.");
+
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return Result.Failure("E-Mail-Adresse ist erforderlich.");
+
+        var user = await userLookup.FindByEmailAsync(request.Email.Trim(), ct);
+        if (user is null)
+            return Result.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
+
+        if (user.UserId == group.TrainerId)
+            return Result.Failure("Diese Person ist bereits hauptverantwortlich für diese Gruppe.");
+
+        // Auch weichgelöschte Zeilen ansehen: sonst scheitert das erneute
+        // Hinzufügen einer zuvor entfernten Trainer:in am Unique-Index.
+        var existing = await db.GroupTrainers
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.GroupId == groupId && t.UserId == user.UserId, ct);
+
+        if (existing is not null)
+        {
+            if (existing.DeletedAt is null)
+                return Result.Failure("Diese Person ist bereits Trainer:in dieser Gruppe.");
+            existing.DeletedAt = null;
+        }
+        else
+        {
+            db.GroupTrainers.Add(new GroupTrainer { GroupId = groupId, UserId = user.UserId });
+        }
+
+        await db.SaveChangesAsync(ct);
+        await trainerRoles.SyncAsync(user.UserId, ct);
+        await notifications.CreateAsync(user.UserId, $"Du bist jetzt Trainer:in der Gruppe \"{group.Name}\".", $"/trainer/{groupId}", ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> RemoveGroupTrainerAsync(Guid userId, Guid groupId, Guid trainerUserId, CancellationToken ct = default)
+    {
+        var group = await GetManageableGroupAsync(userId, groupId, ct);
+        if (group is null)
+            return Result.Failure("Gruppe nicht gefunden.");
+
+        if (trainerUserId == group.TrainerId)
+            return Result.Failure("Die/der Hauptverantwortliche kann nicht entfernt werden - erst eine andere Person zuweisen.");
+
+        var entry = await db.GroupTrainers.FirstOrDefaultAsync(t => t.GroupId == groupId && t.UserId == trainerUserId, ct);
+        if (entry is null)
+            return Result.Failure("Trainer-Zuordnung nicht gefunden.");
+
+        entry.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        await trainerRoles.SyncAsync(trainerUserId, ct);
         return Result.Success();
     }
 
@@ -343,21 +430,25 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     private async Task<Group?> GetAccessibleGroupAsync(Guid userId, Guid groupId, CancellationToken ct) =>
         await db.Groups
             .Include(g => g.Members.Where(m => m.Status == GroupMemberStatus.Active))
+            .Include(g => g.Trainers)
             .Where(g => g.Id == groupId)
             .Where(g => g.TrainerId == userId
+                || g.Trainers.Any(t => t.UserId == userId)
                 || g.Members.Any(m => m.UserId == userId && m.Status == GroupMemberStatus.Active)
                 || (g.ClubId != null && db.ClubTrainers.Any(t => t.ClubId == g.ClubId && t.UserId == userId)))
             .AsNoTracking()
             .FirstOrDefaultAsync(ct);
 
-    // Ob der/die Nutzer:in die Gruppe verwalten darf: als deren Trainer:in ODER
-    // als Trainer:in des Vereins, dem die Gruppe gehört ("jede:r Vereinstrainer:in").
+    // Ob der/die Nutzer:in die Gruppe verwalten darf: als Hauptverantwortliche:r,
+    // als weitere:r Trainer:in dieser Gruppe ODER als Trainer:in des Vereins,
+    // dem die Gruppe gehört ("jede:r Vereinstrainer:in").
     // Liefert die getrackte Entität zurück, damit Aufrufer sie direkt ändern können.
     private async Task<Group?> GetManageableGroupAsync(Guid userId, Guid groupId, CancellationToken ct)
     {
         var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
         if (group is null) return null;
         if (group.TrainerId == userId) return group;
+        if (await db.GroupTrainers.AnyAsync(t => t.GroupId == groupId && t.UserId == userId, ct)) return group;
         if (group.ClubId is { } clubId && await db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct))
             return group;
         return null;

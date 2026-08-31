@@ -31,6 +31,14 @@ public interface IUserLookupService
     Task<IReadOnlyList<Guid>> ListUserIdsInRoleAsync(string role, CancellationToken ct = default);
 
     /// <summary>
+    /// Setzt die Identity-Rolle TRAINER oder nimmt sie weg. Der Rollenname
+    /// bleibt bewusst in Infrastructure - Application soll nicht wissen, wie
+    /// die Rolle heißt, nur DASS es sie gibt.
+    /// Idempotent: mehrfaches Setzen/Entfernen ist unproblematisch.
+    /// </summary>
+    Task SetTrainerRoleAsync(Guid userId, bool isTrainer, CancellationToken ct = default);
+
+    /// <summary>
     /// Setzt das Passwort eines Benutzers administrativ neu (ohne den
     /// Token-basierten Self-Service-Reset). Gibt bei Fehlschlag die
     /// Identity-Fehlermeldungen zurück (z.B. Passwortrichtlinie verletzt).

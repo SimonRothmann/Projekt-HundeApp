@@ -65,6 +65,20 @@ public class GroupsController(IGroupService groupService, IClubService clubServi
         return FromResult(result);
     }
 
+    [HttpPost("{id:guid}/co-trainers")]
+    public async Task<IActionResult> AddCoTrainer(Guid id, AddGroupTrainerRequest request, CancellationToken ct)
+    {
+        var result = await groupService.AddGroupTrainerAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
+
+    [HttpDelete("{id:guid}/co-trainers/{trainerUserId:guid}")]
+    public async Task<IActionResult> RemoveCoTrainer(Guid id, Guid trainerUserId, CancellationToken ct)
+    {
+        var result = await groupService.RemoveGroupTrainerAsync(CurrentUserId, id, trainerUserId, ct);
+        return FromResult(result);
+    }
+
     [HttpPost("{id:guid}/members")]
     public async Task<IActionResult> AddMember(Guid id, AddMemberRequest request, CancellationToken ct)
     {

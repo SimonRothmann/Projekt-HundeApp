@@ -45,6 +45,24 @@ public class GroupMemberConfiguration : IEntityTypeConfiguration<GroupMember>
     }
 }
 
+public class GroupTrainerConfiguration : IEntityTypeConfiguration<GroupTrainer>
+{
+    public void Configure(EntityTypeBuilder<GroupTrainer> builder)
+    {
+        builder.ToTable("group_trainers");
+
+        builder.HasOne(t => t.Group)
+            .WithMany(g => g.Trainers)
+            .HasForeignKey(t => t.GroupId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(t => new { t.GroupId, t.UserId }).IsUnique();
+        // Eigener Index auf UserId: "welche Gruppen betreue ich?" ist die
+        // Abfrage, die bei jedem Aufruf der Trainer-Übersicht läuft.
+        builder.HasIndex(t => t.UserId);
+    }
+}
+
 public class TrainerAssignmentConfiguration : IEntityTypeConfiguration<TrainerAssignment>
 {
     public void Configure(EntityTypeBuilder<TrainerAssignment> builder)

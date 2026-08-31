@@ -44,6 +44,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Club> Clubs => Set<Club>();
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
+    public DbSet<GroupTrainer> GroupTrainers => Set<GroupTrainer>();
     public DbSet<TrainerAssignment> TrainerAssignments => Set<TrainerAssignment>();
     public DbSet<ClubTrainer> ClubTrainers => Set<ClubTrainer>();
     public DbSet<ClubMembership> ClubMemberships => Set<ClubMembership>();
@@ -103,6 +104,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<Club>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<Group>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GroupMember>().HasQueryFilter(e => e.DeletedAt == null);
+        // Wie bei DogImage: der Filter der Gruppe muss mitgezogen werden, weil
+        // die Gruppe hier die erforderliche Seite der Beziehung ist.
+        builder.Entity<GroupTrainer>().HasQueryFilter(e => e.DeletedAt == null && e.Group!.DeletedAt == null);
         builder.Entity<TrainerAssignment>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<ClubTrainer>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<ClubMembership>().HasQueryFilter(e => e.DeletedAt == null);

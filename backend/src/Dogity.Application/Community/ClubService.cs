@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Community;
 
-public class ClubService(IApplicationDbContext db, IUserLookupService userLookup, INotificationService notifications) : IClubService
+public class ClubService(IApplicationDbContext db, IUserLookupService userLookup, INotificationService notifications, ITrainerRoleService trainerRoles) : IClubService
 {
     public async Task<Result<IReadOnlyList<ClubDto>>> GetClubsAsync(CancellationToken ct = default)
     {
@@ -93,6 +93,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
         db.ClubTrainers.Add(new ClubTrainer { ClubId = clubId, UserId = user.UserId });
         await db.SaveChangesAsync(ct);
+        await trainerRoles.SyncAsync(user.UserId, ct);
         return Result.Success();
     }
 
@@ -104,6 +105,9 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
         entry.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
+        // Nach dem Speichern: wer sonst nirgends Trainer:in ist, verliert das
+        // Kennzeichen wieder.
+        await trainerRoles.SyncAsync(userId, ct);
         return Result.Success();
     }
 
@@ -293,6 +297,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
         db.ClubTrainers.Add(new ClubTrainer { ClubId = clubId, UserId = targetUserId });
         await db.SaveChangesAsync(ct);
+        await trainerRoles.SyncAsync(targetUserId, ct);
 
         var club = await db.Clubs.AsNoTracking().FirstAsync(c => c.Id == clubId, ct);
         await notifications.CreateAsync(targetUserId, $"Du bist jetzt Trainer bei \"{club.Name}\".", "/trainer", ct);

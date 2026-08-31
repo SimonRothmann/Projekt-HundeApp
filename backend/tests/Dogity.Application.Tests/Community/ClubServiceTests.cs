@@ -17,7 +17,7 @@ public class ClubServiceTests
         db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService();
         notifications = new FakeNotificationService();
-        return new ClubService(db, lookup, notifications);
+        return new ClubService(db, lookup, notifications, new TrainerRoleService(db, lookup));
     }
 
     private static async Task<(Guid TrainerId, Guid MemberId, Guid OtherUserId, Guid ClubId, ClubService Service)>

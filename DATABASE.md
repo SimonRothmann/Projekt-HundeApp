@@ -185,6 +185,20 @@ TRAINER
 CLUB_ADMIN
 
 
+`USER` wird bei der Registrierung vergeben, `ADMIN` über den
+Admin-Bootstrap (`PROD_ADMIN_EMAIL`/`TEST_ADMIN_EMAIL`).
+
+`TRAINER` wird **nicht von Hand** gesetzt, sondern aus der Datenlage
+abgeleitet und automatisch nachgeführt (`TrainerRoleService`): Wer eine Gruppe
+leitet, in `group_trainers` steht oder in `club_trainers` einem Verein
+zugewiesen ist, trägt die Rolle — wer nirgends mehr steht, verliert sie
+wieder. Beim Backend-Start läuft der Abgleich einmal über alle Betroffenen.
+
+Die Rolle ist reine Anzeige (Admin-Übersicht, JWT). Autorisiert wird immer
+über die konkrete Zuordnung, nie über `TRAINER` — ein verspäteter Abgleich
+kann deshalb nichts aufsperren.
+
+
 ---
 
 # Hundeverwaltung
@@ -575,6 +589,30 @@ user_id
 role
 
 joined_at
+
+
+---
+
+## group_trainers
+
+
+Weitere Trainer:innen einer Gruppe neben der/dem in `groups.trainer_id`
+hinterlegten Hauptverantwortlichen. Eine Gruppe kann mehrere Trainer:innen
+haben, und dieselbe Trainer:in kann in beliebig vielen Gruppen stehen
+("in anderen Gruppen mittrainieren"). Wer hier steht, darf die Gruppe genauso
+verwalten wie die/der Hauptverantwortliche.
+
+
+Felder:
+
+
+
+group_id
+
+user_id
+
+
+Eindeutig je (group_id, user_id).
 
 
 ---

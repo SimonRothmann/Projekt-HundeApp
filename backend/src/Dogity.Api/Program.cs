@@ -1,5 +1,6 @@
 using Dogity.Api.Hosting;
 using Dogity.Application;
+using Dogity.Application.Community;
 using Dogity.Application.Planning;
 using Dogity.Application.Tracking;
 using Dogity.Infrastructure;
@@ -140,6 +141,10 @@ using (var scope = app.Services.CreateScope())
     // Einmalige Nachauswertung bestehender Fährten-Abläufe (idempotent: wertet
     // nur Abläufe ohne EvaluatedAt aus).
     await scope.ServiceProvider.GetRequiredService<IGpsTrackEvaluationBackfill>().BackfillAsync();
+    // Trainer-Kennzeichen (Identity-Rolle TRAINER) mit der Datenlage abgleichen.
+    // Die Rolle wurde bis hierher nie vergeben - Trainer:innen standen in der
+    // Admin-Übersicht nur als "USER". Idempotent und in beide Richtungen.
+    await scope.ServiceProvider.GetRequiredService<ITrainerRoleService>().BackfillAsync();
 }
 
 if (app.Environment.IsDevelopment())

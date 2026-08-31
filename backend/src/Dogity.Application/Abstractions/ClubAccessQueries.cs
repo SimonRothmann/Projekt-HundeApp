@@ -27,4 +27,20 @@ public static class ClubAccessQueries
 
     public static Task<bool> IsClubTrainerAsync(this IApplicationDbContext db, Guid userId, Guid clubId, CancellationToken ct = default) =>
         db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
+
+    /// <summary>
+    /// Ob jemand überhaupt irgendwo Trainer:in ist: als Hauptverantwortliche:r
+    /// einer Gruppe, als weitere:r Trainer:in einer Gruppe oder als Trainer:in
+    /// eines Vereins.
+    ///
+    /// Eine Definition an EINER Stelle, weil daran zwei Dinge hängen, die nicht
+    /// auseinanderlaufen dürfen: die Trainer-Perspektive im Frontend und die
+    /// Identity-Rolle TRAINER, die in der Admin-Übersicht angezeigt wird.
+    /// </summary>
+    public static async Task<bool> IsAnyTrainerAsync(this IApplicationDbContext db, Guid userId, CancellationToken ct = default)
+    {
+        if (await db.Groups.AnyAsync(g => g.TrainerId == userId, ct)) return true;
+        if (await db.GroupTrainers.AnyAsync(t => t.UserId == userId, ct)) return true;
+        return await db.ClubTrainers.AnyAsync(t => t.UserId == userId, ct);
+    }
 }

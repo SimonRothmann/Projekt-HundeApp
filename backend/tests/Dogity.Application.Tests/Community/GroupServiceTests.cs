@@ -14,10 +14,17 @@ namespace Dogity.Application.Tests.Community;
 public class GroupServiceTests
 {
     private static GroupService MakeService(out Dogity.Infrastructure.Persistence.ApplicationDbContext db)
+        => MakeService(out db, out _);
+
+    private static GroupService MakeService(
+        out Dogity.Infrastructure.Persistence.ApplicationDbContext db,
+        out FakeUserLookupService lookup)
     {
         db = InMemoryDbContext.Create();
-        var lookup = new FakeUserLookupService();
-        return new GroupService(db, lookup);
+        lookup = new FakeUserLookupService();
+        // Echter TrainerRoleService gegen den Fake-Lookup: so lässt sich in den
+        // Tests prüfen, ob das TRAINER-Kennzeichen tatsächlich mitwandert.
+        return new GroupService(db, lookup, new TrainerRoleService(db, lookup), new FakeNotificationService());
     }
 
     private static async Task<(Guid TrainerId, Guid GroupId, GroupService Service)> SetupGroupAsync(
@@ -230,5 +237,146 @@ public class GroupServiceTests
 
         Assert.True(result.Succeeded);
         Assert.Contains(result.Value!, g => g.Id == groupId);
+    }
+
+    // --- Mehrere Trainer:innen je Gruppe ---------------------------------
+    // Eine Gruppe hatte bis dahin genau eine:n Trainer:in. Diese Tests decken
+    // die zweite: dass sie dieselben Verwaltungsrechte hat, in ihrer eigenen
+    // Gruppenliste auftaucht und das TRAINER-Kennzeichen bekommt.
+
+    private static async Task<(Guid Lead, Guid Helper, Guid GroupId)> SetupGroupWithHelperAsync(
+        Dogity.Infrastructure.Persistence.ApplicationDbContext db, FakeUserLookupService lookup)
+    {
+        var lead = Guid.NewGuid();
+        var helper = Guid.NewGuid();
+        lookup.Register(helper, "helfer@example.com", "Hanna", "Helfer");
+
+        var group = new Group { TrainerId = lead, Name = "Dienstagsgruppe" };
+        db.Groups.Add(group);
+        await db.SaveChangesAsync();
+        return (lead, helper, group.Id);
+    }
+
+    [Fact]
+    public async Task AddCoTrainer_GivesManageRightsAndTrainerRole()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+
+        var result = await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(helper, lookup.TrainerRole);
+        // Verwalten darf sie jetzt auch - vorher wäre das "Gruppe nicht gefunden".
+        var update = await service.UpdateGroupAsync(helper, groupId, new UpdateGroupRequest("Neuer Name", null));
+        Assert.True(update.Succeeded);
+    }
+
+    [Fact]
+    public async Task AddCoTrainer_ShowsUpInDetailAndOwnGroupList()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+
+        var detail = await service.GetDetailAsync(lead, groupId);
+        Assert.True(detail.Succeeded);
+        Assert.Equal(2, detail.Value!.Trainers.Count);
+        Assert.Single(detail.Value.Trainers, t => t.IsLead && t.UserId == lead);
+        Assert.Single(detail.Value.Trainers, t => !t.IsLead && t.UserId == helper);
+
+        // "Trainer in anderen Gruppen mittrainieren": die Gruppe muss in der
+        // eigenen Übersicht auftauchen, sonst findet man sie nie wieder.
+        var mine = await service.GetMyGroupsAsync(helper);
+        Assert.Contains(mine.Value!, g => g.Id == groupId);
+    }
+
+    [Fact]
+    public async Task RemoveCoTrainer_RevokesRightsAndTrainerRole()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+
+        var result = await service.RemoveGroupTrainerAsync(lead, groupId, helper);
+
+        Assert.True(result.Succeeded);
+        Assert.DoesNotContain(helper, lookup.TrainerRole);
+        Assert.False((await service.UpdateGroupAsync(helper, groupId, new UpdateGroupRequest("X", null))).Succeeded);
+    }
+
+    [Fact]
+    public async Task RemoveCoTrainer_KeepsRoleWhenStillTrainerElsewhere()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+
+        // Zweite Gruppe, in der dieselbe Person mit-betreut.
+        var other = new Group { TrainerId = lead, Name = "Donnerstagsgruppe" };
+        db.Groups.Add(other);
+        await db.SaveChangesAsync();
+        await service.AddGroupTrainerAsync(lead, other.Id, new AddGroupTrainerRequest("helfer@example.com"));
+
+        await service.RemoveGroupTrainerAsync(lead, groupId, helper);
+
+        Assert.Contains(helper, lookup.TrainerRole);
+    }
+
+    [Fact]
+    public async Task AddCoTrainer_AfterRemoval_WorksAgain()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+        await service.RemoveGroupTrainerAsync(lead, groupId, helper);
+
+        // Ohne Wiederbeleben der weichgelöschten Zeile liefe das in den
+        // Unique-Index auf (GroupId, UserId).
+        var again = await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+
+        Assert.True(again.Succeeded);
+        Assert.Contains(helper, lookup.TrainerRole);
+        // Genau EINE Zeile - eine zweite würde auf Postgres am Unique-Index
+        // scheitern, den der InMemory-Provider nicht durchsetzt.
+        var rows = await db.GroupTrainers.IgnoreQueryFilters()
+            .CountAsync(t => t.GroupId == groupId && t.UserId == helper);
+        Assert.Equal(1, rows);
+    }
+
+    [Fact]
+    public async Task RemoveCoTrainer_LeadTrainer_Fails()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, _, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+
+        var result = await service.RemoveGroupTrainerAsync(lead, groupId, lead);
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task AddCoTrainer_ByMember_Fails()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (_, _, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+        var member = Guid.NewGuid();
+        db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = member });
+        await db.SaveChangesAsync();
+
+        var result = await service.AddGroupTrainerAsync(member, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task CreateGroup_GivesCreatorTrainerRole()
+    {
+        var service = MakeService(out _, out var lookup);
+        var creator = Guid.NewGuid();
+
+        await service.CreateAsync(creator, new CreateGroupRequest("Welpengruppe", null));
+
+        Assert.Contains(creator, lookup.TrainerRole);
     }
 }
