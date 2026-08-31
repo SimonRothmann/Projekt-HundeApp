@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, ListChecks, MapPin, PenLine, Plus, Trash2 } from "lucide-react";
+import { Clock, ListChecks, MapPin, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { difficultyLabel } from "@/lib/constants";
@@ -27,6 +27,14 @@ type ExerciseRow = {
   notes: string;
   trainingPlanItemId: string;
 };
+
+/**
+ * Sentinel in den Auswahllisten: führt zur Freitext-Eingabe statt zu einer
+ * Katalog-Übung. Bewusst dort, wo man sucht, wenn die eigene Übung fehlt -
+ * vorher lag der Umschalter auf einem Stift-Symbol ohne Beschriftung, das am
+ * Telefon kaum jemand fand und das mit "Bearbeiten" verwechselt wurde.
+ */
+const FREE_TEXT_OPTION = "__freitext__";
 
 function emptyRow(): ExerciseRow {
   return {
@@ -90,9 +98,25 @@ export function TrainingForm({
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   }
 
+  function switchToFreeText(index: number) {
+    updateRow(index, { isFreeText: true, sportId: "", exerciseId: "", trainingPlanItemId: "", freeText: "" });
+  }
+
   async function handleSportChange(index: number, sportId: string) {
+    if (sportId === FREE_TEXT_OPTION) {
+      switchToFreeText(index);
+      return;
+    }
     updateRow(index, { sportId, exerciseId: "", trainingPlanItemId: "" });
     await ensureExercisesLoaded(sportId);
+  }
+
+  function handleExerciseChange(index: number, exerciseId: string) {
+    if (exerciseId === FREE_TEXT_OPTION) {
+      switchToFreeText(index);
+      return;
+    }
+    updateRow(index, { exerciseId, trainingPlanItemId: "" });
   }
 
   // Plan-Ziele (siehe GoalsSection), die zur gewählten Übung passen - nur
@@ -214,31 +238,25 @@ export function TrainingForm({
               return (
                 <div key={index} className="flex flex-col gap-3 rounded-md border p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    title={row.isFreeText ? "Katalog-Übung auswählen" : "Sonstige/Spaß-Übung als Freitext eintragen"}
-                    onClick={() =>
-                      updateRow(index, {
-                        isFreeText: !row.isFreeText,
-                        sportId: "",
-                        exerciseId: "",
-                        trainingPlanItemId: "",
-                        freeText: "",
-                      })
-                    }
-                  >
-                    {row.isFreeText ? <ListChecks className="size-4" /> : <PenLine className="size-4" />}
-                  </Button>
                   {row.isFreeText ? (
                     <div className="flex flex-col gap-2 sm:w-72">
-                      <Label>Sonstige/Spaß-Übung</Label>
+                      <Label htmlFor={`freetext-${index}`}>Eigene Übung</Label>
                       <Input
+                        id={`freetext-${index}`}
                         placeholder="z.B. Spaziergang mit Bällchenspiel"
                         value={row.freeText}
                         onChange={(e) => updateRow(index, { freeText: e.target.value })}
                       />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 self-start px-2 text-xs text-muted-foreground"
+                        onClick={() => updateRow(index, { isFreeText: false, freeText: "" })}
+                      >
+                        <ListChecks className="size-3.5" />
+                        Doch eine Übung aus dem Katalog
+                      </Button>
                     </div>
                   ) : (
                     <>
@@ -257,6 +275,10 @@ export function TrainingForm({
                             {s.name}
                           </SelectItem>
                         ))}
+                        {/* Auch hier, nicht nur unter "Übung": wer einen
+                            Spaziergang einträgt, findet schon bei der
+                            Sportart nichts Passendes. */}
+                        <SelectItem value={FREE_TEXT_OPTION}>Eigene Übung eintragen…</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -265,7 +287,7 @@ export function TrainingForm({
                     <Select
                       value={row.exerciseId}
                       disabled={!row.sportId}
-                      onValueChange={(value) => updateRow(index, { exerciseId: value ?? "", trainingPlanItemId: "" })}
+                      onValueChange={(value) => handleExerciseChange(index, value ?? "")}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Auswählen…" />
@@ -276,6 +298,9 @@ export function TrainingForm({
                             {ex.name} ({difficultyLabel[ex.difficulty]})
                           </SelectItem>
                         ))}
+                        {/* Der Moment, in dem man merkt, dass die eigene Übung
+                            im Katalog fehlt - genau hier gehört der Ausweg hin. */}
+                        <SelectItem value={FREE_TEXT_OPTION}>Nicht dabei? Eigene Übung eintragen…</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
