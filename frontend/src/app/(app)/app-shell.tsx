@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { SidebarNav } from "@/components/nav/sidebar-nav";
@@ -47,7 +47,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* pb-28 (mobil) hält den Inhalt frei von der fixierten BottomNav
             (~64px) inkl. iOS-Safe-Area; Desktop nutzt md:pb-8 (keine BottomNav). */}
         <main className="relative z-10 flex-1 px-4 py-6 pb-28 md:px-8 md:pb-8 print:p-0">
-          <SubpageBackButton />
+          {/* Suspense-Grenze, weil SubpageBackButton useSearchParams liest
+              (?from=): ohne sie fiele der gesamte Client-Baum darüber aus dem
+              Prerendering - so empfiehlt es die Next-Dokumentation. Kein
+              Platzhalter: der Knopf ist Beiwerk, ein kurzes Fehlen fällt
+              weniger auf als ein springender Platzhalter. */}
+          <Suspense fallback={null}>
+            <SubpageBackButton />
+          </Suspense>
           {children}
         </main>
       </div>

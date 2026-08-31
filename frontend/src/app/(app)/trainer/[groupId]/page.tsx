@@ -412,7 +412,13 @@ export default function TrainerGroupPage() {
                             {dog.isTrainerAssigned ? (
                               <div className="flex items-center gap-2">
                                 <Badge variant="secondary">Betreut</Badge>
-                                <Link href={`/dogs/${dog.id}`} className="text-sm text-primary underline">
+                                <Link
+                                  // ?from=: sonst führt der Zurück-Button auf
+                                  // der Hundeseite zu den EIGENEN Hunden statt
+                                  // hierher in die Gruppe zurück.
+                                  href={`/dogs/${dog.id}?from=${encodeURIComponent(`/trainer/${groupId}`)}`}
+                                  className="text-sm text-primary underline"
+                                >
                                   Zum Hund
                                 </Link>
                               </div>
