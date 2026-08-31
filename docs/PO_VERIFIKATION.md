@@ -174,6 +174,42 @@ dadurch nicht.
   FCI-Wettkampfordnung führen noch Tisch und Stofftunnel — beide sind in der
   aktuellen Geräteliste nicht mehr enthalten.
 
+## Dritte Durchsicht (2026-08-31): der Turnierhundsport war halb abgebildet
+
+Rückmeldung des Betreibers: „In der THS Prüfungsordnung fehlen komplett die
+Laufdisziplinen und alle CaniCross-Übungen." Die Gegenprüfung gegen das
+offizielle PDF (VDH-PO Turnierhundsport, gültig ab 01.01.2025) hat das
+bestätigt — es fehlten ganze Kapitel:
+
+- **Kapitel 9 „VDH-CaniCross" ist ein Sammelbegriff**, keine Einzeldisziplin:
+  darunter stehen **VDH-GL (Geländelauf)**, **VDH-DS (DogScooter)** und
+  **VDH-BJ (Bikejöring)**. Im Katalog stand dafür eine einzige Übung
+  „CaniCross" — zwei von drei Disziplinen fehlten damit vollständig. Ebenso
+  fehlten die Streckenkategorien (Sprint 400–1000 m, Kurz bis 4000 m, Lang bis
+  8000 m) und die Altersgrenzen (Hund 18 Monate ab 5 km sowie im DS/BJ).
+- **Kapitel 4 „VDH-Sprint-Vierkampf" [VDH-S-VK]** fehlte ganz: die drei
+  Sprint-Disziplinen des VK3 plus 1000 m Geländelauf, 265 + 75
+  Ausgangspunkte, wahlweise als Verfolgungsrennen.
+- **Kapitel 2 „VDH-Vorprüfung"** fehlte ganz (VP-V, VP-CC, VP-VK). Sie war als
+  „einmalige Zulassungshürde, kein Trainingsziel" eingestuft — das war falsch:
+  ohne bestandene VDH-VP-V darf gar kein Hund im THS starten, und die VP-CC
+  besteht aus acht konkret trainierbaren Aufgaben (Start, Hindernisse
+  umfahren, Head-on-passing, Wenden, Anhalten, Slalom, Ablenkung, Abbiegen),
+  von denen der Richter drei auswählt.
+
+Gleichzeitig fielen beim Abgleich vier inhaltliche Fehler auf:
+
+| Stelle | vorher | laut PO |
+|---|---|---|
+| Bestehensregel VK1-3 (S. 15) | „mind. 42 Punkte UND höchstens 18 Fehlerpunkte" | „Ohne Bewertung" nur, wenn **beide** Grenzen gerissen werden — die Regel ist damit deutlich milder |
+| VK2/VK3 | „Bestanden: mind. 48 Punkte" | 48 Punkte sind das **Aufstiegskriterium** in die nächste Leistungsklasse, samt Mindest-Gesamtpunktzahl nach Alter und Geschlecht |
+| VK3 | keine Ausgangspunktzahl genannt | 265 Punkte (S. 45) |
+| VDH-Shorty (S. 53) | Frankfurter Kreisel | **Mühlacker Harfe** zzgl. der oberen Wertungsstangen des Oxers |
+
+Der Turnierhundsport hat damit 24 Übungen und 12 Prüfungsordnungen statt
+13 und 8. PARA-Klassen und Jedermann-/Fun-Klassen bleiben bewusst außen vor —
+sie sind Varianten derselben Disziplinen.
+
 ## Wie Korrekturen ankommen
 
 `SportCatalogSeeder` läuft bei **jedem** Backend-Start, auch in Produktion

@@ -1006,10 +1006,25 @@ public static class SportCatalogSeeder
         // MaxPoints 0 - wie schon BH Teil B und die IAD; ihre Bewertung
         // steht im Beschreibungstext.
         //
-        // PARA-Klassen, Jedermann-/Fun-Klassen und die VDH-Vorprüfung sind
-        // bewusst nicht abgebildet: Erstere sind Varianten derselben
-        // Disziplinen, Letztere ist eine einmalige Zulassungshürde und kein
-        // Trainingsziel.
+        // Nachgetragen am 2026-08-31 gegen das offizielle PDF (VDH-PO-THS,
+        // gültig ab 01.01.2025), nachdem der Betreiber gemeldet hatte, dass
+        // die Laufdisziplinen fehlen:
+        // - Kapitel 9 "VDH-CaniCross" ist ein SAMMELBEGRIFF für Geländelauf,
+        //   DogScooter und Bikejöring. Hier stand dafür eine einzige Übung
+        //   "CaniCross" - zwei von drei Disziplinen fehlten damit ganz.
+        // - Kapitel 4 "VDH-Sprint-Vierkampf" fehlte vollständig.
+        // - Kapitel 2 "VDH-Vorprüfung" (VP-V, VP-CC, VP-VK) fehlte. Es war als
+        //   "einmalige Zulassungshürde, kein Trainingsziel" abgetan - die
+        //   VP-CC besteht aber aus acht konkret trainierbaren Aufgaben, und
+        //   ohne bestandene VP-V darf gar kein Hund im THS starten.
+        // Gleichzeitig korrigiert: die Bestehensregel des Vierkampfs (sie
+        // greift nur, wenn BEIDE Grenzen gerissen werden), die 48 Punkte als
+        // Aufstiegs- statt Bestehenskriterium, die Ausgangspunktzahl des VK3
+        // und das Zusatzgerät des Shorty (Mühlacker Harfe, nicht Frankfurter
+        // Kreisel).
+        //
+        // PARA-Klassen und Jedermann-/Fun-Klassen bleiben bewusst außen vor:
+        // Varianten derselben Disziplinen.
         // ---------------------------------------------------------------
         var ths = await SeedSportAsync(db, "THS", "Turnierhundsport",
         [
@@ -1037,9 +1052,75 @@ public static class SportCatalogSeeder
                 "Zusatzgerät des Combinations-Speed-Cups: der Hund umläuft den Kreisel, während der Hundeführer außen mitläuft."),
             new("Mühlacker Harfe", ExerciseDifficulty.Advanced, "Sprint",
                 "Zusatzgerät des Combinations-Speed-Cups - eng gestellte Sprungfolge, die sauberes Timing zwischen Hund und Hundeführer verlangt."),
-            new("CaniCross", ExerciseDifficulty.Intermediate, "Ausdauer",
-                "Geländelauf mit dem Hund am Zuggeschirr und Bauchgurt, verbunden durch eine ruckdämpfende Leine."),
+            new("Geländelauf", ExerciseDifficulty.Intermediate, "CaniCross",
+                "Joggen oder Walken auf der vorgegebenen Strecke im Gelände. Der Hund läuft vorweg oder daneben und ist über eine Ruckdämpferleine (max. 2,50 m gedehnt) und ein Bauchgurtsystem mit dem Hundeführer verbunden; er gibt das Tempo vor."),
+            new("DogScooter", ExerciseDifficulty.Advanced, "CaniCross",
+                "Dieselbe Strecke mit dem Tretroller, der Hundeführer unterstützt durch Mittreten oder Mitlaufen. Ruckdämpferleine 2,50 bis 3,00 m, Helm, Schutzbrille und Handschuhe sind Pflicht, Radgröße mindestens 12 Zoll."),
+            new("Bikejöring", ExerciseDifficulty.Advanced, "CaniCross",
+                "Dieselbe Strecke mit dem geländetauglichen Fahrrad. Wegen der deutlich höheren Geschwindigkeit nur auf abgesperrten und gesicherten Strecken; Helm, Schutzbrille und Handschuhe sind Pflicht, Radgröße mindestens 26 Zoll."),
+            new("Verträglichkeit im Begegnungsverkehr", ExerciseDifficulty.Beginner, "Vorprüfung",
+                "Begegnungsverkehr außerhalb des Übungsplatzes. Maßgeblich ist der Gesamteindruck des Hundes - keine oder nur geringe Verträglichkeitsmängel."),
+            new("Start unter Laufbereitschaft", ExerciseDifficulty.Beginner, "Vorprüfung",
+                "Der Hund wartet mit hoher Laufbereitschaft auf den Start und bleibt dabei ansprechbar und dem Richter gegenüber neutral."),
+            new("Hindernisse umfahren", ExerciseDifficulty.Beginner, "Vorprüfung",
+                "Mit Pylonen aufgebaute Hindernisse werden umlaufen bzw. umfahren - das Team muss das Tempo drosseln können."),
+            new("Begegnung der Teams", ExerciseDifficulty.Intermediate, "Vorprüfung",
+                "Head-on-passing: zwei Teams laufen bzw. fahren auf getrennten Spuren aufeinander zu und passieren einander ohne Aggression."),
+            new("Wenden", ExerciseDifficulty.Beginner, "Vorprüfung",
+                "Ein mit Pylonen markierter Wendepunkt wird umlaufen bzw. umfahren; Roller oder Rad dürfen dabei geschoben werden."),
+            new("Anhalten mit Begegnungsverkehr", ExerciseDifficulty.Intermediate, "Vorprüfung",
+                "Die eigene Spur ist unterbrochen - das Team wartet ohne Aggression, bis das entgegenkommende Team passiert hat, und wechselt erst dann."),
+            new("Slalom mit Richtungswechseln", ExerciseDifficulty.Beginner, "Vorprüfung",
+                "Slalomstrecke mit mindestens vier sanften Richtungswechseln (max. 45 Grad, Stangenabstand mind. 20 m), zu bewältigen bei normaler Geschwindigkeit."),
+            new("Ablenkung durch bellenden Hund", ExerciseDifficulty.Intermediate, "Vorprüfung",
+                "Vorbeilaufen bzw. -fahren an einem am Streckenrand stehenden, im Idealfall bellenden Mensch-Hund-Team - ohne Aggressionsverhalten."),
+            new("Abbiegen trotz Verleitung", ExerciseDifficulty.Advanced, "Vorprüfung",
+                "Das Team biegt selbstständig vom Hauptweg auf den markierten kleineren Weg ab, obwohl dahinter ein anderes Mensch-Hund-Team zum Geradeausfahren verleitet."),
         ]);
+
+        // Die Vorprüfungen sind keine Kür, sondern das Tor zum Sport: ohne
+        // VDH-VP-V darf kein Hund im THS geführt werden, ohne VDH-VP-CC bzw.
+        // VDH-VP-VK nicht in den jeweiligen Disziplinen. Sie werden nach
+        // "Bestanden"/"Nicht bestanden" beurteilt, tragen also keine Punkte.
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-VP-V", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Verträglichkeit im Begegnungsverkehr", true, 0, "Kein Punktesystem - maßgeblich ist der Gesamteindruck. Der Richter darf bei Zweifeln wiederholen oder variieren."),
+        ],
+        Description: "VDH-Verträglichkeitsprüfung - die einmalige Grundvoraussetzung für jeden Hund im Turnierhundsport.\n" +
+            "Ablauf: Chipkontrolle durch den Richter, danach Begegnungsverkehr außerhalb des Übungsplatzes.\n" +
+            "Bewertung: \"Bestanden\", wenn keine oder nur geringe Verträglichkeitsmängel festgestellt wurden. Bei Anzeichen von Aggression nicht bestanden.\n" +
+            "Nach dem Bestehen darf der Hund sofort in weiteren Prüfungen derselben Veranstaltung geführt werden.\n" +
+            "Alternativ anerkannt: FCI-BH/VT bzw. VDH-BH/VT. Hunde, die vor dem 01.01.2025 bereits im VDH-THS geführt wurden, haben Bestandsschutz."));
+
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-VP-CC", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Start unter Laufbereitschaft", false, 0, "Aufgabe 1. Der Richter prüft Ausrüstung, Startvorbereitung und Ansprechbarkeit."),
+            new("Hindernisse umfahren", false, 0, "Aufgabe 2. Die Pylonen sind so gestellt, dass nur langsames Umfahren möglich ist."),
+            new("Begegnung der Teams", false, 0, "Aufgabe 3 (Head-on-passing). Der Weg ist mittig getrennt, beidseitig bleibt Platz zum Ausweichen."),
+            new("Wenden", false, 0, "Aufgabe 4. Im Fehlerfall einmal wiederholbar."),
+            new("Anhalten mit Begegnungsverkehr", false, 0, "Aufgabe 5. Simuliert ein zu schmales Wegstück."),
+            new("Slalom mit Richtungswechseln", false, 0, "Aufgabe 6. Im Fehlerfall einmal wiederholbar."),
+            new("Ablenkung durch bellenden Hund", false, 0, "Aufgabe 7."),
+            new("Abbiegen trotz Verleitung", false, 0, "Aufgabe 8."),
+        ],
+        Description: "VDH-Vorprüfung CaniCross - Sozialverträglichkeit in den CaniCross-Disziplinen.\n" +
+            "Geprüft werden DREI der acht hier gelisteten Aufgaben; die Auswahl trifft der Richter je nach den örtlichen Gegebenheiten. Deshalb steht keine als Pflichtübung.\n" +
+            "Vorgeführt wird in der Ausrüstung der Disziplin (Geländelauf, DogScooter oder Bikejöring).\n" +
+            "Bestanden: keine oder nur geringe Verträglichkeitsmängel in allen drei Aufgaben. Ein wesentlicher Mangel in einer Aufgabe bedeutet \"nicht bestanden\".\n" +
+            "Voraussetzung: bestandene VDH-VP-V. Pflicht für VDH-CC und den VDH-Sprint-Vierkampf."));
+
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-VP-VK", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Leinenführigkeit", true, 0, "Nach dem Laufschema des VDH-VK1, hier aber ohne Punktwertung."),
+            new("Freifolge", true, 0, "Nach dem Laufschema des VDH-VK1, hier aber ohne Punktwertung."),
+            new("Sitz mit Abholen", true, 0, "Nach dem Laufschema des VDH-VK1, hier aber ohne Punktwertung."),
+            new("Ablegen mit Herankommen", true, 0, "Nach dem Laufschema des VDH-VK1, hier aber ohne Punktwertung."),
+        ],
+        Description: "VDH-Vorprüfung Vierkampf - die einmalige Zulassung zum VDH-Vierkampf.\n" +
+            "Das Laufschema ist identisch mit dem Gehorsam des VDH-VK1, es werden aber keine Punkte vergeben.\n" +
+            "Bestanden, wenn der Richter das Werturteil \"Bestanden\" vergibt.\n" +
+            "Am selben Tag darf der Hund danach nicht mehr im VDH-VK geführt werden.\n" +
+            "Voraussetzung: bestandene VDH-VP-V."));
 
         await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-VK1", "2025", new DateOnly(2025, 1, 1),
         [
@@ -1055,8 +1136,8 @@ public static class SportCatalogSeeder
             "Gehorsam (max. 60 Punkte): Leinenführigkeit 15, Freifolge 20, Sitz mit Abholen 10, Ablegen mit Herankommen 15.\n" +
             "Sprint-Disziplinen: Hürdenlauf (60 m), Slalomlauf (ca. 55 m), Hindernislauf (75 m) - je ein Durchgang, in Freifolge.\n" +
             "Bewertung: Gehorsamspunkte + 250 Ausgangspunkte der Sprint-Disziplinen abzüglich Laufzeiten und Fehlerpunkte.\n" +
-            "Bestanden: mindestens 42 Punkte im Gehorsam UND höchstens 18 Fehlerpunkte im Sport - sonst \"Ohne Bewertung\".\n" +
-            "Mindestalter: 15 Monate. Voraussetzung: bestandene VDH-Vorprüfung."));
+            "Werturteil \"Ohne Bewertung\" gibt es nur, wenn BEIDES zutrifft: weniger als 42 Punkte im Gehorsam UND mehr als 18 Fehlerpunkte im Sport. Alle anderen Teams sind bestanden.\n" +
+            "Mindestalter des Hundes: 15 Monate. Voraussetzung: bestandene VDH-VP-V und VDH-VP-VK."));
 
         await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-VK2", "2025", new DateOnly(2025, 1, 1),
         [
@@ -1072,8 +1153,9 @@ public static class SportCatalogSeeder
             "Gehorsam (max. 60 Punkte): Freifolge 20, Sitz mit Abholen 10, Ablegen mit Herankommen 15, Steh mit Herankommen 15.\n" +
             "Gegenüber VK1: keine Leinenführigkeit mehr, dafür das Steh mit Herankommen.\n" +
             "Sprint-Disziplinen: Hürdenlauf, Slalomlauf, Hindernislauf - Ausgangspunktzahl 255.\n" +
-            "Bestanden: mindestens 48 Punkte im Gehorsam.\n" +
-            "Mindestalter: 15 Monate."));
+            "Bestehensregel wie im VK1: \"Ohne Bewertung\" nur bei weniger als 42 Gehorsamspunkten UND mehr als 18 Fehlerpunkten.\n" +
+            "Aufstieg aus dem VK1 hierher: mindestens 48 Punkte im Gehorsam und in derselben Prüfung eine Mindest-Gesamtpunktzahl - Jugend 230/235, Aktive 245/250, Senioren 235/240 (weiblich/männlich).\n" +
+            "Mindestalter des Hundes: 15 Monate."));
 
         await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-VK3", "2025", new DateOnly(2025, 1, 1),
         [
@@ -1088,9 +1170,24 @@ public static class SportCatalogSeeder
         Description: "VDH-Vierkampf 3 - höchste Stufe des Turnierhundsports.\n" +
             "Gehorsam (max. 60 Punkte): Freifolge 20, Sitz mit Abholen 10, Ablegen aus dem Laufschritt 15, Steh aus dem Laufschritt 15.\n" +
             "Gegenüber VK2: Ablegen und Steh werden aus dem Laufschritt verlangt.\n" +
-            "Sprint-Disziplinen: Hürdenlauf, Slalomlauf, Hindernislauf.\n" +
-            "Bestanden: mindestens 48 Punkte im Gehorsam.\n" +
-            "Mindestalter: 15 Monate."));
+            "Sprint-Disziplinen: Hürdenlauf, Slalomlauf, Hindernislauf - Ausgangspunktzahl 265.\n" +
+            "Bestehensregel wie im VK1: \"Ohne Bewertung\" nur bei weniger als 42 Gehorsamspunkten UND mehr als 18 Fehlerpunkten.\n" +
+            "Aufstieg aus dem VK2 hierher: mindestens 48 Punkte im Gehorsam und in derselben Prüfung eine Mindest-Gesamtpunktzahl - Jugend 240/245, Aktive 255/260, Senioren 245/250 (weiblich/männlich).\n" +
+            "Mindestalter des Hundes: 15 Monate."));
+
+        await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-S-VK", "2025", new DateOnly(2025, 1, 1),
+        [
+            new("Hürdenlauf", true, 0, "Ein Durchgang, nach den Regeln des VDH-VK3."),
+            new("Slalomlauf", true, 0, "Ein Durchgang, nach den Regeln des VDH-VK3."),
+            new("Hindernislauf", true, 0, "Ein Durchgang, nach den Regeln des VDH-VK3."),
+            new("Geländelauf", true, 0, "1000 m. Zu Beginn (z.B. bei Hitze) oder - empfohlen - als Schlussdisziplin, dann auch als Verfolgungsrennen. Frühstart im Verfolgungsrennen: 10 Strafsekunden."),
+        ],
+        Description: "VDH-Sprint-Vierkampf - die drei Sprint-Disziplinen des VDH-VK3 plus 1000 m Geländelauf, ganz ohne Gehorsam.\n" +
+            "Wird nur in EINER Leistungsklasse ausgetragen; je Disziplin ein Durchgang.\n" +
+            "Bewertung: 265 Ausgangspunkte der Sprint-Disziplinen + 75 Ausgangspunkte für den 1000-m-Lauf, abzüglich Laufzeiten, Fehlerpunkten und der auf 1000 m umgerechneten Laufzeit.\n" +
+            "Wird der Geländelauf als Verfolgungsrennen zum Abschluss gelaufen, entscheidet die Reihenfolge des Zieleinlaufs - je Sekunde Rückstand aus den Sprint-Disziplinen 10 Sekunden späterer Start (auf 1000 m Streckenlänge bezogen).\n" +
+            "Es gelten die Regeln und Fehlerbewertungen des VDH-VK3 und des Geländelaufs.\n" +
+            "Voraussetzung: bestandene VDH-VP-V und VDH-VP-CC."));
 
         await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-DK", "2025", new DateOnly(2025, 1, 1),
         [
@@ -1130,21 +1227,32 @@ public static class SportCatalogSeeder
         [
             new("Hürdenlauf", true, 0, "Element der verkürzten CSC-Bahn."),
             new("Hindernislauf", true, 0, "Element der verkürzten CSC-Bahn."),
-            new("Frankfurter Kreisel", true, 0, "Element der verkürzten CSC-Bahn."),
+            new("Mühlacker Harfe", true, 0, "Zusatzgerät der Shorty-Bahn - zusammen mit den oberen Wertungsstangen des Oxers."),
         ],
         Description: "VDH-Shorty - Kurzbahn-Variante des Combinations-Speed-Cups mit zwei Sektionen.\n" +
-            "Gebildet aus den bekannten Elementen und Gerätekonfigurationen des VDH-CSC; Geräteanordnung und Ablauf sind bindend vorgegeben.\n" +
+            "Zwei Teams laufen die Staffel über zwei unterschiedliche Sektionen; die Hunde überwinden Hindernisse des VDH-VK1-3 zuzüglich der oberen Wertungsstangen des Oxers und der Mühlacker Harfe, der Hundeführer läuft unmittelbar rechts daneben mit.\n" +
+            "Zwei Durchgänge. Beide Sektionen dürfen mit oder ohne Leine geführt werden; je mit Leine gezeigter Sektion 5 Strafsekunden.\n" +
+            "Geräteanordnung und Ablauf sind bindend vorgegeben; Startfreigabe, Wechsel, Frühstart, Fehlerbewertung und Platzierung sind identisch zum VDH-CSC.\n" +
             "Der Einstieg in den Staffelgedanken auf kürzerer Strecke."));
 
+        // VDH-CC ist laut PO der Sammelbegriff für DREI Disziplinen (Kapitel 9:
+        // Geländelauf, DogScooter, Bikejöring) - vorher stand hier eine einzige
+        // Übung "CaniCross". Genau das war die vom Nutzer gemeldete Lücke.
+        // Keine der drei ist Pflicht: gestartet wird in einer davon.
         await SeedRegulationAsync(db, ths, new RegulationSeed("VDH-CC", "2025", new DateOnly(2025, 1, 1),
         [
-            new("CaniCross", true, 0, "Geländelauf mit dem Hund am Zuggeschirr. Reine Zeitwertung."),
+            new("Geländelauf", false, 0, "VDH-GL. Laufen oder Walken; Einzel-, Massen- oder Verfolgungsstart sowie Staffel möglich. Empfohlener Startabstand im Einzelstart 30 Sekunden."),
+            new("DogScooter", false, 0, "VDH-DS. Nur Einzelstart, Verfolgungsrennen oder Staffel - kein Massenstart. Empfohlener Startabstand 1 Minute."),
+            new("Bikejöring", false, 0, "VDH-BJ. Nur auf abgesperrten Strecken; Wege höchstens zu 10 % asphaltiert. Empfohlener Startabstand mindestens 1 Minute."),
         ],
-        Description: "VDH-CaniCross - Geländelauf mit dem Hund am Zuggeschirr.\n" +
-            "Hund und Läufer sind über eine ruckdämpfende Leine mit einem Bauchgurt verbunden; der Hund läuft vor dem Läufer.\n" +
-            "Reine Zeitwertung. Eigene Vorprüfung (VDH-VP-CC) und Sozialverträglichkeitsnachweis nötig.\n" +
-            "Bei hohen Temperaturen gelten gesonderte Regeln bis hin zur Absage.\n" +
-            "Mindestalter: 15 Monate."));
+        Description: "VDH-CaniCross - Sammelbegriff für die drei Zugsport-Disziplinen: Geländelauf (VDH-GL), DogScooter (VDH-DS) und Bikejöring (VDH-BJ).\n" +
+            "Ein Team besteht immer aus einem Hundeführer und einem Hund; der Hund muss durchgehend angeleint sein (Ableinen = Disqualifikation) und gibt das Tempo vor.\n" +
+            "Streckenkategorien: Sprintstrecke 400 bis 1000 m, Kurzstrecke über 1000 bis 4000 m, Langstrecke über 4000 m (max. 8000 m).\n" +
+            "Reine Zeitwertung auf Sekunden genau; im Leistungsnachweis wird die Streckenlänge mitgeführt (z.B. VDH-GL-1000, VDH-BJ-1250).\n" +
+            "Mindestalter Hundeführer: Geländelauf 6 (Sprint) / 8 (Kurz) / 11 Jahre (Lang), DogScooter und Bikejöring 15 Jahre.\n" +
+            "Mindestalter Hund: 15 Monate, ab 5 km Langstrecke sowie im DogScooter und Bikejöring 18 Monate. Höchstens 8 km je Wettkampftag.\n" +
+            "Ab 15 °C darf der Richter die Langstrecke kürzen oder streichen, ab 20 °C auf maximal 2000 m verkürzen.\n" +
+            "Voraussetzung: bestandene VDH-VP-V und VDH-VP-CC."));
 
         // ---------------------------------------------------------------
         // Agility (VDH-Prüfungsordnung Agility, gültig ab 01.01.2026, als
@@ -1316,6 +1424,10 @@ public static class SportCatalogSeeder
         await RemoveOrphanedExercisesAsync(db, igp1);
         await RemoveOrphanedExercisesAsync(db, igp2);
         await RemoveOrphanedExercisesAsync(db, igp3);
+        // Räumt die abgelöste Sammel-Übung "CaniCross" weg, sobald keine
+        // Trainingsdaten mehr daran hängen - an ihre Stelle sind Geländelauf,
+        // DogScooter und Bikejöring getreten.
+        await RemoveOrphanedExercisesAsync(db, ths);
 
         await db.SaveChangesAsync();
     }

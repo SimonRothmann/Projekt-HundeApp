@@ -102,11 +102,18 @@ export default async function RegulationPage({ params }: Params) {
         {exercises.length > 0 && (
           <section className="mt-10 min-w-0">
             <h2 className="text-xl font-bold tracking-tight">Übungen</h2>
-            {totalPoints > 0 && (
-              <p className="mt-1 text-sm text-muted-foreground">
-                {scored.length} bewertete Übungen, {totalPoints} Punkte insgesamt.
-              </p>
-            )}
+            {/* Immer die GESAMTZAHL zuerst: stand hier nur "4 bewertete Übungen",
+                las sich das so, als hätte die Prüfung auch nur vier - die
+                zeitgewerteten Disziplinen (Turnierhundsport, Agility, BH Teil B)
+                schienen dadurch zu fehlen. */}
+            <p className="mt-1 text-sm text-muted-foreground">
+              {exercises.length} Übungen
+              {totalPoints > 0
+                ? scored.length === exercises.length
+                  ? `, ${totalPoints} Punkte insgesamt.`
+                  : `, davon ${scored.length} mit Punktwertung (${totalPoints} Punkte insgesamt). Die übrigen werden über Zeit, Fehlerpunkte oder ein Werturteil bewertet.`
+                : ". Bewertet wird nicht über Übungspunkte, sondern über Zeit, Fehlerpunkte oder ein Werturteil."}
+            </p>
             <ul className="mt-4 flex flex-col gap-3">
               {exercises.map((exercise) => (
                 <li
