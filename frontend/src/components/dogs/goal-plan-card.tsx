@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, ChevronDown, ChevronRight, Circle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, Circle, Pencil, Plus, RefreshCw, Trash2, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { difficultyLabel } from "@/lib/constants";
@@ -192,6 +192,21 @@ export function GoalPlanCard({
   // Adaptive Neugenerierung einer Woche (siehe docs/SMART_TRAINING_PLAN.md):
   // ersetzt nur fortschrittslose Auto-Übungen, manuelle Einträge und bereits
   // trainierte Übungen bleiben erhalten.
+  const [switchingAuto, setSwitchingAuto] = useState(false);
+
+  async function enableAutoRegeneration() {
+    setSwitchingAuto(true);
+    try {
+      await api.put(`/api/goals/${goal.id}/plan-auto-regeneration`, { enabled: true });
+      toast.success("Automatische Anpassung wieder eingeschaltet.");
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Konnte nicht umgeschaltet werden.");
+    } finally {
+      setSwitchingAuto(false);
+    }
+  }
+
   async function regenerateWeek(weekNumber: number) {
     setRegeneratingWeek(weekNumber);
     try {
@@ -512,6 +527,29 @@ export function GoalPlanCard({
               <ExerciseWeightingSheet goalId={goal.id} />
             </div>
           ))}
+
+        {/* Hat eine Trainer:in den Plan in der Hand, baut der Generator ihn
+            nicht mehr wöchentlich um - sonst würde er die Absicht hinter dem
+            Plan Woche für Woche unterlaufen. Zurückschalten darf der Besitzer:
+            es ist sein Hund. */}
+        {goal.planManagedByTrainer && (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-muted px-3 py-2 text-xs">
+            <UserCog className="size-3.5 shrink-0 text-muted-foreground" />
+            <span className="min-w-0">
+              Dein Trainer betreut diesen Plan – er wird nicht mehr automatisch angepasst.
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs"
+              disabled={switchingAuto}
+              onClick={enableAutoRegeneration}
+            >
+              {switchingAuto ? "Schaltet um…" : "Automatik wieder einschalten"}
+            </Button>
+          </div>
+        )}
 
         {goal.trainingPlan && (
           <div className="flex flex-col gap-3">

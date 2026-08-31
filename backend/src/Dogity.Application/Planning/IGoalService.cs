@@ -63,5 +63,12 @@ public interface IGoalService
     /// Hintergrund-Scheduler aufgerufen. Gibt die Anzahl regenerierter Ziele
     /// zurück.
     /// </summary>
+    /// <summary>
+    /// Schaltet die automatische wöchentliche Plan-Anpassung ein oder aus. Sie
+    /// schaltet sich von selbst ab, sobald eine betreuende Trainer:in den Plan
+    /// bearbeitet - hiermit lässt sie sich wieder einschalten.
+    /// </summary>
+    Task<Result<GoalDto>> SetPlanAutoRegenerationAsync(Guid userId, Guid goalId, bool enabled, CancellationToken ct = default);
+
     Task<int> RegenerateDuePlansAsync(CancellationToken ct = default);
 }

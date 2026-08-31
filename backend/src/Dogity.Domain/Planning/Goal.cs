@@ -57,5 +57,20 @@ public class Goal : Entity
     public int TrainingDaysPerWeek { get; set; } = 2;
     public DateTimeOffset? LastPlanGeneratedAt { get; set; }
 
+    /// <summary>
+    /// Gesetzt, sobald eine betreuende Trainer:in (nicht der Besitzer) den
+    /// Plan bearbeitet hat. Ab dann wird der Plan NICHT mehr automatisch
+    /// wöchentlich neu aufgebaut: ein von der Trainer:in aufgebauter Plan ist
+    /// als Ganzes gedacht, und der Generator, der Woche für Woche die freien
+    /// Plätze neu befüllt, würde diese Absicht unterlaufen.
+    ///
+    /// Einzelne manuelle Einträge waren schon vorher geschützt (siehe
+    /// PlanItemSource) - hier geht es um den Plan als Ganzes.
+    ///
+    /// Der Besitzer kann die automatische Anpassung wieder einschalten
+    /// (GoalService.SetPlanAutoRegenerationAsync) - es ist sein Hund.
+    /// </summary>
+    public Guid? PlanManagedByTrainerId { get; set; }
+
     public TrainingPlan? TrainingPlan { get; set; }
 }

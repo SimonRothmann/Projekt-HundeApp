@@ -79,6 +79,13 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
         return FromResult(result);
     }
 
+    [HttpPut("{id:guid}/plan-auto-regeneration")]
+    public async Task<ActionResult<GoalDto>> SetPlanAutoRegeneration(Guid id, SetPlanAutoRegenerationRequest request, CancellationToken ct)
+    {
+        var result = await goalService.SetPlanAutoRegenerationAsync(CurrentUserId, id, request.Enabled, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("{id:guid}/regenerate-week")]
     public async Task<ActionResult<GoalDto>> RegenerateWeek(Guid id, RegenerateWeekRequest request, CancellationToken ct)
     {

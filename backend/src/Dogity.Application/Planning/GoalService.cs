@@ -235,7 +235,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             RepetitionsTarget = request.RepetitionsTarget,
             IsRestWeek = false,
             DayIndex = Math.Clamp(request.DayIndex, 1, EffectiveDaysForWeek(goal, request.WeekNumber)),
-            Source = PlanItemSource.Manual
+            Source = await MarkPlanEditorAsync(userId, goal, ct)
         });
         await db.SaveChangesAsync(ct);
 
@@ -278,9 +278,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         item.ExerciseId = request.ExerciseId;
         item.FreeTextLabel = hasFreeText ? request.FreeTextLabel!.Trim() : null;
         item.DayIndex = Math.Clamp(request.DayIndex, 1, EffectiveDaysForWeek(goal, request.WeekNumber));
-        // Eine manuell bearbeitete Übung gilt als vom Nutzer festgelegt und wird
-        // bei der Wochen-Neugenerierung nicht mehr überschrieben.
-        item.Source = PlanItemSource.Manual;
+        // Eine bearbeitete Übung gilt als festgelegt und wird bei der
+        // Wochen-Neugenerierung nicht mehr überschrieben.
+        item.Source = await MarkPlanEditorAsync(userId, goal, ct);
         await db.SaveChangesAsync(ct);
 
         return await GetByIdAsync(userId, goalId, ct);
@@ -297,6 +297,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             return Result<GoalDto>.Failure("Plan-Ziel nicht gefunden.");
 
         item.DeletedAt = DateTimeOffset.UtcNow;
+        // Auch das Streichen ist eine Planentscheidung - sonst stellte der
+        // Generator die gestrichene Übung nächste Woche wieder hinein.
+        await MarkPlanEditorAsync(userId, goal, ct);
         await db.SaveChangesAsync(ct);
 
         return await GetByIdAsync(userId, goalId, ct);
@@ -407,6 +410,21 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         return 1;                                        // hängt (Box 1-2)
     }
 
+    public async Task<Result<GoalDto>> SetPlanAutoRegenerationAsync(Guid userId, Guid goalId, bool enabled, CancellationToken ct = default)
+    {
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct);
+        if (goal is null)
+            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+
+        // Einschalten heißt: der Generator darf die freien Plätze wieder
+        // wöchentlich neu befüllen. Bereits gesetzte Einträge bleiben trotzdem
+        // stehen - sie tragen die Herkunft Trainer bzw. Manuell.
+        goal.PlanManagedByTrainerId = enabled ? null : userId;
+        await db.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(userId, goalId, ct);
+    }
+
     public async Task<int> RegenerateDuePlansAsync(CancellationToken ct = default)
     {
         var now = timeProvider.GetUtcNow();
@@ -418,6 +436,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         var goals = await LoadGoalsQuery()
             .Where(g => g.Status == GoalStatus.Active && !g.IsCustom && g.TrainingPlan != null)
+            // Pläne, die eine Trainer:in in der Hand hat, bleiben unangetastet.
+            .Where(g => g.PlanManagedByTrainerId == null)
             .Where(g => g.LastPlanGeneratedAt == null || g.LastPlanGeneratedAt < cutoff)
             .ToListAsync(ct);
 
@@ -565,6 +585,33 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     // Aufruf) - vermeidet unnoetiges Change-Tracking. UpdateStatusAsync/
     // DeleteAsync/AddPlanItemAsync/RemovePlanItemAsync brauchen weiterhin
     // ein getracktes Entity (Default true).
+    /// <summary>
+    /// Ob die handelnde Person den Plan als betreuende Trainer:in bearbeitet
+    /// und nicht als Besitzer:in. Beide dürfen (siehe GetOwnedGoalAsync) -
+    /// aber nur die Trainer:in nimmt den Plan damit aus der automatischen
+    /// Wochen-Anpassung.
+    /// </summary>
+    private async Task<bool> ActsAsTrainerAsync(Guid userId, Guid dogId, CancellationToken ct)
+    {
+        if (await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId, ct))
+            return false;
+        return await db.TrainerAssignments.AnyAsync(t => t.DogId == dogId && t.TrainerId == userId, ct);
+    }
+
+    /// <summary>
+    /// Nach jeder Planbearbeitung: von der Trainer:in bearbeitete Pläne werden
+    /// nicht mehr automatisch überschrieben. Liefert die Herkunft, die der
+    /// bearbeitete Eintrag bekommen soll.
+    /// </summary>
+    private async Task<PlanItemSource> MarkPlanEditorAsync(Guid userId, Goal goal, CancellationToken ct)
+    {
+        if (!await ActsAsTrainerAsync(userId, goal.DogId, ct))
+            return PlanItemSource.Manual;
+
+        goal.PlanManagedByTrainerId = userId;
+        return PlanItemSource.Trainer;
+    }
+
     private async Task<Goal?> GetOwnedGoalAsync(Guid userId, Guid goalId, CancellationToken ct, bool track = true)
     {
         var query = LoadGoalsQuery();
@@ -707,6 +754,6 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .Select(w => new WeekConfigDto(w.WeekNumber, w.TrainingDaysPerWeek))
             .ToList() ?? new List<WeekConfigDto>();
 
-        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, weekConfigs, planDto);
+        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, weekConfigs, planDto, g.PlanManagedByTrainerId is not null);
     }
 }

@@ -202,6 +202,9 @@ export type Goal = {
   trainingDaysPerWeek: number;
   weekConfigs: WeekConfig[];
   trainingPlan: TrainingPlan | null;
+  // Eine betreuende Trainer:in hat den Plan bearbeitet - dann wird er nicht
+  // mehr automatisch wöchentlich neu aufgebaut.
+  planManagedByTrainer: boolean;
 };
 
 export type GroupMemberRole = 0 | 1; // 0 = Member, 1 = Trainer

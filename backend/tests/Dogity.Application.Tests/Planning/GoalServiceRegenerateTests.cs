@@ -171,4 +171,92 @@ public class GoalServiceRegenerateTests
 
         Assert.Equal(0, count);
     }
+
+
+    // --- Trainer:in übernimmt den Plan ------------------------------------
+    // Betreuende Trainer:innen durften den Plan schon immer bearbeiten
+    // (DogAccessQueries). Neu ist, dass ihre Bearbeitung den Plan aus der
+    // automatischen wöchentlichen Anpassung nimmt - ein von der Trainer:in
+    // aufgebauter Plan ist als Ganzes gedacht.
+
+    private static async Task<Guid> AssignTrainerAsync(
+        Dogity.Infrastructure.Persistence.ApplicationDbContext db, Guid goalId)
+    {
+        var trainerId = Guid.NewGuid();
+        var dogId = await db.Goals.Where(g => g.Id == goalId).Select(g => g.DogId).SingleAsync();
+        db.TrainerAssignments.Add(new Dogity.Domain.Community.TrainerAssignment
+        {
+            TrainerId = trainerId,
+            MemberId = Guid.NewGuid(),
+            DogId = dogId,
+            StartDate = DateOnly.FromDateTime(DateTime.Today),
+        });
+        await db.SaveChangesAsync();
+        return trainerId;
+    }
+
+    [Fact]
+    public async Task TrainerEditsPlan_MarksItemAsTrainerAndStopsAutoRegeneration()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupAsync(db);
+        var trainerId = await AssignTrainerAsync(db, setup.GoalId);
+
+        var result = await service.AddPlanItemAsync(trainerId, setup.GoalId,
+            new AddTrainingPlanItemRequest(2, null, "Zugarbeit an der Leine", 3, 1));
+
+        Assert.True(result.Succeeded);
+        Assert.True(result.Value!.PlanManagedByTrainer);
+        var added = await db.TrainingPlanItems.SingleAsync(i => i.FreeTextLabel == "Zugarbeit an der Leine");
+        Assert.Equal(PlanItemSource.Trainer, added.Source);
+        Assert.Equal(trainerId, (await db.Goals.SingleAsync(g => g.Id == setup.GoalId)).PlanManagedByTrainerId);
+    }
+
+    [Fact]
+    public async Task OwnerEditsPlan_StaysManualAndKeepsAutoRegeneration()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupAsync(db);
+
+        var result = await service.AddPlanItemAsync(setup.OwnerId, setup.GoalId,
+            new AddTrainingPlanItemRequest(2, null, "Eigene Idee", 3, 1));
+
+        Assert.True(result.Succeeded);
+        Assert.False(result.Value!.PlanManagedByTrainer);
+        var added = await db.TrainingPlanItems.SingleAsync(i => i.FreeTextLabel == "Eigene Idee");
+        Assert.Equal(PlanItemSource.Manual, added.Source);
+    }
+
+    [Fact]
+    public async Task RegenerateDuePlans_SkipsTrainerManagedPlans()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupAsync(db);
+        var trainerId = await AssignTrainerAsync(db, setup.GoalId);
+        await service.AddPlanItemAsync(trainerId, setup.GoalId,
+            new AddTrainingPlanItemRequest(2, null, "Zugarbeit", 3, 1));
+
+        var count = await service.RegenerateDuePlansAsync();
+
+        Assert.Equal(0, count);
+    }
+
+    [Fact]
+    public async Task OwnerCanSwitchAutoRegenerationBackOn()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupAsync(db);
+        var trainerId = await AssignTrainerAsync(db, setup.GoalId);
+        await service.AddPlanItemAsync(trainerId, setup.GoalId,
+            new AddTrainingPlanItemRequest(2, null, "Zugarbeit", 3, 1));
+
+        var result = await service.SetPlanAutoRegenerationAsync(setup.OwnerId, setup.GoalId, enabled: true);
+
+        Assert.True(result.Succeeded);
+        Assert.False(result.Value!.PlanManagedByTrainer);
+        // Der Eintrag der Trainer:in bleibt trotzdem stehen - er trägt die
+        // Herkunft Trainer und wird vom Generator weiterhin verschont.
+        Assert.Equal(PlanItemSource.Trainer,
+            (await db.TrainingPlanItems.SingleAsync(i => i.FreeTextLabel == "Zugarbeit")).Source);
+    }
 }

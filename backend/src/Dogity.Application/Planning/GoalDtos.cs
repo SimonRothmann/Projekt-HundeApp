@@ -65,7 +65,13 @@ public record GoalDto(
     int WeeklyExerciseCount,
     int TrainingDaysPerWeek,
     IReadOnlyList<WeekConfigDto> WeekConfigs,
-    TrainingPlanDto? TrainingPlan);
+    TrainingPlanDto? TrainingPlan,
+    /// <summary>
+    /// Eine betreuende Trainer:in hat den Plan bearbeitet. Dann wird er nicht
+    /// mehr automatisch wöchentlich neu aufgebaut (siehe
+    /// Goal.PlanManagedByTrainerId).
+    /// </summary>
+    bool PlanManagedByTrainer = false);
 
 public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, DateOnly TargetDate, string? Notes, bool IsCustom = false);
 
@@ -90,6 +96,13 @@ public record WeightableExerciseDto(
 
 /// <summary>Setzt die manuelle Gewichtung einer Übung (−2..+2).</summary>
 public record SetExercisePriorityRequest(int Value);
+
+/// <summary>
+/// Automatische wöchentliche Plan-Anpassung ein- oder ausschalten. Sie schaltet
+/// sich von selbst ab, sobald eine Trainer:in den Plan bearbeitet - hiermit
+/// lässt sie sich wieder einschalten.
+/// </summary>
+public record SetPlanAutoRegenerationRequest(bool Enabled);
 
 /// <summary>
 /// Generiert die angegebene Woche des Plans adaptiv neu (siehe
