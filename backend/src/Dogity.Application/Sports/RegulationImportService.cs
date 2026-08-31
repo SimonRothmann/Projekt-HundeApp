@@ -23,6 +23,16 @@ public class RegulationImportService(IApplicationDbContext db, IRegulationPdfPar
         if (currentVersion is null)
             return Result.Failure("Keine gültige Version für diese Prüfungsordnung gefunden.");
 
+        // Neue Übungen hängen sich in Reihenfolge der Kandidatenliste hinten an
+        // (das ist die Reihenfolge, in der sie im PDF stehen). Bereits
+        // vorhandene Zeilen behalten ihren SortOrder - ein Import darf eine
+        // gepflegte oder geseedete Reihenfolge nicht umsortieren, nur weil er
+        // eine einzelne Übung nachträgt.
+        var nextSortOrder = (await db.RegulationExercises
+            .Where(re => re.RegulationVersionId == currentVersion.Id)
+            .Select(re => (int?)re.SortOrder)
+            .MaxAsync(ct) ?? -1) + 1;
+
         foreach (var candidate in request.Candidates)
         {
             if (string.IsNullOrWhiteSpace(candidate.Name))
@@ -52,7 +62,8 @@ public class RegulationImportService(IApplicationDbContext db, IRegulationPdfPar
                     RegulationVersionId = currentVersion.Id,
                     ExerciseId = exercise.Id,
                     MaxPoints = candidate.MaxPoints,
-                    IsMandatory = true
+                    IsMandatory = true,
+                    SortOrder = nextSortOrder++
                 });
             }
             else

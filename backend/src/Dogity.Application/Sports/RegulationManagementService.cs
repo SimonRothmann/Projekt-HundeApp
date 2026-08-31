@@ -69,13 +69,22 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         if (alreadyLinked)
             return Result<RegulationExerciseDto>.Failure("Diese Übung ist bereits Teil der Prüfungsordnung.");
 
+        // Von Hand ergänzte Übungen hängen sich ans Ende der Prüfungsordnung -
+        // wo genau sie fachlich hingehören, weiß nur der Seed, und eine
+        // eingeschobene Übung würde die dort gepflegte Reihenfolge zerreißen.
+        var lastSortOrder = await db.RegulationExercises
+            .Where(re => re.RegulationVersionId == version.Id)
+            .Select(re => (int?)re.SortOrder)
+            .MaxAsync(ct) ?? -1;
+
         var link = new RegulationExercise
         {
             RegulationVersionId = version.Id,
             ExerciseId = request.ExerciseId,
             IsMandatory = request.IsMandatory,
             MaxPoints = request.MaxPoints,
-            ScoringNotes = NullIfBlank(request.ScoringNotes)
+            ScoringNotes = NullIfBlank(request.ScoringNotes),
+            SortOrder = lastSortOrder + 1
         };
         db.RegulationExercises.Add(link);
         await db.SaveChangesAsync(ct);
@@ -100,6 +109,8 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         if (link is null)
             return Result.Failure("Übung ist nicht Teil dieser Prüfungsordnung.");
 
+        // SortOrder bleibt bewusst unberührt: Punkte oder Pflicht-Kennzeichen zu
+        // ändern darf die Reihenfolge der Prüfungsordnung nicht verwerfen.
         link.IsMandatory = request.IsMandatory;
         link.MaxPoints = request.MaxPoints;
         link.ScoringNotes = NullIfBlank(request.ScoringNotes);

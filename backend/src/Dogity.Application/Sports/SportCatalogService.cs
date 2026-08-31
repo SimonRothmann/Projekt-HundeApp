@@ -113,8 +113,17 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
         if (currentVersion is null)
             return Result<RegulationDetailDto>.Failure("Keine gültige Version für diese Prüfungsordnung gefunden.");
 
+        // Reihenfolge der Prüfungsordnung (RegulationExercise.SortOrder), nicht
+        // die zufällige Reihenfolge der Datenbank: sonst stand z.B. bei der
+        // FCI-IGP 1 das "Sitz mit Abholen" vor der "Leinenführigkeit" und bei
+        // der VDH-VK1 lagen die Sprint-Disziplinen zwischen den
+        // Gehorsamsübungen. Der Name als zweites Kriterium hält die Ausgabe
+        // auch dort stabil, wo mehrere Übungen denselben (oder noch keinen)
+        // SortOrder haben - etwa von Hand ergänzte Übungen.
         var exercises = await db.RegulationExercises
             .Where(re => re.RegulationVersionId == currentVersion.Id)
+            .OrderBy(re => re.SortOrder)
+            .ThenBy(re => re.Exercise!.Name)
             .Select(re => new RegulationExerciseDto(re.ExerciseId, re.Exercise!.Name, re.IsMandatory, re.MaxPoints, re.ScoringNotes))
             .ToListAsync(ct);
 

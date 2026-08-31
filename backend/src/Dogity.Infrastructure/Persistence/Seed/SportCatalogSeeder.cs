@@ -1499,8 +1499,14 @@ public static class SportCatalogSeeder
             await db.SaveChangesAsync();
         }
 
-        foreach (var exerciseSeed in seed.Exercises)
+        // Die Position im Array IST die Reihenfolge der Prüfungsordnung (Abt. A
+        // vor B vor C, innerhalb einer Abteilung Übung 1 bis n) - sie wird
+        // deshalb als SortOrder mitgeschrieben und bei jedem Seed-Durchlauf
+        // nachgepflegt. Ohne das lieferte die Datenbank die Übungen in
+        // beliebiger Reihenfolge aus (siehe SportCatalogService).
+        for (var index = 0; index < seed.Exercises.Length; index++)
         {
+            var exerciseSeed = seed.Exercises[index];
             var exercise = await db.Exercises.FirstOrDefaultAsync(e => e.SportId == sport.Id && e.Name == exerciseSeed.ExerciseName);
             if (exercise is null)
             {
@@ -1528,7 +1534,8 @@ public static class SportCatalogSeeder
                     ExerciseId = exercise.Id,
                     IsMandatory = exerciseSeed.IsMandatory,
                     MaxPoints = exerciseSeed.MaxPoints,
-                    ScoringNotes = exerciseSeed.ScoringNotes
+                    ScoringNotes = exerciseSeed.ScoringNotes,
+                    SortOrder = index
                 });
             }
             else
@@ -1541,6 +1548,7 @@ public static class SportCatalogSeeder
                 regulationExercise.IsMandatory = exerciseSeed.IsMandatory;
                 regulationExercise.MaxPoints = exerciseSeed.MaxPoints;
                 regulationExercise.ScoringNotes = exerciseSeed.ScoringNotes;
+                regulationExercise.SortOrder = index;
             }
         }
 

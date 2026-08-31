@@ -374,6 +374,27 @@ Pflicht
 Bewertung 15 Punkte
 
 
+Attribute:
+
+| Feld | Beschreibung |
+|-|-|
+|id|UUID|
+|regulation_version_id|Version der Prüfungsordnung|
+|exercise_id|Übung|
+|is_mandatory|Pflicht- oder Kürübung|
+|max_points|Maximale Punktzahl (0 bei Zeit-/Fehlerpunktwertung)|
+|scoring_notes|Prüfungsspezifische Anforderungen dieser Stufe|
+|sort_order|Position innerhalb der Prüfungsordnung, kleinere Werte zuerst|
+
+
+`sort_order` kommt aus der Reihenfolge im `SportCatalogSeeder` - das ist die
+Reihenfolge der Prüfungsordnung selbst (Abteilung A vor B vor C). Ohne ihn gab
+die Datenbank die Übungen in beliebiger Reihenfolge aus, auf den öffentlichen
+Seiten stand dann z.B. "Sitz mit Abholen" vor der "Leinenführigkeit". Von Hand
+oder per PDF-Import ergänzte Übungen hängen sich hinten an; bei gleichem Wert
+entscheidet der Übungsname.
+
+
 ---
 
 # Trainingsmodell

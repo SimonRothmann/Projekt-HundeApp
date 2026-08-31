@@ -102,6 +102,42 @@ public class RegulationManagementServiceTests
     }
 
     [Fact]
+    public async Task AddRegulationExercise_AppendsAtEndOfRegulation()
+    {
+        var service = MakeService(out var db);
+        var (_, regulationId, freeExerciseId, linkedExerciseId) = await SeedGlobalRegulationAsync(db);
+
+        // Bestehende Übung steht an Position 4 der Prüfungsordnung.
+        var existing = await db.RegulationExercises.SingleAsync(re => re.ExerciseId == linkedExerciseId);
+        existing.SortOrder = 4;
+        await db.SaveChangesAsync();
+
+        var add = await service.AddRegulationExerciseAsync(
+            Guid.NewGuid(), true, regulationId, new AddRegulationExerciseRequest(freeExerciseId, true, 20, null));
+
+        Assert.True(add.Succeeded);
+        var link = await db.RegulationExercises.SingleAsync(re => re.ExerciseId == freeExerciseId);
+        Assert.Equal(5, link.SortOrder);
+    }
+
+    [Fact]
+    public async Task UpdateRegulationExercise_KeepsSortOrder()
+    {
+        var service = MakeService(out var db);
+        var (_, regulationId, _, linkedExerciseId) = await SeedGlobalRegulationAsync(db);
+        var link = await db.RegulationExercises.SingleAsync(re => re.ExerciseId == linkedExerciseId);
+        link.SortOrder = 7;
+        await db.SaveChangesAsync();
+
+        var result = await service.UpdateRegulationExerciseAsync(
+            Guid.NewGuid(), isAdmin: true, regulationId, linkedExerciseId,
+            new UpdateRegulationExerciseRequest(IsMandatory: true, MaxPoints: 30, ScoringNotes: null));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(7, (await db.RegulationExercises.SingleAsync(re => re.ExerciseId == linkedExerciseId)).SortOrder);
+    }
+
+    [Fact]
     public async Task RemoveRegulationExercise_SoftDeletesLink()
     {
         var service = MakeService(out var db);
