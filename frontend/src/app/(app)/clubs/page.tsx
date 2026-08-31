@@ -92,6 +92,8 @@ export default function ClubsPage() {
     try {
       await api.post(`/api/groups/${groupId}/join-requests`);
       toast.success("Gruppenanfrage gesendet.");
+      // Ohne Neuladen stünde weiter "Beitreten" da und man tippt ein zweites Mal.
+      await loadAll();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Gruppenanfrage fehlgeschlagen.");
     } finally {
@@ -152,22 +154,33 @@ export default function ClubsPage() {
                     <div className="flex flex-col gap-2 border-t pt-3">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Gruppen</p>
                       {groups.map((g) => (
-                        <div key={g.id} className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Users className="size-4 text-muted-foreground" />
-                            <span>{g.name}</span>
-                            <Badge variant="outline" className="text-xs">
+                        <div key={g.id} className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-2 text-sm">
+                            <Users className="size-4 shrink-0 text-muted-foreground" />
+                            <span className="[overflow-wrap:anywhere]">{g.name}</span>
+                            <Badge variant="outline" className="shrink-0 text-xs">
                               {g.memberCount} Mitglieder
                             </Badge>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={joiningGroupId === g.id}
-                            onClick={() => handleJoinGroup(g.id)}
-                          >
-                            {joiningGroupId === g.id ? "Wird gesendet…" : "Beitreten"}
-                          </Button>
+                          {/* Beitreten nur, wenn man wirklich außen vor ist -
+                              Trainer:innen und Mitgliedern bot die Seite vorher
+                              denselben Knopf an. */}
+                          {g.myRelation === 3 ? (
+                            <Badge variant="secondary" className="shrink-0">Trainer:in</Badge>
+                          ) : g.myRelation === 2 ? (
+                            <Badge variant="secondary" className="shrink-0">Mitglied</Badge>
+                          ) : g.myRelation === 1 ? (
+                            <Badge variant="outline" className="shrink-0">Anfrage ausstehend</Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={joiningGroupId === g.id}
+                              onClick={() => handleJoinGroup(g.id)}
+                            >
+                              {joiningGroupId === g.id ? "Wird gesendet…" : "Beitreten"}
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>

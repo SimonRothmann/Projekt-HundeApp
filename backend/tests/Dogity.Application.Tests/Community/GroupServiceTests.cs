@@ -379,4 +379,68 @@ public class GroupServiceTests
 
         Assert.Contains(creator, lookup.TrainerRole);
     }
+
+    // --- Beitrittsanfrage nur für Außenstehende --------------------------
+    // Vorher konnte sich jede:r zu jeder Gruppe bewerben - auch die eigene
+    // Trainer:in, die die Anfrage danach in ihrer eigenen Freigabeliste fand.
+
+    [Fact]
+    public async Task RequestJoin_AsLeadTrainer_Fails()
+    {
+        var service = MakeService(out var db);
+        var (trainerId, groupId, _) = await SetupGroupAsync(db, MakeService(out _));
+
+        var result = await service.RequestJoinGroupAsync(trainerId, groupId);
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task RequestJoin_AsCoTrainer_Fails()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+
+        var result = await service.RequestJoinGroupAsync(helper, groupId);
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task RequestJoin_AsClubTrainer_Fails()
+    {
+        var service = MakeService(out var db);
+        var (clubId, _, colleague, groupId) = await SetupClubGroupAsync(db);
+        Assert.NotEqual(Guid.Empty, clubId);
+
+        var result = await service.RequestJoinGroupAsync(colleague, groupId);
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task GetGroupsByClub_ReportsMyRelation()
+    {
+        var service = MakeService(out var db);
+        var (clubId, owner, colleague, groupId) = await SetupClubGroupAsync(db);
+
+        // Trainer:in der Gruppe und Vereinstrainer:in sehen beide "Trainer".
+        var asOwner = await service.GetGroupsByClubAsync(owner, clubId);
+        Assert.Equal(GroupRelation.Trainer, asOwner.Value!.Single(g => g.Id == groupId).MyRelation);
+        var asColleague = await service.GetGroupsByClubAsync(colleague, clubId);
+        Assert.Equal(GroupRelation.Trainer, asColleague.Value!.Single(g => g.Id == groupId).MyRelation);
+
+        // Ein Vereinsmitglied ohne Gruppenbezug darf beitreten.
+        var member = Guid.NewGuid();
+        db.ClubMemberships.Add(new ClubMembership { ClubId = clubId, UserId = member, Status = ClubMembershipStatus.Approved });
+        await db.SaveChangesAsync();
+        var asMember = await service.GetGroupsByClubAsync(member, clubId);
+        Assert.Equal(GroupRelation.None, asMember.Value!.Single(g => g.Id == groupId).MyRelation);
+
+        // Nach der Anfrage steht sie als ausstehend da.
+        Assert.True((await service.RequestJoinGroupAsync(member, groupId)).Succeeded);
+        var afterRequest = await service.GetGroupsByClubAsync(member, clubId);
+        Assert.Equal(GroupRelation.Pending, afterRequest.Value!.Single(g => g.Id == groupId).MyRelation);
+    }
 }

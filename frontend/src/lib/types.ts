@@ -207,7 +207,21 @@ export type Goal = {
   planManagedByTrainer: boolean;
 };
 
+// Ein von mir betreuter Hund (TrainerAssignment) - für die Trainerübersicht.
+export type SupervisedDog = {
+  id: string;
+  name: string;
+  breed: string | null;
+  hasImage: boolean;
+  handlerName: string;
+  activeGoalCount: number;
+};
+
 export type GroupMemberRole = 0 | 1; // 0 = Member, 1 = Trainer
+
+// Verhältnis der angemeldeten Person zu einer Gruppe (Backend: GroupRelation).
+// 0 = keins, 1 = Anfrage läuft, 2 = Mitglied, 3 = Trainer:in.
+export type GroupRelation = 0 | 1 | 2 | 3;
 
 export type Group = {
   id: string;
@@ -217,6 +231,7 @@ export type Group = {
   clubId: string | null;
   memberCount: number;
   trainerName: string | null;
+  myRelation: GroupRelation;
 };
 
 // Möglicher Gruppen-Trainer (alle Trainer:innen des Vereins der Gruppe).

@@ -352,14 +352,31 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
                 g.Description,
                 g.TrainerId,
                 g.ClubId,
-                MemberCount = g.Members.Count(m => m.Status == GroupMemberStatus.Active)
+                MemberCount = g.Members.Count(m => m.Status == GroupMemberStatus.Active),
+                // Verhältnis der aufrufenden Person - sonst bietet die
+                // Vereinsseite auch der Trainer:in einen Beitritt an.
+                IsCoTrainer = g.Trainers.Any(t => t.UserId == userId),
+                MyMembership = g.Members
+                    .Where(m => m.UserId == userId)
+                    .Select(m => (GroupMemberStatus?)m.Status)
+                    .FirstOrDefault(),
             })
             .AsNoTracking()
             .ToListAsync(ct);
 
         var trainerLookup = await userLookup.FindByIdsAsync(rows.Select(r => r.TrainerId).Distinct().ToList(), ct);
         var groups = rows
-            .Select(r => new GroupDto(r.Id, r.Name, r.Description, r.TrainerId, r.ClubId, r.MemberCount, TrainerDisplayName(trainerLookup, r.TrainerId)))
+            .Select(r => new GroupDto(
+                r.Id, r.Name, r.Description, r.TrainerId, r.ClubId, r.MemberCount,
+                TrainerDisplayName(trainerLookup, r.TrainerId),
+                r.TrainerId == userId || r.IsCoTrainer || isClubTrainer
+                    ? GroupRelation.Trainer
+                    : r.MyMembership switch
+                    {
+                        GroupMemberStatus.Active => GroupRelation.Member,
+                        GroupMemberStatus.Pending => GroupRelation.Pending,
+                        _ => GroupRelation.None,
+                    }))
             .ToList();
 
         return Result<IReadOnlyList<GroupDto>>.Success(groups);
@@ -370,6 +387,12 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
         if (group is null)
             return Result.Failure("Gruppe nicht gefunden.");
+
+        // Wer die Gruppe ohnehin betreut, braucht keinen Beitritt - vorher
+        // konnte sich eine Trainer:in bei ihrer eigenen Gruppe bewerben und
+        // fand die Anfrage anschließend in ihrer eigenen Freigabeliste wieder.
+        if (await GetManageableGroupAsync(userId, groupId, ct) is not null)
+            return Result.Failure("Du betreust diese Gruppe bereits als Trainer:in.");
 
         var existing = await db.GroupMembers.FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
         if (existing is not null)

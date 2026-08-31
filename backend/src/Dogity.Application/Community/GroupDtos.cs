@@ -2,7 +2,28 @@ using Dogity.Domain.Community;
 
 namespace Dogity.Application.Community;
 
-public record GroupDto(Guid Id, string Name, string? Description, Guid TrainerId, Guid? ClubId, int MemberCount, string? TrainerName = null);
+/// <summary>
+/// Verhältnis der aufrufenden Person zu einer Gruppe. Ohne das zeigte die
+/// Vereinsseite an JEDER Gruppe einen "Beitreten"-Knopf - auch der eigenen
+/// Trainer:in und bestehenden Mitgliedern.
+/// </summary>
+public enum GroupRelation
+{
+    None,
+    Pending,
+    Member,
+    Trainer
+}
+
+public record GroupDto(
+    Guid Id,
+    string Name,
+    string? Description,
+    Guid TrainerId,
+    Guid? ClubId,
+    int MemberCount,
+    string? TrainerName = null,
+    GroupRelation MyRelation = GroupRelation.None);
 
 public record GroupMemberDto(Guid UserId, string Email, string FirstName, string LastName, GroupMemberRole Role, DateTimeOffset JoinedAt);
 
