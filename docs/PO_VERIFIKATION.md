@@ -210,6 +210,42 @@ Der Turnierhundsport hat damit 24 Übungen und 12 Prüfungsordnungen statt
 13 und 8. PARA-Klassen und Jedermann-/Fun-Klassen bleiben bewusst außen vor —
 sie sind Varianten derselben Disziplinen.
 
+## Vierte Durchsicht (2026-08-31): Fußarbeit statt Leinenführigkeit
+
+Betreiberhinweis: „In der BH und IBGH ist es eigentlich die Fußarbeit —
+Winkel und Grundstellung gehören da mit dazu. Außerdem fehlt bei der BH die
+Freifolge, die wird mit dem Sitz und dem Platz unangeleint gemacht."
+
+**Umbenannt.** Die Prüfungsordnung nennt die Übung zwar „Leinenführigkeit",
+beschreibt darunter aber Grundstellung, Kehrtwendung nach links, Laufschritt
+und langsamen Schritt sowie die Personengruppe (S. 22 f. für die BH, S. 30 f.
+für die IBGH) — also die komplette Fußarbeit. Sie heißt in BH, IBGH 1 und
+IBGH 2 jetzt **Fußarbeit**; der PO-Titel steht in der Beschreibung, damit man
+sie in der Prüfungsordnung wiederfindet. Punkte und Summen bleiben unberührt
+(BH 60, IBGH je 100). Der Turnierhundsport behält seine eigene
+„Leinenführigkeit" — dort ist es tatsächlich eine andere Übung.
+
+Wichtig für den Betrieb: Umbenannt wird die **bestehende Zeile** (gleiche
+Übungs-Id, siehe `RenameExerciseAsync`). Trainingseinträge, Bewertungen,
+Wiedervorlage-Stände und Plan-Ziele hängen an der Id und wandern mit. Wäre
+stattdessen einfach der neue Name in die Seed-Liste geschrieben worden, hätte
+der Seeder eine zweite Übung angelegt und die alte samt aller Daten verwaist
+zurückgelassen.
+
+**Freifolge in der BH — halb bestätigt.** Der Hinweis stimmt in der Sache:
+Nach der Fußarbeit wird abgeleint, Sitz und Ablegen mit Herankommen werden
+ohne Leine gezeigt („Danach wird der Hund angeleint und zur Übung ‚Ablegen
+unter Ablenkung' … geführt", PO S. 23). Eine eigenständig **bewertete**
+Freifolge gibt es in Teil A aber nicht: Die PO kennt dort genau vier Übungen
+(30/10/10/10 = 60, bestanden ab 42). Die Freifolge steht deshalb jetzt als
+Pflichtbestandteil **ohne Punktwertung** in der Prüfungsordnung — wie Teil B,
+die IAD und die Sprint-Disziplinen des Turnierhundsports. Sie ist damit
+sichtbar und trainierbar, ohne die Punktarithmetik zu verfälschen.
+
+Das ergänzt die Entscheidung vom 2026-08-19 („die eigenständig bewertete
+Freifolge entfällt"), statt sie zurückzunehmen: Bewertet wird sie weiterhin
+nicht, sie fehlte bisher nur als sichtbarer Teil des Ablaufs.
+
 ## Wie Korrekturen ankommen
 
 `SportCatalogSeeder` läuft bei **jedem** Backend-Start, auch in Produktion

@@ -52,10 +52,17 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// 01.01.2026). Beide werden über Zeit und Fehlerpunkte gewertet - ihre
 /// Disziplinen tragen deshalb 0 Punkte, wie schon Teil B der BH und die IAD.
 ///
+/// Vierte Durchsicht am 2026-08-31: Die Übung "Leinenführigkeit" heißt in BH
+/// und IBGH jetzt "Fußarbeit" - die PO beschreibt unter diesem Titel
+/// Grundstellung, Kehrtwendung, Tempowechsel und Personengruppe. Umbenannt
+/// wird die bestehende Zeile (RenameExerciseAsync), damit Trainingsdaten
+/// mitwandern. Die BH bekommt außerdem die Freifolge als Pflichtbestandteil
+/// OHNE Punktwertung: ohne Leine gearbeitet wird nach der Fußarbeit
+/// tatsächlich (Sitz und Ablegen), bewertet wird sie laut PO aber nicht.
+///
 /// Offen und bewusst NICHT geändert (siehe docs/PO_VERIFIKATION.md):
-/// die Übungsstruktur der BH und die Punktaufteilung der IFH-Übungen -
-/// beides berührt vorhandene Trainingsdaten und ist eine fachliche
-/// Entscheidung des Betreibers.
+/// die Punktaufteilung der IFH-Übungen - sie berührt vorhandene
+/// Trainingsdaten und ist eine fachliche Entscheidung des Betreibers.
 ///
 /// <see cref="Regulation.SourceUrl"/> kann später von einem Admin auf die
 /// offizielle Quelle verweisen.
@@ -79,16 +86,37 @@ public static class SportCatalogSeeder
         // Es gibt nur EINE BH/VT, und das ist die der FCI-Prüfungsordnung
         // (Betreiberauskunft als VDH-Vorstand, 2026-08-19). Teil A: 4 bewertete
         // Übungen à 30/10/10/10 = 60 Punkte, bestanden ab 42; Teil B ohne
-        // Einzelpunkte. Eine eigenständig bewertete "Freifolge" gibt es NICHT -
-        // die Leinenführigkeit läuft durchgehend angeleint, abgeleint wird erst
-        // an deren Ende. Die Übung "Freifolge" bleibt im Katalog trainierbar,
-        // zählt aber nicht mehr zur Prüfung.
+        // Einzelpunkte.
+        //
+        // Zur Freifolge (Betreiberhinweis 2026-08-31, gegen die PO geprüft):
+        // Eine eigenständig BEWERTETE Freifolge gibt es in der BH nicht - die
+        // PO kennt für Teil A genau vier Übungen. Ohne Leine gearbeitet wird
+        // aber sehr wohl: Nach der Fußarbeit wird abgeleint, Sitz und Ablegen
+        // mit Herankommen werden frei gezeigt ("Danach wird der Hund angeleint
+        // und zur Übung 'Ablegen unter Ablenkung' geführt", PO S. 23). Die
+        // Freifolge steht deshalb mit 0 Punkten in der Prüfungsordnung - wie
+        // Teil B, die IAD und die Sprint-Disziplinen des THS.
+        // "Leinenführigkeit" heißt in BH und IBGH jetzt "Fußarbeit": Die
+        // Prüfungsordnung beschreibt unter diesem Titel Grundstellung,
+        // Kehrtwendung(en), Tempowechsel und die Personengruppe - also die
+        // komplette Fußarbeit, nicht bloß "an der Leine laufen". Der
+        // PO-Titel bleibt in der Beschreibung erhalten, damit man die Übung
+        // in der Prüfungsordnung wiederfindet.
+        //
+        // Umbenannt wird die BESTEHENDE Zeile (siehe RenameExerciseAsync) -
+        // Trainingseinträge, Bewertungen und Pläne hängen an der Übungs-Id.
+        // Der Turnierhundsport behält seine eigene "Leinenführigkeit": dort
+        // ist es tatsächlich eine andere Übung (VDH-VK1, 15 Punkte).
+        await RenameExerciseAsync(db, "BH", "Leinenführigkeit", "Fußarbeit");
+        await RenameExerciseAsync(db, "IBGH1", "Leinenführigkeit", "Fußarbeit");
+        await RenameExerciseAsync(db, "IBGH2", "Leinenführigkeit", "Fußarbeit");
+
         var bh = await SeedSportAsync(db, "BH", "Begleithundeprüfung",
         [
-            new("Leinenführigkeit", ExerciseDifficulty.Beginner, "Unterordnung",
-                "Hund läuft eng und aufmerksam neben dem Hundeführer, auch bei Tempo- und Richtungswechseln, ohne Leinenspannung."),
+            new("Fußarbeit", ExerciseDifficulty.Beginner, "Unterordnung",
+                "In der Prüfungsordnung \"Leinenführigkeit\": Grundstellung, mindestens 50 Schritte geradeaus, Kehrtwendung nach links, Laufschritt und langsamer Schritt (je 10-15 Schritte), zum Abschluss die Personengruppe. Der Hund bleibt mit dem Schulterblatt in Kniehöhe links und setzt sich beim Anhalten selbstständig."),
             new("Freifolge", ExerciseDifficulty.Intermediate, "Unterordnung",
-                "Wie Leinenführigkeit, jedoch ohne Leine - Hund bleibt auch beim Durchschreiten der Personengruppe aufmerksam beim Hundeführer."),
+                "Nach der Fußarbeit wird abgeleint: Sitz und Ablegen mit Herankommen werden ohne Leine gezeigt, ebenso die 10-15 Schritte Entwicklung davor. Der Hund folgt dabei frei bei Fuß."),
             new("Sitzübung", ExerciseDifficulty.Beginner, "Unterordnung",
                 "Hund setzt sich aus der Bewegung auf ein Hörzeichen sofort hin und bleibt ruhig sitzen, während der Hundeführer sich mindestens 15 Schritte entfernt."),
             new("Ablegen in Verbindung mit Herankommen", ExerciseDifficulty.Intermediate, "Unterordnung",
@@ -114,10 +142,10 @@ public static class SportCatalogSeeder
         // aber ab der neuen RegulationVersion "2025" (siehe unten) nicht mehr verwendet.
         var ibgh1 = await SeedSportAsync(db, "IBGH1", "Internationale Begleithundeprüfung 1",
         [
-            new("Leinenführigkeit", ExerciseDifficulty.Beginner, "Unterordnung",
-                "Hund folgt dem Hundeführer aus der Grundstellung auf das HZ \"Fuß\" freudig und konzentriert an lockerer Leine, bleibt mit dem Schulterblatt in Kniehöhe an dessen linker Seite, auch bei Tempo- und Richtungswechseln."),
+            new("Fußarbeit", ExerciseDifficulty.Beginner, "Unterordnung",
+                "In der Prüfungsordnung \"Leinenführigkeit\": aus der Grundstellung auf das HZ \"Fuß\" an lockerer Leine, Schulterblatt in Kniehöhe links, Kehrtwendung nach links, Laufschritt und langsame Schritte (je 10-15), nach der zweiten Kehrtwendung ein Halt mit selbstständigem Sitz, danach die Personengruppe in Form einer Acht."),
             new("Freifolge", ExerciseDifficulty.Intermediate, "Unterordnung",
-                "Wie Leinenführigkeit, jedoch ohne Leine."),
+                "Wie die Fußarbeit, jedoch ohne Leine."),
             new("Absitzen aus der Bewegung", ExerciseDifficulty.Beginner, "Unterordnung",
                 "Hund setzt sich aus der Bewegung heraus auf das HZ \"Sitz\" sofort und gerade hin, ohne dass der Hundeführer seine Bewegung verändert."),
             new("Ablegen aus der Bewegung", ExerciseDifficulty.Beginner, "Unterordnung",
@@ -128,10 +156,10 @@ public static class SportCatalogSeeder
 
         var ibgh2 = await SeedSportAsync(db, "IBGH2", "Internationale Begleithundeprüfung 2",
         [
-            new("Leinenführigkeit", ExerciseDifficulty.Intermediate, "Unterordnung",
-                "Wie IBGH1, mit höheren Anforderungen an Konzentration und Tempowechsel."),
+            new("Fußarbeit", ExerciseDifficulty.Intermediate, "Unterordnung",
+                "In der Prüfungsordnung \"Leinenführigkeit\". Wie IBGH1, mit höheren Anforderungen an Konzentration und Tempowechsel."),
             new("Freifolge", ExerciseDifficulty.Intermediate, "Unterordnung",
-                "Wie Leinenführigkeit, jedoch ohne Leine."),
+                "Wie die Fußarbeit, jedoch ohne Leine."),
             new("Absitzen aus der Bewegung", ExerciseDifficulty.Intermediate, "Unterordnung",
                 "Wie IBGH1, mit höheren Anforderungen."),
             new("Ablegen aus der Bewegung", ExerciseDifficulty.Intermediate, "Unterordnung",
@@ -181,15 +209,18 @@ public static class SportCatalogSeeder
         ]);
 
         // Teil A: 60 Punkte, bestanden ab 42 (70 %); Teil B ohne Einzelpunkte,
-        // nur Gesamteindruck. Die frühere "2024"-Version hatte mit
-        // Leinenführigkeit 30 ohne Freifolge bereits das Richtige stehen; die
-        // damalige "Korrektur" auf 15+15 war der eigentliche Fehler und ist am
-        // 2026-08-19 gegen die FCI-PO 2025 zurückgenommen worden.
+        // nur Gesamteindruck. Die frühere "2024"-Version hatte mit 30 Punkten
+        // für die Fußarbeit und ohne bewertete Freifolge bereits das Richtige
+        // stehen; die damalige "Korrektur" auf 15+15 war der eigentliche
+        // Fehler und ist am 2026-08-19 gegen die FCI-PO 2025 zurückgenommen
+        // worden. An dieser Aufteilung ändert die Freifolge mit 0 Punkten
+        // nichts.
         await SeedRegulationAsync(db, bh, new RegulationSeed("BH", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Leinenführigkeit", true, 30, "Angeleint: mindestens 50 Schritte geradeaus, Kehrtwendung, Laufschritt und langsamer Schritt (je 10-15 Schritte), danach eine Gruppe von mindestens 4 sich bewegenden Personen. Abgeleint wird erst am Ende der Übung."),
-            new("Sitzübung", true, 10, "Aus einer Grundstellung oder aus der Bewegung; Hundeführer entfernt sich mind. 15 Schritte, Hund bleibt ruhig sitzen."),
-            new("Ablegen in Verbindung mit Herankommen", true, 10, "Aus der Bewegung ablegen, mind. 30 Schritte Entfernung, Abrufen mit Hörzeichen, Endgrundstellung."),
+            new("Fußarbeit", true, 30, "In der PO \"Leinenführigkeit\". Angeleint: Grundstellung, mindestens 50 Schritte geradeaus, Kehrtwendung nach links, Laufschritt und langsamer Schritt (je 10-15 Schritte), danach eine Gruppe von mindestens 4 sich bewegenden Personen (links und rechts umrunden, einmal anhalten)."),
+            new("Freifolge", true, 0, "Keine eigenständig bewertete Übung - die PO vergibt dafür keine Punkte. Nach der Fußarbeit wird abgeleint: Sitz und Ablegen mit Herankommen werden ohne Leine gezeigt, danach wird der Hund für die Ablage unter Ablenkung wieder angeleint."),
+            new("Sitzübung", true, 10, "Ohne Leine. Nach 10-15 Schritten Entwicklung sofort und gerade hinsetzen; Hundeführer entfernt sich mindestens 15 Schritte."),
+            new("Ablegen in Verbindung mit Herankommen", true, 10, "Ohne Leine. Nach 10-15 Schritten Entwicklung ablegen, Hundeführer geht mindestens 30 Schritte weiter, Abrufen mit Hörzeichen, Vorsitz, dann Endgrundstellung."),
             new("Ablegen unter Ablenkung", true, 10, "Während der Teil-A-Vorführung des anderen Hundes; Hundeführer ca. 30 Schritte entfernt in Sichtweite, Rücken zum Hund."),
             new("Verhalten im Verkehr", true, 0, "Teil B - Begegnung mit Fußgängern, Fahrzeugen, Radfahrer und Jogger; keine Einzelpunkte, Gesamteindruck entscheidet."),
             new("Begegnung mit Personengruppe", true, 0, "Teil B - unbefangenes Verhalten in einer dichten Personengruppe."),
@@ -198,7 +229,8 @@ public static class SportCatalogSeeder
         ],
         Description: "Begleithundeprüfung mit Verkehrsteil (BH/VT) nach FCI-Prüfungsordnung, gültig ab 01.01.2025.\n" +
             "Teil A (Übungsplatz): 4 bewertete Übungen, 60 Punkte gesamt - bestanden ab 42 Punkten (70 %).\n" +
-            "Leinenführigkeit 30, Sitz 10, Ablegen in Verbindung mit Herankommen 10, Ablegen unter Ablenkung 10. Der Hund wird erst nach der Leinenführigkeit abgeleint; eine eigenständig bewertete Freifolge gibt es nicht.\n" +
+            "Fußarbeit 30, Sitz 10, Ablegen in Verbindung mit Herankommen 10, Ablegen unter Ablenkung 10.\n" +
+            "Nach der Fußarbeit wird abgeleint: Sitz und Ablegen mit Herankommen werden in Freifolge gezeigt, danach wird der Hund für die Ablage unter Ablenkung wieder angeleint. Eigene Punkte gibt die Prüfungsordnung für die Freifolge nicht - sie steht hier als trainierbare Übung ohne Punktwertung.\n" +
             "Teil B (öffentlicher Verkehrsraum): keine Einzelpunkte, der Leistungsrichter beurteilt den Gesamteindruck.\n" +
             "Voraussetzungen: Mindestalter des Hundes 15 Monate, Sachkundenachweis des Hundeführers, Identitätsnachweis (Chip/Tätowierung).\n" +
             "Teil B wird nur geprüft, wenn Teil A bestanden wurde."));
@@ -210,22 +242,22 @@ public static class SportCatalogSeeder
         // dass keine echten Trainingsdaten mehr darauf verweisen.
         await SeedRegulationAsync(db, ibgh1, new RegulationSeed("IBGH1", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Leinenführigkeit", true, 30, "Aufmerksam, freudig, gerade und schnell an lockerer Leine, auch bei Tempo- und Richtungswechseln."),
-            new("Freifolge", true, 30, "Wie Leinenführigkeit, jedoch ohne Leine."),
+            new("Fußarbeit", true, 30, "In der PO \"Leinenführigkeit\": aus der Grundstellung an lockerer Leine, Kehrtwendung nach links, Tempowechsel, Halt mit selbstständigem Sitz, Personengruppe in Form einer Acht."),
+            new("Freifolge", true, 30, "Wie die Fußarbeit, jedoch ohne Leine."),
             new("Absitzen aus der Bewegung", true, 15, "Aus 10-15 Schritten Entwicklung, sofort und gerade."),
             new("Ablegen aus der Bewegung", true, 15, "Aus 10-15 Schritten Entwicklung, sofort und gerade."),
             new("Ablegen unter Ablenkung", true, 10, "Während der Vorführung des anderen Hundes, Hundeführer mindestens 10 Schritte entfernt in Sichtweite."),
         ],
         Description: "FCI-Internationale Begleithundprüfung Stufe 1 (100 Punkte, bestanden ab 70).\n" +
-            "5 Übungen der Unterordnung: Leinenführigkeit (30), Freifolge (30), Absitzen (15), Ablegen (15), Ablage unter Ablenkung (10).\n" +
+            "5 Übungen der Unterordnung: Fußarbeit an der Leine (30), Freifolge (30), Absitzen (15), Ablegen (15), Ablage unter Ablenkung (10).\n" +
             "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
             "Mindestalter: 15 Monate.\n" +
             "Hinweis: keine Schussgleichgültigkeitsprüfung, kein Bringen - reine Unterordnungsprüfung."));
 
         await SeedRegulationAsync(db, ibgh2, new RegulationSeed("IBGH2", "2025", new DateOnly(2025, 1, 1),
         [
-            new("Leinenführigkeit", true, 20, "Wie IBGH1, mit höheren Anforderungen."),
-            new("Freifolge", true, 20, "Wie Leinenführigkeit, jedoch ohne Leine."),
+            new("Fußarbeit", true, 20, "In der PO \"Leinenführigkeit\". Wie IBGH1, mit höheren Anforderungen."),
+            new("Freifolge", true, 20, "Wie die Fußarbeit, jedoch ohne Leine."),
             new("Absitzen aus der Bewegung", true, 15, "Wie IBGH1, mit höheren Anforderungen."),
             new("Ablegen aus der Bewegung", true, 15, "Wie IBGH1, mit höheren Anforderungen."),
             new("Bringen auf ebener Erde", true, 10, "Gegenstand wird vom Hundeführer geworfen."),
@@ -233,7 +265,7 @@ public static class SportCatalogSeeder
             new("Ablegen unter Ablenkung", true, 10, "Hundeführer mit dem Rücken zum Hund, mindestens 20 Schritte entfernt in Sichtweite."),
         ],
         Description: "FCI-Internationale Begleithundprüfung Stufe 2 (100 Punkte, bestanden ab 70).\n" +
-            "7 Übungen: Leinenführigkeit (20), Freifolge (20), Absitzen (15), Ablegen (15), Bringen (10), Voraussenden (10), Ablage (10).\n" +
+            "7 Übungen: Fußarbeit an der Leine (20), Freifolge (20), Absitzen (15), Ablegen (15), Bringen (10), Voraussenden (10), Ablage (10).\n" +
             "Neu gegenüber IBGH 1: Bringen auf ebener Erde und Voraussenden mit Hinlegen.\n" +
             "Startvoraussetzung: bestandene FCI-IBGH 1.\n" +
             "Mindestalter: 15 Monate."));
@@ -1430,6 +1462,38 @@ public static class SportCatalogSeeder
         // DogScooter und Bikejöring getreten.
         await RemoveOrphanedExercisesAsync(db, ths);
 
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Benennt eine Übung IN DER BESTEHENDEN ZEILE um (gleiche Id).
+    ///
+    /// Der Seeder findet Übungen über ihren Namen: Stünde in der Seed-Liste
+    /// einfach der neue Name, legte er eine ZWEITE Übung an und ließe die alte
+    /// verwaist zurück - mitsamt allen Trainingseinträgen, Bewertungen,
+    /// Wiedervorlage-Ständen und Plan-Zielen, die daran hängen. Deshalb wird
+    /// vor dem Seeden umbenannt.
+    ///
+    /// Muss VOR <see cref="SeedSportAsync"/> derselben Sportart laufen. Auf
+    /// einer frischen Datenbank passiert nichts (die Sportart gibt es noch
+    /// nicht) - dort entsteht die Übung gleich unter dem neuen Namen.
+    /// Idempotent: läuft nur, solange der alte Name existiert und der neue
+    /// noch nicht.
+    /// </summary>
+    private static async Task RenameExerciseAsync(ApplicationDbContext db, string sportCode, string oldName, string newName)
+    {
+        var sport = await db.Sports.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Code == sportCode);
+        if (sport is null) return;
+
+        var existing = await db.Exercises.FirstOrDefaultAsync(e => e.SportId == sport.Id && e.Name == oldName);
+        if (existing is null) return;
+
+        // Gäbe es den neuen Namen schon, entstünde ein Duplikat - dann lieber
+        // nichts tun und die alte Zeile stehen lassen, als zwei Übungen mit
+        // demselben Namen zu erzeugen.
+        if (await db.Exercises.AnyAsync(e => e.SportId == sport.Id && e.Name == newName)) return;
+
+        existing.Name = newName;
         await db.SaveChangesAsync();
     }
 

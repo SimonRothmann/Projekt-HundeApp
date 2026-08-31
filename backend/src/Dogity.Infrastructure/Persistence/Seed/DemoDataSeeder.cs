@@ -89,7 +89,7 @@ public static class DemoDataSeeder
 
         var bh = await db.Sports.IgnoreQueryFilters().FirstAsync(s => s.Code == "BH");
         var faerte = await db.Sports.IgnoreQueryFilters().FirstAsync(s => s.Code == "FAERTE");
-        var leinenfuehrigkeit = await db.Exercises.IgnoreQueryFilters().FirstAsync(e => e.SportId == bh.Id && e.Name == "Leinenführigkeit");
+        var fussarbeit = await db.Exercises.IgnoreQueryFilters().FirstAsync(e => e.SportId == bh.Id && e.Name == "Fußarbeit");
         var verkehr = await db.Exercises.IgnoreQueryFilters().FirstAsync(e => e.SportId == bh.Id && e.Name == "Verhalten im Verkehr");
 
         var clubExercise = new Exercise
@@ -114,7 +114,7 @@ public static class DemoDataSeeder
             FeedbackByTrainerId = trainer.Id,
             FeedbackAt = DateTimeOffset.UtcNow.AddDays(-2)
         };
-        trainedSession.Exercises.Add(new TrainingExercise { ExerciseId = leinenfuehrigkeit.Id, Rating = 4, Difficulty = ExerciseDifficulty.Beginner, Success = true, Notes = "Klappt gut." });
+        trainedSession.Exercises.Add(new TrainingExercise { ExerciseId = fussarbeit.Id, Rating = 4, Difficulty = ExerciseDifficulty.Beginner, Success = true, Notes = "Klappt gut." });
         trainedSession.Exercises.Add(new TrainingExercise { ExerciseId = verkehr.Id, Rating = 3, Difficulty = ExerciseDifficulty.Intermediate, Success = true, Notes = "Noch etwas unsicher bei Fahrrädern." });
         db.TrainingSessions.Add(trainedSession);
 
@@ -126,7 +126,7 @@ public static class DemoDataSeeder
             DurationMinutes = 30,
             Notes = "Training ohne Trainer."
         };
-        openFeedbackSession.Exercises.Add(new TrainingExercise { ExerciseId = leinenfuehrigkeit.Id, Rating = 5, Difficulty = ExerciseDifficulty.Beginner, Success = true, Notes = null });
+        openFeedbackSession.Exercises.Add(new TrainingExercise { ExerciseId = fussarbeit.Id, Rating = 5, Difficulty = ExerciseDifficulty.Beginner, Success = true, Notes = null });
         db.TrainingSessions.Add(openFeedbackSession);
 
         var fahrteSession = new TrainingSession
