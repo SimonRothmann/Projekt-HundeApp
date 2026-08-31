@@ -49,6 +49,7 @@ public interface ITrainingService
     /// Trainingseinheit muss dem Nutzer gehören.
     /// </summary>
     Task<Result> UpdateExerciseNotesAsync(Guid userId, Guid exerciseId, string? notes, CancellationToken ct = default);
+    Task<Result<TrainingSessionDto>> UpdateExerciseAsync(Guid userId, Guid exerciseId, UpdateTrainingExerciseRequest request, CancellationToken ct = default);
 
     /// <summary>Nur für Trainer mit TrainerAssignment auf den Hund - nicht für den Besitzer selbst.</summary>
     Task<Result> SetFeedbackAsync(Guid trainerId, Guid sessionId, SetFeedbackRequest request, CancellationToken ct = default);

@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ListChecks, PenLine, Plus, Trash2 } from "lucide-react";
+import { Clock, ListChecks, MapPin, PenLine, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { difficultyLabel } from "@/lib/constants";
+import { LocationTimeFields, type LocationValue } from "@/components/dogs/location-time-fields";
 
 type ExerciseRow = {
   sportId: string;
@@ -64,6 +65,17 @@ export function TrainingForm({
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [duration, setDuration] = useState(30);
   const [notes, setNotes] = useState("");
+  // Ort und Uhrzeit gleich beim Erfassen - der Server nimmt beides seit jeher
+  // entgegen und ermittelt daraus das Wetter; nur das Formular bot es bisher
+  // nicht an, man musste den Eintrag erst speichern und dann im Tagebuch
+  // nachtragen.
+  const [showContext, setShowContext] = useState(false);
+  const [startTime, setStartTime] = useState("");
+  const [location, setLocation] = useState<LocationValue>({
+    latitude: null,
+    longitude: null,
+    locationName: "",
+  });
   const [rows, setRows] = useState<ExerciseRow[]>([emptyRow()]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [exercisesBySport, setExercisesBySport] = useState<Record<string, Exercise[]>>({});
@@ -104,6 +116,15 @@ export function TrainingForm({
     setRows((prev) => prev.filter((_, i) => i !== index));
   }
 
+  // Ort und Zeit gehören zum einzelnen Training, nicht zum Formular - nach dem
+  // Speichern also zurücksetzen, sonst trägt der nächste Eintrag stillschweigend
+  // Ort und Uhrzeit des vorigen.
+  function resetContext() {
+    setStartTime("");
+    setLocation({ latitude: null, longitude: null, locationName: "" });
+    setShowContext(false);
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const validRows = rows.filter((r) => (r.isFreeText ? r.freeText.trim() : r.exerciseId));
@@ -117,6 +138,11 @@ export function TrainingForm({
       date,
       durationMinutes: duration,
       notes: notes || null,
+      // Backend erwartet TimeOnly; leer = nicht gesetzt.
+      startTime: startTime ? `${startTime}:00` : null,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      locationName: location.locationName.trim() || null,
       exercises: validRows.map((r) => ({
         exerciseId: r.isFreeText ? null : r.exerciseId,
         freeTextLabel: r.isFreeText ? r.freeText.trim() : null,
@@ -134,6 +160,7 @@ export function TrainingForm({
       toast.success("Training gespeichert.");
       setRows([emptyRow()]);
       setNotes("");
+      resetContext();
       await onSaved(false);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -145,6 +172,7 @@ export function TrainingForm({
         toast.success("Offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist.");
         setRows([emptyRow()]);
         setNotes("");
+        resetContext();
         await onSaved(true);
       }
     } finally {
@@ -313,6 +341,20 @@ export function TrainingForm({
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
+                {/* Kommentar zur einzelnen Übung. Der Wert wurde schon immer
+                    mitgeschickt, es gab nur nie ein Feld dafür - man konnte
+                    ihn erst nach dem Speichern im Tagebuch nachtragen. */}
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor={`row-notes-${index}`} className="text-xs text-muted-foreground">
+                    Kommentar zur Übung (optional)
+                  </Label>
+                  <Input
+                    id={`row-notes-${index}`}
+                    placeholder="z.B. Ablenkung durch Jogger, zweiter Versuch sauber"
+                    value={row.notes}
+                    onChange={(e) => updateRow(index, { notes: e.target.value })}
+                  />
+                </div>
                 {selectedExercise?.scoringCriteria && (
                   <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
                     <strong className="text-foreground">Bewertungskriterien:</strong>{" "}
@@ -328,8 +370,55 @@ export function TrainingForm({
             </Button>
           </div>
 
+          <div className="flex flex-col gap-3">
+            {showContext ? (
+              <div className="flex min-w-0 flex-col gap-3 rounded-md border p-3">
+                <LocationTimeFields
+                  idPrefix="new-training"
+                  time={startTime}
+                  onTimeChange={setStartTime}
+                  location={location}
+                  onLocationChange={setLocation}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Mit Ort und Uhrzeit wird das Wetter automatisch ermittelt.
+                </p>
+                <Button type="button" size="sm" variant="ghost" className="self-start" onClick={resetContext}>
+                  Ort &amp; Zeit wieder entfernen
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="self-start"
+                onClick={() => setShowContext(true)}
+              >
+                <MapPin className="size-4" />
+                Ort &amp; Uhrzeit angeben
+              </Button>
+            )}
+            {!showContext && (startTime || location.locationName) && (
+              <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                {startTime && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="size-3" />
+                    {startTime}
+                  </span>
+                )}
+                {location.locationName && (
+                  <span className="flex items-center gap-1 [overflow-wrap:anywhere]">
+                    <MapPin className="size-3" />
+                    {location.locationName}
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+
           <div className="flex flex-col gap-2">
-            <Label htmlFor="notes">Notizen</Label>
+            <Label htmlFor="notes">Notizen zum ganzen Training</Label>
             <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
 

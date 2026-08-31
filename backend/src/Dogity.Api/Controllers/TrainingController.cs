@@ -90,6 +90,13 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         return FromResult(result);
     }
 
+    [HttpPut("exercises/{exerciseId:guid}")]
+    public async Task<ActionResult<TrainingSessionDto>> UpdateExercise(Guid exerciseId, UpdateTrainingExerciseRequest request, CancellationToken ct)
+    {
+        var result = await trainingService.UpdateExerciseAsync(CurrentUserId, exerciseId, request, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("exercises/{exerciseId:guid}/trainer-rating")]
     public async Task<IActionResult> SetExerciseTrainerRating(Guid exerciseId, SetExerciseTrainerRatingRequest request, CancellationToken ct)
     {

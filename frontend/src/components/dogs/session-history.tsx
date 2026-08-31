@@ -13,6 +13,7 @@ import { GpsTrackSection } from "@/components/tracking/gps-track-section";
 import { SessionContextEditor } from "@/components/dogs/session-context-editor";
 import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
 import { ExerciseNotes } from "@/components/dogs/exercise-notes";
+import { ExerciseRating } from "@/components/dogs/exercise-rating";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
 // Monatsschlüssel im Format "2026-07" für die Gruppierung; toLocaleDateString
@@ -382,12 +383,15 @@ export function SessionHistory({
                           <ul className="flex flex-col gap-2">
                             {exercises.map((ex) => (
                               <li key={ex.id} className="flex flex-col gap-0.5">
-                                <div className="flex items-center justify-between text-sm">
-                                  <span>{ex.exerciseName}</span>
-                                  <span className="text-muted-foreground">
-                                    {"★".repeat(ex.rating)}
-                                    {"☆".repeat(5 - ex.rating)} {ex.success ? "✓" : "✗"}
-                                  </span>
+                                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
+                                  <span className="min-w-0 [overflow-wrap:anywhere]">{ex.exerciseName}</span>
+                                  <ExerciseRating
+                                    exerciseId={ex.id}
+                                    rating={ex.rating}
+                                    success={ex.success}
+                                    notes={ex.notes}
+                                    onSaved={onChanged}
+                                  />
                                 </div>
                                 <ExerciseNotes exerciseId={ex.id} notes={ex.notes} onSaved={onChanged} />
                                 <ExerciseTrainerRating

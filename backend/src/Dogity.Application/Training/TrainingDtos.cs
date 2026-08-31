@@ -62,6 +62,14 @@ public record SetExerciseTrainerRatingRequest(int Rating, string? Note);
 
 public record UpdateExerciseNotesRequest(string? Notes);
 
+/// <summary>
+/// Eine bereits erfasste Übung nachträglich korrigieren - Bewertung, Erfolg
+/// und Notiz in einem Zug. Bis hierher ließ sich nur die Notiz ändern: wer
+/// sich beim Eintragen vertippt hatte, musste den ganzen Trainingstag löschen
+/// und neu erfassen.
+/// </summary>
+public record UpdateTrainingExerciseRequest(int Rating, bool Success, string? Notes);
+
 public record UpdateSessionNotesRequest(string? Notes);
 
 /// <summary>

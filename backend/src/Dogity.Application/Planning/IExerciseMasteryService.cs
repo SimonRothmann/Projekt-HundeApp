@@ -16,6 +16,17 @@ public interface IExerciseMasteryService
     Task ApplyLogAsync(Guid dogId, Guid exerciseId, int rating, bool success, DateOnly date, CancellationToken ct = default);
 
     /// <summary>
+    /// Rechnet den Zustand EINER Übung eines Hundes komplett aus der Historie
+    /// neu. Nötig, sobald ein bereits geloggtes Training nachträglich geändert
+    /// wird: <see cref="ApplyLogAsync"/> schreibt fort, statt zu ersetzen -
+    /// ein korrigiertes Rating einfach noch einmal anzuwenden würde dasselbe
+    /// Training doppelt zählen und Box und Fälligkeit verfälschen.
+    /// Die manuelle Gewichtung (ManualPriority) bleibt erhalten.
+    /// Speichert NICHT selbst.
+    /// </summary>
+    Task RecomputeAsync(Guid dogId, Guid exerciseId, CancellationToken ct = default);
+
+    /// <summary>
     /// Einmaliger Backfill aus der bestehenden Trainingshistorie - läuft nur,
     /// solange noch keine Mastery-Zeilen existieren (idempotent). Wird beim
     /// Anwendungsstart nach den Migrationen aufgerufen.

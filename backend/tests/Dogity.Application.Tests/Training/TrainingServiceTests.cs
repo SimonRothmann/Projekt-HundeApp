@@ -525,4 +525,126 @@ public class TrainingServiceTests
         var foreign = await service.MoveTrainingDayAsync(Guid.NewGuid(), sessionId, DateOnly.FromDateTime(DateTime.Today.AddDays(-1)));
         Assert.False(foreign.Succeeded);
     }
+
+    // --- Nachträgliches Korrigieren einer erfassten Übung -----------------
+    // Bis dahin ließ sich nur die Notiz ändern; ein Vertipper in der Bewertung
+    // bedeutete: ganzen Trainingstag löschen und neu erfassen.
+
+    [Fact]
+    public async Task UpdateExercise_ChangesRatingSuccessAndNotes()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var created = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 2, ExerciseDifficulty.Beginner, false, "erster Versuch")));
+        var exerciseId = created.Value!.Exercises.Single().Id;
+
+        var result = await service.UpdateExerciseAsync(setup.UserId, exerciseId,
+            new UpdateTrainingExerciseRequest(5, true, "doch geklappt"));
+
+        Assert.True(result.Succeeded);
+        var updated = result.Value!.Exercises.Single();
+        Assert.Equal(5, updated.Rating);
+        Assert.True(updated.Success);
+        Assert.Equal("doch geklappt", updated.Notes);
+    }
+
+    [Fact]
+    public async Task UpdateExercise_RecomputesMasteryInsteadOfDoubleCounting()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 2, ExerciseDifficulty.Beginner, false, null)));
+        var exerciseId = (await db.TrainingExercises.SingleAsync()).Id;
+
+        await service.UpdateExerciseAsync(setup.UserId, exerciseId,
+            new UpdateTrainingExerciseRequest(5, true, null));
+
+        // Genau EIN Training in der Historie - der Zustand muss aussehen, als
+        // wäre von Anfang an eine 5 eingetragen worden. Würde die Korrektur
+        // einfach oben draufgerechnet, stünde hier SessionCount 2.
+        var mastery = await db.ExerciseMasteries.SingleAsync(m => m.ExerciseId == setup.CatalogExerciseId);
+        Assert.Equal(1, mastery.SessionCount);
+        Assert.Equal(5, mastery.RecentAvgRating);
+        Assert.Equal(2, mastery.Box);
+    }
+
+    [Fact]
+    public async Task UpdateExercise_KeepsManualPriority()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 3, ExerciseDifficulty.Beginner, true, null)));
+        var mastery = await db.ExerciseMasteries.SingleAsync();
+        mastery.ManualPriority = 2;
+        await db.SaveChangesAsync();
+        var exerciseId = (await db.TrainingExercises.SingleAsync()).Id;
+
+        await service.UpdateExerciseAsync(setup.UserId, exerciseId,
+            new UpdateTrainingExerciseRequest(1, false, null));
+
+        // "Diese Übung mehr üben" ist eine Entscheidung des Nutzers und darf
+        // durch eine Korrektur der Bewertung nicht verlorengehen.
+        Assert.Equal(2, (await db.ExerciseMasteries.SingleAsync()).ManualPriority);
+    }
+
+    [Fact]
+    public async Task UpdateExercise_InvalidRating_Fails()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 3, ExerciseDifficulty.Beginner, true, null)));
+        var exerciseId = (await db.TrainingExercises.SingleAsync()).Id;
+
+        var result = await service.UpdateExerciseAsync(setup.UserId, exerciseId,
+            new UpdateTrainingExerciseRequest(6, true, null));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task UpdateExercise_WithoutDogAccess_Fails()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 3, ExerciseDifficulty.Beginner, true, null)));
+        var exerciseId = (await db.TrainingExercises.SingleAsync()).Id;
+
+        var result = await service.UpdateExerciseAsync(Guid.NewGuid(), exerciseId,
+            new UpdateTrainingExerciseRequest(5, true, null));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task Create_WithStartTimeAndLocation_StoresThem()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+
+        // Ort und Uhrzeit gleich beim Erfassen - das Formular bot das vorher
+        // nicht an, der Server nimmt es seit jeher entgegen.
+        var request = new CreateTrainingSessionRequest(
+            setup.DogId,
+            DateOnly.FromDateTime(DateTime.Today),
+            10,
+            null,
+            [new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, "sauber")],
+            StartTime: new TimeOnly(17, 30),
+            Latitude: 53.55,
+            Longitude: 9.99,
+            LocationName: "Hundeplatz Nord");
+
+        var result = await service.CreateAsync(setup.UserId, request);
+
+        Assert.True(result.Succeeded);
+        var session = result.Value!;
+        Assert.Equal(new TimeOnly(17, 30), session.StartTime);
+        Assert.Equal("Hundeplatz Nord", session.LocationName);
+        Assert.Equal("sauber", session.Exercises.Single().Notes);
+    }
 }

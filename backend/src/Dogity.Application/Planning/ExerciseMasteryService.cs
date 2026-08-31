@@ -27,6 +27,42 @@ public class ExerciseMasteryService(IApplicationDbContext db) : IExerciseMastery
         ApplyOutcome(mastery, rating, success, date);
     }
 
+    public async Task RecomputeAsync(Guid dogId, Guid exerciseId, CancellationToken ct = default)
+    {
+        var mastery = await db.ExerciseMasteries.FirstOrDefaultAsync(m => m.DogId == dogId && m.ExerciseId == exerciseId, ct);
+        if (mastery is null)
+        {
+            mastery = new ExerciseMastery { DogId = dogId, ExerciseId = exerciseId };
+            db.ExerciseMasteries.Add(mastery);
+        }
+        else
+        {
+            // Auf den Startzustand zurücksetzen und die Historie neu abspielen.
+            // ManualPriority bleibt stehen: die Gewichtung "mehr/weniger üben"
+            // ist eine Entscheidung des Nutzers, keine Folge der Historie.
+            mastery.Box = 1;
+            mastery.LastTrainedAt = null;
+            mastery.DueAt = null;
+            mastery.RecentAvgRating = 0;
+            mastery.SessionCount = 0;
+        }
+
+        // Wie im Backfill: der SelectMany über die Navigation respektiert die
+        // Soft-Delete-Filter auf Einheit UND Übung.
+        var logs = await db.TrainingSessions
+            .Where(s => s.DogId == dogId)
+            .SelectMany(s => s.Exercises
+                .Where(e => e.ExerciseId == exerciseId)
+                .Select(e => new { s.Date, e.Rating, e.Success }))
+            .OrderBy(x => x.Date)
+            .ToListAsync(ct);
+
+        foreach (var log in logs)
+            ApplyOutcome(mastery, log.Rating, log.Success, log.Date);
+
+        mastery.UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public async Task SetManualPriorityAsync(Guid dogId, Guid exerciseId, int value, CancellationToken ct = default)
     {
         var clamped = Math.Clamp(value, -2, 2);

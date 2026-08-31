@@ -341,6 +341,43 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return Result.Success();
     }
 
+    public async Task<Result<TrainingSessionDto>> UpdateExerciseAsync(Guid userId, Guid exerciseId, UpdateTrainingExerciseRequest request, CancellationToken ct = default)
+    {
+        if (request.Rating < 1 || request.Rating > 5)
+            return Result<TrainingSessionDto>.Failure("Bewertung muss zwischen 1 und 5 liegen.");
+
+        var exercise = await db.TrainingExercises
+            .Include(e => e.TrainingSession)
+            .FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
+        if (exercise?.TrainingSession is null || !await db.HasDogAccessAsync(userId, exercise.TrainingSession.DogId, ct))
+            return Result<TrainingSessionDto>.Failure("Übung nicht gefunden.");
+
+        var ratingChanged = exercise.Rating != request.Rating || exercise.Success != request.Success;
+
+        exercise.Rating = request.Rating;
+        exercise.Success = request.Success;
+        var trimmed = request.Notes?.Trim();
+        exercise.Notes = string.IsNullOrEmpty(trimmed) ? null : trimmed;
+
+        // Der Wiedervorlage-Zustand hängt an Bewertung und Erfolg - eine
+        // Korrektur muss dort ankommen, sonst plant der adaptive Generator
+        // weiter mit dem alten Stand. Neu RECHNEN statt fortschreiben: das
+        // ursprüngliche Ergebnis steckt schon in der Box, ein zweites
+        // ApplyLog würde dasselbe Training doppelt zählen.
+        if (ratingChanged && exercise.ExerciseId is { } catalogExerciseId)
+        {
+            await db.SaveChangesAsync(ct);
+            await mastery.RecomputeAsync(exercise.TrainingSession.DogId, catalogExerciseId, ct);
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        var updated = await GetOwnedSessionAsync(userId, exercise.TrainingSessionId, ct, track: false);
+        return updated is null
+            ? Result<TrainingSessionDto>.Failure("Training nicht gefunden.")
+            : Result<TrainingSessionDto>.Success(ToDto(updated, await HasGpsTrackAsync(updated.Id, ct)));
+    }
+
     public async Task<Result> SetFeedbackAsync(Guid trainerId, Guid sessionId, SetFeedbackRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.Feedback))
