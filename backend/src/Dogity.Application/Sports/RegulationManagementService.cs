@@ -64,9 +64,11 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         if (exercise is null)
             return Result<RegulationExerciseDto>.Failure("Übung nicht gefunden.");
 
-        var alreadyLinked = await db.RegulationExercises.AnyAsync(
-            re => re.RegulationVersionId == version.Id && re.ExerciseId == request.ExerciseId, ct);
-        if (alreadyLinked)
+        // Auch entfernte Zeilen ansehen - sonst scheitert das erneute
+        // Hinzufügen einer zuvor entfernten Übung am eindeutigen Index
+        // (Soft-Delete, siehe RegulationExerciseQueries).
+        var existing = await db.FindLinkIncludingRemovedAsync(version.Id, request.ExerciseId, ct);
+        if (existing is { DeletedAt: null })
             return Result<RegulationExerciseDto>.Failure("Diese Übung ist bereits Teil der Prüfungsordnung.");
 
         // Von Hand ergänzte Übungen hängen sich ans Ende der Prüfungsordnung -
@@ -77,16 +79,27 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
             .Select(re => (int?)re.SortOrder)
             .MaxAsync(ct) ?? -1;
 
-        var link = new RegulationExercise
+        RegulationExercise link;
+        if (existing is not null)
         {
-            RegulationVersionId = version.Id,
-            ExerciseId = request.ExerciseId,
-            IsMandatory = request.IsMandatory,
-            MaxPoints = request.MaxPoints,
-            ScoringNotes = NullIfBlank(request.ScoringNotes),
-            SortOrder = lastSortOrder + 1
-        };
-        db.RegulationExercises.Add(link);
+            link = existing;
+            link.DeletedAt = null;
+            link.SortOrder = lastSortOrder + 1;
+        }
+        else
+        {
+            link = new RegulationExercise
+            {
+                RegulationVersionId = version.Id,
+                ExerciseId = request.ExerciseId,
+                SortOrder = lastSortOrder + 1
+            };
+            db.RegulationExercises.Add(link);
+        }
+
+        link.IsMandatory = request.IsMandatory;
+        link.MaxPoints = request.MaxPoints;
+        link.ScoringNotes = NullIfBlank(request.ScoringNotes);
         await db.SaveChangesAsync(ct);
 
         return Result<RegulationExerciseDto>.Success(new RegulationExerciseDto(

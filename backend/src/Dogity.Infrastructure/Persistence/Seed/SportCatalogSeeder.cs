@@ -1,3 +1,4 @@
+using Dogity.Application.Abstractions;
 using Dogity.Domain.Sports;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -1524,8 +1525,13 @@ public static class SportCatalogSeeder
                     "Name muss exakt übereinstimmen).");
             }
 
-            var regulationExercise = await db.RegulationExercises
-                .FirstOrDefaultAsync(re => re.RegulationVersionId == version.Id && re.ExerciseId == exercise.Id);
+            // Auch entfernte Zeilen ansehen: das Entfernen einer Übung aus einer
+            // Prüfungsordnung ist ein Soft-Delete, der eindeutige Index kennt
+            // aber kein DeletedAt. Ohne das legte der Seeder hier eine zweite
+            // Zeile mit derselben Kombination an - die Datenbank weist sie
+            // zurück, und weil der Seeder VOR app.Run() läuft, käme die Instanz
+            // nach einem von Hand entfernten Seed-Eintrag gar nicht mehr hoch.
+            var regulationExercise = await db.FindLinkIncludingRemovedAsync(version.Id, exercise.Id);
             if (regulationExercise is null)
             {
                 db.RegulationExercises.Add(new RegulationExercise
@@ -1545,6 +1551,10 @@ public static class SportCatalogSeeder
                 // Zeilen nie aktualisiert, nur fehlende neu angelegt, eine
                 // Korrektur landete dadurch nie in bereits gestarteten
                 // lokalen Entwicklungsdatenbanken.
+                // Wiederbeleben, falls die Zeile von Hand entfernt wurde: der
+                // Seed ist für den globalen Katalog die Quelle der Wahrheit,
+                // und die Übung steht ja wieder darin.
+                regulationExercise.DeletedAt = null;
                 regulationExercise.IsMandatory = exerciseSeed.IsMandatory;
                 regulationExercise.MaxPoints = exerciseSeed.MaxPoints;
                 regulationExercise.ScoringNotes = exerciseSeed.ScoringNotes;

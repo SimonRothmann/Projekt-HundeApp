@@ -52,8 +52,9 @@ public class RegulationImportService(IApplicationDbContext db, IRegulationPdfPar
                 db.Exercises.Add(exercise);
             }
 
-            var regulationExercise = await db.RegulationExercises
-                .FirstOrDefaultAsync(re => re.RegulationVersionId == currentVersion.Id && re.ExerciseId == exercise.Id, ct);
+            // Auch entfernte Zeilen ansehen (Soft-Delete + eindeutiger Index,
+            // siehe RegulationExerciseQueries).
+            var regulationExercise = await db.FindLinkIncludingRemovedAsync(currentVersion.Id, exercise.Id, ct);
 
             if (regulationExercise is null)
             {
@@ -68,6 +69,9 @@ public class RegulationImportService(IApplicationDbContext db, IRegulationPdfPar
             }
             else
             {
+                // Wiederbeleben: die Übung steht wieder in der importierten
+                // Liste, also gehört sie wieder zur Prüfungsordnung.
+                regulationExercise.DeletedAt = null;
                 regulationExercise.MaxPoints = candidate.MaxPoints;
             }
         }

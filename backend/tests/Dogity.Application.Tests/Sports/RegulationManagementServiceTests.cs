@@ -149,4 +149,42 @@ public class RegulationManagementServiceTests
         Assert.False(await db.RegulationExercises.AnyAsync(re => re.ExerciseId == linkedExerciseId));
         Assert.True(await db.RegulationExercises.IgnoreQueryFilters().AnyAsync(re => re.ExerciseId == linkedExerciseId && re.DeletedAt != null));
     }
+
+    // --- Entfernen ist ein Soft-Delete ------------------------------------
+    // Der eindeutige Index auf (RegulationVersionId, ExerciseId) kennt kein
+    // DeletedAt. Wer eine entfernte Übung wieder anlegt, legte deshalb eine
+    // zweite Zeile mit derselben Kombination an - auf Postgres ein Fehler.
+    // Für den Seeder war das ein Startabsturz, er läuft vor app.Run().
+
+    [Fact]
+    public async Task AddRegulationExercise_AfterRemoval_RevivesInsteadOfDuplicating()
+    {
+        var service = MakeService(out var db);
+        var (_, regulationId, _, linkedExerciseId) = await SeedGlobalRegulationAsync(db);
+        Assert.True((await service.RemoveRegulationExerciseAsync(Guid.NewGuid(), isAdmin: true, regulationId, linkedExerciseId)).Succeeded);
+
+        var result = await service.AddRegulationExerciseAsync(Guid.NewGuid(), isAdmin: true, regulationId,
+            new AddRegulationExerciseRequest(linkedExerciseId, IsMandatory: false, MaxPoints: 30, ScoringNotes: "neu"));
+
+        Assert.True(result.Succeeded);
+        var rows = await db.RegulationExercises.IgnoreQueryFilters()
+            .Where(re => re.ExerciseId == linkedExerciseId)
+            .ToListAsync();
+        Assert.Single(rows);
+        Assert.Null(rows[0].DeletedAt);
+        Assert.Equal(30, rows[0].MaxPoints);
+        Assert.False(rows[0].IsMandatory);
+    }
+
+    [Fact]
+    public async Task AddRegulationExercise_StillRejectsAnActiveDuplicate()
+    {
+        var service = MakeService(out var db);
+        var (_, regulationId, _, linkedExerciseId) = await SeedGlobalRegulationAsync(db);
+
+        var result = await service.AddRegulationExerciseAsync(Guid.NewGuid(), isAdmin: true, regulationId,
+            new AddRegulationExerciseRequest(linkedExerciseId, IsMandatory: true, MaxPoints: 10, ScoringNotes: null));
+
+        Assert.False(result.Succeeded);
+    }
 }
