@@ -13,6 +13,13 @@ public class DogsController(IDogService dogService) : ApiControllerBase
         return FromResult(result);
     }
 
+    [HttpGet("supervised")]
+    public async Task<ActionResult<IReadOnlyList<SupervisedDogDto>>> GetSupervised(CancellationToken ct)
+    {
+        var result = await dogService.GetSupervisedDogsAsync(CurrentUserId, ct);
+        return FromResult(result);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<DogDto>> GetById(Guid id, CancellationToken ct)
     {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
@@ -118,6 +118,28 @@ export default function DogDetailPage() {
       if (!cachedAvailable) toast.error(err instanceof ApiError ? err.message : "Daten konnten nicht geladen werden.");
     }
   }
+
+  // Aus der Trainerübersicht wird direkt auf #trainingsplan verlinkt. Der
+  // Browser kann dort beim Laden nicht hinspringen: die Ziele kommen erst per
+  // Netzantwort, der Anker existiert zu diesem Zeitpunkt noch gar nicht.
+  //
+  // Auf "dog" UND "goals" gewartet: solange der Hund fehlt, rendert die Seite
+  // nur "Lädt…" - der Anker ist dann selbst dann nicht da, wenn die Ziele
+  // schon eingetroffen sind. Nur einmal springen, sonst reißt es einen beim
+  // späteren Neuladen (nach jedem Speichern) wieder nach oben.
+  const jumpedToPlan = useRef(false);
+  useEffect(() => {
+    if (jumpedToPlan.current || !dog || goals === null) return;
+    if (window.location.hash !== "#trainingsplan") return;
+    const target = document.getElementById("trainingsplan");
+    if (!target) return;
+    jumpedToPlan.current = true;
+    // Direkt und ohne Animation: requestAnimationFrame läuft in einem Tab im
+    // Hintergrund gar nicht (wer den Link in einem neuen Tab öffnet, landete
+    // sonst oben), und eine weiche Animation bricht ab, sobald ein
+    // nachladender Abschnitt das Layout verschiebt.
+    target.scrollIntoView({ behavior: "auto", block: "start" });
+  }, [dog, goals]);
 
   useEffect(() => {
     // Initialer Datenabruf bei Mount/Routenwechsel (externe Quelle: REST API).

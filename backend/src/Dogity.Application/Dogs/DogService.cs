@@ -1,6 +1,7 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Domain.Dogs;
+using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Dogs;
@@ -29,6 +30,43 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
 
         return Result<IReadOnlyList<DogDto>>.Success(
             dogs.Select(d => ToDto(d, withImage.Contains(d.Id))).ToList());
+    }
+
+    /// <summary>
+    /// Die Hunde, die ich als Trainer:in betreue (TrainerAssignment) - der
+    /// direkte Weg von der Trainerübersicht zum Hund. Vorher führte der
+    /// einzige Weg dorthin über Gruppe -> Mitglied aufklappen -> Hund, also
+    /// vier Schritte für etwas, das man mehrmals pro Trainingsabend braucht.
+    /// </summary>
+    public async Task<Result<IReadOnlyList<SupervisedDogDto>>> GetSupervisedDogsAsync(Guid trainerId, CancellationToken ct = default)
+    {
+        var rows = await db.TrainerAssignments
+            .Where(t => t.TrainerId == trainerId)
+            .Select(t => new
+            {
+                t.DogId,
+                t.MemberId,
+                Dog = db.Dogs.FirstOrDefault(d => d.Id == t.DogId),
+                HasImage = db.DogImages.Any(i => i.DogId == t.DogId),
+                ActiveGoalCount = db.Goals.Count(g => g.DogId == t.DogId && g.Status == GoalStatus.Active),
+            })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        // Archivierte Hunde und Zuordnungen zu inzwischen gelöschten Hunden
+        // gehören nicht in die Arbeitsliste eines Trainingsabends.
+        var visible = rows.Where(r => r.Dog is not null && r.Dog.ArchivedAt is null).ToList();
+
+        var handlers = await userLookup.FindByIdsAsync(visible.Select(r => r.MemberId).Distinct().ToList(), ct);
+        string HandlerName(Guid id) =>
+            handlers.TryGetValue(id, out var info) ? $"{info.FirstName} {info.LastName}".Trim() : "(unbekannt)";
+
+        var dtos = visible
+            .Select(r => new SupervisedDogDto(r.Dog!.Id, r.Dog.Name, r.Dog.Breed, r.HasImage, HandlerName(r.MemberId), r.ActiveGoalCount))
+            .OrderBy(d => d.Name)
+            .ToList();
+
+        return Result<IReadOnlyList<SupervisedDogDto>>.Success(dtos);
     }
 
     public async Task<Result<DogDto>> GetByIdAsync(Guid userId, Guid dogId, CancellationToken ct = default)

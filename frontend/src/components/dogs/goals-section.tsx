@@ -36,7 +36,9 @@ export function GoalsSection({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    // scroll-mt: der Kopfbereich der App klebt oben - ohne den Abstand
+    // verschwände die Überschrift beim Sprung auf #trainingsplan darunter.
+    <div id="trainingsplan" className="flex scroll-mt-20 flex-col gap-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Ziele & Trainingsplan</h2>
         <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)}>

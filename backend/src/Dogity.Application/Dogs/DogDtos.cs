@@ -19,6 +19,21 @@ public record DogDto(
     bool HasImage);
 
 /// <summary>
+/// Ein von mir betreuter Hund - für die Trainerübersicht. Enthält bewusst den
+/// Namen des Hundeführers und ob ein Trainingsplan läuft: das sind die beiden
+/// Angaben, an denen eine Trainer:in ihre Hunde auseinanderhält, ohne die
+/// Karte erst öffnen zu müssen.
+/// </summary>
+public record SupervisedDogDto(
+    Guid Id,
+    string Name,
+    string? Breed,
+    bool HasImage,
+    string HandlerName,
+    /// <summary>Anzahl aktiver Trainingsziele - 0 heißt: hier ist noch kein Plan.</summary>
+    int ActiveGoalCount);
+
+/// <summary>
 /// Ein Bild als Data-URI ("data:image/jpeg;base64,..."), in beide Richtungen.
 ///
 /// Bewusst kein Datei-Upload: Der Browser rechnet das Bild ohnehin auf einer

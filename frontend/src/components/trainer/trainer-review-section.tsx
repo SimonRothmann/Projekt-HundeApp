@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { TrainerSessionToRate } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ClipboardCheck, MessageSquarePlus, Pencil } from "lucide-react";
@@ -85,12 +85,16 @@ export function TrainerReviewSection() {
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
+      <CardHeader className="items-center">
         <CardTitle className="flex items-center gap-2 text-base">
           <ClipboardCheck className="size-5" />
           Trainings bewerten
         </CardTitle>
-        {totalOpen > 0 && <Badge variant="secondary">{totalOpen} offen</Badge>}
+        {totalOpen > 0 && (
+          <CardAction>
+            <Badge variant="secondary">{totalOpen} offen</Badge>
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent>
         {sessions === null ? (

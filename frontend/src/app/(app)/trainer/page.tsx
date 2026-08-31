@@ -16,6 +16,7 @@ import { CatalogSection } from "@/components/sports/catalog-section";
 import { ClubJoinRequestsSection } from "@/components/trainer/club-join-requests-section";
 import { ClubMembersSection } from "@/components/trainer/club-members-section";
 import { GroupJoinRequestsSection } from "@/components/trainer/group-join-requests-section";
+import { SupervisedDogsSection } from "@/components/trainer/supervised-dogs-section";
 import { TrainerReviewSection } from "@/components/trainer/trainer-review-section";
 
 export default function TrainerPage() {
@@ -72,6 +73,10 @@ export default function TrainerPage() {
           individuellen Trainingsplänen.
         </p>
       </div>
+
+      {/* Ganz oben, noch vor Gruppentraining und Terminplanung: der Weg zum
+          einzelnen Hund wird an einem Trainingsabend am häufigsten gebraucht. */}
+      <SupervisedDogsSection />
 
       <Link href="/trainer/group-training">
         <Card className="transition-colors hover:bg-accent/30">
