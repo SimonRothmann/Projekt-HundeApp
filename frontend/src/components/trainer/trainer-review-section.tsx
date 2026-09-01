@@ -73,11 +73,14 @@ export function TrainerReviewSection() {
 
   // Nach Hund gruppieren, Reihenfolge der Hunde nach dem ältesten offenen
   // Training: was am längsten wartet, steht oben.
-  const byDog = new Map<string, { handlerName: string; sessions: TrainerSessionToRate[] }>();
+  // Nach dogId gruppieren, nicht nach dem Namen: zwei Hunde dürfen "Bella"
+  // heißen, und dann liefen die Trainings zweier Teams unter einer Überschrift
+  // zusammen - mit dem Namen des erstbesten Hundeführers daneben.
+  const byDog = new Map<string, { dogName: string; handlerName: string; sessions: TrainerSessionToRate[] }>();
   for (const s of sessions ?? []) {
-    const entry = byDog.get(s.dogName) ?? { handlerName: s.handlerName, sessions: [] };
+    const entry = byDog.get(s.dogId) ?? { dogName: s.dogName, handlerName: s.handlerName, sessions: [] };
     entry.sessions.push(s);
-    byDog.set(s.dogName, entry);
+    byDog.set(s.dogId, entry);
   }
   for (const entry of byDog.values()) entry.sessions.sort((a, b) => a.date.localeCompare(b.date));
 
@@ -105,8 +108,8 @@ export function TrainerReviewSection() {
           </p>
         ) : (
           <div className="flex flex-col gap-4">
-            {Array.from(byDog.entries()).map(([dogName, { handlerName, sessions: dogSessions }]) => (
-              <div key={dogName} className="flex min-w-0 flex-col gap-2">
+            {Array.from(byDog.entries()).map(([dogId, { dogName, handlerName, sessions: dogSessions }]) => (
+              <div key={dogId} className="flex min-w-0 flex-col gap-2">
                 <p className="flex flex-wrap items-baseline gap-x-1.5 text-sm font-semibold">
                   <span className="[overflow-wrap:anywhere]">{dogName}</span>
                   <span className="text-xs font-normal text-muted-foreground [overflow-wrap:anywhere]">
