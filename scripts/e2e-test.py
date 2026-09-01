@@ -557,6 +557,61 @@ def run_feature_sweep(api: Api, admin_token: str) -> None:
         status, pending = api.call("GET", f"/api/clubs/{club_id}/join-requests", token=admin_token)
         check(status in (200, 404), "Anfrageliste abrufbar (nur für Vereinstrainer)", str(status))
 
+    section("Sachkunde-Fragentrainer")
+    status, kataloge = api.call("GET", "/api/sachkunde/catalogs")
+    check(status == 200 and len(kataloge) >= 2, f"Fragenkataloge anonym lesbar ({len(kataloge) if status==200 else status})")
+    erw = next((k for k in kataloge if k["code"] == "SWHV-BHVT-ERW"), None)
+    check(erw is not None and erw["questionCount"] == 72 and len(erw["sections"]) == 5,
+          "Erwachsenenkatalog: 72 Fragen in 5 Komplexen",
+          str(erw and (erw["questionCount"], len(erw["sections"]))))
+    status, fragen = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/questions?section=C")
+    check(status == 200 and len(fragen) == 10, f"Komplex einzeln abrufbar ({len(fragen) if status==200 else status})")
+    check(all(f["kind"] != "SingleChoice" or any(o["isCorrect"] for o in f["options"]) for f in fragen),
+          "jede Auswahlfrage hat eine hinterlegte Lösung")
+    check(api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/session")[0] == 401,
+          "Lernstand ist ohne Anmeldung gesperrt")
+
+    status, sitzung = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/session?limit=5", token=owner_token)
+    check(status == 200 and len(sitzung["questions"]) == 5 and sitzung["progress"]["answered"] == 0,
+          "Lernrunde wird geliefert", str(status))
+    frage = sitzung["questions"][0]
+    falsch = [o["id"] for o in frage["options"] if not o["isCorrect"]][:1]
+    richtig = [o["id"] for o in frage["options"] if o["isCorrect"]]
+    status, ergebnis = api.call("POST", f"/api/sachkunde/questions/{frage['id']}/answer",
+                                {"selectedOptionIds": falsch}, owner_token)
+    check(status == 200 and ergebnis["correct"] is False and ergebnis["box"] == 1,
+          "falsche Antwort wird erkannt und setzt das Fach zurück", str(ergebnis))
+    _, fehler = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/session?mode=mistakes", token=owner_token)
+    check([q["id"] for q in fehler["questions"]] == [frage["id"]], "Frage steht im Fehlerspeicher")
+    _, ergebnis = api.call("POST", f"/api/sachkunde/questions/{frage['id']}/answer",
+                           {"selectedOptionIds": richtig}, owner_token)
+    check(ergebnis["correct"] is True and ergebnis["box"] == 2, "richtige Antwort hebt das Fach", str(ergebnis))
+    _, fehler = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/session?mode=mistakes", token=owner_token)
+    check(fehler["questions"] == [], "und räumt den Fehlerspeicher")
+    check(api.call("POST", f"/api/sachkunde/questions/{frage['id']}/answer",
+                   {"selectedOptionIds": []}, owner_token)[0] == 400, "leere Auswahl wird abgewiesen")
+
+    # Zuordnung/Freitext werden selbst eingeschätzt - der Server kann sie nicht prüfen.
+    _, alle_fragen = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/questions")
+    karte = next((f for f in alle_fragen if f["kind"] in ("Assignment", "FreeText")), None)
+    check(karte is not None and karte["sampleSolution"], "Zuordnung/Freitext hat eine Musterlösung")
+    check(api.call("POST", f"/api/sachkunde/questions/{karte['id']}/answer",
+                   {"selectedOptionIds": []}, owner_token)[0] == 400,
+          "ohne Selbsteinschätzung abgewiesen")
+    check(api.call("POST", f"/api/sachkunde/questions/{karte['id']}/answer",
+                   {"selfAssessedCorrect": True}, owner_token)[0] == 200, "Selbsteinschätzung wird angenommen")
+
+    status, stand = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/progress", token=owner_token)
+    check(status == 200 and stand["answered"] == 2 and stand["total"] == 72,
+          "Lernstand zählt die beantworteten Fragen", str(status))
+    check(api.call("POST", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/reset", token=owner_token)[0] == 204,
+          "von vorne anfangen wird angenommen")
+    _, stand = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/progress", token=owner_token)
+    check(stand["answered"] == 0 and stand["mastered"] == 0 and stand["inMistakes"] == 0,
+          "nach dem Neustart ist der Lernstand leer", str(stand))
+    check(api.call("GET", "/api/sachkunde/catalogs/GIBTSNICHT/session", token=owner_token)[0] == 404,
+          "unbekannter Katalog ist 404")
+
     section("Profil")
     check(api.call("PUT", "/api/profile/password",
                    {"currentPassword": PASSWORD, "newPassword": PASSWORD}, owner_token)[0] in (204, 400),

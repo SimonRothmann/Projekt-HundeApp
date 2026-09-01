@@ -1,6 +1,7 @@
 using Dogity.Application.Abstractions;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
+using Dogity.Domain.Learning;
 using Dogity.Domain.Notifications;
 using Dogity.Domain.Planning;
 using Dogity.Domain.Sports;
@@ -60,6 +61,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GpsWalkRun> GpsWalkRuns => Set<GpsWalkRun>();
     public DbSet<GpsWalkPoint> GpsWalkPoints => Set<GpsWalkPoint>();
     public DbSet<GpsWalkStop> GpsWalkStops => Set<GpsWalkStop>();
+
+    public DbSet<QuizCatalog> QuizCatalogs => Set<QuizCatalog>();
+    public DbSet<QuizQuestion> QuizQuestions => Set<QuizQuestion>();
+    public DbSet<QuizOption> QuizOptions => Set<QuizOption>();
+    public DbSet<QuizMastery> QuizMasteries => Set<QuizMastery>();
 
     public DbSet<Notification> Notifications => Set<Notification>();
 
@@ -121,6 +127,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<GpsWalkRun>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkPoint>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkStop>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<QuizCatalog>().HasQueryFilter(e => e.DeletedAt == null);
+        // Wie bei DogImage/GroupTrainer: der Filter der Pflichtbeziehung muss
+        // mitgezogen werden, sonst warnt EF zu Recht vor Verweisen ins Leere.
+        builder.Entity<QuizQuestion>().HasQueryFilter(e => e.DeletedAt == null && e.Catalog!.DeletedAt == null);
+        builder.Entity<QuizOption>().HasQueryFilter(e => e.DeletedAt == null && e.Question!.DeletedAt == null);
+        builder.Entity<QuizMastery>().HasQueryFilter(e => e.DeletedAt == null && e.Question!.DeletedAt == null);
         builder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null);
     }
 }

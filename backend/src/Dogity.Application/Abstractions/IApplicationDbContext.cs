@@ -1,5 +1,6 @@
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
+using Dogity.Domain.Learning;
 using Dogity.Domain.Notifications;
 using Dogity.Domain.Planning;
 using Dogity.Domain.Sports;
@@ -54,6 +55,11 @@ public interface IApplicationDbContext
     DbSet<GpsWalkRun> GpsWalkRuns { get; }
     DbSet<GpsWalkPoint> GpsWalkPoints { get; }
     DbSet<GpsWalkStop> GpsWalkStops { get; }
+
+    DbSet<QuizCatalog> QuizCatalogs { get; }
+    DbSet<QuizQuestion> QuizQuestions { get; }
+    DbSet<QuizOption> QuizOptions { get; }
+    DbSet<QuizMastery> QuizMasteries { get; }
 
     DbSet<Notification> Notifications { get; }
 

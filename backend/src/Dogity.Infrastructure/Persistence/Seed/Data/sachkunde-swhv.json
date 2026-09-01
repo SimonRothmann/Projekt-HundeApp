@@ -1,0 +1,3312 @@
+{
+ "herausgeber": "Südwestdeutscher Hundesportverband e.V. (swhv)",
+ "quelle": "https://swhv.de/fileadmin/swhv.de/Dokumente/Formulare_und_Texte/Basis/",
+ "stand": "2024-03",
+ "komplexe": {
+  "A": "Verhalten und Umgang mit dem Hund",
+  "B": "Zucht, Aufzucht und Gesundheit",
+  "C": "Recht",
+  "D": "Kynologie, Verbände und Ausbildung",
+  "E": "Prüfungswesen",
+  "J": "Jugendfragen"
+ },
+ "kataloge": [
+  {
+   "code": "SWHV-BHVT-ERW",
+   "name": "Sachkunde BH/VT – Erwachsene",
+   "zielgruppe": "Adults",
+   "beschreibung": "Fragenkatalog des swhv zur Sachkundeprüfung im Rahmen der Begleithundeprüfung mit Verkehrsteil, Fassung für Erwachsene.",
+   "fragen": [
+    {
+     "nummer": "A1",
+     "komplex": "A",
+     "reihenfolge": 1,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Einige Hunderassen stammen vom Schakal ab.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Nach dem heutigen Wissensstand stammen sämtliche Hunde vom Wolf ab.",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Hunde sind typische Einzelgänger.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Mischlinge sind erheblich gesünder als Rassehunde.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Hunde werden im Durchschnitt 18 Jahre alt.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A2",
+     "komplex": "A",
+     "reihenfolge": 2,
+     "art": "Assignment",
+     "text": "Ordnen Sie den aufgelisteten Stimmungen die abgebildeten Körperhaltungen zu:",
+     "bild": "a2.jpg",
+     "musterloesung": "Aufmerksamkeit → 1 · Angst → 4 · Aufforderung zum Spiel → 3 · Drohen → 2 · Unterwerfung → 5",
+     "antworten": []
+    },
+    {
+     "nummer": "A3",
+     "komplex": "A",
+     "reihenfolge": 3,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist falsch?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Hunde verständigen sich unter einander vorwiegend durch Lautäußerungen.",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Hunde verständigen sich durch Körpersprache.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Für die Verständigung spielt auch die Mimik eine große Rolle.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Auch die Haltung des Schwanzes ist ein sicherer Stimmungsanzeiger.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Rhodesien Ridgebacks benutzen ihre aufgestellten Rückhaare nicht als Verständigungsmittel. www.swhv.de/download Seite 1 von 20",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A4",
+     "komplex": "A",
+     "reihenfolge": 4,
+     "art": "SingleChoice",
+     "text": "Sie haben einen kleinen Hund. Ein großer Hund kommt Ihnen entgegen. Wie verhalten Sie sich richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Den kleinen Hund auf den Arm nehmen, dann kann ihm nicht passieren.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Versuchen, den großen Hund zu verscheuchen.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Mit dem Kleinen möglichst schnell wegrennen.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Den Kleinen zum wütenden Bellen animieren, dann kriegt der Große Angst.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Stehen bleiben oder versuchen, ruhigen Schrittes auszuweichen, ansonsten hoffen und beten.",
+       "richtig": true,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A5",
+     "komplex": "A",
+     "reihenfolge": 5,
+     "art": "SingleChoice",
+     "text": "Ihr Hund ist nicht angeleint und recht unternehmungslustig. Trotz mehrfachen Rufens kommt er nicht zu Ihnen zurück. Was sollten Sie nun tun?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Hinterher laufen und ihn zu fangen versuchen.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Mit der Leine nach ihm werfen.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Brüllen, dass die Bäume wackeln.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Sich ruhig umdrehen und weggehen.",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Ihm lauthals alle Strafen dieser Welt androhen.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A6",
+     "komplex": "A",
+     "reihenfolge": 6,
+     "art": "SingleChoice",
+     "text": "Ihr Hund ist in eine Beißerei mit einem etwa gleich großen Hund verwickelt. Wie sollten Sie sich in dieser Situation verhalten?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Meinen Hund irgendwo packen und versuchen, ihn aus dem Geschehen zu entfernen.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Versuchen, gemeinsam mit ihm den Gegner zu verjagen.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Einfach wild auf die Beißerei einschlagen.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Irgendwelche Hinterbeine packen. Dann wird vorne losgelassen.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Dem Schicksal seinen Lauf lassen. Alles andere steigert nur die Gefahr.",
+       "richtig": true,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A7",
+     "komplex": "A",
+     "reihenfolge": 7,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist falsch?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "In stark begangenen oder befahrenen Gegenden sollte ein Hund immer angeleint sein.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Durch das Anleinen wird der eher unverträgliche Hund kontrollierbarer.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Ein Hund sollte nicht angeleint werden, weil dies seinem Selbstbewusstsein schadet.",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Das Anleinen sollte nicht als „Strafmassnahme“ angewandt werden.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Dem jungen Hund sollte das Laufen an der Leine so vermittelt werden, dass er dies als ein eher „freudiges Ereignis“ empfindet.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A8",
+     "komplex": "A",
+     "reihenfolge": 8,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Hunde sind schmerzunempfindlich, weil sie keine Schmerzsinneszellen haben.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Hunde besitzen einen hervorragenden Geruchssinn.",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Hunde können erheblich besser Farben sehen als der Mensch.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Hunde können besonders hohe Töne nicht mehr hören.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Hunde haben bei heißem Wetter keine Probleme, sie können tierisch schwitzen!",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A9",
+     "komplex": "A",
+     "reihenfolge": 9,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist falsch?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Hunde besitzen eine angeborene Lernbereitschaft.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Hunde verfügen über ein recht gutes Gedächtnis.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Hunde verstehen jedes Wort.",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Hunde können Handlungen und Situationen verknüpfen.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Die Lernfähigkeit der Hunde ist im Welpenalter besonders groß.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A10",
+     "komplex": "A",
+     "reihenfolge": 10,
+     "art": "SingleChoice",
+     "text": "Was ist ungeeignet zum Einüben von Kommandos?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Kurze, wenn möglich einsilbige Worte verwenden.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Für gleiche Übungen immer gleiche Worte verwenden.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Deutliche Hörzeichen mit deutlichen Sichtzeichen kombinieren.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Wortreiches Gerede und wildes Gestikulieren vermeiden.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Kommandos nicht als einzelne Worte geben, sondern in schöne Sätze verpacken.",
+       "richtig": true,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A11",
+     "komplex": "A",
+     "reihenfolge": 11,
+     "art": "SingleChoice",
+     "text": "Wie sollten Sie einen ängstlichen Hund beruhigen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Durch ein striktes Kommando.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Durch einen heftigen Leinenruck.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Durch Nichtbeachtung.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Durch ruhiges und freundliches Zureden.",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Immer, wenn Angst aufkommt, schnell ein Leckerchen bereithalten.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A12",
+     "komplex": "A",
+     "reihenfolge": 12,
+     "art": "SingleChoice",
+     "text": "Wie kann ich weitgehend vermeiden, dass mein Hund ein „Problemhund“ wird?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Kann man gar nicht vermeiden, weil dieses Merkmal „angeboren“ ist.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Durch möglichst isolierte Haltung.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Dadurch, dass ich mit der Erziehung erst nach dem 1. Lebensjahr beginne.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Durch konsequente Erziehung und ein großes Angebot von Alltagssituationen in frühem Alter.",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Durch sehr frühe Trennung von Mutterhündin und Wurfgeschwistern. Das fördert die Selbständigkeit!",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A13",
+     "komplex": "A",
+     "reihenfolge": 13,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist falsch?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Aggressive Verhaltensweisen gehören bei Hunden zu normalen Reaktionen.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Überaggressive Verhaltensweisen können durch eine gute Ausbildung unter Kontrolle gehalten werden.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Unerwünschte Aggressionen können durch eine falsche Erziehung entstehen.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Überaggressive Verhaltensweisen sind überhaupt nicht zu beeinflussen. Damit muss man leben!",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Aggressives Verhalten der Mutterhündin tritt vor allem in den ersten drei Wochen der Welpenaufzucht auf.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A14",
+     "komplex": "A",
+     "reihenfolge": 14,
+     "art": "SingleChoice",
+     "text": "Der Hund soll kastriert werden. Was lässt sich für „danach“ vom Tierarzt mit Sicherheit voraussagen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Dass aggressive Verhalten des Hundes ist deutlich gemäßigt.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Ob überhaupt und wie sich der Hund verändert, ist nicht sicher voraussagbar.",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Der Hund wird in jedem Falle fett.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Der Hund wird faul und träge.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Das ständige Markieren hört auf.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A15",
+     "komplex": "A",
+     "reihenfolge": 15,
+     "art": "SingleChoice",
+     "text": "Welche Maßnahme ist ungeeignet, um einen Welpen stubenrein zu bekommen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Möglichst stets den gleichen Platz zum „Lösen“ anbieten.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Überschwänglich loben, wenn es denn „vollbracht“ ist.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Ist das Malheur im Haus passiert, dann kräftig mit der Nase reinstupsen.",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Nach dem Fressen und nach Spielaktionen Gelegenheit zum „Lösen“ geben.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Nach einer Schlafperiode sofort Gelegenheit zum „Lösen“ geben.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A16",
+     "komplex": "A",
+     "reihenfolge": 16,
+     "art": "SingleChoice",
+     "text": "Wie kann man einen Welpen die „Beißhemmung“ anerziehen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Gar nicht, weil sich das nicht beeinflussen lässt.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Geduldig warten bis etwa zum 10. Lebensmonat, dann hört er allein damit auf.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Beißt er im Spiel zu, muss man ihm ruhig erklären, dass das so nicht geht.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Beißt er im Spiel zu, das Spiel sofort abbrechen und kurz maßregeln.",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Seine offenbar schlechte Laune mit einem Leckerchen zu vertreiben versuchen.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A17",
+     "komplex": "A",
+     "reihenfolge": 17,
+     "art": "SingleChoice",
+     "text": "Hundehalter haben die Pflicht, Beißunfälle zu vermeiden. Dies gilt insbesondere in Bezug auf Kinder. Welche Aussage ist in diesem Zusammenhang richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Hunde haben Mitleid mit Kindern, deshalb passiert schon nichts.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Hunde und Kinder gehören zwar zusammen, aber nie ohne Aufsicht!",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Wenn Kinder und Hunde sich gut kennen, gibt es nie Probleme.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Schnell weglaufende und laut schreiende Kinder lösen bei Hunden nie ein „Beuteverhalten“, sondern immer nur Lust zum Spielen aus.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Kinder müssen nicht den richtigen Umgang mit Hunden lernen. Sie reagieren noch natürlich und machen alles richtig!",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A18",
+     "komplex": "A",
+     "reihenfolge": 18,
+     "art": "Assignment",
+     "text": "Über Geschmack lässt sich nicht streiten und somit ist auch die Zuneigung der Hundefreunde zu bestimmten Rassen aufgrund der Rassemerkmale unterschiedlich. Ordnen Sie den aufgelisteten Rassen die unter A – E beschriebenen Rassemerkmale zu:",
+     "bild": null,
+     "musterloesung": "Boxer → E (kurzköpfig) · Basset → C (langohrig) · Bobtail → A (langhaarig) · Greyhound → B (extrem hochbeinig) · Pudel → D (lockenhaarig)",
+     "antworten": []
+    },
+    {
+     "nummer": "A19",
+     "komplex": "A",
+     "reihenfolge": 19,
+     "art": "SingleChoice",
+     "text": "Sie sind mit Ihrem freilaufenden Hund unterwegs. Ein Jogger kommt Ihnen entgegen. Wie verhalten Sie sich richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Ich lasse den Hund weiter laufen.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Ich leine den Hund an und führe ihn am Jogger vorbei.",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Ich bitte den Jogger, nicht so dicht vorbei zu laufen.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Ich rufe laut: „Mein Hund tut nichts!“",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Ich halte meinen Hund am Halsband fest, animiere ihn aber zum Bellen, damit der Jogger wenigstens ein bisschen Respekt kriegt.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A20",
+     "komplex": "A",
+     "reihenfolge": 20,
+     "art": "SingleChoice",
+     "text": "Sie haben Ihren Hund im Auto, halten an der Strasse oder einer anderen Parkmöglichkeit und wollen ihn zu einer Besorgung mitnehmen. Wie verhalten Sie sich richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Tür auf, ein ermunterndes „Hopp“ auf den Lippen und raus mit ihm!",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Den Hund aus dem Auto lassen und dann anleinen.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Den Hund anleinen und dann erst aus dem Auto lassen.",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Dem Hund sagen, dass er vorsichtig sein soll und dann aus dem Auto lassen.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Den Hund aus dem Auto lassen, ihn anleinen und ihm dann durch wiederholten kräftigen Leinenruck klar machen, dass es jetzt ernst wird.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A21",
+     "komplex": "A",
+     "reihenfolge": 21,
+     "art": "SingleChoice",
+     "text": "Jeder Hund sollte wichtige Grundkommandos beherrschen. Welches Kommando gehört nicht dazu?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Sitz",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Pfötchen geben",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Platz",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Komm oder Hier",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Steh",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A22",
+     "komplex": "A",
+     "reihenfolge": 22,
+     "art": "SingleChoice",
+     "text": "Ihr Hund knurrt Gäste an, die die Wohnung betreten. Wie verhalten Sie sich richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Die Gäste auffordern, den Hund freundlich zu begrüßen.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Den Hund mit deutlichem Befehl auf seinen Platz schicken.",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Dem Hund gut zureden und liebevoll streicheln.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Die Gäste bereits an der Haustür mit Leckerchen versorgen.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Den Hund selbst mit reichlich Leckerchen versorgen.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "A23",
+     "komplex": "A",
+     "reihenfolge": 23,
+     "art": "Assignment",
+     "text": "Vertreter unterschiedlicher Hunderassen haben auch unterschiedliche Talente, die sie für bestimmte Einsätze besonders brauchbar machen. Ordnen Sie den aufgelisteten Rassen die unter A – E beschriebenen Einsatzmöglichkeiten zu, für die diese Rassen besonders talentiert sind:",
+     "bild": null,
+     "musterloesung": "Labrador Retriever → B (Blindenhund) · Collie → D (Hüten) · Teckel → A (Baujagd) · Riesenschnauzer → E (Diensthund) · Barsoi → C (Rennsport)",
+     "antworten": []
+    },
+    {
+     "nummer": "B1",
+     "komplex": "B",
+     "reihenfolge": 24,
+     "art": "SingleChoice",
+     "text": "Wie lange dauert die Tragzeit der Hündin?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "ca. 45 Tage",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "ca. 63 Tage",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "ca. 75 Tage",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "ca. 90 Tage",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "ca. 4 Monate",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B2",
+     "komplex": "B",
+     "reihenfolge": 25,
+     "art": "SingleChoice",
+     "text": "In welchem Alter sind junge Hunde besonders empfänglich für soziale Eindrücke und Umweltreize?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "1. bis 2. Lebenswoche",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "3. Lebenswoche",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "4. bis 12. Lebenswoche",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": "4. bis 6. Monat",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "9. bis 12. Monat",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B3",
+     "komplex": "B",
+     "reihenfolge": 26,
+     "art": "SingleChoice",
+     "text": "In welchem Alter sollte der Züchter frühestens die Welpen abgeben?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "4. Lebenswoche",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "6. Lebenswoche",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "8. Lebenswoche",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": "10. Lebenswoche",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "12. Lebenswoche",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B4",
+     "komplex": "B",
+     "reihenfolge": 27,
+     "art": "SingleChoice",
+     "text": "Was ist unbedingt wichtig bei der Abgabe der Welpen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Sie müssen geimpft und mehrfach entwurmt sein.",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Sie müssen stubenrein sein.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Sie müssen leinenführig sein.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Sie müssen möglichst dick sein.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Sie müssen richtige Draufgänger sein.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B5",
+     "komplex": "B",
+     "reihenfolge": 28,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Alle Hunde brauchen gleich viel Bewegung.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Das Bewegungsbedürfnis der Hunde ist rasseabhängig.",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Hunde brauchen keine Rückzugsmöglichkeit, da sie soziale Tiere sind.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Hunde sollten vor jedem großen Spaziergang gefüttert werden.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Zum Trinken sollte Hunden vor allem Milch angeboten werden.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B6",
+     "komplex": "B",
+     "reihenfolge": 29,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist falsch?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Fertigfutter deckt den Bedarf des gesunden Tieres.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Fertigfutter ist dem Alter und der Leistung des Tieres anzupassen.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Fertigfutter sollte immer durch spezielle Futtermittel ergänzt werden.",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Fertigfutter wird für verschiedene Altersstufen angeboten.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Die Fertigfuttermenge ist dem Gewicht des Hundes anzupassen.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B7",
+     "komplex": "B",
+     "reihenfolge": 30,
+     "art": "SingleChoice",
+     "text": "Sie haben entschieden, das Futter Ihres Hundes selbst zuzubereiten. Was braucht es nicht enthalten?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Eiweiß",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Kohlehydrate",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Fette",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Vitamine",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Rohe Salatblätter",
+       "richtig": true,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B8",
+     "komplex": "B",
+     "reihenfolge": 31,
+     "art": "SingleChoice",
+     "text": "Was sollten Sie bei der Fütterung Ihres Hundes vermeiden?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Geflügelknochen",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Quark",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Gekochten Reis",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Gekochtes Fleisch",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Ein Stückchen geliebtes Leberwurstbrot",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B9",
+     "komplex": "B",
+     "reihenfolge": 32,
+     "art": "SingleChoice",
+     "text": "Was ist kein sicheres Anzeichen für die Läufigkeit einer Hündin?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Das Anschwellen der Scham.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Ein blutig-wässriger Ausfluss.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Das Verhalten der Rüden beim Zusammentreffen.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Das Wälzen der Hündin auf dem Boden",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Die Bereitwilligkeit der Hündin, sich decken zu lassen.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B10",
+     "komplex": "B",
+     "reihenfolge": 33,
+     "art": "SingleChoice",
+     "text": "Wie lange dauert die Läufigkeit bei einer gesunden Hündin?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "ca. 5 Tage",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "ca. 10 Tage",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "ca. 3 Wochen",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": "ca. 4 Wochen",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "je nach Jahreszeit 1 – 2 Wochen",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B11",
+     "komplex": "B",
+     "reihenfolge": 34,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Der Deckakt dauert bei Hunden bestenfalls 5 Minuten.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Der Deckakt muss unbedingt mehr als 30 Minuten dauern.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "In der Regel wird die Hündin zwei Mal jährlich läufig.",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Eine gesunde Hündin ist immer deckfähig.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Ein gesunder Rüde deckt nur etwa 5 x jährlich.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B12",
+     "komplex": "B",
+     "reihenfolge": 35,
+     "art": "SingleChoice",
+     "text": "Welche Maßnahme trägt nicht zur Gesundheitsvorkehrung des Hundes bei?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Spezielle Schutzimpfungen",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Wöchentliches Baden",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Regelmäßige Wurmkuren nach Kotuntersuchung",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Ausgewogenes Futter",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Bedarfsgerechte Bewegung",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B13",
+     "komplex": "B",
+     "reihenfolge": 36,
+     "art": "SingleChoice",
+     "text": "Wer allein ist berechtigt, einen gültigen Impfpass auszustellen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Der Hundezüchter",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Der Hundebesitzer",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Das Veterinäramt",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Der Tierarzt, der geimpft hat",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Der Verband für das Deutsche Hundewesen",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B14",
+     "komplex": "B",
+     "reihenfolge": 37,
+     "art": "SingleChoice",
+     "text": "Welche Antwort ist bezüglich der Tollwut falsch?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Die Tollwut wird durch Viren übertragen.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Ihre Krankheitserreger werden mit dem Speichel ausgeschieden.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Die typischste Übertragung der Tollwut ist der Biss.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Ihre Krankheitserreger werden mit dem Kot ausgeschieden.",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Auch Menschen können sich infizieren.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B15",
+     "komplex": "B",
+     "reihenfolge": 38,
+     "art": "SingleChoice",
+     "text": "Wie kann sich der Mensch mit dem gefährlichen Hundebandwurm infizieren?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Durch einen Hundebiss.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Durch Kontakt mit dem Blut eines infizierten Hundes.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Durch Biss eines infizierten Fuchses.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Über den Kot infizierter Hunde oder Füchse.",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Gar nicht, weil er immun ist.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B16",
+     "komplex": "B",
+     "reihenfolge": 39,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist falsch?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Der Hundefloh ernährt sich vom Blut des Hundes.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Man kann den Hundefloh durch Kontaktinsektizide bekämpfen.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Zecken können auch beim Hund Krankheitserreger übertragen.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Zecken übertragen Toxoplasmose.",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Zecken sollten beim Hund möglichst schnell mit einer Zeckenzange entfernt werden.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B17",
+     "komplex": "B",
+     "reihenfolge": 40,
+     "art": "SingleChoice",
+     "text": "§ 11 des Tierschutzgesetzes verbietet das Züchten mit Tieren, deren Nachkommen gefährdet sind, bestimmte Defekte bzw. Krankheiten zu haben (Qualzuchtparagraph). Welcher Defekt bzw. Krankheit gehört nicht hierzu?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Ektropium",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Haarlosigkeit",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Hüftgelenksdysplasie",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Magendrehung",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Entropium",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B18",
+     "komplex": "B",
+     "reihenfolge": 41,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Regelmäßige Körperpflege ist albern.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Die Ohren des Hundes sollten täglich mit Wattestäbchen gereinigt werden.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Regelmäßige Körperpflege dient auch dem sozialen Kontakt zwischen Hund und Hundehalter.",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Im Hundegebiss entsteht kein Zahnstein.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Ein Hund sollte auf keinen Fall gebadet werden.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "B19",
+     "komplex": "B",
+     "reihenfolge": 42,
+     "art": "SingleChoice",
+     "text": "Unter welchen Umständen darf ich meinen Hund im Auto lassen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Bei hohen Temperaturen.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Wenn das Auto an kühlen Tagen im Schatten steht",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "In der prallen Sonne.",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "C1",
+     "komplex": "C",
+     "reihenfolge": 43,
+     "art": "SingleChoice",
+     "text": "Welches Rechtsgebiet ist für den Hundehalter nicht wichtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Strafrecht",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Ordnungsrecht",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Tierschutzrecht",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Baurecht",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Zivilrecht",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "C2",
+     "komplex": "C",
+     "reihenfolge": 44,
+     "art": "SingleChoice",
+     "text": "Welches Gesetz bzw. welche Verordnung regelt die Mindestanforderungen für die Haltung von Hunden im Freien?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Tierzuchtgesetz",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Tiertransport-Verordnung",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Landeshundegesetz",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Tierschutz-Hundeverordnung",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Heimtierzuchtgesetz",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "C3",
+     "komplex": "C",
+     "reihenfolge": 45,
+     "art": "SingleChoice",
+     "text": "Darf ein Hund nach der neuen Tierschutz-Hundeverordnung in Anbindehaltung gehalten werden?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Ja",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Nein",
+       "richtig": true,
+       "reihenfolge": 2
+      }
+     ]
+    },
+    {
+     "nummer": "C4",
+     "komplex": "C",
+     "reihenfolge": 46,
+     "art": "SingleChoice",
+     "text": "Wie hat sich der Hundehalter in einem Tollwutsperrbezirk bezüglich seines Hundes zu verhalten?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Ist sein Hund gegen Tollwut geimpft und gehorcht er zuverlässig, darf er frei laufen.",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Alle Hunde müssen an die Leine.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Nur Hunde ohne Impfung müssen an die Leine.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Alle gegen Tollwut geimpften Hunde dürfen in jedem Fall frei laufen.",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Es gibt keine Einschränkungen.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "C5",
+     "komplex": "C",
+     "reihenfolge": 47,
+     "art": "SingleChoice",
+     "text": "Wie lange ist die Tollwutschutzimpfung in Deutschland gültig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "so wie es durch den Tierarzt, in den Impfpass eingetragen wurde",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": "2 Jahre",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "3 Jahre",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "4 Jahre",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Lebenslang",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "C6",
+     "komplex": "C",
+     "reihenfolge": 48,
+     "art": "SingleChoice",
+     "text": "Unter welchen Umständen dürfen Jäger Hunde erschießen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Wenn diese den Waldweg verlassen.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Wenn diese den Waldweg verunreinigen.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Wenn diese im Wald bellen.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Wenn diese unkontrolliert Wild hetzen.",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Wenn diese ohne Leine diszipliniert neben dem Halter herlaufen.",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "C7",
+     "komplex": "C",
+     "reihenfolge": 49,
+     "art": "SingleChoice",
+     "text": "Mit welchen Hunden darf entsprechend dem Landeshundegesetz NRW nicht mehr gezüchtet werden?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Bullmastiff",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Dogo Argentino",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Bullterrier",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Rottweiler",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Dobermann",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "C8",
+     "komplex": "C",
+     "reihenfolge": 50,
+     "art": "SingleChoice",
+     "text": "Hunde welcher Rasse müssen nach dem Landeshundegesetz NRW nicht mit einem Chip gekennzeichnet sein?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Teckel",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Riesenschnauzer",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Irish Setter",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Deutsche Schäferhunde",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Boxer",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "C9",
+     "komplex": "C",
+     "reihenfolge": 51,
+     "art": "SingleChoice",
+     "text": "Welche Hunderasse darf entsprechend dem Landeshundegesetz nur noch mit Erlaubnis des Ordnungsamtes gehalten werden?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Dobermann",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Schnauzer",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Kuvacz",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "American Staffordshire Terrier",
+       "richtig": true,
+       "reihenfolge": 4
+      },
+      {
+       "text": "Golden Retriever",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "C10",
+     "komplex": "C",
+     "reihenfolge": 52,
+     "art": "SingleChoice",
+     "text": "Welche Voraussetzungen braucht eine Person nicht, die einen Antrag auf Erlaubnis zur Haltung eines „gefährlichen Hundes“ stellt?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Sie muss älter als 18 Jahre sein.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Sie muss männlich sein.",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Sie muss einen Sachkundenachweis erbringen.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Sie muss eine spezielle Haftpflichtversicherung abgeschlossen haben.",
+       "richtig": false,
+       "reihenfolge": 4
+      }
+     ]
+    },
+    {
+     "nummer": "D1",
+     "komplex": "D",
+     "reihenfolge": 53,
+     "art": "SingleChoice",
+     "text": "Die Fédération Cynologique Internationale (F.C.I) ist",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "der Weltverband einzelner Rassehunde-Zuchtvereine",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "der Weltverband der kynologischen Verbände (z.B. VDH)",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "eine internationale kynologische Organisation mit Einzelmitgliedern, die sich zum Wohle der Hunde engagieren",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "D2",
+     "komplex": "D",
+     "reihenfolge": 54,
+     "art": "SingleChoice",
+     "text": "Dem VDH gehören als Mitglieder an:",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Einzelpersonen und Vereine/Verbände",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Vereine/Verbände",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Einzelpersonen",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "D3",
+     "komplex": "D",
+     "reihenfolge": 55,
+     "art": "SingleChoice",
+     "text": "Der VDH empfiehlt, sich bei der Auswahl der Hunderasse in erster Linie zu orientieren:",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "an rassespezifischen Eigenschaften und Bedürfnissen",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": "an Haarart und Farbe",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "am Aussehen",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "D4",
+     "komplex": "D",
+     "reihenfolge": 56,
+     "art": "SingleChoice",
+     "text": "Der ausgewachsene Hund hat",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "28 Zähne",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "48 Zähne",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "42 Zähne",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "D5",
+     "komplex": "D",
+     "reihenfolge": 57,
+     "art": "FreeText",
+     "text": "Nennen Sie die Sinne des Hundes:",
+     "bild": null,
+     "musterloesung": "a) Geruchssin b) Geschmackssinn c) Körpertastsinn d) Gehörsinn e) Gesichtssinn",
+     "antworten": []
+    },
+    {
+     "nummer": "D6",
+     "komplex": "D",
+     "reihenfolge": 58,
+     "art": "FreeText",
+     "text": "Was sind typische Hundekrankheiten?",
+     "bild": null,
+     "musterloesung": "Leptospirose, Staupe, Hüftgelenksdysplasie, Pavovirose, Borreliose, Ektropium, Entropium, Magendrehung , etc.",
+     "antworten": []
+    },
+    {
+     "nummer": "D7",
+     "komplex": "D",
+     "reihenfolge": 59,
+     "art": "SingleChoice",
+     "text": "Normale Temperatur des Hundes",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "37 – 37,5 º",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "38 – 38,5 º",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "39 – 40 º",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "D8",
+     "komplex": "D",
+     "reihenfolge": 60,
+     "art": "FreeText",
+     "text": "Wie wird die Körpertemperatur am Hund gemessen?",
+     "bild": null,
+     "musterloesung": "rektal durch den After",
+     "antworten": []
+    },
+    {
+     "nummer": "D9",
+     "komplex": "D",
+     "reihenfolge": 61,
+     "art": "SingleChoice",
+     "text": "Welcher Sinn ist beim Hund nicht vorhanden?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Gleichgewichtssinn",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Tastsinn",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Gerechtigkeitssinn",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "D10",
+     "komplex": "D",
+     "reihenfolge": 62,
+     "art": "SingleChoice",
+     "text": "Hohe Reizschwelle bedeutet:",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "der Hund reagiert schnell",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "der Hund reagiert sehr ausgeglichen",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "der Hund reagiert nicht",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "D11",
+     "komplex": "D",
+     "reihenfolge": 63,
+     "art": "SingleChoice",
+     "text": "Welche Übung gehört nicht zur BH/VT:",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Überprüfung der Schusssicherheit",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Platzmachen und Herankommen",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Unbefangenheit des Hundes gegenüber Fahrzeugen und Personen",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "D12",
+     "komplex": "D",
+     "reihenfolge": 64,
+     "art": "SingleChoice",
+     "text": "Ab welchem Alter kann ein Hund in BH/VT geführt werden?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "ab 12 Monate",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "auch unter 12 Monate",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "ab 15 Monate",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "D13",
+     "komplex": "D",
+     "reihenfolge": 65,
+     "art": "SingleChoice",
+     "text": "Wodurch entstehen gravierende Ausbildungsfehler?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Überforderung des Hundes",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Lob durch den Hundeführer",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Kurze Übungseinheiten",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "E1",
+     "komplex": "E",
+     "reihenfolge": 66,
+     "art": "SingleChoice",
+     "text": "Wer darf Vorbereitungen und Prüfungen zur VDH-BH-Prüfung durchführen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Inhaber von gewerblichen Hundeschulen",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Einzelpersonen im Auftrag des VDH-Mitgliedsvereines",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "VDH-Mitgliedsvereine",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "E2",
+     "komplex": "E",
+     "reihenfolge": 67,
+     "art": "SingleChoice",
+     "text": "Wer darf teilnehmen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Hundehalter ohne Mitgliedschaft in einem VDH-Mitgliedsverein.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Nur Personen, die eine gültige Mitgliedschaft zu einem VDH-Mitgliedsverein nachweisen können.",
+       "richtig": true,
+       "reihenfolge": 2
+      }
+     ]
+    },
+    {
+     "nummer": "E3",
+     "komplex": "E",
+     "reihenfolge": 68,
+     "art": "SingleChoice",
+     "text": "Hat der Hundeführer vor der Meldung zur Prüfung die Prüfungsreife des Hundes durch seinen Übungsleiter/Ausbildungswart bestätigen zu lassen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Ja",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Nein",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "nur in bestimmten VDH-Vereinen",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "E4",
+     "komplex": "E",
+     "reihenfolge": 69,
+     "art": "SingleChoice",
+     "text": "Kann eine BH-Prüfung im Gehorsams- und Straßenverkehrsteil abgelegt werden, wenn der Hundeführer keinen anerkannten Sachkundenachweis erbringen kann?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Ja",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Nein",
+       "richtig": true,
+       "reihenfolge": 2
+      }
+     ]
+    },
+    {
+     "nummer": "E5",
+     "komplex": "E",
+     "reihenfolge": 70,
+     "art": "SingleChoice",
+     "text": "Können zwei Teilnehmer in einer Prüfung mit demselben Hund teilnehmen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Ja",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Nein",
+       "richtig": true,
+       "reihenfolge": 2
+      }
+     ]
+    },
+    {
+     "nummer": "E6",
+     "komplex": "E",
+     "reihenfolge": 71,
+     "art": "SingleChoice",
+     "text": "Wie viel Hunde darf ein Teilnehmer in einer Prüfung vorstellen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "max. 3 Hunde",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "max. 2 Hunde",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "nur 1 Hund",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "E7",
+     "komplex": "E",
+     "reihenfolge": 72,
+     "art": "SingleChoice",
+     "text": "Muss für den vorgeführten Hund eine Haftpflichtversicherung nachgewiesen werden?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Ja",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Nein",
+       "richtig": false,
+       "reihenfolge": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "SWHV-BHVT-JGD",
+   "name": "Sachkunde BH/VT – Jugend",
+   "zielgruppe": "Youth",
+   "beschreibung": "Fassung für Kinder und Jugendliche unter 15 Jahren. In der Prüfung werden 15 Fragen gestellt, je Frage ist genau eine Antwort richtig.",
+   "fragen": [
+    {
+     "nummer": "1",
+     "komplex": "J",
+     "reihenfolge": 1,
+     "art": "SingleChoice",
+     "text": "Von welchem Tier stammt der Hund ab?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " vom Tiger",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "vom Wolf",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " vom Fuchs",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "2",
+     "komplex": "J",
+     "reihenfolge": 2,
+     "art": "SingleChoice",
+     "text": "Hunde verständigen sich:",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "durch Körpersprache (Schwanz wedeln, Ohren stellen, …)",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " durch Hochspringen",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " durch Bellen",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "3",
+     "komplex": "J",
+     "reihenfolge": 3,
+     "art": "SingleChoice",
+     "text": "Was heißt die Abkürzung „swhv“ ?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " sehen warten hören vertrauen",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "südwestdeutscher Hundesportverband",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " die Abkürzung gibt es nicht",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "4",
+     "komplex": "J",
+     "reihenfolge": 4,
+     "art": "SingleChoice",
+     "text": "Wann sollte ein Hund immer angeleint werden?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " in der Wohnung",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": " im eingezäunten Garten",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "in der Stadt",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "5",
+     "komplex": "J",
+     "reihenfolge": 5,
+     "art": "SingleChoice",
+     "text": "Was sollte ein Hund, der im Freien lebt, immer haben?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "eine schützende Hütte und einen überdachten Liegeplatz",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " nichts, er hat ja ein Fell",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " eine Luftmatratze",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "6",
+     "komplex": "J",
+     "reihenfolge": 6,
+     "art": "SingleChoice",
+     "text": "In welchem Zeitraum, muss ein Hund gegen Tollwut geimpft werden?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " gar nicht",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": " nur als Welpe",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "so wie es im Impfpass durch den Tierarzt eingetragen wurde.",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "7",
+     "komplex": "J",
+     "reihenfolge": 7,
+     "art": "SingleChoice",
+     "text": "Wie soll man ängstliche Hunde beruhigen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "durch ruhiges und freundliches Zureden.",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " durch einen heftigen Leinenruck",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " durch laute Kommandos",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "8",
+     "komplex": "J",
+     "reihenfolge": 8,
+     "art": "SingleChoice",
+     "text": "Wie wird ein männlicher Hund genannt?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " Chef",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": " Herr",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Rüde",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "9",
+     "komplex": "J",
+     "reihenfolge": 9,
+     "art": "SingleChoice",
+     "text": "Wie alt muss ein Hund sein, damit er die Begleithundeprüfung machen darf?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "15 Monate",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " 4 Monate",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " 3 Jahre",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "10",
+     "komplex": "J",
+     "reihenfolge": 10,
+     "art": "SingleChoice",
+     "text": "Mir kommt ein Jogger entgegen; was mache ich mit meinem frei laufenden Hund?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " ich rufe dem Jogger; er soll anhalten",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "ich rufe meinem Hund und leine ihn an",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " ich rufe dem Jogger „mein Hund tut nichts“",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "11",
+     "komplex": "J",
+     "reihenfolge": 11,
+     "art": "SingleChoice",
+     "text": "Welche Kommandos soll ein Hund beherrschen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " gib Pfötchen",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Fuß, Sitz, Platz",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Zeitung holen",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "12",
+     "komplex": "J",
+     "reihenfolge": 12,
+     "art": "SingleChoice",
+     "text": "Wie wird ein noch ganz junger Hund genannt?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " Bello",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Welpe",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Baby",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "13",
+     "komplex": "J",
+     "reihenfolge": 13,
+     "art": "SingleChoice",
+     "text": "Was sollte beim Fressen immer zur Verfügung stehen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " Milch",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": " Tee",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Wasser",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "14",
+     "komplex": "J",
+     "reihenfolge": 14,
+     "art": "SingleChoice",
+     "text": "Was soll der Hund nach dem Fressen haben?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "seine Ruhe",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " einen ausgiebigen Spaziergang",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " einen anderen Hund zum Spielen",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "15",
+     "komplex": "J",
+     "reihenfolge": 15,
+     "art": "SingleChoice",
+     "text": "Was gehört beim Hund zur Gesundheitsvorkehrung dazu?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " wöchentliches Baden",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "regelmäßiges Entwurmen",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " beim Schlafen mit einer Decke zudecken",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "16",
+     "komplex": "J",
+     "reihenfolge": 16,
+     "art": "SingleChoice",
+     "text": "Wer darf einen Hund gegen TOLLWUT impfen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " jeder",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": " der Übungsleiter",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "der Tierarzt",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "17",
+     "komplex": "J",
+     "reihenfolge": 17,
+     "art": "SingleChoice",
+     "text": "Was ist richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Zecken soll man möglichst schnell entfernen",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " Zecken möglichst nicht berühren; die fallen ja von selbst ab",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Zecken mit Klebstoff ersticken",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "18",
+     "komplex": "J",
+     "reihenfolge": 18,
+     "art": "SingleChoice",
+     "text": "Was muss ich beachten, wenn mein Hund alleine im Auto ist?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " Autoschlüssel muss mitgenommen werden",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Das Auto darf nicht in der Sonne stehen und muss reichlich über Frischluft verfügen.",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Der Hund darf nur im Kofferraum bleiben",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "19",
+     "komplex": "J",
+     "reihenfolge": 19,
+     "art": "SingleChoice",
+     "text": "Wann darf ein Jäger einen Hund schießen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "wenn er unkontrolliert Wild hetzt",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " wenn er ohne Leine bei seinem Herrchen / Frauchen Fuß läuft",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " wenn er im Wald zu bellen anfängt.",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "20",
+     "komplex": "J",
+     "reihenfolge": 20,
+     "art": "SingleChoice",
+     "text": "Welche Übung gehört zur Begleithunde – Prüfung?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Platzmachen und Herankommen",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " Überprüfung der Schussfestigkeit",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Klettersprung über die Schrägwand",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "21",
+     "komplex": "J",
+     "reihenfolge": 21,
+     "art": "SingleChoice",
+     "text": "Wodurch entstehen Ausbildungsfehler?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " loben durch den Hundeführer",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": " kurze Übungseinheiten",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Überforderung des Hundes",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "22",
+     "komplex": "J",
+     "reihenfolge": 22,
+     "art": "SingleChoice",
+     "text": "Wie viele Hunde darf ein Teilnehmer in einer Prüfung vorführen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " soviel er schafft",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": " max. 10 Hunde",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "max. 2 Hunde",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "23",
+     "komplex": "J",
+     "reihenfolge": 23,
+     "art": "SingleChoice",
+     "text": "Muss der vorgeführte Hund Haftpflichtversichert sein?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Ja",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " Nein",
+       "richtig": false,
+       "reihenfolge": 2
+      }
+     ]
+    },
+    {
+     "nummer": "24",
+     "komplex": "J",
+     "reihenfolge": 24,
+     "art": "SingleChoice",
+     "text": "Wie erkenne ich, ob mein Hund gesund ist?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "glänzendes Fell",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " er schläft viel",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " er frisst sehr wenig (fehlender Appetit)",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "25",
+     "komplex": "J",
+     "reihenfolge": 25,
+     "art": "SingleChoice",
+     "text": "Welche Rangordnung soll ein Hund in der Familie haben?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " die Oberste (der Chef); er ist auch am Kleinsten",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": " gleiche Rangstellung wie die Kinder",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "die unterste Rangstellung",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "26",
+     "komplex": "J",
+     "reihenfolge": 26,
+     "art": "SingleChoice",
+     "text": "Wo wird in der Begleithundeprüfung der Verkehrsteil abgelegt?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " im Vereinsheim",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "in der Stadt / im Ort",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " im Wald",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "27",
+     "komplex": "J",
+     "reihenfolge": 27,
+     "art": "SingleChoice",
+     "text": "Kann der Hund unter Stress etwas lernen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " Ja, da er aufmerksamer ist",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Nein",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Hunde kennen keinen Stress",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "28",
+     "komplex": "J",
+     "reihenfolge": 28,
+     "art": "SingleChoice",
+     "text": "Welcher Sinn ist beim Hund vorhanden?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " Gerechtigkeitssinn",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Geruchsinn",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Unsinn",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "29",
+     "komplex": "J",
+     "reihenfolge": 29,
+     "art": "SingleChoice",
+     "text": "Was ist eine Unbefangenheitsüberprüfung?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " Der Richter wird geprüft, ob er bestechlich ist.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Beim Hund wird unter anderem die Tätowier- oder Chip- Nummer geprüft. Er soll sich",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": "gegenüber Personen neutral verhalten.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": " Das gibt es im Hundesport nicht.",
+       "richtig": false,
+       "reihenfolge": 4
+      }
+     ]
+    },
+    {
+     "nummer": "30",
+     "komplex": "J",
+     "reihenfolge": 30,
+     "art": "SingleChoice",
+     "text": "Welcher Hund zeigt eine Spielhaltung?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " 1",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "2",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " 3",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "1 3",
+       "richtig": false,
+       "reihenfolge": 4
+      },
+      {
+       "text": "2",
+       "richtig": false,
+       "reihenfolge": 5
+      }
+     ]
+    },
+    {
+     "nummer": "31",
+     "komplex": "J",
+     "reihenfolge": 31,
+     "art": "SingleChoice",
+     "text": "Ihr habt einen kleinen Hund. Ein großer Hund kommt euch entgegen.",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Wie verhaltet ihr euch richtig?",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": " Ich springe mit meinem kleinen Hund schnell weg.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Ich versuche den großen Hund zu verscheuchen.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": "Ich bleibe stehen oder versuche mit ruhigem Schritt auszuweichen.",
+       "richtig": true,
+       "reihenfolge": 4
+      }
+     ]
+    },
+    {
+     "nummer": "32",
+     "komplex": "J",
+     "reihenfolge": 32,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " Hunde können Farben erheblich besser sehen als Menschen.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Hunde haben ein sehr gutes Gehör.",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Hunde haben bei heißem Wetter keine Probleme; sie können tierisch schwitzen!",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "33",
+     "komplex": "J",
+     "reihenfolge": 33,
+     "art": "SingleChoice",
+     "text": "Was ist wichtig beim Einüben von Kommandos?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Kurze, wenn möglich einsilbige Worte verwenden.",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " Kommandos nicht als einzelne Worte geben, sondern in schöne Sätze verpacken.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Vor jedem Kommando dem Hund ein Leckerchen geben, damit er aufmerksam wird.",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "34",
+     "komplex": "J",
+     "reihenfolge": 34,
+     "art": "SingleChoice",
+     "text": "Euer Hund ist im Auto und ihr wollt ihn am Straßenrand raus lassen.",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Was ist richtig?",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Den Hund anleinen und dann erst aus dem Auto lassen.",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Dem Hund sagen, dass er vorsichtig sein soll und dann aus dem Auto lassen.",
+       "richtig": false,
+       "reihenfolge": 3
+      },
+      {
+       "text": " Tür auf, ein ermunterndes „Hopp“ auf den Lippen und raus mit ihm!",
+       "richtig": false,
+       "reihenfolge": 4
+      }
+     ]
+    },
+    {
+     "nummer": "35",
+     "komplex": "J",
+     "reihenfolge": 35,
+     "art": "SingleChoice",
+     "text": "Euer Hund knurrt Gäste an, die die Wohnung betreten. Wie verhaltet ihr euch richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " Die Gäste auffordern, den Hund freundlich zu begrüßen.",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": " Die Gäste bereits an der Haustür mit Leckerchen versorgen.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Den Hund mit deutlichem Befehl auf seinen Platz schicken.",
+       "richtig": true,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "36",
+     "komplex": "J",
+     "reihenfolge": 36,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "Das Unterordnungs- Laufschema der Prüfungsordnung ist an der Prüfung zu zeigen.",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " Bei Prüfungen kann ich die Übungen selbst koordinieren.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Ich laufe auch an der Prüfung, nach Anordnung meines Übungsleiters.",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "37",
+     "komplex": "J",
+     "reihenfolge": 37,
+     "art": "SingleChoice",
+     "text": "Was ist die normale Körper-Temperatur des Hundes?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " unter 30°C",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "38 – 38,5°C",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " über 40°C",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "38",
+     "komplex": "J",
+     "reihenfolge": 38,
+     "art": "SingleChoice",
+     "text": "Welche Aussage ist richtig?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " Bei der Begleithundeprüfung bleibt es dem Richter überlassen ob geschossen wird",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "oder nicht.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": "Bei der Begleithundeprüfung wird grundsätzlich nicht geschossen.",
+       "richtig": true,
+       "reihenfolge": 3
+      },
+      {
+       "text": " Wenn es mit Schuss geübt wurde, kann dieser auch an der Prüfung erfolgen.",
+       "richtig": false,
+       "reihenfolge": 4
+      }
+     ]
+    },
+    {
+     "nummer": "39",
+     "komplex": "J",
+     "reihenfolge": 39,
+     "art": "SingleChoice",
+     "text": "Während der Prüfung darf der Hundeführer?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": "In den Grundstellungen den Hund kurz loben",
+       "richtig": true,
+       "reihenfolge": 1
+      },
+      {
+       "text": " Spielgegenstände mit sich führen, um den Hund zu motivieren.",
+       "richtig": false,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Den Hund nach Bedarf aus der Tasche füttern.",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    },
+    {
+     "nummer": "40",
+     "komplex": "J",
+     "reihenfolge": 40,
+     "art": "SingleChoice",
+     "text": "Bei welcher Übung wird der Hund abgerufen?",
+     "bild": null,
+     "musterloesung": null,
+     "antworten": [
+      {
+       "text": " Sitz",
+       "richtig": false,
+       "reihenfolge": 1
+      },
+      {
+       "text": "Platz",
+       "richtig": true,
+       "reihenfolge": 2
+      },
+      {
+       "text": " Abliegen unter Ablenkung",
+       "richtig": false,
+       "reihenfolge": 3
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

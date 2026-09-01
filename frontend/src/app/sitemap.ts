@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/lib/seo";
 import { getCatalog } from "@/lib/public-catalog";
+import { getQuizCatalogs } from "@/lib/public-sachkunde";
 
 /**
  * Verzeichnis aller öffentlichen Seiten. Ohne das müsste Google jede
@@ -20,6 +21,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      url: absoluteUrl("/sachkunde"),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
   ];
 
   const catalog = await getCatalog();
@@ -30,5 +37,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...regulationPages];
+  const quizPages: MetadataRoute.Sitemap = (await getQuizCatalogs()).map((catalog) => ({
+    url: absoluteUrl(`/sachkunde/${catalog.code.toLowerCase()}`),
+    lastModified: now,
+    changeFrequency: "yearly",
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...regulationPages, ...quizPages];
 }

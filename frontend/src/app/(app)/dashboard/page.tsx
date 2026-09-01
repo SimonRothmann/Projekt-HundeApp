@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import type { ClubMembership } from "@/lib/types";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dog, Trophy, Building2 } from "lucide-react";
+import { Dog, Trophy, Building2, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { UpcomingTrainingsSection } from "@/components/schedule/upcoming-trainings-section";
 
@@ -82,6 +82,20 @@ export default function DashboardPage() {
               <div>
                 <CardTitle>Sportarten</CardTitle>
                 <CardDescription>Prüfungsordnungen & Übungen entdecken</CardDescription>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/sachkunde" className="group block sm:col-span-2">
+          <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
+            <CardHeader className="flex-row items-center gap-4 space-y-0">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-colors group-hover:bg-primary/15">
+                <GraduationCap className="size-6" />
+              </span>
+              <div>
+                <CardTitle>Sachkunde üben</CardTitle>
+                <CardDescription>Die Theoriefragen zur Begleithundeprüfung, mit Wiedervorlage</CardDescription>
               </div>
             </CardHeader>
           </Card>

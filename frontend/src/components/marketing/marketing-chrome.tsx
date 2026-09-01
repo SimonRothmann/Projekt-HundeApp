@@ -2,6 +2,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SITE } from "@/lib/seo";
+import { MarketingAuthLinks } from "@/components/marketing/marketing-auth-links";
 
 /**
  * Kopf- und Fußzeile der öffentlichen Seiten. Die Verweise sind nicht nur
@@ -17,17 +18,18 @@ export function MarketingHeader() {
         </Link>
         <nav className="flex items-center gap-1 text-sm">
           <Link
+            href="/sachkunde"
+            className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline"
+          >
+            Sachkunde
+          </Link>
+          <Link
             href="/pruefungsordnungen"
             className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden sm:inline-flex")}
           >
             Prüfungsordnungen
           </Link>
-          <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-            Anmelden
-          </Link>
-          <Link href="/register" className={cn(buttonVariants({ size: "sm" }))}>
-            Kostenlos starten
-          </Link>
+          <MarketingAuthLinks />
         </nav>
       </div>
     </header>
@@ -41,6 +43,9 @@ export function MarketingFooter() {
         <nav className="flex flex-wrap gap-x-5 gap-y-2">
           <Link href="/" className="hover:text-foreground">
             Startseite
+          </Link>
+          <Link href="/sachkunde" className="hover:text-foreground">
+            Sachkunde
           </Link>
           <Link href="/pruefungsordnungen" className="hover:text-foreground">
             Prüfungsordnungen

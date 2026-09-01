@@ -637,3 +637,94 @@ export type GroupJoinRequest = {
   lastName: string;
   requestedAt: string;
 };
+
+// ---- Sachkunde-Fragentrainer ----
+
+export type QuizSection = {
+  key: string;
+  name: string;
+  questionCount: number;
+};
+
+export type QuizCatalog = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  publisher: string;
+  sourceUrl: string | null;
+  edition: string | null;
+  audience: "Adults" | "Youth";
+  questionCount: number;
+  sections: QuizSection[];
+};
+
+export type QuizOption = {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+};
+
+// Zuordnung und Freitext lassen sich nicht automatisch prüfen - dort steht
+// statt der Antwortliste eine Musterlösung, die man sich selbst abnimmt.
+export type QuizQuestionKind = "SingleChoice" | "MultipleChoice" | "Assignment" | "FreeText";
+
+export type QuizQuestionState = {
+  box: number;
+  lastWasCorrect: boolean;
+  correctCount: number;
+  wrongCount: number;
+  dueAt: string | null;
+};
+
+export type QuizQuestion = {
+  id: string;
+  number: string;
+  section: string;
+  sectionName: string;
+  kind: QuizQuestionKind;
+  text: string;
+  imageName: string | null;
+  sampleSolution: string | null;
+  options: QuizOption[];
+  state: QuizQuestionState | null;
+};
+
+export type QuizSectionProgress = {
+  key: string;
+  name: string;
+  total: number;
+  answered: number;
+  mastered: number;
+  inMistakes: number;
+};
+
+export type QuizProgress = {
+  catalogCode: string;
+  total: number;
+  answered: number;
+  mastered: number;
+  inMistakes: number;
+  dueNow: number;
+  neverSeen: number;
+  percentMastered: number;
+  sections: QuizSectionProgress[];
+};
+
+export type QuizSession = {
+  catalogCode: string;
+  mode: QuizMode;
+  questions: QuizQuestion[];
+  progress: QuizProgress;
+  // Nichts mehr fällig und nichts mehr offen - der Moment für "von vorne".
+  roundComplete: boolean;
+};
+
+export type QuizMode = "learn" | "mistakes" | "all";
+
+export type QuizAnswerResult = {
+  correct: boolean;
+  box: number;
+  dueAt: string | null;
+  correctOptionIds: string[];
+};

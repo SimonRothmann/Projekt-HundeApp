@@ -28,4 +28,12 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Fragenkataloge zur Sachkunde. Erzeugt von scripts/import-sachkunde.py,
+         gelesen vom SachkundeSeeder. LogicalName ausdrücklich gesetzt, damit
+         der Ressourcenname nicht vom Pfadtrenner der Bauplattform abhängt. -->
+    <EmbeddedResource Include="Persistence/Seed/Data/sachkunde-swhv.json"
+                      LogicalName="Dogity.Infrastructure.Persistence.Seed.Data.sachkunde-swhv.json" />
+  </ItemGroup>
+
 </Project>

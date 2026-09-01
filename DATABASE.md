@@ -638,6 +638,158 @@ Eindeutig je (group_id, user_id).
 
 ---
 
+# Sachkunde-Fragentrainer
+
+
+## quiz_catalogs
+
+
+Ein Fragenkatalog zum Lernen, z.B. die Sachkundeprüfung zur BH/VT.
+
+
+Felder:
+
+
+
+code (eindeutig, z.B. SWHV-BHVT-ERW)
+
+name
+
+description
+
+publisher
+
+source_url
+
+edition
+
+audience (Adults/Youth)
+
+sort_order
+
+
+Herausgeber, Quelle und Stand stehen bewusst an der Zeile: die Verbände geben
+neue Fassungen heraus, und beim Nachziehen muss nachvollziehbar sein, welche
+Fassung eine Instanz führt. Gepflegt wird der Inhalt nicht von Hand, sondern
+über scripts/import-sachkunde.py und den SachkundeSeeder.
+
+
+---
+
+
+## quiz_questions
+
+
+Eine Frage eines Katalogs.
+
+
+Felder:
+
+
+
+catalog_id
+
+section (A..E, J)
+
+section_name
+
+number (Fragennummer laut Katalog)
+
+sort_order
+
+text
+
+kind (SingleChoice/MultipleChoice/Assignment/FreeText)
+
+sample_solution (nur Assignment/FreeText)
+
+image_name
+
+
+Eindeutig je (catalog_id, number). Der Index kennt `deleted_at` NICHT - wird
+eine Frage entfernt und später wieder aufgenommen, muss der Seeder die
+vorhandene Zeile wiederbeleben statt eine zweite anzulegen.
+
+
+Zuordnungs- und Freitextfragen lassen sich nicht automatisch prüfen. Sie
+tragen statt Antwortmöglichkeiten eine Musterlösung und werden selbst
+eingeschätzt ("gewusst" / "nicht gewusst").
+
+
+---
+
+
+## quiz_options
+
+
+Eine Antwortmöglichkeit einer Auswahlfrage.
+
+
+Felder:
+
+
+
+question_id
+
+text
+
+is_correct
+
+sort_order
+
+
+---
+
+
+## quiz_masteries
+
+
+Lernstand einer Frage - je NUTZER, nicht je Hund.
+
+
+Felder:
+
+
+
+user_id
+
+question_id
+
+box (Leitner-Fach 1..5)
+
+last_answered_at
+
+due_at
+
+correct_count
+
+wrong_count
+
+last_was_correct
+
+
+Eindeutig je (user_id, question_id).
+
+
+Der Unterschied zu `exercise_masteries`: eine Übung wird mit einem bestimmten
+Hund trainiert, die Sachkunde ist der Nachweis des Hundeführers und gilt für
+jeden weiteren Hund mit. Die Leitner-Mechanik ist dieselbe, die Bezugsgröße
+nicht - und die Intervalle sind kürzer (1/2/4/9/21 Tage statt 2/4/7/14/28),
+weil die Sachkunde in Wochen gelernt und nicht über Monate aufgebaut wird.
+
+
+Eine falsche Antwort setzt `box` auf 1 und `due_at` auf jetzt, nicht nur eine
+Stufe herunter: eine Übung, die heute schlechter lief, ist nicht verlernt -
+eine falsch beantwortete Frage war schlicht nicht gewusst.
+
+
+"Von vorne anfangen" setzt die Werte dieser Zeilen zurück und LÖSCHT sie
+nicht. Weich gelöschte Zeilen stünden dem eindeutigen Index im Weg, sobald
+dieselbe Frage wieder beantwortet wird.
+
+
+---
+
 # Trainer Modell
 
 

@@ -62,6 +62,8 @@ Beim Versuch, eine PDF-Textextraktion per NuGet-Paket (`UglyToad.PdfPig`) einzub
 
 Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wurde gefunden (war bereits zu GitHub gepusht), aus der Doku entfernt und das Passwort rotiert.
 
+- [x] **Sachkunde-Fragentrainer** (siehe `docs/SACHKUNDE.md`): Fragenkataloge des swhv zur BH/VT-Sachkundeprüfung (72 Fragen Erwachsene, 40 Jugend) als Lern-App nach dem Muster der Führerschein-Trainer. Import per `scripts/import-sachkunde.py` aus den Original-PDFs (106 von 112 Fragen vollautomatisch, 6 Sonderfälle als Zuordnung/Freitext markiert), Leitner-Wiedervorlage je Nutzer (1/2/4/9/21 Tage), Fehlerspeicher, Neustart. Falsch beantwortete Fragen kommen doppelt wieder: noch in derselben Runde und an den Folgetagen. Öffentlich ohne Anmeldung nutzbar (SEO-Einstieg, in der Sitemap), Lernstand nur angemeldet. 4 Tabellen, 6 Endpunkte, 2 Seiten; 6 Unit-Tests und 18 Smoketest-Prüfungen. Prüfungssimulation bewusst zurückgestellt, solange die Bewertungsregel nicht aus der swhv-Durchführungsbestimmung bestätigt ist.
+
 ## Offene Punkte (Frontend/Fährte)
 
 - [x] Dropdowns gestylt: native `<select>`-Elemente durch eine selbst gerenderte Select-Komponente (`components/ui/select.tsx`, auf Basis von `@base-ui/react/select`, analog zu `components/ui/button.tsx`/`sheet.tsx`) ersetzt - in allen acht betroffenen Dateien (`admin/page.tsx`, `dogs/page.tsx`, `dogs/[id]/page.tsx`, `trainer/page.tsx`, `global-exercises-section.tsx`, `regulation-import-section.tsx`, `goals-section.tsx`, `club-exercises-section.tsx`). Typecheck, Lint und `next build` (alle Routen inkl. der dynamischen) laufen fehlerfrei durch; visuell im Browser noch nicht gegengeprüft, da der Chrome-Zugriff in dieser Session nicht verfügbar war.
