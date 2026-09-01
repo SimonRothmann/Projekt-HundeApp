@@ -38,6 +38,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -80,6 +81,11 @@ def section(title: str) -> None:
 class Api:
     def __init__(self, base: str):
         self.base = base.rstrip("/")
+        # Anmeldungen sind auf 10 pro Minute und IP begrenzt (Program.cs,
+        # Policy "auth"). Ein Durchlauf meldet ein halbes Dutzend Nutzer an,
+        # teils mehrfach - ohne Zwischenspeicher läuft er ins Limit und meldet
+        # dann Fehler, die keine sind.
+        self._tokens: dict[str, str] = {}
 
     def call(self, method: str, path: str, body=None, token: str | None = None):
         data = json.dumps(body).encode() if body is not None else None
@@ -100,9 +106,22 @@ class Api:
         except urllib.error.URLError as e:
             return 0, str(e)
 
-    def login(self, email: str, password: str) -> str | None:
+    def login(self, email: str, password: str, force: bool = False) -> str | None:
+        if not force and email in self._tokens:
+            return self._tokens[email]
         status, body = self.call("POST", "/api/auth/login", {"email": email, "password": password})
-        return body["token"] if status == 200 and isinstance(body, dict) else None
+        if status == 429 or status == 403:
+            print(f"  {YELLOW}Anmeldung gedrosselt ({status}) - eine Minute warten…{OFF}")
+            time.sleep(62)
+            status, body = self.call("POST", "/api/auth/login", {"email": email, "password": password})
+        if status != 200 or not isinstance(body, dict):
+            return None
+        self._tokens[email] = body["token"]
+        return body["token"]
+
+    def forget(self, email: str) -> None:
+        """Zwischengespeicherten Token verwerfen - z.B. nach dem Löschen des Nutzers."""
+        self._tokens.pop(email, None)
 
     def register(self, email: str, first: str, last: str) -> tuple[str, str] | None:
         """Legt einen Nutzer an oder meldet einen bestehenden an. (Token, UserId)."""
@@ -111,10 +130,10 @@ class Api:
             {"email": email, "password": PASSWORD, "firstName": first, "lastName": last},
         )
         if status not in (200, 201):
-            token = self.login(email, PASSWORD)
-            if token is None:
-                return None
             status, body = self.call("POST", "/api/auth/login", {"email": email, "password": PASSWORD})
+            if status != 200:
+                return None
+        self._tokens[email] = body["token"]
         return body["token"], body["userId"]
 
 
@@ -187,6 +206,7 @@ def cleanup(api: Api, admin_token: str, verbose: bool = True) -> None:
 
     for user in e2e_users:
         status, _ = api.call("DELETE", f"/api/admin/users/{user['id']}", token=admin_token)
+        api.forget(user["email"])
         if verbose:
             print(f"  {DIM}Nutzer entfernt: {user['email']} ({status}){OFF}")
 
@@ -556,6 +576,8 @@ def run_feature_sweep(api: Api, admin_token: str) -> None:
     check(api.call("POST", f"/api/admin/users/{owner_id}/unlock", token=admin_token)[0] == 204, "und wieder entsperrbar")
     check(api.call("POST", "/api/auth/login", {"email": f"{PREFIX}sweep@dogity.test", "password": PASSWORD})[0] == 200,
           "danach wieder anmeldbar")
+    check(api.call("POST", "/api/auth/login", {"email": f"{PREFIX}sweep@dogity.test", "password": "falsch"})[0] in (400, 401),
+          "falsches Passwort wird abgewiesen")
 
 
 # --- Einstieg --------------------------------------------------------------
@@ -612,6 +634,11 @@ def main() -> int:
         after = snapshot(api, admin_token)
         problems = diff_state(before, after)
         check(not problems, "Ausgangszustand wiederhergestellt", "; ".join(problems))
+        # Den Nachher-Stand ausgeben: dann muss niemand mit einem zweiten
+        # Skript nachsehen - und läuft dabei ins Anmelde-Limit.
+        print(f"  {DIM}{len(after['users'])} Nutzer: {', '.join(after['users'])}{OFF}")
+        for name, club in after["clubs"].items():
+            print(f"  {DIM}{name}: Trainer {club['trainers'] or '-'}, Gruppen {club['groups'] or '-'}{OFF}")
 
     failed = [t for ok, t in _results if not ok]
     section("Ergebnis")
