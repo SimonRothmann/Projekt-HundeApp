@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import type { GroupDetail, MemberDog, GroupTrainerOption } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,8 @@ import { toast } from "sonner";
 export default function TrainerGroupPage() {
   const params = useParams<{ groupId: string }>();
   const groupId = params.groupId;
+  const router = useRouter();
+  const { user } = useAuth();
 
   const [detail, setDetail] = useState<GroupDetail | null>(null);
   const [email, setEmail] = useState("");
@@ -61,6 +64,18 @@ export default function TrainerGroupPage() {
     setEditName(detail.group.name);
     setEditDescription(detail.group.description ?? "");
     setEditing(true);
+  }
+
+  async function handleDeleteGroup() {
+    if (!detail) return;
+    if (!window.confirm(`Gruppe "${detail.group.name}" wirklich auflösen? Mitgliedschaften werden entfernt. Trainings und Hunde bleiben erhalten.`)) return;
+    try {
+      await api.delete(`/api/groups/${groupId}`);
+      toast.success("Gruppe aufgelöst.");
+      router.replace("/trainer");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Gruppe konnte nicht gelöscht werden.");
+    }
   }
 
   async function saveEdit() {
@@ -171,6 +186,19 @@ export default function TrainerGroupPage() {
     }
   }
 
+  async function handleUnassign(memberId: string, dogId: string, dogName: string) {
+    if (!window.confirm(`Betreuung von ${dogName} beenden? Du verlierst damit den Zugriff auf Tagebuch, Ziele und Trainingsplan.`)) return;
+    if (!user) return;
+    try {
+      await api.delete(`/api/groups/${groupId}/trainer-assignments/${user.userId}/${dogId}`);
+      toast.success("Betreuung beendet.");
+      const dogs = await api.get<MemberDog[]>(`/api/groups/${groupId}/members/${memberId}/dogs`);
+      setMemberDogs((prev) => ({ ...prev, [memberId]: dogs }));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Betreuung konnte nicht beendet werden.");
+    }
+  }
+
   async function handleAssign(memberId: string, dogId: string) {
     try {
       await api.post(`/api/groups/${groupId}/trainer-assignments`, { memberId, dogId });
@@ -205,6 +233,18 @@ export default function TrainerGroupPage() {
             <Button type="button" size="sm" variant="outline" onClick={startEdit}>
               <Pencil className="size-3.5" />
               Bearbeiten
+            </Button>
+          )}
+          {!editing && (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              onClick={handleDeleteGroup}
+            >
+              <Trash2 className="size-3.5" />
+              Gruppe löschen
             </Button>
           )}
         </CardHeader>
@@ -410,8 +450,16 @@ export default function TrainerGroupPage() {
                               {dog.breed && <span className="text-sm text-muted-foreground">{dog.breed}</span>}
                             </div>
                             {dog.isTrainerAssigned ? (
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <Badge variant="secondary">Betreut</Badge>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2 text-xs text-muted-foreground"
+                                  onClick={() => handleUnassign(member.userId, dog.id, dog.name)}
+                                >
+                                  Betreuung beenden
+                                </Button>
                                 <Link
                                   // ?from=: sonst führt der Zurück-Button auf
                                   // der Hundeseite zu den EIGENEN Hunden statt

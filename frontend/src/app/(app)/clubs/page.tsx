@@ -46,8 +46,13 @@ export default function ClubsPage() {
       setClubs(clubsData);
       setMemberships(membershipsData);
 
-      const approvedIds = membershipsData.filter((m) => m.status === 1).map((m) => m.clubId);
-      if (approvedIds.length > 0) await loadGroups(approvedIds);
+      // Gruppen auch für Vereine laden, in denen man Trainer:in ist, ohne
+      // Mitglied zu sein - die sahen ihre eigenen Gruppen hier sonst gar nicht.
+      const trainerClubIds = (await api.get<ClubSummary[]>("/api/groups/my-clubs").catch(() => [])).map((c) => c.id);
+      const visibleIds = Array.from(
+        new Set([...membershipsData.filter((m) => m.status === 1).map((m) => m.clubId), ...trainerClubIds]),
+      );
+      if (visibleIds.length > 0) await loadGroups(visibleIds);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Vereine konnten nicht geladen werden.");
     }
@@ -150,7 +155,7 @@ export default function ClubsPage() {
                     </Button>
                   )}
 
-                  {isApproved && groups.length > 0 && (
+                  {groups.length > 0 && (
                     <div className="flex flex-col gap-2 border-t pt-3">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Gruppen</p>
                       {groups.map((g) => (

@@ -394,14 +394,6 @@ public static class SportCatalogSeeder
                 "Hund bleibt während der Übung eines anderen Teams ruhig in der Ablage liegen."),
             new("Stellen und Verbellen", ExerciseDifficulty.Advanced, "Abteilung C",
                 "Hund findet den Helfer im Versteck und verbellt ihn anhaltend und konzentriert, ohne zu beißen."),
-            new("Bewachen nach Rückkehr des Hundeführers", ExerciseDifficulty.Advanced, "Abteilung C",
-                "Hund bewacht den Helfer aufmerksam und selbstsicher, bis der Hundeführer zurückkehrt."),
-            new("Abwehr eines Angriffs aus dem Stand", ExerciseDifficulty.Advanced, "Abteilung C",
-                "Hund verteidigt sich gegen den Angriff des Helfers mit energischem, festem Zufassen."),
-            new("Seitentransport", ExerciseDifficulty.Advanced, "Abteilung C",
-                "Hund begleitet Helfer und Hundeführer aufmerksam, ohne zu bedrängen oder anzuspringen."),
-            new("Angriff auf den Hund während des Transports", ExerciseDifficulty.Advanced, "Abteilung C",
-                "Hund verteidigt sich gegen den erneuten Angriff während des Transports."),
             new("Angriff auf den Hund aus der Bewegung", ExerciseDifficulty.Advanced, "Abteilung C",
                 "Hund verteidigt sich gegen den Angriff aus der Bewegung mit vollem, ruhigem Griff und bewacht danach selbstsicher."),
             // Ergänzungen ab hier: in einem früheren Seed-Durchlauf fehlende
@@ -446,8 +438,6 @@ public static class SportCatalogSeeder
             new("Seitentransport", ExerciseDifficulty.Advanced, "Abteilung C", "Wie in der vorherigen Stufe, mit höheren Anforderungen."),
             new("Angriff auf den Hund während des Transports", ExerciseDifficulty.Advanced, "Abteilung C", "Wie in der vorherigen Stufe, mit höheren Anforderungen."),
             new("Angriff auf den Hund aus der Bewegung", ExerciseDifficulty.Advanced, "Abteilung C", "Wie in der vorherigen Stufe, mit höheren Anforderungen."),
-            new("Distanzangriff", ExerciseDifficulty.Advanced, "Abteilung C",
-                "Zusätzlich zu IGP1: Markierung für den Hundeführer für den Angriff über größere Distanz."),
             new("Freifolge", ExerciseDifficulty.Intermediate, "Abteilung B",
                 "Hund folgt ohne Leine konzentriert in Grundstellung, auch bei Tempo- und Richtungswechseln, mit größerer Ablenkung als in IGP1."),
             new("Bringen auf ebener Erde", ExerciseDifficulty.Intermediate, "Abteilung B",
@@ -470,12 +460,6 @@ public static class SportCatalogSeeder
                 "Fremde Fährte, min. 600 Schritte, 5 Schenkel, 4 Winkel ca. 90°, Fährtenalter min. 60 Minuten, 3 fremde Gegenstände."),
             new("Gegenstände verweisen", ExerciseDifficulty.Intermediate, "Abteilung A",
                 "Direktes, überzeugendes Verweisen der Gegenstände in Fährtenrichtung - je 7 Punkte (FCI-PO 2025, S. 36)."),
-            new("Freifolge ohne Leine", ExerciseDifficulty.Advanced, "Abteilung B",
-                "Höchste Stufe, auch durch eine Personengruppe."),
-            new("Sitz aus dem Laufschritt", ExerciseDifficulty.Advanced, "Abteilung B", "Höchste Stufe, aus dem Laufschritt statt Normalschritt."),
-            new("Ablegen in Verbindung mit Herankommen aus dem Laufschritt", ExerciseDifficulty.Advanced, "Abteilung B", "Höchste Stufe, aus dem Laufschritt statt Normalschritt."),
-            new("Steh aus dem Laufschritt mit Heranrufen des Hundes", ExerciseDifficulty.Advanced, "Abteilung B", "Höchste Stufe, aus dem Laufschritt statt Normalschritt."),
-            new("Freisprünge / Hin- und Rückklettersprung mit Bringen", ExerciseDifficulty.Advanced, "Abteilung B", "Hin- und Rückklettersprung mit Bringen."),
             new("Voraussenden mit Hinlegen", ExerciseDifficulty.Advanced, "Abteilung B",
                 "Mit größter Distanz und Ablenkung der drei Stufen."),
             new("Ablegen unter Ablenkung", ExerciseDifficulty.Advanced, "Abteilung B",
@@ -635,7 +619,7 @@ public static class SportCatalogSeeder
             new("Gegenstände verweisen", true, 21, "3 dem Hundeführer gehörende Gegenstände, je 7 Punkte - auf dem ersten Schenkel, auf dem zweiten Schenkel und am Ende."),
         ],
         Description: "FCI-Fährtenprüfung Stufe 1 (100 Punkte, bestanden ab 70).\n" +
-            "Besteht nur aus der Abteilung A der FCI-IGP 1.\n" +
+            "Dies IST die Fährte (Abteilung A) der FCI-IGP 1, einzeln gelaufen - such danach ruhig als \"IGP 1 Fährte\".\n" +
             "Die Stufe ist frei wählbar; die Prüfungen müssen nicht in der Reihenfolge 1 bis 3 abgelegt werden.\n" +
             "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
             "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
@@ -647,7 +631,7 @@ public static class SportCatalogSeeder
             new("Gegenstände verweisen", true, 21, "3 fremde Gegenstände, je 7 Punkte - auf dem ersten Schenkel, auf dem zweiten Schenkel und am Ende."),
         ],
         Description: "FCI-Fährtenprüfung Stufe 2 (100 Punkte, bestanden ab 70).\n" +
-            "Besteht nur aus der Abteilung A der FCI-IGP 2.\n" +
+            "Dies IST die Fährte (Abteilung A) der FCI-IGP 2, einzeln gelaufen - such danach ruhig als \"IGP 2 Fährte\".\n" +
             "Die Stufe ist frei wählbar; die Prüfungen müssen nicht in der Reihenfolge 1 bis 3 abgelegt werden.\n" +
             "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
             "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
@@ -659,7 +643,7 @@ public static class SportCatalogSeeder
             new("Gegenstände verweisen", true, 21, "3 fremde Gegenstände, je 7 Punkte - der erste nach min. 100 Schritten, der zweite auf Richteranweisung, der dritte am Ende."),
         ],
         Description: "FCI-Fährtenprüfung Stufe 3 (100 Punkte, bestanden ab 70).\n" +
-            "Besteht nur aus der Abteilung A der FCI-IGP 3.\n" +
+            "Dies IST die Fährte (Abteilung A) der FCI-IGP 3, einzeln gelaufen - such danach ruhig als \"IGP 3 Fährte\".\n" +
             "Die Stufe ist frei wählbar; die Prüfungen müssen nicht in der Reihenfolge 1 bis 3 abgelegt werden.\n" +
             "Kein Ausbildungstitel im Sinne der Ausstellungs- und Zuchtordnung.\n" +
             "Startvoraussetzung: FCI-BH/VT bzw. BH/VT (NPO).\n" +
@@ -1457,6 +1441,22 @@ public static class SportCatalogSeeder
         await RemoveOrphanedExercisesAsync(db, igp1);
         await RemoveOrphanedExercisesAsync(db, igp2);
         await RemoveOrphanedExercisesAsync(db, igp3);
+
+        // "IGP 1/2/3 - Fährte" und "FCI-FPr 1-3" waren DIESELBE Prüfung unter
+        // zwei Namen (PO S. 68: "Die Fährtenprüfungen bestehen nur aus der
+        // Abteilung A der entsprechenden Prüfungsstufen") - mit identischen
+        // Übungen und Punkten, doppelt zu pflegen und doppelt in der Sitemap.
+        // Es bleibt die FPr: Das ist der Name, unter dem die Prüfung
+        // tatsächlich gelaufen wird; "IGP x - Fährte" war eine Erfindung
+        // dieses Projekts. Der IGP-Bezug steht jetzt in der Beschreibung der
+        // FPr, damit man sie auch darüber findet.
+        //
+        // RemoveRegulationAsync bricht ab, sobald ein Trainingsziel darauf
+        // verweist - ein stillschweigend gelöschtes Ziel wäre schlimmer als
+        // ein überzähliger Katalogeintrag.
+        foreach (var doppelt in new[] { "IGP 1 - Fährte", "IGP 2 - Fährte", "IGP 3 - Fährte" })
+            await RemoveRegulationAsync(db, faerte, doppelt);
+        await RemoveOrphanedExercisesAsync(db, faerte);
         // Räumt die abgelöste Sammel-Übung "CaniCross" weg, sobald keine
         // Trainingsdaten mehr daran hängen - an ihre Stelle sind Geländelauf,
         // DogScooter und Bikejöring getreten.

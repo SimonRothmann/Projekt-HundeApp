@@ -51,6 +51,13 @@ public class GroupsController(IGroupService groupService, IClubService clubServi
         return FromResult(result);
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var result = await groupService.DeleteGroupAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
     [HttpGet("{id:guid}/trainers")]
     public async Task<ActionResult<IReadOnlyList<GroupTrainerOptionDto>>> GetAssignableTrainers(Guid id, CancellationToken ct)
     {
@@ -104,6 +111,13 @@ public class GroupsController(IGroupService groupService, IClubService clubServi
     public async Task<IActionResult> AssignTrainerToDog(Guid id, AssignTrainerRequest request, CancellationToken ct)
     {
         var result = await groupService.AssignTrainerToDogAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
+
+    [HttpDelete("{id:guid}/trainer-assignments/{trainerUserId:guid}/{dogId:guid}")]
+    public async Task<IActionResult> RemoveTrainerFromDog(Guid id, Guid trainerUserId, Guid dogId, CancellationToken ct)
+    {
+        var result = await groupService.RemoveTrainerFromDogAsync(CurrentUserId, id, trainerUserId, dogId, ct);
         return FromResult(result);
     }
 

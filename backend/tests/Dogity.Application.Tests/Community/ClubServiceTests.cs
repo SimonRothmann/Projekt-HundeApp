@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Dogity.Application.Community;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Domain.Community;
@@ -213,5 +214,86 @@ public class ClubServiceTests
         var result = await service.LeaveClubAsync(Guid.NewGuid(), club.Id);
 
         Assert.False(result.Succeeded);
+    }
+
+    // --- Vereinsaustritt räumt auf ------------------------------------------
+    // Vorher wurde nur die ClubMembership weich gelöscht: Wer austrat, blieb
+    // in den Trainingsgruppen, und die Trainer:innen behielten Zugriff auf
+    // Tagebuch, Ziele und Trainingsplan seiner Hunde.
+
+    [Fact]
+    public async Task LeaveClub_DetachesGroupsAndTrainerAccess()
+    {
+        var service = MakeService(out var db, out _);
+
+        var trainerId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        var club = new Club { Name = "Verein" };
+        db.Clubs.Add(club);
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId });
+        db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = memberId, Status = ClubMembershipStatus.Approved });
+
+        var group = new Group { ClubId = club.Id, TrainerId = trainerId, Name = "Dienstag" };
+        db.Groups.Add(group);
+        db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = memberId });
+
+        var dog = new Dogity.Domain.Dogs.Dog { Name = "Bello" };
+        db.Dogs.Add(dog);
+        db.DogOwners.Add(new Dogity.Domain.Dogs.DogOwner { DogId = dog.Id, UserId = memberId });
+        db.TrainerAssignments.Add(new TrainerAssignment
+        {
+            TrainerId = trainerId, MemberId = memberId, DogId = dog.Id,
+            StartDate = DateOnly.FromDateTime(DateTime.Today),
+        });
+        await db.SaveChangesAsync();
+
+        var result = await service.LeaveClubAsync(memberId, club.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Empty(await db.GroupMembers.Where(m => m.UserId == memberId).ToListAsync());
+        Assert.Empty(await db.TrainerAssignments.Where(a => a.DogId == dog.Id).ToListAsync());
+        // Die Trainingsdaten selbst gehören dem Besitzer und bleiben.
+        Assert.NotNull(await db.Dogs.FirstOrDefaultAsync(d => d.Id == dog.Id));
+    }
+
+    [Fact]
+    public async Task LeaveClub_AsTrainer_DropsClubTrainerRow()
+    {
+        var service = MakeService(out var db, out _);
+        var trainerId = Guid.NewGuid();
+        var club = new Club { Name = "Verein" };
+        db.Clubs.Add(club);
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId });
+        db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = trainerId, Status = ClubMembershipStatus.Approved });
+        await db.SaveChangesAsync();
+
+        await service.LeaveClubAsync(trainerId, club.Id);
+
+        Assert.Empty(await db.ClubTrainers.Where(t => t.UserId == trainerId).ToListAsync());
+    }
+
+    [Fact]
+    public async Task AssignTrainer_AfterRemoval_WorksAgain()
+    {
+        var service = MakeService(out var db, out _);
+        var club = new Club { Name = "Verein" };
+        db.Clubs.Add(club);
+        await db.SaveChangesAsync();
+
+        // Der Fake-Lookup kennt die Adresse noch nicht - über die interne
+        // Beförderung geht es ohne E-Mail.
+        var userId = Guid.NewGuid();
+        db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = userId, Status = ClubMembershipStatus.Approved });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = Guid.NewGuid() });
+        await db.SaveChangesAsync();
+        var caller = await db.ClubTrainers.Select(t => t.UserId).FirstAsync();
+
+        Assert.True((await service.PromoteMemberToTrainerAsync(caller, club.Id, userId)).Succeeded);
+        Assert.True((await service.RemoveTrainerAsync(club.Id, userId)).Succeeded);
+
+        var again = await service.PromoteMemberToTrainerAsync(caller, club.Id, userId);
+
+        Assert.True(again.Succeeded);
+        Assert.Equal(1, await db.ClubTrainers.IgnoreQueryFilters().CountAsync(t => t.ClubId == club.Id && t.UserId == userId));
     }
 }

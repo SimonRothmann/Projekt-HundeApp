@@ -1,3 +1,4 @@
+using Dogity.Application.Abstractions;
 using Dogity.Application.Community;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Domain.Community;
@@ -442,5 +443,95 @@ public class GroupServiceTests
         Assert.True((await service.RequestJoinGroupAsync(member, groupId)).Succeeded);
         var afterRequest = await service.GetGroupsByClubAsync(member, clubId);
         Assert.Equal(GroupRelation.Pending, afterRequest.Value!.Single(g => g.Id == groupId).MyRelation);
+    }
+
+    // --- Soft-Delete + eindeutiger Index -----------------------------------
+    // Dieselbe Falle wie bei den Prüfungsordnungs-Übungen: entfernt wird weich,
+    // der Index kennt kein DeletedAt. Ohne Wiederbeleben ein 500er.
+
+    [Fact]
+    public async Task AddMember_AfterRemoval_WorksAgain()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, _, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+        var member = Guid.NewGuid();
+        lookup.Register(member, "mitglied@example.com", "Max", "Muster");
+        await service.AddMemberAsync(lead, groupId, new AddMemberRequest("mitglied@example.com"));
+        await service.RemoveMemberAsync(lead, groupId, member);
+
+        var again = await service.AddMemberAsync(lead, groupId, new AddMemberRequest("mitglied@example.com"));
+
+        Assert.True(again.Succeeded);
+        var rows = await db.GroupMembers.IgnoreQueryFilters().CountAsync(m => m.GroupId == groupId && m.UserId == member);
+        Assert.Equal(1, rows);
+    }
+
+    [Fact]
+    public async Task RequestJoin_AfterRejection_PossibleAgain()
+    {
+        var service = MakeService(out var db);
+        var (_, groupId, _) = await SetupGroupAsync(db, MakeService(out _));
+        var trainerId = await db.Groups.Where(g => g.Id == groupId).Select(g => g.TrainerId).SingleAsync();
+        var applicant = Guid.NewGuid();
+        await service.RequestJoinGroupAsync(applicant, groupId);
+        await service.DecideGroupJoinRequestAsync(trainerId, groupId, applicant, approve: false);
+
+        // Abgelehnt heißt nicht "für immer gesperrt".
+        var again = await service.RequestJoinGroupAsync(applicant, groupId);
+
+        Assert.True(again.Succeeded);
+        Assert.Equal(1, await db.GroupMembers.IgnoreQueryFilters().CountAsync(m => m.GroupId == groupId && m.UserId == applicant));
+    }
+
+    // --- Betreuung beenden --------------------------------------------------
+
+    [Fact]
+    public async Task RemoveTrainerFromDog_RevokesAccess()
+    {
+        var service = MakeService(out var db);
+        var (trainerId, groupId, _) = await SetupGroupAsync(db, MakeService(out _));
+        var member = Guid.NewGuid();
+        var dog = new Dogity.Domain.Dogs.Dog { Name = "Bello" };
+        db.Dogs.Add(dog);
+        db.DogOwners.Add(new Dogity.Domain.Dogs.DogOwner { DogId = dog.Id, UserId = member });
+        db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = member });
+        await db.SaveChangesAsync();
+        Assert.True((await service.AssignTrainerToDogAsync(trainerId, groupId, new AssignTrainerRequest(member, dog.Id))).Succeeded);
+        Assert.True(await db.HasDogAccessAsync(trainerId, dog.Id));
+
+        var result = await service.RemoveTrainerFromDogAsync(trainerId, groupId, trainerId, dog.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.False(await db.HasDogAccessAsync(trainerId, dog.Id));
+        // Und danach wieder aufnehmbar (Soft-Delete + Index).
+        Assert.True((await service.AssignTrainerToDogAsync(trainerId, groupId, new AssignTrainerRequest(member, dog.Id))).Succeeded);
+        Assert.True(await db.HasDogAccessAsync(trainerId, dog.Id));
+    }
+
+    // --- Gruppe auflösen ----------------------------------------------------
+
+    [Fact]
+    public async Task DeleteGroup_RemovesMembershipsButKeepsDogs()
+    {
+        var service = MakeService(out var db);
+        var (trainerId, groupId, _) = await SetupGroupAsync(db, MakeService(out _));
+        var member = Guid.NewGuid();
+        db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = member });
+        await db.SaveChangesAsync();
+
+        var result = await service.DeleteGroupAsync(trainerId, groupId);
+
+        Assert.True(result.Succeeded);
+        Assert.Empty(await db.Groups.Where(g => g.Id == groupId).ToListAsync());
+        Assert.Empty(await db.GroupMembers.Where(m => m.GroupId == groupId).ToListAsync());
+    }
+
+    [Fact]
+    public async Task DeleteGroup_ByStranger_Fails()
+    {
+        var service = MakeService(out var db);
+        var (_, groupId, _) = await SetupGroupAsync(db, MakeService(out _));
+
+        Assert.False((await service.DeleteGroupAsync(Guid.NewGuid(), groupId)).Succeeded);
     }
 }

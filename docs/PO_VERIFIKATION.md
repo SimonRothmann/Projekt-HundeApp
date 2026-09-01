@@ -246,6 +246,36 @@ Das ergänzt die Entscheidung vom 2026-08-19 („die eigenständig bewertete
 Freifolge entfällt"), statt sie zurückzunehmen: Bewertet wird sie weiterhin
 nicht, sie fehlte bisher nur als sichtbarer Teil des Ablaufs.
 
+## Fünfte Durchsicht (2026-08-31): Katalog aufgeräumt
+
+**Die Fährten-Dublette ist aufgelöst.** „IGP 1/2/3 – Fährte" und
+„FCI-FPr 1-3" waren dieselbe Prüfung unter zwei Namen, mit identischen
+Übungen und Punkten – doppelt zu pflegen und doppelt in der Sitemap.
+Geblieben ist die **FPr**: So heißt die Prüfung, wenn sie einzeln gelaufen
+wird; „IGP x – Fährte" war eine Bezeichnung dieses Projekts. Der IGP-Bezug
+steht jetzt in der Beschreibung der FPr, damit man sie auch darüber findet.
+
+> Die drei Adressen `/pruefungsordnungen/igp-1-fahrte` und Geschwister
+> entfallen damit. Sie standen in der Sitemap – Google wird sie beim
+> nächsten Durchlauf als 404 einsammeln.
+
+`RemoveRegulationAsync` bricht ab, sobald ein Trainingsziel auf eine der
+Dubletten verweist. Auf Instanzen mit solchen Zielen bleibt der Eintrag
+bewusst stehen: ein stillschweigend gelöschtes Ziel wäre schlimmer als ein
+überzähliger Katalogeintrag.
+
+**IPO-Altlasten der IGP 3 entfernt.** Zehn Übungen standen in der
+Übungsliste, die keine gültige Prüfungsordnungs-Version verwendet – teils
+echte Altlasten von vor 2019 („Seitentransport", „Distanzangriff",
+„Bewachen nach Rückkehr des Hundeführers", „Abwehr eines Angriffs aus dem
+Stand", „Angriff auf den Hund während des Transports"), teils Dubletten
+unter abweichendem Namen („Freifolge ohne Leine" neben „Freifolge", „Sitz
+aus dem Laufschritt" neben „Sitz aus der Bewegung"). Sie tauchten in der
+Übungsauswahl auf, ohne je zu einer Prüfung zu gehören. Von 29 auf 19.
+
+Wer sie tatsächlich trainiert hat, behält sie: `RemoveOrphanedExercisesAsync`
+löscht nur, worauf weder Trainingseinträge noch Planziele verweisen.
+
 ## Wie Korrekturen ankommen
 
 `SportCatalogSeeder` läuft bei **jedem** Backend-Start, auch in Produktion
