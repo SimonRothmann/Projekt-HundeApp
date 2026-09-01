@@ -36,7 +36,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             .FirstOrDefaultAsync(c => c.Id == clubId, ct);
 
         if (club is null)
-            return Result<ClubDetailDto>.Failure("Verein nicht gefunden.");
+            return Result<ClubDetailDto>.NotFound("Verein nicht gefunden.");
 
         var approvedMemberships = await db.ClubMemberships
             .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Approved)
@@ -81,17 +81,21 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     {
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
         if (club is null)
-            return Result.Failure("Verein nicht gefunden.");
+            return Result.NotFound("Verein nicht gefunden.");
 
         var user = await userLookup.FindByEmailAsync(request.Email, ct);
         if (user is null)
             return Result.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
 
-        var alreadyAssigned = await db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == user.UserId, ct);
-        if (alreadyAssigned)
+        // Auch entfernte Zeilen ansehen (Soft-Delete + eindeutiger Index).
+        var (existing, isActive) = await db.ClubTrainers
+            .FindIncludingRemovedAsync(t => t.ClubId == clubId && t.UserId == user.UserId, ct);
+        if (isActive)
             return Result.Failure("Dieser Benutzer ist bereits Trainer dieses Vereins.");
 
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = clubId, UserId = user.UserId });
+        if (existing is not null) existing.DeletedAt = null;
+        else db.ClubTrainers.Add(new ClubTrainer { ClubId = clubId, UserId = user.UserId });
+
         await db.SaveChangesAsync(ct);
         await trainerRoles.SyncAsync(user.UserId, ct);
         return Result.Success();
@@ -101,7 +105,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     {
         var entry = await db.ClubTrainers.FirstOrDefaultAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
         if (entry is null)
-            return Result.Failure("Trainer-Zuweisung nicht gefunden.");
+            return Result.NotFound("Trainer-Zuweisung nicht gefunden.");
 
         entry.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -120,7 +124,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     {
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
         if (club is null)
-            return Result.Failure("Verein nicht gefunden.");
+            return Result.NotFound("Verein nicht gefunden.");
 
         var user = await userLookup.FindByEmailAsync(request.Email, ct);
         if (user is null)
@@ -161,10 +165,11 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         var membership = await db.ClubMemberships
             .FirstOrDefaultAsync(m => m.ClubId == clubId && m.UserId == userId && m.Status == ClubMembershipStatus.Approved, ct);
         if (membership is null)
-            return Result.Failure("Mitgliedschaft nicht gefunden.");
+            return Result.NotFound("Mitgliedschaft nicht gefunden.");
 
         membership.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
+        await DetachFromClubAsync(clubId, userId, ct);
         return Result.Success();
     }
 
@@ -191,7 +196,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     {
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
         if (club is null)
-            return Result<ClubMembershipDto>.Failure("Verein nicht gefunden.");
+            return Result<ClubMembershipDto>.NotFound("Verein nicht gefunden.");
 
         var existing = await db.ClubMemberships
             .Where(m => m.ClubId == clubId && m.UserId == userId)
@@ -211,7 +216,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     public async Task<Result<IReadOnlyList<ClubMemberDto>>> GetJoinRequestsAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
     {
         if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
-            return Result<IReadOnlyList<ClubMemberDto>>.Failure("Verein nicht gefunden.");
+            return Result<IReadOnlyList<ClubMemberDto>>.NotFound("Verein nicht gefunden.");
 
         var pending = await db.ClubMemberships
             .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Pending)
@@ -230,11 +235,11 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     public async Task<Result> DecideJoinRequestAsync(Guid callerId, Guid clubId, Guid membershipId, bool approve, CancellationToken ct = default)
     {
         if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
-            return Result.Failure("Verein nicht gefunden.");
+            return Result.NotFound("Verein nicht gefunden.");
 
         var membership = await db.ClubMemberships.FirstOrDefaultAsync(m => m.Id == membershipId && m.ClubId == clubId, ct);
         if (membership is null || membership.Status != ClubMembershipStatus.Pending)
-            return Result.Failure("Beitrittsanfrage nicht gefunden.");
+            return Result.NotFound("Beitrittsanfrage nicht gefunden.");
 
         membership.Status = approve ? ClubMembershipStatus.Approved : ClubMembershipStatus.Rejected;
         membership.DecidedAt = DateTimeOffset.UtcNow;
@@ -250,6 +255,70 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         return Result.Success();
     }
 
+    /// <summary>
+    /// Alles lösen, was an der Vereinszugehörigkeit hängt.
+    ///
+    /// Vorher wurde beim Austritt nur die ClubMembership weich gelöscht: Wer
+    /// den Verein verließ, blieb Mitglied seiner Trainingsgruppen, stand
+    /// weiter in der Mitgliederliste der Trainer:innen, behielt eine etwaige
+    /// Trainer-Zuweisung des Vereins - und vor allem behielten dessen
+    /// Trainer:innen weiter Zugriff auf Tagebuch, Ziele und Trainingsplan
+    /// seiner Hunde.
+    ///
+    /// Gelöst werden deshalb:
+    /// - Mitgliedschaften in allen Gruppen dieses Vereins,
+    /// - eine Mit-Betreuung von Gruppen dieses Vereins,
+    /// - die Trainer-Zuweisung zum Verein selbst,
+    /// - Betreuungen der eigenen Hunde durch Trainer:innen dieses Vereins,
+    /// - Betreuungen, die diese Person bei Mitgliedern dieses Vereins hält.
+    ///
+    /// Die Trainingsdaten selbst bleiben unangetastet - sie gehören dem
+    /// Besitzer, nicht dem Verein.
+    /// </summary>
+    private async Task DetachFromClubAsync(Guid clubId, Guid userId, CancellationToken ct)
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        var groupIds = await db.Groups.Where(g => g.ClubId == clubId).Select(g => g.Id).ToListAsync(ct);
+
+        var memberships = await db.GroupMembers
+            .Where(m => m.UserId == userId && groupIds.Contains(m.GroupId))
+            .ToListAsync(ct);
+        foreach (var m in memberships) m.DeletedAt = now;
+
+        var coTrainerRows = await db.GroupTrainers
+            .Where(t => t.UserId == userId && groupIds.Contains(t.GroupId))
+            .ToListAsync(ct);
+        foreach (var t in coTrainerRows) t.DeletedAt = now;
+
+        var clubTrainer = await db.ClubTrainers.FirstOrDefaultAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
+        if (clubTrainer is not null) clubTrainer.DeletedAt = now;
+
+        var clubTrainerIds = await db.ClubTrainers
+            .Where(t => t.ClubId == clubId)
+            .Select(t => t.UserId)
+            .ToListAsync(ct);
+        var clubMemberIds = await db.ClubMemberships
+            .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Approved)
+            .Select(m => m.UserId)
+            .ToListAsync(ct);
+
+        var myDogIds = await db.DogOwners.Where(o => o.UserId == userId).Select(o => o.DogId).ToListAsync(ct);
+
+        var assignments = await db.TrainerAssignments
+            .Where(a =>
+                // Trainer:innen dieses Vereins verlieren den Zugriff auf meine Hunde ...
+                (myDogIds.Contains(a.DogId) && clubTrainerIds.Contains(a.TrainerId))
+                // ... und ich verliere den Zugriff auf die Hunde der Vereinsmitglieder.
+                || (a.TrainerId == userId && clubMemberIds.Contains(a.MemberId)))
+            .ToListAsync(ct);
+        foreach (var a in assignments) a.DeletedAt = now;
+
+        await db.SaveChangesAsync(ct);
+        // Wer dadurch nirgends mehr Trainer:in ist, verliert das Kennzeichen.
+        await trainerRoles.SyncAsync(userId, ct);
+    }
+
     public async Task<Result> LeaveClubAsync(Guid userId, Guid clubId, CancellationToken ct = default)
     {
         var membership = await db.ClubMemberships
@@ -259,13 +328,14 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
         membership.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
+        await DetachFromClubAsync(clubId, userId, ct);
         return Result.Success();
     }
 
     public async Task<Result<IReadOnlyList<ClubMemberDto>>> GetMembersAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
     {
         if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
-            return Result<IReadOnlyList<ClubMemberDto>>.Failure("Verein nicht gefunden.");
+            return Result<IReadOnlyList<ClubMemberDto>>.NotFound("Verein nicht gefunden.");
 
         var members = await db.ClubMemberships
             .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Approved)
@@ -284,18 +354,21 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     public async Task<Result> PromoteMemberToTrainerAsync(Guid callerId, Guid clubId, Guid targetUserId, CancellationToken ct = default)
     {
         if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
-            return Result.Failure("Verein nicht gefunden.");
+            return Result.NotFound("Verein nicht gefunden.");
 
         var isApprovedMember = await db.ClubMemberships
             .AnyAsync(m => m.ClubId == clubId && m.UserId == targetUserId && m.Status == ClubMembershipStatus.Approved, ct);
         if (!isApprovedMember)
             return Result.Failure("Nur bestehende Mitglieder dieses Vereins können zu Trainern gemacht werden.");
 
-        var alreadyTrainer = await db.IsClubTrainerAsync(targetUserId, clubId, ct);
-        if (alreadyTrainer)
+        var (existingTrainer, isActiveTrainer) = await db.ClubTrainers
+            .FindIncludingRemovedAsync(t => t.ClubId == clubId && t.UserId == targetUserId, ct);
+        if (isActiveTrainer)
             return Result.Failure("Dieser Benutzer ist bereits Trainer dieses Vereins.");
 
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = clubId, UserId = targetUserId });
+        if (existingTrainer is not null) existingTrainer.DeletedAt = null;
+        else db.ClubTrainers.Add(new ClubTrainer { ClubId = clubId, UserId = targetUserId });
+
         await db.SaveChangesAsync(ct);
         await trainerRoles.SyncAsync(targetUserId, ct);
 

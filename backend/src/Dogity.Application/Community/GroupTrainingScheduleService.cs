@@ -85,7 +85,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
             .Include(s => s.Items).Include(s => s.Trainers)
             .FirstOrDefaultAsync(s => s.Id == sessionId, ct);
         if (session is null || !await IsClubTrainerAsync(userId, session.ClubId, ct))
-            return Result<GroupTrainingSessionDto>.Failure("Termin nicht gefunden.");
+            return Result<GroupTrainingSessionDto>.NotFound("Termin nicht gefunden.");
         var error = await ValidateAsync(session.ClubId, session.GroupId, request.TrainerUserIds, request.Items, ct);
         if (error is not null) return Result<GroupTrainingSessionDto>.Failure(error);
 
@@ -108,7 +108,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
     {
         var session = await db.GroupTrainingSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
         if (session is null || !await IsClubTrainerAsync(userId, session.ClubId, ct))
-            return Result.Failure("Termin nicht gefunden.");
+            return Result.NotFound("Termin nicht gefunden.");
         session.Status = GroupTrainingSessionStatus.Cancelled;
         session.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -121,7 +121,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
             .Include(s => s.Items).Include(s => s.Trainers)
             .FirstOrDefaultAsync(s => s.Id == sessionId, ct);
         if (session is null || !await IsClubTrainerAsync(userId, session.ClubId, ct))
-            return Result.Failure("Termin nicht gefunden.");
+            return Result.NotFound("Termin nicht gefunden.");
         var now = DateTimeOffset.UtcNow;
         session.DeletedAt = now;
         foreach (var i in session.Items) i.DeletedAt = now;

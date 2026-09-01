@@ -21,7 +21,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
 
         var club = await db.Clubs.AsNoTracking().FirstOrDefaultAsync(c => c.Id == clubId, ct);
         if (club is null)
-            return Result<GroupTrainingLibraryDto>.Failure("Verein nicht gefunden.");
+            return Result<GroupTrainingLibraryDto>.NotFound("Verein nicht gefunden.");
 
         var exercises = await db.GroupTrainingExercises
             .Where(e => e.ClubId == clubId)
@@ -143,7 +143,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
 
         var exercise = await db.GroupTrainingExercises.FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
         if (exercise is null || !await IsClubTrainerAsync(userId, exercise.ClubId, ct))
-            return Result<GroupTrainingExerciseDto>.Failure("Baustein nicht gefunden.");
+            return Result<GroupTrainingExerciseDto>.NotFound("Baustein nicht gefunden.");
 
         exercise.Category = request.Category;
         exercise.Title = request.Title.Trim();
@@ -160,7 +160,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
     {
         var exercise = await db.GroupTrainingExercises.FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
         if (exercise is null || !await IsClubTrainerAsync(userId, exercise.ClubId, ct))
-            return Result.Failure("Baustein nicht gefunden.");
+            return Result.NotFound("Baustein nicht gefunden.");
 
         var now = DateTimeOffset.UtcNow;
         // Referenzen in Einheiten mit-entfernen, damit keine Einheit auf einen
@@ -201,7 +201,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
     {
         var unit = await db.GroupTrainingUnits.Include(u => u.Items).FirstOrDefaultAsync(u => u.Id == unitId, ct);
         if (unit is null || !await IsClubTrainerAsync(userId, unit.ClubId, ct))
-            return Result<GroupTrainingUnitDto>.Failure("Einheit nicht gefunden.");
+            return Result<GroupTrainingUnitDto>.NotFound("Einheit nicht gefunden.");
         var error = await ValidateUnitAsync(unit.ClubId, request, ct);
         if (error is not null)
             return Result<GroupTrainingUnitDto>.Failure(error);
@@ -223,7 +223,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
     {
         var unit = await db.GroupTrainingUnits.Include(u => u.Items).FirstOrDefaultAsync(u => u.Id == unitId, ct);
         if (unit is null || !await IsClubTrainerAsync(userId, unit.ClubId, ct))
-            return Result.Failure("Einheit nicht gefunden.");
+            return Result.NotFound("Einheit nicht gefunden.");
 
         var now = DateTimeOffset.UtcNow;
         unit.DeletedAt = now;
@@ -237,7 +237,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
     {
         var src = await db.GroupTrainingUnits.Include(u => u.Items).AsNoTracking().FirstOrDefaultAsync(u => u.Id == unitId, ct);
         if (src is null || !await IsClubTrainerAsync(userId, src.ClubId, ct))
-            return Result<GroupTrainingUnitDto>.Failure("Einheit nicht gefunden.");
+            return Result<GroupTrainingUnitDto>.NotFound("Einheit nicht gefunden.");
 
         var copy = new GroupTrainingUnit
         {

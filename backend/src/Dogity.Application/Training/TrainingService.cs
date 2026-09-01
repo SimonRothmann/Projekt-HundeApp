@@ -32,7 +32,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     public async Task<Result<IReadOnlyList<TrainingSessionDto>>> GetByDogAsync(Guid userId, Guid dogId, DateOnly? from = null, DateOnly? to = null, CancellationToken ct = default)
     {
         if (!await db.HasDogAccessAsync(userId, dogId, ct))
-            return Result<IReadOnlyList<TrainingSessionDto>>.Failure("Hund nicht gefunden.");
+            return Result<IReadOnlyList<TrainingSessionDto>>.NotFound("Hund nicht gefunden.");
 
         var query = db.TrainingSessions.Where(s => s.DogId == dogId);
         if (from is { } fromDate)
@@ -64,7 +64,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     {
         var session = await GetOwnedSessionAsync(userId, sessionId, ct, track: false);
         return session is null
-            ? Result<TrainingSessionDto>.Failure("Training nicht gefunden.")
+            ? Result<TrainingSessionDto>.NotFound("Training nicht gefunden.")
             : Result<TrainingSessionDto>.Success(ToDto(session, await HasGpsTrackAsync(session.Id, ct)));
     }
 
@@ -78,7 +78,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             return Result<TrainingSessionDto>.Failure(validationError);
 
         if (!await db.HasDogAccessAsync(userId, request.DogId, ct))
-            return Result<TrainingSessionDto>.Failure("Hund nicht gefunden.");
+            return Result<TrainingSessionDto>.NotFound("Hund nicht gefunden.");
 
         if (request.Id is { } existingId)
         {
@@ -95,7 +95,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         {
             var existingExerciseCount = await db.Exercises.CountAsync(e => exerciseIds.Contains(e.Id), ct);
             if (existingExerciseCount != exerciseIds.Count)
-                return Result<TrainingSessionDto>.Failure("Eine oder mehrere Übungen wurden nicht gefunden.");
+                return Result<TrainingSessionDto>.NotFound("Eine oder mehrere Übungen wurden nicht gefunden.");
         }
 
         var planItemError = await ValidatePlanItemsAsync(request, ct);
@@ -244,7 +244,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     {
         var session = await GetOwnedSessionAsync(userId, sessionId, ct);
         if (session is null)
-            return Result<TrainingSessionDto>.Failure("Training nicht gefunden.");
+            return Result<TrainingSessionDto>.NotFound("Training nicht gefunden.");
 
         if (request.Latitude is { } lat && (lat < -90 || lat > 90))
             return Result<TrainingSessionDto>.Failure("Ungültiger Breitengrad.");
@@ -268,7 +268,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     {
         var session = await GetOwnedSessionAsync(userId, sessionId, ct);
         if (session is null)
-            return Result<TrainingSessionDto>.Failure("Training nicht gefunden.");
+            return Result<TrainingSessionDto>.NotFound("Training nicht gefunden.");
 
         if (date == default)
             return Result<TrainingSessionDto>.Failure("Datum ist erforderlich.");
@@ -297,6 +297,19 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             // echtes Verschmelzen würde Übungen umhängen und Dauern addieren -
             // nicht mehr rückgängig zu machen, wenn sich jemand vertippt hat.
             await db.SaveChangesAsync(ct);
+
+            // LastTrainedAt und DueAt hängen am Datum: ohne Neuberechnung
+            // stünde die Wiedervorlage weiter auf dem alten Tag, und der
+            // adaptive Generator plante gegen ein Datum, das es nicht mehr gibt.
+            var movedIds = daySessions.Select(d => d.Id).ToList();
+            var affected = await db.TrainingExercises
+                .Where(e => movedIds.Contains(e.TrainingSessionId) && e.ExerciseId != null)
+                .Select(e => e.ExerciseId!.Value)
+                .Distinct()
+                .ToListAsync(ct);
+            foreach (var exerciseId in affected)
+                await mastery.RecomputeAsync(session.DogId, exerciseId, ct);
+            if (affected.Count > 0) await db.SaveChangesAsync(ct);
         }
 
         var updated = await GetOwnedSessionAsync(userId, sessionId, ct, track: false);
@@ -307,7 +320,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     {
         var session = await GetOwnedSessionAsync(userId, sessionId, ct);
         if (session is null)
-            return Result.Failure("Training nicht gefunden.");
+            return Result.NotFound("Training nicht gefunden.");
 
         session.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -318,7 +331,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     {
         var session = await GetOwnedSessionAsync(userId, sessionId, ct);
         if (session is null)
-            return Result.Failure("Training nicht gefunden.");
+            return Result.NotFound("Training nicht gefunden.");
 
         var trimmed = notes?.Trim();
         session.Notes = string.IsNullOrEmpty(trimmed) ? null : trimmed;
@@ -333,7 +346,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             .Include(e => e.TrainingSession)
             .FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
         if (exercise?.TrainingSession is null || !await db.HasDogAccessAsync(userId, exercise.TrainingSession.DogId, ct))
-            return Result.Failure("Übung nicht gefunden.");
+            return Result.NotFound("Übung nicht gefunden.");
 
         var trimmed = notes?.Trim();
         exercise.Notes = string.IsNullOrEmpty(trimmed) ? null : trimmed;
@@ -350,7 +363,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             .Include(e => e.TrainingSession)
             .FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
         if (exercise?.TrainingSession is null || !await db.HasDogAccessAsync(userId, exercise.TrainingSession.DogId, ct))
-            return Result<TrainingSessionDto>.Failure("Übung nicht gefunden.");
+            return Result<TrainingSessionDto>.NotFound("Übung nicht gefunden.");
 
         var ratingChanged = exercise.Rating != request.Rating || exercise.Success != request.Success;
 
@@ -374,7 +387,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
         var updated = await GetOwnedSessionAsync(userId, exercise.TrainingSessionId, ct, track: false);
         return updated is null
-            ? Result<TrainingSessionDto>.Failure("Training nicht gefunden.")
+            ? Result<TrainingSessionDto>.NotFound("Training nicht gefunden.")
             : Result<TrainingSessionDto>.Success(ToDto(updated, await HasGpsTrackAsync(updated.Id, ct)));
     }
 
@@ -385,7 +398,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
         var session = await db.TrainingSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
         if (session is null)
-            return Result.Failure("Training nicht gefunden.");
+            return Result.NotFound("Training nicht gefunden.");
 
         var isAssignedTrainer = await db.TrainerAssignments.AnyAsync(t => t.DogId == session.DogId && t.TrainerId == trainerId, ct);
         if (!isAssignedTrainer)
@@ -417,7 +430,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             .Include(e => e.TrainingSession)
             .FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
         if (exercise?.TrainingSession is null)
-            return Result.Failure("Übung nicht gefunden.");
+            return Result.NotFound("Übung nicht gefunden.");
 
         var isAssignedTrainer = await db.TrainerAssignments.AnyAsync(t => t.DogId == exercise.TrainingSession.DogId && t.TrainerId == trainerId, ct);
         if (!isAssignedTrainer)

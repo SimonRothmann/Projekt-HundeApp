@@ -100,7 +100,7 @@ public class StatsService(IApplicationDbContext db) : IStatsService
     public async Task<Result<IReadOnlyList<DogExerciseStatDto>>> GetDogExerciseStatsAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
         if (!await db.HasDogAccessAsync(userId, dogId, ct))
-            return Result<IReadOnlyList<DogExerciseStatDto>>.Failure("Hund nicht gefunden.");
+            return Result<IReadOnlyList<DogExerciseStatDto>>.NotFound("Hund nicht gefunden.");
 
         // Nur die für die Aggregation nötigen Felder laden. Der Anzeigename ist
         // die Katalog-Übung oder - bei Freitext-Einträgen (ExerciseId null) -
@@ -156,7 +156,7 @@ public class StatsService(IApplicationDbContext db) : IStatsService
     public async Task<Result<DogTrackStatsDto>> GetDogTrackStatsAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
         if (!await db.HasDogAccessAsync(userId, dogId, ct))
-            return Result<DogTrackStatsDto>.Failure("Hund nicht gefunden.");
+            return Result<DogTrackStatsDto>.NotFound("Hund nicht gefunden.");
 
         // Nur die Kennzahlen laden - genau dafür sind sie am Ablauf persistiert
         // (die GPS-Punkte selbst bleiben hier außen vor).

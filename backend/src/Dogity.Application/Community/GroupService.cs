@@ -75,7 +75,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     {
         var group = await GetAccessibleGroupAsync(userId, groupId, ct);
         if (group is null)
-            return Result<GroupDetailDto>.Failure("Gruppe nicht gefunden.");
+            return Result<GroupDetailDto>.NotFound("Gruppe nicht gefunden.");
 
         var coTrainerIds = group.Trainers.Select(t => t.UserId).ToList();
         var lookupIds = group.Members.Select(m => m.UserId)
@@ -138,7 +138,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 
         var group = await GetManageableGroupAsync(userId, groupId, ct);
         if (group is null)
-            return Result<GroupDto>.Failure("Gruppe nicht gefunden.");
+            return Result<GroupDto>.NotFound("Gruppe nicht gefunden.");
 
         group.Name = request.Name.Trim();
         group.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
@@ -149,11 +149,49 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         return Result<GroupDto>.Success(new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, memberCount, TrainerDisplayName(trainerLookup, group.TrainerId)));
     }
 
+    /// <summary>
+    /// Gruppe auflösen. Bis hierher ließ sich eine Gruppe nur ANLEGEN - eine
+    /// versehentlich erstellte blieb dem Verein für immer erhalten, samt
+    /// "Beitreten"-Knopf für alle Mitglieder.
+    ///
+    /// Mitgliedschaften und Mit-Betreuungen werden mit gelöst. Die
+    /// Trainingsdaten der Hunde bleiben unangetastet - sie hängen am Hund,
+    /// nicht an der Gruppe. Bestehende Betreuungen einzelner Hunde
+    /// (TrainerAssignment) bleiben ebenfalls: Sie überdauern einen
+    /// Gruppenwechsel bewusst und lassen sich einzeln beenden.
+    /// </summary>
+    public async Task<Result> DeleteGroupAsync(Guid userId, Guid groupId, CancellationToken ct = default)
+    {
+        var group = await GetManageableGroupAsync(userId, groupId, ct);
+        if (group is null)
+            return Result.NotFound("Gruppe nicht gefunden.");
+
+        var plannedSessions = await db.GroupTrainingSessions
+            .CountAsync(s => s.GroupId == groupId && s.Status == GroupTrainingSessionStatus.Planned && s.StartsAt > DateTimeOffset.UtcNow, ct);
+        if (plannedSessions > 0)
+            return Result.Failure($"Für diese Gruppe stehen noch {plannedSessions} Termine im Kalender. Bitte zuerst absagen oder löschen.");
+
+        var now = DateTimeOffset.UtcNow;
+        var members = await db.GroupMembers.Where(m => m.GroupId == groupId).ToListAsync(ct);
+        foreach (var m in members) m.DeletedAt = now;
+
+        var coTrainers = await db.GroupTrainers.Where(t => t.GroupId == groupId).ToListAsync(ct);
+        foreach (var t in coTrainers) t.DeletedAt = now;
+
+        group.DeletedAt = now;
+        await db.SaveChangesAsync(ct);
+
+        // Wer nur diese eine Gruppe geleitet hat, ist jetzt nirgends mehr
+        // Trainer:in und verliert das Kennzeichen.
+        await trainerRoles.SyncAsync(coTrainers.Select(t => t.UserId).Append(group.TrainerId), ct);
+        return Result.Success();
+    }
+
     public async Task<Result<IReadOnlyList<GroupTrainerOptionDto>>> GetAssignableTrainersAsync(Guid userId, Guid groupId, CancellationToken ct = default)
     {
         var group = await GetManageableGroupAsync(userId, groupId, ct);
         if (group is null)
-            return Result<IReadOnlyList<GroupTrainerOptionDto>>.Failure("Gruppe nicht gefunden.");
+            return Result<IReadOnlyList<GroupTrainerOptionDto>>.NotFound("Gruppe nicht gefunden.");
 
         // Ohne Verein gibt es keinen Trainer-Pool - nur der/die aktuelle Trainer:in.
         if (group.ClubId is not { } clubId)
@@ -180,7 +218,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     {
         var group = await GetManageableGroupAsync(userId, groupId, ct);
         if (group is null)
-            return Result.Failure("Gruppe nicht gefunden.");
+            return Result.NotFound("Gruppe nicht gefunden.");
 
         if (group.ClubId is not { } clubId)
             return Result.Failure("Nur Vereinsgruppen können einer/m anderen Trainer:in zugewiesen werden.");
@@ -202,7 +240,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     {
         var group = await GetManageableGroupAsync(userId, groupId, ct);
         if (group is null)
-            return Result.Failure("Gruppe nicht gefunden.");
+            return Result.NotFound("Gruppe nicht gefunden.");
 
         if (string.IsNullOrWhiteSpace(request.Email))
             return Result.Failure("E-Mail-Adresse ist erforderlich.");
@@ -241,14 +279,14 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     {
         var group = await GetManageableGroupAsync(userId, groupId, ct);
         if (group is null)
-            return Result.Failure("Gruppe nicht gefunden.");
+            return Result.NotFound("Gruppe nicht gefunden.");
 
         if (trainerUserId == group.TrainerId)
             return Result.Failure("Die/der Hauptverantwortliche kann nicht entfernt werden - erst eine andere Person zuweisen.");
 
         var entry = await db.GroupTrainers.FirstOrDefaultAsync(t => t.GroupId == groupId && t.UserId == trainerUserId, ct);
         if (entry is null)
-            return Result.Failure("Trainer-Zuordnung nicht gefunden.");
+            return Result.NotFound("Trainer-Zuordnung nicht gefunden.");
 
         entry.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -260,17 +298,32 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     {
         var group = await GetManageableGroupAsync(trainerId, groupId, ct);
         if (group is null)
-            return Result.Failure("Gruppe nicht gefunden.");
+            return Result.NotFound("Gruppe nicht gefunden.");
 
         var user = await userLookup.FindByEmailAsync(request.Email, ct);
         if (user is null)
             return Result.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
 
-        var alreadyMember = await db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == user.UserId, ct);
-        if (alreadyMember)
+        // Auch entfernte Zeilen ansehen (Soft-Delete + eindeutiger Index, siehe
+        // SoftDeleteRevival) - sonst scheitert das erneute Aufnehmen eines
+        // zuvor entfernten Mitglieds mit einem 500er.
+        var (existing, isActive) = await db.GroupMembers
+            .FindIncludingRemovedAsync(m => m.GroupId == groupId && m.UserId == user.UserId, ct);
+        if (isActive)
             return Result.Failure("Dieser Benutzer ist bereits Mitglied der Gruppe.");
 
-        db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = user.UserId });
+        if (existing is not null)
+        {
+            existing.DeletedAt = null;
+            // Wiederaufnahme durch die Trainer:in - keine erneute Freigabe nötig.
+            existing.Status = GroupMemberStatus.Active;
+            existing.JoinedAt = DateTimeOffset.UtcNow;
+        }
+        else
+        {
+            db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = user.UserId });
+        }
+
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
@@ -279,11 +332,11 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     {
         var group = await GetManageableGroupAsync(trainerId, groupId, ct);
         if (group is null)
-            return Result.Failure("Gruppe nicht gefunden.");
+            return Result.NotFound("Gruppe nicht gefunden.");
 
         var member = await db.GroupMembers.FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == memberId, ct);
         if (member is null)
-            return Result.Failure("Mitglied nicht gefunden.");
+            return Result.NotFound("Mitglied nicht gefunden.");
 
         member.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -319,17 +372,55 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (!ownsDog)
             return Result.Failure("Hund gehört nicht zu diesem Mitglied.");
 
-        var alreadyAssigned = await db.TrainerAssignments.AnyAsync(t => t.TrainerId == trainerId && t.DogId == request.DogId, ct);
-        if (alreadyAssigned)
+        // Auch entfernte Zeilen ansehen (Soft-Delete + eindeutiger Index) -
+        // sonst ließe sich eine beendete Betreuung nie wieder aufnehmen.
+        var (existing, isActive) = await db.TrainerAssignments
+            .FindIncludingRemovedAsync(t => t.TrainerId == trainerId && t.DogId == request.DogId, ct);
+        if (isActive)
             return Result.Failure("Du betreust diesen Hund bereits.");
 
-        db.TrainerAssignments.Add(new TrainerAssignment
+        if (existing is not null)
         {
-            TrainerId = trainerId,
-            MemberId = request.MemberId,
-            DogId = request.DogId,
-            StartDate = DateOnly.FromDateTime(DateTime.UtcNow)
-        });
+            existing.DeletedAt = null;
+            existing.MemberId = request.MemberId;
+            existing.StartDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        }
+        else
+        {
+            db.TrainerAssignments.Add(new TrainerAssignment
+            {
+                TrainerId = trainerId,
+                MemberId = request.MemberId,
+                DogId = request.DogId,
+                StartDate = DateOnly.FromDateTime(DateTime.UtcNow)
+            });
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Betreuung eines Hundes wieder beenden. Bis hierher ließ sich eine
+    /// <see cref="TrainerAssignment"/> nur ANLEGEN - einmal betreut, behielt
+    /// eine Trainer:in dauerhaft Zugriff auf Tagebuch, Ziele und Trainingsplan
+    /// des Hundes, auch nach einem Gruppen- oder Vereinswechsel.
+    ///
+    /// Beenden darf es die Trainer:in selbst und jede:r, die die Gruppe
+    /// verwaltet (Hauptverantwortliche, weitere Trainer:innen, Vereinstrainer:innen).
+    /// </summary>
+    public async Task<Result> RemoveTrainerFromDogAsync(Guid userId, Guid groupId, Guid trainerUserId, Guid dogId, CancellationToken ct = default)
+    {
+        var canManage = await GetManageableGroupAsync(userId, groupId, ct) is not null;
+        if (!canManage && userId != trainerUserId)
+            return Result.NotFound("Gruppe nicht gefunden.");
+
+        var assignment = await db.TrainerAssignments
+            .FirstOrDefaultAsync(t => t.TrainerId == trainerUserId && t.DogId == dogId, ct);
+        if (assignment is null)
+            return Result.NotFound("Betreuung nicht gefunden.");
+
+        assignment.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
@@ -341,7 +432,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         var isClubTrainer = await db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
 
         if (!isClubMember && !isClubTrainer)
-            return Result<IReadOnlyList<GroupDto>>.Failure("Keine Berechtigung für diesen Verein.");
+            return Result<IReadOnlyList<GroupDto>>.NotFound("Keine Berechtigung für diesen Verein.");
 
         var rows = await db.Groups
             .Where(g => g.ClubId == clubId)
@@ -386,7 +477,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     {
         var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
         if (group is null)
-            return Result.Failure("Gruppe nicht gefunden.");
+            return Result.NotFound("Gruppe nicht gefunden.");
 
         // Wer die Gruppe ohnehin betreut, braucht keinen Beitritt - vorher
         // konnte sich eine Trainer:in bei ihrer eigenen Gruppe bewerben und
@@ -394,13 +485,29 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (await GetManageableGroupAsync(userId, groupId, ct) is not null)
             return Result.Failure("Du betreust diese Gruppe bereits als Trainer:in.");
 
-        var existing = await db.GroupMembers.FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
-        if (existing is not null)
-            return existing.Status == GroupMemberStatus.Pending
+        // Einschließlich entfernter Zeilen suchen: Eine ABGELEHNTE Anfrage wird
+        // weich gelöscht (siehe DecideGroupJoinRequestAsync). Ohne das hier
+        // hätte dieselbe Person sich nie wieder bewerben können - der Insert
+        // wäre am eindeutigen Index gescheitert, und niemand hätte gesehen,
+        // warum.
+        var (existing, isActive) = await db.GroupMembers
+            .FindIncludingRemovedAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (isActive)
+            return existing!.Status == GroupMemberStatus.Pending
                 ? Result.Failure("Du hast bereits eine ausstehende Beitrittsanfrage für diese Gruppe.")
                 : Result.Failure("Du bist bereits Mitglied dieser Gruppe.");
 
-        db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = userId, Status = GroupMemberStatus.Pending });
+        if (existing is not null)
+        {
+            existing.DeletedAt = null;
+            existing.Status = GroupMemberStatus.Pending;
+            existing.JoinedAt = DateTimeOffset.UtcNow;
+        }
+        else
+        {
+            db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = userId, Status = GroupMemberStatus.Pending });
+        }
+
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
@@ -409,7 +516,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     {
         var group = await GetManageableGroupAsync(trainerId, groupId, ct);
         if (group is null)
-            return Result<IReadOnlyList<GroupJoinRequestDto>>.Failure("Gruppe nicht gefunden.");
+            return Result<IReadOnlyList<GroupJoinRequestDto>>.NotFound("Gruppe nicht gefunden.");
 
         var pending = await db.GroupMembers
             .Where(m => m.GroupId == groupId && m.Status == GroupMemberStatus.Pending)
@@ -431,11 +538,11 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     {
         var group = await GetManageableGroupAsync(trainerId, groupId, ct);
         if (group is null)
-            return Result.Failure("Gruppe nicht gefunden.");
+            return Result.NotFound("Gruppe nicht gefunden.");
 
         var memberRow = await db.GroupMembers.FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == memberId && m.Status == GroupMemberStatus.Pending, ct);
         if (memberRow is null)
-            return Result.Failure("Beitrittsanfrage nicht gefunden.");
+            return Result.NotFound("Beitrittsanfrage nicht gefunden.");
 
         if (approve)
             memberRow.Status = GroupMemberStatus.Active;

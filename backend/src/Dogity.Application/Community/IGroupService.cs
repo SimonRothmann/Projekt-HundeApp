@@ -9,6 +9,7 @@ public interface IGroupService
     Task<Result<GroupDetailDto>> GetDetailAsync(Guid userId, Guid groupId, CancellationToken ct = default);
     Task<Result<GroupDto>> CreateAsync(Guid trainerId, CreateGroupRequest request, CancellationToken ct = default);
     Task<Result<GroupDto>> UpdateGroupAsync(Guid userId, Guid groupId, UpdateGroupRequest request, CancellationToken ct = default);
+    Task<Result> DeleteGroupAsync(Guid userId, Guid groupId, CancellationToken ct = default);
     Task<Result<IReadOnlyList<GroupTrainerOptionDto>>> GetAssignableTrainersAsync(Guid userId, Guid groupId, CancellationToken ct = default);
     Task<Result> AssignGroupTrainerAsync(Guid userId, Guid groupId, AssignGroupTrainerRequest request, CancellationToken ct = default);
     Task<Result> AddGroupTrainerAsync(Guid userId, Guid groupId, AddGroupTrainerRequest request, CancellationToken ct = default);
@@ -17,6 +18,7 @@ public interface IGroupService
     Task<Result> RemoveMemberAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct = default);
     Task<Result<IReadOnlyList<MemberDogDto>>> GetMemberDogsAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct = default);
     Task<Result> AssignTrainerToDogAsync(Guid trainerId, Guid groupId, AssignTrainerRequest request, CancellationToken ct = default);
+    Task<Result> RemoveTrainerFromDogAsync(Guid userId, Guid groupId, Guid trainerUserId, Guid dogId, CancellationToken ct = default);
 
     Task<Result<IReadOnlyList<GroupDto>>> GetGroupsByClubAsync(Guid userId, Guid clubId, CancellationToken ct = default);
     Task<Result> RequestJoinGroupAsync(Guid userId, Guid groupId, CancellationToken ct = default);

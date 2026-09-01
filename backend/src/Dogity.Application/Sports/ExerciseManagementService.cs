@@ -18,7 +18,7 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
         {
             var sportExists = await db.Sports.AnyAsync(s => s.Id == sportId, ct);
             if (!sportExists)
-                return Result<ExerciseDto>.Failure("Sportart nicht gefunden.");
+                return Result<ExerciseDto>.NotFound("Sportart nicht gefunden.");
         }
 
         var authError = await CheckScopeAuthorizationAsync(actingUserId, isAdmin, request.ClubId, ct);
@@ -45,7 +45,7 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
     {
         var exercise = await db.Exercises.FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
         if (exercise is null)
-            return Result<ExerciseDto>.Failure("Übung nicht gefunden.");
+            return Result<ExerciseDto>.NotFound("Übung nicht gefunden.");
 
         var authError = await CheckScopeAuthorizationAsync(actingUserId, isAdmin, exercise.ClubId, ct);
         if (authError is not null)
@@ -68,7 +68,7 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
     {
         var exercise = await db.Exercises.FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
         if (exercise is null)
-            return Result.Failure("Übung nicht gefunden.");
+            return Result.NotFound("Übung nicht gefunden.");
 
         var authError = await CheckScopeAuthorizationAsync(actingUserId, isAdmin, exercise.ClubId, ct);
         if (authError is not null)

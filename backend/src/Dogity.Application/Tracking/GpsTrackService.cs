@@ -17,7 +17,7 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
     public async Task<Result<IReadOnlyList<GpsTrackDto>>> GetByTrainingSessionAsync(Guid userId, Guid trainingSessionId, CancellationToken ct = default)
     {
         if (!await HasSessionAccessAsync(userId, trainingSessionId, ct))
-            return Result<IReadOnlyList<GpsTrackDto>>.Failure("Training nicht gefunden.");
+            return Result<IReadOnlyList<GpsTrackDto>>.NotFound("Training nicht gefunden.");
 
         // AsSplitQuery: zwei Collection-Includes (Points + WalkRuns.Points) in
         // EINEM Query erzeugen im JOIN eine kartesische Zeilenexplosion
@@ -44,7 +44,7 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
     public async Task<Result<GpsTrackDto>> CreateAsync(Guid userId, CreateGpsTrackRequest request, CancellationToken ct = default)
     {
         if (!await HasSessionAccessAsync(userId, request.TrainingSessionId, ct))
-            return Result<GpsTrackDto>.Failure("Training nicht gefunden.");
+            return Result<GpsTrackDto>.NotFound("Training nicht gefunden.");
 
         if (request.Points.Count == 0)
             return Result<GpsTrackDto>.Failure("Eine Fährte benötigt mindestens einen GPS-Punkt.");
@@ -90,7 +90,7 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
-            return Result<GpsWalkRunDto>.Failure("Fährte nicht gefunden.");
+            return Result<GpsWalkRunDto>.NotFound("Fährte nicht gefunden.");
 
         if (request.Points.Count == 0)
             return Result<GpsWalkRunDto>.Failure("Ein Ablauf-Versuch benötigt mindestens einen GPS-Punkt.");
@@ -132,14 +132,14 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
-            return Result<GpsWalkRunDto>.Failure("Fährte nicht gefunden.");
+            return Result<GpsWalkRunDto>.NotFound("Fährte nicht gefunden.");
 
         var walkRun = await db.GpsWalkRuns
             .Include(r => r.Points)
             .Include(r => r.Stops)
             .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
         if (walkRun is null)
-            return Result<GpsWalkRunDto>.Failure("Ablauf-Versuch nicht gefunden.");
+            return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
 
         await EvaluateAndPersistAsync(walkRun, ct);
         await db.SaveChangesAsync(ct);
@@ -206,13 +206,13 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
-            return Result<GpsWalkRunDto>.Failure("Fährte nicht gefunden.");
+            return Result<GpsWalkRunDto>.NotFound("Fährte nicht gefunden.");
 
         var walkRun = await db.GpsWalkRuns
             .Include(r => r.Points)
             .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
         if (walkRun is null)
-            return Result<GpsWalkRunDto>.Failure("Ablauf-Versuch nicht gefunden.");
+            return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
 
         // Nur der Kommentar ist editierbar - die GPS-Punkte einer Aufzeichnung
         // sind Messdaten und werden bewusst nicht nachträglich verändert.
@@ -231,7 +231,7 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
             .Include(t => t.WalkRuns).ThenInclude(r => r.Stops)
             .FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
-            return Result<GpsTrackDto>.Failure("Fährte nicht gefunden.");
+            return Result<GpsTrackDto>.NotFound("Fährte nicht gefunden.");
 
         await weather.EnrichTrackAsync(track, ct);
         await db.SaveChangesAsync(ct);
@@ -243,7 +243,7 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
-            return Result.Failure("Fährte nicht gefunden.");
+            return Result.NotFound("Fährte nicht gefunden.");
 
         track.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);

@@ -11,7 +11,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
     {
         var exists = await db.Sports.AnyAsync(s => s.Id == sportId, ct);
         if (!exists)
-            return Result<IReadOnlyList<ExerciseDto>>.Failure("Sportart nicht gefunden.");
+            return Result<IReadOnlyList<ExerciseDto>>.NotFound("Sportart nicht gefunden.");
 
         var visibleClubIds = await db.GetVisibleClubIdsAsync(userId, ct);
 
@@ -88,7 +88,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
     {
         var exists = await db.Sports.AnyAsync(s => s.Id == sportId, ct);
         if (!exists)
-            return Result<IReadOnlyList<RegulationDto>>.Failure("Sportart nicht gefunden.");
+            return Result<IReadOnlyList<RegulationDto>>.NotFound("Sportart nicht gefunden.");
 
         var regulations = await db.Regulations
             .Where(r => r.SportId == sportId)
@@ -103,7 +103,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
     {
         var regulation = await db.Regulations.AsNoTracking().FirstOrDefaultAsync(r => r.Id == regulationId, ct);
         if (regulation is null)
-            return Result<RegulationDetailDto>.Failure("Prüfungsordnung nicht gefunden.");
+            return Result<RegulationDetailDto>.NotFound("Prüfungsordnung nicht gefunden.");
 
         var currentVersion = await db.RegulationVersions
             .Where(v => v.RegulationId == regulationId)

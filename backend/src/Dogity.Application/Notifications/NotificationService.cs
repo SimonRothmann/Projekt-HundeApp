@@ -37,7 +37,7 @@ public class NotificationService(IApplicationDbContext db) : INotificationServic
     {
         var notification = await db.Notifications.FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId, ct);
         if (notification is null)
-            return Result.Failure("Benachrichtigung nicht gefunden.");
+            return Result.NotFound("Benachrichtigung nicht gefunden.");
 
         notification.IsRead = true;
         await db.SaveChangesAsync(ct);

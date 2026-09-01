@@ -14,7 +14,7 @@ public class RegulationImportService(IApplicationDbContext db, IRegulationPdfPar
     {
         var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.Id == request.RegulationId, ct);
         if (regulation is null)
-            return Result.Failure("Prüfungsordnung nicht gefunden.");
+            return Result.NotFound("Prüfungsordnung nicht gefunden.");
 
         var currentVersion = await db.RegulationVersions
             .Where(v => v.RegulationId == regulation.Id)

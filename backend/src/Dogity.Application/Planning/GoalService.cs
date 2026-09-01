@@ -20,7 +20,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     public async Task<Result<IReadOnlyList<GoalDto>>> GetByDogAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
         if (!await db.HasDogAccessAsync(userId, dogId, ct))
-            return Result<IReadOnlyList<GoalDto>>.Failure("Hund nicht gefunden.");
+            return Result<IReadOnlyList<GoalDto>>.NotFound("Hund nicht gefunden.");
 
         var goals = await LoadGoalsQuery()
             .Where(g => g.DogId == dogId)
@@ -38,7 +38,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     {
         var goal = await GetOwnedGoalAsync(userId, goalId, ct, track: false);
         if (goal is null)
-            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
 
         var sportNames = await GetSportNamesAsync([goal], ct);
         var regulationNames = await GetRegulationNamesAsync([goal], ct);
@@ -53,11 +53,11 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             return Result<GoalDto>.Failure("Zieldatum muss in der Zukunft liegen.");
 
         if (!await db.HasDogAccessAsync(userId, request.DogId, ct))
-            return Result<GoalDto>.Failure("Hund nicht gefunden.");
+            return Result<GoalDto>.NotFound("Hund nicht gefunden.");
 
         var sportExists = await db.Sports.AnyAsync(s => s.Id == request.SportId, ct);
         if (!sportExists)
-            return Result<GoalDto>.Failure("Sportart nicht gefunden.");
+            return Result<GoalDto>.NotFound("Sportart nicht gefunden.");
 
         // Individueller Plan schließt eine Prüfungsordnung aus - Nutzer legt
         // die Wochenübungen ohnehin manuell fest.
@@ -108,7 +108,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     {
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
         if (goal is null)
-            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
 
         goal.Status = status;
         goal.UpdatedAt = DateTimeOffset.UtcNow;
@@ -129,7 +129,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
         if (goal is null)
-            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
 
         goal.WeeklyExerciseCount = weeklyExerciseCount;
         goal.TrainingDaysPerWeek = trainingDaysPerWeek;
@@ -148,7 +148,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
         if (goal is null)
-            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
         if (goal.TrainingPlan is null)
             return Result<GoalDto>.Failure("Dieses Ziel hat keinen Trainingsplan.");
 
@@ -184,7 +184,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     {
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
         if (goal is null)
-            return Result.Failure("Ziel nicht gefunden.");
+            return Result.NotFound("Ziel nicht gefunden.");
 
         goal.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -205,7 +205,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
         if (goal is null)
-            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
         if (goal.TrainingPlan is null)
             return Result<GoalDto>.Failure("Dieses Ziel hat keinen Trainingsplan.");
 
@@ -256,11 +256,11 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
         if (goal is null)
-            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
 
         var item = goal.TrainingPlan?.Items.FirstOrDefault(i => i.Id == itemId);
         if (item is null)
-            return Result<GoalDto>.Failure("Plan-Ziel nicht gefunden.");
+            return Result<GoalDto>.NotFound("Plan-Ziel nicht gefunden.");
         if (item.IsRestWeek)
             return Result<GoalDto>.Failure("Eine Pausenwoche kann nicht bearbeitet werden.");
 
@@ -290,11 +290,11 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     {
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
         if (goal is null)
-            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
 
         var item = goal.TrainingPlan?.Items.FirstOrDefault(i => i.Id == itemId);
         if (item is null)
-            return Result<GoalDto>.Failure("Plan-Ziel nicht gefunden.");
+            return Result<GoalDto>.NotFound("Plan-Ziel nicht gefunden.");
 
         item.DeletedAt = DateTimeOffset.UtcNow;
         // Auch das Streichen ist eine Planentscheidung - sonst stellte der
@@ -312,7 +312,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
         if (goal is null)
-            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
         if (goal.TrainingPlan is null)
             return Result<GoalDto>.Failure("Dieses Ziel hat keinen Trainingsplan.");
         // Individuelle Pläne legt der Nutzer bewusst komplett manuell an - hier
@@ -328,7 +328,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     {
         var goal = await GetOwnedGoalAsync(userId, goalId, ct, track: false);
         if (goal is null)
-            return Result<IReadOnlyList<WeightableExerciseDto>>.Failure("Ziel nicht gefunden.");
+            return Result<IReadOnlyList<WeightableExerciseDto>>.NotFound("Ziel nicht gefunden.");
 
         // Individuelle Ziele haben keinen adaptiven Plan - nichts zu gewichten.
         if (goal.IsCustom)
@@ -371,7 +371,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         var goal = await GetOwnedGoalAsync(userId, goalId, ct, track: false);
         if (goal is null)
-            return Result.Failure("Ziel nicht gefunden.");
+            return Result.NotFound("Ziel nicht gefunden.");
         if (goal.IsCustom)
             return Result.Failure("Ein individueller Plan wird nicht adaptiv generiert - eine Gewichtung hätte keine Wirkung.");
 
@@ -414,7 +414,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     {
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
         if (goal is null)
-            return Result<GoalDto>.Failure("Ziel nicht gefunden.");
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
 
         // Einschalten heißt: der Generator darf die freien Plätze wieder
         // wöchentlich neu befüllen. Bereits gesetzte Einträge bleiben trotzdem

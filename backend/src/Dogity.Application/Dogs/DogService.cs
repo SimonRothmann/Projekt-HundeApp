@@ -72,10 +72,10 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
     public async Task<Result<DogDto>> GetByIdAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
         if (!await db.HasDogAccessAsync(userId, dogId, ct))
-            return Result<DogDto>.Failure("Hund nicht gefunden.");
+            return Result<DogDto>.NotFound("Hund nicht gefunden.");
 
         var dog = await db.Dogs.AsNoTracking().FirstOrDefaultAsync(d => d.Id == dogId, ct);
-        if (dog is null) return Result<DogDto>.Failure("Hund nicht gefunden.");
+        if (dog is null) return Result<DogDto>.NotFound("Hund nicht gefunden.");
 
         return Result<DogDto>.Success(ToDto(dog, await HasImageAsync(dogId, ct)));
     }
@@ -111,7 +111,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
 
         var dog = await GetOwnedDogAsync(userId, dogId, ct);
         if (dog is null)
-            return Result<DogDto>.Failure("Hund nicht gefunden.");
+            return Result<DogDto>.NotFound("Hund nicht gefunden.");
 
         dog.Name = request.Name.Trim();
         dog.Breed = request.Breed;
@@ -129,7 +129,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
     {
         var dog = await GetOwnedDogAsync(userId, dogId, ct);
         if (dog is null)
-            return Result.Failure("Hund nicht gefunden.");
+            return Result.NotFound("Hund nicht gefunden.");
 
         // Archivieren blendet den Hund nur aus (kein Soft-Delete) - die Historie
         // bleibt vollständig erhalten und die Aktion ist jederzeit reversibel.
@@ -143,7 +143,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
     {
         var dog = await GetOwnedDogAsync(userId, dogId, ct);
         if (dog is null)
-            return Result.Failure("Hund nicht gefunden.");
+            return Result.NotFound("Hund nicht gefunden.");
 
         dog.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -153,7 +153,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
     public async Task<Result<IReadOnlyList<DogOwnerDto>>> GetOwnersAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
         if (!await db.HasDogAccessAsync(userId, dogId, ct))
-            return Result<IReadOnlyList<DogOwnerDto>>.Failure("Hund nicht gefunden.");
+            return Result<IReadOnlyList<DogOwnerDto>>.NotFound("Hund nicht gefunden.");
 
         var ownerRows = await db.DogOwners
             .Where(o => o.DogId == dogId)
@@ -174,7 +174,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
     public async Task<Result> AddOwnerAsync(Guid userId, Guid dogId, AddDogOwnerRequest request, CancellationToken ct = default)
     {
         if (!await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId && o.Role == DogOwnerRole.Owner, ct))
-            return Result.Failure("Hund nicht gefunden oder keine Berechtigung.");
+            return Result.NotFound("Hund nicht gefunden oder keine Berechtigung.");
 
         var target = await userLookup.FindByEmailAsync(request.Email, ct);
         if (target is null)
@@ -183,11 +183,23 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
         if (target.UserId == userId)
             return Result.Failure("Du bist bereits Besitzer dieses Hundes.");
 
-        var alreadyOwner = await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == target.UserId, ct);
-        if (alreadyOwner)
+        // Auch entfernte Zeilen ansehen (Soft-Delete + eindeutiger Index):
+        // Ein entfernter Mitbesitzer ließ sich sonst nie wieder hinzufügen.
+        var (existing, isActive) = await db.DogOwners
+            .FindIncludingRemovedAsync(o => o.DogId == dogId && o.UserId == target.UserId, ct);
+        if (isActive)
             return Result.Failure("Dieser Benutzer ist bereits Mitbesitzer dieses Hundes.");
 
-        db.DogOwners.Add(new DogOwner { DogId = dogId, UserId = target.UserId, Role = DogOwnerRole.Owner });
+        if (existing is not null)
+        {
+            existing.DeletedAt = null;
+            existing.Role = DogOwnerRole.Owner;
+        }
+        else
+        {
+            db.DogOwners.Add(new DogOwner { DogId = dogId, UserId = target.UserId, Role = DogOwnerRole.Owner });
+        }
+
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
@@ -195,7 +207,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
     public async Task<Result> RemoveOwnerAsync(Guid userId, Guid dogId, Guid targetUserId, CancellationToken ct = default)
     {
         if (!await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId && o.Role == DogOwnerRole.Owner, ct))
-            return Result.Failure("Hund nicht gefunden oder keine Berechtigung.");
+            return Result.NotFound("Hund nicht gefunden oder keine Berechtigung.");
 
         var totalOwners = await db.DogOwners.CountAsync(o => o.DogId == dogId && o.Role == DogOwnerRole.Owner, ct);
         if (totalOwners <= 1)
@@ -203,7 +215,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
 
         var ownerRow = await db.DogOwners.FirstOrDefaultAsync(o => o.DogId == dogId && o.UserId == targetUserId, ct);
         if (ownerRow is null)
-            return Result.Failure("Besitzer nicht gefunden.");
+            return Result.NotFound("Besitzer nicht gefunden.");
 
         ownerRow.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -213,7 +225,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
     public async Task<Result<DogImageDto>> GetImageAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
         if (!await db.HasDogAccessAsync(userId, dogId, ct))
-            return Result<DogImageDto>.Failure("Hund nicht gefunden.");
+            return Result<DogImageDto>.NotFound("Hund nicht gefunden.");
 
         var image = await db.DogImages.AsNoTracking().FirstOrDefaultAsync(i => i.DogId == dogId, ct);
         return image is null
@@ -227,7 +239,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
         // Bild ändern darf nur, wer den Hund besitzt - ein zugewiesener Trainer
         // sieht ihn zwar, verwaltet ihn aber nicht (wie bei UpdateAsync).
         var dog = await GetOwnedDogAsync(userId, dogId, ct);
-        if (dog is null) return Result.Failure("Hund nicht gefunden.");
+        if (dog is null) return Result.NotFound("Hund nicht gefunden.");
 
         if (!TryParseDataUrl(dataUrl, out var contentType, out var bytes, out var error))
             return Result.Failure(error!);
@@ -251,7 +263,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
     public async Task<Result> DeleteImageAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
         var dog = await GetOwnedDogAsync(userId, dogId, ct);
-        if (dog is null) return Result.Failure("Hund nicht gefunden.");
+        if (dog is null) return Result.NotFound("Hund nicht gefunden.");
 
         var image = await db.DogImages.FirstOrDefaultAsync(i => i.DogId == dogId, ct);
         // Kein Bild da? Dann ist das Ziel bereits erreicht - kein Fehler.

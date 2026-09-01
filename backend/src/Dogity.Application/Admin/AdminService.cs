@@ -40,7 +40,7 @@ public class AdminService(IApplicationDbContext db, IUserLookupService userLooku
     public async Task<Result> LockUserAsync(Guid userId, CancellationToken ct = default)
     {
         var ok = await userLookup.LockUserAsync(userId, ct);
-        if (!ok) return Result.Failure("Benutzer nicht gefunden.");
+        if (!ok) return Result.NotFound("Benutzer nicht gefunden.");
         // Refresh-Tokens widerrufen, damit die Sperre sofort greift - sonst
         // könnte der Nutzer bis zum Ablauf seines Access-Tokens (60 min)
         // weiter neue Access-Tokens nachladen.
@@ -51,13 +51,13 @@ public class AdminService(IApplicationDbContext db, IUserLookupService userLooku
     public async Task<Result> UnlockUserAsync(Guid userId, CancellationToken ct = default)
     {
         var ok = await userLookup.UnlockUserAsync(userId, ct);
-        return ok ? Result.Success() : Result.Failure("Benutzer nicht gefunden.");
+        return ok ? Result.Success() : Result.NotFound("Benutzer nicht gefunden.");
     }
 
     public async Task<Result> DeleteUserAsync(Guid userId, CancellationToken ct = default)
     {
         var ok = await userLookup.DeleteUserAsync(userId, ct);
-        if (!ok) return Result.Failure("Benutzer nicht gefunden oder Löschung fehlgeschlagen.");
+        if (!ok) return Result.NotFound("Benutzer nicht gefunden oder Löschung fehlgeschlagen.");
         await refreshTokens.RevokeAllForUserAsync(userId, ct);
         return Result.Success();
     }
@@ -75,7 +75,7 @@ public class AdminService(IApplicationDbContext db, IUserLookupService userLooku
     {
         var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.Id == regulationId, ct);
         if (regulation is null)
-            return Result.Failure("Prüfungsordnung nicht gefunden.");
+            return Result.NotFound("Prüfungsordnung nicht gefunden.");
 
         regulation.SourceUrl = request.SourceUrl;
         regulation.LatestKnownVersionLabel = request.LatestKnownVersionLabel;

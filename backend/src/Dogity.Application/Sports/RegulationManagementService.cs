@@ -14,7 +14,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
 
         var sport = await db.Sports.FirstOrDefaultAsync(s => s.Id == sportId, ct);
         if (sport is null)
-            return Result<SportDto>.Failure("Sportart nicht gefunden.");
+            return Result<SportDto>.NotFound("Sportart nicht gefunden.");
 
         var authError = await AuthorizeAsync(actingUserId, isAdmin, sport.ClubId, ct);
         if (authError is not null)
@@ -34,7 +34,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
 
         var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.Id == regulationId, ct);
         if (regulation is null)
-            return Result<RegulationDto>.Failure("Prüfungsordnung nicht gefunden.");
+            return Result<RegulationDto>.NotFound("Prüfungsordnung nicht gefunden.");
 
         var authError = await AuthorizeForSportAsync(actingUserId, isAdmin, regulation.SportId, ct);
         if (authError is not null)
@@ -62,7 +62,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
 
         var exercise = await db.Exercises.FirstOrDefaultAsync(e => e.Id == request.ExerciseId, ct);
         if (exercise is null)
-            return Result<RegulationExerciseDto>.Failure("Übung nicht gefunden.");
+            return Result<RegulationExerciseDto>.NotFound("Übung nicht gefunden.");
 
         // Auch entfernte Zeilen ansehen - sonst scheitert das erneute
         // Hinzufügen einer zuvor entfernten Übung am eindeutigen Index
