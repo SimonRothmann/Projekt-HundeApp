@@ -722,7 +722,8 @@ eingeschätzt ("gewusst" / "nicht gewusst").
 ## quiz_options
 
 
-Eine Antwortmöglichkeit einer Auswahlfrage.
+Eine Zeile unterhalb einer Frage - je nach `kind` eine Antwortmöglichkeit, ein
+zuzuordnender Begriff oder die Beschriftung eines Zuordnungsschlüssels.
 
 
 Felder:
@@ -731,11 +732,27 @@ Felder:
 
 question_id
 
+kind (Answer/Term/Label)
+
 text
 
-is_correct
+is_correct (nur bei Answer)
+
+match_key (bei Term der richtige Schlüssel, bei Label der benannte)
 
 sort_order
+
+
+Bewusst eine Tabelle statt dreier: die Zeilen unterscheiden sich nur in ihrer
+Rolle, und eine Frage lädt sie ohnehin immer zusammen. `sort_order` ist der
+Abgleichschlüssel des Seeders innerhalb einer Frage; Begriffe und
+Beschriftungen liegen deshalb bei 100+ bzw. 200+, damit sie nicht mit den
+Antwortzeilen kollidieren.
+
+
+Label-Zeilen fehlen, wenn die Schlüssel aus einer Abbildung kommen (A2: die
+Ziffern 1-5 im Bild). Die Oberfläche leitet die wählbaren Schlüssel dann aus
+den Begriffen ab - das verrät nichts, weil die Zuordnung eineindeutig ist.
 
 
 ---

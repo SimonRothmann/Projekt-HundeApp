@@ -31,13 +31,16 @@ public interface ISachkundeService
         Guid userId, string catalogCode, string mode, int limit, CancellationToken ct = default);
 
     /// <summary>
-    /// Nimmt eine Antwort entgegen und schreibt den Lernstand fort. Bei
-    /// Auswahlfragen entscheidet der Server über richtig/falsch; bei
-    /// Zuordnungs- und Freitextfragen zählt die Selbsteinschätzung.
+    /// Nimmt eine Antwort entgegen und schreibt den Lernstand fort.
+    ///
+    /// Über richtig/falsch entscheidet der Server, wo er es kann: bei
+    /// Auswahlfragen anhand der Antwortmöglichkeiten, bei Zuordnungen anhand
+    /// der Schlüssel. Nur die offenen Freitextfragen werden selbst
+    /// eingeschätzt - die kann niemand automatisch prüfen.
     /// </summary>
     Task<Result<QuizAnswerResultDto>> SubmitAnswerAsync(
         Guid userId, Guid questionId, IReadOnlyList<Guid>? selectedOptionIds, bool? selfAssessedCorrect,
-        CancellationToken ct = default);
+        IReadOnlyDictionary<Guid, string>? assignments, CancellationToken ct = default);
 
     /// <summary>Lernstand über einen Katalog.</summary>
     Task<Result<QuizProgressDto>> GetProgressAsync(Guid userId, string catalogCode, CancellationToken ct = default);

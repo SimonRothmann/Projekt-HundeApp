@@ -46,7 +46,8 @@ public class SachkundeController(ISachkundeService sachkunde) : ApiControllerBas
     public async Task<ActionResult<QuizAnswerResultDto>> Answer(
         Guid questionId, AnswerQuestionRequest request, CancellationToken ct) =>
         FromResult(await sachkunde.SubmitAnswerAsync(
-            CurrentUserId, questionId, request.SelectedOptionIds, request.SelfAssessedCorrect, ct));
+            CurrentUserId, questionId, request.SelectedOptionIds, request.SelfAssessedCorrect,
+            request.Assignments, ct));
 
     /// <summary>Von vorne anfangen.</summary>
     [HttpPost("catalogs/{code}/reset")]
@@ -56,6 +57,12 @@ public class SachkundeController(ISachkundeService sachkunde) : ApiControllerBas
 
 /// <param name="SelectedOptionIds">Angekreuzte Antworten bei Auswahlfragen.</param>
 /// <param name="SelfAssessedCorrect">
-/// Selbsteinschätzung bei Zuordnungs- und Freitextfragen ("gewusst" / "nicht gewusst").
+/// Selbsteinschätzung bei Freitextfragen ("gewusst" / "nicht gewusst").
 /// </param>
-public record AnswerQuestionRequest(IReadOnlyList<Guid>? SelectedOptionIds, bool? SelfAssessedCorrect);
+/// <param name="Assignments">
+/// Bei Zuordnungsaufgaben: je Begriff der gewählte Schlüssel (Begriffs-Id → Schlüssel).
+/// </param>
+public record AnswerQuestionRequest(
+    IReadOnlyList<Guid>? SelectedOptionIds,
+    bool? SelfAssessedCorrect,
+    IReadOnlyDictionary<Guid, string>? Assignments);

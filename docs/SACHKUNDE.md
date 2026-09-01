@@ -57,19 +57,40 @@ Sechs sind Sonderfälle und als solche markiert, nicht geraten:
 - **Zuordnung** (A2 Körperhaltungen, A18 Rassemerkmale, A23 Talente)
 - **Freitext mit Musterlösung** (D5 Sinne, D6 Krankheiten, D8 Temperatur messen)
 
-Beide werden als Karte gelernt: nachdenken, Lösung aufdecken, selbst
-einschätzen. Das ist ehrlicher als eine erfundene Auswahlliste — und genau so
-arbeitet man mit diesen Fragen auch auf Papier. A2 zeigt fünf Körperhaltungen
-als Zeichnung; ohne das Bild ist die Frage sinnlos, deshalb wird es aus dem PDF
+**Zuordnungen werden zugeordnet**, nicht selbst eingeschätzt: je Begriff eine
+Zeile mit den wählbaren Schlüsseln, geprüft auf Knopfdruck und nur ganz — eine
+Zuordnung stimmt, wenn alle Begriffe stimmen. Bei A2 sind die Schlüssel die
+Ziffern aus der Abbildung, bei A18/A23 die Buchstaben mit ihrer Beschriftung
+(„A langhaarig", „B extrem hochbeinig", …). A2 zeigt fünf Körperhaltungen als
+Zeichnung; ohne das Bild ist die Frage sinnlos, deshalb wird es aus dem PDF
 mitgezogen.
 
-Zwei Fallen, die das Skript kennt und deshalb prüft:
+> Der erste Anlauf hat diese drei Fragen als Karte zum Selbsteinschätzen
+> gebaut — Lösung aufdecken, „gewusst"/„nicht gewusst". Das war falsch: die
+> Fragestellung lautet „Ordnen Sie den aufgelisteten Stimmungen die abgebildeten
+> Körperhaltungen zu", und **aufgelistet war nichts**. Man konnte die Aufgabe
+> gar nicht versuchen, nur die Lösung ansehen. Die Struktur lag beim Import
+> schon vor und wurde zu einem Lösungssatz zusammengefaltet, statt sie zu einer
+> Aufgabe zu machen.
+
+Die wählbaren Schlüssel leitet die Oberfläche aus den Begriffen ab, wenn keine
+Beschriftungen im Katalog stehen (A2). Das verrät nichts: die Zuordnung ist
+eineindeutig, jeder Schlüssel kommt genau einmal vor — gesucht ist die
+Reihenfolge, nicht die Menge.
+
+**Freitextfragen** (D5, D6, D8) bleiben Selbsteinschätzung: nachdenken, Lösung
+aufdecken, „gewusst"/„nicht gewusst". Die kann niemand automatisch prüfen.
+
+Drei Fallen, die das Skript kennt und deshalb prüft:
 
 - Die Spaltenbreite im PDF wird nicht durchgehalten. „c) Aufforderung zum Spiel
   3" steht mit nur EINEM Leerzeichen da — ein zu strenges Muster übersieht die
   Zeile, und die Lösung ist still unvollständig. Ist eine Zuordnung
   durchbuchstabiert, prüft das Skript die Folge auf Lücken und bricht ab.
 - Eine Fragennummer steht als `C. 3:` statt `C 3:` im Original.
+- Eine Zuordnung mit weniger als zwei Begriffen oder mit einem doppelt
+  vergebenen Schlüssel ist nicht lösbar — das Skript bricht ab, statt eine
+  kaputte Aufgabe zu seeden.
 
 ## Lernen
 
@@ -112,10 +133,14 @@ Die Seiten sind serverseitig gerendert und stehen in der Sitemap — dieselbe
 | `POST /api/sachkunde/questions/{id}/answer` | Antwort abgeben |
 | `POST /api/sachkunde/catalogs/{code}/reset` | von vorne anfangen |
 
-Über richtig/falsch entscheidet bei Auswahlfragen der **Server**, nicht der
-Client: die Auswahl muss die richtigen Antworten genau treffen, eine zusätzlich
-angekreuzte falsche ist ein Fehler und nicht „fast richtig". Nur Zuordnung und
-Freitext werden selbst eingeschätzt — dort kann niemand automatisch prüfen.
+Über richtig/falsch entscheidet der **Server**, wo er es kann: bei
+Auswahlfragen muss die Auswahl die richtigen Antworten genau treffen (eine
+zusätzlich angekreuzte falsche ist ein Fehler, nicht „fast richtig"), bei
+Zuordnungen müssen alle Schlüssel stimmen. Nur die offenen Freitextfragen
+werden selbst eingeschätzt.
+
+Die Antwort trägt je nach Fragetyp `selectedOptionIds`, `assignments`
+(Begriffs-Id → Schlüssel) oder `selfAssessedCorrect`.
 
 ## Offen
 

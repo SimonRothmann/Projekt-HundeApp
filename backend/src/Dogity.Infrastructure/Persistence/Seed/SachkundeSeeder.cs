@@ -146,22 +146,30 @@ public static class SachkundeSeeder
         }
     }
 
+    /// <summary>Reihenfolge-Versatz, damit Begriffe und Beschriftungen einer
+    /// Zuordnung nicht mit den Antwortzeilen kollidieren - die Reihenfolge ist
+    /// der Abgleichschlüssel innerhalb einer Frage.</summary>
+    private const int TermOffset = 100;
+    private const int LabelOffset = 200;
+
     /// <summary>
-    /// Gleicht die Antwortmöglichkeiten über die Reihenfolge ab und ändert sie
-    /// an Ort und Stelle. Löschen-und-neu-Anlegen wäre einfacher, würde aber
-    /// bei jedem Reimport neue Ids erzeugen - unnötige Schreiblast und
-    /// unbrauchbare Verläufe.
+    /// Gleicht die Zeilen unter der Frage über die Reihenfolge ab und ändert
+    /// sie an Ort und Stelle: Antwortmöglichkeiten bei Auswahlfragen, Begriffe
+    /// und Beschriftungen bei Zuordnungen. Löschen-und-neu-Anlegen wäre
+    /// einfacher, würde aber bei jedem Reimport neue Ids erzeugen - unnötige
+    /// Schreiblast und unbrauchbare Verläufe.
     /// </summary>
     private static void SeedAntworten(ApplicationDbContext db, QuizQuestion frage, SeedFrage daten)
     {
         var bestand = frage.Options.OrderBy(o => o.SortOrder).ToList();
+        var behalten = new HashSet<int>();
 
-        foreach (var antwort in daten.Antworten)
+        QuizOption Zeile(int reihenfolge, QuizOptionKind art, string text, bool richtig, string? schluessel)
         {
-            var option = bestand.FirstOrDefault(o => o.SortOrder == antwort.Reihenfolge);
+            var option = bestand.FirstOrDefault(o => o.SortOrder == reihenfolge);
             if (option is null)
             {
-                option = new QuizOption { Question = frage, SortOrder = antwort.Reihenfolge };
+                option = new QuizOption { Question = frage, SortOrder = reihenfolge };
                 frage.Options.Add(option);
                 db.QuizOptions.Add(option);
             }
@@ -171,11 +179,27 @@ public static class SachkundeSeeder
             }
 
             option.DeletedAt = null;
-            option.Text = antwort.Text;
-            option.IsCorrect = antwort.Richtig;
+            option.Kind = art;
+            option.Text = text;
+            option.IsCorrect = richtig;
+            option.MatchKey = schluessel;
+            behalten.Add(reihenfolge);
+            return option;
         }
 
-        var behalten = daten.Antworten.Select(a => a.Reihenfolge).ToHashSet();
+        foreach (var antwort in daten.Antworten)
+            Zeile(antwort.Reihenfolge, QuizOptionKind.Answer, antwort.Text, antwort.Richtig, null);
+
+        if (daten.Zuordnung is { } zuordnung)
+        {
+            foreach (var begriff in zuordnung.Begriffe)
+                Zeile(TermOffset + begriff.Reihenfolge, QuizOptionKind.Term, begriff.Text, false, begriff.Schluessel);
+
+            foreach (var beschriftung in zuordnung.Schluessel)
+                Zeile(LabelOffset + beschriftung.Reihenfolge, QuizOptionKind.Label,
+                      beschriftung.Text, false, beschriftung.Schluessel);
+        }
+
         foreach (var ueberzaehlig in bestand.Where(o => !behalten.Contains(o.SortOrder) && o.DeletedAt is null))
             ueberzaehlig.DeletedAt = DateTimeOffset.UtcNow;
     }
@@ -204,7 +228,22 @@ public static class SachkundeSeeder
         [property: JsonPropertyName("text")] string Text,
         [property: JsonPropertyName("bild")] string? Bild,
         [property: JsonPropertyName("musterloesung")] string? Musterloesung,
-        [property: JsonPropertyName("antworten")] List<SeedAntwort> Antworten);
+        [property: JsonPropertyName("antworten")] List<SeedAntwort> Antworten,
+        [property: JsonPropertyName("zuordnung")] SeedZuordnung? Zuordnung);
+
+    private sealed record SeedZuordnung(
+        [property: JsonPropertyName("begriffe")] List<SeedBegriff> Begriffe,
+        [property: JsonPropertyName("schluessel")] List<SeedSchluessel> Schluessel);
+
+    private sealed record SeedBegriff(
+        [property: JsonPropertyName("text")] string Text,
+        [property: JsonPropertyName("schluessel")] string Schluessel,
+        [property: JsonPropertyName("reihenfolge")] int Reihenfolge);
+
+    private sealed record SeedSchluessel(
+        [property: JsonPropertyName("schluessel")] string Schluessel,
+        [property: JsonPropertyName("text")] string Text,
+        [property: JsonPropertyName("reihenfolge")] int Reihenfolge);
 
     private sealed record SeedAntwort(
         [property: JsonPropertyName("text")] string Text,

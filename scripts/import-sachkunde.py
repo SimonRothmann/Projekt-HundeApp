@@ -201,6 +201,31 @@ def art(frage: dict) -> str:
     return "SingleChoice"
 
 
+def zuordnung_aufbereiten(frage: dict) -> dict:
+    """Die Zuordnung als Aufgabe, nicht als Lösungssatz.
+
+    Der erste Anlauf hat aus den Paaren nur einen Text gebaut ("Boxer -> E ...").
+    Damit stand in der App eine Frage, die zum Zuordnen auffordert, ohne dass
+    etwas zum Zuordnen da war - man konnte nur die Lösung aufdecken. Hier
+    bleiben Begriffe und Beschriftungen getrennt erhalten.
+
+    Die Auswahlmöglichkeiten leitet die Oberfläche aus den Schlüsseln ab. Das
+    verrät nichts: die Zuordnung ist eineindeutig, jeder Schlüssel kommt genau
+    einmal vor - gesucht ist die Reihenfolge, nicht die Menge.
+    """
+    beschriftung = {o["schluessel"]: o["text"] for o in frage["optionen"]}
+    return {
+        "begriffe": [
+            {"text": p["begriff"], "schluessel": p["loesung"], "reihenfolge": i + 1}
+            for i, p in enumerate(frage["paare"])
+        ],
+        "schluessel": [
+            {"schluessel": s, "text": beschriftung[s], "reihenfolge": i + 1}
+            for i, s in enumerate(sorted(beschriftung))
+        ],
+    }
+
+
 def musterloesung_aus_paaren(frage: dict) -> str:
     # Ist die Zuordnung durchbuchstabiert, muss die Folge lückenlos sein. Genau
     # hier fiel eine Zeile durch: "c) Aufforderung zum Spiel 3" steht mit nur
@@ -227,9 +252,11 @@ def aufbereiten(frage: dict) -> dict:
         "bild": frage["bild"],
         "musterloesung": None,
         "antworten": [],
+        "zuordnung": None,
     }
     if kind == "Assignment":
         ergebnis["musterloesung"] = musterloesung_aus_paaren(frage)
+        ergebnis["zuordnung"] = zuordnung_aufbereiten(frage)
     elif kind == "FreeText":
         ergebnis["musterloesung"] = re.sub(r"\s+", " ", frage["musterloesung"]).strip()
     else:
@@ -253,6 +280,13 @@ def pruefen(name: str, fragen: list[dict]) -> None:
                 fehler.append(f"{f['nummer']}: keine richtige Antwort markiert")
         elif not f["musterloesung"]:
             fehler.append(f"{f['nummer']}: {f['art']} ohne Musterlösung")
+        if f["art"] == "Assignment":
+            begriffe = (f["zuordnung"] or {}).get("begriffe") or []
+            if len(begriffe) < 2:
+                fehler.append(f"{f['nummer']}: Zuordnung mit weniger als zwei Begriffen")
+            schluessel = [b["schluessel"] for b in begriffe]
+            if len(set(schluessel)) != len(schluessel):
+                fehler.append(f"{f['nummer']}: Zuordnung nutzt einen Schlüssel doppelt")
     nummern = [f["nummer"] for f in fragen]
     for doppelt, anzahl in Counter(nummern).items():
         if anzahl > 1:

@@ -31,19 +31,32 @@ public record QuizQuestionDto(
     string? ImageName,
     string? SampleSolution,
     IReadOnlyList<QuizOptionDto> Options,
+    IReadOnlyList<QuizTermDto> Terms,
+    IReadOnlyList<QuizKeyDto> Keys,
     QuizQuestionStateDto? State);
 
 public record QuizOptionDto(Guid Id, string Text, bool IsCorrect);
+
+/// <summary>Ein zuzuordnender Begriff einer Zuordnungsaufgabe.</summary>
+public record QuizTermDto(Guid Id, string Text, string SolutionKey);
+
+/// <summary>
+/// Ein wählbarer Schlüssel einer Zuordnungsaufgabe. <see cref="Label"/> ist
+/// leer, wenn die Schlüssel aus einer Abbildung stammen (die Ziffern im Bild).
+/// </summary>
+public record QuizKeyDto(string Key, string? Label);
 
 /// <summary>Der Lernstand des Nutzers zu einer Frage; null für anonyme Aufrufer.</summary>
 public record QuizQuestionStateDto(int Box, bool LastWasCorrect, int CorrectCount, int WrongCount, DateTimeOffset? DueAt);
 
 /// <summary>Antwort des Servers auf eine beantwortete Frage.</summary>
+/// <param name="TermResults">Bei Zuordnungen: welche Begriffe richtig zugeordnet waren.</param>
 public record QuizAnswerResultDto(
     bool Correct,
     int Box,
     DateTimeOffset? DueAt,
-    IReadOnlyList<Guid> CorrectOptionIds);
+    IReadOnlyList<Guid> CorrectOptionIds,
+    IReadOnlyDictionary<Guid, bool> TermResults);
 
 /// <summary>Lernstand über einen ganzen Katalog.</summary>
 public record QuizProgressDto(

@@ -1,4 +1,5 @@
 using Dogity.Application.Learning;
+using Dogity.Application.Tests.TestSupport;
 using Dogity.Domain.Learning;
 
 namespace Dogity.Application.Tests.Learning;
@@ -95,5 +96,118 @@ public class SachkundeServiceTests
         Assert.Equal(1, m.Box);
         Assert.Equal(4, m.CorrectCount);
         Assert.Equal(1, m.WrongCount);
+    }
+
+    // ---- Zuordnungsaufgaben ----
+    //
+    // Diese Fragen waren zunächst als Karte zum Selbsteinschätzen gebaut. Die
+    // Fragestellung lautet aber "Ordnen Sie den aufgelisteten Rassen die
+    // Merkmale zu" - und aufgelistet war nichts, die Aufgabe ließ sich gar
+    // nicht versuchen. Jetzt ordnet man wirklich zu, und der Server prüft.
+
+    private static (SachkundeService Service, QuizQuestion Frage, List<QuizOption> Begriffe) MitZuordnung()
+    {
+        var db = InMemoryDbContext.Create();
+        var katalog = new QuizCatalog { Code = "TEST", Name = "Test", Publisher = "Test" };
+        var frage = new QuizQuestion
+        {
+            CatalogId = katalog.Id,
+            Catalog = katalog,
+            Number = "A18",
+            Section = "A",
+            Text = "Ordnen Sie zu:",
+            Kind = QuizQuestionKind.Assignment,
+        };
+
+        var begriffe = new List<QuizOption>
+        {
+            new() { Question = frage, Kind = QuizOptionKind.Term, Text = "Boxer", MatchKey = "E", SortOrder = 101 },
+            new() { Question = frage, Kind = QuizOptionKind.Term, Text = "Basset", MatchKey = "C", SortOrder = 102 },
+            new() { Question = frage, Kind = QuizOptionKind.Term, Text = "Pudel", MatchKey = "D", SortOrder = 103 },
+        };
+        foreach (var b in begriffe) frage.Options.Add(b);
+
+        db.QuizCatalogs.Add(katalog);
+        db.QuizQuestions.Add(frage);
+        db.QuizOptions.AddRange(begriffe);
+        db.SaveChanges();
+
+        return (new SachkundeService(db, TimeProvider.System), frage, begriffe);
+    }
+
+    [Fact]
+    public async Task Zuordnung_AlleRichtig_IstRichtig()
+    {
+        var (service, frage, begriffe) = MitZuordnung();
+        var belegung = begriffe.ToDictionary(b => b.Id, b => b.MatchKey!);
+
+        var ergebnis = await service.SubmitAnswerAsync(Guid.NewGuid(), frage.Id, null, null, belegung);
+
+        Assert.True(ergebnis.Succeeded);
+        Assert.True(ergebnis.Value!.Correct);
+        Assert.All(ergebnis.Value.TermResults.Values, Assert.True);
+        Assert.Equal(2, ergebnis.Value.Box);
+    }
+
+    [Fact]
+    public async Task Zuordnung_EinBegriffFalsch_IstGanzFalsch()
+    {
+        var (service, frage, begriffe) = MitZuordnung();
+        var belegung = begriffe.ToDictionary(b => b.Id, b => b.MatchKey!);
+        belegung[begriffe[0].Id] = "A"; // Boxer falsch
+
+        var ergebnis = await service.SubmitAnswerAsync(Guid.NewGuid(), frage.Id, null, null, belegung);
+
+        // Eine Zuordnung ist ganz richtig oder gar nicht - "zwei von drei" gibt
+        // es beim Zuordnen nicht.
+        Assert.False(ergebnis.Value!.Correct);
+        Assert.False(ergebnis.Value.TermResults[begriffe[0].Id]);
+        Assert.True(ergebnis.Value.TermResults[begriffe[1].Id]);
+        Assert.Equal(1, ergebnis.Value.Box);
+    }
+
+    [Fact]
+    public async Task Zuordnung_GrossKleinschreibungEgal()
+    {
+        var (service, frage, begriffe) = MitZuordnung();
+        var belegung = begriffe.ToDictionary(b => b.Id, b => b.MatchKey!.ToLowerInvariant());
+
+        var ergebnis = await service.SubmitAnswerAsync(Guid.NewGuid(), frage.Id, null, null, belegung);
+
+        Assert.True(ergebnis.Value!.Correct);
+    }
+
+    [Fact]
+    public async Task Zuordnung_Unvollstaendig_WirdAbgewiesen()
+    {
+        var (service, frage, begriffe) = MitZuordnung();
+        var belegung = new Dictionary<Guid, string> { [begriffe[0].Id] = "E" };
+
+        var ergebnis = await service.SubmitAnswerAsync(Guid.NewGuid(), frage.Id, null, null, belegung);
+
+        Assert.False(ergebnis.Succeeded);
+        Assert.False(ergebnis.IsNotFound);
+    }
+
+    [Fact]
+    public async Task Zuordnung_FremderBegriff_WirdAbgewiesen()
+    {
+        var (service, frage, begriffe) = MitZuordnung();
+        var belegung = begriffe.ToDictionary(b => b.Id, b => b.MatchKey!);
+        belegung[Guid.NewGuid()] = "A";
+
+        var ergebnis = await service.SubmitAnswerAsync(Guid.NewGuid(), frage.Id, null, null, belegung);
+
+        Assert.False(ergebnis.Succeeded);
+    }
+
+    [Fact]
+    public async Task Zuordnung_SelbsteinschaetzungReichtNichtMehr()
+    {
+        var (service, frage, _) = MitZuordnung();
+
+        var ergebnis = await service.SubmitAnswerAsync(Guid.NewGuid(), frage.Id, null, selfAssessedCorrect: true, null);
+
+        Assert.False(ergebnis.Succeeded);
     }
 }

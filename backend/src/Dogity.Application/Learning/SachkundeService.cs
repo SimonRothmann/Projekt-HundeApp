@@ -140,7 +140,7 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
 
     public async Task<Result<QuizAnswerResultDto>> SubmitAnswerAsync(
         Guid userId, Guid questionId, IReadOnlyList<Guid>? selectedOptionIds, bool? selfAssessedCorrect,
-        CancellationToken ct = default)
+        IReadOnlyDictionary<Guid, string>? assignments, CancellationToken ct = default)
     {
         var frage = await db.QuizQuestions
             .Include(q => q.Options)
@@ -150,16 +150,40 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
             return Result<QuizAnswerResultDto>.NotFound("Frage nicht gefunden.");
 
         var richtigeIds = frage.Options.Where(o => o.IsCorrect).Select(o => o.Id).OrderBy(id => id).ToList();
+        var begriffe = frage.Options.Where(o => o.Kind == QuizOptionKind.Term).ToList();
+        var begriffErgebnisse = new Dictionary<Guid, bool>();
 
         bool richtig;
-        if (frage.Kind is QuizQuestionKind.Assignment or QuizQuestionKind.FreeText)
+        if (frage.Kind == QuizQuestionKind.Assignment && begriffe.Count > 0)
         {
-            // Zuordnung und Freitext prüft niemand automatisch - hier zählt,
-            // was der Lernende selbst sagt. Ohne Angabe ist die Antwort
-            // unbrauchbar, deshalb ein Eingabefehler und kein stilles "falsch".
+            // Eine Zuordnung wird zugeordnet, nicht selbst eingeschätzt: jeder
+            // Begriff bekommt einen Schlüssel, und die Zuordnung stimmt nur,
+            // wenn ALLE stimmen. (Vorher lag hier nur eine Selbsteinschätzung -
+            // die Aufgabe war in der Oberfläche gar nicht lösbar.)
+            if (assignments is null || assignments.Count == 0)
+                return Result<QuizAnswerResultDto>.Failure("Bitte allen Begriffen etwas zuordnen.");
+
+            var fremd = assignments.Keys.Where(id => begriffe.All(b => b.Id != id)).ToList();
+            if (fremd.Count > 0)
+                return Result<QuizAnswerResultDto>.Failure("Ein zugeordneter Begriff gehört nicht zu dieser Frage.");
+
+            if (begriffe.Any(b => !assignments.ContainsKey(b.Id)))
+                return Result<QuizAnswerResultDto>.Failure("Bitte allen Begriffen etwas zuordnen.");
+
+            foreach (var begriff in begriffe)
+                begriffErgebnisse[begriff.Id] =
+                    string.Equals(assignments[begriff.Id]?.Trim(), begriff.MatchKey, StringComparison.OrdinalIgnoreCase);
+
+            richtig = begriffErgebnisse.Values.All(x => x);
+        }
+        else if (frage.Kind is QuizQuestionKind.Assignment or QuizQuestionKind.FreeText)
+        {
+            // Offene Fragen prüft niemand automatisch - hier zählt, was der
+            // Lernende selbst sagt. Ohne Angabe ist die Antwort unbrauchbar,
+            // deshalb ein Eingabefehler und kein stilles "falsch".
             if (selfAssessedCorrect is null)
                 return Result<QuizAnswerResultDto>.Failure(
-                    "Für Zuordnungs- und Freitextfragen wird die Selbsteinschätzung erwartet.");
+                    "Für Freitextfragen wird die Selbsteinschätzung erwartet.");
             richtig = selfAssessedCorrect.Value;
         }
         else
@@ -189,7 +213,7 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
         await db.SaveChangesAsync(ct);
 
         return Result<QuizAnswerResultDto>.Success(
-            new QuizAnswerResultDto(richtig, mastery.Box, mastery.DueAt, richtigeIds));
+            new QuizAnswerResultDto(richtig, mastery.Box, mastery.DueAt, richtigeIds, begriffErgebnisse));
     }
 
     public async Task<Result> ResetAsync(Guid userId, string catalogCode, CancellationToken ct = default)
@@ -336,8 +360,36 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
             abschnitte);
     }
 
-    private static QuizQuestionDto ZuDto(QuizQuestion frage, QuizMastery? stand) =>
-        new(frage.Id,
+    private static QuizQuestionDto ZuDto(QuizQuestion frage, QuizMastery? stand)
+    {
+        var zeilen = frage.Options.OrderBy(o => o.SortOrder).ToList();
+
+        var begriffe = zeilen
+            .Where(o => o.Kind == QuizOptionKind.Term)
+            .Select(o => new QuizTermDto(o.Id, o.Text, o.MatchKey ?? string.Empty))
+            .ToList();
+
+        var beschriftungen = zeilen
+            .Where(o => o.Kind == QuizOptionKind.Label && o.MatchKey is not null)
+            .Select(o => new QuizKeyDto(o.MatchKey!, o.Text))
+            .ToList();
+
+        // Ohne Beschriftungen stehen die Schlüssel in der Abbildung (A2: die
+        // Ziffern 1-5). Dann werden sie aus den Begriffen abgeleitet - das
+        // verrät nichts, weil die Zuordnung eineindeutig ist: jeder Schlüssel
+        // kommt genau einmal vor, gesucht ist die Reihenfolge.
+        var schluessel = beschriftungen.Count > 0
+            ? beschriftungen
+            : begriffe
+                .Select(b => b.SolutionKey)
+                .Where(k => !string.IsNullOrEmpty(k))
+                .Distinct()
+                .OrderBy(k => k, StringComparer.Ordinal)
+                .Select(k => new QuizKeyDto(k, null))
+                .ToList();
+
+        return new QuizQuestionDto(
+            frage.Id,
             frage.Number,
             frage.Section,
             frage.SectionName,
@@ -345,8 +397,12 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
             frage.Text,
             frage.ImageName,
             frage.SampleSolution,
-            frage.Options.OrderBy(o => o.SortOrder).Select(o => new QuizOptionDto(o.Id, o.Text, o.IsCorrect)).ToList(),
+            zeilen.Where(o => o.Kind == QuizOptionKind.Answer)
+                  .Select(o => new QuizOptionDto(o.Id, o.Text, o.IsCorrect)).ToList(),
+            begriffe,
+            schluessel,
             stand is null
                 ? null
                 : new QuizQuestionStateDto(stand.Box, stand.LastWasCorrect, stand.CorrectCount, stand.WrongCount, stand.DueAt));
+    }
 }

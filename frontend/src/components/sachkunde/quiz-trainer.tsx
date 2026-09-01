@@ -12,6 +12,7 @@ import type {
   QuizQuestion,
   QuizSession,
 } from "@/lib/types";
+import { QuizAssignment } from "@/components/sachkunde/quiz-assignment";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Eye, RotateCcw, X } from "lucide-react";
@@ -47,7 +48,7 @@ const MODI: { key: QuizMode; label: string }[] = [
   { key: "all", label: "Alle" },
 ];
 
-type Auswertung = { correct: boolean; correctOptionIds: string[] };
+type Auswertung = { correct: boolean; correctOptionIds: string[]; termResults: Record<string, boolean> };
 
 export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
   const { user } = useAuth();
@@ -63,12 +64,15 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
   const [loesungOffen, setLoesungOffen] = useState(false);
   const [beschaeftigt, setBeschaeftigt] = useState(false);
   const [bilanz, setBilanz] = useState({ richtig: 0, falsch: 0 });
+  // Zuordnungsaufgaben: je Begriffs-Id der gewählte Schlüssel.
+  const [belegung, setBelegung] = useState<Record<string, string>>({});
 
   const laden = useCallback(
     async (gewuenschterModus: QuizMode) => {
       setQueue(null);
       setIndex(0);
       setGewaehlt([]);
+      setBelegung({});
       setAuswertung(null);
       setLoesungOffen(false);
       setBilanz({ richtig: 0, falsch: 0 });
@@ -108,7 +112,10 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
   }, [laden, mode]);
 
   const frage = queue?.[index] ?? null;
-  const selbstEinschaetzung = frage?.kind === "Assignment" || frage?.kind === "FreeText";
+  const zuordnung = frage?.kind === "Assignment" && frage.terms.length > 0;
+  // Nur die offenen Fragen bleiben Selbsteinschätzung - Zuordnungen prüft der
+  // Server anhand der Schlüssel.
+  const selbstEinschaetzung = frage?.kind === "FreeText" || (frage?.kind === "Assignment" && !zuordnung);
   const mehrfach = frage?.kind === "MultipleChoice";
 
   /**
@@ -119,8 +126,13 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
    * im Browser nach derselben Regel ausgewertet und nichts gespeichert.
    */
   async function bewerten(
-    payload: { selectedOptionIds?: string[]; selfAssessedCorrect?: boolean },
+    payload: {
+      selectedOptionIds?: string[];
+      selfAssessedCorrect?: boolean;
+      assignments?: Record<string, string>;
+    },
     korrektOhneAnmeldung: boolean,
+    begriffErgebnisse: Record<string, boolean> = {},
   ) {
     if (!frage || beschaeftigt || auswertung) return;
 
@@ -131,8 +143,12 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
       const ergebnis: Auswertung = angemeldet
         ? await api
             .post<QuizAnswerResult>(`/api/sachkunde/questions/${frage.id}/answer`, payload)
-            .then((a) => ({ correct: a.correct, correctOptionIds: a.correctOptionIds }))
-        : { correct: korrektOhneAnmeldung, correctOptionIds: richtigeIds };
+            .then((a) => ({
+              correct: a.correct,
+              correctOptionIds: a.correctOptionIds,
+              termResults: a.termResults ?? {},
+            }))
+        : { correct: korrektOhneAnmeldung, correctOptionIds: richtigeIds, termResults: begriffErgebnisse };
 
       setAuswertung(ergebnis);
       setBilanz((b) => ({
@@ -162,9 +178,23 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
 
   function weiter() {
     setGewaehlt([]);
+    setBelegung({});
     setAuswertung(null);
     setLoesungOffen(false);
     setIndex((i) => i + 1);
+  }
+
+  /** Zuordnung abgeben - richtig ist sie nur, wenn ALLE Begriffe stimmen. */
+  function zuordnungPruefen() {
+    if (!frage) return;
+    const ergebnisse = Object.fromEntries(
+      frage.terms.map((term) => [term.id, belegung[term.id] === term.solutionKey]),
+    );
+    void bewerten(
+      { assignments: belegung },
+      Object.values(ergebnisse).every(Boolean),
+      ergebnisse,
+    );
   }
 
   function antippen(optionId: string) {
@@ -289,7 +319,18 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
             />
           )}
 
-          {selbstEinschaetzung ? (
+          {zuordnung ? (
+            <QuizAssignment
+              terms={frage.terms}
+              keys={frage.keys}
+              belegung={belegung}
+              ergebnisse={auswertung?.termResults ?? null}
+              aufgeloest={auswertung !== null}
+              beschaeftigt={beschaeftigt}
+              onWaehlen={(termId, key) => setBelegung((b) => ({ ...b, [termId]: key }))}
+              onPruefen={zuordnungPruefen}
+            />
+          ) : selbstEinschaetzung ? (
             <SelbstKarte
               solution={frage.sampleSolution}
               offen={loesungOffen}

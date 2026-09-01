@@ -57,6 +57,10 @@ public class QuizOptionConfiguration : IEntityTypeConfiguration<QuizOption>
         builder.ToTable("quiz_options");
 
         builder.Property(o => o.Text).HasMaxLength(1000).IsRequired();
+        // Vorgabe Answer, damit die vorhandenen Zeilen bei der Migration einen
+        // gültigen Enum-Wert bekommen (nicht "" -> Lesefehler).
+        builder.Property(o => o.Kind).HasConversion<string>().HasMaxLength(20).HasDefaultValue(QuizOptionKind.Answer);
+        builder.Property(o => o.MatchKey).HasMaxLength(8);
 
         builder.HasOne(o => o.Question)
             .WithMany(q => q.Options)

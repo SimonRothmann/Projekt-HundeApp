@@ -51,7 +51,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A2",
@@ -61,7 +62,37 @@
      "text": "Ordnen Sie den aufgelisteten Stimmungen die abgebildeten Körperhaltungen zu:",
      "bild": "a2.jpg",
      "musterloesung": "Aufmerksamkeit → 1 · Angst → 4 · Aufforderung zum Spiel → 3 · Drohen → 2 · Unterwerfung → 5",
-     "antworten": []
+     "antworten": [],
+     "zuordnung": {
+      "begriffe": [
+       {
+        "text": "Aufmerksamkeit",
+        "schluessel": "1",
+        "reihenfolge": 1
+       },
+       {
+        "text": "Angst",
+        "schluessel": "4",
+        "reihenfolge": 2
+       },
+       {
+        "text": "Aufforderung zum Spiel",
+        "schluessel": "3",
+        "reihenfolge": 3
+       },
+       {
+        "text": "Drohen",
+        "schluessel": "2",
+        "reihenfolge": 4
+       },
+       {
+        "text": "Unterwerfung",
+        "schluessel": "5",
+        "reihenfolge": 5
+       }
+      ],
+      "schluessel": []
+     }
     },
     {
      "nummer": "A3",
@@ -97,7 +128,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A4",
@@ -133,7 +165,8 @@
        "richtig": true,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A5",
@@ -169,7 +202,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A6",
@@ -205,7 +239,8 @@
        "richtig": true,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A7",
@@ -241,7 +276,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A8",
@@ -277,7 +313,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A9",
@@ -313,7 +350,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A10",
@@ -349,7 +387,8 @@
        "richtig": true,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A11",
@@ -385,7 +424,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A12",
@@ -421,7 +461,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A13",
@@ -457,7 +498,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A14",
@@ -493,7 +535,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A15",
@@ -529,7 +572,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A16",
@@ -565,7 +609,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A17",
@@ -601,7 +646,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A18",
@@ -611,7 +657,63 @@
      "text": "Über Geschmack lässt sich nicht streiten und somit ist auch die Zuneigung der Hundefreunde zu bestimmten Rassen aufgrund der Rassemerkmale unterschiedlich. Ordnen Sie den aufgelisteten Rassen die unter A – E beschriebenen Rassemerkmale zu:",
      "bild": null,
      "musterloesung": "Boxer → E (kurzköpfig) · Basset → C (langohrig) · Bobtail → A (langhaarig) · Greyhound → B (extrem hochbeinig) · Pudel → D (lockenhaarig)",
-     "antworten": []
+     "antworten": [],
+     "zuordnung": {
+      "begriffe": [
+       {
+        "text": "Boxer",
+        "schluessel": "E",
+        "reihenfolge": 1
+       },
+       {
+        "text": "Basset",
+        "schluessel": "C",
+        "reihenfolge": 2
+       },
+       {
+        "text": "Bobtail",
+        "schluessel": "A",
+        "reihenfolge": 3
+       },
+       {
+        "text": "Greyhound",
+        "schluessel": "B",
+        "reihenfolge": 4
+       },
+       {
+        "text": "Pudel",
+        "schluessel": "D",
+        "reihenfolge": 5
+       }
+      ],
+      "schluessel": [
+       {
+        "schluessel": "A",
+        "text": "langhaarig",
+        "reihenfolge": 1
+       },
+       {
+        "schluessel": "B",
+        "text": "extrem hochbeinig",
+        "reihenfolge": 2
+       },
+       {
+        "schluessel": "C",
+        "text": "langohrig",
+        "reihenfolge": 3
+       },
+       {
+        "schluessel": "D",
+        "text": "lockenhaarig",
+        "reihenfolge": 4
+       },
+       {
+        "schluessel": "E",
+        "text": "kurzköpfig",
+        "reihenfolge": 5
+       }
+      ]
+     }
     },
     {
      "nummer": "A19",
@@ -647,7 +749,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A20",
@@ -683,7 +786,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A21",
@@ -719,7 +823,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A22",
@@ -755,7 +860,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "A23",
@@ -765,7 +871,63 @@
      "text": "Vertreter unterschiedlicher Hunderassen haben auch unterschiedliche Talente, die sie für bestimmte Einsätze besonders brauchbar machen. Ordnen Sie den aufgelisteten Rassen die unter A – E beschriebenen Einsatzmöglichkeiten zu, für die diese Rassen besonders talentiert sind:",
      "bild": null,
      "musterloesung": "Labrador Retriever → B (Blindenhund) · Collie → D (Hüten) · Teckel → A (Baujagd) · Riesenschnauzer → E (Diensthund) · Barsoi → C (Rennsport)",
-     "antworten": []
+     "antworten": [],
+     "zuordnung": {
+      "begriffe": [
+       {
+        "text": "Labrador Retriever",
+        "schluessel": "B",
+        "reihenfolge": 1
+       },
+       {
+        "text": "Collie",
+        "schluessel": "D",
+        "reihenfolge": 2
+       },
+       {
+        "text": "Teckel",
+        "schluessel": "A",
+        "reihenfolge": 3
+       },
+       {
+        "text": "Riesenschnauzer",
+        "schluessel": "E",
+        "reihenfolge": 4
+       },
+       {
+        "text": "Barsoi",
+        "schluessel": "C",
+        "reihenfolge": 5
+       }
+      ],
+      "schluessel": [
+       {
+        "schluessel": "A",
+        "text": "Baujagd",
+        "reihenfolge": 1
+       },
+       {
+        "schluessel": "B",
+        "text": "Blindenhund",
+        "reihenfolge": 2
+       },
+       {
+        "schluessel": "C",
+        "text": "Rennsport",
+        "reihenfolge": 3
+       },
+       {
+        "schluessel": "D",
+        "text": "Hüten",
+        "reihenfolge": 4
+       },
+       {
+        "schluessel": "E",
+        "text": "Diensthund",
+        "reihenfolge": 5
+       }
+      ]
+     }
     },
     {
      "nummer": "B1",
@@ -801,7 +963,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B2",
@@ -837,7 +1000,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B3",
@@ -873,7 +1037,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B4",
@@ -909,7 +1074,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B5",
@@ -945,7 +1111,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B6",
@@ -981,7 +1148,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B7",
@@ -1017,7 +1185,8 @@
        "richtig": true,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B8",
@@ -1053,7 +1222,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B9",
@@ -1089,7 +1259,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B10",
@@ -1125,7 +1296,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B11",
@@ -1161,7 +1333,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B12",
@@ -1197,7 +1370,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B13",
@@ -1233,7 +1407,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B14",
@@ -1269,7 +1444,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B15",
@@ -1305,7 +1481,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B16",
@@ -1341,7 +1518,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B17",
@@ -1377,7 +1555,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B18",
@@ -1413,7 +1592,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "B19",
@@ -1439,7 +1619,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "C1",
@@ -1475,7 +1656,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "C2",
@@ -1511,7 +1693,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "C3",
@@ -1532,7 +1715,8 @@
        "richtig": true,
        "reihenfolge": 2
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "C4",
@@ -1568,7 +1752,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "C5",
@@ -1604,7 +1789,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "C6",
@@ -1640,7 +1826,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "C7",
@@ -1676,7 +1863,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "C8",
@@ -1712,7 +1900,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "C9",
@@ -1748,7 +1937,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "C10",
@@ -1779,7 +1969,8 @@
        "richtig": false,
        "reihenfolge": 4
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "D1",
@@ -1805,7 +1996,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "D2",
@@ -1831,7 +2023,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "D3",
@@ -1857,7 +2050,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "D4",
@@ -1883,7 +2077,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "D5",
@@ -1893,7 +2088,8 @@
      "text": "Nennen Sie die Sinne des Hundes:",
      "bild": null,
      "musterloesung": "a) Geruchssin b) Geschmackssinn c) Körpertastsinn d) Gehörsinn e) Gesichtssinn",
-     "antworten": []
+     "antworten": [],
+     "zuordnung": null
     },
     {
      "nummer": "D6",
@@ -1903,7 +2099,8 @@
      "text": "Was sind typische Hundekrankheiten?",
      "bild": null,
      "musterloesung": "Leptospirose, Staupe, Hüftgelenksdysplasie, Pavovirose, Borreliose, Ektropium, Entropium, Magendrehung , etc.",
-     "antworten": []
+     "antworten": [],
+     "zuordnung": null
     },
     {
      "nummer": "D7",
@@ -1929,7 +2126,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "D8",
@@ -1939,7 +2137,8 @@
      "text": "Wie wird die Körpertemperatur am Hund gemessen?",
      "bild": null,
      "musterloesung": "rektal durch den After",
-     "antworten": []
+     "antworten": [],
+     "zuordnung": null
     },
     {
      "nummer": "D9",
@@ -1965,7 +2164,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "D10",
@@ -1991,7 +2191,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "D11",
@@ -2017,7 +2218,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "D12",
@@ -2043,7 +2245,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "D13",
@@ -2069,7 +2272,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "E1",
@@ -2095,7 +2299,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "E2",
@@ -2116,7 +2321,8 @@
        "richtig": true,
        "reihenfolge": 2
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "E3",
@@ -2142,7 +2348,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "E4",
@@ -2163,7 +2370,8 @@
        "richtig": true,
        "reihenfolge": 2
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "E5",
@@ -2184,7 +2392,8 @@
        "richtig": true,
        "reihenfolge": 2
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "E6",
@@ -2210,7 +2419,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "E7",
@@ -2231,7 +2441,8 @@
        "richtig": false,
        "reihenfolge": 2
       }
-     ]
+     ],
+     "zuordnung": null
     }
    ]
   },
@@ -2265,7 +2476,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "2",
@@ -2291,7 +2503,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "3",
@@ -2317,7 +2530,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "4",
@@ -2343,7 +2557,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "5",
@@ -2369,7 +2584,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "6",
@@ -2395,7 +2611,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "7",
@@ -2421,7 +2638,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "8",
@@ -2447,7 +2665,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "9",
@@ -2473,7 +2692,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "10",
@@ -2499,7 +2719,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "11",
@@ -2525,7 +2746,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "12",
@@ -2551,7 +2773,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "13",
@@ -2577,7 +2800,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "14",
@@ -2603,7 +2827,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "15",
@@ -2629,7 +2854,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "16",
@@ -2655,7 +2881,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "17",
@@ -2681,7 +2908,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "18",
@@ -2707,7 +2935,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "19",
@@ -2733,7 +2962,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "20",
@@ -2759,7 +2989,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "21",
@@ -2785,7 +3016,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "22",
@@ -2811,7 +3043,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "23",
@@ -2832,7 +3065,8 @@
        "richtig": false,
        "reihenfolge": 2
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "24",
@@ -2858,7 +3092,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "25",
@@ -2884,7 +3119,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "26",
@@ -2910,7 +3146,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "27",
@@ -2936,7 +3173,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "28",
@@ -2962,7 +3200,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "29",
@@ -2993,7 +3232,8 @@
        "richtig": false,
        "reihenfolge": 4
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "30",
@@ -3029,7 +3269,8 @@
        "richtig": false,
        "reihenfolge": 5
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "31",
@@ -3060,7 +3301,8 @@
        "richtig": true,
        "reihenfolge": 4
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "32",
@@ -3086,7 +3328,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "33",
@@ -3112,7 +3355,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "34",
@@ -3143,7 +3387,8 @@
        "richtig": false,
        "reihenfolge": 4
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "35",
@@ -3169,7 +3414,8 @@
        "richtig": true,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "36",
@@ -3195,7 +3441,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "37",
@@ -3221,7 +3468,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "38",
@@ -3252,7 +3500,8 @@
        "richtig": false,
        "reihenfolge": 4
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "39",
@@ -3278,7 +3527,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     },
     {
      "nummer": "40",
@@ -3304,7 +3554,8 @@
        "richtig": false,
        "reihenfolge": 3
       }
-     ]
+     ],
+     "zuordnung": null
     }
    ]
   }

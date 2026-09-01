@@ -591,18 +591,48 @@ def run_feature_sweep(api: Api, admin_token: str) -> None:
     check(api.call("POST", f"/api/sachkunde/questions/{frage['id']}/answer",
                    {"selectedOptionIds": []}, owner_token)[0] == 400, "leere Auswahl wird abgewiesen")
 
-    # Zuordnung/Freitext werden selbst eingeschätzt - der Server kann sie nicht prüfen.
+    # Zuordnungen werden zugeordnet und vom Server geprüft; nur die offenen
+    # Freitextfragen bleiben Selbsteinschätzung.
     _, alle_fragen = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/questions")
-    karte = next((f for f in alle_fragen if f["kind"] in ("Assignment", "FreeText")), None)
-    check(karte is not None and karte["sampleSolution"], "Zuordnung/Freitext hat eine Musterlösung")
-    check(api.call("POST", f"/api/sachkunde/questions/{karte['id']}/answer",
+    zuordnungen = [f for f in alle_fragen if f["kind"] == "Assignment"]
+    check(len(zuordnungen) == 3 and all(f["terms"] and f["keys"] for f in zuordnungen),
+          "alle drei Zuordnungen haben Begriffe und Schlüssel",
+          str([(f["number"], len(f["terms"]), len(f["keys"])) for f in zuordnungen]))
+    check(any(f["imageName"] for f in zuordnungen), "die Bildfrage bringt ihre Abbildung mit")
+    check(all(len({t["solutionKey"] for t in f["terms"]}) == len(f["terms"]) for f in zuordnungen),
+          "jeder Schlüssel kommt in einer Zuordnung genau einmal vor")
+
+    zuo = zuordnungen[0]
+    richtige_zuordnung = {t["id"]: t["solutionKey"] for t in zuo["terms"]}
+    vertauscht = dict(richtige_zuordnung)
+    erste, zweite = list(vertauscht)[:2]
+    vertauscht[erste], vertauscht[zweite] = vertauscht[zweite], vertauscht[erste]
+    status, r = api.call("POST", f"/api/sachkunde/questions/{zuo['id']}/answer",
+                         {"assignments": vertauscht}, owner_token)
+    check(status == 200 and r["correct"] is False and sum(1 for v in r["termResults"].values() if not v) == 2,
+          "vertauschte Zuordnung ist falsch, die zwei Fehler sind benannt", str(status))
+    status, r = api.call("POST", f"/api/sachkunde/questions/{zuo['id']}/answer",
+                         {"assignments": richtige_zuordnung}, owner_token)
+    check(status == 200 and r["correct"] is True and all(r["termResults"].values()),
+          "vollständig richtige Zuordnung wird angenommen", str(status))
+    check(api.call("POST", f"/api/sachkunde/questions/{zuo['id']}/answer",
+                   {"assignments": {erste: richtige_zuordnung[erste]}}, owner_token)[0] == 400,
+          "unvollständige Zuordnung wird abgewiesen")
+    check(api.call("POST", f"/api/sachkunde/questions/{zuo['id']}/answer",
+                   {"selfAssessedCorrect": True}, owner_token)[0] == 400,
+          "Selbsteinschätzung reicht bei einer Zuordnung nicht")
+
+    freitext = next(f for f in alle_fragen if f["kind"] == "FreeText")
+    check(bool(freitext["sampleSolution"]), "Freitextfrage hat eine Musterlösung")
+    check(api.call("POST", f"/api/sachkunde/questions/{freitext['id']}/answer",
                    {"selectedOptionIds": []}, owner_token)[0] == 400,
-          "ohne Selbsteinschätzung abgewiesen")
-    check(api.call("POST", f"/api/sachkunde/questions/{karte['id']}/answer",
-                   {"selfAssessedCorrect": True}, owner_token)[0] == 200, "Selbsteinschätzung wird angenommen")
+          "Freitext ohne Selbsteinschätzung abgewiesen")
+    check(api.call("POST", f"/api/sachkunde/questions/{freitext['id']}/answer",
+                   {"selfAssessedCorrect": True}, owner_token)[0] == 200,
+          "Freitext per Selbsteinschätzung angenommen")
 
     status, stand = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/progress", token=owner_token)
-    check(status == 200 and stand["answered"] == 2 and stand["total"] == 72,
+    check(status == 200 and stand["answered"] == 3 and stand["total"] == 72,
           "Lernstand zählt die beantworteten Fragen", str(status))
     check(api.call("POST", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/reset", token=owner_token)[0] == 204,
           "von vorne anfangen wird angenommen")

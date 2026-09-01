@@ -665,8 +665,23 @@ export type QuizOption = {
   isCorrect: boolean;
 };
 
-// Zuordnung und Freitext lassen sich nicht automatisch prüfen - dort steht
-// statt der Antwortliste eine Musterlösung, die man sich selbst abnimmt.
+// Ein zuzuordnender Begriff ("Boxer", "Angst") samt richtigem Schlüssel.
+export type QuizTerm = {
+  id: string;
+  text: string;
+  solutionKey: string;
+};
+
+// Ein wählbarer Schlüssel. label ist leer, wenn die Schlüssel aus einer
+// Abbildung stammen - dann sind es die Ziffern im Bild.
+export type QuizKey = {
+  key: string;
+  label: string | null;
+};
+
+// Zuordnungen werden zugeordnet (Begriff -> Schlüssel) und vom Server geprüft.
+// Nur die offenen Freitextfragen tragen statt Antworten eine Musterlösung, die
+// man sich selbst abnimmt - die kann niemand automatisch prüfen.
 export type QuizQuestionKind = "SingleChoice" | "MultipleChoice" | "Assignment" | "FreeText";
 
 export type QuizQuestionState = {
@@ -687,6 +702,8 @@ export type QuizQuestion = {
   imageName: string | null;
   sampleSolution: string | null;
   options: QuizOption[];
+  terms: QuizTerm[];
+  keys: QuizKey[];
   state: QuizQuestionState | null;
 };
 
@@ -727,4 +744,6 @@ export type QuizAnswerResult = {
   box: number;
   dueAt: string | null;
   correctOptionIds: string[];
+  // Bei Zuordnungen: je Begriffs-Id, ob sie richtig zugeordnet war.
+  termResults: Record<string, boolean>;
 };
