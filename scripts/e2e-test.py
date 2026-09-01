@@ -7,6 +7,18 @@ aufräumen, damit die Umgebung so dasteht wie vorher.
     ./scripts/e2e-test.py --api http://127.0.0.1:5080
     ./scripts/e2e-test.py --cleanup-only       # Reste eines Abbruchs entfernen
 
+Die Voreinstellungen für den Admin-Zugang sind die Demo-Zugangsdaten, die der
+DemoDataSeeder anlegt - die gibt es nur in Development und auf test. Gegen eine
+Produktivumgebung braucht es einen echten Admin:
+
+    DOGITY_ADMIN_PASSWORD=... ./scripts/e2e-test.py \
+        --api https://api.dogity.net --admin-email ich@example.com --produktiv-ja
+
+Das Skript SCHREIBT (Nutzer, Hunde, Gruppen anlegen und wieder löschen) und
+hängt kurzzeitig eine Testtrainer:in an den vorhandenen Verein. Auf einer
+Umgebung mit echten Nutzern ist das ein bewusster Eingriff - deshalb die
+Nachfrage über --produktiv-ja.
+
 Warum eigene Daten statt der Demo-Daten:
 Test ist eine geteilte Umgebung, auf der auch von Hand geklickt wird. Ein
 Skript, das die Demo-Gruppe umbaut oder mitglied1 aus dem Verein wirft,
@@ -26,8 +38,10 @@ Abweichung.
 
 import argparse
 import json
+import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import date, timedelta
 
@@ -346,12 +360,32 @@ def main() -> int:
     parser.add_argument("--admin-email", default=ADMIN[0])
     parser.add_argument("--admin-password", default=ADMIN[1])
     parser.add_argument("--cleanup-only", action="store_true", help="nur Reste eines Abbruchs entfernen")
+    parser.add_argument("--produktiv-ja", action="store_true",
+                        help="Lauf gegen eine Umgebung erlauben, die nicht nach Test aussieht")
     args = parser.parse_args()
 
+    # Umgebungen ohne "test" im Namen (und nicht lokal) gelten als produktiv.
+    host = urllib.parse.urlparse(args.api).hostname or ""
+    ist_testumgebung = "test" in host or host in ("localhost", "127.0.0.1", "::1")
+    if not ist_testumgebung and not args.cleanup_only and not args.produktiv_ja:
+        print(f"{RED}{args.api} sieht nicht nach einer Testumgebung aus.{OFF}")
+        print("  Dieses Skript legt Nutzer, Hunde und Gruppen an und löscht sie wieder,")
+        print("  und es hängt kurzzeitig eine Testtrainer:in an den vorhandenen Verein.")
+        print(f"  Wenn das so gewollt ist: noch einmal mit {BOLD}--produktiv-ja{OFF} aufrufen.")
+        return 2
+
     api = Api(args.api)
-    admin_token = api.login(args.admin_email, args.admin_password)
+    admin_password = os.environ.get("DOGITY_ADMIN_PASSWORD", args.admin_password)
+    admin_token = api.login(args.admin_email, admin_password)
     if not admin_token:
-        print(f"{RED}Admin-Anmeldung an {args.api} fehlgeschlagen.{OFF}")
+        print(f"{RED}Admin-Anmeldung an {args.api} als {args.admin_email} fehlgeschlagen.{OFF}")
+        if args.admin_email == ADMIN[0]:
+            print(f"  {DIM}Das ist der Demo-Admin. Den legt der DemoDataSeeder an - und der läuft")
+            print(f"  nur in Development und auf test, nicht in Produktion.{OFF}")
+        print("  Mit einem echten Admin:")
+        print(f"    {BOLD}DOGITY_ADMIN_PASSWORD=... ./scripts/e2e-test.py --api {args.api} \\{OFF}")
+        print(f"    {BOLD}    --admin-email deine@adresse --produktiv-ja{OFF}")
+        print(f"  {DIM}Der Zugang braucht die Rolle ADMIN (Nutzer anlegen/löschen, Vereine verwalten).{OFF}")
         return 2
 
     print(f"{BOLD}Ziel:{OFF} {args.api}")
