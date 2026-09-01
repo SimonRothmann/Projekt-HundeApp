@@ -322,8 +322,23 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         if (session is null)
             return Result.NotFound("Training nicht gefunden.");
 
+        // Katalog-Übungen der Einheit merken, BEVOR sie weggefiltert ist.
+        var affected = session.Exercises
+            .Where(e => e.ExerciseId is not null)
+            .Select(e => e.ExerciseId!.Value)
+            .Distinct()
+            .ToList();
+
         session.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
+
+        // Der Wiedervorlage-Zustand trägt das gelöschte Ergebnis sonst weiter
+        // in Leitner-Box und Schnitt - der adaptive Generator plante dann gegen
+        // ein Training, das es nicht mehr gibt.
+        foreach (var exerciseId in affected)
+            await mastery.RecomputeAsync(session.DogId, exerciseId, ct);
+        if (affected.Count > 0) await db.SaveChangesAsync(ct);
+
         return Result.Success();
     }
 
