@@ -148,6 +148,12 @@ using (var scope = app.Services.CreateScope())
     // Die Rolle wurde bis hierher nie vergeben - Trainer:innen standen in der
     // Admin-Übersicht nur als "USER". Idempotent und in beide Richtungen.
     await scope.ServiceProvider.GetRequiredService<ITrainerRoleService>().BackfillAsync();
+    // Vereins-/Gruppenzeilen gelöschter Nutzer wegräumen. Das Löschen eines
+    // Kontos hat sie früher stehen lassen; sie tauchten als "(unbekannt)" in
+    // den Beitrittsanfragen auf. Idempotent - ohne Waisen tut der Lauf nichts.
+    var verwaiste = await scope.ServiceProvider.GetRequiredService<ICommunityOrphanCleanup>().CleanupAsync();
+    if (verwaiste > 0)
+        app.Logger.LogInformation("{Anzahl} verwaiste Vereins-/Gruppenzeilen entfernt.", verwaiste);
 }
 
 if (app.Environment.IsDevelopment())

@@ -5,14 +5,17 @@ import { api, ApiError } from "@/lib/api";
 import type { Club, ClubMemberRequest } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, ShieldPlus } from "lucide-react";
+import { Users, ShieldPlus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
   const [selectedClubId, setSelectedClubId] = useState(clubs[0]?.id ?? "");
   const [members, setMembers] = useState<ClubMemberRequest[] | null>(null);
   const [promotingUserId, setPromotingUserId] = useState<string | null>(null);
+  const [neueMail, setNeueMail] = useState("");
+  const [nimmtAuf, setNimmtAuf] = useState(false);
 
   async function loadMembers(clubId: string) {
     if (!clubId) {
@@ -32,6 +35,29 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadMembers(selectedClubId);
   }, [selectedClubId]);
+
+  /**
+   * Jemanden direkt aufnehmen, ohne dass er selbst eine Anfrage stellt.
+   *
+   * Der Antragsweg deckt den Normalfall ab, aber nicht den häufigsten Anlass:
+   * Auf dem Platz steht jemand vor einem, der eben Mitglied geworden ist -
+   * ihn erst nach Hause zu schicken, um eine Anfrage zu stellen, ist umständlich.
+   */
+  async function aufnehmen() {
+    const mail = neueMail.trim();
+    if (!mail) return;
+    setNimmtAuf(true);
+    try {
+      await api.post(`/api/clubs/${selectedClubId}/members`, { email: mail });
+      toast.success(`${mail} ist jetzt Mitglied.`);
+      setNeueMail("");
+      await loadMembers(selectedClubId);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Aufnahme fehlgeschlagen.");
+    } finally {
+      setNimmtAuf(false);
+    }
+  }
 
   async function handlePromote(userId: string) {
     setPromotingUserId(userId);
@@ -67,7 +93,28 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
           </Select>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-3">
+        <form
+          className="flex flex-wrap items-end gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void aufnehmen();
+          }}
+        >
+          <Input
+            type="email"
+            className="min-w-0 flex-1"
+            placeholder="E-Mail-Adresse aufnehmen"
+            value={neueMail}
+            onChange={(e) => setNeueMail(e.target.value)}
+            disabled={!selectedClubId || nimmtAuf}
+          />
+          <Button type="submit" size="sm" disabled={!neueMail.trim() || nimmtAuf}>
+            <UserPlus className="size-4" />
+            Aufnehmen
+          </Button>
+        </form>
+
         {members === null ? (
           <p className="text-sm text-muted-foreground">Lädt…</p>
         ) : members.length === 0 ? (

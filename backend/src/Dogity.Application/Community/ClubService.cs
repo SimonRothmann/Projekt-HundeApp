@@ -120,10 +120,16 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     /// einen Verein aufzunehmen. Nutzt dieselbe ClubMembership-Tabelle wie
     /// der Antrag-Weg, setzt Status aber sofort auf <see cref="ClubMembershipStatus.Approved"/>.
     /// </summary>
-    public async Task<Result> AddMemberAsync(Guid clubId, AssignClubMemberRequest request, CancellationToken ct = default)
+    public async Task<Result> AddMemberAsync(Guid callerId, bool isAdmin, Guid clubId, AssignClubMemberRequest request, CancellationToken ct = default)
     {
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
         if (club is null)
+            return Result.NotFound("Verein nicht gefunden.");
+
+        // Die Prüfung gehört hierher und nicht in den Controller: Der Aufruf
+        // hängt jetzt an zwei Routen (Admin und Verein), und eine Regel, die
+        // an der Route klebt, geht beim Hinzufügen der zweiten verloren.
+        if (!isAdmin && !await db.IsClubTrainerAsync(callerId, clubId, ct))
             return Result.NotFound("Verein nicht gefunden.");
 
         var user = await userLookup.FindByEmailAsync(request.Email, ct);
@@ -275,6 +281,25 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     /// Die Trainingsdaten selbst bleiben unangetastet - sie gehören dem
     /// Besitzer, nicht dem Verein.
     /// </summary>
+    public async Task PurgeUserAsync(Guid userId, CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        foreach (var m in await db.ClubMemberships.Where(m => m.UserId == userId).ToListAsync(ct))
+            m.DeletedAt = now;
+        foreach (var t in await db.ClubTrainers.Where(t => t.UserId == userId).ToListAsync(ct))
+            t.DeletedAt = now;
+        foreach (var m in await db.GroupMembers.Where(m => m.UserId == userId).ToListAsync(ct))
+            m.DeletedAt = now;
+        foreach (var t in await db.GroupTrainers.Where(t => t.UserId == userId).ToListAsync(ct))
+            t.DeletedAt = now;
+        foreach (var a in await db.TrainerAssignments
+                     .Where(a => a.TrainerId == userId || a.MemberId == userId).ToListAsync(ct))
+            a.DeletedAt = now;
+
+        await db.SaveChangesAsync(ct);
+    }
+
     private async Task DetachFromClubAsync(Guid clubId, Guid userId, CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;

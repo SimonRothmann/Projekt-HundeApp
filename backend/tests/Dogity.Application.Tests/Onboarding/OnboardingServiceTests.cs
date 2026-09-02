@@ -147,4 +147,58 @@ public class OnboardingServiceTests
 
         Assert.False((await dienst.GetStatusAsync(nutzerId)).Value!.HasDog);
     }
+
+    // ---- Trainer:innen ----
+    //
+    // Beim Zuweisen einer Trainerrolle entsteht KEINE Mitgliedschaftszeile
+    // (siehe ClubService.AssignTrainerAsync). Der Erststart schaute anfangs nur
+    // auf ClubMemberships und GroupMembers - und forderte deshalb eine
+    // Vereinstrainerin auf, dem Verein beizutreten, den sie leitet.
+
+    [Fact]
+    public async Task Vereinstrainer_GiltAlsVereinszugehoerig()
+    {
+        var (dienst, nutzerId, aufbau) = Erstelle();
+        aufbau.Hund(nutzerId, "Bella");
+        aufbau.Vereinstrainer(nutzerId);
+        await aufbau.Speichern();
+
+        var stand = (await dienst.GetStatusAsync(nutzerId)).Value!;
+
+        Assert.True(stand.HasClubMembership);
+        Assert.False(stand.HasPendingClubRequest);
+    }
+
+    [Fact]
+    public async Task Gruppenleiter_GiltAlsGruppenzugehoerig_UndSchliesstAb()
+    {
+        var (dienst, nutzerId, aufbau) = Erstelle();
+        aufbau.Hund(nutzerId, "Bella");
+        aufbau.Gruppenleiter(nutzerId);
+        await aufbau.Speichern();
+
+        var stand = (await dienst.GetStatusAsync(nutzerId)).Value!;
+
+        Assert.True(stand.HasGroupMembership);
+        // Wer eine Gruppe leitet, ist angekommen - ihn nach einem Beitritt zu
+        // fragen wäre absurd.
+        Assert.True(stand.IsComplete);
+    }
+
+    [Fact]
+    public async Task OffeneAnfrage_VerschwindetSobaldManTrainerIst()
+    {
+        var (dienst, nutzerId, aufbau) = Erstelle();
+        aufbau.Hund(nutzerId, "Bella");
+        aufbau.Vereinsmitglied(nutzerId, ClubMembershipStatus.Pending);
+        aufbau.Vereinstrainer(nutzerId);
+        await aufbau.Speichern();
+
+        var stand = (await dienst.GetStatusAsync(nutzerId)).Value!;
+
+        // Genau der Fall des Testtrainers: eine alte offene Anfrage UND eine
+        // Trainerrolle. Der Schritt ist erledigt, nicht wartend.
+        Assert.True(stand.HasClubMembership);
+        Assert.False(stand.HasPendingClubRequest);
+    }
 }

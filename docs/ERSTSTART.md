@@ -29,6 +29,23 @@ Beide zu verlangen wäre falsch: Wer über den Verein kommt, trägt sein erstes
 Training oft erst nach dem ersten Gruppentraining ein — und wer allein
 trainiert, wird nie einem Verein beitreten.
 
+## Trainer:innen gehören dazu
+
+Wer einem Verein als Trainer:in zugewiesen wird, bekommt **keine
+Mitgliedschaftszeile** — `ClubTrainer` ist eine eigene Tabelle
+(`ClubService.AssignTrainerAsync`). Dasselbe gilt für Gruppen: Wer eine leitet,
+steht in `Group.TrainerId` oder `GroupTrainers`, nicht in `GroupMembers`.
+
+Der erste Wurf schaute nur auf Mitgliedschaften — und forderte eine
+Vereinstrainerin auf, dem Verein beizutreten, den sie leitet, und einer
+Gruppe, die sie führt. Beide Fragen gehen jetzt über
+`ClubAccessQueries.BelongsToAnyClubAsync` / `BelongsToAnyGroupAsync`, die
+Trainerrollen mitzählen.
+
+Dieselbe Falle steckte in der Dashboard-Karte „Tritt einem Verein bei": Sie
+las `/api/clubs/my-memberships` und hielt Trainer:innen für vereinslos. Sie
+richtet sich jetzt nach demselben Erststart-Status.
+
 ## Zwei Zustände, die leicht verwechselt werden
 
 **Angefragt ≠ offen.** Eine gestellte Beitrittsanfrage wartet auf die Freigabe
@@ -68,6 +85,9 @@ angefordert hat, wäre schlimmer als sein Fehlen.
 
 ## Offen
 
+- **Gruppen, die ein gelöschter Nutzer geleitet hat**, bleiben stehen. Was mit
+  ihnen passieren soll, ist eine Entscheidung, keine Aufräumarbeit — deshalb
+  fasst `ClubService.PurgeUserAsync` sie bewusst nicht an.
 - **Ein zweiter Hund** startet den Erststart nicht neu — richtig so, aber wer
   Jahre später einen Welpen bekommt, bekäme die Anleitung vielleicht gern noch
   einmal. Bisher nur über das Ausblenden-Rücknehmen möglich, das es nicht gibt.

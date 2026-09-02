@@ -50,6 +50,20 @@ public class Aufbau(ApplicationDbContext db)
         db.ClubMemberships.Add(new ClubMembership { ClubId = verein.Id, UserId = nutzer, Status = status });
     }
 
+    /// <summary>Vereinstrainer:in - bewusst OHNE Mitgliedschaftszeile, so wie es ClubService.AssignTrainerAsync tut.</summary>
+    public void Vereinstrainer(Guid nutzer)
+    {
+        var verein = new Club { Name = "Testverein" };
+        db.Clubs.Add(verein);
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = verein.Id, UserId = nutzer });
+    }
+
+    /// <summary>Leitet eine Gruppe - ebenfalls ohne Mitgliedschaftszeile.</summary>
+    public void Gruppenleiter(Guid nutzer)
+    {
+        db.Groups.Add(new Group { Name = "Testgruppe", TrainerId = nutzer });
+    }
+
     public void Gruppenmitglied(Guid nutzer, GroupMemberStatus status)
     {
         var gruppe = new Group { Name = "Testgruppe", TrainerId = Guid.NewGuid() };

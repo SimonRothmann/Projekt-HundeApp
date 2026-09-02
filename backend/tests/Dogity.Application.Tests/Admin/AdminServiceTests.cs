@@ -1,4 +1,5 @@
 using Dogity.Application.Admin;
+using Dogity.Application.Community;
 using Dogity.Application.Tests.TestSupport;
 
 namespace Dogity.Application.Tests.Admin;
@@ -17,7 +18,10 @@ public class AdminServiceTests
         var db = InMemoryDbContext.Create();
         lookup = new FakeUserLookupService();
         refreshTokens = new FakeRefreshTokenService();
-        return new AdminService(db, lookup, refreshTokens);
+        // Echter ClubService: Das Löschen eines Kontos löst den Nutzer aus
+        // Vereinen und Gruppen: bleibt das aus, verwaisen die Zeilen.
+        var clubs = new ClubService(db, lookup, new FakeNotificationService(), new TrainerRoleService(db, lookup));
+        return new AdminService(db, lookup, refreshTokens, clubs);
     }
 
     [Fact]
@@ -98,5 +102,31 @@ public class AdminServiceTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(1, result.Value!.Page);
+    }
+
+    [Fact]
+    public async Task DeleteUser_LoestIhnAusVereinUndGruppe()
+    {
+        var db = InMemoryDbContext.Create();
+        var lookup = new FakeUserLookupService();
+        var clubs = new ClubService(db, lookup, new FakeNotificationService(), new TrainerRoleService(db, lookup));
+        var service = new AdminService(db, lookup, new FakeRefreshTokenService(), clubs);
+
+        var userId = Guid.NewGuid();
+        lookup.Register(userId, "weg@test.de");
+        var aufbau = new Aufbau(db);
+        aufbau.Vereinsmitglied(userId, Domain.Community.ClubMembershipStatus.Pending);
+        aufbau.Vereinstrainer(userId);
+        aufbau.Gruppenmitglied(userId, Domain.Community.GroupMemberStatus.Active);
+        await aufbau.Speichern();
+
+        var ergebnis = await service.DeleteUserAsync(userId);
+
+        Assert.True(ergebnis.Succeeded);
+        // Sonst stünde die offene Anfrage für immer als "(unbekannt)" in der
+        // Liste eines Trainers, der sie nicht mehr auflösen kann.
+        Assert.Empty(db.ClubMemberships.Where(m => m.UserId == userId));
+        Assert.Empty(db.ClubTrainers.Where(t => t.UserId == userId));
+        Assert.Empty(db.GroupMembers.Where(m => m.UserId == userId));
     }
 }

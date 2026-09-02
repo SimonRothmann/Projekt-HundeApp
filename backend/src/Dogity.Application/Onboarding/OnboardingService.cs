@@ -41,11 +41,16 @@ public class OnboardingService(IApplicationDbContext db, IUserLookupService user
             .Select(m => m.Status)
             .ToListAsync(ct);
 
+        // Trainer:innen zählen mit. Beim Zuweisen entsteht KEINE
+        // Mitgliedschaftszeile - wer nur auf ClubMemberships/GroupMembers
+        // schaut, fordert eine Vereinstrainerin auf, dem Verein beizutreten,
+        // den sie leitet. Genau das ist passiert.
+        var hatVerein = await db.BelongsToAnyClubAsync(userId, ct);
+        var hatGruppe = await db.BelongsToAnyGroupAsync(userId, ct);
+
         // Eine offene Anfrage ist kein offener Schritt: Der Nutzer hat getan,
         // was er tun konnte, und wartet auf die Freigabe durch den Verein.
-        var hatVerein = vereine.Contains(ClubMembershipStatus.Approved);
         var vereinAngefragt = !hatVerein && vereine.Contains(ClubMembershipStatus.Pending);
-        var hatGruppe = gruppen.Contains(GroupMemberStatus.Active);
         var gruppeAngefragt = !hatGruppe && gruppen.Contains(GroupMemberStatus.Pending);
 
         var weggeklickt = await users.IsOnboardingDismissedAsync(userId, ct);

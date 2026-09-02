@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
-import type { ClubMembership, OnboardingStatus } from "@/lib/types";
+import type { OnboardingStatus } from "@/lib/types";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dog, Trophy, Building2, GraduationCap } from "lucide-react";
 import Link from "next/link";
@@ -12,20 +12,17 @@ import { OnboardingGuide, zeigtErststart } from "@/components/onboarding/onboard
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [hasNoClub, setHasNoClub] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
+
+  // Vereinszugehörigkeit kommt aus dem Erststart-Status statt aus einer
+  // eigenen Abfrage auf /api/clubs/my-memberships. Die kannte nur
+  // Mitgliedschaften - und Vereinstrainer:innen haben keine, sie stehen in
+  // einer eigenen Tabelle. Sie bekamen deshalb die Aufforderung, einem Verein
+  // beizutreten, den sie leiten.
+  const hasNoClub = onboarding !== null && !onboarding.hasClubMembership;
 
   useEffect(() => {
     let cancelled = false;
-    api
-      .get<ClubMembership[]>("/api/clubs/my-memberships")
-      .then((memberships) => {
-        if (!cancelled) setHasNoClub(!memberships.some((m) => m.status === 1));
-      })
-      .catch(() => {
-        // Stiller Fehlschlag - der Hinweis ist nur eine Komforterinnerung,
-        // kein kritischer Dashboard-Bestandteil.
-      });
     api
       .get<OnboardingStatus>("/api/onboarding/status")
       .then((status) => {

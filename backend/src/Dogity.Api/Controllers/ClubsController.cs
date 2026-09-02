@@ -64,6 +64,14 @@ public class ClubsController(IClubService clubService, IGroupService groupServic
         return FromResult(result);
     }
 
+    /// <summary>
+    /// Jemanden direkt in den Verein aufnehmen - ohne dass er selbst eine
+    /// Anfrage stellen muss. Für Trainer:innen dieses Vereins.
+    /// </summary>
+    [HttpPost("{id:guid}/members")]
+    public async Task<IActionResult> AddMember(Guid id, AssignClubMemberRequest request, CancellationToken ct) =>
+        FromResult(await clubService.AddMemberAsync(CurrentUserId, IsAdmin, id, request, ct));
+
     [HttpPost("{id:guid}/members/{userId:guid}/promote")]
     public async Task<IActionResult> PromoteToTrainer(Guid id, Guid userId, CancellationToken ct)
     {

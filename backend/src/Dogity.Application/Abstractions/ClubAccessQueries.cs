@@ -1,3 +1,4 @@
+using Dogity.Domain.Community;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Abstractions;
@@ -43,4 +44,36 @@ public static class ClubAccessQueries
         if (await db.GroupTrainers.AnyAsync(t => t.UserId == userId, ct)) return true;
         return await db.ClubTrainers.AnyAsync(t => t.UserId == userId, ct);
     }
+    /// <summary>
+    /// Ob jemand zu irgendeinem Verein gehört - als freigegebenes Mitglied
+    /// ODER als Vereinstrainer:in.
+    ///
+    /// Der Zusatz ist wichtig: Trainer:innen bekommen beim Zuweisen KEINE
+    /// Mitgliedschaftszeile (siehe ClubService.AssignTrainerAsync), sie stehen
+    /// in einer eigenen Tabelle. Wer nur auf ClubMemberships schaut, hält eine
+    /// Vereinstrainerin für vereinslos - und fordert sie auf, einem Verein
+    /// beizutreten, den sie leitet.
+    /// </summary>
+    public static async Task<bool> BelongsToAnyClubAsync(this IApplicationDbContext db, Guid userId, CancellationToken ct = default)
+    {
+        if (await db.ClubTrainers.AnyAsync(t => t.UserId == userId, ct)) return true;
+        return await db.ClubMemberships
+            .AnyAsync(m => m.UserId == userId && m.Status == ClubMembershipStatus.Approved, ct);
+    }
+
+    /// <summary>
+    /// Ob jemand zu irgendeiner Trainingsgruppe gehört - als aktives Mitglied,
+    /// als Hauptverantwortliche:r oder als weitere:r Trainer:in.
+    ///
+    /// Dieselbe Falle wie oben: Wer eine Gruppe leitet, ist kein "Mitglied"
+    /// im Sinne von GroupMembers.
+    /// </summary>
+    public static async Task<bool> BelongsToAnyGroupAsync(this IApplicationDbContext db, Guid userId, CancellationToken ct = default)
+    {
+        if (await db.Groups.AnyAsync(g => g.TrainerId == userId, ct)) return true;
+        if (await db.GroupTrainers.AnyAsync(t => t.UserId == userId, ct)) return true;
+        return await db.GroupMembers
+            .AnyAsync(m => m.UserId == userId && m.Status == GroupMemberStatus.Active, ct);
+    }
+
 }

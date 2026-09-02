@@ -141,15 +141,32 @@ class Api:
         self._tokens.pop(email, None)
 
     def register(self, email: str, first: str, last: str) -> tuple[str, str] | None:
-        """Legt einen Nutzer an oder meldet einen bestehenden an. (Token, UserId)."""
-        status, body = self.call(
-            "POST", "/api/auth/register",
-            {"email": email, "password": PASSWORD, "firstName": first, "lastName": last},
-        )
-        if status not in (200, 201):
+        """
+        Legt einen Nutzer an oder meldet einen bestehenden an. (Token, UserId).
+
+        Mit derselben Wartezeit bei Drosselung wie login(): Anlegen und Anmelden
+        laufen über denselben Zähler, und ein Lauf kurz nach dem vorigen bringt
+        ihn zum Überlaufen. Ohne das Warten liefert register() dann None, und der
+        Lauf bricht mitten im Ablauf ab - was aussieht wie ein Fehler der App.
+        """
+        for versuch in (1, 2):
+            status, body = self.call(
+                "POST", "/api/auth/register",
+                {"email": email, "password": PASSWORD, "firstName": first, "lastName": last},
+            )
+            if status in (200, 201):
+                break
             status, body = self.call("POST", "/api/auth/login", {"email": email, "password": PASSWORD})
-            if status != 200:
-                return None
+            if status == 200:
+                break
+            if status in (429, 403) and versuch == 1:
+                print(f"  {YELLOW}Anmeldung gedrosselt ({status}) - eine Minute warten…{OFF}")
+                time.sleep(62)
+                continue
+            return None
+
+        if not isinstance(body, dict) or "token" not in body:
+            return None
         self._tokens[email] = body["token"]
         return body["token"], body["userId"]
 
@@ -227,13 +244,28 @@ def cleanup(api: Api, admin_token: str, verbose: bool = True) -> None:
         if verbose:
             print(f"  {DIM}Nutzer entfernt: {user['email']} ({status}){OFF}")
 
-    # Verwaiste e2e-Gruppen (falls ihr Trainer schon weg ist).
+    # Verwaiste e2e-Gruppen (falls ihr Trainer schon weg ist) und
+    # Trainerzuweisungen ohne Nutzer.
     _, clubs = api.call("GET", "/api/admin/clubs", token=admin_token)
     for club in clubs or []:
         _, detail = api.call("GET", f"/api/admin/clubs/{club['id']}", token=admin_token)
         for group in detail.get("groups", []):
             if group["name"].startswith(PREFIX) and verbose:
                 print(f"  {YELLOW}Achtung: Gruppe '{group['name']}' konnte nicht entfernt werden{OFF}")
+
+        # Das Löschen eines Nutzers räumt seine Vereinstrainer-Zeile nicht mit
+        # weg. Bricht ein Lauf ab, nachdem er jemanden zum Vereinstrainer
+        # gemacht hat, bleibt die Zeile für immer stehen und taucht in der
+        # Trainerliste als "(unbekannt)" auf. Genau so ist eine solche Waise
+        # auf der lokalen Datenbank entstanden.
+        for trainer in detail.get("trainers", []):
+            verwaist = trainer["email"] == "(unbekannt)"
+            if verwaist or trainer["email"].startswith(PREFIX):
+                api.call("DELETE", f"/api/admin/clubs/{club['id']}/trainers/{trainer['userId']}",
+                         token=admin_token)
+                if verbose:
+                    grund = "verwaist" if verwaist else "e2e"
+                    print(f"  {DIM}Vereinstrainer entfernt ({grund}): {trainer['email']}{OFF}")
 
 
 # --- Die Abläufe -----------------------------------------------------------
@@ -611,6 +643,40 @@ def run_feature_sweep(api: Api, admin_token: str) -> None:
     _, stand = api.call("GET", "/api/onboarding/status", token=verein_token)
     check(stand["isDismissed"], "und bleibt weggeklickt")
     check(api.call("GET", "/api/onboarding/status")[0] == 401, "ohne Anmeldung gesperrt")
+
+    section("Verein: Trainer gehört dazu und nimmt auf")
+    if club_id:
+        # Eigenständig: die Trainerrolle wird hier gesetzt und am Ende wieder
+        # entfernt. Der Abschnitt davor räumt seine eigene Zuweisung auf - sich
+        # darauf zu verlassen, hat diese Prüfungen erst fälschlich rot gemacht.
+        api.call("POST", f"/api/admin/clubs/{club_id}/trainers",
+                 {"email": f"{PREFIX}sweeptrainer@dogity.test"}, admin_token)
+
+        # Trainer:innen bekommen beim Zuweisen KEINE Mitgliedschaftszeile. Der
+        # Erststart forderte sie deshalb auf, einem Verein beizutreten, den sie
+        # leiten - und einer Gruppe, die sie führen.
+        _, trainerStand = api.call("GET", "/api/onboarding/status", token=trainer_token)
+        check(trainerStand["hasClubMembership"], "Vereinstrainer gilt als vereinszugehörig", str(trainerStand))
+        check(not trainerStand["hasPendingClubRequest"], "und nicht als wartend")
+        check(trainerStand["hasGroupMembership"], "Gruppenleiter gilt als gruppenzugehörig")
+
+        aufnahme_token, _ = api.register(f"{PREFIX}aufgenommen@dogity.test", "Auf", "Nahme")
+        status, _ = api.call("POST", f"/api/clubs/{club_id}/members",
+                             {"email": f"{PREFIX}aufgenommen@dogity.test"}, trainer_token)
+        check(status in (200, 204), "Trainer nimmt jemanden direkt auf", str(status))
+        _, aufgenommen = api.call("GET", "/api/onboarding/status", token=aufnahme_token)
+        check(aufgenommen["hasClubMembership"], "der Aufgenommene ist sofort Mitglied", str(aufgenommen))
+        check(api.call("POST", f"/api/clubs/{club_id}/members",
+                       {"email": f"{PREFIX}aufgenommen@dogity.test"}, trainer_token)[0] == 400,
+              "zweimal aufnehmen wird abgewiesen")
+        check(api.call("POST", f"/api/clubs/{club_id}/members",
+                       {"email": f"{PREFIX}aufgenommen@dogity.test"}, owner_token)[0] == 404,
+              "wer nicht Trainer dieses Vereins ist, darf niemanden aufnehmen")
+        check(api.call("POST", f"/api/clubs/{club_id}/members",
+                       {"email": "gibtsnicht@dogity.test"}, trainer_token)[0] == 400,
+              "unbekannte E-Mail wird abgewiesen")
+
+        api.call("DELETE", f"/api/admin/clubs/{club_id}/trainers/{trainer_id}", token=admin_token)
 
     section("Verfassung")
     # Verfassung als Zahl: die API überträgt Enums numerisch (siehe difficulty).

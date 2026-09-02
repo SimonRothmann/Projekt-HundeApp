@@ -19,7 +19,14 @@ public interface IClubService
     Task<Result> RemoveTrainerAsync(Guid clubId, Guid userId, CancellationToken ct = default);
 
     /// <summary>Admin-Weg zur direkten Aufnahme eines Mitglieds ohne Beitrittsanfrage-Workflow.</summary>
-    Task<Result> AddMemberAsync(Guid clubId, AssignClubMemberRequest request, CancellationToken ct = default);
+    /// <summary>
+    /// Nimmt jemanden direkt in den Verein auf, ohne den Antragsweg.
+    ///
+    /// Erlaubt für Admins und für Trainer:innen DIESES Vereins - sie führen
+    /// den Verein, und wer eine Beitrittsanfrage freigeben darf, darf auch
+    /// jemanden von sich aus aufnehmen.
+    /// </summary>
+    Task<Result> AddMemberAsync(Guid callerId, bool isAdmin, Guid clubId, AssignClubMemberRequest request, CancellationToken ct = default);
     /// <summary>Admin-Weg zum Entfernen eines aktiven Mitglieds aus einem Verein.</summary>
     Task<Result> RemoveMemberAsync(Guid clubId, Guid userId, CancellationToken ct = default);
 
@@ -46,4 +53,19 @@ public interface IClubService
 
     /// <summary>Eigene aktive Mitgliedschaft beenden (Selbstbedienung, betrifft nur die Vereinsmitgliedschaft, keine Gruppen-/Trainer-Zuordnungen).</summary>
     Task<Result> LeaveClubAsync(Guid userId, Guid clubId, CancellationToken ct = default);
+    /// <summary>
+    /// Löst einen Nutzer aus allem Vereins- und Gruppenzusammenhang: offene und
+    /// freigegebene Mitgliedschaften, Vereins- und Gruppentrainer-Zeilen,
+    /// Trainerzuweisungen in beide Richtungen.
+    ///
+    /// Wird beim Löschen des Kontos aufgerufen. Ohne das bleiben die Zeilen
+    /// stehen und tauchen mit "(unbekannt)" wieder auf - eine Beitrittsanfrage
+    /// eines gelöschten Nutzers steht dann für immer in der Liste eines
+    /// Trainers, der sie nicht auflösen kann.
+    ///
+    /// Nicht angefasst werden Gruppen, die der Nutzer LEITET: was mit ihnen
+    /// passieren soll, ist eine Entscheidung, keine Aufräumarbeit.
+    /// </summary>
+    Task PurgeUserAsync(Guid userId, CancellationToken ct = default);
+
 }

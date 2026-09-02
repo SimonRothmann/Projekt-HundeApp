@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<IGroupTrainingService, GroupTrainingService>();
         services.AddScoped<IGroupTrainingScheduleService, GroupTrainingScheduleService>();
         services.AddScoped<IClubService, ClubService>();
+        services.AddScoped<ICommunityOrphanCleanup, CommunityOrphanCleanup>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IStatsService, StatsService>();

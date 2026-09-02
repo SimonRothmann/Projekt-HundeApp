@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Community;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Admin;
@@ -11,7 +12,11 @@ namespace Dogity.Application.Admin;
 /// ist bewusst nicht Teil dieses Moduls (siehe PRODUCT_REQUIREMENTS.md
 /// "Vereine" - Später/Post-MVP).
 /// </summary>
-public class AdminService(IApplicationDbContext db, IUserLookupService userLookup, IRefreshTokenService refreshTokens) : IAdminService
+public class AdminService(
+    IApplicationDbContext db,
+    IUserLookupService userLookup,
+    IRefreshTokenService refreshTokens,
+    IClubService clubService) : IAdminService
 {
     public async Task<Result<AdminStatsDto>> GetStatsAsync(CancellationToken ct = default)
     {
@@ -56,6 +61,13 @@ public class AdminService(IApplicationDbContext db, IUserLookupService userLooku
 
     public async Task<Result> DeleteUserAsync(Guid userId, CancellationToken ct = default)
     {
+        // Erst aus Vereinen und Gruppen lösen, dann das Konto entfernen. In
+        // dieser Reihenfolge, weil die Zeilen sonst verwaisen: Sie verweisen
+        // nur über die UserId auf das Konto, ohne Fremdschlüssel. Übrig blieb
+        // dann etwa eine Beitrittsanfrage, die in der Liste eines Trainers als
+        // "(unbekannt)" steht und sich nicht mehr auflösen lässt.
+        await clubService.PurgeUserAsync(userId, ct);
+
         var ok = await userLookup.DeleteUserAsync(userId, ct);
         if (!ok) return Result.NotFound("Benutzer nicht gefunden oder Löschung fehlgeschlagen.");
         await refreshTokens.RevokeAllForUserAsync(userId, ct);
