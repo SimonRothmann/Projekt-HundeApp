@@ -61,10 +61,34 @@ public class DogsController(IDogService dogService) : ApiControllerBase
     /// <summary>
     /// Profilbild als Data-URI - direkt in ein img-Element hängbar. 204, wenn
     /// keines hinterlegt ist; das Frontend zeigt dann das Platzhalter-Symbol.
+    ///
+    /// Beantwortet einen bedingten Abruf (If-None-Match) mit 304 und ohne
+    /// Rumpf. Das Bild wiegt als Data-URI rund 64 KB und hing bisher an jedem
+    /// Aufbau jeder Liste, in der der Hund vorkommt: Die Antwort trug kein
+    /// ETag, der Browser konnte sie nicht behalten, und eine Trainerübersicht
+    /// mit einem Dutzend Hunden lud bei jedem Besuch rund ein Megabyte neu.
     /// </summary>
     [HttpGet("{id:guid}/image")]
     public async Task<ActionResult<DogImageDto>> GetImage(Guid id, CancellationToken ct)
     {
+        // Zuerst nur das Kennzeichen holen - das liest die Bilddaten nicht mit.
+        var etag = await dogService.GetImageETagAsync(CurrentUserId, id, ct);
+        // Wie bisher: kein Zugriff und kein hinterlegtes Bild sind für den
+        // Aufrufer dasselbe - 204, das Frontend zeigt das Platzhalter-Symbol.
+        if (!etag.Succeeded) return NoContent();
+
+        // Private, nicht öffentlich zwischenspeicherbar: Das Bild hängt an der
+        // Zugriffsprüfung des angemeldeten Nutzers, ein geteilter Cache
+        // (Proxy) dürfte es nicht weiterreichen. must-revalidate, damit der
+        // Browser den Wechsel eines Bildes sofort bemerkt statt es
+        // auszusitzen - die Ersparnis kommt aus dem 304, nicht aus einer
+        // Verfallszeit.
+        Response.Headers.CacheControl = "private, no-cache, must-revalidate";
+        Response.Headers.ETag = etag.Value;
+
+        if (Request.Headers.IfNoneMatch.Contains(etag.Value))
+            return StatusCode(StatusCodes.Status304NotModified);
+
         var result = await dogService.GetImageAsync(CurrentUserId, id, ct);
         return result.Succeeded ? Ok(result.Value) : NoContent();
     }

@@ -21,6 +21,36 @@ export function ClubsSection() {
   const [trainerEmail, setTrainerEmail] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
 
+  async function ladeDetail(clubId: string) {
+    setDetail(await api.get<ClubDetail>(`/api/admin/clubs/${clubId}`));
+  }
+
+  /**
+   * Aktion ausführen, Erfolg melden, Detailansicht nachladen - und im
+   * Fehlerfall die Meldung des Servers zeigen.
+   *
+   * Dieser Ablauf stand sechsmal wortgleich im Modul (Trainer zuweisen und
+   * entfernen, Mitglied hinzufügen und entfernen, befördern, aufklappen).
+   * Sechs Kopien heißt: Wer den Ablauf ändert, ändert ihn an fünf Stellen
+   * nicht.
+   */
+  async function mitDetailAktualisierung(
+    aktion: () => Promise<void>,
+    erfolg: string,
+    fehler: string,
+    clubId: string,
+    auchListe = false,
+  ) {
+    try {
+      await aktion();
+      toast.success(erfolg);
+      await ladeDetail(clubId);
+      if (auchListe) await loadClubs();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : fehler);
+    }
+  }
+
   async function loadClubs() {
     try {
       const data = await api.get<Club[]>("/api/admin/clubs");
@@ -32,7 +62,6 @@ export function ClubsSection() {
 
   useEffect(() => {
     // Initialer Datenabruf bei Mount (externe Quelle: REST API).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadClubs();
   }, []);
 
@@ -61,8 +90,7 @@ export function ClubsSection() {
     }
     setExpandedClubId(clubId);
     try {
-      const data = await api.get<ClubDetail>(`/api/admin/clubs/${clubId}`);
-      setDetail(data);
+      await ladeDetail(clubId);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Verein konnte nicht geladen werden.");
     }
@@ -71,66 +99,60 @@ export function ClubsSection() {
   async function handleAssignTrainer(clubId: string, e: React.FormEvent) {
     e.preventDefault();
     if (!trainerEmail.trim()) return;
-    try {
-      await api.post(`/api/admin/clubs/${clubId}/trainers`, { email: trainerEmail });
-      toast.success("Trainer zugewiesen.");
-      setTrainerEmail("");
-      const data = await api.get<ClubDetail>(`/api/admin/clubs/${clubId}`);
-      setDetail(data);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Zuweisung fehlgeschlagen.");
-    }
+    await mitDetailAktualisierung(
+      async () => {
+        await api.post(`/api/admin/clubs/${clubId}/trainers`, { email: trainerEmail });
+        setTrainerEmail("");
+      },
+      "Trainer zugewiesen.",
+      "Zuweisung fehlgeschlagen.",
+      clubId,
+    );
   }
 
   async function handleRemoveTrainer(clubId: string, userId: string) {
-    try {
-      await api.delete(`/api/admin/clubs/${clubId}/trainers/${userId}`);
-      toast.success("Trainer entfernt.");
-      const data = await api.get<ClubDetail>(`/api/admin/clubs/${clubId}`);
-      setDetail(data);
-      await loadClubs();
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Entfernen fehlgeschlagen.");
-    }
+    await mitDetailAktualisierung(
+      () => api.delete(`/api/admin/clubs/${clubId}/trainers/${userId}`),
+      "Trainer entfernt.",
+      "Entfernen fehlgeschlagen.",
+      clubId,
+      true,
+    );
   }
 
   async function handleAddMember(clubId: string, e: React.FormEvent) {
     e.preventDefault();
     if (!memberEmail.trim()) return;
-    try {
-      await api.post(`/api/admin/clubs/${clubId}/members`, { email: memberEmail });
-      toast.success("Mitglied hinzugefügt.");
-      setMemberEmail("");
-      const data = await api.get<ClubDetail>(`/api/admin/clubs/${clubId}`);
-      setDetail(data);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Zuweisung fehlgeschlagen.");
-    }
+    await mitDetailAktualisierung(
+      async () => {
+        await api.post(`/api/admin/clubs/${clubId}/members`, { email: memberEmail });
+        setMemberEmail("");
+      },
+      "Mitglied hinzugefügt.",
+      "Zuweisung fehlgeschlagen.",
+      clubId,
+    );
   }
 
   async function handleRemoveMember(clubId: string, userId: string) {
-    try {
-      await api.delete(`/api/admin/clubs/${clubId}/members/${userId}`);
-      toast.success("Mitglied entfernt.");
-      const data = await api.get<ClubDetail>(`/api/admin/clubs/${clubId}`);
-      setDetail(data);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Entfernen fehlgeschlagen.");
-    }
+    await mitDetailAktualisierung(
+      () => api.delete(`/api/admin/clubs/${clubId}/members/${userId}`),
+      "Mitglied entfernt.",
+      "Entfernen fehlgeschlagen.",
+      clubId,
+    );
   }
 
   async function handlePromoteMember(clubId: string, userEmail: string) {
     // Beförderung zum Trainer: wir nutzen den bestehenden Trainer-Assign-
     // Endpoint, der eine E-Mail entgegennimmt.
-    try {
-      await api.post(`/api/admin/clubs/${clubId}/trainers`, { email: userEmail });
-      toast.success("Mitglied zum Trainer befördert.");
-      const data = await api.get<ClubDetail>(`/api/admin/clubs/${clubId}`);
-      setDetail(data);
-      await loadClubs();
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Beförderung fehlgeschlagen.");
-    }
+    await mitDetailAktualisierung(
+      () => api.post(`/api/admin/clubs/${clubId}/trainers`, { email: userEmail }),
+      "Mitglied zum Trainer befördert.",
+      "Beförderung fehlgeschlagen.",
+      clubId,
+      true,
+    );
   }
 
   return (

@@ -91,7 +91,17 @@ async function tryRefreshToken(): Promise<boolean> {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit, isRetry = false): Promise<T> {
+/**
+ * Ein Aufruf inklusive Token und Token-Erneuerung - liefert die rohe Antwort.
+ *
+ * Getrennt von request(), weil nicht jeder Aufruf einen JSON-Rumpf auswertet:
+ * der bedingte Abruf der Hundebilder lebt gerade davon, dass der Server mit
+ * 304 und OHNE Rumpf antwortet. Die Erneuerungslogik darf es dafür kein
+ * zweites Mal geben - sie hängt an einem gemeinsamen Promise (Single-Flight),
+ * und zwei Kopien davon würden mit demselben Refresh-Token rotieren und die
+ * Wiederverwendungserkennung des Backends auslösen.
+ */
+async function send(path: string, init?: RequestInit, isRetry = false): Promise<Response> {
   const token = getToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -101,21 +111,27 @@ async function request<T>(path: string, init?: RequestInit, isRetry = false): Pr
 
   const res = await fetch(`${resolveApiUrl()}${path}`, { ...init, headers });
 
-  if (!res.ok) {
-    // 401 mit vorhandenem Token = abgelaufener Access-Token: EINMAL versuchen,
-    // ihn per Refresh-Token zu erneuern und den Request zu wiederholen. Erst
-    // wenn auch das scheitert, wird die Session aufgeräumt. (Ein 401 ohne
-    // Token - z.B. falsches Passwort beim Login - ist dagegen eine normale
-    // Formular-Fehlermeldung und löst keinen Refresh aus.)
-    if (res.status === 401 && token && !isRetry) {
-      refreshInFlight ??= tryRefreshToken().finally(() => {
-        refreshInFlight = null;
-      });
-      const refreshed = await refreshInFlight;
-      if (refreshed) return request<T>(path, init, true);
-      handleExpiredSession();
-    }
+  // 401 mit vorhandenem Token = abgelaufener Access-Token: EINMAL versuchen,
+  // ihn per Refresh-Token zu erneuern und den Request zu wiederholen. Erst
+  // wenn auch das scheitert, wird die Session aufgeräumt. (Ein 401 ohne
+  // Token - z.B. falsches Passwort beim Login - ist dagegen eine normale
+  // Formular-Fehlermeldung und löst keinen Refresh aus.)
+  if (res.status === 401 && token && !isRetry) {
+    refreshInFlight ??= tryRefreshToken().finally(() => {
+      refreshInFlight = null;
+    });
+    const refreshed = await refreshInFlight;
+    if (refreshed) return send(path, init, true);
+    handleExpiredSession();
+  }
 
+  return res;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await send(path, init);
+
+  if (!res.ok) {
     let errors: string[] = [`HTTP ${res.status}`];
     try {
       const body = await res.json();
@@ -130,8 +146,49 @@ async function request<T>(path: string, init?: RequestInit, isRetry = false): Pr
   return (await res.json()) as T;
 }
 
+/**
+ * Ergebnis eines bedingten Abrufs.
+ * - "unveraendert": Der Server hat mit 304 geantwortet, der mitgegebene Stand
+ *   gilt weiter (kein Rumpf übertragen).
+ * - "neu": frische Daten samt neuem Kennzeichen zum Merken.
+ * - "leer": 204 - es gibt nichts (mehr) zu holen.
+ */
+export type BedingteAntwort<T> =
+  | { art: "unveraendert" }
+  | { art: "neu"; daten: T; etag: string | null }
+  | { art: "leer" };
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
+
+  /**
+   * GET, das ein bekanntes Kennzeichen (ETag) mitschickt und dem Server
+   * erlaubt, mit 304 statt mit dem vollen Rumpf zu antworten.
+   *
+   * Gebraucht für die Hundeprofilbilder: Die wiegen als Data-URI rund 64 KB
+   * und lassen sich vom Browser nicht zwischenspeichern (eigene Herkunft,
+   * Authorization-Kopfzeile, JSON-Rumpf). Ohne den bedingten Abruf lud jede
+   * Liste, in der ein Hund vorkommt, sein Bild bei jedem Aufbau erneut.
+   */
+  getConditional: async <T>(path: string, etag: string | null): Promise<BedingteAntwort<T>> => {
+    const res = await send(path, etag ? { headers: { "If-None-Match": etag } } : undefined);
+
+    if (res.status === 304) return { art: "unveraendert" };
+    if (res.status === 204) return { art: "leer" };
+
+    if (!res.ok) {
+      let errors: string[] = [`HTTP ${res.status}`];
+      try {
+        const body = await res.json();
+        if (body?.errors) errors = body.errors;
+      } catch {
+        // wie in request(): Antwort ohne JSON-Rumpf
+      }
+      throw new ApiError(res.status, errors);
+    }
+
+    return { art: "neu", daten: (await res.json()) as T, etag: res.headers.get("ETag") };
+  },
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
   put: <T>(path: string, body?: unknown) =>

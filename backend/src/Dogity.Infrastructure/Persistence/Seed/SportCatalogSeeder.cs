@@ -1507,10 +1507,25 @@ public static class SportCatalogSeeder
             await db.SaveChangesAsync();
         }
 
+        // Die vorhandenen Übungen der Sportart EINMAL laden statt je Übung
+        // einzeln zu fragen. Der Seeder läuft bei jedem Start, auch in
+        // Production, und der Katalog wächst mit jeder neuen Prüfungsordnung:
+        // Zeile für Zeile abzufragen kostete zuletzt über tausend Abfragen pro
+        // Hochlauf - Zeit, die vor dem ersten beantworteten Request vergeht.
+        //
+        // Nachverfolgt geladen (kein AsNoTracking), weil unten fehlende
+        // Bewertungskriterien direkt an der geladenen Zeile nachgepflegt und
+        // mit SaveChangesAsync geschrieben werden.
+        var vorhandene = await db.Exercises
+            .Where(e => e.SportId == sport.Id)
+            .ToListAsync();
+        var nachName = vorhandene
+            .GroupBy(e => e.Name)
+            .ToDictionary(g => g.Key, g => g.First());
+
         foreach (var seed in exercises)
         {
-            var existing = await db.Exercises.FirstOrDefaultAsync(e => e.SportId == sport.Id && e.Name == seed.Name);
-            if (existing is not null)
+            if (nachName.TryGetValue(seed.Name, out var existing))
             {
                 // Bewertungskriterien älterer Seed-Durchläufe nachpflegen,
                 // ohne von Hand geänderte Inhalte sonst zu berühren.
@@ -1564,6 +1579,31 @@ public static class SportCatalogSeeder
             await db.SaveChangesAsync();
         }
 
+        // Übungen der Sportart und bereits vorhandene Verknüpfungen EINMAL
+        // laden statt je Eintrag der Prüfungsordnung zweimal zu fragen. Bei gut
+        // 300 geseedeten Verknüpfungen waren das über 600 Abfragen bei jedem
+        // Start - der größte Einzelposten im Hochlauf.
+        //
+        // IgnoreQueryFilters bei den Verknüpfungen wie bisher in
+        // FindLinkIncludingRemovedAsync: Das Entfernen einer Übung aus einer
+        // Prüfungsordnung ist ein Soft-Delete, der eindeutige Index kennt aber
+        // kein DeletedAt. Wer die entfernte Zeile übersieht, legt eine zweite
+        // an - und die Datenbank weist sie zurück, noch vor app.Run().
+        var uebungenDerSportart = await db.Exercises
+            .Where(e => e.SportId == sport.Id)
+            .ToListAsync();
+        var uebungNachName = uebungenDerSportart
+            .GroupBy(e => e.Name)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var vorhandeneLinks = await db.RegulationExercises
+            .IgnoreQueryFilters()
+            .Where(re => re.RegulationVersionId == version.Id)
+            .ToListAsync();
+        var linkNachUebung = vorhandeneLinks
+            .GroupBy(re => re.ExerciseId)
+            .ToDictionary(g => g.Key, g => g.First());
+
         // Die Position im Array IST die Reihenfolge der Prüfungsordnung (Abt. A
         // vor B vor C, innerhalb einer Abteilung Übung 1 bis n) - sie wird
         // deshalb als SortOrder mitgeschrieben und bei jedem Seed-Durchlauf
@@ -1572,8 +1612,7 @@ public static class SportCatalogSeeder
         for (var index = 0; index < seed.Exercises.Length; index++)
         {
             var exerciseSeed = seed.Exercises[index];
-            var exercise = await db.Exercises.FirstOrDefaultAsync(e => e.SportId == sport.Id && e.Name == exerciseSeed.ExerciseName);
-            if (exercise is null)
+            if (!uebungNachName.TryGetValue(exerciseSeed.ExerciseName, out var exercise))
             {
                 // Bewusst ein harter Fehler statt stillschweigendem Überspringen:
                 // ein RegulationSeed-Eintrag, der auf eine nicht (mehr) unter
@@ -1589,14 +1628,12 @@ public static class SportCatalogSeeder
                     "Name muss exakt übereinstimmen).");
             }
 
-            // Auch entfernte Zeilen ansehen: das Entfernen einer Übung aus einer
-            // Prüfungsordnung ist ein Soft-Delete, der eindeutige Index kennt
-            // aber kein DeletedAt. Ohne das legte der Seeder hier eine zweite
-            // Zeile mit derselben Kombination an - die Datenbank weist sie
-            // zurück, und weil der Seeder VOR app.Run() läuft, käme die Instanz
-            // nach einem von Hand entfernten Seed-Eintrag gar nicht mehr hoch.
-            var regulationExercise = await db.FindLinkIncludingRemovedAsync(version.Id, exercise.Id);
-            if (regulationExercise is null)
+            // linkNachUebung enthält auch entfernte Zeilen (siehe oben) - ohne
+            // das legte der Seeder hier eine zweite Zeile mit derselben
+            // Kombination an, die Datenbank wiese sie zurück, und weil der
+            // Seeder VOR app.Run() läuft, käme die Instanz nach einem von Hand
+            // entfernten Seed-Eintrag gar nicht mehr hoch.
+            if (!linkNachUebung.TryGetValue(exercise.Id, out var regulationExercise))
             {
                 db.RegulationExercises.Add(new RegulationExercise
                 {

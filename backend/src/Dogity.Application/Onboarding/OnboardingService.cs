@@ -14,44 +14,79 @@ public class OnboardingService(IApplicationDbContext db, IUserLookupService user
         // Der erste Hund trägt die Verweise der beiden folgenden Schritte.
         // Ältester zuerst, damit der Erststart nicht auf einen Hund zeigt, den
         // jemand später nebenbei angelegt hat.
-        var ersterHund = await db.DogOwners
+        //
+        // Die Abfragen laufen bewusst NACHEINANDER, aber in möglichst wenigen
+        // Schritten: Ein DbContext verträgt keine parallelen Abfragen. Vorher
+        // waren es zwölf Roundtrips für eine Antwort von rund 270 Byte - und
+        // das bei jedem Aufbau des Dashboards. Zusammengefasst bleiben fünf.
+        var hunde = await db.DogOwners
             .Where(o => o.UserId == userId)
             .OrderBy(o => o.CreatedAt)
             .Select(o => new { o.DogId, o.Dog!.Name })
-            .FirstOrDefaultAsync(ct);
-
-        var hundeIds = await db.DogOwners
-            .Where(o => o.UserId == userId)
-            .Select(o => o.DogId)
             .ToListAsync(ct);
 
-        var hatZiel = hundeIds.Count > 0
-            && await db.Goals.AnyAsync(g => hundeIds.Contains(g.DogId) && g.Status == GoalStatus.Active, ct);
+        var ersterHund = hunde.FirstOrDefault();
+        var hundeIds = hunde.Select(h => h.DogId).ToList();
 
-        var hatTraining = hundeIds.Count > 0
-            && await db.TrainingSessions.AnyAsync(s => hundeIds.Contains(s.DogId), ct);
+        // Ziel und Training in EINER Abfrage: zwei Existenzprüfungen über
+        // verschiedene Tabellen, die sich zu einer einzigen Zeile verrechnen
+        // lassen. Ohne Hunde ist beides ohnehin falsch - dann entfällt die
+        // Abfrage ganz.
+        var hatZiel = false;
+        var hatTraining = false;
+        if (hundeIds.Count > 0)
+        {
+            var stand = await db.Dogs
+                .Where(d => hundeIds.Contains(d.Id))
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Ziel = db.Goals.Any(z => hundeIds.Contains(z.DogId) && z.Status == GoalStatus.Active),
+                    Training = db.TrainingSessions.Any(t => hundeIds.Contains(t.DogId)),
+                })
+                .FirstOrDefaultAsync(ct);
 
-        var vereine = await db.ClubMemberships
-            .Where(m => m.UserId == userId)
-            .Select(m => m.Status)
-            .ToListAsync(ct);
+            hatZiel = stand?.Ziel ?? false;
+            hatTraining = stand?.Training ?? false;
+        }
 
-        var gruppen = await db.GroupMembers
-            .Where(m => m.UserId == userId)
-            .Select(m => m.Status)
-            .ToListAsync(ct);
-
+        // Vereins- und Gruppenzugehörigkeit in je EINER Abfrage.
+        //
         // Trainer:innen zählen mit. Beim Zuweisen entsteht KEINE
         // Mitgliedschaftszeile - wer nur auf ClubMemberships/GroupMembers
         // schaut, fordert eine Vereinstrainerin auf, dem Verein beizutreten,
         // den sie leitet. Genau das ist passiert.
-        var hatVerein = await db.BelongsToAnyClubAsync(userId, ct);
-        var hatGruppe = await db.BelongsToAnyGroupAsync(userId, ct);
+        var verein = await db.ClubMemberships
+            .Where(m => m.UserId == userId)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Mitglied = g.Any(m => m.Status == ClubMembershipStatus.Approved),
+                Angefragt = g.Any(m => m.Status == ClubMembershipStatus.Pending),
+            })
+            .FirstOrDefaultAsync(ct);
+
+        var hatVerein = (verein?.Mitglied ?? false)
+            || await db.ClubTrainers.AnyAsync(t => t.UserId == userId, ct);
+
+        var gruppe = await db.GroupMembers
+            .Where(m => m.UserId == userId)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Mitglied = g.Any(m => m.Status == GroupMemberStatus.Active),
+                Angefragt = g.Any(m => m.Status == GroupMemberStatus.Pending),
+            })
+            .FirstOrDefaultAsync(ct);
+
+        var hatGruppe = (gruppe?.Mitglied ?? false)
+            || await db.Groups.AnyAsync(g => g.TrainerId == userId, ct)
+            || await db.GroupTrainers.AnyAsync(t => t.UserId == userId, ct);
 
         // Eine offene Anfrage ist kein offener Schritt: Der Nutzer hat getan,
         // was er tun konnte, und wartet auf die Freigabe durch den Verein.
-        var vereinAngefragt = !hatVerein && vereine.Contains(ClubMembershipStatus.Pending);
-        var gruppeAngefragt = !hatGruppe && gruppen.Contains(GroupMemberStatus.Pending);
+        var vereinAngefragt = !hatVerein && (verein?.Angefragt ?? false);
+        var gruppeAngefragt = !hatGruppe && (gruppe?.Angefragt ?? false);
 
         var weggeklickt = await users.IsOnboardingDismissedAsync(userId, ct);
 

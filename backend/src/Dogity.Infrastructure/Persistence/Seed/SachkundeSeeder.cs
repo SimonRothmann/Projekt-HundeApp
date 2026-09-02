@@ -85,7 +85,7 @@ public static class SachkundeSeeder
         katalog.Edition = datei.Stand;
         katalog.Audience = Enum.Parse<QuizAudience>(daten.Zielgruppe);
         katalog.SortOrder = index + 1;
-        if (vorhanden is not null) katalog.UpdatedAt = DateTimeOffset.UtcNow;
+        if (vorhanden is not null) ZeitstempelWennGeaendert(db, katalog);
 
         // Die Frage-Zuordnung unten braucht die Katalog-Id.
         await db.SaveChangesAsync(ct);
@@ -118,10 +118,6 @@ public static class SachkundeSeeder
                 db.QuizQuestions.Add(frage);
                 nachNummer[fragenDaten.Nummer] = frage;
             }
-            else
-            {
-                frage.UpdatedAt = DateTimeOffset.UtcNow;
-            }
 
             frage.DeletedAt = null;
 
@@ -142,6 +138,7 @@ public static class SachkundeSeeder
             frage.ImageName = fragenDaten.Bild;
 
             SeedAntworten(db, frage, fragenDaten);
+            ZeitstempelWennGeaendert(db, frage);
         }
 
         // Was der Herausgeber gestrichen hat, verschwindet aus der App - der
@@ -160,6 +157,27 @@ public static class SachkundeSeeder
     /// der Abgleichschlüssel innerhalb einer Frage.</summary>
     private const int TermOffset = 100;
     private const int LabelOffset = 200;
+
+    /// <summary>
+    /// Setzt den Änderungszeitstempel nur, wenn sich an der Zeile wirklich
+    /// etwas geändert hat.
+    ///
+    /// Vorher wurde er bei jedem Durchlauf gesetzt - und weil der Seeder bei
+    /// JEDEM Start läuft, schrieb er damit den kompletten Fragenkatalog jedes
+    /// Mal neu: rund 110 Fragen und 430 Antwortzeilen ohne eine einzige
+    /// inhaltliche Änderung. Der Zeitstempel behauptete außerdem eine
+    /// Bearbeitung, die nie stattgefunden hat.
+    /// </summary>
+    private static void ZeitstempelWennGeaendert(ApplicationDbContext db, object zeile)
+    {
+        var eintrag = db.Entry(zeile);
+        if (eintrag.State != EntityState.Modified) return;
+
+        // Nur inhaltliche Änderungen zählen - ein bereits gesetztes UpdatedAt
+        // allein macht die Zeile nicht zu einer geänderten.
+        if (eintrag.Properties.Any(e => e.IsModified && e.Metadata.Name != nameof(Domain.Common.Entity.UpdatedAt)))
+            ((Domain.Common.Entity)zeile).UpdatedAt = DateTimeOffset.UtcNow;
+    }
 
     /// <summary>
     /// Gleicht die Zeilen unter der Frage über die Reihenfolge ab und ändert
@@ -183,10 +201,6 @@ public static class SachkundeSeeder
                 frage.Options.Add(option);
                 db.QuizOptions.Add(option);
             }
-            else
-            {
-                option.UpdatedAt = DateTimeOffset.UtcNow;
-            }
 
             option.DeletedAt = null;
             option.Kind = art;
@@ -194,6 +208,7 @@ public static class SachkundeSeeder
             option.IsCorrect = richtig;
             option.MatchKey = schluessel;
             option.ImageName = bild;
+            ZeitstempelWennGeaendert(db, option);
             behalten.Add(reihenfolge);
             return option;
         }

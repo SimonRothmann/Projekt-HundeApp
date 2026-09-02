@@ -1,4 +1,5 @@
 import { api, ApiError } from "@/lib/api";
+import { sharedDb } from "@/lib/idb";
 
 /**
  * Offline-Warteschlange für Schreibvorgänge, die laut PRODUCT_REQUIREMENTS.md
@@ -21,16 +22,12 @@ export type QueuedRequest = {
   createdAt: string;
 };
 
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(STORE_NAME, { keyPath: "id" });
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
+// Eine geteilte Verbindung statt einer pro Zugriff - Begründung in idb.ts.
+// Hier zählt das doppelt: Das Abspielen der Warteschlange greift pro Eintrag
+// zu, eine offline erfasste Trainingsserie also viele Male hintereinander.
+const openDb = sharedDb(DB_NAME, DB_VERSION, (db) => {
+  db.createObjectStore(STORE_NAME, { keyPath: "id" });
+});
 
 export async function enqueueRequest(item: Omit<QueuedRequest, "id" | "createdAt">): Promise<void> {
   const db = await openDb();

@@ -23,6 +23,12 @@ public interface IDogService
     Task<Result<DogImageDto>> GetImageAsync(Guid userId, Guid dogId, CancellationToken ct = default);
 
     /// <summary>
+    /// Kennzeichen des Bildes für den bedingten Abruf, ohne die Bilddaten zu
+    /// lesen. Siehe <see cref="DogService.GetImageETagAsync"/>.
+    /// </summary>
+    Task<Result<string>> GetImageETagAsync(Guid userId, Guid dogId, CancellationToken ct = default);
+
+    /// <summary>
     /// Setzt oder ersetzt das Profilbild. Nur für Besitzer des Hundes.
     /// Erwartet eine Data-URI; Typ und Größe werden geprüft.
     /// </summary>

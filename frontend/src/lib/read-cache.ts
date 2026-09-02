@@ -15,6 +15,8 @@
  * zu verlieren und umgekehrt).
  */
 
+import { sharedDb } from "@/lib/idb";
+
 const DB_NAME = "dogity-read-cache";
 const STORE_NAME = "entries";
 const DB_VERSION = 1;
@@ -25,16 +27,10 @@ type CacheEntry<T> = {
   cachedAt: number;
 };
 
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(STORE_NAME, { keyPath: "key" });
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
+// Eine geteilte Verbindung statt einer pro Zugriff - Begründung in idb.ts.
+const openDb = sharedDb(DB_NAME, DB_VERSION, (db) => {
+  db.createObjectStore(STORE_NAME, { keyPath: "key" });
+});
 
 export async function getCachedData<T>(key: string): Promise<T | null> {
   try {

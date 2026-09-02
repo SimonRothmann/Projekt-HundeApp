@@ -234,6 +234,38 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
                 $"data:{image.ContentType};base64,{Convert.ToBase64String(image.Data)}"));
     }
 
+    /// <summary>
+    /// Kennzeichen des aktuell hinterlegten Bildes - ohne die Bilddaten zu
+    /// lesen. Grundlage für den bedingten Abruf (ETag): Ein Profilbild wiegt
+    /// als Data-URI rund 64 KB, und es hing bisher an JEDEM Aufbau einer
+    /// Liste, in der der Hund vorkommt - die Antwort trägt weder
+    /// Cache-Control noch ETag, der Browser kann sie also nicht behalten, und
+    /// die Trainerübersicht mit einem Dutzend Hunden lud jedes Mal ein
+    /// Megabyte neu. Mit dem Kennzeichen beantwortet der Server den
+    /// Zweitabruf mit 304 und ohne Rumpf.
+    ///
+    /// Bewusst aus Id + Zeitstempel statt aus einer Prüfsumme über die Daten:
+    /// die Prüfsumme müsste die Bytes lesen, genau das soll entfallen. Beim
+    /// Austausch des Bildes ändert sich UpdatedAt, beim Ersetzen der Zeile
+    /// die Id - beides deckt den Wechsel ab.
+    /// </summary>
+    public async Task<Result<string>> GetImageETagAsync(Guid userId, Guid dogId, CancellationToken ct = default)
+    {
+        if (!await db.HasDogAccessAsync(userId, dogId, ct))
+            return Result<string>.NotFound("Hund nicht gefunden.");
+
+        var stempel = await db.DogImages
+            .AsNoTracking()
+            .Where(i => i.DogId == dogId)
+            .Select(i => new { i.Id, i.UpdatedAt, i.CreatedAt })
+            .FirstOrDefaultAsync(ct);
+
+        if (stempel is null) return Result<string>.Failure("Kein Bild hinterlegt.");
+
+        var zeit = stempel.UpdatedAt ?? stempel.CreatedAt;
+        return Result<string>.Success($"\"{stempel.Id:N}-{zeit.UtcTicks}\"");
+    }
+
     public async Task<Result> SetImageAsync(Guid userId, Guid dogId, string dataUrl, CancellationToken ct = default)
     {
         // Bild ändern darf nur, wer den Hund besitzt - ein zugewiesener Trainer

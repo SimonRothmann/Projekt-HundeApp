@@ -105,12 +105,17 @@ builder.Services.AddCors(options =>
             // ohne diese (dynamische, oft per DHCP wechselnde) IP fest in
             // Cors:AllowedOrigins eintragen zu müssen. In Production bleibt
             // die feste Origin-Liste aus der Konfiguration Pflicht.
-            policy.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod();
+            policy.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("ETag");
         }
         else
         {
             var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-            policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+            // ETag muss ausdrücklich freigegeben werden: Das Frontend liegt auf
+            // einer anderen Herkunft als die API, und ETag gehört nicht zu den
+            // Kopfzeilen, die ein Browser dort von sich aus durchreicht. Ohne
+            // die Freigabe liest das Frontend null und der bedingte Abruf der
+            // Hundebilder (If-None-Match) käme nie zustande.
+            policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("ETag");
         }
     });
 });

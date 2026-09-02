@@ -6,6 +6,19 @@ import { getCachedData, setCachedData } from "@/lib/read-cache";
 import { Dog as DogIcon } from "lucide-react";
 
 /**
+ * Das Bild liegt zusammen mit seinem Kennzeichen im Cache. Ältere Einträge
+ * enthalten nur die Data-URI als Zeichenkette - die bleiben gültig, sie
+ * führen lediglich einmal zu einem vollen statt einem bedingten Abruf.
+ */
+type GecachtesBild = { dataUrl: string; etag: string | null };
+
+async function gecachtesBild(key: string): Promise<GecachtesBild | null> {
+  const eintrag = await getCachedData<GecachtesBild | string>(key);
+  if (!eintrag) return null;
+  return typeof eintrag === "string" ? { dataUrl: eintrag, etag: null } : eintrag;
+}
+
+/**
  * Profilbild eines Hundes - oder das Platzhalter-Symbol, solange keines
  * hinterlegt ist.
  *
@@ -42,16 +55,24 @@ export function DogAvatar({
     const key = `dog-image-${dogId}`;
 
     (async () => {
-      const cached = await getCachedData<string>(key);
-      if (cached && active) setLoaded(cached);
+      const cached = await gecachtesBild(key);
+      if (cached && active) setLoaded(cached.dataUrl);
 
       try {
-        // 204 ohne Bild - dann liefert der Client undefined, kein Fehler.
-        const fresh = await api.get<{ dataUrl: string } | undefined>(`/api/dogs/${dogId}/image`);
-        if (!active) return;
-        if (fresh?.dataUrl) {
-          setLoaded(fresh.dataUrl);
-          await setCachedData(key, fresh.dataUrl);
+        // Bedingter Abruf: Liegt das Bild schon vor, schickt der Client sein
+        // Kennzeichen mit und der Server antwortet mit 304 ohne Rumpf. Das
+        // spart die rund 64 KB, die ein Profilbild als Data-URI wiegt - und
+        // zwar bei JEDEM Aufbau jeder Liste, in der der Hund vorkommt.
+        // Zwischenspeichern kann der Browser die Antwort nicht selbst: eigene
+        // Herkunft, Authorization-Kopfzeile, JSON-Rumpf.
+        const antwort = await api.getConditional<{ dataUrl: string }>(
+          `/api/dogs/${dogId}/image`,
+          cached?.etag ?? null,
+        );
+        if (!active || antwort.art !== "neu") return;
+        if (antwort.daten?.dataUrl) {
+          setLoaded(antwort.daten.dataUrl);
+          await setCachedData(key, { dataUrl: antwort.daten.dataUrl, etag: antwort.etag });
         }
       } catch {
         // Offline oder Serverfehler: der zwischengespeicherte Stand bleibt
