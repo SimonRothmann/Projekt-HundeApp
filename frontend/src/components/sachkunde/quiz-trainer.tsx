@@ -375,13 +375,24 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
                     </span>
                     {option.imageName ? (
                       // Bildantwort: die Zeichnung IST die Antwort, der Text ist
-                      // nur ihre Nummer (siehe Jugendfrage 30).
-                      // eslint-disable-next-line @next/next/no-img-element -- feste Zeichnung aus /public.
-                      <img
-                        src={`/sachkunde/${option.imageName}`}
-                        alt={`Zeichnung ${option.text}`}
-                        className="h-auto w-full max-w-[14rem] rounded border border-border/40 bg-white"
-                      />
+                      // ihre Nummer (siehe Jugendfrage 30).
+                      //
+                      // Die Nummer steht bewusst daneben: in die Zeichnungen sind
+                      // noch die Zahlen der Ursprungsvorlage eingebrannt (4, 3, 2),
+                      // und die stimmen nicht mit den Antwortnummern überein. Im
+                      // PDF lösen die Unterschriften unter den Bildern das auf -
+                      // ohne sie liest man die falsche Zahl.
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold">
+                          {option.text}
+                        </span>
+                        {/* eslint-disable-next-line @next/next/no-img-element -- feste Zeichnung aus /public. */}
+                        <img
+                          src={`/sachkunde/${option.imageName}`}
+                          alt={`Zeichnung ${option.text}`}
+                          className="h-auto w-full max-w-[12rem] rounded border border-border/40 bg-white"
+                        />
+                      </span>
                     ) : (
                       <span className="min-w-0 [overflow-wrap:anywhere]">{option.text}</span>
                     )}
