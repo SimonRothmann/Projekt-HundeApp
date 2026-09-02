@@ -4,10 +4,11 @@ import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Clock, MapPin } from "lucide-react";
+import { Clock, MapPin, Smile } from "lucide-react";
 import { toast } from "sonner";
 import { formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
 import { LocationTimeFields, type LocationValue } from "@/components/dogs/location-time-fields";
+import { ConditionPicker, conditionLabel } from "@/components/dogs/condition-picker";
 
 /**
  * Uhrzeit + Ort eines bereits erfassten Trainings nachträglich ändern.
@@ -32,6 +33,7 @@ export function SessionContextEditor({
     longitude: session.longitude,
     locationName: session.locationName ?? "",
   });
+  const [condition, setCondition] = useState(session.condition);
   const [saving, setSaving] = useState(false);
 
   const weather =
@@ -58,6 +60,7 @@ export function SessionContextEditor({
       longitude: session.longitude,
       locationName: session.locationName ?? "",
     });
+    setCondition(session.condition);
     setOpen(true);
   }
 
@@ -70,8 +73,9 @@ export function SessionContextEditor({
         latitude: location.latitude,
         longitude: location.longitude,
         locationName: location.locationName.trim() || null,
+        condition,
       });
-      toast.success("Ort & Zeit gespeichert – Wetter wird ermittelt.");
+      toast.success("Gespeichert – Wetter wird ermittelt.");
       setOpen(false);
       await onSaved();
     } catch (err) {
@@ -97,8 +101,16 @@ export function SessionContextEditor({
             {session.locationName}
           </span>
         )}
+        {conditionLabel(session.condition) && (
+          <span className="flex items-center gap-1">
+            <Smile className="size-3" />
+            {conditionLabel(session.condition)}
+          </span>
+        )}
         <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={openEditor}>
-          {weather ? "Ort & Zeit ändern" : "Ort & Zeit für Wetter"}
+          {/* Ausdrücklich gegen null geprüft: "motiviert" ist die 0, und die
+              wäre in einer Wahrheitsprüfung falsch. */}
+          {weather || session.condition != null ? "Ändern" : "Ort, Zeit & Verfassung"}
         </Button>
       </div>
     );
@@ -117,6 +129,11 @@ export function SessionContextEditor({
       <p className="text-xs text-muted-foreground">
         Mit Ort und Uhrzeit wird das Wetter automatisch ermittelt – auch für Trainings, die du nachträgst.
       </p>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium">Verfassung</span>
+        <ConditionPicker value={condition} onChange={setCondition} disabled={saving} />
+      </div>
 
       <div className="flex gap-2">
         <Button type="button" size="sm" disabled={saving} onClick={save}>

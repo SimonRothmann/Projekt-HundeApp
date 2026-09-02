@@ -1,6 +1,7 @@
 using System.Globalization;
 using Dogity.Application.Abstractions;
 using Dogity.Domain.Tracking;
+using Dogity.Domain.Training;
 using Dogity.Application.Common;
 using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
@@ -239,4 +240,101 @@ public class StatsService(IApplicationDbContext db) : IStatsService
         }
         return weeks;
     }
+
+    /// <inheritdoc />
+    public async Task<Result<DogConditionStatsDto>> GetDogConditionStatsAsync(
+        Guid userId, Guid dogId, CancellationToken ct = default)
+    {
+        if (!await db.HasDogAccessAsync(userId, dogId, ct))
+            return Result<DogConditionStatsDto>.NotFound("Hund nicht gefunden.");
+
+        // Eine Abfrage über alle Einheiten des Hundes: die Auswertung braucht
+        // ohnehin ALLE Tage, um zu wissen, an welchen davor trainiert wurde.
+        var einheiten = await db.TrainingSessions
+            .Where(s => s.DogId == dogId)
+            .Select(s => new SessionRow(
+                s.Date,
+                s.Condition,
+                s.Exercises.Count,
+                s.Exercises.Count == 0 ? (double?)null : s.Exercises.Average(e => (double)e.Rating),
+                s.Exercises.Count == 0 ? (double?)null : s.Exercises.Count(e => e.Success) / (double)s.Exercises.Count))
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var nachVerfassung = einheiten
+            .Where(e => e.Condition is not null)
+            .GroupBy(e => e.Condition!.Value)
+            .OrderBy(g => g.Key)
+            .Select(g => new ConditionRatingDto(
+                g.Key,
+                g.Count(),
+                Mittel(g.Select(e => e.AvgRating)),
+                Mittel(g.Select(e => e.SuccessRate))))
+            .ToList();
+
+        return Result<DogConditionStatsDto>.Success(new DogConditionStatsDto(
+            nachVerfassung,
+            NachTrainingsdichte(einheiten),
+            einheiten.Count(e => e.Condition is not null),
+            einheiten.Count));
+    }
+
+    /// <summary>
+    /// Gruppiert die Einheiten danach, wie viele Tage unmittelbar davor schon
+    /// trainiert wurde: 0 (Pause am Vortag), 1, oder 2 und mehr am Stück.
+    ///
+    /// Gezählt werden zusammenhängende Trainingstage direkt vor dem Tag - nicht
+    /// "Trainings der letzten drei Tage". Genau danach fragt man sich im
+    /// Alltag: "der dritte Tag in Folge, kein Wunder".
+    /// </summary>
+    private static IReadOnlyList<TrainingDensityDto> NachTrainingsdichte(List<SessionRow> einheiten)
+    {
+        var tage = einheiten.Select(e => e.Date).ToHashSet();
+
+        int VortageAmStueck(DateOnly tag)
+        {
+            var anzahl = 0;
+            var vorher = tag.AddDays(-1);
+            // Bei zwei ist Schluss: mehr Stufen würden die Gruppen so klein
+            // machen, dass der Schnitt nichts mehr aussagt.
+            while (anzahl < 2 && tage.Contains(vorher))
+            {
+                anzahl++;
+                vorher = vorher.AddDays(-1);
+            }
+            return anzahl;
+        }
+
+        return einheiten
+            .GroupBy(e => VortageAmStueck(e.Date))
+            .OrderBy(g => g.Key)
+            .Select(g => new TrainingDensityDto(
+                g.Key,
+                g.Count(),
+                Mittel(g.Select(e => e.AvgRating)),
+                Anteil(g, e => e.Condition is DogCondition.Tired or DogCondition.Stressed)))
+            .ToList();
+    }
+
+    /// <summary>Mittelwert über die vorhandenen Werte; null, wenn keiner da ist.</summary>
+    private static double? Mittel(IEnumerable<double?> werte)
+    {
+        var vorhanden = werte.Where(w => w is not null).Select(w => w!.Value).ToList();
+        return vorhanden.Count == 0 ? null : Math.Round(vorhanden.Average(), 2);
+    }
+
+    /// <summary>
+    /// Anteil innerhalb der Einheiten MIT angegebener Verfassung. Einheiten
+    /// ohne Angabe bleiben außen vor - sonst sähe ein Hund umso ausgeglichener
+    /// aus, je seltener jemand etwas eingetragen hat.
+    /// </summary>
+    private static double? Anteil(IEnumerable<SessionRow> gruppe, Func<SessionRow, bool> trifftZu)
+    {
+        var mitAngabe = gruppe.Where(e => e.Condition is not null).ToList();
+        return mitAngabe.Count == 0 ? null : Math.Round(mitAngabe.Count(trifftZu) / (double)mitAngabe.Count, 2);
+    }
+
+    private sealed record SessionRow(
+        DateOnly Date, DogCondition? Condition, int ExerciseCount, double? AvgRating, double? SuccessRate);
+
 }

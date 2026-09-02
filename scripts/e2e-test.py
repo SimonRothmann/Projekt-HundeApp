@@ -42,6 +42,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from datetime import date, timedelta
 
 PREFIX = "e2e-"
@@ -556,6 +557,62 @@ def run_feature_sweep(api: Api, admin_token: str) -> None:
               "zweite Anfrage wird abgewiesen")
         status, pending = api.call("GET", f"/api/clubs/{club_id}/join-requests", token=admin_token)
         check(status in (200, 404), "Anfrageliste abrufbar (nur für Vereinstrainer)", str(status))
+
+    section("Verfassung")
+    # Verfassung als Zahl: die API überträgt Enums numerisch (siehe difficulty).
+    MOTIVIERT, ABGELENKT, MUEDE, GESTRESST = 0, 2, 3, 4
+    _, verfassungshund = api.call("POST", "/api/dogs",
+                                  {"name": f"{PREFIX}Verfassung", "breed": "Mix", "gender": 1}, owner_token)
+    vhund = verfassungshund["id"]
+
+    def verfassungstraining(tage_zurueck: int, verfassung, bewertungen):
+        return api.call("POST", "/api/trainings", {
+            "dogId": vhund,
+            "date": str(today - timedelta(days=tage_zurueck)),
+            "durationMinutes": 30, "notes": None, "condition": verfassung,
+            "exercises": [{"exerciseId": None, "freeTextLabel": "Übung", "rating": b, "difficulty": 0,
+                           "success": b >= 3, "notes": None, "trainingPlanItemId": None} for b in bewertungen],
+        }, owner_token)
+
+    status, ersteEinheit = verfassungstraining(10, MOTIVIERT, [5, 5])
+    check(status in (200, 201) and ersteEinheit["condition"] == MOTIVIERT,
+          "Verfassung beim Anlegen speicherbar", str(status))
+    _, zweiteAmSelbenTag = verfassungstraining(10, GESTRESST, [4])
+    check(zweiteAmSelbenTag["condition"] == MOTIVIERT,
+          "zweiter Eintrag desselben Tages überschreibt die Verfassung nicht",
+          str(zweiteAmSelbenTag["condition"]))
+    verfassungstraining(9, MUEDE, [3, 3])
+    verfassungstraining(8, GESTRESST, [2])
+    verfassungstraining(3, None, [4])
+
+    status, verfassung = api.call("GET", f"/api/stats/dogs/{vhund}/condition", token=owner_token)
+    check(status == 200 and len(verfassung["byCondition"]) == 3,
+          "Auswertung nach Verfassung abrufbar", str(status))
+    dichte = {d["precedingTrainingDays"]: d for d in verfassung["byPrecedingDays"]}
+    check(sorted(dichte) == [0, 1, 2], "drei Gruppen nach Trainingstagen am Stück", str(sorted(dichte)))
+    check(dichte[0]["avgRating"] > dichte[2]["avgRating"],
+          "nach einer Pause fällt die Bewertung besser aus als am dritten Tag",
+          f"{dichte[0]['avgRating']} vs {dichte[2]['avgRating']}")
+    check(dichte[2]["tiredOrStressedShare"] == 1.0,
+          "müde/gestresst am dritten Tag wird ausgewiesen", str(dichte[2]))
+    # Vier Trainingstage (der zweite Eintrag am selben Tag wird verschmolzen),
+    # drei davon mit Verfassung.
+    check(verfassung["sessionsWithCondition"] == 3 and verfassung["sessionsTotal"] == 4,
+          "Abdeckung wird ausgewiesen", str((verfassung["sessionsWithCondition"], verfassung["sessionsTotal"])))
+
+    status, _ = api.call("PUT", f"/api/trainings/{ersteEinheit['id']}/context",
+                         {"startTime": None, "latitude": None, "longitude": None,
+                          "locationName": None, "condition": ABGELENKT}, owner_token)
+    _, nachher = api.call("GET", f"/api/trainings?dogId={vhund}", token=owner_token)
+    check(status == 200 and any(s["condition"] == ABGELENKT for s in nachher),
+          "Verfassung nachträglich änderbar")
+    api.call("PUT", f"/api/trainings/{ersteEinheit['id']}/context",
+             {"startTime": None, "latitude": None, "longitude": None,
+              "locationName": None, "condition": None}, owner_token)
+    _, geleert = api.call("GET", f"/api/trainings?dogId={vhund}", token=owner_token)
+    check(all(s["condition"] != ABGELENKT for s in geleert), "und wieder entfernbar")
+    check(api.call("GET", f"/api/stats/dogs/{uuid.uuid4()}/condition", token=owner_token)[0] == 404,
+          "fremder Hund ist nicht einsehbar")
 
     section("Sachkunde-Fragentrainer")
     status, kataloge = api.call("GET", "/api/sachkunde/catalogs")

@@ -18,4 +18,11 @@ public interface IStatsService
     /// Zugriff: Besitzer oder zugewiesener Trainer des Hundes.
     /// </summary>
     Task<Result<DogTrackStatsDto>> GetDogTrackStatsAsync(Guid userId, Guid dogId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Zusammenhänge zwischen Verfassung, Trainingsdichte und Bewertung -
+    /// das, was im Alltag untergeht, weil niemand seine Trainingstage
+    /// zusammenzählt.
+    /// </summary>
+    Task<Result<DogConditionStatsDto>> GetDogConditionStatsAsync(Guid userId, Guid dogId, CancellationToken ct = default);
 }

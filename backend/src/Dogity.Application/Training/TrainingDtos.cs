@@ -1,4 +1,5 @@
 using Dogity.Domain.Sports;
+using Dogity.Domain.Training;
 
 namespace Dogity.Application.Training;
 
@@ -44,6 +45,8 @@ public record TrainingSessionDto(
     int? RelativeHumidity,
     double? WindSpeedKmh,
     int? WeatherCode,
+    /// <summary>Verfassung des Hundes an diesem Trainingstag; null, wenn nicht angegeben.</summary>
+    DogCondition? Condition,
     /// <summary>
     /// Ob zu diesem Training mindestens eine Fährte (GpsTrack) existiert.
     /// Erspart dem Frontend einen GPS-Request pro Trainings-Karte, nur um
@@ -128,7 +131,8 @@ public record UpdateSessionContextRequest(
     TimeOnly? StartTime,
     double? Latitude,
     double? Longitude,
-    string? LocationName);
+    string? LocationName,
+    DogCondition? Condition = null);
 
 /// <summary>
 /// Datum eines Trainings korrigieren - Trainings werden oft erst abends oder
@@ -159,6 +163,11 @@ public record CreateTrainingSessionRequest(
     double? Latitude = null,
     double? Longitude = null,
     string? LocationName = null,
+    /// <summary>
+    /// Verfassung des Hundes an diesem Tag. Optional; wird beim Zusammenfassen
+    /// mehrerer Einträge desselben Tages nur gesetzt, wenn noch keine da ist.
+    /// </summary>
+    DogCondition? Condition = null,
     /// <summary>
     /// Optional vom Client vorgegebene Id (siehe ARCHITECTURE.md "Offline
     /// Architektur"): erlaubt es dem Frontend, die Id schon beim Start einer

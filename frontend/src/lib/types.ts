@@ -123,6 +123,8 @@ export type TrainingSession = {
   relativeHumidity: number | null;
   windSpeedKmh: number | null;
   weatherCode: number | null;
+  // Verfassung des Hundes an diesem Trainingstag; null, wenn nicht angegeben.
+  condition: DogCondition | null;
   // Ob mindestens eine Fährte existiert - erspart den GPS-Request pro
   // Trainings-Karte (GpsTrackSection wird bei abgeschlossenen Trainings
   // ohne Fährte gar nicht erst gemountet, siehe SessionHistory).
@@ -628,6 +630,45 @@ export type DogTrackStats = {
   deviationTrend: number | null;
   // Positiv = mehr Zeit auf der Fährte = Verbesserung.
   onTrackTrend: number | null;
+};
+
+// Verfassung des Hundes an einem Trainingstag. Optional - wer nichts angibt,
+// taucht in der Auswertung gar nicht auf, statt als "ausgeglichen" zu zählen.
+//
+// Zahlen, keine Namen: Die API überträgt Enums durchgehend numerisch (siehe
+// ExerciseDifficulty, GoalStatus). Die Zuordnung zu Beschriftungen steht an
+// genau einer Stelle - components/dogs/condition-picker.tsx.
+export const DOG_CONDITION = {
+  Motivated: 0,
+  Settled: 1,
+  Distracted: 2,
+  Tired: 3,
+  Stressed: 4,
+} as const;
+
+export type DogCondition = (typeof DOG_CONDITION)[keyof typeof DOG_CONDITION];
+
+export type ConditionRating = {
+  condition: DogCondition;
+  sessionCount: number;
+  avgRating: number | null;
+  successRate: number | null;
+};
+
+// Bewertungen danach gruppiert, wie viele Tage unmittelbar davor schon
+// trainiert wurde: 0 = am Vortag Pause, 1, 2 = zwei oder mehr am Stück.
+export type TrainingDensity = {
+  precedingTrainingDays: number;
+  sessionCount: number;
+  avgRating: number | null;
+  tiredOrStressedShare: number | null;
+};
+
+export type DogConditionStats = {
+  byCondition: ConditionRating[];
+  byPrecedingDays: TrainingDensity[];
+  sessionsWithCondition: number;
+  sessionsTotal: number;
 };
 
 export type GroupJoinRequest = {

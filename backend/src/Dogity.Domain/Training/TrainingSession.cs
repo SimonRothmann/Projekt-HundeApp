@@ -37,6 +37,13 @@ public class TrainingSession : Entity
     public DateTimeOffset? WeatherFetchedAt { get; set; }
 
     public int DurationMinutes { get; set; }
+
+    /// <summary>
+    /// Verfassung des Hundes an diesem Trainingstag. Optional - ein Pflichtfeld
+    /// mehr würde die Hürde beim Eintragen wieder anheben, die zuletzt mühsam
+    /// gesenkt wurde.
+    /// </summary>
+    public DogCondition? Condition { get; set; }
     public string? Notes { get; set; }
 
     /// <summary>

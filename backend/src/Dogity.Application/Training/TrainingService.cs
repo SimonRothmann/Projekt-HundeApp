@@ -141,6 +141,12 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                         await mastery.ApplyLogAsync(request.DogId, exId, exercise.Rating, exercise.Success, request.Date, ct);
                 }
 
+                // Verfassung nur eintragen, wenn der Tag noch keine hat. Ein
+                // zweiter Eintrag desselben Tages soll die erste Einschätzung
+                // nicht stillschweigend überschreiben - ändern geht über die
+                // Trainingskarte.
+                daySession.Condition ??= request.Condition;
+
                 daySession.DurationMinutes += request.DurationMinutes;
                 var newNotes = request.Notes?.Trim();
                 if (!string.IsNullOrEmpty(newNotes))
@@ -167,7 +173,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             Longitude = request.Longitude,
             LocationName = request.LocationName,
             DurationMinutes = request.DurationMinutes,
-            Notes = request.Notes
+            Notes = request.Notes,
+            Condition = request.Condition
         };
 
         if (request.Id is { } id)
@@ -256,6 +263,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         session.Longitude = request.Longitude;
         var name = request.LocationName?.Trim();
         session.LocationName = string.IsNullOrEmpty(name) ? null : name;
+        session.Condition = request.Condition;
 
         await RefreshWeatherAsync(session, ct);
         await db.SaveChangesAsync(ct);
@@ -646,5 +654,6 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         s.RelativeHumidity,
         s.WindSpeedKmh,
         s.WeatherCode,
+        s.Condition,
         hasGpsTrack);
 }

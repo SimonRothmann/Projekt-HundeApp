@@ -428,6 +428,15 @@ Felder:
 
 ---
 
+`condition` hält die Verfassung des Hundes an diesem Trainingstag
+(Motivated/Settled/Distracted/Tired/Stressed), optional. Grundlage der
+Auswertung "Verfassung gegen Bewertung" und "Trainingstage am Stück" - siehe
+docs/VERFASSUNG.md. Bewusst an der Einheit und nicht an der einzelnen Übung:
+sie soll mit EINEM Tipp gesetzt sein.
+
+
+---
+
 ## training_exercises
 
 

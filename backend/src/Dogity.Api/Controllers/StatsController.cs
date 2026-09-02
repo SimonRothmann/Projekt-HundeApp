@@ -26,4 +26,11 @@ public class StatsController(IStatsService statsService) : ApiControllerBase
         var result = await statsService.GetDogTrackStatsAsync(CurrentUserId, dogId, ct);
         return FromResult(result);
     }
+
+    /// <summary>
+    /// Verfassung gegen Bewertung, und was die Trainingsdichte damit macht.
+    /// </summary>
+    [HttpGet("dogs/{dogId:guid}/condition")]
+    public async Task<ActionResult<DogConditionStatsDto>> GetDogCondition(Guid dogId, CancellationToken ct) =>
+        FromResult(await statsService.GetDogConditionStatsAsync(CurrentUserId, dogId, ct));
 }

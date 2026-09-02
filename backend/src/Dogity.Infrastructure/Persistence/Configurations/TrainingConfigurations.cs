@@ -9,6 +9,10 @@ public class TrainingSessionConfiguration : IEntityTypeConfiguration<TrainingSes
     public void Configure(EntityTypeBuilder<TrainingSession> builder)
     {
         builder.ToTable("training_sessions");
+
+        builder.Property(s => s.Condition).HasConversion<string>().HasMaxLength(20);
+        // Trägt die Auswertung "Verfassung gegen Bewertung".
+        builder.HasIndex(s => new { s.DogId, s.Condition });
         builder.Property(t => t.Notes).HasMaxLength(4000);
         builder.Property(t => t.TrainerFeedback).HasMaxLength(2000);
         builder.HasIndex(t => new { t.UserId, t.DogId, t.Date });

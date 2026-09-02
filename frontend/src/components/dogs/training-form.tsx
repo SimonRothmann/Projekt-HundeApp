@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Exercise, Goal, Sport, TrainingSession } from "@/lib/types";
+import type { DogCondition, Exercise, Goal, Sport, TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { difficultyLabel } from "@/lib/constants";
 import { LocationTimeFields, type LocationValue } from "@/components/dogs/location-time-fields";
+import { ConditionPicker } from "@/components/dogs/condition-picker";
 
 type ExerciseRow = {
   sportId: string;
@@ -72,6 +73,7 @@ export function TrainingForm({
 }) {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [duration, setDuration] = useState(30);
+  const [condition, setCondition] = useState<DogCondition | null>(null);
   const [notes, setNotes] = useState("");
   // Ort und Uhrzeit gleich beim Erfassen - der Server nimmt beides seit jeher
   // entgegen und ermittelt daraus das Wetter; nur das Formular bot es bisher
@@ -167,6 +169,7 @@ export function TrainingForm({
       latitude: location.latitude,
       longitude: location.longitude,
       locationName: location.locationName.trim() || null,
+      condition,
       exercises: validRows.map((r) => ({
         exerciseId: r.isFreeText ? null : r.exerciseId,
         freeTextLabel: r.isFreeText ? r.freeText.trim() : null,
@@ -183,6 +186,7 @@ export function TrainingForm({
       await api.post<TrainingSession>("/api/trainings", payload);
       toast.success("Training gespeichert.");
       setRows([emptyRow()]);
+      setCondition(null);
       setNotes("");
       resetContext();
       await onSaved(false);
@@ -393,6 +397,11 @@ export function TrainingForm({
               <Plus className="size-4" />
               Übung hinzufügen
             </Button>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>Verfassung (optional)</Label>
+            <ConditionPicker value={condition} onChange={setCondition} disabled={isSubmitting} />
           </div>
 
           <div className="flex flex-col gap-3">

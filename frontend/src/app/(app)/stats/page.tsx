@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, ChevronDown, ChevronRight, Dog, TrendingDown, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { ConditionStats } from "@/components/dogs/condition-stats";
 
 // Bewertungstrend als Pfeil: steigend (grün) / fallend (rot) / stabil.
 // null (zu wenige Durchgänge) rendert nichts.
@@ -283,8 +284,9 @@ export default function StatsPage() {
                           Übungen &amp; Schwerpunkte
                         </Button>
                         {openDogs.has(dog.dogId) && (
-                          <div className="mt-2">
+                          <div className="mt-2 flex flex-col gap-4">
                             <DogExercises dogId={dog.dogId} />
+                            <ConditionStats dogId={dog.dogId} />
                           </div>
                         )}
                       </div>
