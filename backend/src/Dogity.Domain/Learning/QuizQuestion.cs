@@ -65,5 +65,21 @@ public class QuizQuestion : Entity
     /// </summary>
     public string? ImageName { get; set; }
 
+    /// <summary>
+    /// Gesetzt, sobald jemand die Frage in der Verwaltung von Hand
+    /// überarbeitet hat. Der Seeder lässt solche Fragen dann in Ruhe.
+    ///
+    /// Ohne das wäre jede Korrektur beim nächsten Start wieder weg: der Seeder
+    /// schreibt Text und Antworten bei jedem Hochfahren aus der Katalogdatei.
+    /// Dasselbe Muster wie beim trainergepflegten Trainingsplan
+    /// (<c>Goal.PlanManagedByTrainerId</c>) - wer eingreift, behält das Sagen.
+    ///
+    /// Zurücknehmen lässt es sich in der Verwaltung ("wieder aus dem Katalog
+    /// übernehmen"): dann greift beim nächsten Start wieder die Vorlage.
+    /// </summary>
+    public DateTimeOffset? EditedAt { get; set; }
+
+    public Guid? EditedByUserId { get; set; }
+
     public ICollection<QuizOption> Options { get; set; } = new List<QuizOption>();
 }

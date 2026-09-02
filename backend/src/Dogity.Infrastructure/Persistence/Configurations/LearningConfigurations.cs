@@ -47,6 +47,9 @@ public class QuizQuestionConfiguration : IEntityTypeConfiguration<QuizQuestion>
         // der Seeder die vorhandene Zeile wiederbeleben statt eine zweite
         // anzulegen (FindIncludingRemovedAsync, siehe SoftDeleteRevival).
         builder.HasIndex(q => new { q.CatalogId, q.Number }).IsUnique();
+
+        // Trägt die Verwaltungsansicht "was wurde schon angefasst".
+        builder.HasIndex(q => q.EditedAt);
     }
 }
 
@@ -61,6 +64,7 @@ public class QuizOptionConfiguration : IEntityTypeConfiguration<QuizOption>
         // gültigen Enum-Wert bekommen (nicht "" -> Lesefehler).
         builder.Property(o => o.Kind).HasConversion<string>().HasMaxLength(20).HasDefaultValue(QuizOptionKind.Answer);
         builder.Property(o => o.MatchKey).HasMaxLength(8);
+        builder.Property(o => o.ImageName).HasMaxLength(100);
 
         builder.HasOne(o => o.Question)
             .WithMany(q => q.Options)

@@ -35,7 +35,7 @@ public record QuizQuestionDto(
     IReadOnlyList<QuizKeyDto> Keys,
     QuizQuestionStateDto? State);
 
-public record QuizOptionDto(Guid Id, string Text, bool IsCorrect);
+public record QuizOptionDto(Guid Id, string Text, bool IsCorrect, string? ImageName);
 
 /// <summary>Ein zuzuordnender Begriff einer Zuordnungsaufgabe.</summary>
 public record QuizTermDto(Guid Id, string Text, string SolutionKey);

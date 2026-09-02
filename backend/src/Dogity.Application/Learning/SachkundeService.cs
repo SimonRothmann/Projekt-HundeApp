@@ -398,7 +398,7 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
             frage.ImageName,
             frage.SampleSolution,
             zeilen.Where(o => o.Kind == QuizOptionKind.Answer)
-                  .Select(o => new QuizOptionDto(o.Id, o.Text, o.IsCorrect)).ToList(),
+                  .Select(o => new QuizOptionDto(o.Id, o.Text, o.IsCorrect, o.ImageName)).ToList(),
             begriffe,
             schluessel,
             stand is null

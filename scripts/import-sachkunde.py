@@ -36,7 +36,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 ZIEL_JSON = REPO / "backend/src/Dogity.Infrastructure/Persistence/Seed/Data/sachkunde-swhv.json"
-ZIEL_BILD = REPO / "frontend/public/sachkunde/a2.jpg"
+ZIEL_BILDER = REPO / "frontend/public/sachkunde"
 
 HERAUSGEBER = "Südwestdeutscher Hundesportverband e.V. (swhv)"
 QUELLE = "https://swhv.de/fileadmin/swhv.de/Dokumente/Formulare_und_Texte/Basis/"
@@ -76,6 +76,17 @@ ZUORDNUNG_DREISPALTIG = re.compile(r"^\s*(\S.*?)\s{2,}([A-E])\s{2,}([A-E])\.\s*(
 ZUORDNUNG_GELISTET = re.compile(r"^\s*([a-e])\)\s*(\S.*?)\s+([A-E]|\d+)\s*$")
 ZUORDNUNG_ZWEISPALTIG = re.compile(r"^\s*(\S.*?)\s{2,}([A-E]|\d+)\s*$")
 NUR_OPTION = re.compile(r"^\s*([A-E])\.\s*(.+?)\s*$")
+
+# pdftotext gibt die Ankreuzkästchen der Jugendfassung als Steuerzeichen aus
+# (U+0088 für das leere, ":" für das angekreuzte). Das leere Kästchen blieb in
+# der ersten Fassung in JEDEM Antworttext stehen - unsichtbar im Terminal,
+# sichtbar in der App. Deshalb fliegen hier alle Steuerzeichen raus.
+STEUERZEICHEN = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+
+def saubern(text: str) -> str:
+    """Steuerzeichen entfernen und Leerraum vereinheitlichen."""
+    return re.sub(r"\s+", " ", STEUERZEICHEN.sub("", text)).strip()
 
 
 def pdftotext(pdf: Path) -> list[str]:
@@ -181,14 +192,44 @@ def parse_jugend(zeilen: list[str]) -> list[dict]:
             continue
         # Im Jugendkatalog markiert das angekreuzte Kästchen die richtige
         # Antwort; pdftotext gibt es als ":" aus.
-        richtig = bool(re.match(r"\s*:", zeile))
-        text = re.sub(r"^\s*:?\s*", "", zeile).strip()
-        text = re.sub(r"\s{3,}Lösungsbogen\s*$", "", text).strip()
-        aktuell["antworten"].append({"text": text, "richtig": richtig})
+        richtig = bool(re.match(r"\s*[:\x88]*\s*:", zeile))
+        text = saubern(re.sub(r"^\s*:?\s*", "", zeile))
+        text = re.sub(r"\s+Lösungsbogen\s*$", "", text).strip()
+        if text:
+            aktuell["antworten"].append({"text": text, "richtig": richtig, "bild": None})
 
     if aktuell:
         fragen.append(aktuell)
+
+    for frage in fragen:
+        frage["antworten"] = ohne_layoutmuell(frage["antworten"])
     return fragen
+
+
+def ohne_layoutmuell(antworten: list[dict]) -> list[dict]:
+    """Entfernt, was aus dem Seitenlayout stammt statt aus der Frage.
+
+    Die Bildfrage 30 ("Welcher Hund zeigt eine Spielhaltung?") hat drei
+    Zeichnungen mit den Unterschriften 1, 2 und 3. pdftotext liest die
+    Unterschriften als weitere Zeilen mit - einmal als "1  3" (die beiden
+    äußeren stehen auf einer Höhe) und einmal als "2". Beides landete als
+    zusätzliche Antwort in der App.
+
+    Regel: eine reine Zahlenzeile ist nur dann eine Antwort, wenn diese Zahl
+    nicht schon als Antwort dasteht.
+    """
+    ergebnis: list[dict] = []
+    gesehen: set[str] = set()
+    for antwort in antworten:
+        text = antwort["text"]
+        zahlen = text.split()
+        if all(z.isdigit() for z in zahlen) and any(z in gesehen for z in zahlen):
+            continue
+        if text in gesehen:
+            continue
+        gesehen.add(text)
+        ergebnis.append(antwort)
+    return ergebnis
 
 
 def art(frage: dict) -> str:
@@ -248,7 +289,7 @@ def aufbereiten(frage: dict) -> dict:
         "komplex": frage["komplex"],
         "reihenfolge": frage["reihenfolge"],
         "art": kind,
-        "text": re.sub(r"\s+", " ", frage["text"]).strip(),
+        "text": saubern(frage["text"]),
         "bild": frage["bild"],
         "musterloesung": None,
         "antworten": [],
@@ -258,10 +299,11 @@ def aufbereiten(frage: dict) -> dict:
         ergebnis["musterloesung"] = musterloesung_aus_paaren(frage)
         ergebnis["zuordnung"] = zuordnung_aufbereiten(frage)
     elif kind == "FreeText":
-        ergebnis["musterloesung"] = re.sub(r"\s+", " ", frage["musterloesung"]).strip()
+        ergebnis["musterloesung"] = saubern(frage["musterloesung"])
     else:
         ergebnis["antworten"] = [
-            {"text": re.sub(r"\s+", " ", a["text"]).strip(), "richtig": a["richtig"], "reihenfolge": i + 1}
+            {"text": saubern(a["text"]), "richtig": a["richtig"], "reihenfolge": i + 1,
+             "bild": a.get("bild")}
             for i, a in enumerate(frage["antworten"])]
     return ergebnis
 
@@ -295,6 +337,70 @@ def pruefen(name: str, fragen: list[dict]) -> None:
         sys.exit(f"{name}: Katalog nicht plausibel -\n  " + "\n  ".join(fehler))
 
 
+def groesste_bilder(pdf: Path, seite: int, anzahl: int, endung: str) -> list[Path]:
+    """Die N größten Bilder einer Seite, in der Reihenfolge, in der das PDF sie führt.
+
+    Auf einer Seite stecken neben den Zeichnungen dutzende Winzbilder (Reste der
+    Schriftdarstellung, wenige hundert Byte). Nach Größe zu sortieren trennt die
+    Zeichnungen sauber ab; die Rückgabe steht danach wieder in Objektreihenfolge,
+    weil die Zuordnung darauf aufbaut.
+    """
+    tmp = ZIEL_BILDER / "_extract"
+    schalter = "-j" if endung == "jpg" else "-png"
+    subprocess.run(["pdfimages", "-f", str(seite), "-l", str(seite), schalter, str(pdf), str(tmp)], check=True)
+    alle = sorted(ZIEL_BILDER.glob(f"_extract-*.{endung}"))
+    grosse = sorted(sorted(alle, key=lambda p: p.stat().st_size, reverse=True)[:anzahl])
+    for rest in ZIEL_BILDER.glob("_extract-*"):
+        if rest not in grosse:
+            rest.unlink()
+    return grosse
+
+
+def bilder_holen(erw_pdf: Path, jgd_pdf: Path, erwachsene: list[dict], jugend: list[dict]) -> None:
+    """Zeichnungen aus beiden PDFs übernehmen.
+
+    Zwei Fragen sind ohne Abbildung sinnlos:
+
+    A2 (Erwachsene) zeigt fünf Körperhaltungen in EINER Zeichnung, die
+    Zuordnung verweist auf die Ziffern darin - ein Bild an der Frage.
+
+    Jugend 30 ("Welcher Hund zeigt eine Spielhaltung?") zeigt drei einzelne
+    Zeichnungen, je eine je Antwort - drei Bilder an den Antworten.
+    """
+    for bild in groesste_bilder(erw_pdf, seite=1, anzahl=1, endung="jpg"):
+        shutil.move(str(bild), ZIEL_BILDER / "a2.jpg")
+    for frage in erwachsene:
+        if frage["nummer"] == "A2":
+            frage["bild"] = "a2.jpg"
+
+    zeichnungen = groesste_bilder(jgd_pdf, seite=5, anzahl=3, endung="png")
+    if len(zeichnungen) != 3:
+        return
+
+    # Die Reihenfolge der eingebetteten Bilder ist NICHT die Reihenfolge auf der
+    # Seite. Gegen die gerenderte Seite 5 geprüft: die Unterschrift 1 gehört zur
+    # zweiten eingebetteten Zeichnung, die 2 zur ersten, die 3 zur dritten.
+    #
+    # In die Zeichnungen selbst sind noch die Zahlen 3, 4 und 2 eingebrannt -
+    # Reste derselben Vorlage, aus der auch A2 stammt. Maßgeblich sind die
+    # Unterschriften des PDF, nicht die eingebrannten Zahlen.
+    UNTERSCHRIFT_ZU_BILD = {"1": 1, "2": 0, "3": 2}
+
+    for frage in jugend:
+        if frage["nummer"] != "30":
+            continue
+        for antwort in frage["antworten"]:
+            index = UNTERSCHRIFT_ZU_BILD.get(antwort["text"].strip())
+            if index is None:
+                continue
+            ziel = ZIEL_BILDER / f"jgd30-{antwort['text'].strip()}.png"
+            shutil.copy(str(zeichnungen[index]), ziel)
+            antwort["bild"] = ziel.name
+
+    for rest in zeichnungen:
+        rest.unlink(missing_ok=True)
+
+
 def main() -> None:
     quelle = Path(sys.argv[1] if len(sys.argv) > 1 else "~/Downloads").expanduser()
 
@@ -304,19 +410,8 @@ def main() -> None:
     erwachsene = [aufbereiten(f) for f in parse_erwachsene(pdftotext(erw_pdf))]
     jugend = [aufbereiten(f) for f in parse_jugend(pdftotext(jgd_pdf))]
 
-    # A2 zeigt fünf Körperhaltungen als Zeichnung - ohne das Bild ist die Frage
-    # sinnlos. Das größte Bild auf Seite 1 ist die Zeichnung.
-    ZIEL_BILD.parent.mkdir(parents=True, exist_ok=True)
-    tmp = ZIEL_BILD.parent / "_extract"
-    subprocess.run(["pdfimages", "-f", "1", "-l", "1", "-j", str(erw_pdf), str(tmp)], check=True)
-    bilder = sorted(tmp.parent.glob("_extract-*.jpg"), key=lambda p: p.stat().st_size, reverse=True)
-    if bilder:
-        shutil.move(str(bilder[0]), ZIEL_BILD)
-        for rest in tmp.parent.glob("_extract-*"):
-            rest.unlink()
-        for frage in erwachsene:
-            if frage["nummer"] == "A2":
-                frage["bild"] = "a2.jpg"
+    ZIEL_BILDER.mkdir(parents=True, exist_ok=True)
+    bilder_holen(erw_pdf, jgd_pdf, erwachsene, jugend)
 
     pruefen("Erwachsene", erwachsene)
     pruefen("Jugend", jugend)
@@ -349,8 +444,7 @@ def main() -> None:
         print(f"{katalog['code']}: {len(katalog['fragen'])} Fragen  "
               f"{dict(sorted(arten.items()))}  {dict(sorted(komplexe.items()))}")
     print(f"→ {ZIEL_JSON.relative_to(REPO)}")
-    if bilder:
-        print(f"→ {ZIEL_BILD.relative_to(REPO)}")
+    print(f"→ {ZIEL_BILDER.relative_to(REPO)}/")
 
 
 if __name__ == "__main__":

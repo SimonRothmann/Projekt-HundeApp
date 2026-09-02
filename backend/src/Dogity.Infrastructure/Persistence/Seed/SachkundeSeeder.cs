@@ -124,6 +124,15 @@ public static class SachkundeSeeder
             }
 
             frage.DeletedAt = null;
+
+            // Von Hand überarbeitete Fragen bleiben, wie sie sind. Die
+            // Katalogdatei ist die Vorlage, nicht das letzte Wort - sie stammt
+            // aus einer PDF-Auswertung und hat Ecken, die nur ein Mensch
+            // glattzieht. Nur die Zugehörigkeit zum Katalog wird weiter
+            // gepflegt, damit die Frage nicht als "gestrichen" gilt.
+            if (frage.EditedAt is not null)
+                continue;
+
             frage.Section = fragenDaten.Komplex;
             frage.SectionName = komplexe.GetValueOrDefault(fragenDaten.Komplex, fragenDaten.Komplex);
             frage.SortOrder = fragenDaten.Reihenfolge;
@@ -164,7 +173,8 @@ public static class SachkundeSeeder
         var bestand = frage.Options.OrderBy(o => o.SortOrder).ToList();
         var behalten = new HashSet<int>();
 
-        QuizOption Zeile(int reihenfolge, QuizOptionKind art, string text, bool richtig, string? schluessel)
+        QuizOption Zeile(int reihenfolge, QuizOptionKind art, string text, bool richtig, string? schluessel,
+                         string? bild = null)
         {
             var option = bestand.FirstOrDefault(o => o.SortOrder == reihenfolge);
             if (option is null)
@@ -183,12 +193,13 @@ public static class SachkundeSeeder
             option.Text = text;
             option.IsCorrect = richtig;
             option.MatchKey = schluessel;
+            option.ImageName = bild;
             behalten.Add(reihenfolge);
             return option;
         }
 
         foreach (var antwort in daten.Antworten)
-            Zeile(antwort.Reihenfolge, QuizOptionKind.Answer, antwort.Text, antwort.Richtig, null);
+            Zeile(antwort.Reihenfolge, QuizOptionKind.Answer, antwort.Text, antwort.Richtig, null, antwort.Bild);
 
         if (daten.Zuordnung is { } zuordnung)
         {
@@ -248,5 +259,6 @@ public static class SachkundeSeeder
     private sealed record SeedAntwort(
         [property: JsonPropertyName("text")] string Text,
         [property: JsonPropertyName("richtig")] bool Richtig,
-        [property: JsonPropertyName("reihenfolge")] int Reihenfolge);
+        [property: JsonPropertyName("reihenfolge")] int Reihenfolge,
+        [property: JsonPropertyName("bild")] string? Bild);
 }

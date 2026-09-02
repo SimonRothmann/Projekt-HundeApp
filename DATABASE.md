@@ -705,15 +705,25 @@ sample_solution (nur Assignment/FreeText)
 
 image_name
 
+edited_at
+
+edited_by_user_id
+
 
 Eindeutig je (catalog_id, number). Der Index kennt `deleted_at` NICHT - wird
 eine Frage entfernt und später wieder aufgenommen, muss der Seeder die
 vorhandene Zeile wiederbeleben statt eine zweite anzulegen.
 
 
-Zuordnungs- und Freitextfragen lassen sich nicht automatisch prüfen. Sie
-tragen statt Antwortmöglichkeiten eine Musterlösung und werden selbst
-eingeschätzt ("gewusst" / "nicht gewusst").
+Freitextfragen lassen sich nicht automatisch prüfen. Sie tragen statt
+Antwortmöglichkeiten eine Musterlösung und werden selbst eingeschätzt
+("gewusst" / "nicht gewusst").
+
+
+`edited_at` wird gesetzt, sobald jemand die Frage in der Verwaltung von Hand
+überarbeitet hat. Der Seeder überspringt solche Fragen dann vollständig - ohne
+das wäre jede Korrektur beim nächsten Start wieder weg. Dasselbe Muster wie
+`goals.plan_managed_by_trainer_id`: wer eingreift, behält das Sagen.
 
 
 ---
@@ -739,6 +749,8 @@ text
 is_correct (nur bei Answer)
 
 match_key (bei Term der richtige Schlüssel, bei Label der benannte)
+
+image_name (wenn die Antwort selbst ein Bild ist)
 
 sort_order
 

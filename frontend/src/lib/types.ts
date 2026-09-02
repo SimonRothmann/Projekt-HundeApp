@@ -663,6 +663,9 @@ export type QuizOption = {
   id: string;
   text: string;
   isCorrect: boolean;
+  // Gesetzt, wenn die Antwort selbst ein Bild ist ("Welcher Hund zeigt eine
+  // Spielhaltung?" - drei Zeichnungen, je eine je Antwort).
+  imageName: string | null;
 };
 
 // Ein zuzuordnender Begriff ("Boxer", "Angst") samt richtigem Schlüssel.
@@ -746,4 +749,36 @@ export type QuizAnswerResult = {
   correctOptionIds: string[];
   // Bei Zuordnungen: je Begriffs-Id, ob sie richtig zugeordnet war.
   termResults: Record<string, boolean>;
+};
+
+// ---- Sachkunde-Verwaltung (nur Admin) ----
+
+export type AdminQuizOption = {
+  id: string;
+  kind: "Answer" | "Term" | "Label";
+  text: string;
+  isCorrect: boolean;
+  matchKey: string | null;
+  imageName: string | null;
+  sortOrder: number;
+  // Hinweise auf auffällige Textstellen - kein Urteil, nur ein Wink.
+  flags: string[];
+};
+
+export type AdminQuizQuestion = {
+  id: string;
+  catalogCode: string;
+  catalogName: string;
+  number: string;
+  section: string;
+  sectionName: string;
+  kind: QuizQuestionKind;
+  text: string;
+  sampleSolution: string | null;
+  imageName: string | null;
+  // Gesetzt, sobald jemand die Frage von Hand überarbeitet hat - der Seeder
+  // lässt sie dann in Ruhe.
+  editedAt: string | null;
+  options: AdminQuizOption[];
+  flags: string[];
 };

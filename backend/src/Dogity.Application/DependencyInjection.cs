@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IStatsService, StatsService>();
         services.AddScoped<ISachkundeService, SachkundeService>();
+        services.AddScoped<ISachkundeAdminService, SachkundeAdminService>();
         return services;
     }
 }

@@ -642,6 +642,48 @@ def run_feature_sweep(api: Api, admin_token: str) -> None:
     check(api.call("GET", "/api/sachkunde/catalogs/GIBTSNICHT/session", token=owner_token)[0] == 404,
           "unbekannter Katalog ist 404")
 
+    section("Sachkunde-Verwaltung (Admin)")
+    status, verwaltung = api.call("GET", "/api/admin/sachkunde/questions", token=admin_token)
+    check(status == 200 and len(verwaltung) == 112, f"alle Fragen abrufbar ({len(verwaltung) if status==200 else status})")
+    check(all(o["kind"] in ("Answer", "Term", "Label") for f in verwaltung for o in f["options"]),
+          "jede Zeile trägt ihre Rolle")
+    check(api.call("GET", "/api/admin/sachkunde/questions")[0] == 401, "ohne Anmeldung gesperrt")
+    check(api.call("GET", "/api/admin/sachkunde/questions", token=owner_token)[0] == 403,
+          "Nicht-Admin wird abgewiesen")
+    status, eingegrenzt = api.call("GET", "/api/admin/sachkunde/questions?catalog=SWHV-BHVT-ERW&section=C",
+                                   token=admin_token)
+    check(status == 200 and len(eingegrenzt) == 10, "Filter nach Katalog und Komplex")
+    status, gesucht = api.call("GET", "/api/admin/sachkunde/questions?search=Baurecht", token=admin_token)
+    check(status == 200 and any(f["number"] == "C1" for f in gesucht), "Suche greift bis in die Antworttexte")
+
+    # Bewusst mit UNVERÄNDERTEM Text speichern: der Smoketest darf keine
+    # Fragentexte auf test hinterlassen. Geprüft wird die Marke, nicht der Inhalt.
+    frage = next(f for f in verwaltung if f["number"] == "C1")
+    unveraendert = {
+        "text": frage["text"],
+        "sampleSolution": frage["sampleSolution"],
+        "options": [{"id": o["id"], "kind": o["kind"], "text": o["text"], "isCorrect": o["isCorrect"],
+                     "matchKey": o["matchKey"], "imageName": o["imageName"]} for o in frage["options"]],
+    }
+    status, gespeichert = api.call("PUT", f"/api/admin/sachkunde/questions/{frage['id']}",
+                                   unveraendert, admin_token)
+    check(status == 200 and gespeichert["editedAt"] is not None,
+          "Speichern markiert die Frage als von Hand bearbeitet", str(status))
+    check(gespeichert["text"] == frage["text"], "und lässt den Text unangetastet")
+
+    ohne_loesung = dict(unveraendert)
+    ohne_loesung["options"] = [{**o, "isCorrect": False} for o in unveraendert["options"]]
+    check(api.call("PUT", f"/api/admin/sachkunde/questions/{frage['id']}", ohne_loesung, admin_token)[0] == 400,
+          "Frage ohne richtige Antwort wird abgewiesen")
+    leer = dict(unveraendert, text="   ")
+    check(api.call("PUT", f"/api/admin/sachkunde/questions/{frage['id']}", leer, admin_token)[0] == 400,
+          "leere Fragestellung wird abgewiesen")
+
+    check(api.call("POST", f"/api/admin/sachkunde/questions/{frage['id']}/revert", token=admin_token)[0] == 204,
+          "Bearbeitungsmarke zurücknehmbar")
+    status, danach = api.call("GET", "/api/admin/sachkunde/questions?search=Rechtsgebiet", token=admin_token)
+    check(status == 200 and all(f["editedAt"] is None for f in danach), "Marke ist wieder weg")
+
     section("Profil")
     check(api.call("PUT", "/api/profile/password",
                    {"currentPassword": PASSWORD, "newPassword": PASSWORD}, owner_token)[0] in (204, 400),

@@ -48,5 +48,12 @@ public class QuizOption : Entity
     /// </summary>
     public string? MatchKey { get; set; }
 
+    /// <summary>
+    /// Dateiname einer Abbildung unter /sachkunde/ im Frontend, wenn die
+    /// Antwort selbst ein Bild ist ("Welcher Hund zeigt eine Spielhaltung?" -
+    /// drei Zeichnungen, je eine je Antwort).
+    /// </summary>
+    public string? ImageName { get; set; }
+
     public int SortOrder { get; set; }
 }

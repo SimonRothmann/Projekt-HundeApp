@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ClubsSection } from "@/components/admin/clubs-section";
 import { CatalogSection } from "@/components/sports/catalog-section";
 import { RegulationImportSection } from "@/components/admin/regulation-import-section";
+import { SachkundeSection } from "@/components/admin/sachkunde-section";
 
 export default function AdminPage() {
   const searchParams = useSearchParams();
@@ -175,6 +176,8 @@ export default function AdminPage() {
       />
 
       <RegulationImportSection sports={sports ?? []} />
+
+      <SachkundeSection />
 
       <Card>
         <CardHeader>

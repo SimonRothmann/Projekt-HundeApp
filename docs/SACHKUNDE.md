@@ -57,6 +57,10 @@ Sechs sind Sonderfälle und als solche markiert, nicht geraten:
 - **Zuordnung** (A2 Körperhaltungen, A18 Rassemerkmale, A23 Talente)
 - **Freitext mit Musterlösung** (D5 Sinne, D6 Krankheiten, D8 Temperatur messen)
 
+Dazu zwei Bildfragen: **A2** (eine Zeichnung mit fünf nummerierten Haltungen, an
+der Frage) und **Jugend 30** („Welcher Hund zeigt eine Spielhaltung?" — drei
+einzelne Zeichnungen, je eine an einer Antwort).
+
 **Zuordnungen werden zugeordnet**, nicht selbst eingeschätzt: je Begriff eine
 Zeile mit den wählbaren Schlüsseln, geprüft auf Knopfdruck und nur ganz — eine
 Zuordnung stimmt, wenn alle Begriffe stimmen. Bei A2 sind die Schlüssel die
@@ -91,6 +95,20 @@ Drei Fallen, die das Skript kennt und deshalb prüft:
 - Eine Zuordnung mit weniger als zwei Begriffen oder mit einem doppelt
   vergebenen Schlüssel ist nicht lösbar — das Skript bricht ab, statt eine
   kaputte Aufgabe zu seeden.
+- Die Ankreuzkästchen der Jugendfassung kommen als **Steuerzeichen** aus
+  `pdftotext` (U+0088 für das leere). Das leere Kästchen stand in der ersten
+  Fassung in **jedem** der 79 Antworttexte — im Terminal unsichtbar, in der App
+  sichtbar. Alle Steuerzeichen fliegen jetzt raus.
+- Bildunterschriften landen als zusätzliche Antworten im Text. Bei Jugend 30
+  waren das eine Zeile „1  3" und ein zweites „2" — fünf Antworten statt drei.
+  Eine reine Zahlenzeile gilt nur noch als Antwort, wenn diese Zahl nicht schon
+  dasteht.
+- Die Reihenfolge der eingebetteten Bilder ist **nicht** die Reihenfolge auf der
+  Seite. Bei Jugend 30 gehört die Unterschrift 1 zur zweiten eingebetteten
+  Zeichnung. In die Zeichnungen sind zudem noch die Zahlen 3, 4 und 2
+  eingebrannt — Reste derselben Vorlage, aus der auch A2 stammt. Maßgeblich sind
+  die Unterschriften des PDF; die Zuordnung ist gegen die gerenderte Seite 5
+  geprüft und im Skript festgehalten.
 
 ## Lernen
 
@@ -141,6 +159,34 @@ werden selbst eingeschätzt.
 
 Die Antwort trägt je nach Fragetyp `selectedOptionIds`, `assignments`
 (Begriffs-Id → Schlüssel) oder `selfAssessedCorrect`.
+
+## Verwaltung: Fragen von Hand überarbeiten
+
+`/admin` → „Sachkunde-Fragen". Alle 112 Fragen zum Durchsehen, mit Filter nach
+Katalog und Komplex, Volltextsuche (auch über Antworten und Musterlösungen) und
+zwei Schaltern: **nur auffällige** und **nur bearbeitete**.
+
+**Wer hier speichert, hat ab dann das Sagen.** Die Frage bekommt `EditedAt`, und
+der Seeder lässt sie beim nächsten Start in Ruhe. Ohne das wäre jede Korrektur
+beim nächsten Deploy wieder weg — der Seeder schreibt Text und Antworten sonst
+bei jedem Hochfahren aus der Katalogdatei. Dasselbe Muster wie beim
+trainergepflegten Trainingsplan (`Goal.PlanManagedByTrainerId`).
+
+„Katalogfassung zurückholen" nimmt die Marke zurück. Der Text bleibt zunächst
+stehen; die Vorlage kommt erst beim nächsten Start der App wieder.
+
+**Auffälligkeiten** sind Hinweise, kein Urteil: Steuerzeichen, Trennstrich mitten
+im Wort, fehlendes Leerzeichen, Leerzeichen vor Satzzeichen, doppeltes
+Leerzeichen, unpaarige Klammer — dazu „keine eindeutige Lösung" und „weniger als
+zwei Antworten". Zwei Fälle sind bewusst ausgenommen, weil sie im Deutschen
+richtig sind: die Auslassung („Gehorsams- und Straßenverkehrsteil") und
+Aufzählungszeichen („a) … b) …").
+
+Beim Speichern wird geprüft, ob die Frage danach überhaupt noch lösbar ist:
+Auswahlfragen brauchen mindestens zwei Antworten und genau eine (bzw. mindestens
+eine) richtige, Zuordnungen mindestens zwei Begriffe mit eindeutigen Schlüsseln,
+Freitextfragen eine Musterlösung. Genau daran hatte es beim ersten Anlauf der
+Zuordnungen gefehlt.
 
 ## Offen
 

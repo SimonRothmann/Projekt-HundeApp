@@ -368,7 +368,18 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
                         />
                       )}
                     </span>
-                    <span className="min-w-0 [overflow-wrap:anywhere]">{option.text}</span>
+                    {option.imageName ? (
+                      // Bildantwort: die Zeichnung IST die Antwort, der Text ist
+                      // nur ihre Nummer (siehe Jugendfrage 30).
+                      // eslint-disable-next-line @next/next/no-img-element -- feste Zeichnung aus /public.
+                      <img
+                        src={`/sachkunde/${option.imageName}`}
+                        alt={`Zeichnung ${option.text}`}
+                        className="h-auto w-full max-w-[14rem] rounded border border-border/40 bg-white"
+                      />
+                    ) : (
+                      <span className="min-w-0 [overflow-wrap:anywhere]">{option.text}</span>
+                    )}
                   </button>
                 </li>
               ))}
