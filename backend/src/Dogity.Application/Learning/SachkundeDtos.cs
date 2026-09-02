@@ -51,26 +51,46 @@ public record QuizQuestionStateDto(int Box, bool LastWasCorrect, int CorrectCoun
 
 /// <summary>Antwort des Servers auf eine beantwortete Frage.</summary>
 /// <param name="TermResults">Bei Zuordnungen: welche Begriffe richtig zugeordnet waren.</param>
+/// <param name="Progress">
+/// Der Lernstand NACH dieser Antwort. Ohne ihn müsste die Oberfläche den Stand
+/// nachladen - sie tat es nicht, und der Balken stand die ganze Runde still.
+/// </param>
 public record QuizAnswerResultDto(
     bool Correct,
     int Box,
     DateTimeOffset? DueAt,
     IReadOnlyList<Guid> CorrectOptionIds,
-    IReadOnlyDictionary<Guid, bool> TermResults);
+    IReadOnlyDictionary<Guid, bool> TermResults,
+    QuizProgressDto? Progress);
 
-/// <summary>Lernstand über einen ganzen Katalog.</summary>
+/// <summary>
+/// Lernstand über einen ganzen Katalog.
+///
+/// Zwei Zahlen, weil sie zwei Fragen beantworten:
+/// <see cref="Correct"/> ist "wie viele sitzen gerade" - sie bewegt sich mit
+/// jeder Antwort und ist die Zahl, die man beim Lernen sehen will.
+/// <see cref="Mastered"/> ist "wie viele sitzen sicher" (Fach 4 aufwärts, also
+/// mehrfach richtig an verschiedenen Tagen) - die bewegt sich erst über Tage.
+///
+/// Anfangs stand nur <see cref="Mastered"/> in der Oberfläche. Wer zwanzig
+/// Fragen richtig beantwortet hatte, las weiter "0 von 72" - richtig gerechnet,
+/// aber als Rückmeldung unbrauchbar.
+/// </summary>
 public record QuizProgressDto(
     string CatalogCode,
     int Total,
     int Answered,
+    int Correct,
     int Mastered,
     int InMistakes,
     int DueNow,
     int NeverSeen,
+    double PercentCorrect,
     double PercentMastered,
     IReadOnlyList<QuizSectionProgressDto> Sections);
 
-public record QuizSectionProgressDto(string Key, string Name, int Total, int Answered, int Mastered, int InMistakes);
+public record QuizSectionProgressDto(
+    string Key, string Name, int Total, int Answered, int Correct, int Mastered, int InMistakes);
 
 /// <summary>Was der Lernmodus als Nächstes vorlegt.</summary>
 public record QuizSessionDto(

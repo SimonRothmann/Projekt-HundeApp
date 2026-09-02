@@ -210,4 +210,120 @@ public class SachkundeServiceTests
 
         Assert.False(ergebnis.Succeeded);
     }
+
+    // ---- Lernstand ----
+    //
+    // "gekonnt" (Fach 4 aufwärts) braucht drei richtige Antworten an
+    // verschiedenen Tagen - als einzige Zahl in der Oberfläche stand dort
+    // deshalb tagelang "0 von 72", egal wie viel jemand richtig beantwortet
+    // hatte. Seitdem trägt "richtig" die Anzeige und bewegt sich mit jeder
+    // Antwort.
+
+    private static (SachkundeService Dienst, string Code, List<QuizQuestion> Fragen) MitKatalog(int anzahl = 5)
+    {
+        var db = InMemoryDbContext.Create();
+        var katalog = new QuizCatalog { Code = "TEST", Name = "Test", Publisher = "Test" };
+        db.QuizCatalogs.Add(katalog);
+
+        var fragen = new List<QuizQuestion>();
+        for (var i = 1; i <= anzahl; i++)
+        {
+            var frage = new QuizQuestion
+            {
+                CatalogId = katalog.Id, Catalog = katalog, Number = $"A{i}", Section = "A",
+                SectionName = "Test", SortOrder = i, Text = $"Frage {i}?", Kind = QuizQuestionKind.SingleChoice,
+            };
+            var richtig = new QuizOption { Question = frage, Kind = QuizOptionKind.Answer, Text = "ja", IsCorrect = true, SortOrder = 1 };
+            var falsch = new QuizOption { Question = frage, Kind = QuizOptionKind.Answer, Text = "nein", IsCorrect = false, SortOrder = 2 };
+            frage.Options.Add(richtig);
+            frage.Options.Add(falsch);
+            db.QuizQuestions.Add(frage);
+            db.QuizOptions.AddRange(richtig, falsch);
+            fragen.Add(frage);
+        }
+
+        db.SaveChanges();
+        return (new SachkundeService(db, TimeProvider.System), katalog.Code, fragen);
+    }
+
+    private static Guid RichtigeAntwort(QuizQuestion f) => f.Options.First(o => o.IsCorrect).Id;
+    private static Guid FalscheAntwort(QuizQuestion f) => f.Options.First(o => !o.IsCorrect).Id;
+
+    [Fact]
+    public async Task Lernstand_ZaehltRichtigeSofort_AuchWennNochNichtsSicherSitzt()
+    {
+        var (dienst, code, fragen) = MitKatalog();
+        var nutzer = Guid.NewGuid();
+
+        foreach (var f in fragen.Take(3))
+            await dienst.SubmitAnswerAsync(nutzer, f.Id, [RichtigeAntwort(f)], null, null);
+
+        var stand = (await dienst.GetProgressAsync(nutzer, code)).Value!;
+
+        Assert.Equal(3, stand.Correct);
+        Assert.Equal(3, stand.Answered);
+        // Nach je EINER richtigen Antwort steht noch nichts in Fach 4 - genau
+        // das machte die alte Anzeige unbrauchbar.
+        Assert.Equal(0, stand.Mastered);
+        Assert.Equal(60, stand.PercentCorrect);
+    }
+
+    [Fact]
+    public async Task Lernstand_FalschBeantworteteZaehlenNichtAlsRichtig()
+    {
+        var (dienst, code, fragen) = MitKatalog();
+        var nutzer = Guid.NewGuid();
+
+        await dienst.SubmitAnswerAsync(nutzer, fragen[0].Id, [RichtigeAntwort(fragen[0])], null, null);
+        await dienst.SubmitAnswerAsync(nutzer, fragen[1].Id, [FalscheAntwort(fragen[1])], null, null);
+
+        var stand = (await dienst.GetProgressAsync(nutzer, code)).Value!;
+
+        Assert.Equal(2, stand.Answered);
+        Assert.Equal(1, stand.Correct);
+        Assert.Equal(1, stand.InMistakes);
+    }
+
+    [Fact]
+    public async Task Lernstand_NachDreiRichtigenSitztDieFrageSicher()
+    {
+        var (dienst, code, fragen) = MitKatalog();
+        var nutzer = Guid.NewGuid();
+
+        for (var i = 0; i < 3; i++)
+            await dienst.SubmitAnswerAsync(nutzer, fragen[0].Id, [RichtigeAntwort(fragen[0])], null, null);
+
+        var stand = (await dienst.GetProgressAsync(nutzer, code)).Value!;
+
+        Assert.Equal(1, stand.Correct);
+        Assert.Equal(1, stand.Mastered);
+    }
+
+    [Fact]
+    public async Task Antwort_LiefertDenLernstandGleichMit()
+    {
+        var (dienst, _, fragen) = MitKatalog();
+        var nutzer = Guid.NewGuid();
+
+        var ergebnis = await dienst.SubmitAnswerAsync(nutzer, fragen[0].Id, [RichtigeAntwort(fragen[0])], null, null);
+
+        // Ohne diesen Stand müsste die Oberfläche nachladen - sie tat es nicht,
+        // und der Balken stand die ganze Runde still.
+        Assert.NotNull(ergebnis.Value!.Progress);
+        Assert.Equal(1, ergebnis.Value.Progress!.Correct);
+    }
+
+    [Fact]
+    public async Task Lernstand_WirdJeKomplexAusgewiesen()
+    {
+        var (dienst, code, fragen) = MitKatalog();
+        var nutzer = Guid.NewGuid();
+        await dienst.SubmitAnswerAsync(nutzer, fragen[0].Id, [RichtigeAntwort(fragen[0])], null, null);
+
+        var stand = (await dienst.GetProgressAsync(nutzer, code)).Value!;
+
+        var abschnitt = Assert.Single(stand.Sections);
+        Assert.Equal(1, abschnitt.Correct);
+        Assert.Equal(5, abschnitt.Total);
+    }
 }

@@ -128,7 +128,24 @@ was zuletzt falsch war) und **Alle** (der Katalog der Reihe nach).
 
 Wiedervorlage je Fach: **1, 2, 4, 9, 21 Tage**. Kürzer als beim Trainingsplan
 ([2, 4, 7, 14, 28]): eine Übung baut man über Monate auf, die Sachkunde lernt
-man in den Wochen vor der Prüfung. Ab Fach 4 gilt eine Frage als gekonnt.
+man in den Wochen vor der Prüfung.
+
+### Zwei Zahlen im Lernstand
+
+- **richtig** — Fragen, deren letzte Antwort stimmte. Bewegt sich mit jeder
+  Antwort und trägt die Anzeige.
+- **sitzt sicher** — Fragen ab Fach 4, also mehrfach richtig an verschiedenen
+  Tagen. Braucht Zeit und steht deshalb hinten.
+
+> Anfangs stand nur die zweite Zahl in der Oberfläche. „Sitzt sicher" verlangt
+> drei richtige Antworten, und wegen der Wiedervorlage kann man die nicht am
+> selben Tag geben — der Lernstand zeigte also auch nach zwanzig richtig
+> beantworteten Fragen weiter **„0 von 72"**. Rechnerisch richtig, als
+> Rückmeldung unbrauchbar.
+>
+> Dazu kam, dass die Oberfläche den Stand nur beim Laden einer Runde holte: Der
+> Balken stand die ganze Runde still, selbst wenn sich etwas bewegt hätte. Jede
+> Antwort bringt den Stand jetzt gleich mit.
 
 ## Ohne Anmeldung
 

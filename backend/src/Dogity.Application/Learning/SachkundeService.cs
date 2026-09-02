@@ -212,8 +212,17 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
         ApplyOutcome(mastery, richtig, clock.GetUtcNow());
         await db.SaveChangesAsync(ct);
 
+        // Den Stand gleich mitschicken: sonst müsste die Oberfläche ihn
+        // nachladen, und genau das tat sie nicht - der Balken stand die ganze
+        // Runde still.
+        var katalogId = frage.CatalogId;
+        var alle = await FragenAbfrage(katalogId, section: null).ToListAsync(ct);
+        var code = await db.QuizCatalogs.Where(c => c.Id == katalogId).Select(c => c.Code).FirstOrDefaultAsync(ct);
+        var fortschritt = Fortschritt(
+            code ?? string.Empty, alle, await LernstandAsync(userId, katalogId, ct), clock.GetUtcNow());
+
         return Result<QuizAnswerResultDto>.Success(
-            new QuizAnswerResultDto(richtig, mastery.Box, mastery.DueAt, richtigeIds, begriffErgebnisse));
+            new QuizAnswerResultDto(richtig, mastery.Box, mastery.DueAt, richtigeIds, begriffErgebnisse, fortschritt));
     }
 
     public async Task<Result> ResetAsync(Guid userId, string catalogCode, CancellationToken ct = default)
@@ -333,6 +342,8 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
     {
         int Beantwortet(IEnumerable<QuizQuestion> menge) =>
             menge.Count(q => stand.TryGetValue(q.Id, out var m) && SachkundeService.Beantwortet(m));
+        int Richtig(IEnumerable<QuizQuestion> menge) =>
+            menge.Count(q => stand.TryGetValue(q.Id, out var m) && SachkundeService.Beantwortet(m) && m.LastWasCorrect);
         int Gekonnt(IEnumerable<QuizQuestion> menge) =>
             menge.Count(q => stand.TryGetValue(q.Id, out var m) && m.Box >= MasteredBox && m.LastWasCorrect);
         int ImFehlerspeicher(IEnumerable<QuizQuestion> menge) =>
@@ -342,20 +353,24 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
             .GroupBy(q => new { q.Section, q.SectionName })
             .OrderBy(g => g.Key.Section, StringComparer.Ordinal)
             .Select(g => new QuizSectionProgressDto(
-                g.Key.Section, g.Key.SectionName, g.Count(), Beantwortet(g), Gekonnt(g), ImFehlerspeicher(g)))
+                g.Key.Section, g.Key.SectionName, g.Count(), Beantwortet(g), Richtig(g), Gekonnt(g),
+                ImFehlerspeicher(g)))
             .ToList();
 
         var gesamt = fragen.Count;
+        var richtig = Richtig(fragen);
         var gekonnt = Gekonnt(fragen);
 
         return new QuizProgressDto(
             catalogCode,
             gesamt,
             Beantwortet(fragen),
+            richtig,
             gekonnt,
             ImFehlerspeicher(fragen),
             fragen.Count(q => stand.TryGetValue(q.Id, out var m) && m.DueAt is not null && m.DueAt <= jetzt),
             fragen.Count(q => !stand.TryGetValue(q.Id, out var m) || !SachkundeService.Beantwortet(m)),
+            gesamt == 0 ? 0 : Math.Round(richtig * 100.0 / gesamt, 1),
             gesamt == 0 ? 0 : Math.Round(gekonnt * 100.0 / gesamt, 1),
             abschnitte);
     }

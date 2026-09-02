@@ -581,11 +581,18 @@ def run_feature_sweep(api: Api, admin_token: str) -> None:
                                 {"selectedOptionIds": falsch}, owner_token)
     check(status == 200 and ergebnis["correct"] is False and ergebnis["box"] == 1,
           "falsche Antwort wird erkannt und setzt das Fach zurück", str(ergebnis))
+    check(ergebnis.get("progress") is not None, "die Antwort bringt den Lernstand gleich mit")
+    check(ergebnis["progress"]["correct"] == 0 and ergebnis["progress"]["inMistakes"] == 1,
+          "falsch beantwortet zählt nicht als richtig", str(ergebnis["progress"]))
     _, fehler = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/session?mode=mistakes", token=owner_token)
     check([q["id"] for q in fehler["questions"]] == [frage["id"]], "Frage steht im Fehlerspeicher")
     _, ergebnis = api.call("POST", f"/api/sachkunde/questions/{frage['id']}/answer",
                            {"selectedOptionIds": richtig}, owner_token)
     check(ergebnis["correct"] is True and ergebnis["box"] == 2, "richtige Antwort hebt das Fach", str(ergebnis))
+    # Der Zähler muss sich sofort bewegen: "gekonnt" (Fach 4) braucht drei
+    # richtige Antworten an verschiedenen Tagen und stünde tagelang auf 0.
+    check(ergebnis["progress"]["correct"] == 1 and ergebnis["progress"]["mastered"] == 0,
+          "richtig zählt sofort, sicher sitzt noch nichts", str(ergebnis["progress"]))
     _, fehler = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/session?mode=mistakes", token=owner_token)
     check(fehler["questions"] == [], "und räumt den Fehlerspeicher")
     check(api.call("POST", f"/api/sachkunde/questions/{frage['id']}/answer",
@@ -637,7 +644,8 @@ def run_feature_sweep(api: Api, admin_token: str) -> None:
     check(api.call("POST", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/reset", token=owner_token)[0] == 204,
           "von vorne anfangen wird angenommen")
     _, stand = api.call("GET", "/api/sachkunde/catalogs/SWHV-BHVT-ERW/progress", token=owner_token)
-    check(stand["answered"] == 0 and stand["mastered"] == 0 and stand["inMistakes"] == 0,
+    check(stand["answered"] == 0 and stand["correct"] == 0 and stand["mastered"] == 0
+          and stand["inMistakes"] == 0,
           "nach dem Neustart ist der Lernstand leer", str(stand))
     check(api.call("GET", "/api/sachkunde/catalogs/GIBTSNICHT/session", token=owner_token)[0] == 404,
           "unbekannter Katalog ist 404")

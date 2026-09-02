@@ -715,6 +715,7 @@ export type QuizSectionProgress = {
   name: string;
   total: number;
   answered: number;
+  correct: number;
   mastered: number;
   inMistakes: number;
 };
@@ -723,10 +724,14 @@ export type QuizProgress = {
   catalogCode: string;
   total: number;
   answered: number;
+  // Fragen, deren letzte Antwort richtig war - bewegt sich mit jeder Antwort.
+  correct: number;
+  // Fragen ab Leitner-Fach 4, also mehrfach richtig an verschiedenen Tagen.
   mastered: number;
   inMistakes: number;
   dueNow: number;
   neverSeen: number;
+  percentCorrect: number;
   percentMastered: number;
   sections: QuizSectionProgress[];
 };
@@ -749,6 +754,8 @@ export type QuizAnswerResult = {
   correctOptionIds: string[];
   // Bei Zuordnungen: je Begriffs-Id, ob sie richtig zugeordnet war.
   termResults: Record<string, boolean>;
+  // Der Lernstand NACH dieser Antwort - damit der Balken sich sofort bewegt.
+  progress: QuizProgress | null;
 };
 
 // ---- Sachkunde-Verwaltung (nur Admin) ----

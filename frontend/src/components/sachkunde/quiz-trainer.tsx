@@ -143,11 +143,16 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
       const ergebnis: Auswertung = angemeldet
         ? await api
             .post<QuizAnswerResult>(`/api/sachkunde/questions/${frage.id}/answer`, payload)
-            .then((a) => ({
-              correct: a.correct,
-              correctOptionIds: a.correctOptionIds,
-              termResults: a.termResults ?? {},
-            }))
+            .then((a) => {
+              // Der Server schickt den Stand nach dieser Antwort mit - ohne das
+              // blieb der Balken die ganze Runde stehen.
+              if (a.progress) setProgress(a.progress);
+              return {
+                correct: a.correct,
+                correctOptionIds: a.correctOptionIds,
+                termResults: a.termResults ?? {},
+              };
+            })
         : { correct: korrektOhneAnmeldung, correctOptionIds: richtigeIds, termResults: begriffErgebnisse };
 
       setAuswertung(ergebnis);
@@ -441,28 +446,54 @@ function antwortKlasse(
   return "border-border/40 opacity-60";
 }
 
+/**
+ * Der Lernstand über den Katalog.
+ *
+ * Vorn steht, wie viele Fragen gerade sitzen - diese Zahl bewegt sich mit jeder
+ * Antwort. Dahinter, wie viele sicher sitzen (Leitner-Fach 4 aufwärts, also
+ * mehrfach richtig an verschiedenen Tagen); die braucht Zeit.
+ *
+ * Anfangs stand nur die zweite Zahl da. Wer zwanzig Fragen richtig beantwortet
+ * hatte, las weiter "0 von 72" - rechnerisch richtig, als Rückmeldung
+ * unbrauchbar. Der Balken zeigt jetzt beides: hell, was sitzt, kräftig, was
+ * sicher sitzt.
+ */
 function Lernstand({ progress }: { progress: QuizProgress }) {
   return (
     <div className="min-w-0 rounded-lg border border-border/60 bg-card p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <span className="text-sm font-medium">Lernstand</span>
+        <span className="text-sm font-medium">
+          <span className="tabular-nums">{progress.correct}</span> von{" "}
+          <span className="tabular-nums">{progress.total}</span> richtig
+        </span>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {progress.mastered} von {progress.total} sitzen
-          {progress.inMistakes > 0 && <> · {progress.inMistakes} im Fehlerspeicher</>}
+          {progress.mastered > 0 && <>{progress.mastered} sitzen sicher</>}
+          {progress.inMistakes > 0 && (
+            <>
+              {progress.mastered > 0 && " · "}
+              {progress.inMistakes} im Fehlerspeicher
+            </>
+          )}
         </span>
       </div>
-      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+
+      <div className="relative mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className="h-full rounded-full bg-primary transition-[width] duration-300"
+          className="absolute inset-y-0 left-0 rounded-full bg-primary/35 transition-[width] duration-300"
+          style={{ width: `${progress.percentCorrect}%` }}
+        />
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] duration-300"
           style={{ width: `${progress.percentMastered}%` }}
         />
       </div>
+
       <ul className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1">
         {progress.sections.map((section) => (
           <li key={section.key} className="text-xs text-muted-foreground">
             {section.name}
             <span className="ml-1 tabular-nums">
-              {section.mastered}/{section.total}
+              {section.correct}/{section.total}
             </span>
           </li>
         ))}
