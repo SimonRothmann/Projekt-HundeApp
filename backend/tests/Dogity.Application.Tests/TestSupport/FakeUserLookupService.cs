@@ -60,4 +60,16 @@ public class FakeUserLookupService : IUserLookupService
 
     public Task<(bool Success, string[] Errors)> SetPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)
         => Task.FromResult(_users.ContainsKey(userId) ? (true, Array.Empty<string>()) : (false, new[] { "Benutzer nicht gefunden." }));
+    /// <summary>Weggeklickte Erststarts - für Tests im Arbeitsspeicher.</summary>
+    public HashSet<Guid> DismissedOnboarding { get; } = [];
+
+    public Task<bool> IsOnboardingDismissedAsync(Guid userId, CancellationToken ct = default) =>
+        Task.FromResult(DismissedOnboarding.Contains(userId));
+
+    public Task DismissOnboardingAsync(Guid userId, CancellationToken ct = default)
+    {
+        DismissedOnboarding.Add(userId);
+        return Task.CompletedTask;
+    }
+
 }

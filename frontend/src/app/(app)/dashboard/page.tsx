@@ -3,15 +3,17 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
-import type { ClubMembership } from "@/lib/types";
+import type { ClubMembership, OnboardingStatus } from "@/lib/types";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dog, Trophy, Building2, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { UpcomingTrainingsSection } from "@/components/schedule/upcoming-trainings-section";
+import { OnboardingGuide, zeigtErststart } from "@/components/onboarding/onboarding-guide";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [hasNoClub, setHasNoClub] = useState(false);
+  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,6 +26,16 @@ export default function DashboardPage() {
         // Stiller Fehlschlag - der Hinweis ist nur eine Komforterinnerung,
         // kein kritischer Dashboard-Bestandteil.
       });
+    api
+      .get<OnboardingStatus>("/api/onboarding/status")
+      .then((status) => {
+        if (!cancelled) setOnboarding(status);
+      })
+      .catch(() => {
+        // Wie oben: der Erststart ist eine Hilfe, kein Kernstück. Fällt er
+        // aus, steht das Dashboard trotzdem.
+      });
+
     return () => {
       cancelled = true;
     };
@@ -38,7 +50,14 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Hier ist dein Überblick für heute.</p>
       </div>
 
-      {hasNoClub && (
+      <OnboardingGuide
+        status={onboarding}
+        onDismissed={() => setOnboarding((s) => (s ? { ...s, isDismissed: true } : s))}
+      />
+
+      {/* Solange der Erststart läuft, spricht er den Vereinsbeitritt schon an -
+          eine zweite Kachel mit derselben Botschaft wäre Lärm. */}
+      {hasNoClub && !zeigtErststart(onboarding) && (
         <Link href="/clubs" className="group block">
           <Card className="border-primary/40 bg-primary/5 transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary/10 hover:shadow-[var(--shadow-glow)]">
             <CardHeader className="flex-row items-center gap-4 space-y-0">

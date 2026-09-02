@@ -120,6 +120,22 @@ class Api:
         self._tokens[email] = body["token"]
         return body["token"]
 
+    def login_status(self, email: str, password: str) -> int:
+        """
+        Meldet an und gibt NUR den Status zurück - für Prüfungen, die den
+        Anmeldevorgang selbst betreffen (gesperrter Nutzer, falsches Passwort).
+
+        Mit derselben Wartezeit bei Drosselung wie login(): Ein 429 hier würde
+        sonst als "abgewiesen" durchgehen und die Prüfung wertlos machen - sie
+        soll ja belegen, dass die APP ablehnt, nicht der Zähler davor.
+        """
+        status, _ = self.call("POST", "/api/auth/login", {"email": email, "password": password})
+        if status in (429, 403):
+            print(f"  {YELLOW}Anmeldung gedrosselt ({status}) - eine Minute warten…{OFF}")
+            time.sleep(62)
+            status, _ = self.call("POST", "/api/auth/login", {"email": email, "password": password})
+        return status
+
     def forget(self, email: str) -> None:
         """Zwischengespeicherten Token verwerfen - z.B. nach dem Löschen des Nutzers."""
         self._tokens.pop(email, None)
@@ -558,6 +574,44 @@ def run_feature_sweep(api: Api, admin_token: str) -> None:
         status, pending = api.call("GET", f"/api/clubs/{club_id}/join-requests", token=admin_token)
         check(status in (200, 404), "Anfrageliste abrufbar (nur für Vereinstrainer)", str(status))
 
+    section("Geführter Erststart")
+    erststart_token, _ = api.register(f"{PREFIX}erststart@dogity.test", "Neu", "Ling")
+    status, stand = api.call("GET", "/api/onboarding/status", token=erststart_token)
+    check(status == 200 and stand["hasDog"] is False and stand["isComplete"] is False,
+          "frischer Nutzer: noch kein Hund", str(stand if status == 200 else status))
+    check(stand["firstDogId"] is None, "ohne Hund kein Verweisziel")
+
+    _, erststartHund = api.call("POST", "/api/dogs",
+                               {"name": f"{PREFIX}Erstling", "breed": "Mix", "gender": 1}, erststart_token)
+    _, stand = api.call("GET", "/api/onboarding/status", token=erststart_token)
+    check(stand["hasDog"] and stand["firstDogId"] == erststartHund["id"],
+          "der erste Hund trägt die Verweise", str(stand["firstDogId"]))
+    check(stand["isComplete"] is False, "ein Hund allein schließt den Erststart nicht ab")
+
+    api.call("POST", "/api/trainings", {
+        "dogId": erststartHund["id"], "date": str(today), "durationMinutes": 20, "notes": None,
+        "exercises": [{"exerciseId": None, "freeTextLabel": "Erste Übung", "rating": 4, "difficulty": 0,
+                       "success": True, "notes": None, "trainingPlanItemId": None}],
+    }, erststart_token)
+    _, stand = api.call("GET", "/api/onboarding/status", token=erststart_token)
+    check(stand["hasTraining"] and stand["isComplete"],
+          "erstes Training schließt den Erststart ab", str(stand))
+
+    # Zweiter Nutzer für den Vereinsweg: offene Anfrage ist kein Abschluss.
+    verein_token, _ = api.register(f"{PREFIX}erststart2@dogity.test", "Verein", "Weg")
+    api.call("POST", "/api/dogs", {"name": f"{PREFIX}Zweitling", "breed": "Mix", "gender": 1}, verein_token)
+    api.call("POST", f"/api/clubs/{club_id}/join-requests", token=verein_token)
+    _, stand = api.call("GET", "/api/onboarding/status", token=verein_token)
+    check(stand["hasPendingClubRequest"] and not stand["hasClubMembership"],
+          "offene Vereinsanfrage zählt als wartend, nicht als Mitgliedschaft", str(stand))
+    check(stand["isComplete"] is False, "Warten auf Freigabe schließt nicht ab")
+
+    check(api.call("POST", "/api/onboarding/dismiss", token=verein_token)[0] == 204,
+          "Erststart wegklickbar")
+    _, stand = api.call("GET", "/api/onboarding/status", token=verein_token)
+    check(stand["isDismissed"], "und bleibt weggeklickt")
+    check(api.call("GET", "/api/onboarding/status")[0] == 401, "ohne Anmeldung gesperrt")
+
     section("Verfassung")
     # Verfassung als Zahl: die API überträgt Enums numerisch (siehe difficulty).
     MOTIVIERT, ABGELENKT, MUEDE, GESTRESST = 0, 2, 3, 4
@@ -763,12 +817,12 @@ def run_feature_sweep(api: Api, admin_token: str) -> None:
     check(api.call("GET", "/api/admin/stats", token=admin_token)[0] == 200, "Kennzahlen abrufbar")
     check(api.call("GET", "/api/admin/users", token=owner_token)[0] == 403, "Nicht-Admin wird abgewiesen")
     check(api.call("POST", f"/api/admin/users/{owner_id}/lock", token=admin_token)[0] == 204, "Nutzer sperrbar")
-    check(api.call("POST", "/api/auth/login", {"email": f"{PREFIX}sweep@dogity.test", "password": PASSWORD})[0] != 200,
+    check(api.login_status(f"{PREFIX}sweep@dogity.test", PASSWORD) != 200,
           "gesperrter Nutzer kommt nicht mehr rein")
     check(api.call("POST", f"/api/admin/users/{owner_id}/unlock", token=admin_token)[0] == 204, "und wieder entsperrbar")
-    check(api.call("POST", "/api/auth/login", {"email": f"{PREFIX}sweep@dogity.test", "password": PASSWORD})[0] == 200,
+    check(api.login_status(f"{PREFIX}sweep@dogity.test", PASSWORD) == 200,
           "danach wieder anmeldbar")
-    check(api.call("POST", "/api/auth/login", {"email": f"{PREFIX}sweep@dogity.test", "password": "falsch"})[0] in (400, 401),
+    check(api.login_status(f"{PREFIX}sweep@dogity.test", "falsch") in (400, 401),
           "falsches Passwort wird abgewiesen")
 
 

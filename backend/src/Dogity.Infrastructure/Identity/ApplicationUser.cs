@@ -14,4 +14,11 @@ public class ApplicationUser : IdentityUser<Guid>
     public string LastName { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Wann der geführte Erststart weggeklickt wurde; null, solange er noch
+    /// angezeigt werden soll. Am Nutzer und nicht im Browser, damit ein
+    /// Wegklicken auf dem Telefon auch am Rechner gilt.
+    /// </summary>
+    public DateTimeOffset? OnboardingDismissedAt { get; set; }
 }

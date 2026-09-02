@@ -147,6 +147,14 @@ Benutzerkonto.
 
 ---
 
+`onboarding_dismissed_at` hält fest, wann jemand den geführten Erststart
+weggeklickt hat; null, solange er angezeigt werden soll. Am Nutzer und nicht im
+Browser, damit ein Wegklicken auf dem Telefon auch am Rechner gilt - siehe
+docs/ERSTSTART.md.
+
+
+---
+
 ## roles
 
 

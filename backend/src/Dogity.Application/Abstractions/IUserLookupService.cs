@@ -44,4 +44,15 @@ public interface IUserLookupService
     /// Identity-Fehlermeldungen zurück (z.B. Passwortrichtlinie verletzt).
     /// </summary>
     Task<(bool Success, string[] Errors)> SetPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default);
+
+    /// <summary>
+    /// Ob der Nutzer den geführten Erststart weggeklickt hat.
+    ///
+    /// Am Nutzer und nicht im Browser gespeichert: Wer den Hinweis auf dem
+    /// Telefon wegklickt, will ihn auch am Rechner nicht wiedersehen.
+    /// </summary>
+    Task<bool> IsOnboardingDismissedAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>Merkt sich, dass der Erststart weggeklickt wurde. Idempotent.</summary>
+    Task DismissOnboardingAsync(Guid userId, CancellationToken ct = default);
 }

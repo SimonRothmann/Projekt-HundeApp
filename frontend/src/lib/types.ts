@@ -830,3 +830,23 @@ export type AdminQuizQuestion = {
   options: AdminQuizOption[];
   flags: string[];
 };
+
+// ---- Geführter Erststart ----
+
+// Woran der Erststart gerade steht. Nach dem Hund gabelt sich der Weg: selbst
+// loslegen (Ziel, erstes Training) oder über den Verein (beitreten, Gruppe).
+// Beides führt ans Ziel - erledigt ist der Erststart, sobald EINER gegangen ist.
+export type OnboardingStatus = {
+  hasDog: boolean;
+  firstDogId: string | null;
+  firstDogName: string | null;
+  hasGoal: boolean;
+  hasTraining: boolean;
+  hasClubMembership: boolean;
+  // Anfrage gestellt, Freigabe steht aus - kein offener Schritt mehr.
+  hasPendingClubRequest: boolean;
+  hasGroupMembership: boolean;
+  hasPendingGroupRequest: boolean;
+  isDismissed: boolean;
+  isComplete: boolean;
+};

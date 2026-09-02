@@ -109,4 +109,20 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, TimePro
             ? (true, [])
             : (false, result.Errors.Select(e => e.Description).ToArray());
     }
+    public async Task<bool> IsOnboardingDismissedAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        return user?.OnboardingDismissedAt is not null;
+    }
+
+    public async Task DismissOnboardingAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null || user.OnboardingDismissedAt is not null)
+            return;
+
+        user.OnboardingDismissedAt = timeProvider.GetUtcNow();
+        await userManager.UpdateAsync(user);
+    }
+
 }
