@@ -122,11 +122,21 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
         ) : (
           <ul className="flex flex-col gap-2">
             {members.map((m) => (
-              <li key={m.userId} className="flex items-center justify-between rounded-md border px-3 py-2">
-                <span className="text-sm">
+              // flex-wrap + min-w-0: Name und E-Mail zusammen sind auf 375 px
+              // breiter als die Karte, und weder Text noch Knopf konnten
+              // schrumpfen (Flex-Kinder haben von Haus aus min-width:auto).
+              // Gemessen ragte "Zum Trainer machen" 4-7 px über den Rand und
+              // war angeschnitten. Jetzt rutscht der Knopf bei Platzmangel in
+              // die nächste Zeile, statt aus der Karte zu laufen.
+              <li
+                key={m.userId}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
+              >
+                <span className="min-w-0 flex-1 text-sm [overflow-wrap:anywhere]">
                   {m.firstName} {m.lastName} ({m.email})
                 </span>
                 <Button
+                  className="shrink-0"
                   size="sm"
                   variant="outline"
                   disabled={promotingUserId === m.userId}
