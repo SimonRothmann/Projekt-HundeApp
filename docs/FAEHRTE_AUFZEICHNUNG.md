@@ -55,6 +55,45 @@ Frage. Sie holt sich jetzt beim Öffnen eine grobe Position
 (`enableHighAccuracy: false`, Cache bis 60 s) und zentriert sofort; der erste
 echte Punkt rastet danach genau ein.
 
+### Kartenhintergrund: Straße, Luftbild, dunkel (2026-09-03)
+
+Rückmeldung war "Leaflet sieht nicht modern aus". Das Aussehen bestimmt aber
+nicht die Bibliothek, sondern die Kachelquelle - der OSM-Standardstil ist
+für Kartenzeichner gemacht und zeigt jede Drogerie und jedes
+Bekleidungsgeschäft.
+
+Geprüft wurde an der echten Fährtenkarte, nicht an Beschreibungen:
+
+| Quelle | Ergebnis |
+|---|---|
+| OSM Standard | Funktioniert, aber überfrachtet und grellweiß unter dunkler App |
+| CARTO (Positron/Dark/Voyager) | Sieht deutlich moderner aus - liefert aber **"API KEY REQUIRED"** quer über der Karte. Achtung: mit **HTTP 200**, der Statuscode verrät es nicht, nur das Bild |
+| Esri World Imagery | Funktioniert ohne Schlüssel, bis in hohe Zoomstufen. Für Fährten fachlich das Beste: Man sieht den Schlag, nicht Ladenlokale |
+| Esri Dark Gray Canvas | Fällt aus - meldet in den nötigen Zoomstufen "Map data not yet available" |
+
+Umgesetzt: Umschalter Straße/Luftbild auf der Karte, Auswahl im
+localStorage gemerkt (Anzeigevorliebe des Geräts, nicht des Kontos), und
+ein dunkler Modus für die Straßenkarte.
+
+Der dunkle Modus entsteht per Filter aus derselben, schon geladenen Kachel
+(`invert` + `hue-rotate` + `saturate(0.45)`) statt aus einer zweiten Quelle:
+kein Schlüssel, keine zusätzlichen Abrufe. Das `saturate` ist dabei nicht
+Geschmack - ohne es macht die Farbtondrehung aus OSMs bunten Ladensymbolen
+grelles Magenta.
+
+**Zwei Fallen, beide beim Ansehen gefunden, nicht beim Messen:**
+
+1. Der Filter lag zuerst als seitenweite Regel `.leaflet-tile-pane` vor. Auf
+   einer Seite liegen aber mehrere Karten - das Vollbild und die Karten der
+   bisherigen Fährten. Die Regel der einen invertierte das Luftbild der
+   anderen, das dann aussah wie ein Negativ. Beide Stilregeln sind jetzt
+   über eine Kennung je Karte begrenzt.
+2. Jede Karte las die Auswahl nur beim Einhängen. Wer im Vollbild wechselte
+   und es schloss, sah darunter weiter die alte Ebene. Die Karten stimmen
+   sich jetzt über ein Ereignis ab.
+
+---
+
 ### Gibt es einen Standard für drehbare Karten? (geprüft 2026-09-03)
 
 Ja - und wir nutzen ihn bewusst NICHT. Die Prüfung, damit die Frage nicht

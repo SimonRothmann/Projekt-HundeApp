@@ -23,6 +23,8 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
+  // https: deckt weiterhin alle Kachelquellen ab (OSM, Esri-Luftbild) und
+  // die frei wählbaren Avatar-Adressen. Bilder können kein Skript ausführen.
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "connect-src 'self' https://api.dogity.net https://api-test.dogity.net",

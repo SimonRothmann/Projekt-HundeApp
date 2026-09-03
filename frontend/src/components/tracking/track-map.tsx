@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useTheme } from "next-themes";
+import { EBENE_GEAENDERT, KARTEN_EBENEN, ebeneMerken, gespeicherteEbene, type KartenEbene } from "@/lib/karten-ebenen";
 import type { GpsWalkRun } from "@/lib/types";
 import { bearingDegrees } from "@/lib/geo";
+import { Map, Satellite } from "lucide-react";
 
 /// <reference types="leaflet" />
 
@@ -109,10 +112,61 @@ export function TrackMap({
   const [mapReady, setMapReady] = useState(false);
 
   // Kantenlänge der Drehfläche (siehe unten): die Diagonale des Rahmens.
+  // Kartenhintergrund. Der Anfangswert wird erst nach dem Einhängen gelesen -
+  // beim Serverrendern gibt es keinen localStorage, und ein abweichender
+  // erster Wert würde die Hydration stören.
+  const [ebene, setEbene] = useState<KartenEbene>("strasse");
+  const kachelEbeneRef = useRef<import("leaflet").TileLayer | null>(null);
+  // Eindeutige Kennung dieser Karte. Gebraucht, um die Stilregeln unten auf
+  // GENAU DIESE Karte zu begrenzen: Auf einer Seite können mehrere Karten
+  // liegen - das Vollbild der Aufzeichnung und die Karten der bisherigen
+  // Fährten in der Historie. Eine seitenweite Regel wie
+  // ".leaflet-tile-pane { filter: … }" greift auf alle durch; das Luftbild im
+  // Vollbild wurde dadurch von der dunklen Straßenkarte im Hintergrund
+  // invertiert und sah aus wie ein Negativ.
+  const kartenId = `karte-${useId().replace(/:/g, "")}`;
+  const { resolvedTheme } = useTheme();
+  // Nur der Straßenstil wird abgedunkelt; ein invertiertes Luftbild sähe aus
+  // wie ein Negativ.
+  const dunkel = resolvedTheme === "dark" && KARTEN_EBENEN[ebene].abdunkelbar;
+
+  function ebeneWechseln() {
+    const naechste: KartenEbene = ebene === "strasse" ? "luftbild" : "strasse";
+    setEbene(naechste);
+    ebeneMerken(naechste);
+  }
+
   const rahmenRef = useRef<HTMLDivElement | null>(null);
   const [kantenlaenge, setKantenlaenge] = useState(0);
   // Ob schon grob auf den Standort zentriert wurde (siehe Effect unten).
   const hatGrobeZentrierungRef = useRef(false);
+
+  // Gespeicherte Ebene erst hier lesen, siehe oben - und auf Wechsel in
+  // anderen Karten derselben Seite hören.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEbene(gespeicherteEbene());
+
+    const beiWechsel = (e: Event) => setEbene((e as CustomEvent<KartenEbene>).detail);
+    window.addEventListener(EBENE_GEAENDERT, beiWechsel);
+    return () => window.removeEventListener(EBENE_GEAENDERT, beiWechsel);
+  }, []);
+
+  // Ebene wechseln: alte Kachelschicht entfernen, neue setzen.
+  useEffect(() => {
+    const map = mapRef.current;
+    const L = leafletRef.current;
+    if (!map || !L) return;
+
+    const gewaehlt = KARTEN_EBENEN[ebene];
+    kachelEbeneRef.current?.remove();
+    kachelEbeneRef.current = L.tileLayer(gewaehlt.url, {
+      attribution: gewaehlt.attribution,
+      maxZoom: gewaehlt.maxZoom,
+    }).addTo(map);
+    // Unter die Spur legen, nicht darüber.
+    kachelEbeneRef.current.bringToBack();
+  }, [ebene, mapReady]);
 
   // Rahmen messen: Die Drehfläche muss so groß sein wie die Diagonale, sonst
   // deckt sie bei schrägem Winkel ihren eigenen Ausschnitt nicht mehr ab.
@@ -246,9 +300,10 @@ export function TrackMap({
       const map = L.map(containerRef.current).setView([51.1657, 10.4515], 6);
       mapRef.current = map;
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap-Mitwirkende",
-        maxZoom: 19,
+      const start = KARTEN_EBENEN[gespeicherteEbene()];
+      kachelEbeneRef.current = L.tileLayer(start.url, {
+        attribution: start.attribution,
+        maxZoom: start.maxZoom,
       }).addTo(map);
 
       layerGroupRef.current = L.layerGroup().addTo(map);
@@ -458,6 +513,7 @@ export function TrackMap({
 
   return (
     <div
+      id={kartenId}
       ref={rahmenRef}
       className={`relative w-full overflow-hidden ${fill ? "h-full" : "h-64 rounded-md"}`}
     >
@@ -499,11 +555,43 @@ export function TrackMap({
       {/* OSM-Attribution wieder aufrichten wenn Karte rotiert: gegenrotieren
           um denselben Winkel. Selector greift die Leaflet-Attribution direkt
           im rotierten Container. */}
-      {rotateWithHeading && (
+      {/* Dunkler Kartenstil per Filter statt per eigener Kachelquelle.
+          
+          Ein fertiger dunkler Straßenstil käme nur von Anbietern mit
+          API-Schlüssel (CARTO, Stadia) - der freie dunkle Stil von Esri hat
+          in den Zoomstufen, die das Fährtelegen braucht, gar keine Daten
+          ("Map data not yet available"). Invertieren plus Farbtondrehung
+          liefert aus derselben, schon geladenen Kachel ein dunkles Bild:
+          keine zweite Quelle, kein Schlüssel, keine zusätzlichen Abrufe.
+          
+          Nur auf die Kacheln, nicht auf die ganze Karte - sonst würde die
+          Spur gleich mit invertiert und wäre nicht mehr grün.
+          
+          saturate(0.45) ist nicht Geschmack, sondern nötig: Der OSM-Stil ist
+          voller bunter Ladensymbole, und invert + hue-rotate macht daraus
+          grelles Magenta. Entsättigt fügen sie sich ein, ohne zu
+          verschwinden. */}
+      {dunkel && (
         <style>
-          {`.leaflet-control-attribution { transform: rotate(${headingDeg}deg); transform-origin: 100% 100%; }`}
+          {`#${kartenId} .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.45); }`}
         </style>
       )}
+      {rotateWithHeading && (
+        <style>
+          {`#${kartenId} .leaflet-control-attribution { transform: rotate(${headingDeg}deg); transform-origin: 100% 100%; }`}
+        </style>
+      )}
+      {/* Ebenenwechsel: immer erreichbar, auch bei fertigen Fährten - beim
+          Auswerten will man denselben Wechsel wie beim Legen. */}
+      <button
+        type="button"
+        onClick={ebeneWechseln}
+        title={`Kartenhintergrund: ${KARTEN_EBENEN[ebene].label} (klicken für ${KARTEN_EBENEN[ebene === "strasse" ? "luftbild" : "strasse"].label})`}
+        className="absolute left-2 top-2 z-[400] flex items-center gap-1.5 rounded-full border bg-background/90 px-3 py-2 text-xs font-medium shadow-md backdrop-blur coarse:min-h-10"
+      >
+        {ebene === "strasse" ? <Map className="size-4" /> : <Satellite className="size-4" />}
+        {KARTEN_EBENEN[ebene].label}
+      </button>
       {isLive && (
         <button
           type="button"
