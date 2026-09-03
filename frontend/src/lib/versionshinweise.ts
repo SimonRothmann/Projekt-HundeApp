@@ -281,8 +281,8 @@ export const AKTUELLE_VERSION_DATUM = VERSIONSHINWEISE[0].datum;
  * Server-Rendering (Container läuft unter UTC) und Hydration im Browser auf
  * derselben Zeichenkette.
  */
-export function formatiereVeroeffentlichung(isoDatum: string): string {
-  return new Date(`${isoDatum}T12:00:00Z`).toLocaleDateString("de-DE", {
+export function formatiereVeroeffentlichung(isoDatum: string, sprache: string = "de"): string {
+  return new Date(`${isoDatum}T12:00:00Z`).toLocaleDateString(sprache === "en" ? "en-GB" : "de-DE", {
     day: "numeric",
     month: "long",
     year: "numeric",

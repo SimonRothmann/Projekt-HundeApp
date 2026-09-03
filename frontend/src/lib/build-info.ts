@@ -51,17 +51,20 @@ export const BUILD_ZEIT: Date | null = (() => {
  * Abweichung. Und inhaltlich ist die deutsche Zeit die gemeinte: Der Deploy
  * fand zu einer deutschen Uhrzeit statt.
  */
-export function formatiereBuildZeit(zeitpunkt: Date): string {
-  const datum = zeitpunkt.toLocaleDateString("de-DE", {
+export function formatiereBuildZeit(zeitpunkt: Date, sprache: string = "de"): string {
+  const ort = sprache === "en" ? "en-GB" : "de-DE";
+  const datum = zeitpunkt.toLocaleDateString(ort, {
     day: "numeric",
     month: "long",
     year: "numeric",
     timeZone: "Europe/Berlin",
   });
-  const uhrzeit = zeitpunkt.toLocaleTimeString("de-DE", {
+  const uhrzeit = zeitpunkt.toLocaleTimeString(ort, {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Europe/Berlin",
   });
-  return `${datum} um ${uhrzeit} Uhr`;
+  // Im Englischen gibt es kein nachgestelltes "Uhr" - "at 21:35" ist die
+  // uebliche Fuegung, und ein uebersetztes "o'clock" waere hier falsch.
+  return sprache === "en" ? `${datum} at ${uhrzeit}` : `${datum} um ${uhrzeit} Uhr`;
 }

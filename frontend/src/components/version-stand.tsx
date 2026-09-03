@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BUILD_COMMIT, BUILD_ZEIT, formatiereBuildZeit } from "@/lib/build-info";
 import { AKTUELLE_VERSION } from "@/lib/versionshinweise";
 import { cn } from "@/lib/utils";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
 
 /**
  * Eine Zeile: welche Fassung läuft hier, seit wann, und aus welchem Commit
@@ -30,6 +30,7 @@ export function VersionStand({
   verlinkt?: boolean;
 }) {
   const t = useT();
+  const sprache = useSprache();
 
   const fassung = t("Version {v}", { v: AKTUELLE_VERSION });
 
@@ -42,7 +43,7 @@ export function VersionStand({
       ) : (
         <span className="font-medium">{fassung}</span>
       )}
-      {BUILD_ZEIT && <> · {t("Stand {zeit}", { zeit: formatiereBuildZeit(BUILD_ZEIT) })}</>}
+      {BUILD_ZEIT && <> · {t("Stand {zeit}", { zeit: formatiereBuildZeit(BUILD_ZEIT, sprache) })}</>}
       {BUILD_COMMIT && (
         <>
           {` · ${t("Build")} `}

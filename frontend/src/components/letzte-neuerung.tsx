@@ -9,7 +9,7 @@ import {
   VERSIONSHINWEISE,
 } from "@/lib/versionshinweise";
 import { cn } from "@/lib/utils";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
 
 /**
  * Die jüngste Fassung in Kurzform: Nummer, Datum, Überschrift, die ersten
@@ -28,6 +28,7 @@ export function LetzteNeuerung({
   maxPunkte?: number;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const neueste = VERSIONSHINWEISE[0];
   const auszug = neueste.aenderungen.slice(0, maxPunkte);
   const rest = neueste.aenderungen.length - auszug.length;
@@ -37,7 +38,7 @@ export function LetzteNeuerung({
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-semibold">{t("Version {v}", { v: neueste.version })}</span>
         <time dateTime={neueste.datum} className="text-sm text-muted-foreground">
-          {formatiereVeroeffentlichung(neueste.datum)}
+          {formatiereVeroeffentlichung(neueste.datum, sprache)}
         </time>
       </div>
       <p className="mt-1 text-sm font-medium text-balance">{t(neueste.titel)}</p>

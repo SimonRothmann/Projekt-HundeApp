@@ -44,6 +44,10 @@ describe("formatiereVeroeffentlichung", () => {
     expect(formatiereVeroeffentlichung("2026-09-03")).toBe("3. September 2026");
   });
 
+  it("folgt der Oberflächensprache", () => {
+    expect(formatiereVeroeffentlichung("2026-09-03", "en")).toBe("3 September 2026");
+  });
+
   it("bleibt am selben Tag - der Mittags-Anker ist kein Zierrat", () => {
     // Ohne ihn läse JavaScript "2026-01-01" als Mitternacht UTC und machte
     // in Berlin daraus den 1., in New York aber den 31. Dezember.

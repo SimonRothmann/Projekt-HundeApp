@@ -10,7 +10,7 @@ import {
   formatiereVeroeffentlichung,
   VERSIONSHINWEISE,
 } from "@/lib/versionshinweise";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
 
 const SPEICHER_SCHLUESSEL = "dogity.neuerungen.gesehen";
 
@@ -76,6 +76,7 @@ export function NeuerungenHinweis({ erststartLaeuft }: { erststartLaeuft: boolea
   // Hydration-Abweichung.
   const [zeigen, setZeigen] = useState<boolean | null>(null);
   const t = useT();
+  const sprache = useSprache();
 
   useEffect(() => {
     const gesehen = lies();
@@ -127,7 +128,7 @@ export function NeuerungenHinweis({ erststartLaeuft }: { erststartLaeuft: boolea
           </Button>
         </CardAction>
         <CardDescription>
-          {t("Version {v}", { v: neueste.version })} · {formatiereVeroeffentlichung(neueste.datum)}
+          {t("Version {v}", { v: neueste.version })} · {formatiereVeroeffentlichung(neueste.datum, sprache)}
         </CardDescription>
       </CardHeader>
 
