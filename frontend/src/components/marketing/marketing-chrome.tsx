@@ -3,6 +3,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SITE } from "@/lib/seo";
 import { MarketingAuthLinks } from "@/components/marketing/marketing-auth-links";
+import { VersionStand } from "@/components/version-stand";
 
 /**
  * Kopf- und Fußzeile der öffentlichen Seiten. Die Verweise sind nicht nur
@@ -56,10 +57,16 @@ export function MarketingFooter() {
           <Link href="/login" className="hover:text-foreground">
             Anmelden
           </Link>
+          <Link href="/neuerungen" className="hover:text-foreground">
+            Neuerungen
+          </Link>
         </nav>
         <p className="[overflow-wrap:anywhere]">
           {SITE.name} – Trainingstagebuch und Vereinsplattform für den Hundesport im deutschsprachigen Raum.
         </p>
+        {/* Die Fußzeile ist der Ort, an dem man eine Versionsangabe sucht,
+            ohne dass sie sich irgendwo aufdrängt. */}
+        <VersionStand />
       </div>
     </footer>
   );

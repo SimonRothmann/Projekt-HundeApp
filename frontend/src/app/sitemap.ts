@@ -27,6 +27,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    // Ändert sich häufiger als jede andere Seite - das ist ihr Zweck.
+    {
+      url: absoluteUrl("/neuerungen"),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.4,
+    },
   ];
 
   const catalog = await getCatalog();

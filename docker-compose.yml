@@ -52,6 +52,10 @@ services:
       args:
         # Wechselt je Deploy und erzwingt einen echten Next-Build (siehe Dockerfile).
         BUILD_REF: "${BUILD_REF:-lokal}"
+        # Versionsanzeige (siehe frontend/src/lib/build-info.ts). Ohne Werte -
+        # etwa bei einem Build von Hand - zeigt die Seite nur die Fassungsnummer.
+        NEXT_PUBLIC_BUILD_COMMIT: "${BUILD_COMMIT:-}"
+        NEXT_PUBLIC_BUILD_TIME: "${BUILD_TIME:-}"
         NEXT_PUBLIC_API_URL: "https://${PROD_API_DOMAIN}"
     restart: unless-stopped
     depends_on:
@@ -89,6 +93,8 @@ services:
       args:
         # Wechselt je Deploy und erzwingt einen echten Next-Build (siehe Dockerfile).
         BUILD_REF: "${BUILD_REF:-lokal}"
+        NEXT_PUBLIC_BUILD_COMMIT: "${BUILD_COMMIT:-}"
+        NEXT_PUBLIC_BUILD_TIME: "${BUILD_TIME:-}"
         NEXT_PUBLIC_API_URL: "https://${TEST_API_DOMAIN}"
         # Aktiviert rotes "TEST"-Badge im UI und Demo-Login-Buttons auf
         # der Login-Seite. Absichtlich NUR bei frontend-test gesetzt.

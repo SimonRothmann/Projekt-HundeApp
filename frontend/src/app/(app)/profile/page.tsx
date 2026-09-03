@@ -12,9 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EinstellungenSection } from "@/components/preferences/einstellungen-section";
 import { SupportButton } from "@/components/support-button";
+import { LetzteNeuerung } from "@/components/letzte-neuerung";
+import { VersionStand } from "@/components/version-stand";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, ShieldCheck, Pencil } from "lucide-react";
+import { LogOut, ShieldCheck, Pencil, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ProfilePage() {
@@ -258,6 +260,21 @@ export default function ProfilePage() {
       )}
 
       <EinstellungenSection />
+
+      {/* Angemeldete Nutzer sehen die Fußzeile der öffentlichen Seiten nie -
+          ohne diesen Block gäbe es für sie keinen Weg zu den Neuerungen. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="size-5" />
+            Neuerungen
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <LetzteNeuerung />
+          <VersionStand verlinkt={false} className="border-t pt-3" />
+        </CardContent>
+      </Card>
 
       <div className="flex flex-col items-center gap-2 pt-2 text-center">
         <p className="text-xs text-muted-foreground">Gefällt dir Dogity? Über Unterstützung freue ich mich sehr.</p>

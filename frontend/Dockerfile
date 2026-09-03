@@ -27,6 +27,18 @@ COPY . .
 # bleibt gecacht - neu läuft nur der Next-Build.
 ARG BUILD_REF=lokal
 ENV BUILD_REF=$BUILD_REF
+
+# Commit und Bauzeitpunkt für die Versionsanzeige (siehe lib/build-info.ts).
+# Sie stehen bewusst HIER und nicht oben bei NEXT_PUBLIC_API_URL: Beide Werte
+# wechseln bei jedem Deploy, und ein ARG entwertet den Docker-Cache ab seiner
+# Zeile. Weiter oben würde damit bei jedem Deploy auch "npm ci" neu laufen -
+# minutenlang, ohne dass sich eine einzige Abhängigkeit geändert hätte.
+# Ohne Werte bleibt die Anzeige stumm statt zu raten.
+ARG NEXT_PUBLIC_BUILD_COMMIT=
+ENV NEXT_PUBLIC_BUILD_COMMIT=$NEXT_PUBLIC_BUILD_COMMIT
+ARG NEXT_PUBLIC_BUILD_TIME=
+ENV NEXT_PUBLIC_BUILD_TIME=$NEXT_PUBLIC_BUILD_TIME
+
 RUN npm run build
 
 FROM node:22-slim AS runtime

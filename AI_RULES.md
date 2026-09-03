@@ -102,6 +102,8 @@ Braucht es neue API?
 
 Braucht es UI?
 
+Braucht es einen Versionshinweis?
+
 
 ---
 
@@ -138,6 +140,32 @@ Mobile Geräte
 schlechte Verbindung
 
 viele Nutzer
+
+
+---
+
+# Versionshinweise
+
+
+frontend/src/lib/versionshinweise.ts
+
+
+Merkbare Änderung heißt:
+
+Eintrag in dieselbe Änderung,
+
+nicht später.
+
+
+Später heißt nie.
+
+
+Geschrieben für Nutzer,
+
+nicht als Commit-Text.
+
+
+Neueste Fassung oben.
 
 
 ---

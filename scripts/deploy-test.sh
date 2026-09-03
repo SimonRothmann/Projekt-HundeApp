@@ -70,7 +70,13 @@ echo "==> Frontend bauen und starten"
 # Erzwingt einen echten Neubau statt der gecachten Build-Schicht - der
 # Next-Build hängt von den API-Daten ab, nicht nur von der Quelle (siehe
 # frontend/Dockerfile).
-export BUILD_REF="$(date -u +%Y%m%dT%H%M%SZ)"
+# Ein Zeitpunkt, ein Commit - beides wandert ins Bundle und steht danach
+# unter /neuerungen. BUILD_REF braucht nur einen je Deploy wechselnden Wert;
+# der Bauzeitpunkt ist das ohnehin, also gibt es hier nur eine Uhr statt zwei.
+BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+export BUILD_TIME
+export BUILD_COMMIT="$(git rev-parse --short HEAD)"
+export BUILD_REF="$BUILD_TIME"
 docker compose up -d --build --force-recreate frontend-test
 
 echo "==> Abschliessender Rauchtest"

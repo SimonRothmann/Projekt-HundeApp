@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { AuthedRedirect } from "@/components/marketing/authed-redirect";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-chrome";
 import { SupportButton } from "@/components/support-button";
+import { LetzteNeuerung } from "@/components/letzte-neuerung";
 import { SITE } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -230,6 +231,16 @@ export default function HomePage() {
             bezahlte Zusatzfunktionen. Wer mag, kann die Entwicklung freiwillig über Ko-fi unterstützen.
           </p>
           <SupportButton className="mt-6" />
+        </section>
+
+        <section className="border-t border-border/60 py-12">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Zuletzt geändert</h2>
+          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+            An Dogity wird weitergearbeitet. Was zuletzt dazugekommen ist:
+          </p>
+          <div className="mt-6 rounded-lg border border-border/60 p-4 sm:p-5">
+            <LetzteNeuerung />
+          </div>
         </section>
 
         <section className="border-t border-border/60 py-12">
