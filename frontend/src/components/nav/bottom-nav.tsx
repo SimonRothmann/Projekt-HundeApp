@@ -18,19 +18,26 @@ const GRID_COLS_CLASS: Record<number, string> = {
 };
 
 /**
- * Ab sieben Einträgen wird die Schrift kleiner.
+ * Die Schriftgröße richtet sich nach der Zahl der Einträge.
  *
  * Die Leiste war für vier bis fünf Einträge gebaut und ist auf sieben
- * gewachsen. Auf 375 px bleiben davon 53 px je Feld - "Statistiken" braucht
- * bei 12 px aber 56 px. Gemessen überlappten sich die Beschriftungen um zwei
- * bis drei Pixel, die erste ragte links aus dem Bild, die letzte rechts:
- * "Sportarten Vereine Statistiken" las sich als ein Wort.
+ * gewachsen. Auf 375 px bleiben bei sieben Einträgen 53 px je Feld -
+ * "Statistiken" braucht bei 12 px aber 56 px. Die Beschriftungen überlappten
+ * sich gemessen um zwei bis drei Pixel, die erste ragte links aus dem Bild,
+ * die letzte rechts: "Sportarten Vereine Statistiken" las sich als ein Wort.
  *
- * Betroffen ist, wer die Trainer-Perspektive sieht (leitet eine Gruppe oder
- * ist Vereinstrainer:in) - für alle anderen sind es sechs Einträge, die
- * gerade noch passen.
+ * Auch sechs Einträge sind schon zu eng, nur knapper: Dort stehen 62,50 px
+ * je Feld zur Verfügung, "Sportarten" braucht bei 12 px 62,61 px. Diese
+ * 0,11 px genügen, damit die Beschriftung als "Sportart…" abgeschnitten
+ * wird - gemessen auf test. Ganzzahlige Werte wie scrollWidth verraten das
+ * nicht, sie runden beides auf 63.
+ *
+ * Deshalb eine Leiter statt einer einzelnen Schwelle. Nachgemessen bei
+ * 375 px: bei 11 px braucht "Sportarten" 57,4 px (Platz 62,5), bei 10 px
+ * 52,2 px (Platz 53,6) - beides passt vollständig.
  */
-const LABEL_SIZE_CLASS = (anzahl: number) => (anzahl >= 7 ? "text-[10px]" : "text-xs");
+const LABEL_SIZE_CLASS = (anzahl: number) =>
+  anzahl >= 7 ? "text-[10px]" : anzahl >= 6 ? "text-[11px]" : "text-xs";
 
 export function BottomNav() {
   const pathname = usePathname();
