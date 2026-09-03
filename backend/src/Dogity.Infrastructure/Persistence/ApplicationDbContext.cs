@@ -1,6 +1,7 @@
 using Dogity.Application.Abstractions;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
+using Dogity.Domain.Preferences;
 using Dogity.Domain.Learning;
 using Dogity.Domain.Notifications;
 using Dogity.Domain.Planning;
@@ -56,6 +57,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GroupTrainingSessionItem> GroupTrainingSessionItems => Set<GroupTrainingSessionItem>();
     public DbSet<GroupTrainingSessionTrainer> GroupTrainingSessionTrainers => Set<GroupTrainingSessionTrainer>();
 
+    public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
+    public DbSet<UserDisabledModule> UserDisabledModules => Set<UserDisabledModule>();
+    public DbSet<UserSportSelection> UserSportSelections => Set<UserSportSelection>();
+    public DbSet<DogSportSelection> DogSportSelections => Set<DogSportSelection>();
+
     public DbSet<GpsTrack> GpsTracks => Set<GpsTrack>();
     public DbSet<GpsPoint> GpsPoints => Set<GpsPoint>();
     public DbSet<GpsWalkRun> GpsWalkRuns => Set<GpsWalkRun>();
@@ -95,6 +101,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // Hund, und ohne diesen Zusatz warnt EF zu Recht, dass die Beziehung ins
         // Leere zeigen kann, sobald der Hund weggefiltert ist.
         builder.Entity<DogImage>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
+        // Wie beim Bild: Der Filter muss den des Hundes mittragen. Sonst
+        // meldet EF zu Recht, dass die Auswahl eines weichgelöschten Hundes
+        // sichtbar bliebe, obwohl der Hund es nicht ist.
+        builder.Entity<DogSportSelection>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
+        builder.Entity<UserPreference>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<UserDisabledModule>().HasQueryFilter(e => e.DeletedAt == null && e.UserPreference!.DeletedAt == null);
+        builder.Entity<UserSportSelection>().HasQueryFilter(e => e.DeletedAt == null && e.UserPreference!.DeletedAt == null);
         builder.Entity<Sport>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<Regulation>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<RegulationVersion>().HasQueryFilter(e => e.DeletedAt == null);

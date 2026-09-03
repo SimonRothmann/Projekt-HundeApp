@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/auth-context";
+import { PreferencesProvider } from "@/lib/preferences-context";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/pwa-register";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
@@ -92,11 +93,13 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
-            {children}
-            <Toaster />
-            <PwaRegister />
-            <PwaInstallPrompt />
-            <ChunkErrorReloader />
+            <PreferencesProvider>
+              {children}
+              <Toaster />
+              <PwaRegister />
+              <PwaInstallPrompt />
+              <ChunkErrorReloader />
+            </PreferencesProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

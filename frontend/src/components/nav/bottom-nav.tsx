@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { coreNavItems, profileNavItem, trainerNavItem } from "@/components/nav/nav-items";
 import { useAuth } from "@/lib/auth-context";
+import { usePreferences } from "@/lib/preferences-context";
 
 // Tailwind muss Klassennamen als Literal im Quellcode sehen, um sie ins CSS
 // aufzunehmen - eine zur Laufzeit interpolierte Klasse wie `grid-cols-${n}`
@@ -42,7 +43,12 @@ const LABEL_SIZE_CLASS = (anzahl: number) =>
 export function BottomNav() {
   const pathname = usePathname();
   const { isTrainer } = useAuth();
-  const navItems = [...coreNavItems, ...(isTrainer ? [trainerNavItem] : []), profileNavItem];
+  const { moduleEnabled } = usePreferences();
+  // Ausgeblendete Module verschwinden auch aus der Navigation - sonst führte
+  // ein Menüpunkt auf eine Seite, die es für diesen Nutzer nicht gibt.
+  const navItems = [...coreNavItems, ...(isTrainer ? [trainerNavItem] : []), profileNavItem].filter(
+    (item) => !item.module || moduleEnabled(item.module),
+  );
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/80 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl supports-backdrop-filter:bg-background/60 md:hidden print:hidden">

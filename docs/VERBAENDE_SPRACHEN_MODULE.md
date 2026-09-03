@@ -230,6 +230,30 @@ hängen Sprache und Module am selben Ort, und die Regel "englische Oberfläche
 
 ---
 
+## Umsetzungsstand
+
+**Schritt 1 umgesetzt (2026-09-03):** Module und Sportartenauswahl.
+
+- `user_preferences` je Nutzer, dazu `user_disabled_modules` (Negativliste)
+  und `user_sport_selections` (Positivliste); `dog_sport_selections` plus
+  `dogs.UsesOwnSports` für die Ebene am Hund.
+- Endpunkte unter `/api/preferences`, Vererbungsregel ausschließlich in
+  `PreferenceService.GetEffectiveDogSportsAsync` - im Frontend wird sie
+  angewandt, nicht ein zweites Mal formuliert.
+- Einstellungen im Profil; Navigation, Dashboard-Kachel, Trainingsformular
+  und Fährtenbereich richten sich danach.
+- Beim Bauen aufgefallen: Kinder mit clientseitig vergebener Id müssen
+  ausdrücklich über das DbSet angelegt werden. Nur an die Navigationsliste
+  eines bereits gespeicherten Elternobjekts gehängt, hält EF sie für
+  vorhanden und erzeugt ein UPDATE statt eines INSERT - das traf null Zeilen
+  und brach mit einem Nebenläufigkeitsfehler ab.
+
+Offen: Vereins-Selbstverwaltung (Schritt 2), Sprachen (Schritt 3),
+Vereinsregistrierung (Schritt 4). `Locale` ist im Datenmodell schon
+vorgesehen, wird aber noch nirgends ausgewertet.
+
+---
+
 ## Reihenfolge
 
 Nach Nutzen je Aufwand, nicht nach Reihenfolge der Nennung:

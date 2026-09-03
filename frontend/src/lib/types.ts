@@ -858,3 +858,27 @@ export type OnboardingStatus = {
   isDismissed: boolean;
   isComplete: boolean;
 };
+
+/**
+ * Persönliche Einstellungen (siehe docs/VERBAENDE_SPRACHEN_MODULE.md).
+ *
+ * Zwei verschiedene Modelle, absichtlich: `disabledModules` ist eine
+ * NEGATIV-Liste - gespeichert wird, was abgewählt wurde, damit ein künftig
+ * hinzukommendes Modul bei allen von selbst erscheint. `sportIds` ist eine
+ * POSITIV-Liste - die Aussage ist "ich mache genau das", eine neue Sportart
+ * soll sich niemandem aufdrängen. Leer heißt dort "keine Einschränkung".
+ */
+export type UserPreferences = {
+  locale: string | null;
+  disabledModules: string[];
+  sportIds: string[];
+};
+
+/** Schlüssel der abschaltbaren Module - Spiegel von Application/Preferences/Modules.cs. */
+export const MODULE = {
+  faehrte: "faehrte",
+  sachkunde: "sachkunde",
+  gruppentraining: "gruppentraining",
+  wetter: "wetter",
+  statistik: "statistik",
+} as const;

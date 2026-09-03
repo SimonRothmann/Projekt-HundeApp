@@ -7,18 +7,22 @@ import { coreNavItems, profileNavItem, trainerNavItem, adminNavItem } from "@/co
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/nav/notification-bell";
 import { useAuth } from "@/lib/auth-context";
+import { usePreferences } from "@/lib/preferences-context";
 import { PawPrint } from "lucide-react";
 import { EnvBadge } from "@/components/env-badge";
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { user, isTrainer } = useAuth();
+  const { moduleEnabled } = usePreferences();
+  // Wie in der unteren Navigation: Ein ausgeblendetes Modul verschwindet auch
+  // aus dem Menü.
   const items = [
     ...coreNavItems,
     ...(isTrainer ? [trainerNavItem] : []),
     profileNavItem,
     ...(user?.roles.includes("ADMIN") ? [adminNavItem] : []),
-  ];
+  ].filter((item) => !item.module || moduleEnabled(item.module));
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border/60 bg-sidebar/80 p-4 backdrop-blur-xl md:flex print:hidden">

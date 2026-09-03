@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import type { Dog, DogOwner, Goal, Sport, TrainingSession } from "@/lib/types";
+import { MODULE, type Dog, type DogOwner, type Goal, type Sport, type TrainingSession } from "@/lib/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,11 +20,16 @@ import { CoOwnersSection } from "@/components/dogs/co-owners-section";
 import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
 import { useAuth } from "@/lib/auth-context";
+import { usePreferences } from "@/lib/preferences-context";
 
 // Initial werden nur die Trainings der letzten 3 Monate geladen (die
 // Historie wächst unbegrenzt) - ältere Monate holt SessionHistory über
 // "Ältere Trainings anzeigen" nach. Statistik und Druckansicht laden ihre
 // Daten separat und sind davon unberührt.
+// Sportarten, bei denen eine Fährte gelegt wird. Codes statt Namen: Namen
+// werden umbenannt, Codes bleiben.
+const FAEHRTEN_SPORTARTEN = ["FAERTE", "FPR", "IGP1", "IGP2", "IGP3", "GPR", "STOEPR"];
+
 function threeMonthsAgoIso(): string {
   const d = new Date();
   d.setMonth(d.getMonth() - 3);
@@ -54,6 +59,12 @@ export default function DogDetailPage() {
   const [editing, setEditing] = useState(false);
   // false = nur die letzten 3 Monate geladen, true = komplette Historie.
   const [showAllHistory, setShowAllHistory] = useState(false);
+  // Für diesen Hund geltende Sportarten (eigene Auswahl, sonst die des
+  // Menschen). Leere Liste = keine Einschränkung, die Regel dazu steht im
+  // Backend (PreferenceService.GetEffectiveDogSportsAsync) - hier wird sie
+  // nur angewandt, nicht ein zweites Mal formuliert.
+  const [dogSportIds, setDogSportIds] = useState<string[] | null>(null);
+  const { moduleEnabled } = usePreferences();
 
   type DogPageCache = {
     dog: Dog;
@@ -72,6 +83,20 @@ export default function DogDetailPage() {
     setGoals(data.goals);
     setOwners(data.owners);
   }
+
+  // Sportarten, die dem Tagebuch angeboten werden. Leere Auswahl heißt
+  // "keine Einschränkung" - und solange noch nichts geladen ist ebenfalls,
+  // damit die Liste nicht kurz leer aufblitzt.
+  const angeboteneSportarten =
+    dogSportIds && dogSportIds.length > 0 ? sports.filter((s) => dogSportIds.includes(s.id)) : sports;
+
+  // Fährte anzeigen, solange keine Einschränkung gilt oder sie ausdrücklich
+  // dabei ist. Erkannt am Code der Sportart, nicht am Namen - Namen ändern
+  // sich (aus "Leinenführigkeit" wurde "Fußarbeit"), Codes nicht.
+  const zeigtFaehrte =
+    dogSportIds === null ||
+    dogSportIds.length === 0 ||
+    sports.some((s) => dogSportIds.includes(s.id) && FAEHRTEN_SPORTARTEN.includes(s.code));
 
   async function loadAll(all = showAllHistory) {
     // 1. Gecachte Daten sofort anzeigen (Stale-While-Revalidate) - ermöglicht
@@ -93,6 +118,12 @@ export default function DogDetailPage() {
         api.get<Goal[]>(`/api/goals?dogId=${id}`),
         api.get<DogOwner[]>(`/api/dogs/${id}/owners`).catch(() => [] as DogOwner[]),
       ]);
+      // Getrennt vom Block oben: Fällt der Abruf aus, soll die Seite trotzdem
+      // stehen - dann gilt "keine Einschränkung" wie bisher.
+      api
+        .get<string[]>(`/api/preferences/dogs/${id}/sports`)
+        .then((ids) => setDogSportIds(ids))
+        .catch(() => setDogSportIds([]));
       // Leeres 3-Monats-Fenster: automatisch auf die komplette Historie
       // zurückfallen, damit ein lange nicht trainierter Hund nicht
       // fälschlich "Noch keine Trainingseinheiten" anzeigt.
@@ -232,9 +263,14 @@ export default function DogDetailPage() {
 
       {editing && <DogEditForm dog={dog} onSaved={loadAll} onCancel={() => setEditing(false)} />}
 
-      <GoalsSection dogId={id} sports={sports} goals={goals} onChanged={loadAll} />
+      <GoalsSection dogId={id} sports={angeboteneSportarten} goals={goals} onChanged={loadAll} />
 
-      <FahrteRecorder dogId={id} onSaved={loadAll} />
+      {/* Die Fährtenaufzeichnung erscheint nur, wenn das Modul an ist UND
+          der Hund Fährte läuft. Beides zusammen, weil die GPS-Aufzeichnung
+          auch für Spaziergänge taugt: Wer sie dafür nutzt, darf sie behalten,
+          ohne "Fährte" als Sportart anzugeben - dann lässt er das Modul an
+          und wählt die Sportart ab. */}
+      {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && <FahrteRecorder dogId={id} onSaved={loadAll} />}
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Trainingstagebuch</h2>
@@ -244,7 +280,7 @@ export default function DogDetailPage() {
         </Button>
       </div>
 
-      {showForm && <TrainingForm dogId={id} sports={sports} goals={goals} onSaved={handleTrainingSaved} />}
+      {showForm && <TrainingForm dogId={id} sports={angeboteneSportarten} goals={goals} onSaved={handleTrainingSaved} />}
 
       <SessionHistory
         sessions={sessions}

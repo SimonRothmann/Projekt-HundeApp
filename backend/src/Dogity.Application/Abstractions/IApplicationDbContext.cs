@@ -1,5 +1,6 @@
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
+using Dogity.Domain.Preferences;
 using Dogity.Domain.Learning;
 using Dogity.Domain.Notifications;
 using Dogity.Domain.Planning;
@@ -49,6 +50,11 @@ public interface IApplicationDbContext
     DbSet<GroupTrainingSession> GroupTrainingSessions { get; }
     DbSet<GroupTrainingSessionItem> GroupTrainingSessionItems { get; }
     DbSet<GroupTrainingSessionTrainer> GroupTrainingSessionTrainers { get; }
+
+    DbSet<UserPreference> UserPreferences { get; }
+    DbSet<UserDisabledModule> UserDisabledModules { get; }
+    DbSet<UserSportSelection> UserSportSelections { get; }
+    DbSet<DogSportSelection> DogSportSelections { get; }
 
     DbSet<GpsTrack> GpsTracks { get; }
     DbSet<GpsPoint> GpsPoints { get; }

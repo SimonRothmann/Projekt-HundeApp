@@ -31,5 +31,19 @@ public class Dog : Entity
 
     public bool IsArchived => ArchivedAt is not null;
 
+    /// <summary>
+    /// Ob für diesen Hund eine EIGENE Sportartenauswahl gilt (siehe
+    /// <see cref="Preferences.DogSportSelection"/>) statt der des Menschen.
+    ///
+    /// Warum ein eigenes Kennzeichen und nicht einfach "hat Zeilen": Ohne das
+    /// ließe sich am Hund nie ausdrücklich auf "alle Sportarten" stellen -
+    /// keine Zeilen hieße dann immer "erbt", und man käme aus der geerbten
+    /// Auswahl nicht mehr heraus. Mit dem Kennzeichen sind beide Aussagen
+    /// unterscheidbar: false = folgt dem Menschen, true = eigene Auswahl
+    /// (und die darf leer sein, das heißt dann "alle").
+    /// </summary>
+    public bool UsesOwnSports { get; set; }
+
     public ICollection<DogOwner> Owners { get; set; } = new List<DogOwner>();
+    public ICollection<Preferences.DogSportSelection> Sports { get; set; } = new List<Preferences.DogSportSelection>();
 }

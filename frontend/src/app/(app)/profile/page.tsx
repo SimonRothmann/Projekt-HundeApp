@@ -10,6 +10,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EinstellungenSection } from "@/components/preferences/einstellungen-section";
 import { SupportButton } from "@/components/support-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -255,6 +256,8 @@ export default function ProfilePage() {
           </Card>
         </>
       )}
+
+      <EinstellungenSection />
 
       <div className="flex flex-col items-center gap-2 pt-2 text-center">
         <p className="text-xs text-muted-foreground">Gefällt dir Dogity? Über Unterstützung freue ich mich sehr.</p>

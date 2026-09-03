@@ -9,10 +9,13 @@ import { Dog, Trophy, Building2, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { UpcomingTrainingsSection } from "@/components/schedule/upcoming-trainings-section";
 import { OnboardingGuide, zeigtErststart } from "@/components/onboarding/onboarding-guide";
+import { usePreferences } from "@/lib/preferences-context";
+import { MODULE } from "@/lib/types";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
+  const { moduleEnabled } = usePreferences();
 
   // Vereinszugehörigkeit kommt aus dem Erststart-Status statt aus einer
   // eigenen Abfrage auf /api/clubs/my-memberships. Die kannte nur
@@ -103,7 +106,8 @@ export default function DashboardPage() {
           </Card>
         </Link>
 
-        <Link href="/sachkunde" className="group block sm:col-span-2">
+{moduleEnabled(MODULE.sachkunde) && (
+                <Link href="/sachkunde" className="group block sm:col-span-2">
           <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
             <CardHeader className="flex-row items-center gap-4 space-y-0">
               <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-colors group-hover:bg-primary/15">
@@ -116,6 +120,7 @@ export default function DashboardPage() {
             </CardHeader>
           </Card>
         </Link>
+        )}
       </div>
     </div>
   );

@@ -12,6 +12,8 @@ using Dogity.Application.Weather;
 using Dogity.Application.Training;
 using Microsoft.Extensions.DependencyInjection;
 
+using Dogity.Application.Preferences;
+
 namespace Dogity.Application;
 
 public static class DependencyInjection
@@ -39,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IStatsService, StatsService>();
+        services.AddScoped<IPreferenceService, PreferenceService>();
         services.AddScoped<IOnboardingService, OnboardingService>();
         services.AddScoped<ISachkundeService, SachkundeService>();
         services.AddScoped<ISachkundeAdminService, SachkundeAdminService>();
