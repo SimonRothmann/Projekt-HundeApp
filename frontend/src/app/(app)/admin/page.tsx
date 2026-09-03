@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Dog, Users2, ClipboardList, MapPin, ScrollText, Lock, Unlock, Trash2, ChevronLeft, ChevronRight, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { ClubsSection } from "@/components/admin/clubs-section";
+import { VereinsantraegeSection } from "@/components/admin/vereinsantraege-section";
 import { CatalogSection } from "@/components/sports/catalog-section";
 import { RegulationImportSection } from "@/components/admin/regulation-import-section";
 import { SachkundeSection } from "@/components/admin/sachkunde-section";
@@ -156,6 +157,8 @@ export default function AdminPage() {
           Prüfungsordnungs-Pflege.
         </p>
       </div>
+
+      <VereinsantraegeSection />
 
       <ClubsSection />
 

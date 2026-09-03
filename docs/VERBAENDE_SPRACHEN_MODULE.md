@@ -269,9 +269,30 @@ hängen Sprache und Module am selben Ort, und die Regel "englische Oberfläche
   E-Mail-Zuweisung strenger war - dieselbe Befugnis war je nach Weg
   unterschiedlich streng.
 
-Offen: Vereinsregistrierung durch Nutzer mit Freigabe (Teil B), Sprachen
-(Schritt 3). `Locale` ist im Datenmodell schon vorgesehen, wird aber noch
-nirgends ausgewertet.
+**Schritt 2 Teil B umgesetzt (2026-09-03):** Vereinsregistrierung mit
+Freigabe.
+
+- `club_registrations` als EIGENE Tabelle, nicht als Status am Verein: Ein
+  noch nicht freigegebener Verein soll gar nicht erst als Verein
+  existieren. Sonst müsste jede vorhandene Abfrage - Liste, Beitritt,
+  Sichtbarkeit vereinseigener Übungen - um einen Statusfilter ergänzt
+  werden, und die eine vergessene Stelle wäre das Leck.
+- Die Freigabe legt den Verein an UND macht den Antragsteller zu seiner
+  ersten verwaltenden Person. Ohne das entstünde ein Verein, den niemand
+  betreuen kann, und die Prüfung hätte nur Arbeit verschoben.
+- Prüfungen beim Antrag: Name gefordert, kein zweiter offener Antrag je
+  Person (sonst ließe sich die Freigabeliste fluten - genau davor soll sie
+  schützen), und kein Antrag auf einen Namen, den es schon gibt
+  (Groß-/Kleinschreibung egal). Beim Freigeben wird der Namensvergleich
+  wiederholt: Zwischen Antrag und Entscheidung kann derselbe Verein
+  anderweitig entstanden sein.
+- Ablehnung mit Begründung, die als Benachrichtigung ankommt. Eine
+  kommentarlose Ablehnung führt nur zum nächsten, gleichlautenden Antrag.
+- Admins werden beim Eingang benachrichtigt, sonst bliebe der Antrag
+  liegen, bis zufällig jemand in die Verwaltung schaut.
+
+Offen: Sprachen (Schritt 3). `Locale` ist im Datenmodell schon vorgesehen,
+wird aber noch nirgends ausgewertet.
 
 ---
 

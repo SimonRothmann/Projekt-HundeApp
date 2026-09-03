@@ -241,3 +241,20 @@ public class GroupTrainingSessionTrainerConfiguration : IEntityTypeConfiguration
         builder.HasIndex(t => t.UserId);
     }
 }
+
+public class ClubRegistrationConfiguration : IEntityTypeConfiguration<ClubRegistration>
+{
+    public void Configure(EntityTypeBuilder<ClubRegistration> builder)
+    {
+        builder.ToTable("club_registrations");
+        builder.Property(r => r.Name).HasMaxLength(200).IsRequired();
+        builder.Property(r => r.Description).HasMaxLength(2000);
+        builder.Property(r => r.DecisionNote).HasMaxLength(1000);
+        builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
+
+        // Antragsteller und Status: die beiden Abfragen, die es gibt -
+        // "meine Anträge" und "was liegt zur Freigabe an".
+        builder.HasIndex(r => r.RequestedByUserId);
+        builder.HasIndex(r => r.Status);
+    }
+}

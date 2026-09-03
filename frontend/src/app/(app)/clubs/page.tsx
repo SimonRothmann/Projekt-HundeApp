@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { VereinsantragSection } from "@/components/clubs/vereinsantrag-section";
 import type { ClubSummary, ClubMembership, Group } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -196,6 +197,7 @@ export default function ClubsPage() {
           })}
         </div>
       )}
+      <VereinsantragSection />
     </div>
   );
 }

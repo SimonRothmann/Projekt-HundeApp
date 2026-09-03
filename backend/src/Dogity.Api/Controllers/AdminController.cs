@@ -10,7 +10,7 @@ namespace Dogity.Api.Controllers;
 
 [Authorize(Roles = Roles.Admin)]
 [Route("api/admin")]
-public class AdminController(IAdminService adminService, IClubService clubService, IRegulationImportService importService) : ApiControllerBase
+public class AdminController(IAdminService adminService, IClubService clubService, IRegulationImportService importService, IClubRegistrationService registrations) : ApiControllerBase
 {
     [HttpGet("clubs")]
     public async Task<ActionResult<IReadOnlyList<ClubDto>>> GetClubs(CancellationToken ct)
@@ -63,6 +63,23 @@ public class AdminController(IAdminService adminService, IClubService clubServic
         var result = await clubService.RemoveMemberAsync(id, userId, ct);
         return FromResult(result);
     }
+
+    /// <summary>Vereinsanträge, über die noch niemand entschieden hat.</summary>
+    [HttpGet("club-registrations")]
+    public async Task<ActionResult<IReadOnlyList<ClubRegistrationDto>>> GetClubRegistrations(CancellationToken ct) =>
+        FromResult(await registrations.GetPendingAsync(ct));
+
+    /// <summary>
+    /// Antrag freigeben: Der Verein entsteht, und der Antragsteller wird
+    /// seine erste verwaltende Person.
+    /// </summary>
+    [HttpPost("club-registrations/{id:guid}/approve")]
+    public async Task<IActionResult> ApproveClubRegistration(Guid id, CancellationToken ct) =>
+        FromResult(await registrations.ApproveAsync(CurrentUserId, id, ct));
+
+    [HttpPost("club-registrations/{id:guid}/reject")]
+    public async Task<IActionResult> RejectClubRegistration(Guid id, DecideClubRegistrationRequest request, CancellationToken ct) =>
+        FromResult(await registrations.RejectAsync(CurrentUserId, id, request, ct));
 
     [HttpGet("stats")]
     public async Task<ActionResult<AdminStatsDto>> GetStats(CancellationToken ct)

@@ -882,3 +882,26 @@ export const MODULE = {
   wetter: "wetter",
   statistik: "statistik",
 } as const;
+
+/**
+ * Antrag auf einen neuen Verein.
+ *
+ * `status` kommt NUMERISCH: 0 = offen, 1 = freigegeben, 2 = abgelehnt.
+ * Die API hat keinen JsonStringEnumConverter (wie bei DogCondition und
+ * ExerciseDifficulty) - ein Textvergleich ginge hier still schief.
+ */
+export type ClubRegistration = {
+  id: string;
+  name: string;
+  description: string | null;
+  requestedByUserId: string;
+  requestedByEmail: string;
+  requestedByName: string;
+  status: 0 | 1 | 2;
+  requestedAt: string;
+  decidedAt: string | null;
+  decisionNote: string | null;
+  clubId: string | null;
+};
+
+export const CLUB_REGISTRATION_STATUS = { offen: 0, freigegeben: 1, abgelehnt: 2 } as const;

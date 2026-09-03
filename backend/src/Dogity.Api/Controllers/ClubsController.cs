@@ -13,7 +13,7 @@ namespace Dogity.Api.Controllers;
 /// Trainer ohne Mitgliedschaftsvoraussetzung zuweisen).
 /// </summary>
 [Route("api/clubs")]
-public class ClubsController(IClubService clubService, IGroupService groupService) : ApiControllerBase
+public class ClubsController(IClubService clubService, IGroupService groupService, IClubRegistrationService registrations) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ClubSummaryDto>>> GetClubs(CancellationToken ct)
@@ -85,6 +85,19 @@ public class ClubsController(IClubService clubService, IGroupService groupServic
         var result = await clubService.LeaveClubAsync(CurrentUserId, id, ct);
         return FromResult(result);
     }
+
+    /// <summary>
+    /// Einen Verein beantragen. Freigegeben wird er von einem Admin - siehe
+    /// ClubRegistration, warum es den Umweg braucht.
+    /// </summary>
+    [HttpPost("registrations")]
+    public async Task<ActionResult<ClubRegistrationDto>> RequestClub(CreateClubRegistrationRequest request, CancellationToken ct) =>
+        FromResult(await registrations.RequestAsync(CurrentUserId, request, ct));
+
+    /// <summary>Eigene Anträge samt Stand - auch abgelehnte, mit Begründung.</summary>
+    [HttpGet("registrations/mine")]
+    public async Task<ActionResult<IReadOnlyList<ClubRegistrationDto>>> MyRegistrations(CancellationToken ct) =>
+        FromResult(await registrations.GetMineAsync(CurrentUserId, ct));
 
     /// <summary>
     /// Stammdaten ändern - für Verwaltende des Vereins. Bisher konnte einen

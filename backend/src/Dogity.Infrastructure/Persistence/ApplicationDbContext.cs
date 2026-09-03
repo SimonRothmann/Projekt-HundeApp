@@ -50,6 +50,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<TrainerAssignment> TrainerAssignments => Set<TrainerAssignment>();
     public DbSet<ClubTrainer> ClubTrainers => Set<ClubTrainer>();
     public DbSet<ClubMembership> ClubMemberships => Set<ClubMembership>();
+    public DbSet<ClubRegistration> ClubRegistrations => Set<ClubRegistration>();
     public DbSet<GroupTrainingExercise> GroupTrainingExercises => Set<GroupTrainingExercise>();
     public DbSet<GroupTrainingUnit> GroupTrainingUnits => Set<GroupTrainingUnit>();
     public DbSet<GroupTrainingUnitItem> GroupTrainingUnitItems => Set<GroupTrainingUnitItem>();
@@ -105,6 +106,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // meldet EF zu Recht, dass die Auswahl eines weichgelöschten Hundes
         // sichtbar bliebe, obwohl der Hund es nicht ist.
         builder.Entity<DogSportSelection>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
+        builder.Entity<ClubRegistration>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<UserPreference>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<UserDisabledModule>().HasQueryFilter(e => e.DeletedAt == null && e.UserPreference!.DeletedAt == null);
         builder.Entity<UserSportSelection>().HasQueryFilter(e => e.DeletedAt == null && e.UserPreference!.DeletedAt == null);
