@@ -9,6 +9,7 @@ import { Dog, Trophy, Building2, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { UpcomingTrainingsSection } from "@/components/schedule/upcoming-trainings-section";
 import { OnboardingGuide, zeigtErststart } from "@/components/onboarding/onboarding-guide";
+import { NeuerungenHinweis } from "@/components/neuerungen-hinweis";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
 
@@ -74,6 +75,10 @@ export default function DashboardPage() {
           </Card>
         </Link>
       )}
+
+      {/* Unter dem Erststart und über den Trainings: sichtbar, ohne das zu
+          verdrängen, wofür die Seite täglich geöffnet wird. */}
+      <NeuerungenHinweis erststartLaeuft={zeigtErststart(onboarding)} />
 
       <UpcomingTrainingsSection />
 
