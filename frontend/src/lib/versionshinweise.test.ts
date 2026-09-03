@@ -18,6 +18,22 @@ describe("VERSIONSHINWEISE", () => {
     expect(daten).toStrictEqual([...daten].sort().reverse());
   });
 
+  it("zählt die Fassungen absteigend - und zwar als Zahl, nicht als Text", () => {
+    // 0.10 kommt NACH 0.9, obwohl "0.10" < "0.9" ist, sobald man
+    // Zeichenketten vergleicht. Genau diese Falle schnappt zu, wenn die
+    // zweite Stelle zweistellig wird - also beim Übergang, den dieses
+    // Projekt gerade hinter sich hat.
+    const alsZahlen = VERSIONSHINWEISE.map((h) => h.version.split(".").map(Number));
+    for (let i = 1; i < alsZahlen.length; i++) {
+      const [aMajor, aMinor, aPatch = 0] = alsZahlen[i - 1];
+      const [bMajor, bMinor, bPatch = 0] = alsZahlen[i];
+      const vorher = aMajor * 1_000_000 + aMinor * 1_000 + aPatch;
+      const nachher = bMajor * 1_000_000 + bMinor * 1_000 + bPatch;
+      expect(vorher, `${VERSIONSHINWEISE[i - 1].version} muss über ${VERSIONSHINWEISE[i].version} stehen`)
+        .toBeGreaterThan(nachher);
+    }
+  });
+
   it("nennt jede Fassungsnummer nur einmal", () => {
     const versionen = VERSIONSHINWEISE.map((h) => h.version);
     expect(new Set(versionen).size).toBe(versionen.length);

@@ -61,6 +61,29 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.10",
+    datum: "2026-09-03",
+    titel: uebersetzbar("Englisch - und der Prüfungskatalog bekommt einen Geltungsbereich"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Die Oberfläche lässt sich auf Englisch umstellen. Prüfungsordnungen und Sachkundefragen bleiben dabei deutsch - eine übersetzte Prüfungsfrage wäre für die Prüfung wertlos."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Im Profil lässt sich wählen, in welchem Land die Prüfungsordnungen gelten. Inhalte gibt es bisher nur für Deutschland; andere Länder sind wählbar und noch leer. Tagebuch, Fährte und Trainingsplanung funktionieren davon unabhängig vollständig."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Sprache und Land werden getrennt gewählt. Wer in Deutschland trainiert und die App auf Englisch nutzt, behält die deutschen Prüfungsordnungen - die BH bleibt die BH."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Sachkunde erscheint nur noch im deutschen Geltungsbereich. Sie ist der Fragenkatalog des SWHV und hilft anderswo auch auf Deutsch nicht weiter."),
+      },
+    ],
+  },
+  {
     version: "0.9",
     datum: "2026-09-03",
     titel: uebersetzbar("Fährte im Vollbild, und Vereine verwalten sich selbst"),

@@ -401,7 +401,7 @@ mitbringen kann, ohne dass Code geändert wird.
 4. **Abschaltbare Module** (Startpunkt): Fährte/GPS, Sachkunde,
    Gruppentraining, Wetter, Statistik.
 
-**Schritt 3 umgesetzt (2026-09-03):** Geltungsbereich und Sprache.
+**Schritt 3 umgesetzt (2026-09-03), ausgeliefert als Version 0.10:** Geltungsbereich und Sprache.
 
 Beides in einem Zug, aber sauber getrennt gebaut - Land zuerst, weil es
 mitentscheidet, was überhaupt übersetzt werden muss.
@@ -460,3 +460,19 @@ Die öffentlichen Seiten (Startseite, Prüfungsordnungen, Sachkunde) bleiben
 deutsch. Sie beschreiben deutsche Verbandsinhalte; eine englische Fassung
 mit denselben deutschen Begriffen wäre eine Dublette, die der Sichtbarkeit
 schadet und niemandem hilft.
+
+*Eigene Fassung statt Anhang an 0.9*
+
+Das Sprachpaket ist als **0.10** ausgewiesen und nicht in 0.9 eingereiht.
+Der Grund ist nicht Buchhaltung: 0.9 beschreibt Fährte und
+Vereinsverwaltung, das Sprachpaket beschreibt etwas anderes. In einem
+Eintrag zusammengelegt stünde eine Fassung da, deren Überschrift nur die
+Hälfte trifft.
+
+Dabei ist eine Falle aufgefallen und abgesichert: `0.10` ist als
+Zeichenkette KLEINER als `0.9`. Die Reihenfolge der Liste hing bis dahin
+allein am Datum - bei zwei Einträgen desselben Tages hätte das nichts
+gemerkt. `versionshinweise.test.ts` vergleicht die Fassungen jetzt als
+Zahlen und meldet eine falsch einsortierte Fassung im Klartext. Gegenprobe
+gemacht: mit einer absichtlich zu kleinen Nummer schlägt der Test fehl,
+danach wieder grün.
