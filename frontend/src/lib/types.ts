@@ -341,6 +341,8 @@ export type ClubMemberInfo = {
   lastName: string;
   requestedAt: string;
   decidedAt: string | null;
+  /** Ob die Person zugleich Trainer:in dieses Vereins ist (siehe ClubMemberRequest). */
+  isTrainer: boolean;
 };
 
 export type ClubDetail = {
@@ -431,6 +433,12 @@ export type ClubMemberRequest = {
   lastName: string;
   requestedAt: string;
   decidedAt: string | null;
+  /**
+   * Ob die Person zugleich Trainer:in dieses Vereins ist. Kommt vom Server -
+   * Trainer:innen stehen in einer eigenen Tabelle, nicht in den
+   * Mitgliedschaften, das lässt sich hier nicht herleiten.
+   */
+  isTrainer: boolean;
 };
 
 export type GpsPointType = 0 | 1; // 0 = Automatic, 1 = Manual (siehe Domain.Tracking.GpsPointType)

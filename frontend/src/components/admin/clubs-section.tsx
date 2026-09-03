@@ -264,20 +264,33 @@ export function ClubsSection() {
                         ) : (
                           <ul className="mt-2 flex flex-col gap-1">
                             {detail.members.map((m) => (
-                              <li key={m.userId} className="flex items-center justify-between text-sm">
-                                <span>
+                              // gap-2 + min-w-0 + flex-wrap: Eine lange
+                              // E-Mail-Adresse schob die Knöpfe sonst aus der
+                              // Zeile - Flex-Kinder haben von Haus aus
+                              // min-width:auto und schrumpfen nicht.
+                              <li
+                                key={m.userId}
+                                className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm"
+                              >
+                                <span className="min-w-[10rem] flex-1 [overflow-wrap:anywhere]">
                                   {m.firstName} {m.lastName} ({m.email})
                                 </span>
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handlePromoteMember(club.id, m.email)}
-                                    title="Zum Trainer befördern"
-                                  >
-                                    Zum Trainer
-                                  </Button>
+                                <div className="flex shrink-0 items-center gap-1">
+                                  {/* Wer schon Trainer:in ist, braucht die
+                                      Beförderung nicht angeboten zu bekommen. */}
+                                  {m.isTrainer ? (
+                                    <Badge variant="secondary">Trainer</Badge>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handlePromoteMember(club.id, m.email)}
+                                      title="Zum Trainer befördern"
+                                    >
+                                      Zum Trainer
+                                    </Button>
+                                  )}
                                   <Button
                                     type="button"
                                     size="icon-sm"

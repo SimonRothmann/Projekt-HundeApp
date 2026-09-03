@@ -55,10 +55,10 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
                 : new ClubTrainerDto(t.UserId, "(unbekannt)", "", "", t.CreatedAt))
             .ToList();
 
+        // Ohne zusätzliche Abfrage: die Trainer:innen sind hier schon geladen.
+        var trainerIds = club.Trainers.Select(t => t.UserId).ToHashSet();
         var members = approvedMemberships
-            .Select(m => lookup.TryGetValue(m.UserId, out var info)
-                ? new ClubMemberDto(m.Id, m.UserId, info.Email, info.FirstName, info.LastName, m.RequestedAt, m.DecidedAt)
-                : new ClubMemberDto(m.Id, m.UserId, "(unbekannt)", "", "", m.RequestedAt, m.DecidedAt))
+            .Select(m => ZuMitglied(m, lookup, trainerIds))
             .ToList();
 
         var dto = new ClubDetailDto(new ClubDto(club.Id, club.Name, club.Description, trainers.Count, club.Groups.Count), trainers, members);
@@ -228,11 +228,10 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Pending)
             .ToListAsync(ct);
 
+        var trainerIds = await TrainerIdsAsync(clubId, ct);
         var lookup = await userLookup.FindByIdsAsync(pending.Select(m => m.UserId).ToList(), ct);
         var dtos = pending
-            .Select(m => lookup.TryGetValue(m.UserId, out var info)
-                ? new ClubMemberDto(m.Id, m.UserId, info.Email, info.FirstName, info.LastName, m.RequestedAt, m.DecidedAt)
-                : new ClubMemberDto(m.Id, m.UserId, "(unbekannt)", "", "", m.RequestedAt, m.DecidedAt))
+            .Select(m => ZuMitglied(m, lookup, trainerIds))
             .ToList();
 
         return Result<IReadOnlyList<ClubMemberDto>>.Success(dtos);
@@ -357,6 +356,33 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         return Result.Success();
     }
 
+    /// <summary>Die Nutzer-Ids aller Trainer:innen eines Vereins.</summary>
+    private async Task<IReadOnlySet<Guid>> TrainerIdsAsync(Guid clubId, CancellationToken ct) =>
+        (await db.ClubTrainers
+            .Where(t => t.ClubId == clubId)
+            .Select(t => t.UserId)
+            .ToListAsync(ct))
+        .ToHashSet();
+
+    /// <summary>
+    /// Baut die Mitgliederzeile - inklusive der Frage, ob die Person zugleich
+    /// Trainer:in des Vereins ist.
+    ///
+    /// Eine Stelle, weil es vorher dreimal wortgleich dastand (Vereinsdetail,
+    /// Beitrittsanfragen, Mitgliederliste) und ein neues Feld sonst an zwei
+    /// davon vergessen worden wäre.
+    /// </summary>
+    private static ClubMemberDto ZuMitglied(
+        ClubMembership m,
+        IReadOnlyDictionary<Guid, UserLookupResult> lookup,
+        IReadOnlySet<Guid> trainerIds)
+    {
+        var istTrainer = trainerIds.Contains(m.UserId);
+        return lookup.TryGetValue(m.UserId, out var info)
+            ? new ClubMemberDto(m.Id, m.UserId, info.Email, info.FirstName, info.LastName, m.RequestedAt, m.DecidedAt, istTrainer)
+            : new ClubMemberDto(m.Id, m.UserId, "(unbekannt)", "", "", m.RequestedAt, m.DecidedAt, istTrainer);
+    }
+
     public async Task<Result<IReadOnlyList<ClubMemberDto>>> GetMembersAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
     {
         if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
@@ -366,11 +392,10 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Approved)
             .ToListAsync(ct);
 
+        var trainerIds = await TrainerIdsAsync(clubId, ct);
         var lookup = await userLookup.FindByIdsAsync(members.Select(m => m.UserId).ToList(), ct);
         var dtos = members
-            .Select(m => lookup.TryGetValue(m.UserId, out var info)
-                ? new ClubMemberDto(m.Id, m.UserId, info.Email, info.FirstName, info.LastName, m.RequestedAt, m.DecidedAt)
-                : new ClubMemberDto(m.Id, m.UserId, "(unbekannt)", "", "", m.RequestedAt, m.DecidedAt))
+            .Select(m => ZuMitglied(m, lookup, trainerIds))
             .ToList();
 
         return Result<IReadOnlyList<ClubMemberDto>>.Success(dtos);

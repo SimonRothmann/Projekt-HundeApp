@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, ShieldPlus, UserPlus } from "lucide-react";
+import { Users, ShieldPlus, ShieldCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
@@ -64,6 +64,9 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
     try {
       await api.post(`/api/clubs/${selectedClubId}/members/${userId}/promote`);
       toast.success("Mitglied ist jetzt Trainer.");
+      // Neu laden, sonst bietet die Zeile weiter "Zum Trainer machen" an,
+      // obwohl die Person es gerade geworden ist.
+      await loadMembers(selectedClubId);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Beförderung fehlgeschlagen.");
     } finally {
@@ -122,29 +125,41 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
         ) : (
           <ul className="flex flex-col gap-2">
             {members.map((m) => (
-              // flex-wrap + min-w-0: Name und E-Mail zusammen sind auf 375 px
-              // breiter als die Karte, und weder Text noch Knopf konnten
-              // schrumpfen (Flex-Kinder haben von Haus aus min-width:auto).
-              // Gemessen ragte "Zum Trainer machen" 4-7 px über den Rand und
-              // war angeschnitten. Jetzt rutscht der Knopf bei Platzmangel in
-              // die nächste Zeile, statt aus der Karte zu laufen.
+              // Der Knopf rutscht auf schmalen Geräten unter den Namen.
+              //
+              // min-w-[12rem] ist der Kern: Mit "flex-1" allein (Basis 0)
+              // gibt der Text IMMER nach, der Knopf bleibt daneben stehen -
+              // eine lange Adresse wurde dann in eine 114 px schmale Spalte
+              // gequetscht und mitten im Wort über sechs Zeilen umgebrochen,
+              // die Zeile 158 px hoch. Unterschreitet der Text diese
+              // Mindestbreite, bricht die Zeile stattdessen um.
               <li
                 key={m.userId}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
+                className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-md border px-3 py-2"
               >
-                <span className="min-w-0 flex-1 text-sm [overflow-wrap:anywhere]">
+                <span className="min-w-[12rem] flex-1 text-sm [overflow-wrap:anywhere]">
                   {m.firstName} {m.lastName} ({m.email})
                 </span>
-                <Button
-                  className="shrink-0"
-                  size="sm"
-                  variant="outline"
-                  disabled={promotingUserId === m.userId}
-                  onClick={() => handlePromote(m.userId)}
-                >
-                  <ShieldPlus className="size-4" />
-                  Zum Trainer machen
-                </Button>
+                {m.isTrainer ? (
+                  // Wer schon Trainer:in ist, braucht keinen Knopf dafür.
+                  // Statt ihn zu verstecken, wird der Zustand benannt - sonst
+                  // sieht die Zeile bloß unfertig aus.
+                  <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                    <ShieldCheck className="size-4" />
+                    Trainer:in
+                  </span>
+                ) : (
+                  <Button
+                    className="shrink-0"
+                    size="sm"
+                    variant="outline"
+                    disabled={promotingUserId === m.userId}
+                    onClick={() => handlePromote(m.userId)}
+                  >
+                    <ShieldPlus className="size-4" />
+                    Zum Trainer machen
+                  </Button>
+                )}
               </li>
             ))}
           </ul>

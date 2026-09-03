@@ -275,11 +275,18 @@ export default function AdminPage() {
                       pwUserId === u.id ? "border-primary/50 bg-primary/5" : ""
                     }`}
                   >
+                    {/* min-w-[12rem] statt min-w-0: Ohne Mindestbreite schrumpft
+                        der Text (flex-1, Basis 0) auf wenige Pixel, und
+                        overflow-wrap:anywhere bricht ihn dann buchstabenweise
+                        um - "Max Mustermann" stand senkrecht untereinander.
+                        Unterschreitet der Text diese Breite, wandern
+                        stattdessen Marken und Knöpfe in die nächste Zeile.
+                        shrink-0 hält sie dabei zusammen. */}
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span>
+                      <span className="min-w-[12rem] flex-1 [overflow-wrap:anywhere]">
                         {u.firstName} {u.lastName} <span className="text-muted-foreground">({u.email})</span>
                       </span>
-                      <div className="flex items-center gap-1">
+                      <div className="flex shrink-0 items-center gap-1">
                         {u.roles.map((role) => (
                           <Badge key={role} variant="secondary">
                             {role}
