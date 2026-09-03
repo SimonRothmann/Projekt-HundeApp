@@ -40,7 +40,7 @@ export function LetzteNeuerung({
           {formatiereVeroeffentlichung(neueste.datum)}
         </time>
       </div>
-      <p className="mt-1 text-sm font-medium text-balance">{neueste.titel}</p>
+      <p className="mt-1 text-sm font-medium text-balance">{t(neueste.titel)}</p>
 
       <ul className="mt-3 flex flex-col gap-2">
         {auszug.map((aenderung, index) => (
@@ -48,7 +48,7 @@ export function LetzteNeuerung({
             <Badge variant="outline" className="mt-0.5 shrink-0">
               {t(AENDERUNGSART_LABEL[aenderung.art])}
             </Badge>
-            <span className="min-w-0 text-sm text-muted-foreground [overflow-wrap:anywhere]">{aenderung.text}</span>
+            <span className="min-w-0 text-sm text-muted-foreground [overflow-wrap:anywhere]">{t(aenderung.text)}</span>
           </li>
         ))}
         {/* Der Rest gehört in die Liste, die er abschneidet - nicht in den

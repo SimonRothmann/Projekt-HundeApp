@@ -112,7 +112,7 @@ export default function ClubsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Vereine</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Vereine")}</h1>
         <p className="text-muted-foreground">
 {t("Tritt einem Verein bei - ein Trainer des Vereins gibt deine Anfrage frei.")}
         </p>
@@ -167,7 +167,9 @@ export default function ClubsPage() {
                             <Users className="size-4 shrink-0 text-muted-foreground" />
                             <span className="[overflow-wrap:anywhere]">{g.name}</span>
                             <Badge variant="outline" className="shrink-0 text-xs">
-                              {g.memberCount} Mitglieder
+                              {g.memberCount === 1
+                                ? t("1 Mitglied")
+                                : t("{n} Mitglieder", { n: g.memberCount })}
                             </Badge>
                           </div>
                           {/* Beitreten nur, wenn man wirklich außen vor ist -

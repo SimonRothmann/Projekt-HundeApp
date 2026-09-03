@@ -136,7 +136,7 @@ export function NeuerungenHinweis({ erststartLaeuft }: { erststartLaeuft: boolea
           die anstehenden Trainings unter den Bildschirmrand - und das für eine
           Nachricht, die nach einmal Lesen erledigt ist. */}
       <CardContent className="flex flex-col items-start gap-3">
-        <p className="font-medium text-balance">{neueste.titel}</p>
+        <p className="font-medium text-balance">{t(neueste.titel)}</p>
         {/* Wer hier durchklickt, hat die Neuerungen gesehen - sonst stünde
             die Karte nach dem Zurückkommen unverändert da und verlangte ein
             zweites Mal Aufmerksamkeit für dieselbe Nachricht. */}

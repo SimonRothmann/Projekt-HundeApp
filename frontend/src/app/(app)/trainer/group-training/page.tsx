@@ -272,7 +272,7 @@ export default function GroupTrainingPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Gruppentraining</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Gruppentraining")}</h1>
         <p className="text-sm text-muted-foreground">
 {t("Die gemeinsame Trainingsbibliothek deines Vereins – wähle eine Altersklasse.")}
         </p>

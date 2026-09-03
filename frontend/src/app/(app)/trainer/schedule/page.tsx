@@ -285,7 +285,7 @@ export default function SchedulePage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Terminplanung</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Terminplanung")}</h1>
         <p className="text-muted-foreground">{t("Plane Gruppentrainings: wann, welche Gruppe, was gemacht wird. Mitglieder sehen die Termine ihrer Gruppe.")}</p>
       </div>
 

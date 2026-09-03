@@ -45,7 +45,7 @@ export default function DogPrintPage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8 p-6 print:p-0">
       <div className="flex items-center justify-between print:hidden">
-        <h1 className="text-2xl font-semibold tracking-tight">Druckansicht: {dog.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Druckansicht: {name}", { name: dog.name })}</h1>
         <Button onClick={() => window.print()}>
           <Printer className="size-4" />
           Drucken

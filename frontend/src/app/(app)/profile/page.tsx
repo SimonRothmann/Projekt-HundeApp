@@ -112,7 +112,7 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Profil</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("Profil")}</h1>
 
       <Card>
         <CardHeader className="flex-row items-center gap-4 space-y-0">
