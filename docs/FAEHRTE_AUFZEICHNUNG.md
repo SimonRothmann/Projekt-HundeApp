@@ -55,6 +55,35 @@ Frage. Sie holt sich jetzt beim Öffnen eine grobe Position
 (`enableHighAccuracy: false`, Cache bis 60 s) und zentriert sofort; der erste
 echte Punkt rastet danach genau ein.
 
+### Gibt es einen Standard für drehbare Karten? (geprüft 2026-09-03)
+
+Ja - und wir nutzen ihn bewusst NICHT. Die Prüfung, damit die Frage nicht
+wiederkehrt:
+
+| Bibliothek | Stand | Größe (gzip) | Drehung |
+|---|---|---|---|
+| Leaflet 1.9.4 (heute) | Mai 2023 | **42 KB** | kennt keine |
+| MapLibre GL 6.7.0 | September 2026 | **283 KB** | `setBearing`, nativ |
+| leaflet-rotate 0.2.8 | Juli 2023 | ~20 KB | Plugin, seit 3 Jahren still |
+
+MapLibre GL ist der Standard: WebGL-Kamera, Drehung ist erste Klasse,
+Zeigerkoordinaten und Ziehen stimmen dabei. Es kostet aber **rund 240 KB
+gzip mehr** - und zwar genau auf dem Bildschirm, der auf dem Hundeplatz bei
+schlechtem Netz geöffnet wird. Dazu käme CSP-Anpassung (`worker-src blob:`,
+Kachelhost in `connect-src`).
+
+Dagegen steht: Die bekannten Schwächen der CSS-Drehung treffen HIER nicht
+zu. Sie betreffen Ziehen und Klicken auf der gedrehten Karte - beim
+Aufzeichnen folgt die Karte aber jede Sekunde der eigenen Position und
+überschreibt jedes Verschieben ohnehin, und die historische Karte dreht
+gar nicht. Was blieb, war eine Bedienung, die beim Ziehen schräg läuft;
+deshalb ist Ziehen im Drehmodus jetzt abgeschaltet, mit dem Kompass kommt
+man auf "Nord oben".
+
+Sollte die Karte einmal echte Interaktion im gedrehten Zustand brauchen -
+oder Vektorkacheln, Neigung, Beschriftungen, die sich mitdrehen -, ist
+MapLibre die richtige Antwort. Für das Fährtelegen ist es 240 KB für nichts.
+
 ---
 
 ## 2. Vollbild beim Aufzeichnen

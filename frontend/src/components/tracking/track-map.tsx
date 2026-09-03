@@ -202,6 +202,23 @@ export function TrackMap({
     mapRef.current?.invalidateSize({ animate: false });
   }, [kantenlaenge, rotateWithHeading]);
 
+  // Ziehen abschalten, solange die Karte mitdreht.
+  //
+  // Leaflet weiß nichts von der Drehung - sie liegt als CSS-Transformation
+  // darüber. Eine Zugbewegung nach oben verschiebt die Karte deshalb nicht
+  // nach oben, sondern um den Drehwinkel versetzt. Beim Aufzeichnen fällt
+  // das kaum auf, weil die Karte ohnehin jede Sekunde der eigenen Position
+  // nachgeführt wird und jedes Verschieben sofort überschreibt - aber eine
+  // Bedienung, die in die falsche Richtung zieht, ist schlechter als eine,
+  // die es gar nicht anbietet. Wer verschieben will, schaltet per Kompass
+  // auf "Nord oben".
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (rotateWithHeading) map.dragging.disable();
+    else map.dragging.enable();
+  }, [rotateWithHeading, mapReady]);
+
   function cycleOrientation() {
     setOrientation((prev) =>
       prev === "north-arrow" ? "heading" : prev === "heading" ? "north" : "north-arrow",
@@ -444,13 +461,20 @@ export function TrackMap({
       ref={rahmenRef}
       className={`relative w-full overflow-hidden ${fill ? "h-full" : "h-64 rounded-md"}`}
     >
+      {/* Drehebene und Leaflet-Element sind bewusst GETRENNT.
+          
+          Leaflet setzt eigene Klassen direkt auf sein Element
+          (leaflet-container, leaflet-touch, …). Stand am selben Element auch
+          ein von React verwaltetes className, das sich ändert - hier beim
+          Wechsel der Ausrichtung -, schrieb React das Attribut komplett neu
+          und löschte Leaflets Klassen mit. Ohne leaflet-container verliert
+          die Karte ihr gesamtes Styling: Sie wurde schwarz.
+
+          Deshalb gehört die Drehung auf eine eigene Ebene, und das
+          Leaflet-Element bekommt ein KONSTANTES className, das React nach
+          dem Einhängen nie wieder anfasst. */}
       <div
-        ref={containerRef}
-        className={
-          rotateWithHeading
-            ? "absolute left-1/2 top-1/2 transition-transform duration-500 ease-out [&_.leaflet-control-attribution]:origin-bottom-right"
-            : "h-full w-full transition-transform duration-500 ease-out [&_.leaflet-control-attribution]:origin-bottom-right"
-        }
+        className="transition-transform duration-500 ease-out [&_.leaflet-control-attribution]:origin-bottom-right"
         style={
           rotateWithHeading
             ? {
@@ -460,13 +484,18 @@ export function TrackMap({
                 // oben und unten schwarze Keile stehen, weil ein hochkantes
                 // Rechteck gedreht seinen eigenen Ausschnitt nicht mehr
                 // deckt. Ein Quadrat dieser Kantenlänge deckt jeden Winkel.
+                position: "absolute",
+                left: "50%",
+                top: "50%",
                 width: kantenlaenge,
                 height: kantenlaenge,
                 transform: `translate(-50%, -50%) rotate(${rotationDeg}deg)`,
               }
-            : { transform: `rotate(${rotationDeg}deg)` }
+            : { width: "100%", height: "100%" }
         }
-      />
+      >
+        <div ref={containerRef} className="size-full" />
+      </div>
       {/* OSM-Attribution wieder aufrichten wenn Karte rotiert: gegenrotieren
           um denselben Winkel. Selector greift die Leaflet-Attribution direkt
           im rotierten Container. */}
