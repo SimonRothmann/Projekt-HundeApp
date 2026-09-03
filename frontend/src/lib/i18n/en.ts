@@ -608,6 +608,7 @@ export const EN: Record<string, string> = {
   "Zum Trainer befördern": "Promote to trainer",
   "Zum Trainer machen": "Make a trainer",
   "Zuordnungsfragen ließen sich nur aufdecken, nicht lösen. Bildantworten zeigten ihre Nummer nicht. Der Lernstand blieb leer.": "Matching questions could only be revealed, not solved. Picture answers did not show their number. Progress stayed empty.",
+  "Zur App": "To the app",
   "Zurzeit werden dir alle Sportarten angeboten. Wähle aus, was du machst – dann zeigt das Tagebuch nur noch diese und Freitext.": "All sports are offered to you at the moment. Pick the ones you do – the diary will then show only those plus free text.",
   "Zurück": "Back",
   "Zurück zur Anmeldung": "Back to sign in",
