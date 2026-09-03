@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { isChunkLoadError, reloadOnceForChunkError } from "@/lib/chunk-reload";
 
+import { useT } from "@/lib/i18n";
 /**
  * Error-Boundary für den gesamten authentifizierten Bereich (umschließt u.a.
  * die Hundeseite). Fängt Laufzeit-/Renderfehler ab, statt die Seite
@@ -24,6 +25,7 @@ export default function AppError({
   error: Error & { digest?: string };
   unstable_retry: () => void;
 }) {
+  const t = useT();
   const chunk = isChunkLoadError(error);
 
   useEffect(() => {
@@ -36,11 +38,11 @@ export default function AppError({
   return (
     <div className="flex flex-col items-center gap-4 py-16 text-center">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold">Diese Seite konnte nicht geladen werden</h2>
+        <h2 className="text-lg font-semibold">{t("Diese Seite konnte nicht geladen werden")}</h2>
         <p className="text-sm text-muted-foreground">
           {chunk
-            ? "Die App wurde zwischenzeitlich aktualisiert – die Seite wird neu geladen…"
-            : "Bitte versuche es erneut."}
+            ? t("Die App wurde zwischenzeitlich aktualisiert – die Seite wird neu geladen…")
+            : t("Bitte versuche es erneut.")}
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-2">

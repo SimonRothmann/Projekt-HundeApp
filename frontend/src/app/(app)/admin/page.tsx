@@ -18,7 +18,9 @@ import { CatalogSection } from "@/components/sports/catalog-section";
 import { RegulationImportSection } from "@/components/admin/regulation-import-section";
 import { SachkundeSection } from "@/components/admin/sachkunde-section";
 
+import { useT } from "@/lib/i18n";
 export default function AdminPage() {
+  const t = useT();
   const searchParams = useSearchParams();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [userPage, setUserPage] = useState<AdminUserPage | null>(null);
@@ -43,7 +45,7 @@ export default function AdminPage() {
       setUserPage(data);
       setCurrentPage(page);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Nutzer konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Nutzer konnten nicht geladen werden."));
     }
   }
 
@@ -58,7 +60,12 @@ export default function AdminPage() {
         setUserPage(usersData);
         setSports(sportsData);
       })
-      .catch((err) => toast.error(err instanceof ApiError ? err.message : "Admin-Daten konnten nicht geladen werden."));
+      .catch((err) => toast.error(err instanceof ApiError ? err.message : t("Admin-Daten konnten nicht geladen werden.")));
+    // t bewusst nicht in der Liste: Der Uebersetzer wird hier nur im
+    // Fehlerfall gebraucht. Stuende er drin, liefe der ganze Abruf bei
+    // jedem Sprachwechsel erneut - Daten neu laden, weil ein Toast
+    // anders heissen wuerde.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleToggleLock(user: AdminUser) {
@@ -75,10 +82,10 @@ export default function AdminPage() {
     if (!window.confirm(`${user.firstName} ${user.lastName} (${user.email}) wirklich endgültig löschen?`)) return;
     try {
       await api.delete(`/api/admin/users/${user.id}`);
-      toast.success("Nutzer gelöscht.");
+      toast.success(t("Nutzer gelöscht."));
       await loadUsers(currentPage);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
     }
   }
 
@@ -99,7 +106,7 @@ export default function AdminPage() {
       setPwUserId(null);
       setNewPassword("");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Passwort konnte nicht gesetzt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Passwort konnte nicht gesetzt werden."));
     } finally {
       setSettingPassword(false);
     }
@@ -118,7 +125,7 @@ export default function AdminPage() {
       const data = await api.get<Regulation[]>(`/api/sports/${sportId}/regulations`);
       setRegulations(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Prüfungsordnungen konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Prüfungsordnungen konnten nicht geladen werden."));
     }
   }
 
@@ -142,7 +149,7 @@ export default function AdminPage() {
       const data = await api.get<Regulation[]>(`/api/sports/${selectedSportId}/regulations`);
       setRegulations(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Speichern fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Speichern fehlgeschlagen."));
     } finally {
       setSaving(false);
     }
@@ -151,10 +158,9 @@ export default function AdminPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Admin-Übersicht</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Admin-Übersicht")}</h1>
         <p className="text-muted-foreground">
-          Plattformweite Kennzahlen, Nutzerverwaltung, Vereinsverwaltung, globaler Übungskatalog und
-          Prüfungsordnungs-Pflege.
+{t("Plattformweite Kennzahlen, Nutzerverwaltung, Vereinsverwaltung, globaler Übungskatalog und Prüfungsordnungs-Pflege.")}
         </p>
       </div>
 
@@ -165,17 +171,17 @@ export default function AdminPage() {
       {stats && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <StatCard icon={Users} label="Nutzer" value={stats.userCount} />
-          <StatCard icon={Dog} label="Hunde" value={stats.dogCount} />
+          <StatCard icon={Dog} label={t("Hunde")} value={stats.dogCount} />
           <StatCard icon={Users2} label="Gruppen" value={stats.groupCount} />
-          <StatCard icon={ClipboardList} label="Trainings" value={stats.trainingSessionCount} />
-          <StatCard icon={MapPin} label="Fährten" value={stats.gpsTrackCount} />
+          <StatCard icon={ClipboardList} label={t("Trainings")} value={stats.trainingSessionCount} />
+          <StatCard icon={MapPin} label={t("Fährten")} value={stats.gpsTrackCount} />
         </div>
       )}
 
       <CatalogSection
         scope={{ kind: "global" }}
-        title="Globaler Sportarten-Katalog"
-        description="Pflegt die für alle Nutzer sichtbaren Sportarten und Übungen nach VDH-Prüfungsordnungen."
+        title={t("Globaler Sportarten-Katalog")}
+        description={t("Pflegt die für alle Nutzer sichtbaren Sportarten und Übungen nach VDH-Prüfungsordnungen.")}
       />
 
       <RegulationImportSection sports={sports ?? []} />
@@ -186,17 +192,17 @@ export default function AdminPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <ScrollText className="size-5" />
-            Prüfungsordnung: Quelle pflegen
+{t("Prüfungsordnung: Quelle pflegen")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSaveSource} className="flex flex-col gap-3">
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex flex-col gap-2 sm:w-56">
-                <Label>Sportart</Label>
+                <Label>{t("Sportart")}</Label>
                 <Select value={selectedSportId} onValueChange={(value) => handleSportChange(value ?? "")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Auswählen…" />
+                    <SelectValue placeholder={t("Auswählen…")} />
                   </SelectTrigger>
                   <SelectContent>
                     {sports?.map((s) => (
@@ -208,14 +214,14 @@ export default function AdminPage() {
                 </Select>
               </div>
               <div className="flex flex-col gap-2 sm:w-56">
-                <Label>Prüfungsordnung</Label>
+                <Label>{t("Prüfungsordnung")}</Label>
                 <Select
                   value={selectedRegulationId}
                   disabled={!selectedSportId}
                   onValueChange={(value) => handleRegulationChange(value ?? "")}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Auswählen…" />
+                    <SelectValue placeholder={t("Auswählen…")} />
                   </SelectTrigger>
                   <SelectContent>
                     {regulations.map((r) => (
@@ -248,7 +254,7 @@ export default function AdminPage() {
                   />
                 </div>
                 <Button type="submit" disabled={saving}>
-                  Speichern
+{t("Speichern")}
                 </Button>
               </div>
             )}
@@ -267,7 +273,7 @@ export default function AdminPage() {
         </CardHeader>
         <CardContent>
           {userPage === null ? (
-            <p className="text-sm text-muted-foreground">Lädt…</p>
+            <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
           ) : (
             <>
               <ul className="flex flex-col gap-2">
@@ -307,7 +313,7 @@ export default function AdminPage() {
                         <Button size="icon-sm" variant="ghost" title={u.isLockedOut ? "Entsperren" : "Sperren"} onClick={() => handleToggleLock(u)}>
                           {u.isLockedOut ? <Unlock className="size-3.5" /> : <Lock className="size-3.5" />}
                         </Button>
-                        <Button size="icon-sm" variant="ghost" title="Löschen" onClick={() => handleDeleteUser(u)}>
+                        <Button size="icon-sm" variant="ghost" title={t("Löschen")} onClick={() => handleDeleteUser(u)}>
                           <Trash2 className="size-3.5" />
                         </Button>
                       </div>
@@ -328,15 +334,14 @@ export default function AdminPage() {
                             className="sm:w-64"
                           />
                           <Button size="sm" disabled={settingPassword} onClick={() => handleSetPassword(u)}>
-                            {settingPassword ? "Wird gesetzt…" : "Passwort setzen"}
+                            {settingPassword ? t("Wird gesetzt…") : "Passwort setzen"}
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => togglePasswordForm(u.id)}>
-                            Abbrechen
+{t("Abbrechen")}
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Das Passwort wird im Klartext angezeigt, damit du es dem Nutzer sicher mitteilen kannst.
-                          Nach dem Setzen wird es nicht erneut angezeigt.
+{t("Das Passwort wird im Klartext angezeigt, damit du es dem Nutzer sicher mitteilen kannst. Nach dem Setzen wird es nicht erneut angezeigt.")}
                         </p>
                       </div>
                     )}
@@ -352,7 +357,7 @@ export default function AdminPage() {
                     onClick={() => loadUsers(currentPage - 1)}
                   >
                     <ChevronLeft className="size-4" />
-                    Zurück
+{t("Zurück")}
                   </Button>
                   <Button
                     size="sm"

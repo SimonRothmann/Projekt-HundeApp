@@ -5,6 +5,7 @@ using Dogity.Domain.Preferences;
 using Dogity.Domain.Learning;
 using Dogity.Domain.Notifications;
 using Dogity.Domain.Planning;
+using Dogity.Domain.Geography;
 using Dogity.Domain.Sports;
 using Dogity.Domain.Tracking;
 using Dogity.Domain.Training;
@@ -28,6 +29,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<DogOwner> DogOwners => Set<DogOwner>();
     public DbSet<DogImage> DogImages => Set<DogImage>();
 
+    public DbSet<Country> Countries => Set<Country>();
     public DbSet<Sport> Sports => Set<Sport>();
     public DbSet<Regulation> Regulations => Set<Regulation>();
     public DbSet<RegulationVersion> RegulationVersions => Set<RegulationVersion>();

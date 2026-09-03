@@ -16,6 +16,7 @@ import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { formatDogAge } from "@/lib/dog-age";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 export default function DogsPage() {
   const [dogs, setDogs] = useState<Dog[] | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -24,6 +25,7 @@ export default function DogsPage() {
   const [gender, setGender] = useState<0 | 1>(0);
   const [birthday, setBirthday] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const t = useT();
 
   async function loadDogs() {
     const cached = await getCachedData<Dog[]>("dogs-list");
@@ -34,7 +36,7 @@ export default function DogsPage() {
       setDogs(data);
       await setCachedData("dogs-list", data);
     } catch (err) {
-      if (!cached) toast.error(err instanceof ApiError ? err.message : "Hunde konnten nicht geladen werden.");
+      if (!cached) toast.error(err instanceof ApiError ? err.message : t("Hunde konnten nicht geladen werden."));
     }
   }
 
@@ -61,10 +63,10 @@ export default function DogsPage() {
       setGender(0);
       setBirthday("");
       setShowForm(false);
-      toast.success("Hund angelegt.");
+      toast.success(t("Hund angelegt."));
       await loadDogs();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Hund konnte nicht angelegt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Hund konnte nicht angelegt werden."));
     } finally {
       setIsSubmitting(false);
     }
@@ -84,7 +86,7 @@ export default function DogsPage() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <CardTitle className="text-base">{dog.name}</CardTitle>
-                {archived && <Badge variant="secondary">Archiviert</Badge>}
+                {archived && <Badge variant="secondary">{t("Archiviert")}</Badge>}
               </div>
               <p className="text-sm text-muted-foreground">
                 {[dog.breed ?? "Unbekannte Rasse", formatDogAge(dog.birthday)].filter(Boolean).join(" · ")}
@@ -99,31 +101,31 @@ export default function DogsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Meine Hunde</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Meine Hunde")}</h1>
         <Button onClick={() => setShowForm((v) => !v)} size="sm">
           <Plus className="size-4" />
-          Hund hinzufügen
+          {t("Hund hinzufügen")}
         </Button>
       </div>
 
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Neuer Hund</CardTitle>
+            <CardTitle className="text-base">{t("Neuer Hund")}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreate} className="flex flex-col gap-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="name">{t("Name")}</Label>
                   <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="breed">Rasse</Label>
+                  <Label htmlFor="breed">{t("Rasse")}</Label>
                   <Input id="breed" value={breed} onChange={(e) => setBreed(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="gender">Geschlecht</Label>
+                  <Label htmlFor="gender">{t("Geschlecht")}</Label>
                   <Select
                     value={gender}
                     onValueChange={(value) => setGender(value as 0 | 1)}
@@ -132,21 +134,23 @@ export default function DogsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={0}>Rüde</SelectItem>
-                      <SelectItem value={1}>Hündin</SelectItem>
+                      <SelectItem value={0}>{t("Rüde")}</SelectItem>
+                      <SelectItem value={1}>{t("Hündin")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="birthday">Geburtsdatum</Label>
+                  <Label htmlFor="birthday">{t("Geburtsdatum")}</Label>
                   <Input id="birthday" type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
                   <p className="text-xs text-muted-foreground">
-                    {formatDogAge(birthday) ? `Alter: ${formatDogAge(birthday)}` : "Optional - daraus wird das Alter berechnet."}
+                    {formatDogAge(birthday)
+                      ? t("Alter: {alter}", { alter: formatDogAge(birthday) ?? "" })
+                      : t("Optional - daraus wird das Alter berechnet.")}
                   </p>
                 </div>
               </div>
               <Button type="submit" className="self-start" disabled={isSubmitting}>
-                {isSubmitting ? "Wird gespeichert…" : "Speichern"}
+                {isSubmitting ? t("Wird gespeichert…") : t("Speichern")}
               </Button>
             </form>
           </CardContent>
@@ -154,12 +158,12 @@ export default function DogsPage() {
       )}
 
       {dogs === null ? (
-        <p className="text-muted-foreground">Lädt…</p>
+        <p className="text-muted-foreground">{t("Lädt…")}</p>
       ) : dogs.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
             <DogIcon className="size-10" />
-            <p>Noch keine Hunde angelegt.</p>
+            <p>{t("Noch keine Hunde angelegt.")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -169,12 +173,12 @@ export default function DogsPage() {
               {activeDogs.map((dog) => dogCard(dog))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Alle Hunde sind archiviert.</p>
+            <p className="text-sm text-muted-foreground">{t("Alle Hunde sind archiviert.")}</p>
           )}
 
           {archivedDogs.length > 0 && (
             <div className="flex flex-col gap-3">
-              <h2 className="text-sm font-medium text-muted-foreground">Archivierte Hunde</h2>
+              <h2 className="text-sm font-medium text-muted-foreground">{t("Archivierte Hunde")}</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {archivedDogs.map((dog) => dogCard(dog, true))}
               </div>

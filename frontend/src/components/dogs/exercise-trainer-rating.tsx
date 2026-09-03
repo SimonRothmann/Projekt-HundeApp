@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Check, MessageSquarePlus, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Trainer-Bewertung einer Übung (1-5 Sterne + optionale Notiz), getrennt von
  * der Selbstbewertung des Hundeführers (TrainingExercise.rating vs.
@@ -33,6 +34,7 @@ export function ExerciseTrainerRating({
   canEdit: boolean;
   onSaved: () => Promise<void>;
 }) {
+  const t = useT();
   const [editingNote, setEditingNote] = useState(false);
   const [noteValue, setNoteValue] = useState(note ?? "");
   const [saving, setSaving] = useState(false);
@@ -54,7 +56,7 @@ export function ExerciseTrainerRating({
       await onSaved();
     } catch (err) {
       setOptimistic(null);
-      toast.error(err instanceof ApiError ? err.message : "Trainer-Bewertung konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Trainer-Bewertung konnte nicht gespeichert werden."));
     } finally {
       setSaving(false);
     }
@@ -66,7 +68,7 @@ export function ExerciseTrainerRating({
   if (!canEdit) {
     return (
       <span className="flex min-w-0 items-baseline gap-1 text-xs text-muted-foreground">
-        <span className="shrink-0 font-medium">Trainer:</span>
+        <span className="shrink-0 font-medium">{t("Trainer:")}</span>
         <span className="shrink-0 text-primary">
           {"★".repeat(rating!)}
           {"☆".repeat(5 - rating!)}
@@ -79,8 +81,8 @@ export function ExerciseTrainerRating({
   return (
     <span className="flex min-w-0 flex-col gap-1">
       <span className="flex items-center gap-1">
-        <span className="shrink-0 text-xs font-medium text-muted-foreground">Trainer:</span>
-        <span role="group" aria-label="Trainer-Bewertung, 1 bis 5 Sterne" className="inline-flex items-center">
+        <span className="shrink-0 text-xs font-medium text-muted-foreground">{t("Trainer:")}</span>
+        <span role="group" aria-label={t("Trainer-Bewertung, 1 bis 5 Sterne")} className="inline-flex items-center">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
@@ -101,7 +103,7 @@ export function ExerciseTrainerRating({
             size="icon"
             variant="ghost"
             className="size-6 shrink-0"
-            title={note ? "Notiz bearbeiten" : "Notiz hinzufügen"}
+            title={note ? t("Notiz bearbeiten") : t("Notiz hinzufügen")}
             onClick={() => {
               setNoteValue(note ?? "");
               setEditingNote(true);
@@ -118,7 +120,7 @@ export function ExerciseTrainerRating({
         <span className="flex items-center gap-1">
           <Input
             className="h-8 min-w-0 flex-1 text-xs"
-            placeholder="Notiz des Trainers"
+            placeholder={t("Notiz des Trainers")}
             value={noteValue}
             onChange={(e) => setNoteValue(e.target.value)}
             autoFocus
@@ -128,7 +130,7 @@ export function ExerciseTrainerRating({
             size="icon"
             variant="ghost"
             className="size-7 shrink-0"
-            title="Notiz speichern"
+            title={t("Notiz speichern")}
             // Ohne Sterne keine Notiz: der Endpunkt verlangt eine Bewertung.
             disabled={saving || shown === null}
             onClick={() => save(shown ?? 0, noteValue)}
@@ -140,7 +142,7 @@ export function ExerciseTrainerRating({
             size="icon"
             variant="ghost"
             className="size-7 shrink-0"
-            title="Abbrechen"
+            title={t("Abbrechen")}
             onClick={() => {
               setNoteValue(note ?? "");
               setEditingNote(false);
@@ -152,7 +154,7 @@ export function ExerciseTrainerRating({
       )}
 
       {editingNote && shown === null && (
-        <span className="text-xs text-muted-foreground">Bitte zuerst Sterne vergeben.</span>
+        <span className="text-xs text-muted-foreground">{t("Bitte zuerst Sterne vergeben.")}</span>
       )}
     </span>
   );

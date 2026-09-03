@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
-import type { UserPreferences } from "@/lib/types";
+import { MODULE, type UserPreferences } from "@/lib/types";
+import { VORGABE_LAND } from "@/lib/i18n/laender";
 import { useAuth } from "@/lib/auth-context";
 
 /**
@@ -22,7 +23,7 @@ type PreferencesValue = {
   reload: () => Promise<void>;
 };
 
-const VORGABE: UserPreferences = { locale: null, disabledModules: [], sportIds: [] };
+const VORGABE: UserPreferences = { locale: null, country: null, disabledModules: [], sportIds: [] };
 
 const PreferencesContext = createContext<PreferencesValue | undefined>(undefined);
 
@@ -55,7 +56,22 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PreferencesValue>(
     () => ({
       preferences,
-      moduleEnabled: (key: string) => !preferences.disabledModules.includes(key),
+      moduleEnabled: (key: string) => {
+        if (preferences.disabledModules.includes(key)) return false;
+
+        // Die Sachkunde ist der Fragenkatalog des SWHV - ein deutsches
+        // Angebot. Wer einen anderen Geltungsbereich gewählt hat, bekommt
+        // sie gar nicht erst angeboten.
+        //
+        // Bewusst an das LAND geknüpft und nicht an die Sprache, obwohl der
+        // erste Entwurf das so vorsah: Wer in Deutschland lebt und die App
+        // auf Englisch nutzt, macht trotzdem die deutsche BH und braucht
+        // genau diese Fragen. Umgekehrt hilft der SWHV-Katalog in Österreich
+        // auch auf Deutsch nicht weiter.
+        if (key === MODULE.sachkunde) return (preferences.country ?? VORGABE_LAND) === VORGABE_LAND;
+
+        return true;
+      },
       reload,
     }),
     [preferences, reload],

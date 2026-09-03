@@ -11,7 +11,9 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Bell } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 export function NotificationBell() {
+  const t = useT();
   const { unreadNotificationCount, refreshUnreadNotificationCount } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -22,7 +24,7 @@ export function NotificationBell() {
       const data = await api.get<Notification[]>("/api/notifications");
       setNotifications(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Benachrichtigungen konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Benachrichtigungen konnten nicht geladen werden."));
     }
   }
 
@@ -76,15 +78,15 @@ export function NotificationBell() {
           <span className="text-sm font-medium">Benachrichtigungen</span>
           {notifications && notifications.some((n) => !n.isRead) && (
             <Button variant="ghost" size="sm" onClick={handleMarkAllRead}>
-              Alle gelesen
+{t("Alle gelesen")}
             </Button>
           )}
         </div>
         <div className="max-h-80 overflow-y-auto">
           {notifications === null ? (
-            <p className="p-3 text-sm text-muted-foreground">Lädt…</p>
+            <p className="p-3 text-sm text-muted-foreground">{t("Lädt…")}</p>
           ) : notifications.length === 0 ? (
-            <p className="p-3 text-sm text-muted-foreground">Keine Benachrichtigungen.</p>
+            <p className="p-3 text-sm text-muted-foreground">{t("Keine Benachrichtigungen.")}</p>
           ) : (
             <ul>
               {notifications.map((n) => (

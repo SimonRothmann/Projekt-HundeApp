@@ -10,6 +10,7 @@ public class UserPreferenceConfiguration : IEntityTypeConfiguration<UserPreferen
     {
         builder.ToTable("user_preferences");
         builder.Property(p => p.Locale).HasMaxLength(10);
+        builder.Property(p => p.Country).HasMaxLength(2);
 
         // Eine Einstellungszeile je Nutzer. Ohne den eindeutigen Index
         // entstünde beim gleichzeitigen Speichern aus zwei Geräten eine

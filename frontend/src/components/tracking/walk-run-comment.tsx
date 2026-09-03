@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Check, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Zeigt den Kommentar eines Ablauf-Versuchs (GpsWalkRun) und erlaubt, ihn
  * inline zu bearbeiten (siehe Wunsch 1). Auch bei abgeschlossenen Trainings
@@ -23,6 +24,7 @@ export function WalkRunComment({
   run: GpsWalkRun;
   onSaved: () => Promise<void>;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(run.comment ?? "");
   const [saving, setSaving] = useState(false);
@@ -34,7 +36,7 @@ export function WalkRunComment({
       setEditing(false);
       await onSaved();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Kommentar konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Kommentar konnte nicht gespeichert werden."));
     } finally {
       setSaving(false);
     }
@@ -45,12 +47,12 @@ export function WalkRunComment({
       <span className="mt-0.5 flex items-center gap-1">
         <Input
           className="h-7 text-xs"
-          placeholder="Kommentar zum Ablauf"
+          placeholder={t("Kommentar zum Ablauf")}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           autoFocus
         />
-        <Button size="icon" variant="ghost" className="size-7" onClick={save} disabled={saving} title="Speichern">
+        <Button size="icon" variant="ghost" className="size-7" onClick={save} disabled={saving} title={t("Speichern")}>
           <Check className="size-3.5" />
         </Button>
         <Button
@@ -61,7 +63,7 @@ export function WalkRunComment({
             setValue(run.comment ?? "");
             setEditing(false);
           }}
-          title="Abbrechen"
+          title={t("Abbrechen")}
         >
           <X className="size-3.5" />
         </Button>
@@ -80,7 +82,7 @@ export function WalkRunComment({
           setValue(run.comment ?? "");
           setEditing(true);
         }}
-        title="Kommentar bearbeiten"
+        title={t("Kommentar bearbeiten")}
       >
         <Pencil className="size-3" />
       </Button>

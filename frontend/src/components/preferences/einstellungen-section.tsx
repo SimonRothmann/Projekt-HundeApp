@@ -11,6 +11,9 @@ import { Check, SlidersHorizontal, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
+import { SpracheUndLandSection } from "@/components/preferences/sprache-und-land-section";
 /**
  * Module und Sportarten ein- und ausblenden.
  *
@@ -28,24 +31,24 @@ import { toast } from "sonner";
 const MODUL_TEXTE: { key: string; titel: string; beschreibung: string; nurTrainer?: boolean }[] = [
   {
     key: MODULE.faehrte,
-    titel: "Fährte & GPS",
-    beschreibung: "Fährten aufzeichnen, ablaufen und auswerten.",
+    titel: uebersetzbar("Fährte & GPS"),
+    beschreibung: uebersetzbar("Fährten aufzeichnen, ablaufen und auswerten."),
   },
   {
     key: MODULE.sachkunde,
-    titel: "Sachkunde",
-    beschreibung: "Fragentrainer zur Begleithundeprüfung (SWHV, deutschsprachig).",
+    titel: uebersetzbar("Sachkunde"),
+    beschreibung: uebersetzbar("Fragentrainer zur Begleithundeprüfung (SWHV, deutschsprachig)."),
   },
   {
     key: MODULE.gruppentraining,
-    titel: "Gruppentraining",
-    beschreibung: "Einheiten und Terminplanung für Trainingsgruppen.",
+    titel: uebersetzbar("Gruppentraining"),
+    beschreibung: uebersetzbar("Einheiten und Terminplanung für Trainingsgruppen."),
     // Nur Trainer:innen sehen diesen Bereich überhaupt. Allen anderen einen
     // Schalter für etwas anzubieten, das sie nie hatten, verwirrt nur.
     nurTrainer: true,
   },
-  { key: MODULE.wetter, titel: "Wetter", beschreibung: "Temperatur und Wetter zum Training." },
-  { key: MODULE.statistik, titel: "Statistik", beschreibung: "Auswertungen über Trainings und Verfassung." },
+  { key: MODULE.wetter, titel: uebersetzbar("Wetter"), beschreibung: uebersetzbar("Temperatur und Wetter zum Training.") },
+  { key: MODULE.statistik, titel: uebersetzbar("Statistik"), beschreibung: uebersetzbar("Auswertungen über Trainings und Verfassung.") },
 ];
 
 function Umschalter({
@@ -83,6 +86,7 @@ export function EinstellungenSection() {
   const { isTrainer } = useAuth();
   const [sports, setSports] = useState<Sport[] | null>(null);
   const [speichert, setSpeichert] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     api
@@ -97,7 +101,7 @@ export function EinstellungenSection() {
       await aktion();
       await reload();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Einstellung konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Einstellung konnte nicht gespeichert werden."));
     } finally {
       setSpeichert(false);
     }
@@ -122,14 +126,18 @@ export function EinstellungenSection() {
 
   return (
     <>
+      {/* Sprache und Geltungsbereich stehen zuoberst: Sie bestimmen, wie
+          alles Weitere aussieht und was darin überhaupt vorkommt. */}
+      <SpracheUndLandSection />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <SlidersHorizontal className="size-5" />
-            Funktionen
+            {t("Funktionen")}
           </CardTitle>
           <CardDescription>
-            Was du nicht brauchst, kannst du ausblenden. Alles ist von Haus aus eingeschaltet.
+            {t("Was du nicht brauchst, kannst du ausblenden. Alles ist von Haus aus eingeschaltet.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -138,11 +146,11 @@ export function EinstellungenSection() {
             return (
               <div key={m.key} className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-[11rem] flex-1">
-                  <p className="text-sm font-medium">{m.titel}</p>
-                  <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{m.beschreibung}</p>
+                  <p className="text-sm font-medium">{t(m.titel)}</p>
+                  <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{t(m.beschreibung)}</p>
                 </div>
                 <Umschalter aktiv={an} disabled={speichert} onClick={() => modulUmschalten(m.key, an)}>
-                  {an ? "An" : "Aus"}
+                  {an ? t("An") : t("Aus")}
                 </Umschalter>
               </div>
             );
@@ -154,17 +162,17 @@ export function EinstellungenSection() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Trophy className="size-5" />
-            Meine Sportarten
+            {t("Meine Sportarten")}
           </CardTitle>
           <CardDescription>
             {alleSportarten
-              ? "Zurzeit werden dir alle Sportarten angeboten. Wähle aus, was du machst – dann zeigt das Tagebuch nur noch diese und Freitext."
-              : "Im Tagebuch werden dir nur die ausgewählten Sportarten angeboten, dazu immer Freitext."}
+              ? t("Zurzeit werden dir alle Sportarten angeboten. Wähle aus, was du machst – dann zeigt das Tagebuch nur noch diese und Freitext.")
+              : t("Im Tagebuch werden dir nur die ausgewählten Sportarten angeboten, dazu immer Freitext.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {sports === null ? (
-            <p className="text-sm text-muted-foreground">Lädt…</p>
+            <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
           ) : (
             <>
               <div className="flex flex-wrap gap-1.5">
@@ -190,7 +198,7 @@ export function EinstellungenSection() {
                   disabled={speichert}
                   onClick={() => void speichern(() => api.put("/api/preferences/sports", { sportIds: [] }))}
                 >
-                  Auswahl aufheben (alle anzeigen)
+                  {t("Auswahl aufheben (alle anzeigen)")}
                 </Button>
               )}
             </>

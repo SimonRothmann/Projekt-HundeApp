@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Formular zum Anlegen eines neuen Ziels (mit oder ohne Prüfungsbezug).
  * Eigenständig mit eigenem State - die Ziel-Anlage ist unabhängig von der
@@ -25,6 +26,7 @@ export function GoalCreateForm({
   sports: Sport[];
   onCreated: () => Promise<void>;
 }) {
+  const t = useT();
   const [sportId, setSportId] = useState("");
   const [regulations, setRegulations] = useState<Regulation[]>([]);
   const [regulationId, setRegulationId] = useState("");
@@ -61,12 +63,12 @@ export function GoalCreateForm({
       });
       toast.success(
         isCustom
-          ? "Individueller Plan angelegt - füge jetzt Wochenübungen hinzu."
-          : "Ziel angelegt - Trainingsplan wurde generiert.",
+          ? t("Individueller Plan angelegt - füge jetzt Wochenübungen hinzu.")
+          : t("Ziel angelegt - Trainingsplan wurde generiert."),
       );
       await onCreated();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Ziel konnte nicht angelegt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Ziel konnte nicht angelegt werden."));
     } finally {
       setIsSubmitting(false);
     }
@@ -77,7 +79,7 @@ export function GoalCreateForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Neues Ziel</CardTitle>
+        <CardTitle className="text-base">{t("Neues Ziel")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -88,14 +90,14 @@ export function GoalCreateForm({
               checked={isCustom}
               onChange={(e) => setIsCustom(e.target.checked)}
             />
-            <span>Individueller Plan (ohne Prüfungsziel) &ndash; leere Wochen, Übungen manuell festlegen</span>
+            <span>{t("Individueller Plan (ohne Prüfungsziel) – leere Wochen, Übungen manuell festlegen")}</span>
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label>Sportart</Label>
+              <Label>{t("Sportart")}</Label>
               <Select required value={sportId} onValueChange={(value) => handleSportChange(value ?? "")}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Auswählen…" />
+                  <SelectValue placeholder={t("Auswählen…")} />
                 </SelectTrigger>
                 <SelectContent>
                   {sports.map((s) => (
@@ -119,13 +121,13 @@ export function GoalCreateForm({
           </div>
           {!isCustom && regulations.length > 0 && (
             <div className="flex flex-col gap-2">
-              <Label>Prüfung</Label>
+              <Label>{t("Prüfung")}</Label>
               <Select value={regulationId} onValueChange={(value) => setRegulationId(value ?? "")}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Allgemein (alle Übungen der Sportart)" />
+                  <SelectValue placeholder={t("Allgemein (alle Übungen der Sportart)")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Allgemein (alle Übungen der Sportart)</SelectItem>
+                  <SelectItem value="">{t("Allgemein (alle Übungen der Sportart)")}</SelectItem>
                   {regulations.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
                       {r.name}
@@ -134,8 +136,7 @@ export function GoalCreateForm({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Legt fest, aus welcher Pflichtübungsliste der Plan generiert wird - mehrere Prüfungsordnungen
-                derselben Sportart (z.B. Fährte A/B/C) haben unterschiedliche Anforderungen.
+{t("Legt fest, aus welcher Pflichtübungsliste der Plan generiert wird - mehrere Prüfungsordnungen derselben Sportart (z.B. Fährte A/B/C) haben unterschiedliche Anforderungen.")}
               </p>
               {selectedRegulation?.description && (
                 <div className="rounded-md bg-primary/5 px-3 py-2.5">
@@ -146,17 +147,17 @@ export function GoalCreateForm({
             </div>
           )}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="goalNotes">Notizen</Label>
+            <Label htmlFor="goalNotes">{t("Notizen")}</Label>
             <Input id="goalNotes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
           <Button type="submit" className="self-start" disabled={isSubmitting}>
             {isSubmitting
               ? isCustom
-                ? "Wird angelegt…"
-                : "Wird generiert…"
+                ? t("Wird angelegt…")
+                : t("Wird generiert…")
               : isCustom
-                ? "Individuellen Plan anlegen"
-                : "Ziel anlegen & Plan generieren"}
+                ? t("Individuellen Plan anlegen")
+                : t("Ziel anlegen & Plan generieren")}
           </Button>
         </form>
       </CardContent>

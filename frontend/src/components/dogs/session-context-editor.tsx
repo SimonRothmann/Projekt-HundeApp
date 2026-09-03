@@ -10,6 +10,7 @@ import { formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
 import { LocationTimeFields, type LocationValue } from "@/components/dogs/location-time-fields";
 import { ConditionPicker, conditionLabel } from "@/components/dogs/condition-picker";
 
+import { useT } from "@/lib/i18n";
 /**
  * Uhrzeit + Ort eines bereits erfassten Trainings nachträglich ändern.
  *
@@ -25,6 +26,7 @@ export function SessionContextEditor({
   session: TrainingSession;
   onSaved: () => Promise<void> | void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   // "HH:mm" fürs Zeit-Input; Backend liefert "HH:mm:ss".
   const [time, setTime] = useState(session.startTime?.slice(0, 5) ?? "");
@@ -75,11 +77,11 @@ export function SessionContextEditor({
         locationName: location.locationName.trim() || null,
         condition,
       });
-      toast.success("Gespeichert – Wetter wird ermittelt.");
+      toast.success(t("Gespeichert – Wetter wird ermittelt."));
       setOpen(false);
       await onSaved();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Konnte nicht gespeichert werden."));
     } finally {
       setSaving(false);
     }
@@ -110,7 +112,7 @@ export function SessionContextEditor({
         <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={openEditor}>
           {/* Ausdrücklich gegen null geprüft: "motiviert" ist die 0, und die
               wäre in einer Wahrheitsprüfung falsch. */}
-          {weather || session.condition != null ? "Ändern" : "Ort, Zeit & Verfassung"}
+          {weather || session.condition != null ? t("Ändern") : "Ort, Zeit & Verfassung"}
         </Button>
       </div>
     );
@@ -127,7 +129,7 @@ export function SessionContextEditor({
       />
 
       <p className="text-xs text-muted-foreground">
-        Mit Ort und Uhrzeit wird das Wetter automatisch ermittelt – auch für Trainings, die du nachträgst.
+{t("Mit Ort und Uhrzeit wird das Wetter automatisch ermittelt – auch für Trainings, die du nachträgst.")}
       </p>
 
       <div className="flex flex-col gap-2">
@@ -137,10 +139,10 @@ export function SessionContextEditor({
 
       <div className="flex gap-2">
         <Button type="button" size="sm" disabled={saving} onClick={save}>
-          {saving ? "Speichert…" : "Speichern"}
+          {saving ? "Speichert…" : t("Speichern")}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
-          Abbrechen
+{t("Abbrechen")}
         </Button>
       </div>
     </div>

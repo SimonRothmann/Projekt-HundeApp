@@ -17,6 +17,8 @@ import { difficultyLabel } from "@/lib/constants";
 import { ExerciseNotes } from "@/components/dogs/exercise-notes";
 import { ExerciseWeightingSheet } from "@/components/dogs/exercise-weighting-sheet";
 
+import { useT } from "@/lib/i18n";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
 // Eine Woche kann mehrere Plan-Ziele haben (siehe TrainingPlanGenerator
 // "ItemsPerWeek") - für die Anzeige nach Wochennummer gruppiert.
 function groupByWeek(items: TrainingPlanItem[]): [number, TrainingPlanItem[]][] {
@@ -72,7 +74,7 @@ const statusLabel: Record<Goal["status"], string> = { 0: "Aktiv", 1: "Erreicht",
 const statusVariant: Record<Goal["status"], "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
 
 // Warum der adaptive Generator eine Übung geplant hat (siehe PlanItemReason).
-const reasonLabel: Record<PlanItemReason, string> = { 0: "Schwäche", 1: "Wiederholung", 2: "Neu" };
+const reasonLabel: Record<PlanItemReason, string> = { 0: uebersetzbar("Schwäche"), 1: uebersetzbar("Wiederholung"), 2: uebersetzbar("Neu") };
 
 /**
  * Ein einzelnes Ziel mit seinem Wochenplan. Jede Karte hält ihren eigenen
@@ -90,6 +92,7 @@ export function GoalPlanCard({
   dogId: string;
   onChanged: () => Promise<void>;
 }) {
+  const t = useT();
   // Übungen der Ziel-Sportart, lazy für die Add-/Edit-Auswahl geladen.
   const [exercises, setExercises] = useState<Exercise[] | null>(null);
 
@@ -115,7 +118,7 @@ export function GoalPlanCard({
       const data = await api.get<Exercise[]>(`/api/sports/${goal.sportId}/exercises`);
       setExercises(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Übungen konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Übungen konnten nicht geladen werden."));
       setExercises([]);
     }
   }
@@ -157,7 +160,7 @@ export function GoalPlanCard({
 
   async function submitAdd() {
     if (addUseFreeText ? !addFreeText.trim() : !addExerciseId) {
-      toast.error(addUseFreeText ? "Freitext eingeben." : "Übung auswählen.");
+      toast.error(addUseFreeText ? "Freitext eingeben." : t("Übung auswählen."));
       return;
     }
     setIsAdding(true);
@@ -169,11 +172,11 @@ export function GoalPlanCard({
         repetitionsTarget: addTarget,
         dayIndex: addDay,
       });
-      toast.success("Übung zum Plan hinzugefügt.");
+      toast.success(t("Übung zum Plan hinzugefügt."));
       setAddForm(null);
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Übung konnte nicht hinzugefügt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Übung konnte nicht hinzugefügt werden."));
     } finally {
       setIsAdding(false);
     }
@@ -182,10 +185,10 @@ export function GoalPlanCard({
   async function removePlanItem(itemId: string) {
     try {
       await api.delete(`/api/goals/${goal.id}/plan-items/${itemId}`);
-      toast.success("Übung aus dem Plan entfernt.");
+      toast.success(t("Übung aus dem Plan entfernt."));
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Übung konnte nicht entfernt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Übung konnte nicht entfernt werden."));
     }
   }
 
@@ -201,7 +204,7 @@ export function GoalPlanCard({
       toast.success("Automatische Anpassung wieder eingeschaltet.");
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Konnte nicht umgeschaltet werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Konnte nicht umgeschaltet werden."));
     } finally {
       setSwitchingAuto(false);
     }
@@ -214,7 +217,7 @@ export function GoalPlanCard({
       toast.success(`Woche ${weekNumber} neu generiert.`);
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Woche konnte nicht neu generiert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Woche konnte nicht neu generiert werden."));
     } finally {
       setRegeneratingWeek(null);
     }
@@ -239,7 +242,7 @@ export function GoalPlanCard({
       setEditingWeekDays(null);
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Trainingstage konnten nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Trainingstage konnten nicht gespeichert werden."));
     } finally {
       setSavingWeekDays(false);
     }
@@ -249,11 +252,11 @@ export function GoalPlanCard({
     setSavingConfig(true);
     try {
       await api.put(`/api/goals/${goal.id}/config`, { weeklyExerciseCount: cfgWeekly, trainingDaysPerWeek: cfgDays });
-      toast.success("Plan-Einstellungen gespeichert.");
+      toast.success(t("Plan-Einstellungen gespeichert."));
       setEditingConfig(false);
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Einstellungen konnten nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Einstellungen konnten nicht gespeichert werden."));
     } finally {
       setSavingConfig(false);
     }
@@ -284,7 +287,7 @@ export function GoalPlanCard({
 
   async function submitEdit(itemId: string) {
     if (editUseFreeText ? !editFreeText.trim() : !editExerciseId) {
-      toast.error(editUseFreeText ? "Freitext eingeben." : "Übung auswählen.");
+      toast.error(editUseFreeText ? "Freitext eingeben." : t("Übung auswählen."));
       return;
     }
     setIsEditing(true);
@@ -296,11 +299,11 @@ export function GoalPlanCard({
         repetitionsTarget: editTarget,
         dayIndex: editDay,
       });
-      toast.success("Plan-Ziel aktualisiert.");
+      toast.success(t("Plan-Ziel aktualisiert."));
       setEditItemId(null);
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Plan-Ziel konnte nicht aktualisiert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Plan-Ziel konnte nicht aktualisiert werden."));
     } finally {
       setIsEditing(false);
     }
@@ -346,16 +349,16 @@ export function GoalPlanCard({
       };
       try {
         await api.post("/api/trainings", payload);
-        toast.success("Eintrag gespeichert.");
+        toast.success(t("Eintrag gespeichert."));
       } catch (err) {
         if (err instanceof ApiError) throw err;
         await enqueueRequest({ path: "/api/trainings", method: "POST", body: payload, label: "Schnelleintrag" });
-        toast.success("Offline gespeichert – wird synchronisiert, sobald Internet verfügbar ist.");
+        toast.success(t("Offline gespeichert – wird synchronisiert, sobald Internet verfügbar ist."));
       }
       setQuickLogItemId(null);
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Eintrag konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Eintrag konnte nicht gespeichert werden."));
     } finally {
       setIsQuickLogging(false);
     }
@@ -364,23 +367,23 @@ export function GoalPlanCard({
   async function updateStatus(status: 1 | 2) {
     try {
       await api.put<Goal>(`/api/goals/${goal.id}/status`, { status });
-      toast.success(status === 1 ? "Ziel als erreicht markiert." : "Ziel abgebrochen.");
+      toast.success(status === 1 ? t("Ziel als erreicht markiert.") : t("Ziel abgebrochen."));
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Status konnte nicht aktualisiert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Status konnte nicht aktualisiert werden."));
     }
   }
 
   async function deleteGoal() {
-    if (!window.confirm("Ziel inkl. Trainingsplan endgültig löschen? Bereits erfasste Trainingseinträge bleiben im Tagebuch erhalten.")) {
+    if (!window.confirm(t("Ziel inkl. Trainingsplan endgültig löschen? Bereits erfasste Trainingseinträge bleiben im Tagebuch erhalten."))) {
       return;
     }
     try {
       await api.delete(`/api/goals/${goal.id}`);
-      toast.success("Ziel gelöscht.");
+      toast.success(t("Ziel gelöscht."));
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Ziel konnte nicht gelöscht werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Ziel konnte nicht gelöscht werden."));
     }
   }
 
@@ -395,17 +398,17 @@ export function GoalPlanCard({
             checked={addUseFreeText}
             onChange={(e) => setAddUseFreeText(e.target.checked)}
           />
-          <span>Freitext-Übung (nicht aus dem Katalog)</span>
+          <span>{t("Freitext-Übung (nicht aus dem Katalog)")}</span>
         </label>
         <div className={cn("grid gap-3", showWeekField ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
           {showWeekField && (
             <div className="flex flex-col gap-2">
-              <Label>Woche</Label>
+              <Label>{t("Woche")}</Label>
               <Input type="number" min={1} max={12} value={addWeek} onChange={(e) => setAddWeek(Number(e.target.value))} />
             </div>
           )}
           <div className="flex flex-col gap-2">
-            <Label>{addUseFreeText ? "Freitext" : "Übung"}</Label>
+            <Label>{addUseFreeText ? "Freitext" : t("Übung")}</Label>
             {addUseFreeText ? (
               <Input
                 value={addFreeText}
@@ -417,11 +420,11 @@ export function GoalPlanCard({
             ) : (
               <Select value={addExerciseId} onValueChange={(value) => setAddExerciseId(value ?? "")}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Auswählen…" />
+                  <SelectValue placeholder={t("Auswählen…")} />
                 </SelectTrigger>
                 {/* max-h-[60vh] + touch-pan-y: Base-UI errechnet die max-height
                     aus der Trigger-Position; bei weit unten sitzendem Trigger
-                    auf iOS Safari wird das zu klein und wirkt "nicht scrollbar". */}
+                    auf iOS Safari wird das zu klein und wirkt nicht scrollbar. */}
                 <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
                   {(exercises ?? []).map((ex) => (
                     <SelectItem key={ex.id} value={ex.id}>
@@ -433,7 +436,7 @@ export function GoalPlanCard({
             )}
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Zielwert (x diese Woche)</Label>
+            <Label>{t("Zielwert (x diese Woche)")}</Label>
             <Input type="number" min={1} max={10} value={addTarget} onChange={(e) => setAddTarget(Number(e.target.value))} />
           </div>
           {daysForWeek(addWeek) > 1 && (
@@ -451,10 +454,10 @@ export function GoalPlanCard({
         </div>
         <div className="flex gap-2">
           <Button type="button" size="sm" disabled={isAdding} onClick={submitAdd}>
-            {isAdding ? "Wird hinzugefügt…" : "Hinzufügen"}
+            {isAdding ? t("Wird hinzugefügt…") : t("Hinzufügen")}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={() => setAddForm(null)}>
-            Abbrechen
+{t("Abbrechen")}
           </Button>
         </div>
       </div>
@@ -499,7 +502,7 @@ export function GoalPlanCard({
           (editingConfig ? (
             <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-2.5">
               <div className="flex flex-col gap-1">
-                <Label className="text-xs">Übungen/Woche</Label>
+                <Label className="text-xs">{t("Übungen/Woche")}</Label>
                 <Input type="number" min={1} max={12} className="h-8 w-20" value={cfgWeekly} onChange={(e) => setCfgWeekly(Number(e.target.value))} />
               </div>
               <div className="flex flex-col gap-1">
@@ -508,10 +511,10 @@ export function GoalPlanCard({
               </div>
               <div className="flex gap-2">
                 <Button type="button" size="sm" disabled={savingConfig} onClick={saveConfig}>
-                  {savingConfig ? "Speichert…" : "Speichern"}
+                  {savingConfig ? "Speichert…" : t("Speichern")}
                 </Button>
                 <Button type="button" size="sm" variant="ghost" onClick={() => setEditingConfig(false)}>
-                  Abbrechen
+{t("Abbrechen")}
                 </Button>
               </div>
             </div>
@@ -536,7 +539,7 @@ export function GoalPlanCard({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-muted px-3 py-2 text-xs">
             <UserCog className="size-3.5 shrink-0 text-muted-foreground" />
             <span className="min-w-0">
-              Dein Trainer betreut diesen Plan – er wird nicht mehr automatisch angepasst.
+{t("Dein Trainer betreut diesen Plan – er wird nicht mehr automatisch angepasst.")}
             </span>
             <Button
               type="button"
@@ -598,7 +601,7 @@ export function GoalPlanCard({
                                 {savingWeekDays ? "…" : "OK"}
                               </Button>
                               <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingWeekDays(null)}>
-                                Abbrechen
+{t("Abbrechen")}
                               </Button>
                             </div>
                           ) : (
@@ -606,7 +609,7 @@ export function GoalPlanCard({
                               type="button"
                               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                               onClick={() => startEditWeekDays(weekNumber)}
-                              title="Trainingstage dieser Woche anpassen"
+                              title={t("Trainingstage dieser Woche anpassen")}
                             >
                               {daysForWeek(weekNumber)} Trainingstag{daysForWeek(weekNumber) > 1 ? "e" : ""}
                               <Pencil className="size-3" />
@@ -621,7 +624,7 @@ export function GoalPlanCard({
                                 className="h-6 px-2 text-xs"
                                 disabled={regeneratingWeek === weekNumber}
                                 onClick={() => regenerateWeek(weekNumber)}
-                                title="Diese Woche adaptiv neu generieren (erhält manuelle & bereits trainierte Übungen)"
+                                title={t("Diese Woche adaptiv neu generieren (erhält manuelle & bereits trainierte Übungen)")}
                               >
                                 <RefreshCw className={cn("size-3", regeneratingWeek === weekNumber && "animate-spin")} />
                                 {regeneratingWeek === weekNumber ? "Generiere…" : "Neu generieren"}
@@ -635,7 +638,7 @@ export function GoalPlanCard({
                               onClick={() => openAdd("inline", weekNumber)}
                             >
                               <Plus className="size-3" />
-                              Übung
+{t("Übung")}
                             </Button>
                           </div>
                         </div>
@@ -675,7 +678,7 @@ export function GoalPlanCard({
                               )}
                               {item.reason !== null && (
                                 <span className="mr-1 rounded bg-muted px-1 py-0.5 text-[10px] uppercase tracking-wide">
-                                  {reasonLabel[item.reason]}
+                                  {t(reasonLabel[item.reason])}
                                 </span>
                               )}
                               {item.completedCount}/{item.repetitionsTarget}x erledigt
@@ -688,7 +691,7 @@ export function GoalPlanCard({
                             variant="ghost"
                             size="icon-xs"
                             onClick={() => openEdit(item)}
-                            title="Übung, Woche oder Zielwert bearbeiten"
+                            title={t("Übung, Woche oder Zielwert bearbeiten")}
                           >
                             <Pencil className="size-3.5 text-muted-foreground" />
                           </Button>
@@ -697,7 +700,7 @@ export function GoalPlanCard({
                             variant="ghost"
                             size="icon-xs"
                             onClick={() => removePlanItem(item.id)}
-                            title="Aus dem Plan entfernen"
+                            title={t("Aus dem Plan entfernen")}
                           >
                             <Trash2 className="size-3.5 text-muted-foreground" />
                           </Button>
@@ -712,10 +715,10 @@ export function GoalPlanCard({
                               checked={editUseFreeText}
                               onChange={(e) => setEditUseFreeText(e.target.checked)}
                             />
-                            <span>Freitext-Übung</span>
+                            <span>{t("Freitext-Übung")}</span>
                           </label>
                           <div className="flex flex-col gap-1">
-                            <Label className="text-xs">{editUseFreeText ? "Freitext" : "Übung"}</Label>
+                            <Label className="text-xs">{editUseFreeText ? "Freitext" : t("Übung")}</Label>
                             {editUseFreeText ? (
                               <Input
                                 value={editFreeText}
@@ -726,7 +729,7 @@ export function GoalPlanCard({
                             ) : (
                               <Select value={editExerciseId} onValueChange={(v) => setEditExerciseId(v ?? "")}>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Auswählen…" />
+                                  <SelectValue placeholder={t("Auswählen…")} />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
                                   {(exercises ?? []).map((ex) => (
@@ -740,11 +743,11 @@ export function GoalPlanCard({
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div className="flex flex-col gap-1">
-                              <Label className="text-xs">Woche</Label>
+                              <Label className="text-xs">{t("Woche")}</Label>
                               <Input type="number" min={1} max={12} value={editWeek} onChange={(e) => setEditWeek(Number(e.target.value))} />
                             </div>
                             <div className="flex flex-col gap-1">
-                              <Label className="text-xs">Zielwert (x diese Woche)</Label>
+                              <Label className="text-xs">{t("Zielwert (x diese Woche)")}</Label>
                               <Input type="number" min={1} max={10} value={editTarget} onChange={(e) => setEditTarget(Number(e.target.value))} />
                             </div>
                             {daysForWeek(editWeek) > 1 && (
@@ -756,10 +759,10 @@ export function GoalPlanCard({
                           </div>
                           <div className="flex gap-2">
                             <Button type="button" size="sm" disabled={isEditing} onClick={() => submitEdit(item.id)}>
-                              {isEditing ? "Wird gespeichert…" : "Speichern"}
+                              {isEditing ? t("Wird gespeichert…") : t("Speichern")}
                             </Button>
                             <Button type="button" size="sm" variant="ghost" onClick={() => setEditItemId(null)}>
-                              Abbrechen
+{t("Abbrechen")}
                             </Button>
                           </div>
                         </div>
@@ -787,7 +790,7 @@ export function GoalPlanCard({
                       )}
                       {quickLogItemId === item.id && (
                         <div className="ml-6 flex flex-col gap-2 rounded-md border bg-muted/40 p-2.5">
-                          <div className="flex gap-1" role="group" aria-label="Bewertung, 1 bis 5">
+                          <div className="flex gap-1" role="group" aria-label={t("Bewertung, 1 bis 5")}>
                             {[1, 2, 3, 4, 5].map((value) => (
                               <button
                                 key={value}
@@ -813,10 +816,10 @@ export function GoalPlanCard({
                           <Input placeholder="Kommentar (optional)" value={qlNotes} onChange={(e) => setQlNotes(e.target.value)} />
                           <div className="flex gap-2">
                             <Button type="button" size="sm" disabled={isQuickLogging} onClick={() => submitQuickLog(item)}>
-                              {isQuickLogging ? "Wird gespeichert…" : "Eintragen"}
+                              {isQuickLogging ? t("Wird gespeichert…") : "Eintragen"}
                             </Button>
                             <Button type="button" size="sm" variant="ghost" onClick={() => setQuickLogItemId(null)}>
-                              Abbrechen
+{t("Abbrechen")}
                             </Button>
                           </div>
                         </div>
@@ -839,7 +842,7 @@ export function GoalPlanCard({
           <>
             <Button type="button" size="sm" variant="outline" className="self-start" onClick={() => openAdd("central", 1)}>
               <Plus className="size-4" />
-              Übung hinzufügen (freie Woche)
+{t("Übung hinzufügen (freie Woche)")}
             </Button>
 
             {addForm?.location === "central" && renderAddForm(true)}
@@ -849,7 +852,7 @@ export function GoalPlanCard({
                 Als erreicht markieren
               </Button>
               <Button size="sm" variant="ghost" onClick={() => updateStatus(2)}>
-                Abbrechen
+{t("Abbrechen")}
               </Button>
             </div>
           </>
@@ -858,7 +861,7 @@ export function GoalPlanCard({
         {goal.status !== 0 && (
           <Button size="sm" variant="ghost" className="self-start text-destructive hover:text-destructive" onClick={deleteGoal}>
             <Trash2 className="size-4" />
-            Ziel löschen
+{t("Ziel löschen")}
           </Button>
         )}
       </CardContent>

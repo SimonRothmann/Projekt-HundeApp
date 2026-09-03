@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Mitbesitzer-Verwaltung eines Hundes (nur für Besitzer sichtbar, siehe
  * DogOwner). Aus der Hundeseite herausgelöst (TODO.md Roadmap 5b).
@@ -24,6 +25,7 @@ export function CoOwnersSection({
   currentUserId: string | undefined;
   onChanged: () => Promise<void>;
 }) {
+  const t = useT();
   const [ownerEmail, setOwnerEmail] = useState("");
   const [addingOwner, setAddingOwner] = useState(false);
 
@@ -33,11 +35,11 @@ export function CoOwnersSection({
     setAddingOwner(true);
     try {
       await api.post(`/api/dogs/${dogId}/owners`, { email: ownerEmail.trim() });
-      toast.success("Mitbesitzer hinzugefügt.");
+      toast.success(t("Mitbesitzer hinzugefügt."));
       setOwnerEmail("");
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Fehler beim Hinzufügen.");
+      toast.error(err instanceof ApiError ? err.message : t("Fehler beim Hinzufügen."));
     } finally {
       setAddingOwner(false);
     }
@@ -49,7 +51,7 @@ export function CoOwnersSection({
       toast.success("Mitbesitzer entfernt.");
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Fehler beim Entfernen.");
+      toast.error(err instanceof ApiError ? err.message : t("Fehler beim Entfernen."));
     }
   }
 
@@ -86,7 +88,7 @@ export function CoOwnersSection({
           />
           <Button type="submit" size="sm" disabled={addingOwner}>
             <Plus className="size-4" />
-            Hinzufügen
+{t("Hinzufügen")}
           </Button>
         </form>
       </CardContent>

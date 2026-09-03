@@ -13,6 +13,7 @@ import { ChevronDown, ChevronRight, ChevronUp, Clock, Copy, Download, Pencil, Pl
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/lib/i18n";
 const CATS: GroupTrainingCategory[] = [0, 1, 2];
 const categoryLabel: Record<GroupTrainingCategory, string> = { 0: "Welpen", 1: "Junghunde", 2: "Basis" };
 const categoryVariant: Record<GroupTrainingCategory, "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
@@ -51,6 +52,7 @@ type UnitForm = {
 const emptyUnitForm = (): UnitForm => ({ id: null, category: 0, title: "", description: "", exerciseIds: [] });
 
 export default function GroupTrainingPage() {
+  const t = useT();
   const [clubs, setClubs] = useState<Club[] | null>(null);
   const [clubId, setClubId] = useState("");
   const [library, setLibrary] = useState<GroupTrainingLibrary | null>(null);
@@ -67,14 +69,14 @@ export default function GroupTrainingPage() {
   const [activeCat, setActiveCat] = useState<GroupTrainingCategory>(0);
 
   async function importStarter() {
-    if (!window.confirm("Best-Practice-Bausteine und Einheiten in diesen Verein übernehmen? Du kannst danach alles frei anpassen oder löschen.")) return;
+    if (!window.confirm(t("Best-Practice-Bausteine und Einheiten in diesen Verein übernehmen? Du kannst danach alles frei anpassen oder löschen."))) return;
     setImporting(true);
     try {
       const data = await api.post<GroupTrainingLibrary>(`/api/group-training/clubs/${clubId}/import-starter`);
       setLibrary(data);
-      toast.success("Starter-Katalog übernommen.");
+      toast.success(t("Starter-Katalog übernommen."));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Katalog konnte nicht übernommen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Katalog konnte nicht übernommen werden."));
     } finally {
       setImporting(false);
     }
@@ -85,8 +87,11 @@ export default function GroupTrainingPage() {
       const data = await api.get<GroupTrainingLibrary>(`/api/group-training/clubs/${id}/library`);
       setLibrary(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Bibliothek konnte nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Bibliothek konnte nicht geladen werden."));
     }
+  // t bewusst nicht in der Liste - siehe die Effekte oben: Der
+  // Uebersetzer wird nur im Fehlerfall gebraucht.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -134,11 +139,11 @@ export default function GroupTrainingPage() {
     try {
       if (exForm.id) await api.put(`/api/group-training/exercises/${exForm.id}`, body);
       else await api.post(`/api/group-training/clubs/${clubId}/exercises`, body);
-      toast.success(exForm.id ? "Baustein aktualisiert." : "Baustein angelegt.");
+      toast.success(exForm.id ? "Baustein aktualisiert." : t("Baustein angelegt."));
       setExForm(null);
       await loadLibrary(clubId);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Baustein konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Baustein konnte nicht gespeichert werden."));
     } finally {
       setSaving(false);
     }
@@ -148,10 +153,10 @@ export default function GroupTrainingPage() {
     if (!window.confirm(`Baustein „${ex.title}" löschen? Er wird auch aus allen Einheiten entfernt.`)) return;
     try {
       await api.delete(`/api/group-training/exercises/${ex.id}`);
-      toast.success("Baustein gelöscht.");
+      toast.success(t("Baustein gelöscht."));
       await loadLibrary(clubId);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Baustein konnte nicht gelöscht werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Baustein konnte nicht gelöscht werden."));
     }
   }
 
@@ -177,7 +182,7 @@ export default function GroupTrainingPage() {
       return;
     }
     if (unitForm.exerciseIds.length === 0) {
-      toast.error("Mindestens einen Baustein wählen.");
+      toast.error(t("Mindestens einen Baustein wählen."));
       return;
     }
     const body = {
@@ -190,11 +195,11 @@ export default function GroupTrainingPage() {
     try {
       if (unitForm.id) await api.put(`/api/group-training/units/${unitForm.id}`, body);
       else await api.post(`/api/group-training/clubs/${clubId}/units`, body);
-      toast.success(unitForm.id ? "Einheit aktualisiert." : "Einheit angelegt.");
+      toast.success(unitForm.id ? "Einheit aktualisiert." : t("Einheit angelegt."));
       setUnitForm(null);
       await loadLibrary(clubId);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Einheit konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Einheit konnte nicht gespeichert werden."));
     } finally {
       setSaving(false);
     }
@@ -204,20 +209,20 @@ export default function GroupTrainingPage() {
     if (!window.confirm(`Einheit „${title}" löschen?`)) return;
     try {
       await api.delete(`/api/group-training/units/${id}`);
-      toast.success("Einheit gelöscht.");
+      toast.success(t("Einheit gelöscht."));
       await loadLibrary(clubId);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Einheit konnte nicht gelöscht werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Einheit konnte nicht gelöscht werden."));
     }
   }
 
   async function duplicateUnit(id: string) {
     try {
       await api.post(`/api/group-training/units/${id}/duplicate`);
-      toast.success("Einheit als Kopie angelegt.");
+      toast.success(t("Einheit als Kopie angelegt."));
       await loadLibrary(clubId);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Einheit konnte nicht kopiert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Einheit konnte nicht kopiert werden."));
     }
   }
 
@@ -249,10 +254,10 @@ export default function GroupTrainingPage() {
           {ex.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">{ex.description}</p>}
         </div>
         <div className="flex shrink-0 gap-0.5">
-          <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => editExercise(ex)} aria-label="Bearbeiten">
+          <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => editExercise(ex)} aria-label={t("Bearbeiten")}>
             <Pencil className="size-3.5" />
           </Button>
-          <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => deleteExercise(ex)} aria-label="Löschen">
+          <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => deleteExercise(ex)} aria-label={t("Löschen")}>
             <Trash2 className="size-3.5 text-muted-foreground" />
           </Button>
         </div>
@@ -269,24 +274,23 @@ export default function GroupTrainingPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Gruppentraining</h1>
         <p className="text-sm text-muted-foreground">
-          Die gemeinsame Trainingsbibliothek deines Vereins – wähle eine Altersklasse.
+{t("Die gemeinsame Trainingsbibliothek deines Vereins – wähle eine Altersklasse.")}
         </p>
       </div>
 
       {clubs === null ? (
-        <p className="text-muted-foreground">Lädt…</p>
+        <p className="text-muted-foreground">{t("Lädt…")}</p>
       ) : clubs.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
-            Die Vereins-Trainingsbibliothek ist für Vereinstrainer:innen. Du bist aktuell für keinen Verein als
-            Trainer:in eingetragen.
+{t("Die Vereins-Trainingsbibliothek ist für Vereinstrainer:innen. Du bist aktuell für keinen Verein als Trainer:in eingetragen.")}
           </CardContent>
         </Card>
       ) : (
         <>
           {clubs.length > 1 && (
             <div className="flex flex-col gap-2">
-              <Label>Verein</Label>
+              <Label>{t("Verein")}</Label>
               <Select value={clubId} onValueChange={(v) => setClubId(v ?? "")}>
                 <SelectTrigger className="w-full sm:w-72">
                   <SelectValue />
@@ -303,7 +307,7 @@ export default function GroupTrainingPage() {
           )}
 
           {library === null ? (
-            <p className="text-muted-foreground">Lädt…</p>
+            <p className="text-muted-foreground">{t("Lädt…")}</p>
           ) : (
             <>
               {library.exercises.length === 0 && library.units.length === 0 && (
@@ -314,14 +318,13 @@ export default function GroupTrainingPage() {
                       <div>
                         <p className="font-medium">Mit einem fertigen Katalog starten?</p>
                         <p className="text-sm text-muted-foreground">
-                          Übernimm einen Best-Practice-Satz an Bausteinen und Einheiten (Welpen, Junghunde, Basis) –
-                          danach alles frei anpassbar.
+{t("Übernimm einen Best-Practice-Satz an Bausteinen und Einheiten (Welpen, Junghunde, Basis) – danach alles frei anpassbar.")}
                         </p>
                       </div>
                     </div>
                     <Button className="shrink-0" disabled={importing} onClick={importStarter}>
                       <Download className="size-4" />
-                      {importing ? "Übernehme…" : "Starter-Katalog übernehmen"}
+                      {importing ? t("Übernehme…") : t("Starter-Katalog übernehmen")}
                     </Button>
                   </CardContent>
                 </Card>
@@ -375,7 +378,7 @@ export default function GroupTrainingPage() {
                 {exForm && (
                   <Card>
                     <CardHeader className="p-3">
-                      <CardTitle className="text-base">{exForm.id ? "Baustein bearbeiten" : "Neuer Baustein"}</CardTitle>
+                      <CardTitle className="text-base">{exForm.id ? t("Baustein bearbeiten") : t("Neuer Baustein")}</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-3 p-3 pt-0">
                       <div className="flex flex-wrap gap-3">
@@ -400,7 +403,7 @@ export default function GroupTrainingPage() {
                         <Input value={exForm.title} onChange={(e) => setExForm({ ...exForm, title: e.target.value })} maxLength={200} />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs">Fokus (z.B. Leinenführigkeit)</Label>
+                        <Label className="text-xs">{t("Fokus (z.B. Leinenführigkeit)")}</Label>
                         <Input value={exForm.focus} onChange={(e) => setExForm({ ...exForm, focus: e.target.value })} maxLength={80} />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -408,7 +411,7 @@ export default function GroupTrainingPage() {
                         <textarea className={textareaClass} rows={2} value={exForm.description} onChange={(e) => setExForm({ ...exForm, description: e.target.value })} maxLength={2000} />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <Label className="text-xs">Bereitet auf Prüfung vor (optional)</Label>
+                        <Label className="text-xs">{t("Bereitet auf Prüfung vor (optional)")}</Label>
                         <div className="flex flex-wrap gap-3">
                           {EXAM_FLAGS.map((f) => (
                             <label key={f.bit} className="flex items-center gap-1.5 text-sm">
@@ -425,9 +428,9 @@ export default function GroupTrainingPage() {
                       </div>
                       <div className="flex gap-2">
                         <Button type="button" disabled={saving} onClick={saveExercise}>
-                          {saving ? "Speichert…" : exForm.id ? "Speichern" : "Anlegen"}
+                          {saving ? "Speichert…" : exForm.id ? t("Speichern") : t("Anlegen")}
                         </Button>
-                        <Button type="button" variant="ghost" onClick={() => setExForm(null)}>Abbrechen</Button>
+                        <Button type="button" variant="ghost" onClick={() => setExForm(null)}>{t("Abbrechen")}</Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -452,7 +455,7 @@ export default function GroupTrainingPage() {
                     <Button
                       size="sm"
                       disabled={library.exercises.length === 0}
-                      title={library.exercises.length === 0 ? "Zuerst Bausteine anlegen" : undefined}
+                      title={library.exercises.length === 0 ? t("Zuerst Bausteine anlegen") : undefined}
                       onClick={() => setUnitForm({ ...emptyUnitForm(), category: activeCat })}
                     >
                       <Plus className="size-4" />
@@ -464,7 +467,7 @@ export default function GroupTrainingPage() {
                 {unitForm && (
                   <Card>
                     <CardHeader className="p-3">
-                      <CardTitle className="text-base">{unitForm.id ? "Einheit bearbeiten" : "Neue Einheit"}</CardTitle>
+                      <CardTitle className="text-base">{unitForm.id ? t("Einheit bearbeiten") : t("Neue Einheit")}</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-3 p-3 pt-0">
                       <div className="flex flex-wrap gap-3">
@@ -490,9 +493,9 @@ export default function GroupTrainingPage() {
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <Label className="text-xs">Übungen (Reihenfolge)</Label>
+                        <Label className="text-xs">{t("Übungen (Reihenfolge)")}</Label>
                         {unitForm.exerciseIds.length === 0 ? (
-                          <p className="text-xs text-muted-foreground">Noch keine Bausteine gewählt.</p>
+                          <p className="text-xs text-muted-foreground">{t("Noch keine Bausteine gewählt.")}</p>
                         ) : (
                           <ol className="flex flex-col gap-1.5">
                             {unitForm.exerciseIds.map((id, index) => {
@@ -517,7 +520,7 @@ export default function GroupTrainingPage() {
                                       variant="ghost"
                                       className="size-7"
                                       onClick={() => setUnitForm({ ...unitForm, exerciseIds: unitForm.exerciseIds.filter((_, i) => i !== index) })}
-                                      aria-label="Entfernen"
+                                      aria-label={t("Entfernen")}
                                     >
                                       <X className="size-4 text-muted-foreground" />
                                     </Button>
@@ -536,7 +539,7 @@ export default function GroupTrainingPage() {
                             }}
                           >
                             <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Baustein hinzufügen…" />
+                              <SelectValue placeholder={t("Baustein hinzufügen…")} />
                             </SelectTrigger>
                             <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
                               {library.exercises.map((ex) => (
@@ -551,9 +554,9 @@ export default function GroupTrainingPage() {
 
                       <div className="flex gap-2">
                         <Button type="button" disabled={saving} onClick={saveUnit}>
-                          {saving ? "Speichert…" : unitForm.id ? "Speichern" : "Anlegen"}
+                          {saving ? "Speichert…" : unitForm.id ? t("Speichern") : t("Anlegen")}
                         </Button>
-                        <Button type="button" variant="ghost" onClick={() => setUnitForm(null)}>Abbrechen</Button>
+                        <Button type="button" variant="ghost" onClick={() => setUnitForm(null)}>{t("Abbrechen")}</Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -601,7 +604,7 @@ export default function GroupTrainingPage() {
                                   <div className="flex flex-wrap gap-2">
                                     <Button type="button" size="sm" variant="outline" onClick={() => { setActiveCat(unit.category); setUnitForm({ id: unit.id, category: unit.category, title: unit.title, description: unit.description ?? "", exerciseIds: unit.items.map((i) => i.exerciseId) }); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                                       <Pencil className="size-3.5" />
-                                      Bearbeiten
+{t("Bearbeiten")}
                                     </Button>
                                     <Button type="button" size="sm" variant="outline" onClick={() => duplicateUnit(unit.id)}>
                                       <Copy className="size-3.5" />
@@ -609,7 +612,7 @@ export default function GroupTrainingPage() {
                                     </Button>
                                     <Button type="button" size="sm" variant="ghost" onClick={() => deleteUnit(unit.id, unit.title)}>
                                       <Trash2 className="size-3.5 text-muted-foreground" />
-                                      Löschen
+{t("Löschen")}
                                     </Button>
                                   </div>
                                 </CardContent>
@@ -623,9 +626,9 @@ export default function GroupTrainingPage() {
               {/* Best-Practice-Katalog nachträglich ergänzen (dezent, am Ende). */}
               {(library.exercises.length > 0 || library.units.length > 0) && (
                 <div>
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto" disabled={importing} onClick={importStarter} title="Fehlende Best-Practice-Inhalte ergänzen">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto" disabled={importing} onClick={importStarter} title={t("Fehlende Best-Practice-Inhalte ergänzen")}>
                     <Download className="size-4" />
-                    {importing ? "Übernehme…" : "Best-Practice-Katalog ergänzen"}
+                    {importing ? t("Übernehme…") : t("Best-Practice-Katalog ergänzen")}
                   </Button>
                 </div>
               )}

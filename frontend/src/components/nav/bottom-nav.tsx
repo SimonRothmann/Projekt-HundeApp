@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { coreNavItems, profileNavItem, trainerNavItem } from "@/components/nav/nav-items";
 import { useAuth } from "@/lib/auth-context";
 import { usePreferences } from "@/lib/preferences-context";
+import { useT } from "@/lib/i18n";
 
 // Tailwind muss Klassennamen als Literal im Quellcode sehen, um sie ins CSS
 // aufzunehmen - eine zur Laufzeit interpolierte Klasse wie `grid-cols-${n}`
@@ -44,6 +45,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const { isTrainer } = useAuth();
   const { moduleEnabled } = usePreferences();
+  const t = useT();
   // Ausgeblendete Module verschwinden auch aus der Navigation - sonst führte
   // ein Menüpunkt auf eine Seite, die es für diesen Nutzer nicht gibt.
   const navItems = [...coreNavItems, ...(isTrainer ? [trainerNavItem] : []), profileNavItem].filter(
@@ -79,7 +81,7 @@ export function BottomNav() {
                 {/* truncate als Auffangnetz für sehr schmale Geräte (320 px):
                     lieber ein abgeschnittenes Wort als zwei ineinander
                     laufende. Das Symbol darüber bleibt eindeutig. */}
-                <span className="w-full truncate text-center">{label}</span>
+                <span className="w-full truncate text-center">{t(label)}</span>
               </Link>
             </li>
           );

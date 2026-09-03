@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserCheck, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 export function ClubJoinRequestsSection({ clubs }: { clubs: Club[] }) {
+  const t = useT();
   const [selectedClubId, setSelectedClubId] = useState(clubs[0]?.id ?? "");
   const [requests, setRequests] = useState<ClubMemberRequest[] | null>(null);
 
@@ -22,7 +24,7 @@ export function ClubJoinRequestsSection({ clubs }: { clubs: Club[] }) {
       const data = await api.get<ClubMemberRequest[]>(`/api/clubs/${clubId}/join-requests`);
       setRequests(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Beitrittsanfragen konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Beitrittsanfragen konnten nicht geladen werden."));
     }
   }
 
@@ -66,9 +68,9 @@ export function ClubJoinRequestsSection({ clubs }: { clubs: Club[] }) {
       </CardHeader>
       <CardContent>
         {requests === null ? (
-          <p className="text-sm text-muted-foreground">Lädt…</p>
+          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : requests.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Keine offenen Anfragen.</p>
+          <p className="text-sm text-muted-foreground">{t("Keine offenen Anfragen.")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {requests.map((r) => (

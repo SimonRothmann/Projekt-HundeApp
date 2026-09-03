@@ -400,3 +400,63 @@ mitbringen kann, ohne dass Code geändert wird.
 
 4. **Abschaltbare Module** (Startpunkt): Fährte/GPS, Sachkunde,
    Gruppentraining, Wetter, Statistik.
+
+**Schritt 3 umgesetzt (2026-09-03):** Geltungsbereich und Sprache.
+
+Beides in einem Zug, aber sauber getrennt gebaut - Land zuerst, weil es
+mitentscheidet, was überhaupt übersetzt werden muss.
+
+*Geltungsbereich*
+
+- `Regulation.CountryCode` (ISO 3166-1 alpha-2, null = gilt überall) und
+  `UserPreference.Country`. Eigene Tabelle `countries` für die wählbaren
+  Länder: Aus den Ordnungen ließe sich die Liste nicht ableiten - ein Land
+  ohne Inhalte käme darin gar nicht vor, und genau die sollen wählbar sein.
+- Ohne Namensfeld. Ländernamen kennt der Browser bereits
+  (`Intl.DisplayNames`) und liefert sie in der jeweiligen
+  Oberflächensprache; eine eigene Liste wäre eine nachgebaute
+  Übersetzungstabelle.
+- Der Altbestand wurde einmalig Deutschland zugeordnet - und nur dann, wenn
+  ÜBERHAUPT keine Ordnung ein Land trägt. Ohne diese Bedingung holte der
+  Seeder bei jedem Start jede bewusst auf "gilt überall" gesetzte Ordnung
+  zurück und machte damit eine Eingabe rückgängig.
+- Nachgemessen: 44 Ordnungen für DE, 0 für AT. Eine Ordnung testweise auf
+  null gesetzt - sie erscheint danach unter DE **und** AT, und die Zählung
+  je Land steigt entsprechend. Das ist die Regel, die "null = gilt überall"
+  überhaupt erst nützlich macht.
+
+*Sprache*
+
+- Keine Sprache in der Adresse, obwohl die Next-Doku genau das vorschlägt.
+  Zwei Gründe: Die App hinter der Anmeldung rendert im Browser und kennt
+  ihren Nutzer erst dort; und die öffentlichen Seiten beschreiben deutsche
+  Prüfungsordnungen - eine englische Adressvariante mit demselben deutschen
+  Inhalt wäre eine Dublette ohne eigenen Wert, und die vorhandene
+  Sichtbarkeit wäre der Preis.
+- Der Schlüssel ist der deutsche Satz selbst, keine erfundene Kennung. Der
+  Quelltext bleibt lesbar, und der Rückfall ist von selbst richtig: Fehlt
+  eine Übersetzung, erscheint Deutsch - also genau das, was vorher dastand.
+- Weil eine Typprüfung das nicht bemerken kann, liest `i18n.test.ts` den
+  Quelltext und meldet jeden Aufruf ohne englische Fassung. Das ist die
+  einzige Stelle, an der "vollständig übersetzt" eine überprüfbare Aussage
+  ist. Stand: 626 Sätze.
+- `uebersetzbar()` markiert Sätze, die als Daten irgendwo stehen und erst
+  weit entfernt über `t(variable)` gerendert werden. Ohne diese Markierung
+  hielte der Test sie für unbenutzt.
+
+*Was die Sachkunde ausblendet - Land, nicht Sprache*
+
+Der ursprüngliche Entwurf wollte "englische Oberfläche ⇒ Sachkunde aus".
+Umgesetzt ist stattdessen "Land ≠ DE ⇒ Sachkunde aus". Der Unterschied ist
+inhaltlich: Wer in Deutschland lebt und die App auf Englisch nutzt, macht
+trotzdem die deutsche BH und braucht genau diese Fragen. Umgekehrt hilft
+der SWHV-Katalog in Österreich auch auf Deutsch nicht weiter. Die
+Zugehörigkeit hängt am Geltungsbereich, nicht an der Sprache - dieselbe
+Unterscheidung wie beim Katalog selbst.
+
+*Nicht übersetzt, mit Absicht*
+
+Die öffentlichen Seiten (Startseite, Prüfungsordnungen, Sachkunde) bleiben
+deutsch. Sie beschreiben deutsche Verbandsinhalte; eine englische Fassung
+mit denselben deutschen Begriffen wäre eine Dublette, die der Sichtbarkeit
+schadet und niemandem hilft.

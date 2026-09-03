@@ -25,6 +25,9 @@ import {
 import { toast } from "sonner";
 import { difficultyLabel } from "@/lib/constants";
 
+import { useT } from "@/lib/i18n";
+import { usePreferences } from "@/lib/preferences-context";
+import { VORGABE_LAND } from "@/lib/i18n/laender";
 const textareaClass =
   "w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/60 md:text-sm dark:bg-input/30";
 
@@ -50,7 +53,10 @@ async function getWithCache<T>(path: string): Promise<T> {
 }
 
 export default function SportsPage() {
+  const t = useT();
   const { user } = useAuth();
+  const { preferences } = usePreferences();
+  const land = preferences.country ?? VORGABE_LAND;
   const isAdmin = user?.roles.includes("ADMIN") ?? false;
 
   const [sports, setSports] = useState<Sport[] | null>(null);
@@ -68,12 +74,17 @@ export default function SportsPage() {
   useEffect(() => {
     getWithCache<Sport[]>("/api/sports")
       .then(setSports)
-      .catch((err) => toast.error(apiError(err, "Sportarten konnten nicht geladen werden.")));
+      .catch((err) => toast.error(apiError(err, t("Sportarten konnten nicht geladen werden."))));
     getWithCache<Exercise[]>("/api/exercises/uncategorized")
       .then(setUncategorized)
       .catch(() => {
         // Kein Toast: erwartet fehlend für Nutzer ohne Zugriff.
       });
+    // t bewusst nicht in der Liste: Der Uebersetzer wird hier nur im
+    // Fehlerfall gebraucht. Stuende er drin, liefe der ganze Abruf bei
+    // jedem Sprachwechsel erneut - Daten neu laden, weil ein Toast
+    // anders heissen wuerde.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---- Reload-Helfer (nach Admin-Bearbeitungen) ----
@@ -81,7 +92,7 @@ export default function SportsPage() {
     try {
       setSports(await api.get<Sport[]>("/api/sports"));
     } catch (err) {
-      toast.error(apiError(err, "Sportarten konnten nicht neu geladen werden."));
+      toast.error(apiError(err, t("Sportarten konnten nicht neu geladen werden.")));
     }
   }
   async function reloadExercises(sportId: string) {
@@ -89,7 +100,7 @@ export default function SportsPage() {
       const list = await api.get<Exercise[]>(`/api/sports/${sportId}/exercises`);
       setExercisesBySport((prev) => ({ ...prev, [sportId]: list }));
     } catch (err) {
-      toast.error(apiError(err, "Übungen konnten nicht neu geladen werden."));
+      toast.error(apiError(err, t("Übungen konnten nicht neu geladen werden.")));
     }
   }
   async function reloadUncategorized() {
@@ -104,7 +115,7 @@ export default function SportsPage() {
       const detail = await api.get<RegulationDetail>(`/api/sports/regulations/${regulationId}`);
       setRegulationDetails((prev) => ({ ...prev, [regulationId]: detail }));
     } catch (err) {
-      toast.error(apiError(err, "Prüfungsordnung konnte nicht neu geladen werden."));
+      toast.error(apiError(err, t("Prüfungsordnung konnte nicht neu geladen werden.")));
     }
   }
 
@@ -120,11 +131,15 @@ export default function SportsPage() {
         setExercisesBySport((prev) => ({ ...prev, [sportId]: exercises }));
       }
       if (!regulationsBySport[sportId]) {
-        const regulations = await getWithCache<Regulation[]>(`/api/sports/${sportId}/regulations`);
+        // Nur die Ordnungen des gewählten Geltungsbereichs plus die
+        // international gültigen - siehe SportCatalogService.
+        const regulations = await getWithCache<Regulation[]>(
+          `/api/sports/${sportId}/regulations?country=${encodeURIComponent(land)}`,
+        );
         setRegulationsBySport((prev) => ({ ...prev, [sportId]: regulations }));
       }
     } catch (err) {
-      toast.error(apiError(err, "Daten konnten nicht geladen werden."));
+      toast.error(apiError(err, t("Daten konnten nicht geladen werden.")));
     }
   }
 
@@ -139,7 +154,7 @@ export default function SportsPage() {
         const detail = await getWithCache<RegulationDetail>(`/api/sports/regulations/${regulationId}`);
         setRegulationDetails((prev) => ({ ...prev, [regulationId]: detail }));
       } catch (err) {
-        toast.error(apiError(err, "Prüfungsordnung konnte nicht geladen werden."));
+        toast.error(apiError(err, t("Prüfungsordnung konnte nicht geladen werden.")));
       }
     }
   }
@@ -147,18 +162,17 @@ export default function SportsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Sportarten</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Sportarten")}</h1>
         <p className="text-sm text-muted-foreground">
-          Informativer Katalog nach VDH-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind
-          eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.
+          {t("Informativer Katalog nach VDH-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.")}
           {isAdmin
-            ? " Als Admin kannst du globale Sportarten und ihre Prüfungsordnungen hier direkt bearbeiten."
-            : " Globale Sportarten pflegt der Admin; Vereine können eigene Übungen & Sportarten anlegen (Trainer-Bereich)."}
+            ? t(" Als Admin kannst du globale Sportarten und ihre Prüfungsordnungen hier direkt bearbeiten.")
+            : t(" Globale Sportarten pflegt der Admin; Vereine können eigene Übungen & Sportarten anlegen (Trainer-Bereich).")}
         </p>
       </div>
 
       {sports === null ? (
-        <p className="text-muted-foreground">Lädt…</p>
+        <p className="text-muted-foreground">{t("Lädt…")}</p>
       ) : (
         <div className="flex flex-col gap-3">
           {/* Sportartlose Übungen als eigene Karte - direkt oben, weil sie
@@ -172,8 +186,8 @@ export default function SportsPage() {
                 <div className="flex min-w-0 items-center gap-3">
                   <Sparkles className="size-6 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">
-                    <CardTitle className="text-base">Ohne Sportart</CardTitle>
-                    <p className="text-xs text-muted-foreground">Übergreifende Übungen ohne feste Sport-Zuordnung</p>
+                    <CardTitle className="text-base">{t("Ohne Sportart")}</CardTitle>
+                    <p className="text-xs text-muted-foreground">{t("Übergreifende Übungen ohne feste Sport-Zuordnung")}</p>
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -219,7 +233,7 @@ export default function SportsPage() {
           {clubSports.length > 0 && (
             <div className="flex items-center gap-2 pt-2 text-sm text-muted-foreground">
               <Building2 className="size-4" />
-              Vereinsspezifische Sportarten
+{t("Vereinsspezifische Sportarten")}
             </div>
           )}
           {clubSports.map((sport) => (
@@ -272,6 +286,7 @@ function SportCard({
   onExercisesChanged: () => void;
   onRegulationChanged: (regulationId: string) => void;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(sport.name);
   const [description, setDescription] = useState(sport.description ?? "");
@@ -279,17 +294,17 @@ function SportCard({
 
   async function saveSport() {
     if (!name.trim()) {
-      toast.error("Name ist erforderlich.");
+      toast.error(t("Name ist erforderlich."));
       return;
     }
     setSaving(true);
     try {
       await api.put(`/api/sports/${sport.id}`, { name: name.trim(), description: description.trim() || null });
-      toast.success("Sportart aktualisiert.");
+      toast.success(t("Sportart aktualisiert."));
       setEditing(false);
       onSportSaved();
     } catch (err) {
-      toast.error(apiError(err, "Sportart konnte nicht gespeichert werden."));
+      toast.error(apiError(err, t("Sportart konnte nicht gespeichert werden.")));
     } finally {
       setSaving(false);
     }
@@ -308,7 +323,7 @@ function SportCard({
               <CardTitle className="text-base [overflow-wrap:anywhere]">{sport.name}</CardTitle>
               {sport.clubId && (
                 <Badge variant="outline" className="border-amber-500/40 text-amber-700">
-                  Verein
+{t("Verein")}
                 </Badge>
               )}
             </div>
@@ -321,7 +336,7 @@ function SportCard({
               type="button"
               size="icon-sm"
               variant="ghost"
-              aria-label="Sportart bearbeiten"
+              aria-label={t("Sportart bearbeiten")}
               onClick={(e) => {
                 e.stopPropagation();
                 setName(sport.name);
@@ -350,21 +365,21 @@ function SportCard({
               </div>
               <div className="flex gap-2">
                 <Button type="button" size="sm" disabled={saving} onClick={saveSport}>
-                  {saving ? "Speichert…" : "Speichern"}
+                  {saving ? "Speichert…" : t("Speichern")}
                 </Button>
                 <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
-                  Abbrechen
+{t("Abbrechen")}
                 </Button>
               </div>
             </div>
           )}
 
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Übungen</h3>
+            <h3 className="mb-2 text-sm font-semibold text-muted-foreground">{t("Übungen")}</h3>
             {!exercises ? (
-              <p className="text-sm text-muted-foreground">Lädt Übungen…</p>
+              <p className="text-sm text-muted-foreground">{t("Lädt Übungen…")}</p>
             ) : exercises.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Noch keine Übungen hinterlegt.</p>
+              <p className="text-sm text-muted-foreground">{t("Noch keine Übungen hinterlegt.")}</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {exercises.map((exercise) => (
@@ -383,11 +398,11 @@ function SportCard({
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Prüfungsordnungen</h3>
+            <h3 className="mb-2 text-sm font-semibold text-muted-foreground">{t("Prüfungsordnungen")}</h3>
             {!regulations ? (
-              <p className="text-sm text-muted-foreground">Lädt…</p>
+              <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
             ) : regulations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Noch keine Prüfungsordnung hinterlegt.</p>
+              <p className="text-sm text-muted-foreground">{t("Noch keine Prüfungsordnung hinterlegt.")}</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {regulations.map((regulation) => (
@@ -428,6 +443,7 @@ function RegulationBlock({
   onToggle: () => void;
   onChanged: () => void;
 }) {
+  const t = useT();
   const [editingMeta, setEditingMeta] = useState(false);
   const [name, setName] = useState(regulation.name);
   const [description, setDescription] = useState(regulation.description ?? "");
@@ -437,7 +453,7 @@ function RegulationBlock({
 
   async function saveMeta() {
     if (!name.trim()) {
-      toast.error("Name ist erforderlich.");
+      toast.error(t("Name ist erforderlich."));
       return;
     }
     setSavingMeta(true);
@@ -447,11 +463,11 @@ function RegulationBlock({
         description: description.trim() || null,
         sourceUrl: sourceUrl.trim() || null,
       });
-      toast.success("Prüfungsordnung aktualisiert.");
+      toast.success(t("Prüfungsordnung aktualisiert."));
       setEditingMeta(false);
       onChanged();
     } catch (err) {
-      toast.error(apiError(err, "Prüfungsordnung konnte nicht gespeichert werden."));
+      toast.error(apiError(err, t("Prüfungsordnung konnte nicht gespeichert werden.")));
     } finally {
       setSavingMeta(false);
     }
@@ -477,7 +493,7 @@ function RegulationBlock({
       {isOpen && (
         <div className="border-t px-3 py-2">
           {!detail ? (
-            <p className="text-sm text-muted-foreground">Lädt…</p>
+            <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
           ) : (
             <>
               <div className="mb-2 flex items-center justify-between gap-2">
@@ -498,7 +514,7 @@ function RegulationBlock({
                     }}
                   >
                     <Pencil className="size-3.5" />
-                    Bearbeiten
+{t("Bearbeiten")}
                   </Button>
                 )}
               </div>
@@ -519,10 +535,10 @@ function RegulationBlock({
                   </div>
                   <div className="flex gap-2">
                     <Button type="button" size="sm" disabled={savingMeta} onClick={saveMeta}>
-                      {savingMeta ? "Speichert…" : "Speichern"}
+                      {savingMeta ? "Speichert…" : t("Speichern")}
                     </Button>
                     <Button type="button" size="sm" variant="ghost" onClick={() => setEditingMeta(false)}>
-                      Abbrechen
+{t("Abbrechen")}
                     </Button>
                   </div>
                 </div>
@@ -565,11 +581,11 @@ function RegulationBlock({
                       size="sm"
                       variant="outline"
                       disabled={addableExercises.length === 0}
-                      title={addableExercises.length === 0 ? "Alle Übungen der Sportart sind bereits enthalten" : undefined}
+                      title={addableExercises.length === 0 ? t("Alle Übungen der Sportart sind bereits enthalten") : undefined}
                       onClick={() => setAdding(true)}
                     >
                       <Plus className="size-3.5" />
-                      Übung hinzufügen
+{t("Übung hinzufügen")}
                     </Button>
                   )}
                 </div>
@@ -593,6 +609,7 @@ function RegExerciseRow({
   canEdit: boolean;
   onChanged: () => void;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [mandatory, setMandatory] = useState(re.isMandatory);
   const [points, setPoints] = useState(String(re.maxPoints));
@@ -611,7 +628,7 @@ function RegExerciseRow({
       setEditing(false);
       onChanged();
     } catch (err) {
-      toast.error(apiError(err, "Konnte nicht gespeichert werden."));
+      toast.error(apiError(err, t("Konnte nicht gespeichert werden.")));
     } finally {
       setSaving(false);
     }
@@ -621,10 +638,10 @@ function RegExerciseRow({
     if (!window.confirm(`„${re.exerciseName}" aus dieser Prüfungsordnung entfernen?`)) return;
     try {
       await api.delete(`/api/sports/regulations/${regulationId}/exercises/${re.exerciseId}`);
-      toast.success("Übung entfernt.");
+      toast.success(t("Übung entfernt."));
       onChanged();
     } catch (err) {
-      toast.error(apiError(err, "Konnte nicht entfernt werden."));
+      toast.error(apiError(err, t("Konnte nicht entfernt werden.")));
     }
   }
 
@@ -638,7 +655,7 @@ function RegExerciseRow({
             Pflicht
           </label>
           <div className="flex flex-col gap-1">
-            <Label className="text-xs">Punkte</Label>
+            <Label className="text-xs">{t("Punkte")}</Label>
             <Input type="number" min={0} max={1000} className="w-24" value={points} onChange={(e) => setPoints(e.target.value)} />
           </div>
         </div>
@@ -648,10 +665,10 @@ function RegExerciseRow({
         </div>
         <div className="flex gap-2">
           <Button type="button" size="sm" disabled={saving} onClick={save}>
-            {saving ? "Speichert…" : "Speichern"}
+            {saving ? "Speichert…" : t("Speichern")}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
-            Abbrechen
+{t("Abbrechen")}
           </Button>
         </div>
       </li>
@@ -669,10 +686,10 @@ function RegExerciseRow({
           {re.maxPoints > 0 && <Badge variant="outline">{re.maxPoints} Punkte</Badge>}
           {canEdit && (
             <>
-              <Button type="button" size="icon-sm" variant="ghost" aria-label="Bearbeiten" onClick={() => { setMandatory(re.isMandatory); setPoints(String(re.maxPoints)); setNotes(re.scoringNotes ?? ""); setEditing(true); }}>
+              <Button type="button" size="icon-sm" variant="ghost" aria-label={t("Bearbeiten")} onClick={() => { setMandatory(re.isMandatory); setPoints(String(re.maxPoints)); setNotes(re.scoringNotes ?? ""); setEditing(true); }}>
                 <Pencil className="size-3.5" />
               </Button>
-              <Button type="button" size="icon-sm" variant="ghost" aria-label="Entfernen" onClick={remove}>
+              <Button type="button" size="icon-sm" variant="ghost" aria-label={t("Entfernen")} onClick={remove}>
                 <Trash2 className="size-3.5 text-muted-foreground" />
               </Button>
             </>
@@ -695,6 +712,7 @@ function AddRegExerciseForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [exerciseId, setExerciseId] = useState("");
   const [mandatory, setMandatory] = useState(true);
   const [points, setPoints] = useState("0");
@@ -703,7 +721,7 @@ function AddRegExerciseForm({
 
   async function submit() {
     if (!exerciseId) {
-      toast.error("Übung wählen.");
+      toast.error(t("Übung wählen."));
       return;
     }
     setSaving(true);
@@ -714,10 +732,10 @@ function AddRegExerciseForm({
         maxPoints: Number(points) || 0,
         scoringNotes: notes.trim() || null,
       });
-      toast.success("Übung hinzugefügt.");
+      toast.success(t("Übung hinzugefügt."));
       onDone();
     } catch (err) {
-      toast.error(apiError(err, "Übung konnte nicht hinzugefügt werden."));
+      toast.error(apiError(err, t("Übung konnte nicht hinzugefügt werden.")));
     } finally {
       setSaving(false);
     }
@@ -726,10 +744,10 @@ function AddRegExerciseForm({
   return (
     <div className="flex flex-col gap-3 rounded-md border p-3">
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs">Übung</Label>
+        <Label className="text-xs">{t("Übung")}</Label>
         <Select value={exerciseId} onValueChange={(v) => setExerciseId(v ?? "")}>
           <SelectTrigger>
-            <SelectValue placeholder="Übung wählen…" />
+            <SelectValue placeholder={t("Übung wählen…")} />
           </SelectTrigger>
           <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
             {addableExercises.map((e) => (
@@ -746,7 +764,7 @@ function AddRegExerciseForm({
           Pflicht
         </label>
         <div className="flex flex-col gap-1">
-          <Label className="text-xs">Punkte</Label>
+          <Label className="text-xs">{t("Punkte")}</Label>
           <Input type="number" min={0} max={1000} className="w-24" value={points} onChange={(e) => setPoints(e.target.value)} />
         </div>
       </div>
@@ -756,10 +774,10 @@ function AddRegExerciseForm({
       </div>
       <div className="flex gap-2">
         <Button type="button" size="sm" disabled={saving} onClick={submit}>
-          {saving ? "Fügt hinzu…" : "Hinzufügen"}
+          {saving ? t("Fügt hinzu…") : t("Hinzufügen")}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-          Abbrechen
+{t("Abbrechen")}
         </Button>
       </div>
     </div>
@@ -775,6 +793,7 @@ function ExerciseRow({
   canEdit: boolean;
   onSaved: () => void;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(exercise.name);
   const [description, setDescription] = useState(exercise.description ?? "");
@@ -785,7 +804,7 @@ function ExerciseRow({
 
   async function save() {
     if (!name.trim()) {
-      toast.error("Name ist erforderlich.");
+      toast.error(t("Name ist erforderlich."));
       return;
     }
     setSaving(true);
@@ -797,11 +816,11 @@ function ExerciseRow({
         category: category.trim() || null,
         scoringCriteria: scoring.trim() || null,
       });
-      toast.success("Übung aktualisiert.");
+      toast.success(t("Übung aktualisiert."));
       setEditing(false);
       onSaved();
     } catch (err) {
-      toast.error(apiError(err, "Übung konnte nicht gespeichert werden."));
+      toast.error(apiError(err, t("Übung konnte nicht gespeichert werden.")));
     } finally {
       setSaving(false);
     }
@@ -845,10 +864,10 @@ function ExerciseRow({
         </div>
         <div className="flex gap-2">
           <Button type="button" size="sm" disabled={saving} onClick={save}>
-            {saving ? "Speichert…" : "Speichern"}
+            {saving ? "Speichert…" : t("Speichern")}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
-            Abbrechen
+{t("Abbrechen")}
           </Button>
         </div>
       </li>
@@ -862,7 +881,7 @@ function ExerciseRow({
           <span className="font-medium [overflow-wrap:anywhere]">{exercise.name}</span>
           {exercise.clubId && (
             <Badge variant="outline" className="border-amber-500/40 text-amber-700">
-              Verein
+{t("Verein")}
             </Badge>
           )}
         </div>
@@ -873,7 +892,7 @@ function ExerciseRow({
               type="button"
               size="icon-sm"
               variant="ghost"
-              aria-label="Übung bearbeiten"
+              aria-label={t("Übung bearbeiten")}
               onClick={() => {
                 setName(exercise.name);
                 setDescription(exercise.description ?? "");

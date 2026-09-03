@@ -35,6 +35,17 @@ public interface ISportCatalogService
     /// des Nutzers.
     /// </summary>
     Task<Result<IReadOnlyList<ExerciseDto>>> GetUncategorizedExercisesAsync(Guid userId, CancellationToken ct = default);
-    Task<Result<IReadOnlyList<RegulationDto>>> GetRegulationsAsync(Guid sportId, CancellationToken ct = default);
+    /// <summary>
+    /// Prüfungsordnungen einer Sportart. Mit <paramref name="country"/>
+    /// nur die dort geltenden plus die international gültigen
+    /// (CountryCode = null); ohne Angabe alle.
+    /// </summary>
+    Task<Result<IReadOnlyList<RegulationDto>>> GetRegulationsAsync(Guid sportId, string? country = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Die wählbaren Geltungsbereiche samt Anzahl geltender Ordnungen.
+    /// Länder ohne Inhalte stehen bewusst mit drin.
+    /// </summary>
+    Task<Result<IReadOnlyList<CountryDto>>> GetCountriesAsync(CancellationToken ct = default);
     Task<Result<RegulationDetailDto>> GetRegulationDetailAsync(Guid regulationId, CancellationToken ct = default);
 }

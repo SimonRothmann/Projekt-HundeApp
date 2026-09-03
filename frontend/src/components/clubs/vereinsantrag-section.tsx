@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, Clock } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Einen Verein beantragen - und den Stand des eigenen Antrags sehen.
  *
@@ -22,6 +23,7 @@ import { toast } from "sonner";
  * kommentarlos verschwindet, wirkt wie ein Fehler der App.
  */
 export function VereinsantragSection() {
+  const t = useT();
   const [antraege, setAntraege] = useState<ClubRegistration[] | null>(null);
   const [name, setName] = useState("");
   const [beschreibung, setBeschreibung] = useState("");
@@ -48,12 +50,12 @@ export function VereinsantragSection() {
     setSendet(true);
     try {
       await api.post("/api/clubs/registrations", { name, description: beschreibung || null });
-      toast.success("Antrag gestellt. Ein Administrator prüft ihn.");
+      toast.success(t("Antrag gestellt. Ein Administrator prüft ihn."));
       setName("");
       setBeschreibung("");
       await laden();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Antrag konnte nicht gestellt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Antrag konnte nicht gestellt werden."));
     } finally {
       setSendet(false);
     }
@@ -66,10 +68,10 @@ export function VereinsantragSection() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Building2 className="size-5" />
-          Verein gründen
+{t("Verein gründen")}
         </CardTitle>
         <CardDescription>
-          Dein Verein fehlt? Beantrage ihn – ein Administrator gibt ihn frei. Danach verwaltest du ihn selbst.
+{t("Dein Verein fehlt? Beantrage ihn – ein Administrator gibt ihn frei. Danach verwaltest du ihn selbst.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -87,7 +89,7 @@ export function VereinsantragSection() {
                 {a.status === CLUB_REGISTRATION_STATUS.offen && (
                   <Badge variant="secondary" className="shrink-0">
                     <Clock className="mr-1 size-3" />
-                    In Prüfung
+{t("In Prüfung")}
                   </Badge>
                 )}
                 {a.status === CLUB_REGISTRATION_STATUS.freigegeben && <Badge className="shrink-0">Freigegeben</Badge>}
@@ -103,7 +105,7 @@ export function VereinsantragSection() {
 
         {offen ? (
           <p className="text-sm text-muted-foreground">
-            Dein Antrag wird geprüft. Du bekommst eine Benachrichtigung, sobald entschieden ist.
+{t("Dein Antrag wird geprüft. Du bekommst eine Benachrichtigung, sobald entschieden ist.")}
           </p>
         ) : (
           <form className="flex flex-col gap-3" onSubmit={beantragen}>
@@ -126,7 +128,7 @@ export function VereinsantragSection() {
               />
             </div>
             <Button type="submit" className="self-start" disabled={sendet || !name.trim()}>
-              {sendet ? "Wird gesendet…" : "Verein beantragen"}
+              {sendet ? t("Wird gesendet…") : t("Verein beantragen")}
             </Button>
           </form>
         )}

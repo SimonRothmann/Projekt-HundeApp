@@ -6,8 +6,10 @@ import type { GroupTrainingCategory, GroupTrainingSession } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, MapPin } from "lucide-react";
+import { useT } from "@/lib/i18n";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
 
-const categoryLabel: Record<GroupTrainingCategory, string> = { 0: "Welpen", 1: "Junghunde", 2: "Basis" };
+const categoryLabel: Record<GroupTrainingCategory, string> = { 0: uebersetzbar("Welpen"), 1: uebersetzbar("Junghunde"), 2: uebersetzbar("Basis") };
 const fmt = (iso: string) =>
   new Date(iso).toLocaleString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
@@ -18,6 +20,7 @@ const fmt = (iso: string) =>
  */
 export function UpcomingTrainingsSection() {
   const [sessions, setSessions] = useState<GroupTrainingSession[] | null>(null);
+  const t = useT();
 
   useEffect(() => {
     const from = new Date().toISOString().slice(0, 10);
@@ -34,7 +37,7 @@ export function UpcomingTrainingsSection() {
       <CardHeader className="p-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <CalendarDays className="size-5 text-primary" />
-          Nächste Gruppentrainings
+          {t("Nächste Gruppentrainings")}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 p-3 pt-0">
@@ -45,8 +48,8 @@ export function UpcomingTrainingsSection() {
                 {fmt(s.startsAt)} · {s.groupName}
               </span>
               <span className="flex shrink-0 items-center gap-1">
-                <Badge variant="secondary">{categoryLabel[s.category]}</Badge>
-                {s.status === 1 && <Badge variant="outline">Abgesagt</Badge>}
+                <Badge variant="secondary">{t(categoryLabel[s.category])}</Badge>
+                {s.status === 1 && <Badge variant="outline">{t("Abgesagt")}</Badge>}
               </span>
             </div>
             {s.location && (

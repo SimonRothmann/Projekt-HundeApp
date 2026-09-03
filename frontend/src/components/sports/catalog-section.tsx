@@ -12,6 +12,7 @@ import { difficultyLabel } from "@/lib/constants";
 import { SportEditorSheet, type SportScope } from "@/components/sports/sport-editor-sheet";
 import { ExerciseEditorSheet, type ExerciseScope } from "@/components/sports/exercise-editor-sheet";
 
+import { useT } from "@/lib/i18n";
 /**
  * Karte "Sportarten & Übungen verwalten". Wird von zwei Stellen genutzt:
  * - Admin-Bereich mit scope="global": pflegt den globalen VDH-Katalog.
@@ -33,6 +34,7 @@ export function CatalogSection({
   title: string;
   description: string;
 }) {
+  const t = useT();
   const [allSports, setAllSports] = useState<Sport[] | null>(null);
   const [uncategorized, setUncategorized] = useState<Exercise[]>([]);
   const [exercisesBySport, setExercisesBySport] = useState<Record<string, Exercise[]>>({});
@@ -78,7 +80,7 @@ export function CatalogSection({
       const data = await api.get<Sport[]>("/api/sports");
       setAllSports(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Sportarten konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Sportarten konnten nicht geladen werden."));
     }
   }
 
@@ -106,7 +108,7 @@ export function CatalogSection({
         ),
       }));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Übungen konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Übungen konnten nicht geladen werden."));
     }
   }
 
@@ -158,7 +160,7 @@ export function CatalogSection({
     if (!confirm(`Übung „${exercise.name}“ wirklich löschen?`)) return;
     try {
       await api.delete(`/api/exercises/${exercise.id}`);
-      toast.success("Übung gelöscht.");
+      toast.success(t("Übung gelöscht."));
       if (exercise.sportId === null) {
         setUncategorized((prev) => prev.filter((e) => e.id !== exercise.id));
       } else {
@@ -168,7 +170,7 @@ export function CatalogSection({
         }));
       }
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
     }
   }
 
@@ -187,17 +189,17 @@ export function CatalogSection({
         <div className="flex flex-shrink-0 flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setSportEditorOpen(true)}>
             <Plus className="size-4" />
-            Sportart
+{t("Sportart")}
           </Button>
           <Button size="sm" onClick={() => setExerciseEditor({ open: true, sportId: null })}>
             <Plus className="size-4" />
-            Übung
+{t("Übung")}
           </Button>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {allSports === null ? (
-          <p className="text-sm text-muted-foreground">Lädt…</p>
+          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : (
           <>
             {/* Ohne-Sportart-Karte für sportartlose Übungen desselben Scopes */}
@@ -209,8 +211,8 @@ export function CatalogSection({
               >
                 <span className="flex items-center gap-2">
                   <Sparkles className="size-4 text-muted-foreground" />
-                  <span className="font-medium">Ohne Sportart</span>
-                  <span className="text-xs text-muted-foreground">übergreifend</span>
+                  <span className="font-medium">{t("Ohne Sportart")}</span>
+                  <span className="text-xs text-muted-foreground">{t("übergreifend")}</span>
                 </span>
                 <span className="flex items-center gap-2">
                   <Badge variant="secondary">{scopeUncategorized.length}</Badge>
@@ -221,7 +223,7 @@ export function CatalogSection({
                 <div className="border-t px-3 py-3">
                   {scopeUncategorized.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      Noch keine sportartlosen Übungen. Über &bdquo;+ Übung&ldquo; anlegen und &bdquo;Ohne Sportart&ldquo; wählen.
+{t("Noch keine sportartlosen Übungen. Über „+ Übung“ anlegen und „Ohne Sportart“ wählen.")}
                     </p>
                   ) : (
                     <ul className="flex flex-col gap-2">
@@ -238,8 +240,8 @@ export function CatalogSection({
             {sportsInScope.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {scope.kind === "global"
-                  ? "Noch keine globalen Sportarten. Über „+ Sportart“ anlegen."
-                  : "Noch keine vereinseigenen Sportarten. Der Verein kann jederzeit welche anlegen."}
+                  ? t("Noch keine globalen Sportarten. Über „+ Sportart“ anlegen.")
+                  : t("Noch keine vereinseigenen Sportarten. Der Verein kann jederzeit welche anlegen.")}
               </p>
             ) : (
               sportsInScope.map((sport) => {
@@ -265,20 +267,20 @@ export function CatalogSection({
                     {isOpen && (
                       <div className="flex flex-col gap-3 border-t px-3 py-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-semibold text-muted-foreground">Übungen</span>
+                          <span className="text-sm font-semibold text-muted-foreground">{t("Übungen")}</span>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setExerciseEditor({ open: true, sportId: sport.id })}
                           >
                             <Plus className="size-4" />
-                            Übung
+{t("Übung")}
                           </Button>
                         </div>
                         {!exercises ? (
-                          <p className="text-sm text-muted-foreground">Lädt…</p>
+                          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
                         ) : exercises.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">Noch keine Übungen für diese Sportart.</p>
+                          <p className="text-sm text-muted-foreground">{t("Noch keine Übungen für diese Sportart.")}</p>
                         ) : (
                           <ul className="flex flex-col gap-2">
                             {exercises.map((ex) => (
@@ -315,6 +317,7 @@ export function CatalogSection({
 }
 
 function ExerciseListRow({ exercise, onDelete }: { exercise: Exercise; onDelete: () => void }) {
+  const t = useT();
   return (
     <li className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
       <div className="flex flex-col gap-0.5">
@@ -326,7 +329,7 @@ function ExerciseListRow({ exercise, onDelete }: { exercise: Exercise; onDelete:
           {exercise.category}
         </span>
       </div>
-      <Button type="button" size="icon-sm" variant="ghost" onClick={onDelete} title="Übung löschen">
+      <Button type="button" size="icon-sm" variant="ghost" onClick={onDelete} title={t("Übung löschen")}>
         <Trash2 className="size-3.5" />
       </Button>
     </li>

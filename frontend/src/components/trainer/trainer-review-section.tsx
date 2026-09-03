@@ -10,6 +10,7 @@ import { ClipboardCheck, MessageSquarePlus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
+import { useT } from "@/lib/i18n";
 /**
  * Trainerseite: alle offenen Trainings der betreuten Hunde in EINER Ansicht -
  * je Trainingstag das Gesamt-Feedback und alle Übungen, ohne ins Tagebuch des
@@ -31,6 +32,7 @@ function openCount(session: TrainerSessionToRate): number {
 }
 
 export function TrainerReviewSection() {
+  const t = useT();
   const [sessions, setSessions] = useState<TrainerSessionToRate[] | null>(null);
   const [openFeedbackId, setOpenFeedbackId] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
@@ -41,7 +43,7 @@ export function TrainerReviewSection() {
       const data = await api.get<TrainerSessionToRate[]>("/api/trainings/trainer/sessions");
       setSessions(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Trainings konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Trainings konnten nicht geladen werden."));
     }
   }
 
@@ -61,11 +63,11 @@ export function TrainerReviewSection() {
     setSavingFeedback(true);
     try {
       await api.put(`/api/trainings/${sessionId}/feedback`, { feedback: feedbackText });
-      toast.success("Feedback gespeichert.");
+      toast.success(t("Feedback gespeichert."));
       setOpenFeedbackId(null);
       await load();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Feedback konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Feedback konnte nicht gespeichert werden."));
     } finally {
       setSavingFeedback(false);
     }
@@ -91,7 +93,7 @@ export function TrainerReviewSection() {
       <CardHeader className="items-center">
         <CardTitle className="flex items-center gap-2 text-base">
           <ClipboardCheck className="size-5" />
-          Trainings bewerten
+{t("Trainings bewerten")}
         </CardTitle>
         {totalOpen > 0 && (
           <CardAction>
@@ -101,10 +103,10 @@ export function TrainerReviewSection() {
       </CardHeader>
       <CardContent>
         {sessions === null ? (
-          <p className="text-sm text-muted-foreground">Lädt…</p>
+          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : sessions.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Keine offenen Trainings – alle betreuten Trainings sind bewertet und kommentiert.
+{t("Keine offenen Trainings – alle betreuten Trainings sind bewertet und kommentiert.")}
           </p>
         ) : (
           <div className="flex flex-col gap-4">
@@ -170,15 +172,15 @@ export function TrainerReviewSection() {
                               className="min-h-16 rounded-md border border-input bg-transparent px-3 py-2 text-sm"
                               value={feedbackText}
                               onChange={(e) => setFeedbackText(e.target.value)}
-                              placeholder="Gesamt-Feedback zu diesem Training…"
+                              placeholder={t("Gesamt-Feedback zu diesem Training…")}
                               autoFocus
                             />
                             <div className="flex gap-2 self-start">
                               <Button size="sm" onClick={() => saveFeedback(s.sessionId)} disabled={savingFeedback}>
-                                Speichern
+{t("Speichern")}
                               </Button>
                               <Button size="sm" variant="ghost" onClick={() => setOpenFeedbackId(null)}>
-                                Abbrechen
+{t("Abbrechen")}
                               </Button>
                             </div>
                           </div>
@@ -190,7 +192,7 @@ export function TrainerReviewSection() {
                               variant="ghost"
                               className="size-6 shrink-0"
                               onClick={() => startFeedback(s.sessionId, s.trainerFeedback)}
-                              title="Feedback bearbeiten"
+                              title={t("Feedback bearbeiten")}
                             >
                               <Pencil className="size-3" />
                             </Button>

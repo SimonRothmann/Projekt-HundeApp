@@ -43,10 +43,19 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         regulation.Name = request.Name.Trim();
         regulation.Description = NullIfBlank(request.Description);
         regulation.SourceUrl = NullIfBlank(request.SourceUrl);
+
+        // Leer heißt hier ausdrücklich "gilt überall" und nicht "unverändert" -
+        // sonst ließe sich eine einmal gesetzte Landeszuordnung nie wieder
+        // aufheben.
+        var land = NullIfBlank(request.CountryCode)?.ToUpperInvariant();
+        if (land is { Length: not 2 })
+            return Result<RegulationDto>.Failure("Länderkürzel muss zwei Buchstaben haben (ISO 3166-1 alpha-2).");
+        regulation.CountryCode = land;
+
         await db.SaveChangesAsync(ct);
 
         return Result<RegulationDto>.Success(new RegulationDto(
-            regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description));
+            regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode));
     }
 
     public async Task<Result<RegulationExerciseDto>> AddRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, AddRegulationExerciseRequest request, CancellationToken ct = default)

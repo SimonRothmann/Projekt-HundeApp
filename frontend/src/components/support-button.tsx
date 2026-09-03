@@ -1,7 +1,10 @@
+"use client";
+
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Coffee } from "lucide-react";
 
+import { useT } from "@/lib/i18n";
 const KOFI_URL = "https://ko-fi.com/simonrothmann";
 
 /**
@@ -11,6 +14,7 @@ const KOFI_URL = "https://ko-fi.com/simonrothmann";
  * die Ko-fi-Seite in einem neuen Tab (rel=noopener gegen Tab-Nabbing).
  */
 export function SupportButton({ className }: { className?: string }) {
+  const t = useT();
   return (
     <a
       href={KOFI_URL}
@@ -25,7 +29,7 @@ export function SupportButton({ className }: { className?: string }) {
       )}
     >
       <Coffee className="size-[18px]" />
-      Auf Ko-fi unterstützen
+{t("Auf Ko-fi unterstützen")}
     </a>
   );
 }

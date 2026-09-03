@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { BUILD_COMMIT, BUILD_ZEIT, formatiereBuildZeit } from "@/lib/build-info";
 import { AKTUELLE_VERSION } from "@/lib/versionshinweise";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 /**
  * Eine Zeile: welche Fassung läuft hier, seit wann, und aus welchem Commit
@@ -26,7 +29,9 @@ export function VersionStand({
   className?: string;
   verlinkt?: boolean;
 }) {
-  const fassung = `Version ${AKTUELLE_VERSION}`;
+  const t = useT();
+
+  const fassung = t("Version {v}", { v: AKTUELLE_VERSION });
 
   return (
     <p className={cn("text-xs text-muted-foreground [overflow-wrap:anywhere]", className)}>
@@ -37,10 +42,10 @@ export function VersionStand({
       ) : (
         <span className="font-medium">{fassung}</span>
       )}
-      {BUILD_ZEIT && <> · Stand {formatiereBuildZeit(BUILD_ZEIT)}</>}
+      {BUILD_ZEIT && <> · {t("Stand {zeit}", { zeit: formatiereBuildZeit(BUILD_ZEIT) })}</>}
       {BUILD_COMMIT && (
         <>
-          {" · Build "}
+          {` · ${t("Build")} `}
           <span className="font-mono">{BUILD_COMMIT}</span>
         </>
       )}

@@ -22,6 +22,7 @@ import { getCachedData, setCachedData } from "@/lib/read-cache";
 import { useAuth } from "@/lib/auth-context";
 import { usePreferences } from "@/lib/preferences-context";
 
+import { useT } from "@/lib/i18n";
 // Initial werden nur die Trainings der letzten 3 Monate geladen (die
 // Historie wächst unbegrenzt) - ältere Monate holt SessionHistory über
 // "Ältere Trainings anzeigen" nach. Statistik und Druckansicht laden ihre
@@ -45,6 +46,7 @@ function threeMonthsAgoIso(): string {
  * goals-section.tsx vor ihrem Refactor.
  */
 export default function DogDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -146,7 +148,7 @@ export default function DogDetailPage() {
       // Nur Fehler melden wenn kein Cache vorhanden - mit Cache sind die alten
       // Daten bereits sichtbar und ein Toast wäre verwirrend.
       const cachedAvailable = cached !== null;
-      if (!cachedAvailable) toast.error(err instanceof ApiError ? err.message : "Daten konnten nicht geladen werden.");
+      if (!cachedAvailable) toast.error(err instanceof ApiError ? err.message : t("Daten konnten nicht geladen werden."));
     }
   }
 
@@ -194,7 +196,7 @@ export default function DogDetailPage() {
     if (!confirm(`Hund „${dog.name}" wirklich löschen? Alle Trainings, Fährten, Ziele und Trainerzuweisungen werden entfernt.`)) return;
     const confirmName = prompt(`Zum Bestätigen bitte den Namen des Hundes eingeben: „${dog.name}"`);
     if (confirmName?.trim() !== dog.name) {
-      if (confirmName !== null) toast.error("Name stimmt nicht - Löschen abgebrochen.");
+      if (confirmName !== null) toast.error(t("Name stimmt nicht - Löschen abgebrochen."));
       return;
     }
     try {
@@ -202,7 +204,7 @@ export default function DogDetailPage() {
       toast.success(`Hund „${dog.name}" gelöscht.`);
       router.push("/dogs");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
     }
   }
 
@@ -227,7 +229,7 @@ export default function DogDetailPage() {
     if (!offline) await loadAll();
   }
 
-  if (!dog) return <p className="text-muted-foreground">Lädt…</p>;
+  if (!dog) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
 
   return (
     <div className="flex flex-col gap-6">
@@ -251,7 +253,7 @@ export default function DogDetailPage() {
           {isOwner && (
             <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)}>
               <Pencil className="size-4" />
-              Bearbeiten
+{t("Bearbeiten")}
             </Button>
           )}
           <Link href={`/dogs/${id}/print`} className={buttonVariants({ variant: "outline", size: "sm" })}>
@@ -268,7 +270,7 @@ export default function DogDetailPage() {
       {/* Die Fährtenaufzeichnung erscheint nur, wenn das Modul an ist UND
           der Hund Fährte läuft. Beides zusammen, weil die GPS-Aufzeichnung
           auch für Spaziergänge taugt: Wer sie dafür nutzt, darf sie behalten,
-          ohne "Fährte" als Sportart anzugeben - dann lässt er das Modul an
+          ohne t("Fährte") als Sportart anzugeben - dann lässt er das Modul an
           und wählt die Sportart ab. */}
       {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && <FahrteRecorder dogId={id} onSaved={loadAll} />}
 
@@ -276,7 +278,7 @@ export default function DogDetailPage() {
         <h2 className="text-lg font-semibold">Trainingstagebuch</h2>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus className="size-4" />
-          Training erfassen
+{t("Training erfassen")}
         </Button>
       </div>
 
@@ -297,11 +299,11 @@ export default function DogDetailPage() {
             {/* Archivieren: reversibel, blendet nur aus. */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <p className="font-medium">{dog.archivedAt ? "Hund ist archiviert" : "Hund archivieren"}</p>
+                <p className="font-medium">{dog.archivedAt ? t("Hund ist archiviert") : t("Hund archivieren")}</p>
                 <p className="text-sm text-muted-foreground">
                   {dog.archivedAt
-                    ? "Ausgeblendet aus deiner aktiven Liste – alle Daten bleiben erhalten. Du kannst die Archivierung jederzeit aufheben."
-                    : "Blendet den Hund aus deiner Liste aus – Trainings, Fährten und Ziele bleiben vollständig erhalten. Ideal, wenn dein Hund verstorben ist oder pausiert."}
+                    ? t("Ausgeblendet aus deiner aktiven Liste – alle Daten bleiben erhalten. Du kannst die Archivierung jederzeit aufheben.")
+                    : t("Blendet den Hund aus deiner Liste aus – Trainings, Fährten und Ziele bleiben vollständig erhalten. Ideal, wenn dein Hund verstorben ist oder pausiert.")}
                 </p>
               </div>
               <Button
@@ -318,9 +320,9 @@ export default function DogDetailPage() {
             {/* Endgültig löschen: unwiderruflich, deshalb klar abgesetzt. */}
             <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <p className="font-medium">Hund endgültig löschen</p>
+                <p className="font-medium">{t("Hund endgültig löschen")}</p>
                 <p className="text-sm text-muted-foreground">
-                  Entfernt den Hund samt aller Trainings, Fährten, Ziele und Trainerzuweisungen unwiderruflich.
+{t("Entfernt den Hund samt aller Trainings, Fährten, Ziele und Trainerzuweisungen unwiderruflich.")}
                 </p>
               </div>
               <Button
@@ -330,7 +332,7 @@ export default function DogDetailPage() {
                 onClick={deleteDog}
               >
                 <Trash2 className="size-4" />
-                Endgültig löschen
+{t("Endgültig löschen")}
               </Button>
             </div>
           </CardContent>

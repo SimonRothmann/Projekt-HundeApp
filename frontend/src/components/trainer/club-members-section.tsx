@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, ShieldPlus, ShieldCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
+  const t = useT();
   const [selectedClubId, setSelectedClubId] = useState(clubs[0]?.id ?? "");
   const [members, setMembers] = useState<ClubMemberRequest[] | null>(null);
   const [promotingUserId, setPromotingUserId] = useState<string | null>(null);
@@ -26,7 +28,7 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
       const data = await api.get<ClubMemberRequest[]>(`/api/clubs/${clubId}/members`);
       setMembers(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Mitglieder konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Mitglieder konnten nicht geladen werden."));
     }
   }
 
@@ -63,12 +65,12 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
     setPromotingUserId(userId);
     try {
       await api.post(`/api/clubs/${selectedClubId}/members/${userId}/promote`);
-      toast.success("Mitglied ist jetzt Trainer.");
+      toast.success(t("Mitglied ist jetzt Trainer."));
       // Neu laden, sonst bietet die Zeile weiter "Zum Trainer machen" an,
       // obwohl die Person es gerade geworden ist.
       await loadMembers(selectedClubId);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Beförderung fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Beförderung fehlgeschlagen."));
     } finally {
       setPromotingUserId(null);
     }
@@ -79,7 +81,7 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <CardTitle className="flex items-center gap-2 text-base">
           <Users className="size-5" />
-          Mitglieder
+{t("Mitglieder")}
         </CardTitle>
         {clubs.length > 1 && (
           <Select value={selectedClubId} onValueChange={(value) => setSelectedClubId(value ?? "")}>
@@ -119,9 +121,9 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
         </form>
 
         {members === null ? (
-          <p className="text-sm text-muted-foreground">Lädt…</p>
+          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : members.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Noch keine Mitglieder.</p>
+          <p className="text-sm text-muted-foreground">{t("Noch keine Mitglieder.")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {members.map((m) => (
@@ -146,7 +148,7 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
                   // sieht die Zeile bloß unfertig aus.
                   <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                     <ShieldCheck className="size-4" />
-                    Trainer:in
+{t("Trainer:in")}
                   </span>
                 ) : (
                   <Button
@@ -157,7 +159,7 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
                     onClick={() => handlePromote(m.userId)}
                   >
                     <ShieldPlus className="size-4" />
-                    Zum Trainer machen
+{t("Zum Trainer machen")}
                   </Button>
                 )}
               </li>

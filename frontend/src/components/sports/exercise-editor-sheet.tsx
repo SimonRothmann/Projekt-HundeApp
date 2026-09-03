@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 const NO_SPORT_SENTINEL = "__none__";
 
 /**
@@ -46,6 +47,7 @@ export function ExerciseEditorSheet({
   presetSportId?: string | null;
   onCreated: (exercise: Exercise) => void;
 }) {
+  const t = useT();
   const [sportId, setSportId] = useState<string>(NO_SPORT_SENTINEL);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -81,18 +83,18 @@ export function ExerciseEditorSheet({
         scoringCriteria: scoringCriteria.trim() || null,
         clubId: scope.kind === "club" ? scope.clubId : null,
       });
-      toast.success("Übung angelegt.");
+      toast.success(t("Übung angelegt."));
       onCreated(created);
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Übung konnte nicht angelegt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Übung konnte nicht angelegt werden."));
     } finally {
       setSubmitting(false);
     }
   }
 
   const difficultyOptions: { value: ExerciseDifficulty; label: string }[] = [
-    { value: 0, label: "Anfänger" },
+    { value: 0, label: t("Anfänger") },
     { value: 1, label: "Fortgeschritten" },
     { value: 2, label: "Profi" },
   ];
@@ -101,10 +103,10 @@ export function ExerciseEditorSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex w-full flex-col sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>Neue Übung</SheetTitle>
+          <SheetTitle>{t("Neue Übung")}</SheetTitle>
           <SheetDescription>
             {scope.kind === "global"
-              ? "Wird für alle Nutzer sichtbar (globaler VDH-Katalog)."
+              ? t("Wird für alle Nutzer sichtbar (globaler VDH-Katalog).")
               : `Nur für Mitglieder und Trainer des Vereins „${scope.clubName}“ sichtbar.`}
             {" "}Sportart ist optional – sportartübergreifende Übungen laufen ohne Zuordnung.
           </SheetDescription>
@@ -112,13 +114,13 @@ export function ExerciseEditorSheet({
 
         <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 overflow-y-auto px-4">
           <div className="flex flex-col gap-2">
-            <Label>Sportart</Label>
+            <Label>{t("Sportart")}</Label>
             <Select value={sportId} onValueChange={(v) => v && setSportId(v)}>
               <SelectTrigger>
-                <SelectValue placeholder="Auswählen…" />
+                <SelectValue placeholder={t("Auswählen…")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_SPORT_SENTINEL}>Ohne Sportart</SelectItem>
+                <SelectItem value={NO_SPORT_SENTINEL}>{t("Ohne Sportart")}</SelectItem>
                 {sports.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
@@ -135,7 +137,7 @@ export function ExerciseEditorSheet({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Fußarbeit, Sitz aus Bewegung, ..."
+              placeholder={t("Fußarbeit, Sitz aus Bewegung, ...")}
               maxLength={150}
             />
           </div>
@@ -162,7 +164,7 @@ export function ExerciseEditorSheet({
                 id="ex-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Unterordnung, Fährte, ..."
+                placeholder={t("Unterordnung, Fährte, ...")}
               />
             </div>
           </div>
@@ -173,7 +175,7 @@ export function ExerciseEditorSheet({
               id="ex-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Was wird gemacht?"
+              placeholder={t("Was wird gemacht?")}
             />
           </div>
 
@@ -190,10 +192,10 @@ export function ExerciseEditorSheet({
 
         <SheetFooter className="flex-row justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+{t("Abbrechen")}
           </Button>
           <Button type="submit" onClick={handleSubmit} disabled={submitting || !name.trim()}>
-            {submitting ? "Wird angelegt…" : "Übung anlegen"}
+            {submitting ? t("Wird angelegt…") : t("Übung anlegen")}
           </Button>
         </SheetFooter>
       </SheetContent>

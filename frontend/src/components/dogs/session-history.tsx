@@ -16,6 +16,7 @@ import { ExerciseNotes } from "@/components/dogs/exercise-notes";
 import { ExerciseRating } from "@/components/dogs/exercise-rating";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
+import { useT } from "@/lib/i18n";
 // Monatsschlüssel im Format "2026-07" für die Gruppierung; toLocaleDateString
 // mit month:"long" liefert die Anzeige-Version ("Juli 2026").
 function monthKey(iso: string): string {
@@ -44,6 +45,7 @@ function isCompletedDay(iso: string): boolean {
  * konsolidiert, damit es künftig nur noch einen Text pro Tag gibt).
  */
 function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChanged: () => Promise<void> }) {
+  const t = useT();
   const joined = sessions
     .map((s) => s.notes)
     .filter((n): n is string => !!n)
@@ -77,7 +79,7 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
       setEditing(false);
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Kommentar konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Kommentar konnte nicht gespeichert werden."));
     } finally {
       setSaving(false);
     }
@@ -89,7 +91,7 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
         <textarea
           ref={textareaRef}
           className="max-h-[200px] min-h-16 w-full min-w-0 resize-none rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
-          placeholder="Kommentar zum Trainingstag"
+          placeholder={t("Kommentar zum Trainingstag")}
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
@@ -107,11 +109,11 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
               setEditing(false);
             }}
           >
-            Abbrechen
+{t("Abbrechen")}
           </Button>
           <Button size="sm" onClick={save} disabled={saving}>
             <Check className="size-3.5" />
-            Speichern
+{t("Speichern")}
           </Button>
         </div>
       </div>
@@ -146,7 +148,7 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
           setValue(joined);
           setEditing(true);
         }}
-        title="Tages-Kommentar bearbeiten"
+        title={t("Tages-Kommentar bearbeiten")}
       >
         <Pencil className="size-3" />
       </Button>
@@ -166,6 +168,7 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
  * gehörte zum alten Tag (siehe TrainingService.MoveTrainingDayAsync).
  */
 function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChanged: () => Promise<void> }) {
+  const t = useT();
   const date = sessions[0].date;
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(date);
@@ -191,7 +194,7 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
       setEditing(false);
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Datum konnte nicht geändert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Datum konnte nicht geändert werden."));
     } finally {
       setSaving(false);
     }
@@ -212,7 +215,7 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
             setValue(date);
             setEditing(true);
           }}
-          title="Datum ändern"
+          title={t("Datum ändern")}
         >
           <Pencil className="size-3" />
         </Button>
@@ -229,15 +232,15 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
         // Auf dem Handy eine eigene Zeile: neben den beiden Knöpfen bleiben
         // sonst gut 80px übrig und das Feld zeigt nur noch "19.0".
         className="w-full sm:w-44"
-        aria-label="Datum des Trainingstags"
+        aria-label={t("Datum des Trainingstags")}
         autoFocus
       />
       <Button size="sm" onClick={save} disabled={saving}>
         <Check className="size-3.5" />
-        {saving ? "Speichert…" : "Speichern"}
+        {saving ? "Speichert…" : t("Speichern")}
       </Button>
       <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-        Abbrechen
+{t("Abbrechen")}
       </Button>
     </div>
   );
@@ -265,19 +268,20 @@ export function SessionHistory({
   onChanged: () => Promise<void>;
   onLoadOlder: (() => Promise<void>) | null;
 }) {
+  const t = useT();
   const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
   const [loadingOlder, setLoadingOlder] = useState(false);
 
   async function deleteDay(daySessions: TrainingSession[]) {
-    if (!confirm("Trainingstag wirklich löschen? Alle Übungen und Fährten dieses Tages werden entfernt.")) return;
+    if (!confirm(t("Trainingstag wirklich löschen? Alle Übungen und Fährten dieses Tages werden entfernt."))) return;
     try {
       for (const s of daySessions) {
         await api.delete(`/api/trainings/${s.id}`);
       }
-      toast.success("Trainingstag gelöscht.");
+      toast.success(t("Trainingstag gelöscht."));
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
     }
   }
 
@@ -291,13 +295,13 @@ export function SessionHistory({
     }
   }
 
-  if (sessions === null) return <p className="text-muted-foreground">Lädt…</p>;
+  if (sessions === null) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
 
   if (sessions.length === 0) {
     return (
       <Card>
         <CardContent className="py-10 text-center text-muted-foreground">
-          Noch keine Trainingseinheiten erfasst.
+{t("Noch keine Trainingseinheiten erfasst.")}
         </CardContent>
       </Card>
     );
@@ -368,7 +372,7 @@ export function SessionHistory({
                             variant="ghost"
                             className="text-destructive hover:text-destructive"
                             onClick={() => deleteDay(daySessions)}
-                            title="Trainingstag löschen"
+                            title={t("Trainingstag löschen")}
                           >
                             <Trash2 className="size-4" />
                           </Button>
@@ -429,7 +433,7 @@ export function SessionHistory({
       {onLoadOlder && (
         <Button variant="outline" size="sm" className="self-center" onClick={handleLoadOlder} disabled={loadingOlder}>
           <History className="size-4" />
-          {loadingOlder ? "Lädt…" : "Ältere Trainings anzeigen"}
+          {loadingOlder ? t("Lädt…") : t("Ältere Trainings anzeigen")}
         </Button>
       )}
     </div>

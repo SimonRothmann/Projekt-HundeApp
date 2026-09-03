@@ -12,11 +12,13 @@ import { OnboardingGuide, zeigtErststart } from "@/components/onboarding/onboard
 import { NeuerungenHinweis } from "@/components/neuerungen-hinweis";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
   const { moduleEnabled } = usePreferences();
+  const t = useT();
 
   // Vereinszugehörigkeit kommt aus dem Erststart-Status statt aus einer
   // eigenen Abfrage auf /api/clubs/my-memberships. Die kannte nur
@@ -46,9 +48,9 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          Willkommen zurück, {user?.firstName}
+          {t("Willkommen zurück, {name}", { name: user?.firstName ?? "" })}
         </h1>
-        <p className="text-muted-foreground">Hier ist dein Überblick für heute.</p>
+        <p className="text-muted-foreground">{t("Hier ist dein Überblick für heute.")}</p>
       </div>
 
       <OnboardingGuide
@@ -66,9 +68,9 @@ export default function DashboardPage() {
                 <Building2 className="size-6" />
               </span>
               <div>
-                <CardTitle>Tritt einem Verein bei</CardTitle>
+                <CardTitle>{t("Tritt einem Verein bei")}</CardTitle>
                 <CardDescription>
-                  Du bist noch keinem Verein zugeordnet - finde einen Verein und stelle eine Beitrittsanfrage.
+                  {t("Du bist noch keinem Verein zugeordnet - finde einen Verein und stelle eine Beitrittsanfrage.")}
                 </CardDescription>
               </div>
             </CardHeader>
@@ -90,8 +92,8 @@ export default function DashboardPage() {
                 <Dog className="size-6" />
               </span>
               <div>
-                <CardTitle>Meine Hunde</CardTitle>
-                <CardDescription>Hunde verwalten und Profile pflegen</CardDescription>
+                <CardTitle>{t("Meine Hunde")}</CardTitle>
+                <CardDescription>{t("Hunde verwalten und Profile pflegen")}</CardDescription>
               </div>
             </CardHeader>
           </Card>
@@ -104,8 +106,8 @@ export default function DashboardPage() {
                 <Trophy className="size-6" />
               </span>
               <div>
-                <CardTitle>Sportarten</CardTitle>
-                <CardDescription>Prüfungsordnungen & Übungen entdecken</CardDescription>
+                <CardTitle>{t("Sportarten")}</CardTitle>
+                <CardDescription>{t("Prüfungsordnungen & Übungen entdecken")}</CardDescription>
               </div>
             </CardHeader>
           </Card>
@@ -119,8 +121,8 @@ export default function DashboardPage() {
                 <GraduationCap className="size-6" />
               </span>
               <div>
-                <CardTitle>Sachkunde üben</CardTitle>
-                <CardDescription>Die Theoriefragen zur Begleithundeprüfung, mit Wiedervorlage</CardDescription>
+                <CardTitle>{t("Sachkunde üben")}</CardTitle>
+                <CardDescription>{t("Die Theoriefragen zur Begleithundeprüfung, mit Wiedervorlage")}</CardDescription>
               </div>
             </CardHeader>
           </Card>

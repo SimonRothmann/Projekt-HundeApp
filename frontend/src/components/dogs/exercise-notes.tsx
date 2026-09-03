@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Check, MessageSquarePlus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Zeigt die Notiz einer durchgeführten Übung (TrainingExercise.Notes) und
  * erlaubt, sie inline zu bearbeiten. Bewusst geteilt zwischen
@@ -24,6 +25,7 @@ export function ExerciseNotes({
   onSaved: () => Promise<void>;
   compact?: boolean;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(notes ?? "");
   const [saving, setSaving] = useState(false);
@@ -49,7 +51,7 @@ export function ExerciseNotes({
       setEditing(false);
       await onSaved();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Notiz konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Notiz konnte nicht gespeichert werden."));
     } finally {
       setSaving(false);
     }
@@ -65,7 +67,7 @@ export function ExerciseNotes({
         <textarea
           ref={textareaRef}
           className="max-h-[200px] min-h-16 w-full min-w-0 resize-none rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
-          placeholder="Notiz zur Übung"
+          placeholder={t("Notiz zur Übung")}
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
@@ -83,11 +85,11 @@ export function ExerciseNotes({
               setEditing(false);
             }}
           >
-            Abbrechen
+{t("Abbrechen")}
           </Button>
           <Button size="sm" onClick={save} disabled={saving}>
             <Check className="size-3.5" />
-            Speichern
+{t("Speichern")}
           </Button>
         </span>
       </span>
@@ -107,7 +109,7 @@ export function ExerciseNotes({
         }}
       >
         <MessageSquarePlus className="size-3.5" />
-        Notiz
+{t("Notiz")}
       </Button>
     );
   }
@@ -128,7 +130,7 @@ export function ExerciseNotes({
             setValue(notes ?? "");
             setEditing(true);
           }}
-          title="Notiz bearbeiten"
+          title={t("Notiz bearbeiten")}
         >
           <Pencil className="size-3" />
         </Button>
@@ -148,7 +150,7 @@ export function ExerciseNotes({
           setValue(notes ?? "");
           setEditing(true);
         }}
-        title="Notiz bearbeiten"
+        title={t("Notiz bearbeiten")}
       >
         <Pencil className="size-3" />
       </Button>

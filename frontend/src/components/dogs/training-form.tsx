@@ -15,6 +15,7 @@ import { difficultyLabel } from "@/lib/constants";
 import { LocationTimeFields, type LocationValue } from "@/components/dogs/location-time-fields";
 import { ConditionPicker } from "@/components/dogs/condition-picker";
 
+import { useT } from "@/lib/i18n";
 type ExerciseRow = {
   sportId: string;
   exerciseId: string;
@@ -71,6 +72,7 @@ export function TrainingForm({
   goals: Goal[] | null;
   onSaved: (offline: boolean) => Promise<void>;
 }) {
+  const t = useT();
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [duration, setDuration] = useState(30);
   const [condition, setCondition] = useState<DogCondition | null>(null);
@@ -155,7 +157,7 @@ export function TrainingForm({
     e.preventDefault();
     const validRows = rows.filter((r) => (r.isFreeText ? r.freeText.trim() : r.exerciseId));
     if (validRows.length === 0) {
-      toast.error("Mindestens eine Übung auswählen oder eintragen.");
+      toast.error(t("Mindestens eine Übung auswählen oder eintragen."));
       return;
     }
 
@@ -184,7 +186,7 @@ export function TrainingForm({
     setIsSubmitting(true);
     try {
       await api.post<TrainingSession>("/api/trainings", payload);
-      toast.success("Training gespeichert.");
+      toast.success(t("Training gespeichert."));
       setRows([emptyRow()]);
       setCondition(null);
       setNotes("");
@@ -196,8 +198,8 @@ export function TrainingForm({
       } else {
         // Kein HTTP-Fehler vom Server, sondern ein Netzwerkfehler (offline) -
         // siehe PRODUCT_REQUIREMENTS.md "Offline": Training ohne Internet erfassen.
-        await enqueueRequest({ path: "/api/trainings", method: "POST", body: payload, label: "Training" });
-        toast.success("Offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist.");
+        await enqueueRequest({ path: "/api/trainings", method: "POST", body: payload, label: t("Training") });
+        toast.success(t("Offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."));
         setRows([emptyRow()]);
         setNotes("");
         resetContext();
@@ -211,13 +213,13 @@ export function TrainingForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Neues Training</CardTitle>
+        <CardTitle className="text-base">{t("Neues Training")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="date">Datum</Label>
+              <Label htmlFor="date">{t("Datum")}</Label>
               <Input id="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div className="flex flex-col gap-2">
@@ -234,7 +236,7 @@ export function TrainingForm({
           </div>
 
           <div className="flex flex-col gap-3">
-            <Label>Übungen</Label>
+            <Label>{t("Übungen")}</Label>
             {rows.map((row, index) => {
               const exercises = exercisesBySport[row.sportId] ?? [];
               const selectedExercise = exercises.find((ex) => ex.id === row.exerciseId);
@@ -244,10 +246,10 @@ export function TrainingForm({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                   {row.isFreeText ? (
                     <div className="flex flex-col gap-2 sm:w-72">
-                      <Label htmlFor={`freetext-${index}`}>Eigene Übung</Label>
+                      <Label htmlFor={`freetext-${index}`}>{t("Eigene Übung")}</Label>
                       <Input
                         id={`freetext-${index}`}
-                        placeholder="z.B. Spaziergang mit Bällchenspiel"
+                        placeholder={t("z.B. Spaziergang mit Bällchenspiel")}
                         value={row.freeText}
                         onChange={(e) => updateRow(index, { freeText: e.target.value })}
                       />
@@ -259,19 +261,19 @@ export function TrainingForm({
                         onClick={() => updateRow(index, { isFreeText: false, freeText: "" })}
                       >
                         <ListChecks className="size-3.5" />
-                        Doch eine Übung aus dem Katalog
+{t("Doch eine Übung aus dem Katalog")}
                       </Button>
                     </div>
                   ) : (
                     <>
                   <div className="flex flex-col gap-2 sm:w-48">
-                    <Label>Sportart</Label>
+                    <Label>{t("Sportart")}</Label>
                     <Select
                       value={row.sportId}
                       onValueChange={(value) => handleSportChange(index, value ?? "")}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Auswählen…" />
+                        <SelectValue placeholder={t("Auswählen…")} />
                       </SelectTrigger>
                       <SelectContent>
                         {sports.map((s) => (
@@ -279,22 +281,22 @@ export function TrainingForm({
                             {s.name}
                           </SelectItem>
                         ))}
-                        {/* Auch hier, nicht nur unter "Übung": wer einen
+                        {/* Auch hier, nicht nur unter Übung: wer einen
                             Spaziergang einträgt, findet schon bei der
                             Sportart nichts Passendes. */}
-                        <SelectItem value={FREE_TEXT_OPTION}>Eigene Übung eintragen…</SelectItem>
+                        <SelectItem value={FREE_TEXT_OPTION}>{t("Eigene Übung eintragen…")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="flex flex-col gap-2 sm:w-56">
-                    <Label>Übung</Label>
+                    <Label>{t("Übung")}</Label>
                     <Select
                       value={row.exerciseId}
                       disabled={!row.sportId}
                       onValueChange={(value) => handleExerciseChange(index, value ?? "")}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Auswählen…" />
+                        <SelectValue placeholder={t("Auswählen…")} />
                       </SelectTrigger>
                       <SelectContent>
                         {exercises.map((ex) => (
@@ -304,22 +306,22 @@ export function TrainingForm({
                         ))}
                         {/* Der Moment, in dem man merkt, dass die eigene Übung
                             im Katalog fehlt - genau hier gehört der Ausweg hin. */}
-                        <SelectItem value={FREE_TEXT_OPTION}>Nicht dabei? Eigene Übung eintragen…</SelectItem>
+                        <SelectItem value={FREE_TEXT_OPTION}>{t("Nicht dabei? Eigene Übung eintragen…")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   {planItemOptions.length > 0 && (
                     <div className="flex flex-col gap-2 sm:w-48">
-                      <Label>Plan-Ziel (optional)</Label>
+                      <Label>{t("Plan-Ziel (optional)")}</Label>
                       <Select
                         value={row.trainingPlanItemId}
                         onValueChange={(value) => updateRow(index, { trainingPlanItemId: value ?? "" })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Kein Plan-Ziel" />
+                          <SelectValue placeholder={t("Kein Plan-Ziel")} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Kein Plan-Ziel</SelectItem>
+                          <SelectItem value="">{t("Kein Plan-Ziel")}</SelectItem>
                           {planItemOptions.map((item) => (
                             <SelectItem key={item.id} value={item.id}>
                               KW {item.weekNumber} ({item.completedCount}/{item.repetitionsTarget}x)
@@ -332,8 +334,8 @@ export function TrainingForm({
                     </>
                   )}
                   <div className="flex flex-col gap-2">
-                    <Label>Bewertung</Label>
-                    <div className="flex gap-1" role="group" aria-label="Bewertung, 1 bis 5">
+                    <Label>{t("Bewertung")}</Label>
+                    <div className="flex gap-1" role="group" aria-label={t("Bewertung, 1 bis 5")}>
                       {[1, 2, 3, 4, 5].map((value) => (
                         <button
                           key={value}
@@ -375,7 +377,7 @@ export function TrainingForm({
                     ihn erst nach dem Speichern im Tagebuch nachtragen. */}
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor={`row-notes-${index}`} className="text-xs text-muted-foreground">
-                    Kommentar zur Übung (optional)
+{t("Kommentar zur Übung (optional)")}
                   </Label>
                   <Input
                     id={`row-notes-${index}`}
@@ -395,7 +397,7 @@ export function TrainingForm({
             })}
             <Button type="button" variant="outline" size="sm" className="self-start" onClick={addRow}>
               <Plus className="size-4" />
-              Übung hinzufügen
+{t("Übung hinzufügen")}
             </Button>
           </div>
 
@@ -415,10 +417,10 @@ export function TrainingForm({
                   onLocationChange={setLocation}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Mit Ort und Uhrzeit wird das Wetter automatisch ermittelt.
+{t("Mit Ort und Uhrzeit wird das Wetter automatisch ermittelt.")}
                 </p>
                 <Button type="button" size="sm" variant="ghost" className="self-start" onClick={resetContext}>
-                  Ort &amp; Zeit wieder entfernen
+{t("Ort & Zeit wieder entfernen")}
                 </Button>
               </div>
             ) : (
@@ -430,7 +432,7 @@ export function TrainingForm({
                 onClick={() => setShowContext(true)}
               >
                 <MapPin className="size-4" />
-                Ort &amp; Uhrzeit angeben
+{t("Ort & Uhrzeit angeben")}
               </Button>
             )}
             {!showContext && (startTime || location.locationName) && (
@@ -452,12 +454,12 @@ export function TrainingForm({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="notes">Notizen zum ganzen Training</Label>
+            <Label htmlFor="notes">{t("Notizen zum ganzen Training")}</Label>
             <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
 
           <Button type="submit" className="self-start" disabled={isSubmitting}>
-            {isSubmitting ? "Wird gespeichert…" : "Training speichern"}
+            {isSubmitting ? t("Wird gespeichert…") : t("Training speichern")}
           </Button>
         </form>
       </CardContent>

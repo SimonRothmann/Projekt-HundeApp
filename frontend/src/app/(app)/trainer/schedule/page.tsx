@@ -22,6 +22,7 @@ import { ChevronDown, ChevronUp, Clock, MapPin, Pencil, Plus, Sparkles, Trash2, 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/lib/i18n";
 const CATS: GroupTrainingCategory[] = [0, 1, 2];
 const categoryLabel: Record<GroupTrainingCategory, string> = { 0: "Welpen", 1: "Junghunde", 2: "Basis" };
 const categoryVariant: Record<GroupTrainingCategory, "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
@@ -77,6 +78,7 @@ const emptyForm = (): Form => ({
 });
 
 export default function SchedulePage() {
+  const t = useT();
   const { user } = useAuth();
   const [clubs, setClubs] = useState<Club[] | null>(null);
   const [clubId, setClubId] = useState("");
@@ -110,8 +112,11 @@ export default function SchedulePage() {
     try {
       setSessions(await api.get<GroupTrainingSession[]>(`/api/group-training/schedule/clubs/${clubId}?${params}`));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Termine konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Termine konnten nicht geladen werden."));
     }
+  // t bewusst nicht in der Liste - siehe die Effekte oben: Der
+  // Uebersetzer wird nur im Fehlerfall gebraucht.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubId, filterGroup, filterCategory, mineOnly]);
 
   useEffect(() => {
@@ -193,11 +198,11 @@ export default function SchedulePage() {
     try {
       const picked = await api.get<GroupTrainingExercise[]>(`/api/group-training/schedule/clubs/${clubId}/generate-content?category=${form.category}`);
       if (picked.length === 0) {
-        toast.info("Keine passenden Bausteine in der Bibliothek – lege welche an oder übernimm den Starter-Katalog.");
+        toast.info(t("Keine passenden Bausteine in der Bibliothek – lege welche an oder übernimm den Starter-Katalog."));
       }
       patch({ content: picked.map((e) => exDraft(e.id)) });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Vorschlag konnte nicht erzeugt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Vorschlag konnte nicht erzeugt werden."));
     } finally {
       setGenerating(false);
     }
@@ -217,7 +222,7 @@ export default function SchedulePage() {
 
   async function submit() {
     if (!form) return;
-    if (!form.groupId) return toast.error("Gruppe wählen.");
+    if (!form.groupId) return toast.error(t("Gruppe wählen."));
     const items = contentPayload(form.content);
     const duration = Number(form.durationMinutes) || 60;
     const trainerUserIds = form.trainerIds;
@@ -228,10 +233,10 @@ export default function SchedulePage() {
         const body = { groupId: form.groupId, category: form.category, startsAt, durationMinutes: duration, location: form.location.trim() || null, notes: form.notes.trim() || null, trainerUserIds, items };
         if (form.editingId) await api.put(`/api/group-training/schedule/sessions/${form.editingId}`, body);
         else await api.post(`/api/group-training/schedule/clubs/${clubId}/sessions`, body);
-        toast.success(form.editingId ? "Termin aktualisiert." : "Termin angelegt.");
+        toast.success(form.editingId ? t("Termin aktualisiert.") : t("Termin angelegt."));
       } else {
         const starts = seriesDates(form);
-        if (starts.length === 0) return toast.error("Kein Termin im Zeitraum am gewählten Wochentag.");
+        if (starts.length === 0) return toast.error(t("Kein Termin im Zeitraum am gewählten Wochentag."));
         const body = {
           groupId: form.groupId,
           category: form.category,
@@ -248,7 +253,7 @@ export default function SchedulePage() {
       setForm(null);
       await loadSchedule();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Speichern fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Speichern fehlgeschlagen."));
     } finally {
       setSaving(false);
     }
@@ -258,7 +263,7 @@ export default function SchedulePage() {
     if (!window.confirm(`Termin am ${fmtDate(s.startsAt)} absagen? Mitglieder sehen die Absage.`)) return;
     try {
       await api.post(`/api/group-training/schedule/sessions/${s.id}/cancel`);
-      toast.success("Termin abgesagt.");
+      toast.success(t("Termin abgesagt."));
       await loadSchedule();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Absagen fehlgeschlagen.");
@@ -268,10 +273,10 @@ export default function SchedulePage() {
     if (!window.confirm(`Termin am ${fmtDate(s.startsAt)} endgültig löschen?`)) return;
     try {
       await api.delete(`/api/group-training/schedule/sessions/${s.id}`);
-      toast.success("Termin gelöscht.");
+      toast.success(t("Termin gelöscht."));
       await loadSchedule();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
     }
   }
 
@@ -281,46 +286,46 @@ export default function SchedulePage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Terminplanung</h1>
-        <p className="text-muted-foreground">Plane Gruppentrainings: wann, welche Gruppe, was gemacht wird. Mitglieder sehen die Termine ihrer Gruppe.</p>
+        <p className="text-muted-foreground">{t("Plane Gruppentrainings: wann, welche Gruppe, was gemacht wird. Mitglieder sehen die Termine ihrer Gruppe.")}</p>
       </div>
 
       {clubs === null ? (
-        <p className="text-muted-foreground">Lädt…</p>
+        <p className="text-muted-foreground">{t("Lädt…")}</p>
       ) : clubs.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">Die Terminplanung ist für Vereinstrainer:innen. Du bist für keinen Verein als Trainer:in eingetragen.</CardContent></Card>
+        <Card><CardContent className="py-10 text-center text-muted-foreground">{t("Die Terminplanung ist für Vereinstrainer:innen. Du bist für keinen Verein als Trainer:in eingetragen.")}</CardContent></Card>
       ) : (
         <>
           <div className="flex flex-wrap items-end gap-3">
             {clubs.length > 1 && (
               <div className="flex flex-col gap-1">
-                <Label>Verein</Label>
+                <Label>{t("Verein")}</Label>
                 <Select value={clubId} onValueChange={(v) => setClubId(v ?? "")}>
                   <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                   <SelectContent>{clubs.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             )}
-            {!form && <Button className="ml-auto" onClick={openCreate}><Plus className="size-4" />Neuer Termin</Button>}
+            {!form && <Button className="ml-auto" onClick={openCreate}><Plus className="size-4" />{t("Neuer Termin")}</Button>}
           </div>
 
           {form && (
             <Card>
               <CardHeader className="p-3">
-                <CardTitle className="text-base">{form.editingId ? "Termin bearbeiten" : "Neuer Termin"}</CardTitle>
+                <CardTitle className="text-base">{form.editingId ? t("Termin bearbeiten") : t("Neuer Termin")}</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-3 p-3 pt-0">
                 {!form.editingId && (
                   <div className="flex gap-2">
                     <Button type="button" size="sm" variant={form.mode === "single" ? "default" : "outline"} onClick={() => patch({ mode: "single" })}>Einzeltermin</Button>
-                    <Button type="button" size="sm" variant={form.mode === "series" ? "default" : "outline"} onClick={() => patch({ mode: "series" })}>Wöchentliche Serie</Button>
+                    <Button type="button" size="sm" variant={form.mode === "series" ? "default" : "outline"} onClick={() => patch({ mode: "series" })}>{t("Wöchentliche Serie")}</Button>
                   </div>
                 )}
 
                 <div className="flex flex-wrap gap-3">
                   <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Gruppe</Label>
+                    <Label className="text-xs">{t("Gruppe")}</Label>
                     <Select value={form.groupId} onValueChange={(v) => patch({ groupId: v ?? "" })}>
-                      <SelectTrigger className="w-52"><SelectValue placeholder="Gruppe…" /></SelectTrigger>
+                      <SelectTrigger className="w-52"><SelectValue placeholder={t("Gruppe…")} /></SelectTrigger>
                       <SelectContent>{groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
@@ -335,12 +340,12 @@ export default function SchedulePage() {
 
                 {clubTrainers.length > 0 && (
                   <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Zuständige Trainer:innen</Label>
+                    <Label className="text-xs">{t("Zuständige Trainer:innen")}</Label>
                     <div className="flex flex-wrap gap-x-4 gap-y-1">
-                      {clubTrainers.map((t) => (
-                        <label key={t.userId} className="flex items-center gap-1.5 text-sm">
-                          <input type="checkbox" className="size-4 accent-primary" checked={form.trainerIds.includes(t.userId)} onChange={(e) => toggleTrainer(t.userId, e.target.checked)} />
-                          {t.firstName} {t.lastName}{user?.userId === t.userId ? " (du)" : ""}
+                      {clubTrainers.map((trainer) => (
+                        <label key={trainer.userId} className="flex items-center gap-1.5 text-sm">
+                          <input type="checkbox" className="size-4 accent-primary" checked={form.trainerIds.includes(trainer.userId)} onChange={(e) => toggleTrainer(trainer.userId, e.target.checked)} />
+                          {trainer.firstName} {trainer.lastName}{user?.userId === trainer.userId ? t(" (du)") : ""}
                         </label>
                       ))}
                     </div>
@@ -349,8 +354,8 @@ export default function SchedulePage() {
 
                 {form.mode === "single" ? (
                   <div className="flex flex-wrap gap-3">
-                    <div className="flex flex-col gap-1"><Label className="text-xs">Datum</Label><Input type="date" className="w-40" value={form.date} onChange={(e) => patch({ date: e.target.value })} /></div>
-                    <div className="flex flex-col gap-1"><Label className="text-xs">Uhrzeit</Label><Input type="time" className="w-28" value={form.time} onChange={(e) => patch({ time: e.target.value })} /></div>
+                    <div className="flex flex-col gap-1"><Label className="text-xs">{t("Datum")}</Label><Input type="date" className="w-40" value={form.date} onChange={(e) => patch({ date: e.target.value })} /></div>
+                    <div className="flex flex-col gap-1"><Label className="text-xs">{t("Uhrzeit")}</Label><Input type="time" className="w-28" value={form.time} onChange={(e) => patch({ time: e.target.value })} /></div>
                     <div className="flex flex-col gap-1"><Label className="text-xs">Dauer (Min)</Label><Input type="number" min={15} max={240} className="w-24" value={form.durationMinutes} onChange={(e) => patch({ durationMinutes: e.target.value })} /></div>
                   </div>
                 ) : (
@@ -362,7 +367,7 @@ export default function SchedulePage() {
                         <SelectContent>{[1, 2, 3, 4, 5, 6, 0].map((d) => <SelectItem key={d} value={String(d)}>{WEEKDAYS[d]}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
-                    <div className="flex flex-col gap-1"><Label className="text-xs">Uhrzeit</Label><Input type="time" className="w-28" value={form.time} onChange={(e) => patch({ time: e.target.value })} /></div>
+                    <div className="flex flex-col gap-1"><Label className="text-xs">{t("Uhrzeit")}</Label><Input type="time" className="w-28" value={form.time} onChange={(e) => patch({ time: e.target.value })} /></div>
                     <div className="flex flex-col gap-1"><Label className="text-xs">Von</Label><Input type="date" className="w-40" value={form.fromDate} onChange={(e) => patch({ fromDate: e.target.value })} /></div>
                     <div className="flex flex-col gap-1"><Label className="text-xs">Bis</Label><Input type="date" className="w-40" value={form.toDate} onChange={(e) => patch({ toDate: e.target.value })} /></div>
                     <div className="flex flex-col gap-1"><Label className="text-xs">Dauer (Min)</Label><Input type="number" min={15} max={240} className="w-24" value={form.durationMinutes} onChange={(e) => patch({ durationMinutes: e.target.value })} /></div>
@@ -372,11 +377,11 @@ export default function SchedulePage() {
 
                 <div className="flex flex-col gap-1">
                   <Label className="text-xs">Ort (optional, z.B. Wald / Parkplatz)</Label>
-                  <Input value={form.location} onChange={(e) => patch({ location: e.target.value })} maxLength={200} placeholder="Üblicher Platz, wenn leer" />
+                  <Input value={form.location} onChange={(e) => patch({ location: e.target.value })} maxLength={200} placeholder={t("Üblicher Platz, wenn leer")} />
                 </div>
                 {form.mode === "single" && (
                   <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Notiz (optional)</Label>
+                    <Label className="text-xs">{t("Notiz (optional)")}</Label>
                     <textarea className={textareaClass} rows={2} value={form.notes} onChange={(e) => patch({ notes: e.target.value })} maxLength={2000} />
                   </div>
                 )}
@@ -384,7 +389,7 @@ export default function SchedulePage() {
                 {form.mode === "series" && (
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" className="size-4 accent-primary" checked={form.autoContent} onChange={(e) => patch({ autoContent: e.target.checked })} />
-                    Inhalt je Termin automatisch generieren (abwechslungsreicher Mix)
+{t("Inhalt je Termin automatisch generieren (abwechslungsreicher Mix)")}
                   </label>
                 )}
 
@@ -392,7 +397,7 @@ export default function SchedulePage() {
                 {!(form.mode === "series" && form.autoContent) && (
                 <div className="flex flex-col gap-2 rounded-md border bg-muted/20 p-2.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Label className="text-xs">Inhalt (Übungen in Reihenfolge)</Label>
+                    <Label className="text-xs">{t("Inhalt (Übungen in Reihenfolge)")}</Label>
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" size="sm" variant="outline" disabled={generating} onClick={generateContent}>
                         <Sparkles className="size-3.5" />
@@ -408,7 +413,7 @@ export default function SchedulePage() {
                   </div>
 
                   {form.content.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Noch kein Inhalt – generieren, aus der Bibliothek übernehmen oder unten hinzufügen.</p>
+                    <p className="text-xs text-muted-foreground">{t("Noch kein Inhalt – generieren, aus der Bibliothek übernehmen oder unten hinzufügen.")}</p>
                   ) : (
                     <ol className="flex flex-col gap-1.5">
                       {form.content.map((c, index) => (
@@ -421,7 +426,7 @@ export default function SchedulePage() {
                           <div className="flex shrink-0 gap-0.5">
                             <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === 0} onClick={() => moveContent(index, -1)} aria-label="Hoch"><ChevronUp className="size-4" /></Button>
                             <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === form.content.length - 1} onClick={() => moveContent(index, 1)} aria-label="Runter"><ChevronDown className="size-4" /></Button>
-                            <Button type="button" size="icon" variant="ghost" className="size-7" onClick={() => patch({ content: form.content.filter((_, i) => i !== index) })} aria-label="Entfernen"><X className="size-4 text-muted-foreground" /></Button>
+                            <Button type="button" size="icon" variant="ghost" className="size-7" onClick={() => patch({ content: form.content.filter((_, i) => i !== index) })} aria-label={t("Entfernen")}><X className="size-4 text-muted-foreground" /></Button>
                           </div>
                         </li>
                       ))}
@@ -430,13 +435,13 @@ export default function SchedulePage() {
 
                   <div className="flex flex-wrap gap-2">
                     <Select value={addBausteinId} onValueChange={(v) => { if (v) { patch({ content: [...form.content, exDraft(v)] }); } setAddBausteinId(""); }}>
-                      <SelectTrigger className="h-8 flex-1 min-w-40"><SelectValue placeholder="Baustein hinzufügen…" /></SelectTrigger>
+                      <SelectTrigger className="h-8 flex-1 min-w-40"><SelectValue placeholder={t("Baustein hinzufügen…")} /></SelectTrigger>
                       <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
                         {(library?.exercises ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{categoryLabel[e.category]} · {e.title}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <div className="flex flex-1 gap-2">
-                      <Input className="flex-1" placeholder="Freitext-Übung" value={addFreeText} onChange={(e) => setAddFreeText(e.target.value)} maxLength={500} />
+                      <Input className="flex-1" placeholder={t("Freitext-Übung")} value={addFreeText} onChange={(e) => setAddFreeText(e.target.value)} maxLength={500} />
                       <Button type="button" size="sm" variant="outline" disabled={!addFreeText.trim()} onClick={() => { patch({ content: [...form.content, textDraft(addFreeText.trim())] }); setAddFreeText(""); }}>+</Button>
                     </div>
                   </div>
@@ -444,8 +449,8 @@ export default function SchedulePage() {
                 )}
 
                 <div className="flex gap-2">
-                  <Button type="button" disabled={saving} onClick={submit}>{saving ? "Speichert…" : form.editingId ? "Speichern" : form.mode === "series" ? "Serie anlegen" : "Anlegen"}</Button>
-                  <Button type="button" variant="ghost" onClick={() => setForm(null)}>Abbrechen</Button>
+                  <Button type="button" disabled={saving} onClick={submit}>{saving ? "Speichert…" : form.editingId ? t("Speichern") : form.mode === "series" ? t("Serie anlegen") : t("Anlegen")}</Button>
+                  <Button type="button" variant="ghost" onClick={() => setForm(null)}>{t("Abbrechen")}</Button>
                 </div>
               </CardContent>
             </Card>
@@ -454,17 +459,17 @@ export default function SchedulePage() {
           {/* Filter */}
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1">
-              <Label className="text-xs">Gruppe</Label>
+              <Label className="text-xs">{t("Gruppe")}</Label>
               <Select value={filterGroup} onValueChange={(v) => setFilterGroup(v ?? "")}>
-                <SelectTrigger className="h-8 w-44"><SelectValue placeholder="Alle Gruppen" /></SelectTrigger>
-                <SelectContent><SelectItem value="">Alle Gruppen</SelectItem>{groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="h-8 w-44"><SelectValue placeholder={t("Alle Gruppen")} /></SelectTrigger>
+                <SelectContent><SelectItem value="">{t("Alle Gruppen")}</SelectItem>{groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="flex flex-col gap-1">
               <Label className="text-xs">Stufe</Label>
               <Select value={filterCategory} onValueChange={(v) => setFilterCategory(v ?? "")}>
-                <SelectTrigger className="h-8 w-36"><SelectValue placeholder="Alle" /></SelectTrigger>
-                <SelectContent><SelectItem value="">Alle</SelectItem>{CATS.map((c) => <SelectItem key={c} value={String(c)}>{categoryLabel[c]}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="h-8 w-36"><SelectValue placeholder={t("Alle")} /></SelectTrigger>
+                <SelectContent><SelectItem value="">{t("Alle")}</SelectItem>{CATS.map((c) => <SelectItem key={c} value={String(c)}>{categoryLabel[c]}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <label className="flex items-center gap-1.5 pb-1.5 text-sm"><input type="checkbox" className="size-4 accent-primary" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />Nur meine</label>
@@ -472,9 +477,9 @@ export default function SchedulePage() {
 
           {/* Agenda */}
           {sessions === null ? (
-            <p className="text-muted-foreground">Lädt…</p>
+            <p className="text-muted-foreground">{t("Lädt…")}</p>
           ) : sessions.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Keine kommenden Termine.</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">{t("Keine kommenden Termine.")}</CardContent></Card>
           ) : (
             <div className="flex flex-col gap-2">
               {sessions.map((s) => (
@@ -503,9 +508,9 @@ export default function SchedulePage() {
                       </ol>
                     )}
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" size="sm" variant="outline" onClick={() => openEdit(s)}><Pencil className="size-3.5" />Bearbeiten</Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => openEdit(s)}><Pencil className="size-3.5" />{t("Bearbeiten")}</Button>
                       {s.status === 0 && <Button type="button" size="sm" variant="ghost" onClick={() => cancelSession(s)}>Absagen</Button>}
-                      <Button type="button" size="sm" variant="ghost" onClick={() => deleteSession(s)}><Trash2 className="size-3.5 text-muted-foreground" />Löschen</Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => deleteSession(s)}><Trash2 className="size-3.5 text-muted-foreground" />{t("Löschen")}</Button>
                     </div>
                   </CardContent>
                 </Card>

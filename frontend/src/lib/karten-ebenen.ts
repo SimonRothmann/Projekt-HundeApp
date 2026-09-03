@@ -1,3 +1,5 @@
+import { uebersetzbar } from "@/lib/i18n/sprachen";
+
 /**
  * Die wählbaren Kartenhintergründe.
  *
@@ -19,7 +21,7 @@ export const KARTEN_EBENEN: Record<
   { label: string; url: string; attribution: string; maxZoom: number; abdunkelbar: boolean }
 > = {
   strasse: {
-    label: "Straße",
+    label: uebersetzbar("Straße"),
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attribution: "&copy; OpenStreetMap-Mitwirkende",
     maxZoom: 19,
@@ -31,7 +33,7 @@ export const KARTEN_EBENEN: Record<
     // Esri liefert bis in die Zoomstufen, die dafür nötig sind; der dunkle
     // Straßenstil desselben Anbieters meldet dort "Map data not yet
     // available" und fällt deshalb aus.
-    label: "Luftbild",
+    label: uebersetzbar("Luftbild"),
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attribution: "&copy; Esri, Maxar, Earthstar Geographics",
     maxZoom: 19,

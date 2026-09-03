@@ -10,7 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PawPrint } from "lucide-react";
 import { AuthBackLink } from "@/components/auth-back-link";
 
+import { useT } from "@/lib/i18n";
 export default function ForgotPasswordPage() {
+  const t = useT();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,7 +26,7 @@ export default function ForgotPasswordPage() {
       await api.post("/api/auth/forgot-password", { email });
       setSent(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Anfrage fehlgeschlagen.");
+      setError(err instanceof ApiError ? err.message : t("Anfrage fehlgeschlagen."));
     } finally {
       setIsSubmitting(false);
     }
@@ -38,12 +40,12 @@ export default function ForgotPasswordPage() {
           <CardHeader className="items-center text-center">
             <PawPrint className="size-8 text-primary" />
             <CardTitle className="text-xl">Passwort vergessen</CardTitle>
-            <CardDescription>Wir schicken dir einen Link zum Zurücksetzen</CardDescription>
+            <CardDescription>{t("Wir schicken dir einen Link zum Zurücksetzen")}</CardDescription>
           </CardHeader>
           <CardContent>
             {sent ? (
               <p className="text-sm text-muted-foreground">
-                Falls diese E-Mail-Adresse registriert ist, wurde ein Link zum Zurücksetzen verschickt. Bitte prüfe dein Postfach.
+{t("Falls diese E-Mail-Adresse registriert ist, wurde ein Link zum Zurücksetzen verschickt. Bitte prüfe dein Postfach.")}
               </p>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -60,13 +62,13 @@ export default function ForgotPasswordPage() {
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button type="submit" className="h-11" disabled={isSubmitting}>
-                  {isSubmitting ? "Wird gesendet…" : "Link anfordern"}
+                  {isSubmitting ? t("Wird gesendet…") : "Link anfordern"}
                 </Button>
               </form>
             )}
             <p className="mt-4 text-center text-sm text-muted-foreground">
               <Link href="/login" className="text-primary underline-offset-4 hover:underline">
-                Zurück zur Anmeldung
+{t("Zurück zur Anmeldung")}
               </Link>
             </p>
           </CardContent>

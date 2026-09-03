@@ -10,6 +10,7 @@ import {
   formatiereVeroeffentlichung,
   VERSIONSHINWEISE,
 } from "@/lib/versionshinweise";
+import { useT } from "@/lib/i18n";
 
 const SPEICHER_SCHLUESSEL = "dogity.neuerungen.gesehen";
 
@@ -74,6 +75,7 @@ export function NeuerungenHinweis({ erststartLaeuft }: { erststartLaeuft: boolea
   // Server-HTML vom ersten Browser-Rendern und React meldete eine
   // Hydration-Abweichung.
   const [zeigen, setZeigen] = useState<boolean | null>(null);
+  const t = useT();
 
   useEffect(() => {
     const gesehen = lies();
@@ -110,7 +112,7 @@ export function NeuerungenHinweis({ erststartLaeuft }: { erststartLaeuft: boolea
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="size-4 shrink-0 text-primary" aria-hidden />
-          Neu in Dogity
+          {t("Neu in Dogity")}
         </CardTitle>
         <CardAction>
           <Button
@@ -118,14 +120,14 @@ export function NeuerungenHinweis({ erststartLaeuft }: { erststartLaeuft: boolea
             size="icon-sm"
             variant="ghost"
             onClick={wegklicken}
-            aria-label="Hinweis ausblenden"
-            title="Hinweis ausblenden"
+            aria-label={t("Hinweis ausblenden")}
+            title={t("Hinweis ausblenden")}
           >
             <X className="size-4" />
           </Button>
         </CardAction>
         <CardDescription>
-          Version {neueste.version} · {formatiereVeroeffentlichung(neueste.datum)}
+          {t("Version {v}", { v: neueste.version })} · {formatiereVeroeffentlichung(neueste.datum)}
         </CardDescription>
       </CardHeader>
 
@@ -143,7 +145,7 @@ export function NeuerungenHinweis({ erststartLaeuft }: { erststartLaeuft: boolea
           onClick={() => merke(AKTUELLE_VERSION)}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
         >
-          Alle Neuerungen
+          {t("Alle Neuerungen")}
           <ArrowRight className="size-4" aria-hidden />
         </Link>
       </CardContent>

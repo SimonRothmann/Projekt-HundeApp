@@ -14,6 +14,7 @@ import { TrackMap } from "@/components/tracking/track-map";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
 import { primeHapticsAudio, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
 
+import { useT } from "@/lib/i18n";
 // Stabile Leerreferenz für den Idle-Fall (keine Aufzeichnung läuft) - siehe
 // onLivePointsChange-Effect. Ein Inline-[] wäre bei jedem Render neu.
 const EMPTY_WALK_POINTS: GpsWalkPoint[] = [];
@@ -57,6 +58,7 @@ export function WalkRunRecorder({
   // Legung haben, den Recorder ohne Haptics-Nebeneffekt nutzen können.
   laidTrackPoints?: GpsPoint[];
 }) {
+  const t = useT();
   const { isRecording, points, setPoints, currentAccuracy, start: startRecording, stop } = useGpsRecorder(toWalkPoint);
   // Optionaler Kommentar zu diesem Ablauf-Versuch (z.B. "bei Regen", "Hund
   // hat an Winkel 2 verloren") - wird beim Stoppen mitgespeichert.
@@ -92,7 +94,7 @@ export function WalkRunRecorder({
     stop();
 
     if (points.length === 0) {
-      toast.error("Keine GPS-Punkte aufgezeichnet.");
+      toast.error(t("Keine GPS-Punkte aufgezeichnet."));
       return;
     }
 
@@ -101,7 +103,7 @@ export function WalkRunRecorder({
 
     try {
       await api.post<GpsWalkRun>(path, payload);
-      toast.success("Ablauf-Versuch gespeichert.");
+      toast.success(t("Ablauf-Versuch gespeichert."));
       setPoints([]);
       setComment("");
       await onSaved();
@@ -111,7 +113,7 @@ export function WalkRunRecorder({
       } else {
         // Netzwerkfehler (offline) - siehe PRODUCT_REQUIREMENTS.md "Offline": GPS speichern ohne Internet.
         await enqueueRequest({ path, method: "POST", body: payload, label: "Ablauf-Versuch" });
-        toast.success("Ablauf-Versuch offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist.");
+        toast.success(t("Ablauf-Versuch offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."));
         setPoints([]);
         setComment("");
       }
@@ -131,7 +133,7 @@ export function WalkRunRecorder({
         }}
       >
         <Footprints className="size-4" />
-        Fährte erneut ablaufen
+{t("Fährte erneut ablaufen")}
       </Button>
     );
   }
@@ -141,7 +143,7 @@ export function WalkRunRecorder({
   // Fährte hat er als Prop, die entstehende Linie sind seine eigenen Punkte.
   return (
     <AufzeichnungVollbild
-      titel="Fährte ablaufen"
+      titel={t("Fährte ablaufen")}
       status={
         <>
           {points.length} Punkte
@@ -162,7 +164,7 @@ export function WalkRunRecorder({
       }
       aktionen={
         <Input
-          placeholder="Kommentar zum Ablauf (optional)"
+          placeholder={t("Kommentar zum Ablauf (optional)")}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />

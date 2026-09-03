@@ -134,6 +134,7 @@ using (var scope = app.Services.CreateScope())
     await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
     await RoleSeeder.SeedAsync(scope.ServiceProvider);
     await SportCatalogSeeder.SeedAsync(scope.ServiceProvider);
+    await CountrySeeder.SeedAsync(scope.ServiceProvider);
     // Fragenkataloge der Sachkundeprüfung - wie der Sportkatalog Stammdaten,
     // die auch eine Production-Instanz braucht, keine Demodaten.
     await SachkundeSeeder.SeedAsync(scope.ServiceProvider);

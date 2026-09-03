@@ -10,6 +10,7 @@ import { BarChart, ChevronDown, ChevronRight, Dog, TrendingDown, TrendingUp } fr
 import { toast } from "sonner";
 import { ConditionStats } from "@/components/dogs/condition-stats";
 
+import { useT } from "@/lib/i18n";
 // Bewertungstrend als Pfeil: steigend (grün) / fallend (rot) / stabil.
 // null (zu wenige Durchgänge) rendert nichts.
 function TrendBadge({ trend }: { trend: number | null }) {
@@ -37,6 +38,7 @@ function TrendBadge({ trend }: { trend: number | null }) {
  * die bewusst zurückhaltende Beschriftung.
  */
 function DogTrackTrend({ dogId }: { dogId: string }) {
+  const t = useT();
   const [stats, setStats] = useState<DogTrackStats | null>(null);
 
   useEffect(() => {
@@ -68,7 +70,7 @@ function DogTrackTrend({ dogId }: { dogId: string }) {
         {/* Sinkende Abweichung = Verbesserung, daher invertiert übergeben. */}
         {stats.deviationTrend !== null && <TrendBadge trend={-stats.deviationTrend} />}
       </div>
-      <div className="flex items-end gap-1" title="Anteil auf der Fährte je Ablauf">
+      <div className="flex items-end gap-1" title={t("Anteil auf der Fährte je Ablauf")}>
         {stats.runs.map((run, i) => (
           <div
             key={i}
@@ -94,6 +96,7 @@ function DogTrackTrend({ dogId }: { dogId: string }) {
  * sollte.
  */
 function DogExercises({ dogId }: { dogId: string }) {
+  const t = useT();
   const [rows, setRows] = useState<DogExerciseStat[] | null>(null);
 
   useEffect(() => {
@@ -106,16 +109,21 @@ function DogExercises({ dogId }: { dogId: string }) {
       .catch((err) => {
         if (active) {
           setRows([]);
-          toast.error(err instanceof ApiError ? err.message : "Übungs-Statistik konnte nicht geladen werden.");
+          toast.error(err instanceof ApiError ? err.message : t("Übungs-Statistik konnte nicht geladen werden."));
         }
       });
     return () => {
       active = false;
     };
+    // t bewusst nicht in der Liste: Der Uebersetzer wird hier nur im
+    // Fehlerfall gebraucht. Stuende er drin, liefe der ganze Abruf bei
+    // jedem Sprachwechsel erneut - Daten neu laden, weil ein Toast
+    // anders heissen wuerde.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dogId]);
 
-  if (rows === null) return <p className="text-xs text-muted-foreground">Lädt…</p>;
-  if (rows.length === 0) return <p className="text-xs text-muted-foreground">Noch keine Übungen erfasst.</p>;
+  if (rows === null) return <p className="text-xs text-muted-foreground">{t("Lädt…")}</p>;
+  if (rows.length === 0) return <p className="text-xs text-muted-foreground">{t("Noch keine Übungen erfasst.")}</p>;
 
   const focus = rows[0];
 
@@ -148,6 +156,7 @@ function DogExercises({ dogId }: { dogId: string }) {
 }
 
 export default function StatsPage() {
+  const t = useT();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [openDogs, setOpenDogs] = useState<Set<string>>(new Set());
 
@@ -171,10 +180,15 @@ export default function StatsPage() {
         setStats(fresh);
         await setCachedData("stats-dashboard", fresh);
       } catch (err) {
-        if (!cached) toast.error(err instanceof ApiError ? err.message : "Statistiken konnten nicht geladen werden.");
+        if (!cached) toast.error(err instanceof ApiError ? err.message : t("Statistiken konnten nicht geladen werden."));
       }
     }
     load();
+    // t bewusst nicht in der Liste: Der Uebersetzer wird hier nur im
+    // Fehlerfall gebraucht. Stuende er drin, liefe der ganze Abruf bei
+    // jedem Sprachwechsel erneut - Daten neu laden, weil ein Toast
+    // anders heissen wuerde.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const maxWeekCount = stats ? Math.max(...stats.weeklyActivity.map((w) => w.count), 1) : 1;
@@ -183,21 +197,21 @@ export default function StatsPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Statistiken</h1>
-        <p className="text-muted-foreground">Trainingsfortschritt im Überblick.</p>
+        <p className="text-muted-foreground">{t("Trainingsfortschritt im Überblick.")}</p>
       </div>
 
       {stats === null ? (
-        <p className="text-sm text-muted-foreground">Lädt…</p>
+        <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
       ) : (
         <>
           <Card>
             <CardHeader className="flex-row items-center gap-2 space-y-0">
               <BarChart className="size-5 text-primary" />
-              <CardTitle className="text-base">Trainings der letzten 12 Wochen</CardTitle>
+              <CardTitle className="text-base">{t("Trainings der letzten 12 Wochen")}</CardTitle>
             </CardHeader>
             <CardContent>
               {stats.weeklyActivity.every((w) => w.count === 0) ? (
-                <p className="text-sm text-muted-foreground">Noch keine Trainings erfasst.</p>
+                <p className="text-sm text-muted-foreground">{t("Noch keine Trainings erfasst.")}</p>
               ) : (
                 <div className="flex items-end gap-1 h-32">
                   {stats.weeklyActivity.map((w) => (
@@ -221,7 +235,7 @@ export default function StatsPage() {
           {stats.perDog.length === 0 ? (
             <Card>
               <CardContent className="py-10 text-center text-muted-foreground">
-                Noch keine Hunde vorhanden.
+{t("Noch keine Hunde vorhanden.")}
               </CardContent>
             </Card>
           ) : (
@@ -235,7 +249,7 @@ export default function StatsPage() {
                   <CardContent className="flex flex-col gap-3">
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <p className="text-muted-foreground text-xs">Trainings gesamt</p>
+                        <p className="text-muted-foreground text-xs">{t("Trainings gesamt")}</p>
                         <p className="font-medium">{dog.sessionCount}</p>
                       </div>
                       <div>
@@ -243,11 +257,11 @@ export default function StatsPage() {
                         <p className="font-medium">{dog.sessionsLast30d}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground text-xs">Aktive Ziele</p>
+                        <p className="text-muted-foreground text-xs">{t("Aktive Ziele")}</p>
                         <p className="font-medium">{dog.activeGoals}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground text-xs">Ø Bewertung (30d)</p>
+                        <p className="text-muted-foreground text-xs">{t("Ø Bewertung (30d)")}</p>
                         <p className="font-medium">{dog.avgRating30d !== null ? `${dog.avgRating30d} / 5` : "–"}</p>
                       </div>
                     </div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 export function TrainerFeedback({
   session,
   isOwner,
@@ -16,6 +17,7 @@ export function TrainerFeedback({
   isOwner: boolean;
   onUpdated: () => Promise<void>;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(session.trainerFeedback ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -26,11 +28,11 @@ export function TrainerFeedback({
     setSubmitting(true);
     try {
       await api.put(`/api/trainings/${session.id}/feedback`, { feedback: text });
-      toast.success("Feedback gespeichert.");
+      toast.success(t("Feedback gespeichert."));
       setEditing(false);
       await onUpdated();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Feedback konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Feedback konnte nicht gespeichert werden."));
     } finally {
       setSubmitting(false);
     }
@@ -42,12 +44,12 @@ export function TrainerFeedback({
         <div className="flex items-start gap-2">
           <MessageSquare className="mt-0.5 size-4 shrink-0 text-primary" />
           <div className="flex-1">
-            <p className="text-xs font-medium text-muted-foreground">Trainer-Feedback</p>
+            <p className="text-xs font-medium text-muted-foreground">{t("Trainer-Feedback")}</p>
             <p className="text-sm">{session.trainerFeedback}</p>
           </div>
           {!isOwner && (
             <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
-              Bearbeiten
+{t("Bearbeiten")}
             </Button>
           )}
         </div>
@@ -58,21 +60,21 @@ export function TrainerFeedback({
             className="min-h-16 rounded-md border border-input bg-transparent px-3 py-2 text-sm"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Rückmeldung zu diesem Training…"
+            placeholder={t("Rückmeldung zu diesem Training…")}
           />
           <div className="flex gap-2 self-start">
             <Button type="submit" size="sm" disabled={submitting}>
-              Speichern
+{t("Speichern")}
             </Button>
             {editing && (
               <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
-                Abbrechen
+{t("Abbrechen")}
               </Button>
             )}
           </div>
         </form>
       ) : (
-        <p className="text-sm text-muted-foreground">Noch kein Trainer-Feedback zu diesem Training.</p>
+        <p className="text-sm text-muted-foreground">{t("Noch kein Trainer-Feedback zu diesem Training.")}</p>
       )}
     </div>
   );

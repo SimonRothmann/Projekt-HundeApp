@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { useWakeLock } from "@/lib/use-wake-lock";
 
+import { useT } from "@/lib/i18n";
 /**
  * Vollbildhülle für jede laufende GPS-Aufzeichnung - Fährte legen wie
  * Ablauf suchen.
@@ -44,6 +45,7 @@ export function AufzeichnungVollbild({
   /** Die Karte. */
   children: React.ReactNode;
 }) {
+  const t = useT();
   useWakeLock(true);
 
   // Hintergrund nicht mitscrollen lassen, solange das Vollbild offen ist -
@@ -86,7 +88,7 @@ export function AufzeichnungVollbild({
             className="shrink-0 text-muted-foreground"
             onClick={onAbbrechen}
           >
-            Abbrechen
+{t("Abbrechen")}
           </Button>
         )}
       </header>

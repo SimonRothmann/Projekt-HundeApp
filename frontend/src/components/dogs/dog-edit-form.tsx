@@ -15,6 +15,7 @@ import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { Camera, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Stammdaten eines Hundes ändern.
  *
@@ -32,6 +33,7 @@ export function DogEditForm({
   onSaved: () => Promise<void>;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState(dog.name);
   const [breed, setBreed] = useState(dog.breed ?? "");
   const [gender, setGender] = useState<DogGender>(dog.gender);
@@ -63,7 +65,7 @@ export function DogEditForm({
       await onSaved();
       onCancel();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Konnte nicht gespeichert werden."));
     } finally {
       setSaving(false);
     }
@@ -81,10 +83,10 @@ export function DogEditForm({
       await clearCachedData(`dog-image-${dog.id}`);
       setHasImage(true);
       setImageVersion((v) => v + 1);
-      toast.success("Bild gespeichert.");
+      toast.success(t("Bild gespeichert."));
       await onSaved();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Bild konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Bild konnte nicht gespeichert werden."));
     } finally {
       setUploading(false);
       // Zurücksetzen, damit dieselbe Datei erneut gewählt werden kann.
@@ -102,7 +104,7 @@ export function DogEditForm({
       toast.success("Bild entfernt.");
       await onSaved();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Bild konnte nicht entfernt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Bild konnte nicht entfernt werden."));
     } finally {
       setUploading(false);
     }
@@ -111,7 +113,7 @@ export function DogEditForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Hund bearbeiten</CardTitle>
+        <CardTitle className="text-base">{t("Hund bearbeiten")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={save} className="flex flex-col gap-4">
@@ -140,7 +142,7 @@ export function DogEditForm({
                 onClick={() => fileInput.current?.click()}
               >
                 <Camera className="size-4" />
-                {uploading ? "Moment…" : hasImage ? "Bild ändern" : "Bild auswählen"}
+                {uploading ? "Moment…" : hasImage ? t("Bild ändern") : t("Bild auswählen")}
               </Button>
               {hasImage && (
                 <Button
@@ -152,7 +154,7 @@ export function DogEditForm({
                   onClick={removeImage}
                 >
                   <Trash2 className="size-4" />
-                  Bild entfernen
+{t("Bild entfernen")}
                 </Button>
               )}
             </div>
@@ -174,8 +176,8 @@ export function DogEditForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={0}>Rüde</SelectItem>
-                  <SelectItem value={1}>Hündin</SelectItem>
+                  <SelectItem value={0}>{t("Rüde")}</SelectItem>
+                  <SelectItem value={1}>{t("Hündin")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -188,22 +190,22 @@ export function DogEditForm({
                 onChange={(e) => setBirthday(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                {age ? `Alter: ${age}` : "Daraus wird das Alter berechnet."}
+                {age ? `Alter: ${age}` : t("Daraus wird das Alter berechnet.")}
               </p>
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="edit-notes">Notizen</Label>
+            <Label htmlFor="edit-notes">{t("Notizen")}</Label>
             <Input id="edit-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
 
           <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={saving}>
-              {saving ? "Wird gespeichert…" : "Speichern"}
+              {saving ? t("Wird gespeichert…") : t("Speichern")}
             </Button>
             <Button type="button" variant="ghost" onClick={onCancel}>
-              Abbrechen
+{t("Abbrechen")}
             </Button>
           </div>
         </form>

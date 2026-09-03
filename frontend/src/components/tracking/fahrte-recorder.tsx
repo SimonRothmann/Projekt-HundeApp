@@ -15,6 +15,7 @@ import { useGpsRecorder } from "@/lib/use-gps-recorder";
 import { TrackMap } from "@/components/tracking/track-map";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
 
+import { useT } from "@/lib/i18n";
 function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
   return {
     latitude: position.coords.latitude,
@@ -45,6 +46,7 @@ const MARKER_TYPES = [
  * voneinander - auch offline - synchronisiert werden können.
  */
 export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () => Promise<void> }) {
+  const t = useT();
   const { isRecording, points, setPoints, currentAccuracy, start, stop, markPoint } = useGpsRecorder(
     toAutomaticPoint,
     // Fährte braucht höhere Präzision als ein normaler Spaziergang: Erstaufnahme
@@ -92,7 +94,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
    * der Verlust des ganzen Trainings.
    */
   function abbrechen() {
-    if (!confirm("Aufzeichnung verwerfen? Die bisher aufgezeichnete Fährte geht verloren.")) return;
+    if (!confirm(t("Aufzeichnung verwerfen? Die bisher aufgezeichnete Fährte geht verloren."))) return;
     stop();
     setPoints([]);
   }
@@ -101,7 +103,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     stop();
 
     if (points.length === 0) {
-      toast.error("Keine GPS-Punkte aufgezeichnet.");
+      toast.error(t("Keine GPS-Punkte aufgezeichnet."));
       return;
     }
 
@@ -113,7 +115,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
       dogId,
       date: new Date().toISOString().slice(0, 10),
       durationMinutes,
-      notes: "Fährtenaufnahme",
+      notes: t("Fährtenaufnahme"),
       exercises: [],
     };
     const trackPayload = {
@@ -134,19 +136,19 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
         toast.error(err.message);
         return;
       }
-      await enqueueRequest({ path: "/api/trainings", method: "POST", body: sessionPayload, label: "Fährten-Training" });
-      toast.success("Training offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist.");
+      await enqueueRequest({ path: "/api/trainings", method: "POST", body: sessionPayload, label: t("Fährten-Training") });
+      toast.success(t("Training offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."));
     }
 
     try {
       await api.post("/api/gps-tracks", trackPayload);
-      toast.success("Fährte gespeichert.");
+      toast.success(t("Fährte gespeichert."));
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.message);
       } else {
-        await enqueueRequest({ path: "/api/gps-tracks", method: "POST", body: trackPayload, label: "Fährte" });
-        toast.success("Fährte offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist.");
+        await enqueueRequest({ path: "/api/gps-tracks", method: "POST", body: trackPayload, label: t("Fährte") });
+        toast.success(t("Fährte offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."));
       }
     }
 
@@ -165,7 +167,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <MapPin className="size-5 text-primary" />
-            Fährte aufnehmen
+{t("Fährte aufnehmen")}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -189,7 +191,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
 
   return (
     <AufzeichnungVollbild
-      titel="Fährte legen"
+      titel={t("Fährte legen")}
       status={
         <>
           {autoPunkte} Punkte · {markerPunkte} Marker
@@ -204,7 +206,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
                       ? "text-yellow-600"
                       : "text-red-600"
                 }
-                title="GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als 8 m werden verworfen; findet das GPS länger keinen genauen Fix (z.B. ohne Netz), lockert sich der Filter schrittweise bis 20 m."
+                title={t("GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als 8 m werden verworfen; findet das GPS länger keinen genauen Fix (z.B. ohne Netz), lockert sich der Filter schrittweise bis 20 m.")}
               >
                 ±{Math.round(currentAccuracy)} m
               </span>

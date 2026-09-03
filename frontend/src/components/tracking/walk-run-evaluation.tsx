@@ -4,6 +4,8 @@ import type { GpsWalkRun } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/lib/i18n";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
 // Schwellen identisch zum Backend (GpsTrackEvaluator) - bewusst großzügig,
 // weil der GPS-Fehler selbst 3-8 m beträgt.
 const GREEN_MAX_M = 3;
@@ -16,12 +18,12 @@ function ampelClass(avgMeters: number): string {
 }
 
 function ampelLabel(avgMeters: number): string {
-  if (avgMeters <= GREEN_MAX_M) return "eng an der Fährte";
-  if (avgMeters <= AMBER_MAX_M) return "mittlere Abweichung";
-  return "deutlich abgekommen";
+  if (avgMeters <= GREEN_MAX_M) return uebersetzbar("eng an der Fährte");
+  if (avgMeters <= AMBER_MAX_M) return uebersetzbar("mittlere Abweichung");
+  return uebersetzbar("deutlich abgekommen");
 }
 
-const stopLabel: Record<number, string> = { 0: "unerklärt", 1: "Verweisen", 2: "erklärt" };
+const stopLabel: Record<number, string> = { 0: uebersetzbar("unerklärt"), 1: uebersetzbar("Verweisen"), 2: uebersetzbar("erklärt") };
 const stopClass: Record<number, string> = {
   0: "border-destructive/40 text-destructive",
   1: "border-emerald-500/40 text-emerald-600 dark:text-emerald-500",
@@ -38,6 +40,7 @@ const stopClass: Record<number, string> = {
  * sucht oder kreist der Hund, bleibt der Hundeführer stehen.
  */
 export function WalkRunEvaluation({ run }: { run: GpsWalkRun }) {
+  const t = useT();
   // Lose Prüfungen (== null statt === null, ?? []): aus einem älteren
   // Read-Cache oder von einem älteren Backend-Stand fehlen diese Felder ganz
   // (undefined) - ohne diese Toleranz stürzt die Fährtenansicht ab, wie
@@ -54,7 +57,7 @@ export function WalkRunEvaluation({ run }: { run: GpsWalkRun }) {
         <span className={cn("text-sm font-semibold", ampelClass(avg))}>
           Ø {avg.toFixed(1)} m
         </span>
-        <span className={cn("text-xs", ampelClass(avg))}>{ampelLabel(avg)}</span>
+        <span className={cn("text-xs", ampelClass(avg))}>{t(ampelLabel(avg))}</span>
         {run.maxDeviationMeters != null && <span className="text-xs">max {run.maxDeviationMeters.toFixed(1)} m</span>}
         {run.onTrackPercent != null && <span className="text-xs">{Math.round(run.onTrackPercent)} % auf Fährte</span>}
         {run.articlesTotal != null && run.articlesTotal > 0 && (
@@ -68,7 +71,7 @@ export function WalkRunEvaluation({ run }: { run: GpsWalkRun }) {
         <div className="flex flex-wrap items-center gap-1.5">
           {stops.slice(0, 6).map((stop, i) => (
             <Badge key={i} variant="outline" className={stopClass[stop.kind]}>
-              {stopLabel[stop.kind]} {stop.durationSeconds}s
+              {t(stopLabel[stop.kind])} {stop.durationSeconds}s
               {stop.markerLabel ? ` · ${stop.markerLabel}` : ""}
             </Badge>
           ))}

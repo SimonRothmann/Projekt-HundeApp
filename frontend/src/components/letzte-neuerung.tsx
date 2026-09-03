@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +9,7 @@ import {
   VERSIONSHINWEISE,
 } from "@/lib/versionshinweise";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 /**
  * Die jüngste Fassung in Kurzform: Nummer, Datum, Überschrift, die ersten
@@ -24,6 +27,7 @@ export function LetzteNeuerung({
   className?: string;
   maxPunkte?: number;
 }) {
+  const t = useT();
   const neueste = VERSIONSHINWEISE[0];
   const auszug = neueste.aenderungen.slice(0, maxPunkte);
   const rest = neueste.aenderungen.length - auszug.length;
@@ -31,7 +35,7 @@ export function LetzteNeuerung({
   return (
     <div className={cn("min-w-0", className)}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="font-semibold">Version {neueste.version}</span>
+        <span className="font-semibold">{t("Version {v}", { v: neueste.version })}</span>
         <time dateTime={neueste.datum} className="text-sm text-muted-foreground">
           {formatiereVeroeffentlichung(neueste.datum)}
         </time>
@@ -42,7 +46,7 @@ export function LetzteNeuerung({
         {auszug.map((aenderung, index) => (
           <li key={index} className="flex min-w-0 items-start gap-2.5">
             <Badge variant="outline" className="mt-0.5 shrink-0">
-              {AENDERUNGSART_LABEL[aenderung.art]}
+              {t(AENDERUNGSART_LABEL[aenderung.art])}
             </Badge>
             <span className="min-w-0 text-sm text-muted-foreground [overflow-wrap:anywhere]">{aenderung.text}</span>
           </li>
@@ -52,7 +56,9 @@ export function LetzteNeuerung({
             umbricht, reißt sein Pfeilsymbol ans andere Zeilenende. */}
         {rest > 0 && (
           <li className="text-sm text-muted-foreground">
-            … und {rest} weitere {rest === 1 ? "Änderung" : "Änderungen"} in dieser Fassung.
+            {rest === 1
+              ? t("… und eine weitere Änderung in dieser Fassung.")
+              : t("… und {n} weitere Änderungen in dieser Fassung.", { n: rest })}
           </li>
         )}
       </ul>
@@ -61,7 +67,7 @@ export function LetzteNeuerung({
         href="/neuerungen"
         className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
       >
-        Alle Neuerungen
+        {t("Alle Neuerungen")}
         <ArrowRight className="size-4" aria-hidden />
       </Link>
     </div>

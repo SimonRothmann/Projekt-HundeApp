@@ -3,6 +3,8 @@
 import { DOG_CONDITION, type DogCondition } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/lib/i18n";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
 /**
  * Verfassung des Hundes an diesem Trainingstag - ein Tipp, mehr nicht.
  *
@@ -16,11 +18,11 @@ import { cn } from "@/lib/utils";
  */
 
 export const CONDITIONS: { key: DogCondition; label: string; hint: string }[] = [
-  { key: DOG_CONDITION.Motivated, label: "motiviert", hint: "zieht mit, arbeitet freudig" },
-  { key: DOG_CONDITION.Settled, label: "ausgeglichen", hint: "unauffällig, wie üblich" },
-  { key: DOG_CONDITION.Distracted, label: "abgelenkt", hint: "bei der Umwelt statt beim Hundeführer" },
-  { key: DOG_CONDITION.Tired, label: "müde", hint: "kraftlos, langsam, wenig Ausdauer" },
-  { key: DOG_CONDITION.Stressed, label: "gestresst", hint: "überdreht, unruhig, kann nicht abschalten" },
+  { key: DOG_CONDITION.Motivated, label: uebersetzbar("motiviert"), hint: uebersetzbar("zieht mit, arbeitet freudig") },
+  { key: DOG_CONDITION.Settled, label: uebersetzbar("ausgeglichen"), hint: uebersetzbar("unauffällig, wie üblich") },
+  { key: DOG_CONDITION.Distracted, label: uebersetzbar("abgelenkt"), hint: uebersetzbar("bei der Umwelt statt beim Hundeführer") },
+  { key: DOG_CONDITION.Tired, label: uebersetzbar("müde"), hint: uebersetzbar("kraftlos, langsam, wenig Ausdauer") },
+  { key: DOG_CONDITION.Stressed, label: uebersetzbar("gestresst"), hint: uebersetzbar("überdreht, unruhig, kann nicht abschalten") },
 ];
 
 export function conditionLabel(condition: DogCondition | null | undefined): string | null {
@@ -36,6 +38,7 @@ export function ConditionPicker({
   onChange: (value: DogCondition | null) => void;
   disabled?: boolean;
 }) {
+  const t = useT();
   return (
     <div role="group" aria-label="Verfassung des Hundes" className="flex flex-wrap gap-1.5">
       {CONDITIONS.map((c) => {
@@ -46,7 +49,7 @@ export function ConditionPicker({
             type="button"
             disabled={disabled}
             aria-pressed={aktiv}
-            title={c.hint}
+            title={t(c.hint)}
             onClick={() => onChange(aktiv ? null : c.key)}
             className={cn(
               "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-10 disabled:opacity-50",
@@ -55,7 +58,7 @@ export function ConditionPicker({
                 : "border-border/60 text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
             )}
           >
-            {c.label}
+            {t(c.label)}
           </button>
         );
       })}

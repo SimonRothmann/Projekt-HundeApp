@@ -10,6 +10,12 @@ public interface IPreferenceService
     Task<Result> UpdateLocaleAsync(Guid userId, UpdateLocaleRequest request, CancellationToken ct = default);
 
     /// <summary>
+    /// Setzt den Geltungsbereich der Prüfungsordnungen. Getrennt von der
+    /// Sprache - siehe <see cref="Dogity.Domain.Preferences.UserPreference.Country"/>.
+    /// </summary>
+    Task<Result> UpdateCountryAsync(Guid userId, UpdateCountryRequest request, CancellationToken ct = default);
+
+    /// <summary>
     /// Die Sportarten, die für diesen Hund tatsächlich gelten - Auswahl des
     /// Hundes, sonst die des Menschen, sonst alle.
     /// </summary>

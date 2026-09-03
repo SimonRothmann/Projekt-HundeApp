@@ -11,7 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PawPrint } from "lucide-react";
 import { AuthBackLink } from "@/components/auth-back-link";
 
+import { useT } from "@/lib/i18n";
 export default function RegisterPage() {
+  const t = useT();
   const { register } = useAuth();
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
@@ -43,7 +45,7 @@ export default function RegisterPage() {
           <CardHeader className="items-center text-center">
             <PawPrint className="size-8 text-primary" />
             <CardTitle className="text-xl">Konto erstellen</CardTitle>
-            <CardDescription>Starte dein Trainingstagebuch</CardDescription>
+            <CardDescription>{t("Starte dein Trainingstagebuch")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -82,7 +84,7 @@ export default function RegisterPage() {
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="h-11" disabled={isSubmitting}>
-                {isSubmitting ? "Wird erstellt…" : "Registrieren"}
+                {isSubmitting ? t("Wird erstellt…") : "Registrieren"}
               </Button>
             </form>
             <p className="mt-4 text-center text-sm text-muted-foreground">

@@ -9,6 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Check, ChevronRight, Clock, Compass } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 /**
  * Der geführte Erststart auf dem Dashboard.
@@ -54,6 +55,7 @@ export function OnboardingGuide({
   onDismissed: () => void;
 }) {
   const [versteckt, setVersteckt] = useState(false);
+  const t = useT();
 
   async function wegklicken() {
     setVersteckt(true);
@@ -62,7 +64,7 @@ export function OnboardingGuide({
       onDismissed();
     } catch (err) {
       setVersteckt(false);
-      toast.error(err instanceof ApiError ? err.message : "Konnte nicht ausgeblendet werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Konnte nicht ausgeblendet werden."));
     }
   }
 
@@ -73,33 +75,33 @@ export function OnboardingGuide({
 
   const eigenerWeg: Schritt[] = [
     {
-      titel: "Ziel setzen",
+      titel: t("Ziel setzen"),
       erledigt: status.hasGoal,
       ziel: `${hundZiel}#trainingsplan`,
-      hinweis: "Prüfung und Termin wählen – daraus entsteht der Trainingsplan.",
+      hinweis: t("Prüfung und Termin wählen – daraus entsteht der Trainingsplan."),
     },
     {
-      titel: "Erstes Training eintragen",
+      titel: t("Erstes Training eintragen"),
       erledigt: status.hasTraining,
       ziel: hundZiel,
-      hinweis: "Übung, Bewertung, fertig. Der Rest ist optional.",
+      hinweis: t("Übung, Bewertung, fertig. Der Rest ist optional."),
     },
   ];
 
   const vereinsWeg: Schritt[] = [
     {
-      titel: "Verein beitreten",
+      titel: t("Verein beitreten"),
       erledigt: status.hasClubMembership,
       wartet: status.hasPendingClubRequest,
       ziel: "/clubs",
-      hinweis: "Anfrage stellen – der Verein gibt sie frei.",
+      hinweis: t("Anfrage stellen – der Verein gibt sie frei."),
     },
     {
-      titel: "Trainingsgruppe beitreten",
+      titel: t("Trainingsgruppe beitreten"),
       erledigt: status.hasGroupMembership,
       wartet: status.hasPendingGroupRequest,
       ziel: "/clubs",
-      hinweis: "Dein Trainer sieht dann eure Trainings und kann sie bewerten.",
+      hinweis: t("Dein Trainer sieht dann eure Trainings und kann sie bewerten."),
     },
   ];
 
@@ -108,7 +110,7 @@ export function OnboardingGuide({
       <CardHeader className="items-center">
         <CardTitle className="flex items-center gap-2 text-base">
           <Compass className="size-5" />
-          Erste Schritte
+          {t("Erste Schritte")}
         </CardTitle>
       </CardHeader>
 
@@ -116,10 +118,10 @@ export function OnboardingGuide({
         {!status.hasDog ? (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
-              Leg zuerst deinen Hund an – alles Weitere hängt daran.
+              {t("Leg zuerst deinen Hund an – alles Weitere hängt daran.")}
             </p>
             <Link href="/dogs" className={cn(buttonVariants({ size: "sm" }), "self-start")}>
-              Hund anlegen
+              {t("Hund anlegen")}
               <ChevronRight className="size-4" />
             </Link>
           </div>
@@ -128,14 +130,14 @@ export function OnboardingGuide({
             <p className="flex items-center gap-2 text-sm">
               <Erledigt />
               <span>
-                <span className="font-medium">{status.firstDogName}</span> ist angelegt. Weiter geht es auf einem
-                von zwei Wegen – einer genügt.
+                <span className="font-medium">{status.firstDogName}</span>{" "}
+                {t("ist angelegt. Weiter geht es auf einem von zwei Wegen – einer genügt.")}
               </span>
             </p>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <Weg titel="Selbst loslegen" schritte={eigenerWeg} />
-              <Weg titel="Über den Verein" schritte={vereinsWeg} />
+              <Weg titel={t("Selbst loslegen")} schritte={eigenerWeg} />
+              <Weg titel={t("Über den Verein")} schritte={vereinsWeg} />
             </div>
           </>
         )}
@@ -146,7 +148,7 @@ export function OnboardingGuide({
           className="h-7 self-start px-2 text-xs text-muted-foreground"
           onClick={wegklicken}
         >
-          Ausblenden
+          {t("Ausblenden")}
         </Button>
       </CardContent>
     </Card>
@@ -162,6 +164,8 @@ function Erledigt() {
 }
 
 function Weg({ titel, schritte }: { titel: string; schritte: Schritt[] }) {
+  const t = useT();
+
   return (
     <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-border/60 bg-card p-3">
       <p className="text-sm font-medium">{titel}</p>
@@ -180,7 +184,7 @@ function Weg({ titel, schritte }: { titel: string; schritte: Schritt[] }) {
                 </span>
                 <span className="min-w-0">
                   {schritt.titel}
-                  <span className="block text-xs">Anfrage gestellt – warte auf Freigabe.</span>
+                  <span className="block text-xs">{t("Anfrage gestellt – warte auf Freigabe.")}</span>
                 </span>
               </span>
             ) : (

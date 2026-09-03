@@ -20,9 +20,10 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
         // bewusst NICHTS angelegt - wer nie etwas eingestellt hat, braucht
         // auch keine Zeile in der Datenbank.
         return Result<UserPreferenceDto>.Success(eintrag is null
-            ? new UserPreferenceDto(null, [], [])
+            ? new UserPreferenceDto(null, null, [], [])
             : new UserPreferenceDto(
                 eintrag.Locale,
+                eintrag.Country,
                 eintrag.DisabledModules.Select(m => m.ModuleKey).ToList(),
                 eintrag.Sports.Select(s => s.SportId).ToList()));
     }
@@ -77,6 +78,29 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
 
         var eintrag = await LadenOderAnlegenAsync(userId, ct);
         eintrag.Locale = string.IsNullOrWhiteSpace(sprache) ? null : sprache;
+        eintrag.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> UpdateCountryAsync(Guid userId, UpdateCountryRequest request, CancellationToken ct = default)
+    {
+        var land = request.Country?.Trim().ToUpperInvariant();
+
+        // Leer = zurück auf die Vorgabe. Ein unbekanntes Kürzel dagegen wird
+        // abgelehnt und nicht stillschweigend verworfen: Wer ein Land wählt,
+        // das es in der Liste nicht gibt, bekäme sonst einen leeren Katalog
+        // und keine Erklärung dafür.
+        if (!string.IsNullOrEmpty(land))
+        {
+            if (land.Length != 2)
+                return Result.Failure("Länderkürzel muss zwei Buchstaben haben (ISO 3166-1 alpha-2).");
+            if (!await db.Countries.AnyAsync(c => c.Code == land, ct))
+                return Result.Failure("Dieses Land steht nicht zur Auswahl.");
+        }
+
+        var eintrag = await LadenOderAnlegenAsync(userId, ct);
+        eintrag.Country = string.IsNullOrEmpty(land) ? null : land;
         eintrag.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Result.Success();

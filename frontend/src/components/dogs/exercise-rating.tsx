@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Bewertung und Erfolg einer bereits erfassten Übung - anzeigen und
  * nachträglich korrigieren. Auch für vergangene Tage: das Korrigieren eines
@@ -34,6 +35,7 @@ export function ExerciseRating({
   notes: string | null;
   onSaved: () => Promise<void>;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(rating);
   const [ok, setOk] = useState(success);
@@ -47,11 +49,11 @@ export function ExerciseRating({
         success: ok,
         notes,
       });
-      toast.success("Bewertung geändert.");
+      toast.success(t("Bewertung geändert."));
       setEditing(false);
       await onSaved();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Bewertung konnte nicht geändert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Bewertung konnte nicht geändert werden."));
     } finally {
       setSaving(false);
     }
@@ -69,7 +71,7 @@ export function ExerciseRating({
           size="icon"
           variant="ghost"
           className="size-6"
-          title="Bewertung ändern"
+          title={t("Bewertung ändern")}
           onClick={() => {
             setValue(rating);
             setOk(success);
@@ -88,7 +90,7 @@ export function ExerciseRating({
   return (
     <span className="flex w-full min-w-0 flex-col gap-2 rounded-md border p-2">
       <span className="flex flex-wrap items-center gap-3">
-        <span className="flex gap-1" role="group" aria-label="Bewertung, 1 bis 5">
+        <span className="flex gap-1" role="group" aria-label={t("Bewertung, 1 bis 5")}>
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
@@ -111,10 +113,10 @@ export function ExerciseRating({
       </span>
       <span className="flex justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-          Abbrechen
+{t("Abbrechen")}
         </Button>
         <Button size="sm" onClick={save} disabled={saving}>
-          {saving ? "Speichert…" : "Speichern"}
+          {saving ? "Speichert…" : t("Speichern")}
         </Button>
       </span>
     </span>

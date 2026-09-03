@@ -19,6 +19,8 @@ import { Check, Eye, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/lib/i18n";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
 /**
  * Fragentrainer nach dem Muster der Führerschein-Apps.
  *
@@ -44,13 +46,14 @@ const RUNDENGROESSE = 20;
 
 const MODI: { key: QuizMode; label: string }[] = [
   { key: "learn", label: "Lernen" },
-  { key: "mistakes", label: "Fehler" },
-  { key: "all", label: "Alle" },
+  { key: "mistakes", label: uebersetzbar("Fehler") },
+  { key: "all", label: uebersetzbar("Alle") },
 ];
 
 type Auswertung = { correct: boolean; correctOptionIds: string[]; termResults: Record<string, boolean> };
 
 export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
+  const t = useT();
   const { user } = useAuth();
   const angemeldet = user !== null;
 
@@ -99,9 +102,12 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
         setRundeDurch(false);
       } catch (err) {
         setQueue([]);
-        toast.error(err instanceof ApiError ? err.message : "Die Fragen konnten nicht geladen werden.");
+        toast.error(err instanceof ApiError ? err.message : t("Die Fragen konnten nicht geladen werden."));
       }
     },
+  // t bewusst nicht in der Liste - siehe die Effekte oben: Der
+  // Uebersetzer wird nur im Fehlerfall gebraucht.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
     [angemeldet, catalog.code],
   );
 
@@ -175,7 +181,7 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
       }
     } catch (err) {
       setGewaehlt([]);
-      toast.error(err instanceof ApiError ? err.message : "Die Antwort konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Die Antwort konnte nicht gespeichert werden."));
     } finally {
       setBeschaeftigt(false);
     }
@@ -236,18 +242,18 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
     }
     try {
       await api.post(`/api/sachkunde/catalogs/${catalog.code}/reset`);
-      toast.success("Lernstand zurückgesetzt – es geht von vorne los.");
+      toast.success(t("Lernstand zurückgesetzt – es geht von vorne los."));
       await laden("learn");
       setMode("learn");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Der Lernstand konnte nicht zurückgesetzt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Der Lernstand konnte nicht zurückgesetzt werden."));
     }
   }
 
   // ---- Darstellung ----
 
   if (queue === null) {
-    return <p className="py-10 text-sm text-muted-foreground">Lädt…</p>;
+    return <p className="py-10 text-sm text-muted-foreground">{t("Lädt…")}</p>;
   }
 
   const durch = index >= queue.length;
@@ -317,7 +323,7 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
             // eslint-disable-next-line @next/next/no-img-element -- feste Zeichnung aus /public, der Optimierer bringt hier nichts.
             <img
               src={`/sachkunde/${frage.imageName}`}
-              alt="Zeichnung mit fünf Körperhaltungen, von 1 bis 5 nummeriert"
+              alt={t("Zeichnung mit fünf Körperhaltungen, von 1 bis 5 nummeriert")}
               width={664}
               height={562}
               className="mt-3 h-auto w-full max-w-md rounded-md border border-border/60 bg-white"
@@ -404,7 +410,7 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
 
           {mehrfach && !auswertung && (
             <Button className="mt-3" size="sm" disabled={gewaehlt.length === 0 || beschaeftigt} onClick={pruefen}>
-              Prüfen
+{t("Prüfen")}
             </Button>
           )}
 
@@ -416,7 +422,7 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
                   auswertung.correct ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
                 )}
               >
-                {auswertung.correct ? "Richtig" : "Falsch – die Frage kommt gleich noch einmal."}
+                {auswertung.correct ? "Richtig" : t("Falsch – die Frage kommt gleich noch einmal.")}
               </span>
               <Button size="sm" onClick={weiter} autoFocus>
                 Weiter
@@ -528,12 +534,13 @@ function SelbstKarte({
   onZeigen: () => void;
   onEinschaetzen: (gewusst: boolean) => void;
 }) {
+  const t = useT();
   return (
     <div className="mt-4 flex flex-col gap-3">
       {!offen ? (
         <Button size="sm" variant="outline" className="self-start" onClick={onZeigen}>
           <Eye className="size-4" />
-          Lösung zeigen
+{t("Lösung zeigen")}
         </Button>
       ) : (
         <>
@@ -573,6 +580,7 @@ function Rundenende({
   onWeiter: () => void;
   onVonVorne: () => void;
 }) {
+  const t = useT();
   const gesamt = bilanz.richtig + bilanz.falsch;
 
   return (
@@ -583,15 +591,15 @@ function Rundenende({
       <p className="mt-1 text-sm text-muted-foreground">
         {gesamt === 0
           ? rundeDurch
-            ? "Im Moment ist keine Frage zur Wiederholung fällig."
-            : "Hier ist gerade nichts zu tun."
+            ? t("Im Moment ist keine Frage zur Wiederholung fällig.")
+            : t("Hier ist gerade nichts zu tun.")
           : `${bilanz.richtig} von ${gesamt} richtig.`}
       </p>
 
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         {!rundeDurch && (
           <Button size="sm" onClick={onWeiter}>
-            Weiter üben
+{t("Weiter üben")}
           </Button>
         )}
         <Button size="sm" variant={rundeDurch ? "default" : "outline"} onClick={onVonVorne}>
@@ -600,7 +608,7 @@ function Rundenende({
         </Button>
         {!angemeldet && (
           <Link href="/register" className={buttonVariants({ size: "sm", variant: "outline" })}>
-            Lernstand speichern
+{t("Lernstand speichern")}
           </Link>
         )}
       </div>

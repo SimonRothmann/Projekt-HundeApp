@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/auth-context";
 import { PreferencesProvider } from "@/lib/preferences-context";
+import { SprachProvider } from "@/lib/i18n/provider";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/pwa-register";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
@@ -94,11 +95,15 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <PreferencesProvider>
-              {children}
-              <Toaster />
-              <PwaRegister />
-              <PwaInstallPrompt />
-              <ChunkErrorReloader />
+              {/* Innerhalb der Einstellungen, weil die Sprache von dort
+                  kommt - und um alles herum, weil sie überall gilt. */}
+              <SprachProvider>
+                {children}
+                <Toaster />
+                <PwaRegister />
+                <PwaInstallPrompt />
+                <ChunkErrorReloader />
+              </SprachProvider>
             </PreferencesProvider>
           </AuthProvider>
         </ThemeProvider>

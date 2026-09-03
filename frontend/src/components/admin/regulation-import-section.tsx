@@ -11,9 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScanSearch } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 type CandidateRow = ParsedExerciseCandidate & { selected: boolean };
 
 export function RegulationImportSection({ sports }: { sports: Sport[] }) {
+  const t = useT();
   const [scanning, setScanning] = useState(false);
   const [candidates, setCandidates] = useState<CandidateRow[] | null>(null);
   const [selectedSportId, setSelectedSportId] = useState("");
@@ -45,7 +47,7 @@ export function RegulationImportSection({ sports }: { sports: Sport[] }) {
       const data = await api.get<Regulation[]>(`/api/sports/${sportId}/regulations`);
       setRegulations(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Prüfungsordnungen konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Prüfungsordnungen konnten nicht geladen werden."));
     }
   }
 
@@ -61,7 +63,7 @@ export function RegulationImportSection({ sports }: { sports: Sport[] }) {
     if (!candidates || !selectedRegulationId) return;
     const selected = candidates.filter((c) => c.selected);
     if (selected.length === 0) {
-      toast.error("Bitte mindestens einen Vorschlag auswählen.");
+      toast.error(t("Bitte mindestens einen Vorschlag auswählen."));
       return;
     }
 
@@ -74,7 +76,7 @@ export function RegulationImportSection({ sports }: { sports: Sport[] }) {
       toast.success(`${selected.length} Übung(en) übernommen.`);
       setCandidates((prev) => prev?.filter((c) => !c.selected) ?? null);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Übernahme fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Übernahme fehlgeschlagen."));
     } finally {
       setApplying(false);
     }
@@ -85,14 +87,12 @@ export function RegulationImportSection({ sports }: { sports: Sport[] }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <ScanSearch className="size-5" />
-          Prüfungsordnung-Import
+{t("Prüfungsordnung-Import")}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">
-          Scannt die lokal abgelegte Prüfungsordnungs-PDF nach Übungsname+Punktzahl-Mustern (reine Fakten,
-          keine geschützte Beschreibungsprosa). Jeder Vorschlag muss einzeln bestätigt werden, bevor er in
-          den Katalog übernommen wird.
+{t("Scannt die lokal abgelegte Prüfungsordnungs-PDF nach Übungsname+Punktzahl-Mustern (reine Fakten, keine geschützte Beschreibungsprosa). Jeder Vorschlag muss einzeln bestätigt werden, bevor er in den Katalog übernommen wird.")}
         </p>
         <Button type="button" onClick={handleScan} disabled={scanning} className="self-start">
           {scanning ? "Scanne…" : "PDF scannen"}
@@ -102,10 +102,10 @@ export function RegulationImportSection({ sports }: { sports: Sport[] }) {
           <>
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex flex-col gap-2 sm:w-56">
-                <Label>Sportart</Label>
+                <Label>{t("Sportart")}</Label>
                 <Select value={selectedSportId} onValueChange={(value) => handleSportChange(value ?? "")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Auswählen…" />
+                    <SelectValue placeholder={t("Auswählen…")} />
                   </SelectTrigger>
                   <SelectContent>
                     {sports.map((s) => (
@@ -117,14 +117,14 @@ export function RegulationImportSection({ sports }: { sports: Sport[] }) {
                 </Select>
               </div>
               <div className="flex flex-col gap-2 sm:w-56">
-                <Label>Prüfungsordnung</Label>
+                <Label>{t("Prüfungsordnung")}</Label>
                 <Select
                   value={selectedRegulationId}
                   disabled={!selectedSportId}
                   onValueChange={(value) => setSelectedRegulationId(value ?? "")}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Auswählen…" />
+                    <SelectValue placeholder={t("Auswählen…")} />
                   </SelectTrigger>
                   <SelectContent>
                     {regulations.map((r) => (
@@ -153,13 +153,13 @@ export function RegulationImportSection({ sports }: { sports: Sport[] }) {
                     onChange={(e) => updatePoints(i, Number(e.target.value))}
                     className="h-7 w-20"
                   />
-                  <span className="text-muted-foreground">Punkte</span>
+                  <span className="text-muted-foreground">{t("Punkte")}</span>
                 </li>
               ))}
             </ul>
 
             <Button type="button" onClick={handleApply} disabled={applying || !selectedRegulationId} className="self-start">
-              Ausgewählte übernehmen
+{t("Ausgewählte übernehmen")}
             </Button>
           </>
         )}

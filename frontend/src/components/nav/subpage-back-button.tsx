@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
+import { useT } from "@/lib/i18n";
 // Top-Level-Routen (über die Navigation direkt erreichbar) - hier gibt es
 // bewusst KEINEN Zurück-Button.
 const ROOT_PATHS = new Set([
@@ -42,6 +43,7 @@ function safeInternalPath(value: string | null): string | null {
 }
 
 export function SubpageBackButton() {
+  const t = useT();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   if (!pathname) return null;
@@ -58,7 +60,7 @@ export function SubpageBackButton() {
       className="mb-4 inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-[0.97] coarse:min-h-11"
     >
       <ArrowLeft className="size-4" />
-      Zurück
+{t("Zurück")}
     </Link>
   );
 }

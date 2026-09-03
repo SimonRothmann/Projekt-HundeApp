@@ -4,6 +4,7 @@ import type { QuizKey, QuizTerm } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/lib/i18n";
 /**
  * Eine Zuordnungsaufgabe: je Begriff ein Schlüssel.
  *
@@ -41,6 +42,7 @@ export function QuizAssignment({
   onWaehlen: (termId: string, key: string) => void;
   onPruefen: () => void;
 }) {
+  const t = useT();
   const vollstaendig = terms.every((term) => belegung[term.id]);
   const beschriftet = keys.some((k) => k.label);
 
@@ -99,7 +101,7 @@ export function QuizAssignment({
 
       {!aufgeloest && (
         <Button size="sm" className="self-start" disabled={!vollstaendig || beschaeftigt} onClick={onPruefen}>
-          Prüfen
+{t("Prüfen")}
         </Button>
       )}
     </div>

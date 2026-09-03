@@ -1,3 +1,5 @@
+import { uebersetzbar } from "@/lib/i18n/sprachen";
+
 /**
  * Versionshinweise - was sich in Dogity geändert hat, in Worten für Nutzer.
  *
@@ -29,9 +31,9 @@
 export type Aenderungsart = "neu" | "verbessert" | "behoben";
 
 export const AENDERUNGSART_LABEL: Record<Aenderungsart, string> = {
-  neu: "Neu",
-  verbessert: "Verbessert",
-  behoben: "Behoben",
+  neu: uebersetzbar("Neu"),
+  verbessert: uebersetzbar("Verbessert"),
+  behoben: uebersetzbar("Behoben"),
 };
 
 export type Aenderung = {

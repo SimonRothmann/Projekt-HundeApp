@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 type Props = {
   groups: Group[];
 };
@@ -15,6 +16,7 @@ type Props = {
 type RequestWithGroup = GroupJoinRequest & { groupId: string; groupName: string };
 
 export function GroupJoinRequestsSection({ groups }: Props) {
+  const t = useT();
   const [requests, setRequests] = useState<RequestWithGroup[] | null>(null);
   const [decidingId, setDecidingId] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export function GroupJoinRequestsSection({ groups }: Props) {
       toast.success(approve ? "Aufgenommen." : "Abgelehnt.");
       await loadAll();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Fehler beim Entscheiden.");
+      toast.error(err instanceof ApiError ? err.message : t("Fehler beim Entscheiden."));
     } finally {
       setDecidingId(null);
     }

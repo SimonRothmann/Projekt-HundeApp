@@ -8,6 +8,7 @@ import { Plus, Target } from "lucide-react";
 import { GoalCreateForm } from "@/components/dogs/goal-create-form";
 import { GoalPlanCard } from "@/components/dogs/goal-plan-card";
 
+import { useT } from "@/lib/i18n";
 // "goals"/"onChanged" kommen von der Eltern-Seite statt aus einem eigenen
 // Fetch hier (siehe dogs/[id]/page.tsx) - die Seite braucht dieselben Daten
 // ohnehin für die "Plan-Ziel"-Auswahl im Trainingstagebuch-Formular, und nur
@@ -28,6 +29,7 @@ export function GoalsSection({
   goals: Goal[] | null;
   onChanged: () => Promise<void>;
 }) {
+  const t = useT();
   const [showForm, setShowForm] = useState(false);
 
   async function handleCreated() {
@@ -40,22 +42,22 @@ export function GoalsSection({
     // verschwände die Überschrift beim Sprung auf #trainingsplan darunter.
     <div id="trainingsplan" className="flex scroll-mt-20 flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Ziele & Trainingsplan</h2>
+        <h2 className="text-lg font-semibold">{t("Ziele & Trainingsplan")}</h2>
         <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)}>
           <Plus className="size-4" />
-          Ziel setzen
+{t("Ziel setzen")}
         </Button>
       </div>
 
       {showForm && <GoalCreateForm dogId={dogId} sports={sports} onCreated={handleCreated} />}
 
       {goals === null ? (
-        <p className="text-muted-foreground">Lädt…</p>
+        <p className="text-muted-foreground">{t("Lädt…")}</p>
       ) : goals.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
             <Target className="size-8" />
-            <p>Noch kein Ziel gesetzt.</p>
+            <p>{t("Noch kein Ziel gesetzt.")}</p>
           </CardContent>
         </Card>
       ) : (

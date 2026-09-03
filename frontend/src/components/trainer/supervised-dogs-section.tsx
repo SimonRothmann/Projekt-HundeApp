@@ -10,6 +10,7 @@ import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { ChevronRight, PawPrint } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Die betreuten Hunde als flache Liste, direkt auf der Trainerseite.
  *
@@ -22,6 +23,7 @@ import { toast } from "sonner";
  * Der Rückweg führt zurück hierher statt zu den eigenen Hunden (?from=).
  */
 export function SupervisedDogsSection() {
+  const t = useT();
   const [dogs, setDogs] = useState<SupervisedDog[] | null>(null);
 
   useEffect(() => {
@@ -34,12 +36,17 @@ export function SupervisedDogsSection() {
       .catch((err) => {
         if (active) {
           setDogs([]);
-          toast.error(err instanceof ApiError ? err.message : "Betreute Hunde konnten nicht geladen werden.");
+          toast.error(err instanceof ApiError ? err.message : t("Betreute Hunde konnten nicht geladen werden."));
         }
       });
     return () => {
       active = false;
     };
+    // t bewusst nicht in der Liste: Der Uebersetzer wird hier nur im
+    // Fehlerfall gebraucht. Stuende er drin, liefe der ganze Abruf bei
+    // jedem Sprachwechsel erneut - Daten neu laden, weil ein Toast
+    // anders heissen wuerde.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Ohne betreute Hunde nichts anzeigen: eine leere Karte hier hilft nicht -
@@ -51,7 +58,7 @@ export function SupervisedDogsSection() {
       <CardHeader className="items-center">
         <CardTitle className="flex items-center gap-2 text-base">
           <PawPrint className="size-5" />
-          Betreute Hunde
+{t("Betreute Hunde")}
         </CardTitle>
         {dogs && (
           <CardAction>
@@ -61,7 +68,7 @@ export function SupervisedDogsSection() {
       </CardHeader>
       <CardContent>
         {dogs === null ? (
-          <p className="text-sm text-muted-foreground">Lädt…</p>
+          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : (
           <ul className="flex flex-col gap-1.5">
             {dogs.map((dog) => (
@@ -92,7 +99,7 @@ export function SupervisedDogsSection() {
                       eine Information, die vor dem Antippen zählt. */}
                   {dog.activeGoalCount === 0 && (
                     <Badge variant="outline" className="shrink-0 text-xs">
-                      kein Ziel
+{t("kein Ziel")}
                     </Badge>
                   )}
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground" />

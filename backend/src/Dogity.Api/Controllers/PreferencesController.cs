@@ -30,6 +30,14 @@ public class PreferencesController(IPreferenceService preferences) : ApiControll
         FromResult(await preferences.UpdateLocaleAsync(CurrentUserId, request, ct));
 
     /// <summary>
+    /// Geltungsbereich der Prüfungsordnungen - eigener Endpunkt und nicht
+    /// Teil der Sprache, weil beides unabhängig voneinander gewählt wird.
+    /// </summary>
+    [HttpPut("country")]
+    public async Task<IActionResult> UpdateCountry(UpdateCountryRequest request, CancellationToken ct) =>
+        FromResult(await preferences.UpdateCountryAsync(CurrentUserId, request, ct));
+
+    /// <summary>
     /// Die Sportarten, die für diesen Hund gelten - eigene Auswahl, sonst die
     /// des Menschen, sonst alle (leere Liste = keine Einschränkung).
     /// </summary>

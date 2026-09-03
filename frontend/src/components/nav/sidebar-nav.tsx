@@ -10,11 +10,13 @@ import { useAuth } from "@/lib/auth-context";
 import { usePreferences } from "@/lib/preferences-context";
 import { PawPrint } from "lucide-react";
 import { EnvBadge } from "@/components/env-badge";
+import { useT } from "@/lib/i18n";
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { user, isTrainer } = useAuth();
   const { moduleEnabled } = usePreferences();
+  const t = useT();
   // Wie in der unteren Navigation: Ein ausgeblendetes Modul verschwindet auch
   // aus dem Menü.
   const items = [
@@ -49,13 +51,13 @@ export function SidebarNav() {
               )}
             >
               <Icon className={cn("size-4", isActive && "text-primary")} />
-              {label}
+              {t(label)}
             </Link>
           );
         })}
       </nav>
       <div className="flex items-center justify-between px-2">
-        <span className="text-xs text-muted-foreground">Theme</span>
+        <span className="text-xs text-muted-foreground">{t("Darstellung")}</span>
         <ThemeToggle />
       </div>
     </aside>

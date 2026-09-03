@@ -5,13 +5,15 @@ import { syncQueuedRequests } from "@/lib/offline-queue";
 import { WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Synchronisiert die IndexedDB-Warteschlange (Training/GPS offline erfasst),
  * sobald die Verbindung wieder verfügbar ist, und zeigt den Online/Offline-
- * Status an (siehe PRODUCT_REQUIREMENTS.md "Offline": "später synchronisieren").
+ * Status an (siehe PRODUCT_REQUIREMENTS.md "Offline": später synchronisieren).
  */
 export function OfflineSyncListener() {
   const [isOffline, setIsOffline] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     async function trySync() {
@@ -54,7 +56,7 @@ export function OfflineSyncListener() {
   return (
     <div className="flex items-center justify-center gap-2 bg-amber-500/15 px-4 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
       <WifiOff className="size-3.5" />
-      Offline – Änderungen werden lokal gespeichert und später synchronisiert.
+{t("Offline – Änderungen werden lokal gespeichert und später synchronisiert.")}
     </div>
   );
 }

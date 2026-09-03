@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Building2, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Offene Vereinsanträge freigeben oder ablehnen.
  *
@@ -21,6 +22,7 @@ import { toast } from "sonner";
  * Ablehnung führt nur zum nächsten, gleichlautenden Antrag.
  */
 export function VereinsantraegeSection() {
+  const t = useT();
   const [antraege, setAntraege] = useState<ClubRegistration[] | null>(null);
   const [begruendung, setBegruendung] = useState<Record<string, string>>({});
   const [laeuft, setLaeuft] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export function VereinsantraegeSection() {
     try {
       setAntraege(await api.get<ClubRegistration[]>("/api/admin/club-registrations"));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Anträge konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Anträge konnten nicht geladen werden."));
     }
   }
 
@@ -44,7 +46,7 @@ export function VereinsantraegeSection() {
     try {
       if (freigeben) {
         await api.post(`/api/admin/club-registrations/${id}/approve`);
-        toast.success("Verein freigegeben.");
+        toast.success(t("Verein freigegeben."));
       } else {
         await api.post(`/api/admin/club-registrations/${id}/reject`, { note: begruendung[id] ?? null });
         toast.success("Antrag abgelehnt.");
@@ -66,15 +68,15 @@ export function VereinsantraegeSection() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Building2 className="size-5" />
-          Vereinsanträge
+{t("Vereinsanträge")}
         </CardTitle>
         <CardDescription>
-          Freigeben legt den Verein an und macht den Antragsteller zu seiner ersten verwaltenden Person.
+{t("Freigeben legt den Verein an und macht den Antragsteller zu seiner ersten verwaltenden Person.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {antraege === null ? (
-          <p className="text-sm text-muted-foreground">Lädt…</p>
+          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : (
           antraege.map((a) => (
             <div key={a.id} className="flex flex-col gap-2 rounded-md border px-3 py-2">
@@ -88,7 +90,7 @@ export function VereinsantraegeSection() {
                 </p>
               </div>
               <Input
-                placeholder="Begründung bei Ablehnung (optional)"
+                placeholder={t("Begründung bei Ablehnung (optional)")}
                 value={begruendung[a.id] ?? ""}
                 onChange={(e) => setBegruendung((v) => ({ ...v, [a.id]: e.target.value }))}
               />

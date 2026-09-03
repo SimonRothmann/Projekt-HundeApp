@@ -57,11 +57,27 @@ public class SportsController(ISportCatalogService catalogService, IRegulationMa
         return Ok(result.Value);
     }
 
+    /// <summary>
+    /// Die wählbaren Geltungsbereiche. Anonym erreichbar, weil die
+    /// öffentliche Prüfungsordnungsseite sie ebenfalls braucht.
+    /// </summary>
+    [HttpGet("countries")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IReadOnlyList<CountryDto>>> GetCountries(CancellationToken ct)
+    {
+        var result = await catalogService.GetCountriesAsync(ct);
+        return Ok(result.Value);
+    }
+
+    /// <param name="country">
+    /// Optionales Länderkürzel. Ohne Angabe kommen alle Ordnungen - der
+    /// Katalogpflege dient das, nicht der Anzeige.
+    /// </param>
     [HttpGet("{sportId:guid}/regulations")]
     [AllowAnonymous]
-    public async Task<ActionResult<IReadOnlyList<RegulationDto>>> GetRegulations(Guid sportId, CancellationToken ct)
+    public async Task<ActionResult<IReadOnlyList<RegulationDto>>> GetRegulations(Guid sportId, [FromQuery] string? country, CancellationToken ct)
     {
-        var result = await catalogService.GetRegulationsAsync(sportId, ct);
+        var result = await catalogService.GetRegulationsAsync(sportId, country, ct);
         if (!result.Succeeded)
             return NotFound(new { errors = result.Errors });
 

@@ -11,7 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PawPrint } from "lucide-react";
 import { AuthBackLink } from "@/components/auth-back-link";
 
+import { useT } from "@/lib/i18n";
 function ResetPasswordForm() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
@@ -30,20 +32,20 @@ function ResetPasswordForm() {
       await api.post("/api/auth/reset-password", { email, token, newPassword });
       setDone(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Zurücksetzen fehlgeschlagen.");
+      setError(err instanceof ApiError ? err.message : t("Zurücksetzen fehlgeschlagen."));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   if (!email || !token) {
-    return <p className="text-sm text-destructive">Link ist ungültig. Bitte fordere einen neuen Link an.</p>;
+    return <p className="text-sm text-destructive">{t("Link ist ungültig. Bitte fordere einen neuen Link an.")}</p>;
   }
 
   if (done) {
     return (
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-muted-foreground">Dein Passwort wurde geändert.</p>
+        <p className="text-sm text-muted-foreground">{t("Dein Passwort wurde geändert.")}</p>
         <Button className="h-11" onClick={() => router.push("/login")}>
           Zur Anmeldung
         </Button>
@@ -54,7 +56,7 @@ function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="newPassword">Neues Passwort</Label>
+        <Label htmlFor="newPassword">{t("Neues Passwort")}</Label>
         <Input
           id="newPassword"
           type="password"
@@ -67,13 +69,14 @@ function ResetPasswordForm() {
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" className="h-11" disabled={isSubmitting}>
-        {isSubmitting ? "Wird geändert…" : "Passwort ändern"}
+        {isSubmitting ? t("Wird geändert…") : t("Passwort ändern")}
       </Button>
     </form>
   );
 }
 
 export default function ResetPasswordPage() {
+  const t = useT();
   return (
     <main className="flex min-h-full flex-1 items-center justify-center bg-muted/40 p-4">
       <div className="flex w-full max-w-sm flex-col gap-3">
@@ -81,8 +84,8 @@ export default function ResetPasswordPage() {
         <Card className="w-full">
           <CardHeader className="items-center text-center">
             <PawPrint className="size-8 text-primary" />
-            <CardTitle className="text-xl">Neues Passwort setzen</CardTitle>
-            <CardDescription>Wähle ein neues Passwort für dein Konto</CardDescription>
+            <CardTitle className="text-xl">{t("Neues Passwort setzen")}</CardTitle>
+            <CardDescription>{t("Wähle ein neues Passwort für dein Konto")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Suspense>
@@ -90,7 +93,7 @@ export default function ResetPasswordPage() {
             </Suspense>
             <p className="mt-4 text-center text-sm text-muted-foreground">
               <Link href="/login" className="text-primary underline-offset-4 hover:underline">
-                Zurück zur Anmeldung
+{t("Zurück zur Anmeldung")}
               </Link>
             </p>
           </CardContent>

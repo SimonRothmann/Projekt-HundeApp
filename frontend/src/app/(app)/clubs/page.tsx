@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, Users } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 function membershipFor(memberships: ClubMembership[], clubId: string): ClubMembership | undefined {
   // Bei mehrfachen Anfragen (z.B. nach Ablehnung erneut angefragt) zählt
   // die jüngste Zeile.
@@ -19,6 +20,7 @@ function membershipFor(memberships: ClubMembership[], clubId: string): ClubMembe
 }
 
 export default function ClubsPage() {
+  const t = useT();
   const [clubs, setClubs] = useState<ClubSummary[] | null>(null);
   const [memberships, setMemberships] = useState<ClubMembership[]>([]);
   const [groupsByClub, setGroupsByClub] = useState<Record<string, Group[]>>({});
@@ -55,7 +57,7 @@ export default function ClubsPage() {
       );
       if (visibleIds.length > 0) await loadGroups(visibleIds);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Vereine konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Vereine konnten nicht geladen werden."));
     }
   }
 
@@ -73,7 +75,7 @@ export default function ClubsPage() {
       toast.success("Beitrittsanfrage gesendet.");
       await loadAll();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Anfrage fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Anfrage fehlgeschlagen."));
     } finally {
       setJoiningClubId(null);
     }
@@ -84,7 +86,7 @@ export default function ClubsPage() {
     setLeavingClubId(clubId);
     try {
       await api.delete(`/api/clubs/${clubId}/membership`);
-      toast.success("Verein verlassen.");
+      toast.success(t("Verein verlassen."));
       await loadAll();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Verlassen fehlgeschlagen.");
@@ -112,14 +114,14 @@ export default function ClubsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Vereine</h1>
         <p className="text-muted-foreground">
-          Tritt einem Verein bei - ein Trainer des Vereins gibt deine Anfrage frei.
+{t("Tritt einem Verein bei - ein Trainer des Vereins gibt deine Anfrage frei.")}
         </p>
       </div>
 
       {clubs === null ? (
-        <p className="text-sm text-muted-foreground">Lädt…</p>
+        <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
       ) : clubs.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Noch keine Vereine vorhanden.</p>
+        <p className="text-sm text-muted-foreground">{t("Noch keine Vereine vorhanden.")}</p>
       ) : (
         <div className="flex flex-col gap-4">
           {clubs.map((club) => {
@@ -138,21 +140,21 @@ export default function ClubsPage() {
                 <CardContent className="flex flex-col gap-4">
                   {isApproved ? (
                     <div className="flex items-center gap-2">
-                      <Badge>Mitglied</Badge>
+                      <Badge>{t("Mitglied")}</Badge>
                       <Button
                         size="sm"
                         variant="ghost"
                         disabled={leavingClubId === club.id}
                         onClick={() => handleLeave(club.id, club.name)}
                       >
-                        {leavingClubId === club.id ? "Wird verlassen…" : "Verein verlassen"}
+                        {leavingClubId === club.id ? t("Wird verlassen…") : t("Verein verlassen")}
                       </Button>
                     </div>
                   ) : membership?.status === 0 ? (
-                    <Badge variant="secondary">Anfrage ausstehend</Badge>
+                    <Badge variant="secondary">{t("Anfrage ausstehend")}</Badge>
                   ) : (
                     <Button size="sm" disabled={joiningClubId === club.id} onClick={() => handleJoin(club.id)}>
-                      {joiningClubId === club.id ? "Wird gesendet…" : "Beitreten"}
+                      {joiningClubId === club.id ? t("Wird gesendet…") : "Beitreten"}
                     </Button>
                   )}
 
@@ -172,11 +174,11 @@ export default function ClubsPage() {
                               Trainer:innen und Mitgliedern bot die Seite vorher
                               denselben Knopf an. */}
                           {g.myRelation === 3 ? (
-                            <Badge variant="secondary" className="shrink-0">Trainer:in</Badge>
+                            <Badge variant="secondary" className="shrink-0">{t("Trainer:in")}</Badge>
                           ) : g.myRelation === 2 ? (
-                            <Badge variant="secondary" className="shrink-0">Mitglied</Badge>
+                            <Badge variant="secondary" className="shrink-0">{t("Mitglied")}</Badge>
                           ) : g.myRelation === 1 ? (
-                            <Badge variant="outline" className="shrink-0">Anfrage ausstehend</Badge>
+                            <Badge variant="outline" className="shrink-0">{t("Anfrage ausstehend")}</Badge>
                           ) : (
                             <Button
                               size="sm"
@@ -184,7 +186,7 @@ export default function ClubsPage() {
                               disabled={joiningGroupId === g.id}
                               onClick={() => handleJoinGroup(g.id)}
                             >
-                              {joiningGroupId === g.id ? "Wird gesendet…" : "Beitreten"}
+                              {joiningGroupId === g.id ? t("Wird gesendet…") : "Beitreten"}
                             </Button>
                           )}
                         </div>

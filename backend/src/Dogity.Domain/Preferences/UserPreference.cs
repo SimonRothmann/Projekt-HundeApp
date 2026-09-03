@@ -25,6 +25,18 @@ public class UserPreference : Entity
     /// </summary>
     public string? Locale { get; set; }
 
+    /// <summary>
+    /// Geltungsbereich der Prüfungsordnungen als ISO-3166-1-alpha-2-Kürzel.
+    /// Null = noch nicht gewählt, es gilt die Vorgabe der App ("DE").
+    ///
+    /// Getrennt von <see cref="Locale"/> und nicht daraus abgeleitet, obwohl
+    /// das naheläge: Wer in Deutschland trainiert und die App auf Englisch
+    /// nutzt, braucht weiterhin die deutschen Ordnungen - die BH bleibt die
+    /// BH. Und wer in Österreich lebt, spricht dieselbe Sprache, hat aber
+    /// einen anderen Verband.
+    /// </summary>
+    public string? Country { get; set; }
+
     public ICollection<UserDisabledModule> DisabledModules { get; set; } = new List<UserDisabledModule>();
     public ICollection<UserSportSelection> Sports { get; set; } = new List<UserSportSelection>();
 }

@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+import { useT } from "@/lib/i18n";
 /**
  * Rückweg von den Anmeldeseiten zur Startseite.
  *
@@ -14,13 +17,14 @@ import { ArrowLeft } from "lucide-react";
  * Bereich).
  */
 export function AuthBackLink() {
+  const t = useT();
   return (
     <Link
       href="/"
       className="inline-flex items-center gap-1.5 self-start text-sm text-muted-foreground transition-colors hover:text-foreground coarse:min-h-11"
     >
       <ArrowLeft className="size-4" />
-      Zurück zur Startseite
+{t("Zurück zur Startseite")}
     </Link>
   );
 }

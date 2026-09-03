@@ -19,7 +19,9 @@ import { Badge } from "@/components/ui/badge";
 import { LogOut, ShieldCheck, Pencil, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 export default function ProfilePage() {
+  const t = useT();
   const { user, logout, updateUser } = useAuth();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -46,7 +48,12 @@ export default function ProfilePage() {
         setLastName(p.lastName);
         setAvatarUrl(p.avatarUrl ?? "");
       })
-      .catch((err) => toast.error(err instanceof ApiError ? err.message : "Profil konnte nicht geladen werden."));
+      .catch((err) => toast.error(err instanceof ApiError ? err.message : t("Profil konnte nicht geladen werden.")));
+    // t bewusst nicht in der Liste: Der Uebersetzer wird hier nur im
+    // Fehlerfall gebraucht. Stuende er drin, liefe der ganze Abruf bei
+    // jedem Sprachwechsel erneut - Daten neu laden, weil ein Toast
+    // anders heissen wuerde.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   if (!user) return null;
@@ -66,7 +73,7 @@ export default function ProfilePage() {
       updateUser({ firstName, lastName });
       toast.success("Profil aktualisiert.");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Speichern fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Speichern fehlgeschlagen."));
     } finally {
       setSavingProfile(false);
     }
@@ -78,11 +85,11 @@ export default function ProfilePage() {
     try {
       await api.put("/api/profile/email", { newEmail, currentPassword: emailPassword });
       updateUser({ email: newEmail });
-      toast.success("E-Mail-Adresse geändert.");
+      toast.success(t("E-Mail-Adresse geändert."));
       setNewEmail("");
       setEmailPassword("");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Ändern fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Ändern fehlgeschlagen."));
     } finally {
       setSavingEmail(false);
     }
@@ -93,11 +100,11 @@ export default function ProfilePage() {
     setSavingPassword(true);
     try {
       await api.put("/api/profile/password", { currentPassword, newPassword });
-      toast.success("Passwort geändert.");
+      toast.success(t("Passwort geändert."));
       setCurrentPassword("");
       setNewPassword("");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Ändern fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Ändern fehlgeschlagen."));
     } finally {
       setSavingPassword(false);
     }
@@ -122,7 +129,7 @@ export default function ProfilePage() {
           {!editing && (
             <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
               <Pencil className="size-4" />
-              Bearbeiten
+{t("Bearbeiten")}
             </Button>
           )}
         </CardHeader>
@@ -140,7 +147,7 @@ export default function ProfilePage() {
               className={`self-start md:hidden ${buttonVariants({ variant: "outline" })}`}
             >
               <ShieldCheck className="size-4" />
-              Admin-Übersicht
+{t("Admin-Übersicht")}
             </Link>
           )}
           <Button variant="destructive" className="self-start" onClick={handleLogout}>
@@ -186,10 +193,10 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" disabled={savingProfile}>
-                    {savingProfile ? "Speichert…" : "Speichern"}
+                    {savingProfile ? "Speichert…" : t("Speichern")}
                   </Button>
                   <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
-                    Schließen
+{t("Schließen")}
                   </Button>
                 </div>
               </form>
@@ -198,12 +205,12 @@ export default function ProfilePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">E-Mail ändern</CardTitle>
+              <CardTitle className="text-base">{t("E-Mail ändern")}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleChangeEmail} className="flex flex-col gap-4 sm:flex-row sm:items-end">
                 <div className="flex flex-col gap-2 sm:flex-1">
-                  <Label htmlFor="newEmail">Neue E-Mail</Label>
+                  <Label htmlFor="newEmail">{t("Neue E-Mail")}</Label>
                   <Input id="newEmail" type="email" required value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-1">
@@ -217,7 +224,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 <Button type="submit" disabled={savingEmail}>
-                  {savingEmail ? "Ändert…" : "Ändern"}
+                  {savingEmail ? t("Ändert…") : t("Ändern")}
                 </Button>
               </form>
             </CardContent>
@@ -225,7 +232,7 @@ export default function ProfilePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Passwort ändern</CardTitle>
+              <CardTitle className="text-base">{t("Passwort ändern")}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleChangePassword} className="flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -240,7 +247,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-1">
-                  <Label htmlFor="newPassword">Neues Passwort</Label>
+                  <Label htmlFor="newPassword">{t("Neues Passwort")}</Label>
                   <Input
                     id="newPassword"
                     type="password"
@@ -251,7 +258,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 <Button type="submit" disabled={savingPassword}>
-                  {savingPassword ? "Ändert…" : "Ändern"}
+                  {savingPassword ? t("Ändert…") : t("Ändern")}
                 </Button>
               </form>
             </CardContent>
@@ -277,7 +284,7 @@ export default function ProfilePage() {
       </Card>
 
       <div className="flex flex-col items-center gap-2 pt-2 text-center">
-        <p className="text-xs text-muted-foreground">Gefällt dir Dogity? Über Unterstützung freue ich mich sehr.</p>
+        <p className="text-xs text-muted-foreground">{t("Gefällt dir Dogity? Über Unterstützung freue ich mich sehr.")}</p>
         <SupportButton />
       </div>
     </div>

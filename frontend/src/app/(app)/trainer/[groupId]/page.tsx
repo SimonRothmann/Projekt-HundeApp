@@ -15,7 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserPlus, Dog as DogIcon, ChevronDown, ChevronRight, Trash2, Pencil, UserCog } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 export default function TrainerGroupPage() {
+  const t = useT();
   const params = useParams<{ groupId: string }>();
   const groupId = params.groupId;
   const router = useRouter();
@@ -55,7 +57,7 @@ export default function TrainerGroupPage() {
         }
       }
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Gruppe konnte nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Gruppe konnte nicht geladen werden."));
     }
   }
 
@@ -71,26 +73,26 @@ export default function TrainerGroupPage() {
     if (!window.confirm(`Gruppe "${detail.group.name}" wirklich auflösen? Mitgliedschaften werden entfernt. Trainings und Hunde bleiben erhalten.`)) return;
     try {
       await api.delete(`/api/groups/${groupId}`);
-      toast.success("Gruppe aufgelöst.");
+      toast.success(t("Gruppe aufgelöst."));
       router.replace("/trainer");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Gruppe konnte nicht gelöscht werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Gruppe konnte nicht gelöscht werden."));
     }
   }
 
   async function saveEdit() {
     if (!editName.trim()) {
-      toast.error("Name ist erforderlich.");
+      toast.error(t("Name ist erforderlich."));
       return;
     }
     setSavingEdit(true);
     try {
       await api.put(`/api/groups/${groupId}`, { name: editName.trim(), description: editDescription.trim() || null });
-      toast.success("Gruppe aktualisiert.");
+      toast.success(t("Gruppe aktualisiert."));
       setEditing(false);
       await loadDetail();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Gruppe konnte nicht gespeichert werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Gruppe konnte nicht gespeichert werden."));
     } finally {
       setSavingEdit(false);
     }
@@ -101,11 +103,11 @@ export default function TrainerGroupPage() {
     setAssigning(true);
     try {
       await api.put(`/api/groups/${groupId}/trainer`, { trainerId: selectedTrainerId });
-      toast.success("Trainer:in zugewiesen.");
+      toast.success(t("Trainer:in zugewiesen."));
       setSelectedTrainerId("");
       await loadDetail();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Trainer:in konnte nicht zugewiesen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Trainer:in konnte nicht zugewiesen werden."));
     } finally {
       setAssigning(false);
     }
@@ -117,11 +119,11 @@ export default function TrainerGroupPage() {
     setAddingCoTrainer(true);
     try {
       await api.post(`/api/groups/${groupId}/co-trainers`, { email: coTrainerEmail.trim() });
-      toast.success("Trainer:in hinzugefügt.");
+      toast.success(t("Trainer:in hinzugefügt."));
       setCoTrainerEmail("");
       await loadDetail();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Trainer:in konnte nicht hinzugefügt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Trainer:in konnte nicht hinzugefügt werden."));
     } finally {
       setAddingCoTrainer(false);
     }
@@ -130,10 +132,10 @@ export default function TrainerGroupPage() {
   async function removeCoTrainer(userId: string) {
     try {
       await api.delete(`/api/groups/${groupId}/co-trainers/${userId}`);
-      toast.success("Trainer:in entfernt.");
+      toast.success(t("Trainer:in entfernt."));
       await loadDetail();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Trainer:in konnte nicht entfernt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Trainer:in konnte nicht entfernt werden."));
     }
   }
 
@@ -150,11 +152,11 @@ export default function TrainerGroupPage() {
     setSubmitting(true);
     try {
       await api.post(`/api/groups/${groupId}/members`, { email });
-      toast.success("Mitglied hinzugefügt.");
+      toast.success(t("Mitglied hinzugefügt."));
       setEmail("");
       await loadDetail();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Mitglied konnte nicht hinzugefügt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Mitglied konnte nicht hinzugefügt werden."));
     } finally {
       setSubmitting(false);
     }
@@ -163,10 +165,10 @@ export default function TrainerGroupPage() {
   async function handleRemoveMember(memberId: string) {
     try {
       await api.delete(`/api/groups/${groupId}/members/${memberId}`);
-      toast.success("Mitglied entfernt.");
+      toast.success(t("Mitglied entfernt."));
       await loadDetail();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Mitglied konnte nicht entfernt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Mitglied konnte nicht entfernt werden."));
     }
   }
 
@@ -181,7 +183,7 @@ export default function TrainerGroupPage() {
         const dogs = await api.get<MemberDog[]>(`/api/groups/${groupId}/members/${memberId}/dogs`);
         setMemberDogs((prev) => ({ ...prev, [memberId]: dogs }));
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Hunde konnten nicht geladen werden.");
+        toast.error(err instanceof ApiError ? err.message : t("Hunde konnten nicht geladen werden."));
       }
     }
   }
@@ -195,14 +197,14 @@ export default function TrainerGroupPage() {
       const dogs = await api.get<MemberDog[]>(`/api/groups/${groupId}/members/${memberId}/dogs`);
       setMemberDogs((prev) => ({ ...prev, [memberId]: dogs }));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Betreuung konnte nicht beendet werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Betreuung konnte nicht beendet werden."));
     }
   }
 
   async function handleAssign(memberId: string, dogId: string) {
     try {
       await api.post(`/api/groups/${groupId}/trainer-assignments`, { memberId, dogId });
-      toast.success("Du betreust diesen Hund jetzt.");
+      toast.success(t("Du betreust diesen Hund jetzt."));
       const dogs = await api.get<MemberDog[]>(`/api/groups/${groupId}/members/${memberId}/dogs`);
       setMemberDogs((prev) => ({ ...prev, [memberId]: dogs }));
     } catch (err) {
@@ -211,7 +213,7 @@ export default function TrainerGroupPage() {
   }
 
   if (detail === null) {
-    return <p className="text-muted-foreground">Lädt…</p>;
+    return <p className="text-muted-foreground">{t("Lädt…")}</p>;
   }
 
   return (
@@ -228,11 +230,11 @@ export default function TrainerGroupPage() {
           Für jede:n Trainer:in des Vereins möglich (Backend prüft die Rechte). */}
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">Gruppe</CardTitle>
+          <CardTitle className="text-base">{t("Gruppe")}</CardTitle>
           {!editing && (
             <Button type="button" size="sm" variant="outline" onClick={startEdit}>
               <Pencil className="size-3.5" />
-              Bearbeiten
+{t("Bearbeiten")}
             </Button>
           )}
           {!editing && (
@@ -244,7 +246,7 @@ export default function TrainerGroupPage() {
               onClick={handleDeleteGroup}
             >
               <Trash2 className="size-3.5" />
-              Gruppe löschen
+{t("Gruppe löschen")}
             </Button>
           )}
         </CardHeader>
@@ -261,10 +263,10 @@ export default function TrainerGroupPage() {
               </div>
               <div className="flex gap-2">
                 <Button type="button" size="sm" disabled={savingEdit} onClick={saveEdit}>
-                  {savingEdit ? "Speichert…" : "Speichern"}
+                  {savingEdit ? "Speichert…" : t("Speichern")}
                 </Button>
                 <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
-                  Abbrechen
+{t("Abbrechen")}
                 </Button>
               </div>
             </div>
@@ -280,7 +282,7 @@ export default function TrainerGroupPage() {
           <div className="flex flex-col gap-3 border-t pt-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <UserCog className="size-4 shrink-0 text-muted-foreground" />
-              Trainer:innen
+{t("Trainer:innen")}
             </div>
 
             <ul className="flex flex-col gap-1.5">
@@ -306,7 +308,7 @@ export default function TrainerGroupPage() {
                       size="icon"
                       className="shrink-0"
                       aria-label={`${trainer.firstName} ${trainer.lastName}`.trim() || trainer.email}
-                      title="Trainer:in entfernen"
+                      title={t("Trainer:in entfernen")}
                       onClick={() => removeCoTrainer(trainer.userId)}
                     >
                       <Trash2 className="size-4 text-muted-foreground" />
@@ -318,7 +320,7 @@ export default function TrainerGroupPage() {
 
             <form onSubmit={addCoTrainer} className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <div className="flex flex-col gap-1.5 sm:flex-1">
-                <Label htmlFor="cotrainer-email">Weitere:n Trainer:in hinzufügen</Label>
+                <Label htmlFor="cotrainer-email">{t("Weitere:n Trainer:in hinzufügen")}</Label>
                 <Input
                   id="cotrainer-email"
                   type="email"
@@ -329,7 +331,7 @@ export default function TrainerGroupPage() {
               </div>
               <Button type="submit" size="sm" disabled={addingCoTrainer || !coTrainerEmail.trim()}>
                 <UserPlus className="size-4" />
-                {addingCoTrainer ? "Fügt hinzu…" : "Hinzufügen"}
+                {addingCoTrainer ? t("Fügt hinzu…") : t("Hinzufügen")}
               </Button>
             </form>
 
@@ -339,7 +341,7 @@ export default function TrainerGroupPage() {
                   <Label>Hauptverantwortliche:n wechseln</Label>
                   <Select value={selectedTrainerId} onValueChange={(v) => setSelectedTrainerId(v ?? "")}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Trainer:in wählen…" />
+                      <SelectValue placeholder={t("Trainer:in wählen…")} />
                     </SelectTrigger>
                     <SelectContent>
                       {trainers.map((t) => (
@@ -362,8 +364,7 @@ export default function TrainerGroupPage() {
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Die/den Hauptverantwortliche:n zu wechseln geht nur bei Vereinsgruppen. Weitere Trainer:innen lassen sich
-                überall hinzufügen.
+{t("Die/den Hauptverantwortliche:n zu wechseln geht nur bei Vereinsgruppen. Weitere Trainer:innen lassen sich überall hinzufügen.")}
               </p>
             )}
           </div>
@@ -372,7 +373,7 @@ export default function TrainerGroupPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Mitglied einladen</CardTitle>
+          <CardTitle className="text-base">{t("Mitglied einladen")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAddMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -389,18 +390,18 @@ export default function TrainerGroupPage() {
             </div>
             <Button type="submit" disabled={submitting}>
               <UserPlus className="size-4" />
-              Hinzufügen
+{t("Hinzufügen")}
             </Button>
           </form>
         </CardContent>
       </Card>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Mitglieder</h2>
+        <h2 className="text-lg font-semibold">{t("Mitglieder")}</h2>
         {detail.members.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center text-muted-foreground">
-              Noch keine Mitglieder in dieser Gruppe.
+{t("Noch keine Mitglieder in dieser Gruppe.")}
             </CardContent>
           </Card>
         ) : (
@@ -437,9 +438,9 @@ export default function TrainerGroupPage() {
                 {isOpen && (
                   <CardContent>
                     {!dogs ? (
-                      <p className="text-sm text-muted-foreground">Lädt Hunde…</p>
+                      <p className="text-sm text-muted-foreground">{t("Lädt Hunde…")}</p>
                     ) : dogs.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Dieses Mitglied hat noch keine Hunde angelegt.</p>
+                      <p className="text-sm text-muted-foreground">{t("Dieses Mitglied hat noch keine Hunde angelegt.")}</p>
                     ) : (
                       <ul className="flex flex-col gap-2">
                         {dogs.map((dog) => (
@@ -467,12 +468,12 @@ export default function TrainerGroupPage() {
                                   href={`/dogs/${dog.id}?from=${encodeURIComponent(`/trainer/${groupId}`)}`}
                                   className="text-sm text-primary underline"
                                 >
-                                  Zum Hund
+{t("Zum Hund")}
                                 </Link>
                               </div>
                             ) : (
                               <Button size="sm" variant="outline" onClick={() => handleAssign(member.userId, dog.id)}>
-                                Als Trainer betreuen
+{t("Als Trainer betreuen")}
                               </Button>
                             )}
                           </li>

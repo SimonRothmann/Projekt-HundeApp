@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Download, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 // Chrome/Edge/Android fire this event before showing the native install prompt.
 // iOS Safari has no equivalent — we show manual instructions there instead.
 interface BeforeInstallPromptEvent extends Event {
@@ -25,6 +26,7 @@ function isInStandaloneMode() {
 
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const t = useT();
   const [showIosHint, setShowIosHint] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
@@ -34,8 +36,9 @@ export function PwaInstallPrompt() {
 
     if (isIos()) {
       // iOS: kein beforeinstallprompt — manuellen Hinweis nach 3 s zeigen.
-      const t = window.setTimeout(() => setShowIosHint(true), 3000);
-      return () => window.clearTimeout(t);
+      // Umbenannt: hiess frueher t und verdeckte damit den Uebersetzer.
+      const zeitgeber = window.setTimeout(() => setShowIosHint(true), 3000);
+      return () => window.clearTimeout(zeitgeber);
     }
 
     function handlePrompt(e: Event) {
@@ -51,7 +54,7 @@ export function PwaInstallPrompt() {
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === "accepted") {
-      toast.success("App wird installiert.");
+      toast.success(t("App wird installiert."));
     }
     setDeferredPrompt(null);
   }
@@ -62,7 +65,7 @@ export function PwaInstallPrompt() {
     return (
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border bg-background px-4 py-3 shadow-lg text-sm max-w-sm w-[calc(100%-2rem)]">
         <Download className="size-5 shrink-0 text-primary" />
-        <span className="flex-1">Als App installieren für den besten Offline-Erfahrung.</span>
+        <span className="flex-1">{t("Als App installieren – für die beste Erfahrung offline.")}</span>
         <Button size="sm" onClick={installAndroid}>
           Installieren
         </Button>

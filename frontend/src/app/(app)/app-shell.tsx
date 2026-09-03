@@ -10,9 +10,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/nav/notification-bell";
 import { OfflineSyncListener } from "@/components/offline-sync-listener";
 import { EnvBadge } from "@/components/env-badge";
+import { useT } from "@/lib/i18n";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
+  const t = useT();
   const router = useRouter();
 
   useEffect(() => {
@@ -20,7 +22,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [isLoading, user, router]);
 
   if (isLoading || !user) {
-    return <div className="flex flex-1 items-center justify-center text-muted-foreground">Lädt…</div>;
+    return <div className="flex flex-1 items-center justify-center text-muted-foreground">{t("Lädt…")}</div>;
   }
 
   return (

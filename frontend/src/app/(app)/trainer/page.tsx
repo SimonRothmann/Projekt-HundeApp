@@ -19,7 +19,9 @@ import { GroupJoinRequestsSection } from "@/components/trainer/group-join-reques
 import { SupervisedDogsSection } from "@/components/trainer/supervised-dogs-section";
 import { TrainerReviewSection } from "@/components/trainer/trainer-review-section";
 
+import { useT } from "@/lib/i18n";
 export default function TrainerPage() {
+  const t = useT();
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [myClubs, setMyClubs] = useState<Club[]>([]);
   const [name, setName] = useState("");
@@ -32,7 +34,7 @@ export default function TrainerPage() {
       const data = await api.get<Group[]>("/api/groups");
       setGroups(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Gruppen konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Gruppen konnten nicht geladen werden."));
     }
   }
 
@@ -43,7 +45,7 @@ export default function TrainerPage() {
     api
       .get<Club[]>("/api/groups/my-clubs")
       .then(setMyClubs)
-      .catch((err) => toast.error(err instanceof ApiError ? err.message : "Vereine konnten nicht geladen werden."));
+      .catch((err) => toast.error(err instanceof ApiError ? err.message : t("Vereine konnten nicht geladen werden.")));
   }, []);
 
   async function handleCreate(e: React.FormEvent) {
@@ -52,13 +54,13 @@ export default function TrainerPage() {
     setSubmitting(true);
     try {
       await api.post("/api/groups", { name, description: description || null, clubId: clubId || null });
-      toast.success("Gruppe angelegt.");
+      toast.success(t("Gruppe angelegt."));
       setName("");
       setDescription("");
       setClubId("");
       await loadGroups();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Gruppe konnte nicht angelegt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Gruppe konnte nicht angelegt werden."));
     } finally {
       setSubmitting(false);
     }
@@ -67,10 +69,9 @@ export default function TrainerPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Trainer-Übersicht</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Trainer-Übersicht")}</h1>
         <p className="text-muted-foreground">
-          Lege Trainingsgruppen an, lade Mitglieder per E-Mail ein und betreue ihre Hunde mit
-          individuellen Trainingsplänen.
+{t("Lege Trainingsgruppen an, lade Mitglieder per E-Mail ein und betreue ihre Hunde mit individuellen Trainingsplänen.")}
         </p>
       </div>
 
@@ -86,7 +87,7 @@ export default function TrainerPage() {
               <div className="min-w-0">
                 <CardTitle className="text-base">Gruppentraining</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Fertige Einheiten für Welpen &amp; Junghunde übernehmen oder eigene zusammenstellen
+{t("Fertige Einheiten für Welpen & Junghunde übernehmen oder eigene zusammenstellen")}
                 </p>
               </div>
             </div>
@@ -103,7 +104,7 @@ export default function TrainerPage() {
               <div className="min-w-0">
                 <CardTitle className="text-base">Terminplanung</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Gruppentrainings planen: wann, welche Gruppe, was gemacht wird (mit Mix-Generator &amp; Serien)
+{t("Gruppentrainings planen: wann, welche Gruppe, was gemacht wird (mit Mix-Generator & Serien)")}
                 </p>
               </div>
             </div>
@@ -114,7 +115,7 @@ export default function TrainerPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Neue Gruppe</CardTitle>
+          <CardTitle className="text-base">{t("Neue Gruppe")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -132,13 +133,13 @@ export default function TrainerPage() {
             </div>
             {myClubs.length > 0 && (
               <div className="flex flex-col gap-2 sm:w-48">
-                <Label>Verein (optional)</Label>
+                <Label>{t("Verein (optional)")}</Label>
                 <Select value={clubId} onValueChange={(value) => setClubId(value ?? "")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Kein Verein</SelectItem>
+                    <SelectItem value="">{t("Kein Verein")}</SelectItem>
                     {myClubs.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name}
@@ -150,18 +151,18 @@ export default function TrainerPage() {
             )}
             <Button type="submit" disabled={submitting}>
               <Plus className="size-4" />
-              Anlegen
+{t("Anlegen")}
             </Button>
           </form>
         </CardContent>
       </Card>
 
       {groups === null ? (
-        <p className="text-muted-foreground">Lädt…</p>
+        <p className="text-muted-foreground">{t("Lädt…")}</p>
       ) : groups.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
-            Noch keine Gruppen angelegt.
+{t("Noch keine Gruppen angelegt.")}
           </CardContent>
         </Card>
       ) : (
@@ -181,7 +182,7 @@ export default function TrainerPage() {
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {group.clubId && (
-                      <Badge variant="outline">{myClubs.find((c) => c.id === group.clubId)?.name ?? "Verein"}</Badge>
+                      <Badge variant="outline">{myClubs.find((c) => c.id === group.clubId)?.name ?? t("Verein")}</Badge>
                     )}
                     <Badge variant="secondary">{group.memberCount} Mitglieder</Badge>
                   </div>
@@ -210,7 +211,7 @@ export default function TrainerPage() {
               key={club.id}
               scope={{ kind: "club", clubId: club.id, clubName: club.name }}
               title={`Vereinseigener Katalog · ${club.name}`}
-              description="Eigene Sportarten und Übungen dieses Vereins - nur für Mitglieder und Trainer sichtbar."
+              description={t("Eigene Sportarten und Übungen dieses Vereins - nur für Mitglieder und Trainer sichtbar.")}
             />
           ))}
         </>

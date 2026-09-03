@@ -84,19 +84,63 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
         return Result<SportDto>.Success(new SportDto(sport.Id, sport.Code, sport.Name, sport.Description, sport.ClubId));
     }
 
-    public async Task<Result<IReadOnlyList<RegulationDto>>> GetRegulationsAsync(Guid sportId, CancellationToken ct = default)
+    public async Task<Result<IReadOnlyList<RegulationDto>>> GetRegulationsAsync(Guid sportId, string? country = null, CancellationToken ct = default)
     {
         var exists = await db.Sports.AnyAsync(s => s.Id == sportId, ct);
         if (!exists)
             return Result<IReadOnlyList<RegulationDto>>.NotFound("Sportart nicht gefunden.");
 
+        var land = Laendercode(country);
+
         var regulations = await db.Regulations
             .Where(r => r.SportId == sportId)
+            // Ohne Land alles; mit Land die des Landes PLUS die
+            // international gültigen. Letztere wegzulassen wäre der
+            // naheliegende Fehler: null heißt "gilt überall", also auch hier.
+            .Where(r => land == null || r.CountryCode == land || r.CountryCode == null)
             .OrderBy(r => r.Name)
-            .Select(r => new RegulationDto(r.Id, r.Name, r.SourceUrl, r.LastSyncedAt, r.LatestKnownVersionLabel, r.Description))
+            .Select(r => new RegulationDto(r.Id, r.Name, r.SourceUrl, r.LastSyncedAt, r.LatestKnownVersionLabel, r.Description, r.CountryCode))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<RegulationDto>>.Success(regulations);
+    }
+
+    public async Task<Result<IReadOnlyList<CountryDto>>> GetCountriesAsync(CancellationToken ct = default)
+    {
+        // Die Zählung kommt aus den Ordnungen, die Liste aus der Tabelle.
+        // Beides aus derselben Quelle zu holen ginge nicht: Ein Land ohne
+        // Inhalte käme in den Ordnungen gar nicht vor - und genau die
+        // sollen wählbar sein.
+        var international = await db.Regulations.CountAsync(r => r.CountryCode == null, ct);
+
+        var jeLand = await db.Regulations
+            .Where(r => r.CountryCode != null)
+            .GroupBy(r => r.CountryCode!)
+            .Select(g => new { Code = g.Key, Anzahl = g.Count() })
+            .ToListAsync(ct);
+
+        var laender = await db.Countries
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.Code)
+            .Select(c => c.Code)
+            .ToListAsync(ct);
+
+        return Result<IReadOnlyList<CountryDto>>.Success(laender
+            .Select(code => new CountryDto(
+                code,
+                (jeLand.FirstOrDefault(l => l.Code == code)?.Anzahl ?? 0) + international))
+            .ToList());
+    }
+
+    /// <summary>
+    /// Normalisiert eine Landesangabe aus dem Aufruf: Groß, getrimmt,
+    /// oder null. Ein leerer Wert bedeutet "keine Einschränkung" und darf
+    /// nicht als Land "" gegen die Datenbank laufen.
+    /// </summary>
+    private static string? Laendercode(string? wert)
+    {
+        var getrimmt = wert?.Trim();
+        return string.IsNullOrEmpty(getrimmt) ? null : getrimmt.ToUpperInvariant();
     }
 
     public async Task<Result<RegulationDetailDto>> GetRegulationDetailAsync(Guid regulationId, CancellationToken ct = default)
@@ -128,7 +172,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
             .ToListAsync(ct);
 
         var detail = new RegulationDetailDto(
-            new RegulationDto(regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description),
+            new RegulationDto(regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode),
             new RegulationVersionDto(currentVersion.Id, currentVersion.VersionLabel, currentVersion.ValidFrom),
             exercises);
 

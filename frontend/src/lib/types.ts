@@ -870,8 +870,16 @@ export type OnboardingStatus = {
  */
 export type UserPreferences = {
   locale: string | null;
+  /** Geltungsbereich der Prüfungsordnungen (ISO 3166-1 alpha-2), null = Vorgabe. */
+  country: string | null;
   disabledModules: string[];
   sportIds: string[];
+};
+
+/** Ein wählbarer Geltungsbereich - Spiegel von Application/Sports/CountryDto. */
+export type Country = {
+  code: string;
+  regulationCount: number;
 };
 
 /** Schlüssel der abschaltbaren Module - Spiegel von Application/Preferences/Modules.cs. */

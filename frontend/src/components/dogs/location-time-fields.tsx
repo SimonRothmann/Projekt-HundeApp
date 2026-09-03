@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Clock, Crosshair, History, Search } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /** Kürzere Eingaben liefern nur Rauschen und kosten unnötig Anfragen. */
 const SEARCH_MIN_CHARS = 3;
 const SEARCH_DEBOUNCE_MS = 350;
@@ -53,6 +54,7 @@ export function LocationTimeFields({
   location: LocationValue;
   onLocationChange: (value: LocationValue) => void;
 }) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocodeResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -119,7 +121,7 @@ export function LocationTimeFields({
 
   function useCurrentLocation() {
     if (!navigator.geolocation) {
-      toast.error("Standort wird von diesem Gerät nicht unterstützt.");
+      toast.error(t("Standort wird von diesem Gerät nicht unterstützt."));
       return;
     }
     setLocating(true);
@@ -143,11 +145,11 @@ export function LocationTimeFields({
           locationName: location.locationName || suggestion || "Aktueller Standort",
         });
         setLocating(false);
-        toast.success("Standort übernommen.");
+        toast.success(t("Standort übernommen."));
       },
       () => {
         setLocating(false);
-        toast.error("Standort konnte nicht ermittelt werden.");
+        toast.error(t("Standort konnte nicht ermittelt werden."));
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
@@ -169,7 +171,7 @@ export function LocationTimeFields({
   return (
     <>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`time-${idPrefix}`}>Uhrzeit des Trainings</Label>
+        <Label htmlFor={`time-${idPrefix}`}>{t("Uhrzeit des Trainings")}</Label>
         <div className="flex gap-2">
           <Input
             id={`time-${idPrefix}`}
@@ -228,7 +230,7 @@ export function LocationTimeFields({
 
         <div className="flex gap-2">
           <Input
-            placeholder="oder suchen: Hundeplatz, Verein, Adresse"
+            placeholder={t("oder suchen: Hundeplatz, Verein, Adresse")}
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             className="min-w-0 flex-1"
@@ -242,7 +244,7 @@ export function LocationTimeFields({
           <ul className="flex flex-col gap-1">
             {results.length === 0 ? (
               <li className="text-xs text-muted-foreground">
-                {searching ? "Suche…" : "Nichts gefunden – du kannst den Namen oben einfach eintippen."}
+                {searching ? "Suche…" : t("Nichts gefunden – du kannst den Namen oben einfach eintippen.")}
               </li>
             ) : (
               results.map((r, i) => (
@@ -266,7 +268,7 @@ export function LocationTimeFields({
         <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
           {location.latitude != null && location.longitude != null
             ? `Koordinaten gesetzt (${location.latitude.toFixed(3)}, ${location.longitude.toFixed(3)})`
-            : "Ohne Koordinaten wird kein Wetter ermittelt – nutze „Aktuellen Standort“ oder die Suche."}
+            : t("Ohne Koordinaten wird kein Wetter ermittelt – nutze „Aktuellen Standort“ oder die Suche.")}
         </p>
       </div>
     </>

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertTriangle, ChevronDown, ChevronRight, GraduationCap, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Verwaltung der Sachkunde-Fragen: alles ansehen und von Hand überarbeiten.
  *
@@ -37,6 +38,7 @@ type Entwurf = {
 };
 
 export function SachkundeSection() {
+  const t = useT();
   const [catalogs, setCatalogs] = useState<QuizCatalog[]>([]);
   const [katalog, setKatalog] = useState<string>(ALLE);
   const [komplex, setKomplex] = useState<string>(ALLE);
@@ -68,8 +70,11 @@ export function SachkundeSection() {
       setFragen(await api.get<AdminQuizQuestion[]>(`/api/admin/sachkunde/questions?${p}`));
     } catch (err) {
       setFragen([]);
-      toast.error(err instanceof ApiError ? err.message : "Die Fragen konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Die Fragen konnten nicht geladen werden."));
     }
+  // t bewusst nicht in der Liste - siehe die Effekte oben: Der
+  // Uebersetzer wird nur im Fehlerfall gebraucht.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [katalog, komplex, suche, nurAuffaellig, nurBearbeitet]);
 
   useEffect(() => {
@@ -118,7 +123,7 @@ export function SachkundeSection() {
       setEntwurf(null);
       await laden();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Speichern fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Speichern fehlgeschlagen."));
     } finally {
       setSpeichert(false);
     }
@@ -127,12 +132,12 @@ export function SachkundeSection() {
   async function zuruecknehmen(frage: AdminQuizQuestion) {
     try {
       await api.post(`/api/admin/sachkunde/questions/${frage.id}/revert`);
-      toast.success("Zurückgenommen – die Katalogfassung kommt beim nächsten Start der App zurück.");
+      toast.success(t("Zurückgenommen – die Katalogfassung kommt beim nächsten Start der App zurück."));
       setOffen(null);
       setEntwurf(null);
       await laden();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Zurücknehmen fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Zurücknehmen fehlgeschlagen."));
     }
   }
 
@@ -158,8 +163,7 @@ export function SachkundeSection() {
 
       <CardContent className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">
-          Die Kataloge kommen aus einer PDF-Auswertung – einzelne Texte brauchen eine Hand. Wer hier speichert,
-          hat ab dann das Sagen: Der Katalog überschreibt diese Frage beim nächsten Start der App nicht mehr.
+{t("Die Kataloge kommen aus einer PDF-Auswertung – einzelne Texte brauchen eine Hand. Wer hier speichert, hat ab dann das Sagen: Der Katalog überschreibt diese Frage beim nächsten Start der App nicht mehr.")}
         </p>
 
         <div className="flex flex-col gap-3">
@@ -169,7 +173,7 @@ export function SachkundeSection() {
                 <SelectValue placeholder="Katalog" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALLE}>Alle Kataloge</SelectItem>
+                <SelectItem value={ALLE}>{t("Alle Kataloge")}</SelectItem>
                 {catalogs.map((c) => (
                   <SelectItem key={c.code} value={c.code}>
                     {c.name}
@@ -183,7 +187,7 @@ export function SachkundeSection() {
                 <SelectValue placeholder="Komplex" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALLE}>Alle Komplexe</SelectItem>
+                <SelectItem value={ALLE}>{t("Alle Komplexe")}</SelectItem>
                 {komplexe.map((s) => (
                   <SelectItem key={s.key} value={s.key}>
                     {s.key} – {s.name}
@@ -197,7 +201,7 @@ export function SachkundeSection() {
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-8"
-              placeholder="In Fragen, Antworten und Lösungen suchen…"
+              placeholder={t("In Fragen, Antworten und Lösungen suchen…")}
               value={suche}
               onChange={(e) => setSuche(e.target.value)}
             />
@@ -210,7 +214,7 @@ export function SachkundeSection() {
               onClick={() => setNurAuffaellig((v) => !v)}
             >
               <AlertTriangle className="size-4" />
-              Nur auffällige
+{t("Nur auffällige")}
             </Button>
             <Button
               size="sm"
@@ -223,7 +227,7 @@ export function SachkundeSection() {
         </div>
 
         {fragen === null ? (
-          <p className="text-sm text-muted-foreground">Lädt…</p>
+          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : (
           <>
             <p className="text-xs text-muted-foreground tabular-nums">
@@ -261,12 +265,12 @@ export function SachkundeSection() {
                           )}
                           {frage.editedAt && (
                             <Badge variant="secondary" className="text-xs">
-                              von Hand
+{t("von Hand")}
                             </Badge>
                           )}
                           {hatFlags && (
                             <Badge variant="outline" className="border-amber-500/60 text-xs text-amber-600 dark:text-amber-400">
-                              auffällig
+{t("auffällig")}
                             </Badge>
                           )}
                         </span>
@@ -292,14 +296,14 @@ export function SachkundeSection() {
                           // eslint-disable-next-line @next/next/no-img-element -- feste Zeichnung aus /public.
                           <img
                             src={`/sachkunde/${frage.imageName}`}
-                            alt="Abbildung zur Frage"
+                            alt={t("Abbildung zur Frage")}
                             className="h-auto w-full max-w-xs rounded-md border border-border/60 bg-white"
                           />
                         )}
 
                         {(frage.kind === "FreeText" || frage.kind === "Assignment") && (
                           <div className="flex flex-col gap-1.5">
-                            <Label htmlFor={`loesung-${frage.id}`}>Musterlösung</Label>
+                            <Label htmlFor={`loesung-${frage.id}`}>{t("Musterlösung")}</Label>
                             <textarea
                               id={`loesung-${frage.id}`}
                               className="min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
@@ -339,15 +343,15 @@ export function SachkundeSection() {
 
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" disabled={speichert} onClick={() => speichern(frage)}>
-                            Speichern
+{t("Speichern")}
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => aufklappen(frage)}>
-                            Abbrechen
+{t("Abbrechen")}
                           </Button>
                           {frage.editedAt && (
                             <Button size="sm" variant="outline" onClick={() => zuruecknehmen(frage)}>
                               <RotateCcw className="size-4" />
-                              Katalogfassung zurückholen
+{t("Katalogfassung zurückholen")}
                             </Button>
                           )}
                         </div>
@@ -366,7 +370,7 @@ export function SachkundeSection() {
             </ul>
 
             {fragen.length === 0 && (
-              <p className="text-sm text-muted-foreground">Keine Frage passt zu diesen Filtern.</p>
+              <p className="text-sm text-muted-foreground">{t("Keine Frage passt zu diesen Filtern.")}</p>
             )}
           </>
         )}
@@ -410,11 +414,12 @@ function ZeilenListe({
   onEntfernen: (index: number) => void;
   onHinzufuegen: (kind: AdminQuizOption["kind"]) => void;
 }) {
+  const t = useT();
   const zuordnung = frageArt === "Assignment";
 
   return (
     <div className="flex flex-col gap-2">
-      <Label>{zuordnung ? "Begriffe und Beschriftungen" : "Antworten"}</Label>
+      <Label>{zuordnung ? t("Begriffe und Beschriftungen") : "Antworten"}</Label>
 
       {entwurf.options.map((zeile, index) => (
         <div key={zeile.id} className="flex min-w-0 flex-col gap-1.5 rounded-md border border-border/50 p-2">
@@ -450,7 +455,7 @@ function ZeilenListe({
               size="icon"
               variant="ghost"
               className="ml-auto size-7 shrink-0"
-              title="Zeile entfernen"
+              title={t("Zeile entfernen")}
               onClick={() => onEntfernen(index)}
             >
               <Trash2 className="size-3.5" />

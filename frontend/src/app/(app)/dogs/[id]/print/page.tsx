@@ -9,9 +9,11 @@ import { Printer } from "lucide-react";
 import { toast } from "sonner";
 import { difficultyLabel } from "@/lib/constants";
 
+import { useT } from "@/lib/i18n";
 const GOAL_STATUS_LABEL: Record<number, string> = { 0: "Aktiv", 1: "Erreicht", 2: "Abgebrochen" };
 
 export default function DogPrintPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const [dog, setDog] = useState<Dog | null>(null);
   const [goals, setGoals] = useState<Goal[] | null>(null);
@@ -28,11 +30,16 @@ export default function DogPrintPage() {
         setGoals(goalData);
         setSessions(sessionData);
       })
-      .catch((err) => toast.error(err instanceof ApiError ? err.message : "Daten konnten nicht geladen werden."));
+      .catch((err) => toast.error(err instanceof ApiError ? err.message : t("Daten konnten nicht geladen werden.")));
+    // t bewusst nicht in der Liste: Der Uebersetzer wird hier nur im
+    // Fehlerfall gebraucht. Stuende er drin, liefe der ganze Abruf bei
+    // jedem Sprachwechsel erneut - Daten neu laden, weil ein Toast
+    // anders heissen wuerde.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (!dog || !goals || !sessions) {
-    return <p className="p-6 text-muted-foreground">Lädt…</p>;
+    return <p className="p-6 text-muted-foreground">{t("Lädt…")}</p>;
   }
 
   return (
@@ -54,9 +61,9 @@ export default function DogPrintPage() {
       </header>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold">Trainingspläne</h2>
+        <h2 className="text-lg font-semibold">{t("Trainingspläne")}</h2>
         {goals.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Keine Ziele vorhanden.</p>
+          <p className="text-sm text-muted-foreground">{t("Keine Ziele vorhanden.")}</p>
         ) : (
           goals.map((goal) => (
             <div key={goal.id} className="break-inside-avoid rounded-md border p-4">
@@ -75,8 +82,8 @@ export default function DogPrintPage() {
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
                       <th className="py-1 pr-2">KW</th>
-                      <th className="py-1 pr-2">Übung</th>
-                      <th className="py-1 pr-2">Ziel</th>
+                      <th className="py-1 pr-2">{t("Übung")}</th>
+                      <th className="py-1 pr-2">{t("Ziel")}</th>
                       <th className="py-1">Fortschritt</th>
                     </tr>
                   </thead>
@@ -102,7 +109,7 @@ export default function DogPrintPage() {
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Trainingshistorie</h2>
         {sessions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Noch keine Trainingseinträge.</p>
+          <p className="text-sm text-muted-foreground">{t("Noch keine Trainingseinträge.")}</p>
         ) : (
           sessions.map((session) => (
             <div key={session.id} className="break-inside-avoid rounded-md border p-4">
@@ -123,7 +130,7 @@ export default function DogPrintPage() {
               )}
               {session.trainerFeedback && (
                 <p className="mt-2 text-sm">
-                  <span className="font-medium">Trainer-Feedback: </span>
+                  <span className="font-medium">{t("Trainer-Feedback:")}</span>
                   {session.trainerFeedback}
                 </p>
               )}

@@ -7,6 +7,8 @@ import type { GpsWalkRun } from "@/lib/types";
 import { bearingDegrees } from "@/lib/geo";
 import { Map, Satellite } from "lucide-react";
 
+import { useT } from "@/lib/i18n";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
 /// <reference types="leaflet" />
 
 // Kompatibel zu sowohl GpsPoint (pointType/label gesetzt) als auch
@@ -46,7 +48,7 @@ const MARKER_COLORS = ["orange", "#a855f7", "#0ea5e9", "#94a3b8"] as const;
 // Stockungen: unerklärt = Warnsignal (rot), Verweisen am Gegenstand = gut
 // (grün), erklärt/neutral (grau).
 const STOP_COLORS = ["#dc2626", "#16a34a", "#94a3b8"] as const;
-const STOP_LABELS = ["Unerklärte Stockung", "Verweisen", "Halt (erklärt)"] as const;
+const STOP_LABELS = [uebersetzbar("Unerklärte Stockung"), uebersetzbar("Verweisen"), uebersetzbar("Halt (erklärt)")] as const;
 
 // Schrittgeschwindigkeit, kurze Distanzen - ein nahes Zoom-Level zeigt
 // einzelne Abbiegungen deutlich, statt die ganze (noch kurze) Strecke winzig
@@ -100,6 +102,7 @@ export function TrackMap({
   // verbleibenden Platz bekommt.
   fill?: boolean;
 }) {
+  const t = useT();
   // Live entweder weil eine neue Fährte gelegt wird (bisheriges Verhalten)
   // oder weil ein Ablauf-Versuch mitten in der Aufzeichnung ist.
   const hasLiveWalkRun = !!(liveWalkRunPoints && liveWalkRunPoints.length > 0);
@@ -283,7 +286,7 @@ export function TrackMap({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // import("leaflet") ist asynchron - läuft der Effect erneut, bevor das
+    // imporleaflet ist asynchron - läuft der Effect erneut, bevor das
     // Promise aufgelöst ist (React Strict Mode ruft Effects im Dev-Modus
     // doppelt auf), würde sonst ein zweites L.map() auf demselben Container
     // aufgerufen werden, während das erste noch nicht aufgeräumt ist -
@@ -397,7 +400,7 @@ export function TrackMap({
         })
           .addTo(layerGroup)
           .bindTooltip(
-            `${STOP_LABELS[stop.kind] ?? "Halt"}: ${stop.durationSeconds}s${stop.markerLabel ? ` (${stop.markerLabel})` : ""}`,
+            `${t(STOP_LABELS[stop.kind] ?? uebersetzbar("Halt"))}: ${stop.durationSeconds}s${stop.markerLabel ? ` (${stop.markerLabel})` : ""}`,
           );
       });
     });
@@ -496,7 +499,7 @@ export function TrackMap({
   // die erste Positionsmessung), damit sie nicht erst nach einigen Sekunden
   // "einschnappt".
   if (!isLive && points.length === 0 && walkRuns.length === 0) {
-    return <p className="text-sm text-muted-foreground">Keine GPS-Punkte aufgezeichnet.</p>;
+    return <p className="text-sm text-muted-foreground">{t("Keine GPS-Punkte aufgezeichnet.")}</p>;
   }
 
   // Rotation nur im "heading"-Modus. Die Rotation wird per CSS-transform auf
@@ -506,10 +509,10 @@ export function TrackMap({
   const rotationDeg = rotateWithHeading ? -headingDeg : 0;
   const orientationTitle =
     orientation === "north-arrow"
-      ? "Nord oben + Richtungspfeil (klicken für 'in Laufrichtung')"
+      ? t("Nord oben + Richtungspfeil (klicken für 'in Laufrichtung')")
       : orientation === "heading"
-        ? "Karte in Laufrichtung (klicken für 'Nord oben ohne Pfeil')"
-        : "Nord oben, statisch (klicken für 'Nord + Pfeil')";
+        ? t("Karte in Laufrichtung (klicken für 'Nord oben ohne Pfeil')")
+        : t("Nord oben, statisch (klicken für 'Nord + Pfeil')");
 
   return (
     <div
@@ -586,11 +589,14 @@ export function TrackMap({
       <button
         type="button"
         onClick={ebeneWechseln}
-        title={`Kartenhintergrund: ${KARTEN_EBENEN[ebene].label} (klicken für ${KARTEN_EBENEN[ebene === "strasse" ? "luftbild" : "strasse"].label})`}
+        title={t("Kartenhintergrund: {jetzt} (klicken für {andere})", {
+          jetzt: t(KARTEN_EBENEN[ebene].label),
+          andere: t(KARTEN_EBENEN[ebene === "strasse" ? "luftbild" : "strasse"].label),
+        })}
         className="absolute left-2 top-2 z-[400] flex items-center gap-1.5 rounded-full border bg-background/90 px-3 py-2 text-xs font-medium shadow-md backdrop-blur coarse:min-h-10"
       >
         {ebene === "strasse" ? <Map className="size-4" /> : <Satellite className="size-4" />}
-        {KARTEN_EBENEN[ebene].label}
+        {t(KARTEN_EBENEN[ebene].label)}
       </button>
       {isLive && (
         <button

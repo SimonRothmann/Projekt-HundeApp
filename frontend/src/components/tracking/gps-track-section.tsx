@@ -14,6 +14,7 @@ import { CloudSun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDelta, formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
 
+import { useT } from "@/lib/i18n";
 // Für Zeitangaben in der Fährten-Übersicht: nur automatische Trackpunkte,
 // nicht die manuell gesetzten Marker (die tragen ggf. einen späteren
 // Zeitstempel und würden die Legezeit verzerren).
@@ -64,6 +65,7 @@ export function GpsTrackSection({
   trainingSessionId: string;
   readOnly?: boolean;
 }) {
+  const t = useT();
   const [tracks, setTracks] = useState<GpsTrack[] | null>(null);
   const { moduleEnabled } = usePreferences();
   // Live-Punkte des gerade laufenden Ablauf-Versuchs, pro Track-Id. Die
@@ -87,7 +89,7 @@ export function GpsTrackSection({
       const data = await api.get<GpsTrack[]>(`/api/gps-tracks?trainingSessionId=${trainingSessionId}`);
       setTracks(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Fährten konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Fährten konnten nicht geladen werden."));
     }
   }
 
@@ -106,7 +108,7 @@ export function GpsTrackSection({
 
   return (
     <div className="flex flex-col gap-3 rounded-md border p-3">
-      <h4 className="text-sm font-semibold">Fährte</h4>
+      <h4 className="text-sm font-semibold">{t("Fährte")}</h4>
 
       <div className="flex flex-col gap-4">
         {tracks.map((track) => {
@@ -148,18 +150,18 @@ export function GpsTrackSection({
                   variant="ghost"
                   className="text-destructive hover:text-destructive"
                   onClick={async () => {
-                    if (!confirm("Fährte wirklich löschen?")) return;
+                    if (!confirm(t("Fährte wirklich löschen?"))) return;
                     try {
                       await api.delete(`/api/gps-tracks/${track.id}`);
-                      toast.success("Fährte gelöscht.");
+                      toast.success(t("Fährte gelöscht."));
                       await loadTracks();
                     } catch (err) {
-                      toast.error(err instanceof ApiError ? err.message : "Löschen fehlgeschlagen.");
+                      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
                     }
                   }}
                 >
                   <Trash2 className="size-4" />
-                  Löschen
+{t("Löschen")}
                 </Button>
               </div>
               <TrackMap
@@ -204,6 +206,7 @@ export function GpsTrackSection({
  * den Punkten, es muss also nichts eingetippt werden.
  */
 function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Promise<void> }) {
+  const t = useT();
   const [loading, setLoading] = useState(false);
 
   async function fetchWeather() {
@@ -212,7 +215,7 @@ function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Pr
       await api.post(`/api/gps-tracks/${track.id}/weather`);
       await onLoaded();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Wetter konnte nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Wetter konnte nicht geladen werden."));
     } finally {
       setLoading(false);
     }
@@ -223,7 +226,7 @@ function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Pr
     return (
       <Button size="sm" variant="ghost" className="h-6 self-start px-2 text-xs" disabled={loading} onClick={fetchWeather}>
         <CloudSun className="size-3" />
-        {loading ? "Lädt Wetter…" : "Wetter laden"}
+        {loading ? t("Lädt Wetter…") : "Wetter laden"}
       </Button>
     );
   }

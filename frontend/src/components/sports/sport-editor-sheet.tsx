@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 /**
  * Sichtbarkeit einer neu angelegten Sportart.
  * - `{ kind: "global" }` legt eine für alle sichtbare Sportart an (nur Admin).
@@ -38,6 +39,7 @@ export function SportEditorSheet({
   scope: SportScope;
   onCreated: (sport: Sport) => void;
 }) {
+  const t = useT();
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -64,11 +66,11 @@ export function SportEditorSheet({
         description: description.trim() || null,
         clubId: scope.kind === "club" ? scope.clubId : null,
       });
-      toast.success("Sportart angelegt.");
+      toast.success(t("Sportart angelegt."));
       onCreated(created);
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Sportart konnte nicht angelegt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Sportart konnte nicht angelegt werden."));
     } finally {
       setSubmitting(false);
     }
@@ -78,10 +80,10 @@ export function SportEditorSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex w-full flex-col sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>Neue Sportart</SheetTitle>
+          <SheetTitle>{t("Neue Sportart")}</SheetTitle>
           <SheetDescription>
             {scope.kind === "global"
-              ? "Wird für alle Nutzer sichtbar (globaler VDH-Katalog)."
+              ? t("Wird für alle Nutzer sichtbar (globaler VDH-Katalog).")
               : `Nur für Mitglieder und Trainer des Vereins „${scope.clubName}“ sichtbar.`}
           </SheetDescription>
         </SheetHeader>
@@ -106,7 +108,7 @@ export function SportEditorSheet({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Grundlagen-Training"
+                placeholder={t("Grundlagen-Training")}
                 maxLength={100}
               />
             </div>
@@ -125,10 +127,10 @@ export function SportEditorSheet({
 
         <SheetFooter className="flex-row justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+{t("Abbrechen")}
           </Button>
           <Button type="submit" onClick={handleSubmit} disabled={submitting || !code.trim() || !name.trim()}>
-            {submitting ? "Wird angelegt…" : "Anlegen"}
+            {submitting ? t("Wird angelegt…") : t("Anlegen")}
           </Button>
         </SheetFooter>
       </SheetContent>

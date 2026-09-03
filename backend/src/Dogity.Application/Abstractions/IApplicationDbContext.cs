@@ -4,6 +4,7 @@ using Dogity.Domain.Preferences;
 using Dogity.Domain.Learning;
 using Dogity.Domain.Notifications;
 using Dogity.Domain.Planning;
+using Dogity.Domain.Geography;
 using Dogity.Domain.Sports;
 using Dogity.Domain.Tracking;
 using Dogity.Domain.Training;
@@ -21,6 +22,8 @@ public interface IApplicationDbContext
     DbSet<Dog> Dogs { get; }
     DbSet<DogOwner> DogOwners { get; }
     DbSet<DogImage> DogImages { get; }
+
+    DbSet<Country> Countries { get; }
 
     DbSet<Sport> Sports { get; }
     DbSet<Regulation> Regulations { get; }

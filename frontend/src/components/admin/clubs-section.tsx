@@ -11,7 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, Plus, UserPlus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 export function ClubsSection() {
+  const t = useT();
   const [clubs, setClubs] = useState<Club[] | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -56,7 +58,7 @@ export function ClubsSection() {
       const data = await api.get<Club[]>("/api/admin/clubs");
       setClubs(data);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Vereine konnten nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Vereine konnten nicht geladen werden."));
     }
   }
 
@@ -71,12 +73,12 @@ export function ClubsSection() {
     setSubmitting(true);
     try {
       await api.post("/api/admin/clubs", { name, description: description || null });
-      toast.success("Verein angelegt.");
+      toast.success(t("Verein angelegt."));
       setName("");
       setDescription("");
       await loadClubs();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Verein konnte nicht angelegt werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Verein konnte nicht angelegt werden."));
     } finally {
       setSubmitting(false);
     }
@@ -92,7 +94,7 @@ export function ClubsSection() {
     try {
       await ladeDetail(clubId);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Verein konnte nicht geladen werden.");
+      toast.error(err instanceof ApiError ? err.message : t("Verein konnte nicht geladen werden."));
     }
   }
 
@@ -104,7 +106,7 @@ export function ClubsSection() {
         await api.post(`/api/admin/clubs/${clubId}/trainers`, { email: trainerEmail });
         setTrainerEmail("");
       },
-      "Trainer zugewiesen.",
+      t("Trainer zugewiesen."),
       "Zuweisung fehlgeschlagen.",
       clubId,
     );
@@ -113,8 +115,8 @@ export function ClubsSection() {
   async function handleRemoveTrainer(clubId: string, userId: string) {
     await mitDetailAktualisierung(
       () => api.delete(`/api/admin/clubs/${clubId}/trainers/${userId}`),
-      "Trainer entfernt.",
-      "Entfernen fehlgeschlagen.",
+      t("Trainer entfernt."),
+      t("Entfernen fehlgeschlagen."),
       clubId,
       true,
     );
@@ -128,7 +130,7 @@ export function ClubsSection() {
         await api.post(`/api/admin/clubs/${clubId}/members`, { email: memberEmail });
         setMemberEmail("");
       },
-      "Mitglied hinzugefügt.",
+      t("Mitglied hinzugefügt."),
       "Zuweisung fehlgeschlagen.",
       clubId,
     );
@@ -137,8 +139,8 @@ export function ClubsSection() {
   async function handleRemoveMember(clubId: string, userId: string) {
     await mitDetailAktualisierung(
       () => api.delete(`/api/admin/clubs/${clubId}/members/${userId}`),
-      "Mitglied entfernt.",
-      "Entfernen fehlgeschlagen.",
+      t("Mitglied entfernt."),
+      t("Entfernen fehlgeschlagen."),
       clubId,
     );
   }
@@ -148,8 +150,8 @@ export function ClubsSection() {
     // Endpoint, der eine E-Mail entgegennimmt.
     await mitDetailAktualisierung(
       () => api.post(`/api/admin/clubs/${clubId}/trainers`, { email: userEmail }),
-      "Mitglied zum Trainer befördert.",
-      "Beförderung fehlgeschlagen.",
+      t("Mitglied zum Trainer befördert."),
+      t("Beförderung fehlgeschlagen."),
       clubId,
       true,
     );
@@ -175,14 +177,14 @@ export function ClubsSection() {
           </div>
           <Button type="submit" disabled={submitting}>
             <Plus className="size-4" />
-            Anlegen
+{t("Anlegen")}
           </Button>
         </form>
 
         {clubs === null ? (
-          <p className="text-sm text-muted-foreground">Lädt…</p>
+          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : clubs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Noch keine Vereine angelegt.</p>
+          <p className="text-sm text-muted-foreground">{t("Noch keine Vereine angelegt.")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {clubs.map((club) => {
@@ -218,25 +220,27 @@ export function ClubsSection() {
                         />
                         <Button type="submit" size="sm" variant="outline">
                           <UserPlus className="size-4" />
-                          Trainer zuweisen
+{t("Trainer zuweisen")}
                         </Button>
                       </form>
                       {detail.trainers.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Noch keine Trainer zugewiesen.</p>
+                        <p className="text-sm text-muted-foreground">{t("Noch keine Trainer zugewiesen.")}</p>
                       ) : (
                         <ul className="flex flex-col gap-1">
-                          {detail.trainers.map((t) => (
-                            <li key={t.userId} className="flex items-center justify-between text-sm">
+                          {/* Der Laufparameter hiess t und verdeckte damit den
+                              Uebersetzer - umbenannt statt umgangen. */}
+                          {detail.trainers.map((trainer) => (
+                            <li key={trainer.userId} className="flex items-center justify-between text-sm">
                               <span>
-                                <Badge variant="secondary" className="mr-2">Trainer</Badge>
-                                {t.firstName} {t.lastName} ({t.email})
+                                <Badge variant="secondary" className="mr-2">{t("Trainer")}</Badge>
+                                {trainer.firstName} {trainer.lastName} ({trainer.email})
                               </span>
                               <Button
                                 type="button"
                                 size="icon-sm"
                                 variant="ghost"
-                                onClick={() => handleRemoveTrainer(club.id, t.userId)}
-                                title="Trainer-Rolle entfernen"
+                                onClick={() => handleRemoveTrainer(club.id, trainer.userId)}
+                                title={t("Trainer-Rolle entfernen")}
                               >
                                 <Trash2 className="size-3.5" />
                               </Button>
@@ -256,11 +260,11 @@ export function ClubsSection() {
                           />
                           <Button type="submit" size="sm" variant="outline">
                             <UserPlus className="size-4" />
-                            Mitglied hinzufügen
+{t("Mitglied hinzufügen")}
                           </Button>
                         </form>
                         {detail.members.length === 0 ? (
-                          <p className="mt-2 text-sm text-muted-foreground">Noch keine Mitglieder.</p>
+                          <p className="mt-2 text-sm text-muted-foreground">{t("Noch keine Mitglieder.")}</p>
                         ) : (
                           <ul className="mt-2 flex flex-col gap-1">
                             {detail.members.map((m) => (
@@ -279,16 +283,16 @@ export function ClubsSection() {
                                   {/* Wer schon Trainer:in ist, braucht die
                                       Beförderung nicht angeboten zu bekommen. */}
                                   {m.isTrainer ? (
-                                    <Badge variant="secondary">Trainer</Badge>
+                                    <Badge variant="secondary">{t("Trainer")}</Badge>
                                   ) : (
                                     <Button
                                       type="button"
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => handlePromoteMember(club.id, m.email)}
-                                      title="Zum Trainer befördern"
+                                      title={t("Zum Trainer befördern")}
                                     >
-                                      Zum Trainer
+{t("Zum Trainer")}
                                     </Button>
                                   )}
                                   <Button
@@ -296,7 +300,7 @@ export function ClubsSection() {
                                     size="icon-sm"
                                     variant="ghost"
                                     onClick={() => handleRemoveMember(club.id, m.userId)}
-                                    title="Aus Verein entfernen"
+                                    title={t("Aus Verein entfernen")}
                                   >
                                     <Trash2 className="size-3.5" />
                                   </Button>

@@ -34,5 +34,17 @@ public class Regulation : Entity
     /// </summary>
     public string? Description { get; set; }
 
+    /// <summary>
+    /// Geltungsbereich als ISO-3166-1-alpha-2-Kürzel ("DE", "AT"), null =
+    /// gilt überall.
+    ///
+    /// Die Zuordnung sitzt bewusst an der Prüfungsordnung und nicht an der
+    /// Sportart: Agility ist international, die Prüfungsordnung dazu ist es
+    /// nicht. Und null als "gilt überall" ist kein Platzhalter, sondern
+    /// notwendig - sonst müsste jede international gültige Ordnung für jedes
+    /// Land dupliziert werden (siehe docs/VERBAENDE_SPRACHEN_MODULE.md).
+    /// </summary>
+    public string? CountryCode { get; set; }
+
     public ICollection<RegulationVersion> Versions { get; set; } = new List<RegulationVersion>();
 }
