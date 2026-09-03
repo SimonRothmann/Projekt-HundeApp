@@ -151,6 +151,60 @@ auswertbare Fehler.
 Migration schrittweise möglich: Code optional einführen, Frontend nimmt den
 Code wenn vorhanden und sonst den Text. Kein Bruch, kein Stichtag.
 
+### Geltungsbereich: Land vor Sprache
+
+Ergänzung des Auftraggebers (2026-09-03): Nutzer:innen sollen wählen, in
+welchem **Geltungsbereich der Prüfungsordnungen** sie leben - nach Land
+sortiert. Vorerst nur Deutschland mit Inhalten; andere Länder auswählbar,
+aber leer.
+
+Das ist keine Nebenbemerkung zur Sprache, es ist die genauere Fassung
+derselben Sache. Die Leitlinie oben lautete "Oberflächensprache ist nicht
+Inhaltssprache". Präziser ist:
+
+> **Die Oberfläche hat eine Sprache. Der Katalog hat einen Geltungsbereich.**
+
+Denn beides fällt nicht zusammen:
+
+- Wer in Deutschland trainiert und die App auf Englisch nutzt, braucht
+  weiterhin die deutschen Prüfungsordnungen - die BH bleibt die BH.
+- Wer in Österreich lebt, spricht dieselbe Sprache, hat aber einen anderen
+  Verband und andere Ordnungen.
+
+Land und Sprache sind also zwei getrennte Einstellungen. Sie voneinander
+abzuleiten wäre der naheliegende und falsche Weg.
+
+**Was daraus folgt**
+
+Der Katalog braucht eine Zuordnung zum Geltungsbereich. Am sparsamsten am
+Regelwerk, nicht an der Sportart: Agility ist international, die
+Prüfungsordnung dazu nicht.
+
+```
+Regulation.CountryCode   ISO-3166-1 alpha-2, z.B. "DE"; null = international
+UserPreference.Country   gewähltes Land, Vorgabe "DE"
+```
+
+`null` als "gilt überall" ist wichtig: Sonst müsste jede international
+gültige Ordnung für jedes Land dupliziert werden.
+
+**Leere Länder sind ein Merkmal, kein Mangel**
+
+Wer Österreich wählt und einen leeren Katalog vorfindet, darf nicht auf
+einem kaputten Bildschirm landen. Die leere Auswahl braucht einen eigenen
+Text: dass es diesen Bereich gibt, dass noch keine Ordnungen hinterlegt
+sind, und dass Tagebuch, Fährte und Freitext unabhängig davon vollständig
+funktionieren. Genau das ist ja der Punkt - die Werkzeuge sind universell,
+nur der Prüfungskatalog ist es nicht.
+
+Die Länderliste sollte dabei aus den Daten kommen und nicht im Code stehen,
+damit ein neues Land Inhalte bekommt, ohne dass jemand deployt.
+
+**Reihenfolge:** Das Land gehört VOR die Übersetzung. Es entscheidet mit
+darüber, was überhaupt übersetzt werden muss - und es ist ungleich billiger.
+
+---
+
 ### Was Sprache mit Modulen zu tun hat
 
 Die Sachkunde ist ein deutsches SWHV-Angebot. Wer die App auf Englisch

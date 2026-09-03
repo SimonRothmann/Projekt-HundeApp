@@ -87,7 +87,10 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
       Vereins-Selbstverwaltung, englische Oberfläche, abschaltbare Module und
       Sportartenauswahl je Nutzer. Empfohlene Reihenfolge: Module/Sportarten
       zuerst (kleinster Aufwand, legt `UserPreferences` an), dann
-      Vereinsrechte, dann Sprachen.
+      Vereinsrechte, dann Sprachen. Schritt 1 und 2 sind umgesetzt.
+      Offen: Geltungsbereich der Prüfungsordnungen nach Land (vor der
+      Übersetzung, weil es mitentscheidet, was übersetzt werden muss) und
+      danach die Sprachen selbst.
 
 ## Offene Punkte (Frontend/Fährte)
 
