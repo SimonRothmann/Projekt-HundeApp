@@ -1,3 +1,4 @@
+using Dogity.Domain.Community;
 using Dogity.Application.Common;
 
 namespace Dogity.Application.Community;
@@ -15,8 +16,10 @@ public interface IClubService
     Task<Result<IReadOnlyList<ClubDto>>> GetMyClubsAsync(Guid userId, CancellationToken ct = default);
     Task<Result<ClubDetailDto>> GetDetailAsync(Guid clubId, CancellationToken ct = default);
     Task<Result<ClubDto>> CreateAsync(CreateClubRequest request, CancellationToken ct = default);
-    Task<Result> AssignTrainerAsync(Guid clubId, AssignClubTrainerRequest request, CancellationToken ct = default);
-    Task<Result> RemoveTrainerAsync(Guid clubId, Guid userId, CancellationToken ct = default);
+    Task<Result> AssignTrainerAsync(Guid callerId, bool isAdmin, Guid clubId, AssignClubTrainerRequest request, CancellationToken ct = default);
+    Task<Result> UpdateClubAsync(Guid callerId, bool isAdmin, Guid clubId, UpdateClubRequest request, CancellationToken ct = default);
+    Task<Result> UpdateTrainerRoleAsync(Guid callerId, bool isAdmin, Guid clubId, Guid userId, ClubRole role, CancellationToken ct = default);
+    Task<Result> RemoveTrainerAsync(Guid callerId, bool isAdmin, Guid clubId, Guid userId, CancellationToken ct = default);
 
     /// <summary>Admin-Weg zur direkten Aufnahme eines Mitglieds ohne Beitrittsanfrage-Workflow.</summary>
     /// <summary>

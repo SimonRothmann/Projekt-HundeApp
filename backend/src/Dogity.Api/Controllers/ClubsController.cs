@@ -86,6 +86,35 @@ public class ClubsController(IClubService clubService, IGroupService groupServic
         return FromResult(result);
     }
 
+    /// <summary>
+    /// Stammdaten ändern - für Verwaltende des Vereins. Bisher konnte einen
+    /// einmal angelegten Verein niemand umbenennen, auch kein Admin.
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, UpdateClubRequest request, CancellationToken ct) =>
+        FromResult(await clubService.UpdateClubAsync(CurrentUserId, IsAdmin, id, request, ct));
+
+    /// <summary>
+    /// Trainer:in berufen. Lag bisher ausschließlich beim globalen Admin -
+    /// ein Verein konnte sich damit nicht selbst organisieren.
+    /// </summary>
+    [HttpPost("{id:guid}/trainers")]
+    public async Task<IActionResult> AssignTrainer(Guid id, AssignClubTrainerRequest request, CancellationToken ct) =>
+        FromResult(await clubService.AssignTrainerAsync(CurrentUserId, IsAdmin, id, request, ct));
+
+    /// <summary>
+    /// Trainer:in abberufen. Der Dienst verhindert dabei, dass die letzte
+    /// verwaltende Person geht - sonst bliebe ein Verein zurück, an den
+    /// niemand mehr herankommt.
+    /// </summary>
+    [HttpDelete("{id:guid}/trainers/{userId:guid}")]
+    public async Task<IActionResult> RemoveTrainer(Guid id, Guid userId, CancellationToken ct) =>
+        FromResult(await clubService.RemoveTrainerAsync(CurrentUserId, IsAdmin, id, userId, ct));
+
+    [HttpPut("{id:guid}/trainers/{userId:guid}/role")]
+    public async Task<IActionResult> UpdateTrainerRole(Guid id, Guid userId, UpdateTrainerRoleRequest request, CancellationToken ct) =>
+        FromResult(await clubService.UpdateTrainerRoleAsync(CurrentUserId, IsAdmin, id, userId, request.Role, ct));
+
     [HttpGet("{id:guid}/groups")]
     public async Task<ActionResult<IReadOnlyList<GroupDto>>> GetClubGroups(Guid id, CancellationToken ct)
     {

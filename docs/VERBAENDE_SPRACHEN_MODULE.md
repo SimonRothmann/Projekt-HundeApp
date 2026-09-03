@@ -248,9 +248,30 @@ hängen Sprache und Module am selben Ort, und die Regel "englische Oberfläche
   vorhanden und erzeugt ein UPDATE statt eines INSERT - das traf null Zeilen
   und brach mit einem Nebenläufigkeitsfehler ab.
 
-Offen: Vereins-Selbstverwaltung (Schritt 2), Sprachen (Schritt 3),
-Vereinsregistrierung (Schritt 4). `Locale` ist im Datenmodell schon
-vorgesehen, wird aber noch nirgends ausgewertet.
+**Schritt 2 umgesetzt (2026-09-03):** Vereins-Selbstverwaltung, Teil A.
+
+- `ClubTrainer.Role` mit den Stufen `Training` und `Verwaltung`. Ein
+  einmaliger Backfill gibt allen bestehenden Zuweisungen `Verwaltung` -
+  niemand verliert Rechte, die er vorher hatte. Er greift nur bei Vereinen
+  ganz ohne verwaltende Person, damit er spätere bewusste Herabstufungen
+  nicht wieder aufhebt.
+- Neu für Vereine selbst: umbenennen (`PUT /api/clubs/{id}` - ging bisher
+  für niemanden, auch nicht für Admins), Trainer:innen berufen und
+  abberufen, Rolle ändern.
+- Die Prüfung steht einmal als `CanManageClubAsync` und wird im Dienst
+  ausgewertet, nicht am Controller - der Aufruf hängt an zwei Routen.
+- Schutz: Die letzte verwaltende Person kann weder entfernt noch
+  herabgestuft werden. Sonst bliebe ein Verein zurück, an den nur noch ein
+  globaler Admin herankommt - genau die Sackgasse, die die
+  Selbstverwaltung vermeiden soll.
+- Auch die Beförderung eines Mitglieds zur Trainerin verlangt jetzt
+  `Verwaltung`. Vorher genügte dort "ist Trainer", während die
+  E-Mail-Zuweisung strenger war - dieselbe Befugnis war je nach Weg
+  unterschiedlich streng.
+
+Offen: Vereinsregistrierung durch Nutzer mit Freigabe (Teil B), Sprachen
+(Schritt 3). `Locale` ist im Datenmodell schon vorgesehen, wird aber noch
+nirgends ausgewertet.
 
 ---
 

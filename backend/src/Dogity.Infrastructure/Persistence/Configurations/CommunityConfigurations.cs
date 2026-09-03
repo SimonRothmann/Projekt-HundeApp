@@ -79,6 +79,11 @@ public class ClubTrainerConfiguration : IEntityTypeConfiguration<ClubTrainer>
     {
         builder.ToTable("club_trainers");
 
+        // Als Text, nicht als Zahl: In der Datenbank soll "Verwaltung" stehen
+        // und nicht "1" - das Projekt hält es bei allen Aufzählungen so
+        // (siehe DogGender, ClubMembershipStatus).
+        builder.Property(t => t.Role).HasConversion<string>().HasMaxLength(20);
+
         builder.HasOne(t => t.Club)
             .WithMany(c => c.Trainers)
             .HasForeignKey(t => t.ClubId)

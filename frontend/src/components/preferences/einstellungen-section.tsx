@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { MODULE, type Sport } from "@/lib/types";
 import { usePreferences } from "@/lib/preferences-context";
+import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, SlidersHorizontal, Trophy } from "lucide-react";
@@ -24,7 +25,7 @@ import { toast } from "sonner";
  * Zeiger. Ein eigener Schalter-Baustein wäre ein neues Element im
  * Baukasten, für das es keinen zweiten Anwendungsfall gibt.
  */
-const MODUL_TEXTE: { key: string; titel: string; beschreibung: string }[] = [
+const MODUL_TEXTE: { key: string; titel: string; beschreibung: string; nurTrainer?: boolean }[] = [
   {
     key: MODULE.faehrte,
     titel: "Fährte & GPS",
@@ -39,6 +40,9 @@ const MODUL_TEXTE: { key: string; titel: string; beschreibung: string }[] = [
     key: MODULE.gruppentraining,
     titel: "Gruppentraining",
     beschreibung: "Einheiten und Terminplanung für Trainingsgruppen.",
+    // Nur Trainer:innen sehen diesen Bereich überhaupt. Allen anderen einen
+    // Schalter für etwas anzubieten, das sie nie hatten, verwirrt nur.
+    nurTrainer: true,
   },
   { key: MODULE.wetter, titel: "Wetter", beschreibung: "Temperatur und Wetter zum Training." },
   { key: MODULE.statistik, titel: "Statistik", beschreibung: "Auswertungen über Trainings und Verfassung." },
@@ -76,6 +80,7 @@ function Umschalter({
 
 export function EinstellungenSection() {
   const { preferences, reload } = usePreferences();
+  const { isTrainer } = useAuth();
   const [sports, setSports] = useState<Sport[] | null>(null);
   const [speichert, setSpeichert] = useState(false);
 
@@ -128,7 +133,7 @@ export function EinstellungenSection() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {MODUL_TEXTE.map((m) => {
+          {MODUL_TEXTE.filter((m) => !m.nurTrainer || isTrainer).map((m) => {
             const an = !preferences.disabledModules.includes(m.key);
             return (
               <div key={m.key} className="flex flex-wrap items-center justify-between gap-2">

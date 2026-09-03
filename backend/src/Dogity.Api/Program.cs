@@ -156,6 +156,13 @@ using (var scope = app.Services.CreateScope())
     // Vereins-/Gruppenzeilen gelöschter Nutzer wegräumen. Das Löschen eines
     // Kontos hat sie früher stehen lassen; sie tauchten als "(unbekannt)" in
     // den Beitrittsanfragen auf. Idempotent - ohne Waisen tut der Lauf nichts.
+    // Bestehende Trainer-Zuweisungen bekommen die Rolle "Verwaltung" - wer
+    // vorher alles durfte, soll durch die Einführung der Vereinsrollen nichts
+    // verlieren. Idempotent (siehe ClubRoleBackfill).
+    var vereinsrollen = await scope.ServiceProvider.GetRequiredService<IClubRoleBackfill>().BackfillAsync();
+    if (vereinsrollen > 0)
+        app.Logger.LogInformation("{Anzahl} Trainer-Zuweisungen auf 'Verwaltung' gesetzt.", vereinsrollen);
+
     var verwaiste = await scope.ServiceProvider.GetRequiredService<ICommunityOrphanCleanup>().CleanupAsync();
     if (verwaiste > 0)
         app.Logger.LogInformation("{Anzahl} verwaiste Vereins-/Gruppenzeilen entfernt.", verwaiste);

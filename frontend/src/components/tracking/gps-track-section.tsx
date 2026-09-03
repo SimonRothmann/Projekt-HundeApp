@@ -6,6 +6,8 @@ import type { GpsPoint, GpsTrack, GpsWalkPoint } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { TrackMap } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
+import { usePreferences } from "@/lib/preferences-context";
+import { MODULE } from "@/lib/types";
 import { WalkRunComment } from "@/components/tracking/walk-run-comment";
 import { WalkRunEvaluation } from "@/components/tracking/walk-run-evaluation";
 import { CloudSun, Trash2 } from "lucide-react";
@@ -63,6 +65,7 @@ export function GpsTrackSection({
   readOnly?: boolean;
 }) {
   const [tracks, setTracks] = useState<GpsTrack[] | null>(null);
+  const { moduleEnabled } = usePreferences();
   // Live-Punkte des gerade laufenden Ablauf-Versuchs, pro Track-Id. Die
   // Karte des jeweiligen Tracks zeigt diese Punkte zusätzlich zur Legung -
   // so entsteht die neue Linie in der SELBEN Karte, statt in einer zweiten.
@@ -128,7 +131,11 @@ export function GpsTrackSection({
               </div>
               <TrackWeather track={track} onLoaded={loadTracks} />
               <div className="flex flex-wrap items-center gap-2">
-                {!readOnly && (
+                {/* Der Einstieg ins Aufzeichnen hängt am Modul, die Anzeige
+                    der Fährte selbst nicht: Wer die Aufzeichnung abschaltet,
+                    soll seine bereits gelaufenen Fährten weiter ansehen,
+                    auswerten und löschen können. */}
+                {!readOnly && moduleEnabled(MODULE.faehrte) && (
                   <WalkRunRecorder
                     trackId={track.id}
                     onSaved={loadTracks}

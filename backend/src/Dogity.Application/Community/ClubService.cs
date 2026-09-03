@@ -77,8 +77,17 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         return Result<ClubDto>.Success(new ClubDto(club.Id, club.Name, club.Description, 0, 0));
     }
 
-    public async Task<Result> AssignTrainerAsync(Guid clubId, AssignClubTrainerRequest request, CancellationToken ct = default)
+    /// <summary>
+    /// Trainer:in berufen. Die Berechtigungsprüfung liegt HIER und nicht am
+    /// Controller: Der Aufruf hängt an zwei Routen (Verein und Admin), und
+    /// eine Regel, die an der Route klebt, geht beim Hinzufügen der zweiten
+    /// verloren.
+    /// </summary>
+    public async Task<Result> AssignTrainerAsync(Guid callerId, bool isAdmin, Guid clubId, AssignClubTrainerRequest request, CancellationToken ct = default)
     {
+        if (!isAdmin && !await db.CanManageClubAsync(callerId, clubId, ct))
+            return Result.NotFound("Verein nicht gefunden.");
+
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
         if (club is null)
             return Result.NotFound("Verein nicht gefunden.");
@@ -93,19 +102,97 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         if (isActive)
             return Result.Failure("Dieser Benutzer ist bereits Trainer dieses Vereins.");
 
-        if (existing is not null) existing.DeletedAt = null;
-        else db.ClubTrainers.Add(new ClubTrainer { ClubId = clubId, UserId = user.UserId });
+        if (existing is not null)
+        {
+            existing.DeletedAt = null;
+            existing.Role = request.Role;
+        }
+        else
+        {
+            db.ClubTrainers.Add(new ClubTrainer { ClubId = clubId, UserId = user.UserId, Role = request.Role });
+        }
 
         await db.SaveChangesAsync(ct);
         await trainerRoles.SyncAsync(user.UserId, ct);
         return Result.Success();
     }
 
-    public async Task<Result> RemoveTrainerAsync(Guid clubId, Guid userId, CancellationToken ct = default)
+    /// <summary>
+    /// Stammdaten des Vereins ändern - für Verwaltende des Vereins und für
+    /// globale Admins.
+    ///
+    /// Bisher gab es das überhaupt nicht: Ein einmal angelegter Verein ließ
+    /// sich von niemandem umbenennen, auch nicht vom Admin.
+    /// </summary>
+    public async Task<Result> UpdateClubAsync(Guid callerId, bool isAdmin, Guid clubId, UpdateClubRequest request, CancellationToken ct = default)
     {
+        if (!isAdmin && !await db.CanManageClubAsync(callerId, clubId, ct))
+            return Result.NotFound("Verein nicht gefunden.");
+
+        var name = request.Name?.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+            return Result.Failure("Name ist erforderlich.");
+
+        var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
+        if (club is null) return Result.NotFound("Verein nicht gefunden.");
+
+        club.Name = name;
+        club.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        club.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Rolle einer Trainerin oder eines Trainers innerhalb des Vereins
+    /// ändern. Derselbe Schutz wie beim Entfernen: Die letzte verwaltende
+    /// Person kann sich nicht selbst herabstufen.
+    /// </summary>
+    public async Task<Result> UpdateTrainerRoleAsync(Guid callerId, bool isAdmin, Guid clubId, Guid userId, ClubRole role, CancellationToken ct = default)
+    {
+        if (!isAdmin && !await db.CanManageClubAsync(callerId, clubId, ct))
+            return Result.NotFound("Verein nicht gefunden.");
+
+        var entry = await db.ClubTrainers.FirstOrDefaultAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
+        if (entry is null) return Result.NotFound("Trainer-Zuweisung nicht gefunden.");
+        if (entry.Role == role) return Result.Success();
+
+        if (entry.Role == ClubRole.Verwaltung)
+        {
+            var weitere = await db.ClubTrainers
+                .CountAsync(t => t.ClubId == clubId && t.Role == ClubRole.Verwaltung && t.UserId != userId, ct);
+            if (weitere == 0)
+                return Result.Failure("Das ist die letzte verwaltende Person des Vereins. Bestimme zuerst jemand anderen.");
+        }
+
+        entry.Role = role;
+        entry.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    /// <summary>Trainer:in abberufen - Berechtigung wie bei AssignTrainerAsync.</summary>
+    public async Task<Result> RemoveTrainerAsync(Guid callerId, bool isAdmin, Guid clubId, Guid userId, CancellationToken ct = default)
+    {
+        if (!isAdmin && !await db.CanManageClubAsync(callerId, clubId, ct))
+            return Result.NotFound("Verein nicht gefunden.");
+
         var entry = await db.ClubTrainers.FirstOrDefaultAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
         if (entry is null)
             return Result.NotFound("Trainer-Zuweisung nicht gefunden.");
+
+        // Die letzte verwaltende Person darf nicht gehen. Sonst bliebe ein
+        // Verein zurück, den niemand mehr verwalten kann - weder Trainer
+        // berufen noch Stammdaten ändern -, und nur ein globaler Admin käme
+        // wieder heran. Genau diese Sackgasse soll die Selbstverwaltung
+        // vermeiden.
+        if (entry.Role == ClubRole.Verwaltung)
+        {
+            var weitere = await db.ClubTrainers
+                .CountAsync(t => t.ClubId == clubId && t.Role == ClubRole.Verwaltung && t.UserId != userId, ct);
+            if (weitere == 0)
+                return Result.Failure("Das ist die letzte verwaltende Person des Vereins. Bestimme zuerst jemand anderen.");
+        }
 
         entry.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -403,7 +490,12 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
     public async Task<Result> PromoteMemberToTrainerAsync(Guid callerId, Guid clubId, Guid targetUserId, CancellationToken ct = default)
     {
-        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+        // Trainer:innen zu berufen ist eine verwaltende Handlung - egal ob
+        // über die E-Mail-Zuweisung oder über die Beförderung eines
+        // Mitglieds. Vorher genügte hier "ist Trainer", während der andere
+        // Weg strenger war; damit wäre dieselbe Befugnis je nach Weg
+        // unterschiedlich streng gewesen.
+        if (!await db.CanManageClubAsync(callerId, clubId, ct))
             return Result.NotFound("Verein nicht gefunden.");
 
         var isApprovedMember = await db.ClubMemberships

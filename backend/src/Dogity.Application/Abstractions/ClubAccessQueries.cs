@@ -30,6 +30,19 @@ public static class ClubAccessQueries
         db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
 
     /// <summary>
+    /// Ob jemand diesen Verein VERWALTEN darf - Stammdaten ändern,
+    /// Trainer:innen berufen und abberufen.
+    ///
+    /// Eine Definition an einer Stelle, weil sonst jede neue verwaltende
+    /// Aktion ihre eigene Auslegung mitbrächte. Trainer:innen mit der Rolle
+    /// Training sind ausdrücklich NICHT gemeint: Dürften sie andere
+    /// abberufen, könnte auch die Person entfernt werden, die den Verein
+    /// angelegt hat.
+    /// </summary>
+    public static Task<bool> CanManageClubAsync(this IApplicationDbContext db, Guid userId, Guid clubId, CancellationToken ct = default) =>
+        db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId && t.Role == ClubRole.Verwaltung, ct);
+
+    /// <summary>
     /// Ob jemand überhaupt irgendwo Trainer:in ist: als Hauptverantwortliche:r
     /// einer Gruppe, als weitere:r Trainer:in einer Gruppe oder als Trainer:in
     /// eines Vereins.

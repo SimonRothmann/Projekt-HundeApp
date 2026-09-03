@@ -10,8 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Check, ChevronDown, ChevronRight, History, MessageSquarePlus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
-import { usePreferences } from "@/lib/preferences-context";
-import { MODULE } from "@/lib/types";
 import { SessionContextEditor } from "@/components/dogs/session-context-editor";
 import { TrainerFeedback } from "@/components/dogs/trainer-feedback";
 import { ExerciseNotes } from "@/components/dogs/exercise-notes";
@@ -269,7 +267,6 @@ export function SessionHistory({
 }) {
   const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
   const [loadingOlder, setLoadingOlder] = useState(false);
-  const { moduleEnabled } = usePreferences();
 
   async function deleteDay(daySessions: TrainingSession[]) {
     if (!confirm("Trainingstag wirklich löschen? Alle Übungen und Fährten dieses Tages werden entfernt.")) return;
@@ -408,13 +405,15 @@ export function SessionHistory({
                             ))}
                           </ul>
                         )}
-                        {/* Auch der Fährtenbereich in der Historie hängt am
-                            Modul - sonst bliebe "Fährte erneut ablaufen"
-                            stehen, obwohl die Fährte ausgeblendet ist. */}
-                        {moduleEnabled(MODULE.faehrte) &&
-                          gpsSessions.map((s) => (
-                            <GpsTrackSection key={s.id} trainingSessionId={s.id} readOnly={completed} />
-                          ))}
+                        {/* Bereits aufgezeichnete Fährten bleiben sichtbar,
+                            auch wenn das Modul aus ist: Sie gehören zum
+                            Tagebuch, und wer die Aufzeichnung abschaltet,
+                            will seine Aufzeichnungen nicht verlieren.
+                            Ausgeblendet wird nur der Einstieg ins NEUE
+                            Aufnehmen - siehe GpsTrackSection. */}
+                        {gpsSessions.map((s) => (
+                          <GpsTrackSection key={s.id} trainingSessionId={s.id} readOnly={completed} />
+                        ))}
                         {(feedbackSessions.length > 0 ? feedbackSessions : [daySessions[0]]).map((s) => (
                           <TrainerFeedback key={s.id} session={s} isOwner={isOwner} onUpdated={onChanged} />
                         ))}

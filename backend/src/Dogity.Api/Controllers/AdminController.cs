@@ -39,14 +39,14 @@ public class AdminController(IAdminService adminService, IClubService clubServic
     [HttpPost("clubs/{id:guid}/trainers")]
     public async Task<IActionResult> AssignClubTrainer(Guid id, AssignClubTrainerRequest request, CancellationToken ct)
     {
-        var result = await clubService.AssignTrainerAsync(id, request, ct);
+        var result = await clubService.AssignTrainerAsync(CurrentUserId, isAdmin: true, id, request, ct);
         return FromResult(result);
     }
 
     [HttpDelete("clubs/{id:guid}/trainers/{userId:guid}")]
     public async Task<IActionResult> RemoveClubTrainer(Guid id, Guid userId, CancellationToken ct)
     {
-        var result = await clubService.RemoveTrainerAsync(id, userId, ct);
+        var result = await clubService.RemoveTrainerAsync(CurrentUserId, isAdmin: true, id, userId, ct);
         return FromResult(result);
     }
 

@@ -32,7 +32,7 @@ public class ClubServiceTests
 
         var club = new Club { Name = "Testverein" };
         db.Clubs.Add(club);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Verwaltung });
         await db.SaveChangesAsync();
 
         return (trainerId, memberId, otherId, club.Id, service);
@@ -68,7 +68,7 @@ public class ClubServiceTests
         var memberId = Guid.NewGuid();
         var club = new Club { Name = "Verein" };
         db.Clubs.Add(club);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Verwaltung });
         await db.SaveChangesAsync();
 
         var req = await service.RequestJoinAsync(memberId, club.Id);
@@ -88,7 +88,7 @@ public class ClubServiceTests
         var memberId = Guid.NewGuid();
         var club = new Club { Name = "Verein" };
         db.Clubs.Add(club);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Verwaltung });
         await db.SaveChangesAsync();
 
         var req = await service.RequestJoinAsync(memberId, club.Id);
@@ -109,8 +109,8 @@ public class ClubServiceTests
         var clubA = new Club { Name = "Verein A" };
         var clubB = new Club { Name = "Verein B" };
         db.Clubs.AddRange(clubA, clubB);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = clubA.Id, UserId = trainerA });
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = clubB.Id, UserId = trainerB });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = clubA.Id, UserId = trainerA, Role = ClubRole.Verwaltung });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = clubB.Id, UserId = trainerB, Role = ClubRole.Verwaltung });
         await db.SaveChangesAsync();
 
         var req = await service.RequestJoinAsync(memberId, clubA.Id);
@@ -134,8 +134,8 @@ public class ClubServiceTests
         var clubA = new Club { Name = "Verein A" };
         var clubB = new Club { Name = "Verein B" };
         db.Clubs.AddRange(clubA, clubB);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = clubA.Id, UserId = trainerA });
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = clubB.Id, UserId = trainerB });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = clubA.Id, UserId = trainerA, Role = ClubRole.Verwaltung });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = clubB.Id, UserId = trainerB, Role = ClubRole.Verwaltung });
         db.ClubMemberships.Add(new ClubMembership { ClubId = clubA.Id, UserId = memberId, Status = ClubMembershipStatus.Approved });
         await db.SaveChangesAsync();
 
@@ -152,7 +152,7 @@ public class ClubServiceTests
         var targetId = Guid.NewGuid();
         var club = new Club { Name = "Verein" };
         db.Clubs.Add(club);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Verwaltung });
         await db.SaveChangesAsync();
 
         // Ziel-User ist kein Mitglied → sollte scheitern
@@ -174,7 +174,7 @@ public class ClubServiceTests
         var targetId = Guid.NewGuid();
         var club = new Club { Name = "Verein" };
         db.Clubs.Add(club);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Verwaltung });
         db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = targetId, Status = ClubMembershipStatus.Approved });
         await db.SaveChangesAsync();
 
@@ -230,7 +230,7 @@ public class ClubServiceTests
         var memberId = Guid.NewGuid();
         var club = new Club { Name = "Verein" };
         db.Clubs.Add(club);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Verwaltung });
         db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = memberId, Status = ClubMembershipStatus.Approved });
 
         var group = new Group { ClubId = club.Id, TrainerId = trainerId, Name = "Dienstag" };
@@ -263,7 +263,7 @@ public class ClubServiceTests
         var trainerId = Guid.NewGuid();
         var club = new Club { Name = "Verein" };
         db.Clubs.Add(club);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Verwaltung });
         db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = trainerId, Status = ClubMembershipStatus.Approved });
         await db.SaveChangesAsync();
 
@@ -284,12 +284,12 @@ public class ClubServiceTests
         // Beförderung geht es ohne E-Mail.
         var userId = Guid.NewGuid();
         db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = userId, Status = ClubMembershipStatus.Approved });
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = Guid.NewGuid() });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = Guid.NewGuid(), Role = ClubRole.Verwaltung });
         await db.SaveChangesAsync();
         var caller = await db.ClubTrainers.Select(t => t.UserId).FirstAsync();
 
         Assert.True((await service.PromoteMemberToTrainerAsync(caller, club.Id, userId)).Succeeded);
-        Assert.True((await service.RemoveTrainerAsync(club.Id, userId)).Succeeded);
+        Assert.True((await service.RemoveTrainerAsync(caller, isAdmin: false, club.Id, userId)).Succeeded);
 
         var again = await service.PromoteMemberToTrainerAsync(caller, club.Id, userId);
 
