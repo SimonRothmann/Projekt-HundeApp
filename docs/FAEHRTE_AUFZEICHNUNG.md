@@ -80,9 +80,46 @@ gar nicht. Was blieb, war eine Bedienung, die beim Ziehen schräg läuft;
 deshalb ist Ziehen im Drehmodus jetzt abgeschaltet, mit dem Kompass kommt
 man auf "Nord oben".
 
+### Gegenprobe: MapLibre lokal eingebaut (2026-09-03)
+
+Nicht bei der Schätzung belassen, sondern eingebaut und gemessen. Ergebnis:
+
+**Was zutrifft**
+
+| Vermutung | Gemessen |
+|---|---|
+| Deutlich größer | **+255 KB gzip** (976 KB roh, eigener Chunk). Alle Chunks zusammen: 478 → 734 KB gzip |
+| CSP muss angepasst werden | Bestätigt: Kacheln laufen über `connect-src` statt `img-src` - jede einzelne meldete einen Verstoß. Zusätzlich `worker-src blob:`, der Worker wird per `URL.createObjectURL` aus einem Blob erzeugt |
+| Kachelquelle nutzbar | Ja - OSM liefert `access-control-allow-origin: *`, MapLibre kann die Kacheln per fetch holen |
+
+**Was zusätzlich auftrat und vorher niemand auf dem Zettel hatte**
+
+MapLibre lief in diesem Aufbau überhaupt nicht an. Es leitet die Adresse
+seines Web Workers aus `import.meta.url` ab:
+
+```js
+function Gi(){ let e = import.meta.url; if(!/^https?:/.test(e)) return ``; … }
+```
+
+Unter dem Bundler dieses Projekts ist das keine `http`-Adresse. MapLibre
+liefert dann einen leeren Pfad, der Worker startet nie - und die Karte
+bleibt leer, **ohne dass ein Fehler ausgelöst wird**: Weder `load` noch
+`error` feuert, das Modul lädt in 25 ms, das Map-Objekt entsteht, und dann
+passiert nichts mehr. Der dokumentierte Ausweg `setWorkerUrl` samt
+Auslieferung der Worker-Dateien aus `public/` hat es in mehreren Anläufen
+nicht behoben.
+
+**Schluss**
+
+MapLibre ist die technisch richtige Antwort auf "drehbare Karte" - aber in
+diesem Aufbau kein Austausch, sondern ein eigenes Vorhaben: 255 KB mehr auf
+dem Bildschirm mit dem schlechtesten Netz, zwei CSP-Änderungen, und eine
+Bundler-Integration, die erst zum Laufen gebracht werden muss.
+
 Sollte die Karte einmal echte Interaktion im gedrehten Zustand brauchen -
-oder Vektorkacheln, Neigung, Beschriftungen, die sich mitdrehen -, ist
-MapLibre die richtige Antwort. Für das Fährtelegen ist es 240 KB für nichts.
+oder Vektorkacheln, Neigung, Beschriftungen, die sich mitdrehen -, lohnt
+sich dieser Aufwand. Für das Fährtelegen, wo die Karte ohnehin der eigenen
+Position folgt, nicht.
 
 ---
 
