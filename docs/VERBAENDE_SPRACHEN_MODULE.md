@@ -256,13 +256,27 @@ mitbringen kann, ohne dass Code geändert wird.
 
 ---
 
-## Was ich nicht entscheiden kann
+## Entschieden (2026-09-03, Auftraggeber)
 
-1. **Sportartenauswahl pro Nutzer oder pro Hund?** Empfehlung: pro Nutzer,
-   Übersteuerung pro Hund später.
-2. **Darf jede:r Vereine anlegen, oder mit Freigabe?** Empfehlung: mit
-   Freigabe, wegen der Vereinsnamen.
-3. **Sollen Prüfungsordnungen wirklich unübersetzt bleiben?** Empfehlung:
-   ja — mit optionaler englischer *Beschreibung* für internationale Sparten.
-4. **Welche Module sollen abschaltbar sein?** Vorschlag als Startpunkt:
-   Fährte/GPS, Sachkunde, Gruppentraining, Wetter, Statistik.
+1. **Sportartenauswahl pro Nutzer UND pro Hund.** Der Nutzerwert ist der
+   Standard, der Hund darf ihn übersteuern - wer einen Fährtenhund und einen
+   Agility-Hund hat, bekommt an jedem Hund das Passende. Datenmodell dafür:
+
+   ```
+   UserSportSelection  (UserId, SportId)   -- leer = alle
+   DogSportSelection   (DogId,  SportId)   -- leer = erbt vom Nutzer
+   ```
+
+   „Leer" muss dabei *erben* heißen und nicht *nichts*, sonst kann man am
+   Hund keine Auswahl auf „alle" zurücksetzen. Eine ausdrückliche Markierung
+   am Hund („folgt der Nutzereinstellung") ist deshalb sauberer als das
+   Fehlen von Zeilen.
+
+2. **Vereinsanlage mit Freigabe.** Antrag stellen darf jede:r, freigeben der
+   Admin; der Antragsteller wird automatisch erste:r Verwalter:in.
+
+3. **Prüfungsordnungen bleiben unübersetzt** - optionale englische
+   *Beschreibung* für internationale Sparten später möglich.
+
+4. **Abschaltbare Module** (Startpunkt): Fährte/GPS, Sachkunde,
+   Gruppentraining, Wetter, Statistik.

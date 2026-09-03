@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, MapPinPlus, Square } from "lucide-react";
+import { Cookie, MapPin, MapPinPlus, Package, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { estimateLengthMeters } from "@/lib/geo";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
 import { TrackMap } from "@/components/tracking/track-map";
+import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
 
 function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
   return {
@@ -31,10 +31,10 @@ function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
 // gewertet wird (Gegenstand = Verweisen erwünscht, Leckerlipot/Verleitung =
 // erklärt und neutral) - siehe GpsTrackEvaluator im Backend.
 const MARKER_TYPES = [
-  { value: 0, label: "Gegenstand" },
-  { value: 1, label: "Leckerlipot" },
-  { value: 2, label: "Verleitung" },
-  { value: 3, label: "Sonstiges" },
+  { value: 0, label: "Gegenstand", icon: Package },
+  { value: 1, label: "Leckerlipot", icon: Cookie },
+  { value: 2, label: "Verleitung", icon: Waypoints },
+  { value: 3, label: "Sonstiges", icon: MapPinPlus },
 ] as const;
 
 /**
@@ -56,8 +56,6 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     { maxAccuracyMeters: 8, relaxedMaxAccuracyMeters: 20, kalman: true },
   );
   const [surface, setSurface] = useState("");
-  const [markLabel, setMarkLabel] = useState("");
-  const [markerType, setMarkerType] = useState<GpsMarkerType>(0);
   const [isMarking, setIsMarking] = useState(false);
   const startedAtRef = useRef<number>(0);
 
@@ -66,17 +64,37 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     start();
   }
 
-  function markObject() {
+  /**
+   * Setzt einen Marker der gewählten Art an der aktuellen Position.
+   *
+   * Der Typ kommt als Argument, nicht mehr aus einem Auswahlfeld: Vorher
+   * waren es zwei Bedienschritte - Art im Aufklappmenü wählen, dann "Punkt
+   * setzen" drücken. Draußen, im Stehen, mit Hund an der Leine ist das eine
+   * Hand zu viel. Jetzt ist jeder Typ ein eigener Knopf, ein Tipp genügt.
+   */
+  function markObject(typ: GpsMarkerType) {
     setIsMarking(true);
     markPoint(
       (point) => {
-        setPoints((prev) => [...prev, { ...point, pointType: 1, label: markLabel.trim() || null, markerType }]);
-        setMarkLabel("");
+        setPoints((prev) => [...prev, { ...point, pointType: 1, label: null, markerType: typ }]);
         setIsMarking(false);
-        toast.success(`${MARKER_TYPES.find((t) => t.value === markerType)?.label ?? "Marker"} markiert.`);
+        toast.success(`${MARKER_TYPES.find((t) => t.value === typ)?.label ?? "Marker"} markiert.`);
       },
       () => setIsMarking(false),
     );
+  }
+
+  /**
+   * Aufzeichnung verwerfen - nur nach Rückfrage.
+   *
+   * Im Vollbild gibt es bewusst keinen beiläufigen Ausweg: Eine gelegte
+   * Fährte lässt sich nicht wiederholen, ein versehentlicher Abbruch wäre
+   * der Verlust des ganzen Trainings.
+   */
+  function abbrechen() {
+    if (!confirm("Aufzeichnung verwerfen? Die bisher aufgezeichnete Fährte geht verloren.")) return;
+    stop();
+    setPoints([]);
   }
 
   async function stopRecording() {
@@ -137,86 +155,88 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     await onSaved();
   }
 
-  return (
-    <Card className="border-primary/40">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <MapPin className="size-5 text-primary" />
-          Fährte aufnehmen
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {!isRecording ? (
-          <Button onClick={startRecording} className="self-start">
+  const autoPunkte = points.filter((p) => p.pointType !== 1).length;
+  const markerPunkte = points.filter((p) => p.pointType === 1).length;
+
+  // Nicht am Aufzeichnen: nur der Einstiegsknopf in der Hundeseite.
+  if (!isRecording) {
+    return (
+      <Card className="border-primary/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <MapPin className="size-5 text-primary" />
+            Fährte aufnehmen
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 sm:max-w-xs">
+            <Label htmlFor="fahrte-surface">Untergrund (optional)</Label>
+            <Input
+              id="fahrte-surface"
+              placeholder="z.B. Wiese, Acker, Wald"
+              value={surface}
+              onChange={(e) => setSurface(e.target.value)}
+            />
+          </div>
+          <Button onClick={startRecording} className="self-start coarse:min-h-11">
             <MapPin className="size-4" />
             Aufnahme starten
           </Button>
-        ) : (
-          <>
-            <div className="flex flex-col gap-2 sm:w-64">
-              <Label htmlFor="fahrte-surface">Untergrund (optional)</Label>
-              <Input
-                id="fahrte-surface"
-                placeholder="z.B. Wiese, Acker, Wald"
-                value={surface}
-                onChange={(e) => setSurface(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-              <div className="flex flex-col gap-2 sm:w-44">
-                <Label>Art des Markers</Label>
-                <Select value={String(markerType)} onValueChange={(v) => setMarkerType(Number(v ?? "0") as GpsMarkerType)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MARKER_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={String(t.value)}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2 sm:w-56">
-                <Label htmlFor="fahrte-mark-label">Bezeichnung (optional)</Label>
-                <Input
-                  id="fahrte-mark-label"
-                  placeholder="z.B. Schussstelle, Apportel"
-                  value={markLabel}
-                  onChange={(e) => setMarkLabel(e.target.value)}
-                />
-              </div>
-              <Button type="button" variant="outline" onClick={markObject} disabled={isMarking}>
-                <MapPinPlus className="size-4" />
-                {isMarking ? "Markiere…" : "Punkt setzen"}
-              </Button>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              {currentAccuracy !== null && (
-                <span
-                  className={`text-xs font-mono tabular-nums ${
-                    currentAccuracy <= 8
-                      ? "text-green-600"
-                      : currentAccuracy <= 15
-                        ? "text-yellow-600"
-                        : "text-red-600"
-                  }`}
-                  title="GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als 8 m werden verworfen; findet das GPS länger keinen genauen Fix (z.B. ohne Netz), lockert sich der Filter schrittweise bis 20 m."
-                >
-                  ±{Math.round(currentAccuracy)} m
-                </span>
-              )}
-              <Button variant="destructive" onClick={stopRecording} className="self-start">
-                <Square className="size-4" />
-                Stoppen ({points.filter((p) => p.pointType !== 1).length} Punkte,{" "}
-                {points.filter((p) => p.pointType === 1).length} Marker)
-              </Button>
-            </div>
-            <TrackMap points={points} live />
-          </>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <AufzeichnungVollbild
+      titel="Fährte legen"
+      status={
+        <>
+          {autoPunkte} Punkte · {markerPunkte} Marker
+          {currentAccuracy !== null && (
+            <>
+              {" · "}
+              <span
+                className={
+                  currentAccuracy <= 8
+                    ? "text-green-600"
+                    : currentAccuracy <= 15
+                      ? "text-yellow-600"
+                      : "text-red-600"
+                }
+                title="GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als 8 m werden verworfen; findet das GPS länger keinen genauen Fix (z.B. ohne Netz), lockert sich der Filter schrittweise bis 20 m."
+              >
+                ±{Math.round(currentAccuracy)} m
+              </span>
+            </>
+          )}
+        </>
+      }
+      aktionen={
+        // Ein Knopf je Markerart, nebeneinander im Daumenbereich. h-16 statt
+        // der üblichen Knopfhöhe: Das Ziel muss mit einer Hand, im Stehen,
+        // ohne Hinsehen zu treffen sein.
+        <div className="grid grid-cols-4 gap-2">
+          {MARKER_TYPES.map((t) => (
+            <Button
+              key={t.value}
+              type="button"
+              variant="outline"
+              disabled={isMarking}
+              onClick={() => markObject(t.value)}
+              className="h-16 flex-col gap-1 px-1 text-[11px] leading-tight"
+            >
+              <t.icon className="size-5 shrink-0" />
+              <span className="w-full truncate">{t.label}</span>
+            </Button>
+          ))}
+        </div>
+      }
+      abschlussLabel="Legen beenden"
+      onAbschluss={stopRecording}
+      onAbbrechen={abbrechen}
+    >
+      <TrackMap points={points} live fill />
+    </AufzeichnungVollbild>
   );
 }

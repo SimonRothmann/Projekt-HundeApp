@@ -81,6 +81,7 @@ export function TrackMap({
   walkRuns = [],
   live = false,
   liveWalkRunPoints,
+  fill = false,
 }: {
   points: MapPoint[];
   walkRuns?: GpsWalkRun[];
@@ -91,6 +92,10 @@ export function TrackMap({
   // der neue Versuch entsteht dabei live in derselben Karte, statt in einer
   // zweiten daneben.
   liveWalkRunPoints?: MapPoint[];
+  // Füllt die Fläche des Elternelements statt der festen Höhe von 256 px.
+  // Gebraucht für die Vollbildaufzeichnung, wo die Karte den ganzen
+  // verbleibenden Platz bekommt.
+  fill?: boolean;
 }) {
   // Live entweder weil eine neue Fährte gelegt wird (bisheriges Verhalten)
   // oder weil ein Ablauf-Versuch mitten in der Aufzeichnung ist.
@@ -103,6 +108,30 @@ export function TrackMap({
   const hasSetInitialViewRef = useRef(false);
   const [mapReady, setMapReady] = useState(false);
 
+  // Kantenlänge der Drehfläche (siehe unten): die Diagonale des Rahmens.
+  const rahmenRef = useRef<HTMLDivElement | null>(null);
+  const [kantenlaenge, setKantenlaenge] = useState(0);
+
+  // Rahmen messen: Die Drehfläche muss so groß sein wie die Diagonale, sonst
+  // deckt sie bei schrägem Winkel ihren eigenen Ausschnitt nicht mehr ab.
+  // Leaflet muss danach seine Größe neu bestimmen, sonst rechnet es weiter
+  // mit den alten Maßen und die Karte sitzt versetzt.
+  useEffect(() => {
+    const rahmen = rahmenRef.current;
+    if (!rahmen) return;
+
+    const messen = () => {
+      const { width, height } = rahmen.getBoundingClientRect();
+      const diagonale = Math.ceil(Math.hypot(width, height));
+      setKantenlaenge((vorher) => (vorher === diagonale ? vorher : diagonale));
+    };
+
+    messen();
+    const beobachter = new ResizeObserver(messen);
+    beobachter.observe(rahmen);
+    return () => beobachter.disconnect();
+  }, []);
+
   // Kartenausrichtung: nur im Live-Modus umschaltbar; Nutzer kann per
   // Kompass-Button zwischen den drei Modi zyklen.
   // - "north-arrow": Nord oben, Richtungspfeil an der eigenen Position
@@ -110,12 +139,24 @@ export function TrackMap({
   // - "heading": Karte selbst in Fahrtrichtung gedreht (klassischer Navi-Modus)
   // - "north": Nord oben ohne Zusatzpfeil (statische Ansicht)
   type OrientationMode = "north-arrow" | "heading" | "north";
-  const [orientation, setOrientation] = useState<OrientationMode>(isLive ? "north-arrow" : "north");
+  // Während der Aufzeichnung dreht die Karte standardmäßig mit der
+  // Laufrichtung. Vorher stand hier "north-arrow" - der Modus war also
+  // vorhanden, aber hinter dem Kompass-Knopf versteckt, und wer ihn nicht
+  // fand, lief mit fest nach Norden ausgerichteter Karte über den Acker.
+  // Die drei Modi bleiben, nur die Voreinstellung wechselt.
+  const [orientation, setOrientation] = useState<OrientationMode>(isLive ? "heading" : "north");
   const [headingDeg, setHeadingDeg] = useState(0);
   const smoothedHeadingRef = useRef<number | null>(null);
 
   const rotateWithHeading = orientation === "heading";
   const showPositionArrow = isLive && orientation === "north-arrow";
+  // Nach jedem Größen- oder Moduswechsel muss Leaflet seine Maße neu
+  // bestimmen - sonst rechnet es mit der alten Fläche weiter und die Karte
+  // sitzt versetzt oder zeigt graue Kacheln.
+  useEffect(() => {
+    mapRef.current?.invalidateSize({ animate: false });
+  }, [kantenlaenge, rotateWithHeading]);
+
   function cycleOrientation() {
     setOrientation((prev) =>
       prev === "north-arrow" ? "heading" : prev === "heading" ? "north" : "north-arrow",
@@ -354,11 +395,32 @@ export function TrackMap({
         : "Nord oben, statisch (klicken für 'Nord + Pfeil')";
 
   return (
-    <div className="relative h-64 w-full overflow-hidden rounded-md">
+    <div
+      ref={rahmenRef}
+      className={`relative w-full overflow-hidden ${fill ? "h-full" : "h-64 rounded-md"}`}
+    >
       <div
         ref={containerRef}
-        className="h-full w-full transition-transform duration-500 ease-out [&_.leaflet-control-attribution]:origin-bottom-right"
-        style={{ transform: `rotate(${rotationDeg}deg)` }}
+        className={
+          rotateWithHeading
+            ? "absolute left-1/2 top-1/2 transition-transform duration-500 ease-out [&_.leaflet-control-attribution]:origin-bottom-right"
+            : "h-full w-full transition-transform duration-500 ease-out [&_.leaflet-control-attribution]:origin-bottom-right"
+        }
+        style={
+          rotateWithHeading
+            ? {
+                // Quadrat mit der Diagonale des Rahmens als Kantenlänge, um
+                // den Mittelpunkt gedreht. Ohne das schauen bei gedrehter
+                // Karte die Ecken des Rahmens ins Leere - bei 90° blieben
+                // oben und unten schwarze Keile stehen, weil ein hochkantes
+                // Rechteck gedreht seinen eigenen Ausschnitt nicht mehr
+                // deckt. Ein Quadrat dieser Kantenlänge deckt jeden Winkel.
+                width: kantenlaenge,
+                height: kantenlaenge,
+                transform: `translate(-50%, -50%) rotate(${rotationDeg}deg)`,
+              }
+            : { transform: `rotate(${rotationDeg}deg)` }
+        }
       />
       {/* OSM-Attribution wieder aufrichten wenn Karte rotiert: gegenrotieren
           um denselben Winkel. Selector greift die Leaflet-Attribution direkt

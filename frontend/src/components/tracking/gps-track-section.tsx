@@ -15,12 +15,12 @@ import { formatDelta, formatTemperature, weatherIcon, weatherLabel } from "@/lib
 // Für Zeitangaben in der Fährten-Übersicht: nur automatische Trackpunkte,
 // nicht die manuell gesetzten Marker (die tragen ggf. einen späteren
 // Zeitstempel und würden die Legezeit verzerren).
-function trackTimes(points: GpsPoint[]): { start: Date; durationMs: number } | null {
+function trackTimes(points: GpsPoint[]): { start: Date; end: Date; durationMs: number } | null {
   const auto = points.filter((p) => p.pointType !== 1);
   if (auto.length < 2) return null;
   const start = new Date(auto[0].timestamp);
   const end = new Date(auto[auto.length - 1].timestamp);
-  return { start, durationMs: end.getTime() - start.getTime() };
+  return { start, end, durationMs: end.getTime() - start.getTime() };
 }
 
 function walkRunDurationMs(run: { points: { timestamp: string }[] }): number | null {
@@ -112,8 +112,14 @@ export function GpsTrackSection({
             <div key={track.id} className="flex flex-col gap-2">
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                 {times && (
-                  <span title={`${formatDate(times.start)} ${formatTime(times.start)}`}>
-                    Gelegt {formatTime(times.start)} · Dauer {formatDuration(times.durationMs)}
+                  // Auch die Endzeit zeigen, nicht nur den Beginn: Fürs
+                  // Fährtenalter zählt, wann das Legen ENDET - ab da altert
+                  // der letzte Abschnitt. Bei einer Legezeit von zwanzig
+                  // Minuten ist der Unterschied erheblich, und das Alter ist
+                  // die wichtigste Größe für die Schwierigkeit.
+                  <span title={`${formatDate(times.start)} ${formatTime(times.start)}–${formatTime(times.end)}`}>
+                    Gelegt {formatTime(times.start)}–{formatTime(times.end)} · Dauer{" "}
+                    {formatDuration(times.durationMs)}
                   </span>
                 )}
                 {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}

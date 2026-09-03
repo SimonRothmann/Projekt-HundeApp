@@ -74,7 +74,7 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
 
 ## Nächste Features (Briefs in docs/)
 
-- [ ] **Fährte: Aufzeichnung im Vollbild** — siehe [docs/FAEHRTE_AUFZEICHNUNG.md](docs/FAEHRTE_AUFZEICHNUNG.md).
+- [x] **Fährte: Aufzeichnung im Vollbild** (umgesetzt 2026-09-03) — siehe [docs/FAEHRTE_AUFZEICHNUNG.md](docs/FAEHRTE_AUFZEICHNUNG.md).
       Vollbildansicht beim Aufzeichnen, große Marker-Knöpfe je Typ, Karte in
       Laufrichtung als Standard, Start- UND Endzeit des Legens anzeigen.
       Beim Untersuchen zeigte sich: Karte-in-Laufrichtung und die vier

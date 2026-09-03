@@ -63,10 +63,19 @@ bleibt davon wenig — und darunter drängeln sich Eingabefelder und Knöpfe.
 - Verlassen nur bewusst: Ein versehentliches Zurück darf die laufende
   Aufzeichnung nicht abbrechen.
 
-Offen und vor dem Bauen zu klären: Soll die Ansicht den Bildschirm
-wachhalten? Eine Fährte zu legen dauert Minuten, in denen niemand das Display
-berührt — sperrt es, bricht die GPS-Aufzeichnung im Hintergrund je nach Gerät
-ab. Die Wake-Lock-API kann das, kostet aber Akku.
+Der Bildschirm wird wachgehalten (`useWakeLock`). Wichtig dabei: Das System
+nimmt die Sperre von sich aus zurück, sobald der Tab in den Hintergrund
+gerät - etwa bei einem Anruf. Der Haken fordert sie deshalb beim
+Sichtbarwerden erneut an, sonst schläft das Display mitten in der
+Aufzeichnung ein.
+
+**Beim Bauen aufgefallen:** Das Vollbild muss per Portal am `body` hängen,
+nicht an seiner Stelle im Baum. Der Inhaltsbereich der App-Hülle trägt
+`relative z-10` und bildet einen eigenen Stapelkontext - ein `z-50` darin
+bleibt trotzdem unter der Kopfzeile (`z-30`) und der unteren Navigation
+(`z-40`), weil beide Geschwister des Inhaltsbereichs sind und gegen dessen
+`z-10` verglichen werden. Ohne Portal lag das Vollbild zwischen den beiden,
+und der Abschluss-Knopf war verdeckt.
 
 ---
 
@@ -118,12 +127,12 @@ Punkt 1 lässt sich vorab ausliefern, 2 und 3 gehören zusammen.
 
 ---
 
-## Offene Fragen
+## Entschieden (2026-09-03, Auftraggeber)
 
-1. **Bildschirm wachhalten** während der Aufzeichnung — ja oder nein?
-   (Akku gegen Zuverlässigkeit.)
-2. **Soll das Vollbild auch für das Suchen** der Fährte gelten, oder nur für
-   das Legen? Beim Suchen führt der Hund, der Mensch schaut selten aufs
-   Display.
-3. **Gilt die Ausrichtung pro Nutzer gemerkt** oder jedes Mal neu ab
-   Standard?
+1. **Bildschirm wird wachgehalten** während der Aufzeichnung. Zuverlässigkeit
+   vor Akku - eine abgebrochene Fährte ist verloren, ein leerer Akku nicht.
+   Umsetzung über die Wake-Lock-API, mit Freigabe beim Verlassen der Ansicht.
+2. **Vollbild gilt für beides** - Legen und Suchen. Auch wenn beim Suchen
+   der Hund führt: Wer doch aufs Display schaut, soll dasselbe sehen, und
+   zwei getrennte Ansichten wären zwei Stellen zum Pflegen.
+3. Die Ausrichtung wird **pro Nutzer gemerkt** (`UserPreferences`).

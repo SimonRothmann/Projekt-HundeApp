@@ -5,11 +5,13 @@ import { api, ApiError } from "@/lib/api";
 import type { GpsPoint, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Footprints, Square } from "lucide-react";
+import { Footprints } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { estimateLengthMeters } from "@/lib/geo";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
+import { TrackMap } from "@/components/tracking/track-map";
+import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
 import { primeHapticsAudio, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
 
 // Stabile Leerreferenz für den Idle-Fall (keine Aufzeichnung läuft) - siehe
@@ -76,6 +78,16 @@ export function WalkRunRecorder({
     `${trackId}:${isRecording ? "on" : "off"}`,
   );
 
+  /**
+   * Ablauf verwerfen - nur nach Rückfrage, wie beim Legen. Ein
+   * versehentlicher Abbruch mitten im Suchen kostet den ganzen Versuch.
+   */
+  function abbrechen() {
+    if (!confirm("Ablauf verwerfen? Die bisher aufgezeichnete Strecke geht verloren.")) return;
+    stop();
+    setPoints([]);
+  }
+
   async function stopRecording() {
     stop();
 
@@ -124,30 +136,42 @@ export function WalkRunRecorder({
     );
   }
 
+  // Wie beim Legen im Vollbild: Der Ablauf findet draußen statt, nicht am
+  // Schreibtisch. Die Karte trägt der Recorder hier selbst bei - die gelegte
+  // Fährte hat er als Prop, die entstehende Linie sind seine eigenen Punkte.
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="destructive" onClick={stopRecording}>
-          <Square className="size-4" />
-          Stoppen ({points.length} Punkte)
-        </Button>
-        {currentAccuracy !== null && (
-          <span
-            className={`text-xs font-mono tabular-nums ${
-              currentAccuracy <= 10 ? "text-green-600" : currentAccuracy <= 25 ? "text-yellow-600" : "text-red-600"
-            }`}
-            title="GPS-Genauigkeit (Radius des Fehlerkreises)."
-          >
-            ±{Math.round(currentAccuracy)} m
-          </span>
-        )}
-      </div>
-      <Input
-        className="sm:max-w-xs"
-        placeholder="Kommentar zum Ablauf (optional)"
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-      />
-    </div>
+    <AufzeichnungVollbild
+      titel="Fährte ablaufen"
+      status={
+        <>
+          {points.length} Punkte
+          {currentAccuracy !== null && (
+            <>
+              {" · "}
+              <span
+                className={
+                  currentAccuracy <= 10 ? "text-green-600" : currentAccuracy <= 25 ? "text-yellow-600" : "text-red-600"
+                }
+                title="GPS-Genauigkeit (Radius des Fehlerkreises)."
+              >
+                ±{Math.round(currentAccuracy)} m
+              </span>
+            </>
+          )}
+        </>
+      }
+      aktionen={
+        <Input
+          placeholder="Kommentar zum Ablauf (optional)"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+        />
+      }
+      abschlussLabel="Ablauf beenden"
+      onAbschluss={stopRecording}
+      onAbbrechen={abbrechen}
+    >
+      <TrackMap points={laidTrackPoints ?? []} liveWalkRunPoints={points} fill />
+    </AufzeichnungVollbild>
   );
 }
