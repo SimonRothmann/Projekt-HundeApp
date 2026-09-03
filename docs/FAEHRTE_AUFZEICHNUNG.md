@@ -45,6 +45,16 @@ geringer Geschwindigkeit wird die Richtung unruhig. Deshalb: unterhalb einer
 Mindestgeschwindigkeit die letzte stabile Richtung halten, statt zu zittern.
 Das ist der eigentliche Knackpunkt, nicht die Drehung selbst.
 
+**Nachtrag (2026-09-03):** Beim Start zeigte die Karte ganz Deutschland und
+sprang erst nach etlichen Sekunden auf den Standort. Ursache war eine
+Vermischung zweier Dinge: Die Karte wartete auf den ersten Punkt, der die
+Genauigkeitsprüfung besteht - bei kaltem GPS werden aber genau die ersten
+Messungen verworfen (gefordert sind 8 m, gelockert wird erst nach 15 s).
+Der Filter gehört zur AUFZEICHNUNG; wohin die Karte schaut, ist eine andere
+Frage. Sie holt sich jetzt beim Öffnen eine grobe Position
+(`enableHighAccuracy: false`, Cache bis 60 s) und zentriert sofort; der erste
+echte Punkt rastet danach genau ein.
+
 ---
 
 ## 2. Vollbild beim Aufzeichnen

@@ -111,6 +111,8 @@ export function TrackMap({
   // Kantenlänge der Drehfläche (siehe unten): die Diagonale des Rahmens.
   const rahmenRef = useRef<HTMLDivElement | null>(null);
   const [kantenlaenge, setKantenlaenge] = useState(0);
+  // Ob schon grob auf den Standort zentriert wurde (siehe Effect unten).
+  const hatGrobeZentrierungRef = useRef(false);
 
   // Rahmen messen: Die Drehfläche muss so groß sein wie die Diagonale, sonst
   // deckt sie bei schrägem Winkel ihren eigenen Ausschnitt nicht mehr ab.
@@ -150,6 +152,49 @@ export function TrackMap({
 
   const rotateWithHeading = orientation === "heading";
   const showPositionArrow = isLive && orientation === "north-arrow";
+  // Sofort grob auf den eigenen Standort zentrieren, ohne auf den ersten
+  // aufgezeichneten Punkt zu warten.
+  //
+  // Vorher sprang die Karte erst, wenn der erste Punkt die Genauigkeitsprüfung
+  // bestand - bei kaltem GPS werden aber genau die ersten Messungen verworfen
+  // (gefordert sind 8 m, gelockert wird erst nach 15 s). So lange sah man
+  // ganz Deutschland. Der Filter soll schlechte Punkte aus der AUFZEICHNUNG
+  // halten; wohin die Karte schaut, ist eine andere Frage - dafür genügt eine
+  // grobe Position.
+  //
+  // Die genaue Ausrichtung übernimmt weiterhin der erste echte Punkt: Diese
+  // Zentrierung setzt hasSetInitialViewRef bewusst NICHT, damit dort noch
+  // einmal exakt eingerastet wird statt nur sanft zu schwenken.
+  useEffect(() => {
+    if (!mapReady || !isLive) return;
+    if (hatGrobeZentrierungRef.current || hasSetInitialViewRef.current) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+
+    let abgebrochen = false;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (abgebrochen || hasSetInitialViewRef.current) return;
+        hatGrobeZentrierungRef.current = true;
+        mapRef.current?.setView(
+          [position.coords.latitude, position.coords.longitude],
+          LIVE_INITIAL_ZOOM,
+        );
+      },
+      () => {
+        // Kein Standort (verweigert, kein Empfang): Es bleibt bei der
+        // Übersichtskarte, und der erste aufgezeichnete Punkt richtet sie aus.
+      },
+      // Bewusst genügsam: Es geht nur um den Bildausschnitt. enableHighAccuracy
+      // würde denselben langsamen Kaltstart abwarten, den wir gerade umgehen
+      // wollen; ein bis zu einer Minute alter Wert aus dem Cache reicht dafür.
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 },
+    );
+
+    return () => {
+      abgebrochen = true;
+    };
+  }, [mapReady, isLive]);
+
   // Nach jedem Größen- oder Moduswechsel muss Leaflet seine Maße neu
   // bestimmen - sonst rechnet es mit der alten Fläche weiter und die Karte
   // sitzt versetzt oder zeigt graue Kacheln.
