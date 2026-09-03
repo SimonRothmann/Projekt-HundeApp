@@ -72,6 +72,23 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
 - [x] **Trainer:innen nehmen Mitglieder direkt auf** (`POST /api/clubs/{id}/members`) - bisher konnten sie nur Anfragen freigeben. Die Berechtigungsprüfung liegt im Dienst, nicht am Controller, weil der Aufruf jetzt an zwei Routen hängt.
 - [x] **Löschen eines Kontos räumt seine Vereinszeilen mit weg** (`ClubService.PurgeUserAsync`). Vorher blieben Mitgliedschaften, Trainerzeilen und Zuweisungen stehen und tauchten als "(unbekannt)" in den Beitrittsanfragen auf - auf test zwölf Stück, nicht auflösbar. Ein einmaliger, idempotenter Aufräumlauf beim Start (`CommunityOrphanCleanup`) beseitigt die vorhandenen.
 
+## Nächste Features (Briefs in docs/)
+
+- [ ] **Fährte: Aufzeichnung im Vollbild** — siehe [docs/FAEHRTE_AUFZEICHNUNG.md](docs/FAEHRTE_AUFZEICHNUNG.md).
+      Vollbildansicht beim Aufzeichnen, große Marker-Knöpfe je Typ, Karte in
+      Laufrichtung als Standard, Start- UND Endzeit des Legens anzeigen.
+      Beim Untersuchen zeigte sich: Karte-in-Laufrichtung und die vier
+      Markertypen existieren bereits, sie sind nur nicht voreingestellt bzw.
+      hinter einem Auswahlfeld versteckt; die Endzeit wird sogar schon
+      berechnet. Der Schwerpunkt liegt daher auf Erreichbarkeit, nicht auf
+      neuer Funktion.
+
+- [ ] **Verbände, Sprachen, Module** — siehe [docs/VERBAENDE_SPRACHEN_MODULE.md](docs/VERBAENDE_SPRACHEN_MODULE.md).
+      Vereins-Selbstverwaltung, englische Oberfläche, abschaltbare Module und
+      Sportartenauswahl je Nutzer. Empfohlene Reihenfolge: Module/Sportarten
+      zuerst (kleinster Aufwand, legt `UserPreferences` an), dann
+      Vereinsrechte, dann Sprachen.
+
 ## Offene Punkte (Frontend/Fährte)
 
 - [x] Dropdowns gestylt: native `<select>`-Elemente durch eine selbst gerenderte Select-Komponente (`components/ui/select.tsx`, auf Basis von `@base-ui/react/select`, analog zu `components/ui/button.tsx`/`sheet.tsx`) ersetzt - in allen acht betroffenen Dateien (`admin/page.tsx`, `dogs/page.tsx`, `dogs/[id]/page.tsx`, `trainer/page.tsx`, `global-exercises-section.tsx`, `regulation-import-section.tsx`, `goals-section.tsx`, `club-exercises-section.tsx`). Typecheck, Lint und `next build` (alle Routen inkl. der dynamischen) laufen fehlerfrei durch; visuell im Browser noch nicht gegengeprüft, da der Chrome-Zugriff in dieser Session nicht verfügbar war.
