@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 
   title: {
     // Unterseiten setzen nur ihren eigenen Titel, die Marke hängt sich an.
-    default: "Dogity – Trainingstagebuch für den Hundesport",
+    default: SITE.title,
     template: "%s | Dogity",
   },
   description: SITE.description,
@@ -38,6 +38,8 @@ export const metadata: Metadata = {
   // kosten nichts.
   keywords: [
     "Hundesport App",
+    "Hundesport Tagebuch App",
+    "Trainingstagebuch App",
     "Trainingstagebuch Hund",
     "Fährtenarbeit",
     "Fährte aufzeichnen GPS",
@@ -56,12 +58,12 @@ export const metadata: Metadata = {
     locale: SITE.locale,
     url: SITE.url,
     siteName: SITE.name,
-    title: "Dogity – Trainingstagebuch für den Hundesport",
+    title: SITE.title,
     description: SITE.description,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dogity – Trainingstagebuch für den Hundesport",
+    title: SITE.title,
     description: SITE.description,
   },
 

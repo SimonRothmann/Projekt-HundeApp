@@ -19,7 +19,7 @@ import { LetzteNeuerung } from "@/components/letzte-neuerung";
 import { SITE } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Dogity – Trainingstagebuch für den Hundesport",
+  title: SITE.title,
   description: SITE.description,
   alternates: { canonical: "/" },
 };
@@ -151,11 +151,11 @@ export default function HomePage() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-4">
         <section className="py-14 sm:py-20">
           <h1 className="text-3xl font-extrabold tracking-tight text-balance sm:text-5xl">
-            Das Trainingstagebuch für den Hundesport
+            Die Trainingstagebuch-App für den Hundesport
           </h1>
           <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
             Training festhalten, Fährten per GPS aufzeichnen und auswerten, Prüfungen vorbereiten. Für Hundesportler,
-            Trainer und Vereine im Gebrauchshundesport – kostenlos und ohne Installation.
+            Trainer und Vereine im Gebrauchshundesport – kostenlos und ohne Umweg über einen App-Store.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/register" className={cn(buttonVariants({ size: "lg" }), "h-11 px-6 text-sm")}>

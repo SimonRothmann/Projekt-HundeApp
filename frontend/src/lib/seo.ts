@@ -7,12 +7,24 @@ export const SITE = {
   name: "Dogity",
   url: "https://dogity.net",
   /**
+   * Der Seitentitel. Steht hier, weil er sonst an fünf Stellen gepflegt werden
+   * müsste (Layout, Startseite, Open Graph, Twitter, Vorschaubild) - genau die
+   * Streuung, gegen die es diese Datei gibt.
+   *
+   * "-App" steht bewusst drin. Gesucht wird nach "Hundesport Tagebuch App";
+   * stand das Wort nirgends im Titel, fand der Suchende in unserem Treffer
+   * kein einziges Wort wieder, das er selbst getippt hatte. Es ist auch keine
+   * Schönfärberei: Dogity lässt sich auf den Startbildschirm legen und läuft
+   * offline - das ist eine App, nur ohne Store dazwischen.
+   */
+  title: "Dogity – Trainingstagebuch-App für den Hundesport",
+  /**
    * Unter 160 Zeichen: Google schneidet längere Beschreibungen im Suchergebnis
    * ab. Nennt bewusst die Begriffe, nach denen tatsächlich gesucht wird
    * (Hundesport, Trainingstagebuch, Fährte, IGP), statt nur den Markennamen.
    */
   description:
-    "Kostenloses Trainingstagebuch für den Hundesport: Training dokumentieren, Fährten per GPS aufzeichnen und auswerten, Prüfungsordnungen für BH, IBGH und IGP.",
+    "Kostenlose Trainingstagebuch-App für den Hundesport: Training dokumentieren, Fährten per GPS aufzeichnen und auswerten, Prüfungsordnungen für BH, IBGH und IGP.",
   locale: "de_DE",
 } as const;
 
