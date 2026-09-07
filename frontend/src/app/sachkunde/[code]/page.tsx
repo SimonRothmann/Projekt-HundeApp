@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getQuizCatalog, getQuizCatalogs } from "@/lib/public-sachkunde";
+import { getQuizCatalog, getQuizCatalogs, getQuizQuestions } from "@/lib/public-sachkunde";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-chrome";
 import { QuizTrainer } from "@/components/sachkunde/quiz-trainer";
+import { FragenUebersicht } from "@/components/sachkunde/fragen-uebersicht";
 import { absoluteUrl } from "@/lib/seo";
 import { ChevronLeft } from "lucide-react";
 
@@ -33,6 +34,10 @@ export default async function SachkundeCatalogPage({ params }: Props) {
   const { code } = await params;
   const catalog = await getQuizCatalog(code);
   if (!catalog) notFound();
+
+  // Serverseitig, nicht im Trainer: sonst stünde im ausgelieferten HTML nur
+  // "Lädt…" - siehe FragenUebersicht.
+  const fragen = await getQuizQuestions(catalog.code);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -71,6 +76,8 @@ export default async function SachkundeCatalogPage({ params }: Props) {
         <div className="mt-6">
           <QuizTrainer catalog={catalog} />
         </div>
+
+        <FragenUebersicht fragen={fragen} />
       </main>
 
       <MarketingFooter />

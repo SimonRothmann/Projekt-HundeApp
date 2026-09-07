@@ -61,6 +61,21 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.11",
+    datum: "2026-09-07",
+    titel: uebersetzbar("Alle Sachkundefragen zum Nachlesen"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Unter dem Fragentrainer stehen jetzt alle Fragen des Katalogs am Stück, mit Lösung. Wer den Stoff am Abend vor der Prüfung einmal durchlesen will, muss sich nicht mehr Runde für Runde durchtippen."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Sachkundeseiten lassen sich jetzt über Suchmaschinen finden. Bisher wurden die Fragen erst im Browser nachgeladen - wer nach ihnen suchte, fand eine leere Seite."),
+      },
+    ],
+  },
+  {
     version: "0.10",
     datum: "2026-09-03",
     titel: uebersetzbar("Englisch - und der Prüfungskatalog bekommt einen Geltungsbereich"),

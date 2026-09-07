@@ -37,6 +37,30 @@ export async function getQuizCatalog(code: string): Promise<QuizCatalog | null> 
   return alle.find((k) => k.code.toLowerCase() === code.toLowerCase()) ?? null;
 }
 
+/** Ein Abschnitt des Fragenkatalogs samt seiner Fragen. */
+export type Fragenabschnitt = {
+  key: string;
+  name: string;
+  fragen: QuizQuestion[];
+};
+
+/**
+ * Bündelt die Fragen nach ihrem Abschnitt.
+ *
+ * Die Reihenfolge ist die des Katalogs, nicht die des Alphabets: die
+ * Abschnitte A bis E folgen der Prüfungsvorlage des Verbands, und wer eine
+ * Frage im Original nachschlagen will, sucht sie an derselben Stelle.
+ */
+export function nachAbschnitten(fragen: QuizQuestion[]): Fragenabschnitt[] {
+  const abschnitte: Fragenabschnitt[] = [];
+  for (const frage of fragen) {
+    const vorhanden = abschnitte.find((abschnitt) => abschnitt.key === frage.section);
+    if (vorhanden) vorhanden.fragen.push(frage);
+    else abschnitte.push({ key: frage.section, name: frage.sectionName, fragen: [frage] });
+  }
+  return abschnitte;
+}
+
 export async function getQuizQuestions(code: string): Promise<QuizQuestion[]> {
   try {
     const antwort = await fetch(`${API}/api/sachkunde/catalogs/${encodeURIComponent(code)}/questions`, {
