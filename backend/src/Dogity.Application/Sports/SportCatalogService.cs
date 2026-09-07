@@ -99,7 +99,11 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
             // naheliegende Fehler: null heißt "gilt überall", also auch hier.
             .Where(r => land == null || r.CountryCode == land || r.CountryCode == null)
             .OrderBy(r => r.Name)
-            .Select(r => new RegulationDto(r.Id, r.Name, r.SourceUrl, r.LastSyncedAt, r.LatestKnownVersionLabel, r.Description, r.CountryCode))
+            // Dieselbe Auswahl wie im Detail (jüngste Fassung), damit Liste
+            // und Einzelseite nicht verschiedene Daten nennen.
+            .Select(r => new RegulationDto(
+                r.Id, r.Name, r.SourceUrl, r.LastSyncedAt, r.LatestKnownVersionLabel, r.Description, r.CountryCode,
+                r.Versions.OrderByDescending(v => v.ValidFrom).Select(v => (DateOnly?)v.ValidFrom).FirstOrDefault()))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<RegulationDto>>.Success(regulations);
@@ -172,7 +176,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
             .ToListAsync(ct);
 
         var detail = new RegulationDetailDto(
-            new RegulationDto(regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode),
+            new RegulationDto(regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, currentVersion.ValidFrom),
             new RegulationVersionDto(currentVersion.Id, currentVersion.VersionLabel, currentVersion.ValidFrom),
             exercises);
 

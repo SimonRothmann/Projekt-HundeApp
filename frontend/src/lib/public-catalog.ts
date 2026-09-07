@@ -29,6 +29,8 @@ export type Regulation = {
   description: string | null;
   latestKnownVersionLabel: string | null;
   sourceUrl: string | null;
+  /** Gültig ab der geführten Fassung ("2025-01-01"); null, wenn es keine gibt. */
+  currentVersionValidFrom: string | null;
 };
 
 export type RegulationExercise = {
@@ -102,6 +104,24 @@ export async function getCatalog(): Promise<CatalogEntry[]> {
   }
 
   return entries;
+}
+
+/**
+ * Jüngstes Fassungsdatum im Katalog - das Änderungsdatum der Übersichtsseite.
+ *
+ * Ungenau nach unten: kommt eine Prüfungsordnung mit altem Gültigkeitsdatum
+ * neu hinzu, ändert sich die Übersicht, dieses Datum aber nicht. Das ist die
+ * harmlose Richtung. Ein zu junges Datum wäre die teure: Google gleicht
+ * lastmod mit der Seite ab und verwirft das Feld für die ganze Sitemap,
+ * sobald es unglaubwürdig wird.
+ */
+export function neuesteFassung(catalog: CatalogEntry[]): string | undefined {
+  const daten = catalog
+    .map((entry) => entry.regulation.currentVersionValidFrom)
+    .filter((datum): datum is string => datum !== null)
+    // ISO-Datum: alphabetisch sortiert ist zugleich chronologisch sortiert.
+    .sort();
+  return daten.length === 0 ? undefined : daten[daten.length - 1];
 }
 
 export async function findCatalogEntry(slug: string): Promise<CatalogEntry | null> {

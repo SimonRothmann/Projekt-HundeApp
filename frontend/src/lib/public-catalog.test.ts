@@ -1,19 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { groupIntoFamilies, type CatalogEntry } from "./public-catalog";
+import { groupIntoFamilies, neuesteFassung, type CatalogEntry } from "./public-catalog";
 
-function entry(name: string): CatalogEntry {
+function entry(name: string, gueltigAb: string | null = null): CatalogEntry {
   return {
     slug: name.toLowerCase(),
     sport: { id: "s", name: "Sport", description: null },
-    regulation: { id: name, name, description: null, latestKnownVersionLabel: null, sourceUrl: null },
+    regulation: {
+      id: name,
+      name,
+      description: null,
+      latestKnownVersionLabel: null,
+      sourceUrl: null,
+      currentVersionValidFrom: gueltigAb,
+    },
   };
 }
 
-const titles = (names: string[]) => groupIntoFamilies(names.map(entry)).map((f) => f.title);
+const titles = (names: string[]) => groupIntoFamilies(names.map((n) => entry(n))).map((f) => f.title);
 
 describe("groupIntoFamilies", () => {
   it("bündelt die Stufen einer Prüfungsfamilie unter einer Überschrift", () => {
-    const families = groupIntoFamilies(["IBGH1", "IBGH3", "IBGH2"].map(entry));
+    const families = groupIntoFamilies(["IBGH1", "IBGH3", "IBGH2"].map((n) => entry(n)));
 
     expect(families).toHaveLength(1);
     expect(families[0].title).toBe("IBGH – Internationale Begleithundeprüfung");
@@ -42,5 +49,24 @@ describe("groupIntoFamilies", () => {
 
   it("liefert nur Familien, zu denen es auch Einträge gibt", () => {
     expect(titles(["BH"])).toEqual(["BH – Begleithundeprüfung"]);
+  });
+});
+
+describe("neuesteFassung", () => {
+  it("nimmt das jüngste Fassungsdatum, nicht das zuletzt einsortierte", () => {
+    const katalog = [entry("BH", "2019-01-01"), entry("IBGH1", "2025-01-01"), entry("IGP 1", "2022-06-30")];
+
+    expect(neuesteFassung(katalog)).toBe("2025-01-01");
+  });
+
+  it("übergeht Ordnungen ohne Fassung, statt an ihnen zu scheitern", () => {
+    expect(neuesteFassung([entry("BH", null), entry("IBGH1", "2021-03-01")])).toBe("2021-03-01");
+  });
+
+  it("liefert nichts, wenn keine einzige Fassung ein Datum trägt", () => {
+    // Undefiniert und nicht "heute": lieber gar kein lastmod in der Sitemap
+    // als ein erfundenes - siehe Kommentar an der Funktion.
+    expect(neuesteFassung([entry("BH", null)])).toBeUndefined();
+    expect(neuesteFassung([])).toBeUndefined();
   });
 });

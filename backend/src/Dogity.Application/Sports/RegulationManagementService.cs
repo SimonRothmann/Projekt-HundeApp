@@ -54,8 +54,18 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
 
         await db.SaveChangesAsync(ct);
 
+        // Die Fassung wird hier nicht verändert, gehört aber zur Antwort. Sie
+        // eigens nachzuschlagen kostet eine Abfrage auf einer Admin-Aktion und
+        // hält dafür die Bedeutung von null überall gleich: "es gibt keine
+        // Fassung" - und nicht "an dieser Stelle nicht geladen".
+        var gueltigAb = await db.RegulationVersions
+            .Where(v => v.RegulationId == regulationId)
+            .OrderByDescending(v => v.ValidFrom)
+            .Select(v => (DateOnly?)v.ValidFrom)
+            .FirstOrDefaultAsync(ct);
+
         return Result<RegulationDto>.Success(new RegulationDto(
-            regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode));
+            regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, gueltigAb));
     }
 
     public async Task<Result<RegulationExerciseDto>> AddRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, AddRegulationExerciseRequest request, CancellationToken ct = default)

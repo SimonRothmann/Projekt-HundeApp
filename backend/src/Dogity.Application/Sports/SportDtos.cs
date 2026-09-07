@@ -34,7 +34,22 @@ public record UpdateExerciseRequest(
 
 public record UpdateSportRequest(string Name, string? Description);
 
-public record RegulationDto(Guid Id, string Name, string? SourceUrl, DateTimeOffset? LastSyncedAt, string? LatestKnownVersionLabel, string? Description, string? CountryCode);
+/// <param name="CurrentVersionValidFrom">
+/// Gültig ab der aktuell geführten Fassung; null, wenn es noch keine gibt.
+///
+/// Steht bewusst schon in der Liste und nicht erst im Detail: die Sitemap
+/// braucht für jede der rund fünfzig öffentlichen Seiten ein ehrliches
+/// lastmod-Datum, und fünfzig Detail-Abrufe dafür wären Unfug.
+/// </param>
+public record RegulationDto(
+    Guid Id,
+    string Name,
+    string? SourceUrl,
+    DateTimeOffset? LastSyncedAt,
+    string? LatestKnownVersionLabel,
+    string? Description,
+    string? CountryCode,
+    DateOnly? CurrentVersionValidFrom);
 
 public record UpdateRegulationRequest(string Name, string? Description, string? SourceUrl, string? CountryCode);
 
