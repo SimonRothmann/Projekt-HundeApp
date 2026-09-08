@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { DogCondition, Exercise, Goal, Sport, TrainingSession } from "@/lib/types";
+import {
+  emptyRow,
+  letzteSportart,
+  zeilenAusEinheit,
+  type ExerciseRow,
+} from "@/lib/trainingsvorlage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, ListChecks, MapPin, Plus, Trash2 } from "lucide-react";
+import { Clock, History, ListChecks, MapPin, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { difficultyLabel } from "@/lib/constants";
@@ -16,20 +22,6 @@ import { LocationTimeFields, type LocationValue } from "@/components/dogs/locati
 import { ConditionPicker } from "@/components/dogs/condition-picker";
 
 import { useT } from "@/lib/i18n";
-type ExerciseRow = {
-  sportId: string;
-  exerciseId: string;
-  // Für spontane Spaß-/Sonstige Übungen, die nicht im Katalog stehen und
-  // nicht extra dort angelegt werden sollen (siehe TrainingExercise.FreeTextLabel) -
-  // schließt Sportart/Übung/Plan-Ziel-Auswahl aus, dafür freier Text.
-  isFreeText: boolean;
-  freeText: string;
-  rating: number;
-  success: boolean;
-  notes: string;
-  trainingPlanItemId: string;
-};
-
 /**
  * Sentinel in den Auswahllisten: führt zur Freitext-Eingabe statt zu einer
  * Katalog-Übung. Bewusst dort, wo man sucht, wenn die eigene Übung fehlt -
@@ -38,18 +30,12 @@ type ExerciseRow = {
  */
 const FREE_TEXT_OPTION = "__freitext__";
 
-function emptyRow(): ExerciseRow {
-  return {
-    sportId: "",
-    exerciseId: "",
-    isFreeText: false,
-    freeText: "",
-    rating: 3,
-    success: true,
-    notes: "",
-    trainingPlanItemId: "",
-  };
-}
+/**
+ * Übliche Trainingsdauern zum Antippen. Getippt wurde die Zahl bisher auf der
+ * Ziffern-Tastatur - für einen Wert, der fast immer einer von diesen vieren
+ * ist. Das Zahlenfeld bleibt daneben stehen, für alles andere.
+ */
+const DAUER_VORSCHLAEGE = [30, 45, 60, 90];
 
 /**
  * Formular "Neues Training" für das Trainingstagebuch. Hält seinen gesamten
@@ -65,11 +51,14 @@ export function TrainingForm({
   dogId,
   sports,
   goals,
+  letzteEinheit,
   onSaved,
 }: {
   dogId: string;
   sports: Sport[];
   goals: Goal[] | null;
+  /** Zuletzt gespeicherte Einheit dieses Hundes - Vorlage für die nächste. */
+  letzteEinheit: TrainingSession | null;
   onSaved: (offline: boolean) => Promise<void>;
 }) {
   const t = useT();
@@ -88,9 +77,62 @@ export function TrainingForm({
     longitude: null,
     locationName: "",
   });
-  const [rows, setRows] = useState<ExerciseRow[]>([emptyRow()]);
+  // Führt der Hund nur eine Sportart, ist sie nicht der Rede wert - dann
+  // steht sie gleich drin und die Übungsliste ist sofort bedienbar.
+  const [rows, setRows] = useState<ExerciseRow[]>(() => [
+    emptyRow(sports.length === 1 ? sports[0].id : ""),
+  ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [exercisesBySport, setExercisesBySport] = useState<Record<string, Exercise[]>>({});
+
+  // Übungen ALLER Sportarten des Hundes einmal laden. Das sind ein bis drei
+  // Abrufe und erspart zweierlei: die Übungsliste steht sofort bereit statt
+  // erst nach dem Wählen der Sportart, und "Wie beim letzten Mal" kann jede
+  // Übung ihrer Sportart zuordnen - die Historie führt nur die Übung, nicht
+  // die Sportart (siehe TrainingExercise).
+  const sportSchluessel = sports.map((s) => s.id).join(",");
+  useEffect(() => {
+    let abgebrochen = false;
+    (async () => {
+      const geladen: Record<string, Exercise[]> = {};
+      for (const sportId of sportSchluessel.split(",").filter(Boolean)) {
+        try {
+          geladen[sportId] = await api.get<Exercise[]>(`/api/sports/${sportId}/exercises`);
+        } catch {
+          // Offline oder Serverfehler: die Liste lädt dann wie bisher beim
+          // Antippen der Sportart nach. Kein Grund, das Formular zu blockieren.
+        }
+      }
+      // Bereits Geladenes gewinnt - der Abruf soll nichts überschreiben, was
+      // inzwischen durch eine Auswahl hereinkam.
+      if (!abgebrochen) setExercisesBySport((prev) => ({ ...geladen, ...prev }));
+    })();
+    return () => {
+      abgebrochen = true;
+    };
+    // Am Schlüssel statt am Array: sports wird auf der Hundeseite bei jedem
+    // Rendern neu gebildet, ein Abhängen daran liefe endlos. Der Schlüssel
+    // ändert sich genau dann, wenn sich die Sportarten wirklich ändern.
+  }, [sportSchluessel]);
+
+  /** Übung -> Sportart, aus allem, was geladen ist. */
+  const sportVonUebung = useMemo(() => {
+    const karte: Record<string, string> = {};
+    for (const [sportId, uebungen] of Object.entries(exercisesBySport)) {
+      for (const uebung of uebungen) karte[uebung.id] = sportId;
+    }
+    return karte;
+  }, [exercisesBySport]);
+
+  const vorlageDatum = letzteEinheit
+    ? new Date(letzteEinheit.date).toLocaleDateString("de-DE", { day: "numeric", month: "long" })
+    : "";
+
+  function uebernimmLetzteEinheit() {
+    if (!letzteEinheit) return;
+    setRows(zeilenAusEinheit(letzteEinheit, sportVonUebung));
+    setDuration(letzteEinheit.durationMinutes);
+  }
 
   async function ensureExercisesLoaded(sportId: string) {
     if (exercisesBySport[sportId] || !sportId) return;
@@ -137,7 +179,7 @@ export function TrainingForm({
   }
 
   function addRow() {
-    setRows((prev) => [...prev, emptyRow()]);
+    setRows((prev) => [...prev, emptyRow(letzteSportart(prev))]);
   }
 
   function removeRow(index: number) {
@@ -187,7 +229,7 @@ export function TrainingForm({
     try {
       await api.post<TrainingSession>("/api/trainings", payload);
       toast.success(t("Training gespeichert."));
-      setRows([emptyRow()]);
+      setRows((prev) => [emptyRow(letzteSportart(prev))]);
       setCondition(null);
       setNotes("");
       resetContext();
@@ -200,7 +242,7 @@ export function TrainingForm({
         // siehe PRODUCT_REQUIREMENTS.md "Offline": Training ohne Internet erfassen.
         await enqueueRequest({ path: "/api/trainings", method: "POST", body: payload, label: t("Training") });
         toast.success(t("Offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."));
-        setRows([emptyRow()]);
+        setRows((prev) => [emptyRow(letzteSportart(prev))]);
         setNotes("");
         resetContext();
         await onSaved(true);
@@ -217,21 +259,66 @@ export function TrainingForm({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {/* Hundesport ist das Wiederholungsgeschäft: dieselben Übungen, Woche
+              für Woche. Der Übungssatz der letzten Einheit ist deshalb die
+              bessere Vorbelegung als ein leeres Formular - übrig bleibt das,
+              was sich wirklich unterscheidet. Steht ganz oben, weil es der
+              erste Handgriff sein soll und nicht der letzte. */}
+          {letzteEinheit && (
+            <div className="flex min-w-0 flex-col items-start gap-1.5 rounded-md border border-dashed p-3">
+              <Button type="button" variant="outline" size="sm" onClick={uebernimmLetzteEinheit}>
+                <History className="size-4" />
+                {t("Wie beim letzten Mal")}
+              </Button>
+              <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                {/* Ganzer Satz je Anzahl statt eingesetzter Zahl: "die 1 Übungen"
+                    stand sonst da, sobald die letzte Einheit nur eine hatte. */}
+                {letzteEinheit.exercises.length === 1
+                  ? t("Übernimmt die Übung vom {datum}. Bewertungen und Notizen bleiben offen.", {
+                      datum: vorlageDatum,
+                    })
+                  : t("Übernimmt die {anzahl} Übungen vom {datum}. Bewertungen und Notizen bleiben offen.", {
+                      anzahl: letzteEinheit.exercises.length,
+                      datum: vorlageDatum,
+                    })}
+              </p>
+            </div>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="date">{t("Datum")}</Label>
               <Input id="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="duration">Dauer (Minuten)</Label>
-              <Input
-                id="duration"
-                type="number"
-                min={1}
-                required
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-              />
+            <div className="flex min-w-0 flex-col gap-2">
+              <Label htmlFor="duration">{t("Dauer (Minuten)")}</Label>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {DAUER_VORSCHLAEGE.map((minuten) => (
+                  <button
+                    key={minuten}
+                    type="button"
+                    onClick={() => setDuration(minuten)}
+                    aria-pressed={duration === minuten}
+                    className={`h-9 rounded-md border px-2.5 text-sm coarse:h-11 ${
+                      duration === minuten
+                        ? "border-accent bg-accent text-accent-foreground"
+                        : "border-input text-muted-foreground"
+                    }`}
+                  >
+                    {minuten}
+                  </button>
+                ))}
+                <Input
+                  id="duration"
+                  type="number"
+                  min={1}
+                  required
+                  aria-label={t("Dauer in Minuten")}
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className="h-9 w-20 coarse:h-11"
+                />
+              </div>
             </div>
           </div>
 

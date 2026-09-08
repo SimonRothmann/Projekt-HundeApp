@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { enqueueRequest } from "@/lib/offline-queue";
 import type { Exercise, Goal, PlanItemReason, TrainingPlanItem } from "@/lib/types";
+import { sichtbareWochen } from "@/lib/trainingsplan";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,6 +100,10 @@ export function GoalPlanCard({
   // Wochen-Akkordeon: standardmäßig eingeklappt, offen ist nur die aktuelle
   // Trainingswoche (erste noch nicht vollständig erledigte, Nicht-Pause-Woche).
   const [openWeeks, setOpenWeeks] = useState<Set<number>>(new Set());
+  // Der Plan stand mit allen Wochen über dem Tagebuch - bei zwölf Wochen mal
+  // Anzahl der Ziele scrollt man lange, ehe man zum Erfassen kommt. Gebraucht
+  // wird beim Öffnen genau eine Woche: die laufende.
+  const [alleWochenZeigen, setAlleWochenZeigen] = useState(false);
   const [regeneratingWeek, setRegeneratingWeek] = useState<number | null>(null);
 
   // Plan-Konfiguration (Übungen/Woche, Trainingstage) des adaptiven Generators.
@@ -472,6 +477,12 @@ export function GoalPlanCard({
   const currentWeek = computeCurrentWeek(weeks, goal.trainingPlan?.generatedAt);
   const effectiveOpenWeeks =
     openWeeks.size === 0 && currentWeek != null ? new Set([currentWeek]) : openWeeks;
+  const gezeigteWochen = sichtbareWochen(weeks, currentWeek, alleWochenZeigen);
+  // Ob das Verkürzen überhaupt etwas verbirgt. Bei einem Zwei-Wochen-Plan oder
+  // einem abgeschlossenen Ziel tut es das nicht - dann wäre der Knopf ein
+  // Versprechen ohne Wirkung.
+  const kannVerkuerzen = sichtbareWochen(weeks, currentWeek, false).length < weeks.length;
+
   function toggleWeek(week: number) {
     setOpenWeeks((prev) => {
       const next = new Set(prev.size === 0 && currentWeek != null ? [currentWeek] : prev);
@@ -556,7 +567,7 @@ export function GoalPlanCard({
 
         {goal.trainingPlan && (
           <div className="flex flex-col gap-3">
-            {weeks.map(([weekNumber, items]) => {
+            {gezeigteWochen.map(([weekNumber, items]) => {
               const isOpen = effectiveOpenWeeks.has(weekNumber);
               const isRest = items[0].isRestWeek;
               const doneCount = items.filter((i) => i.isComplete).length;
@@ -835,6 +846,31 @@ export function GoalPlanCard({
                 </div>
               );
             })}
+
+            {kannVerkuerzen && !alleWochenZeigen && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="self-start text-xs text-muted-foreground"
+                onClick={() => setAlleWochenZeigen(true)}
+              >
+                <ChevronDown className="size-3.5" />
+                {t("Alle {anzahl} Wochen anzeigen", { anzahl: weeks.length })}
+              </Button>
+            )}
+            {kannVerkuerzen && alleWochenZeigen && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="self-start text-xs text-muted-foreground"
+                onClick={() => setAlleWochenZeigen(false)}
+              >
+                <ChevronRight className="size-3.5" />
+                {t("Nur die laufende Woche")}
+              </Button>
+            )}
           </div>
         )}
 

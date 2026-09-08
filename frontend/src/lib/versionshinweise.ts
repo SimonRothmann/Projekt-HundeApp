@@ -61,6 +61,33 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.12",
+    datum: "2026-09-08",
+    titel: uebersetzbar("Training eintragen geht jetzt schnell"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("„Wie beim letzten Mal\" übernimmt den Übungssatz der letzten Einheit. Zu tun bleibt, was sich wirklich unterscheidet: die Bewertungen. Sie werden bewusst nicht mitübernommen - an ihnen erkennt der Trainingsplan die Schwächen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("„Training erfassen\" steht jetzt auf der Startseite. Wer nur einen Hund führt, landet damit direkt im geöffneten Formular."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Sportart wird in die nächste Übung übernommen, statt jedes Mal neu abgefragt zu werden. Führt der Hund nur eine, steht sie von vornherein drin."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Dauer lässt sich antippen: 30, 45, 60 oder 90 Minuten. Das Zahlenfeld bleibt für alles andere."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Der Trainingsplan zeigt nur noch die laufende Woche. Die übrigen sind einen Knopfdruck entfernt - und das Tagebuch rückt deutlich weiter nach oben."),
+      },
+    ],
+  },
+  {
     version: "0.11",
     datum: "2026-09-07",
     titel: uebersetzbar("Alle Sachkundefragen zum Nachlesen"),

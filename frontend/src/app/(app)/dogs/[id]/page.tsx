@@ -160,6 +160,29 @@ export default function DogDetailPage() {
   // nur "Lädt…" - der Anker ist dann selbst dann nicht da, wenn die Ziele
   // schon eingetroffen sind. Nur einmal springen, sonst reißt es einen beim
   // späteren Neuladen (nach jedem Speichern) wieder nach oben.
+  // Vom Dashboard führt "Training erfassen" direkt hierher (#training-erfassen).
+  // Dasselbe Problem wie beim Trainingsplan unten: der Anker existiert beim
+  // Laden noch nicht. Anders als dort wird zusätzlich das Formular geöffnet -
+  // wer den Weg wählt, will erfassen und nicht erst noch einen Knopf suchen.
+  const sprangZumFormular = useRef(false);
+  useEffect(() => {
+    if (sprangZumFormular.current || !dog) return;
+    if (window.location.hash !== "#training-erfassen") return;
+    sprangZumFormular.current = true;
+    // Der Server sieht das Fragment einer Adresse nie - aus dem Anfangszustand
+    // heraus ließe sich das Formular also gar nicht öffnen, ohne beim
+    // Hydratisieren auseinanderzulaufen. Das Ref sorgt dafür, dass es bei
+    // genau einem Durchlauf bleibt.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setShowForm(true);
+  }, [dog]);
+
+  useEffect(() => {
+    if (!showForm || !sprangZumFormular.current) return;
+    const target = document.getElementById("training-erfassen");
+    target?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, [showForm]);
+
   const jumpedToPlan = useRef(false);
   useEffect(() => {
     if (jumpedToPlan.current || !dog || goals === null) return;
@@ -274,7 +297,7 @@ export default function DogDetailPage() {
           und wählt die Sportart ab. */}
       {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && <FahrteRecorder dogId={id} onSaved={loadAll} />}
 
-      <div className="flex items-center justify-between">
+      <div id="training-erfassen" className="flex items-center justify-between scroll-mt-4">
         <h2 className="text-lg font-semibold">Trainingstagebuch</h2>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus className="size-4" />
@@ -282,7 +305,17 @@ export default function DogDetailPage() {
         </Button>
       </div>
 
-      {showForm && <TrainingForm dogId={id} sports={angeboteneSportarten} goals={goals} onSaved={handleTrainingSaved} />}
+      {showForm && (
+        <TrainingForm
+          dogId={id}
+          sports={angeboteneSportarten}
+          goals={goals}
+          // Die Historie kommt absteigend nach Datum vom Server, der erste
+          // Eintrag ist also die letzte Einheit (siehe TrainingService).
+          letzteEinheit={sessions?.[0] ?? null}
+          onSaved={handleTrainingSaved}
+        />
+      )}
 
       <SessionHistory
         sessions={sessions}

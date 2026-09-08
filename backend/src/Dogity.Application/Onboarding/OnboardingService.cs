@@ -98,6 +98,7 @@ public class OnboardingService(IApplicationDbContext db, IUserLookupService user
             ersterHund is not null,
             ersterHund?.DogId,
             ersterHund?.Name,
+            hunde.Count,
             hatZiel,
             hatTraining,
             hatVerein,

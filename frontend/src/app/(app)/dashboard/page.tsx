@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import type { OnboardingStatus } from "@/lib/types";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dog, Trophy, Building2, GraduationCap } from "lucide-react";
+import { Dog, Trophy, Building2, GraduationCap, NotebookPen } from "lucide-react";
 import Link from "next/link";
 import { UpcomingTrainingsSection } from "@/components/schedule/upcoming-trainings-section";
 import { OnboardingGuide, zeigtErststart } from "@/components/onboarding/onboarding-guide";
@@ -26,6 +26,16 @@ export default function DashboardPage() {
   // einer eigenen Tabelle. Sie bekamen deshalb die Aufforderung, einem Verein
   // beizutreten, den sie leiten.
   const hasNoClub = onboarding !== null && !onboarding.hasClubMembership;
+
+  // Das Erfassen einer Einheit ist die häufigste Handlung der ganzen App und
+  // stand trotzdem nur am Fuß der Hundeseite - Dashboard, Hundeliste, Hund,
+  // scrollen, Knopf. Bei genau einem Hund führt der Verweis direkt ins
+  // geöffnete Formular (siehe Sprungmarke auf der Hundeseite), bei mehreren
+  // auf die Liste: einen Hund zu raten wäre schlimmer als ein Tipper mehr.
+  const erfassenZiel =
+    onboarding?.dogCount === 1 && onboarding.firstDogId
+      ? `/dogs/${onboarding.firstDogId}#training-erfassen`
+      : "/dogs";
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +95,28 @@ export default function DashboardPage() {
       <UpcomingTrainingsSection />
 
       <div className="grid gap-4 sm:grid-cols-2">
+        {/* Erst wenn klar ist, wohin - sonst springt die Kachel nach dem Laden
+            von der Liste auf den Hund und man tippt ins Leere. */}
+        {onboarding?.hasDog && (
+          <Link href={erfassenZiel} className="group block sm:col-span-2">
+            <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
+              <CardHeader className="flex-row items-center gap-4 space-y-0">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent ring-1 ring-accent/25 transition-colors group-hover:bg-accent/20">
+                  <NotebookPen className="size-6" />
+                </span>
+                <div className="min-w-0">
+                  <CardTitle>{t("Training erfassen")}</CardTitle>
+                  <CardDescription>
+                    {onboarding.dogCount === 1 && onboarding.firstDogName
+                      ? t("Einheit für {name} eintragen", { name: onboarding.firstDogName })
+                      : t("Einheit ins Trainingstagebuch eintragen")}
+                  </CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
+
         <Link href="/dogs" className="group block">
           <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
             <CardHeader className="flex-row items-center gap-4 space-y-0">

@@ -12,6 +12,11 @@ namespace Dogity.Application.Onboarding;
 /// Für die Verweise "Ziel setzen" und "Erstes Training" - beide führen auf die
 /// Hundeseite. Null, solange es keinen Hund gibt.
 /// </param>
+/// <param name="DogCount">
+/// Wie viele Hunde der Nutzer führt. Das Dashboard verzweigt daran: bei genau
+/// einem Hund führt "Training erfassen" direkt zu ihm, sonst auf die Liste.
+/// Kostet keine eigene Abfrage - die Hunde sind für FirstDogId ohnehin da.
+/// </param>
 /// <param name="HasPendingClubRequest">
 /// Beitrittsanfrage gestellt, aber noch nicht freigegeben. Wichtig für die
 /// Anzeige: "warte auf Freigabe" ist etwas anderes als "noch nichts getan" -
@@ -22,6 +27,7 @@ public record OnboardingStatusDto(
     bool HasDog,
     Guid? FirstDogId,
     string? FirstDogName,
+    int DogCount,
     bool HasGoal,
     bool HasTraining,
     bool HasClubMembership,
