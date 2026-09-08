@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { SpracheUndLandSection } from "@/components/preferences/sprache-und-land-section";
+import { SchriftgroesseSection } from "@/components/preferences/schriftgroesse-section";
 /**
  * Module und Sportarten ein- und ausblenden.
  *
@@ -129,6 +130,10 @@ export function EinstellungenSection() {
       {/* Sprache und Geltungsbereich stehen zuoberst: Sie bestimmen, wie
           alles Weitere aussieht und was darin überhaupt vorkommt. */}
       <SpracheUndLandSection />
+
+      {/* Direkt darunter: beides bestimmt, wie die App aussieht, bevor es um
+          ihren Inhalt geht. */}
+      <SchriftgroesseSection />
 
       <Card>
         <CardHeader>

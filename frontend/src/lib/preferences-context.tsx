@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api } from "@/lib/api";
 import { MODULE, type UserPreferences } from "@/lib/types";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
+import { bestimmeSchriftgroesse, wendeSchriftgroesseAn } from "@/lib/schriftgroesse";
 import { useAuth } from "@/lib/auth-context";
 
 /**
@@ -23,7 +24,7 @@ type PreferencesValue = {
   reload: () => Promise<void>;
 };
 
-const VORGABE: UserPreferences = { locale: null, country: null, disabledModules: [], sportIds: [] };
+const VORGABE: UserPreferences = { locale: null, country: null, fontScale: null, disabledModules: [], sportIds: [] };
 
 const PreferencesContext = createContext<PreferencesValue | undefined>(undefined);
 
@@ -52,6 +53,15 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     // Initialer Datenabruf nach Anmeldung (externe Quelle: REST API).
     void reload();
   }, [user, reload]);
+
+  // Die Schriftgröße auf das Wurzelelement legen, sobald sie vom Server da
+  // ist. Ohne Anmeldung passiert hier nichts: Auf einer öffentlichen Seite
+  // bliebe sonst die Vorgabe stehen und würde zurückdrehen, was das
+  // Startskript aus dem Zwischenspeicher schon richtig gesetzt hat.
+  useEffect(() => {
+    if (!user) return;
+    wendeSchriftgroesseAn(bestimmeSchriftgroesse(preferences.fontScale));
+  }, [user, preferences.fontScale]);
 
   const value = useMemo<PreferencesValue>(
     () => ({

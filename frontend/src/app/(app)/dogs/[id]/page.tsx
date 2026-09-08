@@ -297,7 +297,10 @@ export default function DogDetailPage() {
           und wählt die Sportart ab. */}
       {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && <FahrteRecorder dogId={id} onSaved={loadAll} />}
 
-      <div id="training-erfassen" className="flex items-center justify-between scroll-mt-4">
+      {/* flex-wrap, weil Überschrift und Knopf bei großer Schrift nicht mehr
+          nebeneinander passen (Profil -> Schriftgröße). Ohne den Umbruch ragte
+          der Knopf bei "sehr groß" 26 px über den Rand hinaus. */}
+      <div id="training-erfassen" className="flex flex-wrap items-center justify-between gap-2 scroll-mt-4">
         <h2 className="text-lg font-semibold">Trainingstagebuch</h2>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus className="size-4" />

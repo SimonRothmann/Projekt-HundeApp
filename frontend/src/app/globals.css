@@ -160,6 +160,32 @@
     @apply font-sans;
   }
 
+  /* Schriftgröße der Oberfläche (Profil -> Darstellung, siehe
+     lib/schriftgroesse.ts).
+
+     Prozent statt fester Pixel: 100 % ist das, was der Browser vorgibt - wer
+     dort schon größer eingestellt hat, behält seinen Vorsprung, statt von uns
+     überschrieben zu werden. Und weil alle Größen und Abstände in rem
+     gerechnet sind, wächst das ganze Layout mit und nicht nur der Text: Wer
+     schlecht sieht, braucht auch größere Knöpfe. */
+  :root[data-schrift="gross"] {
+    font-size: 112.5%;
+  }
+  :root[data-schrift="sehr-gross"] {
+    font-size: 125%;
+  }
+
+  /* Deutsche Komposita sprengen bei großer Schrift jede Überschrift:
+     "Begleithundeprüfung" ist EIN Wort und passt bei 20px Grundschrift nicht
+     mehr in 375px Breite. Die Silbentrennung überlässt dem Browser, wo er
+     umbricht (das Wurzelelement trägt lang="de"); break-word ist der Notnagel
+     für Wörter, zu denen er keine Trennstellen kennt. Greift nur, wenn es
+     sonst überliefe - bei normaler Schrift ändert sich nichts. */
+  :where(h1, h2, h3) {
+    hyphens: auto;
+    overflow-wrap: break-word;
+  }
+
   /* Native <select>-Elemente (mehrfach im Code mit eigenen Tailwind-Klassen
      statt der shadcn-Select-Komponente verwendet, z.B. Sportart-/Übungs-
      Dropdowns) erben über "text-foreground" auf <body> die Textfarbe, das
@@ -200,7 +226,11 @@
     input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
     textarea,
     select {
-      font-size: 16px !important;
+      /* max() statt fester 16px: Eine feste Angabe hätte die Formularfelder
+         von der eingestellten Schriftgröße abgeschnitten - ausgerechnet dort,
+         wo man genau hinsehen muss. Die Untergrenze bleibt, sonst zoomt
+         iOS-Safari wieder. */
+      font-size: max(16px, 1rem) !important;
     }
   }
   /* 44px Mindesthöhe nur auf Touch (Apple HIG / Fitts). */

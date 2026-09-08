@@ -20,12 +20,13 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
         // bewusst NICHTS angelegt - wer nie etwas eingestellt hat, braucht
         // auch keine Zeile in der Datenbank.
         return Result<UserPreferenceDto>.Success(eintrag is null
-            ? new UserPreferenceDto(null, null, [], [])
+            ? new UserPreferenceDto(null, null, [], [], null)
             : new UserPreferenceDto(
                 eintrag.Locale,
                 eintrag.Country,
                 eintrag.DisabledModules.Select(m => m.ModuleKey).ToList(),
-                eintrag.Sports.Select(s => s.SportId).ToList()));
+                eintrag.Sports.Select(s => s.SportId).ToList(),
+                eintrag.FontScale));
     }
 
     public async Task<Result> UpdateModulesAsync(Guid userId, UpdateModulesRequest request, CancellationToken ct = default)
@@ -101,6 +102,23 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
 
         var eintrag = await LadenOderAnlegenAsync(userId, ct);
         eintrag.Country = string.IsNullOrEmpty(land) ? null : land;
+        eintrag.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> UpdateFontScaleAsync(Guid userId, UpdateFontScaleRequest request, CancellationToken ct = default)
+    {
+        var stufe = request.FontScale?.Trim();
+
+        // Leer = zurück auf die Vorgabe. Eine unbekannte Stufe wird abgelehnt
+        // und nicht still verworfen: Sie käme sonst als "gespeichert" zurück,
+        // die Oberfläche bliebe aber unverändert - und niemand wüsste warum.
+        if (!string.IsNullOrEmpty(stufe) && !FontScales.Alle.Contains(stufe))
+            return Result.Failure("Diese Schriftgröße steht nicht zur Auswahl.");
+
+        var eintrag = await LadenOderAnlegenAsync(userId, ct);
+        eintrag.FontScale = string.IsNullOrEmpty(stufe) ? null : stufe;
         eintrag.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Result.Success();

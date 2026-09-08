@@ -10,6 +10,12 @@ import { PwaRegister } from "@/components/pwa-register";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { ChunkErrorReloader } from "@/components/chunk-error-reloader";
 import { SITE } from "@/lib/seo";
+import {
+  SCHRIFTGROESSEN,
+  SCHRIFT_ATTRIBUT,
+  SCHRIFT_SPEICHER,
+  VORGABE_SCHRIFT,
+} from "@/lib/schriftgroesse";
 
 // "Premium Sleek Modern"-Markenschrift; als CSS-Variable --font-jakarta
 // bereitgestellt und in globals.css an --font-sans/--font-heading gebunden.
@@ -94,6 +100,20 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
+        {/* Läuft, während der Browser die Seite liest - also VOR dem ersten
+            Bild. Die Schriftgröße kommt vom Server, dessen Antwort aber erst
+            einige hundert Millisekunden später eintrifft; ohne diese Zeilen
+            wüchse die Schrift bei jedem Seitenaufbau sichtbar nach. Die
+            Einstellungen überschreiben den Wert gleich darauf, sobald sie da
+            sind (siehe preferences-context). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              `try{var s=localStorage.getItem(${JSON.stringify(SCHRIFT_SPEICHER)});` +
+              `if(${JSON.stringify(SCHRIFTGROESSEN.filter((g) => g !== VORGABE_SCHRIFT))}.indexOf(s)>-1)` +
+              `document.documentElement.setAttribute(${JSON.stringify(SCHRIFT_ATTRIBUT)},s)}catch(e){}`,
+          }}
+        />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <PreferencesProvider>

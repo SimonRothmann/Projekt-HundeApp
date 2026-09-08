@@ -37,6 +37,19 @@ public class UserPreference : Entity
     /// </summary>
     public string? Country { get; set; }
 
+    /// <summary>
+    /// Schriftgröße der Oberfläche: "normal", "gross" oder "sehr-gross".
+    /// Null = noch nicht gewählt, es gilt "normal".
+    ///
+    /// Ein Schlüssel und keine Zahl: Ein frei wählbarer Prozentwert brächte
+    /// Größen hervor, in denen niemand die Oberfläche je gesehen hat. Die drei
+    /// Stufen sind geprüft - jede weitere müsste es auch werden.
+    ///
+    /// Gehört zum Nutzer und nicht zum Gerät, obwohl das Aussehen betroffen
+    /// ist: Wer die Schrift größer braucht, braucht sie auf jedem Gerät größer.
+    /// </summary>
+    public string? FontScale { get; set; }
+
     public ICollection<UserDisabledModule> DisabledModules { get; set; } = new List<UserDisabledModule>();
     public ICollection<UserSportSelection> Sports { get; set; } = new List<UserSportSelection>();
 }

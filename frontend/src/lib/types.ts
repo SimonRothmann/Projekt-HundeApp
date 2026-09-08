@@ -875,6 +875,8 @@ export type UserPreferences = {
   locale: string | null;
   /** Geltungsbereich der Prüfungsordnungen (ISO 3166-1 alpha-2), null = Vorgabe. */
   country: string | null;
+  /** Schriftgröße der Oberfläche (siehe lib/schriftgroesse.ts), null = Vorgabe. */
+  fontScale: string | null;
   disabledModules: string[];
   sportIds: string[];
 };

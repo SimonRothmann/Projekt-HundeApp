@@ -61,6 +61,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.13",
+    datum: "2026-09-08",
+    titel: uebersetzbar("Die Schrift lässt sich größer stellen"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Im Profil lässt sich die Schriftgröße in drei Stufen wählen. Sie gilt für die ganze App, und Knöpfe und Abstände wachsen mit - nicht nur die Buchstaben."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Die Einstellung gehört zum Konto und gilt damit auf jedem Gerät. Wer im Browser bereits eine größere Schrift eingestellt hat, behält diesen Vorsprung."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Formularfelder folgen jetzt der eingestellten Schriftgröße. Sie waren zuvor auf dem Telefon fest auf eine Größe eingestellt - ausgerechnet dort, wo man genau hinsehen muss."),
+      },
+    ],
+  },
+  {
     version: "0.12",
     datum: "2026-09-08",
     titel: uebersetzbar("Training eintragen geht jetzt schnell"),

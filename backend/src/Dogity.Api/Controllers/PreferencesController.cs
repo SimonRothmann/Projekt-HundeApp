@@ -38,6 +38,14 @@ public class PreferencesController(IPreferenceService preferences) : ApiControll
         FromResult(await preferences.UpdateCountryAsync(CurrentUserId, request, ct));
 
     /// <summary>
+    /// Schriftgröße der Oberfläche. Eigener Endpunkt wie Sprache und Land:
+    /// drei unabhängige Einstellungen, die einzeln gespeichert werden.
+    /// </summary>
+    [HttpPut("font-scale")]
+    public async Task<IActionResult> UpdateFontScale(UpdateFontScaleRequest request, CancellationToken ct) =>
+        FromResult(await preferences.UpdateFontScaleAsync(CurrentUserId, request, ct));
+
+    /// <summary>
     /// Die Sportarten, die für diesen Hund gelten - eigene Auswahl, sonst die
     /// des Menschen, sonst alle (leere Liste = keine Einschränkung).
     /// </summary>

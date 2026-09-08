@@ -16,6 +16,12 @@ public interface IPreferenceService
     Task<Result> UpdateCountryAsync(Guid userId, UpdateCountryRequest request, CancellationToken ct = default);
 
     /// <summary>
+    /// Setzt die Schriftgröße der Oberfläche. Unbekannte Stufen werden
+    /// abgelehnt - siehe <see cref="Dogity.Domain.Preferences.UserPreference.FontScale"/>.
+    /// </summary>
+    Task<Result> UpdateFontScaleAsync(Guid userId, UpdateFontScaleRequest request, CancellationToken ct = default);
+
+    /// <summary>
     /// Die Sportarten, die für diesen Hund tatsächlich gelten - Auswahl des
     /// Hundes, sonst die des Menschen, sonst alle.
     /// </summary>
