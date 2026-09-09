@@ -30,12 +30,16 @@ updates:
       - dependency-name: typescript
         update-types: [version-update:semver-major]
       # @types/node muss die Node-Version abbilden, gegen die tatsächlich
-      # gebaut wird - das ist node:22-slim im frontend/Dockerfile, nicht die
-      # neueste Node-Linie. Ein Major-Update hier verspräche dem Compiler
-      # APIs, die im Container nicht existieren. Der Sprung gehört zusammen
-      # mit dem Basis-Image gemacht, das das docker-Ökosystem weiter unten
-      # ohnehin meldet. (Dependabot schlug am 2026-09-09 prompt 26.4.1 vor -
-      # genau der Fall.)
+      # gebaut wird - also die aus dem FROM im frontend/Dockerfile, nicht die
+      # jeweils neueste Linie. Ein Major-Update für sich allein verspräche
+      # dem Compiler APIs, die im Container nicht existieren.
+      #
+      # Die Regel heißt "nicht vorauslaufen", nicht "nie anheben": der Sprung
+      # gehört in denselben Schritt wie das Basis-Image, das das
+      # docker-Ökosystem weiter unten meldet. Am 2026-09-09 genau so
+      # gelaufen - Dependabot schlug erst 26.4.1 allein vor (abgelehnt),
+      # dann das Image auf node:26-slim; mit diesem zusammen ging @types/node
+      # auf 26.
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
       # ESLint 10 ändert die Regel-API. eslint-plugin-react, das über
