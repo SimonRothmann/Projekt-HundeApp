@@ -2,7 +2,7 @@
 # (siehe lib/api.ts) - deshalb als Build-ARG statt als Laufzeit-Env-Var.
 # Prod und Test brauchen dadurch JEWEILS ein eigenes Image (unterschiedliche
 # Backend-URL), nicht nur unterschiedliche Container-Konfiguration.
-FROM node:22-slim AS build
+FROM node:26-slim AS build
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # Umgebungs-Label ("TEST" für die Test-Instanz, leer für Prod). Wird im
@@ -41,7 +41,7 @@ ENV NEXT_PUBLIC_BUILD_TIME=$NEXT_PUBLIC_BUILD_TIME
 
 RUN npm run build
 
-FROM node:22-slim AS runtime
+FROM node:26-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
