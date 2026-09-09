@@ -38,6 +38,15 @@ updates:
       # genau der Fall.)
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
+      # ESLint 10 ändert die Regel-API. eslint-plugin-react, das über
+      # eslint-config-next hereinkommt, kennt sie noch nicht und stirbt
+      # schon beim Laden: "TypeError: Error while loading rule
+      # 'react/display-name': contextOrFilename.getFilename is not a
+      # function". Am 2026-09-09 in der CI nachgemessen (PR #8). Der
+      # Blocker sitzt stromaufwärts, nicht bei uns.
+      # Entfernen, sobald eslint-config-next ESLint 10 unterstützt.
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: nuget
     directory: /backend
@@ -48,6 +57,17 @@ updates:
       backend-klein:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # Swashbuckle 10 zieht Microsoft.OpenApi v2 nach, das Namensraum und
+      # Referenzmodell umgebaut hat: "CS0234: 'Models' does not exist in the
+      # namespace 'Microsoft.OpenApi'" (PR #12, 2026-09-09). Das ist eine
+      # echte Migration der Swagger-Konfiguration in Program.cs - für eine
+      # Oberfläche, die ausschließlich in Development läuft; Prod hat kein
+      # Swagger (siehe deploy/README.md). Swashbuckle 7 baut und läuft
+      # unverändert gegen net10.0, und es liegt keine Sicherheitsmeldung
+      # vor. Bewusst verschoben, nicht vergessen: steht in TODO.md.
+      - dependency-name: Swashbuckle.AspNetCore
+        update-types: [version-update:semver-major]
 
   # Die Basis-Images. Genau dieses Ökosystem hätte den .NET-Wechsel von selbst
   # gemeldet: sdk:9.0 -> sdk:10.0 wäre als Update aufgeschlagen, statt dass

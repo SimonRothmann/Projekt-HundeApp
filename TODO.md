@@ -123,6 +123,25 @@ Im Rahmen eines vollständigen Performance-Audits identifiziert, aber bewusst zu
 
 - [x] Fünf weitere Komfort-Features umgesetzt, statt E-Mail-Versand bewusst **In-App-Benachrichtigungen** (Nutzerwunsch: "mach keine emails sondern am besten app benachrichtigungen"). **(1) Benachrichtigungssystem**: neue `Notification`-Entity (Migration `AddNotifications`), `INotificationService`/`NotificationsController` (`GET /api/notifications`, `GET .../unread-count`, `POST .../{id}/read`, `POST .../read-all`), als Nebeneffekt ausgelöst in `ClubService.DecideJoinRequestAsync` (Beitritt angenommen/abgelehnt), `ClubService.PromoteMemberToTrainerAsync` (zum Trainer befördert) und `TrainingService.SetFeedbackAsync` (Trainer-Feedback erhalten). Frontend: Glocken-Icon (`notification-bell.tsx`, neue `components/ui/popover.tsx` auf Basis von `@base-ui/react/popover`) in Sidebar + mobilem Header, `auth-context.tsx` pollt den Ungelesen-Zähler alle 60s (kein WebSocket, Overkill für die Vereinsgröße). **(2) Verein verlassen**: `ClubService.LeaveClubAsync` + `DELETE /api/clubs/{id}/membership`, Button auf `/clubs` bei aktiver Mitgliedschaft - bewusst nur die `ClubMembership` betroffen, keine automatische Gruppen-/Trainer-Bereinigung. **(3) Profil bearbeiten**: neuer `ProfileController` (`GET/PUT /api/profile`, `PUT .../email` mit Passwort-Bestätigung gegen Account-Übernahme, `PUT .../password`) - Avatar bewusst nur als URL-Feld, kein Datei-Upload (keine Storage-Anbindung vorhanden). **(4) Trainer-Feedback-Erinnerung**: `TrainingService.GetPendingFeedbackAsync` + `GET /api/trainings/pending-feedback`, neue Sektion auf der Trainer-Seite - die im Seeder absichtlich unkommentierte `openFeedbackSession` diente als ideales Live-Testmaterial. **(5) Druckansicht**: neue Route `/dogs/[id]/print` mit Trainingsplan + -historie, `window.print()` statt einer neuen PDF-Bibliothek (Supply-Chain-Vorsicht, siehe `pdftotext`-Konvention) - `print:hidden` auf Sidebar/BottomNav/mobilem Header ergänzt, damit nur der Inhalt gedruckt wird. Backend-Tests grün, Typecheck/Lint/Build grün, alle fünf Flows live per curl verifiziert (Beitritt→Freigabe→Benachrichtigung, Beförderung→Benachrichtigung, Verein verlassen, Trainer-Feedback→Benachrichtigung+Pending-Liste schrumpft korrekt, Profil-Update inkl. abgelehnter E-Mail-Änderung bei falschem Passwort und vollständigem Passwort-Wechsel-Roundtrip).
 
+## Offene Punkte (Abhängigkeiten, bewusst zurückgestellt)
+
+Beides am 2026-09-09 ausprobiert, in der CI belegt und dann verschoben.
+In `.github/dependabot.yml` steht je eine Ausnahme, damit nicht monatlich
+ein roter PR wiederkommt - diese Einträge hier sind die Erinnerung daran,
+dass die Ausnahmen ein Ablaufdatum haben.
+
+- [ ] **ESLint 10.** Blockiert stromaufwärts: `eslint-plugin-react` (über
+  `eslint-config-next`) kennt die geänderte Regel-API nicht und stirbt beim
+  Laden. Nichts zu tun, außer zu warten - sobald `eslint-config-next`
+  ESLint 10 unterstützt, Ausnahme entfernen und PR durchlaufen lassen.
+- [ ] **Swashbuckle 10.** Braucht eine Migration der Swagger-Konfiguration
+  in `Program.cs` auf Microsoft.OpenApi v2 (Namensraum und Referenzmodell
+  geändert). Betrifft nur die Development-Oberfläche, Prod hat kein
+  Swagger. Bei der Gelegenheit prüfen, ob das eingebaute
+  `Microsoft.AspNetCore.OpenApi` seit .NET 9 Swashbuckle hier ganz ersetzt.
+- [ ] **TypeScript 7.** Wartet auf `typescript-eslint` mit Unterstützung für
+  TS >= 7.1 (das Projekt steht auf 6, dem empfohlenen Zwischenschritt).
+
 ## Roadmap: Technische Schulden × Features (Audit 2026-07-16)
 
 Ergebnis eines vollständigen Code-Audits (Sicherheit, Performance, Wartbarkeit) auf Stand `64ba3b9`, verzahnt mit den offenen Feature-Wünschen. Reihenfolge ist strikt - jeder Schritt ist einzeln über den Test→Prod-Flow deploybar, es ist immer nur eine Baustelle offen. **Entscheidung Auftraggeber: E-Mail-Versand ganz nach hinten** - bis dahin bleibt der bestehende Workflow (Admin bekommt In-App-Benachrichtigung bei Passwort-Reset-Anfragen und setzt das Passwort in der Nutzerverwaltung neu).
