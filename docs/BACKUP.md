@@ -52,14 +52,32 @@ gpg --list-keys backup@dogity.net
 ```
 
 **Jetzt sofort den geheimen Schlüssel sichern**, sonst ist jede spätere
-Sicherung wertlos:
+Sicherung wertlos. Das ist der einzige Punkt in diesem Aufbau, der nicht
+reparierbar ist.
+
+In 1Password als **Sichere Notiz**, nicht als SSH-Schlüssel: 1Password
+kennt SSH-Schlüssel als eigenen Typ, aber keinen GPG-Typ - ein
+`PGP PRIVATE KEY BLOCK` wird dort abgelehnt.
 
 ```bash
-gpg --armor --export-secret-keys backup@dogity.net
+gpg --armor --export-secret-keys backup@dogity.net | pbcopy
 ```
 
-Die Ausgabe zusammen mit der Passphrase in 1Password ablegen. Das ist der
-einzige Punkt in diesem Aufbau, der nicht reparierbar ist.
+Einfügen, dazu die Passphrase als verborgenes Feld und den Fingerabdruck
+aus `gpg --list-keys`. Danach `pbcopy < /dev/null`, um die Zwischenablage
+zu leeren. Über die Zwischenablage statt über eine Datei, damit der
+Schlüssel nie unverschlüsselt auf der Platte liegt.
+
+Dann prüfen, dass die abgelegte Kopie auch wirklich taugt - ein Schlüssel,
+der sich nicht importieren lässt, fällt sonst erst im Ernstfall auf. Text
+aus 1Password kopieren und in einen Wegwerf-Schlüsselbund einspielen:
+
+```bash
+RING=$(mktemp -d) && pbpaste | gpg --homedir "$RING" --import && gpg --homedir "$RING" --list-secret-keys; rm -rf "$RING"
+```
+
+Es muss `sec` mit der Adresse und ein `ssb` mit `[E]` erscheinen. Der
+eigene Schlüsselbund bleibt dabei unangetastet.
 
 ### 2. Öffentlichen Schlüssel auf die VPS
 
