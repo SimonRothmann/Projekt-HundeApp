@@ -1,0 +1,22 @@
+# Sicherung der Prod-Datenbank. Wird vom Timer angestoßen, nicht direkt
+# aktiviert. Einrichtung: docs/BACKUP.md.
+[Unit]
+Description=Dogity: Sicherung der Prod-Datenbank nach R2
+# Ohne Docker kein pg_dump - nach einem Neustart wartet der Dienst darauf.
+Wants=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=dogity
+Group=dogity
+# Enthält GPG_EMPFAENGER, R2_ZIEL und optional HEALTHCHECK_URL. Das
+# vorangestellte "-" heißt: fehlt die Datei, startet der Dienst trotzdem
+# und arbeitet mit den Vorgaben aus dem Skript.
+EnvironmentFile=-/etc/dogity-backup.env
+ExecStart=/opt/dogity/scripts/backup-db.sh
+# Ein hängender Dump soll den Timer nicht dauerhaft blockieren.
+TimeoutStartSec=30min
+
+[Install]
+WantedBy=multi-user.target

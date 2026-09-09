@@ -1,0 +1,15 @@
+# Täglich um 03:00. Bewusst vor dem Zeitfenster für den automatischen
+# Neustart (04:30, siehe docs/BACKUP.md) - so ist die Sicherung durch,
+# bevor die Maschine für Kernel-Updates neu startet.
+[Unit]
+Description=Dogity: tägliche Sicherung der Prod-Datenbank
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+# War der Server um 03:00 aus, wird der Lauf beim nächsten Hochfahren
+# nachgeholt statt stillschweigend übersprungen.
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target
