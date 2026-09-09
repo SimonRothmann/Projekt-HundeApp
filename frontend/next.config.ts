@@ -1,10 +1,22 @@
 import type { NextConfig } from "next";
 
-// Content-Security-Policy, vorerst im REPORT-ONLY-Modus (siehe TODO.md,
-// Roadmap 4): der Browser blockiert noch nichts, meldet Verstöße aber an
-// /csp-report (Next-Route-Handler, loggt in die Frontend-Container-Logs).
-// Nach der Beobachtungswoche wird der Header-Name auf
-// "Content-Security-Policy" umgestellt und die Policy damit scharf.
+// Content-Security-Policy, seit 2026-09-09 DURCHSETZEND (vorher Report-Only).
+//
+// Die ursprünglich geplante "Beobachtungswoche" konnte nie zustande kommen:
+// die Reports gehen nach stdout in die Frontend-Container-Logs, und jeder
+// Deploy erzeugt den Container neu und wirft sie damit weg. Nach Wochen im
+// Report-Only-Modus lagen null auswertbare Meldungen vor - nicht weil nichts
+// verletzt wurde, sondern weil nichts überdauert hat.
+//
+// Statt weiter zu warten wurde der Nachweis aktiv geführt: Produktionsbau mit
+// durchsetzendem Header, dann 17 Routen durchgefahren - alle öffentlichen
+// Seiten, vollständiger Anmeldevorgang, Dashboard, Hundeseite mit vier
+// Leaflet-Karten und geladenen Kacheln, Druckansicht, Trainerbereich. Null
+// Verletzungen am /csp-report-Endpunkt, null in der Browserkonsole.
+//
+// report-uri bleibt bewusst bestehen: jetzt, wo blockiert statt nur gemeldet
+// wird, ist es die einzige Spur, falls doch etwas hängenbleibt. Nach einem
+// Deploy lohnt ein Blick (siehe docs/BETRIEB.md).
 //
 // Bewusste Entscheidungen:
 // - script-src 'unsafe-inline': der Next.js App Router injiziert
@@ -58,7 +70,7 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: [
           {
-            key: "Content-Security-Policy-Report-Only",
+            key: "Content-Security-Policy",
             value: contentSecurityPolicy,
           },
         ],

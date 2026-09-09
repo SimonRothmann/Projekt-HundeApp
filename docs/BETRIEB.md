@@ -76,6 +76,21 @@ ssh dogity 'df -h /; docker system df'
 Der Build-Cache ist mit Abstand der größte Posten - er war am 2026-09-09 auf
 47 GB gewachsen, bei 58 GB Gesamtbelegung. Deshalb der wöchentliche Timer.
 
+**Nach jedem Deploy: blockiert die CSP etwas?**
+
+Die Content-Security-Policy ist seit 2026-09-09 durchsetzend, nicht mehr nur
+meldend. Verstöße gehen weiterhin an `/csp-report` und landen im
+Frontend-Log - aber ein Deploy erzeugt den Container neu und wirft sie weg.
+Der Blick lohnt sich also in den Tagen NACH einem Deploy, nicht davor:
+
+```bash
+ssh dogity 'cd /opt/dogity && docker compose logs frontend-prod | grep CSP-Report | head -20'
+```
+
+Leer ist der Normalfall. Etwas gefunden heißt: der Browser hat eine
+Ressource blockiert, die die Seite braucht - dann gehört die Regel in
+`next.config.ts` angepasst und neu ausgerollt.
+
 **Stehen Updates an, die niemand einspielt?**
 
 ```bash
