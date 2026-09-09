@@ -56,6 +56,16 @@ function handleExpiredSession() {
   window.localStorage.removeItem(USER_KEY);
   window.localStorage.removeItem(REFRESH_KEY);
   if (!window.location.pathname.startsWith("/login")) {
+    // Der harte Seitenwechsel ist hier der Zweck, nicht ein Versehen.
+    //
+    // Die Regel (neu in eslint-config-next 16.3) schlägt redirect() oder
+    // useRouter().push() vor. Beides passt nicht: das hier ist ein einfaches
+    // Modul, kein Server-Code und keine Komponente - useRouter() gibt es
+    // nicht, redirect() ist serverseitig. Vor allem aber würde eine weiche
+    // Navigation den React-Baum samt der gerade als ungültig erkannten
+    // Nutzerdaten stehen lassen. Genau den Zustand soll diese Funktion
+    // auflösen, deshalb ein vollständiger Neuaufbau der Seite.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/login";
   }
 }
