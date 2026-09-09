@@ -29,6 +29,15 @@ updates:
       # (github.com/typescript-eslint/typescript-eslint/issues/10940).
       - dependency-name: typescript
         update-types: [version-update:semver-major]
+      # @types/node muss die Node-Version abbilden, gegen die tatsächlich
+      # gebaut wird - das ist node:22-slim im frontend/Dockerfile, nicht die
+      # neueste Node-Linie. Ein Major-Update hier verspräche dem Compiler
+      # APIs, die im Container nicht existieren. Der Sprung gehört zusammen
+      # mit dem Basis-Image gemacht, das das docker-Ökosystem weiter unten
+      # ohnehin meldet. (Dependabot schlug am 2026-09-09 prompt 26.4.1 vor -
+      # genau der Fall.)
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: nuget
     directory: /backend
