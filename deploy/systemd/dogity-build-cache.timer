@@ -1,0 +1,12 @@
+# Wöchentlich, sonntags um 04:00 - nach der Sicherung (03:00) und vor dem
+# Zeitfenster für den automatischen Neustart (04:30).
+[Unit]
+Description=Dogity: wöchentliches Beschneiden des Build-Caches
+
+[Timer]
+OnCalendar=Sun *-*-* 04:00:00
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

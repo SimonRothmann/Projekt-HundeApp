@@ -37,6 +37,20 @@ git checkout master
 git reset --hard origin/master
 
 echo "==> Test-Container bauen und starten"
+# Gebaut wird mit --pull, gestartet in einem zweiten Schritt.
+#
+# Ohne --pull löst BuildKit `FROM mcr.microsoft.com/dotnet/aspnet:9.0`
+# gegen das auf, was lokal schon im Cache liegt - beliebig lange. Die
+# Laufzeitumgebung (.NET, Node, Debian) altert dann still vor sich hin,
+# während der Anwendungscode bei jedem Deploy frisch ist. Dass sie am
+# 2026-09-09 aktuell war, war Zufall, keine Eigenschaft des Aufbaus.
+#
+# Bewusst NUR hier und nicht in deploy-prod.sh: so taucht ein neues
+# Basis-Image immer zuerst auf Test auf und wandert erst beim Promote nach
+# Prod - dieselbe Zwei-Stufen-Logik wie beim Code. Prod baut anschließend
+# gegen genau das Image, das hier gezogen wurde, weil beide denselben
+# lokalen Cache benutzen.
+#
 # --force-recreate stellt sicher, dass auch bei unveränderten Images ein
 # frischer Container startet (relevant, wenn nur env-Werte via Volumes
 # geändert wurden - Images unverändert, aber Container muss neu).
@@ -49,7 +63,8 @@ echo "==> Test-Container bauen und starten"
 # am 2026-08-23 passiert (Turnierhundsport/Agility im Backend da, im Frontend
 # 404). Deshalb: erst das Backend hochziehen, auf seinen Health-Check warten,
 # dann das Frontend bauen.
-docker compose up -d --build --force-recreate backend-test
+docker compose build --pull backend-test
+docker compose up -d --force-recreate backend-test
 
 echo "==> Warte auf das neue Backend (test)"
 # /health antwortet erst nach Migration und Seedern (siehe Program.cs) - ein
@@ -77,7 +92,8 @@ BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 export BUILD_TIME
 export BUILD_COMMIT="$(git rev-parse --short HEAD)"
 export BUILD_REF="$BUILD_TIME"
-docker compose up -d --build --force-recreate frontend-test
+docker compose build --pull frontend-test
+docker compose up -d --force-recreate frontend-test
 
 echo "==> Abschliessender Rauchtest"
 curl -sS -o /dev/null -w "test-api: HTTP %{http_code}\n" https://api-test.dogity.net/health

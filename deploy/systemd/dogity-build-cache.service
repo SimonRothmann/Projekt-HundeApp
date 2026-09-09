@@ -1,0 +1,25 @@
+# Hält den BuildKit-Cache auf der VPS in Schranken. Wird vom Timer
+# angestoßen, nicht direkt aktiviert. Siehe docs/BETRIEB.md.
+[Unit]
+Description=Dogity: Build-Cache beschneiden
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=dogity
+Group=dogity
+# --max-used-space statt eines Altersfilters: die Obergrenze ist das, was
+# tatsächlich schützt - die Platte. Ein Filter "älter als X Tage" lässt eine
+# Woche mit vielen Deploys ungebremst wachsen.
+#
+# 20 GB, weil der Cache seinen Zweck nur erfüllt, wenn die teuren Schichten
+# (npm ci, dotnet restore, die Basis-Images) drinbleiben. Kleiner gewählt
+# würde jeder Deploy sie neu holen.
+ExecStart=/usr/bin/docker buildx prune --force --max-used-space 20GB
+# Verwaiste Images entstehen, weil die Deploys denselben Tag neu bauen.
+ExecStart=/usr/bin/docker image prune --force
+TimeoutStartSec=30min
+
+[Install]
+WantedBy=multi-user.target

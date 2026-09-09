@@ -171,8 +171,21 @@ else
     for datei in "$dump_datei" "$rollen_datei"; do
       # --s3-no-check-bucket: der API-Token darf genau diesen einen Bucket
       # beschreiben, aber keine Buckets auflisten oder anlegen.
+      #
+      # --s3-no-head: R2 gibt beim PUT eine Version-ID zurück, implementiert
+      # aber kein versionsbezogenes HEAD (Get/PutBucketVersioning stehen in
+      # der R2-Kompatibilitätsliste als nicht umgesetzt). rclone prüft nach
+      # dem Hochladen genau damit nach und bekommt 501 Not Implemented. Die
+      # Datei liegt zu dem Zeitpunkt längst richtig im Bucket - der zweite
+      # Versuch "gelingt" nur, weil rclone sie dann schon vorfindet und
+      # überspringt. Am 2026-09-09 mit --dump headers nachgemessen.
+      #
+      # Der Integritätsschutz geht dadurch nicht verloren: rclone schickt
+      # beim PUT ein Content-MD5 mit, R2 prüft es serverseitig und weist
+      # einen beschädigten Upload zurück. Das nachgelagerte HEAD war die
+      # zweite, hier unmögliche Prüfung - nicht die einzige.
       rclone copyto "$datei" "${R2_ZIEL}/${praefix}/$(basename "$datei")" \
-        --s3-no-check-bucket --retries 3 \
+        --s3-no-check-bucket --s3-no-head --retries 3 \
         || fehler "Upload nach ${praefix}/ fehlgeschlagen."
     done
     meldung "    -> ${praefix}/"

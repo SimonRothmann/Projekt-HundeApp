@@ -129,6 +129,11 @@ Datenbank täglich.
 Dateien regelmäßig.
 
 
+Umgesetzt seit 2026-09-09: verschlüsselte tägliche Sicherung nach
+Cloudflare R2, Einrichtung und Wiederherstellung in
+[docs/BACKUP.md](docs/BACKUP.md).
+
+
 ---
 
 # Monitoring
@@ -192,3 +197,7 @@ Updates
 Backups
 
 Secrets Management
+
+
+Wie Updates, Neustarts und Aufräumarbeiten auf der VPS laufen - und was
+davon von Hand bleibt: [docs/BETRIEB.md](docs/BETRIEB.md).

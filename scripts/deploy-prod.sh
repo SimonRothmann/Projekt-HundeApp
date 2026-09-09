@@ -35,6 +35,11 @@ git checkout prod
 git reset --hard origin/prod
 
 echo "==> Prod-Container bauen und starten"
+# Hier steht bewusst KEIN --pull, anders als in deploy-test.sh. Der
+# Test-Deploy zieht die Basis-Images; Prod baut gegen genau die, die dort
+# schon in Betrieb waren. Ein --pull an dieser Stelle könnte Prod ein
+# Basis-Image unterschieben, das auf Test nie gelaufen ist.
+#
 # Reihenfolge ist wichtig, nicht Geschmackssache: Das Frontend fragt beim
 # BAUEN den Prüfungsordnungs-Katalog über NEXT_PUBLIC_API_URL ab und backt
 # daraus seine Seiten und die Sitemap (generateStaticParams, app/sitemap.ts -
