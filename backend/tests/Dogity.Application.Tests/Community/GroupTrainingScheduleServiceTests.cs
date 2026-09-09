@@ -223,7 +223,7 @@ public class GroupTrainingScheduleServiceTests
 
         Assert.True(result.Succeeded);
         Assert.Equal("Leinenführigkeit", result.Value!.First().Focus);
-        Assert.True(result.Value.Count >= 2);
+        Assert.True(result.Value!.Count >= 2);
     }
 
     [Fact]

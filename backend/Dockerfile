@@ -1,7 +1,7 @@
 # Multi-Stage-Build: SDK nur zum Bauen, Runtime-Image (deutlich kleiner,
 # kein Compiler/keine Build-Tools) für den eigentlichen Container - siehe
 # DEPLOYMENT.md "Produktion MVP / Variante A".
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Projektdateien zuerst kopieren und restaurieren, damit Docker dies cached
@@ -16,7 +16,7 @@ RUN dotnet restore src/Dogity.Api/Dogity.Api.csproj
 COPY src/ src/
 RUN dotnet publish src/Dogity.Api/Dogity.Api.csproj -c Release -o /app --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # poppler-utils: wird vom Admin-Workflow "Prüfungsordnung-Import" über

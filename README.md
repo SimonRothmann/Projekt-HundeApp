@@ -148,7 +148,7 @@ zu erzeugen.
 
 # Quickstart (lokale Entwicklung, ohne Docker)
 
-Voraussetzungen: .NET 9 SDK, Node.js LTS, PostgreSQL 17 (lokal installiert,
+Voraussetzungen: .NET 10 SDK, Node.js LTS, PostgreSQL 17 (lokal installiert,
 siehe [DEPLOYMENT.md](DEPLOYMENT.md) "Lokal ohne Docker").
 
 ## 1. Datenbank
@@ -328,24 +328,15 @@ scheitert in beiden Modi.
   `~/Library/LaunchAgents` nicht für den eigenen Nutzer beschreibbar ist
   (root-owned auf manchen Systemen) - die Skripte starten Postgres daher
   direkt über `pg_ctl`, ohne launchd.
-- **`brew install dotnet` installiert nur die jeweils neueste Major-Version**
-  (aktuell .NET 10), das Backend braucht aber .NET 9 (`net9.0` in den
-  `.csproj`-Dateien). Zusätzlich `brew install dotnet@9` installieren (kann
-  parallel zu .NET 10 koexistieren, ist aber "keg-only" und landet nicht
-  automatisch im PATH). Backend-Befehle (`dotnet run`, `dotnet build`,
-  `dotnet ef ...`) dann mit vorangestelltem PATH ausführen:
-  ```bash
-  export PATH="/opt/homebrew/opt/dotnet@9/libexec:$PATH"
-  ```
-- **`dotnet ef` (global Tool) zieht trotzdem die .NET-10-Runtime**, selbst mit
-  obigem PATH-Eintrag, da der globale Tool-Host sich an `DOTNET_ROOT`
-  orientiert statt nur an `PATH` - Fehler `You must install or update .NET to
-  run this application` bzw. stille Fehlschläge bei `dotnet ef migrations
-  add`/`database update`. Zusätzlich `DOTNET_ROOT` setzen (oder pro Befehl
-  voranstellen):
-  ```bash
-  export DOTNET_ROOT="/opt/homebrew/opt/dotnet@9/libexec"
-  ```
+- **Zwei .NET-Kniffe sind seit dem Wechsel auf `net10.0` entfallen** (2026-09-09):
+  Solange das Backend `net9.0` anvisierte, `brew install dotnet` aber nur die
+  neueste Major-Version liefert, brauchte es ein zusätzliches `dotnet@9`, einen
+  vorangestellten `PATH` und ein gesetztes `DOTNET_ROOT` für `dotnet ef`.
+  Beides ist hinfällig: Zielframework und installiertes SDK sind jetzt dieselbe
+  Version, `dotnet build`/`run`/`ef` funktionieren ohne Vorbereitung. Falls in
+  einer alten Shell-Konfiguration noch `PATH`- oder `DOTNET_ROOT`-Einträge auf
+  `dotnet@9` zeigen, gehören die entfernt - sie zwingen die Befehle sonst
+  weiterhin auf ein SDK, das das Zielframework gar nicht mehr kennt.
   Betrifft auch `dotnet run`/`dotnet build`, wenn diese über den global
   installierten `dotnet`-Befehl (statt direkt `/opt/homebrew/opt/dotnet@9/bin/dotnet`)
   aufgerufen werden.

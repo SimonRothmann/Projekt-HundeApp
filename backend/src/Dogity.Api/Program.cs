@@ -65,14 +65,17 @@ builder.Services.AddHostedService<PlanRegenerationBackgroundService>();
 
 // Hinter Caddy (Reverse Proxy im Docker-Netzwerk) sieht Kestrel als
 // RemoteIpAddress nur die Proxy-IP. Für IP-basiertes Rate-Limiting und
-// korrekte Logs die X-Forwarded-*-Header übernehmen. KnownNetworks/-Proxies
+// korrekte Logs die X-Forwarded-*-Header übernehmen. KnownIPNetworks/-Proxies
 // leeren ist hier vertretbar: der Backend-Port ist nicht öffentlich
 // exponiert (nur Caddy erreicht ihn über das interne Docker-Netzwerk),
 // gespoofte Header von außen kommen also gar nicht erst an.
+//
+// KnownIPNetworks statt KnownNetworks seit ASP.NET Core 10 (ASPDEPR005);
+// gleiche Bedeutung, die alte Eigenschaft ist als veraltet markiert.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownNetworks.Clear();
+    options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
 
