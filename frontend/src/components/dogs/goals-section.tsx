@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Goal, Sport } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { Plus, Target } from "lucide-react";
 import { GoalCreateForm } from "@/components/dogs/goal-create-form";
 import { GoalPlanCard } from "@/components/dogs/goal-plan-card";
@@ -41,13 +42,16 @@ export function GoalsSection({
     // scroll-mt: der Kopfbereich der App klebt oben - ohne den Abstand
     // verschwände die Überschrift beim Sprung auf #trainingsplan darunter.
     <div id="trainingsplan" className="flex scroll-mt-20 flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{t("Ziele & Trainingsplan")}</h2>
-        <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)}>
-          <Plus className="size-4" />
-{t("Ziel setzen")}
-        </Button>
-      </div>
+      <SectionHeading
+        icon={Target}
+        title={t("Ziele & Trainingsplan")}
+        action={
+          <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)}>
+            <Plus className="size-4" />
+            {t("Ziel setzen")}
+          </Button>
+        }
+      />
 
       {showForm && <GoalCreateForm dogId={dogId} sports={sports} onCreated={handleCreated} />}
 

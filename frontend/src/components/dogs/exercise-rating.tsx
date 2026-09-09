@@ -61,10 +61,20 @@ export function ExerciseRating({
 
   if (!editing) {
     return (
-      <span className="flex shrink-0 items-center gap-1 text-muted-foreground">
-        <span>
-          {"★".repeat(rating)}
-          {"☆".repeat(5 - rating)} {success ? "✓" : "✗"}
+      <span className="flex shrink-0 items-center gap-1.5">
+        {/* Gefüllte und leere Sterne verschieden eingefärbt: einfarbig grau
+            musste man die Sternchen zählen, um die Bewertung zu lesen. */}
+        <span role="img" aria-label={t("Bewertung {wert} von 5", { wert: rating })}>
+          <span className="text-accent">{"★".repeat(rating)}</span>
+          <span className="text-muted-foreground/40">{"☆".repeat(5 - rating)}</span>
+        </span>
+        {/* Nicht erfolgreich ist die Ausnahme und die eigentliche Auskunft -
+            die wird hervorgehoben, das Häkchen bleibt zurückhaltend. */}
+        <span
+          className={success ? "text-muted-foreground" : "font-medium text-destructive"}
+          title={success ? t("Erfolgreich") : t("Nicht erfolgreich")}
+        >
+          {success ? "✓" : "✗"}
         </span>
         <Button
           type="button"

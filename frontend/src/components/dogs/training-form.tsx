@@ -93,20 +93,27 @@ export function TrainingForm({
   const sportSchluessel = sports.map((s) => s.id).join(",");
   useEffect(() => {
     let abgebrochen = false;
-    (async () => {
-      const geladen: Record<string, Exercise[]> = {};
-      for (const sportId of sportSchluessel.split(",").filter(Boolean)) {
-        try {
-          geladen[sportId] = await api.get<Exercise[]>(`/api/sports/${sportId}/exercises`);
-        } catch {
-          // Offline oder Serverfehler: die Liste lädt dann wie bisher beim
-          // Antippen der Sportart nach. Kein Grund, das Formular zu blockieren.
-        }
-      }
-      // Bereits Geladenes gewinnt - der Abruf soll nichts überschreiben, was
-      // inzwischen durch eine Auswahl hereinkam.
-      if (!abgebrochen) setExercisesBySport((prev) => ({ ...geladen, ...prev }));
-    })();
+    // Nebeneinander und jede Liste für sich übernehmen, statt nacheinander zu
+    // laden und erst am Ende alles gemeinsam: bei drei Sportarten stand die
+    // Zuordnung sonst erst nach drei aufeinanderfolgenden Abrufen bereit -
+    // und genau in dieser Zeitspanne war "Wie beim letzten Mal" wirkungslos.
+    Promise.all(
+      sportSchluessel
+        .split(",")
+        .filter(Boolean)
+        .map(async (sportId) => {
+          try {
+            const uebungen = await api.get<Exercise[]>(`/api/sports/${sportId}/exercises`);
+            if (abgebrochen) return;
+            // Bereits Geladenes gewinnt - der Abruf soll nichts überschreiben,
+            // was inzwischen durch eine Auswahl hereinkam.
+            setExercisesBySport((prev) => (prev[sportId] ? prev : { ...prev, [sportId]: uebungen }));
+          } catch {
+            // Offline oder Serverfehler: die Liste lädt dann wie bisher beim
+            // Antippen der Sportart nach. Kein Grund, das Formular zu blockieren.
+          }
+        }),
+    );
     return () => {
       abgebrochen = true;
     };
@@ -123,6 +130,31 @@ export function TrainingForm({
     }
     return karte;
   }, [exercisesBySport]);
+
+  /**
+   * Die Zeilen, wie sie angezeigt werden - mit nachgetragener Sportart.
+   *
+   * "Wie beim letzten Mal" lässt sich antippen, bevor die Übungslisten da
+   * sind; auf dem Hundeplatz können das einige Sekunden sein. Die Zeilen
+   * bekamen dann eine leere Sportart, ihre Übungsliste blieb leer - und weil
+   * in der Zeile trotzdem eine Übungs-Id steht, zeigte das Übungs-Feld diese
+   * Id an statt des Namens. Genau das war im Tagebuch als "Nummer statt
+   * Übungsname" zu sehen.
+   *
+   * Abgeleitet und nicht in den Zustand geschrieben: die Zuordnung ist keine
+   * Eingabe des Nutzers, sondern ergibt sich aus den geladenen Listen. Sobald
+   * sie da sind, stimmt die Anzeige von selbst.
+   *
+   * Nur Zeilen ohne eigene Sportart: eine von Hand gewählte darf das nicht
+   * überschreiben.
+   */
+  const zeilen = useMemo(
+    () =>
+      rows.map((row) =>
+        row.sportId || !row.exerciseId ? row : { ...row, sportId: sportVonUebung[row.exerciseId] ?? "" },
+      ),
+    [rows, sportVonUebung],
+  );
 
   const vorlageDatum = letzteEinheit
     ? new Date(letzteEinheit.date).toLocaleDateString("de-DE", { day: "numeric", month: "long" })
@@ -179,7 +211,7 @@ export function TrainingForm({
   }
 
   function addRow() {
-    setRows((prev) => [...prev, emptyRow(letzteSportart(prev))]);
+    setRows((prev) => [...prev, emptyRow(letzteSportart(zeilen))]);
   }
 
   function removeRow(index: number) {
@@ -197,7 +229,7 @@ export function TrainingForm({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const validRows = rows.filter((r) => (r.isFreeText ? r.freeText.trim() : r.exerciseId));
+    const validRows = zeilen.filter((r) => (r.isFreeText ? r.freeText.trim() : r.exerciseId));
     if (validRows.length === 0) {
       toast.error(t("Mindestens eine Übung auswählen oder eintragen."));
       return;
@@ -229,7 +261,7 @@ export function TrainingForm({
     try {
       await api.post<TrainingSession>("/api/trainings", payload);
       toast.success(t("Training gespeichert."));
-      setRows((prev) => [emptyRow(letzteSportart(prev))]);
+      setRows([emptyRow(letzteSportart(zeilen))]);
       setCondition(null);
       setNotes("");
       resetContext();
@@ -242,7 +274,7 @@ export function TrainingForm({
         // siehe PRODUCT_REQUIREMENTS.md "Offline": Training ohne Internet erfassen.
         await enqueueRequest({ path: "/api/trainings", method: "POST", body: payload, label: t("Training") });
         toast.success(t("Offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."));
-        setRows((prev) => [emptyRow(letzteSportart(prev))]);
+        setRows([emptyRow(letzteSportart(zeilen))]);
         setNotes("");
         resetContext();
         await onSaved(true);
@@ -324,7 +356,7 @@ export function TrainingForm({
 
           <div className="flex flex-col gap-3">
             <Label>{t("Übungen")}</Label>
-            {rows.map((row, index) => {
+            {zeilen.map((row, index) => {
               const exercises = exercisesBySport[row.sportId] ?? [];
               const selectedExercise = exercises.find((ex) => ex.id === row.exerciseId);
               const planItemOptions = planItemOptionsFor(row.exerciseId);
@@ -454,7 +486,7 @@ export function TrainingForm({
                     variant="ghost"
                     size="icon"
                     onClick={() => removeRow(index)}
-                    disabled={rows.length === 1}
+                    disabled={zeilen.length === 1}
                   >
                     <Trash2 className="size-4" />
                   </Button>

@@ -55,6 +55,31 @@ Frage. Sie holt sich jetzt beim Öffnen eine grobe Position
 (`enableHighAccuracy: false`, Cache bis 60 s) und zentriert sofort; der erste
 echte Punkt rastet danach genau ein.
 
+### Linienfarben: Bezug vs. Bewertung (2026-09-09)
+
+Die gelegte Fährte war in `#16a34a` gezeichnet — demselben Grün, das die
+Auswertung für "bis 3 m Abweichung" benutzt (`DEVIATION_COLORS.green`, siehe
+docs/TRACK_EVALUATION.md). Bei einem sauber gelaufenen Ablauf lagen damit zwei
+gleich grüne Linien übereinander, und was Legung und was Ablauf war, ließ sich
+nicht mehr sagen.
+
+Die Regel dahinter, damit das nicht wiederkommt:
+
+| Was | Darstellung |
+|---|---|
+| Gelegte Fährte (Bezugslinie) | `#111827` mit heller Fassung `#f8fafc`, Start gefüllt, Ende hohl |
+| Ablauf, ausgewertet | Ampel grün/gelb/rot je Abschnitt |
+| Ablauf, noch nicht ausgewertet | eigene Farbe je Versuch, gestrichelt |
+
+Die Legung ist **keine Bewertung** und gehört deshalb nicht in die Ampelskala.
+Neutral plus Fassung statt einer weiteren Buntfarbe hat zwei Gründe: Die
+Ampeltöne bleiben eindeutig, und die Fassung macht die Linie auf hellen
+Straßenkacheln, auf dem Luftbild und auf den im Dark Mode invertierten Kacheln
+gleichermaßen sichtbar — eine einzelne Farbe schafft das auf keinem der drei.
+
+`TrackLegend` unter der Karte benennt die Linien; sie zeigt nur, was auch
+wirklich eingezeichnet ist (ohne Ablauf keine Ampel).
+
 ### Kartenhintergrund: Straße, Luftbild, dunkel (2026-09-03)
 
 Rückmeldung war "Leaflet sieht nicht modern aus". Das Aussehen bestimmt aber

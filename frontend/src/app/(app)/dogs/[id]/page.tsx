@@ -8,7 +8,8 @@ import { MODULE, type Dog, type DogOwner, type Goal, type Sport, type TrainingSe
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Archive, ArchiveRestore, Pencil, Plus, Printer, Trash2 } from "lucide-react";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { Archive, ArchiveRestore, NotebookPen, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { DogEditForm } from "@/components/dogs/dog-edit-form";
 import { formatDogAge } from "@/lib/dog-age";
@@ -297,16 +298,18 @@ export default function DogDetailPage() {
           und wählt die Sportart ab. */}
       {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && <FahrteRecorder dogId={id} onSaved={loadAll} />}
 
-      {/* flex-wrap, weil Überschrift und Knopf bei großer Schrift nicht mehr
-          nebeneinander passen (Profil -> Schriftgröße). Ohne den Umbruch ragte
-          der Knopf bei "sehr groß" 26 px über den Rand hinaus. */}
-      <div id="training-erfassen" className="flex flex-wrap items-center justify-between gap-2 scroll-mt-4">
-        <h2 className="text-lg font-semibold">Trainingstagebuch</h2>
-        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
-          <Plus className="size-4" />
-{t("Training erfassen")}
-        </Button>
-      </div>
+      <SectionHeading
+        id="training-erfassen"
+        className="scroll-mt-4"
+        icon={NotebookPen}
+        title="Trainingstagebuch"
+        action={
+          <Button size="sm" onClick={() => setShowForm((v) => !v)}>
+            <Plus className="size-4" />
+            {t("Training erfassen")}
+          </Button>
+        }
+      />
 
       {showForm && (
         <TrainingForm

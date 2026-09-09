@@ -25,7 +25,19 @@ const WALK_RUN_COLORS = ["#2563eb", "#9333ea", "#0d9488", "#dc2626"];
 // reines SVG-Attribut (stroke="..."), nicht als CSS-Eigenschaft - var(...)
 // wird in einem XML-Attribut nicht aufgelöst, die Linie blieb dadurch
 // unsichtbar (nur Kacheln/Marker waren zu sehen).
-const TRACK_LINE_COLOR = "#16a34a";
+//
+// Bewusst KEIN Ampelton mehr: die Legung war bis hierher im selben Grün
+// gezeichnet wie ein sauber gelaufener Ablauf (DEVIATION_COLORS.green). Auf
+// der Karte lagen dann zwei gleich grüne Linien übereinander, und was Legung
+// und was Ablauf war, ließ sich nicht mehr auseinanderhalten. Die Legung ist
+// auch keine Bewertung, sondern die Bezugslinie, an der gemessen wird - sie
+// gehört deshalb gar nicht in die Ampelskala.
+//
+// Dunkler Kern mit heller Fassung (die klassische Kartendarstellung): so
+// bleibt die Linie auf hellen Straßenkacheln, auf dem Luftbild und auf den
+// im Dark Mode invertierten Kacheln gleichermaßen sichtbar.
+const TRACK_LINE_COLOR = "#111827";
+const TRACK_CASING_COLOR = "#f8fafc";
 
 // Ampelfarben für die Abweichung der Ablauf-Linie (Schwellen siehe
 // GpsTrackEvaluator im Backend - bewusst großzügig, weil der GPS-Fehler
@@ -343,12 +355,30 @@ export function TrackMap({
     const latLngs = automaticPoints.map((p) => [p.latitude, p.longitude] as [number, number]);
 
     if (latLngs.length > 0) {
-      L.polyline(latLngs, { color: TRACK_LINE_COLOR }).addTo(layerGroup);
-      L.circleMarker(latLngs[0], { radius: 6, color: "green" }).addTo(layerGroup).bindTooltip("Start (gelegt)");
+      L.polyline(latLngs, { color: TRACK_CASING_COLOR, weight: 8, opacity: 0.9 }).addTo(layerGroup);
+      L.polyline(latLngs, { color: TRACK_LINE_COLOR, weight: 4 }).addTo(layerGroup);
+      // Start gefüllt, Ende hohl - dieselbe Farbe wie die Linie, statt wie
+      // bisher Grün und Rot: beides sind Ampeltöne und meinten hier gerade
+      // NICHT gut und schlecht, sondern Anfang und Ende der Legung.
+      L.circleMarker(latLngs[0], {
+        radius: 6,
+        color: TRACK_CASING_COLOR,
+        weight: 2,
+        fillColor: TRACK_LINE_COLOR,
+        fillOpacity: 1,
+      })
+        .addTo(layerGroup)
+        .bindTooltip(t("Start (gelegt)"));
       if (!live) {
-        L.circleMarker(latLngs[latLngs.length - 1], { radius: 6, color: "red" })
+        L.circleMarker(latLngs[latLngs.length - 1], {
+          radius: 6,
+          color: TRACK_LINE_COLOR,
+          weight: 3,
+          fillColor: TRACK_CASING_COLOR,
+          fillOpacity: 1,
+        })
           .addTo(layerGroup)
-          .bindTooltip("Ende (gelegt)");
+          .bindTooltip(t("Ende (gelegt)"));
       }
     }
 
@@ -567,8 +597,8 @@ export function TrackMap({
           liefert aus derselben, schon geladenen Kachel ein dunkles Bild:
           keine zweite Quelle, kein Schlüssel, keine zusätzlichen Abrufe.
           
-          Nur auf die Kacheln, nicht auf die ganze Karte - sonst würde die
-          Spur gleich mit invertiert und wäre nicht mehr grün.
+          Nur auf die Kacheln, nicht auf die ganze Karte - sonst würden die
+          Linien gleich mit invertiert und trügen nicht mehr ihre Farbe.
           
           saturate(0.45) ist nicht Geschmack, sondern nötig: Der OSM-Stil ist
           voller bunter Ladensymbole, und invert + hue-rotate macht daraus
@@ -618,6 +648,92 @@ export function TrackMap({
             <text x="12" y="8.5" textAnchor="middle" fontSize="4" fill="white" fontWeight="bold">N</text>
           </svg>
         </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Kurzer Linienabschnitt in genau der Darstellung, die auch auf der Karte
+ * gezeichnet wird - inklusive Fassung und Strichelung. Ein farbiges Kästchen
+ * täte es nicht: dass die Legung eine Fassung trägt und ein noch nicht
+ * ausgewerteter Ablauf gestrichelt ist, gehört mit zur Unterscheidung.
+ */
+function Linienprobe({
+  farbe,
+  fassung,
+  gestrichelt = false,
+}: {
+  farbe: string;
+  fassung?: string;
+  gestrichelt?: boolean;
+}) {
+  return (
+    <svg viewBox="0 0 22 10" width="22" height="10" className="shrink-0" aria-hidden>
+      {fassung && <line x1="2" y1="5" x2="20" y2="5" stroke={fassung} strokeWidth="7" strokeLinecap="round" />}
+      <line
+        x1="2"
+        y1="5"
+        x2="20"
+        y2="5"
+        stroke={farbe}
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        strokeDasharray={gestrichelt ? "4 3" : undefined}
+      />
+    </svg>
+  );
+}
+
+/**
+ * Legende zur Karte.
+ *
+ * Auf der Karte liegen bis zu drei verschiedene Dinge übereinander: die
+ * gelegte Fährte, die abgelaufenen Versuche und - sobald ausgewertet - deren
+ * Abweichung als Ampel. Ohne Beschriftung war schlicht nicht zu erkennen, was
+ * das Legen war und was das Ablaufen; beides war bis hierher sogar im selben
+ * Grün gezeichnet.
+ *
+ * Zeigt nur, was auch wirklich auf der Karte liegt: ohne Ablauf keine Ampel.
+ */
+export function TrackLegend({ walkRuns }: { walkRuns: GpsWalkRun[] }) {
+  const t = useT();
+  const istBewertet = (run: GpsWalkRun) => run.points.some((p) => p.deviationMeters != null);
+  const bewertete = walkRuns.filter(istBewertet);
+  // Index aus der vollständigen Liste behalten: die Farbe eines noch nicht
+  // ausgewerteten Ablaufs hängt an seiner Position, genau wie beim Zeichnen.
+  const unbewertete = walkRuns
+    .map((run, index) => ({ run, index }))
+    .filter(({ run }) => run.points.length > 0 && !istBewertet(run));
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+      <span className="flex items-center gap-1.5">
+        <Linienprobe farbe={TRACK_LINE_COLOR} fassung={TRACK_CASING_COLOR} />
+        <span className="font-medium text-foreground">{t("Gelegte Fährte")}</span>
+      </span>
+      {unbewertete.map(({ index }) => (
+        <span key={index} className="flex items-center gap-1.5">
+          <Linienprobe farbe={WALK_RUN_COLORS[index % WALK_RUN_COLORS.length]} gestrichelt />
+          {t("Ablauf {nummer}", { nummer: index + 1 })}
+        </span>
+      ))}
+      {bewertete.length > 0 && (
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-medium text-foreground">{t("Ablauf, Abweichung:")}</span>
+          <span className="flex items-center gap-1.5">
+            <Linienprobe farbe={DEVIATION_COLORS.green} />
+            {t("bis {meter} m", { meter: DEVIATION_GREEN_MAX_M })}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Linienprobe farbe={DEVIATION_COLORS.amber} />
+            {t("bis {meter} m", { meter: DEVIATION_AMBER_MAX_M })}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Linienprobe farbe={DEVIATION_COLORS.red} />
+            {t("darüber")}
+          </span>
+        </span>
       )}
     </div>
   );

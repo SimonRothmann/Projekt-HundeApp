@@ -31,6 +31,31 @@ import type { NextConfig } from "next";
 // - connect-src statisch mit BEIDEN API-Domains: NEXT_PUBLIC_API_URL ist
 //   ein Docker-Build-ARG der Build-Stage und steht zur Laufzeit von
 //   `next start` (liest diese Config beim Serverstart) nicht zur Verfügung.
+
+/**
+ * Zusätzlich erlaubte API-Adresse für die lokale Prüfung.
+ *
+ * Die Richtlinie gilt nur im Produktionsbau - und genau der ist die einzige
+ * Art, die App auf dem eigenen Rechner realistisch durchzuklicken (mit
+ * `next dev` hydratisiert die Seite im Browser-Pane nicht). Ohne diesen
+ * Zusatz blockierte die eigene Richtlinie dabei jeden Aufruf ans lokale
+ * Backend, angefangen bei der Anmeldung.
+ *
+ * Greift ausschließlich lokal: auf dem Server steht in NEXT_PUBLIC_API_URL
+ * die öffentliche API-Adresse, im Container zur Laufzeit gar nichts. Nur ein
+ * ausdrücklich auf den eigenen Rechner zeigender Wert kommt hier durch.
+ */
+function lokaleApiQuelle(): string[] {
+  const wert = process.env.NEXT_PUBLIC_API_URL;
+  if (!wert) return [];
+  try {
+    const { hostname, origin } = new URL(wert);
+    return ["localhost", "127.0.0.1", "[::1]"].includes(hostname) ? [origin] : [];
+  } catch {
+    return [];
+  }
+}
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
@@ -39,7 +64,7 @@ const contentSecurityPolicy = [
   // die frei wählbaren Avatar-Adressen. Bilder können kein Skript ausführen.
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://api.dogity.net https://api-test.dogity.net",
+  ["connect-src 'self' https://api.dogity.net https://api-test.dogity.net", ...lokaleApiQuelle()].join(" "),
   "worker-src 'self'",
   "manifest-src 'self'",
   "frame-ancestors 'none'",

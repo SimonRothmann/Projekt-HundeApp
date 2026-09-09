@@ -139,9 +139,12 @@ export function ExerciseNotes({
   }
 
   // Nicht-compact (Tagebuch): eigener Block, langer Kommentar bricht um.
+  // flex statt inline-flex und flex-1 auf dem Text: sonst rutschte der Stift
+  // bei etwas längerem Kommentar in eine eigene Zeile und stand dort ohne
+  // erkennbaren Bezug herum.
   return (
-    <span className="inline-flex max-w-full items-start gap-1 text-xs text-muted-foreground">
-      <span className="min-w-0 break-words italic">„{notes}“</span>
+    <span className="flex max-w-full items-start gap-1 text-xs text-muted-foreground">
+      <span className="min-w-0 flex-1 break-words italic">„{notes}“</span>
       <Button
         size="icon"
         variant="ghost"

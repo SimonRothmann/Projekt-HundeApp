@@ -61,6 +61,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.14",
+    datum: "2026-09-09",
+    titel: uebersetzbar("Das Trainingstagebuch ist übersichtlicher"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Das Trainingstagebuch ist neu gestaltet: Trainingstage haben eine eigene Kopfzeile, Kommentar, Übungen, Fährte und Trainer-Feedback sind als eigene Blöcke beschriftet und abgesetzt. Vorher stand alles in derselben Schrift und derselben Farbe untereinander."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die gelegte Fährte wird auf der Karte nicht mehr grün gezeichnet, sondern als dunkle Linie mit hellem Rand. Grün, Gelb und Rot bleiben damit allein der Abweichung des Ablaufs vorbehalten - beides war vorher im selben Grün. Eine Legende unter der Karte benennt jetzt, welche Linie was ist."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("„Wie beim letzten Mal\" zeigte in der Übungsauswahl eine Kennnummer statt des Übungsnamens, wenn man es antippte, bevor die Übungslisten geladen waren. Jetzt steht dort der Name, sobald die Listen da sind - und bis dahin der Platzhalter."),
+      },
+    ],
+  },
+  {
     version: "0.13",
     datum: "2026-09-08",
     titel: uebersetzbar("Die Schrift lässt sich größer stellen"),

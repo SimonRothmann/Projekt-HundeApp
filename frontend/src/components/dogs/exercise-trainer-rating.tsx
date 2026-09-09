@@ -80,7 +80,11 @@ export function ExerciseTrainerRating({
 
   return (
     <span className="flex min-w-0 flex-col gap-1">
-      <span className="flex items-center gap-1">
+      {/* flex-wrap, weil die fünf Sterne auf Touch je 44 px breit sind: samt
+          Beschriftung und Notiz-Knopf passt die Zeile auf einem 375-px-Gerät
+          nicht in eine Zeile, und der Notiz-Knopf lag bisher außerhalb der
+          Karte - erreichbar war er dort nicht. */}
+      <span className="flex min-w-0 flex-wrap items-center gap-1">
         <span className="shrink-0 text-xs font-medium text-muted-foreground">{t("Trainer:")}</span>
         <span role="group" aria-label={t("Trainer-Bewertung, 1 bis 5 Sterne")} className="inline-flex items-center">
           {[1, 2, 3, 4, 5].map((n) => (

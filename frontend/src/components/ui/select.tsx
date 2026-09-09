@@ -23,6 +23,15 @@ function flattenToText(node: React.ReactNode): string {
   return ""
 }
 
+type SelectEintrag = { value: unknown; label: string }
+
+/**
+ * Die aus den Kindern gesammelten Einträge, damit <SelectValue> denselben
+ * Bestand nachschlagen kann wie das Root - siehe dort, warum die Auflösung
+ * nicht Base UI überlassen bleibt.
+ */
+const SelectItemsContext = React.createContext<SelectEintrag[]>([])
+
 function collectSelectItems(node: React.ReactNode): Array<{ value: unknown; label: string }> {
   const items: Array<{ value: unknown; label: string }> = []
   React.Children.forEach(node, (child) => {
@@ -54,14 +63,54 @@ function Select<Value>({ children, items, modal = false, ...props }: SelectPrimi
   // unklickbar machen ("Seite hängt"). Ohne Modal gibt es kein Overlay;
   // Klick-außerhalb schließt das Dropdown weiterhin normal (Floating UI).
   return (
-    <SelectPrimitive.Root data-slot="select" items={resolvedItems} modal={modal} {...props}>
-      {children}
-    </SelectPrimitive.Root>
+    <SelectItemsContext.Provider value={resolvedItems as SelectEintrag[]}>
+      <SelectPrimitive.Root data-slot="select" items={resolvedItems} modal={modal} {...props}>
+        {children}
+      </SelectPrimitive.Root>
+    </SelectItemsContext.Provider>
   )
 }
 
-function SelectValue({ ...props }: SelectPrimitive.Value.Props) {
-  return <SelectPrimitive.Value data-slot="select-value" {...props} />
+/**
+ * Findet Base UI zu einem gesetzten Wert keinen passenden Eintrag, zeigt es
+ * den Wert selbst an (resolveValueLabel.stringifyAsLabel) - bei uns also eine
+ * rohe Datenbank-Id. Genau das stand im Trainingstagebuch im Übungs-Feld,
+ * wenn "Wie beim letzten Mal" angetippt wurde, bevor die Übungslisten geladen
+ * waren: die nackte Id statt des Übungsnamens.
+ *
+ * Eine Id ist für niemanden eine Auskunft. Ist der Wert (noch) nicht
+ * auflösbar, steht deshalb der Platzhalter da - dasselbe, was auch bei leerer
+ * Auswahl zu sehen wäre.
+ */
+function SelectValue({ placeholder, children, ...props }: SelectPrimitive.Value.Props) {
+  const eintraege = React.useContext(SelectItemsContext)
+
+  // Eigene Darstellung ausdrücklich gewünscht: unverändert durchreichen.
+  if (children != null) {
+    return (
+      <SelectPrimitive.Value data-slot="select-value" placeholder={placeholder} {...props}>
+        {children}
+      </SelectPrimitive.Value>
+    )
+  }
+
+  function label(value: unknown): React.ReactNode {
+    const treffer = eintraege.find((eintrag) => eintrag.value === value)
+    if (treffer) return treffer.label
+    return <span className="text-muted-foreground">{placeholder}</span>
+  }
+
+  return (
+    <SelectPrimitive.Value data-slot="select-value" {...props}>
+      {(value: unknown) =>
+        // Mehrfachauswahl nutzt derzeit keine Stelle im Code; der Fall ist
+        // trotzdem mitbehandelt, damit er nicht stillschweigend bricht.
+        Array.isArray(value)
+          ? value.map((einzeln, i) => <React.Fragment key={i}>{i > 0 ? ", " : ""}{label(einzeln)}</React.Fragment>)
+          : label(value)
+      }
+    </SelectPrimitive.Value>
+  )
 }
 
 function SelectTrigger({

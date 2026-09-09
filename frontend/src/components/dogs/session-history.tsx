@@ -6,8 +6,19 @@ import type { TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BlockLabel } from "@/components/ui/block-label";
 import { Input } from "@/components/ui/input";
-import { Check, ChevronDown, ChevronRight, History, MessageSquarePlus, Pencil, Trash2 } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  History,
+  ListChecks,
+  MessageSquarePlus,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
 import { SessionContextEditor } from "@/components/dogs/session-context-editor";
@@ -137,9 +148,12 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
     );
   }
 
+  // Abgesetzt als Zitatblock: der Tages-Kommentar ist ein eigener Gedanke und
+  // stand bisher als grauer Fließtext zwischen Kopfdaten und Übungsliste,
+  // ohne erkennbar zu einem der beiden zu gehören oder eben nicht.
   return (
-    <div className="flex items-start gap-1 text-sm text-muted-foreground">
-      <p className="whitespace-pre-line">{joined}</p>
+    <div className="flex items-start gap-1 rounded-lg border border-l-2 border-border/60 border-l-primary/50 bg-muted/40 px-2.5 py-2">
+      <p className="min-w-0 flex-1 text-sm whitespace-pre-line [overflow-wrap:anywhere]">{joined}</p>
       <Button
         size="icon"
         variant="ghost"
@@ -202,7 +216,7 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
 
   if (!editing) {
     return (
-      <CardTitle className="flex min-w-0 items-center gap-0.5 text-base">
+      <CardTitle className="flex min-w-0 items-center gap-0.5 text-base font-semibold tracking-tight">
         <span className="truncate">{new Date(date).toLocaleDateString("de-DE")}</span>
         <Button
           size="icon"
@@ -340,21 +354,31 @@ export function SessionHistory({
         const firstDate = days.keys().next().value as string;
         const dayCount = days.size;
         return (
-          <div key={mKey} className="rounded-md border">
+          // Der Monat ist die oberste Ebene der Liste und bekommt deshalb eine
+          // eigene Fläche: eingefärbte Kopfzeile, ruhiger Grund darunter. So
+          // ist auf einen Blick zu sehen, welche Trainingstage zusammengehören.
+          <div key={mKey} className="overflow-hidden rounded-xl border border-border">
             <button
               type="button"
               onClick={() => toggleMonth(mKey)}
               aria-expanded={isOpen}
-              className="flex w-full items-center justify-between px-3 py-2 text-left coarse:min-h-11"
+              className="flex w-full items-center justify-between gap-2 bg-muted/60 px-3 py-2.5 text-left transition-colors hover:bg-muted coarse:min-h-11"
             >
-              <span className="flex items-center gap-2 font-medium capitalize">
-                {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-                {monthLabel(firstDate)}
+              <span className="flex min-w-0 items-center gap-2 font-heading font-semibold tracking-tight capitalize">
+                {isOpen ? (
+                  <ChevronDown className="size-4 shrink-0 text-primary" />
+                ) : (
+                  <ChevronRight className="size-4 shrink-0 text-primary" />
+                )}
+                <span className="truncate">{monthLabel(firstDate)}</span>
               </span>
-              <Badge variant="secondary">{dayCount}</Badge>
+              {/* Die nackte Zahl ließ offen, was sie zählt. */}
+              <Badge variant="secondary" className="shrink-0">
+                {dayCount === 1 ? t("1 Tag") : t("{anzahl} Tage", { anzahl: dayCount })}
+              </Badge>
             </button>
             {isOpen && (
-              <div className="flex flex-col gap-3 border-t p-3">
+              <div className="flex flex-col gap-3 border-t border-border bg-muted/20 p-3">
                 {Array.from(days.entries()).map(([date, daySessions]) => {
                   const completed = isCompletedDay(date);
                   const totalMinutes = daySessions.reduce((sum, s) => sum + s.durationMinutes, 0);
@@ -363,51 +387,73 @@ export function SessionHistory({
                   const feedbackSessions = daySessions.filter((s) => s.trainerFeedback);
                   return (
                     <Card key={date}>
-                      <CardHeader className="flex-row items-center justify-between space-y-0">
-                        <DayDate sessions={daySessions} onChanged={onChanged} />
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">{totalMinutes} Min.</Badge>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => deleteDay(daySessions)}
-                            title={t("Trainingstag löschen")}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
+                      {/* Eigene Kopfzeile mit Trennlinie: Datum und Dauer sind
+                          die Kennung des Trainingstags, nicht sein erster
+                          Inhalt. Der innere flex-Container, weil CardHeader
+                          ein Grid ist - "justify-between" darauf hat die
+                          beiden nie nebeneinander gebracht, sie standen
+                          untereinander. */}
+                      <CardHeader className="border-b">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <DayDate sessions={daySessions} onChanged={onChanged} />
+                          <div className="flex shrink-0 items-center gap-1">
+                            <Badge variant="outline" className="gap-1 text-muted-foreground">
+                              <Clock />
+                              {totalMinutes} Min.
+                            </Badge>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="size-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => deleteDay(daySessions)}
+                              title={t("Trainingstag löschen")}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="flex flex-col gap-2">
-                        <DayNotes sessions={daySessions} onChanged={onChanged} />
+                      <CardContent className="flex flex-col gap-3">
+                        {/* Ort, Zeit, Wetter, Verfassung sind Angaben ZUM Tag -
+                            deshalb direkt unter der Kopfzeile und nicht
+                            zwischen den inhaltlichen Blöcken. */}
                         {daySessions.map((s) => (
                           <SessionContextEditor key={`ctx-${s.id}`} session={s} onSaved={onChanged} />
                         ))}
+                        <DayNotes sessions={daySessions} onChanged={onChanged} />
                         {exercises.length > 0 && (
-                          <ul className="flex flex-col gap-2">
-                            {exercises.map((ex) => (
-                              <li key={ex.id} className="flex flex-col gap-0.5">
-                                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
-                                  <span className="min-w-0 [overflow-wrap:anywhere]">{ex.exerciseName}</span>
-                                  <ExerciseRating
+                          <section className="flex flex-col gap-1.5">
+                            <BlockLabel icon={ListChecks}>{t("Übungen")}</BlockLabel>
+                            <ul className="flex flex-col gap-1.5">
+                              {exercises.map((ex) => (
+                                <li
+                                  key={ex.id}
+                                  className="flex flex-col gap-1 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-2"
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
+                                    <span className="min-w-0 font-medium [overflow-wrap:anywhere]">
+                                      {ex.exerciseName}
+                                    </span>
+                                    <ExerciseRating
+                                      exerciseId={ex.id}
+                                      rating={ex.rating}
+                                      success={ex.success}
+                                      notes={ex.notes}
+                                      onSaved={onChanged}
+                                    />
+                                  </div>
+                                  <ExerciseNotes exerciseId={ex.id} notes={ex.notes} onSaved={onChanged} />
+                                  <ExerciseTrainerRating
                                     exerciseId={ex.id}
-                                    rating={ex.rating}
-                                    success={ex.success}
-                                    notes={ex.notes}
+                                    rating={ex.trainerRating}
+                                    note={ex.trainerNote}
+                                    canEdit={!isOwner}
                                     onSaved={onChanged}
                                   />
-                                </div>
-                                <ExerciseNotes exerciseId={ex.id} notes={ex.notes} onSaved={onChanged} />
-                                <ExerciseTrainerRating
-                                  exerciseId={ex.id}
-                                  rating={ex.trainerRating}
-                                  note={ex.trainerNote}
-                                  canEdit={!isOwner}
-                                  onSaved={onChanged}
-                                />
-                              </li>
-                            ))}
-                          </ul>
+                                </li>
+                              ))}
+                            </ul>
+                          </section>
                         )}
                         {/* Bereits aufgezeichnete Fährten bleiben sichtbar,
                             auch wenn das Modul aus ist: Sie gehören zum

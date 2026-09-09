@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { GpsPoint, GpsTrack, GpsWalkPoint } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { TrackMap } from "@/components/tracking/track-map";
+import { BlockLabel } from "@/components/ui/block-label";
+import { TrackMap, TrackLegend } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
 import { WalkRunComment } from "@/components/tracking/walk-run-comment";
 import { WalkRunEvaluation } from "@/components/tracking/walk-run-evaluation";
-import { CloudSun, Trash2 } from "lucide-react";
+import { CloudSun, Route, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDelta, formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
 
@@ -107,8 +108,8 @@ export function GpsTrackSection({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border p-3">
-      <h4 className="text-sm font-semibold">{t("Fährte")}</h4>
+    <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
+      <BlockLabel icon={Route}>{t("Fährte")}</BlockLabel>
 
       <div className="flex flex-col gap-4">
         {tracks.map((track) => {
@@ -123,8 +124,10 @@ export function GpsTrackSection({
                   // Minuten ist der Unterschied erheblich, und das Alter ist
                   // die wichtigste Größe für die Schwierigkeit.
                   <span title={`${formatDate(times.start)} ${formatTime(times.start)}–${formatTime(times.end)}`}>
-                    Gelegt {formatTime(times.start)}–{formatTime(times.end)} · Dauer{" "}
-                    {formatDuration(times.durationMs)}
+                    <span className="font-medium text-foreground">
+                      Gelegt {formatTime(times.start)}–{formatTime(times.end)}
+                    </span>{" "}
+                    · Dauer {formatDuration(times.durationMs)}
                   </span>
                 )}
                 {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
@@ -169,15 +172,20 @@ export function GpsTrackSection({
                 walkRuns={track.walkRuns}
                 liveWalkRunPoints={liveWalkPoints[track.id]}
               />
+              <TrackLegend walkRuns={track.walkRuns} />
               {track.walkRuns.length > 0 && (
-                <ul className="text-xs text-muted-foreground flex flex-col gap-1">
+                <ul className="flex flex-col gap-1.5 text-xs text-muted-foreground">
                   {track.walkRuns.map((run, i) => {
                     const durMs = walkRunDurationMs(run);
                     const started = new Date(run.createdAt);
                     return (
-                      <li key={run.id} className="flex flex-col gap-0.5">
+                      <li
+                        key={run.id}
+                        className="flex flex-col gap-0.5 rounded-lg border border-border/60 bg-background/60 px-2.5 py-2"
+                      >
                         <span>
-                          Ablauf {i + 1}: gestartet {formatTime(started)}
+                          <span className="font-medium text-foreground">Ablauf {i + 1}</span>: gestartet{" "}
+                          {formatTime(started)}
                           {durMs !== null && ` · abgelaufen in ${formatDuration(durMs)}`}
                           {run.lengthMeters !== null && ` · ${Math.round(run.lengthMeters)} m`}
                         </span>

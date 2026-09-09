@@ -189,6 +189,22 @@ Diagramme/Status (analog Apples Health-/Fitness-App-Palette)
 
 ---
 
+# Gliederung einer Seite
+
+Drei Ebenen, mehr nicht. Sie unterscheiden sich in Größe UND Art, nicht nur
+in der Schriftstärke - eine Seite, auf der alles gleich aussieht, hat keine
+Gliederung, auch wenn jede Zeile für sich lesbar ist.
+
+| Ebene | Bauteil | Aussehen |
+|---|---|---|
+| Abschnitt der Seite | `SectionHeading` | Eingefärbtes Symbol im Kästchen + Titel; kommt NUR am Abschnittsanfang vor |
+| Karte | `CardHeader` mit `border-b` | Kennung der Karte (Datum, Name) plus Kennzahlen, durch eine Linie vom Inhalt getrennt |
+| Block in einer Karte | `BlockLabel` | Kleine Versalienzeile mit Symbol, z.B. ÜBUNGEN, FÄHRTE, TRAINER-FEEDBACK |
+
+Zusammengehörende Inhalte bekommen eine eigene Fläche (`bg-muted/40` mit
+feinem Rand), nicht nur einen Abstand. Ein Zitat oder eine fremde Stimme
+(Tages-Kommentar, Trainer-Feedback) trägt zusätzlich eine farbige Kante links.
+
 # Dark Mode
 
 Pflicht.
