@@ -231,12 +231,32 @@ Docker Image bauen + auf VPS übertragen
 
 Deploy (Docker Compose restart)
 
-## Später (optional, sobald Team wächst)
+## Phase 2 (seit 2026-09-09): Prüfungen in GitHub Actions
 
-GitHub Actions kann ergänzt werden, sobald automatisierte Pipelines den
-Aufwand wert sind. GitHub Actions ist für dieses Repo aktuell nicht
-erforderlich und wird bewusst nicht eingerichtet, um keine zusätzliche
-Abhängigkeit/Kosten einzuführen.
+Das Deployment bleibt manuell und zweistufig - daran ändert sich nichts.
+Ergänzt sind nur die Prüfungen: `.github/workflows/ci.yml` baut und testet
+Backend und Frontend bei jedem Push und jedem Pull Request.
+
+Die frühere Begründung ("keine zusätzlichen Kosten") trägt nicht mehr: das
+Repository ist öffentlich, und für öffentliche Repositories sind GitHub
+Actions unbegrenzt kostenlos.
+
+Ausschlaggebend war aber nicht der Preis, sondern `.github/dependabot.yml`.
+Ein Bot, der Abhängigkeits-Updates vorschlägt, hilft nur, wenn etwas sagen
+kann, ob nach dem Update noch alles läuft. Ohne CI wäre jeder solche
+Vorschlag ein Diff, das niemand beurteilen kann - man tauscht "veraltet"
+gegen "unbemerkt kaputt".
+
+Bewusst nicht automatisiert:
+
+- **Das Zusammenführen.** Ein Maintainer, ein manueller Deploy - den Knopf
+  drückt ein Mensch. Auto-Merge lohnt bei automatischem Deploy und Rollback,
+  wo ein durchgerutschter Fehler in Minuten wieder draußen ist.
+- **`next build` in der CI.** Der Build holt den Prüfungsordnungs-Katalog
+  zur Bauzeit über die API; ohne Backend entstünde ein Fehlschlag oder,
+  schlimmer, ein grüner Lauf mit leerem Katalog. Er bleibt in
+  `deploy-test.sh` hinter dem Health-Check. Die Typprüfung in der CI deckt
+  ab, was er sonst mitprüfen würde, und braucht dafür keine Daten.
 
 
 ---

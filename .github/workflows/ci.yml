@@ -1,0 +1,79 @@
+# Führt bei jedem Push und jedem Pull Request die Prüfungen aus, die es im
+# Projekt ohnehin gibt - damit ein Abhängigkeits-PR von Dependabot einen
+# grünen Haken oder ein rotes Kreuz trägt, statt nur ein Diff zu sein.
+#
+# Für öffentliche Repositories sind GitHub Actions unbegrenzt kostenlos. Der
+# in TECH_STACK.md notierte Verzicht war mit Kosten begründet; diese
+# Begründung trägt bei einem öffentlichen Repo nicht.
+name: CI
+
+on:
+  push:
+    branches: [master, prod]
+  pull_request:
+
+# Ein neuer Push auf denselben Branch macht den vorherigen Lauf hinfällig.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (.NET 10)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Bauen
+        working-directory: backend
+        # -warnaserror: eine neue Compilerwarnung soll hier auffallen und
+        # nicht erst beim nächsten Lesen der Deploy-Ausgabe. Der Stand ist
+        # warnungsfrei, also kostet das nichts und hält ihn so.
+        run: dotnet build -c Release -warnaserror
+      - name: Testen
+        working-directory: backend
+        run: dotnet test -c Release --no-build
+
+  frontend:
+    name: Frontend (Node 22)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Dieselbe Hauptversion wie im Bau-Image (frontend/Dockerfile:
+          # node:22-slim). Eine andere hier würde Fehler verstecken, die im
+          # Container auftreten - oder umgekehrt welche melden, die es dort
+          # nicht gibt.
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Abhängigkeiten
+        working-directory: frontend
+        run: npm ci
+      - name: Typen prüfen
+        working-directory: frontend
+        run: npx tsc --noEmit
+      - name: Lint
+        working-directory: frontend
+        # --max-warnings: der Stand hat sieben bekannte exhaustive-deps-
+        # Warnungen. Sie hier festzuschreiben heißt: bestehende stören nicht,
+        # eine achte fällt auf.
+        run: npm run lint -- --max-warnings 7
+      - name: Tests
+        working-directory: frontend
+        run: npm test
+
+# Bewusst NICHT Teil der CI: `next build`.
+#
+# Der Build ist nicht allein aus der Quelle bestimmt - er holt den
+# Prüfungsordnungs-Katalog zur Bauzeit über die API und backt daraus Seiten
+# und Sitemap (generateStaticParams, app/sitemap.ts, siehe docs/SEO.md). Ohne
+# erreichbares Backend entstünde entweder ein Fehlschlag oder, schlimmer, ein
+# grüner Lauf mit leerem Katalog. Der Build bleibt deshalb dort, wo ein
+# Backend antwortet: in deploy-test.sh, hinter dem Health-Check.
+#
+# Die Typprüfung oben deckt den Teil ab, den `next build` sonst mitprüfen
+# würde, und braucht dafür keine Daten.

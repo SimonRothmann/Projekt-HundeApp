@@ -1,0 +1,59 @@
+# Sicherheits-Updates sind eine Repo-Einstellung (Settings -> Code security)
+# und brauchen hier nichts: sie laufen unabhängig von diesem Zeitplan, sobald
+# eine Schwachstelle bekannt wird. Diese Datei regelt nur die regelmäßigen
+# Versions-Updates.
+#
+# Monatlich statt wöchentlich, und gruppiert: zwanzig einzelne PRs im Monat
+# liest nach kurzer Zeit niemand mehr, und ein ungelesener Bot ist so gut wie
+# keiner. Minor und Patch kommen gebündelt, Major-Sprünge einzeln - die
+# brauchen ohnehin je eine eigene Prüfung.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      frontend-klein:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      # TypeScript 7 ist der native Go-Compiler und liefert keine öffentliche
+      # Compiler-API mit; die kommt erst mit 7.1. typescript-eslint lehnt die
+      # Installation deshalb ausdrücklich ab ("does not support TS 7.0"), und
+      # damit stünde die Lint-Stufe der CI still. Am 2026-09-09 ausprobiert
+      # und genau daran gescheitert; das Projekt steht deshalb auf TypeScript
+      # 6, dem von Microsoft empfohlenen Zwischenschritt.
+      # Diesen Eintrag entfernen, sobald typescript-eslint TS >= 7.1 kann
+      # (github.com/typescript-eslint/typescript-eslint/issues/10940).
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: nuget
+    directory: /backend
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      backend-klein:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Die Basis-Images. Genau dieses Ökosystem hätte den .NET-Wechsel von selbst
+  # gemeldet: sdk:9.0 -> sdk:10.0 wäre als Update aufgeschlagen, statt dass
+  # das Support-Ende am 10.11.2026 zufällig auffällt.
+  - package-ecosystem: docker
+    directories:
+      - /backend
+      - /frontend
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+
+  # Hält die in ci.yml verwendeten Actions aktuell.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
