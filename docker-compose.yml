@@ -2,10 +2,22 @@
 # Datenbanken/Rollen (siehe deploy/postgres-init), Caddy als gemeinsamer
 # Reverse Proxy mit automatischem Let's-Encrypt-TLS. Secrets/Domains kommen
 # aus .env (siehe .env.example) - niemals mit echten Werten committen.
+
+# Container-Logs begrenzen. Der json-file-Treiber ist die Docker-Vorgabe und
+# schreibt ohne Optionen UNBEGRENZT - ein Container, der viel protokolliert,
+# füllt damit auf Dauer die Platte, und niemand sieht ihm das an. 10 MB je
+# Datei, drei Dateien, macht höchstens 30 MB je Container.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:17
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
@@ -26,6 +38,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    logging: *logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,6 +71,7 @@ services:
         NEXT_PUBLIC_BUILD_TIME: "${BUILD_TIME:-}"
         NEXT_PUBLIC_API_URL: "https://${PROD_API_DOMAIN}"
     restart: unless-stopped
+    logging: *logging
     depends_on:
       - backend-prod
 
@@ -66,6 +80,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    logging: *logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,12 +115,14 @@ services:
         # der Login-Seite. Absichtlich NUR bei frontend-test gesetzt.
         NEXT_PUBLIC_ENV_LABEL: TEST
     restart: unless-stopped
+    logging: *logging
     depends_on:
       - backend-test
 
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging: *logging
     ports:
       - "80:80"
       - "443:443"
