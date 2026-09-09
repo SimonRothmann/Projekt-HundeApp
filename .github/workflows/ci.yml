@@ -41,13 +41,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # Die Node-Version kommt aus dem Dockerfile, statt hier noch einmal
+      # zu stehen. Fest verdrahtet war sie ein stiller Fehler: als Dependabot
+      # am 2026-09-09 das Basis-Image von node:22-slim auf 26-slim heben
+      # wollte, lief die CI weiter auf 22 und setzte einen grünen Haken unter
+      # eine Änderung, die sie gar nicht geprüft hatte. Grün heißt nur etwas,
+      # wenn geprüft wurde, was sich geändert hat.
+      - name: Node-Version aus dem Dockerfile lesen
+        id: node
+        run: |
+          v=$(grep -oE 'FROM node:[0-9]+' frontend/Dockerfile | head -1 | cut -d: -f2)
+          [ -n "$v" ] || { echo "Keine 'FROM node:<major>'-Zeile in frontend/Dockerfile gefunden." >&2; exit 1; }
+          echo "Node-Hauptversion laut Dockerfile: $v"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v7
         with:
-          # Dieselbe Hauptversion wie im Bau-Image (frontend/Dockerfile:
-          # node:22-slim). Eine andere hier würde Fehler verstecken, die im
-          # Container auftreten - oder umgekehrt welche melden, die es dort
-          # nicht gibt.
-          node-version: "22"
+          node-version: ${{ steps.node.outputs.version }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Abhängigkeiten
