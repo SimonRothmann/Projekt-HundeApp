@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend (.NET 10)
+    name: Backend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -37,7 +37,9 @@ jobs:
         run: dotnet test -c Release --no-build
 
   frontend:
-    name: Frontend (Node 22)
+    # Ohne Versionsnummer im Namen: die steht im Dockerfile und darf sich
+    # dort ändern, ohne dass ein Job-Titel etwas Falsches behauptet.
+    name: Frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
