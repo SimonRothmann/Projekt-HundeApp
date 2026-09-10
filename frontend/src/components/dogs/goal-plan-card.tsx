@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle2, ChevronDown, ChevronRight, Circle, Pencil, Plus, RefreshCw, Trash2, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { difficultyLabel } from "@/lib/constants";
 import { ExerciseNotes } from "@/components/dogs/exercise-notes";
 import { ExerciseWeightingSheet } from "@/components/dogs/exercise-weighting-sheet";
 
@@ -347,7 +346,7 @@ export function GoalPlanCard({
                 <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
                   {(exercises ?? []).map((ex) => (
                     <SelectItem key={ex.id} value={ex.id}>
-                      {ex.name} ({difficultyLabel[ex.difficulty]})
+                      {ex.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -659,7 +658,7 @@ export function GoalPlanCard({
                                 <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
                                   {(exercises ?? []).map((ex) => (
                                     <SelectItem key={ex.id} value={ex.id}>
-                                      {ex.name} ({difficultyLabel[ex.difficulty]})
+                                      {ex.name}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>

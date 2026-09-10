@@ -94,6 +94,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         text: uebersetzbar("Die Startseite lädt schneller und erscheint in einem Zug, statt Abschnitt für Abschnitt nachzurutschen. Wer über die Leiste zurück auf Home tippt, sieht sofort den letzten Stand."),
       },
       {
+        art: "verbessert",
+        text: uebersetzbar("Die Stufen „Einsteiger“, „Fortgeschritten“ und „Erfahren“ stehen nicht mehr an den Übungen - weder im Prüfungskatalog noch in der Übungsauswahl oder der Druckansicht. Bei Prüfungsübungen führten sie eher in die Irre."),
+      },
+      {
         art: "behoben",
         text: uebersetzbar("„Wie beim letzten Mal“ greift nach einer gelegten Fährte auf die letzte Einheit mit Übungen zurück. Vorher bezog es sich auf die Fährte und hatte nichts zu übernehmen."),
       },

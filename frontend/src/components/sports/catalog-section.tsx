@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, ChevronDown, ChevronRight, Plus, Sparkles, Trash2, Trophy } from "lucide-react";
 import { toast } from "sonner";
-import { difficultyLabel } from "@/lib/constants";
 import { SportEditorSheet, type SportScope } from "@/components/sports/sport-editor-sheet";
 import { ExerciseEditorSheet, type ExerciseScope } from "@/components/sports/exercise-editor-sheet";
 
@@ -322,12 +321,7 @@ function ExerciseListRow({ exercise, onDelete }: { exercise: Exercise; onDelete:
     <li className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
       <div className="flex flex-col gap-0.5">
         <span className="font-medium">{exercise.name}</span>
-        <span className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="outline" className="h-5">
-            {difficultyLabel[exercise.difficulty]}
-          </Badge>
-          {exercise.category}
-        </span>
+        {exercise.category && <span className="text-xs text-muted-foreground">{exercise.category}</span>}
       </div>
       <Button type="button" size="icon-sm" variant="ghost" onClick={onDelete} title={t("Übung löschen")}>
         <Trash2 className="size-3.5" />

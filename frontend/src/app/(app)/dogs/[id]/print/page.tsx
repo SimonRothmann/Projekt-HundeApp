@@ -7,7 +7,6 @@ import type { Dog, Goal, TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { toast } from "sonner";
-import { difficultyLabel } from "@/lib/constants";
 
 import { useT } from "@/lib/i18n";
 const GOAL_STATUS_LABEL: Record<number, string> = { 0: "Aktiv", 1: "Erreicht", 2: "Abgebrochen" };
@@ -122,7 +121,7 @@ export default function DogPrintPage() {
                 <ul className="mt-2 flex flex-col gap-1 text-sm">
                   {session.exercises.map((ex) => (
                     <li key={ex.id}>
-                      {ex.exerciseName} - {difficultyLabel[ex.difficulty]}, Bewertung {ex.rating}/5{ex.success ? "" : " (nicht erfolgreich)"}
+                      {ex.exerciseName} - Bewertung {ex.rating}/5{ex.success ? "" : " (nicht erfolgreich)"}
                       {ex.notes && ` - ${ex.notes}`}
                     </li>
                   ))}

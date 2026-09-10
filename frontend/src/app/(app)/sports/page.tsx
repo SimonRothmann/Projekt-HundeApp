@@ -886,7 +886,6 @@ function ExerciseRow({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Badge variant="outline">{difficultyLabel[exercise.difficulty]}</Badge>
           {canEdit && (
             <Button
               type="button"

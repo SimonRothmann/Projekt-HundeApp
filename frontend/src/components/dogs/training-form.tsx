@@ -17,7 +17,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Clock, History, ListChecks, MapPin, MessageSquarePlus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
-import { difficultyLabel } from "@/lib/constants";
 import { LocationTimeFields, type LocationValue } from "@/components/dogs/location-time-fields";
 import { ConditionPicker } from "@/components/dogs/condition-picker";
 
@@ -440,7 +439,7 @@ export function TrainingForm({
                       <SelectContent>
                         {exercises.map((ex) => (
                           <SelectItem key={ex.id} value={ex.id}>
-                            {ex.name} ({difficultyLabel[ex.difficulty]})
+                            {ex.name}
                           </SelectItem>
                         ))}
                         {/* Der Moment, in dem man merkt, dass die eigene Übung
