@@ -28,6 +28,9 @@ export default function TrainerPage() {
   const [description, setDescription] = useState("");
   const [clubId, setClubId] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // "Neue Gruppe" legt man selten an - das Formular stand trotzdem immer offen
+  // mitten auf der Seite und schob "Trainings bewerten" nach unten.
+  const [zeigeNeueGruppe, setZeigeNeueGruppe] = useState(false);
 
   async function loadGroups() {
     try {
@@ -55,6 +58,7 @@ export default function TrainerPage() {
     try {
       await api.post("/api/groups", { name, description: description || null, clubId: clubId || null });
       toast.success(t("Gruppe angelegt."));
+      setZeigeNeueGruppe(false);
       setName("");
       setDescription("");
       setClubId("");
@@ -71,98 +75,121 @@ export default function TrainerPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("Trainer-Übersicht")}</h1>
         <p className="text-muted-foreground">
-{t("Lege Trainingsgruppen an, lade Mitglieder per E-Mail ein und betreue ihre Hunde mit individuellen Trainingsplänen.")}
+          {t("Lege Trainingsgruppen an, lade Mitglieder per E-Mail ein und betreue ihre Hunde mit individuellen Trainingsplänen.")}
         </p>
       </div>
 
-      {/* Ganz oben, noch vor Gruppentraining und Terminplanung: der Weg zum
-          einzelnen Hund wird an einem Trainingsabend am häufigsten gebraucht. */}
+      {/* Reihenfolge nach Häufigkeit. Vorher stand "Trainings bewerten" 1,6 und
+          die Beitrittsanfragen 2,5 Bildschirme tief - unter Gruppentraining,
+          Terminplanung und dem stets offenen Formular "Neue Gruppe".
+
+          Zuerst, was auf eine Antwort wartet - und nur, solange es wartet:
+          beide Anfrage-Bereiche zeigen sich nur mit offenen Anfragen. */}
+      {groups !== null && groups.length > 0 && <GroupJoinRequestsSection groups={groups} />}
+      {myClubs.length > 0 && <ClubJoinRequestsSection clubs={myClubs} />}
+
+      {/* Betreute Hunde bleiben weit oben: der Weg zum Plan eines Hundes wird
+          an einem Trainingsabend am häufigsten gebraucht. Direkt darunter,
+          was zu bewerten ist. */}
       <SupervisedDogsSection />
+      <TrainerReviewSection />
 
-      <Link href="/trainer/group-training">
-        <Card className="transition-colors hover:bg-accent/30">
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <div className="flex items-center gap-3">
-              <ClipboardList className="size-6 shrink-0 text-primary-text" />
-              <div className="min-w-0">
-                <CardTitle className="text-base">Gruppentraining</CardTitle>
-                <p className="text-sm text-muted-foreground">
-{t("Fertige Einheiten für Welpen & Junghunde übernehmen oder eigene zusammenstellen")}
-                </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link href="/trainer/group-training">
+          <Card className="h-full transition-colors hover:bg-accent/30">
+            <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+              <div className="flex min-w-0 items-center gap-3">
+                <ClipboardList className="size-5 shrink-0 text-primary-text" />
+                <div className="min-w-0">
+                  <CardTitle className="text-base">Gruppentraining</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {t("Fertige Einheiten für Welpen & Junghunde übernehmen oder eigene zusammenstellen")}
+                  </p>
+                </div>
               </div>
-            </div>
-            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+              <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/trainer/schedule">
+          <Card className="h-full transition-colors hover:bg-accent/30">
+            <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+              <div className="flex min-w-0 items-center gap-3">
+                <CalendarDays className="size-5 shrink-0 text-primary-text" />
+                <div className="min-w-0">
+                  <CardTitle className="text-base">Terminplanung</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {t("Gruppentrainings planen: wann, welche Gruppe, was gemacht wird (mit Mix-Generator & Serien)")}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+            </CardHeader>
+          </Card>
+        </Link>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">{t("Gruppen")}</h2>
+        <Button size="sm" variant="outline" onClick={() => setZeigeNeueGruppe((v) => !v)} aria-expanded={zeigeNeueGruppe}>
+          <Plus className="size-4" />
+          {t("Neue Gruppe")}
+        </Button>
+      </div>
+
+      {zeigeNeueGruppe && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{t("Neue Gruppe")}</CardTitle>
           </CardHeader>
-        </Card>
-      </Link>
-
-      <Link href="/trainer/schedule">
-        <Card className="transition-colors hover:bg-accent/30">
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <div className="flex items-center gap-3">
-              <CalendarDays className="size-6 shrink-0 text-primary-text" />
-              <div className="min-w-0">
-                <CardTitle className="text-base">Terminplanung</CardTitle>
-                <p className="text-sm text-muted-foreground">
-{t("Gruppentrainings planen: wann, welche Gruppe, was gemacht wird (mit Mix-Generator & Serien)")}
-                </p>
+          <CardContent>
+            <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex flex-col gap-2 sm:flex-1">
+                <Label htmlFor="group-name">Name</Label>
+                <Input id="group-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
               </div>
-            </div>
-            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-          </CardHeader>
-        </Card>
-      </Link>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("Neue Gruppe")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex flex-col gap-2 sm:flex-1">
-              <Label htmlFor="group-name">Name</Label>
-              <Input id="group-name" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-1">
-              <Label htmlFor="group-description">Beschreibung (optional)</Label>
-              <Input
-                id="group-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-            {myClubs.length > 0 && (
-              <div className="flex flex-col gap-2 sm:w-48">
-                <Label>{t("Verein (optional)")}</Label>
-                <Select value={clubId} onValueChange={(value) => setClubId(value ?? "")}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">{t("Kein Verein")}</SelectItem>
-                    {myClubs.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-col gap-2 sm:flex-1">
+                <Label htmlFor="group-description">Beschreibung (optional)</Label>
+                <Input
+                  id="group-description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
               </div>
-            )}
-            <Button type="submit" disabled={submitting}>
-              <Plus className="size-4" />
-{t("Anlegen")}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              {myClubs.length > 0 && (
+                <div className="flex flex-col gap-2 sm:w-48">
+                  <Label>{t("Verein (optional)")}</Label>
+                  <Select value={clubId} onValueChange={(value) => setClubId(value ?? "")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">{t("Kein Verein")}</SelectItem>
+                      {myClubs.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <Button type="submit" disabled={submitting}>
+                <Plus className="size-4" />
+                {t("Anlegen")}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {groups === null ? (
         <p className="text-muted-foreground">{t("Lädt…")}</p>
       ) : groups.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
-{t("Noch keine Gruppen angelegt.")}
+            {t("Noch keine Gruppen angelegt.")}
           </CardContent>
         </Card>
       ) : (
@@ -196,15 +223,8 @@ export default function TrainerPage() {
         </div>
       )}
 
-      <TrainerReviewSection />
-
-      {groups !== null && groups.length > 0 && (
-        <GroupJoinRequestsSection groups={groups} />
-      )}
-
       {myClubs.length > 0 && (
         <>
-          <ClubJoinRequestsSection clubs={myClubs} />
           <ClubMembersSection clubs={myClubs} />
           {myClubs.map((club) => (
             <CatalogSection

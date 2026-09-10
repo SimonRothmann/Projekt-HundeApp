@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import { enqueueRequest } from "@/lib/offline-queue";
 import type { Exercise, Goal, PlanItemReason, TrainingPlanItem } from "@/lib/types";
-import { sichtbareWochen } from "@/lib/trainingsplan";
+import { computeCurrentWeek, groupByWeek, sichtbareWochen } from "@/lib/trainingsplan";
+import { PlanItemQuickLog } from "@/components/dogs/plan-item-quick-log";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,44 +20,6 @@ import { ExerciseWeightingSheet } from "@/components/dogs/exercise-weighting-she
 
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
-// Eine Woche kann mehrere Plan-Ziele haben (siehe TrainingPlanGenerator
-// "ItemsPerWeek") - für die Anzeige nach Wochennummer gruppiert.
-function groupByWeek(items: TrainingPlanItem[]): [number, TrainingPlanItem[]][] {
-  const byWeek = new Map<number, TrainingPlanItem[]>();
-  for (const item of items) {
-    const group = byWeek.get(item.weekNumber);
-    if (group) group.push(item);
-    else byWeek.set(item.weekNumber, [item]);
-  }
-  return [...byWeek.entries()];
-}
-
-// Bestimmt die aktuelle Trainingswoche kalendarisch: Woche 1 startet mit der
-// Plan-Erstellung (generatedAt), jede weitere angebrochene 7-Tage-Woche zählt
-// eins hoch. Ergebnis wird auf die tatsächlich vorhandenen Wochennummern
-// begrenzt (vor Planstart -> erste Woche, nach Planende -> letzte Woche).
-// Fällt auf die erste Woche zurück, wenn kein/ungültiges Startdatum vorliegt.
-function computeCurrentWeek(
-  weeks: [number, TrainingPlanItem[]][],
-  generatedAt: string | undefined,
-): number | undefined {
-  if (weeks.length === 0) return undefined;
-  const weekNumbers = weeks.map(([n]) => n);
-  const minWeek = Math.min(...weekNumbers);
-  const maxWeek = Math.max(...weekNumbers);
-
-  const start = generatedAt ? new Date(generatedAt).getTime() : NaN;
-  if (Number.isNaN(start)) return weekNumbers[0];
-
-  const weekMs = 7 * 24 * 60 * 60 * 1000;
-  const byDate = Math.floor((Date.now() - start) / weekMs) + 1;
-  const clamped = Math.min(Math.max(byDate, minWeek), maxWeek);
-  // Bei (seltenen) Lücken die nächste vorhandene Wochennummer wählen.
-  return weekNumbers.includes(clamped)
-    ? clamped
-    : (weekNumbers.filter((n) => n >= clamped).sort((a, b) => a - b)[0] ?? maxWeek);
-}
-
 // Innerhalb einer Woche nach Trainingstag gruppieren (aufsteigend). Wird nur
 // als sichtbare "Tag N"-Struktur genutzt, wenn eine Woche tatsächlich mehr als
 // einen Trainingstag hat (Alt-Pläne liegen alle auf Tag 1 -> flache Ansicht).
@@ -314,59 +276,11 @@ export function GoalPlanCard({
     }
   }
 
-  // --- Schnelleintrag "diese Übung gemacht" pro Plan-Ziel ---
+  // --- Schnelleintrag "diese Übung gemacht" pro Plan-Ziel (siehe PlanItemQuickLog) ---
   const [quickLogItemId, setQuickLogItemId] = useState<string | null>(null);
-  const [qlRating, setQlRating] = useState(5);
-  const [qlSuccess, setQlSuccess] = useState(true);
-  const [qlNotes, setQlNotes] = useState("");
-  const [isQuickLogging, setIsQuickLogging] = useState(false);
 
   function openQuickLog(itemId: string) {
     setQuickLogItemId((current) => (current === itemId ? null : itemId));
-    setQlRating(5);
-    setQlSuccess(true);
-    setQlNotes("");
-  }
-
-  async function submitQuickLog(item: TrainingPlanItem) {
-    setIsQuickLogging(true);
-    try {
-      const payload = {
-        dogId,
-        date: new Date().toISOString().slice(0, 10),
-        durationMinutes: 10,
-        notes: null,
-        exercises: [
-          {
-            // Freitext-Plan-Ziele (exerciseId null) tragen ihren eigenen
-            // Freitext in den Tagebucheintrag - ein früheres
-            // `if (!item.exerciseId) return;` ließ den "Eintragen"-Klick
-            // für solche Items kommentarlos verpuffen.
-            exerciseId: item.exerciseId,
-            freeTextLabel: item.exerciseId ? null : item.freeTextLabel,
-            rating: qlRating,
-            difficulty: 0,
-            success: qlSuccess,
-            notes: qlNotes || null,
-            trainingPlanItemId: item.id,
-          },
-        ],
-      };
-      try {
-        await api.post("/api/trainings", payload);
-        toast.success(t("Eintrag gespeichert."));
-      } catch (err) {
-        if (err instanceof ApiError) throw err;
-        await enqueueRequest({ path: "/api/trainings", method: "POST", body: payload, label: "Schnelleintrag" });
-        toast.success(t("Offline gespeichert – wird synchronisiert, sobald Internet verfügbar ist."));
-      }
-      setQuickLogItemId(null);
-      await onChanged();
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : t("Eintrag konnte nicht gespeichert werden."));
-    } finally {
-      setIsQuickLogging(false);
-    }
   }
 
   async function updateStatus(status: 1 | 2) {
@@ -800,40 +714,16 @@ export function GoalPlanCard({
                         </ul>
                       )}
                       {quickLogItemId === item.id && (
-                        <div className="ml-6 flex flex-col gap-2 rounded-md border bg-muted/40 p-2.5">
-                          <div className="flex gap-1" role="group" aria-label={t("Bewertung, 1 bis 5")}>
-                            {[1, 2, 3, 4, 5].map((value) => (
-                              <button
-                                key={value}
-                                type="button"
-                                onClick={() => setQlRating(value)}
-                                aria-label={`${value} von 5`}
-                                aria-pressed={qlRating === value}
-                                className={cn(
-                                  "flex size-7 items-center justify-center rounded-md border text-xs coarse:size-11",
-                                  qlRating >= value
-                                    ? "border-accent bg-accent text-accent-foreground"
-                                    : "border-input text-muted-foreground",
-                                )}
-                              >
-                                {value}
-                              </button>
-                            ))}
-                            <label className="ml-2 flex items-center gap-1.5 text-xs">
-                              <input type="checkbox" checked={qlSuccess} onChange={(e) => setQlSuccess(e.target.checked)} />
-                              Erfolgreich
-                            </label>
-                          </div>
-                          <Input placeholder="Kommentar (optional)" value={qlNotes} onChange={(e) => setQlNotes(e.target.value)} />
-                          <div className="flex gap-2">
-                            <Button type="button" size="sm" disabled={isQuickLogging} onClick={() => submitQuickLog(item)}>
-                              {isQuickLogging ? t("Wird gespeichert…") : "Eintragen"}
-                            </Button>
-                            <Button type="button" size="sm" variant="ghost" onClick={() => setQuickLogItemId(null)}>
-{t("Abbrechen")}
-                            </Button>
-                          </div>
-                        </div>
+                        <PlanItemQuickLog
+                          className="ml-6"
+                          dogId={dogId}
+                          item={item}
+                          onDone={async () => {
+                            setQuickLogItemId(null);
+                            await onChanged();
+                          }}
+                          onCancel={() => setQuickLogItemId(null)}
+                        />
                       )}
                     </div>
                             ))}

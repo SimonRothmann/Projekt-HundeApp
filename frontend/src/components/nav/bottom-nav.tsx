@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { coreNavItems, profileNavItem, trainerNavItem } from "@/components/nav/nav-items";
+import { adminNavItem, bottomNavItems, profileNavItem, statsNavItem, trainerNavItem } from "@/components/nav/nav-items";
 import { useAuth } from "@/lib/auth-context";
 import { usePreferences } from "@/lib/preferences-context";
 import { useT } from "@/lib/i18n";
@@ -11,8 +11,10 @@ import { useT } from "@/lib/i18n";
 // Tailwind muss Klassennamen als Literal im Quellcode sehen, um sie ins CSS
 // aufzunehmen - eine zur Laufzeit interpolierte Klasse wie `grid-cols-${n}`
 // würde ignoriert. Daher hier als feste Lookup-Tabelle für die möglichen
-// Item-Anzahlen (6 ohne, 7 mit Trainer-Perspektive).
+// Item-Anzahlen: seit 2026-09-10 drei bis fünf, sechs nur für Admins, die
+// zugleich Trainer:in sind. 7 bleibt als Auffangnetz stehen.
 const GRID_COLS_CLASS: Record<number, string> = {
+  3: "grid-cols-3",
   4: "grid-cols-4",
   5: "grid-cols-5",
   6: "grid-cols-6",
@@ -43,12 +45,22 @@ const LABEL_SIZE_CLASS = (anzahl: number) =>
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { isTrainer } = useAuth();
+  const { user, isTrainer } = useAuth();
   const { moduleEnabled } = usePreferences();
   const t = useT();
   // Ausgeblendete Module verschwinden auch aus der Navigation - sonst führte
   // ein Menüpunkt auf eine Seite, die es für diesen Nutzer nicht gibt.
-  const navItems = [...coreNavItems, ...(isTrainer ? [trainerNavItem] : []), profileNavItem].filter(
+  //
+  // Höchstens fünf Ziele für die meisten (Material: drei bis fünf; Apple:
+  // weniger Tabs sind leichter). Vorher sieben bei 54 px je Feld. Keine
+  // Aktion in der Leiste - Erfassen steht als Kachel auf der Startseite.
+  const navItems = [
+    ...bottomNavItems,
+    ...(isTrainer ? [trainerNavItem] : []),
+    statsNavItem,
+    ...(user?.roles.includes("ADMIN") ? [adminNavItem] : []),
+    profileNavItem,
+  ].filter(
     (item) => !item.module || moduleEnabled(item.module),
   );
 

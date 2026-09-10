@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, History, ListChecks, MapPin, Plus, Trash2 } from "lucide-react";
+import { Clock, History, ListChecks, MapPin, MessageSquarePlus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { difficultyLabel } from "@/lib/constants";
@@ -83,6 +83,12 @@ export function TrainingForm({
     emptyRow(sports.length === 1 ? sports[0].id : ""),
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Selten Gebrauchtes öffnet sich erst auf Wunsch: Kommentar und
+  // Bewertungskriterien je Übungszeile (Zeilenindex) und die Notiz zum ganzen
+  // Training. Aufgeklappt machten sie das Formular so lang, dass "Training
+  // speichern" 1,3 Bildschirme unter dem Formularanfang lag.
+  const [offeneDetails, setOffeneDetails] = useState<Set<number>>(new Set());
+  const [zeigeNotiz, setZeigeNotiz] = useState(false);
   const [exercisesBySport, setExercisesBySport] = useState<Record<string, Exercise[]>>({});
 
   // Übungen ALLER Sportarten des Hundes einmal laden. Das sind ein bis drei
@@ -163,6 +169,7 @@ export function TrainingForm({
   function uebernimmLetzteEinheit() {
     if (!letzteEinheit) return;
     setRows(zeilenAusEinheit(letzteEinheit, sportVonUebung));
+    setOffeneDetails(new Set());
     setDuration(letzteEinheit.durationMinutes);
   }
 
@@ -216,6 +223,9 @@ export function TrainingForm({
 
   function removeRow(index: number) {
     setRows((prev) => prev.filter((_, i) => i !== index));
+    // Offene Details wandern mit ihren Zeilen: Indizes hinter der gelöschten
+    // rücken eins auf.
+    setOffeneDetails((prev) => new Set([...prev].filter((i) => i !== index).map((i) => (i > index ? i - 1 : i))));
   }
 
   // Ort und Zeit gehören zum einzelnen Training, nicht zum Formular - nach dem
@@ -262,6 +272,8 @@ export function TrainingForm({
       await api.post<TrainingSession>("/api/trainings", payload);
       toast.success(t("Training gespeichert."));
       setRows([emptyRow(letzteSportart(zeilen))]);
+      setOffeneDetails(new Set());
+      setZeigeNotiz(false);
       setCondition(null);
       setNotes("");
       resetContext();
@@ -275,6 +287,8 @@ export function TrainingForm({
         await enqueueRequest({ path: "/api/trainings", method: "POST", body: payload, label: t("Training") });
         toast.success(t("Offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."));
         setRows([emptyRow(letzteSportart(zeilen))]);
+        setOffeneDetails(new Set());
+        setZeigeNotiz(false);
         setNotes("");
         resetContext();
         await onSaved(true);
@@ -284,8 +298,14 @@ export function TrainingForm({
     }
   }
 
+  // Für die Speichern-Leiste: was beim Tippen tatsächlich gespeichert würde.
+  const gueltigeZeilen = zeilen.filter((r) => (r.isFreeText ? r.freeText.trim() : r.exerciseId)).length;
+
   return (
-    <Card>
+    // overflow-visible: Card schneidet sonst ab (overflow-hidden) - und ein
+    // Vorfahr mit overflow-hidden macht sich selbst zum Bezugsrahmen von
+    // "sticky". Die Speichern-Leiste bliebe dann nie am Bildschirmrand stehen.
+    <Card className="overflow-visible">
       <CardHeader>
         <CardTitle className="text-base">{t("Neues Training")}</CardTitle>
       </CardHeader>
@@ -481,36 +501,63 @@ export function TrainingForm({
                     />
                     Erfolgreich
                   </label>
+                </div>
+                {/* Kommentar und Bewertungskriterien eine Ebene tiefer: selten
+                    gebraucht, aufgeklappt aber jede Zeile doppelt so hoch.
+                    Das Plan-Ziel oben bleibt bewusst sichtbar - es erscheint
+                    nur, wenn die Übung im laufenden Plan steht, und zählt dort
+                    den Fortschritt. */}
+                {offeneDetails.has(index) && (
+                  <div className="flex flex-col gap-2">
+                    {/* Kommentar zur einzelnen Übung. Der Wert wurde schon
+                        immer mitgeschickt, es gab nur nie ein Feld dafür. */}
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor={`row-notes-${index}`} className="text-xs text-muted-foreground">
+                        {t("Kommentar zur Übung (optional)")}
+                      </Label>
+                      <Input
+                        id={`row-notes-${index}`}
+                        placeholder="z.B. Ablenkung durch Jogger, zweiter Versuch sauber"
+                        value={row.notes}
+                        onChange={(e) => updateRow(index, { notes: e.target.value })}
+                      />
+                    </div>
+                    {selectedExercise?.scoringCriteria && (
+                      <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                        <strong className="text-foreground">Bewertungskriterien:</strong>{" "}
+                        {selectedExercise.scoringCriteria}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {/* Aufklappen und Entfernen teilen sich eine Zeile - auf dem
+                    Handy stand der Mülleimer sonst allein in einer eigenen. */}
+                <div className="flex items-center justify-between gap-2">
+                  {offeneDetails.has(index) ? (
+                    <span />
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground"
+                      onClick={() => setOffeneDetails((prev) => new Set(prev).add(index))}
+                    >
+                      <MessageSquarePlus className="size-3.5" />
+                      {selectedExercise?.scoringCriteria ? t("Kommentar & Bewertungskriterien") : t("Kommentar")}
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
+                    aria-label={t("Entfernen")}
                     onClick={() => removeRow(index)}
                     disabled={zeilen.length === 1}
                   >
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
-                {/* Kommentar zur einzelnen Übung. Der Wert wurde schon immer
-                    mitgeschickt, es gab nur nie ein Feld dafür - man konnte
-                    ihn erst nach dem Speichern im Tagebuch nachtragen. */}
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor={`row-notes-${index}`} className="text-xs text-muted-foreground">
-{t("Kommentar zur Übung (optional)")}
-                  </Label>
-                  <Input
-                    id={`row-notes-${index}`}
-                    placeholder="z.B. Ablenkung durch Jogger, zweiter Versuch sauber"
-                    value={row.notes}
-                    onChange={(e) => updateRow(index, { notes: e.target.value })}
-                  />
-                </div>
-                {selectedExercise?.scoringCriteria && (
-                  <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                    <strong className="text-foreground">Bewertungskriterien:</strong>{" "}
-                    {selectedExercise.scoringCriteria}
-                  </p>
-                )}
                 </div>
               );
             })}
@@ -572,14 +619,33 @@ export function TrainingForm({
             )}
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="notes">{t("Notizen zum ganzen Training")}</Label>
-            <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
+          {zeigeNotiz || notes ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="notes">{t("Notizen zum ganzen Training")}</Label>
+              <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} autoFocus={zeigeNotiz && !notes} />
+            </div>
+          ) : (
+            <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => setZeigeNotiz(true)}>
+              <MessageSquarePlus className="size-4" />
+              {t("Notiz zum Training")}
+            </Button>
+          )}
 
-          <Button type="submit" className="self-start" disabled={isSubmitting}>
-            {isSubmitting ? t("Wird gespeichert…") : t("Training speichern")}
-          </Button>
+          {/* Speichern-Leiste: bleibt am unteren Bildschirmrand stehen,
+              solange das Formular im Bild ist - im Daumenbereich statt am
+              Ende einer langen Seite. Auf dem Telefon sitzt sie über der
+              unteren Navigation (4,375rem hoch), ab md gibt es die nicht.
+              Die Zeile links bestätigt, was gespeichert wird. */}
+          <div className="sticky bottom-[calc(4.375rem+env(safe-area-inset-bottom))] z-30 -mx-4 -mb-4 flex items-center justify-between gap-3 rounded-b-xl border-t bg-card/95 px-4 py-3 backdrop-blur md:bottom-0">
+            <span className="min-w-0 text-sm text-muted-foreground">
+              {gueltigeZeilen === 1
+                ? t("1 Übung · {minuten} Min.", { minuten: duration })
+                : t("{anzahl} Übungen · {minuten} Min.", { anzahl: gueltigeZeilen, minuten: duration })}
+            </span>
+            <Button type="submit" disabled={isSubmitting} className="shrink-0 coarse:min-h-11">
+              {isSubmitting ? t("Wird gespeichert…") : t("Training speichern")}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

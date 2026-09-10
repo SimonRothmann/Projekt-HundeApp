@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import type { Profile } from "@/lib/types";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import { LetzteNeuerung } from "@/components/letzte-neuerung";
 import { VersionStand } from "@/components/version-stand";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, ShieldCheck, Pencil, Sparkles } from "lucide-react";
+import { Building2, ChevronRight, LogOut, Pencil, Sparkles, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
@@ -141,19 +141,35 @@ export default function ProfilePage() {
               </Badge>
             ))}
           </div>
-          {user.roles.includes("ADMIN") && (
-            <Link
-              href="/admin"
-              className={`self-start md:hidden ${buttonVariants({ variant: "outline" })}`}
-            >
-              <ShieldCheck className="size-4" />
-{t("Admin-Übersicht")}
-            </Link>
-          )}
           <Button variant="destructive" className="self-start" onClick={handleLogout}>
             <LogOut className="size-4" />
             Abmelden
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Verein und Sportarten: aus der unteren Leiste hierher gezogen. Beides
+          öffnet man selten; die Leiste bleibt so bei höchstens fünf Zielen.
+          Wer noch keinem Verein angehört, sieht die Beitrittskarte weiterhin
+          auf der Startseite. */}
+      <Card className="py-0">
+        <CardContent className="flex flex-col divide-y divide-border px-0">
+          <Link href="/clubs" className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50 coarse:min-h-14">
+            <Building2 className="size-5 shrink-0 text-primary-text" />
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">{t("Mein Verein")}</span>
+              <span className="block text-sm text-muted-foreground">{t("Vereine finden, beitreten und verwalten")}</span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+          </Link>
+          <Link href="/sports" className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50 coarse:min-h-14">
+            <Trophy className="size-5 shrink-0 text-primary-text" />
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">{t("Sportarten")}</span>
+              <span className="block text-sm text-muted-foreground">{t("Prüfungsordnungen & Übungen entdecken")}</span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+          </Link>
         </CardContent>
       </Card>
 

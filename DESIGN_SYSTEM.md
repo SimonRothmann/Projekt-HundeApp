@@ -55,19 +55,15 @@ Daher:
 
 Mobile:
 
-Bottom Navigation
+Bottom Navigation - höchstens fünf Ziele (Material: drei bis fünf):
 
+Home · Hunde · Statistiken · Profil
 
-
-Home
-
-Training
-
-Hund
-
-Gruppe
-
-Profil
+Trainer:innen zusätzlich „Trainer", Admins „Admin". Keine Aktionen in der
+Leiste (Apple HIG: Tabs navigieren, sie lösen nichts aus) - häufige
+Handgriffe wie „Training erfassen" und „Fährte legen" stehen als Kacheln
+auf der Startseite. Selten Besuchtes (Sportarten, Verein) liegt im Profil.
+Entschieden 2026-09-10 nach der Messung der Wege (7 Punkte zu je 54 px).
 
 
 ---

@@ -3,15 +3,19 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
-import type { OnboardingStatus } from "@/lib/types";
+import type { Dog as HundDaten, OnboardingStatus, Sport } from "@/lib/types";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dog, Trophy, Building2, GraduationCap, NotebookPen } from "lucide-react";
+import { Dog, Trophy, Building2, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { UpcomingTrainingsSection } from "@/components/schedule/upcoming-trainings-section";
 import { OnboardingGuide, zeigtErststart } from "@/components/onboarding/onboarding-guide";
 import { NeuerungenHinweis } from "@/components/neuerungen-hinweis";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
+import { laeuftFaehrte } from "@/lib/faehrte";
+import { ErfassenKacheln } from "@/components/dashboard/erfassen-kacheln";
+import { DieseWocheSection } from "@/components/dashboard/diese-woche-section";
+import { HeuteGelegtSection } from "@/components/dashboard/heute-gelegt-section";
 import { useT } from "@/lib/i18n";
 
 export default function DashboardPage() {
@@ -27,15 +31,35 @@ export default function DashboardPage() {
   // beizutreten, den sie leiten.
   const hasNoClub = onboarding !== null && !onboarding.hasClubMembership;
 
-  // Das Erfassen einer Einheit ist die häufigste Handlung der ganzen App und
-  // stand trotzdem nur am Fuß der Hundeseite - Dashboard, Hundeliste, Hund,
-  // scrollen, Knopf. Bei genau einem Hund führt der Verweis direkt ins
-  // geöffnete Formular (siehe Sprungmarke auf der Hundeseite), bei mehreren
-  // auf die Liste: einen Hund zu raten wäre schlimmer als ein Tipper mehr.
-  const erfassenZiel =
-    onboarding?.dogCount === 1 && onboarding.firstDogId
-      ? `/dogs/${onboarding.firstDogId}#training-erfassen`
-      : "/dogs";
+  // Aktive Hunde für die Erfassen-Kacheln, "Diese Woche" und "Heute gelegt".
+  const [hunde, setHunde] = useState<HundDaten[] | null>(null);
+  const [faehrtenHundeIds, setFaehrtenHundeIds] = useState<string[]>([]);
+  const faehrteAn = moduleEnabled(MODULE.faehrte);
+
+  useEffect(() => {
+    let abgebrochen = false;
+    (async () => {
+      try {
+        const alle = await api.get<HundDaten[]>("/api/dogs");
+        const aktiv = alle.filter((h) => !h.archivedAt);
+        if (abgebrochen) return;
+        setHunde(aktiv);
+        if (!faehrteAn || aktiv.length === 0) return;
+        // Dieselbe Regel wie auf der Hundeseite (laeuftFaehrte): sonst führte
+        // "Fährte legen" auf eine Hundeseite ohne Recorder.
+        const [sports, ...sportAuswahl] = await Promise.all([
+          api.get<Sport[]>("/api/sports"),
+          ...aktiv.map((h) => api.get<string[]>(`/api/preferences/dogs/${h.id}/sports`).catch(() => [] as string[])),
+        ]);
+        if (!abgebrochen) setFaehrtenHundeIds(aktiv.filter((h, i) => laeuftFaehrte(sportAuswahl[i], sports)).map((h) => h.id));
+      } catch {
+        // Offline ohne Cache: die Kacheln fehlen dann, der Rest der Startseite steht.
+      }
+    })();
+    return () => {
+      abgebrochen = true;
+    };
+  }, [faehrteAn]);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,29 +118,21 @@ export default function DashboardPage() {
 
       <UpcomingTrainingsSection />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* Erst wenn klar ist, wohin - sonst springt die Kachel nach dem Laden
-            von der Liste auf den Hund und man tippt ins Leere. */}
-        {onboarding?.hasDog && (
-          <Link href={erfassenZiel} className="group block sm:col-span-2">
-            <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
-              <CardHeader className="flex-row items-center gap-4 space-y-0">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent ring-1 ring-accent/25 transition-colors group-hover:bg-accent/20">
-                  <NotebookPen className="size-6" />
-                </span>
-                <div className="min-w-0">
-                  <CardTitle>{t("Training erfassen")}</CardTitle>
-                  <CardDescription>
-                    {onboarding.dogCount === 1 && onboarding.firstDogName
-                      ? t("Einheit für {name} eintragen", { name: onboarding.firstDogName })
-                      : t("Einheit ins Trainingstagebuch eintragen")}
-                  </CardDescription>
-                </div>
-              </CardHeader>
-            </Card>
-          </Link>
-        )}
+      {/* Nur wenn relevant: eine heute gelegte, noch nicht abgelaufene Fährte
+          steht über allem Übrigen - sie wartet auf ihr Alter. */}
+      {hunde && hunde.length > 0 && faehrteAn && <HeuteGelegtSection hunde={hunde} />}
 
+      {/* Erst wenn klar ist, wohin - sonst springt die Kachel nach dem Laden
+          von der Liste auf den Hund und man tippt ins Leere. */}
+      {hunde && hunde.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ErfassenKacheln hunde={hunde} faehrtenHundeIds={faehrteAn ? faehrtenHundeIds : []} />
+        </div>
+      )}
+
+      {hunde && hunde.length > 0 && <DieseWocheSection hunde={hunde} />}
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <Link href="/dogs" className="group block">
           <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
             <CardHeader className="flex-row items-center gap-4 space-y-0">

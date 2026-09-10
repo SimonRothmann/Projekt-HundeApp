@@ -61,6 +61,41 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.15",
+    datum: "2026-09-10",
+    titel: uebersetzbar("Weniger Tippen, weniger Scrollen"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Die Startseite führt direkter ans Ziel: Wer mehrere Hunde hat, tippt beim Training erfassen gleich den Hund an, und „Fährte legen“ hat eine eigene Kachel. Beides landet direkt an der richtigen Stelle der Hundeseite."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("„Diese Woche“ auf der Startseite zeigt die offenen Wochenziele aus dem Trainingsplan - eintragen lässt sich jedes gleich dort."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Eine heute gelegte Fährte, die noch nicht abgelaufen ist, steht mit ihrem Fährtenalter auf der Startseite und lässt sich von dort ablaufen. Direkt nach dem Legen bietet die App das Ablaufen ebenfalls an."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Im Trainingsformular steht „Training speichern“ fest am unteren Rand. Kommentar, Bewertungskriterien und Notiz öffnen sich erst auf Wunsch - das Formular ist deutlich kürzer."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Hundeseite hat oben Sprungknöpfe zu Training, Fährte und Trainingsplan. Auf der Trainerseite stehen offene Beitrittsanfragen und die zu bewertenden Trainings jetzt oben, und „Neue Gruppe“ öffnet sich erst auf Knopfdruck."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die untere Leiste ist aufgeräumt: Home, Hunde, Statistiken und Profil - dazu Trainer und Admin, wo es passt. Sportarten und der eigene Verein sind im Profil zu finden."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("„Wie beim letzten Mal“ greift nach einer gelegten Fährte auf die letzte Einheit mit Übungen zurück. Vorher bezog es sich auf die Fährte und hatte nichts zu übernehmen."),
+      },
+    ],
+  },
+  {
     version: "0.14",
     datum: "2026-09-09",
     titel: uebersetzbar("Das Tagebuch ist übersichtlicher, der Dark Mode besser lesbar"),

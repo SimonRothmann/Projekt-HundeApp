@@ -2,9 +2,6 @@ import { LayoutDashboard, Dog, Trophy, Users, User, ShieldCheck, Building2, BarC
 import { MODULE } from "@/lib/types";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 
-// Für jede Person sichtbar, sofern das zugehörige Modul nicht ausgeblendet
-// wurde. `module` fehlt bei allem, was zum Kern gehört und sich nicht
-// abschalten lässt - ein Tagebuch ohne Hunde wäre keins.
 /**
  * Ein Menüpunkt. `module` benennt das Modul, an dem er hängt - fehlt es,
  * gehört der Punkt zum Kern und lässt sich nicht abschalten.
@@ -16,13 +13,28 @@ export type NavItem = {
   module?: string;
 };
 
-export const coreNavItems: NavItem[] = [
-  { href: "/dashboard", label: uebersetzbar("Home"), icon: LayoutDashboard },
-  { href: "/dogs", label: uebersetzbar("Hunde"), icon: Dog },
-  { href: "/sports", label: uebersetzbar("Sportarten"), icon: Trophy },
-  { href: "/clubs", label: uebersetzbar("Vereine"), icon: Building2 },
-  { href: "/stats", label: uebersetzbar("Statistiken"), icon: BarChart, module: MODULE.statistik },
-];
+export const homeNavItem: NavItem = { href: "/dashboard", label: uebersetzbar("Home"), icon: LayoutDashboard };
+export const dogsNavItem: NavItem = { href: "/dogs", label: uebersetzbar("Hunde"), icon: Dog };
+export const sportsNavItem: NavItem = { href: "/sports", label: uebersetzbar("Sportarten"), icon: Trophy };
+export const clubsNavItem: NavItem = { href: "/clubs", label: uebersetzbar("Vereine"), icon: Building2 };
+export const statsNavItem: NavItem = {
+  href: "/stats",
+  label: uebersetzbar("Statistiken"),
+  icon: BarChart,
+  module: MODULE.statistik,
+};
+
+/** Seitenleiste am Desktop: dort ist Platz für alle Kernbereiche. */
+export const coreNavItems: NavItem[] = [homeNavItem, dogsNavItem, sportsNavItem, clubsNavItem, statsNavItem];
+
+/**
+ * Untere Leiste am Telefon: nur, was man täglich öffnet - Trainer,
+ * Statistiken, Admin und Profil fügt BottomNav in der Reihenfolge an.
+ * Sportarten und Verein öffnet man selten; sie stehen im Profil und auf der
+ * Startseite (Entscheidung 2026-09-10: höchstens fünf Ziele, keine Aktion
+ * in der Leiste).
+ */
+export const bottomNavItems: NavItem[] = [homeNavItem, dogsNavItem];
 
 export const profileNavItem: NavItem = { href: "/profile", label: uebersetzbar("Profil"), icon: User };
 

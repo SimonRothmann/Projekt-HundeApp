@@ -9,7 +9,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { Archive, ArchiveRestore, NotebookPen, Pencil, Plus, Printer, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, NotebookPen, Pencil, Plus, Printer, Route, Target, Trash2 } from "lucide-react";
+import { laeuftFaehrte } from "@/lib/faehrte";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { DogEditForm } from "@/components/dogs/dog-edit-form";
 import { formatDogAge } from "@/lib/dog-age";
@@ -28,9 +29,6 @@ import { useT } from "@/lib/i18n";
 // Historie wächst unbegrenzt) - ältere Monate holt SessionHistory über
 // "Ältere Trainings anzeigen" nach. Statistik und Druckansicht laden ihre
 // Daten separat und sind davon unberührt.
-// Sportarten, bei denen eine Fährte gelegt wird. Codes statt Namen: Namen
-// werden umbenannt, Codes bleiben.
-const FAEHRTEN_SPORTARTEN = ["FAERTE", "FPR", "IGP1", "IGP2", "IGP3", "GPR", "STOEPR"];
 
 function threeMonthsAgoIso(): string {
   const d = new Date();
@@ -96,10 +94,7 @@ export default function DogDetailPage() {
   // Fährte anzeigen, solange keine Einschränkung gilt oder sie ausdrücklich
   // dabei ist. Erkannt am Code der Sportart, nicht am Namen - Namen ändern
   // sich (aus "Leinenführigkeit" wurde "Fußarbeit"), Codes nicht.
-  const zeigtFaehrte =
-    dogSportIds === null ||
-    dogSportIds.length === 0 ||
-    sports.some((s) => dogSportIds.includes(s.id) && FAEHRTEN_SPORTARTEN.includes(s.code));
+  const zeigtFaehrte = laeuftFaehrte(dogSportIds, sports);
 
   async function loadAll(all = showAllHistory) {
     // 1. Gecachte Daten sofort anzeigen (Stale-While-Revalidate) - ermöglicht
@@ -166,6 +161,10 @@ export default function DogDetailPage() {
   // Laden noch nicht. Anders als dort wird zusätzlich das Formular geöffnet -
   // wer den Weg wählt, will erfassen und nicht erst noch einen Knopf suchen.
   const sprangZumFormular = useRef(false);
+  // Zählt jeden Wunsch, zum Formular zu springen (Anker von der Startseite,
+  // Sprungknopf oben). Ein Zähler statt eines Schalters, damit auch ein
+  // zweiter Sprung bei schon offenem Formular noch scrollt.
+  const [formularSprung, setFormularSprung] = useState(0);
   useEffect(() => {
     if (sprangZumFormular.current || !dog) return;
     if (window.location.hash !== "#training-erfassen") return;
@@ -175,14 +174,35 @@ export default function DogDetailPage() {
     // Hydratisieren auseinanderzulaufen. Das Ref sorgt dafür, dass es bei
     // genau einem Durchlauf bleibt.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setShowForm(true);
+    setShowForm(true); setFormularSprung((n) => n + 1);
   }, [dog]);
 
   useEffect(() => {
-    if (!showForm || !sprangZumFormular.current) return;
-    const target = document.getElementById("training-erfassen");
-    target?.scrollIntoView({ behavior: "auto", block: "start" });
-  }, [showForm]);
+    if (!showForm || formularSprung === 0) return;
+    document.getElementById("training-erfassen")?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, [showForm, formularSprung]);
+
+  function zumFormular() {
+    setShowForm(true);
+    setFormularSprung((n) => n + 1);
+  }
+
+  function springeZu(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "auto", block: "start" });
+  }
+
+  // Von der Startseite führt "Fährte legen" hierher (#faehrte-aufnehmen). Der
+  // Recorder erscheint erst, wenn die Sportarten des Hundes geladen sind -
+  // vorher gibt es kein Ziel, also bei jedem Nachladen erneut schauen, aber
+  // nur einmal springen.
+  const sprangZurFaehrte = useRef(false);
+  useEffect(() => {
+    if (sprangZurFaehrte.current || window.location.hash !== "#faehrte-aufnehmen") return;
+    const ziel = document.getElementById("faehrte-aufnehmen");
+    if (!ziel) return;
+    sprangZurFaehrte.current = true;
+    ziel.scrollIntoView({ behavior: "auto", block: "start" });
+  }, [dog, dogSportIds, sports]);
 
   const jumpedToPlan = useRef(false);
   useEffect(() => {
@@ -287,6 +307,28 @@ export default function DogDetailPage() {
         </div>
       </div>
 
+      {/* Sprungknöpfe zu dem, wofür man die Seite öffnet. Die Seite ist gut
+          fünf Bildschirme lang; "Aufnahme starten" lag 1,6 und "Training
+          erfassen" 1,7 Bildschirme tief. */}
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={zumFormular}>
+          <NotebookPen className="size-4" />
+          {t("Training erfassen")}
+        </Button>
+        {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && (
+          <Button size="sm" variant="outline" onClick={() => springeZu("faehrte-aufnehmen")}>
+            <Route className="size-4" />
+            {t("Fährte legen")}
+          </Button>
+        )}
+        {goals?.some((g) => g.status === 0 && g.trainingPlan) && (
+          <Button size="sm" variant="outline" onClick={() => springeZu("trainingsplan")}>
+            <Target className="size-4" />
+            {t("Trainingsplan")}
+          </Button>
+        )}
+      </div>
+
       {editing && <DogEditForm dog={dog} onSaved={loadAll} onCancel={() => setEditing(false)} />}
 
       <GoalsSection dogId={id} sports={angeboteneSportarten} goals={goals} onChanged={loadAll} />
@@ -316,9 +358,11 @@ export default function DogDetailPage() {
           dogId={id}
           sports={angeboteneSportarten}
           goals={goals}
-          // Die Historie kommt absteigend nach Datum vom Server, der erste
-          // Eintrag ist also die letzte Einheit (siehe TrainingService).
-          letzteEinheit={sessions?.[0] ?? null}
+          // Die Historie kommt absteigend nach Datum vom Server (siehe
+          // TrainingService). Einheiten ohne Übungen übersprungen: Eine
+          // gelegte Fährte legt die Einheit des Tages an, und die Vorlage
+          // hieße sonst "Übernimmt die 0 Übungen".
+          letzteEinheit={sessions?.find((einheit) => einheit.exercises.length > 0) ?? null}
           onSaved={handleTrainingSaved}
         />
       )}

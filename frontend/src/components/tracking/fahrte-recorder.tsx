@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { GpsMarkerType, GpsPoint } from "@/lib/types";
+import type { GpsMarkerType, GpsPoint, GpsTrack } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cookie, MapPin, MapPinPlus, Package, Waypoints } from "lucide-react";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
 import { TrackMap } from "@/components/tracking/track-map";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
+import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 
 import { useT } from "@/lib/i18n";
 function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
@@ -58,6 +59,10 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
   );
   const [untergrund, setUntergrund] = useState<string[]>([]);
   const [isMarking, setIsMarking] = useState(false);
+  // Die eben gelegte Fährte: bietet direkt danach das Ablaufen an, statt dass
+  // man sie im Tagebuch wieder heraussuchen muss. Offline gespeichert gibt es
+  // noch keine Id - dann erinnert später die Startseite ("Heute gelegt").
+  const [gelegt, setGelegt] = useState<GpsTrack | null>(null);
   const startedAtRef = useRef<number>(0);
 
   function startRecording() {
@@ -132,8 +137,9 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     };
 
     try {
-      await api.post("/api/gps-tracks", trackPayload);
+      const gespeichert = await api.post<GpsTrack>("/api/gps-tracks", trackPayload);
       toast.success(t("Fährte gespeichert."));
+      setGelegt(gespeichert);
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.message);
@@ -154,7 +160,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
   // Nicht am Aufzeichnen: nur der Einstiegsknopf in der Hundeseite.
   if (!isRecording) {
     return (
-      <Card className="border-primary/40">
+      <Card id="faehrte-aufnehmen" className="scroll-mt-20 border-primary/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <MapPin className="size-5 text-primary-text" />
@@ -162,6 +168,28 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          {gelegt && (
+            <div className="flex flex-col gap-2 rounded-lg border border-surface-border bg-surface p-3">
+              <p className="text-sm">
+                <span className="font-medium">{t("Fährte gespeichert.")}</span>{" "}
+                {t("Ablaufen, sobald sie alt genug ist - die Startseite erinnert dich daran.")}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <WalkRunRecorder
+                  trackId={gelegt.id}
+                  laidTrackPoints={gelegt.points}
+                  label={t("Jetzt ablaufen")}
+                  onSaved={async () => {
+                    setGelegt(null);
+                    await onSaved();
+                  }}
+                />
+                <Button type="button" size="sm" variant="ghost" onClick={() => setGelegt(null)}>
+                  {t("Später")}
+                </Button>
+              </div>
+            </div>
+          )}
           {/* Antippen statt Tippen: Getippter Text vor dem Start löste auf
               dem iPhone beim Legen "Eingabe widerrufen" aus (siehe
               lib/untergrund.ts). Aussehen wie die Verfassung

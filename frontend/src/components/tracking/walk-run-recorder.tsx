@@ -45,6 +45,7 @@ export function WalkRunRecorder({
   onSaved,
   onLivePointsChange,
   laidTrackPoints,
+  label,
 }: {
   trackId: string;
   onSaved: () => Promise<void>;
@@ -57,6 +58,8 @@ export function WalkRunRecorder({
   // Gegenständen und Abbiegungen. Optional, damit Aufrufer, die keine
   // Legung haben, den Recorder ohne Haptics-Nebeneffekt nutzen können.
   laidTrackPoints?: GpsPoint[];
+  /** Beschriftung des Startknopfs - auf der Startseite "Jetzt ablaufen". */
+  label?: string;
 }) {
   const t = useT();
   const { isRecording, points, setPoints, currentAccuracy, start: startRecording, stop } = useGpsRecorder(toWalkPoint);
@@ -133,7 +136,7 @@ export function WalkRunRecorder({
         }}
       >
         <Footprints className="size-4" />
-{t("Fährte erneut ablaufen")}
+        {label ?? t("Fährte erneut ablaufen")}
       </Button>
     );
   }
