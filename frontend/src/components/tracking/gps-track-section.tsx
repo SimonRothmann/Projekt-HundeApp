@@ -60,10 +60,16 @@ function formatDuration(ms: number): string {
  * bearbeitbar (nachträgliche Notiz, keine Aufzeichnung).
  */
 export function GpsTrackSection({
-  trainingSessionId,
+  trainingSessionIds,
   readOnly = false,
 }: {
-  trainingSessionId: string;
+  /**
+   * Alle Einheiten des Trainingstags mit Fährte. Seit 2026-09-10 hängt jede
+   * Aufnahme an die Einheit des Tages - ältere Tage können aber noch je
+   * Fährte eine eigene Einheit haben. Die Fährten eines Tages stehen trotzdem
+   * in EINEM Block: Mehrere Fährten pro Übungsstunde sind der Normalfall.
+   */
+  trainingSessionIds: string[];
   readOnly?: boolean;
 }) {
   const t = useT();
@@ -85,10 +91,20 @@ export function GpsTrackSection({
     setLiveWalkPoints((prev) => (prev[trackId] === points ? prev : { ...prev, [trackId]: points }));
   }, []);
 
+  const einheitenSchluessel = trainingSessionIds.join(",");
+
   async function loadTracks() {
     try {
-      const data = await api.get<GpsTrack[]>(`/api/gps-tracks?trainingSessionId=${trainingSessionId}`);
-      setTracks(data);
+      const listen = await Promise.all(
+        einheitenSchluessel
+          .split(",")
+          .filter(Boolean)
+          .map((id) => api.get<GpsTrack[]>(`/api/gps-tracks?trainingSessionId=${id}`)),
+      );
+      // In Legereihenfolge: "Fährte 1" ist die zuerst gelegte, auch wenn die
+      // Fährten eines Tages aus verschiedenen Einheiten stammen.
+      const gelegtUm = (track: GpsTrack) => track.points[0]?.timestamp ?? "";
+      setTracks(listen.flat().sort((a, b) => gelegtUm(a).localeCompare(gelegtUm(b))));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Fährten konnten nicht geladen werden."));
     }
@@ -99,7 +115,7 @@ export function GpsTrackSection({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadTracks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trainingSessionId]);
+  }, [einheitenSchluessel]);
 
   // Ohne Fährte nichts anzeigen: aufgenommen wird hier nicht mehr (siehe
   // Klassenkommentar), ein leerer Block hätte also keinen Zweck.
@@ -111,11 +127,17 @@ export function GpsTrackSection({
     <div className="flex flex-col gap-3 rounded-lg border border-surface-border bg-surface p-3">
       <BlockLabel icon={Route}>{t("Fährte")}</BlockLabel>
 
-      <div className="flex flex-col gap-4">
-        {tracks.map((track) => {
+      {/* Mehrere Fährten: durch eine Linie getrennt und nummeriert, damit
+          Karte, Wetter und Abläufe erkennbar zur jeweils eigenen Fährte
+          gehören. */}
+      <div className="flex flex-col gap-4 [&>*+*]:border-t [&>*+*]:border-surface-border [&>*+*]:pt-4">
+        {tracks.map((track, index) => {
           const times = trackTimes(track.points);
           return (
             <div key={track.id} className="flex flex-col gap-2">
+              {tracks.length > 1 && (
+                <h5 className="text-sm font-semibold">{t("Fährte {nummer}", { nummer: index + 1 })}</h5>
+              )}
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                 {times && (
                   // Auch die Endzeit zeigen, nicht nur den Beginn: Fürs

@@ -2,6 +2,7 @@ using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Application.Weather;
 using Dogity.Domain.Tracking;
+using Dogity.Domain.Training;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Tracking;
@@ -43,15 +44,82 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
 
     public async Task<Result<GpsTrackDto>> CreateAsync(Guid userId, CreateGpsTrackRequest request, CancellationToken ct = default)
     {
-        if (!await HasSessionAccessAsync(userId, request.TrainingSessionId, ct))
-            return Result<GpsTrackDto>.NotFound("Training nicht gefunden.");
+        // Wiederholte Anfrage aus der Offline-Warteschlange: Die Fährte gibt
+        // es schon. Nicht erneut anlegen - und vor allem die Dauer nicht ein
+        // zweites Mal auf die Einheit addieren.
+        if (request.Id is { } vorhandeneId)
+        {
+            var einheitDerFaehrte = await db.GpsTracks
+                .Where(t => t.Id == vorhandeneId)
+                .Select(t => (Guid?)t.TrainingSessionId)
+                .FirstOrDefaultAsync(ct);
+            if (einheitDerFaehrte is { } einheitId)
+            {
+                var liste = await GetByTrainingSessionAsync(userId, einheitId, ct);
+                return liste.Succeeded
+                    ? Result<GpsTrackDto>.Success(liste.Value!.First(t => t.Id == vorhandeneId))
+                    : Result<GpsTrackDto>.NotFound("Training nicht gefunden.");
+            }
+        }
+
+        Guid sessionId;
+        TrainingSession? neueEinheit = null;
+        TrainingSession? einheitDesTages = null;
+
+        if (request.TrainingSessionId is { } angegebeneEinheit)
+        {
+            if (!await HasSessionAccessAsync(userId, angegebeneEinheit, ct))
+                return Result<GpsTrackDto>.NotFound("Training nicht gefunden.");
+            sessionId = angegebeneEinheit;
+        }
+        else if (request.DogId is { } dogId && request.Date is { } date)
+        {
+            if (!await db.HasDogAccessAsync(userId, dogId, ct))
+                return Result<GpsTrackDto>.NotFound("Hund nicht gefunden.");
+
+            // Dieselbe Regel wie beim Eintragen eines Trainings (siehe
+            // TrainingService.CreateAsync "Tages-Zusammenfassung"): ein Tag,
+            // eine Einheit. Eine zweite oder dritte Fährte derselben
+            // Übungsstunde gehört dazu und bekommt keine eigene.
+            einheitDesTages = await db.TrainingSessions
+                .Where(s => s.DogId == dogId && s.Date == date)
+                .OrderBy(s => s.CreatedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (einheitDesTages is null)
+            {
+                neueEinheit = new TrainingSession
+                {
+                    UserId = userId,
+                    DogId = dogId,
+                    Date = date,
+                    DurationMinutes = Math.Max(1, request.DurationMinutes ?? 1)
+                };
+                sessionId = neueEinheit.Id;
+            }
+            else
+            {
+                sessionId = einheitDesTages.Id;
+            }
+        }
+        else
+        {
+            return Result<GpsTrackDto>.Failure("Trainingseinheit oder Hund und Datum angeben.");
+        }
 
         if (request.Points.Count == 0)
             return Result<GpsTrackDto>.Failure("Eine Fährte benötigt mindestens einen GPS-Punkt.");
 
+        // Erst nach allen Prüfungen: Eine abgelehnte Anfrage soll weder eine
+        // leere Einheit hinterlassen noch die Dauer einer bestehenden ändern.
+        if (neueEinheit is not null)
+            db.TrainingSessions.Add(neueEinheit);
+        else if (einheitDesTages is not null && request.DurationMinutes is > 0)
+            einheitDesTages.DurationMinutes += request.DurationMinutes.Value;
+
         var track = new GpsTrack
         {
-            TrainingSessionId = request.TrainingSessionId,
+            TrainingSessionId = sessionId,
             LengthMeters = request.LengthMeters,
             AgeMinutes = request.AgeMinutes,
             Surface = request.Surface,
@@ -59,6 +127,8 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
             Wind = request.Wind,
             Comment = request.Comment
         };
+        if (request.Id is { } neueId)
+            track.Id = neueId;
 
         foreach (var point in request.Points)
         {

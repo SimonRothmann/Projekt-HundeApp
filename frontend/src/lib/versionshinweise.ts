@@ -81,6 +81,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "behoben",
         text: uebersetzbar("„Wie beim letzten Mal\" zeigte in der Übungsauswahl eine Kennnummer statt des Übungsnamens, wenn man es antippte, bevor die Übungslisten geladen waren. Jetzt steht dort der Name, sobald die Listen da sind - und bis dahin der Platzhalter."),
       },
+      {
+        art: "behoben",
+        text: uebersetzbar("Mehrere Fährten an einem Tag gehören jetzt zu derselben Trainingseinheit. Bisher legte jede Aufnahme eine eigene an - „Ort, Zeit & Verfassung“ und der Kommentar standen dann doppelt da. Im Tagebuch stehen alle Fährten eines Tages jetzt in einem Block, nummeriert und jede mit eigener Karte."),
+      },
     ],
   },
   {

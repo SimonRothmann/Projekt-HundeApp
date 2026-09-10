@@ -106,11 +106,14 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         // bereits eine Trainingseinheit, werden die Übungen ANGEHÄNGT statt
         // eine neue Einheit anzulegen - das Tagebuch soll pro Trainingstag
         // EIN Feld zeigen, nicht pro abgehaktem Plan-Durchgang einen eigenen
-        // Eintrag. Ausnahme: Requests mit client-generierter Id (Offline-
-        // Idempotenz, z.B. FahrteRecorder) - dort referenzieren nachfolgende
-        // gequeute Requests (GPS-Track) genau diese Id, ein Merge würde die
-        // Referenz brechen. Die UI gruppiert solche Einheiten trotzdem in
-        // dieselbe Tages-Karte.
+        // Eintrag. Ausnahme: Requests mit client-generierter Id - dort
+        // referenzieren nachfolgende gequeute Requests genau diese Id, ein
+        // Merge würde die Referenz brechen. Das betrifft nur noch ältere
+        // Fährtenrecorder und bereits wartende Offline-Anfragen: Seit
+        // 2026-09-10 schickt der Recorder Hund und Datum direkt an
+        // GpsTrackService.CreateAsync, der die Fährte selbst an die Einheit
+        // des Tages hängt. Die UI gruppiert Alt-Einheiten weiter in dieselbe
+        // Tages-Karte.
         if (request.Id is null)
         {
             var daySession = await db.TrainingSessions

@@ -77,15 +77,32 @@ public record CreateGpsPointRequest(
     // ausschließlich Gegenstände markiert.
     GpsMarkerType MarkerType = GpsMarkerType.Article);
 
+/// <summary>
+/// Neue Fährte. Zwei Wege, die Trainingseinheit anzugeben:
+///
+/// - DogId + Date (Fährtenrecorder seit 2026-09-10): Der Server hängt die
+///   Fährte an die Einheit dieses Hundes an diesem Tag an oder legt eine an.
+///   Mehrere Fährten pro Übungsstunde sind im Fährtensport üblich - vorher
+///   bekam jede Aufnahme eine eigene Einheit, und der Tag stand doppelt da.
+/// - TrainingSessionId: ältere Clients und Anfragen, die schon in der
+///   Offline-Warteschlange liegen (erst Einheit, dann Fährte).
+///
+/// Id macht die Anfrage wiederholbar: Die Warteschlange darf sie mehrfach
+/// senden, ohne dass eine zweite Fährte oder doppelte Dauer entsteht.
+/// </summary>
 public record CreateGpsTrackRequest(
-    Guid TrainingSessionId,
+    Guid? TrainingSessionId,
     double? LengthMeters,
     int? AgeMinutes,
     string? Surface,
     string? Weather,
     string? Wind,
     string? Comment,
-    IReadOnlyList<CreateGpsPointRequest> Points);
+    IReadOnlyList<CreateGpsPointRequest> Points,
+    Guid? Id = null,
+    Guid? DogId = null,
+    DateOnly? Date = null,
+    int? DurationMinutes = null);
 
 public record CreateGpsWalkPointRequest(double Latitude, double Longitude, DateTimeOffset Timestamp, double? Accuracy);
 

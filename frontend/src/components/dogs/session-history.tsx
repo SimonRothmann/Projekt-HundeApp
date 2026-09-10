@@ -39,6 +39,17 @@ function monthLabel(iso: string): string {
   return new Date(iso).toLocaleDateString("de-DE", { month: "long", year: "numeric" });
 }
 
+/**
+ * Ob eine Einheit Angaben zu Ort, Zeit, Wetter oder Verfassung trägt.
+ *
+ * Ein Trainingstag zeigt diese Angaben EINMAL. Liegen an einem Tag mehrere
+ * Einheiten (Fährtenaufnahmen älterer Stände bekamen je eine eigene), steht
+ * dort die, in der tatsächlich etwas eingetragen ist - sonst die erste.
+ */
+function hatKontext(s: TrainingSession): boolean {
+  return !!s.startTime || !!s.locationName || s.latitude != null || s.condition != null || s.temperatureC != null;
+}
+
 // Ein Trainingstag gilt als abgeschlossen, sobald sein Datum in der
 // Vergangenheit liegt (vor dem heutigen Tag) - dann entfällt z.B. das
 // erneute Ablaufen der Fährte.
@@ -58,10 +69,12 @@ function isCompletedDay(iso: string): boolean {
  */
 function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChanged: () => Promise<void> }) {
   const t = useT();
-  const joined = sessions
-    .map((s) => s.notes)
-    .filter((n): n is string => !!n)
-    .join("\n");
+  // Gleiche Notizen nur einmal: Jede Fährtenaufnahme älterer Stände legte
+  // eine eigene Einheit mit der Notiz "Fährtenaufnahme" an - zwei Fährten an
+  // einem Tag ergaben "Fährtenaufnahme / Fährtenaufnahme".
+  const joined = [
+    ...new Set(sessions.map((s) => s.notes?.trim()).filter((n): n is string => !!n)),
+  ].join("\n");
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(joined);
   const [saving, setSaving] = useState(false);
@@ -391,6 +404,7 @@ export function SessionHistory({
                   const exercises = daySessions.flatMap((s) => s.exercises);
                   const gpsSessions = daySessions.filter((s) => s.hasGpsTrack);
                   const feedbackSessions = daySessions.filter((s) => s.trainerFeedback);
+                  const kontextEinheit = daySessions.find(hatKontext) ?? daySessions[0];
                   return (
                     <Card key={date} className="dark:ring-white/15">
                       {/* Eigene Kopfzeile mit Trennlinie: Datum und Dauer sind
@@ -423,9 +437,11 @@ export function SessionHistory({
                         {/* Ort, Zeit, Wetter, Verfassung sind Angaben ZUM Tag -
                             deshalb direkt unter der Kopfzeile und nicht
                             zwischen den inhaltlichen Blöcken. */}
-                        {daySessions.map((s) => (
-                          <SessionContextEditor key={`ctx-${s.id}`} session={s} onSaved={onChanged} />
-                        ))}
+                        <SessionContextEditor
+                          key={`ctx-${kontextEinheit.id}`}
+                          session={kontextEinheit}
+                          onSaved={onChanged}
+                        />
                         <DayNotes sessions={daySessions} onChanged={onChanged} />
                         {exercises.length > 0 && (
                           <section className="flex flex-col gap-1.5">
@@ -467,9 +483,9 @@ export function SessionHistory({
                             will seine Aufzeichnungen nicht verlieren.
                             Ausgeblendet wird nur der Einstieg ins NEUE
                             Aufnehmen - siehe GpsTrackSection. */}
-                        {gpsSessions.map((s) => (
-                          <GpsTrackSection key={s.id} trainingSessionId={s.id} readOnly={completed} />
-                        ))}
+                        {gpsSessions.length > 0 && (
+                          <GpsTrackSection trainingSessionIds={gpsSessions.map((s) => s.id)} readOnly={completed} />
+                        )}
                         {(feedbackSessions.length > 0 ? feedbackSessions : [daySessions[0]]).map((s) => (
                           <TrainerFeedback key={s.id} session={s} isOwner={isOwner} onUpdated={onChanged} />
                         ))}

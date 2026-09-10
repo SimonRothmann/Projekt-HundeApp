@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { GpsMarkerType, GpsPoint, TrainingSession } from "@/lib/types";
+import type { GpsMarkerType, GpsPoint } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -108,18 +108,21 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     }
 
     const durationMinutes = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 60000));
-    const sessionId = crypto.randomUUID();
 
-    const sessionPayload = {
-      id: sessionId,
+    // EINE Anfrage mit Hund und Datum, statt erst eine Einheit und dann die
+    // Fährte dazu anzulegen. Der Server hängt die Fährte an die Einheit des
+    // Tages (siehe GpsTrackService.CreateAsync): Mehrere Fährten pro
+    // Übungsstunde sind im Fährtensport üblich und gehören in dieselbe
+    // Einheit. Vorher bekam jede Aufnahme eine eigene, weil die zweite Anfrage
+    // in der Offline-Warteschlange auf die Id der ersten verweisen musste.
+    //
+    // Die Id macht die Anfrage wiederholbar: Sendet die Warteschlange sie
+    // zweimal, entsteht trotzdem nur eine Fährte.
+    const trackPayload = {
+      id: crypto.randomUUID(),
       dogId,
       date: new Date().toISOString().slice(0, 10),
       durationMinutes,
-      notes: t("Fährtenaufnahme"),
-      exercises: [],
-    };
-    const trackPayload = {
-      trainingSessionId: sessionId,
       lengthMeters: estimateLengthMeters(points),
       ageMinutes: null,
       surface: surface || null,
@@ -128,17 +131,6 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
       comment: null,
       points,
     };
-
-    try {
-      await api.post<TrainingSession>("/api/trainings", sessionPayload);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-        return;
-      }
-      await enqueueRequest({ path: "/api/trainings", method: "POST", body: sessionPayload, label: t("Fährten-Training") });
-      toast.success(t("Training offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."));
-    }
 
     try {
       await api.post("/api/gps-tracks", trackPayload);

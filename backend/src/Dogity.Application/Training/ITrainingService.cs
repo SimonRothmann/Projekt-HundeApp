@@ -21,10 +21,11 @@ public interface ITrainingService
     /// Verschiebt den Trainingstag, zu dem die angegebene Einheit gehört, auf
     /// ein anderes Datum - also ALLE Einheiten dieses Hundes an diesem Tag.
     ///
-    /// An einem Tag mit Fährte liegen zwei Einheiten (Fährtenaufnahmen bekommen
-    /// wegen der Offline-Warteschlange eine eigene, siehe CreateAsync
-    /// "Tages-Zusammenfassung"), das Tagebuch zeigt sie aber als EINEN Tag.
-    /// Nur eine davon zu verschieben würde den Trainingstag auseinanderreißen.
+    /// An einem Tag können mehrere Einheiten liegen - Fährtenaufnahmen älterer
+    /// Clients bekamen wegen der Offline-Warteschlange je eine eigene (siehe
+    /// CreateAsync "Tages-Zusammenfassung"), das Tagebuch zeigt sie aber als
+    /// EINEN Tag. Nur eine davon zu verschieben würde den Trainingstag
+    /// auseinanderreißen.
     ///
     /// Das Wetter wird dabei neu ermittelt - es hing am alten Datum und wäre
     /// danach schlicht die Temperatur eines anderen Tages.

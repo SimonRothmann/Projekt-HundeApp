@@ -86,6 +86,28 @@ der Ampel.
 `TrackLegend` unter der Karte benennt die Linien; sie zeigt nur, was auch
 wirklich eingezeichnet ist (ohne Ablauf keine Ampel).
 
+### Mehrere Fährten pro Übungsstunde (2026-09-10)
+
+Zwei, drei Fährten in einer Übungsstunde zu legen und abzulaufen ist im
+Fährtensport üblich. Die App legte aber pro Aufnahme eine **eigene
+Trainingseinheit** an: Der Recorder schickte erst die Einheit mit einer
+selbst vergebenen Id und dann die Fährte mit Verweis darauf - nötig, weil
+beide Anfragen getrennt in der Offline-Warteschlange liegen konnten. Die
+Tages-Zusammenfassung (ein Tag = eine Einheit) war für diese Anfragen
+deshalb bewusst abgeschaltet. Folge: „Ort, Zeit & Verfassung" und der
+Kommentar standen doppelt, die Statistik zählte zwei Einheiten.
+
+Jetzt schickt der Recorder **eine** Anfrage mit Hund und Datum an
+`POST /api/gps-tracks`. Der Server hängt die Fährte an die Einheit des Tages
+oder legt eine an und addiert die Aufnahmedauer. Die Fährte trägt eine
+selbst vergebene Id: Die Warteschlange darf die Anfrage wiederholen, ohne
+dass eine zweite Fährte oder doppelte Dauer entsteht. Der alte Weg
+(`trainingSessionId`) bleibt für schon wartende Anfragen und ältere Clients.
+
+Im Tagebuch stehen alle Fährten eines Tages in **einem** Block, nummeriert
+in Legereihenfolge - auch für Alt-Tage, deren Fährten noch in getrennten
+Einheiten liegen.
+
 ### Kartenhintergrund: Straße, Luftbild, dunkel (2026-09-03)
 
 Rückmeldung war "Leaflet sieht nicht modern aus". Das Aussehen bestimmt aber
