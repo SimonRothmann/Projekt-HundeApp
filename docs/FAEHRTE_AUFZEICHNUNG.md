@@ -108,6 +108,20 @@ Im Tagebuch stehen alle Fährten eines Tages in **einem** Block, nummeriert
 in Legereihenfolge - auch für Alt-Tage, deren Fährten noch in getrennten
 Einheiten liegen.
 
+### Untergrund zum Antippen statt Tippen (2026-09-10)
+
+Rückmeldung vom Legen mit dem iPhone: Mit dem Telefon in der Tasche erschien
+immer wieder „Eingabe widerrufen". Das ist die iOS-Funktion „Schütteln zum
+Widerrufen"; sie bezog sich auf das Textfeld „Untergrund", das vor dem Start
+ausgefüllt wurde. Eine Web-App kann die Systemfunktion nicht abschalten
+(nur jeder selbst unter Einstellungen → Bedienungshilfen → Tippen).
+
+Deshalb Antipp-Knöpfe statt Textfeld (`lib/untergrund.ts`): Wiese, Acker,
+Stoppelfeld, Wald, Feldweg, Sand - Mehrfachauswahl für einen
+Untergrundwechsel, gespeichert als „Wiese, Acker" in Listenreihenfolge.
+Ohne Tastatureingabe gibt es nichts zu widerrufen. Ob der Hinweis damit
+tatsächlich ausbleibt, lässt sich nur auf dem Gerät bestätigen.
+
 ### Kartenhintergrund: Straße, Luftbild, dunkel (2026-09-03)
 
 Rückmeldung war "Leaflet sieht nicht modern aus". Das Aussehen bestimmt aber

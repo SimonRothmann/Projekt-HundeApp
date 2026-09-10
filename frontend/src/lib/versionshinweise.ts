@@ -85,6 +85,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "behoben",
         text: uebersetzbar("Mehrere Fährten an einem Tag gehören jetzt zu derselben Trainingseinheit. Bisher legte jede Aufnahme eine eigene an - „Ort, Zeit & Verfassung“ und der Kommentar standen dann doppelt da. Im Tagebuch stehen alle Fährten eines Tages jetzt in einem Block, nummeriert und jede mit eigener Karte."),
       },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Den Untergrund einer Fährte wählt man jetzt durch Antippen - Wiese, Acker, Stoppelfeld, Wald, Feldweg oder Sand, bei einem Untergrundwechsel auch mehrere. Auf dem iPhone erschien beim Legen mit dem Telefon in der Tasche sonst immer wieder „Eingabe widerrufen“: iOS bot damit an, das getippte Feld rückgängig zu machen."),
+      },
     ],
   },
   {

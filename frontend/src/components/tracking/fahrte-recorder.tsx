@@ -5,12 +5,12 @@ import { api, ApiError } from "@/lib/api";
 import type { GpsMarkerType, GpsPoint } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Cookie, MapPin, MapPinPlus, Package, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { estimateLengthMeters } from "@/lib/geo";
+import { UNTERGRUENDE, untergrundAlsText, untergrundUmschalten } from "@/lib/untergrund";
+import { cn } from "@/lib/utils";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
 import { TrackMap } from "@/components/tracking/track-map";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
@@ -41,9 +41,8 @@ const MARKER_TYPES = [
 /**
  * Direkter Einstiegspunkt für die GPS-Fährtenaufzeichnung, ohne vorher ein
  * vollständiges Trainingstagebuch-Training mit bewerteten Übungen anlegen
- * zu müssen (Training + Fährte werden hier in einem Schritt erzeugt). Die
- * Session-Id wird clientseitig erzeugt, damit beide Requests unabhängig
- * voneinander - auch offline - synchronisiert werden können.
+ * zu müssen. Gespeichert wird mit EINER Anfrage (Hund, Datum, Fährte); der
+ * Server hängt die Fährte an die Einheit des Tages - siehe stopRecording.
  */
 export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () => Promise<void> }) {
   const t = useT();
@@ -57,7 +56,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     // (der Kalman-Filter gewichtet schlechtere Messungen ohnehin schwächer).
     { maxAccuracyMeters: 8, relaxedMaxAccuracyMeters: 20, kalman: true },
   );
-  const [surface, setSurface] = useState("");
+  const [untergrund, setUntergrund] = useState<string[]>([]);
   const [isMarking, setIsMarking] = useState(false);
   const startedAtRef = useRef<number>(0);
 
@@ -125,7 +124,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
       durationMinutes,
       lengthMeters: estimateLengthMeters(points),
       ageMinutes: null,
-      surface: surface || null,
+      surface: untergrundAlsText(untergrund),
       weather: null,
       wind: null,
       comment: null,
@@ -145,7 +144,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     }
 
     setPoints([]);
-    setSurface("");
+    setUntergrund([]);
     await onSaved();
   }
 
@@ -163,14 +162,37 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2 sm:max-w-xs">
-            <Label htmlFor="fahrte-surface">Untergrund (optional)</Label>
-            <Input
-              id="fahrte-surface"
-              placeholder="z.B. Wiese, Acker, Wald"
-              value={surface}
-              onChange={(e) => setSurface(e.target.value)}
-            />
+          {/* Antippen statt Tippen: Getippter Text vor dem Start löste auf
+              dem iPhone beim Legen "Eingabe widerrufen" aus (siehe
+              lib/untergrund.ts). Aussehen wie die Verfassung
+              (ConditionPicker), Trefferfläche aber 44 px - beim Fährtelegen
+              oft mit Handschuh. */}
+          <div className="flex flex-col gap-2">
+            <span id="fahrte-untergrund" className="text-sm font-medium">
+              {t("Untergrund (optional)")}{" "}
+              <span className="font-normal text-muted-foreground">· {t("mehrere möglich")}</span>
+            </span>
+            <div role="group" aria-labelledby="fahrte-untergrund" className="flex flex-wrap gap-1.5">
+              {UNTERGRUENDE.map((u) => {
+                const aktiv = untergrund.includes(u);
+                return (
+                  <button
+                    key={u}
+                    type="button"
+                    aria-pressed={aktiv}
+                    onClick={() => setUntergrund((vorher) => untergrundUmschalten(vorher, u))}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11",
+                      aktiv
+                        ? "border-primary bg-primary/15 text-primary-text"
+                        : "border-border/60 text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
+                    )}
+                  >
+                    {t(u)}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <Button onClick={startRecording} className="self-start coarse:min-h-11">
             <MapPin className="size-4" />

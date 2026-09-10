@@ -153,7 +153,10 @@ export function GpsTrackSection({
                   </span>
                 )}
                 {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
-                {track.surface && <span>{track.surface}</span>}
+                {/* Gespeichert ist der deutsche Begriff, angezeigt wird er in
+                    der eingestellten Sprache. Frei getippte Untergründe älterer
+                    Fährten kennt die Übersetzung nicht - die bleiben, wie sie sind. */}
+                {track.surface && <span>{track.surface.split(", ").map((teil) => t(teil)).join(", ")}</span>}
                 {track.comment && <span>{track.comment}</span>}
               </div>
               <TrackWeather track={track} onLoaded={loadTracks} />
