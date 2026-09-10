@@ -231,7 +231,7 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
   if (!editing) {
     return (
       <CardTitle className="flex min-w-0 items-center gap-0.5 text-base font-semibold tracking-tight">
-        <CalendarDays className="mr-1 size-4 shrink-0 text-primary" />
+        <CalendarDays className="mr-1 size-4 shrink-0 text-primary-text" />
         <span className="truncate">{new Date(date).toLocaleDateString("de-DE")}</span>
         <Button
           size="icon"
@@ -381,9 +381,9 @@ export function SessionHistory({
             >
               <span className="flex min-w-0 items-center gap-2 font-heading font-semibold tracking-tight capitalize">
                 {isOpen ? (
-                  <ChevronDown className="size-4 shrink-0 text-primary" />
+                  <ChevronDown className="size-4 shrink-0 text-primary-text" />
                 ) : (
-                  <ChevronRight className="size-4 shrink-0 text-primary" />
+                  <ChevronRight className="size-4 shrink-0 text-primary-text" />
                 )}
                 <span className="truncate">{monthLabel(firstDate)}</span>
               </span>

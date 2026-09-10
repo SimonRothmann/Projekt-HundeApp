@@ -58,7 +58,7 @@ export function CoOwnersSection({
   return (
     <Card>
       <CardHeader className="flex-row items-center gap-2 space-y-0">
-        <UserPlus className="size-5 text-primary" />
+        <UserPlus className="size-5 text-primary-text" />
         <CardTitle className="text-base">Mitbesitzer</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

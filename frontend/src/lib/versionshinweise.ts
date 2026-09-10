@@ -71,7 +71,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       },
       {
         art: "verbessert",
-        text: uebersetzbar("Der Dark Mode ist neu abgestimmt: neutrale Grautöne statt dunkelblau getöntem Schwarz, Karten heben sich heller von der Seite ab, und Knöpfe, Links und Symbole erscheinen in einem helleren Blau. Beschriftungen auf Knöpfen haben dadurch mehr als doppelt so viel Kontrast wie vorher."),
+        text: uebersetzbar("Der Dark Mode ist neu abgestimmt: ein ruhiges, leicht bläuliches Grau statt dunkelblau getöntem Schwarz, und Karten heben sich heller von der Seite ab. Knöpfe bleiben kräftig blau, Links und Symbole erscheinen in einem helleren Blau - beides ist jetzt deutlich besser lesbar."),
       },
       {
         art: "verbessert",

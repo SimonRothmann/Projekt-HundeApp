@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
         <AuthBackLink />
         <Card className="w-full">
           <CardHeader className="items-center text-center">
-            <PawPrint className="size-8 text-primary" />
+            <PawPrint className="size-8 text-primary-text" />
             <CardTitle className="text-xl">Passwort vergessen</CardTitle>
             <CardDescription>{t("Wir schicken dir einen Link zum Zurücksetzen")}</CardDescription>
           </CardHeader>
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
               </form>
             )}
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              <Link href="/login" className="text-primary underline-offset-4 hover:underline">
+              <Link href="/login" className="text-primary-text underline-offset-4 hover:underline">
 {t("Zurück zur Anmeldung")}
               </Link>
             </p>

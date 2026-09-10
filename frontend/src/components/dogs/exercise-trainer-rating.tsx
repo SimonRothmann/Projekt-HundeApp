@@ -69,7 +69,7 @@ export function ExerciseTrainerRating({
     return (
       <span className="flex min-w-0 items-baseline gap-1 text-xs text-muted-foreground">
         <span className="shrink-0 font-medium">{t("Trainer:")}</span>
-        <span className="shrink-0 text-primary">
+        <span className="shrink-0 text-primary-text">
           {"★".repeat(rating!)}
           {"☆".repeat(5 - rating!)}
         </span>
@@ -95,7 +95,7 @@ export function ExerciseTrainerRating({
               onClick={() => save(n, note)}
               aria-label={`${n} von 5 Sternen`}
               aria-pressed={shown === n}
-              className="inline-flex size-8 items-center justify-center rounded text-base leading-none text-primary disabled:opacity-50 coarse:size-11"
+              className="inline-flex size-8 items-center justify-center rounded text-base leading-none text-primary-text disabled:opacity-50 coarse:size-11"
             >
               {shown !== null && n <= shown ? "★" : "☆"}
             </button>

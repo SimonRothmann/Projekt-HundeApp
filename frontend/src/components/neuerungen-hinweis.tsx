@@ -112,7 +112,7 @@ export function NeuerungenHinweis({ erststartLaeuft }: { erststartLaeuft: boolea
           einer eigenen Zeile unter dem Titel statt rechts daneben. */}
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Sparkles className="size-4 shrink-0 text-primary" aria-hidden />
+          <Sparkles className="size-4 shrink-0 text-primary-text" aria-hidden />
           {t("Neu in Dogity")}
         </CardTitle>
         <CardAction>
@@ -144,7 +144,7 @@ export function NeuerungenHinweis({ erststartLaeuft }: { erststartLaeuft: boolea
         <Link
           href="/neuerungen"
           onClick={() => merke(AKTUELLE_VERSION)}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-text hover:underline"
         >
           {t("Alle Neuerungen")}
           <ArrowRight className="size-4" aria-hidden />

@@ -131,7 +131,7 @@ export default function ClubsPage() {
             return (
               <Card key={club.id}>
                 <CardHeader className="flex-row items-center gap-3 space-y-0">
-                  <Building2 className="size-8 text-primary" />
+                  <Building2 className="size-8 text-primary-text" />
                   <div>
                     <CardTitle>{club.name}</CardTitle>
                     {club.description && <p className="text-sm text-muted-foreground">{club.description}</p>}

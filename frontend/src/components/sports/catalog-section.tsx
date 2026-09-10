@@ -180,7 +180,7 @@ export function CatalogSection({
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
         <div className="flex items-start gap-3">
-          <BookOpen className="mt-0.5 size-5 text-primary" />
+          <BookOpen className="mt-0.5 size-5 text-primary-text" />
           <div>
             <CardTitle className="text-base">{title}</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">{description}</p>
@@ -255,7 +255,7 @@ export function CatalogSection({
                       onClick={() => toggleSport(sport.id)}
                     >
                       <span className="flex items-center gap-3">
-                        <Trophy className="size-4 text-primary" />
+                        <Trophy className="size-4 text-primary-text" />
                         <span className="font-medium">{sport.name}</span>
                         <Badge variant="secondary">{sport.code}</Badge>
                       </span>

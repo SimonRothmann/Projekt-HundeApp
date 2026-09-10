@@ -67,7 +67,7 @@ export function FragenUebersicht({ fragen }: { fragen: QuizQuestion[] }) {
                             {option.imageName ? `Antwort ${option.text}` : option.text}
                           </span>
                           {option.isCorrect && (
-                            <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">
+                            <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary-text">
                               richtig
                             </span>
                           )}

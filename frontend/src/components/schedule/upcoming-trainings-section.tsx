@@ -36,7 +36,7 @@ export function UpcomingTrainingsSection() {
     <Card>
       <CardHeader className="p-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <CalendarDays className="size-5 text-primary" />
+          <CalendarDays className="size-5 text-primary-text" />
           {t("Nächste Gruppentrainings")}
         </CardTitle>
       </CardHeader>

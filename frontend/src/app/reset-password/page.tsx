@@ -83,7 +83,7 @@ export default function ResetPasswordPage() {
         <AuthBackLink />
         <Card className="w-full">
           <CardHeader className="items-center text-center">
-            <PawPrint className="size-8 text-primary" />
+            <PawPrint className="size-8 text-primary-text" />
             <CardTitle className="text-xl">{t("Neues Passwort setzen")}</CardTitle>
             <CardDescription>{t("Wähle ein neues Passwort für dein Konto")}</CardDescription>
           </CardHeader>
@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
               <ResetPasswordForm />
             </Suspense>
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              <Link href="/login" className="text-primary underline-offset-4 hover:underline">
+              <Link href="/login" className="text-primary-text underline-offset-4 hover:underline">
 {t("Zurück zur Anmeldung")}
               </Link>
             </p>

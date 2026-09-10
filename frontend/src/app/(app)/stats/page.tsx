@@ -140,7 +140,7 @@ function DogExercises({ dogId }: { dogId: string }) {
           <li key={ex.exerciseName} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 py-1.5">
             <span className="font-medium">{ex.exerciseName}</span>
             <span className="flex items-center gap-2 text-muted-foreground">
-              <span className="text-primary" title={`Ø ${ex.avgRating.toFixed(1)} von 5`}>
+              <span className="text-primary-text" title={`Ø ${ex.avgRating.toFixed(1)} von 5`}>
                 {"★".repeat(Math.round(ex.avgRating))}
                 {"☆".repeat(5 - Math.round(ex.avgRating))}
               </span>
@@ -206,7 +206,7 @@ export default function StatsPage() {
         <>
           <Card>
             <CardHeader className="flex-row items-center gap-2 space-y-0">
-              <BarChart className="size-5 text-primary" />
+              <BarChart className="size-5 text-primary-text" />
               <CardTitle className="text-base">{t("Trainings der letzten 12 Wochen")}</CardTitle>
             </CardHeader>
             <CardContent>
@@ -243,7 +243,7 @@ export default function StatsPage() {
               {stats.perDog.map((dog) => (
                 <Card key={dog.dogId}>
                   <CardHeader className="flex-row items-center gap-3 space-y-0">
-                    <Dog className="size-6 text-primary" />
+                    <Dog className="size-6 text-primary-text" />
                     <CardTitle className="text-base">{dog.dogName}</CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-3">

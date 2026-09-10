@@ -66,7 +66,7 @@ export function LetzteNeuerung({
 
       <Link
         href="/neuerungen"
-        className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+        className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary-text hover:underline"
       >
         {t("Alle Neuerungen")}
         <ArrowRight className="size-4" aria-hidden />

@@ -64,7 +64,7 @@ export function BottomNav() {
                 className={cn(
                   "flex min-w-0 flex-col items-center gap-1 py-2 font-medium transition-transform active:scale-95",
                   LABEL_SIZE_CLASS(navItems.length),
-                  isActive ? "text-primary" : "text-muted-foreground",
+                  isActive ? "text-primary-text" : "text-muted-foreground",
                 )}
               >
                 <span

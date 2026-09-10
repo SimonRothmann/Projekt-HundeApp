@@ -14,7 +14,7 @@ import type { ReactNode } from "react"
 export function BlockLabel({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
   return (
     <h4 className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-      <Icon className="size-3.5 shrink-0 text-primary" />
+      <Icon className="size-3.5 shrink-0 text-primary-text" />
       {children}
     </h4>
   )

@@ -314,7 +314,7 @@ export default function GroupTrainingPage() {
                 <Card className="border-primary/40 bg-primary/5">
                   <CardContent className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-3">
-                      <Sparkles className="mt-0.5 size-6 shrink-0 text-primary" />
+                      <Sparkles className="mt-0.5 size-6 shrink-0 text-primary-text" />
                       <div>
                         <p className="font-medium">Mit einem fertigen Katalog starten?</p>
                         <p className="text-sm text-muted-foreground">
@@ -351,7 +351,7 @@ export default function GroupTrainingPage() {
                       >
                         {categoryLabel[cat]}
                         {count > 0 && (
-                          <span className={cn("rounded-full px-1.5 text-xs tabular-nums", active ? "bg-primary/10 text-primary" : "bg-foreground/10 text-muted-foreground")}>
+                          <span className={cn("rounded-full px-1.5 text-xs tabular-nums", active ? "bg-primary/10 text-primary-text" : "bg-foreground/10 text-muted-foreground")}>
                             {count}
                           </span>
                         )}

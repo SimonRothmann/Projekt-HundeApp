@@ -30,7 +30,7 @@ export function SidebarNav() {
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border/60 bg-sidebar/80 p-4 backdrop-blur-xl md:flex print:hidden">
       <div className="mb-6 flex items-center justify-between gap-2 px-2">
         <div className="flex items-center gap-2">
-          <PawPrint className="size-6 text-primary" />
+          <PawPrint className="size-6 text-primary-text" />
           <span className="text-gradient text-lg font-bold tracking-tight">Dogity</span>
           <EnvBadge />
         </div>
@@ -50,7 +50,7 @@ export function SidebarNav() {
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
               )}
             >
-              <Icon className={cn("size-4", isActive && "text-primary")} />
+              <Icon className={cn("size-4", isActive && "text-primary-text")} />
               {t(label)}
             </Link>
           );

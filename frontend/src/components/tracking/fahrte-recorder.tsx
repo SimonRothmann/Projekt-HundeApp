@@ -158,7 +158,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
       <Card className="border-primary/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <MapPin className="size-5 text-primary" />
+            <MapPin className="size-5 text-primary-text" />
 {t("Fährte aufnehmen")}
           </CardTitle>
         </CardHeader>

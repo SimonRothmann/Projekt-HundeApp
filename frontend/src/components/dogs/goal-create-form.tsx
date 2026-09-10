@@ -140,7 +140,7 @@ export function GoalCreateForm({
               </p>
               {selectedRegulation?.description && (
                 <div className="rounded-md bg-primary/5 px-3 py-2.5">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary">Rahmenbedingungen</p>
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary-text">Rahmenbedingungen</p>
                   <p className="whitespace-pre-line text-sm leading-relaxed">{selectedRegulation.description}</p>
                 </div>
               )}

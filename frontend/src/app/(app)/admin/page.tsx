@@ -382,7 +382,7 @@ function StatCard({ icon: Icon, label, value }: { icon: typeof Users; label: str
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-1 py-4">
-        <Icon className="size-5 text-primary" />
+        <Icon className="size-5 text-primary-text" />
         <span className="text-2xl font-semibold">{value}</span>
         <span className="text-xs text-muted-foreground">{label}</span>
       </CardContent>

@@ -268,7 +268,7 @@ function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Pr
       </span>
       {track.searchTemperatureC != null && <span>Suchen {formatTemperature(track.searchTemperatureC)}</span>}
       {track.temperatureDeltaC != null && (
-        <span className="font-medium text-primary">{formatDelta(track.temperatureDeltaC)}</span>
+        <span className="font-medium text-primary-text">{formatDelta(track.temperatureDeltaC)}</span>
       )}
       {weatherLabel(track.laidWeatherCode) && <span>{weatherLabel(track.laidWeatherCode)}</span>}
       {track.laidRelativeHumidity != null && <span>{track.laidRelativeHumidity} % rF</span>}

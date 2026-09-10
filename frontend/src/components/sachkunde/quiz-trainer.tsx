@@ -283,7 +283,7 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
       {!angemeldet && (
         <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           Du übst ohne Anmeldung – dein Lernstand wird nicht gespeichert.{" "}
-          <Link href="/register" className="font-medium text-primary underline-offset-2 hover:underline">
+          <Link href="/register" className="font-medium text-primary-text underline-offset-2 hover:underline">
             Kostenlos anmelden
           </Link>
           , damit falsche Fragen gezielt wiederkommen.

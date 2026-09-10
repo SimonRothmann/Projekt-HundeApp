@@ -317,7 +317,7 @@ function SportCard({
         onClick={onToggle}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <Trophy className={sport.clubId ? "size-6 shrink-0 text-amber-500" : "size-6 shrink-0 text-primary"} />
+          <Trophy className={sport.clubId ? "size-6 shrink-0 text-amber-500" : "size-6 shrink-0 text-primary-text"} />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base [overflow-wrap:anywhere]">{sport.name}</CardTitle>
@@ -545,7 +545,7 @@ function RegulationBlock({
               ) : (
                 detail.regulation.description && (
                   <div className="mb-3 rounded-md bg-primary/5 px-3 py-2.5">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary">Rahmenbedingungen</p>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary-text">Rahmenbedingungen</p>
                     <p className="whitespace-pre-line text-sm leading-relaxed">{detail.regulation.description}</p>
                   </div>
                 )

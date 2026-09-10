@@ -116,7 +116,7 @@ function schluesselKlasse(
 ): string {
   if (!aufgeloest) {
     return aktiv
-      ? "border-primary bg-primary/15 text-primary"
+      ? "border-primary bg-primary/15 text-primary-text"
       : "border-border/60 hover:border-primary/50 hover:bg-accent/30";
   }
   // Nach dem Auflösen: die richtige Zuordnung immer grün, eine falsch gewählte

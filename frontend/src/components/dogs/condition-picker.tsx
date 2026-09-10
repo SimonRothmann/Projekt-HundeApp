@@ -54,7 +54,7 @@ export function ConditionPicker({
             className={cn(
               "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-10 disabled:opacity-50",
               aktiv
-                ? "border-primary bg-primary/15 text-primary"
+                ? "border-primary bg-primary/15 text-primary-text"
                 : "border-border/60 text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
             )}
           >

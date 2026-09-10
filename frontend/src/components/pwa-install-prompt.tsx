@@ -64,7 +64,7 @@ export function PwaInstallPrompt() {
   if (deferredPrompt) {
     return (
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border bg-background px-4 py-3 shadow-lg text-sm max-w-sm w-[calc(100%-2rem)]">
-        <Download className="size-5 shrink-0 text-primary" />
+        <Download className="size-5 shrink-0 text-primary-text" />
         <span className="flex-1">{t("Als App installieren – für die beste Erfahrung offline.")}</span>
         <Button size="sm" onClick={installAndroid}>
           Installieren
@@ -80,7 +80,7 @@ export function PwaInstallPrompt() {
     return (
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 rounded-xl border bg-background px-4 py-3 shadow-lg text-sm max-w-sm w-[calc(100%-2rem)]">
         <div className="flex items-center gap-2">
-          <Download className="size-5 shrink-0 text-primary" />
+          <Download className="size-5 shrink-0 text-primary-text" />
           <span className="font-medium">Als App installieren</span>
           <button onClick={() => setDismissed(true)} className="ml-auto text-muted-foreground hover:text-foreground">
             <X className="size-4" />

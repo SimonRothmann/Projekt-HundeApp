@@ -225,13 +225,19 @@ Radix Colors und WCAG 2.2 (geprüft 2026-09-10). Die Werte stehen in
    container 12-17, highest 22; Apple: "base" dunkler, "elevated" heller).
    Nie etwas DUNKLER als die Seite hinterlegen, um es abzuheben - das ergibt
    Schwarz auf Schwarz.
-2. **Neutral statt getönt.** Grautöne mit höchstens einem Hauch Blau
-   (Chroma ≈ 0.01). Stark blau getönte Flächen unter blauen Akzenten
-   verschwimmen zu einer einzigen Farbe.
-3. **Primärfarbe hell, Schrift darauf dunkel** (M3: primary Tonstufe 80,
-   on-primary 20). Eine mittlere Primärfarbe mit weißer Schrift scheitert
-   im Dark Mode doppelt: als Knopf zu wenig Kontrast zur weißen Schrift, als
-   Textfarbe zu wenig Kontrast zum dunklen Grund.
+2. **Grau leicht zur Markenfarbe getönt** (Radix Colors: zu Indigo/Iris
+   gehört „Slate"). Nur ein Hauch, Chroma ≈ 0.012. Beides Extreme wurde auf
+   Test gesehen und verworfen: kräftig getöntes Navy ließ die blauen Akzente
+   verschwimmen, völlig neutrales Grau wirkte neben dem Indigo fremd
+   („das Grau beißt sich mit dem Blau").
+3. **Zwei Indigotöne statt einem** (Radix Themes, GitHub, Linear):
+   `--primary` ist das kräftige Indigo für Knöpfe und Flächen, mit weißer
+   Schrift; `--primary-text` das helle Indigo für Links, Symbole und
+   Hervorhebungen im Text. **Für Text und Symbole immer
+   `text-primary-text`, nie `text-primary`.** Ein einziger Ton kann nicht
+   beides: weiße Schrift verlangt ein dunkleres, lesbarer Text auf dunklem
+   Grund ein helleres Blau. Ein heller Knopf mit dunkler Schrift
+   (Material 3) war lesbar, wirkte neben dem Grau aber blass.
 4. **Kontrast mit Reserve.** Text mindestens 4,5:1, besser 7:1 (Apple).
    Eingabefeld-Ränder, Fokusringe und bedeutungstragende Grafik 3:1
    (WCAG 1.4.11). Dekorative Kartenränder sind davon ausgenommen.
@@ -243,11 +249,11 @@ Radix Colors und WCAG 2.2 (geprüft 2026-09-10). Die Werte stehen in
 
 | Paar | vorher | nachher |
 |---|---|---|
-| Knopfschrift auf Primär | 3,86:1 (durchgefallen) | 8,40:1 |
-| Primär als Text auf Karte | 4,52:1 | 7,38:1 |
-| Nebentext auf Karte | 7,23:1 | 8,19:1 |
-| Eingabefeld-Rand auf Karte | 1,51:1 (durchgefallen) | 3,46:1 |
-| Helligkeitsstufe Karte über Seite | ΔL 0,05 | ΔL 0,08 |
+| Knopfschrift auf Primär | 3,86:1 (durchgefallen) | 4,89:1 |
+| Primär als Text auf Karte | 4,52:1 | 7,89:1 (`--primary-text`) |
+| Nebentext auf Karte | 7,23:1 | 7,83:1 |
+| Eingabefeld-Rand auf Karte | 1,51:1 (durchgefallen) | 3,30:1 |
+| Helligkeitsstufe Karte über Seite | ΔL 0,05 | ΔL 0,07 |
 
 
 ---

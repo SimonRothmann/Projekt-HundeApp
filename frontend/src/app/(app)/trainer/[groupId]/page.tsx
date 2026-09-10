@@ -446,7 +446,7 @@ export default function TrainerGroupPage() {
                         {dogs.map((dog) => (
                           <li key={dog.id} className="flex items-center justify-between rounded-md border px-3 py-2">
                             <div className="flex items-center gap-2">
-                              <DogIcon className="size-4 text-primary" />
+                              <DogIcon className="size-4 text-primary-text" />
                               <span className="font-medium">{dog.name}</span>
                               {dog.breed && <span className="text-sm text-muted-foreground">{dog.breed}</span>}
                             </div>
@@ -466,7 +466,7 @@ export default function TrainerGroupPage() {
                                   // der Hundeseite zu den EIGENEN Hunden statt
                                   // hierher in die Gruppe zurück.
                                   href={`/dogs/${dog.id}?from=${encodeURIComponent(`/trainer/${groupId}`)}`}
-                                  className="text-sm text-primary underline"
+                                  className="text-sm text-primary-text underline"
                                 >
 {t("Zum Hund")}
                                 </Link>

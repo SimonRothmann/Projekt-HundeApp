@@ -74,7 +74,7 @@ export default function DashboardPage() {
         <Link href="/clubs" className="group block">
           <Card className="border-primary/40 bg-primary/5 transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary/10 hover:shadow-[var(--shadow-glow)]">
             <CardHeader className="flex-row items-center gap-4 space-y-0">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/25">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary-text ring-1 ring-primary/25">
                 <Building2 className="size-6" />
               </span>
               <div>
@@ -120,7 +120,7 @@ export default function DashboardPage() {
         <Link href="/dogs" className="group block">
           <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
             <CardHeader className="flex-row items-center gap-4 space-y-0">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-colors group-hover:bg-primary/15">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text ring-1 ring-primary/20 transition-colors group-hover:bg-primary/15">
                 <Dog className="size-6" />
               </span>
               <div>
@@ -149,7 +149,7 @@ export default function DashboardPage() {
                 <Link href="/sachkunde" className="group block sm:col-span-2">
           <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
             <CardHeader className="flex-row items-center gap-4 space-y-0">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-colors group-hover:bg-primary/15">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text ring-1 ring-primary/20 transition-colors group-hover:bg-primary/15">
                 <GraduationCap className="size-6" />
               </span>
               <div>

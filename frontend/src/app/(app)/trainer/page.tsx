@@ -83,7 +83,7 @@ export default function TrainerPage() {
         <Card className="transition-colors hover:bg-accent/30">
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-3">
-              <ClipboardList className="size-6 shrink-0 text-primary" />
+              <ClipboardList className="size-6 shrink-0 text-primary-text" />
               <div className="min-w-0">
                 <CardTitle className="text-base">Gruppentraining</CardTitle>
                 <p className="text-sm text-muted-foreground">
@@ -100,7 +100,7 @@ export default function TrainerPage() {
         <Card className="transition-colors hover:bg-accent/30">
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-3">
-              <CalendarDays className="size-6 shrink-0 text-primary" />
+              <CalendarDays className="size-6 shrink-0 text-primary-text" />
               <div className="min-w-0">
                 <CardTitle className="text-base">Terminplanung</CardTitle>
                 <p className="text-sm text-muted-foreground">
@@ -172,7 +172,7 @@ export default function TrainerPage() {
               <Card className="transition-colors hover:bg-accent/30">
                 <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
                   <div className="flex min-w-0 items-center gap-3">
-                    <Users className="size-6 shrink-0 text-primary" />
+                    <Users className="size-6 shrink-0 text-primary-text" />
                     <div className="min-w-0">
                       <CardTitle className="text-base [overflow-wrap:anywhere]">{group.name}</CardTitle>
                       {group.trainerName && (

@@ -58,7 +58,7 @@ export default function LoginPage() {
         <AuthBackLink />
         <Card className="w-full">
           <CardHeader className="items-center text-center">
-            <PawPrint className="size-8 text-primary" />
+            <PawPrint className="size-8 text-primary-text" />
             <div className="flex items-center gap-2">
               <CardTitle className="text-xl">Bei Dogity anmelden</CardTitle>
               <EnvBadge />
@@ -81,7 +81,7 @@ export default function LoginPage() {
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Passwort</Label>
-                  <Link href="/forgot-password" className="text-xs text-primary underline-offset-4 hover:underline">
+                  <Link href="/forgot-password" className="text-xs text-primary-text underline-offset-4 hover:underline">
                     Passwort vergessen?
                   </Link>
                 </div>
@@ -101,7 +101,7 @@ export default function LoginPage() {
             </form>
             <p className="mt-4 text-center text-sm text-muted-foreground">
               Noch kein Konto?{" "}
-              <Link href="/register" className="text-primary underline-offset-4 hover:underline">
+              <Link href="/register" className="text-primary-text underline-offset-4 hover:underline">
                 Registrieren
               </Link>
             </p>

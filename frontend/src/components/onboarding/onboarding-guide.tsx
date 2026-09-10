@@ -157,7 +157,7 @@ export function OnboardingGuide({
 
 function Erledigt() {
   return (
-    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary-text">
       <Check className="size-3.5" />
     </span>
   );
@@ -193,7 +193,7 @@ function Weg({ titel, schritte }: { titel: string; schritte: Schritt[] }) {
                 // scroll={false}: Der Anker #trainingsplan entsteht erst, wenn
                 // die Ziele geladen sind - Next würde sonst nach oben springen.
                 scroll={false}
-                className="flex min-w-0 items-start gap-2 rounded-md py-1 text-sm transition-colors hover:text-primary coarse:min-h-11"
+                className="flex min-w-0 items-start gap-2 rounded-md py-1 text-sm transition-colors hover:text-primary-text coarse:min-h-11"
               >
                 <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-border" />
                 <span className="min-w-0">

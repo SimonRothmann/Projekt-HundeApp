@@ -43,7 +43,7 @@ export default function RegisterPage() {
         <AuthBackLink />
         <Card className="w-full">
           <CardHeader className="items-center text-center">
-            <PawPrint className="size-8 text-primary" />
+            <PawPrint className="size-8 text-primary-text" />
             <CardTitle className="text-xl">Konto erstellen</CardTitle>
             <CardDescription>{t("Starte dein Trainingstagebuch")}</CardDescription>
           </CardHeader>
@@ -89,7 +89,7 @@ export default function RegisterPage() {
             </form>
             <p className="mt-4 text-center text-sm text-muted-foreground">
               Bereits ein Konto?{" "}
-              <Link href="/login" className="text-primary underline-offset-4 hover:underline">
+              <Link href="/login" className="text-primary-text underline-offset-4 hover:underline">
                 Anmelden
               </Link>
             </p>

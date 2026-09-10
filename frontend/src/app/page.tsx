@@ -175,7 +175,7 @@ export default function HomePage() {
           <div className="mt-8 grid gap-6 sm:grid-cols-2">
             {FEATURES.map(({ icon: Icon, title, text }) => (
               <article key={title} className="flex min-w-0 gap-3">
-                <Icon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+                <Icon className="mt-0.5 size-5 shrink-0 text-primary-text" aria-hidden />
                 <div className="min-w-0">
                   <h3 className="font-semibold">{title}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{text}</p>

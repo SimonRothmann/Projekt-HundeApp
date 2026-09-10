@@ -70,7 +70,7 @@ export function ConditionStats({ dogId }: { dogId: string }) {
                 <span className="font-medium">{conditionLabel(row.condition) ?? "unbekannt"}</span>
                 <span className="flex items-center gap-2 text-muted-foreground">
                   {row.avgRating !== null && (
-                    <span className="text-primary tabular-nums" title={`Ø ${row.avgRating.toFixed(1)} von 5`}>
+                    <span className="text-primary-text tabular-nums" title={`Ø ${row.avgRating.toFixed(1)} von 5`}>
                       Ø {row.avgRating.toFixed(1)} ★
                     </span>
                   )}
@@ -97,7 +97,7 @@ export function ConditionStats({ dogId }: { dogId: string }) {
                 <span className="font-medium">{t(dichteName(row.precedingTrainingDays))}</span>
                 <span className="flex items-center gap-2 text-muted-foreground">
                   {row.avgRating !== null && (
-                    <span className="text-primary tabular-nums">Ø {row.avgRating.toFixed(1)} ★</span>
+                    <span className="text-primary-text tabular-nums">Ø {row.avgRating.toFixed(1)} ★</span>
                   )}
                   {row.tiredOrStressedShare !== null && row.tiredOrStressedShare > 0 && (
                     <span className="tabular-nums" title={t("Anteil müde oder gestresst")}>

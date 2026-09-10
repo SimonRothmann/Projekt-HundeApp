@@ -123,7 +123,7 @@ export default async function RegulationPage({ params }: Params) {
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                     <h3 className="font-medium [overflow-wrap:anywhere]">{exercise.exerciseName}</h3>
                     {exercise.maxPoints > 0 && (
-                      <span className="text-sm font-semibold text-primary">{exercise.maxPoints} Punkte</span>
+                      <span className="text-sm font-semibold text-primary-text">{exercise.maxPoints} Punkte</span>
                     )}
                   </div>
                   {exercise.scoringNotes && (
