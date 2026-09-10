@@ -141,7 +141,9 @@ dass die Ausnahmen ein Ablaufdatum haben.
   hat. Gelöst mit `fixupConfigRules` aus `@eslint/compat` in
   `eslint.config.mjs`; Ergebnis identisch mit ESLint 9 (gleiche 7 Warnungen).
   Offen: den Wrapper entfernen, sobald `eslint-plugin-react` ESLint 10 selbst
-  unterstützt.
+  unterstützt - und mit ihm die `overrides` in `frontend/package.json`. Sie
+  stillen die ERESOLVE-Warnungen von `eslint-plugin-react`, `-import` und
+  `-jsx-a11y` beim Deploy, deren Peer-Angabe bei ESLint 9 endet.
 - [ ] **Swashbuckle 10.** Braucht eine Migration der Swagger-Konfiguration
   in `Program.cs` auf Microsoft.OpenApi v2 (Namensraum und Referenzmodell
   geändert). Betrifft nur die Development-Oberfläche, Prod hat kein
