@@ -67,7 +67,7 @@ Die Regel dahinter, damit das nicht wiederkommt:
 
 | Was | Darstellung |
 |---|---|
-| Gelegte Fährte (Bezugslinie) | Magenta `#e11dde`, 6 px, dunkle Fassung; Start gefüllt mit weißem Ring, Ende weiß mit magenta Ring |
+| Gelegte Fährte (Bezugslinie) | Magenta `#e11dde`, 7 px, dunkle Fassung 10 px; Start gefüllt mit weißem Ring, Ende weiß mit magenta Ring |
 | Ablauf, ausgewertet | Ampel grün/gelb/rot je Abschnitt, 4 px, über der Legung |
 | Ablauf, laufend oder nicht ausgewertet | kühle Blau-/Türkistöne je Versuch, gestrichelt |
 

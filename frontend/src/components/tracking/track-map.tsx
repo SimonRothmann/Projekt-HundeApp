@@ -368,13 +368,14 @@ export function TrackMap({
     const latLngs = automaticPoints.map((p) => [p.latitude, p.longitude] as [number, number]);
 
     if (latLngs.length > 0) {
-      // Mehr als doppelt so breit wie der Ablauf (4), der darüber gezeichnet
-      // wird: Die Legung erscheint als farbiger Korridor, der Ablauf als Linie
-      // darin. Bei 6 px blieb nur ein 1-px-Saum - und ausgerechnet dort, wo
-      // der Hund sauber sucht, verschwand die Legung vollständig unter dem
-      // Ablauf.
-      L.polyline(latLngs, { color: TRACK_CASING_COLOR, weight: 13, opacity: 0.5 }).addTo(layerGroup);
-      L.polyline(latLngs, { color: TRACK_LINE_COLOR, weight: 9, opacity: 0.9 }).addTo(layerGroup);
+      // Deutlich breiter als der Ablauf (4), der darüber gezeichnet wird: Die
+      // Legung erscheint als farbiger Korridor, der Ablauf als Linie darin.
+      // 6 px waren zu wenig - dort, wo der Hund sauber sucht, verschwand die
+      // Legung unter dem Ablauf. 9 px waren auf Test gut sichtbar, aber
+      // breiter als nötig; 7 px lassen beidseits des Ablaufs noch einen
+      // klaren Saum.
+      L.polyline(latLngs, { color: TRACK_CASING_COLOR, weight: 10, opacity: 0.5 }).addTo(layerGroup);
+      L.polyline(latLngs, { color: TRACK_LINE_COLOR, weight: 7, opacity: 0.9 }).addTo(layerGroup);
       // Start gefüllt, Ende hohl - dieselbe Farbe wie die Linie, statt wie
       // bisher Grün und Rot: beides sind Ampeltöne und meinten hier gerade
       // NICHT gut und schlecht, sondern Anfang und Ende der Legung.
@@ -688,14 +689,14 @@ function Linienprobe({
 }) {
   return (
     <svg viewBox="0 0 24 12" width="24" height="12" className="shrink-0" aria-hidden>
-      {fassung && <line x1="3" y1="6" x2="21" y2="6" stroke={fassung} strokeWidth="11" strokeOpacity="0.5" strokeLinecap="round" />}
+      {fassung && <line x1="3" y1="6" x2="21" y2="6" stroke={fassung} strokeWidth="9" strokeOpacity="0.5" strokeLinecap="round" />}
       <line
         x1="3"
         y1="6"
         x2="21"
         y2="6"
         stroke={farbe}
-        strokeWidth={fassung ? 8 : 3.5}
+        strokeWidth={fassung ? 6 : 3.5}
         strokeLinecap="round"
         strokeDasharray={gestrichelt ? "4 3" : undefined}
       />

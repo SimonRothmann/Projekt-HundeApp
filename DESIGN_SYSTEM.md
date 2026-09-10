@@ -214,6 +214,41 @@ nutzen stattdessen weiße Transparenz.
 
 Pflicht.
 
+Abgestimmt nach Material 3 (Google), Apple Human Interface Guidelines,
+Radix Colors und WCAG 2.2 (geprüft 2026-09-10). Die Werte stehen in
+`frontend/src/app/globals.css`, Block `.dark`.
+
+**Regeln**
+
+1. **Höher = heller.** Seite < Karte < Popover/secondary. Auf Dunkel
+   verschwinden Schatten, Helligkeit bleibt sichtbar (M3: surface 6,
+   container 12-17, highest 22; Apple: "base" dunkler, "elevated" heller).
+   Nie etwas DUNKLER als die Seite hinterlegen, um es abzuheben - das ergibt
+   Schwarz auf Schwarz.
+2. **Neutral statt getönt.** Grautöne mit höchstens einem Hauch Blau
+   (Chroma ≈ 0.01). Stark blau getönte Flächen unter blauen Akzenten
+   verschwimmen zu einer einzigen Farbe.
+3. **Primärfarbe hell, Schrift darauf dunkel** (M3: primary Tonstufe 80,
+   on-primary 20). Eine mittlere Primärfarbe mit weißer Schrift scheitert
+   im Dark Mode doppelt: als Knopf zu wenig Kontrast zur weißen Schrift, als
+   Textfarbe zu wenig Kontrast zum dunklen Grund.
+4. **Kontrast mit Reserve.** Text mindestens 4,5:1, besser 7:1 (Apple).
+   Eingabefeld-Ränder, Fokusringe und bedeutungstragende Grafik 3:1
+   (WCAG 1.4.11). Dekorative Kartenränder sind davon ausgenommen.
+5. **Akzente zurücknehmen.** Leuchtende Farben, die im hellen Modus passen,
+   wirken auf Dunkel grell - Helligkeit und Chroma anpassen, Akzente für
+   Aktionen und Status aufheben.
+
+**Gemessen** (WCAG-Kontrast, vorher → nachher)
+
+| Paar | vorher | nachher |
+|---|---|---|
+| Knopfschrift auf Primär | 3,86:1 (durchgefallen) | 8,40:1 |
+| Primär als Text auf Karte | 4,52:1 | 7,38:1 |
+| Nebentext auf Karte | 7,23:1 | 8,19:1 |
+| Eingabefeld-Rand auf Karte | 1,51:1 (durchgefallen) | 3,46:1 |
+| Helligkeitsstufe Karte über Seite | ΔL 0,05 | ΔL 0,08 |
+
 
 ---
 

@@ -181,7 +181,7 @@ export function GpsTrackSection({
                     return (
                       <li
                         key={run.id}
-                        className="flex flex-col gap-0.5 rounded-lg border border-surface-border bg-background/60 px-2.5 py-2 dark:bg-black/25"
+                        className="flex flex-col gap-0.5 rounded-lg border border-surface-border bg-background/60 px-2.5 py-2 dark:bg-white/4"
                       >
                         <span>
                           <span className="font-medium text-foreground">Ablauf {i + 1}</span>: gestartet{" "}

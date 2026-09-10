@@ -359,7 +359,7 @@ export function SessionHistory({
           // Der Monat ist die oberste Ebene der Liste und bekommt deshalb eine
           // eigene Fläche: eingefärbte Kopfzeile, ruhiger Grund darunter. So
           // ist auf einen Blick zu sehen, welche Trainingstage zusammengehören.
-          <div key={mKey} className="overflow-hidden rounded-xl border border-border dark:border-white/15">
+          <div key={mKey} className="overflow-hidden rounded-xl border border-border">
             <button
               type="button"
               onClick={() => toggleMonth(mKey)}
@@ -380,10 +380,11 @@ export function SessionHistory({
               </Badge>
             </button>
             {isOpen && (
-              // Im Dark Mode ein dunklerer Grund als die Seite: die Karten der
-              // Trainingstage liegen dann sichtbar DARAUF, statt im selben
-              // Dunkelgrau zu verschwimmen.
-              <div className="flex flex-col gap-4 border-t border-border bg-muted/40 p-3 dark:border-white/10 dark:bg-black/30">
+              // Im Dark Mode ohne eigenen Grund: dort gilt "höher = heller"
+              // (Material 3, Apple HIG) - die Trainingstage heben sich durch
+              // ihre hellere Kartenfläche ab. Ein abgedunkelter Grund darunter
+              // war genau das "Dunkelblau auf Dunkelgrau auf Schwarz".
+              <div className="flex flex-col gap-4 border-t border-border bg-muted/40 p-3 dark:bg-transparent">
                 {Array.from(days.entries()).map(([date, daySessions]) => {
                   const completed = isCompletedDay(date);
                   const totalMinutes = daySessions.reduce((sum, s) => sum + s.durationMinutes, 0);
@@ -398,7 +399,7 @@ export function SessionHistory({
                           ein Grid ist - "justify-between" darauf hat die
                           beiden nie nebeneinander gebracht, sie standen
                           untereinander. */}
-                      <CardHeader className="-mt-4 border-b bg-primary/6 pt-4 dark:border-white/10 dark:bg-primary/15">
+                      <CardHeader className="-mt-4 border-b bg-primary/6 pt-4 dark:bg-white/6">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <DayDate sessions={daySessions} onChanged={onChanged} />
                           <div className="flex shrink-0 items-center gap-1">
