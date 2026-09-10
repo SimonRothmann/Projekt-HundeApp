@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { BlockLabel } from "@/components/ui/block-label";
 import { Input } from "@/components/ui/input";
 import {
+  CalendarDays,
   Check,
   ChevronDown,
   ChevronRight,
@@ -152,7 +153,7 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
   // stand bisher als grauer Fließtext zwischen Kopfdaten und Übungsliste,
   // ohne erkennbar zu einem der beiden zu gehören oder eben nicht.
   return (
-    <div className="flex items-start gap-1 rounded-lg border border-l-2 border-border/60 border-l-primary/50 bg-muted/40 px-2.5 py-2">
+    <div className="flex items-start gap-1 rounded-lg border border-l-2 border-surface-border border-l-primary/70 bg-surface px-2.5 py-2">
       <p className="min-w-0 flex-1 text-sm whitespace-pre-line [overflow-wrap:anywhere]">{joined}</p>
       <Button
         size="icon"
@@ -217,6 +218,7 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
   if (!editing) {
     return (
       <CardTitle className="flex min-w-0 items-center gap-0.5 text-base font-semibold tracking-tight">
+        <CalendarDays className="mr-1 size-4 shrink-0 text-primary" />
         <span className="truncate">{new Date(date).toLocaleDateString("de-DE")}</span>
         <Button
           size="icon"
@@ -347,7 +349,7 @@ export function SessionHistory({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {orderedKeys.map((mKey) => {
         const days = monthGroups.get(mKey)!;
         const isOpen = effectiveOpen.has(mKey);
@@ -357,12 +359,12 @@ export function SessionHistory({
           // Der Monat ist die oberste Ebene der Liste und bekommt deshalb eine
           // eigene Fläche: eingefärbte Kopfzeile, ruhiger Grund darunter. So
           // ist auf einen Blick zu sehen, welche Trainingstage zusammengehören.
-          <div key={mKey} className="overflow-hidden rounded-xl border border-border">
+          <div key={mKey} className="overflow-hidden rounded-xl border border-border dark:border-white/15">
             <button
               type="button"
               onClick={() => toggleMonth(mKey)}
               aria-expanded={isOpen}
-              className="flex w-full items-center justify-between gap-2 bg-muted/60 px-3 py-2.5 text-left transition-colors hover:bg-muted coarse:min-h-11"
+              className="flex w-full items-center justify-between gap-2 bg-secondary px-3 py-3 text-left transition-colors hover:bg-secondary/70 coarse:min-h-11"
             >
               <span className="flex min-w-0 items-center gap-2 font-heading font-semibold tracking-tight capitalize">
                 {isOpen ? (
@@ -378,7 +380,10 @@ export function SessionHistory({
               </Badge>
             </button>
             {isOpen && (
-              <div className="flex flex-col gap-3 border-t border-border bg-muted/20 p-3">
+              // Im Dark Mode ein dunklerer Grund als die Seite: die Karten der
+              // Trainingstage liegen dann sichtbar DARAUF, statt im selben
+              // Dunkelgrau zu verschwimmen.
+              <div className="flex flex-col gap-4 border-t border-border bg-muted/40 p-3 dark:border-white/10 dark:bg-black/30">
                 {Array.from(days.entries()).map(([date, daySessions]) => {
                   const completed = isCompletedDay(date);
                   const totalMinutes = daySessions.reduce((sum, s) => sum + s.durationMinutes, 0);
@@ -386,14 +391,14 @@ export function SessionHistory({
                   const gpsSessions = daySessions.filter((s) => s.hasGpsTrack);
                   const feedbackSessions = daySessions.filter((s) => s.trainerFeedback);
                   return (
-                    <Card key={date}>
+                    <Card key={date} className="dark:ring-white/15">
                       {/* Eigene Kopfzeile mit Trennlinie: Datum und Dauer sind
                           die Kennung des Trainingstags, nicht sein erster
                           Inhalt. Der innere flex-Container, weil CardHeader
                           ein Grid ist - "justify-between" darauf hat die
                           beiden nie nebeneinander gebracht, sie standen
                           untereinander. */}
-                      <CardHeader className="border-b">
+                      <CardHeader className="-mt-4 border-b bg-primary/6 pt-4 dark:border-white/10 dark:bg-primary/15">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <DayDate sessions={daySessions} onChanged={onChanged} />
                           <div className="flex shrink-0 items-center gap-1">
@@ -428,7 +433,7 @@ export function SessionHistory({
                               {exercises.map((ex) => (
                                 <li
                                   key={ex.id}
-                                  className="flex flex-col gap-1 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-2"
+                                  className="flex flex-col gap-1 rounded-lg border border-surface-border bg-surface px-2.5 py-2"
                                 >
                                   <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
                                     <span className="min-w-0 font-medium [overflow-wrap:anywhere]">

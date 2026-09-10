@@ -37,6 +37,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-accent-2: var(--accent-2);
+  --color-surface: var(--surface);
+  --color-surface-border: var(--surface-border);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -76,6 +78,10 @@
   --accent: oklch(0.72 0.13 205); /* cyan */
   --accent-foreground: oklch(0.25 0.05 235);
   --accent-2: oklch(0.67 0.27 330); /* fuchsia (Verläufe/Highlights) */
+  /* Abgesetzte Fläche INNERHALB einer Karte (Übung, Fährte, Kommentar) -
+     siehe DESIGN_SYSTEM.md "Gliederung einer Seite". */
+  --surface: oklch(0.968 0.008 255 / 75%);
+  --surface-border: oklch(0.922 0.014 255);
   --destructive: oklch(0.6 0.22 22);
   --border: oklch(0.922 0.014 255); /* slate-200 */
   --input: oklch(0.922 0.014 255);
@@ -121,6 +127,12 @@
   --accent: oklch(0.75 0.14 205); /* cyan */
   --accent-foreground: oklch(0.17 0.03 235);
   --accent-2: oklch(0.7 0.26 330); /* fuchsia */
+  /* Weiße Transparenz statt muted: muted liegt im Dark Mode nur knapp über
+     card (0.25 zu 0.205). Eine Fläche aus bg-muted/40 hob sich dadurch um
+     kaum messbare Helligkeit ab - auf dem Telefon war sie schlicht nicht zu
+     sehen. */
+  --surface: oklch(1 0 0 / 7%);
+  --surface-border: oklch(1 0 0 / 16%);
   --destructive: oklch(0.68 0.2 22);
   --border: oklch(1 0 0 / 10%); /* translucent glass */
   --input: oklch(1 0 0 / 14%);

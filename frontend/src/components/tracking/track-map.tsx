@@ -18,8 +18,13 @@ type MapPoint = { latitude: number; longitude: number; pointType?: number; label
 
 // Eigene Farbe pro Ablauf-Versuch, damit mehrere Wiederholungen auf der
 // Karte unterscheidbar bleiben (zyklisch wiederverwendet, falls mehr
-// Versuche als Farben vorhanden sind).
-const WALK_RUN_COLORS = ["#2563eb", "#9333ea", "#0d9488", "#dc2626"];
+// Versuche als Farben vorhanden sind). Gilt für den gerade laufenden und für
+// noch nicht ausgewertete Abläufe.
+//
+// Nur kühle Blau- und Türkistöne: Violett lag zu nah am Magenta der Legung,
+// Rot mitten in der Ampel der Auswertung - beides hätte genau die
+// Verwechslung zurückgebracht, die die Farbordnung verhindern soll.
+const WALK_RUN_COLORS = ["#3b82f6", "#14b8a6", "#6366f1", "#06b6d4"];
 
 // Fester Farbwert statt einer Theme-CSS-Variable: Leaflet setzt "color" als
 // reines SVG-Attribut (stroke="..."), nicht als CSS-Eigenschaft - var(...)
@@ -33,11 +38,16 @@ const WALK_RUN_COLORS = ["#2563eb", "#9333ea", "#0d9488", "#dc2626"];
 // auch keine Bewertung, sondern die Bezugslinie, an der gemessen wird - sie
 // gehört deshalb gar nicht in die Ampelskala.
 //
-// Dunkler Kern mit heller Fassung (die klassische Kartendarstellung): so
-// bleibt die Linie auf hellen Straßenkacheln, auf dem Luftbild und auf den
-// im Dark Mode invertierten Kacheln gleichermaßen sichtbar.
-const TRACK_LINE_COLOR = "#111827";
-const TRACK_CASING_COLOR = "#f8fafc";
+// Magenta mit dunkler Fassung. Der erste Versuch - dunkler Kern, helle
+// Fassung - war auf Test kaum zu sehen: auf dem Luftbild und auf den im Dark
+// Mode invertierten Kacheln verschwand der dunkle Kern im Untergrund, übrig
+// blieb ein dünner heller Doppelrand. Die Last muss der Kern tragen, nicht
+// die Fassung. Magenta kommt in keinem Untergrund vor (weder Wiese, Acker
+// noch Wald), ist in keiner Ampel und in keiner Ablauf-Farbe - und ist die
+// übliche Farbe für die vorgegebene Route (Garmin, Luftfahrt-Navigation).
+// Die dunkle Fassung trägt nur auf hellen Straßenkacheln etwas bei.
+const TRACK_LINE_COLOR = "#e11dde";
+const TRACK_CASING_COLOR = "#1e1b2e";
 
 // Ampelfarben für die Abweichung der Ablauf-Linie (Schwellen siehe
 // GpsTrackEvaluator im Backend - bewusst großzügig, weil der GPS-Fehler
@@ -312,7 +322,10 @@ export function TrackMap({
       // Vorläufige Sicht (Deutschland-Mitte), bis der erste GPS-Punkt
       // eintrifft und Effect 2 per setView auf den tatsächlichen Standort
       // springt - ohne das bliebe die Karte ohne jede Kachel leer/grau.
-      const map = L.map(containerRef.current).setView([51.1657, 10.4515], 6);
+      // zoomSnap 0.25: fitBounds rundet sonst auf ganze Zoomstufen ab, und
+      // eine kurze Fährte füllte nur ein Drittel der Karte - der Rest war
+      // leerer Rand um eine winzige Figur.
+      const map = L.map(containerRef.current, { zoomSnap: 0.25 }).setView([51.1657, 10.4515], 6);
       mapRef.current = map;
 
       const start = KARTEN_EBENEN[gespeicherteEbene()];
@@ -355,15 +368,20 @@ export function TrackMap({
     const latLngs = automaticPoints.map((p) => [p.latitude, p.longitude] as [number, number]);
 
     if (latLngs.length > 0) {
-      L.polyline(latLngs, { color: TRACK_CASING_COLOR, weight: 8, opacity: 0.9 }).addTo(layerGroup);
-      L.polyline(latLngs, { color: TRACK_LINE_COLOR, weight: 4 }).addTo(layerGroup);
+      // Mehr als doppelt so breit wie der Ablauf (4), der darüber gezeichnet
+      // wird: Die Legung erscheint als farbiger Korridor, der Ablauf als Linie
+      // darin. Bei 6 px blieb nur ein 1-px-Saum - und ausgerechnet dort, wo
+      // der Hund sauber sucht, verschwand die Legung vollständig unter dem
+      // Ablauf.
+      L.polyline(latLngs, { color: TRACK_CASING_COLOR, weight: 13, opacity: 0.5 }).addTo(layerGroup);
+      L.polyline(latLngs, { color: TRACK_LINE_COLOR, weight: 9, opacity: 0.9 }).addTo(layerGroup);
       // Start gefüllt, Ende hohl - dieselbe Farbe wie die Linie, statt wie
       // bisher Grün und Rot: beides sind Ampeltöne und meinten hier gerade
       // NICHT gut und schlecht, sondern Anfang und Ende der Legung.
       L.circleMarker(latLngs[0], {
-        radius: 6,
-        color: TRACK_CASING_COLOR,
-        weight: 2,
+        radius: 8,
+        color: "#ffffff",
+        weight: 3,
         fillColor: TRACK_LINE_COLOR,
         fillOpacity: 1,
       })
@@ -371,10 +389,10 @@ export function TrackMap({
         .bindTooltip(t("Start (gelegt)"));
       if (!live) {
         L.circleMarker(latLngs[latLngs.length - 1], {
-          radius: 6,
+          radius: 8,
           color: TRACK_LINE_COLOR,
-          weight: 3,
-          fillColor: TRACK_CASING_COLOR,
+          weight: 4,
+          fillColor: "#ffffff",
           fillOpacity: 1,
         })
           .addTo(layerGroup)
@@ -414,7 +432,7 @@ export function TrackMap({
             .bindTooltip(`Ablauf ${index + 1}: ${worse.toFixed(1)} m Abweichung`);
         }
       } else {
-        L.polyline(runLatLngs, { color: fallbackColor, dashArray: "6 6" })
+        L.polyline(runLatLngs, { color: fallbackColor, dashArray: "6 6", weight: 4 })
           .addTo(layerGroup)
           .bindTooltip(`Ablauf-Versuch ${index + 1}`);
       }
@@ -669,15 +687,15 @@ function Linienprobe({
   gestrichelt?: boolean;
 }) {
   return (
-    <svg viewBox="0 0 22 10" width="22" height="10" className="shrink-0" aria-hidden>
-      {fassung && <line x1="2" y1="5" x2="20" y2="5" stroke={fassung} strokeWidth="7" strokeLinecap="round" />}
+    <svg viewBox="0 0 24 12" width="24" height="12" className="shrink-0" aria-hidden>
+      {fassung && <line x1="3" y1="6" x2="21" y2="6" stroke={fassung} strokeWidth="11" strokeOpacity="0.5" strokeLinecap="round" />}
       <line
-        x1="2"
-        y1="5"
-        x2="20"
-        y2="5"
+        x1="3"
+        y1="6"
+        x2="21"
+        y2="6"
         stroke={farbe}
-        strokeWidth="3.5"
+        strokeWidth={fassung ? 8 : 3.5}
         strokeLinecap="round"
         strokeDasharray={gestrichelt ? "4 3" : undefined}
       />

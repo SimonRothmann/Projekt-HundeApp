@@ -108,7 +108,7 @@ export function GpsTrackSection({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
+    <div className="flex flex-col gap-3 rounded-lg border border-surface-border bg-surface p-3">
       <BlockLabel icon={Route}>{t("Fährte")}</BlockLabel>
 
       <div className="flex flex-col gap-4">
@@ -181,7 +181,7 @@ export function GpsTrackSection({
                     return (
                       <li
                         key={run.id}
-                        className="flex flex-col gap-0.5 rounded-lg border border-border/60 bg-background/60 px-2.5 py-2"
+                        className="flex flex-col gap-0.5 rounded-lg border border-surface-border bg-background/60 px-2.5 py-2 dark:bg-black/25"
                       >
                         <span>
                           <span className="font-medium text-foreground">Ablauf {i + 1}</span>: gestartet{" "}

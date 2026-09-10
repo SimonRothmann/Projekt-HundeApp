@@ -36,7 +36,7 @@ export function SectionHeading({
     <div id={id} className={cn("flex flex-wrap items-center justify-between gap-2", className)}>
       <h2 className="flex min-w-0 items-center gap-2 font-heading text-lg font-semibold tracking-tight">
         <span
-          className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary ring-1 ring-primary/20"
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary ring-1 ring-primary/20 dark:bg-primary/25 dark:ring-primary/45"
           aria-hidden
         >
           <Icon className="size-4" />

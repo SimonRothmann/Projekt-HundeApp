@@ -71,7 +71,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       },
       {
         art: "verbessert",
-        text: uebersetzbar("Die gelegte Fährte wird auf der Karte nicht mehr grün gezeichnet, sondern als dunkle Linie mit hellem Rand. Grün, Gelb und Rot bleiben damit allein der Abweichung des Ablaufs vorbehalten - beides war vorher im selben Grün. Eine Legende unter der Karte benennt jetzt, welche Linie was ist."),
+        text: uebersetzbar("Die gelegte Fährte wird auf der Karte nicht mehr grün gezeichnet, sondern kräftig magenta mit dunklem Rand - gut zu sehen auf Straßenkarte, Luftbild und im Dark Mode. Grün, Gelb und Rot bleiben damit allein der Abweichung des Ablaufs vorbehalten; beides war vorher im selben Grün. Eine Legende unter der Karte benennt jetzt, welche Linie was ist."),
       },
       {
         art: "behoben",

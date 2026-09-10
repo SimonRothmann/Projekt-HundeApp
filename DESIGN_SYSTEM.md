@@ -198,12 +198,17 @@ Gliederung, auch wenn jede Zeile für sich lesbar ist.
 | Ebene | Bauteil | Aussehen |
 |---|---|---|
 | Abschnitt der Seite | `SectionHeading` | Eingefärbtes Symbol im Kästchen + Titel; kommt NUR am Abschnittsanfang vor |
-| Karte | `CardHeader` mit `border-b` | Kennung der Karte (Datum, Name) plus Kennzahlen, durch eine Linie vom Inhalt getrennt |
+| Karte | `CardHeader` als eingefärbtes Band | Kennung der Karte (Datum, Name) plus Kennzahlen, farbig vom Inhalt abgesetzt |
 | Block in einer Karte | `BlockLabel` | Kleine Versalienzeile mit Symbol, z.B. ÜBUNGEN, FÄHRTE, TRAINER-FEEDBACK |
 
-Zusammengehörende Inhalte bekommen eine eigene Fläche (`bg-muted/40` mit
-feinem Rand), nicht nur einen Abstand. Ein Zitat oder eine fremde Stimme
-(Tages-Kommentar, Trainer-Feedback) trägt zusätzlich eine farbige Kante links.
+Zusammengehörende Inhalte bekommen eine eigene Fläche (`bg-surface` mit
+`border-surface-border`), nicht nur einen Abstand. Ein Zitat oder eine fremde
+Stimme (Tages-Kommentar, Trainer-Feedback) trägt zusätzlich eine farbige Kante
+links.
+
+Im Dark Mode nie `bg-muted/…` für solche Flächen: `muted` liegt dort nur knapp
+über `card`, die Fläche verschwindet auf dem Telefon. Die `surface`-Tokens
+nutzen stattdessen weiße Transparenz.
 
 # Dark Mode
 

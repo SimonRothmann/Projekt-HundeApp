@@ -67,15 +67,21 @@ Die Regel dahinter, damit das nicht wiederkommt:
 
 | Was | Darstellung |
 |---|---|
-| Gelegte Fährte (Bezugslinie) | `#111827` mit heller Fassung `#f8fafc`, Start gefüllt, Ende hohl |
-| Ablauf, ausgewertet | Ampel grün/gelb/rot je Abschnitt |
-| Ablauf, noch nicht ausgewertet | eigene Farbe je Versuch, gestrichelt |
+| Gelegte Fährte (Bezugslinie) | Magenta `#e11dde`, 6 px, dunkle Fassung; Start gefüllt mit weißem Ring, Ende weiß mit magenta Ring |
+| Ablauf, ausgewertet | Ampel grün/gelb/rot je Abschnitt, 4 px, über der Legung |
+| Ablauf, laufend oder nicht ausgewertet | kühle Blau-/Türkistöne je Versuch, gestrichelt |
 
 Die Legung ist **keine Bewertung** und gehört deshalb nicht in die Ampelskala.
-Neutral plus Fassung statt einer weiteren Buntfarbe hat zwei Gründe: Die
-Ampeltöne bleiben eindeutig, und die Fassung macht die Linie auf hellen
-Straßenkacheln, auf dem Luftbild und auf den im Dark Mode invertierten Kacheln
-gleichermaßen sichtbar — eine einzelne Farbe schafft das auf keinem der drei.
+
+**Nachtrag (2026-09-10):** Der erste Anlauf war neutral — dunkler Kern mit
+heller Fassung, in der Annahme, die Fassung trage die Sichtbarkeit auf jedem
+Untergrund. Auf Test war die Linie trotzdem kaum zu sehen: auf dem Luftbild und
+auf den im Dark Mode invertierten Kacheln verschwand der dunkle Kern, übrig
+blieb ein dünner heller Doppelrand. Die Sichtbarkeit muss der Kern tragen.
+Magenta kommt in keinem Untergrund vor, liegt in keiner Ampel und ist die
+übliche Farbe der vorgegebenen Route (Garmin, Luftfahrt). Die Ablauf-Farben
+sind dafür auf Blau/Türkis beschränkt: Violett lag zu nah am Magenta, Rot in
+der Ampel.
 
 `TrackLegend` unter der Karte benennt die Linien; sie zeigt nur, was auch
 wirklich eingezeichnet ist (ohne Ablauf keine Ampel).

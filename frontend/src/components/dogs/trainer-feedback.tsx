@@ -46,8 +46,8 @@ export function TrainerFeedback({
     <div
       className={
         session.trainerFeedback && !editing
-          ? "flex flex-col gap-1.5 rounded-lg border border-l-2 border-primary/25 border-l-primary bg-primary/6 p-3"
-          : "rounded-lg border border-dashed border-border/70 p-3"
+          ? "flex flex-col gap-1.5 rounded-lg border border-l-2 border-primary/25 border-l-primary bg-primary/6 p-3 dark:border-primary/40 dark:bg-primary/15"
+          : "rounded-lg border border-dashed border-surface-border p-3"
       }
     >
       {session.trainerFeedback && !editing ? (
