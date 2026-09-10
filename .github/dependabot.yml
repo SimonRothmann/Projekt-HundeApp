@@ -42,15 +42,6 @@ updates:
       # auf 26.
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
-      # ESLint 10 ändert die Regel-API. eslint-plugin-react, das über
-      # eslint-config-next hereinkommt, kennt sie noch nicht und stirbt
-      # schon beim Laden: "TypeError: Error while loading rule
-      # 'react/display-name': contextOrFilename.getFilename is not a
-      # function". Am 2026-09-09 in der CI nachgemessen (PR #8). Der
-      # Blocker sitzt stromaufwärts, nicht bei uns.
-      # Entfernen, sobald eslint-config-next ESLint 10 unterstützt.
-      - dependency-name: eslint
-        update-types: [version-update:semver-major]
 
   - package-ecosystem: nuget
     directory: /backend

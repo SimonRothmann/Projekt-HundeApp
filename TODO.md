@@ -134,10 +134,14 @@ In `.github/dependabot.yml` steht je eine Ausnahme, damit nicht monatlich
 ein roter PR wiederkommt - diese Einträge hier sind die Erinnerung daran,
 dass die Ausnahmen ein Ablaufdatum haben.
 
-- [ ] **ESLint 10.** Blockiert stromaufwärts: `eslint-plugin-react` (über
-  `eslint-config-next`) kennt die geänderte Regel-API nicht und stirbt beim
-  Laden. Nichts zu tun, außer zu warten - sobald `eslint-config-next`
-  ESLint 10 unterstützt, Ausnahme entfernen und PR durchlaufen lassen.
+- [x] **ESLint 10** (umgesetzt 2026-09-10). ESLint 9 ist abgekündigt, npm
+  meldet es beim Deploy. `eslint-plugin-react` 7.37.5 - über
+  `eslint-config-next` eingebunden, auch in Next 16.4 Canary noch dieselbe
+  Version - ruft weiter `context.getFilename()` auf, das ESLint 10 entfernt
+  hat. Gelöst mit `fixupConfigRules` aus `@eslint/compat` in
+  `eslint.config.mjs`; Ergebnis identisch mit ESLint 9 (gleiche 7 Warnungen).
+  Offen: den Wrapper entfernen, sobald `eslint-plugin-react` ESLint 10 selbst
+  unterstützt.
 - [ ] **Swashbuckle 10.** Braucht eine Migration der Swagger-Konfiguration
   in `Program.cs` auf Microsoft.OpenApi v2 (Namensraum und Referenzmodell
   geändert). Betrifft nur die Development-Oberfläche, Prod hat kein
