@@ -65,6 +65,10 @@ Handgriffe wie „Training erfassen" und „Fährte legen" stehen als Kacheln
 auf der Startseite. Selten Besuchtes (Sportarten, Verein) liegt im Profil.
 Entschieden 2026-09-10 nach der Messung der Wege (7 Punkte zu je 54 px).
 
+Einzige Ausnahme: Wer Admin und Trainer:in zugleich ist, hat sechs Punkte.
+Das ist nur der Betreiber - dafür kein Umbau, sondern kleinere Symbole
+(18 statt 20 px) und eine schmalere Pille; Beschriftung 11 px.
+
 
 ---
 
