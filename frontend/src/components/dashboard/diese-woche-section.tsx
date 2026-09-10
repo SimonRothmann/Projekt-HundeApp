@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Target } from "lucide-react";
-import { api } from "@/lib/api";
 import type { Dog, Goal, TrainingPlanItem } from "@/lib/types";
-import { offeneWochenziele } from "@/lib/trainingsplan";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { PlanItemQuickLog } from "@/components/dogs/plan-item-quick-log";
 
 import { useT } from "@/lib/i18n";
 
-type Eintrag = { hund: Dog; goal: Goal; woche: number; items: TrainingPlanItem[] };
+export type WochenzielEintrag = { hund: Dog; goal: Goal; woche: number; items: TrainingPlanItem[] };
 
 /**
  * "Diese Woche": die offenen Wochenziele aus den Trainingsplänen, direkt auf
@@ -21,40 +19,23 @@ type Eintrag = { hund: Dog; goal: Goal; woche: number; items: TrainingPlanItem[]
  * Vorher: Hunde, Hund, scrollen, Wochenziel, Bewertung, Eintragen. Hier bleiben
  * die letzten drei. Nebenbei wird der Plan sichtbar, ohne dass man die
  * Hundeseite öffnet. Zeigt nichts, solange nichts offen ist.
+ *
+ * Die Ziele kommen mit dem Rest der Startseite in einem Aufruf (siehe
+ * dashboard/page.tsx) statt mit einer eigenen Anfrage je Hund.
  */
-export function DieseWocheSection({ hunde }: { hunde: Dog[] }) {
+export function DieseWocheSection({
+  eintraege,
+  mehrereHunde,
+  onChanged,
+}: {
+  eintraege: WochenzielEintrag[];
+  mehrereHunde: boolean;
+  onChanged: () => Promise<void>;
+}) {
   const t = useT();
-  const [eintraege, setEintraege] = useState<Eintrag[] | null>(null);
   const [offenesItem, setOffenesItem] = useState<string | null>(null);
-  const hundeSchluessel = hunde.map((h) => h.id).join(",");
 
-  async function laden() {
-    const listen = await Promise.all(
-      hunde.map(async (hund) => {
-        try {
-          const goals = await api.get<Goal[]>(`/api/goals?dogId=${hund.id}`);
-          return goals.flatMap((goal) => {
-            const offen = offeneWochenziele(goal);
-            return offen ? [{ hund, goal, ...offen }] : [];
-          });
-        } catch {
-          // Offline oder Serverfehler: der Abschnitt ist ein Angebot, kein
-          // Muss - dann steht er eben nicht da.
-          return [];
-        }
-      }),
-    );
-    setEintraege(listen.flat());
-  }
-
-  useEffect(() => {
-    // Initialer Datenabruf bei Mount (externe Quelle: REST API).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    laden();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hundeSchluessel]);
-
-  if (!eintraege || eintraege.length === 0) return null;
+  if (eintraege.length === 0) return null;
 
   return (
     <section className="flex flex-col gap-3">
@@ -64,7 +45,7 @@ export function DieseWocheSection({ hunde }: { hunde: Dog[] }) {
           <CardHeader className="border-b">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <CardTitle className="text-base [overflow-wrap:anywhere]">
-                {hunde.length > 1 ? `${eintrag.hund.name} · ` : ""}
+                {mehrereHunde ? `${eintrag.hund.name} · ` : ""}
                 {eintrag.goal.sportName}
               </CardTitle>
               <span className="text-xs text-muted-foreground">
@@ -95,7 +76,7 @@ export function DieseWocheSection({ hunde }: { hunde: Dog[] }) {
                     item={item}
                     onDone={async () => {
                       setOffenesItem(null);
-                      await laden();
+                      await onChanged();
                     }}
                     onCancel={() => setOffenesItem(null)}
                   />

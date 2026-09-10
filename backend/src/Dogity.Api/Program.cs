@@ -101,6 +101,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
+        // Jede Anfrage mit Anmelde-Token ist für den Browser "nicht einfach"
+        // und bekommt eine Vorab-Anfrage (OPTIONS), weil das Frontend auf einer
+        // anderen Domain liegt als die API. Ohne Access-Control-Max-Age merkt
+        // sich der Browser deren Antwort nur wenige Sekunden - die Startseite
+        // brauchte damit auf dem Handy für jede Anfrage zwei Rundreisen.
+        // Browser deckeln den Wert selbst (Chrome zwei Stunden, Safari kürzer).
+        policy.SetPreflightMaxAge(TimeSpan.FromHours(2));
+
         if (builder.Environment.IsDevelopment())
         {
             // Bewusst permissiv in Development: erlaubt z.B. das Testen von

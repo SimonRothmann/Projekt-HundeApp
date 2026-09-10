@@ -862,6 +862,24 @@ export type OnboardingStatus = {
   isComplete: boolean;
 };
 
+// ---- Startseite ----
+
+// Ein Hund mit allem, was die Startseite von ihm braucht (GET /api/dashboard,
+// siehe DashboardService). Ein Aufruf statt einer Anfrage je Hund und Abschnitt.
+export type DashboardHund = {
+  dog: Dog;
+  // Wirksame Sportarten des Hundes; leer heißt "keine Einschränkung".
+  sportIds: string[];
+  // Aktive Ziele mit Trainingsplan - Quelle für "Diese Woche".
+  activeGoals: Goal[];
+  // Heute gelegte Fährten samt Abläufen - Quelle für "Heute gelegt".
+  tracksToday: GpsTrack[];
+};
+
+export type DashboardDaten = {
+  dogs: DashboardHund[];
+};
+
 /**
  * Persönliche Einstellungen (siehe docs/VERBAENDE_SPRACHEN_MODULE.md).
  *

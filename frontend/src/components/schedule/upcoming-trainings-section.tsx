@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
 import type { GroupTrainingCategory, GroupTrainingSession } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,20 +15,14 @@ const fmt = (iso: string) =>
  * Read-only-Sicht für Mitglieder: die nächsten Gruppentrainings der eigenen
  * Gruppen (siehe docs/GROUP_TRAINING_SCHEDULE.md). Rendert nichts, wenn es
  * keine kommenden Termine gibt – dann bleibt das Dashboard unverändert.
+ *
+ * Die Termine lädt die Startseite zusammen mit ihren übrigen Daten, damit sie
+ * in einem Zug erscheint statt Abschnitt für Abschnitt.
  */
-export function UpcomingTrainingsSection() {
-  const [sessions, setSessions] = useState<GroupTrainingSession[] | null>(null);
+export function UpcomingTrainingsSection({ sessions }: { sessions: GroupTrainingSession[] }) {
   const t = useT();
 
-  useEffect(() => {
-    const from = new Date().toISOString().slice(0, 10);
-    api
-      .get<GroupTrainingSession[]>(`/api/group-training/schedule/mine?from=${from}`)
-      .then(setSessions)
-      .catch(() => setSessions([]));
-  }, []);
-
-  if (!sessions || sessions.length === 0) return null;
+  if (sessions.length === 0) return null;
 
   return (
     <Card>

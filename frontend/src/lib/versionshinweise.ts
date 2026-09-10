@@ -90,6 +90,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         text: uebersetzbar("Die untere Leiste ist aufgeräumt: Home, Hunde, Statistiken und Profil - dazu Trainer und Admin, wo es passt. Sportarten und der eigene Verein sind im Profil zu finden."),
       },
       {
+        art: "verbessert",
+        text: uebersetzbar("Die Startseite lädt schneller und erscheint in einem Zug, statt Abschnitt für Abschnitt nachzurutschen. Wer über die Leiste zurück auf Home tippt, sieht sofort den letzten Stand."),
+      },
+      {
         art: "behoben",
         text: uebersetzbar("„Wie beim letzten Mal“ greift nach einer gelegten Fährte auf die letzte Einheit mit Übungen zurück. Vorher bezog es sich auf die Fährte und hatte nichts zu übernehmen."),
       },

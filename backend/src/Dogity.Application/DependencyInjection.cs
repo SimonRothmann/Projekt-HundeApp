@@ -1,5 +1,6 @@
 using Dogity.Application.Admin;
 using Dogity.Application.Community;
+using Dogity.Application.Dashboard;
 using Dogity.Application.Dogs;
 using Dogity.Application.Learning;
 using Dogity.Application.Notifications;
@@ -47,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<IOnboardingService, OnboardingService>();
         services.AddScoped<ISachkundeService, SachkundeService>();
         services.AddScoped<ISachkundeAdminService, SachkundeAdminService>();
+        services.AddScoped<IDashboardService, DashboardService>();
         return services;
     }
 }
