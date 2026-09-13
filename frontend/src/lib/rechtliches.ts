@@ -41,23 +41,48 @@ export const AUFSICHTSBEHOERDE = {
 } as const;
 
 /**
- * Wo die Server stehen. Hetzner betreibt Standorte in Deutschland, Finnland
- * und den USA - für die Datenschutzerklärung ist der Unterschied wesentlich,
- * weil außerhalb der EU zusätzliche Angaben fällig würden.
+ * Wer die Server betreibt und wo sie stehen.
+ *
+ * Am 2026-09-13 von Hetzner auf Contabo berichtigt. Mehrere Entwurfsdokumente
+ * im Repo (DEPLOYMENT.md, TECH_STACK.md) nannten noch den Anbieter aus der
+ * Planungsphase; daraufhin stand in der veröffentlichten
+ * Datenschutzerklärung der falsche Auftragsverarbeiter. Ein Name, der nicht
+ * stimmt, macht die Angabe wertlos - hier gegen die Wirklichkeit prüfen, nicht
+ * gegen die Planungsunterlagen.
  */
 export const HOSTING = {
-  anbieter: "Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen",
+  anbieter: "Contabo GmbH, München",
   standort: "Deutschland",
 } as const;
 
 /**
- * Wie lange die täglichen Datenbanksicherungen aufbewahrt werden. Steht hier,
- * weil die Datenschutzerklärung eine Zahl nennen muss: Gelöschte Daten sind
- * erst dann wirklich fort, wenn auch die letzte Sicherung mit ihnen abgelaufen
- * ist. Der passende Aufräumbefehl steht in deploy/README.md - die Zahl hier
- * und der Cronjob dort müssen zusammenpassen.
+ * Wohin die verschlüsselten Datenbanksicherungen ausgelagert werden.
+ *
+ * Eigener Auftragsverarbeiter neben dem Hoster und deshalb eigene Angabe: In
+ * den Sicherungen stecken dieselben personenbezogenen Daten wie in der
+ * Datenbank. Der Speicher ist fest auf die EU-Jurisdiktion gestellt (der
+ * Endpunkt trägt ".eu."); das lässt sich nachträglich nicht mehr ändern.
  */
-export const SICHERUNG_AUFBEWAHRUNG_TAGE = 30;
+export const SICHERUNGSSPEICHER = {
+  anbieter: "Cloudflare, Inc.",
+  jurisdiktion: "Europäische Union",
+} as const;
+
+/**
+ * Wie lange Sicherungen aufbewahrt werden, in Tagen - gestaffelt nach dem
+ * Großvater-Vater-Sohn-Muster aus docs/BACKUP.md.
+ *
+ * Die Datenschutzerklärung muss Fristen nennen können: Gelöschte Daten sind
+ * erst dann wirklich fort, wenn auch der letzte Stand mit ihnen abgelaufen
+ * ist. Gelöscht wird über Lifecycle-Regeln im Speicher, nicht vom
+ * Sicherungsskript - diese Zahlen und die Regeln dort müssen zusammenpassen.
+ */
+export const SICHERUNG_AUFBEWAHRUNG = {
+  lokal: 14,
+  taeglich: 14,
+  woechentlich: 70,
+  monatlich: 400,
+} as const;
 
 /** Letzte inhaltliche Änderung an Impressum oder Datenschutzerklärung. */
 export const STAND = "2026-09-13";

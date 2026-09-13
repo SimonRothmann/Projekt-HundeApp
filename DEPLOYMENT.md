@@ -62,8 +62,11 @@ Hintergrundjobs) ergänzen, kein Premature-Setup für ungenutzte Services.
 
 ## Variante A (gewählt)
 
-Alles auf einer Hetzner VPS, um Betriebskosten auf einen Posten
-zu beschränken:
+Alles auf einer VPS, um Betriebskosten auf einen Posten zu beschränken.
+Umgesetzt auf **Contabo** - in der Planungsphase stand hier Hetzner,
+berichtigt am 2026-09-13, nachdem der veraltete Name über diese Unterlagen in
+die Datenschutzerklärung gewandert war. Verbindlich für Rechtstexte ist
+`frontend/src/lib/rechtliches.ts`:
 
 
 Frontend (Next.js):

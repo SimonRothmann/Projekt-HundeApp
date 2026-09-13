@@ -123,12 +123,14 @@ Auth0
 
 ## Phase 1: ein einziger Server (Zielkosten: ~0€ zusätzlich zum Server)
 
-Entscheidung: Alles läuft auf einer einzigen Hetzner VPS (z.B. CX22),
-um die Betriebskosten auf einen einzigen Posten zu reduzieren.
+Entscheidung: Alles läuft auf einer einzigen VPS, um die Betriebskosten auf
+einen einzigen Posten zu reduzieren. Umgesetzt auf **Contabo**; in der
+Planungsphase stand hier Hetzner (berichtigt am 2026-09-13). Verbindlich für
+Rechtstexte ist `frontend/src/lib/rechtliches.ts`, nicht diese Unterlage.
 
 Frontend + Backend + Database + Worker:
 
-Hetzner VPS via Docker Compose
+Contabo VPS via Docker Compose
 
 Storage:
 
@@ -157,7 +159,7 @@ Cloudflare (DNS + TLS Proxy, kostenlos)
 
    |
 
-Hetzner VPS
+Contabo VPS
 
    |
 

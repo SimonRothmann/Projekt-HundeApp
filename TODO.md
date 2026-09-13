@@ -208,17 +208,23 @@ Ausgelöst durch die Nutzerfrage "wie verhindern wir, dass Nutzer, die 3x/Woche 
 
 Impressum, Datenschutzerklärung, Datenexport, Kontolöschung und das
 Verarbeitungsverzeichnis sind umgesetzt. Offen bleibt, was sich nicht im Code
-erledigen lässt:
+erledigen lässt.
 
-- [ ] **AV-Vertrag mit Hetzner abschließen und ablegen** (Art. 28 DSGVO). Im
-      Hetzner-Kundenkonto in wenigen Klicks erledigt. Die Datenschutzerklärung
-      behauptet bereits, dass er besteht - bis dahin ist das eine Lücke.
-- [ ] **Backup-Aufräumung in den Cronjob aufnehmen** (`find … -mtime +30
-      -delete`, siehe deploy/README.md). Die Datenschutzerklärung nennt 30 Tage
-      Aufbewahrung; ohne die Zeile stimmt die Angabe nicht.
+Zwei Korrekturen am 2026-09-13, beide aus derselben Ursache: Die
+Planungsunterlagen im Repo nannten Hetzner, tatsächlich läuft alles auf
+Contabo - und die Sicherungen laufen sehr wohl, über einen systemd-Timer nach
+Cloudflare R2 (siehe docs/BACKUP.md), nicht über cron. Beides stand
+zwischenzeitlich falsch in der Datenschutzerklärung. Merke für das nächste
+Mal: Betriebswirklichkeit auf dem Server prüfen, nicht in den Entwürfen.
+
+- [ ] **AV-Verträge abschließen und ablegen** (Art. 28 DSGVO): mit **Contabo**
+      für den Server und mit **Cloudflare** für die ausgelagerten Sicherungen.
+      Die Datenschutzerklärung sagt beides bereits zu - bis dahin ist das eine
+      Lücke.
 - [ ] **Serverstandort gegenprüfen.** `HOSTING.standort` in
-      frontend/src/lib/rechtliches.ts steht auf Deutschland. Läuft die VPS in
-      Helsinki, muss der Text dort geändert werden.
+      frontend/src/lib/rechtliches.ts steht auf Deutschland. Contabo betreibt
+      auch Standorte außerhalb der EU; läuft die VPS dort, muss der Text
+      geändert werden.
 - [ ] **Esri prüfen.** Das Luftbild lädt Kacheln aus den USA und überträgt dabei
       die IP-Adresse des Nutzers. Klären, ob Esri am EU-U.S. Data Privacy
       Framework teilnimmt; sonst Anbieter wechseln oder das Umschalten an eine

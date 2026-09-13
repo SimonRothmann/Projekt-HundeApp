@@ -99,7 +99,7 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Datenkategorien | IP-Adresse, Zeitpunkt, aufgerufene Adresse, Browserkennung; kurzzeitige Zählung der Anmeldeversuche je IP |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. f |
 | Besonderheit | keine Zusammenführung mit Kontodaten, keine Auswertung des Nutzungsverhaltens |
-| Löschfrist | Container-Logs rollieren (10 MB × 3 je Dienst); Sicherungen 30 Tage |
+| Löschfrist | Container-Logs rollieren (10 MB × 3 je Dienst); Sicherungen gestaffelt 14/14/70/400 Tage (siehe Abschnitt 5) |
 
 ---
 
@@ -107,9 +107,17 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 | Dienstleister | Leistung | Vertrag | Drittland |
 |---|---|---|---|
-| Hetzner Online GmbH | Server, Datenbank, Sicherungen | AV-Vertrag erforderlich – im Kundenkonto abschließbar | nein (Standort Deutschland) |
+| Contabo GmbH, München | Server, Datenbank, laufender Betrieb | AV-Vertrag erforderlich | nein (Standort Deutschland) |
+| Cloudflare, Inc. | Auslagerung der verschlüsselten Datenbanksicherungen (R2) | AV-Vertrag erforderlich (Cloudflare DPA) | Bucket fest auf EU-Jurisdiktion gestellt; Endpunkt `.eu.r2.cloudflarestorage.com` |
 
-**Offen:** Abschluss bzw. Nachweis des AV-Vertrags dokumentieren.
+Zur Einordnung des zweiten Eintrags: Die Sicherungen sind bereits auf dem
+Server asymmetrisch verschlüsselt, bevor sie übertragen werden. Der private
+Schlüssel liegt ausschließlich beim Verantwortlichen, nicht auf dem Server und
+nicht beim Speicheranbieter - Cloudflare verwahrt damit einen Datenbestand,
+den es nicht lesen kann. Das ersetzt den AV-Vertrag nicht, senkt aber das
+Risiko erheblich.
+
+**Offen:** Abschluss bzw. Nachweis beider AV-Verträge dokumentieren.
 
 ---
 
@@ -143,7 +151,13 @@ Auswahl.
 - Zugriffsprüfung auf Datenebene: jeder Abruf ist an Besitz oder eine
   ausdrückliche Trainerzuordnung gebunden
 - Getrennte Datenbanken für Test und Produktion, eigene Rollen
-- Tägliche Sicherung, Aufbewahrung 30 Tage
+- Tägliche Sicherung der Produktionsdatenbank, asymmetrisch verschlüsselt
+  (öffentlicher Schlüssel auf dem Server, privater Schlüssel nur beim
+  Verantwortlichen), ausgelagert in einen EU-Speicher
+- Aufbewahrung der Sicherungen gestaffelt: 14 Tage lokal, ausgelagert 14 Tage
+  (täglich), 70 Tage (wöchentlich), 400 Tage (monatlich); gelöscht wird über
+  Lifecycle-Regeln des Speichers, die auch dann greifen, wenn das
+  Sicherungsskript ausfällt
 
 ---
 

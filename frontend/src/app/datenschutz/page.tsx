@@ -4,7 +4,8 @@ import {
   AUFSICHTSBEHOERDE,
   BETREIBER,
   HOSTING,
-  SICHERUNG_AUFBEWAHRUNG_TAGE,
+  SICHERUNGSSPEICHER,
+  SICHERUNG_AUFBEWAHRUNG,
   STAND,
 } from "@/lib/rechtliches";
 
@@ -193,10 +194,20 @@ export default function DatenschutzPage() {
             IP-Adresse.
           </p>
           <p>
-            Von der Datenbank wird täglich eine Sicherung erstellt und nach {SICHERUNG_AUFBEWAHRUNG_TAGE} Tagen
-            gelöscht. Löschst du etwas, ist es sofort aus der laufenden App verschwunden; aus den Sicherungen fällt es
-            spätestens nach dieser Frist heraus. Die Sicherungen werden ausschließlich zur Wiederherstellung nach einem
-            Ausfall verwendet.
+            Von der Datenbank wird täglich eine Sicherung erstellt. Sie wird verschlüsselt, bevor sie den Server
+            verlässt – und zwar so, dass auf dem Server nur der Schlüssel zum Verschlüsseln liegt, nicht der zum
+            Öffnen. Wer sich Zugang zum Server verschafft, kann die Sicherungen deshalb nicht lesen. Abgelegt werden
+            sie auf dem Server selbst und zusätzlich bei {SICHERUNGSSPEICHER.anbieter} in einem Speicher, der fest auf
+            die {SICHERUNGSSPEICHER.jurisdiktion} festgelegt ist. Auch mit diesem Anbieter besteht ein Vertrag zur
+            Auftragsverarbeitung nach Art. 28 DSGVO.
+          </p>
+          <p>
+            Aufbewahrt wird gestaffelt: {SICHERUNG_AUFBEWAHRUNG.lokal} Tage auf dem Server, ausgelagert{" "}
+            {SICHERUNG_AUFBEWAHRUNG.taeglich} Tage für die täglichen Stände, {SICHERUNG_AUFBEWAHRUNG.woechentlich} Tage
+            für die wöchentlichen und {SICHERUNG_AUFBEWAHRUNG.monatlich} Tage für die monatlichen. Löschst du etwas,
+            ist es sofort aus der laufenden App verschwunden; aus den Sicherungen fällt es mit dem jeweiligen Stand
+            heraus, im äußersten Fall also nach gut dreizehn Monaten. Sicherungen werden ausschließlich zur
+            Wiederherstellung nach einem Ausfall verwendet.
           </p>
         </Abschnitt>
 
@@ -249,7 +260,7 @@ export default function DatenschutzPage() {
               "Kontodaten und alles, was daran hängt: bis du das Konto löschst.",
               "Einzelne Einträge – Trainings, Fährten, Hunde: bis du sie löschst.",
               "Anmelde-Token auf dem Server: der kurzlebige nach einer Stunde, der Erneuerungs-Token spätestens nach 60 Tagen.",
-              `Sicherungen der Datenbank: ${SICHERUNG_AUFBEWAHRUNG_TAGE} Tage.`,
+              `Sicherungen der Datenbank: ${SICHERUNG_AUFBEWAHRUNG.lokal} Tage auf dem Server; ausgelagert ${SICHERUNG_AUFBEWAHRUNG.taeglich} Tage (tägliche Stände), ${SICHERUNG_AUFBEWAHRUNG.woechentlich} Tage (wöchentliche) und ${SICHERUNG_AUFBEWAHRUNG.monatlich} Tage (monatliche).`,
             ]}
           />
           <p>

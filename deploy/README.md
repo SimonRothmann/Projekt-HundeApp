@@ -127,53 +127,20 @@ ssh dogity /opt/dogity/scripts/deploy-prod.sh
 
 ## Backups
 
-**Der Cronjob ist nicht Teil des Repos und muss auf der VPS einmalig
-eingerichtet werden.** Er stand hier lange nur als zwei lose Befehlszeilen -
-und war am 2026-09-13 nachweislich nie eingerichtet: Das Verzeichnis
-`/opt/dogity/backups` existierte nicht, es gab also keine einzige Sicherung.
-Deshalb jetzt zum Kopieren und mit einem Befehl zum Nachsehen.
+Die Sicherung läuft über einen **systemd-Timer, nicht über cron**: täglich um
+03:00 wird `dogity_prod` gedumpt, gepackt, mit einem öffentlichen
+GPG-Schlüssel verschlüsselt, lokal unter `/var/backups/dogity` abgelegt und
+nach Cloudflare R2 kopiert. Gelöscht wird über Lifecycle-Regeln im Bucket
+(Großvater-Vater-Sohn), nicht vom Skript.
 
-Prüfen, ob Sicherungen laufen:
+Einrichtung, Wiederherstellung, Rückspielprobe und Fehlersuche stehen
+vollständig in **[../docs/BACKUP.md](../docs/BACKUP.md)** - dort und nicht
+hier, damit es nicht zwei Fassungen derselben Anleitung gibt.
+
+Schneller Blick, ob es läuft:
 ```bash
-crontab -l | grep -i backup; ls -lh /opt/dogity/backups 2>/dev/null || echo "KEIN Backup-Verzeichnis - es läuft nichts"
+ssh dogity 'systemctl status dogity-backup.timer --no-pager; cat /var/backups/dogity/LETZTER_LAUF'
 ```
-
-Einmalig einrichten (legt Skript und Cronjob an, 3:30 Uhr nachts):
-```bash
-mkdir -p /opt/dogity/backups /opt/dogity/scripts
-cat > /opt/dogity/scripts/backup.sh <<'SKRIPT'
-#!/bin/sh
-set -e
-cd /opt/dogity
-for db in dogity_prod dogity_test; do
-  docker compose exec -T postgres pg_dump -U postgres "$db" | gzip > "/opt/dogity/backups/${db}_$(date +%F).sql.gz"
-done
-# Aufbewahrung: 30 Tage. Dieselbe Frist nennt die Datenschutzerklärung
-# (frontend/src/lib/rechtliches.ts, SICHERUNG_AUFBEWAHRUNG_TAGE) - beide
-# müssen zusammenpassen.
-find /opt/dogity/backups -name "dogity_*.sql.gz" -mtime +30 -delete
-SKRIPT
-chmod +x /opt/dogity/scripts/backup.sh
-( crontab -l 2>/dev/null; echo "30 3 * * * /opt/dogity/scripts/backup.sh >> /var/log/dogity-backup.log 2>&1" ) | crontab -
-```
-
-Einmal von Hand auslösen - eine Sicherung, die nie gelaufen ist, ist keine:
-```bash
-/opt/dogity/scripts/backup.sh && ls -lh /opt/dogity/backups
-```
-
-Wiederherstellen (nur in eine LEERE Datenbank - ein Einspielen über einen
-bestehenden Datenbestand schlägt an den vorhandenen Tabellen fehl):
-```bash
-gunzip -c /opt/dogity/backups/dogity_prod_JJJJ-MM-TT.sql.gz \
-  | docker compose exec -T postgres psql -U postgres dogity_prod
-```
-
-Zwei Gründe, warum das nicht warten sollte: Ohne Sicherung ist ein verlorener
-Datenbestand endgültig verloren - Trainingstagebücher über Jahre, die niemand
-nachtragen kann. Und die Datenschutzerklärung sagt zu, dass täglich gesichert
-und nach 30 Tagen gelöscht wird; solange nichts läuft, stimmt dieser Satz
-nicht.
 
 ## Logs / Status
 
