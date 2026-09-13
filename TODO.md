@@ -201,3 +201,39 @@ Ausgelöst durch die Nutzerfrage "wie verhindern wir, dass Nutzer, die 3x/Woche 
 - Test-Env von `Development` auf eigenes `Staging`-Environment umstellen (Demo-Seeder an explizites `Seed:Demo`-Flag koppeln, CORS festnageln, Swagger schützen): erst nötig, wenn die Test-Domain öffentlich sichtbar beworben wird.
 - PDF-Export: Druckansicht `/dogs/[id]/print` + Browser-Print deckt den Bedarf.
 - Exercises-Endpoint-Query-Parameter (siehe Performance-Backlog oben): spart nur wenige KB in der Admin/Trainer-Verwaltung.
+
+---
+
+## Rechtliches (Stand 2026-09-13)
+
+Impressum, Datenschutzerklärung, Datenexport, Kontolöschung und das
+Verarbeitungsverzeichnis sind umgesetzt. Offen bleibt, was sich nicht im Code
+erledigen lässt:
+
+- [ ] **AV-Vertrag mit Hetzner abschließen und ablegen** (Art. 28 DSGVO). Im
+      Hetzner-Kundenkonto in wenigen Klicks erledigt. Die Datenschutzerklärung
+      behauptet bereits, dass er besteht - bis dahin ist das eine Lücke.
+- [ ] **Backup-Aufräumung in den Cronjob aufnehmen** (`find … -mtime +30
+      -delete`, siehe deploy/README.md). Die Datenschutzerklärung nennt 30 Tage
+      Aufbewahrung; ohne die Zeile stimmt die Angabe nicht.
+- [ ] **Serverstandort gegenprüfen.** `HOSTING.standort` in
+      frontend/src/lib/rechtliches.ts steht auf Deutschland. Läuft die VPS in
+      Helsinki, muss der Text dort geändert werden.
+- [ ] **Esri prüfen.** Das Luftbild lädt Kacheln aus den USA und überträgt dabei
+      die IP-Adresse des Nutzers. Klären, ob Esri am EU-U.S. Data Privacy
+      Framework teilnimmt; sonst Anbieter wechseln oder das Umschalten an eine
+      Einwilligung koppeln. Risiko derzeit gemindert: Die Karte startet immer
+      mit OpenStreetMap.
+- [ ] Optional: **kontakt@dogity.net** einrichten und in `BETREIBER.email`
+      eintragen, damit die private Adresse nicht öffentlich im Impressum steht.
+      Eine Zeile, sonst ändert sich nichts.
+- [ ] Aufräumen: `ClubService.PurgeUserAsync` hat seit der Kontolöschung über
+      `AccountDataService` keinen Aufrufer mehr. Nicht mit entfernt, weil der
+      Kommentarblock darüber erkennbar zur nächsten Methode
+      (`DetachFromClubAsync`) gehört - das gehört in einem eigenen Schritt
+      sauber getrennt.
+- [ ] Kleinigkeit: Nach einer Kontolöschung bleiben Zeilen in `refresh_tokens`
+      mit der UserId des gelöschten Kontos stehen (nur Hash und Zeitstempel,
+      kein Personenbezug mehr). `IRefreshTokenService` ist in der
+      Application-Schicht nicht über den DbContext erreichbar; aufräumen ließe
+      sich das beim nächsten Anfassen der Token-Infrastruktur.

@@ -61,6 +61,29 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.16",
+    datum: "2026-09-13",
+    titel: uebersetzbar("Impressum, Datenschutz und deine Daten in deiner Hand"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Dogity hat ein Impressum und eine Datenschutzerklärung. Dort steht, welche Daten gespeichert werden, warum, wie lange - und wer sie außer dir sieht."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Im Profil kannst du unter „Deine Daten“ alles herunterladen, was Dogity über dich gespeichert hat: Konto, Hunde, Trainings, Fährten samt Punkten, Ziele, Verein und Lernfortschritt."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Ebenfalls im Profil: „Konto löschen“. Das entfernt dein Konto und deine Daten wirklich - Hunde, die du dir mit jemandem teilst, bleiben bei der anderen Person."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Beim Löschen eines Kontos blieben bisher Hunde, Trainings, Fährten und Einstellungen in der Datenbank stehen. Jetzt werden sie mit entfernt."),
+      },
+    ],
+  },
+  {
     version: "0.15",
     datum: "2026-09-10",
     titel: uebersetzbar("Weniger Tippen, weniger Scrollen"),

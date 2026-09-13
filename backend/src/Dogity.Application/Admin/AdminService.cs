@@ -1,6 +1,6 @@
 using Dogity.Application.Abstractions;
+using Dogity.Application.Account;
 using Dogity.Application.Common;
-using Dogity.Application.Community;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Admin;
@@ -16,7 +16,7 @@ public class AdminService(
     IApplicationDbContext db,
     IUserLookupService userLookup,
     IRefreshTokenService refreshTokens,
-    IClubService clubService) : IAdminService
+    IAccountDataService accountData) : IAdminService
 {
     public async Task<Result<AdminStatsDto>> GetStatsAsync(CancellationToken ct = default)
     {
@@ -61,12 +61,17 @@ public class AdminService(
 
     public async Task<Result> DeleteUserAsync(Guid userId, CancellationToken ct = default)
     {
-        // Erst aus Vereinen und Gruppen lösen, dann das Konto entfernen. In
-        // dieser Reihenfolge, weil die Zeilen sonst verwaisen: Sie verweisen
-        // nur über die UserId auf das Konto, ohne Fremdschlüssel. Übrig blieb
-        // dann etwa eine Beitrittsanfrage, die in der Liste eines Trainers als
-        // "(unbekannt)" steht und sich nicht mehr auflösen lässt.
-        await clubService.PurgeUserAsync(userId, ct);
+        // Erst die Fachdaten, dann das Konto. In dieser Reihenfolge, weil die
+        // Zeilen sonst verwaisen: Sie verweisen nur über die UserId auf das
+        // Konto, ohne Fremdschlüssel. Übrig blieb dann etwa eine
+        // Beitrittsanfrage, die in der Liste eines Trainers als "(unbekannt)"
+        // steht und sich nicht mehr auflösen lässt.
+        //
+        // Bis 2026-09-13 löste das nur Vereins- und Gruppenzeilen - Hunde,
+        // Trainings, Fährten, Ziele, Einstellungen und Lernfortschritt blieben
+        // stehen. Für eine Löschung nach Art. 17 DSGVO ist das zu wenig,
+        // deshalb geht es jetzt denselben Weg wie die Selbstlöschung im Profil.
+        await accountData.PurgeAsync(userId, ct);
 
         var ok = await userLookup.DeleteUserAsync(userId, ct);
         if (!ok) return Result.NotFound("Benutzer nicht gefunden oder Löschung fehlgeschlagen.");

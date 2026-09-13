@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PawPrint } from "lucide-react";
 import { AuthBackLink } from "@/components/auth-back-link";
+import { RechtlicheLinks } from "@/components/rechtliche-links";
 
 import { useT } from "@/lib/i18n";
 export default function RegisterPage() {
@@ -87,6 +88,15 @@ export default function RegisterPage() {
                 {isSubmitting ? t("Wird erstellt…") : "Registrieren"}
               </Button>
             </form>
+            {/* Art. 13 DSGVO verlangt die Information zum Zeitpunkt der
+                Erhebung - also hier, nicht erst irgendwo in der Fußzeile. */}
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              Mit dem Anlegen eines Kontos bestätigst du, die{" "}
+              <Link href="/datenschutz" className="text-primary-text underline-offset-4 hover:underline">
+                Datenschutzerklärung
+              </Link>{" "}
+              gelesen zu haben.
+            </p>
             <p className="mt-4 text-center text-sm text-muted-foreground">
               Bereits ein Konto?{" "}
               <Link href="/login" className="text-primary-text underline-offset-4 hover:underline">
@@ -95,6 +105,7 @@ export default function RegisterPage() {
             </p>
           </CardContent>
         </Card>
+        <RechtlicheLinks />
       </div>
     </main>
   );

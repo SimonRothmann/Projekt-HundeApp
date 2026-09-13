@@ -1,5 +1,5 @@
+using Dogity.Application.Account;
 using Dogity.Application.Admin;
-using Dogity.Application.Community;
 using Dogity.Application.Tests.TestSupport;
 
 namespace Dogity.Application.Tests.Admin;
@@ -18,10 +18,9 @@ public class AdminServiceTests
         var db = InMemoryDbContext.Create();
         lookup = new FakeUserLookupService();
         refreshTokens = new FakeRefreshTokenService();
-        // Echter ClubService: Das Löschen eines Kontos löst den Nutzer aus
-        // Vereinen und Gruppen: bleibt das aus, verwaisen die Zeilen.
-        var clubs = new ClubService(db, lookup, new FakeNotificationService(), new TrainerRoleService(db, lookup));
-        return new AdminService(db, lookup, refreshTokens, clubs);
+        // Echter AccountDataService: Das Löschen eines Kontos muss dessen
+        // Daten mitnehmen - bleibt das aus, verwaisen die Zeilen.
+        return new AdminService(db, lookup, refreshTokens, new AccountDataService(db, lookup));
     }
 
     [Fact]
@@ -109,8 +108,7 @@ public class AdminServiceTests
     {
         var db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService();
-        var clubs = new ClubService(db, lookup, new FakeNotificationService(), new TrainerRoleService(db, lookup));
-        var service = new AdminService(db, lookup, new FakeRefreshTokenService(), clubs);
+        var service = new AdminService(db, lookup, new FakeRefreshTokenService(), new AccountDataService(db, lookup));
 
         var userId = Guid.NewGuid();
         lookup.Register(userId, "weg@test.de");

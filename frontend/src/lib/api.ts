@@ -203,5 +203,9 @@ export const api = {
     request<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
   put: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "PUT", body: body ? JSON.stringify(body) : undefined }),
-  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  // Mit Rumpf, weil die Kontolöschung das Passwort mitschicken muss. DELETE
+  // darf laut HTTP einen Rumpf tragen; ASP.NET Core bindet ihn bei einem
+  // [ApiController] wie bei POST/PUT.
+  delete: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: "DELETE", body: body ? JSON.stringify(body) : undefined }),
 };

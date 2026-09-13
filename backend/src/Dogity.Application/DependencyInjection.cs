@@ -1,3 +1,4 @@
+using Dogity.Application.Account;
 using Dogity.Application.Admin;
 using Dogity.Application.Community;
 using Dogity.Application.Dashboard;
@@ -49,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<ISachkundeService, SachkundeService>();
         services.AddScoped<ISachkundeAdminService, SachkundeAdminService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IAccountDataService, AccountDataService>();
         return services;
     }
 }

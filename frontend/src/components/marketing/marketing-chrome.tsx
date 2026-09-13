@@ -60,6 +60,16 @@ export function MarketingFooter() {
           <Link href="/neuerungen" className="hover:text-foreground">
             Neuerungen
           </Link>
+          {/* Pflichtangaben. Sie müssen von jeder Seite aus in höchstens zwei
+              Schritten erreichbar sein (§ 5 DDG: "leicht erkennbar, unmittelbar
+              erreichbar und ständig verfügbar") - deshalb stehen sie hier und
+              zusätzlich unter den Anmeldeformularen und im Profil. */}
+          <Link href="/impressum" className="hover:text-foreground">
+            Impressum
+          </Link>
+          <Link href="/datenschutz" className="hover:text-foreground">
+            Datenschutz
+          </Link>
         </nav>
         <p className="[overflow-wrap:anywhere]">
           {SITE.name} – Trainingstagebuch und Vereinsplattform für den Hundesport im deutschsprachigen Raum.

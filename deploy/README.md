@@ -133,6 +133,17 @@ docker compose exec -T postgres pg_dump -U postgres dogity_prod | gzip > /opt/do
 docker compose exec -T postgres pg_dump -U postgres dogity_test | gzip > /opt/dogity/backups/dogity_test_$(date +%F).sql.gz
 ```
 
+Alte Sicherungen aufräumen - gehört in denselben Cronjob:
+```bash
+find /opt/dogity/backups -name "dogity_*.sql.gz" -mtime +30 -delete
+```
+
+Die 30 Tage sind keine Geschmacksfrage: Die Datenschutzerklärung nennt genau
+diese Frist (`frontend/src/lib/rechtliches.ts`, `SICHERUNG_AUFBEWAHRUNG_TAGE`).
+Wer gelöscht wird, ist erst dann wirklich fort, wenn auch die letzte Sicherung
+mit seinen Daten abgelaufen ist - ohne diese Zeile stimmt die Aussage nicht,
+und der Ordner wächst nebenbei unbegrenzt.
+
 ## Logs / Status
 
 ```bash

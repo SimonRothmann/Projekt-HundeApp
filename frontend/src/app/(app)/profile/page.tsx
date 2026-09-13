@@ -16,7 +16,8 @@ import { LetzteNeuerung } from "@/components/letzte-neuerung";
 import { VersionStand } from "@/components/version-stand";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Building2, ChevronRight, LogOut, Pencil, Sparkles, Trophy } from "lucide-react";
+import { RechtlicheLinks } from "@/components/rechtliche-links";
+import { Building2, ChevronRight, Download, LogOut, Pencil, Sparkles, Trash2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
@@ -38,6 +39,11 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+
+  const [exportLaeuft, setExportLaeuft] = useState(false);
+  const [loeschenOffen, setLoeschenOffen] = useState(false);
+  const [loeschPasswort, setLoeschPasswort] = useState("");
+  const [loeschenLaeuft, setLoeschenLaeuft] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -107,6 +113,49 @@ export default function ProfilePage() {
       toast.error(err instanceof ApiError ? err.message : t("Ändern fehlgeschlagen."));
     } finally {
       setSavingPassword(false);
+    }
+  }
+
+  /**
+   * Auskunft nach Art. 15 DSGVO - als Datei zum Behalten.
+   *
+   * Der Umweg über einen Blob statt eines schlichten Links ist nötig, weil
+   * der Abruf den Anmelde-Token in der Kopfzeile tragen muss; ein <a href>
+   * kann das nicht.
+   */
+  async function handleExport() {
+    setExportLaeuft(true);
+    try {
+      const daten = await api.get<unknown>("/api/profile/export");
+      const datei = new Blob([JSON.stringify(daten, null, 2)], { type: "application/json" });
+      const adresse = URL.createObjectURL(datei);
+      const link = document.createElement("a");
+      link.href = adresse;
+      link.download = `dogity-meine-daten-${new Date().toISOString().slice(0, 10)}.json`;
+      // Safari lädt nur herunter, wenn das Element im Dokument hängt.
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(adresse);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Daten konnten nicht geladen werden."));
+    } finally {
+      setExportLaeuft(false);
+    }
+  }
+
+  async function handleKontoLoeschen(e: FormEvent) {
+    e.preventDefault();
+    setLoeschenLaeuft(true);
+    try {
+      await api.delete("/api/profile", { currentPassword: loeschPasswort });
+      logout();
+      router.push("/");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
+      // Kein finally: Bei Erfolg ist die Seite schon unterwegs, und ein
+      // Zustandswechsel auf einer verlassenen Seite bringt nichts.
+      setLoeschenLaeuft(false);
     }
   }
 
@@ -284,6 +333,84 @@ export default function ProfilePage() {
 
       <EinstellungenSection />
 
+      {/* Auskunft und Löschung (Art. 15 und 17 DSGVO) gehören in die App und
+          nicht in eine E-Mail an den Betreiber: Ein Recht, das man erst
+          erfragen muss, übt kaum jemand aus. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Download className="size-5" />
+            {t("Deine Daten")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "Alles, was Dogity über dich gespeichert hat, als Datei: Konto, Hunde, Trainings, Fährten samt Punkten, Ziele, Verein und Lernfortschritt.",
+            )}
+          </p>
+          <Button variant="outline" className="self-start" onClick={handleExport} disabled={exportLaeuft}>
+            <Download className="size-4" />
+            {exportLaeuft ? t("Wird vorbereitet…") : t("Meine Daten herunterladen")}
+          </Button>
+
+          <div className="flex flex-col gap-3 border-t pt-4">
+            {loeschenOffen ? (
+              <form onSubmit={handleKontoLoeschen} className="flex flex-col gap-3">
+                <p className="text-sm text-destructive">
+                  {t(
+                    "Das lässt sich nicht rückgängig machen. Einen Hund, den du dir mit jemandem teilst, behält die andere Person.",
+                  )}
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="loeschPasswort">{t("Zur Bestätigung dein Passwort")}</Label>
+                  <Input
+                    id="loeschPasswort"
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                    value={loeschPasswort}
+                    onChange={(e) => setLoeschPasswort(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" variant="destructive" disabled={loeschenLaeuft}>
+                    <Trash2 className="size-4" />
+                    {loeschenLaeuft ? t("Wird gelöscht…") : t("Konto endgültig löschen")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setLoeschenOffen(false);
+                      setLoeschPasswort("");
+                    }}
+                  >
+                    {t("Abbrechen")}
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    "Du kannst dein Konto jederzeit löschen. Deine Hunde, Trainings, Fährten, Ziele und Einstellungen werden dabei entfernt.",
+                  )}
+                </p>
+                <Button
+                  variant="ghost"
+                  className="self-start text-destructive hover:text-destructive"
+                  onClick={() => setLoeschenOffen(true)}
+                >
+                  <Trash2 className="size-4" />
+                  {t("Konto löschen")}
+                </Button>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Angemeldete Nutzer sehen die Fußzeile der öffentlichen Seiten nie -
           ohne diesen Block gäbe es für sie keinen Weg zu den Neuerungen. */}
       <Card>
@@ -303,6 +430,10 @@ export default function ProfilePage() {
         <p className="text-xs text-muted-foreground">{t("Gefällt dir Dogity? Über Unterstützung freue ich mich sehr.")}</p>
         <SupportButton />
       </div>
+
+      {/* Auch im eingeloggten Bereich erreichbar - die Fußzeile der
+          öffentlichen Seiten sieht hier niemand. */}
+      <RechtlicheLinks className="pb-2" />
     </div>
   );
 }

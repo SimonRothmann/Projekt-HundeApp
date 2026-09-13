@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PawPrint } from "lucide-react";
 import { AuthBackLink } from "@/components/auth-back-link";
+import { RechtlicheLinks } from "@/components/rechtliche-links";
 
 import { useT } from "@/lib/i18n";
 export default function ForgotPasswordPage() {
@@ -73,6 +74,7 @@ export default function ForgotPasswordPage() {
             </p>
           </CardContent>
         </Card>
+        <RechtlicheLinks />
       </div>
     </main>
   );

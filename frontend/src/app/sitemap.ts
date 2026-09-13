@@ -3,6 +3,7 @@ import { absoluteUrl } from "@/lib/seo";
 import { getCatalog, neuesteFassung } from "@/lib/public-catalog";
 import { getQuizCatalogs } from "@/lib/public-sachkunde";
 import { AKTUELLE_VERSION_DATUM } from "@/lib/versionshinweise";
+import { STAND as RECHTSSTAND } from "@/lib/rechtliches";
 
 /**
  * Verzeichnis aller öffentlichen Seiten. Ohne das müsste Google jede
@@ -41,6 +42,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.4,
     },
+    // Pflichtseiten. Niedrige Priorität - sie sollen gefunden werden, aber
+    // nicht mit den Inhaltsseiten um Aufmerksamkeit ringen. Ihr Datum ist
+    // echt: Es steht in lib/rechtliches.ts und wird mit jeder inhaltlichen
+    // Änderung mitgeführt.
+    { url: absoluteUrl("/impressum"), lastModified: RECHTSSTAND, changeFrequency: "yearly", priority: 0.2 },
+    { url: absoluteUrl("/datenschutz"), lastModified: RECHTSSTAND, changeFrequency: "yearly", priority: 0.3 },
   ];
 
   const regulationPages: MetadataRoute.Sitemap = catalog.map((entry) => ({
