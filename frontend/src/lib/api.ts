@@ -45,6 +45,30 @@ function getToken(): string | null {
   return window.localStorage.getItem(TOKEN_KEY);
 }
 
+// Läuft gerade eine GPS-Aufzeichnung, wartet die Abmeldung, bis sie endet.
+//
+// Die Weiterleitung zur Anmeldung baut die Seite neu auf - und nahm bis
+// 2026-09-21 eine gerade gelegte Fährte mit. Die Glocke fragt auch während
+// der Aufzeichnung jede Minute nach neuen Benachrichtigungen; lief dabei die
+// Sitzung ab, landete man mitten auf dem Acker auf der Anmeldeseite. Jetzt
+// läuft die Aufzeichnung weiter (sie braucht den Server nicht), und die
+// Weiterleitung kommt beim Beenden. Die Punkte liegen dann in der Sicherung
+// (lib/aufzeichnung-sicherung.ts) und lassen sich nach dem Anmelden speichern.
+let laufendeAufzeichnungen = 0;
+let abmeldungAufgeschoben = false;
+
+export function aufzeichnungGestartet() {
+  laufendeAufzeichnungen++;
+}
+
+export function aufzeichnungBeendet() {
+  laufendeAufzeichnungen = Math.max(0, laufendeAufzeichnungen - 1);
+  if (laufendeAufzeichnungen === 0 && abmeldungAufgeschoben) {
+    abmeldungAufgeschoben = false;
+    handleExpiredSession();
+  }
+}
+
 // Räumt eine ungültig gewordene Session auf (abgelaufenes/invalides JWT und
 // toter Refresh-Token) und schickt zum Login. Ohne das bleibt die App nach
 // Tokenablauf in einem kaputten Zustand stecken (alte Nutzerdaten im State,
@@ -52,6 +76,10 @@ function getToken(): string | null {
 // "App ist kaputt" und löschen Browserdaten, um es zu beheben, statt dass die
 // App selbst reagiert.
 function handleExpiredSession() {
+  if (laufendeAufzeichnungen > 0) {
+    abmeldungAufgeschoben = true;
+    return;
+  }
   window.localStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
   window.localStorage.removeItem(REFRESH_KEY);

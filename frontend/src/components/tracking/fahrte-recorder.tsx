@@ -1,20 +1,28 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { api, ApiError } from "@/lib/api";
+import { useEffect, useRef, useState } from "react";
 import type { GpsMarkerType, GpsPoint, GpsTrack } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cookie, MapPin, MapPinPlus, Package, Waypoints } from "lucide-react";
 import { toast } from "sonner";
-import { enqueueRequest } from "@/lib/offline-queue";
-import { estimateLengthMeters } from "@/lib/geo";
-import { UNTERGRUENDE, untergrundAlsText, untergrundUmschalten } from "@/lib/untergrund";
+import { useAuth } from "@/lib/auth-context";
+import {
+  faehrtenSchluessel,
+  sicherungAnzeigen,
+  sicherungLesen,
+  sicherungLoeschen,
+  sicherungSchreiben,
+  sicherungSpeichern,
+  type FaehrtenSicherung,
+} from "@/lib/aufzeichnung-sicherung";
+import { UNTERGRUENDE, untergrundUmschalten } from "@/lib/untergrund";
 import { cn } from "@/lib/utils";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
 import { TrackMap } from "@/components/tracking/track-map";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
+import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/components/tracking/unterbrochene-aufzeichnung";
 
 import { useT } from "@/lib/i18n";
 function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
@@ -63,11 +71,47 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
   // man sie im Tagebuch wieder heraussuchen muss. Offline gespeichert gibt es
   // noch keine Id - dann erinnert später die Startseite ("Heute gelegt").
   const [gelegt, setGelegt] = useState<GpsTrack | null>(null);
-  const startedAtRef = useRef<number>(0);
+  const { user } = useAuth();
+  const schluessel = faehrtenSchluessel(dogId);
+  // Eine nicht beendete Aufzeichnung dieses Hundes (siehe
+  // lib/aufzeichnung-sicherung.ts) - statt des Startknopfs angezeigt.
+  const [unterbrochen, setUnterbrochen] = useState<FaehrtenSicherung | null>(null);
+  const [speichert, setSpeichert] = useState(false);
+  // Was die Sicherung über die Punkte hinaus braucht: die schon beim Start
+  // vergebene Id der Fährte, Beginn und Seite. Bleibt beim Fortsetzen gleich.
+  const laufendRef = useRef<{ trackId: string; begonnen: number; seite: string } | null>(null);
+
+  // Angemeldet beim Hinweis der App-Hülle: Was dieser Recorder zeigt, muss
+  // der nicht noch einmal zeigen.
+  useEffect(() => sicherungAnzeigen(schluessel), [schluessel]);
+
+  useEffect(() => {
+    // Während einer Aufzeichnung ist die Sicherung die laufende, keine
+    // unterbrochene.
+    if (!user || laufendRef.current) return;
+    const gesichert = sicherungLesen(schluessel, user.userId);
+    // Gesicherter Stand aus dem localStorage (externe Quelle), nur beim Mount.
+    setUnterbrochen(gesichert?.art === "faehrte" ? gesichert : null);
+  }, [schluessel, user]);
+
+  // Jeder neue Punkt, jeder Marker und jede Änderung am Untergrund geht
+  // sofort in die Sicherung.
+  useEffect(() => {
+    const laufend = laufendRef.current;
+    if (!isRecording || !laufend || !user) return;
+    sicherungSchreiben({ art: "faehrte", userId: user.userId, dogId, untergrund, points, ...laufend });
+  }, [isRecording, points, untergrund, user, dogId]);
 
   function startRecording() {
-    startedAtRef.current = Date.now();
+    laufendRef.current = { trackId: crypto.randomUUID(), begonnen: Date.now(), seite: window.location.pathname };
     start();
+  }
+
+  function fortsetzen(gesichert: FaehrtenSicherung) {
+    laufendRef.current = { trackId: gesichert.trackId, begonnen: gesichert.begonnen, seite: gesichert.seite };
+    setUntergrund(gesichert.untergrund);
+    setUnterbrochen(null);
+    start(gesichert.points);
   }
 
   /**
@@ -101,56 +145,60 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     if (!confirm(t("Aufzeichnung verwerfen? Die bisher aufgezeichnete Fährte geht verloren."))) return;
     stop();
     setPoints([]);
+    laufendRef.current = null;
+    sicherungLoeschen(schluessel);
   }
 
   async function stopRecording() {
     stop();
+    const laufend = laufendRef.current;
+    laufendRef.current = null;
 
     if (points.length === 0) {
+      sicherungLoeschen(schluessel);
       toast.error(t("Keine GPS-Punkte aufgezeichnet."));
       return;
     }
 
-    const durationMinutes = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 60000));
-
-    // EINE Anfrage mit Hund und Datum, statt erst eine Einheit und dann die
-    // Fährte dazu anzulegen. Der Server hängt die Fährte an die Einheit des
-    // Tages (siehe GpsTrackService.CreateAsync): Mehrere Fährten pro
-    // Übungsstunde sind im Fährtensport üblich und gehören in dieselbe
-    // Einheit. Vorher bekam jede Aufnahme eine eigene, weil die zweite Anfrage
-    // in der Offline-Warteschlange auf die Id der ersten verweisen musste.
-    //
-    // Die Id macht die Anfrage wiederholbar: Sendet die Warteschlange sie
-    // zweimal, entsteht trotzdem nur eine Fährte.
-    const trackPayload = {
-      id: crypto.randomUUID(),
+    // Ohne Anmeldung (sollte hier nicht vorkommen) gibt es keine Sicherung;
+    // gespeichert wird trotzdem.
+    const sicherung: FaehrtenSicherung = {
+      art: "faehrte",
+      userId: user?.userId ?? "",
       dogId,
-      date: new Date().toISOString().slice(0, 10),
-      durationMinutes,
-      lengthMeters: estimateLengthMeters(points),
-      ageMinutes: null,
-      surface: untergrundAlsText(untergrund),
-      weather: null,
-      wind: null,
-      comment: null,
+      untergrund,
       points,
+      trackId: laufend?.trackId ?? crypto.randomUUID(),
+      begonnen: laufend?.begonnen ?? Date.now(),
+      seite: laufend?.seite ?? window.location.pathname,
     };
+    // Den letzten Stand festhalten, bevor die Anfrage losgeht: Scheitert sie,
+    // ist genau das hier der Stand, den "So speichern" später schickt.
+    if (user) sicherungSchreiben(sicherung);
+    await speichern(sicherung);
+  }
 
-    try {
-      const gespeichert = await api.post<GpsTrack>("/api/gps-tracks", trackPayload);
-      toast.success(t("Fährte gespeichert."));
-      setGelegt(gespeichert);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-      } else {
-        await enqueueRequest({ path: "/api/gps-tracks", method: "POST", body: trackPayload, label: t("Fährte") });
-        toast.success(t("Fährte offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."));
-      }
-    }
-
+  /**
+   * Speichert eine Fährte - frisch beendet oder aus einer Sicherung.
+   *
+   * Klappt es nicht, bleibt die Sicherung stehen und erscheint als
+   * unterbrochene Fährte zum erneuten Versuch. Vorher gingen die Punkte in
+   * diesem Fall nach der Fehlermeldung verloren.
+   */
+  async function speichern(sicherung: FaehrtenSicherung) {
+    setSpeichert(true);
+    const ergebnis = await sicherungSpeichern(sicherung, t("Fährte"));
+    setSpeichert(false);
+    speicherErgebnisMelden(ergebnis, t, "faehrte");
     setPoints([]);
     setUntergrund([]);
+
+    if (ergebnis.ausgang === "fehler") {
+      setUnterbrochen(user ? sicherung : null);
+      return;
+    }
+    setUnterbrochen(null);
+    if (ergebnis.ausgang === "gespeichert") setGelegt(ergebnis.faehrte);
     await onSaved();
   }
 
@@ -168,6 +216,18 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          {unterbrochen && (
+            <UnterbrocheneAufzeichnungKarte
+              sicherung={unterbrochen}
+              beschaeftigt={speichert}
+              onFortsetzen={() => fortsetzen(unterbrochen)}
+              onSpeichern={() => speichern(unterbrochen)}
+              onVerwerfen={() => {
+                sicherungLoeschen(schluessel);
+                setUnterbrochen(null);
+              }}
+            />
+          )}
           {gelegt && (
             <div className="flex flex-col gap-2 rounded-lg border border-surface-border bg-surface p-3">
               <p className="text-sm">
@@ -190,42 +250,46 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
               </div>
             </div>
           )}
-          {/* Antippen statt Tippen: Getippter Text vor dem Start löste auf
-              dem iPhone beim Legen "Eingabe widerrufen" aus (siehe
-              lib/untergrund.ts). Aussehen wie die Verfassung
-              (ConditionPicker), Trefferfläche aber 44 px - beim Fährtelegen
-              oft mit Handschuh. */}
-          <div className="flex flex-col gap-2">
-            <span id="fahrte-untergrund" className="text-sm font-medium">
-              {t("Untergrund (optional)")}{" "}
-              <span className="font-normal text-muted-foreground">· {t("mehrere möglich")}</span>
-            </span>
-            <div role="group" aria-labelledby="fahrte-untergrund" className="flex flex-wrap gap-1.5">
-              {UNTERGRUENDE.map((u) => {
-                const aktiv = untergrund.includes(u);
-                return (
-                  <button
-                    key={u}
-                    type="button"
-                    aria-pressed={aktiv}
-                    onClick={() => setUntergrund((vorher) => untergrundUmschalten(vorher, u))}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11",
-                      aktiv
-                        ? "border-primary bg-primary/15 text-primary-text"
-                        : "border-border/60 text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-                    )}
-                  >
-                    {t(u)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <Button onClick={startRecording} className="self-start coarse:min-h-11">
-            <MapPin className="size-4" />
-            Aufnahme starten
-          </Button>
+          {!unterbrochen && (
+            <>
+              {/* Antippen statt Tippen: Getippter Text vor dem Start löste auf
+                  dem iPhone beim Legen "Eingabe widerrufen" aus (siehe
+                  lib/untergrund.ts). Aussehen wie die Verfassung
+                  (ConditionPicker), Trefferfläche aber 44 px - beim Fährtelegen
+                  oft mit Handschuh. */}
+              <div className="flex flex-col gap-2">
+                <span id="fahrte-untergrund" className="text-sm font-medium">
+                  {t("Untergrund (optional)")}{" "}
+                  <span className="font-normal text-muted-foreground">· {t("mehrere möglich")}</span>
+                </span>
+                <div role="group" aria-labelledby="fahrte-untergrund" className="flex flex-wrap gap-1.5">
+                  {UNTERGRUENDE.map((u) => {
+                    const aktiv = untergrund.includes(u);
+                    return (
+                      <button
+                        key={u}
+                        type="button"
+                        aria-pressed={aktiv}
+                        onClick={() => setUntergrund((vorher) => untergrundUmschalten(vorher, u))}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11",
+                          aktiv
+                            ? "border-primary bg-primary/15 text-primary-text"
+                            : "border-border/60 text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
+                        )}
+                      >
+                        {t(u)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <Button onClick={startRecording} disabled={speichert} className="self-start coarse:min-h-11">
+                <MapPin className="size-4" />
+                Aufnahme starten
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
     );
@@ -276,7 +340,8 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
           ))}
         </div>
       }
-      abschlussLabel="Legen beenden"
+      abschlussLabel={t("Legen beenden")}
+      abschlussFrage={t("Legen beenden und die Fährte speichern?")}
       onAbschluss={stopRecording}
       onAbbrechen={abbrechen}
     >

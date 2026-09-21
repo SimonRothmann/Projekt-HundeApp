@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, ApiError, REFRESH_KEY, TOKEN_KEY, USER_KEY } from "@/lib/api";
+import { alleSicherungenLoeschen } from "@/lib/aufzeichnung-sicherung";
 import type { AuthResponse } from "@/lib/types";
 
 type AuthUser = Pick<AuthResponse, "userId" | "email" | "firstName" | "lastName" | "roles">;
@@ -142,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(USER_KEY);
     window.localStorage.removeItem(REFRESH_KEY);
+    alleSicherungenLoeschen();
     setUser(null);
     setIsTrainer(null);
     setUnreadNotificationCount(0);

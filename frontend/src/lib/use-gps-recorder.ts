@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { aufzeichnungBeendet, aufzeichnungGestartet } from "@/lib/api";
 import { haversineMeters } from "@/lib/geo";
 import { kalmanInit, kalmanStep, type KalmanState } from "@/lib/kalman";
 
@@ -144,6 +145,7 @@ export function useGpsRecorder<T>(
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (isRecordingRef.current) aufzeichnungBeendet();
       isRecordingRef.current = false;
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
@@ -209,17 +211,26 @@ export function useGpsRecorder<T>(
     setPoints((prev) => [...prev, toPoint(recordedPosition)]);
   }
 
-  function start() {
+  /**
+   * Startet die Aufzeichnung - oder setzt eine unterbrochene fort.
+   *
+   * `fortsetzen` sind die Punkte aus der Sicherung (lib/aufzeichnung-
+   * sicherung.ts). Die neuen Punkte hängen sich daran an; der Kalman-Filter
+   * beginnt neu, weil zwischen dem letzten gesicherten und dem ersten neuen
+   * Punkt beliebig viel Zeit und Weg liegen können.
+   */
+  function start(fortsetzen: T[] = []) {
     if (!("geolocation" in navigator)) {
       toast.error("Geolocation wird von diesem Browser nicht unterstützt.");
       return;
     }
-    setPoints([]);
+    setPoints(fortsetzen);
     setCurrentAccuracy(null);
     lastRecordedRef.current = null;
     kalmanRef.current = null;
     lastAcceptedAtRef.current = Date.now();
     setIsRecording(true);
+    if (!isRecordingRef.current) aufzeichnungGestartet();
     isRecordingRef.current = true;
 
     // Einziger GPS-Datenzugriff während der Aufzeichnung. watchPosition
@@ -240,6 +251,7 @@ export function useGpsRecorder<T>(
   }
 
   function stop() {
+    const liefNoch = isRecordingRef.current;
     isRecordingRef.current = false;
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
@@ -247,6 +259,8 @@ export function useGpsRecorder<T>(
     }
     releaseWakeLock();
     setIsRecording(false);
+    // Zuletzt: Stand eine Abmeldung aus, leitet das hier zur Anmeldung weiter.
+    if (liefNoch) aufzeichnungBeendet();
   }
 
   function markPoint(onMarked: (point: T) => void, onError?: () => void) {

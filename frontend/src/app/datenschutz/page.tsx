@@ -171,6 +171,7 @@ export default function DatenschutzPage() {
               "dein Name, deine E-Mail-Adresse und deine Rolle, damit die App sie beim Start nicht erst nachladen muss",
               "die zuletzt gewählte Kartenart, die Schriftgröße und welchen Neuerungs-Hinweis du schon gesehen hast",
               "noch nicht abgeschickte Einträge, solange du offline bist – sie gehen an den Server, sobald wieder Verbindung besteht",
+              "eine laufende GPS-Aufzeichnung samt Standorten, damit sie ein Neuladen oder Absturz der App übersteht – sie wird gelöscht, sobald sie gespeichert oder verworfen ist",
             ]}
           />
           <p>

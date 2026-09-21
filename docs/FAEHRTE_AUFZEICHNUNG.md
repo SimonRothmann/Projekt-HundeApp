@@ -259,6 +259,50 @@ bleibt trotzdem unter der Kopfzeile (`z-30`) und der unteren Navigation
 `z-10` verglichen werden. Ohne Portal lag das Vollbild zwischen den beiden,
 und der Abschluss-Knopf war verdeckt.
 
+### Abgebrochene Aufzeichnung (2026-09-21)
+
+Rückmeldung vom Legen: Beim Herausziehen des Handys aus der Tasche, um den
+ersten Gegenstand zu markieren, war die Aufzeichnung weg. Welcher Weg es
+genau war, ließ sich im Nachhinein nicht feststellen - die Aufzeichnung lebte
+nur im Arbeitsspeicher der Seite, und mehrere Wege führten zum selben
+Ergebnis:
+
+| Weg | Warum er in der Tasche wahrscheinlich ist |
+|---|---|
+| „Legen beenden" berührt | Der Bildschirm bleibt absichtlich an (Wake Lock). Der Knopf war der größte, unten, volle Breite, ein Tipp genügte |
+| Seite neu geladen | Wischen nach unten beim Herausziehen = „Ziehen zum Aktualisieren" |
+| App vom System beendet | iOS beendet Web-Apps im Hintergrund, etwa nach versehentlichem Sperren |
+| Weiterleitung zur Anmeldung | Die Glocke fragt jede Minute beim Server; lief dabei die Sitzung ab, ging es zur Anmeldeseite |
+| Speichern abgelehnt | Nach einer Fehlermeldung des Servers wurden die Punkte verworfen |
+
+Deshalb nicht ein einzelner Riegel, sondern:
+
+- **Sicherung auf dem Gerät** (`lib/aufzeichnung-sicherung.ts`): Jeder
+  Punkt geht sofort synchron in den localStorage. Gelöscht wird erst, wenn
+  der Server die Aufzeichnung hat, sie in der Offline-Warteschlange liegt
+  oder jemand sie ausdrücklich verwirft - und beim Abmelden, weil sie
+  Standorte enthält. Nach einem Abbruch zeigt der Recorder „Unterbrochene
+  Fährte" mit *Weiter aufzeichnen*, *So speichern* und *Verwerfen*. Die Id
+  der Fährte wird beim Start vergeben und mitgesichert; ein zweiter
+  Speicherversuch legt deshalb keine zweite Fährte an.
+- **Hinweis in der App-Hülle** für Sicherungen, die gerade kein Recorder
+  zeigt - eine vom System beendete App startet auf der Startseite, nicht
+  auf der Hundeseite.
+- **Beenden per Gedrückthalten** (`HalteKnopf`, 1 s mit Fortschritt). Ein
+  Dialog hätte einen zweiten gezielten Tipp gekostet und erscheint dort,
+  wo die nächste zufällige Berührung ihn bestätigt. Per Tastatur fragt
+  stattdessen der Dialog.
+- **Kein Ziehen zum Aktualisieren** im Vollbild
+  (`overscroll-behavior: none`).
+- **Abmeldung wartet**: Läuft die Sitzung während einer Aufzeichnung ab,
+  leitet `api.ts` erst nach dem Beenden zur Anmeldung weiter.
+
+Bewusst noch nicht gebaut: eine **Taschensperre**, die alle Knöpfe bis zu
+einer Entsperrgeste abschaltet. Sie würde auch versehentliche Marker in der
+Tasche verhindern, kostet aber bei jedem Gegenstand einen Schritt mehr -
+genau den, den die Marker-Knöpfe eingespart haben. Erst entscheiden, wenn
+versehentliche Marker tatsächlich auftreten.
+
 ---
 
 ## 3. Marker direkt setzen

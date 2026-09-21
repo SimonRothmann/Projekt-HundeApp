@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api, ApiError } from "@/lib/api";
-import type { GpsPoint, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
+import { useEffect, useRef, useState } from "react";
+import type { GpsPoint, GpsWalkPoint } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Footprints } from "lucide-react";
 import { toast } from "sonner";
-import { enqueueRequest } from "@/lib/offline-queue";
-import { estimateLengthMeters } from "@/lib/geo";
+import { useAuth } from "@/lib/auth-context";
+import {
+  ablaufSchluessel,
+  sicherungAnzeigen,
+  sicherungLesen,
+  sicherungLoeschen,
+  sicherungSchreiben,
+  sicherungSpeichern,
+  type AblaufSicherung,
+} from "@/lib/aufzeichnung-sicherung";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
 import { TrackMap } from "@/components/tracking/track-map";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
+import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/components/tracking/unterbrochene-aufzeichnung";
 import { primeHapticsAudio, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
 
 import { useT } from "@/lib/i18n";
@@ -66,6 +74,42 @@ export function WalkRunRecorder({
   // Optionaler Kommentar zu diesem Ablauf-Versuch (z.B. "bei Regen", "Hund
   // hat an Winkel 2 verloren") - wird beim Stoppen mitgespeichert.
   const [comment, setComment] = useState("");
+  const { user } = useAuth();
+  const schluessel = ablaufSchluessel(trackId);
+  // Ein nicht beendeter Ablauf dieser Fährte - siehe FahrteRecorder, dort
+  // dasselbe für das Legen.
+  const [unterbrochen, setUnterbrochen] = useState<AblaufSicherung | null>(null);
+  const [speichert, setSpeichert] = useState(false);
+  const laufendRef = useRef<{ begonnen: number; seite: string } | null>(null);
+
+  useEffect(() => sicherungAnzeigen(schluessel), [schluessel]);
+
+  useEffect(() => {
+    if (!user || laufendRef.current) return;
+    const gesichert = sicherungLesen(schluessel, user.userId);
+    // Gesicherter Stand aus dem localStorage (externe Quelle), nur beim Mount.
+    setUnterbrochen(gesichert?.art === "ablauf" ? gesichert : null);
+  }, [schluessel, user]);
+
+  useEffect(() => {
+    const laufend = laufendRef.current;
+    if (!isRecording || !laufend || !user) return;
+    sicherungSchreiben({ art: "ablauf", userId: user.userId, trackId, kommentar: comment, points, ...laufend });
+  }, [isRecording, points, comment, user, trackId]);
+
+  function aufzeichnen(fortsetzen?: AblaufSicherung) {
+    // Muss aus dem Klick-Handler synchron passieren, sonst bleibt der
+    // AudioContext auf iOS suspended und die späteren Alarmtöne bleiben stumm.
+    primeHapticsAudio();
+    laufendRef.current = fortsetzen
+      ? { begonnen: fortsetzen.begonnen, seite: fortsetzen.seite }
+      : { begonnen: Date.now(), seite: window.location.pathname };
+    if (fortsetzen) {
+      setComment(fortsetzen.kommentar);
+      setUnterbrochen(null);
+    }
+    startRecording(fortsetzen?.points);
+  }
 
   useEffect(() => {
     // EMPTY_WALK_POINTS ist eine stabile Referenz (Modul-Konstante), damit der
@@ -88,53 +132,74 @@ export function WalkRunRecorder({
    * versehentlicher Abbruch mitten im Suchen kostet den ganzen Versuch.
    */
   function abbrechen() {
-    if (!confirm("Ablauf verwerfen? Die bisher aufgezeichnete Strecke geht verloren.")) return;
+    if (!confirm(t("Ablauf verwerfen? Die bisher aufgezeichnete Strecke geht verloren."))) return;
     stop();
     setPoints([]);
+    laufendRef.current = null;
+    sicherungLoeschen(schluessel);
   }
 
   async function stopRecording() {
     stop();
+    const laufend = laufendRef.current;
+    laufendRef.current = null;
 
     if (points.length === 0) {
+      sicherungLoeschen(schluessel);
       toast.error(t("Keine GPS-Punkte aufgezeichnet."));
       return;
     }
 
-    const path = `/api/gps-tracks/${trackId}/walk-runs`;
-    const payload = { lengthMeters: estimateLengthMeters(points), comment: comment.trim() || null, points };
+    const sicherung: AblaufSicherung = {
+      art: "ablauf",
+      userId: user?.userId ?? "",
+      trackId,
+      kommentar: comment,
+      points,
+      begonnen: laufend?.begonnen ?? Date.now(),
+      seite: laufend?.seite ?? window.location.pathname,
+    };
+    if (user) sicherungSchreiben(sicherung);
+    await speichern(sicherung);
+  }
 
-    try {
-      await api.post<GpsWalkRun>(path, payload);
-      toast.success(t("Ablauf-Versuch gespeichert."));
-      setPoints([]);
-      setComment("");
-      await onSaved();
-    } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-      } else {
-        // Netzwerkfehler (offline) - siehe PRODUCT_REQUIREMENTS.md "Offline": GPS speichern ohne Internet.
-        await enqueueRequest({ path, method: "POST", body: payload, label: "Ablauf-Versuch" });
-        toast.success(t("Ablauf-Versuch offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."));
-        setPoints([]);
-        setComment("");
-      }
+  // Ohne Netz landet der Ablauf in der Warteschlange - siehe
+  // PRODUCT_REQUIREMENTS.md "Offline": GPS speichern ohne Internet. Scheitert
+  // das Speichern, bleibt er als unterbrochener Ablauf stehen.
+  async function speichern(sicherung: AblaufSicherung) {
+    setSpeichert(true);
+    const ergebnis = await sicherungSpeichern(sicherung, t("Ablauf-Versuch"));
+    setSpeichert(false);
+    speicherErgebnisMelden(ergebnis, t, "ablauf");
+    setPoints([]);
+    setComment("");
+
+    if (ergebnis.ausgang === "fehler") {
+      setUnterbrochen(user ? sicherung : null);
+      return;
     }
+    setUnterbrochen(null);
+    if (ergebnis.ausgang === "gespeichert") await onSaved();
+  }
+
+  if (!isRecording && unterbrochen) {
+    return (
+      <UnterbrocheneAufzeichnungKarte
+        sicherung={unterbrochen}
+        beschaeftigt={speichert}
+        onFortsetzen={() => aufzeichnen(unterbrochen)}
+        onSpeichern={() => speichern(unterbrochen)}
+        onVerwerfen={() => {
+          sicherungLoeschen(schluessel);
+          setUnterbrochen(null);
+        }}
+      />
+    );
   }
 
   if (!isRecording) {
     return (
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => {
-          // Muss aus dem Klick-Handler synchron passieren, sonst bleibt der
-          // AudioContext auf iOS suspended und die späteren Alarmtöne bleiben stumm.
-          primeHapticsAudio();
-          startRecording();
-        }}
-      >
+      <Button size="sm" variant="outline" disabled={speichert} onClick={() => aufzeichnen()}>
         <Footprints className="size-4" />
         {label ?? t("Fährte erneut ablaufen")}
       </Button>
@@ -172,7 +237,8 @@ export function WalkRunRecorder({
           onChange={(e) => setComment(e.target.value)}
         />
       }
-      abschlussLabel="Ablauf beenden"
+      abschlussLabel={t("Ablauf beenden")}
+      abschlussFrage={t("Ablauf beenden und speichern?")}
       onAbschluss={stopRecording}
       onAbbrechen={abbrechen}
     >

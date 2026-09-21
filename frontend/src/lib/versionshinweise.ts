@@ -61,6 +61,29 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.18",
+    datum: "2026-09-21",
+    titel: uebersetzbar("Eine abgebrochene Fährte ist nicht mehr verloren"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Jeder Punkt einer Aufzeichnung wird sofort auf deinem Handy gesichert. Bricht sie ab - weil die Seite neu lädt oder das Handy die App beendet -, kannst du danach weiter aufzeichnen, speichern, was schon da ist, oder sie verwerfen. Das gilt beim Legen wie beim Ablaufen."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("„Legen beenden“ und „Ablauf beenden“ hältst du jetzt eine Sekunde gedrückt. Eine zufällige Berührung beim Herausziehen des Handys aus der Tasche beendet die Aufzeichnung nicht mehr, und Wischen nach unten lädt die Seite nicht neu."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Konnte eine Aufzeichnung beim Beenden nicht gespeichert werden, waren ihre Punkte weg. Jetzt bleibt sie gesichert, bis das Speichern klappt."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Läuft deine Anmeldung während einer Aufzeichnung ab, geht es erst nach dem Beenden zur Anmeldeseite - nicht mehr mitten auf der Fährte."),
+      },
+    ],
+  },
+  {
     version: "0.17",
     datum: "2026-09-21",
     titel: uebersetzbar("In eine Gruppe nur mit deiner Zusage"),

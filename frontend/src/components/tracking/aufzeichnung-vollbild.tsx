@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { HalteKnopf } from "@/components/tracking/halte-knopf";
 import { useWakeLock } from "@/lib/use-wake-lock";
 
 import { useT } from "@/lib/i18n";
@@ -29,6 +30,7 @@ export function AufzeichnungVollbild({
   status,
   aktionen,
   abschlussLabel,
+  abschlussFrage,
   onAbschluss,
   onAbbrechen,
   children,
@@ -39,6 +41,8 @@ export function AufzeichnungVollbild({
   /** Zusätzliche Knöpfe über dem Abschluss, z.B. Marker setzen. */
   aktionen?: React.ReactNode;
   abschlussLabel: string;
+  /** Rückfrage beim Beenden per Tastatur - mit Finger oder Maus wird gehalten. */
+  abschlussFrage: string;
   onAbschluss: () => void;
   /** Abbrechen verwirft die Aufzeichnung - nur nach Rückfrage. */
   onAbbrechen?: () => void;
@@ -51,11 +55,18 @@ export function AufzeichnungVollbild({
   // Hintergrund nicht mitscrollen lassen, solange das Vollbild offen ist -
   // sonst wandert die Seite darunter weg und steht nach dem Schließen an
   // einer anderen Stelle.
+  //
+  // overscroll-behavior dazu: Ein Wischen nach unten beim Herausziehen des
+  // Handys löste sonst "Ziehen zum Aktualisieren" aus - und ein Neuladen
+  // beendet die Aufzeichnung.
   useEffect(() => {
-    const vorher = document.body.style.overflow;
+    const html = document.documentElement.style;
+    const vorher = { overflow: document.body.style.overflow, html: html.overscrollBehavior };
     document.body.style.overflow = "hidden";
+    html.overscrollBehavior = "none";
     return () => {
-      document.body.style.overflow = vorher;
+      document.body.style.overflow = vorher.overflow;
+      html.overscrollBehavior = vorher.html;
     };
   }, []);
 
@@ -100,9 +111,9 @@ export function AufzeichnungVollbild({
 
       <div className="flex flex-col gap-3 border-t border-border/60 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {aktionen}
-        <Button size="lg" variant="destructive" className="h-14 w-full text-base" onClick={onAbschluss}>
+        <HalteKnopf onAusgeloest={onAbschluss} bestaetigungsfrage={abschlussFrage}>
           {abschlussLabel}
-        </Button>
+        </HalteKnopf>
       </div>
     </div>,
     document.body,

@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/nav/notification-bell";
 import { OfflineSyncListener } from "@/components/offline-sync-listener";
 import { EnvBadge } from "@/components/env-badge";
+import { UnterbrocheneAufzeichnungen } from "@/components/tracking/unterbrochene-aufzeichnung";
 import { useT } from "@/lib/i18n";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -57,6 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Suspense fallback={null}>
             <SubpageBackButton />
           </Suspense>
+          <UnterbrocheneAufzeichnungen />
           {children}
         </main>
       </div>
