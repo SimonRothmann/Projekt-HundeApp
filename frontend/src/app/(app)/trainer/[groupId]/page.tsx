@@ -152,7 +152,9 @@ export default function TrainerGroupPage() {
     setSubmitting(true);
     try {
       await api.post(`/api/groups/${groupId}/members`, { email });
-      toast.success(t("Mitglied hinzugefügt."));
+      // Eine Einladung, keine Aufnahme: Mitglied wird erst, wer annimmt -
+      // sonst genügte eine fremde E-Mail-Adresse, um deren Hunde zu betreuen.
+      toast.success(t("Einladung verschickt - die Person muss sie noch annehmen."));
       setEmail("");
       await loadDetail();
     } catch (err) {
@@ -169,6 +171,16 @@ export default function TrainerGroupPage() {
       await loadDetail();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Mitglied konnte nicht entfernt werden."));
+    }
+  }
+
+  async function handleWithdrawInvitation(memberId: string) {
+    try {
+      await api.delete(`/api/groups/${groupId}/members/${memberId}`);
+      toast.success(t("Einladung zurückgezogen."));
+      await loadDetail();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Das hat nicht geklappt."));
     }
   }
 
@@ -390,11 +402,34 @@ export default function TrainerGroupPage() {
             </div>
             <Button type="submit" disabled={submitting}>
               <UserPlus className="size-4" />
-{t("Hinzufügen")}
+              {t("Einladen")}
             </Button>
           </form>
         </CardContent>
       </Card>
+
+      {detail.invitations.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">{t("Eingeladen")}</h2>
+          <Card>
+            <CardContent className="flex flex-col gap-3 py-4">
+              {detail.invitations.map((invite) => (
+                <div key={invite.userId} className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium [overflow-wrap:anywhere]">
+                      {invite.firstName} {invite.lastName}
+                    </p>
+                    <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{invite.email}</p>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => handleWithdrawInvitation(invite.userId)}>
+                    {t("Zurückziehen")}
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t("Mitglieder")}</h2>

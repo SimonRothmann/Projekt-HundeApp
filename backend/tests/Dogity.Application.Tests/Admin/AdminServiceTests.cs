@@ -50,6 +50,21 @@ public class AdminServiceTests
     }
 
     [Fact]
+    public async Task SetUserPassword_RevokesRefreshTokens()
+    {
+        var service = MakeService(out var lookup, out var refreshTokens);
+        var userId = Guid.NewGuid();
+        lookup.Register(userId, "user@test.de");
+
+        var result = await service.SetUserPasswordAsync(userId, "NeuesPasswort1");
+
+        // Ein neues Passwort setzt man auch, wenn das alte in falsche Hände
+        // geraten ist - Sitzungen mit dem alten dürfen nicht weiterlaufen.
+        Assert.True(result.Succeeded);
+        Assert.Contains(userId, refreshTokens.RevokedAllForUsers);
+    }
+
+    [Fact]
     public async Task LockUser_UserNotFound_Fails()
     {
         var service = MakeService(out _);

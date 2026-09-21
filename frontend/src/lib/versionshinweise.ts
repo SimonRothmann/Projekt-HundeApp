@@ -61,6 +61,33 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.17",
+    datum: "2026-09-21",
+    titel: uebersetzbar("In eine Gruppe nur mit deiner Zusage"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Trainer:innen laden neue Mitglieder jetzt ein, statt sie direkt aufzunehmen. Mitglied wirst du erst, wenn du unter „Vereine“ annimmst - und erst dann kann jemand aus der Gruppe deine Hunde betreuen und ihr Tagebuch sehen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Unter „Vereine“ siehst du alle deine Gruppen und kannst jede davon verlassen. Damit endet auch die Betreuung deiner Hunde durch die Trainer:innen dieser Gruppe."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Du bekommst eine Benachrichtigung, sobald jemand einen deiner Hunde betreut."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Wer sein Passwort ändert oder zurücksetzt, meldet damit alle anderen Geräte ab."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Bei viel Betrieb konnte die App dich beim stündlichen Erneuern der Anmeldung abmelden, obwohl alles in Ordnung war. Das passiert nicht mehr."),
+      },
+    ],
+  },
+  {
     version: "0.16",
     datum: "2026-09-13",
     titel: uebersetzbar("Impressum, Datenschutz und deine Daten in deiner Hand"),

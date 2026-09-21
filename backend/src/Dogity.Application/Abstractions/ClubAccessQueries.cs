@@ -19,7 +19,9 @@ public static class ClubAccessQueries
             .ToListAsync(ct);
 
         var memberClubIds = await db.Groups
-            .Where(g => g.ClubId != null && g.Members.Any(m => m.UserId == userId))
+            // Nur aktive Mitglieder: Eine offene Anfrage oder eine noch nicht
+            // angenommene Einladung macht niemanden zum Teil des Vereins.
+            .Where(g => g.ClubId != null && g.Members.Any(m => m.UserId == userId && m.Status == GroupMemberStatus.Active))
             .Select(g => g.ClubId!.Value)
             .ToListAsync(ct);
 

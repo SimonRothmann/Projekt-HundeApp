@@ -84,6 +84,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // pro IP bleiben Passwort-Spraying über viele Konten, Massenregistrierung
 // und E-Mail-Versand-Spam über forgot-password möglich. 10 Requests/Minute
 // pro IP reicht für jede legitime Nutzung (auch Familien hinter einem NAT).
+//
+// Die IP stimmt nur, weil Caddy hinter Cloudflare die echte Client-Adresse
+// weiterreicht (siehe deploy/Caddyfile, servers-Block). Ohne das zählte
+// dieser Topf je Cloudflare-Knoten statt je Person.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -93,6 +97,21 @@ builder.Services.AddRateLimiter(options =>
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+            }));
+
+    // Eigener, weiterer Topf für Token-Erneuerung und Abmelden. Beides lief
+    // bisher im Anmelde-Topf mit: Jede App erneuert stündlich ihren Token, und
+    // ein paar Geräte hinter einem Anschluss (Vereinsheim-WLAN) reichten, um
+    // echte Anmeldungen auszusperren - oder umgekehrt. Raten lässt sich hier
+    // nichts, ein Refresh-Token hat 256 Bit Zufall; das Limit begrenzt nur
+    // die Last.
+    options.AddPolicy("refresh", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
                 Window = TimeSpan.FromMinutes(1),
             }));
 });

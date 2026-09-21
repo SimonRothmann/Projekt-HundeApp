@@ -12,7 +12,9 @@ public enum GroupRelation
     None,
     Pending,
     Member,
-    Trainer
+    Trainer,
+    /// <summary>Eine Trainer:in hat eingeladen, die Person hat noch nicht angenommen.</summary>
+    Invited
 }
 
 public record GroupDto(
@@ -41,7 +43,28 @@ public record GroupJoinRequestDto(Guid MemberId, string Email, string FirstName,
 
 public record MemberDogDto(Guid Id, string Name, string? Breed, bool IsTrainerAssigned);
 
-public record GroupDetailDto(GroupDto Group, IReadOnlyList<GroupMemberDto> Members, IReadOnlyList<GroupTrainerDto> Trainers);
+/// <param name="Invitations">
+/// Offene Einladungen - nur für Personen gefüllt, die die Gruppe verwalten.
+/// Mitglieder sehen nicht, wen die Trainer:in sonst noch angefragt hat.
+/// </param>
+public record GroupDetailDto(
+    GroupDto Group,
+    IReadOnlyList<GroupMemberDto> Members,
+    IReadOnlyList<GroupTrainerDto> Trainers,
+    IReadOnlyList<GroupMemberDto> Invitations);
+
+/// <summary>
+/// Eine Gruppe aus Sicht des Mitglieds: aktive Mitgliedschaft oder offene
+/// Einladung. Grundlage für "Annehmen", "Ablehnen" und "Verlassen" - ohne
+/// diese Liste konnte niemand eine vereinsfreie Gruppe je wieder verlassen.
+/// </summary>
+public record MyGroupMembershipDto(
+    Guid GroupId,
+    string GroupName,
+    string? ClubName,
+    string? TrainerName,
+    bool IsInvitation,
+    DateTimeOffset Since);
 
 public record CreateGroupRequest(string Name, string? Description, Guid? ClubId = null);
 

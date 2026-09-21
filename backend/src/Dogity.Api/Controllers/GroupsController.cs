@@ -121,6 +121,24 @@ public class GroupsController(IGroupService groupService, IClubService clubServi
         return FromResult(result);
     }
 
+    /// <summary>Eigene Gruppen und offene Einladungen - die Sicht des Mitglieds.</summary>
+    [HttpGet("memberships")]
+    public async Task<ActionResult<IReadOnlyList<MyGroupMembershipDto>>> GetMyMemberships(CancellationToken ct) =>
+        FromResult(await groupService.GetMyMembershipsAsync(CurrentUserId, ct));
+
+    [HttpPost("{id:guid}/invitation/accept")]
+    public async Task<IActionResult> AcceptInvitation(Guid id, CancellationToken ct) =>
+        FromResult(await groupService.RespondToInvitationAsync(CurrentUserId, id, accept: true, ct));
+
+    [HttpPost("{id:guid}/invitation/decline")]
+    public async Task<IActionResult> DeclineInvitation(Guid id, CancellationToken ct) =>
+        FromResult(await groupService.RespondToInvitationAsync(CurrentUserId, id, accept: false, ct));
+
+    /// <summary>Gruppe verlassen (oder eigene Anfrage zurückziehen).</summary>
+    [HttpDelete("{id:guid}/membership")]
+    public async Task<IActionResult> Leave(Guid id, CancellationToken ct) =>
+        FromResult(await groupService.LeaveGroupAsync(CurrentUserId, id, ct));
+
     [HttpPost("{id:guid}/join-requests")]
     public async Task<IActionResult> RequestJoin(Guid id, CancellationToken ct)
     {

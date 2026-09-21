@@ -4,6 +4,7 @@ import {
   AUFSICHTSBEHOERDE,
   BETREIBER,
   HOSTING,
+  NETZWERKDIENST,
   SICHERUNGSSPEICHER,
   SICHERUNG_AUFBEWAHRUNG,
   STAND,
@@ -161,8 +162,8 @@ export default function DatenschutzPage() {
 
         <Abschnitt titel="5. Speicherung auf deinem Gerät – warum es kein Cookie-Banner gibt">
           <p>
-            Dogity setzt keine Cookies. Die App legt einige Werte im lokalen Speicher deines Browsers ab, und zwar nur
-            diese:
+            Dogity selbst setzt keine Cookies. Die App legt einige Werte im lokalen Speicher deines Browsers ab, und
+            zwar nur diese:
           </p>
           <Liste
             punkte={[
@@ -178,6 +179,12 @@ export default function DatenschutzPage() {
             dient der Messung deines Verhaltens. Deshalb gibt es hier auch nichts zuzustimmen oder abzulehnen – ein
             Banner wäre eine Frage ohne Gegenstand. Abmelden oder das Löschen der Browserdaten entfernt diese Werte.
           </p>
+          <p>
+            Anders ist es beim vorgeschalteten Schutzdienst Cloudflare (siehe Abschnitt 6): Um automatisierte Angriffe
+            von Menschen zu unterscheiden, kann er ein kleines Prüfskript in die Seite einfügen und ein kurzlebiges
+            Sicherheits-Cookie setzen. Beides dient allein dem Schutz des Dienstes und ist nach § 25 Abs. 2 Nr. 2
+            TDDDG ebenfalls ohne Einwilligung zulässig.
+          </p>
         </Abschnitt>
 
         <Abschnitt titel="6. Server, Logdateien und Sicherungen">
@@ -185,6 +192,25 @@ export default function DatenschutzPage() {
             Dogity läuft auf einem gemieteten Server bei {HOSTING.anbieter}. Standort der Server:{" "}
             {HOSTING.standort}. Mit dem Anbieter besteht ein Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO; er
             verarbeitet die Daten ausschließlich weisungsgebunden für den Betrieb.
+          </p>
+          <p>
+            Vor dem Server steht {NETZWERKDIENST.anbieter} als Schutz- und Vermittlungsdienst. Jede Anfrage an Dogity
+            läuft zuerst durch das Netz von Cloudflare: Dort wird die verschlüsselte Verbindung zu deinem Gerät
+            aufgebaut, Angriffe und massenhafte automatisierte Zugriffe werden abgewehrt, und die Anfrage geht
+            verschlüsselt weiter an den Server. Cloudflare verarbeitet dabei deine IP-Adresse und die übrigen
+            Verbindungsdaten; weil die Verschlüsselung dort endet und neu aufgebaut wird, laufen auch die Inhalte der
+            Anfragen durch dieses Netz. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO – mein berechtigtes Interesse ist
+            ein Dienst, der erreichbar bleibt und Angriffe abhält. Mit Cloudflare besteht ein Vertrag zur
+            Auftragsverarbeitung nach Art. 28 DSGVO.
+          </p>
+          <p>
+            Cloudflare hat seinen Sitz in den {NETZWERKDIENST.sitz}. Bearbeitet werden Anfragen in der Regel in einem
+            Rechenzentrum in deiner Nähe; eine Verarbeitung in den USA lässt sich aber nicht ausschließen. Cloudflare
+            ist nach dem EU-US Data Privacy Framework zertifiziert, für das die EU-Kommission ein angemessenes
+            Datenschutzniveau festgestellt hat (Art. 45 DSGVO). Außerdem kann Cloudflare deinen Browser bitten,
+            fehlgeschlagene Verbindungen direkt an Cloudflare zu melden (Network Error Logging), und E-Mail-Adressen auf
+            der Seite in eine verschlüsselte Form bringen, die erst dein Browser wieder lesbar macht – als Schutz vor
+            Adresssammlern.
           </p>
           <p>
             Beim Aufruf der Seite fallen technisch notwendige Verbindungsdaten an – IP-Adresse, Zeitpunkt, aufgerufene
@@ -243,7 +269,7 @@ export default function DatenschutzPage() {
           <Liste
             punkte={[
               "Mitbesitzer:innen, die du selbst zu einem Hund hinzufügst, sehen dessen Tagebuch vollständig.",
-              "Trainer:innen sehen die Trainings und Fährten der Hunde, die ihnen zugeordnet sind, und können dazu Rückmeldung geben.",
+              "Trainer:innen einer Gruppe, der du selbst beigetreten bist oder deren Einladung du angenommen hast, können deine Hunde betreuen. Sie sehen dann deren Trainings, Ziele und Fährten und können Rückmeldung geben. Du wirst benachrichtigt, sobald jemand einen deiner Hunde betreut; verlässt du die Gruppe, endet die Betreuung.",
               "Die Vereinsverwaltung sieht Mitgliedschaften, Gruppenzugehörigkeit und Namen ihrer Mitglieder – nicht deren Trainingstagebuch.",
               "Der Betreiber kann aus technischen Gründen auf die Datenbank zugreifen, tut das aber nur zur Fehlersuche und zum Betrieb.",
             ]}
@@ -314,9 +340,11 @@ export default function DatenschutzPage() {
 
         <Abschnitt titel="11. Sicherheit">
           <p>
-            Die Verbindung ist durchgehend mit TLS verschlüsselt. Passwörter werden nur als Hash gespeichert.
-            Anmeldungen laufen über kurzlebige Token, die sich serverseitig widerrufen lassen; wird ein bereits
-            verbrauchter Token erneut vorgelegt, werden alle Sitzungen des Kontos beendet. Der Browser darf Inhalte nur
+            Die Verbindung ist durchgehend mit TLS verschlüsselt, auch zwischen Cloudflare und dem Server. Passwörter
+            werden nur als Hash gespeichert. Anmeldungen laufen über kurzlebige Token, die sich serverseitig widerrufen
+            lassen; wird ein bereits verbrauchter Token erneut vorgelegt, werden alle Sitzungen des Kontos beendet,
+            und wer sein Passwort ändert oder zurücksetzt, meldet damit alle anderen Geräte ab. Nach fünf falschen
+            Passwörtern in Folge wird das Konto für einige Minuten gesperrt. Der Browser darf Inhalte nur
             aus festgelegten Quellen laden (Content-Security-Policy), und Anmeldeversuche sind je IP-Adresse begrenzt.
           </p>
         </Abschnitt>

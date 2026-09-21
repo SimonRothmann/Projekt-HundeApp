@@ -56,6 +56,25 @@ export const HOSTING = {
 } as const;
 
 /**
+ * Wer VOR dem Server steht: Alle vier Domains laufen über Cloudflare als
+ * Proxy (die DNS-Namen zeigen auf Cloudflare, nicht auf den Server; die
+ * Antworten tragen cf-ray). Nachgetragen am 2026-09-21 - die erste Fassung
+ * nannte Cloudflare nur als Sicherungsspeicher, dabei läuft jede Anfrage
+ * samt Passwort beim Anmelden durch dieses Netz.
+ *
+ * Cloudflare fügt außerdem von sich aus Dinge hinzu, die in der
+ * Datenschutzerklärung stehen müssen, solange sie im Dashboard eingeschaltet
+ * sind: ein Prüfskript gegen Bots (/cdn-cgi/challenge-platform), die
+ * Verschleierung von E-Mail-Adressen und Network Error Logging (Kopfzeilen
+ * NEL/Report-To). Schaltet man sie ab, darf der Text bleiben - er sagt
+ * "kann".
+ */
+export const NETZWERKDIENST = {
+  anbieter: "Cloudflare, Inc.",
+  sitz: "USA",
+} as const;
+
+/**
  * Wohin die verschlüsselten Datenbanksicherungen ausgelagert werden.
  *
  * Eigener Auftragsverarbeiter neben dem Hoster und deshalb eigene Angabe: In
@@ -85,7 +104,7 @@ export const SICHERUNG_AUFBEWAHRUNG = {
 } as const;
 
 /** Letzte inhaltliche Änderung an Impressum oder Datenschutzerklärung. */
-export const STAND = "2026-09-13";
+export const STAND = "2026-09-21";
 
 /** "Hauptstr. 20/2, 76307 Karlsbad" - für Fließtext und strukturierte Daten. */
 export const ANSCHRIFT_EINZEILIG = `${BETREIBER.strasse}, ${BETREIBER.plz} ${BETREIBER.ort}`;

@@ -32,6 +32,11 @@ public class AuthController(
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
             return BadRequest(new { errors = new[] { "E-Mail und Passwort sind erforderlich." } });
 
+        // Namen haben keine Längengrenze in der Datenbank - ohne diese Prüfung
+        // nähme die anonyme Registrierung Megabytes als "Vorname" an.
+        if (Laenge(request.FirstName) > 100 || Laenge(request.LastName) > 100)
+            return BadRequest(new { errors = new[] { "Vor- und Nachname dürfen höchstens 100 Zeichen lang sein." } });
+
         var existing = await userManager.FindByEmailAsync(request.Email);
         if (existing is not null)
             return Conflict(new { errors = new[] { "E-Mail wird bereits verwendet." } });
@@ -78,6 +83,7 @@ public class AuthController(
     }
 
     [HttpPost("refresh")]
+    [EnableRateLimiting("refresh")]
     public async Task<ActionResult<AuthResponse>> Refresh(RefreshTokenRequest request)
     {
         // Rotation: der vorgelegte Refresh-Token wird entwertet und ein neuer
@@ -101,6 +107,7 @@ public class AuthController(
     }
 
     [HttpPost("logout")]
+    [EnableRateLimiting("refresh")]
     public async Task<IActionResult> Logout(RefreshTokenRequest request)
     {
         // Nur den Refresh-Token dieses Geräts widerrufen - andere Sitzungen
@@ -157,8 +164,16 @@ public class AuthController(
         if (!result.Succeeded)
             return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
 
+        // Überall abmelden: Wer sein Passwort zurücksetzt, hat es vergessen -
+        // oder jemand anderes kennt es. Sitzungen mit dem alten Passwort
+        // sollen dann nicht weiterlaufen.
+        await refreshTokens.RevokeAllForUserAsync(user.Id);
+
         return Ok(new { message = "Passwort wurde geändert." });
     }
+
+    // Fehlt ein Feld im JSON, ist es trotz Typangabe null.
+    private static int Laenge(string? wert) => wert?.Length ?? 0;
 
     private async Task<AuthResponse> BuildAuthResponseAsync(ApplicationUser user, IEnumerable<string> roles)
     {

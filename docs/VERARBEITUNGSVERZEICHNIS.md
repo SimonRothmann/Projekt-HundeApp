@@ -97,6 +97,7 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Zweck | Auslieferung der Seite, Betrieb, Fehlersuche, Abwehr von Angriffen |
 | Betroffene | alle Besucher:innen |
 | Datenkategorien | IP-Adresse, Zeitpunkt, aufgerufene Adresse, Browserkennung; kurzzeitige Zählung der Anmeldeversuche je IP |
+| Empfänger | Cloudflare als vorgeschalteter Proxy (alle Anfragen, TLS endet dort), Contabo als Hoster |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. f |
 | Besonderheit | keine Zusammenführung mit Kontodaten, keine Auswertung des Nutzungsverhaltens |
 | Löschfrist | Container-Logs rollieren (10 MB × 3 je Dienst); Sicherungen gestaffelt 14/14/70/400 Tage (siehe Abschnitt 5) |
@@ -109,8 +110,14 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 |---|---|---|---|
 | Contabo GmbH, München | Server, Datenbank, laufender Betrieb | AV-Vertrag erforderlich | nein (Standort Deutschland) |
 | Cloudflare, Inc. | Auslagerung der verschlüsselten Datenbanksicherungen (R2) | AV-Vertrag erforderlich (Cloudflare DPA) | Bucket fest auf EU-Jurisdiktion gestellt; Endpunkt `.eu.r2.cloudflarestorage.com` |
+| Cloudflare, Inc. | Vorgeschalteter Proxy für alle vier Domains: TLS, Abwehr von Angriffen und Bots, Weiterleitung an den Server. Fügt nach Dashboard-Einstellung ein Bot-Prüfskript, E-Mail-Verschleierung und Network Error Logging hinzu | derselbe AV-Vertrag (Cloudflare DPA) | **USA möglich** – Anfragen laufen meist über ein nahes Rechenzentrum; Cloudflare ist unter dem EU-U.S. Data Privacy Framework zertifiziert (Art. 45) |
 
-Zur Einordnung des zweiten Eintrags: Die Sicherungen sind bereits auf dem
+Zum dritten Eintrag, am 2026-09-21 nachgetragen: Die DNS-Namen zeigen auf
+Cloudflare, nicht auf den Server (Antworten tragen `cf-ray`). Damit läuft jede
+Anfrage samt Passwort beim Anmelden durch dieses Netz. Die erste Fassung der
+Datenschutzerklärung kannte Cloudflare nur als Sicherungsspeicher.
+
+Zur Einordnung des Sicherungs-Eintrags: Die Sicherungen sind bereits auf dem
 Server asymmetrisch verschlüsselt, bevor sie übertragen werden. Der private
 Schlüssel liegt ausschließlich beim Verantwortlichen, nicht auf dem Server und
 nicht beim Speicheranbieter - Cloudflare verwahrt damit einen Datenbestand,
@@ -147,10 +154,21 @@ Auswahl.
   Wiederverwendungserkennung, serverseitig widerrufbar
 - Content-Security-Policy durchsetzend, `frame-ancestors 'none'`,
   `X-Content-Type-Options`, Referrer-Policy
-- Rate-Limit auf den Anmeldewegen (10 Anfragen/Minute je IP)
+- Rate-Limit auf den Anmeldewegen (10 Anfragen/Minute je IP; Token-Erneuerung
+  mit eigenem, weiterem Topf). Die IP ist die echte Client-Adresse: Caddy
+  vertraut nur den Adressbereichen von Cloudflare und reicht CF-Connecting-IP
+  weiter
+- Sperre nach fünf falschen Passwörtern - auch bei den Passwortabfragen im
+  Profil (E-Mail ändern, Passwort ändern, Konto löschen)
+- Passwort ändern oder zurücksetzen beendet alle anderen Sitzungen
 - Zugriffsprüfung auf Datenebene: jeder Abruf ist an Besitz oder eine
   ausdrückliche Trainerzuordnung gebunden
-- Getrennte Datenbanken für Test und Produktion, eigene Rollen
+- Eine Trainerzuordnung setzt eine Gruppenmitgliedschaft voraus, der die
+  betroffene Person selbst zugestimmt hat (eigene Anfrage oder angenommene
+  Einladung); sie wird benachrichtigt und beendet die Zuordnung durch Verlassen
+  der Gruppe
+- Getrennte Datenbanken für Test und Produktion, eigene Rollen; die Datenbank
+  ist nicht nach außen veröffentlicht (nur im internen Docker-Netz erreichbar)
 - Tägliche Sicherung der Produktionsdatenbank, asymmetrisch verschlüsselt
   (öffentlicher Schlüssel auf dem Server, privater Schlüssel nur beim
   Verantwortlichen), ausgelagert in einen EU-Speicher

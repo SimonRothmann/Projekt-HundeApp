@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, REFRESH_KEY } from "@/lib/api";
 import type { Profile } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,8 +105,14 @@ export default function ProfilePage() {
     e.preventDefault();
     setSavingPassword(true);
     try {
-      await api.put("/api/profile/password", { currentPassword, newPassword });
-      toast.success(t("Passwort geändert."));
+      // Der Refresh-Token dieses Geräts geht mit: Alle ANDEREN Sitzungen
+      // enden mit dem Wechsel, diese bleibt bestehen.
+      await api.put("/api/profile/password", {
+        currentPassword,
+        newPassword,
+        refreshToken: window.localStorage.getItem(REFRESH_KEY),
+      });
+      toast.success(t("Passwort geändert. Andere Geräte wurden abgemeldet."));
       setCurrentPassword("");
       setNewPassword("");
     } catch (err) {

@@ -204,6 +204,61 @@ Ausgelöst durch die Nutzerfrage "wie verhindern wir, dass Nutzer, die 3x/Woche 
 
 ---
 
+## Sicherheitsprüfung (Stand 2026-09-21)
+
+Behoben im Code: Gruppenaufnahme nur noch mit Zustimmung (vorher genügte eine
+fremde E-Mail-Adresse, um als "Trainer:in" Tagebuch und Fährten eines Hundes
+zu sehen), Verlassen/Entfernen beendet Betreuungen, Rate-Limit mit echter
+Client-IP hinter Cloudflare, Token-Erneuerung nicht mehr im Anmelde-Topf und
+kein Abmelden bei 429, Passwortwechsel/-reset beendet andere Sitzungen,
+Fehlversuchszähler auch im Profil, Längen-/Formatprüfung für Namen und
+Avatar-Adresse, JWT-Schlüssel wird beim Start geprüft, kein X-Powered-By.
+
+Nicht im Code lösbar - auf dem Server bzw. im Cloudflare-Dashboard:
+
+- [ ] **Caddy neu starten** nach dem nächsten Pull - sonst greift die echte
+      Client-IP nicht (Befehl in docs/BETRIEB.md, "Wenn sich deploy/Caddyfile
+      geändert hat").
+- [ ] **SSH nur mit Schlüssel.** Der Server bietet Passwort-Anmeldung an
+      (`Permission denied (publickey,password)`, auch für root). In
+      `/etc/ssh/sshd_config.d/` `PasswordAuthentication no` und
+      `PermitRootLogin no` setzen, `sudo systemctl reload ssh` - vorher in einer
+      zweiten Sitzung prüfen, dass der Schlüssel-Login geht.
+- [ ] **Server nur über Cloudflare erreichbar machen.** 80/443 antworten auch
+      direkt unter 161.97.135.174 und umgehen damit Cloudflares Schutz. Per
+      Firewall (ufw oder Contabo-Firewall) 80/443 nur aus den Cloudflare-Bereichen
+      zulassen (Liste im Caddyfile). Let's Encrypt funktioniert weiter, die
+      Prüfung läuft ebenfalls über Cloudflare.
+- [ ] **Testumgebung abschirmen.** test.dogity.net ist öffentlich, der
+      Demo-Admin hat ein im Repo stehendes Passwort, Swagger und die
+      Entwickler-Fehlerseite sind offen (ASPNETCORE_ENVIRONMENT=Development).
+      Getrennt von Prod (eigene DB-Rolle), aber jede:r kann dort Admin sein und
+      die Nutzerliste der Testumgebung sehen. Vorschlag: Cloudflare Access
+      (kostenlos) vor test.dogity.net und api-test.dogity.net. Entscheidung
+      offen.
+- [ ] **Postgres einmalig nachziehen** (das Init-Skript läuft nur bei leerem
+      Volume): `REVOKE CONNECT ON DATABASE dogity_prod FROM PUBLIC;` und
+      dasselbe für dogity_test, als postgres-Superuser.
+- [ ] **Serverseitig noch nicht geprüft** (SSH-Agent verweigerte am
+      2026-09-21 die Signatur): Firewall-Status, automatische
+      Sicherheitsupdates (unattended-upgrades), fail2ban, Rechte auf
+      /opt/dogity/.env.
+- [ ] Optional im Cloudflare-Dashboard: E-Mail-Verschleierung, Bot-Prüfskript
+      und Network Error Logging abschalten, wenn nicht gewollt. Die
+      Datenschutzerklärung nennt alle drei mit "kann" - sie bleibt auch danach
+      richtig.
+
+Bewusst so gelassen (bekannt, abgewogen):
+
+- Anmelde-Token im localStorage statt im httpOnly-Cookie. Ein XSS könnte ihn
+  lesen; dagegen stehen CSP ohne fremde Skriptquellen, React-Escaping und keine
+  HTML-Einschübe aus Nutzerdaten. Umstieg auf Cookies wäre wegen der
+  getrennten API-Domain ein größerer Umbau.
+- `script-src 'unsafe-inline'` (Next.js-Hydration, siehe next.config.ts).
+- Registrierung und Einladen verraten, ob eine E-Mail-Adresse ein Konto hat.
+  Anmelden ist gedrosselt; ohne E-Mail-Versand gibt es keinen besseren Weg.
+- Keine Bestätigung der E-Mail-Adresse bei der Registrierung (kein SMTP).
+
 ## Rechtliches (Stand 2026-09-13)
 
 Impressum, Datenschutzerklärung, Datenexport, Kontolöschung und das
@@ -218,7 +273,9 @@ zwischenzeitlich falsch in der Datenschutzerklärung. Merke für das nächste
 Mal: Betriebswirklichkeit auf dem Server prüfen, nicht in den Entwürfen.
 
 - [ ] **AV-Verträge abschließen und ablegen** (Art. 28 DSGVO): mit **Contabo**
-      für den Server und mit **Cloudflare** für die ausgelagerten Sicherungen.
+      für den Server und mit **Cloudflare** für die ausgelagerten Sicherungen
+      UND den vorgeschalteten Proxy (seit 2026-09-21 in der
+      Datenschutzerklärung).
       Die Datenschutzerklärung sagt beides bereits zu - bis dahin ist das eine
       Lücke.
 - [ ] **Serverstandort gegenprüfen.** `HOSTING.standort` in

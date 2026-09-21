@@ -86,6 +86,10 @@ const nextConfig: NextConfig = {
   // DHCP eine andere Adresse im letzten Octet vergibt.
   allowedDevOrigins: ["192.168.1.*"],
 
+  // Kein "X-Powered-By: Next.js": verrät nur, wonach ein Angreifer suchen
+  // müsste, und nützt niemandem sonst.
+  poweredByHeader: false,
+
   async headers() {
     // Nur im Production-Build: der Dev-Server braucht 'unsafe-eval' und
     // WebSockets für HMR - eine Dev-Policy erzeugte nur Rausch-Reports.

@@ -25,4 +25,7 @@ public class FakeRefreshTokenService : IRefreshTokenService
         RevokedAllForUsers.Add(userId);
         return Task.CompletedTask;
     }
+
+    public Task RevokeAllExceptAsync(Guid userId, string? keepRawToken, CancellationToken ct = default)
+        => RevokeAllForUserAsync(userId, ct);
 }

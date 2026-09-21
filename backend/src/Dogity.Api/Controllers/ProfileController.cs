@@ -19,9 +19,23 @@ namespace Dogity.Api.Controllers;
 [Route("api/profile")]
 public class ProfileController(
     UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager,
     IAccountDataService accountData,
     IRefreshTokenService refreshTokens) : ApiControllerBase
 {
+    /// <summary>
+    /// Prüft das aktuelle Passwort MIT Fehlversuchszähler - wie beim Anmelden.
+    ///
+    /// Vorher prüften E-Mail-Wechsel, Passwortwechsel und Kontolöschung ohne
+    /// Zähler und ohne Drosselung. Wer einen Access-Token erbeutet hatte,
+    /// konnte darüber beliebig viele Passwörter durchprobieren und sich mit dem
+    /// gefundenen dauerhaft festsetzen; die Sperre nach fünf Fehlversuchen
+    /// griff nur an der Anmeldung.
+    /// </summary>
+    private async Task<bool> AktuellesPasswortStimmtAsync(ApplicationUser user, string? password) =>
+        !string.IsNullOrEmpty(password)
+        && (await signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true)).Succeeded;
+
     [HttpGet]
     public async Task<ActionResult<ProfileDto>> Get(CancellationToken ct)
     {
@@ -40,9 +54,22 @@ public class ProfileController(
         if (string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName))
             return BadRequest(new { errors = new[] { "Vor- und Nachname sind erforderlich." } });
 
+        // Die Adresse landet als Bildquelle im Browser anderer Seiten der App.
+        // Nur https: kein unverschlüsseltes Nachladen (Mixed Content), kein
+        // javascript:/data:-Unfug, und eine Länge, die in eine Zeile passt.
+        var avatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+        if (avatarUrl is not null
+            && (avatarUrl.Length > 2048
+                || !Uri.TryCreate(avatarUrl, UriKind.Absolute, out var avatarUri)
+                || avatarUri.Scheme != Uri.UriSchemeHttps))
+            return BadRequest(new { errors = new[] { "Die Bild-Adresse muss mit https:// beginnen." } });
+
+        if (request.FirstName.Trim().Length > 100 || request.LastName.Trim().Length > 100)
+            return BadRequest(new { errors = new[] { "Vor- und Nachname dürfen höchstens 100 Zeichen lang sein." } });
+
         user.FirstName = request.FirstName.Trim();
         user.LastName = request.LastName.Trim();
-        user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+        user.AvatarUrl = avatarUrl;
 
         var result = await userManager.UpdateAsync(user);
         if (!result.Succeeded)
@@ -57,7 +84,7 @@ public class ProfileController(
         var user = await userManager.FindByIdAsync(CurrentUserId.ToString());
         if (user is null) return NotFound();
 
-        if (!await userManager.CheckPasswordAsync(user, request.CurrentPassword))
+        if (!await AktuellesPasswortStimmtAsync(user, request.CurrentPassword))
             return BadRequest(new { errors = new[] { "Aktuelles Passwort ist falsch." } });
 
         var existing = await userManager.FindByEmailAsync(request.NewEmail);
@@ -83,10 +110,16 @@ public class ProfileController(
         var user = await userManager.FindByIdAsync(CurrentUserId.ToString());
         if (user is null) return NotFound();
 
+        if (!await AktuellesPasswortStimmtAsync(user, request.CurrentPassword))
+            return BadRequest(new { errors = new[] { "Aktuelles Passwort ist falsch." } });
+
         var result = await userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
         if (!result.Succeeded)
             return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
 
+        // Alle anderen Geräte abmelden. Wer das Passwort wechselt, weil es
+        // jemand mitbekommen hat, will genau das - und sonst schadet es nicht.
+        await refreshTokens.RevokeAllExceptAsync(user.Id, request.RefreshToken, ct);
         return NoContent();
     }
 
@@ -124,7 +157,7 @@ public class ProfileController(
         var user = await userManager.FindByIdAsync(CurrentUserId.ToString());
         if (user is null) return NotFound();
 
-        if (!await userManager.CheckPasswordAsync(user, request.CurrentPassword))
+        if (!await AktuellesPasswortStimmtAsync(user, request.CurrentPassword))
             return BadRequest(new { errors = new[] { "Aktuelles Passwort ist falsch." } });
 
         var purge = await accountData.PurgeAsync(CurrentUserId, ct);

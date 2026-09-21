@@ -6,7 +6,11 @@ public record UpdateProfileRequest(string FirstName, string LastName, string? Av
 
 public record ChangeEmailRequest(string NewEmail, string CurrentPassword);
 
-public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+/// <param name="RefreshToken">
+/// Der Refresh-Token des Geräts, auf dem gewechselt wird. Alle ANDEREN
+/// Sitzungen enden mit dem Wechsel; dieses Gerät bleibt angemeldet.
+/// </param>
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword, string? RefreshToken = null);
 
 /// <summary>
 /// Kontolöschung nach Art. 17 DSGVO. Das Passwort ist Pflicht: Ein

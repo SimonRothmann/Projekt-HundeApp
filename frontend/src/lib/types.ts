@@ -222,8 +222,9 @@ export type SupervisedDog = {
 export type GroupMemberRole = 0 | 1; // 0 = Member, 1 = Trainer
 
 // Verhältnis der angemeldeten Person zu einer Gruppe (Backend: GroupRelation).
-// 0 = keins, 1 = Anfrage läuft, 2 = Mitglied, 3 = Trainer:in.
-export type GroupRelation = 0 | 1 | 2 | 3;
+// 0 = keins, 1 = Anfrage läuft, 2 = Mitglied, 3 = Trainer:in,
+// 4 = eingeladen (noch nicht angenommen).
+export type GroupRelation = 0 | 1 | 2 | 3 | 4;
 
 export type Group = {
   id: string;
@@ -374,6 +375,19 @@ export type GroupDetail = {
   group: Group;
   members: GroupMember[];
   trainers: GroupTrainer[];
+  // Offene Einladungen - nur für Personen gefüllt, die die Gruppe verwalten.
+  invitations: GroupMember[];
+};
+
+// Eine Gruppe aus Sicht des Mitglieds: aktive Mitgliedschaft oder offene
+// Einladung (Backend: MyGroupMembershipDto).
+export type MyGroupMembership = {
+  groupId: string;
+  groupName: string;
+  clubName: string | null;
+  trainerName: string | null;
+  isInvitation: boolean;
+  since: string;
 };
 
 export type MemberDog = {

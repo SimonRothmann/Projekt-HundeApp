@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { VereinsantragSection } from "@/components/clubs/vereinsantrag-section";
+import { MeineGruppenSection } from "@/components/clubs/meine-gruppen-section";
 import type { ClubSummary, ClubMembership, Group } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,9 @@ export default function ClubsPage() {
   const [joiningClubId, setJoiningClubId] = useState<string | null>(null);
   const [leavingClubId, setLeavingClubId] = useState<string | null>(null);
   const [joiningGroupId, setJoiningGroupId] = useState<string | null>(null);
+  // Zählt hoch, wenn hier unten eine Einladung angenommen wird - die Liste
+  // "Deine Gruppen" oben lädt dann neu.
+  const [gruppenStand, setGruppenStand] = useState(0);
 
   async function loadGroups(approvedClubIds: string[]) {
     const entries = await Promise.all(
@@ -95,11 +99,12 @@ export default function ClubsPage() {
     }
   }
 
-  async function handleJoinGroup(groupId: string) {
+  async function handleJoinGroup(groupId: string, eingeladen = false) {
     setJoiningGroupId(groupId);
     try {
       await api.post(`/api/groups/${groupId}/join-requests`);
-      toast.success("Gruppenanfrage gesendet.");
+      toast.success(eingeladen ? t("Einladung angenommen.") : "Gruppenanfrage gesendet.");
+      if (eingeladen) setGruppenStand((n) => n + 1);
       // Ohne Neuladen stünde weiter "Beitreten" da und man tippt ein zweites Mal.
       await loadAll();
     } catch (err) {
@@ -117,6 +122,8 @@ export default function ClubsPage() {
 {t("Tritt einem Verein bei - ein Trainer des Vereins gibt deine Anfrage frei.")}
         </p>
       </div>
+
+      <MeineGruppenSection key={gruppenStand} onChanged={loadAll} />
 
       {clubs === null ? (
         <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
@@ -181,6 +188,16 @@ export default function ClubsPage() {
                             <Badge variant="secondary" className="shrink-0">{t("Mitglied")}</Badge>
                           ) : g.myRelation === 1 ? (
                             <Badge variant="outline" className="shrink-0">{t("Anfrage ausstehend")}</Badge>
+                          ) : g.myRelation === 4 ? (
+                            // Eingeladen: Beitreten heißt hier Annehmen - das
+                            // Backend wertet die Anfrage als Zusage.
+                            <Button
+                              size="sm"
+                              disabled={joiningGroupId === g.id}
+                              onClick={() => handleJoinGroup(g.id, true)}
+                            >
+                              {joiningGroupId === g.id ? t("Wird gesendet…") : t("Einladung annehmen")}
+                            </Button>
                           ) : (
                             <Button
                               size="sm"

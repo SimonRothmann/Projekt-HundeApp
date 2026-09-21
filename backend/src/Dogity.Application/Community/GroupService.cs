@@ -77,17 +77,26 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (group is null)
             return Result<GroupDetailDto>.NotFound("Gruppe nicht gefunden.");
 
+        // Offene Einladungen sieht nur, wer die Gruppe verwaltet.
+        List<GroupMember> invited = await GetManageableGroupAsync(userId, groupId, ct) is null
+            ? []
+            : await db.GroupMembers
+                .Where(m => m.GroupId == groupId && m.Status == GroupMemberStatus.Invited)
+                .AsNoTracking()
+                .ToListAsync(ct);
+
         var coTrainerIds = group.Trainers.Select(t => t.UserId).ToList();
         var lookupIds = group.Members.Select(m => m.UserId)
+            .Concat(invited.Select(m => m.UserId))
             .Append(group.TrainerId)
             .Concat(coTrainerIds)
             .ToList();
         var memberLookup = await userLookup.FindByIdsAsync(lookupIds, ct);
-        var members = group.Members
-            .Select(m => memberLookup.TryGetValue(m.UserId, out var info)
+        GroupMemberDto ToMemberDto(GroupMember m) =>
+            memberLookup.TryGetValue(m.UserId, out var info)
                 ? new GroupMemberDto(m.UserId, info.Email, info.FirstName, info.LastName, m.Role, m.JoinedAt)
-                : new GroupMemberDto(m.UserId, "(unbekannt)", "", "", m.Role, m.JoinedAt))
-            .ToList();
+                : new GroupMemberDto(m.UserId, "(unbekannt)", "", "", m.Role, m.JoinedAt);
+        var members = group.Members.Select(ToMemberDto).ToList();
 
         // Hauptverantwortliche:r zuerst, danach die weiteren Trainer:innen
         // alphabetisch - die Liste steht so in der Oberfläche.
@@ -101,7 +110,8 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         var dto = new GroupDetailDto(
             new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, members.Count, TrainerDisplayName(memberLookup, group.TrainerId)),
             members,
-            trainers);
+            trainers,
+            invited.Select(ToMemberDto).ToList());
         return Result<GroupDetailDto>.Success(dto);
     }
 
@@ -310,21 +320,48 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         var (existing, isActive) = await db.GroupMembers
             .FindIncludingRemovedAsync(m => m.GroupId == groupId && m.UserId == user.UserId, ct);
         if (isActive)
-            return Result.Failure("Dieser Benutzer ist bereits Mitglied der Gruppe.");
+        {
+            switch (existing!.Status)
+            {
+                case GroupMemberStatus.Active:
+                    return Result.Failure("Dieser Benutzer ist bereits Mitglied der Gruppe.");
+                case GroupMemberStatus.Invited:
+                    return Result.Failure("Diese Person ist bereits eingeladen.");
+                default:
+                    // Die Person hat selbst um Aufnahme gebeten - beide Seiten
+                    // wollen es, also gleich aufnehmen statt noch einmal
+                    // einzuladen.
+                    existing.Status = GroupMemberStatus.Active;
+                    existing.JoinedAt = DateTimeOffset.UtcNow;
+                    await db.SaveChangesAsync(ct);
+                    return Result.Success();
+            }
+        }
 
+        // Eine Einladung, keine Aufnahme: Mitglied wird erst, wer annimmt
+        // (siehe GroupMemberStatus.Invited). Das gilt auch für jemanden, der
+        // früher schon einmal Mitglied war - wer gegangen ist oder entfernt
+        // wurde, hat damit nicht für immer zugestimmt.
         if (existing is not null)
         {
             existing.DeletedAt = null;
-            // Wiederaufnahme durch die Trainer:in - keine erneute Freigabe nötig.
-            existing.Status = GroupMemberStatus.Active;
+            existing.Status = GroupMemberStatus.Invited;
             existing.JoinedAt = DateTimeOffset.UtcNow;
         }
         else
         {
-            db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = user.UserId });
+            db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = user.UserId, Status = GroupMemberStatus.Invited });
         }
 
         await db.SaveChangesAsync(ct);
+
+        var einladende = await userLookup.FindByIdsAsync([trainerId], ct);
+        var name = TrainerDisplayName(einladende, trainerId) ?? "Eine Trainer:in";
+        await notifications.CreateAsync(
+            user.UserId,
+            $"{name} lädt dich in die Gruppe \"{group.Name}\" ein.",
+            "/clubs",
+            ct);
         return Result.Success();
     }
 
@@ -339,8 +376,120 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             return Result.NotFound("Mitglied nicht gefunden.");
 
         member.DeletedAt = DateTimeOffset.UtcNow;
+        await EndSupervisionsViaGroupAsync(group, memberId, ct);
         await db.SaveChangesAsync(ct);
         return Result.Success();
+    }
+
+    public async Task<Result<IReadOnlyList<MyGroupMembershipDto>>> GetMyMembershipsAsync(Guid userId, CancellationToken ct = default)
+    {
+        var rows = await db.GroupMembers
+            .Where(m => m.UserId == userId
+                && (m.Status == GroupMemberStatus.Active || m.Status == GroupMemberStatus.Invited))
+            .Select(m => new
+            {
+                m.GroupId,
+                m.Status,
+                m.JoinedAt,
+                GroupName = m.Group!.Name,
+                m.Group.TrainerId,
+                ClubName = db.Clubs.Where(c => c.Id == m.Group.ClubId).Select(c => c.Name).FirstOrDefault(),
+            })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var lookup = await userLookup.FindByIdsAsync(rows.Select(r => r.TrainerId).Distinct().ToList(), ct);
+        var dtos = rows
+            .Select(r => new MyGroupMembershipDto(
+                r.GroupId, r.GroupName, r.ClubName, TrainerDisplayName(lookup, r.TrainerId),
+                r.Status == GroupMemberStatus.Invited, r.JoinedAt))
+            // Einladungen zuerst - auf sie wartet jemand.
+            .OrderByDescending(d => d.IsInvitation)
+            .ThenBy(d => d.GroupName)
+            .ToList();
+
+        return Result<IReadOnlyList<MyGroupMembershipDto>>.Success(dtos);
+    }
+
+    public async Task<Result> RespondToInvitationAsync(Guid userId, Guid groupId, bool accept, CancellationToken ct = default)
+    {
+        var row = await db.GroupMembers.FirstOrDefaultAsync(
+            m => m.GroupId == groupId && m.UserId == userId && m.Status == GroupMemberStatus.Invited, ct);
+        if (row is null)
+            return Result.NotFound("Einladung nicht gefunden.");
+
+        if (accept)
+        {
+            row.Status = GroupMemberStatus.Active;
+            row.JoinedAt = DateTimeOffset.UtcNow;
+        }
+        else
+        {
+            row.DeletedAt = DateTimeOffset.UtcNow;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Die Gruppe verlassen - oder eine eigene, noch offene Anfrage
+    /// zurückziehen. Mit der Mitgliedschaft enden auch die Betreuungen, die an
+    /// ihr hingen: Die Einwilligung in den Blick der Trainer:in ins Tagebuch
+    /// muss sich so leicht zurücknehmen lassen, wie sie gegeben wurde.
+    /// </summary>
+    public async Task<Result> LeaveGroupAsync(Guid userId, Guid groupId, CancellationToken ct = default)
+    {
+        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
+        var row = group is null
+            ? null
+            : await db.GroupMembers.FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
+        if (group is null || row is null)
+            return Result.NotFound("Mitgliedschaft nicht gefunden.");
+
+        row.DeletedAt = DateTimeOffset.UtcNow;
+        await EndSupervisionsViaGroupAsync(group, userId, ct);
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Beendet die Betreuungen der Hunde eines Mitglieds durch die
+    /// Trainer:innen dieser Gruppe, sobald das Mitglied die Gruppe verlässt
+    /// oder entfernt wird.
+    ///
+    /// Vorher blieben sie stehen: Wer aus der Gruppe genommen wurde, hatte die
+    /// Trainer:in weiter im Tagebuch - ohne jeden Weg, das zu ändern. Betreut
+    /// dieselbe Person das Mitglied über eine andere Gruppe weiter, bleibt die
+    /// Betreuung bestehen; sie hängt nicht an einer bestimmten Gruppe.
+    ///
+    /// Speichert nicht selbst - der Aufrufer speichert zusammen mit der
+    /// Mitgliedschaft, damit beides nur gemeinsam gilt.
+    /// </summary>
+    private async Task EndSupervisionsViaGroupAsync(Group group, Guid memberId, CancellationToken ct)
+    {
+        var trainerIds = await db.GroupTrainers
+            .Where(t => t.GroupId == group.Id)
+            .Select(t => t.UserId)
+            .ToListAsync(ct);
+        trainerIds.Add(group.TrainerId);
+        if (group.ClubId is { } clubId)
+            trainerIds.AddRange(await db.ClubTrainers.Where(t => t.ClubId == clubId).Select(t => t.UserId).ToListAsync(ct));
+
+        var assignments = await db.TrainerAssignments
+            .Where(a => a.MemberId == memberId && trainerIds.Contains(a.TrainerId))
+            .ToListAsync(ct);
+        var now = DateTimeOffset.UtcNow;
+        foreach (var a in assignments)
+        {
+            var weiterhinVerbunden = await db.Groups
+                .Where(g => g.Id != group.Id)
+                .Where(g => g.Members.Any(m => m.UserId == memberId && m.Status == GroupMemberStatus.Active))
+                .AnyAsync(g => g.TrainerId == a.TrainerId
+                    || g.Trainers.Any(t => t.UserId == a.TrainerId)
+                    || (g.ClubId != null && db.ClubTrainers.Any(t => t.ClubId == g.ClubId && t.UserId == a.TrainerId)), ct);
+            if (!weiterhinVerbunden) a.DeletedAt = now;
+        }
     }
 
     public async Task<Result<IReadOnlyList<MemberDogDto>>> GetMemberDogsAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct = default)
@@ -397,6 +546,16 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         }
 
         await db.SaveChangesAsync(ct);
+
+        // Wer ab jetzt ins Tagebuch schaut, soll das Mitglied erfahren - und
+        // nicht erst, wenn eine Bewertung auftaucht.
+        var hundName = await db.Dogs.Where(d => d.Id == request.DogId).Select(d => d.Name).FirstOrDefaultAsync(ct);
+        var trainerName = TrainerDisplayName(await userLookup.FindByIdsAsync([trainerId], ct), trainerId) ?? "Eine Trainer:in";
+        await notifications.CreateAsync(
+            request.MemberId,
+            $"{trainerName} betreut jetzt {hundName ?? "deinen Hund"} und sieht Tagebuch, Ziele und Fährten.",
+            "/clubs",
+            ct);
         return Result.Success();
     }
 
@@ -466,6 +625,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
                     {
                         GroupMemberStatus.Active => GroupRelation.Member,
                         GroupMemberStatus.Pending => GroupRelation.Pending,
+                        GroupMemberStatus.Invited => GroupRelation.Invited,
                         _ => GroupRelation.None,
                     }))
             .ToList();
@@ -493,9 +653,22 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         var (existing, isActive) = await db.GroupMembers
             .FindIncludingRemovedAsync(m => m.GroupId == groupId && m.UserId == userId, ct);
         if (isActive)
-            return existing!.Status == GroupMemberStatus.Pending
-                ? Result.Failure("Du hast bereits eine ausstehende Beitrittsanfrage für diese Gruppe.")
-                : Result.Failure("Du bist bereits Mitglied dieser Gruppe.");
+        {
+            switch (existing!.Status)
+            {
+                case GroupMemberStatus.Pending:
+                    return Result.Failure("Du hast bereits eine ausstehende Beitrittsanfrage für diese Gruppe.");
+                case GroupMemberStatus.Invited:
+                    // Eingeladen und jetzt selbst beitreten wollen - das ist
+                    // die Zusage, eine zweite Freigabe braucht es nicht.
+                    existing.Status = GroupMemberStatus.Active;
+                    existing.JoinedAt = DateTimeOffset.UtcNow;
+                    await db.SaveChangesAsync(ct);
+                    return Result.Success();
+                default:
+                    return Result.Failure("Du bist bereits Mitglied dieser Gruppe.");
+            }
+        }
 
         if (existing is not null)
         {

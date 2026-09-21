@@ -26,4 +26,12 @@ public interface IRefreshTokenService
 
     /// <summary>Widerruft alle aktiven Tokens eines Nutzers (Admin-Sperre, "überall abmelden").</summary>
     Task RevokeAllForUserAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Widerruft alle aktiven Tokens eines Nutzers bis auf den vorgelegten -
+    /// nach einem Passwortwechsel: Wer das alte Passwort kannte und damit eine
+    /// Sitzung hat, fliegt raus; das Gerät, auf dem gerade gewechselt wurde,
+    /// bleibt angemeldet. Ein fremder oder ungültiger Token schützt nichts.
+    /// </summary>
+    Task RevokeAllExceptAsync(Guid userId, string? keepRawToken, CancellationToken ct = default);
 }

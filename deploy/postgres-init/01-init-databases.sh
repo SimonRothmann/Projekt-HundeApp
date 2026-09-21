@@ -13,4 +13,12 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-S
 
     CREATE ROLE dogity_test LOGIN PASSWORD '${DOGITY_TEST_DB_PASSWORD}';
     CREATE DATABASE dogity_test OWNER dogity_test;
+
+    -- Postgres erlaubt JEDER Rolle, sich mit jeder neuen Datenbank zu
+    -- verbinden (CONNECT für PUBLIC). Lesen könnte die Test-Rolle in der
+    -- Prod-Datenbank zwar nichts - die Tabellen gehören dogity_prod -, aber
+    -- eine Tür, die niemand braucht, bleibt zu. Test ist die Umgebung mit
+    -- öffentlich bekannten Demo-Zugängen.
+    REVOKE CONNECT ON DATABASE dogity_prod FROM PUBLIC;
+    REVOKE CONNECT ON DATABASE dogity_test FROM PUBLIC;
 SQL

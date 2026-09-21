@@ -85,10 +85,17 @@ public class RefreshTokenService(ApplicationDbContext db, IOptions<JwtSettings> 
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task RevokeAllForUserAsync(Guid userId, CancellationToken ct = default)
+    public Task RevokeAllForUserAsync(Guid userId, CancellationToken ct = default) =>
+        RevokeAllExceptAsync(userId, keepRawToken: null, ct);
+
+    public async Task RevokeAllExceptAsync(Guid userId, string? keepRawToken, CancellationToken ct = default)
     {
+        // Der verschonte Token muss zu DIESEM Nutzer gehören - das stellt die
+        // Bedingung auf UserId sicher: Ein fremder Hash kommt in der Menge
+        // ohnehin nicht vor.
+        var keepHash = string.IsNullOrWhiteSpace(keepRawToken) ? "" : Hash(keepRawToken);
         var active = await db.RefreshTokens
-            .Where(t => t.UserId == userId && t.RevokedAt == null)
+            .Where(t => t.UserId == userId && t.RevokedAt == null && t.TokenHash != keepHash)
             .ToListAsync(ct);
         if (active.Count == 0) return;
         var now = DateTimeOffset.UtcNow;

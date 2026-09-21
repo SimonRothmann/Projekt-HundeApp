@@ -78,6 +78,13 @@ public static class DependencyInjection
 
         var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();
 
+        // Beim Start scheitern statt bei der ersten Anmeldung: Ein fehlender
+        // Schlüssel (vergessene .env-Zeile) fiel sonst erst auf, wenn jemand
+        // sich anmelden wollte. 32 Byte sind das Minimum für HMAC-SHA256.
+        if (Encoding.UTF8.GetByteCount(jwtSettings.Secret) < 32)
+            throw new InvalidOperationException(
+                "Jwt:Secret fehlt oder ist kürzer als 32 Byte - mit `openssl rand -base64 48` erzeugen (siehe .env.example).");
+
         services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

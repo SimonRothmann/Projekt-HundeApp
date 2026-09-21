@@ -85,7 +85,13 @@ public class AdminService(
             return Result.Failure("Passwort ist erforderlich.");
 
         var (success, errors) = await userLookup.SetPasswordAsync(userId, newPassword, ct);
-        return success ? Result.Success() : Result.Failure(errors);
+        if (!success) return Result.Failure(errors);
+
+        // Ein neues Passwort setzt man, wenn das alte vergessen oder in
+        // falsche Hände geraten ist. Im zweiten Fall darf eine Sitzung, die
+        // damit eröffnet wurde, nicht weiterlaufen.
+        await refreshTokens.RevokeAllForUserAsync(userId, ct);
+        return Result.Success();
     }
 
     public async Task<Result> UpdateRegulationSourceAsync(Guid regulationId, UpdateRegulationSourceRequest request, CancellationToken ct = default)

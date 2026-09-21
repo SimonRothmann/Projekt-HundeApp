@@ -20,6 +20,11 @@ public interface IGroupService
     Task<Result> AssignTrainerToDogAsync(Guid trainerId, Guid groupId, AssignTrainerRequest request, CancellationToken ct = default);
     Task<Result> RemoveTrainerFromDogAsync(Guid userId, Guid groupId, Guid trainerUserId, Guid dogId, CancellationToken ct = default);
 
+    // Sicht des Mitglieds: Einladungen annehmen/ablehnen, Gruppe verlassen.
+    Task<Result<IReadOnlyList<MyGroupMembershipDto>>> GetMyMembershipsAsync(Guid userId, CancellationToken ct = default);
+    Task<Result> RespondToInvitationAsync(Guid userId, Guid groupId, bool accept, CancellationToken ct = default);
+    Task<Result> LeaveGroupAsync(Guid userId, Guid groupId, CancellationToken ct = default);
+
     Task<Result<IReadOnlyList<GroupDto>>> GetGroupsByClubAsync(Guid userId, Guid clubId, CancellationToken ct = default);
     Task<Result> RequestJoinGroupAsync(Guid userId, Guid groupId, CancellationToken ct = default);
     Task<Result<IReadOnlyList<GroupJoinRequestDto>>> GetGroupJoinRequestsAsync(Guid trainerId, Guid groupId, CancellationToken ct = default);

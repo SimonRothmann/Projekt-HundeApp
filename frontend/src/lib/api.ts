@@ -75,29 +75,44 @@ function handleExpiredSession() {
 // Refresh-Aufruf passieren - alle warten auf dasselbe Promise. Sonst würden
 // mehrere parallele Rotationen mit demselben Refresh-Token die Reuse-
 // Erkennung des Backends auslösen und den Nutzer fälschlich ausloggen.
-let refreshInFlight: Promise<boolean> | null = null;
+/**
+ * Ausgang einer Token-Erneuerung.
+ * - "erneuert": neuer Token liegt im localStorage bereit.
+ * - "abgelaufen": der Server kennt die Sitzung nicht mehr - abmelden.
+ * - "unerreichbar": Netz weg, Drosselung (429) oder Serverfehler. Die Sitzung
+ *   kann noch gültig sein; abmelden wäre hier falsch.
+ */
+type Erneuerung = "erneuert" | "abgelaufen" | "unerreichbar";
+
+let refreshInFlight: Promise<Erneuerung> | null = null;
 
 // Holt mit dem gespeicherten Refresh-Token einen neuen Access-Token. Bewusst
 // ein roher fetch (nicht request()), damit ein 401 hier NICHT rekursiv wieder
-// einen Refresh anstößt. true = neuer Token liegt im localStorage bereit.
-async function tryRefreshToken(): Promise<boolean> {
+// einen Refresh anstößt.
+async function tryRefreshToken(): Promise<Erneuerung> {
   const refreshToken = window.localStorage.getItem(REFRESH_KEY);
-  if (!refreshToken) return false;
+  if (!refreshToken) return "abgelaufen";
   try {
     const res = await fetch(`${resolveApiUrl()}/api/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken }),
     });
-    if (!res.ok) return false;
+    // Nur ein ausdrückliches "kenne ich nicht" beendet die Sitzung. Vorher
+    // tat das JEDE Ablehnung - auch ein 429, wenn die Drosselung der
+    // Anmeldung gerade griff. Wer zur falschen Zeit seinen Token erneuerte,
+    // flog aus der App und verlor seine lokalen Daten, obwohl die Sitzung
+    // gültig war.
+    if (res.status === 401 || res.status === 400) return "abgelaufen";
+    if (!res.ok) return "unerreichbar";
     const data = (await res.json()) as { token: string; refreshToken: string };
     window.localStorage.setItem(TOKEN_KEY, data.token);
     window.localStorage.setItem(REFRESH_KEY, data.refreshToken);
-    return true;
+    return "erneuert";
   } catch {
     // Netzwerkfehler (offline): kein Logout - der ursprüngliche Aufruf läuft
     // ohnehin in seinen eigenen Offline-Pfad (Warteschlange).
-    return false;
+    return "unerreichbar";
   }
 }
 
@@ -130,9 +145,11 @@ async function send(path: string, init?: RequestInit, isRetry = false): Promise<
     refreshInFlight ??= tryRefreshToken().finally(() => {
       refreshInFlight = null;
     });
-    const refreshed = await refreshInFlight;
-    if (refreshed) return send(path, init, true);
-    handleExpiredSession();
+    const ausgang = await refreshInFlight;
+    if (ausgang === "erneuert") return send(path, init, true);
+    // Nicht erreichbar: die 401 geht als Fehler an den Aufrufer, die Sitzung
+    // bleibt. Der nächste Aufruf versucht die Erneuerung erneut.
+    if (ausgang === "abgelaufen") handleExpiredSession();
   }
 
   return res;

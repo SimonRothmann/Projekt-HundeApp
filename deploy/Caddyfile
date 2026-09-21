@@ -4,6 +4,25 @@
 # Umgebungsvariablen (siehe docker-compose.yml/.env.example).
 {
 	email {$ACME_EMAIL}
+
+	# Vor allen Domains steht Cloudflare als Proxy. Ohne diesen Block hält
+	# Caddy den Cloudflare-Knoten für den Client und reicht DESSEN Adresse als
+	# X-Forwarded-For ans Backend - dessen Drosselung der Anmeldung (10 pro
+	# Minute und IP, siehe Program.cs) zählte damit nicht je Person, sondern
+	# je Cloudflare-Knoten: Wer zehnmal im Takt ein falsches Passwort schickte,
+	# sperrte alle aus, die über denselben Knoten kamen (etwa ganz München),
+	# und warf sie beim nächsten Token-Wechsel aus der App.
+	#
+	# Vertraut wird NUR den Adressbereichen von Cloudflare - wer den Server
+	# unter seiner IP direkt anspricht und CF-Connecting-IP selbst setzt, wird
+	# ignoriert und mit seiner echten Adresse gezählt.
+	# Liste: https://www.cloudflare.com/ips/ (Stand 2026-09-21). Ändert
+	# Cloudflare die Bereiche, fällt nichts aus - neue Knoten würden nur wieder
+	# gemeinsam gezählt.
+	servers {
+		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+		client_ip_headers CF-Connecting-IP
+	}
 }
 
 # Security-Header für alle Sites. HSTS erst nach bewusster Entscheidung mit
@@ -17,6 +36,16 @@
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		-Server
+	}
+}
+
+# Für die API: genau EINE Adresse als X-Forwarded-For weitergeben - die
+# echte des Clients ({client_ip}, siehe servers-Block oben). Das Backend liest
+# nur den letzten Eintrag (ForwardLimit 1); eine Kette aus "Client,
+# Cloudflare" ergäbe dort wieder den Cloudflare-Knoten.
+(api_proxy) {
+	reverse_proxy {args[0]} {
+		header_up X-Forwarded-For {client_ip}
 	}
 }
 
@@ -37,7 +66,7 @@
 
 {$PROD_API_DOMAIN} {
 	import security_headers
-	reverse_proxy backend-prod:8080
+	import api_proxy backend-prod:8080
 }
 
 {$TEST_DOMAIN} {
@@ -47,5 +76,5 @@
 
 {$TEST_API_DOMAIN} {
 	import security_headers
-	reverse_proxy backend-test:8080
+	import api_proxy backend-test:8080
 }

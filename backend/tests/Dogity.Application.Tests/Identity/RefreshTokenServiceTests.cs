@@ -95,4 +95,34 @@ public class RefreshTokenServiceTests
         Assert.False((await service.RotateAsync(phone)).Succeeded);
         Assert.True((await service.RotateAsync(laptop)).Succeeded);
     }
+
+    [Fact]
+    public async Task RevokeAllExcept_KeepsOnlyTheCurrentDevice()
+    {
+        var service = MakeService();
+        var userId = Guid.NewGuid();
+        var hier = await service.IssueAsync(userId);
+        var anderesGeraet = await service.IssueAsync(userId);
+
+        await service.RevokeAllExceptAsync(userId, hier);
+
+        Assert.False((await service.RotateAsync(anderesGeraet)).Succeeded);
+        Assert.True((await service.RotateAsync(hier)).Succeeded);
+    }
+
+    [Fact]
+    public async Task RevokeAllExcept_ForeignTokenProtectsNothing()
+    {
+        var service = MakeService();
+        var userId = Guid.NewGuid();
+        var meiner = await service.IssueAsync(userId);
+        var fremder = await service.IssueAsync(Guid.NewGuid());
+
+        // Ein Token eines anderen Kontos darf die eigenen Sitzungen nicht retten
+        // - und bleibt selbst unberührt.
+        await service.RevokeAllExceptAsync(userId, fremder);
+
+        Assert.False((await service.RotateAsync(meiner)).Succeeded);
+        Assert.True((await service.RotateAsync(fremder)).Succeeded);
+    }
 }

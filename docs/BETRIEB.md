@@ -30,6 +30,16 @@ neu starten. Das gehört an einen Zeitpunkt, den man sich aussucht.
 ssh dogity 'sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin'
 ```
 
+**Wenn sich `deploy/Caddyfile` geändert hat.** Kein Deploy lädt Caddy neu,
+und ein `caddy reload` im laufenden Container sähe weiter die alte Datei: Sie
+ist als einzelne Datei eingebunden, `git pull` legt aber eine neue an, und die
+Einbindung hängt an der alten. Erst prüfen, dann neu starten - ein Fehler in
+der Datei legte sonst alle vier Domains lahm:
+
+```bash
+ssh dogity 'cd /opt/dogity && git pull && docker compose run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile && docker compose restart caddy'
+```
+
 **2. Postgres und Caddy nachziehen.** Die beiden fasst kein Deploy an - sie
 sind fertige Images, und `docker compose up` benutzt ein lokal vorhandenes
 Image ohne Rückfrage. Erst nach einer frischen Sicherung:
