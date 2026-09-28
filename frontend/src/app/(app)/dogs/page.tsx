@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dog as DogIcon, Plus } from "lucide-react";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
+import { HundEinladungen } from "@/components/dogs/hund-einladungen";
 import { formatDogAge } from "@/lib/dog-age";
 import { toast } from "sonner";
 
@@ -107,6 +108,8 @@ export default function DogsPage() {
           {t("Hund hinzufügen")}
         </Button>
       </div>
+
+      <HundEinladungen onAngenommen={loadDogs} />
 
       {showForm && (
         <Card>

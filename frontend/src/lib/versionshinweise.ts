@@ -61,6 +61,21 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.19",
+    datum: "2026-09-28",
+    titel: uebersetzbar("Mitbesitz nur noch mit Zustimmung"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Wer einen Hund mit dir teilen will, lädt dich jetzt ein - Mitbesitzer:in wirst du erst, wenn du unter „Meine Hunde“ annimmst. Bis dahin sieht die andere Person nur die E-Mail-Adresse, die sie eingegeben hat, nicht deinen Namen. Bestehende Mitbesitzer:innen bleiben, wie sie sind."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Deinen eigenen Mitbesitz an einem Hund kannst du jetzt selbst beenden. Wirst du von anderen entfernt, bekommst du eine Benachrichtigung."),
+      },
+    ],
+  },
+  {
     version: "0.18",
     datum: "2026-09-21",
     titel: uebersetzbar("Eine abgebrochene Fährte ist nicht mehr verloren"),

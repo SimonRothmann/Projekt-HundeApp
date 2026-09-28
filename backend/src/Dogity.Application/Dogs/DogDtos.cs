@@ -43,13 +43,26 @@ public record SupervisedDogDto(
 /// </summary>
 public record DogImageDto(string DataUrl);
 
+/// <summary>
+/// Eine Person am Hund. Bei offenen Einladungen (<see cref="IsInvited"/>)
+/// bleiben die Namen leer: Wer einlädt, kennt die E-Mail-Adresse ohnehin -
+/// den Namen dahinter erfährt er erst, wenn die Person annimmt.
+/// </summary>
 public record DogOwnerDto(
     Guid UserId,
     string Email,
     string FirstName,
     string LastName,
     DogOwnerRole Role,
-    DateTimeOffset AddedAt);
+    DateTimeOffset AddedAt,
+    bool IsInvited = false);
+
+/// <summary>Eine offene Einladung, Mitbesitzer:in eines Hundes zu werden - die Sicht der eingeladenen Person.</summary>
+public record DogInvitationDto(
+    Guid DogId,
+    string DogName,
+    string? InvitedByName,
+    DateTimeOffset InvitedAt);
 
 public record CreateDogRequest(
     string Name,

@@ -34,7 +34,7 @@ public class DashboardServiceTests
         var uhr = new FesteUhr();
         var mastery = new ExerciseMasteryService(db);
         var dienst = new DashboardService(
-            new DogService(db, new FakeUserLookupService()),
+            new DogService(db, new FakeUserLookupService(), new FakeNotificationService()),
             new PreferenceService(db),
             new GoalService(db, uhr, new FakeNotificationService(), mastery),
             new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), mastery, new FakeWeatherEnrichmentService()),

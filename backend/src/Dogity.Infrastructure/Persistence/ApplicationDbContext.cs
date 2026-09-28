@@ -99,7 +99,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // Soft Delete: gelöschte Datensätze werden standardmäßig aus allen
         // Abfragen ausgeblendet (siehe AI_RULES.md "Nie: Daten löschen ohne Migration").
         builder.Entity<Dog>().HasQueryFilter(e => e.DeletedAt == null);
-        builder.Entity<DogOwner>().HasQueryFilter(e => e.DeletedAt == null);
+        // Offene Einladungen gelten nirgends (siehe DogOwnerStatus.Invited) -
+        // derselbe Filter hält alle Zugriffsprüfungen und Listen korrekt, ohne
+        // dass jede Abfrage auf DogOwners einzeln daran denken muss. Wer
+        // Einladungen sehen will, geht bewusst über IgnoreQueryFilters.
+        builder.Entity<DogOwner>().HasQueryFilter(e => e.DeletedAt == null && e.Status == DogOwnerStatus.Active);
         // Zusätzlich am Hund entlang gefiltert: DogImage verlangt zwingend einen
         // Hund, und ohne diesen Zusatz warnt EF zu Recht, dass die Beziehung ins
         // Leere zeigen kann, sobald der Hund weggefiltert ist.

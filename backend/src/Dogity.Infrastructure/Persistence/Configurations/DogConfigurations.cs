@@ -40,6 +40,7 @@ public class DogOwnerConfiguration : IEntityTypeConfiguration<DogOwner>
     {
         builder.ToTable("dog_owners");
         builder.Property(o => o.Role).HasConversion<string>().HasMaxLength(20);
+        builder.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
 
         builder.HasOne(o => o.Dog)
             .WithMany(d => d.Owners)

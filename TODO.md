@@ -273,6 +273,12 @@ Geschwindigkeit und Bedienbarkeit. Behoben im Code:
 - [x] Eine Betreuung beenden geht nur noch im Rahmen der eigenen Gruppe -
       vorher ließ sich über eine selbst angelegte, leere Gruppe jede fremde
       Betreuung beenden.
+- [x] Mitbesitz nur noch per Einladung mit Zustimmung (vorher sofort aktiv
+      und die Besitzerliste verriet zu jeder E-Mail-Adresse den Namen).
+      Bestehende Mitbesitzer:innen bleiben aktiv (Migration
+      `AddDogOwnerInvitation`), Entfernte werden benachrichtigt, der eigene
+      Mitbesitz lässt sich beenden. Kontolöschung: Eine offene Einladung
+      zählt nicht als "andere Besitzerin".
 
 Auf dem Server nachsehen (nur lesend, für Prod und Test):
 

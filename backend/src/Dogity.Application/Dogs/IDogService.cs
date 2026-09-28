@@ -16,6 +16,12 @@ public interface IDogService
     Task<Result> AddOwnerAsync(Guid userId, Guid dogId, AddDogOwnerRequest request, CancellationToken ct = default);
     Task<Result> RemoveOwnerAsync(Guid userId, Guid dogId, Guid targetUserId, CancellationToken ct = default);
 
+    /// <summary>Offene Einladungen, Mitbesitzer:in zu werden - die Sicht der eingeladenen Person.</summary>
+    Task<Result<IReadOnlyList<DogInvitationDto>>> GetMyInvitationsAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>Einladung annehmen (dann erst Mitbesitz) oder ablehnen.</summary>
+    Task<Result> RespondToInvitationAsync(Guid userId, Guid dogId, bool accept, CancellationToken ct = default);
+
     /// <summary>
     /// Profilbild als Data-URI. Lesen darf jeder mit Zugriff auf den Hund
     /// (auch ein zugewiesener Trainer); ohne hinterlegtes Bild ein Fehlschlag.

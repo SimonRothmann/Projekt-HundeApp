@@ -13,6 +13,19 @@ public class DogsController(IDogService dogService) : ApiControllerBase
         return FromResult(result);
     }
 
+    /// <summary>Offene Einladungen, einen Hund mitzuverwalten.</summary>
+    [HttpGet("invitations")]
+    public async Task<ActionResult<IReadOnlyList<DogInvitationDto>>> GetMyInvitations(CancellationToken ct) =>
+        FromResult(await dogService.GetMyInvitationsAsync(CurrentUserId, ct));
+
+    [HttpPost("{id:guid}/invitation/accept")]
+    public async Task<IActionResult> AcceptInvitation(Guid id, CancellationToken ct) =>
+        FromResult(await dogService.RespondToInvitationAsync(CurrentUserId, id, accept: true, ct));
+
+    [HttpPost("{id:guid}/invitation/decline")]
+    public async Task<IActionResult> DeclineInvitation(Guid id, CancellationToken ct) =>
+        FromResult(await dogService.RespondToInvitationAsync(CurrentUserId, id, accept: false, ct));
+
     [HttpGet("supervised")]
     public async Task<ActionResult<IReadOnlyList<SupervisedDogDto>>> GetSupervised(CancellationToken ct)
     {

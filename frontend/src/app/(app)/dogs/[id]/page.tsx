@@ -374,7 +374,15 @@ export default function DogDetailPage() {
         onLoadOlder={showAllHistory ? null : loadOlderSessions}
       />
 
-      {isOwner && <CoOwnersSection dogId={id} owners={owners} currentUserId={user?.userId} onChanged={loadAll} />}
+      {isOwner && (
+        <CoOwnersSection
+          dogId={id}
+          dogName={dog.name}
+          owners={owners}
+          currentUserId={user?.userId}
+          onChanged={loadAll}
+        />
+      )}
 
       {isOwner && (
         <Card>

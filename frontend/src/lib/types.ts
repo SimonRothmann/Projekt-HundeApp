@@ -598,10 +598,20 @@ export type DogOwnerRole = 0 | 1; // 0 = Owner, 1 = Trainer
 export type DogOwner = {
   userId: string;
   email: string;
+  // Bei offenen Einladungen leer - den Namen erfährt man erst mit der Zusage.
   firstName: string;
   lastName: string;
   role: DogOwnerRole;
   addedAt: string;
+  isInvited: boolean;
+};
+
+/** Offene Einladung, einen Hund mitzuverwalten - die Sicht der eingeladenen Person. */
+export type DogInvitation = {
+  dogId: string;
+  dogName: string;
+  invitedByName: string | null;
+  invitedAt: string;
 };
 
 export type WeeklyActivity = {

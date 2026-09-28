@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Notifications;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,7 @@ namespace Dogity.Application.Dogs;
 /// Zugriff ist immer auf Hunde beschränkt, die dem aufrufenden Benutzer
 /// über <see cref="DogOwner"/> zugeordnet sind.
 /// </summary>
-public class DogService(IApplicationDbContext db, IUserLookupService userLookup) : IDogService
+public class DogService(IApplicationDbContext db, IUserLookupService userLookup, INotificationService notifications) : IDogService
 {
     public async Task<Result<IReadOnlyList<DogDto>>> GetMyDogsAsync(Guid userId, CancellationToken ct = default)
     {
@@ -155,22 +156,43 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
         if (!await db.HasDogAccessAsync(userId, dogId, ct))
             return Result<IReadOnlyList<DogOwnerDto>>.NotFound("Hund nicht gefunden.");
 
+        // Offene Einladungen sehen nur die Besitzer:innen - sie verwalten sie.
+        // Eine betreuende Trainer:in geht nichts an, wen die Familie gerade
+        // einlädt.
+        var istBesitzer = await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId, ct);
         var ownerRows = await db.DogOwners
-            .Where(o => o.DogId == dogId)
-            .Select(o => new { o.UserId, o.Role, o.CreatedAt })
+            .IgnoreQueryFilters()
+            .Where(o => o.DogId == dogId && o.DeletedAt == null)
+            .Where(o => o.Status == DogOwnerStatus.Active || (istBesitzer && o.Status == DogOwnerStatus.Invited))
+            .Select(o => new { o.UserId, o.Role, o.Status, o.CreatedAt, o.UpdatedAt })
             .AsNoTracking()
             .ToListAsync(ct);
 
         var lookup = await userLookup.FindByIdsAsync(ownerRows.Select(o => o.UserId).ToList(), ct);
         var dtos = ownerRows
-            .Select(o => lookup.TryGetValue(o.UserId, out var info)
-                ? new DogOwnerDto(o.UserId, info.Email, info.FirstName, info.LastName, o.Role, o.CreatedAt)
-                : new DogOwnerDto(o.UserId, "(unbekannt)", "", "", o.Role, o.CreatedAt))
+            .Select(o =>
+            {
+                var info = lookup.GetValueOrDefault(o.UserId);
+                // Vor der Zusage nur die Adresse, die die einladende Person
+                // selbst eingegeben hat - der Name gehört der eingeladenen
+                // Person, bis sie annimmt (siehe DogOwnerStatus.Invited).
+                return o.Status == DogOwnerStatus.Invited
+                    ? new DogOwnerDto(o.UserId, info?.Email ?? "(unbekannt)", "", "", o.Role, o.UpdatedAt ?? o.CreatedAt, IsInvited: true)
+                    : info is not null
+                        ? new DogOwnerDto(o.UserId, info.Email, info.FirstName, info.LastName, o.Role, o.CreatedAt)
+                        : new DogOwnerDto(o.UserId, "(unbekannt)", "", "", o.Role, o.CreatedAt);
+            })
             .ToList();
 
         return Result<IReadOnlyList<DogOwnerDto>>.Success(dtos);
     }
 
+    /// <summary>
+    /// Lädt eine Person ein, den Hund mitzuverwalten. Mitbesitzer:in wird sie
+    /// erst, wenn sie annimmt (<see cref="RespondToInvitationAsync"/>) - bis
+    /// dahin sieht sie nichts vom Hund außer seinem Namen, und die einladende
+    /// Person nichts von ihr außer der eingegebenen Adresse.
+    /// </summary>
     public async Task<Result> AddOwnerAsync(Guid userId, Guid dogId, AddDogOwnerRequest request, CancellationToken ct = default)
     {
         if (!await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId && o.Role == DogOwnerRole.Owner, ct))
@@ -188,39 +210,140 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup)
         var (existing, isActive) = await db.DogOwners
             .FindIncludingRemovedAsync(o => o.DogId == dogId && o.UserId == target.UserId, ct);
         if (isActive)
-            return Result.Failure("Dieser Benutzer ist bereits Mitbesitzer dieses Hundes.");
+            return Result.Failure(existing!.Status == DogOwnerStatus.Invited
+                ? "Diese Person ist bereits eingeladen."
+                : "Dieser Benutzer ist bereits Mitbesitzer dieses Hundes.");
 
+        // Eine Einladung, keine Aufnahme - auch für jemanden, der früher schon
+        // einmal Mitbesitzer:in war. Wer gegangen ist oder entfernt wurde, hat
+        // damit nicht für immer zugestimmt.
         if (existing is not null)
         {
             existing.DeletedAt = null;
             existing.Role = DogOwnerRole.Owner;
+            existing.Status = DogOwnerStatus.Invited;
+            existing.InvitedByUserId = userId;
+            existing.UpdatedAt = DateTimeOffset.UtcNow;
         }
         else
         {
-            db.DogOwners.Add(new DogOwner { DogId = dogId, UserId = target.UserId, Role = DogOwnerRole.Owner });
+            db.DogOwners.Add(new DogOwner
+            {
+                DogId = dogId,
+                UserId = target.UserId,
+                Role = DogOwnerRole.Owner,
+                Status = DogOwnerStatus.Invited,
+                InvitedByUserId = userId,
+            });
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        var hundName = await db.Dogs.Where(d => d.Id == dogId).Select(d => d.Name).FirstOrDefaultAsync(ct);
+        var name = await DisplayNameAsync(userId, ct) ?? "Jemand";
+        await notifications.CreateAsync(
+            target.UserId,
+            $"{name} lädt dich ein, {hundName ?? "einen Hund"} gemeinsam zu verwalten.",
+            "/dogs",
+            ct);
+        return Result.Success();
+    }
+
+    public async Task<Result<IReadOnlyList<DogInvitationDto>>> GetMyInvitationsAsync(Guid userId, CancellationToken ct = default)
+    {
+        // IgnoreQueryFilters nimmt auch den Filter des Hundes weg - deshalb
+        // "nicht gelöscht" hier ausdrücklich für beide.
+        var rows = await db.DogOwners
+            .IgnoreQueryFilters()
+            .Where(o => o.UserId == userId && o.DeletedAt == null && o.Status == DogOwnerStatus.Invited)
+            .Where(o => o.Dog!.DeletedAt == null)
+            .Select(o => new { o.DogId, DogName = o.Dog!.Name, o.InvitedByUserId, o.CreatedAt, o.UpdatedAt })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var einladende = await userLookup.FindByIdsAsync(
+            rows.Where(r => r.InvitedByUserId is not null).Select(r => r.InvitedByUserId!.Value).Distinct().ToList(), ct);
+        var dtos = rows
+            .Select(r => new DogInvitationDto(
+                r.DogId,
+                r.DogName,
+                r.InvitedByUserId is { } von && einladende.TryGetValue(von, out var info) ? $"{info.FirstName} {info.LastName}".Trim() : null,
+                r.UpdatedAt ?? r.CreatedAt))
+            .OrderByDescending(d => d.InvitedAt)
+            .ToList();
+
+        return Result<IReadOnlyList<DogInvitationDto>>.Success(dtos);
+    }
+
+    public async Task<Result> RespondToInvitationAsync(Guid userId, Guid dogId, bool accept, CancellationToken ct = default)
+    {
+        var row = await db.DogOwners
+            .IgnoreQueryFilters()
+            .Where(o => o.Dog!.DeletedAt == null)
+            .FirstOrDefaultAsync(o => o.DogId == dogId && o.UserId == userId && o.DeletedAt == null && o.Status == DogOwnerStatus.Invited, ct);
+        if (row is null)
+            return Result.NotFound("Einladung nicht gefunden.");
+
+        if (accept)
+        {
+            row.Status = DogOwnerStatus.Active;
+            row.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+        else
+        {
+            row.DeletedAt = DateTimeOffset.UtcNow;
         }
 
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
 
+    /// <summary>
+    /// Entfernt eine Mitbesitzer:in, zieht eine offene Einladung zurück oder
+    /// beendet - mit der eigenen Id - den eigenen Mitbesitz.
+    /// </summary>
     public async Task<Result> RemoveOwnerAsync(Guid userId, Guid dogId, Guid targetUserId, CancellationToken ct = default)
     {
         if (!await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId && o.Role == DogOwnerRole.Owner, ct))
             return Result.NotFound("Hund nicht gefunden oder keine Berechtigung.");
 
-        var totalOwners = await db.DogOwners.CountAsync(o => o.DogId == dogId && o.Role == DogOwnerRole.Owner, ct);
-        if (totalOwners <= 1)
-            return Result.Failure("Der letzte Besitzer kann nicht entfernt werden.");
-
-        var ownerRow = await db.DogOwners.FirstOrDefaultAsync(o => o.DogId == dogId && o.UserId == targetUserId, ct);
+        var ownerRow = await db.DogOwners
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(o => o.DogId == dogId && o.UserId == targetUserId && o.DeletedAt == null, ct);
         if (ownerRow is null)
             return Result.NotFound("Besitzer nicht gefunden.");
 
+        var warAktiv = ownerRow.Status == DogOwnerStatus.Active;
+        if (warAktiv)
+        {
+            var totalOwners = await db.DogOwners.CountAsync(o => o.DogId == dogId && o.Role == DogOwnerRole.Owner, ct);
+            if (totalOwners <= 1)
+                return Result.Failure("Der letzte Besitzer kann nicht entfernt werden.");
+        }
+
         ownerRow.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
+
+        // Wer von anderen entfernt wird, soll es erfahren - vorher war ein Hund
+        // samt Tagebuch einfach aus der eigenen Liste verschwunden. Nicht beim
+        // eigenen Austritt und nicht bei einer zurückgezogenen Einladung.
+        if (warAktiv && targetUserId != userId)
+        {
+            var hundName = await db.Dogs.Where(d => d.Id == dogId).Select(d => d.Name).FirstOrDefaultAsync(ct);
+            var name = await DisplayNameAsync(userId, ct) ?? "Eine Besitzer:in";
+            await notifications.CreateAsync(
+                targetUserId,
+                $"{name} hat dich als Mitbesitzer:in von {hundName ?? "einem Hund"} entfernt.",
+                null,
+                ct);
+        }
         return Result.Success();
     }
+
+    private async Task<string?> DisplayNameAsync(Guid userId, CancellationToken ct) =>
+        (await userLookup.FindByIdsAsync([userId], ct)).TryGetValue(userId, out var info)
+            ? $"{info.FirstName} {info.LastName}".Trim()
+            : null;
 
     public async Task<Result<DogImageDto>> GetImageAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {

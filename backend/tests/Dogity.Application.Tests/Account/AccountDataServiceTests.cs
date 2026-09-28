@@ -186,6 +186,42 @@ public class AccountDataServiceTests
     }
 
     [Fact]
+    public async Task Purge_NurEingeladeneZaehltNichtAlsAndereBesitzerin()
+    {
+        // Eine offene Einladung ist keine Zusage. Bliebe der Hund deshalb
+        // stehen, erbte ihn - samt meinem Tagebuch - jemand, der nie
+        // angenommen hat.
+        var (dienst, db, _) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        var eingeladen = Guid.NewGuid();
+        var hundId = HundMitAllem(db, ich, "Bello");
+        db.DogOwners.Add(new DogOwner { DogId = hundId, UserId = eingeladen, Status = DogOwnerStatus.Invited, InvitedByUserId = ich });
+        await db.SaveChangesAsync();
+
+        await dienst.PurgeAsync(ich);
+
+        Assert.Empty(db.Dogs.IgnoreQueryFilters().Where(d => d.Id == hundId));
+        Assert.Empty(db.DogOwners.IgnoreQueryFilters().Where(o => o.DogId == hundId));
+    }
+
+    [Fact]
+    public async Task Purge_MeineOffeneEinladungLaesstDenFremdenHundInRuhe()
+    {
+        var (dienst, db, _) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        var andere = Guid.NewGuid();
+        var hundId = HundMitAllem(db, andere, "Fremder Hund");
+        db.DogOwners.Add(new DogOwner { DogId = hundId, UserId = ich, Status = DogOwnerStatus.Invited, InvitedByUserId = andere });
+        await db.SaveChangesAsync();
+
+        await dienst.PurgeAsync(ich);
+
+        Assert.Single(db.Dogs.IgnoreQueryFilters().Where(d => d.Id == hundId));
+        Assert.Single(db.TrainingSessions.IgnoreQueryFilters().Where(s => s.DogId == hundId));
+        Assert.Empty(db.DogOwners.IgnoreQueryFilters().Where(o => o.UserId == ich));
+    }
+
+    [Fact]
     public async Task Purge_LoestAusVereinUndGruppe()
     {
         var (dienst, db, _) = Aufsetzen();

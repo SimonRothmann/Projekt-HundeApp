@@ -1,21 +1,41 @@
+using Dogity.Application.Abstractions;
 using Dogity.Application.Dogs;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Domain.Dogs;
+using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Tests.Dogs;
 
 /// <summary>
 /// Testet die Mitbesitzer-Verwaltung von DogService (AddOwnerAsync/
-/// RemoveOwnerAsync/GetOwnersAsync) - insbesondere die Berechtigungs- und
-/// Konsistenzregeln (nur Owner darf teilen, letzter Besitzer bleibt erhalten).
+/// RemoveOwnerAsync/GetOwnersAsync und die Einladungen) - insbesondere die
+/// Berechtigungs- und Konsistenzregeln (nur Owner darf einladen, Mitbesitz
+/// erst nach Zusage, letzter Besitzer bleibt erhalten).
 /// </summary>
 public class DogServiceTests
 {
     private static DogService MakeService(out Dogity.Infrastructure.Persistence.ApplicationDbContext db, out FakeUserLookupService lookup)
+        => MakeService(out db, out lookup, out _);
+
+    private static DogService MakeService(
+        out Dogity.Infrastructure.Persistence.ApplicationDbContext db,
+        out FakeUserLookupService lookup,
+        out FakeNotificationService notifications)
     {
         db = InMemoryDbContext.Create();
         lookup = new FakeUserLookupService();
-        return new DogService(db, lookup);
+        notifications = new FakeNotificationService();
+        return new DogService(db, lookup, notifications);
+    }
+
+    /// <summary>Einladen und annehmen - der Weg zu einer echten Mitbesitzer:in.</summary>
+    private static async Task<Guid> AddAcceptedCoOwnerAsync(DogService service, FakeUserLookupService lookup, Guid ownerId, Guid dogId)
+    {
+        var targetId = Guid.NewGuid();
+        lookup.Register(targetId, "mitbesitzer@dogity.test", "Maria", "Mitbesitz");
+        Assert.True((await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"))).Succeeded);
+        Assert.True((await service.RespondToInvitationAsync(targetId, dogId, accept: true)).Succeeded);
+        return targetId;
     }
 
     private static async Task<(Guid OwnerId, Guid DogId, DogService Service)> SetupOwnedDogAsync(
@@ -30,19 +50,198 @@ public class DogServiceTests
     }
 
     [Fact]
-    public async Task AddOwner_ByExistingOwner_SharesDog()
+    public async Task AddOwner_ByExistingOwner_SharesDogAfterAcceptance()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+
+        var targetId = await AddAcceptedCoOwnerAsync(service, lookup, ownerId, dogId);
+
+        var owners = await service.GetOwnersAsync(ownerId, dogId);
+        Assert.Equal(2, owners.Value!.Count);
+        var mitbesitz = Assert.Single(owners.Value, o => o.UserId == targetId);
+        Assert.False(mitbesitz.IsInvited);
+        Assert.Equal("Maria", mitbesitz.FirstName);
+        Assert.True(await db.HasDogAccessAsync(targetId, dogId));
+        Assert.Contains((await service.GetMyDogsAsync(targetId)).Value!, d => d.Id == dogId);
+    }
+
+    // --- Einladung statt sofortigem Mitbesitz (Prüfung 2026-09-28) --------
+    // Vorher genügte eine E-Mail-Adresse: Die Person war sofort
+    // Mitbesitzer:in, ohne es zu erfahren, und die Besitzerliste verriet
+    // ihren Namen.
+
+    [Fact]
+    public async Task AddOwner_OnlyInvites_NoAccessAndNoNameBeforeAcceptance()
+    {
+        var service = MakeService(out var db, out var lookup, out var notifications);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        lookup.Register(ownerId, "anna@dogity.test", "Anna", "Anfang");
+        var targetId = Guid.NewGuid();
+        lookup.Register(targetId, "mitbesitzer@dogity.test", "Maria", "Mitbesitz");
+
+        var result = await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
+
+        Assert.True(result.Succeeded);
+        Assert.False(await db.HasDogAccessAsync(targetId, dogId));
+        Assert.Empty((await service.GetMyDogsAsync(targetId)).Value!);
+        Assert.False((await service.GetByIdAsync(targetId, dogId)).Succeeded);
+
+        // Die einladende Person sieht die Adresse, die sie selbst eingegeben
+        // hat - nicht den Namen dahinter.
+        var owners = (await service.GetOwnersAsync(ownerId, dogId)).Value!;
+        var eingeladen = Assert.Single(owners, o => o.UserId == targetId);
+        Assert.True(eingeladen.IsInvited);
+        Assert.Equal("mitbesitzer@dogity.test", eingeladen.Email);
+        Assert.Equal("", eingeladen.FirstName);
+        Assert.Equal("", eingeladen.LastName);
+
+        // Die eingeladene Person erfährt davon - mit Weg zur Einladung.
+        var hinweis = Assert.Single(notifications.Created);
+        Assert.Equal(targetId, hinweis.UserId);
+        Assert.Contains("Anna Anfang", hinweis.Message);
+        Assert.Equal("/dogs", hinweis.LinkPath);
+
+        var einladungen = (await service.GetMyInvitationsAsync(targetId)).Value!;
+        var einladung = Assert.Single(einladungen);
+        Assert.Equal(dogId, einladung.DogId);
+        Assert.Equal("Bello", einladung.DogName);
+        Assert.Equal("Anna Anfang", einladung.InvitedByName);
+    }
+
+    [Fact]
+    public async Task AddOwner_TwiceWhileInvited_FailsWithInvitationMessage()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        lookup.Register(Guid.NewGuid(), "mitbesitzer@dogity.test");
+        await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
+
+        var result = await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("eingeladen", result.Errors[0]);
+    }
+
+    [Fact]
+    public async Task DeclineInvitation_LeavesNoAccess_AndCanBeInvitedAgain()
     {
         var service = MakeService(out var db, out var lookup);
         var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
         var targetId = Guid.NewGuid();
         lookup.Register(targetId, "mitbesitzer@dogity.test");
+        await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
 
-        var result = await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
+        Assert.True((await service.RespondToInvitationAsync(targetId, dogId, accept: false)).Succeeded);
+
+        Assert.False(await db.HasDogAccessAsync(targetId, dogId));
+        Assert.Empty((await service.GetMyInvitationsAsync(targetId)).Value!);
+        Assert.Single((await service.GetOwnersAsync(ownerId, dogId)).Value!);
+
+        // Abgelehnt heißt nicht "für immer" - und es bleibt EINE Zeile
+        // (eindeutiger Index auf DogId+UserId, den InMemory nicht prüft).
+        Assert.True((await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"))).Succeeded);
+        Assert.Equal(1, await db.DogOwners.IgnoreQueryFilters().CountAsync(o => o.DogId == dogId && o.UserId == targetId));
+        Assert.Single((await service.GetMyInvitationsAsync(targetId)).Value!);
+    }
+
+    [Fact]
+    public async Task RespondToInvitation_WithoutInvitation_Fails()
+    {
+        var service = MakeService(out var db, out _);
+        var (_, dogId, _) = await SetupOwnedDogAsync(db, service);
+        var fremd = Guid.NewGuid();
+
+        Assert.False((await service.RespondToInvitationAsync(fremd, dogId, accept: true)).Succeeded);
+        Assert.False(await db.HasDogAccessAsync(fremd, dogId));
+    }
+
+    [Fact]
+    public async Task RespondToInvitation_ForDeletedDog_Fails()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        var targetId = Guid.NewGuid();
+        lookup.Register(targetId, "mitbesitzer@dogity.test");
+        await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
+        await service.DeleteAsync(ownerId, dogId);
+
+        Assert.Empty((await service.GetMyInvitationsAsync(targetId)).Value!);
+        Assert.False((await service.RespondToInvitationAsync(targetId, dogId, accept: true)).Succeeded);
+    }
+
+    [Fact]
+    public async Task RemoveOwner_WithdrawsInvitation_EvenWithSingleActiveOwner()
+    {
+        var service = MakeService(out var db, out var lookup, out var notifications);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        var targetId = Guid.NewGuid();
+        lookup.Register(targetId, "mitbesitzer@dogity.test");
+        await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
+        notifications.Created.Clear();
+
+        var result = await service.RemoveOwnerAsync(ownerId, dogId, targetId);
 
         Assert.True(result.Succeeded);
-        var owners = await service.GetOwnersAsync(ownerId, dogId);
-        Assert.Equal(2, owners.Value!.Count);
-        Assert.Contains(owners.Value, o => o.UserId == targetId);
+        Assert.Empty((await service.GetMyInvitationsAsync(targetId)).Value!);
+        // Eine zurückgezogene Einladung ist kein "du wurdest entfernt".
+        Assert.Empty(notifications.Created);
+    }
+
+    [Fact]
+    public async Task RemoveOwner_ActiveCoOwner_IsNotified()
+    {
+        var service = MakeService(out var db, out var lookup, out var notifications);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        lookup.Register(ownerId, "anna@dogity.test", "Anna", "Anfang");
+        var targetId = await AddAcceptedCoOwnerAsync(service, lookup, ownerId, dogId);
+        notifications.Created.Clear();
+
+        Assert.True((await service.RemoveOwnerAsync(ownerId, dogId, targetId)).Succeeded);
+
+        var hinweis = Assert.Single(notifications.Created);
+        Assert.Equal(targetId, hinweis.UserId);
+        Assert.Contains("Anna Anfang", hinweis.Message);
+        Assert.Contains("Bello", hinweis.Message);
+    }
+
+    [Fact]
+    public async Task RemoveOwner_Self_EndsOwnCoOwnershipWithoutNotification()
+    {
+        var service = MakeService(out var db, out var lookup, out var notifications);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        var targetId = await AddAcceptedCoOwnerAsync(service, lookup, ownerId, dogId);
+        notifications.Created.Clear();
+
+        var result = await service.RemoveOwnerAsync(targetId, dogId, targetId);
+
+        Assert.True(result.Succeeded);
+        Assert.False(await db.HasDogAccessAsync(targetId, dogId));
+        Assert.True(await db.HasDogAccessAsync(ownerId, dogId));
+        Assert.Empty(notifications.Created);
+    }
+
+    [Fact]
+    public async Task GetOwners_AsSupervisingTrainer_HidesInvitations()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        var trainerId = Guid.NewGuid();
+        db.TrainerAssignments.Add(new Dogity.Domain.Community.TrainerAssignment
+        {
+            TrainerId = trainerId,
+            MemberId = ownerId,
+            DogId = dogId,
+            StartDate = new DateOnly(2026, 9, 1),
+        });
+        await db.SaveChangesAsync();
+        lookup.Register(Guid.NewGuid(), "mitbesitzer@dogity.test");
+        await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
+
+        var owners = await service.GetOwnersAsync(trainerId, dogId);
+
+        Assert.True(owners.Succeeded);
+        Assert.DoesNotContain(owners.Value!, o => o.IsInvited);
     }
 
     [Fact]
@@ -87,9 +286,7 @@ public class DogServiceTests
     {
         var service = MakeService(out var db, out var lookup);
         var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
-        var targetId = Guid.NewGuid();
-        lookup.Register(targetId, "mitbesitzer@dogity.test");
-        await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
+        await AddAcceptedCoOwnerAsync(service, lookup, ownerId, dogId);
 
         var result = await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
 
@@ -112,9 +309,8 @@ public class DogServiceTests
     {
         var service = MakeService(out var db, out var lookup);
         var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
-        var targetId = Guid.NewGuid();
-        lookup.Register(targetId, "mitbesitzer@dogity.test");
-        await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
+        var targetId = await AddAcceptedCoOwnerAsync(service, lookup, ownerId, dogId);
+        Assert.True(await db.HasDogAccessAsync(targetId, dogId));
 
         var result = await service.RemoveOwnerAsync(ownerId, dogId, targetId);
 
@@ -133,9 +329,7 @@ public class DogServiceTests
     {
         var service = MakeService(out var db, out var lookup);
         var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
-        var targetId = Guid.NewGuid();
-        lookup.Register(targetId, "mitbesitzer@dogity.test");
-        await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("mitbesitzer@dogity.test"));
+        var targetId = await AddAcceptedCoOwnerAsync(service, lookup, ownerId, dogId);
         var strangerId = Guid.NewGuid();
 
         var result = await service.RemoveOwnerAsync(strangerId, dogId, targetId);

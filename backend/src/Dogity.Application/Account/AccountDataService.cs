@@ -265,12 +265,23 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         var meineBesitzzeilen = await db.DogOwners.IgnoreQueryFilters()
             .Where(o => o.UserId == userId)
             .ToListAsync(ct);
-        var meineHundeIds = meineBesitzzeilen.Select(o => o.DogId).Distinct().ToList();
+        // Eine offene Einladung macht einen Hund nicht zu meinem - an ihm
+        // hängt nichts von mir, er bleibt unberührt bei seinen Besitzer:innen.
+        // Die Einladungszeile selbst geht mit besitzzeilen weg.
+        var meineHundeIds = meineBesitzzeilen
+            .Where(o => o.Status == DogOwnerStatus.Active)
+            .Select(o => o.DogId)
+            .Distinct()
+            .ToList();
 
         // Geteilte Hunde bleiben bei der anderen Person - mit ihrer ganzen
-        // Historie. Nur meine Verknüpfung verschwindet.
+        // Historie. Nur meine Verknüpfung verschwindet. Nur wer angenommen
+        // hat, zählt als "andere Person": Ein Hund, zu dem erst eingeladen
+        // ist, ginge sonst an jemanden, der nie zugestimmt hat - und mit ihm
+        // mein ganzes Tagebuch.
         var nochAndereBesitzer = await db.DogOwners.IgnoreQueryFilters()
-            .Where(o => meineHundeIds.Contains(o.DogId) && o.UserId != userId && o.DeletedAt == null)
+            .Where(o => meineHundeIds.Contains(o.DogId) && o.UserId != userId && o.DeletedAt == null
+                && o.Status == DogOwnerStatus.Active)
             .Select(o => o.DogId)
             .Distinct()
             .ToListAsync(ct);
