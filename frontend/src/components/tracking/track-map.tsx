@@ -9,6 +9,7 @@ import { Map, Satellite } from "lucide-react";
 
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
+import { alsHtmlText } from "@/lib/html-text";
 /// <reference types="leaflet" />
 
 // Kompatibel zu sowohl GpsPoint (pointType/label gesetzt) als auch
@@ -64,7 +65,12 @@ function deviationColor(meters: number | null | undefined): string | null {
 }
 
 // Beschriftung manueller Marker nach fachlicher Bedeutung (GpsMarkerType).
-const MARKER_LABELS = ["Gegenstand", "Leckerlipot", "Verleitung", "Marker"] as const;
+const MARKER_LABELS = [
+  uebersetzbar("Gegenstand"),
+  uebersetzbar("Leckerlipot"),
+  uebersetzbar("Verleitung"),
+  uebersetzbar("Marker"),
+] as const;
 const MARKER_COLORS = ["orange", "#a855f7", "#0ea5e9", "#94a3b8"] as const;
 
 // Stockungen: unerklärt = Warnsignal (rot), Verweisen am Gegenstand = gut
@@ -387,7 +393,7 @@ export function TrackMap({
         fillOpacity: 1,
       })
         .addTo(layerGroup)
-        .bindTooltip(t("Start (gelegt)"));
+        .bindTooltip(alsHtmlText(t("Start (gelegt)")));
       if (!live) {
         L.circleMarker(latLngs[latLngs.length - 1], {
           radius: 8,
@@ -397,7 +403,7 @@ export function TrackMap({
           fillOpacity: 1,
         })
           .addTo(layerGroup)
-          .bindTooltip(t("Ende (gelegt)"));
+          .bindTooltip(alsHtmlText(t("Ende (gelegt)")));
       }
     }
 
@@ -411,7 +417,8 @@ export function TrackMap({
         fillOpacity: 0.9,
       })
         .addTo(layerGroup)
-        .bindTooltip(p.label || MARKER_LABELS[kind] || "Marker");
+        // Das Label stammt von Nutzer:innen - siehe alsHtmlText.
+        .bindTooltip(alsHtmlText(p.label || t(MARKER_LABELS[kind] ?? MARKER_LABELS[3])));
     });
 
     walkRuns.forEach((run, index) => {
@@ -430,12 +437,14 @@ export function TrackMap({
             weight: 4,
           })
             .addTo(layerGroup)
-            .bindTooltip(`Ablauf ${index + 1}: ${worse.toFixed(1)} m Abweichung`);
+            .bindTooltip(
+              alsHtmlText(t("Ablauf {nr}: {meter} m Abweichung", { nr: index + 1, meter: worse.toFixed(1) })),
+            );
         }
       } else {
         L.polyline(runLatLngs, { color: fallbackColor, dashArray: "6 6", weight: 4 })
           .addTo(layerGroup)
-          .bindTooltip(`Ablauf-Versuch ${index + 1}`);
+          .bindTooltip(alsHtmlText(t("Ablauf-Versuch {nr}", { nr: index + 1 })));
       }
 
       // Erkannte Halte als Ringe: zeigen die Stellen, an denen der Hund
@@ -448,8 +457,12 @@ export function TrackMap({
           weight: 3,
         })
           .addTo(layerGroup)
+          // markerLabel kopiert der Server aus dem Label des nächsten
+          // Markers - also ebenso Text von Nutzer:innen.
           .bindTooltip(
-            `${t(STOP_LABELS[stop.kind] ?? uebersetzbar("Halt"))}: ${stop.durationSeconds}s${stop.markerLabel ? ` (${stop.markerLabel})` : ""}`,
+            alsHtmlText(
+              `${t(STOP_LABELS[stop.kind] ?? uebersetzbar("Halt"))}: ${stop.durationSeconds}s${stop.markerLabel ? ` (${stop.markerLabel})` : ""}`,
+            ),
           );
       });
     });
@@ -464,7 +477,7 @@ export function TrackMap({
       if (liveWalkLatLngs.length > 0) {
         L.polyline(liveWalkLatLngs, { color: liveColor, dashArray: "3 4", weight: 4 })
           .addTo(layerGroup)
-          .bindTooltip(`Ablauf-Versuch ${walkRuns.length + 1} (läuft)`);
+          .bindTooltip(alsHtmlText(t("Ablauf-Versuch {nr} (läuft)", { nr: walkRuns.length + 1 })));
         const last = liveWalkLatLngs[liveWalkLatLngs.length - 1];
         // Modus "Nord oben + Richtungspfeil": statt einfachem Punkt ein
         // rotierendes SVG-Icon, dessen Spitze in die aktuelle Bewegungs-

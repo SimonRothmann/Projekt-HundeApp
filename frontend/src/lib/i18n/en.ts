@@ -850,4 +850,11 @@ export const EN: Record<string, string> = {
   "{anzahl} Marker": "{anzahl} markers",
   "{von} bis {bis} · {punkte} Punkte": "{von} to {bis} · {punkte} points",
   "„Legen beenden“ und „Ablauf beenden“ hältst du jetzt eine Sekunde gedrückt. Eine zufällige Berührung beim Herausziehen des Handys aus der Tasche beendet die Aufzeichnung nicht mehr, und Wischen nach unten lädt die Seite nicht neu.": "You now press and hold “Finish laying” and “Finish run” for a second. An accidental touch while pulling the phone out of your pocket no longer ends the recording, and swiping down doesn't reload the page.",
+  "Gegenstand": "Article",
+  "Leckerlipot": "Treat spot",
+  "Verleitung": "Distraction",
+  "Marker": "Marker",
+  "Ablauf {nr}: {meter} m Abweichung": "Search run {nr}: {meter} m deviation",
+  "Ablauf-Versuch {nr}": "Search run {nr}",
+  "Ablauf-Versuch {nr} (läuft)": "Search run {nr} (running)",
 };
