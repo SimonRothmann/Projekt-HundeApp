@@ -29,6 +29,7 @@ import { ExerciseRating } from "@/components/dogs/exercise-rating";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
 import { useT } from "@/lib/i18n";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 // Monatsschlüssel im Format "2026-07" für die Gruppierung; toLocaleDateString
 // mit month:"long" liefert die Anzeige-Version ("Juli 2026").
 function monthKey(iso: string): string {
@@ -118,6 +119,7 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
           className="max-h-[200px] min-h-16 w-full min-w-0 resize-none rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
           placeholder={t("Kommentar zum Trainingstag")}
           value={value}
+          maxLength={TEXTLAENGE.trainingsNotiz}
           onChange={(e) => {
             setValue(e.target.value);
             autoGrow();

@@ -110,6 +110,16 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
         if (request.Points.Count == 0)
             return Result<GpsTrackDto>.Failure("Eine Fährte benötigt mindestens einen GPS-Punkt.");
 
+        var zuLang = Textlaengen.ZuLang(request.Comment, Textlaengen.FaehrtenKommentar, "Der Kommentar")
+            ?? Textlaengen.ZuLang(request.Surface, Textlaengen.Kurzangabe, "Der Untergrund")
+            ?? Textlaengen.ZuLang(request.Weather, Textlaengen.Kurzangabe, "Die Wetterangabe")
+            ?? Textlaengen.ZuLang(request.Wind, Textlaengen.Kurzangabe, "Die Windangabe")
+            ?? request.Points
+                .Select(p => Textlaengen.ZuLang(p.Label, Textlaengen.MarkerBeschriftung, "Die Beschriftung eines Markers"))
+                .FirstOrDefault(m => m is not null);
+        if (zuLang is not null)
+            return Result<GpsTrackDto>.Failure(zuLang);
+
         // Erst nach allen Prüfungen: Eine abgelehnte Anfrage soll weder eine
         // leere Einheit hinterlassen noch die Dauer einer bestehenden ändern.
         if (neueEinheit is not null)
@@ -164,6 +174,8 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
 
         if (request.Points.Count == 0)
             return Result<GpsWalkRunDto>.Failure("Ein Ablauf-Versuch benötigt mindestens einen GPS-Punkt.");
+        if (Textlaengen.ZuLang(request.Comment, Textlaengen.FaehrtenKommentar, "Der Kommentar") is { } zuLang)
+            return Result<GpsWalkRunDto>.Failure(zuLang);
 
         var walkRun = new GpsWalkRun
         {
@@ -286,6 +298,8 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
 
         // Nur der Kommentar ist editierbar - die GPS-Punkte einer Aufzeichnung
         // sind Messdaten und werden bewusst nicht nachträglich verändert.
+        if (Textlaengen.ZuLang(request.Comment, Textlaengen.FaehrtenKommentar, "Der Kommentar") is { } zuLang)
+            return Result<GpsWalkRunDto>.Failure(zuLang);
         var comment = request.Comment?.Trim();
         walkRun.Comment = string.IsNullOrEmpty(comment) ? null : comment;
         await db.SaveChangesAsync(ct);

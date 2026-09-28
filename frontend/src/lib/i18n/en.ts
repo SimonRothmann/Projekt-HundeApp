@@ -882,4 +882,5 @@ export const EN: Record<string, string> = {
   "{anzahl} Einträge sind noch nicht übertragen. Sie bleiben auf diesem Gerät und werden gesendet, sobald du dich hier wieder anmeldest. Trotzdem abmelden?": "{anzahl} entries have not been sent yet. They stay on this device and are sent as soon as you log in here again. Log out anyway?",
   "Diesen Hund gibt es nicht mehr, oder du hast keinen Zugriff darauf.": "This dog no longer exists, or you have no access to it.",
   "Zu meinen Hunden": "To my dogs",
+  "Kommentare und Notizen haben jetzt eine sichtbare Höchstlänge, statt beim Speichern mit einem unverständlichen Fehler zu scheitern. Ein offline erfasster Eintrag mit zu langem Text hält die Übertragung der übrigen nicht mehr auf.": "Comments and notes now have a visible maximum length instead of failing with an unclear error when saving. An entry recorded offline with too much text no longer holds up sending the others.",
 };

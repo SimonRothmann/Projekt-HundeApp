@@ -31,9 +31,43 @@ function resolveApiUrl(): string {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, public errors: string[]) {
-    super(errors.join(", ") || "Ein Fehler ist aufgetreten.");
+  public errors: string[];
+
+  constructor(public status: number, errors: string[]) {
+    // Wer hier etwas anderes als eine Liste hineinreicht, bekommt trotzdem
+    // einen ApiError - und keinen TypeError, der die Offline-Warteschlange
+    // anhält (siehe fehlerAusAntwort).
+    const liste = Array.isArray(errors) ? errors.map(String) : [];
+    super(liste.join(", ") || "Ein Fehler ist aufgetreten.");
+    this.errors = liste;
   }
+}
+
+/**
+ * Macht aus dem Rumpf einer Fehlerantwort eine Liste lesbarer Meldungen.
+ *
+ * Die App antwortet mit `{ errors: ["..."] }`. ASP.NET selbst liefert bei
+ * einem Formfehler (etwa Text statt Zahl) aber ProblemDetails - dort ist
+ * `errors` ein Objekt aus Feld -> Meldungen. Bis 2026-09-28 wurde das
+ * ungeprüft durchgereicht; `errors.join` warf dann einen TypeError statt
+ * eines ApiError. Für die Offline-Warteschlange sah das wie ein Netzfehler
+ * aus: Sie hielt an und versuchte denselben Eintrag bei jedem Abgleich
+ * erneut - alles dahinter blieb liegen.
+ */
+export function fehlerAusAntwort(body: unknown, status: number): string[] {
+  const rumpf = (body ?? {}) as { errors?: unknown; title?: unknown };
+  const { errors } = rumpf;
+  if (Array.isArray(errors)) {
+    const texte = errors.filter((e): e is string => typeof e === "string" && e.trim() !== "");
+    if (texte.length > 0) return texte;
+  } else if (errors && typeof errors === "object") {
+    const texte = Object.values(errors as Record<string, unknown>)
+      .flatMap((v) => (Array.isArray(v) ? v : [v]))
+      .filter((e): e is string => typeof e === "string" && e.trim() !== "");
+    if (texte.length > 0) return texte;
+  }
+  if (typeof rumpf.title === "string" && rumpf.title.trim() !== "") return [rumpf.title];
+  return [`HTTP ${status}`];
 }
 
 export const TOKEN_KEY = "dogity_token";
@@ -189,8 +223,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     let errors: string[] = [`HTTP ${res.status}`];
     try {
-      const body = await res.json();
-      if (body?.errors) errors = body.errors;
+      errors = fehlerAusAntwort(await res.json(), res.status);
     } catch {
       // Antwort ohne JSON-Body (z.B. 401 ohne Inhalt) - Default-Fehler beibehalten.
     }
@@ -234,8 +267,7 @@ export const api = {
     if (!res.ok) {
       let errors: string[] = [`HTTP ${res.status}`];
       try {
-        const body = await res.json();
-        if (body?.errors) errors = body.errors;
+        errors = fehlerAusAntwort(await res.json(), res.status);
       } catch {
         // wie in request(): Antwort ohne JSON-Rumpf
       }

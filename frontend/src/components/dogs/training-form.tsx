@@ -21,6 +21,7 @@ import { LocationTimeFields, type LocationValue } from "@/components/dogs/locati
 import { ConditionPicker } from "@/components/dogs/condition-picker";
 
 import { useT } from "@/lib/i18n";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 /**
  * Sentinel in den Auswahllisten: führt zur Freitext-Eingabe statt zu einer
  * Katalog-Übung. Bewusst dort, wo man sucht, wenn die eigene Übung fehlt -
@@ -389,6 +390,7 @@ export function TrainingForm({
                         id={`freetext-${index}`}
                         placeholder={t("z.B. Spaziergang mit Bällchenspiel")}
                         value={row.freeText}
+                        maxLength={TEXTLAENGE.eigeneUebung}
                         onChange={(e) => updateRow(index, { freeText: e.target.value })}
                       />
                       <Button
@@ -518,6 +520,7 @@ export function TrainingForm({
                         id={`row-notes-${index}`}
                         placeholder="z.B. Ablenkung durch Jogger, zweiter Versuch sauber"
                         value={row.notes}
+                        maxLength={TEXTLAENGE.uebungsNotiz}
                         onChange={(e) => updateRow(index, { notes: e.target.value })}
                       />
                     </div>
@@ -621,7 +624,13 @@ export function TrainingForm({
           {zeigeNotiz || notes ? (
             <div className="flex flex-col gap-2">
               <Label htmlFor="notes">{t("Notizen zum ganzen Training")}</Label>
-              <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} autoFocus={zeigeNotiz && !notes} />
+              <Input
+                id="notes"
+                value={notes}
+                maxLength={TEXTLAENGE.trainingsNotiz}
+                onChange={(e) => setNotes(e.target.value)}
+                autoFocus={zeigeNotiz && !notes}
+              />
             </div>
           ) : (
             <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => setZeigeNotiz(true)}>

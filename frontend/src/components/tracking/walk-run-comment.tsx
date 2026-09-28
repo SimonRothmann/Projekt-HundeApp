@@ -9,6 +9,7 @@ import { Check, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 /**
  * Zeigt den Kommentar eines Ablauf-Versuchs (GpsWalkRun) und erlaubt, ihn
  * inline zu bearbeiten (siehe Wunsch 1). Auch bei abgeschlossenen Trainings
@@ -49,6 +50,7 @@ export function WalkRunComment({
           className="h-7 text-xs"
           placeholder={t("Kommentar zum Ablauf")}
           value={value}
+          maxLength={TEXTLAENGE.ablaufKommentar}
           onChange={(e) => setValue(e.target.value)}
           autoFocus
         />

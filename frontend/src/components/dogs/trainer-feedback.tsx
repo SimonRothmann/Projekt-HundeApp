@@ -9,6 +9,7 @@ import { MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 export function TrainerFeedback({
   session,
   isOwner,
@@ -68,6 +69,7 @@ export function TrainerFeedback({
           <textarea
             className="min-h-16 rounded-md border border-input bg-transparent px-3 py-2 text-sm"
             value={text}
+            maxLength={TEXTLAENGE.trainerRueckmeldung}
             onChange={(e) => setText(e.target.value)}
             placeholder={t("Rückmeldung zu diesem Training…")}
           />

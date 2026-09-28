@@ -647,4 +647,49 @@ public class TrainingServiceTests
         Assert.Equal("Hundeplatz Nord", session.LocationName);
         Assert.Equal("sauber", session.Exercises.Single().Notes);
     }
+
+    // --- Zu lange Texte (Prüfung 2026-09-28) --------------------------------
+
+    [Fact]
+    public async Task Create_ZuLangerKommentarZurUebung_WirdMitMeldungAbgelehnt()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+
+        var result = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, new string('x', 2001))));
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("zu lang", result.Errors[0]);
+        Assert.Empty(db.TrainingSessions);
+    }
+
+    [Fact]
+    public async Task Create_TagesKommentarWirdZusammengefuegtZuLang_WirdAbgelehnt()
+    {
+        // Jeder Teil passt für sich, zusammen am selben Tag nicht mehr.
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var uebung = new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null);
+        Assert.True((await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with { Notes = new string('a', 3000) })).Succeeded);
+
+        var result = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with { Notes = new string('b', 1500) });
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(3000, db.TrainingSessions.Single().Notes!.Length);
+    }
+
+    [Fact]
+    public async Task UpdateSessionNotes_ZuLang_WirdAbgelehnt()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var angelegt = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId,
+            new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null)));
+
+        var result = await service.UpdateSessionNotesAsync(setup.UserId, angelegt.Value!.Id, new string('x', 4001));
+
+        Assert.False(result.Succeeded);
+        Assert.True((await service.UpdateSessionNotesAsync(setup.UserId, angelegt.Value!.Id, "  " + new string('x', 4000) + "  ")).Succeeded);
+    }
 }

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
 import { useT } from "@/lib/i18n";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 /**
  * Trainerseite: alle offenen Trainings der betreuten Hunde in EINER Ansicht -
  * je Trainingstag das Gesamt-Feedback und alle Übungen, ohne ins Tagebuch des
@@ -171,6 +172,7 @@ export function TrainerReviewSection() {
                             <textarea
                               className="min-h-16 rounded-md border border-input bg-transparent px-3 py-2 text-sm"
                               value={feedbackText}
+                              maxLength={TEXTLAENGE.trainerRueckmeldung}
                               onChange={(e) => setFeedbackText(e.target.value)}
                               placeholder={t("Gesamt-Feedback zu diesem Training…")}
                               autoFocus

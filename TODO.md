@@ -284,6 +284,11 @@ Geschwindigkeit und Bedienbarkeit. Behoben im Code:
       geleert, die Hundeseite zeigt bei 404 keinen Zwischenstand mehr, und
       die Offline-Warteschlange spielt nur Einträge der angemeldeten Person
       ab (Hinweis beim Abmelden, Kontolöschung räumt sie weg).
+- [x] Zu lange Texte: maxLength an den Freitextfeldern, Längenprüfung in
+      Training- und Fährten-Service, zentral 22001 -> 400 statt 500,
+      Formfehler als `{ errors: [...] }` auf Deutsch; das Frontend liest auch
+      ProblemDetails, ohne einen TypeError zu werfen. Beides hielt vorher
+      die Offline-Warteschlange dauerhaft an.
 
 Auf dem Server nachsehen (nur lesend, für Prod und Test):
 

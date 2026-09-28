@@ -154,9 +154,15 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                 var newNotes = request.Notes?.Trim();
                 if (!string.IsNullOrEmpty(newNotes))
                 {
-                    daySession.Notes = string.IsNullOrWhiteSpace(daySession.Notes)
+                    var zusammen = string.IsNullOrWhiteSpace(daySession.Notes)
                         ? newNotes
                         : $"{daySession.Notes}\n{newNotes}";
+                    // Jeder Teil passt, zusammen vielleicht nicht mehr - dann
+                    // eine klare Meldung statt eines 500ers beim Speichern.
+                    if (Textlaengen.ZuLang(zusammen, Textlaengen.TrainingsNotiz, "") is not null)
+                        return Result<TrainingSessionDto>.Failure(
+                            $"Der Kommentar zum Trainingstag würde zusammen mit dem vorhandenen zu lang (höchstens {Textlaengen.TrainingsNotiz} Zeichen).");
+                    daySession.Notes = zusammen;
                 }
 
                 await db.SaveChangesAsync(ct);
@@ -355,6 +361,9 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
     public async Task<Result> UpdateSessionNotesAsync(Guid userId, Guid sessionId, string? notes, CancellationToken ct = default)
     {
+        if (Textlaengen.ZuLang(notes, Textlaengen.TrainingsNotiz, "Der Kommentar zum Trainingstag") is { } zuLang)
+            return Result.Failure(zuLang);
+
         var session = await GetOwnedSessionAsync(userId, sessionId, ct);
         if (session is null)
             return Result.NotFound("Training nicht gefunden.");
@@ -367,6 +376,9 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
     public async Task<Result> UpdateExerciseNotesAsync(Guid userId, Guid exerciseId, string? notes, CancellationToken ct = default)
     {
+        if (Textlaengen.ZuLang(notes, Textlaengen.UebungsNotiz, "Der Kommentar zur Übung") is { } zuLang)
+            return Result.Failure(zuLang);
+
         // Übung über ihre Trainingseinheit dem Hund zuordnen und Zugriff prüfen.
         var exercise = await db.TrainingExercises
             .Include(e => e.TrainingSession)
@@ -384,6 +396,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     {
         if (request.Rating < 1 || request.Rating > 5)
             return Result<TrainingSessionDto>.Failure("Bewertung muss zwischen 1 und 5 liegen.");
+        if (Textlaengen.ZuLang(request.Notes, Textlaengen.UebungsNotiz, "Der Kommentar zur Übung") is { } zuLang)
+            return Result<TrainingSessionDto>.Failure(zuLang);
 
         var exercise = await db.TrainingExercises
             .Include(e => e.TrainingSession)
@@ -421,6 +435,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     {
         if (string.IsNullOrWhiteSpace(request.Feedback))
             return Result.Failure("Feedback darf nicht leer sein.");
+        if (Textlaengen.ZuLang(request.Feedback, Textlaengen.TrainerRueckmeldung, "Das Feedback") is { } zuLang)
+            return Result.Failure(zuLang);
 
         var session = await db.TrainingSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
         if (session is null)
@@ -448,6 +464,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     {
         if (rating < 1 || rating > 5)
             return Result.Failure("Bewertung muss zwischen 1 und 5 liegen.");
+        if (Textlaengen.ZuLang(note, Textlaengen.UebungsNotiz, "Die Notiz zur Übung") is { } zuLang)
+            return Result.Failure(zuLang);
 
         // Übung über ihre Trainingseinheit dem Hund zuordnen und Trainer-Zugriff
         // prüfen. Wie SetFeedbackAsync ist das dem zugewiesenen Trainer
@@ -614,6 +632,14 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             return "Dauer muss größer als 0 sein.";
         if (request.Exercises.Any(e => e.Rating < 1 || e.Rating > 5))
             return "Bewertung muss zwischen 1 und 5 liegen.";
+
+        var zuLang = Textlaengen.ZuLang(request.Notes, Textlaengen.TrainingsNotiz, "Der Kommentar zum Trainingstag")
+            ?? request.Exercises
+                .Select(e => Textlaengen.ZuLang(e.Notes, Textlaengen.UebungsNotiz, "Ein Kommentar zu einer Übung")
+                    ?? Textlaengen.ZuLang(e.FreeTextLabel, Textlaengen.EigeneUebung, "Der Name einer eigenen Übung"))
+                .FirstOrDefault(m => m is not null);
+        if (zuLang is not null)
+            return zuLang;
 
         foreach (var exercise in request.Exercises)
         {

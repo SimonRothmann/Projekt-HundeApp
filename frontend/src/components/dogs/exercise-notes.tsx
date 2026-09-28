@@ -7,6 +7,7 @@ import { Check, MessageSquarePlus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 /**
  * Zeigt die Notiz einer durchgeführten Übung (TrainingExercise.Notes) und
  * erlaubt, sie inline zu bearbeiten. Bewusst geteilt zwischen
@@ -69,6 +70,7 @@ export function ExerciseNotes({
           className="max-h-[200px] min-h-16 w-full min-w-0 resize-none rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
           placeholder={t("Notiz zur Übung")}
           value={value}
+          maxLength={TEXTLAENGE.uebungsNotiz}
           onChange={(e) => {
             setValue(e.target.value);
             autoGrow();

@@ -13,6 +13,7 @@ import { AlertTriangle, ChevronDown, ChevronRight, GraduationCap, Plus, RotateCc
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 /**
  * Verwaltung der Sachkunde-Fragen: alles ansehen und von Hand überarbeiten.
  *
@@ -288,6 +289,7 @@ export function SachkundeSection() {
                             id={`text-${frage.id}`}
                             className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
                             value={entwurf.text}
+                            maxLength={TEXTLAENGE.sachkundeFrage}
                             onChange={(e) => setEntwurf({ ...entwurf, text: e.target.value })}
                           />
                         </div>
@@ -308,6 +310,7 @@ export function SachkundeSection() {
                               id={`loesung-${frage.id}`}
                               className="min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
                               value={entwurf.sampleSolution}
+                              maxLength={TEXTLAENGE.musterloesung}
                               onChange={(e) => setEntwurf({ ...entwurf, sampleSolution: e.target.value })}
                             />
                           </div>

@@ -17,7 +17,7 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().MitEigenenFormfehlern();
 
 // JSON-Antworten (Trainingslisten, GPS-Tracks mit vielen Punkten) sind gut
 // kompressibel - spart auf mobilen Verbindungen auf dem Hundeplatz Bandbreite
@@ -218,6 +218,10 @@ app.UseCors("Frontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Nach CORS: Die Freigabe-Kopfzeilen stehen dann schon an der Antwort, und
+// das Frontend kann die 400 lesen statt eines CORS-Fehlers.
+app.UseTextZuLangAls400();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
     .WithName("HealthCheck");

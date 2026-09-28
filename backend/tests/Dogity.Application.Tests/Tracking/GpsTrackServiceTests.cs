@@ -204,4 +204,53 @@ public class GpsTrackServiceTests
         Assert.Equal(session.Id, Assert.Single(db.GpsTracks).TrainingSessionId);
         Assert.Equal(20, db.TrainingSessions.Single(s => s.Id == session.Id).DurationMinutes);
     }
+
+    // --- Zu lange Texte (Prüfung 2026-09-28) --------------------------------
+    // Vorher scheiterten sie erst in der Datenbank: 500er ohne Meldung, und
+    // ein offline erfasster Eintrag hielt die Warteschlange für immer an.
+
+    [Fact]
+    public async Task CreateTrack_ZuLangeMarkerBeschriftung_WirdAbgelehntUndNichtsGespeichert()
+    {
+        var db = InMemoryDbContext.Create();
+        var service = new GpsTrackService(db, new FakeWeatherEnrichmentService());
+        var (userId, dogId) = await HundAnlegenAsync(db);
+        var anfrage = Aufnahme(dogId, Heute) with
+        {
+            Points = [new CreateGpsPointRequest(48.9, 8.5, DateTimeOffset.UtcNow, 5, GpsPointType.Manual, new string('x', 201))],
+        };
+
+        var result = await service.CreateAsync(userId, anfrage);
+
+        Assert.False(result.Succeeded);
+        Assert.False(result.IsNotFound);
+        Assert.Contains("zu lang", result.Errors[0]);
+        Assert.Empty(db.GpsTracks);
+        Assert.Empty(db.TrainingSessions);
+    }
+
+    [Fact]
+    public async Task CreateTrack_KommentarGenauAnDerGrenze_GehtDurch()
+    {
+        var db = InMemoryDbContext.Create();
+        var service = new GpsTrackService(db, new FakeWeatherEnrichmentService());
+        var (userId, dogId) = await HundAnlegenAsync(db);
+
+        var ok = await service.CreateAsync(userId, Aufnahme(dogId, Heute) with { Comment = new string('x', 2000) });
+        var zuLang = await service.CreateAsync(userId, Aufnahme(dogId, Heute) with { Comment = new string('x', 2001) });
+
+        Assert.True(ok.Succeeded);
+        Assert.False(zuLang.Succeeded);
+    }
+
+    [Fact]
+    public async Task UpdateWalkRun_ZuLangerKommentar_BleibtBeimAlten()
+    {
+        var (service, s) = await MakeAsync();
+        await service.UpdateWalkRunAsync(s.UserId, s.TrackId, s.WalkRunId, new UpdateGpsWalkRunRequest("bei Regen"));
+
+        var result = await service.UpdateWalkRunAsync(s.UserId, s.TrackId, s.WalkRunId, new UpdateGpsWalkRunRequest(new string('x', 2001)));
+
+        Assert.False(result.Succeeded);
+    }
 }

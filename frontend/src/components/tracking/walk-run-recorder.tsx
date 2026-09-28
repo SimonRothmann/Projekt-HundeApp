@@ -23,6 +23,7 @@ import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/compon
 import { primeHapticsAudio, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
 
 import { useT } from "@/lib/i18n";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 // Stabile Leerreferenz für den Idle-Fall (keine Aufzeichnung läuft) - siehe
 // onLivePointsChange-Effect. Ein Inline-[] wäre bei jedem Render neu.
 const EMPTY_WALK_POINTS: GpsWalkPoint[] = [];
@@ -234,6 +235,7 @@ export function WalkRunRecorder({
         <Input
           placeholder={t("Kommentar zum Ablauf (optional)")}
           value={comment}
+          maxLength={TEXTLAENGE.ablaufKommentar}
           onChange={(e) => setComment(e.target.value)}
         />
       }
