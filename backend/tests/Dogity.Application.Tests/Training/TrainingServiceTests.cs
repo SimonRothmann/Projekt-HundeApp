@@ -665,9 +665,11 @@ public class TrainingServiceTests
     }
 
     [Fact]
-    public async Task Create_TagesKommentarWirdZusammengefuegtZuLang_WirdAbgelehnt()
+    public async Task Create_TagesKommentarWuerdeZusammenZuLang_LegtEigeneEinheitAnStattAbzulehnen()
     {
-        // Jeder Teil passt für sich, zusammen am selben Tag nicht mehr.
+        // Jeder Teil passt für sich, zusammen am selben Tag nicht mehr. Eine
+        // Ablehnung wäre für einen Eintrag aus der Offline-Warteschlange
+        // endgültig - das ganze Training wäre weg.
         var service = MakeService(out var db);
         var setup = await SetupPlanAsync(db);
         var uebung = new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null);
@@ -675,8 +677,25 @@ public class TrainingServiceTests
 
         var result = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with { Notes = new string('b', 1500) });
 
-        Assert.False(result.Succeeded);
-        Assert.Equal(3000, db.TrainingSessions.Single().Notes!.Length);
+        Assert.True(result.Succeeded);
+        var einheiten = db.TrainingSessions.OrderBy(s => s.CreatedAt).ToList();
+        Assert.Equal(2, einheiten.Count);
+        Assert.Equal(new string('a', 3000), einheiten[0].Notes);
+        Assert.Equal(new string('b', 1500), einheiten[1].Notes);
+        Assert.Single(db.TrainingExercises.Where(e => e.TrainingSessionId == einheiten[1].Id));
+    }
+
+    [Fact]
+    public async Task Create_TagesKommentarPasstZusammen_WirdWieBisherAngehaengt()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var uebung = new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null);
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with { Notes = "morgens" });
+
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with { Notes = "abends" });
+
+        Assert.Equal("morgens\nabends", db.TrainingSessions.Single().Notes);
     }
 
     [Fact]

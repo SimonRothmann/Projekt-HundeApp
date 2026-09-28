@@ -118,7 +118,19 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         {
             var daySession = await db.TrainingSessions
                 .FirstOrDefaultAsync(s => s.DogId == request.DogId && s.Date == request.Date, ct);
-            if (daySession is not null)
+
+            // Die Notiz wird an die des Tages angehängt. Passt beides zusammen
+            // nicht mehr in die Spalte, bekommt der Eintrag stattdessen eine
+            // eigene Einheit am selben Tag (die Oberfläche zeigt sie in derselben
+            // Tageskarte). Abgelehnt wird er dafür nicht: Kommt er aus der
+            // Offline-Warteschlange, wäre eine Ablehnung endgültig, und das
+            // ganze Training samt Übungen wäre verloren - obwohl jeder Teil für
+            // sich gültig war.
+            var newNotes = request.Notes?.Trim();
+            var tagesNotiz = daySession is null || string.IsNullOrEmpty(newNotes)
+                ? daySession?.Notes
+                : string.IsNullOrWhiteSpace(daySession.Notes) ? newNotes : $"{daySession.Notes}\n{newNotes}";
+            if (daySession is not null && Textlaengen.ZuLang(tagesNotiz, Textlaengen.TrainingsNotiz, "") is null)
             {
                 foreach (var exercise in request.Exercises)
                 {
@@ -151,19 +163,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                 daySession.Condition ??= request.Condition;
 
                 daySession.DurationMinutes += request.DurationMinutes;
-                var newNotes = request.Notes?.Trim();
-                if (!string.IsNullOrEmpty(newNotes))
-                {
-                    var zusammen = string.IsNullOrWhiteSpace(daySession.Notes)
-                        ? newNotes
-                        : $"{daySession.Notes}\n{newNotes}";
-                    // Jeder Teil passt, zusammen vielleicht nicht mehr - dann
-                    // eine klare Meldung statt eines 500ers beim Speichern.
-                    if (Textlaengen.ZuLang(zusammen, Textlaengen.TrainingsNotiz, "") is not null)
-                        return Result<TrainingSessionDto>.Failure(
-                            $"Der Kommentar zum Trainingstag würde zusammen mit dem vorhandenen zu lang (höchstens {Textlaengen.TrainingsNotiz} Zeichen).");
-                    daySession.Notes = zusammen;
-                }
+                daySession.Notes = tagesNotiz;
 
                 await db.SaveChangesAsync(ct);
 

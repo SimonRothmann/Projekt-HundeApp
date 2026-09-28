@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 import { useT } from "@/lib/i18n";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 
 /**
  * Schnelleintrag für ein Wochenziel: Bewertung, Erfolg, optional ein
@@ -102,7 +103,12 @@ export function PlanItemQuickLog({
           Erfolgreich
         </label>
       </div>
-      <Input placeholder="Kommentar (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
+      <Input
+        placeholder="Kommentar (optional)"
+        value={notes}
+        maxLength={TEXTLAENGE.uebungsNotiz}
+        onChange={(e) => setNotes(e.target.value)}
+      />
       <div className="flex gap-2">
         <Button type="button" size="sm" disabled={saving} onClick={submit}>
           {saving ? t("Wird gespeichert…") : "Eintragen"}
