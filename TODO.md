@@ -293,8 +293,11 @@ Geschwindigkeit und Bedienbarkeit. Behoben im Code:
       höchstens 12 MB, Auswertung nur bis 2·10⁸ Abstandsberechnungen,
       Linienvereinfachung ohne Rekursion und mit Ausdünnung ab 5.000 Punkten
       (Douglas-Peucker war bei einem Zickzack quadratisch - 23 s für 50.000
-      Punkte, auch beim bloßen Anzeigen), Halteerkennung linear. Vorher band
-      eine präparierte Aufzeichnung den gemeinsamen Server für Minuten.
+      Punkte, auch beim bloßen Anzeigen), Halteerkennung linear, höchstens
+      200.000 Punkte je Trainingstag (die Fährten eines Tages werden gemeinsam
+      geladen). Zu große Abläufe gelten als erledigt statt bei jedem Start
+      nachgewertet zu werden. Vorher band eine präparierte Aufzeichnung den
+      gemeinsamen Server für Minuten.
 - [x] Sperren getrennt: Fünf falsche Passwörter (von irgendwem, nur mit der
       E-Mail-Adresse) beenden keine Sitzungen mehr - vorher widerrief der
       nächste Token-Refresh alle, wiederholbar zur Daueraussperrung. Die

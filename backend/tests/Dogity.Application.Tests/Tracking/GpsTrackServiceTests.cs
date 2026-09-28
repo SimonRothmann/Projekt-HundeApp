@@ -270,4 +270,57 @@ public class GpsTrackServiceTests
         Assert.Contains("50.000", result.Errors[0]);
         Assert.Empty(db.GpsTracks);
     }
+
+    [Fact]
+    public async Task AddWalkRun_ZuGrossFuerDieAuswertung_GiltAlsErledigtOhneKennzahlen()
+    {
+        // Sonst lüde die Nachauswertung ihn bei jedem Serverstart erneut.
+        var db = InMemoryDbContext.Create();
+        var service = new GpsTrackService(db, new FakeWeatherEnrichmentService());
+        var (userId, dogId) = await HundAnlegenAsync(db);
+        var t0 = DateTimeOffset.UtcNow;
+        var zickzack = Enumerable.Range(0, 4_999)
+            .Select(i => new CreateGpsPointRequest(48.9 + i * 5e-6, i % 2 == 0 ? 8.5 : 8.5002, t0.AddSeconds(i), 5))
+            .ToList();
+        var faehrte = await service.CreateAsync(userId, Aufnahme(dogId, Heute) with { Points = zickzack });
+        var ablauf = Enumerable.Range(0, 45_000)
+            .Select(i => new CreateGpsWalkPointRequest(48.9 + i * 1e-7, 8.5, t0.AddSeconds(i), 5))
+            .ToList();
+
+        var result = await service.AddWalkRunAsync(userId, faehrte.Value!.Id, new CreateGpsWalkRunRequest(null, null, ablauf));
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(result.Value!.EvaluatedAt);
+        Assert.Null(result.Value.AvgDeviationMeters);
+        Assert.NotNull(db.GpsWalkRuns.Single().EvaluatedAt);
+    }
+
+    [Fact]
+    public async Task AddWalkRun_TrainingstagSchonVoll_WirdAbgelehnt()
+    {
+        // Kleine Grenze statt 200.000 - geprüft wird dieselbe Zählung über
+        // Legungen und Abläufe des Tages.
+        var db = InMemoryDbContext.Create();
+        var service = new GpsTrackService(db, new FakeWeatherEnrichmentService(), punkteJeTrainingstag: 100);
+        var (userId, dogId) = await HundAnlegenAsync(db);
+        var t0 = DateTimeOffset.UtcNow;
+        var faehrte = await service.CreateAsync(userId, Aufnahme(dogId, Heute)); // 1 Punkt
+        var ablauf = (int n) => Enumerable.Range(0, n)
+            .Select(i => new CreateGpsWalkPointRequest(48.9, 8.5, t0.AddSeconds(i), 5))
+            .ToList();
+        Assert.True((await service.AddWalkRunAsync(userId, faehrte.Value!.Id, new CreateGpsWalkRunRequest(null, null, ablauf(90)))).Succeeded);
+
+        var result = await service.AddWalkRunAsync(userId, faehrte.Value.Id, new CreateGpsWalkRunRequest(null, null, ablauf(10)));
+        var zweiteFaehrte = await service.CreateAsync(userId, Aufnahme(dogId, Heute) with
+        {
+            Points = Enumerable.Range(0, 10).Select(i => new CreateGpsPointRequest(48.9, 8.5, t0.AddSeconds(i), 5)).ToList(),
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("höchstens 100", result.Errors[0]);
+        Assert.False(zweiteFaehrte.Succeeded);
+        Assert.Single(db.GpsWalkRuns);
+        // Genau bis an die Grenze geht es noch.
+        Assert.True((await service.AddWalkRunAsync(userId, faehrte.Value.Id, new CreateGpsWalkRunRequest(null, null, ablauf(9)))).Succeeded);
+    }
 }

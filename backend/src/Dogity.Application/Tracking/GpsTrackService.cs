@@ -13,7 +13,14 @@ namespace Dogity.Application.Tracking;
 /// Trainingseinheit; Zugriff folgt daher der Zugriffsprüfung des Hundes
 /// dieser Trainingseinheit (Besitzer oder betreuender Trainer).
 /// </summary>
-public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService weather) : IGpsTrackService
+/// <param name="punkteJeTrainingstag">
+/// Obergrenze aller Punkte eines Trainingstags - nur für Tests abweichend von
+/// <see cref="MaxPunkteJeTrainingstag"/>, damit sie nicht 200.000 Punkte anlegen müssen.
+/// </param>
+public class GpsTrackService(
+    IApplicationDbContext db,
+    IWeatherEnrichmentService weather,
+    int punkteJeTrainingstag = GpsTrackService.MaxPunkteJeTrainingstag) : IGpsTrackService
 {
     /// <summary>
     /// Höchstzahl der Punkte einer Aufzeichnung - gut 13 Stunden bei einem
@@ -24,10 +31,36 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
     /// </summary>
     public const int MaxPunkteJeAufzeichnung = 50_000;
 
+    /// <summary>
+    /// Höchstzahl aller GPS-Punkte eines Trainingstags (Legungen und Abläufe
+    /// zusammen). Die Obergrenze je Aufzeichnung allein reichte nicht: Die
+    /// Fährten eines Tages werden gemeinsam geladen und aufbereitet, und wie
+    /// viele Abläufe eine Fährte hat, begrenzte nichts. Ein echter, voller
+    /// Fährtentag liegt bei einigen zehntausend Punkten.
+    /// </summary>
+    public const int MaxPunkteJeTrainingstag = 200_000;
+
+    private static readonly string ZuVielePunkte =
+        $"Die Aufzeichnung hat zu viele Punkte (höchstens {MitTausenderpunkt(MaxPunkteJeAufzeichnung)}).";
+
+    private string TagZuVoll =>
+        $"Für diesen Trainingstag sind schon zu viele GPS-Punkte gespeichert (höchstens {MitTausenderpunkt(punkteJeTrainingstag)}).";
+
     // Tausenderpunkt von Hand: Der Container läuft mit neutraler Kultur, "N0"
     // ergäbe dort "50,000".
-    private static readonly string ZuVielePunkte =
-        $"Die Aufzeichnung hat zu viele Punkte (höchstens {MaxPunkteJeAufzeichnung.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture).Replace(',', '.')}).";
+    private static string MitTausenderpunkt(int zahl) =>
+        zahl.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture).Replace(',', '.');
+
+    /// <summary>Alle gespeicherten Punkte der Fährten und Abläufe einer Trainingseinheit.</summary>
+    private async Task<int> PunkteDerEinheitAsync(Guid sessionId, CancellationToken ct)
+    {
+        var gelegt = await db.GpsPoints
+            .CountAsync(p => db.GpsTracks.Any(t => t.Id == p.TrackId && t.TrainingSessionId == sessionId), ct);
+        var abgelaufen = await db.GpsWalkPoints
+            .CountAsync(p => db.GpsWalkRuns.Any(r => r.Id == p.WalkRunId
+                && db.GpsTracks.Any(t => t.Id == r.TrackId && t.TrainingSessionId == sessionId)), ct);
+        return gelegt + abgelaufen;
+    }
 
     public async Task<Result<IReadOnlyList<GpsTrackDto>>> GetByTrainingSessionAsync(Guid userId, Guid trainingSessionId, CancellationToken ct = default)
     {
@@ -125,6 +158,8 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
             return Result<GpsTrackDto>.Failure("Eine Fährte benötigt mindestens einen GPS-Punkt.");
         if (request.Points.Count > MaxPunkteJeAufzeichnung)
             return Result<GpsTrackDto>.Failure(ZuVielePunkte);
+        if (neueEinheit is null && await PunkteDerEinheitAsync(sessionId, ct) + request.Points.Count > punkteJeTrainingstag)
+            return Result<GpsTrackDto>.Failure(TagZuVoll);
 
         var zuLang = Textlaengen.ZuLang(request.Comment, Textlaengen.FaehrtenKommentar, "Der Kommentar")
             ?? Textlaengen.ZuLang(request.Surface, Textlaengen.Kurzangabe, "Der Untergrund")
@@ -192,6 +227,8 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
             return Result<GpsWalkRunDto>.Failure("Ein Ablauf-Versuch benötigt mindestens einen GPS-Punkt.");
         if (request.Points.Count > MaxPunkteJeAufzeichnung)
             return Result<GpsWalkRunDto>.Failure(ZuVielePunkte);
+        if (await PunkteDerEinheitAsync(track.TrainingSessionId, ct) + request.Points.Count > punkteJeTrainingstag)
+            return Result<GpsWalkRunDto>.Failure(TagZuVoll);
         if (Textlaengen.ZuLang(request.Comment, Textlaengen.FaehrtenKommentar, "Der Kommentar") is { } zuLang)
             return Result<GpsWalkRunDto>.Failure(zuLang);
 
@@ -241,9 +278,10 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
         if (walkRun is null)
             return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
 
-        if (!await EvaluateAndPersistAsync(walkRun, ct))
-            return Result<GpsWalkRunDto>.Failure("Dieser Ablauf ist zu groß für die Auswertung.");
+        var ausgewertet = await EvaluateAndPersistAsync(walkRun, ct);
         await db.SaveChangesAsync(ct);
+        if (!ausgewertet)
+            return Result<GpsWalkRunDto>.Failure("Dieser Ablauf ist zu groß für die Auswertung.");
 
         return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
     }
@@ -254,8 +292,9 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
     /// wann gespeichert wird). Bestehende Halte werden ersetzt.
     ///
     /// <c>false</c>, wenn die Auswertung zu aufwendig wäre (siehe
-    /// <see cref="GpsTrackEvaluator.MaxAuswertungsAufwand"/>) - der Ablauf
-    /// bleibt dann unausgewertet.
+    /// <see cref="GpsTrackEvaluator.MaxAuswertungsAufwand"/>). Der Ablauf gilt
+    /// dann trotzdem als erledigt (EvaluatedAt gesetzt, ohne Kennzahlen) -
+    /// sonst lüde ihn die Nachauswertung bei jedem Serverstart erneut.
     /// </summary>
     private async Task<bool> EvaluateAndPersistAsync(GpsWalkRun walkRun, CancellationToken ct)
     {
@@ -268,7 +307,10 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
             : await db.GpsWalkPoints.Where(p => p.WalkRunId == walkRun.Id).ToListAsync(ct);
 
         if (GpsTrackEvaluator.TryEvaluate(laidPoints, walkPoints) is not { } evaluation)
+        {
+            walkRun.EvaluatedAt = DateTimeOffset.UtcNow;
             return false;
+        }
 
         var byId = walkPoints.ToDictionary(p => p.Id);
         foreach (var evaluated in evaluation.Points)
