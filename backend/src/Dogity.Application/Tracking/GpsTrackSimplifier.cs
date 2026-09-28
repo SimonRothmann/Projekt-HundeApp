@@ -28,16 +28,39 @@ public static class GpsTrackSimplifier
     // keine Abbiegung verloren geht.
     private const int MinPointsBeforeSimplifying = 2000;
 
+    // Douglas-Peucker kostet im ungünstigsten Fall quadratisch viel: Bei einem
+    // Zickzack teilt jeder Schritt nur einen Punkt ab und misst dafür den
+    // ganzen Rest erneut. 50.000 solche Punkte - und die schickt der Client -
+    // waren über 20 Sekunden Rechenzeit, bei jedem Anzeigen der Fährte. Längere
+    // Linien werden deshalb vorher gleichmäßig ausgedünnt. Das trifft erst
+    // Aufzeichnungen über rund anderthalb Stunden bei einem Punkt pro Sekunde;
+    // dort liegen die verbleibenden Punkte wenige Meter auseinander.
+    private const int MaxPointsForDouglasPeucker = 5000;
+
     public static IReadOnlyList<T> Simplify<T>(IReadOnlyList<T> points) where T : IGeoPoint
     {
         if (points.Count < MinPointsBeforeSimplifying)
             return points;
 
-        var projected = Project(points);
-        var keepIndices = new HashSet<int> { 0, points.Count - 1 };
-        Reduce(projected, 0, points.Count - 1, ToleranceMeters, keepIndices);
+        var input = points.Count > MaxPointsForDouglasPeucker ? Thin(points, MaxPointsForDouglasPeucker) : points;
+        var projected = Project(input);
+        var keepIndices = new HashSet<int> { 0, input.Count - 1 };
+        Reduce(projected, 0, input.Count - 1, ToleranceMeters, keepIndices);
 
-        return keepIndices.OrderBy(i => i).Select(i => points[i]).ToList();
+        return keepIndices.OrderBy(i => i).Select(i => input[i]).ToList();
+    }
+
+    /// <summary>Jeder n-te Punkt, so dass höchstens <paramref name="max"/> (plus der letzte) bleiben.</summary>
+    private static IReadOnlyList<T> Thin<T>(IReadOnlyList<T> points, int max)
+    {
+        var step = (int)Math.Ceiling(points.Count / (double)max);
+        var result = new List<T>(max + 1);
+        for (var i = 0; i < points.Count; i += step)
+            result.Add(points[i]);
+        // Das Ende der Fährte bleibt immer erhalten.
+        if ((points.Count - 1) % step != 0)
+            result.Add(points[^1]);
+        return result;
     }
 
     // Vereinfachte Äquirektangular-Projektion auf eine lokale Meter-Ebene -
@@ -58,30 +81,43 @@ public static class GpsTrackSimplifier
         return result;
     }
 
+    // Mit eigenem Stapel statt Rekursion: Douglas-Peucker teilt im
+    // ungünstigsten Fall (etwa eine Spirale) bei jedem Schritt nur einen Punkt
+    // ab. Rekursiv wären das so viele Aufrufebenen wie Punkte - bei zehntausenden
+    // Punkten ein StackOverflow, und der beendet den ganzen Prozess, nicht nur
+    // die Anfrage. Seit 2026-09-28 wertet der Server große Fährten über diese
+    // Vereinfachung aus, und die Punkte schickt der Client.
     private static void Reduce((double X, double Y)[] points, int startIndex, int endIndex, double tolerance, HashSet<int> keepIndices)
     {
-        if (endIndex <= startIndex + 1) return;
+        var offen = new Stack<(int Start, int End)>();
+        offen.Push((startIndex, endIndex));
 
-        var start = points[startIndex];
-        var end = points[endIndex];
-        var maxDistance = 0.0;
-        var maxIndex = -1;
-
-        for (var i = startIndex + 1; i < endIndex; i++)
+        while (offen.Count > 0)
         {
-            var distance = PerpendicularDistance(points[i], start, end);
-            if (distance > maxDistance)
+            var (von, bis) = offen.Pop();
+            if (bis <= von + 1) continue;
+
+            var start = points[von];
+            var end = points[bis];
+            var maxDistance = 0.0;
+            var maxIndex = -1;
+
+            for (var i = von + 1; i < bis; i++)
             {
-                maxDistance = distance;
-                maxIndex = i;
+                var distance = PerpendicularDistance(points[i], start, end);
+                if (distance > maxDistance)
+                {
+                    maxDistance = distance;
+                    maxIndex = i;
+                }
             }
+
+            if (maxIndex == -1 || maxDistance <= tolerance) continue;
+
+            keepIndices.Add(maxIndex);
+            offen.Push((von, maxIndex));
+            offen.Push((maxIndex, bis));
         }
-
-        if (maxIndex == -1 || maxDistance <= tolerance) return;
-
-        keepIndices.Add(maxIndex);
-        Reduce(points, startIndex, maxIndex, tolerance, keepIndices);
-        Reduce(points, maxIndex, endIndex, tolerance, keepIndices);
     }
 
     private static double PerpendicularDistance((double X, double Y) point, (double X, double Y) lineStart, (double X, double Y) lineEnd)

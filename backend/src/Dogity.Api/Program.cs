@@ -17,6 +17,12 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Größte echte Anfrage: eine Fährte mit der Höchstzahl an Punkten
+// (GpsTrackService.MaxPunkteJeAufzeichnung, ~7 MB JSON); ein Hundebild wiegt
+// als Data-URI unter 3 MB. Kestrel nähme sonst 30 MB je Anfrage an - Platz für
+// eine Viertelmillion GPS-Punkte, deren Auswertung den Server band.
+builder.WebHost.ConfigureKestrel(kestrel => kestrel.Limits.MaxRequestBodySize = 12 * 1024 * 1024);
+
 builder.Services.AddControllers().MitEigenenFormfehlern();
 
 // JSON-Antworten (Trainingslisten, GPS-Tracks mit vielen Punkten) sind gut

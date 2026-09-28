@@ -68,4 +68,38 @@ public class GpsTrackSimplifierTests
         Assert.Equal(points[^1].Latitude, result[^1].Latitude);
         Assert.Equal(points[^1].Longitude, result[^1].Longitude);
     }
+
+    [Fact]
+    public void Simplify_ZickzackMitSehrVielenPunkten_BleibtSchnell()
+    {
+        // Der ungünstigste Fall für Douglas-Peucker: Jeder Schritt teilt nur
+        // einen Punkt ab. 50.000 solche Punkte brauchten über 20 Sekunden -
+        // jetzt wird vorher auf höchstens 5.000 ausgedünnt.
+        var points = Enumerable.Range(0, 50_000)
+            .Select(i => MakePoint(52.5 + i * 0.000005, i % 2 == 0 ? 13.4 : 13.40003))
+            .ToList();
+
+        var uhr = System.Diagnostics.Stopwatch.StartNew();
+        var result = GpsTrackSimplifier.Simplify(points);
+        uhr.Stop();
+
+        Assert.Equal(points[0], result[0]);
+        Assert.Equal(points[^1], result[^1]);
+        Assert.True(result.Count <= 5_001, $"{result.Count} Punkte");
+        // Großzügig, damit ein langsamer Testrechner nicht wackelt - vorher
+        // waren es über 20 Sekunden.
+        Assert.True(uhr.Elapsed < TimeSpan.FromSeconds(5), $"{uhr.Elapsed.TotalSeconds:F1} s");
+    }
+
+    [Fact]
+    public void Simplify_AusduennenBehaeltDenLetztenPunkt()
+    {
+        var points = Enumerable.Range(0, 12_345)
+            .Select(i => MakePoint(52.5 + i * 0.00001, 13.4 + (i % 7) * 0.00001))
+            .ToList();
+
+        var result = GpsTrackSimplifier.Simplify(points);
+
+        Assert.Same(points[^1], result[^1]);
+    }
 }

@@ -35,7 +35,10 @@ public class GpsTrackEvaluationBackfill(IApplicationDbContext db) : IGpsTrackEva
                 laidCache[walkRun.TrackId] = laidPoints;
             }
 
-            var evaluation = GpsTrackEvaluator.Evaluate(laidPoints, walkRun.Points.ToList());
+            // Zu groß für die Auswertung (siehe MaxAuswertungsAufwand): bleibt
+            // unausgewertet, wie beim Speichern.
+            if (GpsTrackEvaluator.TryEvaluate(laidPoints, walkRun.Points.ToList()) is not { } evaluation)
+                continue;
 
             var byId = walkRun.Points.ToDictionary(p => p.Id);
             foreach (var evaluated in evaluation.Points)

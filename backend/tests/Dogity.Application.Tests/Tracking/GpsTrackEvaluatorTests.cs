@@ -239,4 +239,84 @@ public class GpsTrackEvaluatorTests
 
         Assert.True(result.AvgDeviationMeters < 0.5, $"Ø war {result.AvgDeviationMeters}");
     }
+
+    // --- Schutz vor präparierten Riesen-Aufzeichnungen (Prüfung 2026-09-28) ---
+
+    /// <summary>Zickzack mit 10 m Ausschlag - lässt sich nicht vereinfachen.</summary>
+    private static List<GpsPoint> ZigzagTrack(int punkte) =>
+        Enumerable.Range(0, punkte).Select(i => new GpsPoint
+        {
+            Latitude = LatAt(i * 0.5),
+            Longitude = LonOffset(i % 2 == 0 ? 0 : 10),
+            Timestamp = T0.AddSeconds(i),
+            PointType = GpsPointType.Automatic,
+        }).ToList();
+
+    [Fact]
+    public void TryEvaluate_ZuAufwendig_LiefertNullStattMinutenlangZuRechnen()
+    {
+        // 4.999 Linienpunkte (unter der Ausdünnung, nicht vereinfachbar) mal
+        // 45.000 Ablaufpunkte liegt über der Grenze von 2·10⁸.
+        var track = ZigzagTrack(4_999);
+        var walk = Walk(Enumerable.Range(0, 45_000).Select(i => (i * 0.01, 0.0, i)));
+
+        Assert.Null(GpsTrackEvaluator.TryEvaluate(track, walk));
+        Assert.Throws<InvalidOperationException>(() => GpsTrackEvaluator.Evaluate(track, walk));
+    }
+
+    [Fact]
+    public void Stockungen_TausendePunkteMitGleicherZeit_WerdenZuEinemPunkt()
+    {
+        // Vorher: jeder Punkt Anker eines Fensters über alle anderen -
+        // quadratisch viel Arbeit für eine einzige Anfrage.
+        var track = StraightTrack();
+        var walk = Enumerable.Range(0, 20_000)
+            .Select(_ => new GpsWalkPoint { Latitude = LatAt(50), Longitude = BaseLon, Timestamp = T0 })
+            .ToList();
+
+        var result = GpsTrackEvaluator.Evaluate(track, walk);
+
+        Assert.Empty(result.Stops);
+        Assert.Equal(20_000, result.Points.Count);
+    }
+
+    [Fact]
+    public void Stockungen_EchteAufzeichnungMitEinemPunktProSekunde_BleibenGleich()
+    {
+        // 15 s Stillstand bei 1 Hz - die Ausdünnung auf höchstens zwei Punkte
+        // pro Sekunde darf daran nichts ändern.
+        // Zügig gehen (5 m je Sekunde), damit das Fenster klar beginnt und endet.
+        var track = StraightTrack();
+        var spec = Enumerable.Range(0, 6).Select(s => (s * 5.0, 0.0, s))
+            .Concat(Enumerable.Range(6, 16).Select(s => (30.0, 0.0, s)))
+            .Concat(Enumerable.Range(22, 10).Select(s => (30.0 + (s - 21) * 5.0, 0.0, s)));
+
+        var result = GpsTrackEvaluator.Evaluate(track, Walk(spec));
+
+        var halt = Assert.Single(result.Stops);
+        Assert.Equal(15, halt.DurationSeconds);
+    }
+
+    [Fact]
+    public void LangeGelegteLinie_WirdWieAufDerKarteVereinfacht_AbweichungBleibtGenau()
+    {
+        // 5.000 Punkte auf einer Geraden (ab 2.000 greift die Vereinfachung):
+        // gemessen wird gegen die vereinfachte Linie, das Ergebnis ist dasselbe.
+        var track = StraightTrack(4_999);
+        var walk = Walk(Enumerable.Range(0, 500).Select(i => (i * 10.0, 2.0, i)));
+
+        var result = GpsTrackEvaluator.Evaluate(track, walk);
+
+        Assert.All(result.Points, p => Assert.InRange(p.DeviationMeters, 1.9, 2.1));
+    }
+
+    [Fact]
+    public void TryEvaluate_SehrVieleMarker_ZaehlenZumAufwand()
+    {
+        var track = StraightTrack();
+        track.AddRange(Enumerable.Range(0, 25_000).Select(i => Marker(i % 100, GpsMarkerType.Article)));
+        var walk = Walk(Enumerable.Range(0, 10_000).Select(i => (i % 100 * 1.0, 0.0, i)));
+
+        Assert.Null(GpsTrackEvaluator.TryEvaluate(track, walk));
+    }
 }

@@ -60,17 +60,45 @@ public static class GpsTrackEvaluator
     public const double StopMaxDisplacementMeters = 3.0;
     public const int StopMinDurationSeconds = 10;
 
+    /// <summary>
+    /// Obergrenze für Ablaufpunkte × (Liniensegmente + Marker). Jeder
+    /// Ablaufpunkt wird gegen jedes Segment gemessen; 2·10⁸ Abstände sind rund eine Sekunde
+    /// Rechenzeit. Echte Fährten liegen weit darunter (zwei Stunden Legen und
+    /// Suchen bei einem Punkt pro Sekunde: 7.200 × höchstens 7.200). Darüber
+    /// wird nicht ausgewertet - die Punkte schickt der Client, und ohne Grenze
+    /// band eine einzige präparierte Anfrage den gemeinsamen Server für
+    /// Minuten (Prüfung 2026-09-28).
+    /// </summary>
+    public const long MaxAuswertungsAufwand = 200_000_000;
+
+    /// <summary>Punkte, die für die Halteerkennung mindestens so weit auseinanderliegen müssen.</summary>
+    private static readonly TimeSpan StopMinPointSpacing = TimeSpan.FromMilliseconds(500);
+
     public static WalkRunEvaluation Evaluate(
+        IReadOnlyList<GpsPoint> laidPoints,
+        IReadOnlyList<GpsWalkPoint> walkPoints) =>
+        TryEvaluate(laidPoints, walkPoints)
+        ?? throw new InvalidOperationException("Der Ablauf ist zu groß für die Auswertung.");
+
+    /// <summary>
+    /// Wie <see cref="Evaluate"/>, aber <c>null</c> statt einer Auswertung,
+    /// wenn sie über <see cref="MaxAuswertungsAufwand"/> läge.
+    /// </summary>
+    public static WalkRunEvaluation? TryEvaluate(
         IReadOnlyList<GpsPoint> laidPoints,
         IReadOnlyList<GpsWalkPoint> walkPoints)
     {
         // Die gelegte Linie besteht nur aus automatischen Punkten - manuelle
         // Marker liegen neben der Laufspur und würden die Linie verzerren
         // (dieselbe Regel wie in estimateLengthMeters/GpsTrackSimplifier).
-        var line = laidPoints
+        //
+        // Lange Linien (ab 2000 Punkten) werden vorher vereinfacht - genau so,
+        // wie die Karte sie zeigt (GpsTrackSimplifier). Kürzere bleiben
+        // unverändert, damit sich keine Auswertung einer echten Fährte ändert.
+        var line = GpsTrackSimplifier.Simplify(laidPoints
             .Where(p => p.PointType != GpsPointType.Manual)
             .OrderBy(p => p.Timestamp)
-            .ToList();
+            .ToList());
         var markers = laidPoints.Where(p => p.PointType == GpsPointType.Manual).ToList();
         var walk = walkPoints.OrderBy(p => p.Timestamp).ToList();
 
@@ -78,6 +106,12 @@ public static class GpsTrackEvaluator
 
         if (line.Count == 0 || walk.Count == 0)
             return new WalkRunEvaluation(0, 0, 0, 0, articlesTotal, [], []);
+
+        // Auch die Marker zählen: Jeder Gegenstand wird gegen jeden
+        // Ablaufpunkt geprüft, und wie viele Marker eine Fährte hat, bestimmt
+        // der Client.
+        if ((long)walk.Count * (line.Count + markers.Count) > MaxAuswertungsAufwand)
+            return null;
 
         // Gemeinsamer lokaler Meter-Bezug für alle Punkte (äquirektangulär,
         // für Fährtendistanzen ausreichend genau - siehe GpsTrackSimplifier).
@@ -122,10 +156,22 @@ public static class GpsTrackEvaluator
     /// flackert.
     /// </summary>
     private static List<EvaluatedStop> DetectStops(
-        IReadOnlyList<GpsWalkPoint> walk,
+        IReadOnlyList<GpsWalkPoint> alleAblaufpunkte,
         IReadOnlyList<GpsPoint> markers,
         double originLat)
     {
+        // Höchstens zwei Punkte pro Sekunde. Das Fenster unten wächst, solange
+        // die Punkte beisammen bleiben, und beginnt sonst beim nächsten Punkt
+        // neu - bei tausenden Punkten mit demselben Zeitstempel und Ort wäre
+        // das quadratisch viel Arbeit. Echte Aufzeichnungen (etwa ein Punkt
+        // pro Sekunde) bleiben unverändert.
+        var walk = new List<GpsWalkPoint>(alleAblaufpunkte.Count);
+        foreach (var p in alleAblaufpunkte)
+        {
+            if (walk.Count == 0 || p.Timestamp - walk[^1].Timestamp >= StopMinPointSpacing)
+                walk.Add(p);
+        }
+
         var stops = new List<EvaluatedStop>();
         var i = 0;
         while (i < walk.Count)

@@ -15,6 +15,20 @@ namespace Dogity.Application.Tracking;
 /// </summary>
 public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService weather) : IGpsTrackService
 {
+    /// <summary>
+    /// Höchstzahl der Punkte einer Aufzeichnung - gut 13 Stunden bei einem
+    /// Punkt pro Sekunde; keine echte Fährte kommt in die Nähe. Ohne Grenze nahm
+    /// der Server rund 250.000 Punkte je Anfrage an (so viel passt in die
+    /// Standardgröße einer Anfrage), und die Auswertung eines solchen Ablaufs
+    /// band den gemeinsamen Server für Minuten.
+    /// </summary>
+    public const int MaxPunkteJeAufzeichnung = 50_000;
+
+    // Tausenderpunkt von Hand: Der Container läuft mit neutraler Kultur, "N0"
+    // ergäbe dort "50,000".
+    private static readonly string ZuVielePunkte =
+        $"Die Aufzeichnung hat zu viele Punkte (höchstens {MaxPunkteJeAufzeichnung.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture).Replace(',', '.')}).";
+
     public async Task<Result<IReadOnlyList<GpsTrackDto>>> GetByTrainingSessionAsync(Guid userId, Guid trainingSessionId, CancellationToken ct = default)
     {
         if (!await HasSessionAccessAsync(userId, trainingSessionId, ct))
@@ -109,6 +123,8 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
 
         if (request.Points.Count == 0)
             return Result<GpsTrackDto>.Failure("Eine Fährte benötigt mindestens einen GPS-Punkt.");
+        if (request.Points.Count > MaxPunkteJeAufzeichnung)
+            return Result<GpsTrackDto>.Failure(ZuVielePunkte);
 
         var zuLang = Textlaengen.ZuLang(request.Comment, Textlaengen.FaehrtenKommentar, "Der Kommentar")
             ?? Textlaengen.ZuLang(request.Surface, Textlaengen.Kurzangabe, "Der Untergrund")
@@ -174,6 +190,8 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
 
         if (request.Points.Count == 0)
             return Result<GpsWalkRunDto>.Failure("Ein Ablauf-Versuch benötigt mindestens einen GPS-Punkt.");
+        if (request.Points.Count > MaxPunkteJeAufzeichnung)
+            return Result<GpsWalkRunDto>.Failure(ZuVielePunkte);
         if (Textlaengen.ZuLang(request.Comment, Textlaengen.FaehrtenKommentar, "Der Kommentar") is { } zuLang)
             return Result<GpsWalkRunDto>.Failure(zuLang);
 
@@ -223,7 +241,8 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
         if (walkRun is null)
             return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
 
-        await EvaluateAndPersistAsync(walkRun, ct);
+        if (!await EvaluateAndPersistAsync(walkRun, ct))
+            return Result<GpsWalkRunDto>.Failure("Dieser Ablauf ist zu groß für die Auswertung.");
         await db.SaveChangesAsync(ct);
 
         return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
@@ -233,8 +252,12 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
     /// Wertet einen Ablauf gegen seine gelegte Fährte aus und schreibt das
     /// Ergebnis auf die Entitäten (ohne SaveChanges - der Aufrufer entscheidet,
     /// wann gespeichert wird). Bestehende Halte werden ersetzt.
+    ///
+    /// <c>false</c>, wenn die Auswertung zu aufwendig wäre (siehe
+    /// <see cref="GpsTrackEvaluator.MaxAuswertungsAufwand"/>) - der Ablauf
+    /// bleibt dann unausgewertet.
     /// </summary>
-    private async Task EvaluateAndPersistAsync(GpsWalkRun walkRun, CancellationToken ct)
+    private async Task<bool> EvaluateAndPersistAsync(GpsWalkRun walkRun, CancellationToken ct)
     {
         var laidPoints = await db.GpsPoints
             .Where(p => p.TrackId == walkRun.TrackId)
@@ -244,7 +267,8 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
             ? walkRun.Points.ToList()
             : await db.GpsWalkPoints.Where(p => p.WalkRunId == walkRun.Id).ToListAsync(ct);
 
-        var evaluation = GpsTrackEvaluator.Evaluate(laidPoints, walkPoints);
+        if (GpsTrackEvaluator.TryEvaluate(laidPoints, walkPoints) is not { } evaluation)
+            return false;
 
         var byId = walkPoints.ToDictionary(p => p.Id);
         foreach (var evaluated in evaluation.Points)
@@ -282,6 +306,8 @@ public class GpsTrackService(IApplicationDbContext db, IWeatherEnrichmentService
                 MarkerLabel = stop.MarkerLabel
             });
         }
+
+        return true;
     }
 
     public async Task<Result<GpsWalkRunDto>> UpdateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsWalkRunRequest request, CancellationToken ct = default)

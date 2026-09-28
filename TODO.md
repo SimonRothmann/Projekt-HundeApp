@@ -289,6 +289,12 @@ Geschwindigkeit und Bedienbarkeit. Behoben im Code:
       Formfehler als `{ errors: [...] }` auf Deutsch; das Frontend liest auch
       ProblemDetails, ohne einen TypeError zu werfen. Beides hielt vorher
       die Offline-Warteschlange dauerhaft an.
+- [x] GPS-Aufzeichnungen begrenzt: höchstens 50.000 Punkte, Anfragen
+      höchstens 12 MB, Auswertung nur bis 2·10⁸ Abstandsberechnungen,
+      Linienvereinfachung ohne Rekursion und mit Ausdünnung ab 5.000 Punkten
+      (Douglas-Peucker war bei einem Zickzack quadratisch - 23 s für 50.000
+      Punkte, auch beim bloßen Anzeigen), Halteerkennung linear. Vorher band
+      eine präparierte Aufzeichnung den gemeinsamen Server für Minuten.
 
 Auf dem Server nachsehen (nur lesend, für Prod und Test):
 

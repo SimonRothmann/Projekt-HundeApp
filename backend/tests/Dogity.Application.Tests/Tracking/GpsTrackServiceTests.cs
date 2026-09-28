@@ -253,4 +253,21 @@ public class GpsTrackServiceTests
 
         Assert.False(result.Succeeded);
     }
+
+    [Fact]
+    public async Task CreateTrack_MehrAlsHoechstzahlPunkte_WirdAbgelehnt()
+    {
+        var db = InMemoryDbContext.Create();
+        var service = new GpsTrackService(db, new FakeWeatherEnrichmentService());
+        var (userId, dogId) = await HundAnlegenAsync(db);
+        var punkte = Enumerable.Range(0, GpsTrackService.MaxPunkteJeAufzeichnung + 1)
+            .Select(i => new CreateGpsPointRequest(48.9 + i * 1e-6, 8.5, DateTimeOffset.UtcNow.AddSeconds(i), 5))
+            .ToList();
+
+        var result = await service.CreateAsync(userId, Aufnahme(dogId, Heute) with { Points = punkte });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("50.000", result.Errors[0]);
+        Assert.Empty(db.GpsTracks);
+    }
 }
