@@ -253,11 +253,52 @@ Bewusst so gelassen (bekannt, abgewogen):
 - Anmelde-Token im localStorage statt im httpOnly-Cookie. Ein XSS könnte ihn
   lesen; dagegen stehen CSP ohne fremde Skriptquellen, React-Escaping und keine
   HTML-Einschübe aus Nutzerdaten. Umstieg auf Cookies wäre wegen der
-  getrennten API-Domain ein größerer Umbau.
+  getrennten API-Domain ein größerer Umbau. Die letzte Voraussetzung war bis
+  2026-09-28 verletzt (Marker-Beschriftung per innerHTML in Leaflet-Tooltips);
+  seitdem prüft `frontend/src/lib/html-senken.test.ts` jede Stelle, an der
+  Text als HTML in die Seite geht.
 - `script-src 'unsafe-inline'` (Next.js-Hydration, siehe next.config.ts).
 - Registrierung und Einladen verraten, ob eine E-Mail-Adresse ein Konto hat.
   Anmelden ist gedrosselt; ohne E-Mail-Versand gibt es keinen besseren Weg.
 - Keine Bestätigung der E-Mail-Adresse bei der Registrierung (kein SMTP).
+
+## Sicherheitsprüfung (Stand 2026-09-28)
+
+Zwei Prüfdurchgänge (Prüfung, dann kritische Zweitprüfung) über Sicherheit,
+Geschwindigkeit und Bedienbarkeit. Behoben im Code:
+
+- [x] Marker-Beschriftungen gehen als Text statt als HTML in die Karte
+      (gespeichertes XSS über Leaflet-Tooltips). Wächtertest
+      `html-senken.test.ts`.
+- [x] Eine Betreuung beenden geht nur noch im Rahmen der eigenen Gruppe -
+      vorher ließ sich über eine selbst angelegte, leere Gruppe jede fremde
+      Betreuung beenden.
+
+Auf dem Server nachsehen (nur lesend, für Prod und Test):
+
+- [ ] Wurde die XSS-Lücke schon genutzt?
+      `SELECT count(*) FROM gps_points WHERE "Label" ~ '[<>]';` und
+      `SELECT count(*) FROM gps_walk_stops WHERE "MarkerLabel" ~ '[<>]';` -
+      bei Treffern die Einträge ansehen und den betroffenen Konten die
+      Sitzungen beenden.
+- [ ] Ist die Anmelde-E-Mail des Admin-Kontos die öffentliche
+      Impressum-Adresse? Dann den Admin auf eine nicht veröffentlichte Adresse
+      umstellen - sie ist das lohnendste Ziel für Aussperr- und
+      Einladungsversuche.
+
+Bewusst später (nach Aufwand und Nutzen abgewogen):
+
+- Englisches Wörterbuch nur bei Sprache EN laden (~25 KB gz beim ersten
+  Aufruf und nach jedem Deploy, sonst aus dem Service-Worker-Cache).
+- Skip-Link für die Tastaturbedienung am Desktop.
+- `output: "standalone"` für ein kleineres Laufzeit-Image.
+- Safe-Area auf dem iPhone (`viewport-fit=cover`) und Tastatur über
+  Eingabefeldern nur nach Gerätetest - die Vorschläge verschlechtern sonst
+  eher (Header ohne Safe-Area oben, Bottom-Nav über der Tastatur).
+- Besitzer:in beendet die Betreuung ihres Hundes selbst (bisher nur über das
+  Verlassen der Gruppe) - eigenes kleines Feature.
+- `img-src` auf bekannte Kachelquellen beschränken - kostet freie
+  Avatar-Adressen.
 
 ## Rechtliches (Stand 2026-09-13)
 

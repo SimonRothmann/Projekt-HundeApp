@@ -566,22 +566,49 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     /// des Hundes, auch nach einem Gruppen- oder Vereinswechsel.
     ///
     /// Beenden darf es die Trainer:in selbst und jede:r, die die Gruppe
-    /// verwaltet (Hauptverantwortliche, weitere Trainer:innen, Vereinstrainer:innen).
+    /// verwaltet (Hauptverantwortliche, weitere Trainer:innen, Vereinstrainer:innen) -
+    /// aber nur eine Betreuung, die zu DIESER Gruppe gehört (siehe
+    /// <see cref="GehoertZurGruppeAsync"/>).
     /// </summary>
     public async Task<Result> RemoveTrainerFromDogAsync(Guid userId, Guid groupId, Guid trainerUserId, Guid dogId, CancellationToken ct = default)
     {
-        var canManage = await GetManageableGroupAsync(userId, groupId, ct) is not null;
-        if (!canManage && userId != trainerUserId)
+        var group = await GetManageableGroupAsync(userId, groupId, ct);
+        if (group is null && userId != trainerUserId)
             return Result.NotFound("Gruppe nicht gefunden.");
 
         var assignment = await db.TrainerAssignments
             .FirstOrDefaultAsync(t => t.TrainerId == trainerUserId && t.DogId == dogId, ct);
-        if (assignment is null)
+        // Dieselbe Antwort, ob es die Betreuung nicht gibt oder sie nur nicht
+        // zu dieser Gruppe gehört - sonst ließe sich darüber ausprobieren,
+        // wer wen betreut.
+        if (assignment is null || (userId != trainerUserId && !await GehoertZurGruppeAsync(group!, assignment, ct)))
             return Result.NotFound("Betreuung nicht gefunden.");
 
         assignment.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Ob eine Betreuung zu dieser Gruppe gehört: Das betreute Mitglied ist
+    /// aktives Mitglied der Gruppe, und die betreuende Person ist hier
+    /// Trainer:in.
+    ///
+    /// Vorher genügte es, IRGENDEINE Gruppe zu verwalten - und eine Gruppe
+    /// anlegen kann jede:r. Mit einer eigenen, leeren Gruppe ließ sich so jede
+    /// fremde Betreuung beenden. Nur das Mitglied zu prüfen reicht auch nicht:
+    /// Dann könnte die Verwaltung einer Gruppe die Betreuung durch eine
+    /// Trainer:in aus einer ANDEREN Gruppe desselben Mitglieds beenden.
+    /// </summary>
+    private async Task<bool> GehoertZurGruppeAsync(Group group, TrainerAssignment assignment, CancellationToken ct)
+    {
+        var istMitglied = await db.GroupMembers.AnyAsync(
+            m => m.GroupId == group.Id && m.UserId == assignment.MemberId && m.Status == GroupMemberStatus.Active, ct);
+        if (!istMitglied) return false;
+        if (assignment.TrainerId == group.TrainerId) return true;
+        if (await db.GroupTrainers.AnyAsync(t => t.GroupId == group.Id && t.UserId == assignment.TrainerId, ct)) return true;
+        return group.ClubId is { } clubId
+            && await db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == assignment.TrainerId, ct);
     }
 
     public async Task<Result<IReadOnlyList<GroupDto>>> GetGroupsByClubAsync(Guid userId, Guid clubId, CancellationToken ct = default)

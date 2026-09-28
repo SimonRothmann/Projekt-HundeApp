@@ -508,6 +508,90 @@ public class GroupServiceTests
         Assert.True(await db.HasDogAccessAsync(trainerId, dog.Id));
     }
 
+    /// <summary>
+    /// Eine Trainer:in betreut über ihre Gruppe den Hund eines Mitglieds.
+    /// Liefert alles, was die Tests zum Beenden fremder Betreuungen brauchen.
+    /// </summary>
+    private static async Task<(Guid TrainerId, Guid GroupId, Guid Member, Guid DogId)> SetupSupervisionAsync(
+        Dogity.Infrastructure.Persistence.ApplicationDbContext db, GroupService service)
+    {
+        var (trainerId, groupId, _) = await SetupGroupAsync(db, service);
+        var member = Guid.NewGuid();
+        var dog = new Dogity.Domain.Dogs.Dog { Name = "Bello" };
+        db.Dogs.Add(dog);
+        db.DogOwners.Add(new Dogity.Domain.Dogs.DogOwner { DogId = dog.Id, UserId = member });
+        db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = member });
+        await db.SaveChangesAsync();
+        Assert.True((await service.AssignTrainerToDogAsync(trainerId, groupId, new AssignTrainerRequest(member, dog.Id))).Succeeded);
+        return (trainerId, groupId, member, dog.Id);
+    }
+
+    [Fact]
+    public async Task RemoveTrainerFromDog_ViaOwnEmptyGroup_Fails()
+    {
+        // Der Weg der Prüfung vom 2026-09-28: eine eigene, leere Gruppe
+        // anlegen und darüber die Betreuung einer fremden Trainer:in beenden.
+        var service = MakeService(out var db);
+        var (trainerId, _, _, dogId) = await SetupSupervisionAsync(db, service);
+        var angreifer = Guid.NewGuid();
+        var eigene = await service.CreateAsync(angreifer, new CreateGroupRequest("Leere Gruppe", null));
+
+        var result = await service.RemoveTrainerFromDogAsync(angreifer, eigene.Value!.Id, trainerId, dogId);
+
+        Assert.False(result.Succeeded);
+        Assert.True(await db.HasDogAccessAsync(trainerId, dogId));
+    }
+
+    [Fact]
+    public async Task RemoveTrainerFromDog_OwnSupervision_WorksViaAnyGroup()
+    {
+        // Die eigene Betreuung darf die Trainer:in immer beenden - die
+        // Oberfläche schickt dabei die Gruppe mit, von der aus sie klickt.
+        var service = MakeService(out var db);
+        var (trainerId, _, _, dogId) = await SetupSupervisionAsync(db, service);
+        var andereGruppe = await service.CreateAsync(trainerId, new CreateGroupRequest("Andere", null));
+
+        var result = await service.RemoveTrainerFromDogAsync(trainerId, andereGruppe.Value!.Id, trainerId, dogId);
+
+        Assert.True(result.Succeeded);
+        Assert.False(await db.HasDogAccessAsync(trainerId, dogId));
+    }
+
+    [Fact]
+    public async Task RemoveTrainerFromDog_ByCoTrainerOfSameGroup_Succeeds()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (trainerId, groupId, _, dogId) = await SetupSupervisionAsync(db, service);
+        var helfer = Guid.NewGuid();
+        lookup.Register(helfer, "helfer@example.com", "Hanna", "Helfer");
+        await service.AddGroupTrainerAsync(trainerId, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+
+        var result = await service.RemoveTrainerFromDogAsync(helfer, groupId, trainerId, dogId);
+
+        Assert.True(result.Succeeded);
+        Assert.False(await db.HasDogAccessAsync(trainerId, dogId));
+    }
+
+    [Fact]
+    public async Task RemoveTrainerFromDog_ByManagerOfOtherGroupOfSameMember_Fails()
+    {
+        // Dasselbe Mitglied ist auch in einer zweiten Gruppe. Deren Leitung
+        // verwaltet zwar ein Mitglied, aber nicht die Trainer:in der ersten
+        // Gruppe - deren Betreuung ist nicht ihre Sache.
+        var service = MakeService(out var db);
+        var (trainerId, _, member, dogId) = await SetupSupervisionAsync(db, service);
+        var andereLeitung = Guid.NewGuid();
+        var andere = new Group { TrainerId = andereLeitung, Name = "Donnerstagsgruppe" };
+        db.Groups.Add(andere);
+        db.GroupMembers.Add(new GroupMember { GroupId = andere.Id, UserId = member });
+        await db.SaveChangesAsync();
+
+        var result = await service.RemoveTrainerFromDogAsync(andereLeitung, andere.Id, trainerId, dogId);
+
+        Assert.False(result.Succeeded);
+        Assert.True(await db.HasDogAccessAsync(trainerId, dogId));
+    }
+
     // --- Gruppe auflösen ----------------------------------------------------
 
     [Fact]
