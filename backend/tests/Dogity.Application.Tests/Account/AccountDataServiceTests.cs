@@ -205,6 +205,25 @@ public class AccountDataServiceTests
     }
 
     [Fact]
+    public async Task Purge_EntferntDenVerweisAufDieEinladendePerson()
+    {
+        // Was anderen gehört, bleibt - nur der Verweis auf mich geht.
+        var (dienst, db, _) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        var andere = Guid.NewGuid();
+        var eingeladen = Guid.NewGuid();
+        var hundId = HundMitAllem(db, andere, "Geteilt");
+        db.DogOwners.Add(new DogOwner { DogId = hundId, UserId = ich });
+        db.DogOwners.Add(new DogOwner { DogId = hundId, UserId = eingeladen, Status = DogOwnerStatus.Invited, InvitedByUserId = ich });
+        await db.SaveChangesAsync();
+
+        await dienst.PurgeAsync(ich);
+
+        var einladung = db.DogOwners.IgnoreQueryFilters().Single(o => o.UserId == eingeladen);
+        Assert.Null(einladung.InvitedByUserId);
+    }
+
+    [Fact]
     public async Task Purge_MeineOffeneEinladungLaesstDenFremdenHundInRuhe()
     {
         var (dienst, db, _) = Aufsetzen();

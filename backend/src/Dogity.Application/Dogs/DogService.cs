@@ -321,7 +321,24 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
                 return Result.Failure("Der letzte Besitzer kann nicht entfernt werden.");
         }
 
-        ownerRow.DeletedAt = DateTimeOffset.UtcNow;
+        var jetzt = DateTimeOffset.UtcNow;
+        ownerRow.DeletedAt = jetzt;
+
+        // Betreuungen, die über diese Person liefen, enden mit ihrem
+        // Mitbesitz - wie beim Verlassen einer Gruppe (EndSupervisionsViaGroupAsync).
+        // Sonst behielte die Trainer:in der gegangenen Person Tagebuch, Ziele
+        // und Fährten der verbliebenen Besitzer:innen im Blick, und die hätten
+        // keinen Weg, das zu beenden: Sie stehen zu dieser Trainer:in in keiner
+        // Beziehung.
+        if (warAktiv)
+        {
+            var betreuungen = await db.TrainerAssignments
+                .Where(a => a.DogId == dogId && a.MemberId == targetUserId)
+                .ToListAsync(ct);
+            foreach (var betreuung in betreuungen)
+                betreuung.DeletedAt = jetzt;
+        }
+
         await db.SaveChangesAsync(ct);
 
         // Wer von anderen entfernt wird, soll es erfahren - vorher war ein Hund

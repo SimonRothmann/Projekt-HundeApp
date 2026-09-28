@@ -396,6 +396,9 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         foreach (var z in await db.Goals.IgnoreQueryFilters()
                      .Where(g => g.PlanManagedByTrainerId == userId).ToListAsync(ct))
             z.PlanManagedByTrainerId = null;
+        foreach (var o in await db.DogOwners.IgnoreQueryFilters()
+                     .Where(o => o.InvitedByUserId == userId).ToListAsync(ct))
+            o.InvitedByUserId = null;
 
         // Von innen nach außen entfernen, damit kein Fremdschlüssel ins Leere
         // zeigt, während die Datenbank noch mitten im Vorgang ist.

@@ -125,6 +125,21 @@ git checkout master
 ssh dogity /opt/dogity/scripts/deploy-prod.sh
 ```
 
+**Vorsicht bei Datenbank-Änderungen:** Migrationen laufen beim Start nur
+vorwärts - ein Rollback lässt neue Spalten und Zeilen stehen, und der alte
+Code liest sie mit seinen alten Regeln. Vor einem Rollback hinter die unten
+genannten Commits deshalb erst die Zeilen entschärfen, die der alte Code
+falsch verstehen würde:
+
+- **Hinter `314cc5d` (Mitbesitz per Einladung):** Der alte Code kennt keinen
+  Einladungsstatus - jede offene Einladung wäre sofort voller Mitbesitz, samt
+  Tagebuch und Namen. Vorher in der Prod-Datenbank ausführen
+  (`ssh dogity`, dann `cd /opt/dogity && docker compose exec postgres psql -U postgres -d dogity_prod`):
+  ```sql
+  UPDATE dog_owners SET "DeletedAt" = now()
+  WHERE "Status" = 'Invited' AND "DeletedAt" IS NULL;
+  ```
+
 ## Backups
 
 Die Sicherung läuft über einen **systemd-Timer, nicht über cron**: täglich um

@@ -222,6 +222,53 @@ public class DogServiceTests
     }
 
     [Fact]
+    public async Task LeavingCoOwnership_EndsSupervisionsThatRanThroughThatPerson()
+    {
+        // B betreut den gemeinsamen Hund über eine Trainer:in T. Tritt B aus,
+        // darf T nicht weiter ins Tagebuch der verbliebenen Besitzerin sehen.
+        var service = MakeService(out var db, out var lookup);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        var targetId = await AddAcceptedCoOwnerAsync(service, lookup, ownerId, dogId);
+        var trainerId = Guid.NewGuid();
+        db.TrainerAssignments.Add(new Dogity.Domain.Community.TrainerAssignment
+        {
+            TrainerId = trainerId,
+            MemberId = targetId,
+            DogId = dogId,
+            StartDate = new DateOnly(2026, 9, 1),
+        });
+        await db.SaveChangesAsync();
+        Assert.True(await db.HasDogAccessAsync(trainerId, dogId));
+
+        Assert.True((await service.RemoveOwnerAsync(targetId, dogId, targetId)).Succeeded);
+
+        Assert.False(await db.HasDogAccessAsync(trainerId, dogId));
+        Assert.True(await db.HasDogAccessAsync(ownerId, dogId));
+    }
+
+    [Fact]
+    public async Task RemovingCoOwner_KeepsSupervisionsOfTheRemainingOwner()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        var targetId = await AddAcceptedCoOwnerAsync(service, lookup, ownerId, dogId);
+        var trainerId = Guid.NewGuid();
+        db.TrainerAssignments.Add(new Dogity.Domain.Community.TrainerAssignment
+        {
+            TrainerId = trainerId,
+            MemberId = ownerId,
+            DogId = dogId,
+            StartDate = new DateOnly(2026, 9, 1),
+        });
+        await db.SaveChangesAsync();
+
+        Assert.True((await service.RemoveOwnerAsync(ownerId, dogId, targetId)).Succeeded);
+
+        // Die Betreuung hing an der verbliebenen Besitzerin - sie bleibt.
+        Assert.True(await db.HasDogAccessAsync(trainerId, dogId));
+    }
+
+    [Fact]
     public async Task GetOwners_AsSupervisingTrainer_HidesInvitations()
     {
         var service = MakeService(out var db, out var lookup);
