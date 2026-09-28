@@ -279,6 +279,11 @@ Geschwindigkeit und Bedienbarkeit. Behoben im Code:
       `AddDogOwnerInvitation`), Entfernte werden benachrichtigt, der eigene
       Mitbesitz lässt sich beenden. Kontolöschung: Eine offene Einladung
       zählt nicht als "andere Besitzerin".
+- [x] Nach dem Abmelden bleiben keine fremden Daten auf dem Gerät: Der
+      Lesecache wird beim Abmelden und beim Anmelden einer anderen Person
+      geleert, die Hundeseite zeigt bei 404 keinen Zwischenstand mehr, und
+      die Offline-Warteschlange spielt nur Einträge der angemeldeten Person
+      ab (Hinweis beim Abmelden, Kontolöschung räumt sie weg).
 
 Auf dem Server nachsehen (nur lesend, für Prod und Test):
 

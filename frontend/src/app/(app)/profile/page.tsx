@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { api, ApiError, REFRESH_KEY } from "@/lib/api";
+import { listOwnQueuedRequests, removeQueuedRequestsOf } from "@/lib/offline-queue";
 import type { Profile } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,7 +67,23 @@ export default function ProfilePage() {
 
   const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
 
-  function handleLogout() {
+  async function handleLogout() {
+    // Offline Erfasstes bleibt beim Abmelden auf dem Gerät und geht hinaus,
+    // sobald die Person sich wieder anmeldet - löschen würde Trainingsdaten
+    // vernichten. Wer sich abmeldet, soll aber wissen, dass sie noch
+    // unterwegs sind.
+    const offen = await listOwnQueuedRequests().catch(() => []);
+    if (
+      offen.length > 0 &&
+      !window.confirm(
+        offen.length === 1
+          ? t("Ein Eintrag ist noch nicht übertragen. Er bleibt auf diesem Gerät und wird gesendet, sobald du dich hier wieder anmeldest. Trotzdem abmelden?")
+          : t("{anzahl} Einträge sind noch nicht übertragen. Sie bleiben auf diesem Gerät und werden gesendet, sobald du dich hier wieder anmeldest. Trotzdem abmelden?", {
+              anzahl: offen.length,
+            }),
+      )
+    )
+      return;
     logout();
     router.push("/login");
   }
@@ -155,6 +172,9 @@ export default function ProfilePage() {
     setLoeschenLaeuft(true);
     try {
       await api.delete("/api/profile", { currentPassword: loeschPasswort });
+      // Das Konto gibt es nicht mehr - niemand könnte offene Einträge je
+      // abschicken, und sie enthalten Trainingsdaten.
+      await removeQueuedRequestsOf(user!.userId).catch(() => undefined);
       logout();
       router.push("/");
     } catch (err) {

@@ -1,4 +1,4 @@
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, USER_KEY } from "@/lib/api";
 import { sharedDb } from "@/lib/idb";
 
 /**
@@ -20,7 +20,35 @@ export type QueuedRequest = {
   body: unknown;
   label: string;
   createdAt: string;
+  /**
+   * Wer den Eintrag erfasst hat. Abgespielt wird er nur mit dessen Anmeldung
+   * (siehe gehoertZu). Fehlt bei Einträgen von vor 2026-09-28 - die laufen
+   * wie bisher mit, wer gerade angemeldet ist.
+   */
+  userId?: string;
 };
+
+/** Die gerade angemeldete Person, wie sie auth-context im localStorage ablegt. */
+function aktuellePerson(): string | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const gespeichert = window.localStorage.getItem(USER_KEY);
+    return gespeichert ? ((JSON.parse(gespeichert) as { userId?: string }).userId ?? null) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Ob ein Eintrag der Person gehört. Vorher lief die Warteschlange mit
+ * JEDER Anmeldung: Meldete sich nach A jemand anderes am Gerät an, gingen
+ * A's Einträge mit B's Anmeldung hinaus - bei fremden Hunden als 404
+ * verworfen (A's Training weg, B sieht A's Beschriftung im Hinweis), bei
+ * einem gemeinsamen Hund unter B's Namen gespeichert.
+ */
+function gehoertZu(item: QueuedRequest, userId: string | null): boolean {
+  return item.userId === undefined || item.userId === userId;
+}
 
 // Eine geteilte Verbindung statt einer pro Zugriff - Begründung in idb.ts.
 // Hier zählt das doppelt: Das Abspielen der Warteschlange greift pro Eintrag
@@ -37,7 +65,8 @@ export async function enqueueRequest(item: Omit<QueuedRequest, "id" | "createdAt
       ...item,
       id: nextQueueId(),
       createdAt: new Date().toISOString(),
-    });
+      userId: aktuellePerson() ?? undefined,
+    } satisfies QueuedRequest);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -64,6 +93,21 @@ export async function listQueuedRequests(): Promise<QueuedRequest[]> {
     request.onsuccess = () => resolve(request.result as QueuedRequest[]);
     request.onerror = () => reject(request.error);
   });
+}
+
+/** Offene Einträge der gerade angemeldeten Person - etwa für den Hinweis beim Abmelden. */
+export async function listOwnQueuedRequests(): Promise<QueuedRequest[]> {
+  const userId = aktuellePerson();
+  return (await listQueuedRequests()).filter((item) => gehoertZu(item, userId));
+}
+
+/**
+ * Entfernt alle Einträge einer Person. Für die Kontolöschung: Das Konto gibt
+ * es danach nicht mehr, niemand könnte die Einträge je abschicken.
+ */
+export async function removeQueuedRequestsOf(userId: string): Promise<void> {
+  const eigene = (await listQueuedRequests()).filter((item) => item.userId === userId);
+  for (const item of eigene) await removeQueuedRequest(item.id);
 }
 
 async function removeQueuedRequest(id: string): Promise<void> {
@@ -109,7 +153,10 @@ export async function syncQueuedRequests(
   onItemSynced?: (item: QueuedRequest) => void,
   onItemFailed?: (item: QueuedRequest, error: ApiError) => void,
 ): Promise<number> {
-  const items = await listQueuedRequests();
+  // Nur die eigenen - fremde bleiben liegen, bis ihre Person sich wieder
+  // anmeldet (siehe gehoertZu).
+  const userId = aktuellePerson();
+  const items = (await listQueuedRequests()).filter((item) => gehoertZu(item, userId));
   let syncedCount = 0;
 
   for (const item of items) {

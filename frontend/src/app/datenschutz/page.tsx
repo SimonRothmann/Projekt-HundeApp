@@ -170,7 +170,8 @@ export default function DatenschutzPage() {
               "dein Anmelde-Token und der zugehörige Erneuerungs-Token – ohne sie wärst du bei jedem Seitenwechsel abgemeldet",
               "dein Name, deine E-Mail-Adresse und deine Rolle, damit die App sie beim Start nicht erst nachladen muss",
               "die zuletzt gewählte Kartenart, die Schriftgröße und welchen Neuerungs-Hinweis du schon gesehen hast",
-              "noch nicht abgeschickte Einträge, solange du offline bist – sie gehen an den Server, sobald wieder Verbindung besteht",
+              "zuletzt geladene Hunde, Trainings, Ziele, Statistik und Hundebilder als Zwischenspeicher, damit die App schnell startet und auch ohne Verbindung etwas zeigt – beim Abmelden und beim Anmelden einer anderen Person wird er gelöscht; dafür merkt sich die App die interne Kennung der zuletzt angemeldeten Person",
+              "noch nicht abgeschickte Einträge, solange du offline bist – sie gehen an den Server, sobald wieder Verbindung besteht, und zwar nur mit deiner eigenen Anmeldung; meldest du dich vorher ab, bleiben sie bis zu deiner nächsten Anmeldung auf dem Gerät",
               "eine laufende GPS-Aufzeichnung samt Standorten, damit sie ein Neuladen oder Absturz der App übersteht – sie wird gelöscht, sobald sie gespeichert oder verworfen ist",
             ]}
           />
@@ -178,7 +179,9 @@ export default function DatenschutzPage() {
             Das alles dient ausschließlich dem Betrieb der App, die du selbst aufgerufen hast, und ist damit nach § 25
             Abs. 2 TDDDG ohne Einwilligung zulässig. Nichts davon verlässt dein Gerät in Richtung Dritter, nichts davon
             dient der Messung deines Verhaltens. Deshalb gibt es hier auch nichts zuzustimmen oder abzulehnen – ein
-            Banner wäre eine Frage ohne Gegenstand. Abmelden oder das Löschen der Browserdaten entfernt diese Werte.
+            Banner wäre eine Frage ohne Gegenstand. Abmelden entfernt Anmeldung, Zwischenspeicher und laufende
+            Aufzeichnungen; noch nicht abgeschickte Einträge, Kartenart, Schriftgröße und Neuerungs-Hinweis bleiben.
+            Das Löschen der Browserdaten entfernt alles.
           </p>
           <p>
             Anders ist es beim vorgeschalteten Schutzdienst Cloudflare (siehe Abschnitt 6): Um automatisierte Angriffe

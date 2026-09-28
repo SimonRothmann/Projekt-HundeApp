@@ -68,6 +68,30 @@ export async function clearCachedData(key: string): Promise<void> {
   }
 }
 
+/**
+ * Den ganzen Zwischenspeicher leeren - beim Abmelden und wenn sich auf dem
+ * Gerät eine andere Person anmeldet (siehe auth-context).
+ *
+ * Die Schlüssel hier sind nicht an Personen gebunden ("dogs-list",
+ * "stats-dashboard", "dog-page-{id}"). Bis 2026-09-28 sah deshalb, wer sich
+ * nach jemand anderem am selben Gerät anmeldete, sofort dessen Hundeliste
+ * und Statistik - und über den Browserverlauf ganze Tagebücher, weil die
+ * Hundeseite einen Fehler verschweigt, sobald etwas im Speicher liegt.
+ */
+export async function leseCacheLeeren(): Promise<void> {
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      tx.objectStore(STORE_NAME).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // Wie beim Schreiben: der Cache ist Beiwerk, ein Fehler darf nichts brechen.
+  }
+}
+
 export async function setCachedData<T>(key: string, data: T): Promise<void> {
   try {
     const db = await openDb();

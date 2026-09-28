@@ -73,6 +73,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "neu",
         text: uebersetzbar("Deinen eigenen Mitbesitz an einem Hund kannst du jetzt selbst beenden. Wirst du von anderen entfernt, bekommst du eine Benachrichtigung."),
       },
+      {
+        art: "behoben",
+        text: uebersetzbar("Nach dem Abmelden bleiben keine Hunde, Trainings und Statistiken mehr auf dem Gerät. Wer sich danach am selben Gerät anmeldet, sieht nichts mehr von dir. Offline Erfasstes wartet auf deine nächste Anmeldung und geht nur mit ihr hinaus."),
+      },
     ],
   },
   {

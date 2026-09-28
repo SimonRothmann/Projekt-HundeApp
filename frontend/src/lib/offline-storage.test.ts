@@ -2,10 +2,16 @@
 // Implementierung - MUSS vor den Modulen importiert werden, die indexedDB
 // beim Aufruf verwenden.
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getCachedData, setCachedData } from "@/lib/read-cache";
-import { enqueueRequest, listQueuedRequests, syncQueuedRequests } from "@/lib/offline-queue";
-import { api, ApiError } from "@/lib/api";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getCachedData, leseCacheLeeren, setCachedData } from "@/lib/read-cache";
+import {
+  enqueueRequest,
+  listOwnQueuedRequests,
+  listQueuedRequests,
+  removeQueuedRequestsOf,
+  syncQueuedRequests,
+} from "@/lib/offline-queue";
+import { api, ApiError, USER_KEY } from "@/lib/api";
 
 // Nur das api-Objekt mocken, damit kein fetch stattfindet - die echte
 // ApiError-Klasse muss erhalten bleiben, weil syncQueuedRequests per
@@ -35,6 +41,18 @@ describe("read-cache", () => {
     await setCachedData("k", "alt");
     await setCachedData("k", "neu");
     expect(await getCachedData("k")).toBe("neu");
+  });
+
+  it("wird beim Abmelden bzw. Personenwechsel vollständig geleert", async () => {
+    await setCachedData("dogs-list", [{ id: "1", name: "Bello" }]);
+    await setCachedData("dog-page-1", { dog: { name: "Bello" } });
+    await setCachedData("stats-dashboard", { einheiten: 3 });
+
+    await leseCacheLeeren();
+
+    expect(await getCachedData("dogs-list")).toBeNull();
+    expect(await getCachedData("dog-page-1")).toBeNull();
+    expect(await getCachedData("stats-dashboard")).toBeNull();
   });
 });
 
@@ -126,5 +144,117 @@ describe("offline-queue", () => {
     expect(synced).toBe(0);
     expect(failed).toEqual([]);
     expect(await listQueuedRequests()).toHaveLength(1);
+  });
+});
+
+/**
+ * Die Warteschlange gehört der Person, die erfasst hat. Vorher spielte sie
+ * mit JEDER Anmeldung ab: Nach einem Wechsel am Gerät gingen A's Einträge
+ * mit B's Anmeldung hinaus.
+ */
+describe("offline-queue: nur mit der eigenen Anmeldung", () => {
+  class Speicher implements Storage {
+    private werte = new Map<string, string>();
+    get length() {
+      return this.werte.size;
+    }
+    clear() {
+      this.werte.clear();
+    }
+    getItem(k: string) {
+      return this.werte.get(k) ?? null;
+    }
+    key(i: number) {
+      return [...this.werte.keys()][i] ?? null;
+    }
+    removeItem(k: string) {
+      this.werte.delete(k);
+    }
+    setItem(k: string, v: string) {
+      this.werte.set(k, v);
+    }
+  }
+
+  const speicher = new Speicher();
+
+  function angemeldet(userId: string | null) {
+    if (userId) speicher.setItem(USER_KEY, JSON.stringify({ userId }));
+    else speicher.removeItem(USER_KEY);
+  }
+
+  beforeEach(async () => {
+    vi.stubGlobal("window", { localStorage: speicher });
+    // Reste aus den Tests oben (Einträge ohne Person) abspielen lassen.
+    angemeldet(null);
+    vi.mocked(api.post).mockResolvedValue(undefined);
+    vi.mocked(api.put).mockResolvedValue(undefined);
+    vi.mocked(api.delete).mockResolvedValue(undefined);
+    await syncQueuedRequests();
+    vi.clearAllMocks();
+    vi.mocked(api.post).mockResolvedValue(undefined);
+  });
+
+  afterEach(async () => {
+    await removeQueuedRequestsOf("anna");
+    await removeQueuedRequestsOf("ben");
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it("merkt sich, wer den Eintrag erfasst hat", async () => {
+    angemeldet("anna");
+    await enqueueRequest({ path: "/api/trainings", method: "POST", body: {}, label: "Training" });
+
+    expect((await listQueuedRequests())[0].userId).toBe("anna");
+  });
+
+  it("spielt fremde Einträge nicht ab und behält sie für ihre Person", async () => {
+    angemeldet("anna");
+    await enqueueRequest({ path: "/api/anna", method: "POST", body: {}, label: "Annas Training" });
+    angemeldet("ben");
+    await enqueueRequest({ path: "/api/ben", method: "POST", body: {}, label: "Bens Training" });
+
+    const synced = await syncQueuedRequests();
+
+    expect(synced).toBe(1);
+    expect(vi.mocked(api.post).mock.calls.map((c) => c[0])).toEqual(["/api/ben"]);
+    expect((await listQueuedRequests()).map((i) => i.userId)).toEqual(["anna"]);
+
+    // Meldet sich Anna wieder an, geht ihr Eintrag hinaus.
+    angemeldet("anna");
+    expect(await syncQueuedRequests()).toBe(1);
+    expect(await listQueuedRequests()).toHaveLength(0);
+  });
+
+  it("spielt ohne Anmeldung nichts ab, was einer Person gehört", async () => {
+    angemeldet("anna");
+    await enqueueRequest({ path: "/api/anna", method: "POST", body: {}, label: "Training" });
+    angemeldet(null);
+
+    expect(await syncQueuedRequests()).toBe(0);
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it("zählt für den Abmelde-Hinweis nur die eigenen offenen Einträge", async () => {
+    angemeldet("anna");
+    await enqueueRequest({ path: "/api/1", method: "POST", body: {}, label: "A" });
+    await enqueueRequest({ path: "/api/2", method: "POST", body: {}, label: "B" });
+    angemeldet("ben");
+    await enqueueRequest({ path: "/api/3", method: "POST", body: {}, label: "C" });
+
+    expect(await listOwnQueuedRequests()).toHaveLength(1);
+    angemeldet("anna");
+    expect(await listOwnQueuedRequests()).toHaveLength(2);
+  });
+
+  it("entfernt bei der Kontolöschung nur die Einträge dieser Person", async () => {
+    angemeldet("anna");
+    await enqueueRequest({ path: "/api/1", method: "POST", body: {}, label: "A" });
+    angemeldet("ben");
+    await enqueueRequest({ path: "/api/2", method: "POST", body: {}, label: "B" });
+
+    await removeQueuedRequestsOf("anna");
+
+    expect((await listQueuedRequests()).map((i) => i.userId)).toEqual(["ben"]);
   });
 });

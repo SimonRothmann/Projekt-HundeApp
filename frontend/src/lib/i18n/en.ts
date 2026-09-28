@@ -877,4 +877,9 @@ export const EN: Record<string, string> = {
   "eingeladen von {name}": "invited by {name}",
   "Mitbesitzer": "Co-owners",
   "Mitbesitzer entfernt.": "Co-owner removed.",
+  "Nach dem Abmelden bleiben keine Hunde, Trainings und Statistiken mehr auf dem Gerät. Wer sich danach am selben Gerät anmeldet, sieht nichts mehr von dir. Offline Erfasstes wartet auf deine nächste Anmeldung und geht nur mit ihr hinaus.": "After you log out, no dogs, trainings or statistics stay on the device. If someone else logs in afterwards, they see nothing of yours. Anything recorded offline waits for your next login and is only sent with it.",
+  "Ein Eintrag ist noch nicht übertragen. Er bleibt auf diesem Gerät und wird gesendet, sobald du dich hier wieder anmeldest. Trotzdem abmelden?": "One entry has not been sent yet. It stays on this device and is sent as soon as you log in here again. Log out anyway?",
+  "{anzahl} Einträge sind noch nicht übertragen. Sie bleiben auf diesem Gerät und werden gesendet, sobald du dich hier wieder anmeldest. Trotzdem abmelden?": "{anzahl} entries have not been sent yet. They stay on this device and are sent as soon as you log in here again. Log out anyway?",
+  "Diesen Hund gibt es nicht mehr, oder du hast keinen Zugriff darauf.": "This dog no longer exists, or you have no access to it.",
+  "Zu meinen Hunden": "To my dogs",
 };

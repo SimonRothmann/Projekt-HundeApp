@@ -20,7 +20,7 @@ import { TrainingForm } from "@/components/dogs/training-form";
 import { SessionHistory } from "@/components/dogs/session-history";
 import { CoOwnersSection } from "@/components/dogs/co-owners-section";
 import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
-import { getCachedData, setCachedData } from "@/lib/read-cache";
+import { clearCachedData, getCachedData, setCachedData } from "@/lib/read-cache";
 import { useAuth } from "@/lib/auth-context";
 import { usePreferences } from "@/lib/preferences-context";
 
@@ -56,6 +56,10 @@ export default function DogDetailPage() {
   const [goals, setGoals] = useState<Goal[] | null>(null);
   const [isOwner, setIsOwner] = useState(true);
   const [owners, setOwners] = useState<DogOwner[]>([]);
+  // Der Server kennt den Hund (für mich) nicht: gelöscht, Mitbesitz beendet,
+  // Betreuung vorbei - oder die Seite einer anderen Person aus dem
+  // Browserverlauf.
+  const [nichtGefunden, setNichtGefunden] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(false);
   // false = nur die letzten 3 Monate geladen, true = komplette Historie.
@@ -77,6 +81,7 @@ export default function DogDetailPage() {
   };
 
   function applyPageData(data: DogPageCache) {
+    setNichtGefunden(false);
     setDog(data.dog);
     setSessions(data.sessions);
     setSports(data.sports);
@@ -141,8 +146,18 @@ export default function DogDetailPage() {
       applyPageData(fresh);
       await setCachedData(cacheKey, fresh);
     } catch (err) {
-      // Nur Fehler melden wenn kein Cache vorhanden - mit Cache sind die alten
-      // Daten bereits sichtbar und ein Toast wäre verwirrend.
+      // "Gibt es nicht" ist kein Netzproblem: Dann darf auch kein
+      // Zwischenstand stehen bleiben. Vorher zeigte die Seite bei 404 still
+      // das gespeicherte Tagebuch weiter - auch einer anderen Person, die
+      // sich vorher am selben Gerät angemeldet hatte.
+      if (err instanceof ApiError && (err.status === 404 || err.status === 403)) {
+        await clearCachedData(cacheKey);
+        setDog(null);
+        setNichtGefunden(true);
+        return;
+      }
+      // Sonst nur Fehler melden wenn kein Cache vorhanden - mit Cache sind die
+      // alten Daten bereits sichtbar und ein Toast wäre verwirrend.
       const cachedAvailable = cached !== null;
       if (!cachedAvailable) toast.error(err instanceof ApiError ? err.message : t("Daten konnten nicht geladen werden."));
     }
@@ -273,6 +288,17 @@ export default function DogDetailPage() {
     if (!offline) await loadAll();
   }
 
+  if (nichtGefunden)
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-start gap-3 py-8">
+          <p>{t("Diesen Hund gibt es nicht mehr, oder du hast keinen Zugriff darauf.")}</p>
+          <Link href="/dogs" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            {t("Zu meinen Hunden")}
+          </Link>
+        </CardContent>
+      </Card>
+    );
   if (!dog) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
 
   return (
