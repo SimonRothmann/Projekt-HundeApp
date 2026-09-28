@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 
 namespace Dogity.Infrastructure;
@@ -48,6 +49,8 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IUserLookupService, UserLookupService>();
+        services.AddMemoryCache();
+        services.AddScoped<KontoStatus>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IRegulationPdfParser, RegulationPdfParser>();
 
@@ -101,6 +104,19 @@ public static class DependencyInjection
                     ValidIssuer = jwtSettings.Issuer,
                     ValidAudience = jwtSettings.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
+                };
+                // Ein gültiger Token reicht nicht: Das Konto muss es noch geben,
+                // und der Admin darf es nicht gesperrt haben (siehe KontoStatus).
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = async context =>
+                    {
+                        var id = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                        var status = context.HttpContext.RequestServices.GetRequiredService<KontoStatus>();
+                        if (!Guid.TryParse(id, out var userId)
+                            || !await status.IstNutzbarAsync(userId, context.HttpContext.RequestAborted))
+                            context.Fail("Konto gesperrt oder gelöscht.");
+                    },
                 };
             });
 

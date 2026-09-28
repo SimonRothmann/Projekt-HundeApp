@@ -79,6 +79,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       },
       {
         art: "behoben",
+        text: uebersetzbar("Tippt jemand fünfmal ein falsches Passwort zu deiner E-Mail-Adresse, wirst du nicht mehr auf allen Geräten abgemeldet. Und die Anmeldung unterscheidet jetzt zwischen „zu viele Fehlversuche, bitte kurz warten“ und einer echten Sperre."),
+      },
+      {
+        art: "behoben",
         text: uebersetzbar("Nach dem Abmelden bleiben keine Hunde, Trainings und Statistiken mehr auf dem Gerät. Wer sich danach am selben Gerät anmeldet, sieht nichts mehr von dir. Offline Erfasstes wartet auf deine nächste Anmeldung und geht nur mit ihr hinaus."),
       },
     ],

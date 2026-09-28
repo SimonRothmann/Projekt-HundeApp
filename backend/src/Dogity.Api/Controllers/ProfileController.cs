@@ -21,7 +21,8 @@ public class ProfileController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     IAccountDataService accountData,
-    IRefreshTokenService refreshTokens) : ApiControllerBase
+    IRefreshTokenService refreshTokens,
+    KontoStatus kontoStatus) : ApiControllerBase
 {
     /// <summary>
     /// Prüft das aktuelle Passwort MIT Fehlversuchszähler - wie beim Anmelden.
@@ -168,6 +169,7 @@ public class ProfileController(
             return BadRequest(new { errors = deleted.Errors.Select(e => e.Description) });
 
         await refreshTokens.RevokeAllForUserAsync(CurrentUserId, ct);
+        kontoStatus.Vergessen(CurrentUserId);
         return NoContent();
     }
 }

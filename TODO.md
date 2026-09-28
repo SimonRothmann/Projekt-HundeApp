@@ -295,6 +295,11 @@ Geschwindigkeit und Bedienbarkeit. Behoben im Code:
       (Douglas-Peucker war bei einem Zickzack quadratisch - 23 s für 50.000
       Punkte, auch beim bloßen Anzeigen), Halteerkennung linear. Vorher band
       eine präparierte Aufzeichnung den gemeinsamen Server für Minuten.
+- [x] Sperren getrennt: Fünf falsche Passwörter (von irgendwem, nur mit der
+      E-Mail-Adresse) beenden keine Sitzungen mehr - vorher widerrief der
+      nächste Token-Refresh alle, wiederholbar zur Daueraussperrung. Die
+      Admin-Sperre wirkt dagegen jetzt binnen Sekunden statt bis zu 65
+      Minuten (Prüfung je Anfrage mit 30 s Merkzeit, beim Sperren sofort).
 
 Auf dem Server nachsehen (nur lesend, für Prod und Test):
 

@@ -24,7 +24,8 @@ public class AuthController(
     IEmailSender emailSender,
     INotificationService notifications,
     IUserLookupService userLookup,
-    IConfiguration configuration) : ControllerBase
+    IConfiguration configuration,
+    TimeProvider timeProvider) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
@@ -74,7 +75,17 @@ public class AuthController(
         // anstößt.
         var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
         if (result.IsLockedOut)
-            return Unauthorized(new { errors = new[] { "Dieses Konto wurde gesperrt." } });
+            // Zwei Sperren, zwei Meldungen: "gesperrt" klang auch nach fünf
+            // falschen Passwörtern nach einer Entscheidung des Betreibers.
+            return Unauthorized(new
+            {
+                errors = new[]
+                {
+                    Sperren.Bestimme(user.LockoutEnd, timeProvider.GetUtcNow()) == Sperrart.Dauerhaft
+                        ? "Dieses Konto wurde gesperrt."
+                        : "Zu viele Fehlversuche. Bitte versuche es in ein paar Minuten erneut.",
+                },
+            });
         if (!result.Succeeded)
             return Unauthorized(new { errors = new[] { "E-Mail oder Passwort ist falsch." } });
 
@@ -94,8 +105,12 @@ public class AuthController(
             return Unauthorized(new { errors = new[] { "Sitzung abgelaufen. Bitte neu anmelden." } });
 
         var user = await userManager.FindByIdAsync(rotation.UserId.ToString());
-        // Nutzer inzwischen gesperrt/gelöscht: kein neuer Access-Token.
-        if (user is null || await userManager.IsLockedOutAsync(user))
+        // Nutzer inzwischen vom Admin gesperrt oder gelöscht: kein neuer
+        // Access-Token, alle Sitzungen enden. Die kurze Sperre nach falschen
+        // Passwörtern zählt hier NICHT - die kann jede:r mit der E-Mail-Adresse
+        // auslösen, und der Refresh-Token belegt eine frühere erfolgreiche
+        // Anmeldung (siehe Sperren).
+        if (user is null || Sperren.Bestimme(user.LockoutEnd, timeProvider.GetUtcNow()) == Sperrart.Dauerhaft)
         {
             await refreshTokens.RevokeAllForUserAsync(rotation.UserId);
             return Unauthorized(new { errors = new[] { "Sitzung abgelaufen. Bitte neu anmelden." } });

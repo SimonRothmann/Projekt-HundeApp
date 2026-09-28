@@ -883,4 +883,5 @@ export const EN: Record<string, string> = {
   "Diesen Hund gibt es nicht mehr, oder du hast keinen Zugriff darauf.": "This dog no longer exists, or you have no access to it.",
   "Zu meinen Hunden": "To my dogs",
   "Kommentare und Notizen haben jetzt eine sichtbare Höchstlänge, statt beim Speichern mit einem unverständlichen Fehler zu scheitern. Ein offline erfasster Eintrag mit zu langem Text hält die Übertragung der übrigen nicht mehr auf.": "Comments and notes now have a visible maximum length instead of failing with an unclear error when saving. An entry recorded offline with too much text no longer holds up sending the others.",
+  "Tippt jemand fünfmal ein falsches Passwort zu deiner E-Mail-Adresse, wirst du nicht mehr auf allen Geräten abgemeldet. Und die Anmeldung unterscheidet jetzt zwischen „zu viele Fehlversuche, bitte kurz warten“ und einer echten Sperre.": "If someone types a wrong password five times for your email address, you are no longer logged out on all devices. And login now tells apart “too many failed attempts, please wait a moment” from an actual block.",
 };

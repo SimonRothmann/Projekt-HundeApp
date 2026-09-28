@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Infrastructure.Identity;
 
-public class UserLookupService(UserManager<ApplicationUser> userManager, TimeProvider timeProvider) : IUserLookupService
+public class UserLookupService(UserManager<ApplicationUser> userManager, TimeProvider timeProvider, KontoStatus kontoStatus) : IUserLookupService
 {
     public async Task<UserLookupResult?> FindByEmailAsync(string email, CancellationToken ct = default)
     {
@@ -50,6 +50,8 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, TimePro
 
         await userManager.SetLockoutEnabledAsync(user, true);
         var result = await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+        // Sofort wirksam, nicht erst nach Ablauf der gemerkten Antwort.
+        kontoStatus.Vergessen(userId);
         return result.Succeeded;
     }
 
@@ -60,6 +62,7 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, TimePro
             return false;
 
         var result = await userManager.SetLockoutEndDateAsync(user, null);
+        kontoStatus.Vergessen(userId);
         return result.Succeeded;
     }
 
@@ -70,6 +73,7 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, TimePro
             return false;
 
         var result = await userManager.DeleteAsync(user);
+        kontoStatus.Vergessen(userId);
         return result.Succeeded;
     }
 
