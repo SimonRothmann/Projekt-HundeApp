@@ -377,7 +377,9 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             t.DeletedAt = now;
         foreach (var m in await db.GroupMembers.Where(m => m.UserId == userId).ToListAsync(ct))
             m.DeletedAt = now;
-        foreach (var t in await db.GroupTrainers.Where(t => t.UserId == userId).ToListAsync(ct))
+        // Einschließlich offener Einladungen als Trainer:in.
+        foreach (var t in await db.GroupTrainers.IgnoreQueryFilters()
+                     .Where(t => t.UserId == userId && t.DeletedAt == null).ToListAsync(ct))
             t.DeletedAt = now;
         foreach (var a in await db.TrainerAssignments
                      .Where(a => a.TrainerId == userId || a.MemberId == userId).ToListAsync(ct))
@@ -397,8 +399,11 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             .ToListAsync(ct);
         foreach (var m in memberships) m.DeletedAt = now;
 
+        // Einschließlich offener Einladungen - wer den Verein verlässt, soll
+        // eine liegengebliebene Einladung nicht später noch annehmen können.
         var coTrainerRows = await db.GroupTrainers
-            .Where(t => t.UserId == userId && groupIds.Contains(t.GroupId))
+            .IgnoreQueryFilters()
+            .Where(t => t.UserId == userId && t.DeletedAt == null && groupIds.Contains(t.GroupId))
             .ToListAsync(ct);
         foreach (var t in coTrainerRows) t.DeletedAt = now;
 

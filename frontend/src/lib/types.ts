@@ -366,9 +366,11 @@ export type GroupMember = {
 export type GroupTrainer = {
   userId: string;
   email: string;
+  // Bei offenen Einladungen leer - den Namen erfährt die Gruppe erst mit der Zusage.
   firstName: string;
   lastName: string;
   isLead: boolean;
+  isInvited: boolean;
 };
 
 export type GroupDetail = {
@@ -388,6 +390,8 @@ export type MyGroupMembership = {
   trainerName: string | null;
   isInvitation: boolean;
   since: string;
+  /** Einladung als Trainer:in statt als Mitglied. */
+  asTrainer: boolean;
 };
 
 export type MemberDog = {

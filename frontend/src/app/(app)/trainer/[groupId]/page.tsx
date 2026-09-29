@@ -119,7 +119,8 @@ export default function TrainerGroupPage() {
     setAddingCoTrainer(true);
     try {
       await api.post(`/api/groups/${groupId}/co-trainers`, { email: coTrainerEmail.trim() });
-      toast.success(t("Trainer:in hinzugefügt."));
+      // Eine Einladung: Trainer:in wird, wer annimmt (unter "Vereine").
+      toast.success(t("Einladung verschickt - die Person muss sie noch annehmen."));
       setCoTrainerEmail("");
       await loadDetail();
     } catch (err) {
@@ -129,10 +130,10 @@ export default function TrainerGroupPage() {
     }
   }
 
-  async function removeCoTrainer(userId: string) {
+  async function removeCoTrainer(userId: string, eingeladen: boolean) {
     try {
       await api.delete(`/api/groups/${groupId}/co-trainers/${userId}`);
-      toast.success(t("Trainer:in entfernt."));
+      toast.success(eingeladen ? t("Einladung zurückgezogen.") : t("Trainer:in entfernt."));
       await loadDetail();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Trainer:in konnte nicht entfernt werden."));
@@ -307,7 +308,13 @@ export default function TrainerGroupPage() {
                     <p className="truncate text-sm font-medium">
                       {`${trainer.firstName} ${trainer.lastName}`.trim() || trainer.email}
                     </p>
-                    <p className="truncate text-xs text-muted-foreground">{trainer.email}</p>
+                    {trainer.isInvited ? (
+                      <Badge variant="secondary" className="mt-0.5">
+                        {t("eingeladen")}
+                      </Badge>
+                    ) : (
+                      <p className="truncate text-xs text-muted-foreground">{trainer.email}</p>
+                    )}
                   </div>
                   {trainer.isLead ? (
                     <Badge variant="secondary" className="shrink-0">
@@ -319,9 +326,13 @@ export default function TrainerGroupPage() {
                       variant="ghost"
                       size="icon"
                       className="shrink-0"
-                      aria-label={`${trainer.firstName} ${trainer.lastName}`.trim() || trainer.email}
-                      title={t("Trainer:in entfernen")}
-                      onClick={() => removeCoTrainer(trainer.userId)}
+                      aria-label={
+                        trainer.isInvited
+                          ? t("Einladung an {email} zurückziehen", { email: trainer.email })
+                          : t("{name} entfernen", { name: `${trainer.firstName} ${trainer.lastName}`.trim() || trainer.email })
+                      }
+                      title={trainer.isInvited ? t("Einladung zurückziehen") : t("Trainer:in entfernen")}
+                      onClick={() => removeCoTrainer(trainer.userId, trainer.isInvited)}
                     >
                       <Trash2 className="size-4 text-muted-foreground" />
                     </Button>
@@ -332,7 +343,7 @@ export default function TrainerGroupPage() {
 
             <form onSubmit={addCoTrainer} className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <div className="flex flex-col gap-1.5 sm:flex-1">
-                <Label htmlFor="cotrainer-email">{t("Weitere:n Trainer:in hinzufügen")}</Label>
+                <Label htmlFor="cotrainer-email">{t("Weitere:n Trainer:in einladen")}</Label>
                 <Input
                   id="cotrainer-email"
                   type="email"
@@ -343,7 +354,7 @@ export default function TrainerGroupPage() {
               </div>
               <Button type="submit" size="sm" disabled={addingCoTrainer || !coTrainerEmail.trim()}>
                 <UserPlus className="size-4" />
-                {addingCoTrainer ? t("Fügt hinzu…") : t("Hinzufügen")}
+                {addingCoTrainer ? t("Lädt ein…") : t("Einladen")}
               </Button>
             </form>
 
@@ -376,7 +387,7 @@ export default function TrainerGroupPage() {
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-{t("Die/den Hauptverantwortliche:n zu wechseln geht nur bei Vereinsgruppen. Weitere Trainer:innen lassen sich überall hinzufügen.")}
+{t("Die/den Hauptverantwortliche:n zu wechseln geht nur bei Vereinsgruppen. Weitere Trainer:innen lassen sich überall einladen.")}
               </p>
             )}
           </div>
@@ -416,10 +427,8 @@ export default function TrainerGroupPage() {
               {detail.invitations.map((invite) => (
                 <div key={invite.userId} className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-medium [overflow-wrap:anywhere]">
-                      {invite.firstName} {invite.lastName}
-                    </p>
-                    <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{invite.email}</p>
+                    {/* Vor der Zusage kennt die Gruppe nur die eingegebene Adresse. */}
+                    <p className="font-medium [overflow-wrap:anywhere]">{invite.email}</p>
                   </div>
                   <Button size="sm" variant="ghost" onClick={() => handleWithdrawInvitation(invite.userId)}>
                     {t("Zurückziehen")}

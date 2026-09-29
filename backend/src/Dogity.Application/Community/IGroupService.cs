@@ -14,6 +14,9 @@ public interface IGroupService
     Task<Result> AssignGroupTrainerAsync(Guid userId, Guid groupId, AssignGroupTrainerRequest request, CancellationToken ct = default);
     Task<Result> AddGroupTrainerAsync(Guid userId, Guid groupId, AddGroupTrainerRequest request, CancellationToken ct = default);
     Task<Result> RemoveGroupTrainerAsync(Guid userId, Guid groupId, Guid trainerUserId, CancellationToken ct = default);
+
+    /// <summary>Einladung als Trainer:in annehmen (dann erst Verwaltungsrechte) oder ablehnen.</summary>
+    Task<Result> RespondToTrainerInvitationAsync(Guid userId, Guid groupId, bool accept, CancellationToken ct = default);
     Task<Result> AddMemberAsync(Guid trainerId, Guid groupId, AddMemberRequest request, CancellationToken ct = default);
     Task<Result> RemoveMemberAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct = default);
     Task<Result<IReadOnlyList<MemberDogDto>>> GetMemberDogsAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct = default);

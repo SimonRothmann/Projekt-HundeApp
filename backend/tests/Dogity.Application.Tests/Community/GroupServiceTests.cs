@@ -258,19 +258,125 @@ public class GroupServiceTests
         return (lead, helper, group.Id);
     }
 
+    /// <summary>Einladen und annehmen - der Weg zu einer echten Co-Trainer:in.</summary>
+    private static async Task CoTrainerEinladenUndAnnehmenAsync(GroupService service, Guid einladend, Guid groupId, Guid eingeladen)
+    {
+        Assert.True((await service.AddGroupTrainerAsync(einladend, groupId, new AddGroupTrainerRequest("helfer@example.com"))).Succeeded);
+        Assert.True((await service.RespondToTrainerInvitationAsync(eingeladen, groupId, accept: true)).Succeeded);
+    }
+
     [Fact]
-    public async Task AddCoTrainer_GivesManageRightsAndTrainerRole()
+    public async Task AddCoTrainer_GivesManageRightsAndTrainerRoleAfterAcceptance()
     {
         var service = MakeService(out var db, out var lookup);
         var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
 
         var result = await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
 
+        // Erst eine Einladung: keine Rechte, keine Rolle.
         Assert.True(result.Succeeded);
+        Assert.DoesNotContain(helper, lookup.TrainerRole);
+        Assert.False((await service.UpdateGroupAsync(helper, groupId, new UpdateGroupRequest("X", null))).Succeeded);
+
+        Assert.True((await service.RespondToTrainerInvitationAsync(helper, groupId, accept: true)).Succeeded);
+
         Assert.Contains(helper, lookup.TrainerRole);
         // Verwalten darf sie jetzt auch - vorher wäre das "Gruppe nicht gefunden".
         var update = await service.UpdateGroupAsync(helper, groupId, new UpdateGroupRequest("Neuer Name", null));
         Assert.True(update.Succeeded);
+    }
+
+    // --- Co-Trainer:in nur mit Zustimmung (Prüfung 2026-09-28) -------------
+    // Vorher wurde man per E-Mail-Adresse sofort Trainer:in einer fremden
+    // Gruppe - und die Gruppe sah den Namen dahinter.
+
+    [Fact]
+    public async Task CoTrainerEinladung_ZeigtVorDerZusageNurDieEingegebeneAdresse()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+
+        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+
+        var detail = (await service.GetDetailAsync(lead, groupId)).Value!;
+        var eingeladen = Assert.Single(detail.Trainers, t => t.UserId == helper);
+        Assert.True(eingeladen.IsInvited);
+        Assert.Equal("helfer@example.com", eingeladen.Email);
+        Assert.Equal("", eingeladen.FirstName);
+        Assert.Equal("", eingeladen.LastName);
+        Assert.DoesNotContain((await service.GetMyGroupsAsync(helper)).Value!, g => g.Id == groupId);
+    }
+
+    [Fact]
+    public async Task CoTrainerEinladung_ErscheintBeiDerEingeladenenUndLaesstSichAblehnen()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+
+        var meine = (await service.GetMyMembershipsAsync(helper)).Value!;
+        var einladung = Assert.Single(meine);
+        Assert.True(einladung.IsInvitation);
+        Assert.True(einladung.AsTrainer);
+
+        Assert.True((await service.RespondToTrainerInvitationAsync(helper, groupId, accept: false)).Succeeded);
+        Assert.Empty((await service.GetMyMembershipsAsync(helper)).Value!);
+        Assert.DoesNotContain(helper, lookup.TrainerRole);
+        // Und erneut einladbar (eindeutiger Index auf GroupId+UserId).
+        Assert.True((await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"))).Succeeded);
+    }
+
+    [Fact]
+    public async Task CoTrainerEinladung_LaesstSichZurueckziehenUndNichtDoppeltVerschicken()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+
+        var doppelt = await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+        Assert.False(doppelt.Succeeded);
+        Assert.Contains("eingeladen", doppelt.Errors[0]);
+
+        Assert.True((await service.RemoveGroupTrainerAsync(lead, groupId, helper)).Succeeded);
+        Assert.False((await service.RespondToTrainerInvitationAsync(helper, groupId, accept: true)).Succeeded);
+    }
+
+    [Fact]
+    public async Task GruppenEinladung_ZeigtDerVerwaltungKeinenNamen()
+    {
+        var service = MakeService(out var db, out var lookup);
+        var (lead, _, groupId) = await SetupGroupWithHelperAsync(db, lookup);
+        var member = Guid.NewGuid();
+        lookup.Register(member, "mitglied@example.com", "Max", "Muster");
+
+        await service.AddMemberAsync(lead, groupId, new AddMemberRequest("mitglied@example.com"));
+
+        var eingeladen = Assert.Single((await service.GetDetailAsync(lead, groupId)).Value!.Invitations);
+        Assert.Equal("mitglied@example.com", eingeladen.Email);
+        Assert.Equal("", eingeladen.FirstName);
+        Assert.Equal("", eingeladen.LastName);
+    }
+
+    [Fact]
+    public async Task RemoveTrainerFromDog_UeberUngefragtEingetrageneTrainerin_GehtNichtMehr()
+    {
+        // Der Umweg aus der Zweitprüfung: die Trainer:in einer fremden
+        // Betreuung in die eigene Gruppe eintragen und die Betreuung dann
+        // von dort aus beenden. Ohne ihre Zusage zählt sie hier nicht.
+        var service = MakeService(out var db, out var lookup);
+        var (trainerId, _, member, dogId) = await SetupSupervisionAsync(db, service);
+        lookup.Register(trainerId, "helfer@example.com", "Tina", "Trainer");
+        var andereLeitung = Guid.NewGuid();
+        var andere = new Group { TrainerId = andereLeitung, Name = "Donnerstagsgruppe" };
+        db.Groups.Add(andere);
+        db.GroupMembers.Add(new GroupMember { GroupId = andere.Id, UserId = member });
+        await db.SaveChangesAsync();
+        await service.AddGroupTrainerAsync(andereLeitung, andere.Id, new AddGroupTrainerRequest("helfer@example.com"));
+
+        var result = await service.RemoveTrainerFromDogAsync(andereLeitung, andere.Id, trainerId, dogId);
+
+        Assert.False(result.Succeeded);
+        Assert.True(await db.HasDogAccessAsync(trainerId, dogId));
     }
 
     [Fact]
@@ -278,7 +384,7 @@ public class GroupServiceTests
     {
         var service = MakeService(out var db, out var lookup);
         var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
-        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+        await CoTrainerEinladenUndAnnehmenAsync(service, lead, groupId, helper);
 
         var detail = await service.GetDetailAsync(lead, groupId);
         Assert.True(detail.Succeeded);
@@ -297,7 +403,7 @@ public class GroupServiceTests
     {
         var service = MakeService(out var db, out var lookup);
         var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
-        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+        await CoTrainerEinladenUndAnnehmenAsync(service, lead, groupId, helper);
 
         var result = await service.RemoveGroupTrainerAsync(lead, groupId, helper);
 
@@ -311,13 +417,13 @@ public class GroupServiceTests
     {
         var service = MakeService(out var db, out var lookup);
         var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
-        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+        await CoTrainerEinladenUndAnnehmenAsync(service, lead, groupId, helper);
 
         // Zweite Gruppe, in der dieselbe Person mit-betreut.
         var other = new Group { TrainerId = lead, Name = "Donnerstagsgruppe" };
         db.Groups.Add(other);
         await db.SaveChangesAsync();
-        await service.AddGroupTrainerAsync(lead, other.Id, new AddGroupTrainerRequest("helfer@example.com"));
+        await CoTrainerEinladenUndAnnehmenAsync(service, lead, other.Id, helper);
 
         await service.RemoveGroupTrainerAsync(lead, groupId, helper);
 
@@ -329,12 +435,13 @@ public class GroupServiceTests
     {
         var service = MakeService(out var db, out var lookup);
         var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
-        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+        await CoTrainerEinladenUndAnnehmenAsync(service, lead, groupId, helper);
         await service.RemoveGroupTrainerAsync(lead, groupId, helper);
 
         // Ohne Wiederbeleben der weichgelöschten Zeile liefe das in den
         // Unique-Index auf (GroupId, UserId).
         var again = await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+        await service.RespondToTrainerInvitationAsync(helper, groupId, accept: true);
 
         Assert.True(again.Succeeded);
         Assert.Contains(helper, lookup.TrainerRole);
@@ -401,7 +508,7 @@ public class GroupServiceTests
     {
         var service = MakeService(out var db, out var lookup);
         var (lead, helper, groupId) = await SetupGroupWithHelperAsync(db, lookup);
-        await service.AddGroupTrainerAsync(lead, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+        await CoTrainerEinladenUndAnnehmenAsync(service, lead, groupId, helper);
 
         var result = await service.RequestJoinGroupAsync(helper, groupId);
 
@@ -564,7 +671,7 @@ public class GroupServiceTests
         var (trainerId, groupId, _, dogId) = await SetupSupervisionAsync(db, service);
         var helfer = Guid.NewGuid();
         lookup.Register(helfer, "helfer@example.com", "Hanna", "Helfer");
-        await service.AddGroupTrainerAsync(trainerId, groupId, new AddGroupTrainerRequest("helfer@example.com"));
+        await CoTrainerEinladenUndAnnehmenAsync(service, trainerId, groupId, helfer);
 
         var result = await service.RemoveTrainerFromDogAsync(helfer, groupId, trainerId, dogId);
 

@@ -30,7 +30,8 @@ public class CommunityOrphanCleanup(IApplicationDbContext db, IUserLookupService
         var mitgliedschaften = await db.ClubMemberships.ToListAsync(ct);
         var vereinstrainer = await db.ClubTrainers.ToListAsync(ct);
         var gruppenmitglieder = await db.GroupMembers.ToListAsync(ct);
-        var gruppentrainer = await db.GroupTrainers.ToListAsync(ct);
+        // Einschließlich offener Einladungen als Trainer:in.
+        var gruppentrainer = await db.GroupTrainers.IgnoreQueryFilters().Where(t => t.DeletedAt == null).ToListAsync(ct);
         var zuweisungen = await db.TrainerAssignments.ToListAsync(ct);
 
         var betroffene = mitgliedschaften.Select(m => m.UserId)

@@ -45,8 +45,8 @@ export function MeineGruppenSection({ onChanged }: { onChanged?: () => void }) {
     laden();
   }, []);
 
-  async function ausfuehren(groupId: string, aufruf: () => Promise<unknown>, erfolg: string) {
-    setLaeuft(groupId);
+  async function ausfuehren(key: string, aufruf: () => Promise<unknown>, erfolg: string) {
+    setLaeuft(key);
     try {
       await aufruf();
       toast.success(erfolg);
@@ -59,16 +59,27 @@ export function MeineGruppenSection({ onChanged }: { onChanged?: () => void }) {
     }
   }
 
+  // Dieselbe Gruppe kann zweimal auftauchen - als Mitglied und als
+  // Trainer:in eingeladen. Schlüssel und "läuft gerade" brauchen daher beides.
+  const eintragsKey = (g: MyGroupMembership) => `${g.groupId}:${g.asTrainer ? "trainer" : "mitglied"}`;
+
+  // Einladungen als Trainer:in haben eigene Endpunkte - angenommen wird
+  // hier wie die als Mitglied, damit es nur einen Ort für Einladungen gibt.
+  const einladungsPfad = (g: MyGroupMembership) =>
+    `/api/groups/${g.groupId}/${g.asTrainer ? "co-trainer-invitation" : "invitation"}`;
+
   function annehmen(g: MyGroupMembership) {
     return ausfuehren(
-      g.groupId,
-      () => api.post(`/api/groups/${g.groupId}/invitation/accept`),
-      t("Du bist jetzt Mitglied von {gruppe}.", { gruppe: g.groupName }),
+      eintragsKey(g),
+      () => api.post(`${einladungsPfad(g)}/accept`),
+      g.asTrainer
+        ? t("Du bist jetzt Trainer:in von {gruppe}.", { gruppe: g.groupName })
+        : t("Du bist jetzt Mitglied von {gruppe}.", { gruppe: g.groupName }),
     );
   }
 
   function ablehnen(g: MyGroupMembership) {
-    return ausfuehren(g.groupId, () => api.post(`/api/groups/${g.groupId}/invitation/decline`), t("Einladung abgelehnt."));
+    return ausfuehren(eintragsKey(g), () => api.post(`${einladungsPfad(g)}/decline`), t("Einladung abgelehnt."));
   }
 
   function verlassen(g: MyGroupMembership) {
@@ -80,7 +91,7 @@ export function MeineGruppenSection({ onChanged }: { onChanged?: () => void }) {
       )
     )
       return;
-    return ausfuehren(g.groupId, () => api.delete(`/api/groups/${g.groupId}/membership`), t("Gruppe verlassen."));
+    return ausfuehren(eintragsKey(g), () => api.delete(`/api/groups/${g.groupId}/membership`), t("Gruppe verlassen."));
   }
 
   if (!eintraege || eintraege.length === 0) return null;
@@ -104,24 +115,38 @@ export function MeineGruppenSection({ onChanged }: { onChanged?: () => void }) {
               <Mail className="size-5 shrink-0 text-primary-text" />
               {einladungen.length === 1 ? t("Einladung in eine Gruppe") : t("Einladungen in Gruppen")}
             </CardTitle>
-            <CardDescription>
-              {t(
-                "Nimmst du an, können die Trainer:innen der Gruppe deine Hunde betreuen - sie sehen dann Tagebuch, Ziele und Fährten.",
-              )}
-            </CardDescription>
+            {einladungen.some((e) => !e.asTrainer) && (
+              <CardDescription>
+                {t(
+                  "Nimmst du an, können die Trainer:innen der Gruppe deine Hunde betreuen - sie sehen dann Tagebuch, Ziele und Fährten.",
+                )}
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {einladungen.map((g) => (
-              <div key={g.groupId} className="flex flex-col gap-2 border-t pt-3 first:border-t-0 first:pt-0">
+              <div key={eintragsKey(g)} className="flex flex-col gap-2 border-t pt-3 first:border-t-0 first:pt-0">
                 <div className="min-w-0">
-                  <p className="font-medium [overflow-wrap:anywhere]">{g.groupName}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium [overflow-wrap:anywhere]">{g.groupName}</p>
+                    {g.asTrainer && (
+                      <Badge variant="secondary" className="shrink-0">
+                        {t("als Trainer:in")}
+                      </Badge>
+                    )}
+                  </div>
                   {herkunft(g)}
+                  {g.asTrainer && (
+                    <p className="text-sm text-muted-foreground">
+                      {t("Als Trainer:in verwaltest du die Gruppe mit und siehst die Namen ihrer Mitglieder.")}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" disabled={laeuft === g.groupId} onClick={() => annehmen(g)}>
+                  <Button size="sm" disabled={laeuft === eintragsKey(g)} onClick={() => annehmen(g)}>
                     {t("Annehmen")}
                   </Button>
-                  <Button size="sm" variant="outline" disabled={laeuft === g.groupId} onClick={() => ablehnen(g)}>
+                  <Button size="sm" variant="outline" disabled={laeuft === eintragsKey(g)} onClick={() => ablehnen(g)}>
                     {t("Ablehnen")}
                   </Button>
                 </div>
@@ -142,7 +167,7 @@ export function MeineGruppenSection({ onChanged }: { onChanged?: () => void }) {
           <CardContent className="flex flex-col gap-3">
             {gruppen.map((g) => (
               <div
-                key={g.groupId}
+                key={eintragsKey(g)}
                 className="flex flex-wrap items-center justify-between gap-2 border-t pt-3 first:border-t-0 first:pt-0"
               >
                 <div className="min-w-0">
@@ -154,8 +179,8 @@ export function MeineGruppenSection({ onChanged }: { onChanged?: () => void }) {
                   </div>
                   {herkunft(g)}
                 </div>
-                <Button size="sm" variant="ghost" disabled={laeuft === g.groupId} onClick={() => verlassen(g)}>
-                  {laeuft === g.groupId ? t("Wird verlassen…") : t("Verlassen")}
+                <Button size="sm" variant="ghost" disabled={laeuft === eintragsKey(g)} onClick={() => verlassen(g)}>
+                  {laeuft === eintragsKey(g) ? t("Wird verlassen…") : t("Verlassen")}
                 </Button>
               </div>
             ))}

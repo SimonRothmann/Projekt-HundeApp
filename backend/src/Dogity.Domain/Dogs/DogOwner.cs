@@ -44,4 +44,10 @@ public class DogOwner : Entity
 
     /// <summary>Wer eingeladen hat - für die Einladungskarte ("Anna lädt dich ein").</summary>
     public Guid? InvitedByUserId { get; set; }
+
+    /// <summary>
+    /// Die beim Einladen eingegebene Adresse. Bis zur Zusage sehen die
+    /// Besitzer:innen nur sie - nicht eine inzwischen geänderte Adresse.
+    /// </summary>
+    public string? InvitedEmail { get; set; }
 }

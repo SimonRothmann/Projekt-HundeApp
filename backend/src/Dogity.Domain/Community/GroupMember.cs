@@ -45,4 +45,10 @@ public class GroupMember : Entity
     public GroupMemberRole Role { get; set; } = GroupMemberRole.Member;
     public GroupMemberStatus Status { get; set; } = GroupMemberStatus.Active;
     public DateTimeOffset JoinedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Bei einer Einladung: die eingegebene Adresse. Bis zur Zusage zeigt die
+    /// Gruppe nur sie - nicht den Namen und nicht eine später geänderte Adresse.
+    /// </summary>
+    public string? InvitedEmail { get; set; }
 }

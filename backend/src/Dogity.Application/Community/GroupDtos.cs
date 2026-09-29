@@ -37,7 +37,9 @@ public record GroupTrainerOptionDto(Guid UserId, string FirstName, string LastNa
 /// die/den Hauptverantwortliche:n aus <see cref="Domain.Community.Group.TrainerId"/> -
 /// alle anderen betreuen gleichberechtigt mit.
 /// </summary>
-public record GroupTrainerDto(Guid UserId, string Email, string FirstName, string LastName, bool IsLead);
+/// Eingeladene (<paramref name="IsInvited"/>) sieht nur die Verwaltung der Gruppe, und nur mit der
+/// eingegebenen Adresse - ohne Namen, bis sie annehmen.
+public record GroupTrainerDto(Guid UserId, string Email, string FirstName, string LastName, bool IsLead, bool IsInvited = false);
 
 public record GroupJoinRequestDto(Guid MemberId, string Email, string FirstName, string LastName, DateTimeOffset RequestedAt);
 
@@ -64,7 +66,9 @@ public record MyGroupMembershipDto(
     string? ClubName,
     string? TrainerName,
     bool IsInvitation,
-    DateTimeOffset Since);
+    DateTimeOffset Since,
+    /// <summary>Eine Einladung als Trainer:in statt als Mitglied.</summary>
+    bool AsTrainer = false);
 
 public record CreateGroupRequest(string Name, string? Description, Guid? ClubId = null);
 

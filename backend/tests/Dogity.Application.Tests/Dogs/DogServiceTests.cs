@@ -110,6 +110,23 @@ public class DogServiceTests
     }
 
     [Fact]
+    public async Task Invitation_ShowsTheTypedAddress_NotALaterChangedOne()
+    {
+        // Ändert die eingeladene Person ihre Adresse, ohne anzunehmen, soll die
+        // einladende Seite die neue nicht erfahren.
+        var service = MakeService(out var db, out var lookup);
+        var (ownerId, dogId, _) = await SetupOwnedDogAsync(db, service);
+        var targetId = Guid.NewGuid();
+        lookup.Register(targetId, "alt@dogity.test");
+        await service.AddOwnerAsync(ownerId, dogId, new AddDogOwnerRequest("alt@dogity.test"));
+        lookup.Register(targetId, "neu@dogity.test");
+
+        var eingeladen = Assert.Single((await service.GetOwnersAsync(ownerId, dogId)).Value!, o => o.IsInvited);
+
+        Assert.Equal("alt@dogity.test", eingeladen.Email);
+    }
+
+    [Fact]
     public async Task AddOwner_TwiceWhileInvited_FailsWithInvitationMessage()
     {
         var service = MakeService(out var db, out var lookup);

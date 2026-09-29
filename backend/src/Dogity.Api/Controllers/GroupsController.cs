@@ -100,6 +100,14 @@ public class GroupsController(IGroupService groupService, IClubService clubServi
         return FromResult(result);
     }
 
+    [HttpPost("{id:guid}/co-trainer-invitation/accept")]
+    public async Task<IActionResult> AcceptTrainerInvitation(Guid id, CancellationToken ct) =>
+        FromResult(await groupService.RespondToTrainerInvitationAsync(CurrentUserId, id, accept: true, ct));
+
+    [HttpPost("{id:guid}/co-trainer-invitation/decline")]
+    public async Task<IActionResult> DeclineTrainerInvitation(Guid id, CancellationToken ct) =>
+        FromResult(await groupService.RespondToTrainerInvitationAsync(CurrentUserId, id, accept: false, ct));
+
     [HttpGet("{id:guid}/members/{memberId:guid}/dogs")]
     public async Task<ActionResult<IReadOnlyList<MemberDogDto>>> GetMemberDogs(Guid id, Guid memberId, CancellationToken ct)
     {

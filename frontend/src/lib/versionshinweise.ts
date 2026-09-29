@@ -74,6 +74,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         text: uebersetzbar("Deinen eigenen Mitbesitz an einem Hund kannst du jetzt selbst beenden. Wirst du von anderen entfernt, bekommst du eine Benachrichtigung."),
       },
       {
+        art: "neu",
+        text: uebersetzbar("Weitere Trainer:innen einer Gruppe werden jetzt eingeladen und nehmen unter „Vereine“ an, statt sofort eingetragen zu werden. Bei allen Einladungen sieht die Gruppe bis zur Zusage nur die eingegebene E-Mail-Adresse."),
+      },
+      {
         art: "verbessert",
         text: uebersetzbar("Kommentare und Notizen haben jetzt eine sichtbare Höchstlänge, statt beim Speichern mit einem unverständlichen Fehler zu scheitern. Ein offline erfasster Eintrag mit zu langem Text hält die Übertragung der übrigen nicht mehr auf."),
       },

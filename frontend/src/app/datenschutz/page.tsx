@@ -275,6 +275,7 @@ export default function DatenschutzPage() {
               "Mitbesitzer:innen eines Hundes sehen dessen Tagebuch vollständig. Mitbesitzer:in wird nur, wer eine Einladung annimmt. Bis dahin sieht die einladende Person nur die E-Mail-Adresse, die sie selbst eingegeben hat, und die eingeladene Person nur den Namen des Hundes und wer einlädt. Den eigenen Mitbesitz kannst du jederzeit beenden.",
               "Trainer:innen einer Gruppe, der du selbst beigetreten bist oder deren Einladung du angenommen hast, können deine Hunde betreuen. Sie sehen dann deren Trainings, Ziele und Fährten und können Rückmeldung geben. Du wirst benachrichtigt, sobald jemand einen deiner Hunde betreut; verlässt du die Gruppe, endet die Betreuung.",
               "Die Vereinsverwaltung sieht Mitgliedschaften, Gruppenzugehörigkeit und Namen ihrer Mitglieder – nicht deren Trainingstagebuch.",
+              "Wer dich in eine Gruppe, als Trainer:in einer Gruppe oder als Mitbesitzer:in eines Hundes einlädt, sieht bis zu deiner Zusage nur die E-Mail-Adresse, die dabei eingegeben wurde – nicht deinen Namen. Lehnst du ab, bleibt es dabei.",
               "Der Betreiber kann aus technischen Gründen auf die Datenbank zugreifen, tut das aber nur zur Fehlersuche und zum Betrieb.",
             ]}
           />

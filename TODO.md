@@ -278,7 +278,13 @@ Geschwindigkeit und Bedienbarkeit. Behoben im Code:
       Bestehende Mitbesitzer:innen bleiben aktiv (Migration
       `AddDogOwnerInvitation`), Entfernte werden benachrichtigt, der eigene
       Mitbesitz lässt sich beenden. Kontolöschung: Eine offene Einladung
-      zählt nicht als "andere Besitzerin".
+      zählt nicht als "andere Besitzerin". Endet ein Mitbesitz, enden auch
+      die Betreuungen, die über diese Person liefen.
+- [x] Co-Trainer:innen nur noch per Einladung mit Zustimmung, und alle
+      offenen Einladungen (Gruppe, Trainer:in, Mitbesitz) zeigen nur die
+      eingegebene Adresse - vorher ließ sich über eine eigene Gruppe zu jeder
+      Adresse der Name erfragen, und über eine ungefragt eingetragene
+      Trainer:in deren Betreuung aus einer fremden Gruppe beenden.
 - [x] Nach dem Abmelden bleiben keine fremden Daten auf dem Gerät: Der
       Lesecache wird beim Abmelden und beim Anmelden einer anderen Person
       geleert, die Hundeseite zeigt bei 404 keinen Zwischenstand mehr, und

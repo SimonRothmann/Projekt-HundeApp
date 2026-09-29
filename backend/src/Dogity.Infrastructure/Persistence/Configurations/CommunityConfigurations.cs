@@ -35,6 +35,7 @@ public class GroupMemberConfiguration : IEntityTypeConfiguration<GroupMember>
     {
         builder.ToTable("group_members");
         builder.Property(m => m.Role).HasConversion<string>().HasMaxLength(20);
+        builder.Property(m => m.InvitedEmail).HasMaxLength(256);
 
         builder.HasOne(m => m.Group)
             .WithMany(g => g.Members)
@@ -50,6 +51,7 @@ public class GroupTrainerConfiguration : IEntityTypeConfiguration<GroupTrainer>
     public void Configure(EntityTypeBuilder<GroupTrainer> builder)
     {
         builder.ToTable("group_trainers");
+        builder.Property(t => t.InvitedEmail).HasMaxLength(256);
 
         builder.HasOne(t => t.Group)
             .WithMany(g => g.Trainers)

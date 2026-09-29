@@ -133,7 +133,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<GroupMember>().HasQueryFilter(e => e.DeletedAt == null);
         // Wie bei DogImage: der Filter der Gruppe muss mitgezogen werden, weil
         // die Gruppe hier die erforderliche Seite der Beziehung ist.
-        builder.Entity<GroupTrainer>().HasQueryFilter(e => e.DeletedAt == null && e.Group!.DeletedAt == null);
+        // Offene Co-Trainer-Einladungen gelten nirgends (siehe GroupTrainerStatus.Invited).
+        builder.Entity<GroupTrainer>().HasQueryFilter(e => e.DeletedAt == null && e.Status == GroupTrainerStatus.Active && e.Group!.DeletedAt == null);
         builder.Entity<TrainerAssignment>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<ClubTrainer>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<ClubMembership>().HasQueryFilter(e => e.DeletedAt == null);

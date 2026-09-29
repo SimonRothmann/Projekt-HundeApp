@@ -23,4 +23,27 @@ public class GroupTrainer : Entity
     public Group? Group { get; set; }
 
     public Guid UserId { get; set; }
+
+    public GroupTrainerStatus Status { get; set; } = GroupTrainerStatus.Active;
+
+    /// <summary>Die Adresse, die beim Einladen eingegeben wurde - bis zur Zusage das Einzige, was die Gruppe sieht.</summary>
+    public string? InvitedEmail { get; set; }
+}
+
+public enum GroupTrainerStatus
+{
+    Active,
+
+    /// <summary>
+    /// Eingeladen, noch nicht angenommen. Gilt nirgends - keine
+    /// Verwaltungsrechte, keine Trainer-Rolle, kein Name in der Gruppe (der
+    /// globale Filter in ApplicationDbContext blendet die Zeile aus).
+    ///
+    /// Bis 2026-09-28 wurde man per E-Mail-Adresse sofort Trainer:in einer
+    /// fremden Gruppe. Das verriet der Gruppe den Namen hinter jeder Adresse -
+    /// auch dann noch, als Mitbesitz und Gruppenaufnahme längst eine Zusage
+    /// verlangten -, und über die eingetragene Trainer:in ließ sich deren
+    /// Betreuung eines Hundes aus einer anderen Gruppe heraus beenden.
+    /// </summary>
+    Invited
 }

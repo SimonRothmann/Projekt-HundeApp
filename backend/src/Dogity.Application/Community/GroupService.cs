@@ -78,16 +78,25 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             return Result<GroupDetailDto>.NotFound("Gruppe nicht gefunden.");
 
         // Offene Einladungen sieht nur, wer die Gruppe verwaltet.
-        List<GroupMember> invited = await GetManageableGroupAsync(userId, groupId, ct) is null
+        var verwaltet = await GetManageableGroupAsync(userId, groupId, ct) is not null;
+        List<GroupMember> invited = !verwaltet
             ? []
             : await db.GroupMembers
                 .Where(m => m.GroupId == groupId && m.Status == GroupMemberStatus.Invited)
+                .AsNoTracking()
+                .ToListAsync(ct);
+        List<GroupTrainer> invitedTrainers = !verwaltet
+            ? []
+            : await db.GroupTrainers
+                .IgnoreQueryFilters()
+                .Where(t => t.GroupId == groupId && t.DeletedAt == null && t.Status == GroupTrainerStatus.Invited)
                 .AsNoTracking()
                 .ToListAsync(ct);
 
         var coTrainerIds = group.Trainers.Select(t => t.UserId).ToList();
         var lookupIds = group.Members.Select(m => m.UserId)
             .Concat(invited.Select(m => m.UserId))
+            .Concat(invitedTrainers.Select(t => t.UserId))
             .Append(group.TrainerId)
             .Concat(coTrainerIds)
             .ToList();
@@ -98,6 +107,12 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
                 : new GroupMemberDto(m.UserId, "(unbekannt)", "", "", m.Role, m.JoinedAt);
         var members = group.Members.Select(ToMemberDto).ToList();
 
+        // Vor der Zusage nur die eingegebene Adresse - der Name gehört der
+        // eingeladenen Person, bis sie annimmt. Vorher ließ sich über eine
+        // selbst angelegte Gruppe zu jeder Adresse der Name erfragen.
+        string EingeladeneAdresse(Guid id, string? eingegeben) =>
+            eingegeben ?? (memberLookup.TryGetValue(id, out var info) ? info.Email : "(unbekannt)");
+
         // Hauptverantwortliche:r zuerst, danach die weiteren Trainer:innen
         // alphabetisch - die Liste steht so in der Oberfläche.
         var trainers = new List<GroupTrainerDto> { ToTrainerDto(memberLookup, group.TrainerId, isLead: true) };
@@ -106,12 +121,14 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             .Select(id => ToTrainerDto(memberLookup, id, isLead: false))
             .OrderBy(t => t.FirstName)
             .ThenBy(t => t.LastName));
+        trainers.AddRange(invitedTrainers.Select(t =>
+            new GroupTrainerDto(t.UserId, EingeladeneAdresse(t.UserId, t.InvitedEmail), "", "", IsLead: false, IsInvited: true)));
 
         var dto = new GroupDetailDto(
             new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, members.Count, TrainerDisplayName(memberLookup, group.TrainerId)),
             members,
             trainers,
-            invited.Select(ToMemberDto).ToList());
+            invited.Select(m => new GroupMemberDto(m.UserId, EingeladeneAdresse(m.UserId, m.InvitedEmail), "", "", m.Role, m.JoinedAt)).ToList());
         return Result<GroupDetailDto>.Success(dto);
     }
 
@@ -262,26 +279,73 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (user.UserId == group.TrainerId)
             return Result.Failure("Diese Person ist bereits hauptverantwortlich für diese Gruppe.");
 
-        // Auch weichgelöschte Zeilen ansehen: sonst scheitert das erneute
-        // Hinzufügen einer zuvor entfernten Trainer:in am Unique-Index.
+        // Auch weichgelöschte und eingeladene Zeilen ansehen: sonst scheitert
+        // das erneute Einladen am Unique-Index.
         var existing = await db.GroupTrainers
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(t => t.GroupId == groupId && t.UserId == user.UserId, ct);
 
+        if (existing is { DeletedAt: null })
+            return Result.Failure(existing.Status == GroupTrainerStatus.Invited
+                ? "Diese Person ist bereits als Trainer:in eingeladen."
+                : "Diese Person ist bereits Trainer:in dieser Gruppe.");
+
+        // Eine Einladung, keine Eintragung (siehe GroupTrainerStatus.Invited):
+        // Trainer:in wird, wer annimmt - auch wer es früher schon einmal war.
+        var eingegeben = request.Email.Trim();
         if (existing is not null)
         {
-            if (existing.DeletedAt is null)
-                return Result.Failure("Diese Person ist bereits Trainer:in dieser Gruppe.");
             existing.DeletedAt = null;
+            existing.Status = GroupTrainerStatus.Invited;
+            existing.InvitedEmail = eingegeben;
+            existing.UpdatedAt = DateTimeOffset.UtcNow;
         }
         else
         {
-            db.GroupTrainers.Add(new GroupTrainer { GroupId = groupId, UserId = user.UserId });
+            db.GroupTrainers.Add(new GroupTrainer
+            {
+                GroupId = groupId,
+                UserId = user.UserId,
+                Status = GroupTrainerStatus.Invited,
+                InvitedEmail = eingegeben,
+            });
         }
 
         await db.SaveChangesAsync(ct);
-        await trainerRoles.SyncAsync(user.UserId, ct);
-        await notifications.CreateAsync(user.UserId, $"Du bist jetzt Trainer:in der Gruppe \"{group.Name}\".", $"/trainer/{groupId}", ct);
+        var einladende = TrainerDisplayName(await userLookup.FindByIdsAsync([userId], ct), userId) ?? "Eine Trainer:in";
+        await notifications.CreateAsync(
+            user.UserId,
+            $"{einladende} lädt dich ein, Trainer:in der Gruppe \"{group.Name}\" zu werden.",
+            "/clubs",
+            ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> RespondToTrainerInvitationAsync(Guid userId, Guid groupId, bool accept, CancellationToken ct = default)
+    {
+        // IgnoreQueryFilters nimmt auch den Filter der Gruppe weg - deshalb
+        // "nicht gelöscht" hier ausdrücklich für beide.
+        var row = await db.GroupTrainers
+            .IgnoreQueryFilters()
+            .Where(t => t.Group!.DeletedAt == null)
+            .FirstOrDefaultAsync(t => t.GroupId == groupId && t.UserId == userId
+                && t.DeletedAt == null && t.Status == GroupTrainerStatus.Invited, ct);
+        if (row is null)
+            return Result.NotFound("Einladung nicht gefunden.");
+
+        if (accept)
+        {
+            row.Status = GroupTrainerStatus.Active;
+            row.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+        else
+        {
+            row.DeletedAt = DateTimeOffset.UtcNow;
+        }
+
+        await db.SaveChangesAsync(ct);
+        if (accept)
+            await trainerRoles.SyncAsync(userId, ct);
         return Result.Success();
     }
 
@@ -294,7 +358,10 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (trainerUserId == group.TrainerId)
             return Result.Failure("Die/der Hauptverantwortliche kann nicht entfernt werden - erst eine andere Person zuweisen.");
 
-        var entry = await db.GroupTrainers.FirstOrDefaultAsync(t => t.GroupId == groupId && t.UserId == trainerUserId, ct);
+        // Einschließlich offener Einladungen - sie lassen sich so zurückziehen.
+        var entry = await db.GroupTrainers
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.GroupId == groupId && t.UserId == trainerUserId && t.DeletedAt == null, ct);
         if (entry is null)
             return Result.NotFound("Trainer-Zuordnung nicht gefunden.");
 
@@ -347,10 +414,17 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             existing.DeletedAt = null;
             existing.Status = GroupMemberStatus.Invited;
             existing.JoinedAt = DateTimeOffset.UtcNow;
+            existing.InvitedEmail = request.Email.Trim();
         }
         else
         {
-            db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = user.UserId, Status = GroupMemberStatus.Invited });
+            db.GroupMembers.Add(new GroupMember
+            {
+                GroupId = groupId,
+                UserId = user.UserId,
+                Status = GroupMemberStatus.Invited,
+                InvitedEmail = request.Email.Trim(),
+            });
         }
 
         await db.SaveChangesAsync(ct);
@@ -398,11 +472,32 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             .AsNoTracking()
             .ToListAsync(ct);
 
-        var lookup = await userLookup.FindByIdsAsync(rows.Select(r => r.TrainerId).Distinct().ToList(), ct);
+        // Einladungen als Trainer:in - angenommen werden sie hier wie die als
+        // Mitglied (siehe GroupTrainerStatus.Invited).
+        var trainerEinladungen = await db.GroupTrainers
+            .IgnoreQueryFilters()
+            .Where(t => t.UserId == userId && t.DeletedAt == null && t.Status == GroupTrainerStatus.Invited
+                && t.Group!.DeletedAt == null)
+            .Select(t => new
+            {
+                t.GroupId,
+                GroupName = t.Group!.Name,
+                t.Group.TrainerId,
+                ClubName = db.Clubs.Where(c => c.Id == t.Group.ClubId).Select(c => c.Name).FirstOrDefault(),
+                Since = t.UpdatedAt ?? t.CreatedAt,
+            })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var lookup = await userLookup.FindByIdsAsync(
+            rows.Select(r => r.TrainerId).Concat(trainerEinladungen.Select(r => r.TrainerId)).Distinct().ToList(), ct);
         var dtos = rows
             .Select(r => new MyGroupMembershipDto(
                 r.GroupId, r.GroupName, r.ClubName, TrainerDisplayName(lookup, r.TrainerId),
                 r.Status == GroupMemberStatus.Invited, r.JoinedAt))
+            .Concat(trainerEinladungen.Select(r => new MyGroupMembershipDto(
+                r.GroupId, r.GroupName, r.ClubName, TrainerDisplayName(lookup, r.TrainerId),
+                IsInvitation: true, r.Since, AsTrainer: true)))
             // Einladungen zuerst - auf sie wartet jemand.
             .OrderByDescending(d => d.IsInvitation)
             .ThenBy(d => d.GroupName)

@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Microsoft.EntityFrameworkCore;
 
@@ -360,8 +361,10 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         // Trainer:in gibt es niemanden mehr, der sie führt.
         foreach (var gruppe in await db.Groups.IgnoreQueryFilters().Where(g => g.TrainerId == userId).ToListAsync(ct))
         {
+            // Nur wer als Trainer:in angenommen hat - nicht eine offene Einladung.
             var nachfolger = await db.GroupTrainers.IgnoreQueryFilters()
-                .Where(t => t.GroupId == gruppe.Id && t.UserId != userId && t.DeletedAt == null)
+                .Where(t => t.GroupId == gruppe.Id && t.UserId != userId && t.DeletedAt == null
+                    && t.Status == GroupTrainerStatus.Active)
                 .Select(t => t.UserId)
                 .FirstOrDefaultAsync(ct);
 

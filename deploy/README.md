@@ -139,6 +139,13 @@ falsch verstehen würde:
   UPDATE dog_owners SET "DeletedAt" = now()
   WHERE "Status" = 'Invited' AND "DeletedAt" IS NULL;
   ```
+- **Hinter dem Commit „Co-Trainer:innen nur mit Zustimmung“:** Dasselbe für
+  offene Einladungen als Trainer:in (Status 1 = eingeladen) - der alte Code
+  gäbe ihnen sofort Verwaltungsrechte:
+  ```sql
+  UPDATE group_trainers SET "DeletedAt" = now()
+  WHERE "Status" = 1 AND "DeletedAt" IS NULL;
+  ```
 
 ## Backups
 

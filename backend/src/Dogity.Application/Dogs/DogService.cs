@@ -164,7 +164,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
             .IgnoreQueryFilters()
             .Where(o => o.DogId == dogId && o.DeletedAt == null)
             .Where(o => o.Status == DogOwnerStatus.Active || (istBesitzer && o.Status == DogOwnerStatus.Invited))
-            .Select(o => new { o.UserId, o.Role, o.Status, o.CreatedAt, o.UpdatedAt })
+            .Select(o => new { o.UserId, o.Role, o.Status, o.InvitedEmail, o.CreatedAt, o.UpdatedAt })
             .AsNoTracking()
             .ToListAsync(ct);
 
@@ -177,7 +177,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
                 // selbst eingegeben hat - der Name gehört der eingeladenen
                 // Person, bis sie annimmt (siehe DogOwnerStatus.Invited).
                 return o.Status == DogOwnerStatus.Invited
-                    ? new DogOwnerDto(o.UserId, info?.Email ?? "(unbekannt)", "", "", o.Role, o.UpdatedAt ?? o.CreatedAt, IsInvited: true)
+                    ? new DogOwnerDto(o.UserId, o.InvitedEmail ?? info?.Email ?? "(unbekannt)", "", "", o.Role, o.UpdatedAt ?? o.CreatedAt, IsInvited: true)
                     : info is not null
                         ? new DogOwnerDto(o.UserId, info.Email, info.FirstName, info.LastName, o.Role, o.CreatedAt)
                         : new DogOwnerDto(o.UserId, "(unbekannt)", "", "", o.Role, o.CreatedAt);
@@ -223,6 +223,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
             existing.Role = DogOwnerRole.Owner;
             existing.Status = DogOwnerStatus.Invited;
             existing.InvitedByUserId = userId;
+            existing.InvitedEmail = request.Email.Trim();
             existing.UpdatedAt = DateTimeOffset.UtcNow;
         }
         else
@@ -234,6 +235,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
                 Role = DogOwnerRole.Owner,
                 Status = DogOwnerStatus.Invited,
                 InvitedByUserId = userId,
+                InvitedEmail = request.Email.Trim(),
             });
         }
 
