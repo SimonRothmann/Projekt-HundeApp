@@ -104,6 +104,18 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Einladungsseite der Vereine (/v/{code}): Der Code in der Adresse ist
+        // der Schlüssel zur Beitrittsanfrage. Weder soll die Adresse beim
+        // Anklicken eines Verweises an fremde Seiten weitergereicht werden
+        // noch in einen Suchindex gelangen. Die Seite setzt dasselbe noch
+        // einmal als Meta-Angabe (app/v/[code]/page.tsx).
+        source: "/v/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
     ];
   },
 };

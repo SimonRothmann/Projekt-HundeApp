@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-09-13 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-09-30 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -72,10 +72,11 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 |---|---|
 | Zweck | Mitglieder- und Gruppenverwaltung, Planung von Gruppentrainings, Zuordnung Trainer:in ↔ Hund |
 | Betroffene | Mitglieder, Trainer:innen, Vereinsverwaltung |
-| Datenkategorien | Mitgliedschaften und Beitrittsanfragen mit Status und Zeitpunkt, Trainerrollen, Gruppenzugehörigkeit, Trainingstermine und zugewiesene Übungen |
+| Datenkategorien | Mitgliedschaften und Beitrittsanfragen mit Status, Zeitpunkt und Herkunft (Vereinsliste oder Einladungslink), Trainerrollen, Gruppenzugehörigkeit, Trainingstermine und zugewiesene Übungen |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. b |
 | Empfänger | Vereinsverwaltung und Trainer:innen des jeweiligen Vereins |
 | Drittland | nein |
+| Besonderheit | Einladungslink/QR-Code je Verein (`clubs.InviteCode`, 128 Bit Zufall): Der Code selbst ist kein personenbezogenes Datum. Die öffentliche Einladungsseite gibt ohne Anmeldung nur den Vereinsnamen heraus; der Beitritt bleibt eine Anfrage, die der Verein freigibt. Der Code lässt sich jederzeit ersetzen oder abschalten. |
 | Löschfrist | bis zum Austritt bzw. zur Kontolöschung |
 | Tabellen | `clubs`, `club_memberships`, `club_trainers`, `club_registrations`, `groups`, `group_members`, `group_trainers`, `trainer_assignments`, `group_training_*` |
 
@@ -90,13 +91,25 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Löschfrist | bis zur Kontolöschung |
 | Tabellen | `quiz_masteries`, `notifications` |
 
+### 2.5a Kennzahlen der Plattform (nur Admin)
+
+| | |
+|---|---|
+| Zweck | Beurteilen, ob Einladungen und Erststart wirken (neue Konten der letzten 30 Tage; wie viele davon einen Hund, einen Verein, ein Prüfungsziel haben oder über einen Vereinslink kamen; wie viele Konten aktiv sind) |
+| Betroffene | registrierte Nutzer:innen |
+| Datenkategorien | ausschließlich Zählungen, die bei Abruf aus bestehenden Beständen berechnet werden (Anlegedatum des Kontos, Besitz eines Hundes, Mitgliedschaft und deren Herkunft, Ziele, angelegte Trainings/Fährten). Es wird nichts zusätzlich erhoben, nichts im Browser gemessen, keine Dritten eingebunden. |
+| Rechtsgrundlage | Art. 6 Abs. 1 lit. f (Weiterentwicklung des Angebots); der Eingriff ist gering, weil nur Summen ausgegeben werden |
+| Empfänger | Betreiber (Admin-Übersicht); keine Personenlisten |
+| Drittland | nein |
+| Löschfrist | keine eigene Speicherung - die Zahlen entstehen bei jedem Abruf neu |
+
 ### 2.6 Betrieb der Server
 
 | | |
 |---|---|
 | Zweck | Auslieferung der Seite, Betrieb, Fehlersuche, Abwehr von Angriffen |
 | Betroffene | alle Besucher:innen |
-| Datenkategorien | IP-Adresse, Zeitpunkt, aufgerufene Adresse, Browserkennung; kurzzeitige Zählung der Anmeldeversuche je IP |
+| Datenkategorien | IP-Adresse, Zeitpunkt, aufgerufene Adresse, Browserkennung; kurzzeitige Zählung der Anmeldeversuche und der Aufrufe von Vereins-Einladungslinks je IP |
 | Empfänger | Cloudflare als vorgeschalteter Proxy (alle Anfragen, TLS endet dort), Contabo als Hoster |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. f |
 | Besonderheit | keine Zusammenführung mit Kontodaten, keine Auswertung des Nutzungsverhaltens |

@@ -12,6 +12,14 @@ public class Club : Entity
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
 
+    /// <summary>
+    /// Geheimer Teil des Einladungslinks (<c>/v/{code}</c>); null, solange der
+    /// Verein keinen hat oder der Link abgeschaltet ist. Wer den Code kennt,
+    /// kann eine Beitrittsanfrage stellen - mehr nicht, die Freigabe bleibt
+    /// beim Verein. Ein neuer Code ersetzt den alten, der damit ungültig wird.
+    /// </summary>
+    public string? InviteCode { get; set; }
+
     public ICollection<Group> Groups { get; set; } = new List<Group>();
     public ICollection<ClubTrainer> Trainers { get; set; } = new List<ClubTrainer>();
     public ICollection<ClubMembership> Memberships { get; set; } = new List<ClubMembership>();

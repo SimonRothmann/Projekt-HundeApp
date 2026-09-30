@@ -89,6 +89,23 @@ public class AccountDataServiceTests
     }
 
     [Fact]
+    public async Task Export_NenntDieHerkunftDerVereinsanfrage()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        lookup.Register(nutzer, "ich@test.de", "Max", "Muster");
+        var verein = new Club { Name = "Testverein" };
+        db.Clubs.Add(verein);
+        db.ClubMemberships.Add(new ClubMembership { ClubId = verein.Id, UserId = nutzer, Source = ClubMembershipSource.InviteLink });
+        await db.SaveChangesAsync();
+
+        var export = (await dienst.ExportAsync(nutzer)).Value!;
+
+        // Es ist eine Angabe über die Person - sie gehört in die Auskunft.
+        Assert.Equal("InviteLink", Assert.Single(export.Vereine).Herkunft);
+    }
+
+    [Fact]
     public async Task Export_EnthaeltKeineFremdenDaten()
     {
         var (dienst, db, lookup) = Aufsetzen();

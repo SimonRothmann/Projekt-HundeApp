@@ -11,8 +11,17 @@ public class FakeUserLookupService : IUserLookupService
 {
     private readonly Dictionary<Guid, (string Email, string FirstName, string LastName)> _users = [];
 
-    public void Register(Guid id, string email, string firstName = "", string lastName = "")
-        => _users[id] = (email, firstName, lastName);
+    private readonly Dictionary<Guid, DateTimeOffset> _createdAt = [];
+
+    /// <param name="createdAt">Anlegedatum des Kontos; ohne Angabe: jetzt.</param>
+    public void Register(Guid id, string email, string firstName = "", string lastName = "", DateTimeOffset? createdAt = null)
+    {
+        _users[id] = (email, firstName, lastName);
+        _createdAt[id] = createdAt ?? DateTimeOffset.UtcNow;
+    }
+
+    public Task<IReadOnlyList<Guid>> ListUserIdsCreatedSinceAsync(DateTimeOffset since, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<Guid>>(_users.Keys.Where(id => _createdAt[id] >= since).ToList());
 
     public Task<UserLookupResult?> FindByEmailAsync(string email, CancellationToken ct = default)
     {

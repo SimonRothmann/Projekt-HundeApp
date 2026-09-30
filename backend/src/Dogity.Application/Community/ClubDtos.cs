@@ -36,7 +36,18 @@ public record ClubMembershipDto(Guid Id, Guid ClubId, string ClubName, ClubMembe
 /// Mitgliedschaften. Wer die Liste ohne dieses Wissen anzeigt, bietet
 /// "Zum Trainer machen" auch bei denen an, die es längst sind.
 /// </summary>
-public record ClubMemberDto(Guid MembershipId, Guid UserId, string Email, string FirstName, string LastName, DateTimeOffset RequestedAt, DateTimeOffset? DecidedAt, bool IsTrainer);
+/// <param name="Source">Wie die Anfrage entstanden ist (numerisch: 0 = Liste, 1 = Einladungslink).</param>
+public record ClubMemberDto(Guid MembershipId, Guid UserId, string Email, string FirstName, string LastName, DateTimeOffset RequestedAt, DateTimeOffset? DecidedAt, bool IsTrainer, ClubMembershipSource Source);
 
 public record UpdateClubRequest(string? Name, string? Description);
 public record UpdateTrainerRoleRequest(ClubRole Role);
+
+/// <summary>Der Einladungscode eines Vereins - nur für dessen Trainer:innen sichtbar.</summary>
+public record ClubInviteLinkDto(string Code);
+
+/// <summary>
+/// Was die öffentliche Einladungsseite ohne Anmeldung zeigt: nur den Namen.
+/// Bewusst nichts weiter - wer den Link hat, soll nichts über Trainer:innen,
+/// Gruppen oder Mitglieder erfahren.
+/// </summary>
+public record ClubInvitePreviewDto(string ClubName);

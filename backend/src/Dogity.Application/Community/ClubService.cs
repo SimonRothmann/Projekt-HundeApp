@@ -285,7 +285,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         return Result<IReadOnlyList<ClubMembershipDto>>.Success(memberships);
     }
 
-    public async Task<Result<ClubMembershipDto>> RequestJoinAsync(Guid userId, Guid clubId, CancellationToken ct = default)
+    public async Task<Result<ClubMembershipDto>> RequestJoinAsync(Guid userId, Guid clubId, ClubMembershipSource source = ClubMembershipSource.Directory, CancellationToken ct = default)
     {
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
         if (club is null)
@@ -299,9 +299,19 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         if (existing is not null && existing.Status is ClubMembershipStatus.Pending or ClubMembershipStatus.Approved)
             return Result<ClubMembershipDto>.Failure("Du hast bereits eine Anfrage oder Mitgliedschaft für diesen Verein.");
 
-        var membership = new ClubMembership { ClubId = clubId, UserId = userId };
+        var membership = new ClubMembership { ClubId = clubId, UserId = userId, Source = source };
         db.ClubMemberships.Add(membership);
         await db.SaveChangesAsync(ct);
+
+        // Ohne Hinweis bliebe eine Anfrage liegen, bis zufällig jemand die
+        // Trainer-Seite öffnet - und über den Aushang am Vereinsheim kommen
+        // Anfragen gerade dann, wenn niemand danach schaut.
+        var trainerIds = await db.ClubTrainers
+            .Where(t => t.ClubId == clubId && t.UserId != userId)
+            .Select(t => t.UserId)
+            .ToListAsync(ct);
+        foreach (var trainerId in trainerIds)
+            await notifications.CreateAsync(trainerId, $"Neue Beitrittsanfrage für \"{club.Name}\".", "/trainer", ct);
 
         return Result<ClubMembershipDto>.Success(new ClubMembershipDto(membership.Id, clubId, club.Name, membership.Status, membership.RequestedAt, membership.DecidedAt));
     }
@@ -471,8 +481,8 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     {
         var istTrainer = trainerIds.Contains(m.UserId);
         return lookup.TryGetValue(m.UserId, out var info)
-            ? new ClubMemberDto(m.Id, m.UserId, info.Email, info.FirstName, info.LastName, m.RequestedAt, m.DecidedAt, istTrainer)
-            : new ClubMemberDto(m.Id, m.UserId, "(unbekannt)", "", "", m.RequestedAt, m.DecidedAt, istTrainer);
+            ? new ClubMemberDto(m.Id, m.UserId, info.Email, info.FirstName, info.LastName, m.RequestedAt, m.DecidedAt, istTrainer, m.Source)
+            : new ClubMemberDto(m.Id, m.UserId, "(unbekannt)", "", "", m.RequestedAt, m.DecidedAt, istTrainer, m.Source);
     }
 
     public async Task<Result<IReadOnlyList<ClubMemberDto>>> GetMembersAsync(Guid callerId, Guid clubId, CancellationToken ct = default)

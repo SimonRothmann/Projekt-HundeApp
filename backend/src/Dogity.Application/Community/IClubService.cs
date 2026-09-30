@@ -39,8 +39,11 @@ public interface IClubService
     /// <summary>Eigene Mitgliedschaften/Beitrittsanfragen des aufrufenden Users, über alle Vereine.</summary>
     Task<Result<IReadOnlyList<ClubMembershipDto>>> GetMyMembershipsAsync(Guid userId, CancellationToken ct = default);
 
-    /// <summary>Beitritt zu einem Verein anfragen (legt eine Pending-Mitgliedschaft an).</summary>
-    Task<Result<ClubMembershipDto>> RequestJoinAsync(Guid userId, Guid clubId, CancellationToken ct = default);
+    /// <summary>
+    /// Beitritt zu einem Verein anfragen (legt eine Pending-Mitgliedschaft an).
+    /// <paramref name="source"/> hält fest, auf welchem Weg die Anfrage kam.
+    /// </summary>
+    Task<Result<ClubMembershipDto>> RequestJoinAsync(Guid userId, Guid clubId, ClubMembershipSource source = ClubMembershipSource.Directory, CancellationToken ct = default);
 
     /// <summary>Offene Beitrittsanfragen eines Vereins - nur für Trainer dieses Vereins.</summary>
     Task<Result<IReadOnlyList<ClubMemberDto>>> GetJoinRequestsAsync(Guid callerId, Guid clubId, CancellationToken ct = default);

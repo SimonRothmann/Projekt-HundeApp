@@ -57,7 +57,7 @@ export function SubpageBackButton() {
   return (
     <Link
       href={target}
-      className="mb-4 inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-[0.97] coarse:min-h-11"
+      className="mb-4 inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-[0.97] coarse:min-h-11 print:hidden"
     >
       <ArrowLeft className="size-4" />
 {t("Zurück")}

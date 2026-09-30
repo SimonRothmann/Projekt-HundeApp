@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { Goal, Regulation, Sport } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { findeStartPo, leseStartPo, loescheStartPo } from "@/lib/start-po";
 
 import { useT } from "@/lib/i18n";
 /**
@@ -35,7 +36,76 @@ export function GoalCreateForm({
   const [isCustom, setIsCustom] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Hat die Person selbst gewählt, darf die Vorauswahl vom Start über die
+  // Prüfungsordnungs-Seite nicht mehr dazwischenfunken - auch nicht, wenn ihre
+  // Antwort erst danach eintrifft.
+  const selbstGewaehlt = useRef(false);
+  const vorausgewaehlt = useRef(false);
+
+  // Sportart aus dem Katalog, die zur Vorauswahl gehört, aber beim Hund nicht
+  // angeboten wird (etwa weil im Erststart schon eine andere gewählt wurde).
+  // Sie wird nur in der Auswahl mit angezeigt - aktiviert wird dadurch nichts.
+  const [zusatzSport, setZusatzSport] = useState<Sport | null>(null);
+
+  useEffect(() => {
+    // Wer über "Kostenlos starten" auf einer Prüfungsordnungs-Seite kam, hat
+    // dort ein Kürzel hinterlassen (lib/start-po.ts). Passt es zu einer
+    // Prüfung, sind Sportart und Prüfung schon gewählt - mehr nicht: Es wird
+    // nichts angelegt oder aktiviert, die Person legt das Ziel selbst an.
+    const kuerzel = leseStartPo();
+    if (!kuerzel || vorausgewaehlt.current) return;
+
+    let abgebrochen = false;
+    (async () => {
+      try {
+        // Der Abgleich läuft gegen den ganzen Katalog, nicht gegen die
+        // Sportarten des Hundes: Die Prüfung soll auch dann gefunden werden,
+        // wenn ihre Sportart hier (noch) nicht angeboten wird. Nur die
+        // globalen zählen - der öffentliche Katalog, der die Kürzel vergibt,
+        // kennt keine vereinseigenen.
+        const alle = await api.get<Sport[]>("/api/sports");
+        const global = alle.filter((s) => s.clubId === null);
+        // Liste leer: Es gibt nichts zu vergleichen, also auch nichts zu
+        // verwerfen.
+        if (global.length === 0) return;
+        const katalog = await Promise.all(
+          global.map(async (sport) => ({
+            sport,
+            regulations: await api.get<Regulation[]>(`/api/sports/${sport.id}/regulations`),
+          })),
+        );
+        if (abgebrochen) return;
+        const treffer = findeStartPo(kuerzel, katalog);
+        // Ein Kürzel, das zu nichts passt (Prüfung umbenannt, Link von Hand
+        // geändert), wird nicht ewig mitgeschleppt.
+        if (!treffer) {
+          loescheStartPo();
+          return;
+        }
+        if (selbstGewaehlt.current) return;
+        vorausgewaehlt.current = true;
+        const gefunden = katalog.find((k) => k.sport.id === treffer.sportId);
+        setZusatzSport(gefunden?.sport ?? null);
+        setSportId(treffer.sportId);
+        setRegulations(gefunden?.regulations ?? []);
+        setRegulationId(treffer.regulationId);
+      } catch {
+        // Kein Netz: Das Kürzel bleibt, beim nächsten Öffnen klappt es. Die
+        // Vorauswahl ist eine Hilfe, keine Voraussetzung.
+      }
+    })();
+    return () => {
+      abgebrochen = true;
+    };
+    // Bewusst nur beim Öffnen: Die Elternseite reicht `sports` bei jedem
+    // Rendern neu durch, ein Neustart würde die Abrufe ständig abbrechen.
+  }, []);
+
+  const sportOptionen =
+    zusatzSport && !sports.some((s) => s.id === zusatzSport.id) ? [...sports, zusatzSport] : sports;
+
   async function handleSportChange(value: string) {
+    selbstGewaehlt.current = true;
     setSportId(value);
     setRegulationId("");
     setRegulations([]);
@@ -66,6 +136,10 @@ export function GoalCreateForm({
           ? t("Individueller Plan angelegt - füge jetzt Wochenübungen hinzu.")
           : t("Ziel angelegt - Trainingsplan wurde generiert."),
       );
+      // Das Ziel steht - die Vorauswahl hat ihren Zweck erfüllt. Gleich wie
+      // auch immer gewählt wurde: Ein Ziel reicht, es soll nicht beim
+      // nächsten Hund wieder auftauchen.
+      loescheStartPo();
       await onCreated();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Ziel konnte nicht angelegt werden."));
@@ -100,7 +174,7 @@ export function GoalCreateForm({
                   <SelectValue placeholder={t("Auswählen…")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {sports.map((s) => (
+                  {sportOptionen.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.name}
                     </SelectItem>

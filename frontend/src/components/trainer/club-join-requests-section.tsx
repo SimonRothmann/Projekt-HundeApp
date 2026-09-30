@@ -101,9 +101,13 @@ export function ClubJoinRequestsSection({ clubs }: { clubs: Club[] }) {
           <ul className="flex flex-col gap-2">
             {requests.map((r) => (
               <li key={r.membershipId} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
-                <span className="min-w-0 text-sm [overflow-wrap:anywhere]">
-                  {r.firstName} {r.lastName} ({r.email})
-                </span>
+                <div className="flex min-w-0 flex-col items-start gap-1">
+                  <span className="min-w-0 text-sm [overflow-wrap:anywhere]">
+                    {r.firstName} {r.lastName} ({r.email})
+                  </span>
+                  {/* 1 = über den Einladungslink bzw. QR-Code des Vereins */}
+                  {r.source === 1 && <Badge variant="outline">{t("über Einladungslink")}</Badge>}
+                </div>
                 <div className="flex shrink-0 gap-2">
                   <Button size="icon-sm" variant="outline" onClick={() => handleDecide(r.membershipId, true)} title="Annehmen">
                     <Check className="size-4" />

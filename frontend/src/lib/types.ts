@@ -344,6 +344,7 @@ export type ClubMemberInfo = {
   decidedAt: string | null;
   /** Ob die Person zugleich Trainer:in dieses Vereins ist (siehe ClubMemberRequest). */
   isTrainer: boolean;
+  source: ClubMembershipSource;
 };
 
 export type ClubDetail = {
@@ -407,6 +408,19 @@ export type AdminStats = {
   groupCount: number;
   trainingSessionCount: number;
   gpsTrackCount: number;
+  last30Days: AdminRecentStats;
+};
+
+/** Zählungen der letzten 30 Tage - keine Personen (siehe AdminRecentStatsDto). */
+export type AdminRecentStats = {
+  newAccounts: number;
+  /** Die folgenden vier sind Teilmengen der neuen Konten. */
+  withDog: number;
+  inClub: number;
+  withGoal: number;
+  viaClubLink: number;
+  /** Alle Konten (nicht nur neue) mit einem in den 30 Tagen angelegten Training oder einer Fährte. */
+  activeAccounts: number;
 };
 
 export type AdminUser = {
@@ -434,6 +448,15 @@ export type ClubSummary = {
 
 export type ClubMembershipStatus = 0 | 1 | 2; // 0 = Pending, 1 = Approved, 2 = Rejected
 
+/** Auf welchem Weg eine Beitrittsanfrage kam. Numerisch, wie alle Aufzählungen der API. */
+export type ClubMembershipSource = 0 | 1; // 0 = Directory (Vereinsliste), 1 = InviteLink
+
+/** Einladungscode eines Vereins (GET/POST /api/clubs/{id}/invite-link). */
+export type ClubInviteLink = { code: string };
+
+/** Was die öffentliche Einladungsseite ohne Anmeldung erfährt: nur den Namen. */
+export type ClubInvitePreview = { clubName: string };
+
 export type ClubMembership = {
   id: string;
   clubId: string;
@@ -457,6 +480,8 @@ export type ClubMemberRequest = {
    * Mitgliedschaften, das lässt sich hier nicht herleiten.
    */
   isTrainer: boolean;
+  /** Wie die Anfrage entstanden ist - der Einladungslink bekommt eine Kennzeichnung. */
+  source: ClubMembershipSource;
 };
 
 export type GpsPointType = 0 | 1; // 0 = Automatic, 1 = Manual (siehe Domain.Tracking.GpsPointType)

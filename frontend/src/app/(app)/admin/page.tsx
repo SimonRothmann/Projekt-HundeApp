@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Dog, Users2, ClipboardList, MapPin, ScrollText, Lock, Unlock, Trash2, ChevronLeft, ChevronRight, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { ClubsSection } from "@/components/admin/clubs-section";
+import { Letzte30TageSection } from "@/components/admin/letzte-30-tage-section";
 import { VereinsantraegeSection } from "@/components/admin/vereinsantraege-section";
 import { CatalogSection } from "@/components/sports/catalog-section";
 import { RegulationImportSection } from "@/components/admin/regulation-import-section";
@@ -177,6 +178,8 @@ export default function AdminPage() {
           <StatCard icon={MapPin} label={t("Fährten")} value={stats.gpsTrackCount} />
         </div>
       )}
+
+      {stats && <Letzte30TageSection stats={stats} />}
 
       <CatalogSection
         scope={{ kind: "global" }}

@@ -50,6 +50,24 @@ public class ClubServiceTests
     }
 
     [Fact]
+    public async Task RequestJoin_NotifiesClubTrainers()
+    {
+        var service = MakeService(out var db, out var notifications);
+        var trainerId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        var club = new Club { Name = "Testverein" };
+        db.Clubs.Add(club);
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Training });
+        await db.SaveChangesAsync();
+
+        await service.RequestJoinAsync(memberId, club.Id);
+
+        var hinweis = Assert.Single(notifications.Created);
+        Assert.Equal(trainerId, hinweis.UserId);
+        Assert.Equal("/trainer", hinweis.LinkPath);
+    }
+
+    [Fact]
     public async Task RequestJoin_AlreadyPending_Fails()
     {
         var (_, memberId, _, clubId, service) = await SetupDefaultClubAsync();

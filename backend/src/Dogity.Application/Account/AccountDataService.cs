@@ -223,7 +223,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     mitgliedschaft?.Status.ToString() ?? "-",
                     mitgliedschaft?.RequestedAt ?? default,
                     mitgliedschaft?.DecidedAt,
-                    vereinstrainer.Contains(vereinId));
+                    vereinstrainer.Contains(vereinId),
+                    mitgliedschaft?.Source.ToString() ?? "-");
             }).ToList(),
             gruppenmitglied.Select(m => new GruppeExportDto(
                 m.GroupId,

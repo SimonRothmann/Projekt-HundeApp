@@ -115,7 +115,7 @@ export default function DatenschutzPage() {
           <p className="font-medium text-foreground">Verein und Gruppen</p>
           <Liste
             punkte={[
-              "Mitgliedschaften und Beitrittsanfragen samt Status",
+              "Mitgliedschaften und Beitrittsanfragen samt Status und der Angabe, ob die Anfrage über den Einladungslink oder QR-Code des Vereins kam",
               "Trainerrollen, Gruppenzugehörigkeit und die Zuordnung zwischen Trainer:in und Hund",
               "geplante Gruppentrainings, an denen du teilnimmst oder die du leitest",
             ]}
@@ -172,6 +172,7 @@ export default function DatenschutzPage() {
               "die zuletzt gewählte Kartenart, die Schriftgröße und welchen Neuerungs-Hinweis du schon gesehen hast",
               "zuletzt geladene Hunde, Trainings, Ziele, Statistik und Hundebilder als Zwischenspeicher, damit die App schnell startet und auch ohne Verbindung etwas zeigt – beim Abmelden und beim Anmelden einer anderen Person wird er gelöscht; dafür merkt sich die App die interne Kennung der zuletzt angemeldeten Person",
               "noch nicht abgeschickte Einträge, solange du offline bist – sie gehen an den Server, sobald wieder Verbindung besteht, und zwar nur mit deiner eigenen Anmeldung; meldest du dich vorher ab, bleiben sie bis zu deiner nächsten Anmeldung auf dem Gerät",
+              "das Kürzel einer Prüfungsordnung, wenn du dich über deren öffentliche Seite registriert hast – nur bis du dein erstes Ziel angelegt hast; es wählt dort die Prüfung vor, mehr nicht",
               "eine laufende GPS-Aufzeichnung samt Standorten, damit sie ein Neuladen oder Absturz der App übersteht – sie wird gelöscht, sobald sie gespeichert oder verworfen ist",
             ]}
           />
@@ -274,7 +275,8 @@ export default function DatenschutzPage() {
             punkte={[
               "Mitbesitzer:innen eines Hundes sehen dessen Tagebuch vollständig. Mitbesitzer:in wird nur, wer eine Einladung annimmt. Bis dahin sieht die einladende Person nur die E-Mail-Adresse, die sie selbst eingegeben hat, und die eingeladene Person nur den Namen des Hundes und wer einlädt. Den eigenen Mitbesitz kannst du jederzeit beenden.",
               "Trainer:innen einer Gruppe, der du selbst beigetreten bist oder deren Einladung du angenommen hast, können deine Hunde betreuen. Sie sehen dann deren Trainings, Ziele und Fährten und können Rückmeldung geben. Du wirst benachrichtigt, sobald jemand einen deiner Hunde betreut; verlässt du die Gruppe, endet die Betreuung.",
-              "Die Vereinsverwaltung sieht Mitgliedschaften, Gruppenzugehörigkeit und Namen ihrer Mitglieder – nicht deren Trainingstagebuch.",
+              "Die Vereinsverwaltung sieht Mitgliedschaften, Gruppenzugehörigkeit und Namen ihrer Mitglieder – nicht deren Trainingstagebuch. Bei einer Beitrittsanfrage sieht sie auch, ob sie über den Einladungslink des Vereins kam.",
+              "Der Betreiber sieht in der Verwaltung zusammengezählte Kennzahlen, etwa wie viele der Konten der letzten 30 Tage einen Hund angelegt haben. Das sind Zahlen, keine Personen; dafür wird nichts im Browser gemessen.",
               "Wer dich in eine Gruppe, als Trainer:in einer Gruppe oder als Mitbesitzer:in eines Hundes einlädt, sieht bis zu deiner Zusage nur die E-Mail-Adresse, die dabei eingegeben wurde – nicht deinen Namen. Lehnst du ab, bleibt es dabei.",
               "Der Betreiber kann aus technischen Gründen auf die Datenbank zugreifen, tut das aber nur zur Fehlersuche und zum Betrieb.",
             ]}

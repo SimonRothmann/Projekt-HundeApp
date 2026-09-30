@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { api, ApiError, REFRESH_KEY, TOKEN_KEY, USER_KEY } from "@/lib/api";
 import { alleSicherungenLoeschen } from "@/lib/aufzeichnung-sicherung";
 import { leseCacheLeeren } from "@/lib/read-cache";
+import { loescheStartPo } from "@/lib/start-po";
 import type { AuthResponse } from "@/lib/types";
 
 type AuthUser = Pick<AuthResponse, "userId" | "email" | "firstName" | "lastName" | "roles">;
@@ -167,6 +168,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.localStorage.removeItem(USER_KEY);
     window.localStorage.removeItem(REFRESH_KEY);
     alleSicherungenLoeschen();
+    // Die gemerkte Prüfung vom Start gehört zur Person, nicht zum Gerät.
+    loescheStartPo();
     // Hundeliste, Statistik, Tagebücher, Hundebilder - nichts davon bleibt
     // für die nächste Person am Gerät stehen. Noch nicht übertragene
     // Einträge bleiben dagegen: Sie gehören der Person (siehe

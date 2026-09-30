@@ -82,6 +82,18 @@ export async function getRegulationDetail(regulationId: string): Promise<Regulat
 }
 
 /**
+ * Der Bezeichner einer Prüfungsordnung (siehe getCatalog). Eine Stelle, weil
+ * auch die Vorauswahl beim ersten Ziel (lib/start-po.ts) dieselben Bezeichner
+ * herleiten muss - eine zweite Kopie der Regel liefe auseinander.
+ */
+export function vergebeKuerzel(regulation: Pick<Regulation, "id" | "name">, vergeben: Set<string>): string {
+  let slug = slugify(regulation.name);
+  if (!slug || vergeben.has(slug)) slug = `${slug}-${regulation.id.slice(0, 8)}`;
+  vergeben.add(slug);
+  return slug;
+}
+
+/**
  * Alle Prüfungsordnungen mit ihrer Sportart und einem sprechenden Bezeichner.
  *
  * Der Bezeichner kommt aus dem Namen, nicht aus der ID: "/pruefungsordnung/igp-1"
@@ -96,10 +108,7 @@ export async function getCatalog(): Promise<CatalogEntry[]> {
 
   for (const sport of sports) {
     for (const regulation of await getRegulations(sport.id)) {
-      let slug = slugify(regulation.name);
-      if (!slug || used.has(slug)) slug = `${slug}-${regulation.id.slice(0, 8)}`;
-      used.add(slug);
-      entries.push({ slug, sport, regulation });
+      entries.push({ slug: vergebeKuerzel(regulation, used), sport, regulation });
     }
   }
 

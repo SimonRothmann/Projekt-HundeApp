@@ -37,6 +37,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<string>("InviteCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -46,6 +50,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InviteCode")
+                        .IsUnique()
+                        .HasFilter("\"InviteCode\" IS NOT NULL AND \"InviteCode\" <> ''");
 
                     b.ToTable("clubs", (string)null);
                 });
@@ -73,6 +81,11 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("RequestedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Status")
                         .IsRequired()

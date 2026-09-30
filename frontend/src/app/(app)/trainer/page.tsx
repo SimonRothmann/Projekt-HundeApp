@@ -14,6 +14,7 @@ import { Users, Plus, ClipboardList, ChevronRight, CalendarDays } from "lucide-r
 import { toast } from "sonner";
 import { CatalogSection } from "@/components/sports/catalog-section";
 import { ClubJoinRequestsSection } from "@/components/trainer/club-join-requests-section";
+import { ClubInviteSection } from "@/components/trainer/club-invite-section";
 import { ClubMembersSection } from "@/components/trainer/club-members-section";
 import { GroupJoinRequestsSection } from "@/components/trainer/group-join-requests-section";
 import { SupervisedDogsSection } from "@/components/trainer/supervised-dogs-section";
@@ -93,6 +94,10 @@ export default function TrainerPage() {
           was zu bewerten ist. */}
       <SupervisedDogsSection />
       <TrainerReviewSection />
+
+      {/* Der Einladungslink steht hinter dem, was täglich gebraucht wird: Er
+          ist selten dran, dann aber gern mit QR-Code am Vereinsheim. */}
+      {myClubs.length > 0 && <ClubInviteSection clubs={myClubs} />}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Link href="/trainer/group-training">

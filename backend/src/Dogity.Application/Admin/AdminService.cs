@@ -1,6 +1,8 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Account;
 using Dogity.Application.Common;
+using Dogity.Domain.Community;
+using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Admin;
@@ -18,6 +20,9 @@ public class AdminService(
     IRefreshTokenService refreshTokens,
     IAccountDataService accountData) : IAdminService
 {
+    /// <summary>Zeitraum der Kennzahlen "Die letzten 30 Tage".</summary>
+    private const int ZeitraumTage = 30;
+
     public async Task<Result<AdminStatsDto>> GetStatsAsync(CancellationToken ct = default)
     {
         var stats = new AdminStatsDto(
@@ -25,9 +30,84 @@ public class AdminService(
             await db.Dogs.CountAsync(ct),
             await db.Groups.CountAsync(ct),
             await db.TrainingSessions.CountAsync(ct),
-            await db.GpsTracks.CountAsync(ct));
+            await db.GpsTracks.CountAsync(ct),
+            await GetRecentStatsAsync(ct));
 
         return Result<AdminStatsDto>.Success(stats);
+    }
+
+    /// <summary>
+    /// Zählt, was aus den neuen Konten der letzten 30 Tage geworden ist.
+    ///
+    /// Nur Zahlen, nie Personen: Es wird über Nutzer-Ids gezählt, und keine
+    /// davon verlässt diese Methode. Jede Teilmenge zählt VERSCHIEDENE Konten,
+    /// nicht Zeilen - wer zwei Hunde hat, ist ein Konto mit Hund.
+    ///
+    /// Definitionen:
+    /// - Neue Konten: ApplicationUser.CreatedAt in den letzten 30 Tagen.
+    /// - Mit Hund: aktive DogOwner-Zeile (der globale Filter blendet entfernte
+    ///   und noch nicht angenommene Einladungen aus) zu einem Hund, der selbst
+    ///   nicht gelöscht ist.
+    /// - Im Verein: ClubMembership mit Status Approved (nicht abgelehnt, nicht
+    ///   offen, nicht verlassen).
+    /// - Mit Prüfungsziel: Ziel (Active oder Achieved, nicht Cancelled) für
+    ///   einen Hund, dem das Konto aktiv gehört.
+    /// - Über Vereinslink: ClubMembership mit Source InviteLink, in jedem
+    ///   Status und auch nach dem Austritt - gemessen wird, wer über den Link
+    ///   kam, nicht wer geblieben ist.
+    ///
+    /// Aktive Konten: Die Person, die etwas anlegt, steht bei einem
+    /// Trainingseintrag in TrainingSession.UserId. Eine Fährte (GpsTrack) hat
+    /// kein eigenes Personenfeld, sie hängt über TrainingSessionId an einem
+    /// Training und gehört der Person, die dieses Training angelegt hat.
+    /// Gezählt werden die verschiedenen UserIds aus Trainings, deren CreatedAt,
+    /// und aus Fährten, deren CreatedAt in den letzten 30 Tagen liegt - das
+    /// Datum des Trainings selbst (nachgetragene Einheiten) zählt nicht, es
+    /// geht um das Anlegen. Gelöschte Trainings und Fährten zählen nicht mit.
+    /// Anders als die übrigen Zahlen umfasst das ALLE Konten, nicht nur die
+    /// neuen.
+    /// </summary>
+    private async Task<AdminRecentStatsDto> GetRecentStatsAsync(CancellationToken ct)
+    {
+        var since = DateTimeOffset.UtcNow.AddDays(-ZeitraumTage);
+        var neu = await userLookup.ListUserIdsCreatedSinceAsync(since, ct);
+
+        var mitHund = await db.DogOwners
+            .Where(o => neu.Contains(o.UserId) && db.Dogs.Any(d => d.Id == o.DogId))
+            .Select(o => o.UserId)
+            .Distinct()
+            .CountAsync(ct);
+
+        var imVerein = await db.ClubMemberships
+            .Where(m => neu.Contains(m.UserId) && m.Status == ClubMembershipStatus.Approved)
+            .Select(m => m.UserId)
+            .Distinct()
+            .CountAsync(ct);
+
+        var mitZiel = await db.DogOwners
+            .Where(o => neu.Contains(o.UserId)
+                && db.Goals.Any(g => g.DogId == o.DogId && g.Status != GoalStatus.Cancelled)
+                && db.Dogs.Any(d => d.Id == o.DogId))
+            .Select(o => o.UserId)
+            .Distinct()
+            .CountAsync(ct);
+
+        var ueberLink = await db.ClubMemberships
+            .IgnoreQueryFilters()
+            .Where(m => neu.Contains(m.UserId) && m.Source == ClubMembershipSource.InviteLink)
+            .Select(m => m.UserId)
+            .Distinct()
+            .CountAsync(ct);
+
+        var ausTrainings = db.TrainingSessions
+            .Where(s => s.CreatedAt >= since)
+            .Select(s => s.UserId);
+        var ausFaehrten = db.GpsTracks
+            .Where(t => t.CreatedAt >= since)
+            .Join(db.TrainingSessions, t => t.TrainingSessionId, s => s.Id, (t, s) => s.UserId);
+        var aktiv = await ausTrainings.Union(ausFaehrten).CountAsync(ct);
+
+        return new AdminRecentStatsDto(neu.Count, mitHund, imVerein, mitZiel, ueberLink, aktiv);
     }
 
     public async Task<Result<AdminUserPageDto>> GetUsersAsync(int page = 1, int pageSize = 50, CancellationToken ct = default)

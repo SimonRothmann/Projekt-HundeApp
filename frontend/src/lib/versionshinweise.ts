@@ -61,6 +61,29 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.20",
+    datum: "2026-09-30",
+    titel: uebersetzbar("Dein Verein lädt dich per QR-Code ein"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Vereine können jetzt einen Einladungslink mit QR-Code erstellen. Wer ihn öffnet, landet direkt bei der Beitrittsanfrage, und der Verein gibt jede Anfrage weiterhin selbst frei. Du findest die Karte „Neue Mitglieder einladen“ in der Trainer-Übersicht."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Für das Vereinsheim gibt es einen Aushang zum Ausdrucken: großer QR-Code, drei kurze Schritte und der Link als Text. Der Link lässt sich jederzeit ersetzen oder abschalten."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Trainer:innen eines Vereins bekommen jetzt eine Benachrichtigung, sobald jemand beitreten möchte, und sehen in der Liste, wer über den Einladungslink gekommen ist."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Wer sich über „Kostenlos starten“ auf der Seite einer Prüfungsordnung registriert, findet beim ersten Ziel die passende Sportart und Prüfung schon vorgewählt."),
+      },
+    ],
+  },
+  {
     version: "0.19",
     datum: "2026-09-28",
     titel: uebersetzbar("Mitbesitz nur noch mit Zustimmung"),

@@ -129,7 +129,8 @@ public record VereinExportDto(
     string Status,
     DateTimeOffset BeantragtAm,
     DateTimeOffset? EntschiedenAm,
-    bool IstTrainer);
+    bool IstTrainer,
+    string Herkunft);
 
 public record GruppeExportDto(
     Guid GruppeId,

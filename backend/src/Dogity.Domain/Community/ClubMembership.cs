@@ -10,6 +10,18 @@ public enum ClubMembershipStatus
 }
 
 /// <summary>
+/// Auf welchem Weg die Beitrittsanfrage entstanden ist. Nur zur Anzeige für
+/// die Trainer:innen und zur Auswertung - an den Rechten ändert es nichts.
+/// </summary>
+public enum ClubMembershipSource
+{
+    /// <summary>Aus der Vereinsliste angefragt (oder direkt aufgenommen).</summary>
+    Directory,
+    /// <summary>Über den Einladungslink bzw. QR-Code des Vereins.</summary>
+    InviteLink
+}
+
+/// <summary>
 /// Allgemeine Vereinsmitgliedschaft eines Nutzers, unabhängig von
 /// Trainingsgruppen (siehe <see cref="Group"/>/<see cref="GroupMember"/>,
 /// die nur die Zuordnung zu einer einzelnen Trainingsgruppe abbilden, nicht
@@ -25,6 +37,7 @@ public class ClubMembership : Entity
 
     public Guid UserId { get; set; }
     public ClubMembershipStatus Status { get; set; } = ClubMembershipStatus.Pending;
+    public ClubMembershipSource Source { get; set; } = ClubMembershipSource.Directory;
     public DateTimeOffset RequestedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? DecidedAt { get; set; }
     public Guid? DecidedByUserId { get; set; }

@@ -16,6 +16,12 @@ public interface IUserLookupService
     Task<UserLookupResult?> FindByEmailAsync(string email, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, UserLookupResult>> FindByIdsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default);
     Task<int> CountAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Die Ids der Konten, die seit <paramref name="since"/> angelegt wurden.
+    /// Nur Ids, keine Personen: Die Admin-Kennzahlen zählen, sie zeigen niemanden.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> ListUserIdsCreatedSinceAsync(DateTimeOffset since, CancellationToken ct = default);
     Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, CancellationToken ct = default);
 
     /// <summary>Sperrt einen Benutzer dauerhaft (kein Login mehr möglich). False, falls Benutzer nicht existiert.</summary>

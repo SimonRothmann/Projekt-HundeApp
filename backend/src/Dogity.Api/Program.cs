@@ -120,6 +120,20 @@ builder.Services.AddRateLimiter(options =>
                 PermitLimit = 60,
                 Window = TimeSpan.FromMinutes(1),
             }));
+
+    // Öffentliche Einladungsseite der Vereine (ohne Anmeldung erreichbar) und
+    // der Beitritt darüber. Ein QR-Code am Vereinsheim wird von vielen auf
+    // einmal gescannt, die hinter demselben WLAN dieselbe IP haben - daher
+    // weiter als "auth", aber begrenzt, damit sich Codes nicht ausprobieren
+    // lassen.
+    options.AddPolicy("invite", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+            }));
 });
 
 builder.Services.AddCors(options =>

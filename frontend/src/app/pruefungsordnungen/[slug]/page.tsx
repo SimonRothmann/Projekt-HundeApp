@@ -151,7 +151,12 @@ export default async function RegulationPage({ params }: Params) {
             In Dogity lässt sich {entry.regulation.name} als Ziel setzen. Daraus entsteht ein Wochenplan, der schwache
             Übungen häufiger einplant, und jedes Training wird mit Bewertung und Notizen festgehalten.
           </p>
-          <Link href="/register" className={cn(buttonVariants({ size: "lg" }), "mt-5 inline-flex h-11 px-6 text-sm")}>
+          {/* Nur das Kürzel geht mit: Die Registrierung merkt es sich und wählt beim
+              ersten Ziel diese Prüfung vor (siehe lib/start-po.ts). */}
+          <Link
+            href={`/register?po=${encodeURIComponent(slug)}`}
+            className={cn(buttonVariants({ size: "lg" }), "mt-5 inline-flex h-11 px-6 text-sm")}
+          >
             Kostenlos starten
           </Link>
         </section>

@@ -10,6 +10,13 @@ public class ClubConfiguration : IEntityTypeConfiguration<Club>
     {
         builder.ToTable("clubs");
         builder.Property(c => c.Name).HasMaxLength(150).IsRequired();
+
+        // Nur über gesetzte Codes eindeutig: Vereine ohne Link haben null (oder
+        // leer) und dürfen sich darin beliebig oft gleichen.
+        builder.Property(c => c.InviteCode).HasMaxLength(32);
+        builder.HasIndex(c => c.InviteCode)
+            .IsUnique()
+            .HasFilter("\"InviteCode\" IS NOT NULL AND \"InviteCode\" <> ''");
     }
 }
 
@@ -102,6 +109,7 @@ public class ClubMembershipConfiguration : IEntityTypeConfiguration<ClubMembersh
     {
         builder.ToTable("club_memberships");
         builder.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(m => m.Source).HasConversion<string>().HasMaxLength(20);
 
         builder.HasOne(m => m.Club)
             .WithMany(c => c.Memberships)

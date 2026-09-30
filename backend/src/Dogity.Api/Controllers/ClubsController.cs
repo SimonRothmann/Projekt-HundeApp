@@ -1,5 +1,7 @@
 using Dogity.Application.Community;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dogity.Api.Controllers;
 
@@ -13,7 +15,11 @@ namespace Dogity.Api.Controllers;
 /// Trainer ohne Mitgliedschaftsvoraussetzung zuweisen).
 /// </summary>
 [Route("api/clubs")]
-public class ClubsController(IClubService clubService, IGroupService groupService, IClubRegistrationService registrations) : ApiControllerBase
+public class ClubsController(
+    IClubService clubService,
+    IGroupService groupService,
+    IClubRegistrationService registrations,
+    IClubInviteService invites) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ClubSummaryDto>>> GetClubs(CancellationToken ct)
@@ -32,7 +38,7 @@ public class ClubsController(IClubService clubService, IGroupService groupServic
     [HttpPost("{id:guid}/join-requests")]
     public async Task<ActionResult<ClubMembershipDto>> RequestJoin(Guid id, CancellationToken ct)
     {
-        var result = await clubService.RequestJoinAsync(CurrentUserId, id, ct);
+        var result = await clubService.RequestJoinAsync(CurrentUserId, id, ct: ct);
         return FromResult(result);
     }
 
@@ -127,6 +133,46 @@ public class ClubsController(IClubService clubService, IGroupService groupServic
     [HttpPut("{id:guid}/trainers/{userId:guid}/role")]
     public async Task<IActionResult> UpdateTrainerRole(Guid id, Guid userId, UpdateTrainerRoleRequest request, CancellationToken ct) =>
         FromResult(await clubService.UpdateTrainerRoleAsync(CurrentUserId, IsAdmin, id, userId, request.Role, ct));
+
+    /// <summary>
+    /// Der Einladungscode des Vereins, oder 204, wenn es keinen gibt. Für
+    /// Trainer:innen - dieselben, die Beitrittsanfragen entscheiden dürfen.
+    /// </summary>
+    [HttpGet("{id:guid}/invite-link")]
+    public async Task<ActionResult<ClubInviteLinkDto>> GetInviteLink(Guid id, CancellationToken ct)
+    {
+        var result = await invites.GetAsync(CurrentUserId, id, ct);
+        if (result.Succeeded && result.Value is null) return NoContent();
+        return FromResult(result)!;
+    }
+
+    /// <summary>Neuen Code erzeugen. Der alte wird damit ungültig.</summary>
+    [HttpPost("{id:guid}/invite-link")]
+    public async Task<ActionResult<ClubInviteLinkDto>> CreateInviteLink(Guid id, CancellationToken ct) =>
+        FromResult(await invites.RegenerateAsync(CurrentUserId, id, ct));
+
+    /// <summary>Einladungslink abschalten.</summary>
+    [HttpDelete("{id:guid}/invite-link")]
+    public async Task<IActionResult> DisableInviteLink(Guid id, CancellationToken ct) =>
+        FromResult(await invites.DisableAsync(CurrentUserId, id, ct));
+
+    /// <summary>
+    /// Öffentlich: Vereinsname zum Einladungscode, für die Seite hinter dem
+    /// QR-Code. Eigene Drosselung je IP, damit sich Codes nicht durchprobieren
+    /// lassen - bei 128 Bit Zufall ohnehin aussichtslos, aber der Endpunkt
+    /// soll auch keine Last erzeugen.
+    /// </summary>
+    [HttpGet("invite/{code}")]
+    [AllowAnonymous]
+    [EnableRateLimiting("invite")]
+    public async Task<ActionResult<ClubInvitePreviewDto>> GetInvitePreview(string code, CancellationToken ct) =>
+        FromResult(await invites.GetPreviewAsync(code, ct));
+
+    /// <summary>Beitritt über den Einladungslink anfragen (angemeldet). Die Freigabe bleibt beim Verein.</summary>
+    [HttpPost("invite/{code}/join")]
+    [EnableRateLimiting("invite")]
+    public async Task<ActionResult<ClubMembershipDto>> JoinViaInvite(string code, CancellationToken ct) =>
+        FromResult(await invites.JoinAsync(CurrentUserId, code, ct));
 
     [HttpGet("{id:guid}/groups")]
     public async Task<ActionResult<IReadOnlyList<GroupDto>>> GetClubGroups(Guid id, CancellationToken ct)
