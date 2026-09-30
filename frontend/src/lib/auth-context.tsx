@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, ApiError, REFRESH_KEY, TOKEN_KEY, USER_KEY } from "@/lib/api";
 import { alleSicherungenLoeschen } from "@/lib/aufzeichnung-sicherung";
+import { loescheGesehen } from "@/lib/feedback-gesehen";
+import { abrufFaellig } from "@/lib/glocke";
 import { leseCacheLeeren } from "@/lib/read-cache";
 import { loescheStartPo } from "@/lib/start-po";
 import type { AuthResponse } from "@/lib/types";
@@ -80,7 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     let cancelled = false;
+    let letzterAbruf = 0;
     function fetchUnreadCount() {
+      letzterAbruf = Date.now();
       api
         .get<number>("/api/notifications/unread-count")
         .then((count) => {
@@ -95,9 +99,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Kein WebSocket/SignalR (siehe Plan) - einfaches Polling reicht für die
     // Vereinsgröße dieser App, analog zum isTrainer-Abruf-Muster oben.
     const interval = setInterval(fetchUnreadCount, 60_000);
+
+    // Zusätzlich beim Zurückkehren in die App: Im Hintergrund bremst der
+    // Browser den Takt, und die Glocke zeigte sonst noch den alten Stand.
+    // Höchstens alle 10 s - der Takt oben zählt als Abruf mit (siehe glocke.ts).
+    function beiSichtbarwerden() {
+      if (document.visibilityState === "visible" && abrufFaellig(letzterAbruf, Date.now())) fetchUnreadCount();
+    }
+    document.addEventListener("visibilitychange", beiSichtbarwerden);
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", beiSichtbarwerden);
     };
   }, [user, refreshTick]);
 
@@ -170,6 +183,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     alleSicherungenLoeschen();
     // Die gemerkte Prüfung vom Start gehört zur Person, nicht zum Gerät.
     loescheStartPo();
+    // Ebenso der Merker, welches Trainer-Feedback schon gesehen wurde.
+    loescheGesehen();
     // Hundeliste, Statistik, Tagebücher, Hundebilder - nichts davon bleibt
     // für die nächste Person am Gerät stehen. Noch nicht übertragene
     // Einträge bleiben dagegen: Sie gehören der Person (siehe

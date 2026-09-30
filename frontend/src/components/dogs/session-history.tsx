@@ -29,7 +29,9 @@ import { ExerciseRating } from "@/components/dogs/exercise-rating";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
 import { useT } from "@/lib/i18n";
+import { istNeuesFeedback, leseGesehen, markiereGesehen } from "@/lib/feedback-gesehen";
 import { TEXTLAENGE } from "@/lib/textlaengen";
+import { cn } from "@/lib/utils";
 // Monatsschlüssel im Format "2026-07" für die Gruppierung; toLocaleDateString
 // mit month:"long" liefert die Anzeige-Version ("Juli 2026").
 function monthKey(iso: string): string {
@@ -293,15 +295,73 @@ export function SessionHistory({
   isOwner,
   onChanged,
   onLoadOlder,
+  fokusEintrag = null,
 }: {
   sessions: TrainingSession[] | null;
   isOwner: boolean;
   onChanged: () => Promise<void>;
   onLoadOlder: (() => Promise<void>) | null;
+  /**
+   * Der Eintrag, auf den ein Link zeigt (?eintrag=): sein Monat klappt auf,
+   * die Seite scrollt hin und hebt ihn kurz hervor. Eine Id, die es in dieser
+   * Liste nicht gibt, bewirkt nichts.
+   */
+  fokusEintrag?: string | null;
 }) {
   const t = useT();
-  const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
+  // null = Voreinstellung (neuester Monat, plus der des Fokus-Eintrags) - erst
+  // der erste Tipp auf einen Monat legt die Auswahl fest. Ein leeres Set als
+  // "Voreinstellung" ließ den einzigen offenen Monat nie wieder zuklappen.
+  const [openMonths, setOpenMonths] = useState<Set<string> | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
+  // Welches Feedback bei Öffnen der Liste schon gesehen war. Eingefroren, damit
+  // "Neu" während dieses Besuchs stehen bleibt, obwohl es im Speicher längst
+  // als gesehen gilt - beim nächsten Besuch ist es weg.
+  const [gesehenBeiStart] = useState<Set<string>>(() => new Set(leseGesehen()));
+  const gescrollt = useRef(false);
+
+  // Erst nach Monat, darin nach Tag gruppieren. Sessions kommen nach Datum
+  // absteigend vom Backend, die Gruppen erben diese Reihenfolge.
+  const liste = sessions ?? [];
+  const monthGroups = new Map<string, Map<string, TrainingSession[]>>();
+  for (const s of liste) {
+    const mKey = monthKey(s.date);
+    const days = monthGroups.get(mKey) ?? new Map<string, TrainingSession[]>();
+    const list = days.get(s.date) ?? [];
+    list.push(s);
+    days.set(s.date, list);
+    monthGroups.set(mKey, days);
+  }
+  const orderedKeys = Array.from(monthGroups.keys());
+  const fokusSession = fokusEintrag ? (liste.find((s) => s.id === fokusEintrag) ?? null) : null;
+  const effectiveOpen =
+    openMonths ??
+    new Set([...orderedKeys.slice(0, 1), ...(fokusSession ? [monthKey(fokusSession.date)] : [])]);
+
+  // Feedback gilt als gesehen, sobald sein Monat aufgeklappt ist - durch die
+  // Voreinstellung, einen Tipp oder den Link. Nur für Besitzer:innen: die
+  // Trainer:in, die es schrieb, muss es nicht "sehen".
+  const offenSchluessel = [...effectiveOpen].sort().join(",");
+  useEffect(() => {
+    if (!isOwner || !sessions) return;
+    const offen = new Set(offenSchluessel.split(",").filter(Boolean));
+    for (const s of sessions) {
+      if (s.trainerFeedback && s.feedbackAt && offen.has(monthKey(s.date))) markiereGesehen(s.id, s.feedbackAt);
+    }
+  }, [isOwner, sessions, offenSchluessel]);
+
+  // Hinscrollen, sobald der Eintrag auf der Seite steht - einmal. Ohne
+  // Feedback-Block (Eintrag ohne Feedback) bleibt die Karte des Tages das Ziel.
+  useEffect(() => {
+    if (!fokusSession || gescrollt.current) return;
+    const ziel =
+      document.getElementById(`eintrag-${fokusSession.id}`) ?? document.getElementById(`tag-${fokusSession.date}`);
+    if (!ziel) return;
+    gescrollt.current = true;
+    // Ohne Animation: Eine weiche Bewegung bricht ab, sobald etwas darüber
+    // nachlädt und das Layout verschiebt (wie beim Sprung zum Trainingsplan).
+    ziel.scrollIntoView({ behavior: "auto", block: "center" });
+  }, [fokusSession]);
 
   async function deleteDay(daySessions: TrainingSession[]) {
     if (!confirm(t("Trainingstag wirklich löschen? Alle Übungen und Fährten dieses Tages werden entfernt."))) return;
@@ -338,29 +398,11 @@ export function SessionHistory({
     );
   }
 
-  // Erst nach Monat, darin nach Tag gruppieren. Sessions kommen nach Datum
-  // absteigend vom Backend, die Gruppen erben diese Reihenfolge.
-  const monthGroups = new Map<string, Map<string, TrainingSession[]>>();
-  for (const s of sessions) {
-    const mKey = monthKey(s.date);
-    const days = monthGroups.get(mKey) ?? new Map<string, TrainingSession[]>();
-    const list = days.get(s.date) ?? [];
-    list.push(s);
-    days.set(s.date, list);
-    monthGroups.set(mKey, days);
-  }
-  const orderedKeys = Array.from(monthGroups.keys());
-  // Neuesten Monat automatisch aufklappen, sofern der Nutzer die
-  // Sichtbarkeit noch nicht selbst gesteuert hat.
-  const effectiveOpen = openMonths.size === 0 && orderedKeys.length > 0 ? new Set([orderedKeys[0]]) : openMonths;
-
   function toggleMonth(key: string) {
-    setOpenMonths((prev) => {
-      const next = new Set(prev.size === 0 ? [orderedKeys[0]] : prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+    const next = new Set(effectiveOpen);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    setOpenMonths(next);
   }
 
   return (
@@ -408,7 +450,7 @@ export function SessionHistory({
                   const feedbackSessions = daySessions.filter((s) => s.trainerFeedback);
                   const kontextEinheit = daySessions.find(hatKontext) ?? daySessions[0];
                   return (
-                    <Card key={date} className="dark:ring-white/15">
+                    <Card key={date} id={`tag-${date}`} className="dark:ring-white/15">
                       {/* Eigene Kopfzeile mit Trennlinie: Datum und Dauer sind
                           die Kennung des Trainingstags, nicht sein erster
                           Inhalt. Der innere flex-Container, weil CardHeader
@@ -489,7 +531,20 @@ export function SessionHistory({
                           <GpsTrackSection trainingSessionIds={gpsSessions.map((s) => s.id)} readOnly={completed} />
                         )}
                         {(feedbackSessions.length > 0 ? feedbackSessions : [daySessions[0]]).map((s) => (
-                          <TrainerFeedback key={s.id} session={s} isOwner={isOwner} onUpdated={onChanged} />
+                          // Die Kennung, auf die ?eintrag= zeigt. Hervorgehoben
+                          // wird nur der Eintrag, auf den der Link zeigt.
+                          <div
+                            key={s.id}
+                            id={`eintrag-${s.id}`}
+                            className={cn("scroll-mt-20 rounded-lg", s.id === fokusSession?.id && "eintrag-hervorgehoben")}
+                          >
+                            <TrainerFeedback
+                              session={s}
+                              isOwner={isOwner}
+                              onUpdated={onChanged}
+                              neu={isOwner && istNeuesFeedback(s, gesehenBeiStart)}
+                            />
+                          </div>
                         ))}
                       </CardContent>
                     </Card>

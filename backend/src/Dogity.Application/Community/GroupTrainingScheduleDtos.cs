@@ -6,6 +6,12 @@ public record SessionItemDto(Guid Id, Guid? ExerciseId, string? FreeText, int So
 
 public record SessionTrainerDto(Guid UserId, string FirstName, string LastName);
 
+/// <summary>
+/// Zu- oder Absage einer Person - nur in der Trainer-Sicht gefüllt (siehe
+/// <see cref="GroupTrainingSessionDto.Responses"/>).
+/// </summary>
+public record SessionResponseDto(Guid UserId, string FirstName, string LastName, bool IsAttending);
+
 public record GroupTrainingSessionDto(
     Guid Id,
     Guid ClubId,
@@ -19,7 +25,22 @@ public record GroupTrainingSessionDto(
     GroupTrainingSessionStatus Status,
     int PlannedMinutes,
     IReadOnlyList<SessionItemDto> Items,
-    IReadOnlyList<SessionTrainerDto> Trainers);
+    IReadOnlyList<SessionTrainerDto> Trainers,
+    /// <summary>Eigene Antwort des Aufrufers: true = kommt, false = kann nicht, null = noch offen.</summary>
+    bool? MyResponse,
+    /// <summary>Zählung über aktive Gruppenmitglieder - für Mitglieder und Trainer:innen gleich.</summary>
+    int AttendingCount,
+    int DecliningCount,
+    /// <summary>Noch keine Antwort - NUR für Trainer:innen, für Mitglieder 0 (sonst wäre die Gruppengröße ablesbar).</summary>
+    int OpenCount,
+    /// <summary>
+    /// Wer zu- bzw. abgesagt hat, mit Namen - NUR für Trainer:innen des
+    /// Vereins bzw. des Termins. Für Mitglieder leer: sie sehen Zahlen, keine Personen.
+    /// </summary>
+    IReadOnlyList<SessionResponseDto> Responses);
+
+/// <summary>Antwort eines Mitglieds auf einen Termin ("Ich komme" / "Kann nicht").</summary>
+public record RespondToSessionRequest(bool Attending);
 
 /// <summary>Eine Inhaltsposition: entweder ExerciseId (Baustein) ODER FreeText.</summary>
 public record SessionContentInput(Guid? ExerciseId = null, string? FreeText = null);

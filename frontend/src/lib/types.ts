@@ -131,7 +131,21 @@ export type TrainingSession = {
   // Trainings-Karte (GpsTrackSection wird bei abgeschlossenen Trainings
   // ohne Fährte gar nicht erst gemountet, siehe SessionHistory).
   hasGpsTrack: boolean;
+  // Antwort des Besitzers auf das Trainer-Feedback (siehe FEEDBACK_REACTION).
+  // Fehlt bei Zwischenständen aus dem Lesecache, die vor dieser Fassung
+  // gespeichert wurden - deshalb optional.
+  ownerReaction?: FeedbackReaction | null;
+  ownerReply?: string | null;
+  ownerReplyAt?: string | null;
 };
+
+// Schnelle Reaktion auf Trainer-Feedback. Numerisch wie alle Enums der API.
+export const FEEDBACK_REACTION = {
+  Thanks: 0,
+  Understood: 1,
+} as const;
+
+export type FeedbackReaction = (typeof FEEDBACK_REACTION)[keyof typeof FEEDBACK_REACTION];
 
 export type GoalStatus = 0 | 1 | 2; // 0 = Active, 1 = Achieved, 2 = Cancelled
 
@@ -329,6 +343,9 @@ export type SessionItem = {
 
 export type SessionTrainer = { userId: string; firstName: string; lastName: string };
 
+// Zu- oder Absage einer Person - nur für Trainer:innen des Vereins/Termins gefüllt.
+export type SessionResponse = { userId: string; firstName: string; lastName: string; isAttending: boolean };
+
 export type GroupTrainingSession = {
   id: string;
   clubId: string;
@@ -343,6 +360,14 @@ export type GroupTrainingSession = {
   plannedMinutes: number;
   items: SessionItem[];
   trainers: SessionTrainer[];
+  // Eigene Antwort: true = kommt, false = kann nicht, null = noch offen.
+  myResponse: boolean | null;
+  // Zählung über aktive Gruppenmitglieder (für alle gleich).
+  attendingCount: number;
+  decliningCount: number;
+  openCount: number;
+  // Namen nur für Trainer:innen - für Mitglieder leer.
+  responses: SessionResponse[];
 };
 
 export type ClubTrainerInfo = {

@@ -76,6 +76,14 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         return FromResult(result);
     }
 
+    /// <summary>Der Besitzer antwortet auf das Trainer-Feedback (Danke/Verstanden, Rückfrage).</summary>
+    [HttpPut("{id:guid}/feedback-reply")]
+    public async Task<IActionResult> ReplyToFeedback(Guid id, FeedbackReplyRequest request, CancellationToken ct)
+    {
+        var result = await trainingService.ReplyToFeedbackAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("{id:guid}/notes")]
     public async Task<IActionResult> UpdateSessionNotes(Guid id, UpdateSessionNotesRequest request, CancellationToken ct)
     {

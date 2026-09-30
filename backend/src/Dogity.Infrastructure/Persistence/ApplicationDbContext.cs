@@ -59,6 +59,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GroupTrainingSession> GroupTrainingSessions => Set<GroupTrainingSession>();
     public DbSet<GroupTrainingSessionItem> GroupTrainingSessionItems => Set<GroupTrainingSessionItem>();
     public DbSet<GroupTrainingSessionTrainer> GroupTrainingSessionTrainers => Set<GroupTrainingSessionTrainer>();
+    public DbSet<GroupTrainingSessionResponse> GroupTrainingSessionResponses => Set<GroupTrainingSessionResponse>();
 
     public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
     public DbSet<UserDisabledModule> UserDisabledModules => Set<UserDisabledModule>();
@@ -144,6 +145,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<GroupTrainingSession>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GroupTrainingSessionItem>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GroupTrainingSessionTrainer>().HasQueryFilter(e => e.DeletedAt == null);
+        // Wie bei GroupTrainer/DogImage: der Termin ist die erforderliche Seite
+        // der Beziehung, sein Filter muss mitgezogen werden.
+        builder.Entity<GroupTrainingSessionResponse>().HasQueryFilter(e => e.DeletedAt == null && e.Session!.DeletedAt == null);
         builder.Entity<GpsTrack>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsPoint>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkRun>().HasQueryFilter(e => e.DeletedAt == null);

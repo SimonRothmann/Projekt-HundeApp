@@ -55,7 +55,13 @@ mit passenden Fokus-Labels ab (Futterhand/Spielen/Ablage/Ablenkung …).
 ## API (`api/group-training/schedule`)
 
 - `GET clubs/{clubId}?from&to&groupId&category&mineOnly` – Vereins-Kalender (Trainer).
-- `GET mine?from` – Termine der eigenen Gruppen (Mitglieder, read-only).
+- `GET mine?from` – Termine der eigenen Gruppen (Mitglieder).
+- `PUT sessions/{id}/response` `{ attending }` – Zu-/Absage eines aktiven Gruppenmitglieds
+  (nur geplante, noch nicht begonnene Termine; eine zweite Antwort ändert die erste).
+  Die Termin-DTOs tragen `myResponse`, die Zählung (`attendingCount`, `decliningCount`,
+  `openCount`) und – nur für Trainer:innen des Vereins/Termins – `responses` mit Namen.
+  Eine Absage benachrichtigt die Trainer:innen des Termins (ohne: die der Gruppe), die
+  Absage eines Termins alle, die zugesagt hatten.
 - `POST clubs/{clubId}/sessions` · `PUT sessions/{id}` · `POST sessions/{id}/cancel` · `DELETE sessions/{id}`.
 - `POST clubs/{clubId}/series` – Serie materialisieren.
 - `GET clubs/{clubId}/generate-content?category` – Mix-Generator-Entwurf.
@@ -64,11 +70,14 @@ mit passenden Fokus-Labels ab (Futterhand/Spielen/Ablage/Ablenkung …).
 
 - Trainer: `/trainer/schedule` (Agenda + Filter, Termin/Serie anlegen/bearbeiten,
   Inhalt generieren/aus Bibliothek/manuell, Ort, Absage/Löschen).
-- Mitglieder: „Nächste Gruppentrainings"-Sektion auf dem Dashboard.
+- Mitglieder: „Nächste Gruppentrainings"-Sektion auf dem Dashboard mit „Ich komme" /
+  „Kann nicht" und „Zum Kalender" (iCalendar-Datei aus `lib/kalender.ts`, ohne Personendaten).
+- Trainer:innen: Karte „Nächster Termin" mit Zählung ganz oben auf `/trainer`.
 
 ## Zurückgestellt (Follow-up)
 
 - **Co-Trainer-Auswahl** im UI (Backend unterstützt mehrere zuständige
   Trainer:innen; v1 weist den planenden Trainer automatisch zu). Braucht einen
   sicheren „Vereinstrainer auflisten"-Endpoint.
-- **Benachrichtigungen** bei neuem/abgesagtem Termin.
+- **Benachrichtigungen** bei neuem Termin (bei Absage von Terminen und Mitglieder-Absagen
+  gibt es sie seit 2026-09-30).

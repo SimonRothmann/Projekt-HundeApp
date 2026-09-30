@@ -17,6 +17,13 @@ public interface IGroupTrainingScheduleService
     /// <summary>Kommende Termine der Gruppen, in denen der Nutzer aktives Mitglied ist (read-only).</summary>
     Task<Result<IReadOnlyList<GroupTrainingSessionDto>>> GetMemberScheduleAsync(Guid userId, DateOnly from, CancellationToken ct = default);
 
+    /// <summary>
+    /// Zu- oder Absage eines aktiven Gruppenmitglieds zu einem geplanten,
+    /// noch nicht begonnenen Termin. Eine zweite Antwort ändert die erste.
+    /// Eine Absage benachrichtigt die Trainer:innen des Termins.
+    /// </summary>
+    Task<Result<GroupTrainingSessionDto>> RespondAsync(Guid userId, Guid sessionId, bool attending, CancellationToken ct = default);
+
     Task<Result<GroupTrainingSessionDto>> CreateSessionAsync(Guid userId, Guid clubId, CreateSessionRequest request, CancellationToken ct = default);
     Task<Result<GroupTrainingSessionDto>> UpdateSessionAsync(Guid userId, Guid sessionId, UpdateSessionRequest request, CancellationToken ct = default);
     Task<Result> CancelSessionAsync(Guid userId, Guid sessionId, CancellationToken ct = default);

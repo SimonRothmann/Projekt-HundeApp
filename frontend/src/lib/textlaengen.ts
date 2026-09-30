@@ -24,4 +24,6 @@ export const TEXTLAENGE = {
   musterloesung: 2000,
   /** Goal.ExamNote */
   pruefungsNotiz: 500,
+  /** TrainingSession.OwnerReply (Rückfrage zum Trainer-Feedback) */
+  feedbackRueckfrage: 500,
 } as const;

@@ -7,7 +7,8 @@ namespace Dogity.Api.Controllers;
 /// <summary>
 /// Terminplanung fürs Gruppentraining (siehe docs/GROUP_TRAINING_SCHEDULE.md).
 /// Trainer-Routen sind ClubTrainer-gated (im Service geprüft); die
-/// Mitglieder-Route liefert nur Termine der eigenen Gruppen.
+/// Mitglieder-Routen liefern nur Termine der eigenen Gruppen bzw. nehmen
+/// Zu- und Absagen dafür entgegen.
 /// </summary>
 [Route("api/group-training/schedule")]
 public class GroupTrainingScheduleController(IGroupTrainingScheduleService service) : ApiControllerBase
@@ -31,6 +32,14 @@ public class GroupTrainingScheduleController(IGroupTrainingScheduleService servi
     public async Task<ActionResult<IReadOnlyList<GroupTrainingSessionDto>>> GetMySchedule([FromQuery] DateOnly from, CancellationToken ct)
     {
         var result = await service.GetMemberScheduleAsync(CurrentUserId, from, ct);
+        return FromResult(result);
+    }
+
+    /// <summary>Zu- oder Absage eines Gruppenmitglieds zu einem kommenden Termin.</summary>
+    [HttpPut("sessions/{id:guid}/response")]
+    public async Task<ActionResult<GroupTrainingSessionDto>> Respond(Guid id, RespondToSessionRequest request, CancellationToken ct)
+    {
+        var result = await service.RespondAsync(CurrentUserId, id, request.Attending, ct);
         return FromResult(result);
     }
 

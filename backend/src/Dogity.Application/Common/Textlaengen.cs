@@ -15,6 +15,8 @@ public static class Textlaengen
     public const int TrainingsNotiz = 4000;
     public const int UebungsNotiz = 2000;
     public const int TrainerRueckmeldung = 2000;
+    /// <summary>TrainingSession.OwnerReply: Rückfrage des Besitzers zum Trainer-Feedback.</summary>
+    public const int FeedbackRueckfrage = 500;
     public const int EigeneUebung = 150;
     public const int FaehrtenKommentar = 2000;
     public const int MarkerBeschriftung = 200;

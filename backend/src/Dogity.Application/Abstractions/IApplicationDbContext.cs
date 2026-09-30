@@ -54,6 +54,7 @@ public interface IApplicationDbContext
     DbSet<GroupTrainingSession> GroupTrainingSessions { get; }
     DbSet<GroupTrainingSessionItem> GroupTrainingSessionItems { get; }
     DbSet<GroupTrainingSessionTrainer> GroupTrainingSessionTrainers { get; }
+    DbSet<GroupTrainingSessionResponse> GroupTrainingSessionResponses { get; }
 
     DbSet<UserPreference> UserPreferences { get; }
     DbSet<UserDisabledModule> UserDisabledModules { get; }

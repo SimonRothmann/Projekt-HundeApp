@@ -312,4 +312,27 @@
   a:active [data-slot="card"] {
     transform: scale(0.99);
   }
+
+  /* Der Tagebucheintrag, auf den ein Link (?eintrag=) zeigt: ein Ring, der
+     beim Erscheinen aufleuchtet und nach ein paar Sekunden von selbst
+     verschwindet - kein Zustand im Code nötig, die Animation läuft einmal,
+     wenn das Element auf die Seite kommt. Wer Bewegung reduziert hat, bekommt
+     den Ring ohne Verlauf und ohne Verschwinden nicht - also gar keinen. */
+  .eintrag-hervorgehoben {
+    animation: eintrag-hervorheben 3.5s ease-out 1;
+  }
+  @keyframes eintrag-hervorheben {
+    0%,
+    55% {
+      box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 70%, transparent);
+    }
+    100% {
+      box-shadow: 0 0 0 3px transparent;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .eintrag-hervorgehoben {
+      animation: none;
+    }
+  }
 }

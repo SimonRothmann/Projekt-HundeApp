@@ -53,9 +53,24 @@ public record TrainingSessionDto(
     /// festzustellen, dass es nichts anzuzeigen gibt (HTTP-N+1 auf der
     /// Hundeseite, siehe TODO.md Roadmap 5).
     /// </summary>
-    bool HasGpsTrack);
+    bool HasGpsTrack,
+    /// <summary>
+    /// Antwort des Besitzers auf das Trainer-Feedback (Danke/Verstanden und/oder
+    /// Rückfrage); null, solange keine gegeben wurde oder neues Feedback sie
+    /// zurückgesetzt hat.
+    /// </summary>
+    FeedbackReaction? OwnerReaction = null,
+    string? OwnerReply = null,
+    DateTimeOffset? OwnerReplyAt = null);
 
 public record SetFeedbackRequest(string Feedback);
+
+/// <summary>
+/// Antwort des Besitzers auf Trainer-Feedback. Beide Felder ersetzen den
+/// bisherigen Stand (null/leer = zurücknehmen), damit das Umschalten einer
+/// Reaktion die Rückfrage nicht berührt und umgekehrt.
+/// </summary>
+public record FeedbackReplyRequest(FeedbackReaction? Reaction, string? Reply);
 
 /// <summary>
 /// Strukturierte Trainer-Bewertung einer einzelnen Übung (1-5 Sterne + optionale

@@ -101,6 +101,30 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("Die drei Karten am Ende der Startseite („Meine Hunde“, „Sportarten“, „Sachkunde üben“) sind zu einer schmalen Zeile mit Links geworden."),
       },
+      {
+        art: "neu",
+        text: uebersetzbar("Zu Gruppenterminen kannst du jetzt auf der Startseite zusagen: „Ich komme“ oder „Kann nicht“, jederzeit änderbar. Die anderen Mitglieder sehen nur, wie viele kommen; die Trainer:innen sehen auch die Namen. Sagst du ab, erfährt es die Trainer:in. Fällt ein Termin aus, bekommen alle Bescheid, die zugesagt hatten."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Mit „Zum Kalender“ legst du einen Gruppentermin in den Kalender deines Geräts. Übertragen werden nur Gruppe, Zeit, Ort und Dauer, keine Namen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Trainer:innen sehen ganz oben in der Trainer-Übersicht den nächsten Termin: wer kommt, wer nicht und wer noch nicht geantwortet hat. Von dort geht es direkt zur Planung oder in den Kalender. Gruppentraining und Terminplanung stehen jetzt direkt darunter, und in der Terminplanung steht die Zählung bei jedem Termin."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Eine Benachrichtigung über Trainer-Feedback öffnet jetzt den Eintrag im Tagebuch, klappt seinen Monat auf und hebt ihn kurz hervor. Neues Feedback trägt die Markierung „Neu“, bis du es gesehen hast."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Auf Feedback kannst du antworten: mit „Danke“, „Verstanden“ oder einer kurzen Rückfrage. Deine Trainer:in bekommt eine Benachrichtigung und sieht deine Antwort unter ihrem Feedback. Schreibt sie neues Feedback, beginnt die Antwort von vorn."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Glocke aktualisiert sich jetzt auch, sobald du in die App zurückkehrst, statt bis zu einer Minute zu warten."),
+      },
     ],
   },
   {

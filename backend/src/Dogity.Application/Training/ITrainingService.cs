@@ -52,6 +52,14 @@ public interface ITrainingService
     Task<Result> UpdateExerciseNotesAsync(Guid userId, Guid exerciseId, string? notes, CancellationToken ct = default);
     Task<Result<TrainingSessionDto>> UpdateExerciseAsync(Guid userId, Guid exerciseId, UpdateTrainingExerciseRequest request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Der Besitzer antwortet auf das Trainer-Feedback eines Eintrags: Danke/
+    /// Verstanden und/oder eine kurze Rückfrage. Nur Besitzer:innen des Hundes
+    /// und nur, wenn es Feedback gibt; die Trainer:in, die es gegeben hat,
+    /// wird benachrichtigt.
+    /// </summary>
+    Task<Result> ReplyToFeedbackAsync(Guid userId, Guid sessionId, FeedbackReplyRequest request, CancellationToken ct = default);
+
     /// <summary>Nur für Trainer mit TrainerAssignment auf den Hund - nicht für den Besitzer selbst.</summary>
     Task<Result> SetFeedbackAsync(Guid trainerId, Guid sessionId, SetFeedbackRequest request, CancellationToken ct = default);
 

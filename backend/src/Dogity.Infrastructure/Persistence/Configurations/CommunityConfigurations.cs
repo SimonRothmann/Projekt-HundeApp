@@ -252,6 +252,25 @@ public class GroupTrainingSessionTrainerConfiguration : IEntityTypeConfiguration
     }
 }
 
+public class GroupTrainingSessionResponseConfiguration : IEntityTypeConfiguration<GroupTrainingSessionResponse>
+{
+    public void Configure(EntityTypeBuilder<GroupTrainingSessionResponse> builder)
+    {
+        builder.ToTable("group_training_session_responses");
+
+        builder.HasOne(r => r.Session)
+            .WithMany(s => s.Responses)
+            .HasForeignKey(r => r.GroupTrainingSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Eine Antwort je Person und Termin. Der Index kennt kein DeletedAt -
+        // deshalb ändert der Service eine vorhandene Zeile (auch eine entfernte)
+        // statt eine zweite anzulegen (SoftDeleteRevival).
+        builder.HasIndex(r => new { r.GroupTrainingSessionId, r.UserId }).IsUnique();
+        builder.HasIndex(r => r.UserId);
+    }
+}
+
 public class ClubRegistrationConfiguration : IEntityTypeConfiguration<ClubRegistration>
 {
     public void Configure(EntityTypeBuilder<ClubRegistration> builder)

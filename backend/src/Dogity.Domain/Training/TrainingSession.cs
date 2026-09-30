@@ -56,5 +56,26 @@ public class TrainingSession : Entity
     public Guid? FeedbackByTrainerId { get; set; }
     public DateTimeOffset? FeedbackAt { get; set; }
 
+    /// <summary>
+    /// Antwort des Hundebesitzers auf das Trainer-Feedback: ein Danke bzw.
+    /// Verstanden und/oder eine kurze Rückfrage. Bewusst kein Gespräch - je
+    /// Eintrag höchstens eine Reaktion und eine Rückfrage, ohne Verlauf.
+    /// Sie beziehen sich auf den Text des Feedbacks und werden deshalb
+    /// zurückgesetzt, sobald die Trainer:in neues Feedback gibt.
+    /// </summary>
+    public FeedbackReaction? OwnerReaction { get; set; }
+    public string? OwnerReply { get; set; }
+    public DateTimeOffset? OwnerReplyAt { get; set; }
+
     public ICollection<TrainingExercise> Exercises { get; set; } = new List<TrainingExercise>();
+}
+
+/// <summary>Schnelle Reaktion des Besitzers auf ein Trainer-Feedback (siehe <see cref="TrainingSession.OwnerReaction"/>).</summary>
+public enum FeedbackReaction
+{
+    /// <summary>Danke - hat gefreut / geholfen.</summary>
+    Thanks,
+
+    /// <summary>Verstanden - zur Kenntnis genommen, wird umgesetzt.</summary>
+    Understood
 }

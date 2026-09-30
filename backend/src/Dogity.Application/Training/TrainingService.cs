@@ -449,13 +449,74 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         session.TrainerFeedback = request.Feedback.Trim();
         session.FeedbackByTrainerId = trainerId;
         session.FeedbackAt = DateTimeOffset.UtcNow;
+        // Danke/Verstanden und Rückfrage bezogen sich auf den bisherigen Text.
+        // Stünden sie unter dem neuen Feedback, sähe es aus, als hätte die
+        // Besitzerin schon darauf geantwortet - und die Trainer:in hielte die
+        // Rückfrage für beantwortet oder erledigt.
+        session.OwnerReaction = null;
+        session.OwnerReply = null;
+        session.OwnerReplyAt = null;
         await db.SaveChangesAsync(ct);
 
+        // Der Link öffnet den Eintrag selbst, nicht nur die Hundeseite.
         await notifications.CreateAsync(
             session.UserId,
             $"Dein Trainer hat Feedback zu deinem Training vom {session.Date:dd.MM.yyyy} hinterlassen.",
-            $"/dogs/{session.DogId}",
+            $"/dogs/{session.DogId}?eintrag={session.Id}",
             ct);
+
+        return Result.Success();
+    }
+
+    public async Task<Result> ReplyToFeedbackAsync(Guid userId, Guid sessionId, FeedbackReplyRequest request, CancellationToken ct = default)
+    {
+        if (request.Reaction is { } reaction && !Enum.IsDefined(reaction))
+            return Result.Failure("Unbekannte Reaktion.");
+        if (Textlaengen.ZuLang(request.Reply, Textlaengen.FeedbackRueckfrage, "Die Rückfrage") is { } zuLang)
+            return Result.Failure(zuLang);
+
+        // Nur die Besitzer:innen des Hundes antworten - nicht die betreuende
+        // Trainer:in auf ihr eigenes Feedback (anders als GetOwnedSessionAsync,
+        // das auch Trainer:innen durchlässt). Wer sonst nicht dazugehört,
+        // erfährt nicht einmal, dass es den Eintrag gibt.
+        var session = await db.TrainingSessions
+            .Where(s => s.Id == sessionId)
+            .Where(s => db.DogOwners.Any(o => o.DogId == s.DogId && o.UserId == userId))
+            .FirstOrDefaultAsync(ct);
+        if (session is null)
+            return Result.NotFound("Training nicht gefunden.");
+        if (string.IsNullOrWhiteSpace(session.TrainerFeedback))
+            return Result.Failure("Zu diesem Training gibt es noch kein Feedback.");
+
+        var reply = string.IsNullOrWhiteSpace(request.Reply) ? null : request.Reply.Trim();
+        var reactionChanged = request.Reaction is not null && request.Reaction != session.OwnerReaction;
+        var replyChanged = reply is not null && reply != session.OwnerReply;
+
+        session.OwnerReaction = request.Reaction;
+        if (reply != session.OwnerReply)
+            session.OwnerReplyAt = reply is null ? null : DateTimeOffset.UtcNow;
+        session.OwnerReply = reply;
+        await db.SaveChangesAsync(ct);
+
+        // Benachrichtigt wird nur, wenn etwas dazukam - ein Zurücknehmen oder
+        // dasselbe noch einmal meldet der Trainer:in nichts. Ist die Trainer:in
+        // nicht mehr da (Konto gelöscht), gibt es niemanden zu benachrichtigen.
+        if ((reactionChanged || replyChanged) && session.FeedbackByTrainerId is { } trainerId)
+        {
+            var lookup = await userLookup.FindByIdsAsync([userId], ct);
+            var vorname = lookup.TryGetValue(userId, out var owner) && !string.IsNullOrWhiteSpace(owner.FirstName)
+                ? owner.FirstName
+                : "Jemand";
+            var nachricht = $"{vorname} hat auf dein Feedback zum Training vom {session.Date:dd.MM.yyyy} geantwortet.";
+            var link = $"/dogs/{session.DogId}?eintrag={session.Id}";
+            // Wer die Chips mehrfach umschaltet, soll die Glocke nicht mit
+            // gleichlautenden Meldungen füllen: Liegt dieselbe noch ungelesen
+            // da, genügt sie - der Link führt ohnehin zum aktuellen Stand.
+            var schonOffen = await db.Notifications.AnyAsync(
+                n => n.UserId == trainerId && !n.IsRead && n.LinkPath == link && n.Message == nachricht, ct);
+            if (!schonOffen)
+                await notifications.CreateAsync(trainerId, nachricht, link, ct);
+        }
 
         return Result.Success();
     }
@@ -684,5 +745,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         s.WindSpeedKmh,
         s.WeatherCode,
         s.Condition,
-        hasGpsTrack);
+        hasGpsTrack,
+        s.OwnerReaction,
+        s.OwnerReply,
+        s.OwnerReplyAt);
 }

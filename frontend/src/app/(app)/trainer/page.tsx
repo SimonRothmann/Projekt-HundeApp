@@ -17,6 +17,7 @@ import { ClubJoinRequestsSection } from "@/components/trainer/club-join-requests
 import { ClubInviteSection } from "@/components/trainer/club-invite-section";
 import { ClubMembersSection } from "@/components/trainer/club-members-section";
 import { GroupJoinRequestsSection } from "@/components/trainer/group-join-requests-section";
+import { NextSessionCard } from "@/components/trainer/next-session-card";
 import { SupervisedDogsSection } from "@/components/trainer/supervised-dogs-section";
 import { TrainerReviewSection } from "@/components/trainer/trainer-review-section";
 
@@ -80,24 +81,19 @@ export default function TrainerPage() {
         </p>
       </div>
 
-      {/* Reihenfolge nach Häufigkeit. Vorher stand "Trainings bewerten" 1,6 und
-          die Beitrittsanfragen 2,5 Bildschirme tief - unter Gruppentraining,
-          Terminplanung und dem stets offenen Formular "Neue Gruppe".
-
-          Zuerst, was auf eine Antwort wartet - und nur, solange es wartet:
-          beide Anfrage-Bereiche zeigen sich nur mit offenen Anfragen. */}
+      {/* Reihenfolge nach Dringlichkeit, dann Häufigkeit. Zuerst, was auf eine
+          Antwort wartet - und nur, solange es wartet: beide Anfrage-Bereiche
+          zeigen sich nur mit offenen Anfragen, und hinter jeder steht eine
+          Person, die sonst nicht weiterkommt. Vorher lagen sie 2,5 Bildschirme
+          tief unter Gruppentraining, Terminplanung und "Neue Gruppe". */}
       {groups !== null && groups.length > 0 && <GroupJoinRequestsSection groups={groups} />}
       {myClubs.length > 0 && <ClubJoinRequestsSection clubs={myClubs} />}
 
-      {/* Betreute Hunde bleiben weit oben: der Weg zum Plan eines Hundes wird
-          an einem Trainingsabend am häufigsten gebraucht. Direkt darunter,
-          was zu bewerten ist. */}
-      <SupervisedDogsSection />
-      <TrainerReviewSection />
-
-      {/* Der Einladungslink steht hinter dem, was täglich gebraucht wird: Er
-          ist selten dran, dann aber gern mit QR-Code am Vereinsheim. */}
-      {myClubs.length > 0 && <ClubInviteSection clubs={myClubs} />}
+      {/* Dann, was als Nächstes ansteht: der nächste Termin mit der Zählung,
+          wer kommt. Direkt darunter die beiden Wege zur Planung - beides
+          gehört zusammen und stand vorher unter Betreute Hunde und
+          Bewertungen. */}
+      {myClubs.length > 0 && <NextSessionCard clubs={myClubs} />}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Link href="/trainer/group-training">
@@ -134,6 +130,16 @@ export default function TrainerPage() {
           </Card>
         </Link>
       </div>
+
+      {/* Betreute Hunde bleiben weit oben: der Weg zum Plan eines Hundes wird
+          an einem Trainingsabend am häufigsten gebraucht. Direkt darunter,
+          was zu bewerten ist. */}
+      <SupervisedDogsSection />
+      <TrainerReviewSection />
+
+      {/* Der Einladungslink steht hinter dem, was täglich gebraucht wird: Er
+          ist selten dran, dann aber gern mit QR-Code am Vereinsheim. */}
+      {myClubs.length > 0 && <ClubInviteSection clubs={myClubs} />}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">{t("Gruppen")}</h2>

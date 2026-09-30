@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronDown, ChevronUp, Clock, MapPin, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { SessionCounts } from "@/components/schedule/session-counts";
 
 import { useT } from "@/lib/i18n";
 const CATS: GroupTrainingCategory[] = [0, 1, 2];
@@ -122,7 +123,17 @@ export default function SchedulePage() {
   useEffect(() => {
     api.get<Club[]>("/api/groups/my-clubs").then((data) => {
       setClubs(data);
-      if (data.length > 0) setClubId((prev) => prev || data[0].id);
+      // Von der Karte "Nächster Termin" kommt der Verein des Termins mit
+      // (?verein=). Nur ein Verein aus der eigenen Liste gilt - alles andere
+      // fällt auf den ersten zurück.
+      let gewuenscht: string | null = null;
+      try {
+        gewuenscht = new URLSearchParams(window.location.search).get("verein");
+      } catch {
+        // Ohne lesbare Adresse bleibt es beim ersten Verein.
+      }
+      const start = data.find((c) => c.id === gewuenscht)?.id ?? data[0]?.id;
+      if (start) setClubId((prev) => prev || start);
     }).catch(() => setClubs([]));
   }, []);
 
@@ -496,6 +507,7 @@ export default function SchedulePage() {
                       </div>
                     </div>
                     {s.location && <p className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3" />{s.location}</p>}
+                    {s.status === 0 && <SessionCounts termin={s} />}
                     {s.trainers.length > 0 && <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">Trainer: {s.trainers.map((t) => `${t.firstName} ${t.lastName}`.trim() || "?").join(", ")}</p>}
                     {s.items.length > 0 && (
                       <p className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="size-3" />{s.items.length} Übungen · {s.plannedMinutes} Min</p>

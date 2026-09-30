@@ -42,4 +42,7 @@ public class GroupTrainingSession : Entity
 
     /// <summary>Zuständige Trainer:innen (mehrere möglich – gemeinsames Planen/Vertretung).</summary>
     public ICollection<GroupTrainingSessionTrainer> Trainers { get; set; } = new List<GroupTrainingSessionTrainer>();
+
+    /// <summary>Zu- und Absagen der Gruppenmitglieder (eine je Person).</summary>
+    public ICollection<GroupTrainingSessionResponse> Responses { get; set; } = new List<GroupTrainingSessionResponse>();
 }

@@ -91,6 +91,16 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
 
         var benachrichtigungen = await db.Notifications.Where(n => n.UserId == userId).AsNoTracking().ToListAsync(ct);
 
+        var zusagen = await db.GroupTrainingSessionResponses
+            .Where(r => r.UserId == userId)
+            .Select(r => new { r.GroupTrainingSessionId, r.IsAttending, r.RespondedAt, r.Session!.StartsAt, r.Session.GroupId })
+            .AsNoTracking()
+            .ToListAsync(ct);
+        var terminGruppenIds = zusagen.Select(z => z.GroupId).Distinct().ToList();
+        var terminGruppen = await db.Groups
+            .Where(g => terminGruppenIds.Contains(g.Id))
+            .ToDictionaryAsync(g => g.Id, g => g.Name, ct);
+
         var einstellung = await db.UserPreferences
             .Where(p => p.UserId == userId)
             .Include(p => p.DisabledModules)
@@ -154,7 +164,10 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                         x.Notes,
                         x.TrainerRating,
                         x.TrainerNote))
-                    .ToList()))
+                    .ToList(),
+                einheit.OwnerReaction?.ToString(),
+                einheit.OwnerReply,
+                einheit.OwnerReplyAt))
                 .OrderByDescending(t => t.Datum)
                 .ToList(),
             faehrten.Select(faehrte => new FaehrteExportDto(
@@ -247,6 +260,15 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             benachrichtigungen
                 .OrderByDescending(n => n.CreatedAt)
                 .Select(n => new BenachrichtigungExportDto(n.CreatedAt, n.Message, n.IsRead))
+                .ToList(),
+            zusagen
+                .OrderByDescending(z => z.StartsAt)
+                .Select(z => new TerminzusageExportDto(
+                    z.GroupTrainingSessionId,
+                    terminGruppen.GetValueOrDefault(z.GroupId, "(gelöschte Gruppe)"),
+                    z.StartsAt,
+                    z.IsAttending,
+                    z.RespondedAt))
                 .ToList());
 
         return Result<AccountExportDto>.Success(export);
@@ -357,6 +379,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             .ToListAsync(ct);
         var termintrainer = await db.GroupTrainingSessionTrainers.IgnoreQueryFilters()
             .Where(t => t.UserId == userId).ToListAsync(ct);
+        var terminzusagen = await db.GroupTrainingSessionResponses.IgnoreQueryFilters()
+            .Where(r => r.UserId == userId).ToListAsync(ct);
         var vereinsanfragen = await db.ClubRegistrations.IgnoreQueryFilters()
             .Where(r => r.RequestedByUserId == userId).ToListAsync(ct);
 
@@ -432,6 +456,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         db.Notifications.RemoveRange(benachrichtigungen);
         db.TrainerAssignments.RemoveRange(zuweisungen);
         db.GroupTrainingSessionTrainers.RemoveRange(termintrainer);
+        db.GroupTrainingSessionResponses.RemoveRange(terminzusagen);
         db.GroupTrainers.RemoveRange(gruppentrainer);
         db.GroupMembers.RemoveRange(gruppenmitglied);
         db.ClubTrainers.RemoveRange(vereinstrainer);

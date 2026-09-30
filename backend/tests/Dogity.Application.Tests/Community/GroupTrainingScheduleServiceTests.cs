@@ -17,7 +17,7 @@ public class GroupTrainingScheduleServiceTests
     private static GroupTrainingScheduleService MakeService(out Dogity.Infrastructure.Persistence.ApplicationDbContext db)
     {
         db = InMemoryDbContext.Create();
-        return new GroupTrainingScheduleService(db, new FakeUserLookupService());
+        return new GroupTrainingScheduleService(db, new FakeUserLookupService(), new FakeNotificationService());
     }
 
     private static async Task<(Guid UserId, Guid ClubId, Guid GroupId)> SetupAsync(Dogity.Infrastructure.Persistence.ApplicationDbContext db)

@@ -45,7 +45,7 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 |---|---|
 | Zweck | Führen des Trainingstagebuchs, Auswertung des Verlaufs, Prüfungsvorbereitung |
 | Betroffene | Registrierte Nutzer:innen (Hundedaten sind über den Halter personenbeziehbar) |
-| Datenkategorien | Hundename, Rasse, Geburtstag, Geschlecht, Notizen, Foto; Trainingsdatum/-zeit/-dauer, Ortsname und Koordinaten, Wetter, Übungen mit Bewertung und Notizen, Trainer-Rückmeldungen; Ziele und Trainingspläne; Prüfungsergebnisse (Datum, Punkte, Notiz) |
+| Datenkategorien | Hundename, Rasse, Geburtstag, Geschlecht, Notizen, Foto; Trainingsdatum/-zeit/-dauer, Ortsname und Koordinaten, Wetter, Übungen mit Bewertung und Notizen, Trainer-Rückmeldungen samt Antwort der Besitzer:in (Danke/Verstanden, kurze Rückfrage mit Zeitpunkt); Ziele und Trainingspläne; Prüfungsergebnisse (Datum, Punkte, Notiz) |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. b |
 | Empfänger | Mitbesitzer:innen und zugeordnete Trainer:innen (innerhalb der App); Hosting-Dienstleister |
 | Drittland | nein |
@@ -72,13 +72,13 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 |---|---|
 | Zweck | Mitglieder- und Gruppenverwaltung, Planung von Gruppentrainings, Zuordnung Trainer:in ↔ Hund |
 | Betroffene | Mitglieder, Trainer:innen, Vereinsverwaltung |
-| Datenkategorien | Mitgliedschaften und Beitrittsanfragen mit Status, Zeitpunkt und Herkunft (Vereinsliste oder Einladungslink), Trainerrollen, Gruppenzugehörigkeit, Trainingstermine und zugewiesene Übungen |
+| Datenkategorien | Mitgliedschaften und Beitrittsanfragen mit Status, Zeitpunkt und Herkunft (Vereinsliste oder Einladungslink), Trainerrollen, Gruppenzugehörigkeit, Trainingstermine und zugewiesene Übungen, Zu- und Absagen der Mitglieder zu Terminen (Zusage ja/nein, Zeitpunkt der Antwort) |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. b |
-| Empfänger | Vereinsverwaltung und Trainer:innen des jeweiligen Vereins |
+| Empfänger | Vereinsverwaltung und Trainer:innen des jeweiligen Vereins; die Zu- und Absagen zu Terminen sehen Trainer:innen des Vereins und des Termins mit Namen, andere Mitglieder der Gruppe nur als Zahlen |
 | Drittland | nein |
-| Besonderheit | Einladungslink/QR-Code je Verein (`clubs.InviteCode`, 128 Bit Zufall): Der Code selbst ist kein personenbezogenes Datum. Die öffentliche Einladungsseite gibt ohne Anmeldung nur den Vereinsnamen heraus; der Beitritt bleibt eine Anfrage, die der Verein freigibt. Der Code lässt sich jederzeit ersetzen oder abschalten. |
+| Besonderheit | Zusagen: je Termin und Person eine Zeile (`group_training_session_responses`), nur aktive Gruppenmitglieder dürfen antworten und nur vor Beginn eines geplanten Termins; gezählt werden nur aktuelle Mitglieder. Eine Absage löst eine Benachrichtigung an die Trainer:innen des Termins aus, die Absage eines Termins eine an alle, die zugesagt hatten. „Zum Kalender“ erzeugt die Kalenderdatei auf dem Gerät (Gruppe, Zeit, Ort, Dauer – keine Personendaten), es wird nichts an den Server oder Dritte übertragen. Einladungslink/QR-Code je Verein (`clubs.InviteCode`, 128 Bit Zufall): Der Code selbst ist kein personenbezogenes Datum. Die öffentliche Einladungsseite gibt ohne Anmeldung nur den Vereinsnamen heraus; der Beitritt bleibt eine Anfrage, die der Verein freigibt. Der Code lässt sich jederzeit ersetzen oder abschalten. |
 | Löschfrist | bis zum Austritt bzw. zur Kontolöschung |
-| Tabellen | `clubs`, `club_memberships`, `club_trainers`, `club_registrations`, `groups`, `group_members`, `group_trainers`, `trainer_assignments`, `group_training_*` |
+| Tabellen | `clubs`, `club_memberships`, `club_trainers`, `club_registrations`, `groups`, `group_members`, `group_trainers`, `trainer_assignments`, `group_training_*` (u. a. `group_training_session_responses`) |
 
 ### 2.5 Sachkunde-Lernmodul und Benachrichtigungen
 

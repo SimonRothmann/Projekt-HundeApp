@@ -16,6 +16,9 @@ public class TrainingSessionConfiguration : IEntityTypeConfiguration<TrainingSes
         builder.HasIndex(s => new { s.DogId, s.Condition });
         builder.Property(t => t.Notes).HasMaxLength(Textlaengen.TrainingsNotiz);
         builder.Property(t => t.TrainerFeedback).HasMaxLength(Textlaengen.TrainerRueckmeldung);
+        // Wie Condition: als Text gespeichert; ohne Antwort bleibt die Spalte leer.
+        builder.Property(t => t.OwnerReaction).HasConversion<string>().HasMaxLength(20);
+        builder.Property(t => t.OwnerReply).HasMaxLength(Textlaengen.FeedbackRueckfrage);
         builder.HasIndex(t => new { t.UserId, t.DogId, t.Date });
     }
 }

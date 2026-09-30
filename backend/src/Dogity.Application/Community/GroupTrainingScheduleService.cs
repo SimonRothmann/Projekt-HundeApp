@@ -1,5 +1,8 @@
+using System.Data.Common;
+using System.Globalization;
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Notifications;
 using Dogity.Domain.Community;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,9 +12,10 @@ namespace Dogity.Application.Community;
 /// Terminplanung fürs Gruppentraining (siehe docs/GROUP_TRAINING_SCHEDULE.md).
 /// ClubTrainer planen/bearbeiten Termine des Vereins; Mitglieder sehen die
 /// Termine ihrer Gruppen read-only. Inhalt = geordnete Bausteine und/oder
-/// Freitext; mehrere zuständige Trainer:innen je Termin.
+/// Freitext; mehrere zuständige Trainer:innen je Termin. Mitglieder können
+/// zu- oder absagen; Namen dazu sehen nur die Trainer:innen.
 /// </summary>
-public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupService userLookup) : IGroupTrainingScheduleService
+public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupService userLookup, INotificationService notifications) : IGroupTrainingScheduleService
 {
     public async Task<Result<IReadOnlyList<GroupTrainingSessionDto>>> GetClubScheduleAsync(
         Guid userId, Guid clubId, DateOnly from, DateOnly? to, Guid? groupId, GroupTrainingCategory? category, bool mineOnly, CancellationToken ct = default)
@@ -31,7 +35,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         if (mineOnly) query = query.Where(s => s.Trainers.Any(t => t.UserId == userId));
 
         var sessions = await query.OrderBy(s => s.StartsAt).AsNoTracking().ToListAsync(ct);
-        return Result<IReadOnlyList<GroupTrainingSessionDto>>.Success(await MapAsync(sessions, ct));
+        return Result<IReadOnlyList<GroupTrainingSessionDto>>.Success(await MapAsync(sessions, userId, ct));
     }
 
     public async Task<Result<IReadOnlyList<GroupTrainingSessionDto>>> GetMemberScheduleAsync(Guid userId, DateOnly from, CancellationToken ct = default)
@@ -50,7 +54,116 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
             .OrderBy(s => s.StartsAt)
             .AsNoTracking()
             .ToListAsync(ct);
-        return Result<IReadOnlyList<GroupTrainingSessionDto>>.Success(await MapAsync(sessions, ct));
+        return Result<IReadOnlyList<GroupTrainingSessionDto>>.Success(await MapAsync(sessions, userId, ct));
+    }
+
+    public async Task<Result<GroupTrainingSessionDto>> RespondAsync(Guid userId, Guid sessionId, bool attending, CancellationToken ct = default)
+    {
+        var session = await db.GroupTrainingSessions
+            .Include(s => s.Group).Include(s => s.Trainers)
+            .FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+
+        // Wer nicht (mehr) aktives Mitglied der Gruppe ist, bekommt dieselbe
+        // Antwort wie bei einem Termin, den es nicht gibt - dass er existiert,
+        // geht Fremde nichts an.
+        var istMitglied = session?.Group is not null && await db.GroupMembers.AnyAsync(
+            m => m.GroupId == session.GroupId && m.UserId == userId && m.Status == GroupMemberStatus.Active, ct);
+        if (session is null || !istMitglied)
+            return Result<GroupTrainingSessionDto>.NotFound("Termin nicht gefunden.");
+
+        if (session.Status != GroupTrainingSessionStatus.Planned)
+            return Result<GroupTrainingSessionDto>.Failure("Dieser Termin ist abgesagt.");
+        var jetzt = DateTimeOffset.UtcNow;
+        if (session.StartsAt <= jetzt)
+            return Result<GroupTrainingSessionDto>.Failure("Der Termin hat schon begonnen.");
+
+        // Auch entfernte Zeilen ansehen (Soft-Delete + eindeutiger Index), sonst
+        // gäbe es beim zweiten Antworten ein Duplikat bzw. einen 500er.
+        var (antwort, istAktiv) = await db.GroupTrainingSessionResponses
+            .FindIncludingRemovedAsync(r => r.GroupTrainingSessionId == sessionId && r.UserId == userId, ct);
+
+        // Nur eine NEUE Absage oder der Wechsel von Zusage auf Absage ist eine
+        // Nachricht an die Trainer:innen wert - dieselbe Absage noch einmal zu
+        // senden, meldet nichts Neues. Zusagen lösen nie eine aus.
+        var meldeAbsage = !attending && (antwort is null || !istAktiv || antwort.IsAttending);
+
+        if (antwort is null)
+        {
+            var neu = new GroupTrainingSessionResponse
+            {
+                GroupTrainingSessionId = sessionId,
+                UserId = userId,
+                IsAttending = attending,
+                RespondedAt = jetzt
+            };
+            db.GroupTrainingSessionResponses.Add(neu);
+            try
+            {
+                await db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is DbException { SqlState: EindeutigerIndexVerletzt })
+            {
+                // Zwei erste Antworten derselben Person laufen gleichzeitig ein
+                // (zwei Geräte, Doppel-Tipp): Die andere war schneller, der
+                // eindeutige Index weist unsere Zeile ab. Kein Fehler - wir
+                // verwerfen die eigene Zeile und behandeln die Antwort wie
+                // eine Änderung der gerade angelegten. Ob das eine Absage
+                // meldet, hängt so vom Stand der anderen Anfrage ab: gleiche
+                // Antwort, keine zweite Nachricht; Wechsel, eine.
+                db.GroupTrainingSessionResponses.Remove(neu);
+                var (vorhanden, _) = await db.GroupTrainingSessionResponses
+                    .FindIncludingRemovedAsync(r => r.GroupTrainingSessionId == sessionId && r.UserId == userId, ct);
+                if (vorhanden is null) throw;
+                meldeAbsage = !attending && vorhanden.IsAttending;
+                AktualisiereAntwort(vorhanden, attending, jetzt);
+                await db.SaveChangesAsync(ct);
+            }
+        }
+        else
+        {
+            AktualisiereAntwort(antwort, attending, jetzt);
+            await db.SaveChangesAsync(ct);
+        }
+
+        if (meldeAbsage)
+            await NotifyAbsageAsync(session, userId, ct);
+
+        return Result<GroupTrainingSessionDto>.Success(await LoadDtoAsync(sessionId, userId, ct));
+    }
+
+    /// <summary>SQLSTATE "unique_violation" (Postgres).</summary>
+    private const string EindeutigerIndexVerletzt = "23505";
+
+    private static void AktualisiereAntwort(GroupTrainingSessionResponse antwort, bool attending, DateTimeOffset jetzt)
+    {
+        antwort.DeletedAt = null;
+        antwort.IsAttending = attending;
+        antwort.RespondedAt = jetzt;
+        antwort.UpdatedAt = jetzt;
+    }
+
+    /// <summary>
+    /// Sagt ein Mitglied ab, erfahren es die Trainer:innen des Termins; ist
+    /// keine eingetragen, die aktiven Trainer:innen der Gruppe. Mit Link auf
+    /// die Terminübersicht, wo die Zählung steht.
+    /// </summary>
+    private async Task NotifyAbsageAsync(GroupTrainingSession session, Guid userId, CancellationToken ct)
+    {
+        var empfaenger = session.Trainers.Select(t => t.UserId).ToList();
+        if (empfaenger.Count == 0)
+        {
+            // Der globale Filter blendet offene Einladungen schon aus.
+            empfaenger = await db.GroupTrainers.Where(t => t.GroupId == session.GroupId).Select(t => t.UserId).ToListAsync(ct);
+            empfaenger.Add(session.Group!.TrainerId);
+        }
+        empfaenger = empfaenger.Where(id => id != userId).Distinct().ToList();
+        if (empfaenger.Count == 0) return;
+
+        var namen = await userLookup.FindByIdsAsync([userId], ct);
+        var vorname = namen.TryGetValue(userId, out var n) && !string.IsNullOrWhiteSpace(n.FirstName) ? n.FirstName : "Ein Mitglied";
+        var text = $"{vorname} hat für {session.Group!.Name} am {FormatDatum(session.StartsAt)} abgesagt.";
+        foreach (var id in empfaenger)
+            await notifications.CreateAsync(id, text, "/trainer/schedule", ct);
     }
 
     public async Task<Result<GroupTrainingSessionDto>> CreateSessionAsync(Guid userId, Guid clubId, CreateSessionRequest request, CancellationToken ct = default)
@@ -76,7 +189,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         db.GroupTrainingSessionItems.AddRange(BuildItems(session.Id, request.Items));
         db.GroupTrainingSessionTrainers.AddRange(BuildTrainers(session.Id, request.TrainerUserIds));
         await db.SaveChangesAsync(ct);
-        return Result<GroupTrainingSessionDto>.Success(await LoadDtoAsync(session.Id, ct));
+        return Result<GroupTrainingSessionDto>.Success(await LoadDtoAsync(session.Id, userId, ct));
     }
 
     public async Task<Result<GroupTrainingSessionDto>> UpdateSessionAsync(Guid userId, Guid sessionId, UpdateSessionRequest request, CancellationToken ct = default)
@@ -101,17 +214,41 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         db.GroupTrainingSessionItems.AddRange(BuildItems(session.Id, request.Items));
         db.GroupTrainingSessionTrainers.AddRange(BuildTrainers(session.Id, request.TrainerUserIds));
         await db.SaveChangesAsync(ct);
-        return Result<GroupTrainingSessionDto>.Success(await LoadDtoAsync(session.Id, ct));
+        return Result<GroupTrainingSessionDto>.Success(await LoadDtoAsync(session.Id, userId, ct));
     }
 
     public async Task<Result> CancelSessionAsync(Guid userId, Guid sessionId, CancellationToken ct = default)
     {
-        var session = await db.GroupTrainingSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        var session = await db.GroupTrainingSessions.Include(s => s.Group).FirstOrDefaultAsync(s => s.Id == sessionId, ct);
         if (session is null || !await IsClubTrainerAsync(userId, session.ClubId, ct))
             return Result.NotFound("Termin nicht gefunden.");
+        // Schon abgesagt: nichts mehr zu tun - und vor allem keine zweite
+        // "fällt aus"-Nachricht an dieselben Leute.
+        if (session.Status == GroupTrainingSessionStatus.Cancelled) return Result.Success();
+
+        var jetzt = DateTimeOffset.UtcNow;
         session.Status = GroupTrainingSessionStatus.Cancelled;
-        session.UpdatedAt = DateTimeOffset.UtcNow;
+        session.UpdatedAt = jetzt;
         await db.SaveChangesAsync(ct);
+
+        // Wer zugesagt hatte, plant mit dem Termin - und erfährt es, statt vor
+        // verschlossener Tür zu stehen. Ein schon vergangener Termin braucht
+        // keine Nachricht mehr; ebenso nicht, wer nicht mehr in der Gruppe ist.
+        if (session.StartsAt > jetzt)
+        {
+            var zugesagt = await db.GroupTrainingSessionResponses
+                .Where(r => r.GroupTrainingSessionId == sessionId && r.IsAttending)
+                .Select(r => r.UserId)
+                .ToListAsync(ct);
+            var empfaenger = await db.GroupMembers
+                .Where(m => m.GroupId == session.GroupId && m.Status == GroupMemberStatus.Active && zugesagt.Contains(m.UserId))
+                .Select(m => m.UserId)
+                .Distinct()
+                .ToListAsync(ct);
+            var text = $"Das Training {session.Group?.Name} am {FormatDatum(session.StartsAt)} fällt aus.";
+            foreach (var id in empfaenger.Where(id => id != userId))
+                await notifications.CreateAsync(id, text, "/", ct);
+        }
         return Result.Success();
     }
 
@@ -173,7 +310,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         await db.SaveChangesAsync(ct);
 
         var sessions = await LoadSessionsQuery().Where(s => createdIds.Contains(s.Id)).OrderBy(s => s.StartsAt).AsNoTracking().ToListAsync(ct);
-        return Result<IReadOnlyList<GroupTrainingSessionDto>>.Success(await MapAsync(sessions, ct));
+        return Result<IReadOnlyList<GroupTrainingSessionDto>>.Success(await MapAsync(sessions, userId, ct));
     }
 
     public async Task<Result<IReadOnlyList<GroupTrainingExerciseDto>>> GenerateContentAsync(Guid userId, Guid clubId, GroupTrainingCategory category, CancellationToken ct = default)
@@ -271,23 +408,92 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
             .Include(s => s.Items).ThenInclude(i => i.Exercise)
             .Include(s => s.Trainers);
 
-    private async Task<GroupTrainingSessionDto> LoadDtoAsync(Guid sessionId, CancellationToken ct)
+    private async Task<GroupTrainingSessionDto> LoadDtoAsync(Guid sessionId, Guid callerId, CancellationToken ct)
     {
         var session = await LoadSessionsQuery().AsNoTracking().FirstAsync(s => s.Id == sessionId, ct);
-        return (await MapAsync([session], ct))[0];
+        return (await MapAsync([session], callerId, ct))[0];
     }
 
-    private async Task<IReadOnlyList<GroupTrainingSessionDto>> MapAsync(List<GroupTrainingSession> sessions, CancellationToken ct)
+    /// <summary>
+    /// Bildet Termine auf DTOs ab. Zu- und Absagen, Gruppenmitglieder und Namen
+    /// werden für ALLE Termine in je einer Abfrage geholt (kein N+1 je Termin).
+    /// <paramref name="callerId"/> entscheidet über die eigene Antwort und
+    /// darüber, ob Namen mitgeliefert werden.
+    /// </summary>
+    private async Task<IReadOnlyList<GroupTrainingSessionDto>> MapAsync(List<GroupTrainingSession> sessions, Guid callerId, CancellationToken ct)
     {
-        var trainerIds = sessions.SelectMany(s => s.Trainers.Select(t => t.UserId)).Distinct().ToList();
-        IReadOnlyDictionary<Guid, UserLookupResult> names = trainerIds.Count == 0
-            ? new Dictionary<Guid, UserLookupResult>()
-            : await userLookup.FindByIdsAsync(trainerIds, ct);
+        if (sessions.Count == 0) return [];
 
-        return sessions.Select(s => ToDto(s, names)).ToList();
+        var sessionIds = sessions.Select(s => s.Id).ToList();
+        var groupIds = sessions.Select(s => s.GroupId).Distinct().ToList();
+        var clubIds = sessions.Select(s => s.ClubId).Distinct().ToList();
+
+        // Namen sehen die Trainer:innen des Vereins und die des Termins - nicht
+        // die Mitglieder, die nur Zahlen bekommen.
+        var callerClubIds = (await db.ClubTrainers
+            .Where(t => t.UserId == callerId && clubIds.Contains(t.ClubId))
+            .Select(t => t.ClubId)
+            .ToListAsync(ct)).ToHashSet();
+        bool SiehtNamen(GroupTrainingSession s) =>
+            callerClubIds.Contains(s.ClubId) || s.Trainers.Any(t => t.UserId == callerId);
+
+        var responses = await db.GroupTrainingSessionResponses
+            .Where(r => sessionIds.Contains(r.GroupTrainingSessionId))
+            .Select(r => new { r.GroupTrainingSessionId, r.UserId, r.IsAttending })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        // Gezählt wird nur, wer JETZT aktives Mitglied der Gruppe ist: Wer
+        // ausgetreten ist, soll die Zahl nicht mehr verfälschen, und die Basis
+        // für "offen" ist die aktuelle Mitgliederzahl.
+        var members = (await db.GroupMembers
+            .Where(m => groupIds.Contains(m.GroupId) && m.Status == GroupMemberStatus.Active)
+            .Select(m => new { m.GroupId, m.UserId })
+            .AsNoTracking()
+            .ToListAsync(ct))
+            .GroupBy(m => m.GroupId)
+            .ToDictionary(g => g.Key, g => g.Select(m => m.UserId).ToHashSet());
+
+        var responsesBySession = responses.ToLookup(r => r.GroupTrainingSessionId);
+
+        var lookupIds = sessions.SelectMany(s => s.Trainers.Select(t => t.UserId)).ToList();
+        foreach (var s in sessions.Where(SiehtNamen))
+        {
+            var aktive = members.GetValueOrDefault(s.GroupId) ?? [];
+            lookupIds.AddRange(responsesBySession[s.Id].Where(r => aktive.Contains(r.UserId)).Select(r => r.UserId));
+        }
+        lookupIds = lookupIds.Distinct().ToList();
+        IReadOnlyDictionary<Guid, UserLookupResult> names = lookupIds.Count == 0
+            ? new Dictionary<Guid, UserLookupResult>()
+            : await userLookup.FindByIdsAsync(lookupIds, ct);
+
+        return sessions.Select(s =>
+        {
+            var aktive = members.GetValueOrDefault(s.GroupId) ?? [];
+            var gezaehlt = responsesBySession[s.Id].Where(r => aktive.Contains(r.UserId)).ToList();
+            var zusagen = gezaehlt.Count(r => r.IsAttending);
+            var absagen = gezaehlt.Count - zusagen;
+            bool? meine = responsesBySession[s.Id].FirstOrDefault(r => r.UserId == callerId)?.IsAttending;
+
+            var liste = SiehtNamen(s)
+                ? gezaehlt
+                    .Select(r => names.TryGetValue(r.UserId, out var n)
+                        ? new SessionResponseDto(r.UserId, n.FirstName, n.LastName, r.IsAttending)
+                        : new SessionResponseDto(r.UserId, "", "", r.IsAttending))
+                    .OrderBy(r => r.FirstName).ThenBy(r => r.LastName)
+                    .ToList()
+                : new List<SessionResponseDto>();
+
+            // "Offen" ergäbe mit Zu- und Absagen die Mitgliederzahl der Gruppe -
+            // die ist Sache der Trainer:innen, Mitglieder bekommen 0.
+            var offen = SiehtNamen(s) ? Math.Max(0, aktive.Count - gezaehlt.Count) : 0;
+            return ToDto(s, names, meine, zusagen, absagen, offen, liste);
+        }).ToList();
     }
 
-    private static GroupTrainingSessionDto ToDto(GroupTrainingSession s, IReadOnlyDictionary<Guid, UserLookupResult> names)
+    private static GroupTrainingSessionDto ToDto(
+        GroupTrainingSession s, IReadOnlyDictionary<Guid, UserLookupResult> names,
+        bool? myResponse, int attending, int declining, int open, IReadOnlyList<SessionResponseDto> responses)
     {
         var items = s.Items
             .OrderBy(i => i.SortOrder)
@@ -306,7 +512,8 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
             s.Id, s.ClubId, s.GroupId, s.Group?.Name ?? "", s.Category,
             s.StartsAt, s.DurationMinutes, s.Location, s.Notes, s.Status,
             items.Sum(i => i.Exercise?.DurationMinutes ?? 0),
-            items, trainers);
+            items, trainers,
+            myResponse, attending, declining, open, responses);
     }
 
     private static GroupTrainingExerciseDto ToExerciseDto(GroupTrainingExercise e) =>
@@ -314,6 +521,19 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
 
     private Task<bool> IsClubTrainerAsync(Guid userId, Guid clubId, CancellationToken ct) =>
         db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
+
+    /// <summary>Die Uhr, nach der Termine in Nachrichten als Datum erscheinen (Vereine sind in Deutschland).</summary>
+    private static readonly TimeZoneInfo Vereinszeit = FindeVereinszeit();
+
+    private static TimeZoneInfo FindeVereinszeit()
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"); }
+        // Schlanke Container ohne Zeitzonen-Datenbank: lieber UTC als ein Absturz.
+        catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException) { return TimeZoneInfo.Utc; }
+    }
+
+    private static string FormatDatum(DateTimeOffset startsAt) =>
+        TimeZoneInfo.ConvertTime(startsAt, Vereinszeit).ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
 
     private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }

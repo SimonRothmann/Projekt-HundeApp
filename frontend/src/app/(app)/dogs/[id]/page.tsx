@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { MODULE, type Dog, type DogOwner, type Goal, type Sport, type TrainingSession } from "@/lib/types";
@@ -23,6 +23,7 @@ import { CoOwnersSection } from "@/components/dogs/co-owners-section";
 import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
 import { clearCachedData, getCachedData, setCachedData } from "@/lib/read-cache";
 import { useAuth } from "@/lib/auth-context";
+import { eintragIdAus } from "@/lib/feedback-gesehen";
 import { usePreferences } from "@/lib/preferences-context";
 
 import { useT } from "@/lib/i18n";
@@ -50,6 +51,9 @@ export default function DogDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  // Benachrichtigungen zu Feedback führen auf den Eintrag (?eintrag=). Nur eine
+  // Id in GUID-Form wird übernommen; alles andere ist, als stünde nichts da.
+  const eintragId = eintragIdAus(useSearchParams().get("eintrag"));
 
   const [dog, setDog] = useState<Dog | null>(null);
   const [sessions, setSessions] = useState<TrainingSession[] | null>(null);
@@ -70,6 +74,11 @@ export default function DogDetailPage() {
   // Backend (PreferenceService.GetEffectiveDogSportsAsync) - hier wird sie
   // nur angewandt, nicht ein zweites Mal formuliert.
   const [dogSportIds, setDogSportIds] = useState<string[] | null>(null);
+  // Ob die Seite ihren frischen Stand vom Server hat (nicht nur den Lesecache).
+  // Der Sprung zu einem Eintrag wartet darauf: Erst dann steht fest, ob er in
+  // der Liste ist, und erst dann ist das Layout darüber fertig.
+  const [frischGeladen, setFrischGeladen] = useState(false);
+  const versuchteAlleZuLaden = useRef(false);
   const { moduleEnabled } = usePreferences();
 
   type DogPageCache = {
@@ -145,6 +154,7 @@ export default function DogDetailPage() {
         owners: ownersData,
       };
       applyPageData(fresh);
+      setFrischGeladen(true);
       await setCachedData(cacheKey, fresh);
     } catch (err) {
       // "Gibt es nicht" ist kein Netzproblem: Dann darf auch kein
@@ -247,6 +257,20 @@ export default function DogDetailPage() {
     setShowAllHistory(true);
     await loadAll(true);
   }
+
+  // Liegt der Eintrag, auf den der Link zeigt, außerhalb der geladenen drei
+  // Monate, wird die ganze Historie nachgeladen - einmal. Steht er danach
+  // immer noch nicht in der Liste (fremde oder erfundene Id), passiert weiter
+  // nichts: SessionHistory findet ihn nicht und ignoriert den Parameter.
+  useEffect(() => {
+    if (!eintragId || !frischGeladen || !sessions || showAllHistory || versuchteAlleZuLaden.current) return;
+    if (sessions.some((s) => s.id === eintragId)) return;
+    versuchteAlleZuLaden.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadOlderSessions();
+    // loadOlderSessions wird bei jedem Render neu erzeugt - nur die Bedingungen oben zählen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eintragId, frischGeladen, sessions, showAllHistory]);
 
   async function deleteDog() {
     if (!dog) return;
@@ -401,6 +425,10 @@ export default function DogDetailPage() {
         isOwner={isOwner}
         onChanged={loadAll}
         onLoadOlder={showAllHistory ? null : loadOlderSessions}
+        // Erst fokussieren, wenn alles geladen ist: Die Fährtenaufzeichnung
+        // darüber erscheint erst mit den Sportarten des Hundes und würde den
+        // Eintrag sonst nach dem Hinscrollen wieder wegschieben.
+        fokusEintrag={frischGeladen && dogSportIds !== null ? eintragId : null}
       />
 
       {isOwner && (

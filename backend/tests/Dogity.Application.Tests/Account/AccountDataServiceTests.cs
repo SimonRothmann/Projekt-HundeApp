@@ -378,4 +378,82 @@ public class AccountDataServiceTests
 
         Assert.True(zweiterLauf.Succeeded);
     }
+
+    // ---- Zusagen zu Gruppenterminen und Antworten auf Trainer-Feedback ----
+
+    private static async Task<(Guid TerminId, Guid GruppeId)> TerminMitZusageAsync(ApplicationDbContext db, Guid nutzer, Guid anderer)
+    {
+        var gruppe = new Group { Name = "Dienstagsgruppe", TrainerId = Guid.NewGuid() };
+        db.Groups.Add(gruppe);
+        var termin = new GroupTrainingSession
+        {
+            ClubId = Guid.NewGuid(), GroupId = gruppe.Id, StartsAt = DateTimeOffset.UtcNow.AddDays(3),
+        };
+        db.GroupTrainingSessions.Add(termin);
+        db.GroupTrainingSessionResponses.AddRange(
+            new GroupTrainingSessionResponse { GroupTrainingSessionId = termin.Id, UserId = nutzer, IsAttending = true },
+            new GroupTrainingSessionResponse { GroupTrainingSessionId = termin.Id, UserId = anderer, IsAttending = false });
+        await db.SaveChangesAsync();
+        return (termin.Id, gruppe.Id);
+    }
+
+    [Fact]
+    public async Task Export_EnthaeltEigeneTerminzusagenUndNichtDieAnderer()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        var anderer = Guid.NewGuid();
+        lookup.Register(ich, "ich@dogity.test", "Ich", "Selbst");
+        var (terminId, _) = await TerminMitZusageAsync(db, ich, anderer);
+
+        var export = (await dienst.ExportAsync(ich)).Value!;
+
+        var zusage = Assert.Single(export.Terminzusagen);
+        Assert.Equal(terminId, zusage.TerminId);
+        Assert.Equal("Dienstagsgruppe", zusage.Gruppe);
+        Assert.True(zusage.Zugesagt);
+    }
+
+    [Fact]
+    public async Task Purge_EntferntEigeneTerminzusagenWirklich_FremdeBleiben()
+    {
+        var (dienst, db, _) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        var anderer = Guid.NewGuid();
+        await TerminMitZusageAsync(db, ich, anderer);
+        // Auch eine weich entfernte Zeile muss mit.
+        var entfernt = await db.GroupTrainingSessionResponses.FirstAsync(r => r.UserId == ich);
+        entfernt.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync();
+
+        await dienst.PurgeAsync(ich);
+
+        var rest = await db.GroupTrainingSessionResponses.IgnoreQueryFilters().ToListAsync();
+        Assert.DoesNotContain(rest, r => r.UserId == ich);
+        Assert.Contains(rest, r => r.UserId == anderer);
+    }
+
+    [Fact]
+    public async Task Export_EnthaeltReaktionUndRueckfrageZumFeedback()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        lookup.Register(ich, "ich@dogity.test", "Ich", "Selbst");
+        var hund = new Dog { Name = "Bello" };
+        db.Dogs.Add(hund);
+        db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = ich });
+        db.TrainingSessions.Add(new TrainingSession
+        {
+            UserId = ich, DogId = hund.Id, Date = new DateOnly(2026, 9, 1), DurationMinutes = 30,
+            TrainerFeedback = "Gut!", OwnerReaction = FeedbackReaction.Understood,
+            OwnerReply = "Wie oft üben?", OwnerReplyAt = DateTimeOffset.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var training = Assert.Single((await dienst.ExportAsync(ich)).Value!.Trainings);
+
+        Assert.Equal("Understood", training.ReaktionAufRueckmeldung);
+        Assert.Equal("Wie oft üben?", training.RueckfrageZurRueckmeldung);
+        Assert.NotNull(training.RueckfrageAm);
+    }
 }

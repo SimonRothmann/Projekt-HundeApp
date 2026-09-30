@@ -21,7 +21,8 @@ public record AccountExportDto(
     IReadOnlyList<VereinExportDto> Vereine,
     IReadOnlyList<GruppeExportDto> Gruppen,
     IReadOnlyList<SachkundeExportDto> Sachkunde,
-    IReadOnlyList<BenachrichtigungExportDto> Benachrichtigungen);
+    IReadOnlyList<BenachrichtigungExportDto> Benachrichtigungen,
+    IReadOnlyList<TerminzusageExportDto> Terminzusagen);
 
 public record KontoExportDto(
     Guid Id,
@@ -64,7 +65,11 @@ public record TrainingExportDto(
     double? WindKmh,
     string? Notizen,
     string? TrainerRueckmeldung,
-    IReadOnlyList<TrainingsuebungExportDto> Uebungen);
+    IReadOnlyList<TrainingsuebungExportDto> Uebungen,
+    // Die eigene Antwort auf die Trainer-Rückmeldung (Danke/Verstanden, Rückfrage).
+    string? ReaktionAufRueckmeldung = null,
+    string? RueckfrageZurRueckmeldung = null,
+    DateTimeOffset? RueckfrageAm = null);
 
 public record TrainingsuebungExportDto(
     string Uebung,
@@ -155,3 +160,11 @@ public record BenachrichtigungExportDto(
     DateTimeOffset Zeitpunkt,
     string Text,
     bool Gelesen);
+
+/// <summary>Die eigene Zu- oder Absage zu einem Gruppentermin.</summary>
+public record TerminzusageExportDto(
+    Guid TerminId,
+    string Gruppe,
+    DateTimeOffset Beginn,
+    bool Zugesagt,
+    DateTimeOffset AntwortAm);
