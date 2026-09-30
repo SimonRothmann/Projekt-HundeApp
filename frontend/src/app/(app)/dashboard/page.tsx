@@ -179,7 +179,7 @@ export default function DashboardPage() {
           {hasNoClub && !zeigtErststart(daten.onboarding) && (
             <Link href="/clubs" className="group block">
               <Card className="border-primary/40 bg-primary/5 transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary/10 hover:shadow-[var(--shadow-glow)]">
-                <CardHeader className="flex-row items-center gap-4 space-y-0">
+                <CardHeader className="flex flex-row items-center gap-4 space-y-0">
                   <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary-text ring-1 ring-primary/25">
                     <Building2 className="size-6" />
                   </span>

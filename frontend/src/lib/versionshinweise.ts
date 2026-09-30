@@ -125,6 +125,18 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("Die Glocke aktualisiert sich jetzt auch, sobald du in die App zurückkehrst, statt bis zu einer Minute zu warten."),
       },
+      {
+        art: "neu",
+        text: uebersetzbar("Jede Fährte lässt sich jetzt als Bild teilen: Im Tagebuch tippst du bei der Fährte auf „Als Bild teilen“. Das Bild zeigt die Form der Fährte, deine Linie beim Ablaufen in Ampelfarben und die wichtigsten Zahlen. Es enthält keine Karte und keine Koordinaten, niemand sieht also, wo die Fährte lag. Den Hundenamen kannst du ausblenden. Das Bild entsteht auf deinem Gerät und wird nirgends hochgeladen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Am Hund zeigt jetzt ein Verlauf, wie sich die Fährtenarbeit entwickelt: die letzten Abläufe als Säulen mit dem Anteil auf der Fährte, eingefärbt nach Abweichung. Er erscheint, sobald drei Abläufe ausgewertet sind."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Auf der Trainer-Seite stand der Pfeil bei „Gruppentraining“ und „Terminplanung“ auf schmalen Bildschirmen unter dem Text. Jetzt steht er rechts daneben."),
+      },
     ],
   },
   {

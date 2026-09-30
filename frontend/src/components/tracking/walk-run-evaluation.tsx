@@ -7,9 +7,11 @@ import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 // Schwellen identisch zum Backend (GpsTrackEvaluator) - bewusst großzügig,
-// weil der GPS-Fehler selbst 3-8 m beträgt.
-const GREEN_MAX_M = 3;
-const AMBER_MAX_M = 6;
+// weil der GPS-Fehler selbst 3-8 m beträgt. Exportiert, weil Kartenlinie und
+// Fährtenbild (lib/faehrten-bild.ts) dieselben Schwellen brauchen - eine Zahl,
+// ein Ort.
+export const GREEN_MAX_M = 3;
+export const AMBER_MAX_M = 6;
 
 function ampelClass(avgMeters: number): string {
   if (avgMeters <= GREEN_MAX_M) return "text-emerald-600 dark:text-emerald-500";
@@ -17,7 +19,7 @@ function ampelClass(avgMeters: number): string {
   return "text-destructive";
 }
 
-function ampelLabel(avgMeters: number): string {
+export function ampelLabel(avgMeters: number): string {
   if (avgMeters <= GREEN_MAX_M) return uebersetzbar("eng an der Fährte");
   if (avgMeters <= AMBER_MAX_M) return uebersetzbar("mittlere Abweichung");
   return uebersetzbar("deutlich abgekommen");

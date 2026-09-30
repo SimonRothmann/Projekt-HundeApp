@@ -190,7 +190,7 @@ export default function ProfilePage() {
       <h1 className="text-2xl font-semibold tracking-tight">{t("Profil")}</h1>
 
       <Card>
-        <CardHeader className="flex-row items-center gap-4 space-y-0">
+        <CardHeader className="flex flex-row items-center gap-4 space-y-0">
           <Avatar className="size-16">
             {avatarUrl && <AvatarImage src={avatarUrl} />}
             <AvatarFallback className="text-lg">{initials}</AvatarFallback>

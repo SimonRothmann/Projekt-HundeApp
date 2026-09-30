@@ -180,7 +180,7 @@ export default function SportsPage() {
           {uncategorized.length > 0 && (
             <Card className="border-dashed">
               <CardHeader
-                className="flex-row cursor-pointer items-center justify-between gap-2 space-y-0"
+                className="flex flex-row cursor-pointer items-center justify-between gap-2 space-y-0"
                 onClick={() => setShowUncategorized((prev) => !prev)}
               >
                 <div className="flex min-w-0 items-center gap-3">
@@ -313,7 +313,7 @@ function SportCard({
   return (
     <Card>
       <CardHeader
-        className="flex-row cursor-pointer items-center justify-between gap-2 space-y-0"
+        className="flex flex-row cursor-pointer items-center justify-between gap-2 space-y-0"
         onClick={onToggle}
       >
         <div className="flex min-w-0 items-center gap-3">

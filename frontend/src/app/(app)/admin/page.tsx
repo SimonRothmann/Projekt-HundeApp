@@ -266,7 +266,7 @@ export default function AdminPage() {
       </Card>
 
       <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Nutzer</CardTitle>
           {userPage && (
             <span className="text-xs text-muted-foreground">

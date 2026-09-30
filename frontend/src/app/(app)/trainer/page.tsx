@@ -98,7 +98,7 @@ export default function TrainerPage() {
       <div className="grid gap-3 sm:grid-cols-2">
         <Link href="/trainer/group-training">
           <Card className="h-full transition-colors hover:bg-accent/30">
-            <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
               <div className="flex min-w-0 items-center gap-3">
                 <ClipboardList className="size-5 shrink-0 text-primary-text" />
                 <div className="min-w-0">
@@ -115,7 +115,7 @@ export default function TrainerPage() {
 
         <Link href="/trainer/schedule">
           <Card className="h-full transition-colors hover:bg-accent/30">
-            <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
               <div className="flex min-w-0 items-center gap-3">
                 <CalendarDays className="size-5 shrink-0 text-primary-text" />
                 <div className="min-w-0">
@@ -208,7 +208,7 @@ export default function TrainerPage() {
           {groups.map((group) => (
             <Link key={group.id} href={`/trainer/${group.id}`}>
               <Card className="transition-colors hover:bg-accent/30">
-                <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
                   <div className="flex min-w-0 items-center gap-3">
                     <Users className="size-6 shrink-0 text-primary-text" />
                     <div className="min-w-0">
@@ -218,9 +218,12 @@ export default function TrainerPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
+                  <div className="flex max-w-[45%] shrink-0 flex-col items-end gap-1">
                     {group.clubId && (
-                      <Badge variant="outline">{myClubs.find((c) => c.id === group.clubId)?.name ?? t("Verein")}</Badge>
+                      // Langer Vereinsname: kürzen statt dem Gruppennamen den Platz zu nehmen.
+                      <Badge variant="outline" className="max-w-full">
+                        <span className="truncate">{myClubs.find((c) => c.id === group.clubId)?.name ?? t("Verein")}</span>
+                      </Badge>
                     )}
                     <Badge variant="secondary">{group.memberCount} Mitglieder</Badge>
                   </div>

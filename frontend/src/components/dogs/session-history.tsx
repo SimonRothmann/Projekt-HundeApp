@@ -296,9 +296,12 @@ export function SessionHistory({
   onChanged,
   onLoadOlder,
   fokusEintrag = null,
+  dogName,
 }: {
   sessions: TrainingSession[] | null;
   isOwner: boolean;
+  /** Für das Fährtenbild zum Teilen (Schalter "Hundename zeigen"). */
+  dogName?: string;
   onChanged: () => Promise<void>;
   onLoadOlder: (() => Promise<void>) | null;
   /**
@@ -528,7 +531,12 @@ export function SessionHistory({
                             Ausgeblendet wird nur der Einstieg ins NEUE
                             Aufnehmen - siehe GpsTrackSection. */}
                         {gpsSessions.length > 0 && (
-                          <GpsTrackSection trainingSessionIds={gpsSessions.map((s) => s.id)} readOnly={completed} />
+                          <GpsTrackSection
+                            trainingSessionIds={gpsSessions.map((s) => s.id)}
+                            readOnly={completed}
+                            hundeName={dogName}
+                            onChanged={onChanged}
+                          />
                         )}
                         {(feedbackSessions.length > 0 ? feedbackSessions : [daySessions[0]]).map((s) => (
                           // Die Kennung, auf die ?eintrag= zeigt. Hervorgehoben

@@ -3,90 +3,15 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
-import type { DashboardStats, DogExerciseStat, DogTrackStats } from "@/lib/types";
+import type { DashboardStats, DogExerciseStat } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, ChevronDown, ChevronRight, Dog, TrendingDown, TrendingUp } from "lucide-react";
+import { BarChart, ChevronDown, ChevronRight, Dog } from "lucide-react";
 import { toast } from "sonner";
 import { ConditionStats } from "@/components/dogs/condition-stats";
+import { FaehrtenTrend, TrendBadge } from "@/components/tracking/faehrten-trend";
 
 import { useT } from "@/lib/i18n";
-// Bewertungstrend als Pfeil: steigend (grün) / fallend (rot) / stabil.
-// null (zu wenige Durchgänge) rendert nichts.
-function TrendBadge({ trend }: { trend: number | null }) {
-  if (trend === null || Math.abs(trend) < 0.25) return <span className="text-muted-foreground">→ stabil</span>;
-  if (trend > 0)
-    return (
-      <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400">
-        <TrendingUp className="size-3.5" /> +{trend.toFixed(1)}
-      </span>
-    );
-  return (
-    <span className="flex items-center gap-0.5 text-destructive">
-      <TrendingDown className="size-3.5" /> {trend.toFixed(1)}
-    </span>
-  );
-}
-
-/**
- * Fährten-Entwicklung eines Hundes: die jüngsten ausgewerteten Abläufe als
- * kleiner Balkenverlauf (Anteil "auf Fährte") plus Trend. Rendert nichts,
- * wenn der Hund keine ausgewerteten Fährten hat - so bleibt die Karte für
- * Hunde ohne Fährtenarbeit unverändert.
- *
- * Gemessen wird die Linie des HUNDEFÜHRERS (siehe GpsTrackEvaluator) - daher
- * die bewusst zurückhaltende Beschriftung.
- */
-function DogTrackTrend({ dogId }: { dogId: string }) {
-  const t = useT();
-  const [stats, setStats] = useState<DogTrackStats | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    api
-      .get<DogTrackStats>(`/api/stats/dogs/${dogId}/tracks`)
-      .then((data) => {
-        if (active) setStats(data);
-      })
-      .catch(() => {
-        // Still: der Block ist optional, ein Fehler soll die Karte nicht stören.
-        if (active) setStats({ runs: [], deviationTrend: null, onTrackTrend: null });
-      });
-    return () => {
-      active = false;
-    };
-  }, [dogId]);
-
-  if (stats === null || stats.runs.length === 0) return null;
-
-  const last = stats.runs[stats.runs.length - 1];
-
-  return (
-    <div className="border-t pt-2">
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-muted-foreground">
-          Fährte · {stats.runs.length} Abläufe
-        </span>
-        {/* Sinkende Abweichung = Verbesserung, daher invertiert übergeben. */}
-        {stats.deviationTrend !== null && <TrendBadge trend={-stats.deviationTrend} />}
-      </div>
-      <div className="flex items-end gap-1" title={t("Anteil auf der Fährte je Ablauf")}>
-        {stats.runs.map((run, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-sm bg-primary/70"
-            style={{ height: `${Math.max(4, Math.round(run.onTrackPercent * 0.28))}px` }}
-            title={`${new Date(run.date).toLocaleDateString("de-DE")}: Ø ${run.avgDeviationMeters} m · ${Math.round(run.onTrackPercent)} % auf Fährte`}
-          />
-        ))}
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Zuletzt: Ø {last.avgDeviationMeters} m · {Math.round(last.onTrackPercent)} % auf Fährte
-        {last.articlesTotal > 0 && ` · ${last.articlesFound}/${last.articlesTotal} Gegenstände`}
-      </p>
-    </div>
-  );
-}
 
 /**
  * Übungs-Aufschlüsselung eines Hundes: lädt bei Aufklappen die Kennzahlen pro
@@ -205,7 +130,7 @@ export default function StatsPage() {
       ) : (
         <>
           <Card>
-            <CardHeader className="flex-row items-center gap-2 space-y-0">
+            <CardHeader className="flex flex-row items-center gap-2 space-y-0">
               <BarChart className="size-5 text-primary-text" />
               <CardTitle className="text-base">{t("Trainings der letzten 12 Wochen")}</CardTitle>
             </CardHeader>
@@ -242,7 +167,7 @@ export default function StatsPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               {stats.perDog.map((dog) => (
                 <Card key={dog.dogId}>
-                  <CardHeader className="flex-row items-center gap-3 space-y-0">
+                  <CardHeader className="flex flex-row items-center gap-3 space-y-0">
                     <Dog className="size-6 text-primary-text" />
                     <CardTitle className="text-base">{dog.dogName}</CardTitle>
                   </CardHeader>
@@ -281,7 +206,7 @@ export default function StatsPage() {
                         </div>
                       </div>
                     )}
-                    <DogTrackTrend dogId={dog.dogId} />
+                    <FaehrtenTrend dogId={dog.dogId} />
                     {dog.sessionCount > 0 && (
                       <div className="border-t pt-2">
                         <Button

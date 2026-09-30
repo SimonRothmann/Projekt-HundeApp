@@ -10,6 +10,7 @@ import { Map, Satellite } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { alsHtmlText } from "@/lib/html-text";
+import { AMBER_MAX_M, GREEN_MAX_M } from "@/components/tracking/walk-run-evaluation";
 /// <reference types="leaflet" />
 
 // Kompatibel zu sowohl GpsPoint (pointType/label gesetzt) als auch
@@ -50,17 +51,16 @@ const WALK_RUN_COLORS = ["#3b82f6", "#14b8a6", "#6366f1", "#06b6d4"];
 const TRACK_LINE_COLOR = "#e11dde";
 const TRACK_CASING_COLOR = "#1e1b2e";
 
-// Ampelfarben für die Abweichung der Ablauf-Linie (Schwellen siehe
-// GpsTrackEvaluator im Backend - bewusst großzügig, weil der GPS-Fehler
-// selbst in derselben Größenordnung liegt).
-const DEVIATION_GREEN_MAX_M = 3;
-const DEVIATION_AMBER_MAX_M = 6;
+// Ampelfarben für die Abweichung der Ablauf-Linie. Die Schwellen sind die der
+// Auswertung (walk-run-evaluation.tsx, identisch zum GpsTrackEvaluator im
+// Backend) - dieselben Zahlen, damit Karte, Auswertung und Fährtenbild nie
+// verschiedene Farben für denselben Ablauf zeigen.
 const DEVIATION_COLORS = { green: "#16a34a", amber: "#d97706", red: "#dc2626" } as const;
 
 function deviationColor(meters: number | null | undefined): string | null {
   if (meters == null) return null;
-  if (meters <= DEVIATION_GREEN_MAX_M) return DEVIATION_COLORS.green;
-  if (meters <= DEVIATION_AMBER_MAX_M) return DEVIATION_COLORS.amber;
+  if (meters <= GREEN_MAX_M) return DEVIATION_COLORS.green;
+  if (meters <= AMBER_MAX_M) return DEVIATION_COLORS.amber;
   return DEVIATION_COLORS.red;
 }
 
@@ -755,11 +755,11 @@ export function TrackLegend({ walkRuns }: { walkRuns: GpsWalkRun[] }) {
           <span className="font-medium text-foreground">{t("Ablauf, Abweichung:")}</span>
           <span className="flex items-center gap-1.5">
             <Linienprobe farbe={DEVIATION_COLORS.green} />
-            {t("bis {meter} m", { meter: DEVIATION_GREEN_MAX_M })}
+            {t("bis {meter} m", { meter: GREEN_MAX_M })}
           </span>
           <span className="flex items-center gap-1.5">
             <Linienprobe farbe={DEVIATION_COLORS.amber} />
-            {t("bis {meter} m", { meter: DEVIATION_AMBER_MAX_M })}
+            {t("bis {meter} m", { meter: AMBER_MAX_M })}
           </span>
           <span className="flex items-center gap-1.5">
             <Linienprobe farbe={DEVIATION_COLORS.red} />

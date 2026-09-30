@@ -73,7 +73,7 @@ export function ClubJoinRequestsSection({ clubs }: { clubs: Club[] }) {
 
   return (
     <Card>
-      <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
         <CardTitle className="flex items-center gap-2 text-base">
           <UserCheck className="size-5" />
           Beitrittsanfragen

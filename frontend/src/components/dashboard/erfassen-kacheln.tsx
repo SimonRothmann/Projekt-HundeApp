@@ -72,7 +72,7 @@ function Kachel({
   breit: boolean;
 }) {
   const kopf = (
-    <CardHeader className="flex-row items-center gap-4 space-y-0">
+    <CardHeader className="flex flex-row items-center gap-4 space-y-0">
       <span
         className={cn(
           "flex size-12 shrink-0 items-center justify-center rounded-xl ring-1 transition-colors",

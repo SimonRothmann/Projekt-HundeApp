@@ -414,7 +414,7 @@ export function GoalPlanCard({
 
   return (
     <Card>
-      <CardHeader className="flex-row flex-wrap items-start justify-between gap-2 space-y-0">
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0">
         <div className="min-w-0">
           <CardTitle className="text-base break-words">
             {goal.sportName}

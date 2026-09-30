@@ -82,7 +82,7 @@ export default function DogsPage() {
     return (
       <Link key={dog.id} href={`/dogs/${dog.id}`}>
         <Card className={`transition-colors hover:bg-accent/10 ${archived ? "opacity-70" : ""}`}>
-          <CardHeader className="flex-row items-center gap-3 space-y-0">
+          <CardHeader className="flex flex-row items-center gap-3 space-y-0">
             <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">

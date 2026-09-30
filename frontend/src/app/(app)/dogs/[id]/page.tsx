@@ -21,6 +21,7 @@ import { TrainingForm } from "@/components/dogs/training-form";
 import { SessionHistory } from "@/components/dogs/session-history";
 import { CoOwnersSection } from "@/components/dogs/co-owners-section";
 import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
+import { FaehrtenTrend } from "@/components/tracking/faehrten-trend";
 import { clearCachedData, getCachedData, setCachedData } from "@/lib/read-cache";
 import { useAuth } from "@/lib/auth-context";
 import { eintragIdAus } from "@/lib/feedback-gesehen";
@@ -66,6 +67,11 @@ export default function DogDetailPage() {
   // Browserverlauf.
   const [nichtGefunden, setNichtGefunden] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  // Zählt die Änderungen, nach denen der Fährten-Verlauf neu zu laden ist (neue
+  // Fährte, neuer Ablauf, gelöscht). Ein Zähler statt der Trainingsliste als
+  // Auslöser: Die Liste wechselt schon beim Öffnen der Seite mehrmals (Cache,
+  // dann frische Daten) und ergäbe jedes Mal einen eigenen Abruf.
+  const [faehrtenStand, setFaehrtenStand] = useState(0);
   const [editing, setEditing] = useState(false);
   // false = nur die letzten 3 Monate geladen, true = komplette Historie.
   const [showAllHistory, setShowAllHistory] = useState(false);
@@ -230,6 +236,11 @@ export default function DogDetailPage() {
     ziel.scrollIntoView({ behavior: "auto", block: "start" });
   }, [dog, dogSportIds, sports]);
 
+  async function faehrteGeaendert() {
+    await loadAll();
+    setFaehrtenStand((n) => n + 1);
+  }
+
   const jumpedToPlan = useRef(false);
   useEffect(() => {
     if (jumpedToPlan.current || !dog || goals === null) return;
@@ -391,7 +402,21 @@ export default function DogDetailPage() {
           auch für Spaziergänge taugt: Wer sie dafür nutzt, darf sie behalten,
           ohne t("Fährte") als Sportart anzugeben - dann lässt er das Modul an
           und wählt die Sportart ab. */}
-      {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && <FahrteRecorder dogId={id} onSaved={loadAll} />}
+      {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && <FahrteRecorder dogId={id} onSaved={faehrteGeaendert} />}
+
+      {/* Der Verlauf gehört zur Fährtenarbeit, deshalb unter dem Recorder und
+          mit denselben Bedingungen. Erst ab drei ausgewerteten Abläufen: bei
+          einem oder zwei Balken sagt ein Verlauf nichts. */}
+      {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && (
+        <FaehrtenTrend
+          dogId={id}
+          mindestens={3}
+          hoechstens={10}
+          nachAbweichung
+          className="rounded-lg border border-surface-border bg-surface p-3"
+          aktualisiert={faehrtenStand}
+        />
+      )}
 
       <SectionHeading
         id="training-erfassen"
@@ -422,8 +447,9 @@ export default function DogDetailPage() {
 
       <SessionHistory
         sessions={sessions}
+        dogName={dog.name}
         isOwner={isOwner}
-        onChanged={loadAll}
+        onChanged={faehrteGeaendert}
         onLoadOlder={showAllHistory ? null : loadOlderSessions}
         // Erst fokussieren, wenn alles geladen ist: Die Fährtenaufzeichnung
         // darüber erscheint erst mit den Sportarten des Hundes und würde den

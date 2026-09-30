@@ -242,7 +242,7 @@ export default function TrainerGroupPage() {
       {/* Gruppe verwalten: Name/Beschreibung bearbeiten + Trainer:in zuweisen.
           Für jede:n Trainer:in des Vereins möglich (Backend prüft die Rechte). */}
       <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">{t("Gruppe")}</CardTitle>
           {!editing && (
             <Button type="button" size="sm" variant="outline" onClick={startEdit}>
@@ -455,7 +455,7 @@ export default function TrainerGroupPage() {
             return (
               <Card key={member.userId}>
                 <CardHeader
-                  className="flex-row cursor-pointer items-center justify-between space-y-0"
+                  className="flex flex-row cursor-pointer items-center justify-between space-y-0"
                   onClick={() => toggleMember(member.userId)}
                 >
                   <div>

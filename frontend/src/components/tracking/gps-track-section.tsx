@@ -11,6 +11,7 @@ import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
 import { WalkRunComment } from "@/components/tracking/walk-run-comment";
 import { WalkRunEvaluation } from "@/components/tracking/walk-run-evaluation";
+import { FaehrteTeilen } from "@/components/tracking/faehrte-teilen";
 import { CloudSun, Route, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDelta, formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
@@ -62,6 +63,8 @@ function formatDuration(ms: number): string {
 export function GpsTrackSection({
   trainingSessionIds,
   readOnly = false,
+  hundeName,
+  onChanged,
 }: {
   /**
    * Alle Einheiten des Trainingstags mit Fährte. Seit 2026-09-10 hängt jede
@@ -71,6 +74,13 @@ export function GpsTrackSection({
    */
   trainingSessionIds: string[];
   readOnly?: boolean;
+  /** Für das Bild zum Teilen - ohne Namen gibt es keinen Schalter "Hundename zeigen". */
+  hundeName?: string;
+  /**
+   * Nach einem neu gespeicherten Ablauf: Die Seite kennt Auswertungen, die
+   * sich dadurch ändern (Fährten-Trend am Hund) und lädt sie neu.
+   */
+  onChanged?: () => Promise<void>;
 }) {
   const t = useT();
   const [tracks, setTracks] = useState<GpsTrack[] | null>(null);
@@ -168,11 +178,15 @@ export function GpsTrackSection({
                 {!readOnly && moduleEnabled(MODULE.faehrte) && (
                   <WalkRunRecorder
                     trackId={track.id}
-                    onSaved={loadTracks}
+                    onSaved={async () => {
+                      await loadTracks();
+                      await onChanged?.();
+                    }}
                     onLivePointsChange={handleLivePoints}
                     laidTrackPoints={track.points}
                   />
                 )}
+                <FaehrteTeilen track={track} hundeName={hundeName} />
                 <Button
                   size="sm"
                   variant="ghost"
@@ -183,6 +197,7 @@ export function GpsTrackSection({
                       await api.delete(`/api/gps-tracks/${track.id}`);
                       toast.success(t("Fährte gelöscht."));
                       await loadTracks();
+                      await onChanged?.();
                     } catch (err) {
                       toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
                     }

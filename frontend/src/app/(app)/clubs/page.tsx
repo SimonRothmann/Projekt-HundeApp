@@ -137,10 +137,10 @@ export default function ClubsPage() {
             const groups = groupsByClub[club.id] ?? [];
             return (
               <Card key={club.id}>
-                <CardHeader className="flex-row items-center gap-3 space-y-0">
-                  <Building2 className="size-8 text-primary-text" />
-                  <div>
-                    <CardTitle>{club.name}</CardTitle>
+                <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+                  <Building2 className="size-8 shrink-0 text-primary-text" />
+                  <div className="min-w-0">
+                    <CardTitle className="[overflow-wrap:anywhere]">{club.name}</CardTitle>
                     {club.description && <p className="text-sm text-muted-foreground">{club.description}</p>}
                   </div>
                 </CardHeader>

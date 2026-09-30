@@ -145,6 +145,7 @@ export default function DatenschutzPage() {
               "Die Punkte bleiben auf dem Server von Dogity. Sie gehen an keinen Kartendienst und an keinen Dritten.",
               "Die Fährte sehen nur du, Mitbesitzer:innen des Hundes und Trainer:innen, denen der Hund zugeordnet ist.",
               "Löschst du die Fährte oder dein Konto, verschwinden die Punkte mit.",
+              "Teilst du eine Fährte als Bild, entsteht es auf deinem Gerät – ohne Karte, ohne Koordinaten und ohne Uhrzeiten – und Dogity überträgt dabei nichts; wohin du das Bild weitergibst, entscheidest du.",
             ]}
           />
           <p>

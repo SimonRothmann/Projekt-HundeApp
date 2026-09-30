@@ -57,7 +57,7 @@ export function GroupJoinRequestsSection({ groups }: Props) {
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center gap-2 space-y-0">
+      <CardHeader className="flex flex-row items-center gap-2 space-y-0">
         <UserCheck className="size-5 text-primary-text" />
         <CardTitle className="text-base">Offene Gruppenanfragen</CardTitle>
       </CardHeader>
