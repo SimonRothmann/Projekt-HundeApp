@@ -37,6 +37,20 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
         return FromResult(result);
     }
 
+    [HttpPost("{id:guid}/complete")]
+    public async Task<ActionResult<GoalDto>> Complete(Guid id, CompleteGoalRequest request, CancellationToken ct)
+    {
+        var result = await goalService.CompleteAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
+
+    [HttpPut("{id:guid}/exam-result")]
+    public async Task<ActionResult<GoalDto>> UpdateExamResult(Guid id, UpdateExamResultRequest request, CancellationToken ct)
+    {
+        var result = await goalService.UpdateExamResultAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("{id:guid}/config")]
     public async Task<ActionResult<GoalDto>> UpdateConfig(Guid id, UpdateGoalConfigRequest request, CancellationToken ct)
     {

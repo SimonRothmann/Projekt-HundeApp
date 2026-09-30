@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { toast } from "sonner";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { datumKurz, leistungen, pruefungsName, punkteText } from "@/lib/pruefung";
 const GOAL_STATUS_LABEL: Record<number, string> = { 0: "Aktiv", 1: "Erreicht", 2: "Abgebrochen" };
 
 export default function DogPrintPage() {
   const t = useT();
+  const sprache = useSprache();
   const { id } = useParams<{ id: string }>();
   const [dog, setDog] = useState<Dog | null>(null);
   const [goals, setGoals] = useState<Goal[] | null>(null);
@@ -58,6 +60,29 @@ export default function DogPrintPage() {
           {dog.birthday && ` · geboren ${new Date(dog.birthday).toLocaleDateString("de-DE")}`}
         </p>
       </header>
+
+      {leistungen(goals).length > 0 && (
+        <section className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold">{t("Leistungen")}</h2>
+          {leistungen(goals).map((goal) => (
+            <div key={goal.id} className="break-inside-avoid rounded-md border p-4">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{pruefungsName(goal)}</span>
+                <span className="text-sm text-muted-foreground">{t("bestanden")}</span>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {[
+                  goal.examDate ? datumKurz(goal.examDate, sprache) : t("Ohne Datum"),
+                  goal.examScore != null ? punkteText(t, goal.examScore, goal.maxPoints) : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+              {goal.examNote && <p className="mt-1 text-sm [overflow-wrap:anywhere]">{goal.examNote}</p>}
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">{t("Trainingspläne")}</h2>

@@ -36,6 +36,17 @@ public class Goal : Entity
     public string? Notes { get; set; }
 
     /// <summary>
+    /// Ergebnis der Prüfung, sobald das Ziel erreicht ist. Erreicht heißt
+    /// "bestanden" - ein eigenes Ergebnisfeld gibt es deshalb nicht; eine nicht
+    /// bestandene Prüfung lässt das Ziel aktiv (mit neuem Zieldatum). Alle drei
+    /// Felder sind leer bei offenen und bei früher als erreicht markierten
+    /// Zielen, deren Ergebnis nie erfasst wurde (lässt sich nachtragen).
+    /// </summary>
+    public DateOnly? ExamDate { get; set; }
+    public int? ExamScore { get; set; }
+    public string? ExamNote { get; set; }
+
+    /// <summary>
     /// Kein festes Prüfungsziel: der TrainingPlan bleibt beim Anlegen leer
     /// (kein Auto-Fill durch <see cref="TrainingPlanGenerator"/>) und der
     /// Nutzer legt Wochenübungen manuell an. RegulationId ist dann immer null.

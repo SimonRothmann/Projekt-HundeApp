@@ -49,7 +49,15 @@ public record RegulationDto(
     string? LatestKnownVersionLabel,
     string? Description,
     string? CountryCode,
-    DateOnly? CurrentVersionValidFrom);
+    DateOnly? CurrentVersionValidFrom)
+{
+    /// <summary>
+    /// Namen der Prüfungsordnungen, die auf diese folgen (Ausbildungsweg) - für
+    /// "Nächste Stufe" auf der öffentlichen Seite. Berechnet statt gespeichert:
+    /// Die Reihenfolge steht nur in <see cref="Planning.Ausbildungsweg"/>.
+    /// </summary>
+    public IReadOnlyList<string> NextStageNames => Planning.Ausbildungsweg.FolgestufenVon(Name);
+}
 
 public record UpdateRegulationRequest(string Name, string? Description, string? SourceUrl, string? CountryCode);
 

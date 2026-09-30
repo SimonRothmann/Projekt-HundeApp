@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Goal, Regulation, Sport } from "@/lib/types";
+import type { Goal, NextStage, Regulation, Sport } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,20 +17,26 @@ import { useT } from "@/lib/i18n";
  * Eigenständig mit eigenem State - die Ziel-Anlage ist unabhängig von der
  * Ziel-/Plan-Darstellung in GoalsSection. onCreated wird nach erfolgreichem
  * Anlegen gerufen (schließt in der Regel das Formular und lädt die Ziele neu).
+ *
+ * `vorauswahl`: Sportart und Prüfung stehen schon fest (Folgeziel nach einer
+ * bestandenen Prüfung). Gilt nur beim Öffnen - wer das Formular mit anderer
+ * Vorauswahl öffnen will, gibt ihm einen neuen key.
  */
 export function GoalCreateForm({
   dogId,
   sports,
+  vorauswahl = null,
   onCreated,
 }: {
   dogId: string;
   sports: Sport[];
+  vorauswahl?: NextStage | null;
   onCreated: () => Promise<void>;
 }) {
   const t = useT();
-  const [sportId, setSportId] = useState("");
+  const [sportId, setSportId] = useState(vorauswahl?.sportId ?? "");
   const [regulations, setRegulations] = useState<Regulation[]>([]);
-  const [regulationId, setRegulationId] = useState("");
+  const [regulationId, setRegulationId] = useState(vorauswahl?.regulationId ?? "");
   const [targetDate, setTargetDate] = useState("");
   const [notes, setNotes] = useState("");
   const [isCustom, setIsCustom] = useState(false);
@@ -40,7 +46,9 @@ export function GoalCreateForm({
   // Prüfungsordnungs-Seite nicht mehr dazwischenfunken - auch nicht, wenn ihre
   // Antwort erst danach eintrifft.
   const selbstGewaehlt = useRef(false);
-  const vorausgewaehlt = useRef(false);
+  // Mit Vorauswahl über Props hat der Merkzettel der Prüfungsordnungs-Seite
+  // nichts mehr zu sagen.
+  const vorausgewaehlt = useRef(vorauswahl !== null);
 
   // Sportart aus dem Katalog, die zur Vorauswahl gehört, aber beim Hund nicht
   // angeboten wird (etwa weil im Erststart schon eine andere gewählt wurde).
@@ -99,6 +107,33 @@ export function GoalCreateForm({
     };
     // Bewusst nur beim Öffnen: Die Elternseite reicht `sports` bei jedem
     // Rendern neu durch, ein Neustart würde die Abrufe ständig abbrechen.
+  }, []);
+
+  useEffect(() => {
+    // Die Prüfungen der vorgewählten Sportart nachladen, damit die Auswahl
+    // die vorgewählte Prüfung auch zeigt - und die Sportart selbst, falls sie
+    // beim Hund nicht angeboten wird (wie bei der Vorauswahl vom Start).
+    if (!vorauswahl) return;
+    let abgebrochen = false;
+    (async () => {
+      try {
+        const [pruefungen, alle] = await Promise.all([
+          api.get<Regulation[]>(`/api/sports/${vorauswahl.sportId}/regulations`),
+          sports.some((s) => s.id === vorauswahl.sportId) ? Promise.resolve(null) : api.get<Sport[]>("/api/sports"),
+        ]);
+        if (abgebrochen) return;
+        setRegulations(pruefungen);
+        if (alle) setZusatzSport(alle.find((s) => s.id === vorauswahl.sportId) ?? null);
+      } catch {
+        // Ohne Netz bleibt die Vorauswahl stehen, nur die Auswahlliste fehlt -
+        // das Ziel lässt sich trotzdem anlegen.
+      }
+    })();
+    return () => {
+      abgebrochen = true;
+    };
+    // Nur beim Öffnen, wie die Vorauswahl selbst.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const sportOptionen =

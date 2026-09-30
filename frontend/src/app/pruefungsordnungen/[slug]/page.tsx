@@ -49,6 +49,15 @@ export default async function RegulationPage({ params }: Params) {
   const entry = await findCatalogEntry(slug);
   if (!entry) notFound();
 
+  // Folgestufen kommen mit ihren Namen aus dem Backend (Ausbildungsweg); hier
+  // werden sie nur zu Seiten des Katalogs aufgelöst. Was es dort nicht gibt,
+  // fällt weg.
+  const katalog = await getCatalog();
+  const naechsteStufen = (entry.regulation.nextStageNames ?? []).flatMap((name) => {
+    const treffer = katalog.find((eintrag) => eintrag.regulation.name === name);
+    return treffer ? [treffer] : [];
+  });
+
   const detail = await getRegulationDetail(entry.regulation.id);
   const exercises = detail?.exercises ?? [];
   const scored = exercises.filter((exercise) => exercise.maxPoints > 0);
@@ -97,6 +106,20 @@ export default async function RegulationPage({ params }: Params) {
                 </p>
               ))}
           </div>
+        )}
+
+        {naechsteStufen.length > 0 && (
+          <p className="mt-6 text-sm">
+            <span className="font-medium">Nächste Stufe: </span>
+            {naechsteStufen.map((stufe, index) => (
+              <span key={stufe.slug}>
+                {index > 0 && ", "}
+                <Link href={`/pruefungsordnungen/${stufe.slug}`} className="text-primary-text hover:underline">
+                  {stufe.regulation.name}
+                </Link>
+              </span>
+            ))}
+          </p>
         )}
 
         {exercises.length > 0 && (

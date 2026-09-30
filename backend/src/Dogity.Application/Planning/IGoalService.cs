@@ -11,6 +11,19 @@ public interface IGoalService
     Task<Result<GoalDto>> UpdateStatusAsync(Guid userId, Guid goalId, GoalStatus status, CancellationToken ct = default);
 
     /// <summary>
+    /// Schließt ein aktives Ziel mit dem Prüfungsergebnis ab: bestanden (Ziel
+    /// erreicht, Tag/Punkte/Notiz gespeichert) oder nicht bestanden (Ziel bleibt
+    /// aktiv, neues Zieldatum). Die Rechte sind dieselben wie bei UpdateStatusAsync.
+    /// </summary>
+    Task<Result<GoalDto>> CompleteAsync(Guid userId, Guid goalId, CompleteGoalRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Trägt das Ergebnis eines bereits erreichten Ziels nach oder korrigiert
+    /// es - auch für alte Ziele, die ohne Ergebnis als erreicht markiert wurden.
+    /// </summary>
+    Task<Result<GoalDto>> UpdateExamResultAsync(Guid userId, Guid goalId, UpdateExamResultRequest request, CancellationToken ct = default);
+
+    /// <summary>
     /// Setzt die Plan-Konfiguration eines Ziels (Übungen/Woche, Trainingstage/
     /// Woche) für den adaptiven Generator.
     /// </summary>

@@ -81,6 +81,26 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("Wer sich über „Kostenlos starten“ auf der Seite einer Prüfungsordnung registriert, findet beim ersten Ziel die passende Sportart und Prüfung schon vorgewählt."),
       },
+      {
+        art: "neu",
+        text: uebersetzbar("Ist die Prüfung gelaufen, trägst du jetzt das Ergebnis ein: Prüfungstag, Punkte und eine Notiz. „Ziel abschließen“ ersetzt das bisherige „Als erreicht markieren“. Hast du nicht bestanden, bleibt das Ziel aktiv, du wählst einen neuen Termin, und der Plan reicht bis dorthin."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Nach einer bestandenen Prüfung schlägt Dogity die nächste Stufe vor, zum Beispiel IGP 2 nach IGP 1. Ein Tipp legt das Ziel mit der passenden Prüfung an, das Datum wählst du selbst. Auch auf der Seite jeder Prüfungsordnung steht jetzt, welche Stufe als Nächstes kommt."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Am Hund gibt es die Karte „Leistungen“ mit allen bestandenen Prüfungen, neueste zuerst. Sie steht auch in der Druckansicht. Ziele, die du früher ohne Ergebnis als erreicht markiert hast, kannst du dort nachtragen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Die Startseite zeigt dir je Hund das nächste Prüfungsziel mit Datum, den Tagen bis dahin und dem Fortschritt der Woche. Hunde ohne Ziel bekommen einen Hinweis, wie du eines setzt."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die drei Karten am Ende der Startseite („Meine Hunde“, „Sportarten“, „Sachkunde üben“) sind zu einer schmalen Zeile mit Links geworden."),
+      },
     ],
   },
   {

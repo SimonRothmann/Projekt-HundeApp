@@ -45,7 +45,7 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 |---|---|
 | Zweck | Führen des Trainingstagebuchs, Auswertung des Verlaufs, Prüfungsvorbereitung |
 | Betroffene | Registrierte Nutzer:innen (Hundedaten sind über den Halter personenbeziehbar) |
-| Datenkategorien | Hundename, Rasse, Geburtstag, Geschlecht, Notizen, Foto; Trainingsdatum/-zeit/-dauer, Ortsname und Koordinaten, Wetter, Übungen mit Bewertung und Notizen, Trainer-Rückmeldungen; Ziele und Trainingspläne |
+| Datenkategorien | Hundename, Rasse, Geburtstag, Geschlecht, Notizen, Foto; Trainingsdatum/-zeit/-dauer, Ortsname und Koordinaten, Wetter, Übungen mit Bewertung und Notizen, Trainer-Rückmeldungen; Ziele und Trainingspläne; Prüfungsergebnisse (Datum, Punkte, Notiz) |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. b |
 | Empfänger | Mitbesitzer:innen und zugeordnete Trainer:innen (innerhalb der App); Hosting-Dienstleister |
 | Drittland | nein |

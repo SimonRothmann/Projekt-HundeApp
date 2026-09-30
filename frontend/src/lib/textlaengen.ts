@@ -22,4 +22,6 @@ export const TEXTLAENGE = {
   sachkundeFrage: 2000,
   /** QuizQuestion.SampleSolution */
   musterloesung: 2000,
+  /** Goal.ExamNote */
+  pruefungsNotiz: 500,
 } as const;

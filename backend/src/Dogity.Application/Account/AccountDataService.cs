@@ -212,7 +212,10 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                                 UebungsName(i.ExerciseId, i.FreeTextLabel),
                                 i.RepetitionsTarget,
                                 i.IsRestWeek))
-                            .ToList());
+                            .ToList(),
+                    ziel.ExamDate,
+                    ziel.ExamScore,
+                    ziel.ExamNote);
             }).ToList(),
             vereinIds.Select(vereinId =>
             {

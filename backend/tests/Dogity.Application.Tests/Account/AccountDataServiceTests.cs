@@ -4,6 +4,7 @@ using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Learning;
 using Dogity.Domain.Notifications;
+using Dogity.Domain.Planning;
 using Dogity.Domain.Preferences;
 using Dogity.Domain.Tracking;
 using Dogity.Domain.Training;
@@ -86,6 +87,57 @@ public class AccountDataServiceTests
         Assert.Equal("Fußarbeit", Assert.Single(training.Uebungen).Uebung);
         // Die Fährtenpunkte müssen mit - sie sind der Kern der Auskunft.
         Assert.Single(Assert.Single(export.Faehrten).Punkte);
+    }
+
+    [Fact]
+    public async Task Export_EnthaeltDasPruefungsergebnisDesZiels()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        lookup.Register(nutzer, "ich@test.de", "Max", "Muster");
+        var hund = HundMitAllem(db, nutzer, "Bello");
+        db.Goals.Add(new Goal
+        {
+            DogId = hund,
+            SportId = Guid.NewGuid(),
+            TargetDate = new DateOnly(2026, 9, 20),
+            Status = GoalStatus.Achieved,
+            ExamDate = new DateOnly(2026, 9, 19),
+            ExamScore = 272,
+            ExamNote = "Fährte war schwer",
+        });
+        await db.SaveChangesAsync();
+
+        var export = (await dienst.ExportAsync(nutzer)).Value!;
+
+        var ziel = Assert.Single(export.Ziele);
+        Assert.Equal(new DateOnly(2026, 9, 19), ziel.Pruefungstag);
+        Assert.Equal(272, ziel.Punkte);
+        Assert.Equal("Fährte war schwer", ziel.Pruefungsnotiz);
+    }
+
+    [Fact]
+    public async Task Purge_EntferntAuchDasPruefungsergebnis()
+    {
+        var (dienst, db, _) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        var hund = HundMitAllem(db, nutzer, "Bello");
+        db.Goals.Add(new Goal
+        {
+            DogId = hund,
+            SportId = Guid.NewGuid(),
+            TargetDate = new DateOnly(2026, 9, 20),
+            Status = GoalStatus.Achieved,
+            ExamDate = new DateOnly(2026, 9, 19),
+            ExamScore = 272,
+            ExamNote = "Privat",
+        });
+        await db.SaveChangesAsync();
+
+        await dienst.PurgeAsync(nutzer);
+
+        // Mit dem Ziel ist das Ergebnis weg, nicht nur ausgeblendet.
+        Assert.Empty(db.Goals.IgnoreQueryFilters());
     }
 
     [Fact]

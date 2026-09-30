@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeCurrentWeek, groupByWeek, offeneWochenziele } from "./trainingsplan";
+import { computeCurrentWeek, groupByWeek, offeneWochenziele, wochenFortschritt } from "./trainingsplan";
 import type { Goal, TrainingPlanItem } from "./types";
 
 function item(teil: Partial<TrainingPlanItem>): TrainingPlanItem {
@@ -85,5 +85,49 @@ describe("offeneWochenziele", () => {
   it("liefert nichts für erreichte oder abgebrochene Ziele", () => {
     expect(offeneWochenziele(ziel([item({})], { status: 1 }), START)).toBeNull();
     expect(offeneWochenziele(ziel([item({})], { status: 2 }), START)).toBeNull();
+  });
+});
+
+describe("wochenFortschritt", () => {
+  it("zählt die geplanten und die erledigten Übungen der laufenden Woche", () => {
+    const g = ziel([
+      item({ id: "a", weekNumber: 1 }),
+      item({ id: "b", weekNumber: 2 }),
+      item({ id: "c", weekNumber: 2, completedCount: 2, isComplete: true }),
+      item({ id: "d", weekNumber: 2, completedCount: 2, isComplete: true }),
+    ]);
+
+    expect(wochenFortschritt(g, START + 8 * TAG)).toEqual({ woche: 2, geplant: 3, erledigt: 2 });
+  });
+
+  it("meldet alles erledigt, wenn keine Übung mehr offen ist - dort, wo 'Diese Woche' nichts mehr zeigt", () => {
+    const g = ziel([item({ id: "a", weekNumber: 1, completedCount: 2, isComplete: true })]);
+
+    expect(offeneWochenziele(g, START)).toBeNull();
+    expect(wochenFortschritt(g, START)).toEqual({ woche: 1, geplant: 1, erledigt: 1 });
+  });
+
+  it("meint dieselbe Woche wie 'Diese Woche'", () => {
+    const g = ziel([
+      item({ id: "a", weekNumber: 1 }),
+      item({ id: "b", weekNumber: 2 }),
+      item({ id: "c", weekNumber: 3 }),
+    ]);
+
+    for (const tage of [0, 6, 7, 13, 14, 40]) {
+      const jetzt = START + tage * TAG;
+      expect(wochenFortschritt(g, jetzt)?.woche).toBe(offeneWochenziele(g, jetzt)?.woche);
+    }
+  });
+
+  it("liefert nichts ohne geplante Übung: Pausenwoche, leerer Plan", () => {
+    expect(wochenFortschritt(ziel([item({ id: "a", weekNumber: 1, isRestWeek: true })]), START)).toBeNull();
+    expect(wochenFortschritt(ziel([]), START)).toBeNull();
+  });
+
+  it("liefert nichts für erreichte oder abgebrochene Ziele und Ziele ohne Plan", () => {
+    expect(wochenFortschritt(ziel([item({})], { status: 1 }), START)).toBeNull();
+    expect(wochenFortschritt(ziel([item({})], { status: 2 }), START)).toBeNull();
+    expect(wochenFortschritt(ziel([item({})], { trainingPlan: null }), START)).toBeNull();
   });
 });

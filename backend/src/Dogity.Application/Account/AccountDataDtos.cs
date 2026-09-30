@@ -114,7 +114,11 @@ public record ZielExportDto(
     string Status,
     string? Notizen,
     DateTimeOffset? PlanErzeugtAm,
-    IReadOnlyList<PlanUebungExportDto> Planuebungen);
+    IReadOnlyList<PlanUebungExportDto> Planuebungen,
+    // Prüfungsergebnis eines erreichten Ziels (Goal.ExamDate/ExamScore/ExamNote).
+    DateOnly? Pruefungstag = null,
+    int? Punkte = null,
+    string? Pruefungsnotiz = null);
 
 public record PlanUebungExportDto(
     int Woche,

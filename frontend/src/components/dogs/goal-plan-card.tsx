@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Exercise, Goal, PlanItemReason, TrainingPlanItem } from "@/lib/types";
+import type { Exercise, Goal, NextStage, PlanItemReason, TrainingPlanItem } from "@/lib/types";
 import { computeCurrentWeek, groupByWeek, sichtbareWochen } from "@/lib/trainingsplan";
 import { PlanItemQuickLog } from "@/components/dogs/plan-item-quick-log";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ExerciseNotes } from "@/components/dogs/exercise-notes";
 import { ExerciseWeightingSheet } from "@/components/dogs/exercise-weighting-sheet";
+import { ZielAbschliessen } from "@/components/dogs/ziel-abschliessen";
 
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
@@ -48,11 +49,15 @@ const reasonLabel: Record<PlanItemReason, string> = { 0: uebersetzbar("Schwäche
 export function GoalPlanCard({
   goal,
   dogId,
+  dogName,
   onChanged,
+  onFolgeziel,
 }: {
   goal: Goal;
   dogId: string;
+  dogName: string;
   onChanged: () => Promise<void>;
+  onFolgeziel?: (stufe: NextStage) => void;
 }) {
   const t = useT();
   // Übungen der Ziel-Sportart, lazy für die Add-/Edit-Auswahl geladen.
@@ -282,10 +287,12 @@ export function GoalPlanCard({
     setQuickLogItemId((current) => (current === itemId ? null : itemId));
   }
 
-  async function updateStatus(status: 1 | 2) {
+  // Erreicht wird ein Ziel über "Ziel abschließen" (mit Prüfungsergebnis), nicht
+  // mehr über den bloßen Statuswechsel - nur das Abbrechen läuft noch hierüber.
+  async function cancelGoal() {
     try {
-      await api.put<Goal>(`/api/goals/${goal.id}/status`, { status });
-      toast.success(status === 1 ? t("Ziel als erreicht markiert.") : t("Ziel abgebrochen."));
+      await api.put<Goal>(`/api/goals/${goal.id}/status`, { status: 2 });
+      toast.success(t("Ziel abgebrochen."));
       await onChanged();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Status konnte nicht aktualisiert werden."));
@@ -773,10 +780,8 @@ export function GoalPlanCard({
             {addForm?.location === "central" && renderAddForm(true)}
 
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => updateStatus(1)}>
-                Als erreicht markieren
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => updateStatus(2)}>
+              <ZielAbschliessen goal={goal} hundName={dogName} onChanged={onChanged} onFolgeziel={onFolgeziel} />
+              <Button size="sm" variant="ghost" onClick={cancelGoal}>
 {t("Abbrechen")}
               </Button>
             </div>

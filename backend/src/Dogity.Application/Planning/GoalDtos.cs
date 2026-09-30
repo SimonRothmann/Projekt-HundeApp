@@ -71,11 +71,43 @@ public record GoalDto(
     /// mehr automatisch wöchentlich neu aufgebaut (siehe
     /// Goal.PlanManagedByTrainerId).
     /// </summary>
-    bool PlanManagedByTrainer = false);
+    bool PlanManagedByTrainer = false,
+    /// <summary>
+    /// Prüfungsergebnis eines erreichten Ziels (siehe Goal.ExamDate). Leer bei
+    /// offenen Zielen und bei früher als erreicht markierten, ohne Ergebnis.
+    /// </summary>
+    DateOnly? ExamDate = null,
+    int? ExamScore = null,
+    string? ExamNote = null,
+    /// <summary>
+    /// Höchstpunktzahl der Prüfungsordnung (Summe der Übungspunkte ihrer
+    /// gültigen Fassung) - null ohne Prüfungsordnung oder wenn sie nicht nach
+    /// Punkten wertet (z.B. BH Teil B, Agility).
+    /// </summary>
+    int? MaxPoints = null,
+    /// <summary>
+    /// Folgestufen der Prüfungsordnung (Ausbildungsweg) - nur bei erreichten
+    /// Zielen gefüllt; daraus bietet die Oberfläche ein Folgeziel an.
+    /// </summary>
+    IReadOnlyList<NextStageDto>? NextStages = null);
+
+/// <summary>Eine Prüfungsordnung, die als nächstes Ziel in Frage kommt.</summary>
+public record NextStageDto(Guid RegulationId, Guid SportId, string Name);
 
 public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, DateOnly TargetDate, string? Notes, bool IsCustom = false);
 
 public record UpdateGoalStatusRequest(GoalStatus Status);
+
+/// <summary>
+/// Ziel abschließen: Die Prüfung ist gelaufen. <paramref name="Passed"/> = true
+/// macht das Ziel erreicht (Prüfungstag Pflicht, Punkte und Notiz optional);
+/// false lässt es aktiv und verschiebt das Zieldatum auf
+/// <paramref name="NewTargetDate"/> (Pflicht), ohne dass ein Ergebnis gespeichert wird.
+/// </summary>
+public record CompleteGoalRequest(bool Passed, DateOnly? ExamDate, int? Score, string? Note, DateOnly? NewTargetDate);
+
+/// <summary>Ergebnis eines erreichten Ziels nachtragen oder korrigieren.</summary>
+public record UpdateExamResultRequest(DateOnly? ExamDate, int? Score, string? Note);
 
 /// <summary>
 /// Eine gewichtbare Übung eines Ziels ("mehr/weniger üben"): alle Übungen der

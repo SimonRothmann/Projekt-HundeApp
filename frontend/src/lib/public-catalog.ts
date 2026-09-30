@@ -31,6 +31,8 @@ export type Regulation = {
   sourceUrl: string | null;
   /** Gültig ab der geführten Fassung ("2025-01-01"); null, wenn es keine gibt. */
   currentVersionValidFrom: string | null;
+  /** Namen der Prüfungsordnungen, die auf diese folgen (Ausbildungsweg im Backend). */
+  nextStageNames?: string[];
 };
 
 export type RegulationExercise = {

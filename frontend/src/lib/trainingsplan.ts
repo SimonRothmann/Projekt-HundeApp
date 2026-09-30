@@ -68,6 +68,25 @@ export function computeCurrentWeek(
 }
 
 /**
+ * Die Übungen der laufenden Woche eines aktiven Ziels (ohne Pausen-Platzhalter).
+ *
+ * Die eine Stelle, die "laufende Woche" für die Startseite bestimmt: "Diese
+ * Woche" (offene Übungen) und die Zielkarte (Fortschritt) rechnen beide damit
+ * und können deshalb nicht auseinanderlaufen.
+ */
+function uebungenDerLaufendenWoche(
+  goal: Goal,
+  jetzt: number,
+): { woche: number; uebungen: TrainingPlanItem[] } | null {
+  if (goal.status !== 0 || !goal.trainingPlan) return null;
+  const wochen = groupByWeek(goal.trainingPlan.items);
+  const woche = computeCurrentWeek(wochen, goal.trainingPlan.generatedAt, jetzt);
+  if (woche == null) return null;
+  const uebungen = (wochen.find(([nummer]) => nummer === woche)?.[1] ?? []).filter((item) => !item.isRestWeek);
+  return { woche, uebungen };
+}
+
+/**
  * Die noch offenen Wochenziele der laufenden Woche - für "Diese Woche" auf
  * der Startseite.
  *
@@ -79,12 +98,27 @@ export function offeneWochenziele(
   goal: Goal,
   jetzt: number = Date.now(),
 ): { woche: number; items: TrainingPlanItem[] } | null {
-  if (goal.status !== 0 || !goal.trainingPlan) return null;
-  const wochen = groupByWeek(goal.trainingPlan.items);
-  const woche = computeCurrentWeek(wochen, goal.trainingPlan.generatedAt, jetzt);
-  if (woche == null) return null;
-  const items = (wochen.find(([nummer]) => nummer === woche)?.[1] ?? []).filter(
-    (item) => !item.isRestWeek && !item.isComplete,
-  );
-  return items.length > 0 ? { woche, items } : null;
+  const laufend = uebungenDerLaufendenWoche(goal, jetzt);
+  if (!laufend) return null;
+  const items = laufend.uebungen.filter((item) => !item.isComplete);
+  return items.length > 0 ? { woche: laufend.woche, items } : null;
+}
+
+/**
+ * Wie viele der geplanten Übungen der laufenden Woche schon erledigt sind - für
+ * die Zielkarte auf der Startseite. null ohne aktiven Plan und in Wochen ohne
+ * geplante Übung (Pause, leerer individueller Plan): dann gibt es nichts zu
+ * zeigen.
+ */
+export function wochenFortschritt(
+  goal: Goal,
+  jetzt: number = Date.now(),
+): { woche: number; geplant: number; erledigt: number } | null {
+  const laufend = uebungenDerLaufendenWoche(goal, jetzt);
+  if (!laufend || laufend.uebungen.length === 0) return null;
+  return {
+    woche: laufend.woche,
+    geplant: laufend.uebungen.length,
+    erledigt: laufend.uebungen.filter((item) => item.isComplete).length,
+  };
 }

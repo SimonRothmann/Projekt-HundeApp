@@ -28,10 +28,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .AsNoTracking()
             .ToListAsync(ct);
 
-        var sportNames = await GetSportNamesAsync(goals, ct);
-        var regulationNames = await GetRegulationNamesAsync(goals, ct);
-        var logsByPlanItem = await GetLogsByPlanItemAsync(goals, ct);
-        return Result<IReadOnlyList<GoalDto>>.Success(goals.Select(g => ToDto(g, sportNames, regulationNames, logsByPlanItem)).ToList());
+        return Result<IReadOnlyList<GoalDto>>.Success(await ToDtosAsync(goals, ct));
     }
 
     public async Task<Result<GoalDto>> GetByIdAsync(Guid userId, Guid goalId, CancellationToken ct = default)
@@ -40,10 +37,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         if (goal is null)
             return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
 
-        var sportNames = await GetSportNamesAsync([goal], ct);
-        var regulationNames = await GetRegulationNamesAsync([goal], ct);
-        var logsByPlanItem = await GetLogsByPlanItemAsync([goal], ct);
-        return Result<GoalDto>.Success(ToDto(goal, sportNames, regulationNames, logsByPlanItem));
+        return Result<GoalDto>.Success(await ToDtoAsync(goal, ct));
     }
 
     public async Task<Result<GoalDto>> CreateAsync(Guid userId, CreateGoalRequest request, CancellationToken ct = default)
@@ -98,10 +92,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         await db.SaveChangesAsync(ct);
 
         var created = await GetOwnedGoalAsync(userId, goal.Id, ct, track: false);
-        var sportNames = await GetSportNamesAsync([created!], ct);
-        var regulationNames = await GetRegulationNamesAsync([created!], ct);
-        var logsByPlanItem = await GetLogsByPlanItemAsync([created!], ct);
-        return Result<GoalDto>.Success(ToDto(created!, sportNames, regulationNames, logsByPlanItem));
+        return Result<GoalDto>.Success(await ToDtoAsync(created!, ct));
     }
 
     public async Task<Result<GoalDto>> UpdateStatusAsync(Guid userId, Guid goalId, GoalStatus status, CancellationToken ct = default)
@@ -114,11 +105,126 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         goal.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        var sportNames = await GetSportNamesAsync([goal], ct);
-        var regulationNames = await GetRegulationNamesAsync([goal], ct);
-        var logsByPlanItem = await GetLogsByPlanItemAsync([goal], ct);
-        return Result<GoalDto>.Success(ToDto(goal, sportNames, regulationNames, logsByPlanItem));
+        return Result<GoalDto>.Success(await ToDtoAsync(goal, ct));
     }
+
+    // Die Prüfung ist gelaufen. Rechte wie UpdateStatusAsync (GetOwnedGoalAsync):
+    // Besitz, Mitbesitz oder betreuende Trainer:in, sonst "nicht gefunden". Die
+    // Eingaben werden erst NACH dieser Suche geprüft, damit Fremde auch bei
+    // falschen Eingaben nichts anderes erfahren als bei richtigen.
+    public async Task<Result<GoalDto>> CompleteAsync(Guid userId, Guid goalId, CompleteGoalRequest request, CancellationToken ct = default)
+    {
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct);
+        if (goal is null)
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
+        if (goal.Status != GoalStatus.Active)
+            return Result<GoalDto>.Failure("Nur ein aktives Ziel lässt sich abschließen.");
+
+        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+
+        if (!request.Passed)
+        {
+            // Nicht bestanden: kein Ergebnis speichern (Leistungen sind
+            // bestandene Prüfungen), das Ziel läuft mit neuem Termin weiter.
+            if (request.NewTargetDate is not { } newTarget || newTarget <= today)
+                return Result<GoalDto>.Failure("Das neue Prüfungsdatum muss in der Zukunft liegen.");
+
+            await MoveTargetDateAsync(goal, newTarget, today, ct);
+            return await GetByIdAsync(userId, goalId, ct);
+        }
+
+        var maxPoints = await GetMaxPointsAsync(goal, ct);
+        var note = request.Note?.Trim();
+        if (ValidateExamResult(request.ExamDate, request.Score, note, maxPoints, today) is { } error)
+            return Result<GoalDto>.Failure(error);
+
+        goal.Status = GoalStatus.Achieved;
+        ApplyExamResult(goal, request.ExamDate!.Value, request.Score, note);
+        await db.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(userId, goalId, ct);
+    }
+
+    public async Task<Result<GoalDto>> UpdateExamResultAsync(Guid userId, Guid goalId, UpdateExamResultRequest request, CancellationToken ct = default)
+    {
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct);
+        if (goal is null)
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
+        if (goal.Status != GoalStatus.Achieved)
+            return Result<GoalDto>.Failure("Ein Ergebnis gibt es nur für erreichte Ziele.");
+
+        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var maxPoints = await GetMaxPointsAsync(goal, ct);
+        var note = request.Note?.Trim();
+        if (ValidateExamResult(request.ExamDate, request.Score, note, maxPoints, today) is { } error)
+            return Result<GoalDto>.Failure(error);
+
+        ApplyExamResult(goal, request.ExamDate!.Value, request.Score, note);
+        await db.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(userId, goalId, ct);
+    }
+
+    private void ApplyExamResult(Goal goal, DateOnly examDate, int? score, string? note)
+    {
+        goal.ExamDate = examDate;
+        goal.ExamScore = score;
+        goal.ExamNote = string.IsNullOrEmpty(note) ? null : note;
+        goal.UpdatedAt = timeProvider.GetUtcNow();
+    }
+
+    // Gemeinsame Regeln für "bestanden" und "Ergebnis bearbeiten". Einen Tag
+    // Toleranz nach vorn, weil "heute" je nach Zeitzone des Geräts schon
+    // morgen sein kann (der Server rechnet in UTC).
+    private static string? ValidateExamResult(DateOnly? examDate, int? score, string? note, int? maxPoints, DateOnly today)
+    {
+        if (examDate is not { } date)
+            return "Bitte den Prüfungstag angeben.";
+        if (date > today.AddDays(1))
+            return "Der Prüfungstag darf nicht in der Zukunft liegen.";
+        if (score is < 0)
+            return "Die Punktzahl darf nicht negativ sein.";
+        if (score is { } punkte && maxPoints is { } hoechstens && punkte > hoechstens)
+            return $"Die Punktzahl darf höchstens {hoechstens} betragen.";
+        return Textlaengen.ZuLang(note, Textlaengen.PruefungsNotiz, "Die Notiz");
+    }
+
+    // Ein Ziel hat bisher keinen anderen Weg, sein Zieldatum zu ändern - das
+    // Formular legt es nur an. Damit sich der Plan beim neuen Termin
+    // wie gewohnt anpasst, hängt er hier Wochen an, solange er das neue Datum
+    // nicht abdeckt: nur bei automatisch geführten Plänen (individuelle und von
+    // einer Trainer:in geführte legt die Person selbst an, siehe Goal.IsCustom
+    // und PlanManagedByTrainerId), ab der laufenden Woche (vergangene Wochen
+    // bleiben leer, computeCurrentWeek im Frontend kommt mit Lücken zurecht).
+    private async Task MoveTargetDateAsync(Goal goal, DateOnly newTargetDate, DateOnly today, CancellationToken ct)
+    {
+        goal.TargetDate = newTargetDate;
+        goal.UpdatedAt = timeProvider.GetUtcNow();
+
+        if (goal.IsCustom || goal.PlanManagedByTrainerId is not null || goal.TrainingPlan is null)
+        {
+            await db.SaveChangesAsync(ct);
+            return;
+        }
+
+        // Wochenanker wie RegenerateDuePlansAsync: volle Wochen seit Goal.CreatedAt.
+        var created = DateOnly.FromDateTime(goal.CreatedAt.UtcDateTime);
+        var currentWeek = Math.Max(0, (today.DayNumber - created.DayNumber) / 7) + 1;
+        var targetWeek = Math.Max(0, (newTargetDate.DayNumber - created.DayNumber) / 7) + 1;
+        var lastPlannedWeek = goal.TrainingPlan.Items.Count == 0 ? 0 : goal.TrainingPlan.Items.Max(i => i.WeekNumber);
+
+        var firstNewWeek = Math.Max(lastPlannedWeek + 1, currentWeek);
+        var lastNewWeek = Math.Min(targetWeek, firstNewWeek + MaxPlanExtensionWeeks - 1);
+        for (var week = firstNewWeek; week <= lastNewWeek; week++)
+            await RegenerateWeekCoreAsync(goal, week, ct);
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    // Wie viele Wochen ein verschobenes Zieldatum höchstens nachplant - derselbe
+    // Deckel wie beim Erstplan (TrainingPlanGenerator), damit ein Termin in
+    // weiter Ferne keinen Plan über ein Jahr aufbläht.
+    private const int MaxPlanExtensionWeeks = 12;
 
     public async Task<Result<GoalDto>> UpdateConfigAsync(Guid userId, Guid goalId, int weeklyExerciseCount, int trainingDaysPerWeek, CancellationToken ct = default)
     {
@@ -660,6 +766,81 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .ToListAsync(ct);
     }
 
+    private async Task<GoalDto> ToDtoAsync(Goal goal, CancellationToken ct) =>
+        (await ToDtosAsync([goal], ct))[0];
+
+    private async Task<List<GoalDto>> ToDtosAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
+    {
+        var sportNames = await GetSportNamesAsync(goals, ct);
+        var regulationNames = await GetRegulationNamesAsync(goals, ct);
+        var logsByPlanItem = await GetLogsByPlanItemAsync(goals, ct);
+        var maxPoints = await GetMaxPointsAsync(goals, ct);
+        var nextStages = await GetNextStagesAsync(goals, regulationNames, ct);
+        return goals.Select(g => ToDto(g, sportNames, regulationNames, logsByPlanItem, maxPoints, nextStages)).ToList();
+    }
+
+    // Folgestufen nur für erreichte Ziele mit Prüfungsordnung (siehe
+    // Ausbildungsweg); ein Abruf für alle, nicht einer je Ziel. Namen, die es
+    // im Katalog nicht gibt (z.B. länderbezogen nicht angelegt), fallen weg.
+    private async Task<Dictionary<Guid, IReadOnlyList<NextStageDto>>> GetNextStagesAsync(
+        IReadOnlyList<Goal> goals, IReadOnlyDictionary<Guid, string> regulationNames, CancellationToken ct)
+    {
+        var namesByGoal = goals
+            .Where(g => g.Status == GoalStatus.Achieved && g.RegulationId is not null)
+            .ToDictionary(g => g.Id, g => Ausbildungsweg.FolgestufenVon(regulationNames.GetValueOrDefault(g.RegulationId!.Value)));
+        var names = namesByGoal.Values.SelectMany(n => n).Distinct().ToList();
+        if (names.Count == 0) return new Dictionary<Guid, IReadOnlyList<NextStageDto>>();
+
+        var known = (await db.Regulations
+                .Where(r => names.Contains(r.Name))
+                .Select(r => new NextStageDto(r.Id, r.SportId, r.Name))
+                .ToListAsync(ct))
+            .GroupBy(r => r.Name)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        return namesByGoal.ToDictionary(
+            kv => kv.Key,
+            kv => (IReadOnlyList<NextStageDto>)kv.Value.Where(known.ContainsKey).Select(n => known[n]).ToList());
+    }
+
+    private async Task<int?> GetMaxPointsAsync(Goal goal, CancellationToken ct) =>
+        (await GetMaxPointsAsync([goal], ct)).TryGetValue(goal.Id, out var hoechstens) ? hoechstens : null;
+
+    // Höchstpunktzahl je Ziel: Summe der Übungspunkte der Fassung, die
+    // ResolvePlanCandidatesAsync als gültig ansieht (neueste nach ValidFrom).
+    // Fehlt bei Zielen ohne Prüfungsordnung und bei Ordnungen ohne Punktwertung
+    // (Summe 0) - dann gibt es auch keine Obergrenze zu prüfen.
+    private async Task<Dictionary<Guid, int>> GetMaxPointsAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
+    {
+        var regulationIds = goals.Where(g => g.RegulationId is not null).Select(g => g.RegulationId!.Value).Distinct().ToList();
+        if (regulationIds.Count == 0) return new Dictionary<Guid, int>();
+
+        var versions = await db.RegulationVersions
+            .Where(v => regulationIds.Contains(v.RegulationId))
+            .Select(v => new { v.Id, v.RegulationId, v.ValidFrom })
+            .ToListAsync(ct);
+        var currentVersionByRegulation = versions
+            .GroupBy(v => v.RegulationId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.ValidFrom).First().Id);
+
+        var versionIds = currentVersionByRegulation.Values.ToList();
+        var sumByVersion = (await db.RegulationExercises
+                .Where(re => versionIds.Contains(re.RegulationVersionId))
+                .Select(re => new { re.RegulationVersionId, re.MaxPoints })
+                .ToListAsync(ct))
+            .GroupBy(re => re.RegulationVersionId)
+            .ToDictionary(g => g.Key, g => g.Sum(re => re.MaxPoints));
+
+        var result = new Dictionary<Guid, int>();
+        foreach (var goal in goals.Where(g => g.RegulationId is not null))
+        {
+            if (currentVersionByRegulation.TryGetValue(goal.RegulationId!.Value, out var versionId)
+                && sumByVersion.GetValueOrDefault(versionId) is > 0 and var sum)
+                result[goal.Id] = sum;
+        }
+        return result;
+    }
+
     private async Task<Dictionary<Guid, string>> GetSportNamesAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
     {
         var sportIds = goals.Select(g => g.SportId).Distinct().ToList();
@@ -718,7 +899,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         Goal g,
         IReadOnlyDictionary<Guid, string> sportNames,
         IReadOnlyDictionary<Guid, string> regulationNames,
-        IReadOnlyDictionary<Guid, IReadOnlyList<TrainingPlanItemLogDto>> logsByPlanItem)
+        IReadOnlyDictionary<Guid, IReadOnlyList<TrainingPlanItemLogDto>> logsByPlanItem,
+        IReadOnlyDictionary<Guid, int> maxPoints,
+        IReadOnlyDictionary<Guid, IReadOnlyList<NextStageDto>> nextStages)
     {
         var sportName = sportNames.GetValueOrDefault(g.SportId, string.Empty);
         var regulationName = g.RegulationId is { } regId ? regulationNames.GetValueOrDefault(regId) : null;
@@ -754,6 +937,6 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .Select(w => new WeekConfigDto(w.WeekNumber, w.TrainingDaysPerWeek))
             .ToList() ?? new List<WeekConfigDto>();
 
-        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, weekConfigs, planDto, g.PlanManagedByTrainerId is not null);
+        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, weekConfigs, planDto, g.PlanManagedByTrainerId is not null, g.ExamDate, g.ExamScore, g.ExamNote, maxPoints.TryGetValue(g.Id, out var hoechstens) ? hoechstens : null, nextStages.GetValueOrDefault(g.Id));
     }
 }

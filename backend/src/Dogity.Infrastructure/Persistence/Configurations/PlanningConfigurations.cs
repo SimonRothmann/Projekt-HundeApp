@@ -1,3 +1,4 @@
+using Dogity.Application.Common;
 using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -11,6 +12,7 @@ public class GoalConfiguration : IEntityTypeConfiguration<Goal>
         builder.ToTable("goals");
         builder.Property(g => g.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(g => g.Notes).HasMaxLength(2000);
+        builder.Property(g => g.ExamNote).HasMaxLength(Textlaengen.PruefungsNotiz);
         // DB-Defaults, damit bestehende Ziele bei der Migration sinnvolle Werte
         // bekommen (statt 0) - passend zum bisherigen Generatorverhalten.
         builder.Property(g => g.WeeklyExerciseCount).HasDefaultValue(5);

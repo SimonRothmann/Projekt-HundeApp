@@ -20,6 +20,8 @@ public static class Textlaengen
     public const int MarkerBeschriftung = 200;
     /// <summary>Untergrund, Wetter, Wind einer Fährte.</summary>
     public const int Kurzangabe = 100;
+    /// <summary>Goal.ExamNote: Anmerkung zum Prüfungsergebnis.</summary>
+    public const int PruefungsNotiz = 500;
 
     /// <summary>
     /// Meldung, wenn <paramref name="text"/> (ohne Rand-Leerzeichen, so wie er

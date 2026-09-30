@@ -13,16 +13,23 @@ import { NeuerungenHinweis } from "@/components/neuerungen-hinweis";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
 import { laeuftFaehrte, nichtAbgelaufeneFaehrten } from "@/lib/faehrte";
-import { offeneWochenziele } from "@/lib/trainingsplan";
+import { offeneWochenziele, wochenFortschritt } from "@/lib/trainingsplan";
+import { naechstesZiel } from "@/lib/pruefung";
 import { ErfassenKacheln } from "@/components/dashboard/erfassen-kacheln";
 import { DieseWocheSection, type WochenzielEintrag } from "@/components/dashboard/diese-woche-section";
+import { KeinZielKarte, ZielKartenSection, type ZielKarteEintrag } from "@/components/dashboard/ziel-karten";
 import { HeuteGelegtSection, type FaehrteMitHund } from "@/components/dashboard/heute-gelegt-section";
 import { useT } from "@/lib/i18n";
+
+const LINK_ZEILE =
+  "inline-flex min-h-11 items-center gap-2 rounded-lg border border-surface-border bg-surface px-3 text-sm font-medium transition-colors hover:border-primary/40";
 
 type Startdaten = {
   hunde: HundDaten[];
   faehrtenHundeIds: string[];
   wochenziele: WochenzielEintrag[];
+  zielkarten: ZielKarteEintrag[];
+  hundeOhneZiel: HundDaten[];
   faehrten: FaehrteMitHund[];
   onboarding: OnboardingStatus | null;
   termine: GroupTrainingSession[];
@@ -65,6 +72,12 @@ async function ladeStartdaten(): Promise<Startdaten> {
 
   const eintraege = dashboard?.dogs ?? [];
   const jetzt = Date.now();
+  // Je Hund das Ziel mit dem nächsten Datum; ohne Ziel kommt er in die eine
+  // gemeinsame "Noch kein Prüfungsziel"-Karte. Archivierte Hunde zählen nicht
+  // (das Backend liefert sie ohnehin nicht, die Regel gilt hier trotzdem).
+  const naechste = eintraege
+    .filter((e) => !e.dog.archivedAt)
+    .map((e) => ({ hund: e.dog, goal: naechstesZiel(e.activeGoals) }));
   return {
     hunde: eintraege.map((e) => e.dog),
     // Dieselbe Regel wie auf der Hundeseite (laeuftFaehrte): sonst führte
@@ -76,6 +89,10 @@ async function ladeStartdaten(): Promise<Startdaten> {
         return offen ? [{ hund: e.dog, goal, ...offen }] : [];
       }),
     ),
+    zielkarten: naechste.flatMap(({ hund, goal }) =>
+      goal ? [{ hund, goal, fortschritt: wochenFortschritt(goal, jetzt) }] : [],
+    ),
+    hundeOhneZiel: naechste.filter(({ goal }) => goal === null).map(({ hund }) => hund),
     faehrten: eintraege.flatMap((e) =>
       nichtAbgelaufeneFaehrten(e.tracksToday, jetzt).map((f) => ({ ...f, hund: e.dog })),
     ),
@@ -144,6 +161,12 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
+          {/* Direkt unter der Begrüßung: Wann ist die Prüfung, wie weit ist die
+              Woche? Ohne Ziel eine einzige Aufforderung - nicht, solange der
+              Erststart mit seinem "Ziel setzen" noch da ist. */}
+          <ZielKartenSection eintraege={daten.zielkarten} />
+          {!zeigtErststart(daten.onboarding) && <KeinZielKarte hunde={daten.hundeOhneZiel} />}
+
           <OnboardingGuide
             status={daten.onboarding}
             onDismissed={() =>
@@ -191,51 +214,25 @@ export default function DashboardPage() {
 
           <DieseWocheSection eintraege={daten.wochenziele} mehrereHunde={daten.hunde.length > 1} onChanged={neuLaden} />
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Link href="/dogs" className="group block">
-              <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
-                <CardHeader className="flex-row items-center gap-4 space-y-0">
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text ring-1 ring-primary/20 transition-colors group-hover:bg-primary/15">
-                    <Dog className="size-6" />
-                  </span>
-                  <div>
-                    <CardTitle>{t("Meine Hunde")}</CardTitle>
-                    <CardDescription>{t("Hunde verwalten und Profile pflegen")}</CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
+          {/* Früher drei große Karten; am Telefon sind es aber der Zugang zu
+              Sportarten (siehe nav-items.ts), deshalb bleiben die Ziele - nur
+              schmaler. */}
+          <nav aria-label={t("Weitere Bereiche")} className="flex flex-wrap gap-2">
+            <Link href="/dogs" className={LINK_ZEILE}>
+              <Dog className="size-4" />
+              {t("Meine Hunde")}
             </Link>
-
-            <Link href="/sports" className="group block">
-              <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
-                <CardHeader className="flex-row items-center gap-4 space-y-0">
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent ring-1 ring-accent/25 transition-colors group-hover:bg-accent/20">
-                    <Trophy className="size-6" />
-                  </span>
-                  <div>
-                    <CardTitle>{t("Sportarten")}</CardTitle>
-                    <CardDescription>{t("Prüfungsordnungen & Übungen entdecken")}</CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
+            <Link href="/sports" className={LINK_ZEILE}>
+              <Trophy className="size-4" />
+              {t("Sportarten")}
             </Link>
-
             {moduleEnabled(MODULE.sachkunde) && (
-              <Link href="/sachkunde" className="group block sm:col-span-2">
-                <Card className="h-full transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
-                  <CardHeader className="flex-row items-center gap-4 space-y-0">
-                    <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text ring-1 ring-primary/20 transition-colors group-hover:bg-primary/15">
-                      <GraduationCap className="size-6" />
-                    </span>
-                    <div>
-                      <CardTitle>{t("Sachkunde üben")}</CardTitle>
-                      <CardDescription>{t("Die Theoriefragen zur Begleithundeprüfung, mit Wiedervorlage")}</CardDescription>
-                    </div>
-                  </CardHeader>
-                </Card>
+              <Link href="/sachkunde" className={LINK_ZEILE}>
+                <GraduationCap className="size-4" />
+                {t("Sachkunde üben")}
               </Link>
             )}
-          </div>
+          </nav>
         </>
       )}
     </div>

@@ -102,6 +102,7 @@ export default function DatenschutzPage() {
               "Wetterdaten zu Ort und Zeitpunkt der Einheit",
               "geübte Übungen mit deiner Bewertung, Erfolg und Notizen",
               "Rückmeldungen deiner Trainer:innen zu einzelnen Übungen",
+              "Prüfungsergebnisse (Datum, Punkte, Notiz), wenn du ein Ziel abschließt",
             ]}
           />
           <p className="font-medium text-foreground">Fährten (Standortdaten)</p>

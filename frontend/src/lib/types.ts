@@ -65,6 +65,8 @@ export type Regulation = {
   // Mehrzeilige Kurzbeschreibung der Prüfungs-Rahmenbedingungen (Schrittzahl,
   // Winkel, Fährtenalter, Voraussetzungen, Bestehensgrenze, ...).
   description: string | null;
+  // Prüfungsordnungen, die auf diese folgen (Ausbildungsweg im Backend).
+  nextStageNames?: string[];
 };
 
 export type RegulationVersionInfo = {
@@ -189,6 +191,13 @@ export type WeekConfig = {
   trainingDaysPerWeek: number;
 };
 
+// Eine Prüfungsordnung, die nach einem erreichten Ziel als nächstes in Frage kommt.
+export type NextStage = {
+  regulationId: string;
+  sportId: string;
+  name: string;
+};
+
 export type Goal = {
   id: string;
   dogId: string;
@@ -207,6 +216,16 @@ export type Goal = {
   // Eine betreuende Trainer:in hat den Plan bearbeitet - dann wird er nicht
   // mehr automatisch wöchentlich neu aufgebaut.
   planManagedByTrainer: boolean;
+  // Prüfungsergebnis eines erreichten Ziels (leer bei offenen und bei früher
+  // ohne Ergebnis als erreicht markierten Zielen). Optional, weil der
+  // Stale-While-Revalidate-Cache noch Ziele ohne diese Felder liefern kann.
+  examDate?: string | null;
+  examScore?: number | null;
+  examNote?: string | null;
+  // Höchstpunktzahl der Prüfungsordnung; null, wenn keine bekannt ist.
+  maxPoints?: number | null;
+  // Folgestufen - nur bei erreichten Zielen gefüllt.
+  nextStages?: NextStage[] | null;
 };
 
 // Ein von mir betreuter Hund (TrainerAssignment) - für die Trainerübersicht.

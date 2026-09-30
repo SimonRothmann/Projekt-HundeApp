@@ -16,6 +16,7 @@ import { DogEditForm } from "@/components/dogs/dog-edit-form";
 import { formatDogAge } from "@/lib/dog-age";
 import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
+import { LeistungenCard } from "@/components/dogs/leistungen-card";
 import { TrainingForm } from "@/components/dogs/training-form";
 import { SessionHistory } from "@/components/dogs/session-history";
 import { CoOwnersSection } from "@/components/dogs/co-owners-section";
@@ -357,7 +358,9 @@ export default function DogDetailPage() {
 
       {editing && <DogEditForm dog={dog} onSaved={loadAll} onCancel={() => setEditing(false)} />}
 
-      <GoalsSection dogId={id} sports={angeboteneSportarten} goals={goals} onChanged={loadAll} />
+      <GoalsSection dogId={id} dogName={dog.name} sports={angeboteneSportarten} goals={goals} onChanged={loadAll} />
+
+      <LeistungenCard goals={goals} onChanged={loadAll} />
 
       {/* Die Fährtenaufzeichnung erscheint nur, wenn das Modul an ist UND
           der Hund Fährte läuft. Beides zusammen, weil die GPS-Aufzeichnung
