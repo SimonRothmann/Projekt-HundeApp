@@ -193,18 +193,22 @@ export function ClubsSection() {
                 <li key={club.id} className="rounded-md border">
                   <button
                     type="button"
-                    className="flex w-full items-center justify-between px-3 py-2 text-left"
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
                     onClick={() => toggleClub(club.id)}
                   >
-                    <div>
+                    <div className="min-w-0 [overflow-wrap:anywhere]">
                       <span className="font-medium">{club.name}</span>
                       {club.description && (
                         <span className="ml-2 text-sm text-muted-foreground">{club.description}</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{club.trainerCount} Trainer</Badge>
-                      <Badge variant="secondary">{club.groupCount} Gruppen</Badge>
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                      <Badge variant="secondary">
+                        {club.trainerCount === 1 ? t("1 Trainer") : t("{n} Trainer", { n: club.trainerCount })}
+                      </Badge>
+                      <Badge variant="secondary">
+                        {club.groupCount === 1 ? t("1 Gruppe") : t("{n} Gruppen", { n: club.groupCount })}
+                      </Badge>
                       {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
                     </div>
                   </button>

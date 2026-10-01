@@ -438,7 +438,7 @@ export function TrackMap({
           })
             .addTo(layerGroup)
             .bindTooltip(
-              alsHtmlText(t("Ablauf {nr}: {meter} m Abweichung", { nr: index + 1, meter: worse.toFixed(1) })),
+              alsHtmlText(t("Ablauf {nr}: {meter} m Abweichung", { nr: index + 1, meter: Math.round(worse) })),
             );
         }
       } else {

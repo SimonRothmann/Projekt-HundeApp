@@ -1,5 +1,6 @@
 import type { Goal } from "@/lib/types";
 import type { Sprache } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
 
 /**
  * Rechnen und Sortieren rund um Prüfungstermin und Prüfungsergebnis - als reine
@@ -93,10 +94,6 @@ export function punkteText(t: Uebersetzer, punkte: number, hoechstens: number | 
   return hoechstens != null
     ? t("{punkte} von {max} Punkten", { punkte, max: hoechstens })
     : t("{punkte} Punkte", { punkte });
-}
-
-function ortsformat(sprache: Sprache): string {
-  return sprache === "en" ? "en-GB" : "de-DE";
 }
 
 /** "03.10.2026" bzw. "03/10/2026". */

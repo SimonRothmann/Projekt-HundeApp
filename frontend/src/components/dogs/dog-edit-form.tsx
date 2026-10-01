@@ -47,7 +47,7 @@ export function DogEditForm({
   const [hasImage, setHasImage] = useState(dog.hasImage);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const age = formatDogAge(birthday);
+  const age = formatDogAge(birthday, new Date(), t);
 
   async function save(e: FormEvent) {
     e.preventDefault();

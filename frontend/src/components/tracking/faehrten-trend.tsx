@@ -6,22 +6,24 @@ import { api } from "@/lib/api";
 import type { DogTrackStats } from "@/lib/types";
 import { ampelStufe, type Ampel } from "@/lib/faehrten-bild";
 import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat, zahlText } from "@/lib/ortsformat";
 import { cn } from "@/lib/utils";
 
 // Bewertungstrend als Pfeil: steigend (grün) / fallend (rot) / stabil.
 // null (zu wenige Durchgänge) rendert nichts.
 export function TrendBadge({ trend }: { trend: number | null }) {
   const t = useT();
+  const sprache = useSprache();
   if (trend === null || Math.abs(trend) < 0.25) return <span className="text-muted-foreground">{t("→ stabil")}</span>;
   if (trend > 0)
     return (
       <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400">
-        <TrendingUp className="size-3.5" /> +{trend.toFixed(1)}
+        <TrendingUp className="size-3.5" /> +{zahlText(trend, sprache)}
       </span>
     );
   return (
     <span className="flex items-center gap-0.5 text-destructive">
-      <TrendingDown className="size-3.5" /> {trend.toFixed(1)}
+      <TrendingDown className="size-3.5" /> {zahlText(trend, sprache)}
     </span>
   );
 }
@@ -89,12 +91,12 @@ export function FaehrtenTrend({
 
   const runs = hoechstens ? stats.runs.slice(-hoechstens) : stats.runs;
   const last = runs[runs.length - 1];
-  const datumFormat = sprache === "de" ? "de-DE" : "en-GB";
+  const datumFormat = ortsformat(sprache);
   // Ein Satz für beide Darstellungen, damit Tooltips nicht auseinanderlaufen.
   const tooltip = (run: (typeof runs)[number]) =>
     t("{datum}: Ø {meter} m · {prozent} % auf der Fährte", {
       datum: new Date(run.date).toLocaleDateString(datumFormat),
-      meter: run.avgDeviationMeters,
+      meter: Math.round(run.avgDeviationMeters),
       prozent: Math.round(run.onTrackPercent),
     });
 
@@ -145,7 +147,7 @@ export function FaehrtenTrend({
       )}
       <p className="mt-1 text-xs text-muted-foreground">
         {t("Zuletzt: Ø {meter} m · {prozent} % auf der Fährte", {
-          meter: last.avgDeviationMeters,
+          meter: Math.round(last.avgDeviationMeters),
           prozent: Math.round(last.onTrackPercent),
         })}
         {last.articlesTotal > 0 &&

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { uebersetze } from "./i18n";
 import { dogAgeInMonths, formatDogAge } from "./dog-age";
 
 const heute = new Date(2026, 7, 20); // 20.08.2026
@@ -42,5 +43,14 @@ describe("formatDogAge", () => {
 
   it("liefert null ohne Geburtsdatum", () => {
     expect(formatDogAge(null, heute)).toBeNull();
+  });
+
+  it("gibt das Alter in der Sprache des Übersetzers aus", () => {
+    const en = (text: string, werte?: Record<string, string | number>) => uebersetze("en", text, werte);
+
+    expect(formatDogAge("2026-07-20", heute, en)).toBe("1 month");
+    expect(formatDogAge("2026-02-20", heute, en)).toBe("6 months");
+    expect(formatDogAge("2025-07-20", heute, en)).toBe("1 year 1 month");
+    expect(formatDogAge("2024-08-20", heute, en)).toBe("2 years");
   });
 });

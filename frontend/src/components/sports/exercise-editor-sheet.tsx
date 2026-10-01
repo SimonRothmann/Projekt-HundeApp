@@ -95,8 +95,8 @@ export function ExerciseEditorSheet({
 
   const difficultyOptions: { value: ExerciseDifficulty; label: string }[] = [
     { value: 0, label: t("Anfänger") },
-    { value: 1, label: "Fortgeschritten" },
-    { value: 2, label: "Profi" },
+    { value: 1, label: t("Fortgeschritten") },
+    { value: 2, label: t("Profi") },
   ];
 
   return (
@@ -107,8 +107,8 @@ export function ExerciseEditorSheet({
           <SheetDescription>
             {scope.kind === "global"
               ? t("Wird für alle Nutzer sichtbar (globaler VDH-Katalog).")
-              : `Nur für Mitglieder und Trainer des Vereins „${scope.clubName}“ sichtbar.`}
-            {" "}Sportart ist optional – sportartübergreifende Übungen laufen ohne Zuordnung.
+              : t("Nur für Mitglieder und Trainer des Vereins „{name}“ sichtbar.", { name: scope.clubName })}
+            {" "}{t("Sportart ist optional – sportartübergreifende Übungen laufen ohne Zuordnung.")}
           </SheetDescription>
         </SheetHeader>
 
@@ -131,7 +131,7 @@ export function ExerciseEditorSheet({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="ex-name">Name</Label>
+            <Label htmlFor="ex-name">{t("Name")}</Label>
             <Input
               id="ex-name"
               required
@@ -144,7 +144,7 @@ export function ExerciseEditorSheet({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label>Schwierigkeit</Label>
+              <Label>{t("Schwierigkeit")}</Label>
               <Select value={String(difficulty)} onValueChange={(v) => v && setDifficulty(Number(v) as ExerciseDifficulty)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -159,7 +159,7 @@ export function ExerciseEditorSheet({
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="ex-category">Kategorie (optional)</Label>
+              <Label htmlFor="ex-category">{t("Kategorie (optional)")}</Label>
               <Input
                 id="ex-category"
                 value={category}
@@ -170,7 +170,7 @@ export function ExerciseEditorSheet({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="ex-description">Beschreibung (optional)</Label>
+            <Label htmlFor="ex-description">{t("Beschreibung (optional)")}</Label>
             <Input
               id="ex-description"
               value={description}
@@ -180,12 +180,12 @@ export function ExerciseEditorSheet({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="ex-scoring">Bewertungskriterien (optional)</Label>
+            <Label htmlFor="ex-scoring">{t("Bewertungskriterien (optional)")}</Label>
             <Input
               id="ex-scoring"
               value={scoringCriteria}
               onChange={(e) => setScoringCriteria(e.target.value)}
-              placeholder="Tempo, Position, Sauberkeit, ..."
+              placeholder={t("Tempo, Position, Sauberkeit, ...")}
             />
           </div>
         </form>

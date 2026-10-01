@@ -10,12 +10,13 @@ import { CalendarDays, MapPin } from "lucide-react";
 import { KalenderKnopf } from "@/components/schedule/kalender-knopf";
 import { kannAntworten, mitAntwort } from "@/lib/termin-zusage";
 import { cn } from "@/lib/utils";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 
 const categoryLabel: Record<GroupTrainingCategory, string> = { 0: uebersetzbar("Welpen"), 1: uebersetzbar("Junghunde"), 2: uebersetzbar("Basis") };
-const fmt = (iso: string) =>
-  new Date(iso).toLocaleString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const fmt = (iso: string, ort: string) =>
+  new Date(iso).toLocaleString(ort, { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 /**
  * Die nächsten Gruppentrainings der eigenen Gruppen (siehe
@@ -33,6 +34,7 @@ const fmt = (iso: string) =>
  */
 export function UpcomingTrainingsSection({ sessions }: { sessions: GroupTrainingSession[] }) {
   const t = useT();
+  const ort = ortsformat(useSprache());
   // Eigene Antworten, die der Anzeige vorauseilen. Kommen neue Termine von der
   // Startseite (Nachladen), gelten wieder deren Werte - siehe die Anpassung
   // während des Renderns direkt darunter.
@@ -79,7 +81,7 @@ export function UpcomingTrainingsSection({ sessions }: { sessions: GroupTraining
           <div key={s.id} className={s.status === 1 ? "rounded-md border p-2.5 opacity-60" : "rounded-md border p-2.5"}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-sm font-medium [overflow-wrap:anywhere]">
-                {fmt(s.startsAt)} · {s.groupName}
+                {fmt(s.startsAt, ort)} · {s.groupName}
               </span>
               <span className="flex shrink-0 items-center gap-1">
                 <Badge variant="secondary">{t(categoryLabel[s.category])}</Badge>

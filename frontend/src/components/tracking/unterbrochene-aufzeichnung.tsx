@@ -19,14 +19,15 @@ import {
   type AufzeichnungsSicherung,
   type SpeicherErgebnis,
 } from "@/lib/aufzeichnung-sicherung";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
 
-function zeitpunkt(ms: number) {
+function zeitpunkt(ms: number, ort: string) {
   const d = new Date(ms);
   const heute = new Date().toDateString() === d.toDateString();
   return heute
-    ? d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })
-    : d.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    ? d.toLocaleTimeString(ort, { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleString(ort, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 /**
@@ -51,6 +52,7 @@ export function UnterbrocheneAufzeichnungKarte({
   onVerwerfen: () => void;
 }) {
   const t = useT();
+  const ort = ortsformat(useSprache());
   const marker = markerAnzahl(sicherung);
   const faehrte = sicherung.art === "faehrte";
 
@@ -65,8 +67,8 @@ export function UnterbrocheneAufzeichnungKarte({
       </p>
       <p className="text-sm text-muted-foreground">
         {t("{von} bis {bis} · {punkte} Punkte", {
-          von: zeitpunkt(sicherung.begonnen),
-          bis: zeitpunkt(aufzeichnungsEnde(sicherung)),
+          von: zeitpunkt(sicherung.begonnen, ort),
+          bis: zeitpunkt(aufzeichnungsEnde(sicherung), ort),
           punkte: sicherung.points.length - marker,
         })}
         {faehrte && ` · ${t("{anzahl} Marker", { anzahl: marker })}`}

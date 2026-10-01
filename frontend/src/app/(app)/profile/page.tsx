@@ -22,6 +22,15 @@ import { Building2, ChevronRight, Download, LogOut, Pencil, Sparkles, Trash2, Tr
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
+
+// Die Rollen kommen als Rohwerte vom Server; lesbar gemacht werden sie erst hier.
+const ROLLEN_NAME: Record<string, string> = {
+  USER: uebersetzbar("Mitglied"),
+  TRAINER: uebersetzbar("Trainer:in"),
+  ADMIN: uebersetzbar("Admin"),
+};
+
 export default function ProfilePage() {
   const t = useT();
   const { user, logout, updateUser } = useAuth();
@@ -94,7 +103,7 @@ export default function ProfilePage() {
     try {
       await api.put("/api/profile", { firstName, lastName, avatarUrl: avatarUrl || null });
       updateUser({ firstName, lastName });
-      toast.success("Profil aktualisiert.");
+      toast.success(t("Profil aktualisiert."));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Speichern fehlgeschlagen."));
     } finally {
@@ -190,19 +199,19 @@ export default function ProfilePage() {
       <h1 className="text-2xl font-semibold tracking-tight">{t("Profil")}</h1>
 
       <Card>
-        <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-          <Avatar className="size-16">
+        <CardHeader className="flex flex-row flex-wrap items-center gap-4 space-y-0">
+          <Avatar className="size-16 shrink-0">
             {avatarUrl && <AvatarImage src={avatarUrl} />}
             <AvatarFallback className="text-lg">{initials}</AvatarFallback>
           </Avatar>
-          <div className="flex-1">
-            <CardTitle>
+          <div className="min-w-0 flex-1 basis-40">
+            <CardTitle className="break-words">
               {user.firstName} {user.lastName}
             </CardTitle>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+            <p className="break-all text-sm text-muted-foreground">{user.email}</p>
           </div>
           {!editing && (
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={() => setEditing(true)}>
               <Pencil className="size-4" />
 {t("Bearbeiten")}
             </Button>
@@ -212,13 +221,13 @@ export default function ProfilePage() {
           <div className="flex flex-wrap gap-2">
             {user.roles.map((role) => (
               <Badge key={role} variant="secondary">
-                {role}
+                {t(ROLLEN_NAME[role] ?? role)}
               </Badge>
             ))}
           </div>
           <Button variant="destructive" className="self-start" onClick={handleLogout}>
             <LogOut className="size-4" />
-            Abmelden
+            {t("Abmelden")}
           </Button>
         </CardContent>
       </Card>
@@ -252,22 +261,22 @@ export default function ProfilePage() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Name & Avatar</CardTitle>
+              <CardTitle className="text-base">{t("Name & Avatar")}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="firstName">Vorname</Label>
+                    <Label htmlFor="firstName">{t("Vorname")}</Label>
                     <Input id="firstName" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="lastName">Nachname</Label>
+                    <Label htmlFor="lastName">{t("Nachname")}</Label>
                     <Input id="lastName" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="avatarUrl">Avatar-URL (optional)</Label>
+                  <Label htmlFor="avatarUrl">{t("Avatar-URL (optional)")}</Label>
                   <Input
                     id="avatarUrl"
                     type="url"
@@ -284,7 +293,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" disabled={savingProfile}>
-                    {savingProfile ? "Speichert…" : t("Speichern")}
+                    {savingProfile ? t("Speichert…") : t("Speichern")}
                   </Button>
                   <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
 {t("Schließen")}
@@ -305,7 +314,7 @@ export default function ProfilePage() {
                   <Input id="newEmail" type="email" required value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-1">
-                  <Label htmlFor="emailPassword">Aktuelles Passwort</Label>
+                  <Label htmlFor="emailPassword">{t("Aktuelles Passwort")}</Label>
                   <Input
                     id="emailPassword"
                     type="password"
@@ -328,7 +337,7 @@ export default function ProfilePage() {
             <CardContent>
               <form onSubmit={handleChangePassword} className="flex flex-col gap-4 sm:flex-row sm:items-end">
                 <div className="flex flex-col gap-2 sm:flex-1">
-                  <Label htmlFor="currentPassword">Aktuelles Passwort</Label>
+                  <Label htmlFor="currentPassword">{t("Aktuelles Passwort")}</Label>
                   <Input
                     id="currentPassword"
                     type="password"
@@ -443,7 +452,7 @@ export default function ProfilePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Sparkles className="size-5" />
-            Neuerungen
+            {t("Neuerungen")}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

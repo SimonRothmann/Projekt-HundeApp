@@ -215,7 +215,7 @@ export function WalkRunRecorder({
       titel={t("Fährte ablaufen")}
       status={
         <>
-          {points.length} Punkte
+          {t("{punkte} Punkte", { punkte: points.length })}
           {currentAccuracy !== null && (
             <>
               {" · "}
@@ -223,7 +223,7 @@ export function WalkRunRecorder({
                 className={
                   currentAccuracy <= 10 ? "text-green-600" : currentAccuracy <= 25 ? "text-yellow-600" : "text-red-600"
                 }
-                title="GPS-Genauigkeit (Radius des Fehlerkreises)."
+                title={t("GPS-Genauigkeit (Radius des Fehlerkreises).")}
               >
                 ±{Math.round(currentAccuracy)} m
               </span>

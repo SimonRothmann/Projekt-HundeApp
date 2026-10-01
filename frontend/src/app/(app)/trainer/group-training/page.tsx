@@ -14,8 +14,9 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 import { useT } from "@/lib/i18n";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
 const CATS: GroupTrainingCategory[] = [0, 1, 2];
-const categoryLabel: Record<GroupTrainingCategory, string> = { 0: "Welpen", 1: "Junghunde", 2: "Basis" };
+const categoryLabel: Record<GroupTrainingCategory, string> = { 0: uebersetzbar("Welpen"), 1: uebersetzbar("Junghunde"), 2: uebersetzbar("Basis") };
 const categoryVariant: Record<GroupTrainingCategory, "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
 
 const EXAM_FLAGS: { bit: number; label: string }[] = [
@@ -124,7 +125,7 @@ export default function GroupTrainingPage() {
   async function saveExercise() {
     if (!exForm) return;
     if (!exForm.title.trim()) {
-      toast.error("Titel eingeben.");
+      toast.error(t("Titel eingeben."));
       return;
     }
     const body = {
@@ -139,7 +140,7 @@ export default function GroupTrainingPage() {
     try {
       if (exForm.id) await api.put(`/api/group-training/exercises/${exForm.id}`, body);
       else await api.post(`/api/group-training/clubs/${clubId}/exercises`, body);
-      toast.success(exForm.id ? "Baustein aktualisiert." : t("Baustein angelegt."));
+      toast.success(exForm.id ? t("Baustein aktualisiert.") : t("Baustein angelegt."));
       setExForm(null);
       await loadLibrary(clubId);
     } catch (err) {
@@ -150,7 +151,7 @@ export default function GroupTrainingPage() {
   }
 
   async function deleteExercise(ex: GroupTrainingExercise) {
-    if (!window.confirm(`Baustein „${ex.title}" löschen? Er wird auch aus allen Einheiten entfernt.`)) return;
+    if (!window.confirm(t("Baustein „{title}“ löschen? Er wird auch aus allen Einheiten entfernt.", { title: ex.title }))) return;
     try {
       await api.delete(`/api/group-training/exercises/${ex.id}`);
       toast.success(t("Baustein gelöscht."));
@@ -178,7 +179,7 @@ export default function GroupTrainingPage() {
   async function saveUnit() {
     if (!unitForm) return;
     if (!unitForm.title.trim()) {
-      toast.error("Titel eingeben.");
+      toast.error(t("Titel eingeben."));
       return;
     }
     if (unitForm.exerciseIds.length === 0) {
@@ -195,7 +196,7 @@ export default function GroupTrainingPage() {
     try {
       if (unitForm.id) await api.put(`/api/group-training/units/${unitForm.id}`, body);
       else await api.post(`/api/group-training/clubs/${clubId}/units`, body);
-      toast.success(unitForm.id ? "Einheit aktualisiert." : t("Einheit angelegt."));
+      toast.success(unitForm.id ? t("Einheit aktualisiert.") : t("Einheit angelegt."));
       setUnitForm(null);
       await loadLibrary(clubId);
     } catch (err) {
@@ -206,7 +207,7 @@ export default function GroupTrainingPage() {
   }
 
   async function deleteUnit(id: string, title: string) {
-    if (!window.confirm(`Einheit „${title}" löschen?`)) return;
+    if (!window.confirm(t("Einheit „{title}“ löschen?", { title }))) return;
     try {
       await api.delete(`/api/group-training/units/${id}`);
       toast.success(t("Einheit gelöscht."));
@@ -246,7 +247,7 @@ export default function GroupTrainingPage() {
           <p className="text-sm font-medium [overflow-wrap:anywhere]">{ex.title}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
             {ex.focus && <Badge variant="secondary">{ex.focus}</Badge>}
-            {ex.durationMinutes != null && <span className="text-xs text-muted-foreground">{ex.durationMinutes} Min</span>}
+            {ex.durationMinutes != null && <span className="text-xs text-muted-foreground">{t("{n} Min.", { n: ex.durationMinutes })}</span>}
             {examLabels(ex.examTargets).map((l) => (
               <Badge key={l} variant="outline">{l}</Badge>
             ))}
@@ -316,7 +317,7 @@ export default function GroupTrainingPage() {
                     <div className="flex items-start gap-3">
                       <Sparkles className="mt-0.5 size-6 shrink-0 text-primary-text" />
                       <div>
-                        <p className="font-medium">Mit einem fertigen Katalog starten?</p>
+                        <p className="font-medium">{t("Mit einem fertigen Katalog starten?")}</p>
                         <p className="text-sm text-muted-foreground">
 {t("Übernimm einen Best-Practice-Satz an Bausteinen und Einheiten (Welpen, Junghunde, Basis) – danach alles frei anpassbar.")}
                         </p>
@@ -349,7 +350,7 @@ export default function GroupTrainingPage() {
                           active ? "bg-background text-foreground shadow-[var(--shadow-sm)]" : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        {categoryLabel[cat]}
+                        {t(categoryLabel[cat])}
                         {count > 0 && (
                           <span className={cn("rounded-full px-1.5 text-xs tabular-nums", active ? "bg-primary/10 text-primary-text" : "bg-foreground/10 text-muted-foreground")}>
                             {count}
@@ -365,12 +366,12 @@ export default function GroupTrainingPage() {
               <section className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-base font-semibold">
-                    Bausteine <span className="font-normal text-muted-foreground">· {catExercises.length}</span>
+                    {t("Bausteine")} <span className="font-normal text-muted-foreground">· {catExercises.length}</span>
                   </h2>
                   {!exForm && (
                     <Button size="sm" onClick={() => setExForm({ ...emptyExerciseForm(), category: activeCat })}>
                       <Plus className="size-4" />
-                      Neu
+                      {t("Neu")}
                     </Button>
                   )}
                 </div>
@@ -383,23 +384,23 @@ export default function GroupTrainingPage() {
                     <CardContent className="flex flex-col gap-3 p-3 pt-0">
                       <div className="flex flex-wrap gap-3">
                         <div className="flex flex-col gap-1">
-                          <Label className="text-xs">Kategorie</Label>
+                          <Label className="text-xs">{t("Kategorie")}</Label>
                           <Select value={String(exForm.category)} onValueChange={(v) => setExForm({ ...exForm, category: Number(v ?? "0") as GroupTrainingCategory })}>
                             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {CATS.map((c) => (
-                                <SelectItem key={c} value={String(c)}>{categoryLabel[c]}</SelectItem>
+                                <SelectItem key={c} value={String(c)}>{t(categoryLabel[c])}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="flex flex-col gap-1">
-                          <Label className="text-xs">Dauer (Min)</Label>
+                          <Label className="text-xs">{t("Dauer (Min)")}</Label>
                           <Input type="number" min={1} max={180} className="w-24" value={exForm.durationMinutes} onChange={(e) => setExForm({ ...exForm, durationMinutes: e.target.value })} />
                         </div>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs">Titel</Label>
+                        <Label className="text-xs">{t("Titel")}</Label>
                         <Input value={exForm.title} onChange={(e) => setExForm({ ...exForm, title: e.target.value })} maxLength={200} />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -407,7 +408,7 @@ export default function GroupTrainingPage() {
                         <Input value={exForm.focus} onChange={(e) => setExForm({ ...exForm, focus: e.target.value })} maxLength={80} />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs">Ablauf / Beschreibung</Label>
+                        <Label className="text-xs">{t("Ablauf / Beschreibung")}</Label>
                         <textarea className={textareaClass} rows={2} value={exForm.description} onChange={(e) => setExForm({ ...exForm, description: e.target.value })} maxLength={2000} />
                       </div>
                       <div className="flex flex-col gap-1.5">
@@ -438,7 +439,7 @@ export default function GroupTrainingPage() {
 
                 {catExercises.length === 0 ? (
                   <p className="rounded-lg border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
-                    Noch keine Bausteine für {categoryLabel[activeCat]}.
+                    {t("Noch keine Bausteine für {stufe}.", { stufe: t(categoryLabel[activeCat]) })}
                   </p>
                 ) : (
                   catExercises.map(exerciseCard)
@@ -449,7 +450,7 @@ export default function GroupTrainingPage() {
               <section className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-base font-semibold">
-                    Einheiten <span className="font-normal text-muted-foreground">· {catUnits.length}</span>
+                    {t("Einheiten")} <span className="font-normal text-muted-foreground">· {catUnits.length}</span>
                   </h2>
                   {!unitForm && (
                     <Button
@@ -459,7 +460,7 @@ export default function GroupTrainingPage() {
                       onClick={() => setUnitForm({ ...emptyUnitForm(), category: activeCat })}
                     >
                       <Plus className="size-4" />
-                      Neu
+                      {t("Neu")}
                     </Button>
                   )}
                 </div>
@@ -472,23 +473,23 @@ export default function GroupTrainingPage() {
                     <CardContent className="flex flex-col gap-3 p-3 pt-0">
                       <div className="flex flex-wrap gap-3">
                         <div className="flex flex-col gap-1">
-                          <Label className="text-xs">Kategorie</Label>
+                          <Label className="text-xs">{t("Kategorie")}</Label>
                           <Select value={String(unitForm.category)} onValueChange={(v) => setUnitForm({ ...unitForm, category: Number(v ?? "0") as GroupTrainingCategory })}>
                             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {CATS.map((c) => (
-                                <SelectItem key={c} value={String(c)}>{categoryLabel[c]}</SelectItem>
+                                <SelectItem key={c} value={String(c)}>{t(categoryLabel[c])}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="flex flex-1 flex-col gap-1">
-                          <Label className="text-xs">Titel</Label>
+                          <Label className="text-xs">{t("Titel")}</Label>
                           <Input value={unitForm.title} onChange={(e) => setUnitForm({ ...unitForm, title: e.target.value })} maxLength={200} />
                         </div>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs">Beschreibung (optional)</Label>
+                        <Label className="text-xs">{t("Beschreibung (optional)")}</Label>
                         <textarea className={textareaClass} rows={2} value={unitForm.description} onChange={(e) => setUnitForm({ ...unitForm, description: e.target.value })} maxLength={2000} />
                       </div>
 
@@ -504,14 +505,14 @@ export default function GroupTrainingPage() {
                                 <li key={`${id}-${index}`} className="flex items-center gap-2 rounded-md border bg-muted/30 p-2">
                                   <span className="text-xs text-muted-foreground">{index + 1}.</span>
                                   <span className="min-w-0 flex-1 text-sm [overflow-wrap:anywhere]">
-                                    {ex ? ex.title : "(unbekannt)"}
+                                    {ex ? ex.title : t("(unbekannt)")}
                                     {ex?.focus && <span className="text-muted-foreground"> · {ex.focus}</span>}
                                   </span>
                                   <div className="flex shrink-0 gap-0.5">
-                                    <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === 0} onClick={() => moveItem(index, -1)} aria-label="Nach oben">
+                                    <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === 0} onClick={() => moveItem(index, -1)} aria-label={t("Nach oben")}>
                                       <ChevronUp className="size-4" />
                                     </Button>
-                                    <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === unitForm.exerciseIds.length - 1} onClick={() => moveItem(index, 1)} aria-label="Nach unten">
+                                    <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === unitForm.exerciseIds.length - 1} onClick={() => moveItem(index, 1)} aria-label={t("Nach unten")}>
                                       <ChevronDown className="size-4" />
                                     </Button>
                                     <Button
@@ -544,7 +545,7 @@ export default function GroupTrainingPage() {
                             <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
                               {library.exercises.map((ex) => (
                                 <SelectItem key={ex.id} value={ex.id}>
-                                  {categoryLabel[ex.category]} · {ex.title}
+                                  {t(categoryLabel[ex.category])} · {ex.title}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -564,7 +565,7 @@ export default function GroupTrainingPage() {
 
                 {catUnits.length === 0 ? (
                   <p className="rounded-lg border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
-                    Noch keine Einheiten für {categoryLabel[activeCat]}.
+                    {t("Noch keine Einheiten für {stufe}.", { stufe: t(categoryLabel[activeCat]) })}
                   </p>
                 ) : (
                   catUnits.map((unit) => {
@@ -577,11 +578,11 @@ export default function GroupTrainingPage() {
                                     {isOpen ? <ChevronDown className="mt-0.5 size-4 shrink-0" /> : <ChevronRight className="mt-0.5 size-4 shrink-0" />}
                                     <CardTitle className="text-sm font-medium break-words [overflow-wrap:anywhere]">{unit.title}</CardTitle>
                                   </span>
-                                  <Badge variant={categoryVariant[unit.category]} className="shrink-0">{categoryLabel[unit.category]}</Badge>
+                                  <Badge variant={categoryVariant[unit.category]} className="shrink-0">{t(categoryLabel[unit.category])}</Badge>
                                 </button>
                                 <p className="mt-1 flex items-center gap-1 pl-5.5 text-xs text-muted-foreground">
                                   <Clock className="size-3" />
-                                  {unit.items.length} Übungen · {unit.totalMinutes} Min
+                                  {unit.items.length === 1 ? t("1 Übung · {minuten} Min.", { minuten: unit.totalMinutes }) : t("{anzahl} Übungen · {minuten} Min.", { anzahl: unit.items.length, minuten: unit.totalMinutes })}
                                 </p>
                               </CardHeader>
                               {isOpen && (
@@ -594,7 +595,7 @@ export default function GroupTrainingPage() {
                                           <span className="text-sm font-medium [overflow-wrap:anywhere]">{idx + 1}. {item.exercise.title}</span>
                                           <span className="flex items-center gap-1.5">
                                             {item.exercise.focus && <Badge variant="secondary">{item.exercise.focus}</Badge>}
-                                            {item.exercise.durationMinutes != null && <span className="text-xs text-muted-foreground">{item.exercise.durationMinutes} Min</span>}
+                                            {item.exercise.durationMinutes != null && <span className="text-xs text-muted-foreground">{t("{n} Min.", { n: item.exercise.durationMinutes })}</span>}
                                           </span>
                                         </div>
                                         {item.exercise.description && <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{item.exercise.description}</p>}
@@ -608,7 +609,7 @@ export default function GroupTrainingPage() {
                                     </Button>
                                     <Button type="button" size="sm" variant="outline" onClick={() => duplicateUnit(unit.id)}>
                                       <Copy className="size-3.5" />
-                                      Duplizieren
+                                      {t("Duplizieren")}
                                     </Button>
                                     <Button type="button" size="sm" variant="ghost" onClick={() => deleteUnit(unit.id, unit.title)}>
                                       <Trash2 className="size-3.5 text-muted-foreground" />

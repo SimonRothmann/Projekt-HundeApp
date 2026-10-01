@@ -59,10 +59,10 @@ export function ClubJoinRequestsSection({ clubs }: { clubs: Club[] }) {
   async function handleDecide(membershipId: string, approve: boolean) {
     try {
       await api.post(`/api/clubs/${selectedClubId}/join-requests/${membershipId}/${approve ? "approve" : "reject"}`);
-      toast.success(approve ? "Beitritt angenommen." : "Beitritt abgelehnt.");
+      toast.success(approve ? t("Beitritt angenommen.") : t("Beitritt abgelehnt."));
       await laden();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Aktion fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Aktion fehlgeschlagen."));
     }
   }
 
@@ -76,12 +76,12 @@ export function ClubJoinRequestsSection({ clubs }: { clubs: Club[] }) {
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
         <CardTitle className="flex items-center gap-2 text-base">
           <UserCheck className="size-5" />
-          Beitrittsanfragen
+          {t("Beitrittsanfragen")}
           <Badge variant="secondary">{t("{anzahl} offen", { anzahl: offen })}</Badge>
         </CardTitle>
         {clubs.length > 1 && (
           <Select value={selectedClubId} onValueChange={(value) => setSelectedClubId(value ?? "")}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-48 max-w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -109,10 +109,10 @@ export function ClubJoinRequestsSection({ clubs }: { clubs: Club[] }) {
                   {r.source === 1 && <Badge variant="outline">{t("über Einladungslink")}</Badge>}
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Button size="icon-sm" variant="outline" onClick={() => handleDecide(r.membershipId, true)} title="Annehmen">
+                  <Button size="icon-sm" variant="outline" onClick={() => handleDecide(r.membershipId, true)} title={t("Annehmen")}>
                     <Check className="size-4" />
                   </Button>
-                  <Button size="icon-sm" variant="ghost" onClick={() => handleDecide(r.membershipId, false)} title="Ablehnen">
+                  <Button size="icon-sm" variant="ghost" onClick={() => handleDecide(r.membershipId, false)} title={t("Ablehnen")}>
                     <X className="size-4" />
                   </Button>
                 </div>

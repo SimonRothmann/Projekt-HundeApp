@@ -11,13 +11,14 @@ import { KalenderKnopf } from "@/components/schedule/kalender-knopf";
 import { SessionCounts } from "@/components/schedule/session-counts";
 import { naechsterTermin, zusageNamen } from "@/lib/naechster-termin";
 import { cn } from "@/lib/utils";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
 
 /** So weit voraus wird gesucht - ein Termin jenseits davon ist noch nicht "der nächste". */
 const SUCHE_TAGE = 90;
 
-const wann = (iso: string) =>
-  new Date(iso).toLocaleString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const wann = (iso: string, ort: string) =>
+  new Date(iso).toLocaleString(ort, { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 /**
  * Ganz oben auf der Trainer-Seite: der nächste geplante Termin über alle
@@ -30,6 +31,7 @@ const wann = (iso: string) =>
  */
 export function NextSessionCard({ clubs }: { clubs: Club[] }) {
   const t = useT();
+  const ort = ortsformat(useSprache());
   const [termin, setTermin] = useState<GroupTrainingSession | null>(null);
   const vereineSchluessel = clubs.map((c) => c.id).join(",");
 
@@ -71,7 +73,7 @@ export function NextSessionCard({ clubs }: { clubs: Club[] }) {
         <div className="min-w-0">
           <p className="font-medium [overflow-wrap:anywhere]">{termin.groupName}</p>
           <p className="text-sm text-muted-foreground">
-            {wann(termin.startsAt)} · {t("{n} Min.", { n: termin.durationMinutes })}
+            {wann(termin.startsAt, ort)} · {t("{n} Min.", { n: termin.durationMinutes })}
           </p>
           {termin.location && (
             <p className="mt-0.5 flex items-start gap-1 text-sm text-muted-foreground">

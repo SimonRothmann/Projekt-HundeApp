@@ -74,8 +74,12 @@ export function WalkRunComment({
   }
 
   return (
-    <span className="inline-flex items-center gap-1">
-      {run.comment ? <span className="italic">„{run.comment}“</span> : <span className="text-muted-foreground/70">Kein Kommentar</span>}
+    <span className="inline-flex max-w-full items-center gap-1">
+      {run.comment ? (
+        <span className="min-w-0 italic [overflow-wrap:anywhere]">„{run.comment}“</span>
+      ) : (
+        <span className="text-muted-foreground/70">{t("Kein Kommentar")}</span>
+      )}
       <Button
         size="icon"
         variant="ghost"

@@ -6,8 +6,9 @@ import type { DogConditionStats } from "@/lib/types";
 import { conditionLabel } from "@/components/dogs/condition-picker";
 import { toast } from "sonner";
 
-import { useT } from "@/lib/i18n";
-import { uebersetzbar } from "@/lib/i18n/sprachen";
+import { useSprache, useT } from "@/lib/i18n";
+import { zahlText } from "@/lib/ortsformat";
+import { uebersetzbar, type Sprache } from "@/lib/i18n/sprachen";
 /**
  * Was die Verfassung des Hundes mit seinen Bewertungen zu tun hat.
  *
@@ -22,6 +23,7 @@ import { uebersetzbar } from "@/lib/i18n/sprachen";
  */
 export function ConditionStats({ dogId }: { dogId: string }) {
   const t = useT();
+  const sprache = useSprache();
   const [stats, setStats] = useState<DogConditionStats | null>(null);
 
   useEffect(() => {
@@ -67,11 +69,11 @@ export function ConditionStats({ dogId }: { dogId: string }) {
           <ul className="flex flex-col divide-y text-xs">
             {stats.byCondition.map((row) => (
               <li key={row.condition} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 py-1.5">
-                <span className="font-medium">{conditionLabel(row.condition) ?? "unbekannt"}</span>
+                <span className="font-medium">{conditionLabel(row.condition) ?? t("unbekannt")}</span>
                 <span className="flex items-center gap-2 text-muted-foreground">
                   {row.avgRating !== null && (
-                    <span className="text-primary-text tabular-nums" title={`Ø ${row.avgRating.toFixed(1)} von 5`}>
-                      Ø {row.avgRating.toFixed(1)} ★
+                    <span className="text-primary-text tabular-nums" title={t("Ø {wert} von 5", { wert: zahlText(row.avgRating, sprache) })}>
+                      Ø {zahlText(row.avgRating, sprache)} ★
                     </span>
                   )}
                   {row.successRate !== null && (
@@ -97,11 +99,11 @@ export function ConditionStats({ dogId }: { dogId: string }) {
                 <span className="font-medium">{t(dichteName(row.precedingTrainingDays))}</span>
                 <span className="flex items-center gap-2 text-muted-foreground">
                   {row.avgRating !== null && (
-                    <span className="text-primary-text tabular-nums">Ø {row.avgRating.toFixed(1)} ★</span>
+                    <span className="text-primary-text tabular-nums">Ø {zahlText(row.avgRating, sprache)} ★</span>
                   )}
                   {row.tiredOrStressedShare !== null && row.tiredOrStressedShare > 0 && (
                     <span className="tabular-nums" title={t("Anteil müde oder gestresst")}>
-                      {Math.round(row.tiredOrStressedShare * 100)} % müde/gestresst
+                      {t("{prozent} % müde/gestresst", { prozent: Math.round(row.tiredOrStressedShare * 100) })}
                     </span>
                   )}
                   <span className="tabular-nums">×{row.sessionCount}</span>
@@ -109,13 +111,13 @@ export function ConditionStats({ dogId }: { dogId: string }) {
               </li>
             ))}
           </ul>
-          {hinweis(dichte, t)}
+          {hinweis(dichte, t, sprache)}
         </div>
       )}
 
       {stats.sessionsWithCondition > 0 && (
         <p className="text-xs text-muted-foreground tabular-nums">
-          Verfassung bei {stats.sessionsWithCondition} von {stats.sessionsTotal} Trainings angegeben.
+          {t("Verfassung bei {angegeben} von {gesamt} Trainings angegeben.", { angegeben: stats.sessionsWithCondition, gesamt: stats.sessionsTotal })}
         </p>
       )}
     </div>
@@ -139,6 +141,7 @@ function dichteName(tage: number): string {
 function hinweis(
   dichte: { precedingTrainingDays: number; sessionCount: number; avgRating: number | null }[],
   t: (text: string, werte?: Record<string, string | number>) => string,
+  sprache: Sprache,
 ) {
   const ohnePause = dichte.find((d) => d.precedingTrainingDays === 0);
   const amStueck = dichte.filter((d) => d.precedingTrainingDays > 0 && d.avgRating !== null);
@@ -152,8 +155,10 @@ function hinweis(
 
   return (
     <p className="rounded-md bg-muted/60 px-2 py-1.5 text-xs">
-      {t(dichteName(schwaechste.precedingTrainingDays))} {t("fällt die Bewertung im Schnitt um")}{" "}
-      <span className="font-medium tabular-nums">{abstand.toFixed(1)} ★</span> niedriger aus als nach einer Pause.
+      {t("{tage} fällt die Bewertung im Schnitt um {abstand} ★ niedriger aus als nach einer Pause.", {
+        tage: t(dichteName(schwaechste.precedingTrainingDays)),
+        abstand: zahlText(abstand, sprache),
+      })}
     </p>
   );
 }

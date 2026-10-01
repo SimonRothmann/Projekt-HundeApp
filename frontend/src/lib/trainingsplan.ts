@@ -26,11 +26,31 @@ export function sichtbareWochen<T>(
   return wochen.filter(([nummer]) => nummer === aktuelleWoche);
 }
 
+/**
+ * Entfernt Pausen-Platzhalter aus Wochen, die echte Übungen haben.
+ *
+ * Eine Pausenwoche besteht aus genau einem Platzhalter ohne Übung und mit
+ * Zielwert 0. Neben echten Übungen derselben Woche ist er ein Altbestand (die
+ * Neugenerierung ließ ihn früher stehen) und erschien als namenlose Zeile
+ * "0/0x erledigt", die auch in "0/6" statt "0/5" mitgezählt wurde. Der Server
+ * gibt ihn inzwischen nicht mehr aus - der Lesecache des Geräts kann ihn aber
+ * noch tragen.
+ */
+export function ohneUeberfluessigePause(items: TrainingPlanItem[]): TrainingPlanItem[] {
+  const wochenMitUebung = new Set(items.filter((item) => !item.isRestWeek).map((item) => item.weekNumber));
+  return items.filter((item) => !item.isRestWeek || !wochenMitUebung.has(item.weekNumber));
+}
+
+/** Ob eine Woche (nach {@link groupByWeek}) nur aus der Pause besteht. */
+export function istPausenwoche(items: TrainingPlanItem[]): boolean {
+  return items.length > 0 && items.every((item) => item.isRestWeek);
+}
+
 // Eine Woche kann mehrere Plan-Ziele haben (siehe TrainingPlanGenerator
 // "ItemsPerWeek") - für die Anzeige nach Wochennummer gruppiert.
 export function groupByWeek(items: TrainingPlanItem[]): [number, TrainingPlanItem[]][] {
   const byWeek = new Map<number, TrainingPlanItem[]>();
-  for (const item of items) {
+  for (const item of ohneUeberfluessigePause(items)) {
     const group = byWeek.get(item.weekNumber);
     if (group) group.push(item);
     else byWeek.set(item.weekNumber, [item]);

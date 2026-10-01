@@ -70,13 +70,13 @@ function Umschalter({
       aria-pressed={aktiv}
       onClick={onClick}
       className={cn(
-        "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-10 disabled:opacity-50",
+        "flex max-w-full shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-left text-sm transition-colors [overflow-wrap:anywhere] coarse:min-h-10 disabled:opacity-50",
         aktiv
           ? "border-primary bg-primary/15 text-primary-text"
           : "border-border/60 text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
       )}
     >
-      {aktiv && <Check className="size-4" />}
+      {aktiv && <Check className="size-4 shrink-0" />}
       {children}
     </button>
   );

@@ -141,7 +141,7 @@ export default function ClubsPage() {
                   <Building2 className="size-8 shrink-0 text-primary-text" />
                   <div className="min-w-0">
                     <CardTitle className="[overflow-wrap:anywhere]">{club.name}</CardTitle>
-                    {club.description && <p className="text-sm text-muted-foreground">{club.description}</p>}
+                    {club.description && <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{club.description}</p>}
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">

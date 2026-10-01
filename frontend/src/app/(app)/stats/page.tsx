@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { ConditionStats } from "@/components/dogs/condition-stats";
 import { FaehrtenTrend, TrendBadge } from "@/components/tracking/faehrten-trend";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { zahlText } from "@/lib/ortsformat";
 
 /**
  * Übungs-Aufschlüsselung eines Hundes: lädt bei Aufklappen die Kennzahlen pro
@@ -22,6 +23,7 @@ import { useT } from "@/lib/i18n";
  */
 function DogExercises({ dogId }: { dogId: string }) {
   const t = useT();
+  const sprache = useSprache();
   const [rows, setRows] = useState<DogExerciseStat[] | null>(null);
 
   useEffect(() => {
@@ -55,9 +57,9 @@ function DogExercises({ dogId }: { dogId: string }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="rounded-md bg-muted/60 px-2 py-1.5 text-xs">
-        <span className="font-medium">Fokus-Empfehlung: </span>
+        <span className="font-medium">{t("Fokus-Empfehlung:")} </span>
         <span>
-          {focus.exerciseName} (Ø {focus.avgRating.toFixed(1)} ★, {Math.round(focus.successRate * 100)} % erfolgreich)
+          {focus.exerciseName} (Ø {zahlText(focus.avgRating, sprache)} ★, {t("{prozent} % erfolgreich", { prozent: Math.round(focus.successRate * 100) })})
         </span>
       </div>
       <ul className="flex flex-col divide-y text-xs">
@@ -65,7 +67,7 @@ function DogExercises({ dogId }: { dogId: string }) {
           <li key={ex.exerciseName} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 py-1.5">
             <span className="font-medium">{ex.exerciseName}</span>
             <span className="flex items-center gap-2 text-muted-foreground">
-              <span className="text-primary-text" title={`Ø ${ex.avgRating.toFixed(1)} von 5`}>
+              <span className="text-primary-text" title={t("Ø {wert} von 5", { wert: zahlText(ex.avgRating, sprache) })}>
                 {"★".repeat(Math.round(ex.avgRating))}
                 {"☆".repeat(5 - Math.round(ex.avgRating))}
               </span>
@@ -82,6 +84,7 @@ function DogExercises({ dogId }: { dogId: string }) {
 
 export default function StatsPage() {
   const t = useT();
+  const sprache = useSprache();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [openDogs, setOpenDogs] = useState<Set<string>>(new Set());
 
@@ -131,8 +134,8 @@ export default function StatsPage() {
         <>
           <Card>
             <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-              <BarChart className="size-5 text-primary-text" />
-              <CardTitle className="text-base">{t("Trainings der letzten 12 Wochen")}</CardTitle>
+              <BarChart className="size-5 shrink-0 text-primary-text" />
+              <CardTitle className="min-w-0 text-base">{t("Trainings der letzten 12 Wochen")}</CardTitle>
             </CardHeader>
             <CardContent>
               {stats.weeklyActivity.every((w) => w.count === 0) ? (
@@ -168,8 +171,8 @@ export default function StatsPage() {
               {stats.perDog.map((dog) => (
                 <Card key={dog.dogId}>
                   <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-                    <Dog className="size-6 text-primary-text" />
-                    <CardTitle className="text-base">{dog.dogName}</CardTitle>
+                    <Dog className="size-6 shrink-0 text-primary-text" />
+                    <CardTitle className="min-w-0 text-base [overflow-wrap:anywhere]">{dog.dogName}</CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-3">
                     <div className="grid grid-cols-2 gap-2 text-sm">
@@ -178,7 +181,7 @@ export default function StatsPage() {
                         <p className="font-medium">{dog.sessionCount}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground text-xs">Letzte 30 Tage</p>
+                        <p className="text-muted-foreground text-xs">{t("Letzte 30 Tage")}</p>
                         <p className="font-medium">{dog.sessionsLast30d}</p>
                       </div>
                       <div>
@@ -187,13 +190,13 @@ export default function StatsPage() {
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">{t("Ø Bewertung (30d)")}</p>
-                        <p className="font-medium">{dog.avgRating30d !== null ? `${dog.avgRating30d} / 5` : "–"}</p>
+                        <p className="font-medium">{dog.avgRating30d !== null ? `${zahlText(dog.avgRating30d, sprache)} / 5` : "–"}</p>
                       </div>
                     </div>
                     {dog.planItemsTotal > 0 && (
                       <div>
                         <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                          <span>Planziele</span>
+                          <span>{t("Planziele")}</span>
                           <span>
                             {dog.planItemsCompleted} / {dog.planItemsTotal}
                           </span>

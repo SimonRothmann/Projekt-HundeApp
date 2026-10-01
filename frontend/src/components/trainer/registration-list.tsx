@@ -132,7 +132,7 @@ export function RegistrationList({
         ) : (
           <ul className="flex min-w-0 flex-col gap-2">
             {sichtbar.map((r) => {
-              const alter = formatDogAge(r.dogBirthDate);
+              const alter = formatDogAge(r.dogBirthDate, new Date(), t);
               const bezahlt = r.paidAt !== null;
               return (
                 <li key={r.id} className="flex min-w-0 flex-col gap-2 rounded-lg border p-3">

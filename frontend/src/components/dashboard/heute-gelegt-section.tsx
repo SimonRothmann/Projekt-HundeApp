@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
 
 export type FaehrteMitHund = OffeneFaehrte & { hund: Dog };
 
@@ -33,6 +34,7 @@ export function HeuteGelegtSection({
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
+  const ort = ortsformat(useSprache());
 
   if (faehrten.length === 0) return null;
 
@@ -40,7 +42,7 @@ export function HeuteGelegtSection({
     <section className="flex flex-col gap-3">
       <SectionHeading icon={Footprints} title={t("Heute gelegt")} />
       {faehrten.map((f) => {
-        const uhrzeit = f.gelegtBis.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+        const uhrzeit = f.gelegtBis.toLocaleTimeString(ort, { hour: "2-digit", minute: "2-digit" });
         return (
           <Card key={f.track.id}>
             <CardContent className="flex flex-wrap items-center justify-between gap-3">

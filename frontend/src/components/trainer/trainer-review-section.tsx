@@ -10,7 +10,8 @@ import { ClipboardCheck, MessageSquarePlus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 /**
  * Trainerseite: alle offenen Trainings der betreuten Hunde in EINER Ansicht -
@@ -34,6 +35,7 @@ function openCount(session: TrainerSessionToRate): number {
 
 export function TrainerReviewSection() {
   const t = useT();
+  const sprache = useSprache();
   const [sessions, setSessions] = useState<TrainerSessionToRate[] | null>(null);
   const [openFeedbackId, setOpenFeedbackId] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
@@ -98,7 +100,7 @@ export function TrainerReviewSection() {
         </CardTitle>
         {totalOpen > 0 && (
           <CardAction>
-            <Badge variant="secondary">{totalOpen} offen</Badge>
+            <Badge variant="secondary">{t("{n} offen", { n: totalOpen })}</Badge>
           </CardAction>
         )}
       </CardHeader>
@@ -127,12 +129,12 @@ export function TrainerReviewSection() {
                     <div key={s.sessionId} className="min-w-0 rounded-md border p-2.5">
                       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                         <span className="text-xs text-muted-foreground">
-                          {new Date(s.date).toLocaleDateString("de-DE")} · {s.durationMinutes} Min.
+                          {new Date(s.date).toLocaleDateString(ortsformat(sprache))} · {t("{n} Min.", { n: s.durationMinutes })}
                         </span>
                         <Badge variant={open === 0 ? "secondary" : "outline"} className="shrink-0">
                           {s.exercises.length > 0
-                            ? `${rated}/${s.exercises.length} bewertet`
-                            : "nur Feedback"}
+                            ? t("{bewertet}/{gesamt} bewertet", { bewertet: rated, gesamt: s.exercises.length })
+                            : t("nur Feedback")}
                         </Badge>
                       </div>
 
@@ -150,7 +152,7 @@ export function TrainerReviewSection() {
                                 {/* Selbsteinschätzung des Hundeführers - klein
                                     und gedämpft, sie ist hier nur Kontext. */}
                                 <span className="shrink-0 text-xs text-muted-foreground">
-                                  Selbst: {"★".repeat(ex.rating)}
+                                  {t("Selbst:")} {"★".repeat(ex.rating)}
                                   {"☆".repeat(5 - ex.rating)} {ex.success ? "✓" : "✗"}
                                 </span>
                               </span>
@@ -207,7 +209,7 @@ export function TrainerReviewSection() {
                             onClick={() => startFeedback(s.sessionId, null)}
                           >
                             <MessageSquarePlus className="size-3.5" />
-                            Gesamt-Feedback geben
+                            {t("Gesamt-Feedback geben")}
                           </Button>
                         )}
                       </div>

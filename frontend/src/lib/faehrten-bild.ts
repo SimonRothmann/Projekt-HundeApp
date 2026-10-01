@@ -330,12 +330,12 @@ export function baueBildTexte(
   if (laengeInZeilen && kz.laengeM != null) zeilen.push(t("Länge {meter} m", { meter: kz.laengeM }));
 
   const temperaturen: string[] = [];
-  const legen = formatTemperature(kz.legenC);
-  const suchen = formatTemperature(kz.suchenC);
+  const legen = formatTemperature(kz.legenC, sprache === "en" ? "en" : "de");
+  const suchen = formatTemperature(kz.suchenC, sprache === "en" ? "en" : "de");
   if (legen) temperaturen.push(t("Legen {temperatur}", { temperatur: legen }));
   if (suchen) temperaturen.push(t("Suchen {temperatur}", { temperatur: suchen }));
   if (temperaturen.length > 0) {
-    const delta = legen && suchen ? formatDelta(kz.deltaC) : null;
+    const delta = legen && suchen ? formatDelta(kz.deltaC, sprache === "en" ? "en" : "de") : null;
     zeilen.push(temperaturen.join(" · ") + (delta ? ` (${delta})` : ""));
   }
 

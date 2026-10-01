@@ -25,18 +25,30 @@ export function dogAgeInMonths(birthday: string | null | undefined, today = new 
   return months < 0 ? null : months;
 }
 
-/** Anzeigetext, z.B. "7 Monate", "1 Jahr 5 Monate", "3 Jahre". */
-export function formatDogAge(birthday: string | null | undefined, today = new Date()): string | null {
+type Uebersetzer = (text: string, werte?: Record<string, string | number>) => string;
+
+// Ohne Übersetzer (Tests, Server) bleibt es bei den deutschen Sätzen.
+const DEUTSCH: Uebersetzer = (text, werte) =>
+  text.replace(/\{(\w+)\}/g, (treffer, name: string) => (werte && name in werte ? String(werte[name]) : treffer));
+
+/** Anzeigetext, z.B. "7 Monate", "1 Jahr 5 Monate", "3 Jahre"; mit dem Übersetzer der Oberfläche in deren Sprache. */
+export function formatDogAge(
+  birthday: string | null | undefined,
+  today = new Date(),
+  t: Uebersetzer = DEUTSCH,
+): string | null {
   const months = dogAgeInMonths(birthday, today);
   if (months === null) return null;
 
-  if (months < 12) return months === 1 ? "1 Monat" : `${months} Monate`;
+  const monateText = (n: number) => (n === 1 ? t("1 Monat") : t("{n} Monate", { n }));
+
+  if (months < 12) return monateText(months);
 
   const years = Math.floor(months / 12);
   const rest = months % 12;
 
   // Ab zwei Jahren nur noch Jahre - da zählt der Monat nicht mehr.
-  if (years >= 2) return `${years} Jahre`;
-  if (rest === 0) return "1 Jahr";
-  return `1 Jahr ${rest === 1 ? "1 Monat" : `${rest} Monate`}`;
+  if (years >= 2) return t("{n} Jahre", { n: years });
+  if (rest === 0) return t("1 Jahr");
+  return `${t("1 Jahr")} ${monateText(rest)}`;
 }

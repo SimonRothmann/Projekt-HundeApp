@@ -25,6 +25,7 @@ import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/components/tracking/unterbrochene-aufzeichnung";
 
 import { useT } from "@/lib/i18n";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
 function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
   return {
     latitude: position.coords.latitude,
@@ -41,10 +42,10 @@ function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
 // gewertet wird (Gegenstand = Verweisen erwünscht, Leckerlipot/Verleitung =
 // erklärt und neutral) - siehe GpsTrackEvaluator im Backend.
 const MARKER_TYPES = [
-  { value: 0, label: "Gegenstand", icon: Package },
-  { value: 1, label: "Leckerlipot", icon: Cookie },
-  { value: 2, label: "Verleitung", icon: Waypoints },
-  { value: 3, label: "Sonstiges", icon: MapPinPlus },
+  { value: 0, label: uebersetzbar("Gegenstand"), icon: Package },
+  { value: 1, label: uebersetzbar("Leckerlipot"), icon: Cookie },
+  { value: 2, label: uebersetzbar("Verleitung"), icon: Waypoints },
+  { value: 3, label: uebersetzbar("Sonstiges"), icon: MapPinPlus },
 ] as const;
 
 /**
@@ -128,7 +129,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
       (point) => {
         setPoints((prev) => [...prev, { ...point, pointType: 1, label: null, markerType: typ }]);
         setIsMarking(false);
-        toast.success(`${MARKER_TYPES.find((t) => t.value === typ)?.label ?? "Marker"} markiert.`);
+        toast.success(t("{art} markiert.", { art: t(MARKER_TYPES.find((m) => m.value === typ)?.label ?? uebersetzbar("Marker")) }));
       },
       () => setIsMarking(false),
     );
@@ -286,7 +287,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
               </div>
               <Button onClick={startRecording} disabled={speichert} className="self-start coarse:min-h-11">
                 <MapPin className="size-4" />
-                Aufnahme starten
+                {t("Aufnahme starten")}
               </Button>
             </>
           )}
@@ -300,7 +301,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
       titel={t("Fährte legen")}
       status={
         <>
-          {autoPunkte} Punkte · {markerPunkte} Marker
+          {t("{punkte} Punkte · {marker} Marker", { punkte: autoPunkte, marker: markerPunkte })}
           {currentAccuracy !== null && (
             <>
               {" · "}
@@ -325,17 +326,17 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
         // der üblichen Knopfhöhe: Das Ziel muss mit einer Hand, im Stehen,
         // ohne Hinsehen zu treffen sein.
         <div className="grid grid-cols-4 gap-2">
-          {MARKER_TYPES.map((t) => (
+          {MARKER_TYPES.map((markerArt) => (
             <Button
-              key={t.value}
+              key={markerArt.value}
               type="button"
               variant="outline"
               disabled={isMarking}
-              onClick={() => markObject(t.value)}
+              onClick={() => markObject(markerArt.value)}
               className="h-16 flex-col gap-1 px-1 text-[11px] leading-tight"
             >
-              <t.icon className="size-5 shrink-0" />
-              <span className="w-full truncate">{t.label}</span>
+              <markerArt.icon className="size-5 shrink-0" />
+              <span className="w-full truncate">{t(markerArt.label)}</span>
             </Button>
           ))}
         </div>

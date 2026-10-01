@@ -49,6 +49,9 @@ export function WalkRunEvaluation({ run }: { run: GpsWalkRun }) {
   // seinerzeit bei goal.weekConfigs.
   if (run.evaluatedAt == null || run.avgDeviationMeters == null) return null;
 
+  // Anzeige in ganzen Metern, Ampel aber auf dem ungerundeten Wert: dieselben
+  // Schwellen wie Backend (GpsTrackEvaluator) und Kartenlinie - sonst wäre
+  // dieselbe Fährte hier grün und auf der Karte gelb.
   const avg = run.avgDeviationMeters;
   const stops = run.stops ?? [];
   const unexplained = stops.filter((s) => s.kind === 0).length;
@@ -57,14 +60,16 @@ export function WalkRunEvaluation({ run }: { run: GpsWalkRun }) {
     <div className="flex flex-col gap-1.5 rounded-md border bg-muted/30 p-2.5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className={cn("text-sm font-semibold", ampelClass(avg))}>
-          Ø {avg.toFixed(1)} m
+          {t("Ø {meter} m", { meter: Math.round(avg) })}
         </span>
         <span className={cn("text-xs", ampelClass(avg))}>{t(ampelLabel(avg))}</span>
-        {run.maxDeviationMeters != null && <span className="text-xs">max {run.maxDeviationMeters.toFixed(1)} m</span>}
-        {run.onTrackPercent != null && <span className="text-xs">{Math.round(run.onTrackPercent)} % auf Fährte</span>}
+        {run.maxDeviationMeters != null && (
+          <span className="text-xs">{t("max {meter} m", { meter: Math.round(run.maxDeviationMeters) })}</span>
+        )}
+        {run.onTrackPercent != null && <span className="text-xs">{t("{prozent} % auf Fährte", { prozent: Math.round(run.onTrackPercent) })}</span>}
         {run.articlesTotal != null && run.articlesTotal > 0 && (
           <span className="text-xs">
-            {run.articlesFound ?? 0}/{run.articlesTotal} Gegenstände
+            {t("{gefunden}/{gesamt} Gegenstände", { gefunden: run.articlesFound ?? 0, gesamt: run.articlesTotal })}
           </span>
         )}
       </div>
@@ -77,13 +82,14 @@ export function WalkRunEvaluation({ run }: { run: GpsWalkRun }) {
               {stop.markerLabel ? ` · ${stop.markerLabel}` : ""}
             </Badge>
           ))}
-          {stops.length > 6 && <span className="text-xs">+{stops.length - 6} weitere</span>}
+          {stops.length > 6 && <span className="text-xs">{t("+{n} weitere", { n: stops.length - 6 })}</span>}
         </div>
       )}
 
       <p className="text-[0.7rem] leading-snug">
-        Gemessen wird die Linie des Hundeführers – der Hund kann bis Leinenlänge abweichen, ohne dass es hier
-        sichtbar wird.{unexplained > 0 && ` ${unexplained} unerklärte Stockung${unexplained === 1 ? "" : "en"} deuten auf Suchen hin.`}
+        {t("Gemessen wird die Linie des Hundeführers – der Hund kann bis Leinenlänge abweichen, ohne dass es hier sichtbar wird.")}
+        {unexplained > 0 &&
+          ` ${unexplained === 1 ? t("1 unerklärte Stockung deutet auf Suchen hin.") : t("{n} unerklärte Stockungen deuten auf Suchen hin.", { n: unexplained })}`}
       </p>
     </div>
   );

@@ -86,11 +86,11 @@ export default function DogsPage() {
             <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-base">{dog.name}</CardTitle>
+                <CardTitle className="text-base [overflow-wrap:anywhere]">{dog.name}</CardTitle>
                 {archived && <Badge variant="secondary">{t("Archiviert")}</Badge>}
               </div>
               <p className="text-sm text-muted-foreground">
-                {[dog.breed ?? "Unbekannte Rasse", formatDogAge(dog.birthday)].filter(Boolean).join(" · ")}
+                {[dog.breed ?? t("Unbekannte Rasse"), formatDogAge(dog.birthday, new Date(), t)].filter(Boolean).join(" · ")}
               </p>
             </div>
           </CardHeader>
@@ -146,8 +146,8 @@ export default function DogsPage() {
                   <Label htmlFor="birthday">{t("Geburtsdatum")}</Label>
                   <Input id="birthday" type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
                   <p className="text-xs text-muted-foreground">
-                    {formatDogAge(birthday)
-                      ? t("Alter: {alter}", { alter: formatDogAge(birthday) ?? "" })
+                    {formatDogAge(birthday, new Date(), t)
+                      ? t("Alter: {alter}", { alter: formatDogAge(birthday, new Date(), t) ?? "" })
                       : t("Optional - daraus wird das Alter berechnet.")}
                   </p>
                 </div>

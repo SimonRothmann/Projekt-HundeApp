@@ -44,7 +44,7 @@ export function GroupJoinRequestsSection({ groups }: Props) {
     try {
       const action = approve ? "approve" : "reject";
       await api.post(`/api/groups/${groupId}/join-requests/${memberId}/${action}`);
-      toast.success(approve ? "Aufgenommen." : "Abgelehnt.");
+      toast.success(approve ? t("Aufgenommen.") : t("Abgelehnt."));
       await loadAll();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Fehler beim Entscheiden."));
@@ -58,18 +58,18 @@ export function GroupJoinRequestsSection({ groups }: Props) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-        <UserCheck className="size-5 text-primary-text" />
-        <CardTitle className="text-base">Offene Gruppenanfragen</CardTitle>
+        <UserCheck className="size-5 shrink-0 text-primary-text" />
+        <CardTitle className="min-w-0 text-base">{t("Offene Gruppenanfragen")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {requests.map((r) => (
           <div key={`${r.groupId}-${r.memberId}`} className="flex items-center justify-between gap-2 py-1 border-b last:border-0">
-            <div className="text-sm">
-              <p className="font-medium">
+            <div className="min-w-0 text-sm">
+              <p className="font-medium [overflow-wrap:anywhere]">
                 {r.firstName} {r.lastName}
               </p>
-              <p className="text-muted-foreground text-xs">
-                {r.email} · Gruppe: {r.groupName}
+              <p className="text-muted-foreground text-xs [overflow-wrap:anywhere]">
+                {r.email} · {t("Gruppe: {name}", { name: r.groupName })}
               </p>
             </div>
             <div className="flex gap-2 shrink-0">
@@ -78,7 +78,7 @@ export function GroupJoinRequestsSection({ groups }: Props) {
                 disabled={decidingId === r.memberId}
                 onClick={() => decide(r.groupId, r.memberId, true)}
               >
-                Annehmen
+                {t("Annehmen")}
               </Button>
               <Button
                 size="sm"
@@ -86,7 +86,7 @@ export function GroupJoinRequestsSection({ groups }: Props) {
                 disabled={decidingId === r.memberId}
                 onClick={() => decide(r.groupId, r.memberId, false)}
               >
-                Ablehnen
+                {t("Ablehnen")}
               </Button>
             </div>
           </div>

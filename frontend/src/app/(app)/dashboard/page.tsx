@@ -183,7 +183,7 @@ export default function DashboardPage() {
                   <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary-text ring-1 ring-primary/25">
                     <Building2 className="size-6" />
                   </span>
-                  <div>
+                  <div className="min-w-0">
                     <CardTitle>{t("Tritt einem Verein bei")}</CardTitle>
                     <CardDescription>
                       {t("Du bist noch keinem Verein zugeordnet - finde einen Verein und stelle eine Beitrittsanfrage.")}

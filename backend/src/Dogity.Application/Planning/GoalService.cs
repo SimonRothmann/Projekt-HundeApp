@@ -328,9 +328,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         // echte Übung bekommt - sonst stünden "Pause" und eine echte Übung
         // gleichzeitig in derselben Woche (siehe goals-section.tsx, das pro
         // Woche entweder "Pause" ODER die Liste der Übungen anzeigt).
-        var restPlaceholder = goal.TrainingPlan.Items.FirstOrDefault(i => i.WeekNumber == request.WeekNumber && i.IsRestWeek);
-        if (restPlaceholder is not null)
-            restPlaceholder.DeletedAt = DateTimeOffset.UtcNow;
+        RemoveRestPlaceholders(goal, request.WeekNumber);
 
         db.TrainingPlanItems.Add(new TrainingPlanItem
         {
@@ -561,6 +559,14 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             if (targetWeek > maxWeek)
                 continue; // keine zukünftige Planwoche mehr (Ziel läuft aus)
 
+            // Eine Pausenwoche bleibt eine: Der Generator plant sie bewusst
+            // ohne Übungen (jede vierte Woche), und die Neugenerierung füllte
+            // sie sonst neben dem Platzhalter mit einem vollen Wochenpensum.
+            // Wer in der Woche selbst eine Übung einträgt, nimmt den
+            // Platzhalter damit weg - dann gilt sie wieder als normale Woche.
+            if (goal.TrainingPlan.Items.Any(i => i.WeekNumber == targetWeek && i.IsRestWeek))
+                continue;
+
             await RegenerateWeekCoreAsync(goal, targetWeek, ct);
             await NotifyOwnersOfAutoRegenerationAsync(goal, targetWeek, ct);
             count++;
@@ -624,7 +630,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         if (remainingSlots > 0 && candidates.Count > 0)
         {
             var config = new AdaptivePlanConfig(remainingSlots, EffectiveDaysForWeek(goal, weekNumber));
-            foreach (var generated in AdaptivePlanGenerator.GenerateWeek(today, weekNumber, candidates, config))
+            var generatedItems = AdaptivePlanGenerator.GenerateWeek(today, weekNumber, candidates, config);
+            foreach (var generated in generatedItems)
             {
                 generated.TrainingPlanId = goal.TrainingPlan!.Id;
                 // Über das DbSet, nicht die getrackte Navigation: sonst stuft EF
@@ -632,10 +639,24 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
                 // ein (siehe TrainingService.CreateAsync).
                 db.TrainingPlanItems.Add(generated);
             }
+
+            // Eine Woche, die jetzt echte Übungen hat, ist keine Pausenwoche
+            // mehr: Den Platzhalter nicht stehen lassen (wie in AddPlanItemAsync),
+            // sonst zeigt die Woche eine namenlose Zeile "0/0x" neben den Übungen.
+            if (generatedItems.Count > 0)
+                RemoveRestPlaceholders(goal, weekNumber);
         }
 
         goal.LastPlanGeneratedAt = timeProvider.GetUtcNow();
         await db.SaveChangesAsync(ct);
+    }
+
+    // Pausenwochen-Platzhalter (IsRestWeek) einer Woche weich löschen. Alle,
+    // nicht nur der erste: Altbestände können mehrere tragen.
+    private static void RemoveRestPlaceholders(Goal goal, int weekNumber)
+    {
+        foreach (var placeholder in goal.TrainingPlan!.Items.Where(i => i.WeekNumber == weekNumber && i.IsRestWeek))
+            placeholder.DeletedAt = DateTimeOffset.UtcNow;
     }
 
     // Baut die Kandidatenliste für den adaptiven Generator: Katalog der Prüfung/
@@ -776,7 +797,30 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         var logsByPlanItem = await GetLogsByPlanItemAsync(goals, ct);
         var maxPoints = await GetMaxPointsAsync(goals, ct);
         var nextStages = await GetNextStagesAsync(goals, regulationNames, ct);
-        return goals.Select(g => ToDto(g, sportNames, regulationNames, logsByPlanItem, maxPoints, nextStages)).ToList();
+        var exerciseNames = await GetDeletedExerciseNamesAsync(goals, ct);
+        return goals.Select(g => ToDto(g, sportNames, regulationNames, logsByPlanItem, maxPoints, nextStages, exerciseNames)).ToList();
+    }
+
+    // Namen von Katalog-Übungen, die inzwischen weich gelöscht sind: Der
+    // globale Filter blendet sie auch über die Navigation aus (Exercise ist
+    // dann null), und der Plan zeigte eine Zeile ohne Namen. Eine Übung, die
+    // einmal geplant war, behält ihren Namen - sie ist nur nicht mehr im
+    // Katalog wählbar.
+    private async Task<Dictionary<Guid, string>> GetDeletedExerciseNamesAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
+    {
+        var missingIds = goals
+            .Where(g => g.TrainingPlan is not null)
+            .SelectMany(g => g.TrainingPlan!.Items)
+            .Where(i => i.ExerciseId is not null && i.Exercise is null)
+            .Select(i => i.ExerciseId!.Value)
+            .Distinct()
+            .ToList();
+        if (missingIds.Count == 0) return new Dictionary<Guid, string>();
+
+        return await db.Exercises
+            .IgnoreQueryFilters()
+            .Where(e => missingIds.Contains(e.Id))
+            .ToDictionaryAsync(e => e.Id, e => e.Name, ct);
     }
 
     // Folgestufen nur für erreichte Ziele mit Prüfungsordnung (siehe
@@ -901,7 +945,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         IReadOnlyDictionary<Guid, string> regulationNames,
         IReadOnlyDictionary<Guid, IReadOnlyList<TrainingPlanItemLogDto>> logsByPlanItem,
         IReadOnlyDictionary<Guid, int> maxPoints,
-        IReadOnlyDictionary<Guid, IReadOnlyList<NextStageDto>> nextStages)
+        IReadOnlyDictionary<Guid, IReadOnlyList<NextStageDto>> nextStages,
+        IReadOnlyDictionary<Guid, string> deletedExerciseNames)
     {
         var sportName = sportNames.GetValueOrDefault(g.SportId, string.Empty);
         var regulationName = g.RegulationId is { } regId ? regulationNames.GetValueOrDefault(regId) : null;
@@ -911,6 +956,10 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
                 g.TrainingPlan.Id,
                 g.TrainingPlan.GeneratedAt,
                 g.TrainingPlan.Items
+                    // Ein Pausenplatzhalter neben echten Übungen derselben Woche
+                    // ist ein Altbestand (siehe RegenerateWeekCoreAsync) und zählte
+                    // als namenlose Zeile "0/0x" mit - er wird nicht ausgegeben.
+                    .Where(i => !i.IsRestWeek || !g.TrainingPlan.Items.Any(o => o.WeekNumber == i.WeekNumber && !o.IsRestWeek))
                     .OrderBy(i => i.WeekNumber)
                     .Select(i =>
                     {
@@ -920,7 +969,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
                             i.Id,
                             i.WeekNumber,
                             i.ExerciseId,
-                            i.Exercise?.Name,
+                            i.Exercise?.Name ?? (i.ExerciseId is { } exerciseId ? deletedExerciseNames.GetValueOrDefault(exerciseId) : null),
                             i.FreeTextLabel,
                             i.RepetitionsTarget,
                             i.IsRestWeek,

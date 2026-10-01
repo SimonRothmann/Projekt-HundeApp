@@ -84,14 +84,14 @@ export function SportEditorSheet({
           <SheetDescription>
             {scope.kind === "global"
               ? t("Wird für alle Nutzer sichtbar (globaler VDH-Katalog).")
-              : `Nur für Mitglieder und Trainer des Vereins „${scope.clubName}“ sichtbar.`}
+              : t("Nur für Mitglieder und Trainer des Vereins „{name}“ sichtbar.", { name: scope.clubName })}
           </SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 overflow-y-auto px-4">
           <div className="grid gap-4 sm:grid-cols-[8rem_1fr]">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="sport-code">Code</Label>
+              <Label htmlFor="sport-code">{t("Code")}</Label>
               <Input
                 id="sport-code"
                 required
@@ -102,7 +102,7 @@ export function SportEditorSheet({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="sport-name">Name</Label>
+              <Label htmlFor="sport-name">{t("Name")}</Label>
               <Input
                 id="sport-name"
                 required
@@ -115,12 +115,12 @@ export function SportEditorSheet({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="sport-description">Beschreibung (optional)</Label>
+            <Label htmlFor="sport-description">{t("Beschreibung (optional)")}</Label>
             <Input
               id="sport-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Kurz, worum es geht"
+              placeholder={t("Kurz, worum es geht")}
             />
           </div>
         </form>

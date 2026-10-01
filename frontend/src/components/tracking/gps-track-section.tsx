@@ -16,7 +16,8 @@ import { CloudSun, Route, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDelta, formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
 // Für Zeitangaben in der Fährten-Übersicht: nur automatische Trackpunkte,
 // nicht die manuell gesetzten Marker (die tragen ggf. einen späteren
 // Zeitstempel und würden die Legezeit verzerren).
@@ -33,12 +34,12 @@ function walkRunDurationMs(run: { points: { timestamp: string }[] }): number | n
   return new Date(run.points[run.points.length - 1].timestamp).getTime() - new Date(run.points[0].timestamp).getTime();
 }
 
-function formatTime(d: Date): string {
-  return d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+function formatTime(d: Date, ort: string): string {
+  return d.toLocaleTimeString(ort, { hour: "2-digit", minute: "2-digit" });
 }
 
-function formatDate(d: Date): string {
-  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+function formatDate(d: Date, ort: string): string {
+  return d.toLocaleDateString(ort, { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function formatDuration(ms: number): string {
@@ -83,6 +84,7 @@ export function GpsTrackSection({
   onChanged?: () => Promise<void>;
 }) {
   const t = useT();
+  const ort = ortsformat(useSprache());
   const [tracks, setTracks] = useState<GpsTrack[] | null>(null);
   const { moduleEnabled } = usePreferences();
   // Live-Punkte des gerade laufenden Ablauf-Versuchs, pro Track-Id. Die
@@ -155,11 +157,11 @@ export function GpsTrackSection({
                   // der letzte Abschnitt. Bei einer Legezeit von zwanzig
                   // Minuten ist der Unterschied erheblich, und das Alter ist
                   // die wichtigste Größe für die Schwierigkeit.
-                  <span title={`${formatDate(times.start)} ${formatTime(times.start)}–${formatTime(times.end)}`}>
+                  <span title={`${formatDate(times.start, ort)} ${formatTime(times.start, ort)}–${formatTime(times.end, ort)}`}>
                     <span className="font-medium text-foreground">
-                      Gelegt {formatTime(times.start)}–{formatTime(times.end)}
+                      {t("Gelegt {von}–{bis}", { von: formatTime(times.start, ort), bis: formatTime(times.end, ort) })}
                     </span>{" "}
-                    · Dauer {formatDuration(times.durationMs)}
+                    · {t("Dauer {dauer}", { dauer: formatDuration(times.durationMs) })}
                   </span>
                 )}
                 {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
@@ -224,9 +226,9 @@ export function GpsTrackSection({
                         className="flex flex-col gap-0.5 rounded-lg border border-surface-border bg-background/60 px-2.5 py-2 dark:bg-white/4"
                       >
                         <span>
-                          <span className="font-medium text-foreground">Ablauf {i + 1}</span>: gestartet{" "}
-                          {formatTime(started)}
-                          {durMs !== null && ` · abgelaufen in ${formatDuration(durMs)}`}
+                          <span className="font-medium text-foreground">{t("Ablauf {nummer}", { nummer: i + 1 })}</span>:{" "}
+                          {t("gestartet {zeit}", { zeit: formatTime(started, ort) })}
+                          {durMs !== null && ` · ${t("abgelaufen in {dauer}", { dauer: formatDuration(durMs) })}`}
                           {run.lengthMeters !== null && ` · ${Math.round(run.lengthMeters)} m`}
                         </span>
                         <WalkRunEvaluation run={run} />
@@ -255,6 +257,7 @@ export function GpsTrackSection({
  */
 function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Promise<void> }) {
   const t = useT();
+  const sprache = useSprache();
   const [loading, setLoading] = useState(false);
 
   async function fetchWeather() {
@@ -269,12 +272,14 @@ function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Pr
     }
   }
 
+  const wetter = weatherLabel(track.laidWeatherCode);
+
   // Lose Prüfung (== null): ältere Backend-Stände/Cache kennen die Felder nicht.
   if (track.laidTemperatureC == null) {
     return (
       <Button size="sm" variant="ghost" className="h-6 self-start px-2 text-xs" disabled={loading} onClick={fetchWeather}>
         <CloudSun className="size-3" />
-        {loading ? t("Lädt Wetter…") : "Wetter laden"}
+        {loading ? t("Lädt Wetter…") : t("Wetter laden")}
       </Button>
     );
   }
@@ -282,15 +287,17 @@ function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Pr
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
       <span className="font-medium text-foreground">
-        {weatherIcon(track.laidWeatherCode)} Legen {formatTemperature(track.laidTemperatureC)}
+        {weatherIcon(track.laidWeatherCode)} {t("Legen {temperatur}", { temperatur: formatTemperature(track.laidTemperatureC, sprache) ?? "" })}
       </span>
-      {track.searchTemperatureC != null && <span>Suchen {formatTemperature(track.searchTemperatureC)}</span>}
-      {track.temperatureDeltaC != null && (
-        <span className="font-medium text-primary-text">{formatDelta(track.temperatureDeltaC)}</span>
+      {track.searchTemperatureC != null && (
+        <span>{t("Suchen {temperatur}", { temperatur: formatTemperature(track.searchTemperatureC, sprache) ?? "" })}</span>
       )}
-      {weatherLabel(track.laidWeatherCode) && <span>{weatherLabel(track.laidWeatherCode)}</span>}
-      {track.laidRelativeHumidity != null && <span>{track.laidRelativeHumidity} % rF</span>}
-      {track.laidWindSpeedKmh != null && <span>{Math.round(track.laidWindSpeedKmh)} km/h Wind</span>}
+      {track.temperatureDeltaC != null && (
+        <span className="font-medium text-primary-text">{formatDelta(track.temperatureDeltaC, sprache)}</span>
+      )}
+      {wetter && <span>{t(wetter)}</span>}
+      {track.laidRelativeHumidity != null && <span>{t("{n} % rF", { n: track.laidRelativeHumidity })}</span>}
+      {track.laidWindSpeedKmh != null && <span>{t("{n} km/h Wind", { n: Math.round(track.laidWindSpeedKmh) })}</span>}
     </div>
   );
 }

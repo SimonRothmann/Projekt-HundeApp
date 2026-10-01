@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Clock, Crosshair, History, Search } from "lucide-react";
 import { toast } from "sonner";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { zahlText } from "@/lib/ortsformat";
 /** Kürzere Eingaben liefern nur Rauschen und kosten unnötig Anfragen. */
 const SEARCH_MIN_CHARS = 3;
 const SEARCH_DEBOUNCE_MS = 350;
@@ -55,6 +56,7 @@ export function LocationTimeFields({
   onLocationChange: (value: LocationValue) => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocodeResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -187,19 +189,19 @@ export function LocationTimeFields({
             onClick={() => onTimeChange(new Date().toTimeString().slice(0, 5))}
           >
             <Clock className="size-3.5" />
-            Jetzt
+            {t("Jetzt")}
           </Button>
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`place-${idPrefix}`}>Trainingsort</Label>
+        <Label htmlFor={`place-${idPrefix}`}>{t("Trainingsort")}</Label>
 
         {recent.length > 0 && (
           <div className="flex flex-col gap-1">
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <History className="size-3" />
-              Zuletzt
+              {t("Zuletzt")}
             </span>
             <div className="flex flex-wrap gap-1.5">
               {recent.map((r) => (
@@ -218,14 +220,14 @@ export function LocationTimeFields({
 
         <Input
           id={`place-${idPrefix}`}
-          placeholder="Name des Orts, z.B. Hundeplatz SV OG …"
+          placeholder={t("Name des Orts, z.B. Hundeplatz SV OG …")}
           value={location.locationName}
           onChange={(e) => onLocationChange({ ...location, locationName: e.target.value })}
         />
 
         <Button type="button" variant="outline" size="sm" disabled={locating} onClick={useCurrentLocation}>
           <Crosshair className="size-3.5" />
-          {locating ? "Ermittle…" : "Aktuellen Standort verwenden"}
+          {locating ? t("Ermittle…") : t("Aktuellen Standort verwenden")}
         </Button>
 
         <div className="flex gap-2">
@@ -244,7 +246,7 @@ export function LocationTimeFields({
           <ul className="flex flex-col gap-1">
             {results.length === 0 ? (
               <li className="text-xs text-muted-foreground">
-                {searching ? "Suche…" : t("Nichts gefunden – du kannst den Namen oben einfach eintippen.")}
+                {searching ? t("Suche…") : t("Nichts gefunden – du kannst den Namen oben einfach eintippen.")}
               </li>
             ) : (
               results.map((r, i) => (
@@ -267,7 +269,10 @@ export function LocationTimeFields({
 
         <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
           {location.latitude != null && location.longitude != null
-            ? `Koordinaten gesetzt (${location.latitude.toFixed(3)}, ${location.longitude.toFixed(3)})`
+            ? t("Koordinaten gesetzt ({breite}, {laenge})", {
+                breite: zahlText(location.latitude, sprache, 3),
+                laenge: zahlText(location.longitude, sprache, 3),
+              })
             : t("Ohne Koordinaten wird kein Wetter ermittelt – nutze „Aktuellen Standort“ oder die Suche.")}
         </p>
       </div>

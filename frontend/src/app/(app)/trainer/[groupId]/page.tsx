@@ -71,7 +71,7 @@ export default function TrainerGroupPage() {
 
   async function handleDeleteGroup() {
     if (!detail) return;
-    if (!window.confirm(`Gruppe "${detail.group.name}" wirklich auflösen? Mitgliedschaften werden entfernt. Trainings und Hunde bleiben erhalten.`)) return;
+    if (!window.confirm(t("Gruppe „{name}“ wirklich auflösen? Mitgliedschaften werden entfernt. Trainings und Hunde bleiben erhalten.", { name: detail.group.name }))) return;
     try {
       await api.delete(`/api/groups/${groupId}`);
       toast.success(t("Gruppe aufgelöst."));
@@ -203,11 +203,11 @@ export default function TrainerGroupPage() {
   }
 
   async function handleUnassign(memberId: string, dogId: string, dogName: string) {
-    if (!window.confirm(`Betreuung von ${dogName} beenden? Du verlierst damit den Zugriff auf Tagebuch, Ziele und Trainingsplan.`)) return;
+    if (!window.confirm(t("Betreuung von {name} beenden? Du verlierst damit den Zugriff auf Tagebuch, Ziele und Trainingsplan.", { name: dogName }))) return;
     if (!user) return;
     try {
       await api.delete(`/api/groups/${groupId}/trainer-assignments/${user.userId}/${dogId}`);
-      toast.success("Betreuung beendet.");
+      toast.success(t("Betreuung beendet."));
       const dogs = await api.get<MemberDog[]>(`/api/groups/${groupId}/members/${memberId}/dogs`);
       setMemberDogs((prev) => ({ ...prev, [memberId]: dogs }));
     } catch (err) {
@@ -235,15 +235,15 @@ export default function TrainerGroupPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{detail.group.name}</h1>
         <p className="text-sm text-muted-foreground">
-          {detail.members.length} Mitglied{detail.members.length === 1 ? "" : "er"}
-          {detail.group.trainerName ? ` · Trainer:in: ${detail.group.trainerName}` : ""}
+          {detail.members.length === 1 ? t("1 Mitglied") : t("{n} Mitglieder", { n: detail.members.length })}
+          {detail.group.trainerName ? ` · ${t("Trainer:in: {name}", { name: detail.group.trainerName })}` : ""}
         </p>
       </div>
 
       {/* Gruppe verwalten: Name/Beschreibung bearbeiten + Trainer:in zuweisen.
           Für jede:n Trainer:in des Vereins möglich (Backend prüft die Rechte). */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <CardTitle className="text-base">{t("Gruppe")}</CardTitle>
           {!editing && (
             <Button type="button" size="sm" variant="outline" onClick={startEdit}>
@@ -268,16 +268,16 @@ export default function TrainerGroupPage() {
           {editing ? (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="edit-group-name">Name</Label>
+                <Label htmlFor="edit-group-name">{t("Name")}</Label>
                 <Input id="edit-group-name" value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={200} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="edit-group-desc">Beschreibung (optional)</Label>
+                <Label htmlFor="edit-group-desc">{t("Beschreibung (optional)")}</Label>
                 <Input id="edit-group-desc" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} maxLength={500} />
               </div>
               <div className="flex gap-2">
                 <Button type="button" size="sm" disabled={savingEdit} onClick={saveEdit}>
-                  {savingEdit ? "Speichert…" : t("Speichern")}
+                  {savingEdit ? t("Speichert…") : t("Speichern")}
                 </Button>
                 <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
 {t("Abbrechen")}
@@ -319,7 +319,7 @@ export default function TrainerGroupPage() {
                   </div>
                   {trainer.isLead ? (
                     <Badge variant="secondary" className="shrink-0">
-                      Hauptverantwortlich
+                      {t("Hauptverantwortlich")}
                     </Badge>
                   ) : (
                     <Button
@@ -362,16 +362,16 @@ export default function TrainerGroupPage() {
             {detail.group.clubId ? (
               <div className="flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-end">
                 <div className="flex flex-col gap-1.5 sm:flex-1">
-                  <Label>Hauptverantwortliche:n wechseln</Label>
+                  <Label>{t("Hauptverantwortliche:n wechseln")}</Label>
                   <Select value={selectedTrainerId} onValueChange={(v) => setSelectedTrainerId(v ?? "")}>
                     <SelectTrigger>
                       <SelectValue placeholder={t("Trainer:in wählen…")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {trainers.map((t) => (
-                        <SelectItem key={t.userId} value={t.userId}>
-                          {`${t.firstName} ${t.lastName}`.trim() || t.email}
-                          {t.userId === detail.group.trainerId ? " (aktuell)" : ""}
+                      {trainers.map((option) => (
+                        <SelectItem key={option.userId} value={option.userId}>
+                          {`${option.firstName} ${option.lastName}`.trim() || option.email}
+                          {option.userId === detail.group.trainerId ? ` ${t("(aktuell)")}` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -383,7 +383,7 @@ export default function TrainerGroupPage() {
                   disabled={assigning || !selectedTrainerId || selectedTrainerId === detail.group.trainerId}
                   onClick={assignTrainer}
                 >
-                  {assigning ? "Weise zu…" : "Wechseln"}
+                  {assigning ? t("Weise zu…") : t("Wechseln")}
                 </Button>
               </div>
             ) : (
@@ -407,13 +407,13 @@ export default function TrainerGroupPage() {
         <CardContent>
           <form onSubmit={handleAddMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex flex-col gap-2 sm:flex-1">
-              <Label htmlFor="member-email">E-Mail-Adresse</Label>
+              <Label htmlFor="member-email">{t("E-Mail-Adresse")}</Label>
               <Input
                 id="member-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="mitglied@example.com"
+                placeholder="name@example.com"
                 required
               />
             </div>
@@ -461,16 +461,16 @@ export default function TrainerGroupPage() {
             return (
               <Card key={member.userId}>
                 <CardHeader
-                  className="flex flex-row cursor-pointer items-center justify-between space-y-0"
+                  className="flex flex-row cursor-pointer items-center justify-between gap-2 space-y-0"
                   onClick={() => toggleMember(member.userId)}
                 >
-                  <div>
-                    <CardTitle className="text-base">
+                  <div className="min-w-0">
+                    <CardTitle className="text-base [overflow-wrap:anywhere]">
                       {member.firstName} {member.lastName}
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground">{member.email}</p>
+                    <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{member.email}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     <Button
                       type="button"
                       variant="ghost"
@@ -494,22 +494,22 @@ export default function TrainerGroupPage() {
                     ) : (
                       <ul className="flex flex-col gap-2">
                         {dogs.map((dog) => (
-                          <li key={dog.id} className="flex items-center justify-between rounded-md border px-3 py-2">
-                            <div className="flex items-center gap-2">
+                          <li key={dog.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2">
+                            <div className="flex min-w-0 items-center gap-2">
                               <DogIcon className="size-4 text-primary-text" />
                               <span className="font-medium">{dog.name}</span>
                               {dog.breed && <span className="text-sm text-muted-foreground">{dog.breed}</span>}
                             </div>
                             {dog.isTrainerAssigned ? (
                               <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="secondary">Betreut</Badge>
+                                <Badge variant="secondary">{t("Betreut")}</Badge>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   className="h-7 px-2 text-xs text-muted-foreground"
                                   onClick={() => handleUnassign(member.userId, dog.id, dog.name)}
                                 >
-                                  Betreuung beenden
+                                  {t("Betreuung beenden")}
                                 </Button>
                                 <Link
                                   // ?from=: sonst führt der Zurück-Button auf

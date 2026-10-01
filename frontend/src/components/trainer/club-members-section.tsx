@@ -51,11 +51,11 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
     setNimmtAuf(true);
     try {
       await api.post(`/api/clubs/${selectedClubId}/members`, { email: mail });
-      toast.success(`${mail} ist jetzt Mitglied.`);
+      toast.success(t("{mail} ist jetzt Mitglied.", { mail }));
       setNeueMail("");
       await loadMembers(selectedClubId);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Aufnahme fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Aufnahme fehlgeschlagen."));
     } finally {
       setNimmtAuf(false);
     }
@@ -78,14 +78,14 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
         <CardTitle className="flex items-center gap-2 text-base">
           <Users className="size-5" />
 {t("Mitglieder")}
         </CardTitle>
         {clubs.length > 1 && (
           <Select value={selectedClubId} onValueChange={(value) => setSelectedClubId(value ?? "")}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-48 max-w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -109,14 +109,14 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
           <Input
             type="email"
             className="min-w-0 flex-1"
-            placeholder="E-Mail-Adresse aufnehmen"
+            placeholder={t("E-Mail-Adresse")}
             value={neueMail}
             onChange={(e) => setNeueMail(e.target.value)}
             disabled={!selectedClubId || nimmtAuf}
           />
           <Button type="submit" size="sm" disabled={!neueMail.trim() || nimmtAuf}>
             <UserPlus className="size-4" />
-            Aufnehmen
+            {t("Aufnehmen")}
           </Button>
         </form>
 

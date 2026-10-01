@@ -102,7 +102,7 @@ export default function TrainerPage() {
               <div className="flex min-w-0 items-center gap-3">
                 <ClipboardList className="size-5 shrink-0 text-primary-text" />
                 <div className="min-w-0">
-                  <CardTitle className="text-base">Gruppentraining</CardTitle>
+                  <CardTitle className="text-base">{t("Gruppentraining")}</CardTitle>
                   <p className="text-sm text-muted-foreground">
                     {t("Fertige Einheiten für Welpen & Junghunde übernehmen oder eigene zusammenstellen")}
                   </p>
@@ -119,7 +119,7 @@ export default function TrainerPage() {
               <div className="flex min-w-0 items-center gap-3">
                 <CalendarDays className="size-5 shrink-0 text-primary-text" />
                 <div className="min-w-0">
-                  <CardTitle className="text-base">Terminplanung</CardTitle>
+                  <CardTitle className="text-base">{t("Terminplanung")}</CardTitle>
                   <p className="text-sm text-muted-foreground">
                     {t("Gruppentrainings planen: wann, welche Gruppe, was gemacht wird (mit Mix-Generator & Serien)")}
                   </p>
@@ -157,11 +157,11 @@ export default function TrainerPage() {
           <CardContent>
             <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="flex flex-col gap-2 sm:flex-1">
-                <Label htmlFor="group-name">Name</Label>
+                <Label htmlFor="group-name">{t("Name")}</Label>
                 <Input id="group-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
               </div>
               <div className="flex flex-col gap-2 sm:flex-1">
-                <Label htmlFor="group-description">Beschreibung (optional)</Label>
+                <Label htmlFor="group-description">{t("Beschreibung (optional)")}</Label>
                 <Input
                   id="group-description"
                   value={description}
@@ -214,7 +214,7 @@ export default function TrainerPage() {
                     <div className="min-w-0">
                       <CardTitle className="text-base [overflow-wrap:anywhere]">{group.name}</CardTitle>
                       {group.trainerName && (
-                        <p className="text-xs text-muted-foreground">Trainer:in: {group.trainerName}</p>
+                        <p className="text-xs text-muted-foreground">{t("Trainer:in: {name}", { name: group.trainerName })}</p>
                       )}
                     </div>
                   </div>
@@ -225,7 +225,7 @@ export default function TrainerPage() {
                         <span className="truncate">{myClubs.find((c) => c.id === group.clubId)?.name ?? t("Verein")}</span>
                       </Badge>
                     )}
-                    <Badge variant="secondary">{group.memberCount} Mitglieder</Badge>
+                    <Badge variant="secondary">{group.memberCount === 1 ? t("1 Mitglied") : t("{n} Mitglieder", { n: group.memberCount })}</Badge>
                   </div>
                 </CardHeader>
                 {group.description && (
@@ -244,7 +244,7 @@ export default function TrainerPage() {
             <CatalogSection
               key={club.id}
               scope={{ kind: "club", clubId: club.id, clubName: club.name }}
-              title={`Vereinseigener Katalog · ${club.name}`}
+              title={t("Vereinseigener Katalog · {name}", { name: club.name })}
               description={t("Eigene Sportarten und Übungen dieses Vereins - nur für Mitglieder und Trainer sichtbar.")}
             />
           ))}

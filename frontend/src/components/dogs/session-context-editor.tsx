@@ -10,7 +10,7 @@ import { formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
 import { LocationTimeFields, type LocationValue } from "@/components/dogs/location-time-fields";
 import { ConditionPicker, conditionLabel } from "@/components/dogs/condition-picker";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
 /**
  * Uhrzeit + Ort eines bereits erfassten Trainings nachträglich ändern.
  *
@@ -27,6 +27,7 @@ export function SessionContextEditor({
   onSaved: () => Promise<void> | void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [open, setOpen] = useState(false);
   // "HH:mm" fürs Zeit-Input; Backend liefert "HH:mm:ss".
   const [time, setTime] = useState(session.startTime?.slice(0, 5) ?? "");
@@ -38,10 +39,11 @@ export function SessionContextEditor({
   const [condition, setCondition] = useState(session.condition);
   const [saving, setSaving] = useState(false);
 
+  const wetterwort = weatherLabel(session.weatherCode);
   const weather =
     session.temperatureC != null
-      ? `${weatherIcon(session.weatherCode)} ${formatTemperature(session.temperatureC)}${
-          weatherLabel(session.weatherCode) ? ` · ${weatherLabel(session.weatherCode)}` : ""
+      ? `${weatherIcon(session.weatherCode)} ${formatTemperature(session.temperatureC, sprache)}${
+          wetterwort ? ` · ${t(wetterwort)}` : ""
         }`
       : null;
 
@@ -116,7 +118,7 @@ export function SessionContextEditor({
           <MapPin className="size-3" />
           {/* Ausdrücklich gegen null geprüft: "motiviert" ist die 0, und die
               wäre in einer Wahrheitsprüfung falsch. */}
-          {weather || session.condition != null ? t("Ändern") : "Ort, Zeit & Verfassung"}
+          {weather || session.condition != null ? t("Ändern") : t("Ort, Zeit & Verfassung")}
         </Button>
       </div>
     );
@@ -137,13 +139,13 @@ export function SessionContextEditor({
       </p>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Verfassung</span>
+        <span className="text-sm font-medium">{t("Verfassung")}</span>
         <ConditionPicker value={condition} onChange={setCondition} disabled={saving} />
       </div>
 
       <div className="flex gap-2">
         <Button type="button" size="sm" disabled={saving} onClick={save}>
-          {saving ? "Speichert…" : t("Speichern")}
+          {saving ? t("Speichert…") : t("Speichern")}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
 {t("Abbrechen")}

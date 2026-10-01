@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { Exercise, Goal, NextStage, PlanItemReason, TrainingPlanItem } from "@/lib/types";
-import { computeCurrentWeek, groupByWeek, sichtbareWochen } from "@/lib/trainingsplan";
+import { computeCurrentWeek, groupByWeek, istPausenwoche, sichtbareWochen } from "@/lib/trainingsplan";
 import { PlanItemQuickLog } from "@/components/dogs/plan-item-quick-log";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,8 @@ import { ExerciseNotes } from "@/components/dogs/exercise-notes";
 import { ExerciseWeightingSheet } from "@/components/dogs/exercise-weighting-sheet";
 import { ZielAbschliessen } from "@/components/dogs/ziel-abschliessen";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 // Innerhalb einer Woche nach Trainingstag gruppieren (aufsteigend). Wird nur
 // als sichtbare "Tag N"-Struktur genutzt, wenn eine Woche tatsächlich mehr als
@@ -33,7 +34,7 @@ function groupByDay(items: TrainingPlanItem[]): [number, TrainingPlanItem[]][] {
   return [...byDay.entries()].sort(([a], [b]) => a - b);
 }
 
-const statusLabel: Record<Goal["status"], string> = { 0: "Aktiv", 1: "Erreicht", 2: "Abgebrochen" };
+const statusLabel: Record<Goal["status"], string> = { 0: uebersetzbar("Aktiv"), 1: uebersetzbar("Erreicht"), 2: uebersetzbar("Abgebrochen") };
 const statusVariant: Record<Goal["status"], "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
 
 // Warum der adaptive Generator eine Übung geplant hat (siehe PlanItemReason).
@@ -60,6 +61,7 @@ export function GoalPlanCard({
   onFolgeziel?: (stufe: NextStage) => void;
 }) {
   const t = useT();
+  const ort = ortsformat(useSprache());
   // Übungen der Ziel-Sportart, lazy für die Add-/Edit-Auswahl geladen.
   const [exercises, setExercises] = useState<Exercise[] | null>(null);
 
@@ -131,7 +133,7 @@ export function GoalPlanCard({
 
   async function submitAdd() {
     if (addUseFreeText ? !addFreeText.trim() : !addExerciseId) {
-      toast.error(addUseFreeText ? "Freitext eingeben." : t("Übung auswählen."));
+      toast.error(addUseFreeText ? t("Freitext eingeben.") : t("Übung auswählen."));
       return;
     }
     setIsAdding(true);
@@ -172,7 +174,7 @@ export function GoalPlanCard({
     setSwitchingAuto(true);
     try {
       await api.put(`/api/goals/${goal.id}/plan-auto-regeneration`, { enabled: true });
-      toast.success("Automatische Anpassung wieder eingeschaltet.");
+      toast.success(t("Automatische Anpassung wieder eingeschaltet."));
       await onChanged();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Konnte nicht umgeschaltet werden."));
@@ -185,7 +187,7 @@ export function GoalPlanCard({
     setRegeneratingWeek(weekNumber);
     try {
       await api.put(`/api/goals/${goal.id}/regenerate-week`, { weekNumber });
-      toast.success(`Woche ${weekNumber} neu generiert.`);
+      toast.success(t("Woche {nummer} neu generiert.", { nummer: weekNumber }));
       await onChanged();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Woche konnte nicht neu generiert werden."));
@@ -209,7 +211,7 @@ export function GoalPlanCard({
     setSavingWeekDays(true);
     try {
       await api.put(`/api/goals/${goal.id}/weeks/${weekNumber}/config`, { trainingDaysPerWeek: weekDaysDraft });
-      toast.success(`Trainingstage für Woche ${weekNumber} gespeichert.`);
+      toast.success(t("Trainingstage für Woche {nummer} gespeichert.", { nummer: weekNumber }));
       setEditingWeekDays(null);
       await onChanged();
     } catch (err) {
@@ -258,7 +260,7 @@ export function GoalPlanCard({
 
   async function submitEdit(itemId: string) {
     if (editUseFreeText ? !editFreeText.trim() : !editExerciseId) {
-      toast.error(editUseFreeText ? "Freitext eingeben." : t("Übung auswählen."));
+      toast.error(editUseFreeText ? t("Freitext eingeben.") : t("Übung auswählen."));
       return;
     }
     setIsEditing(true);
@@ -333,12 +335,12 @@ export function GoalPlanCard({
             </div>
           )}
           <div className="flex flex-col gap-2">
-            <Label>{addUseFreeText ? "Freitext" : t("Übung")}</Label>
+            <Label>{addUseFreeText ? t("Freitext") : t("Übung")}</Label>
             {addUseFreeText ? (
               <Input
                 value={addFreeText}
                 onChange={(e) => setAddFreeText(e.target.value)}
-                placeholder="z.B. Kopfarbeit ausprobieren"
+                placeholder={t("z.B. Kopfarbeit ausprobieren")}
                 maxLength={150}
                 autoFocus
               />
@@ -366,7 +368,7 @@ export function GoalPlanCard({
           </div>
           {daysForWeek(addWeek) > 1 && (
             <div className="flex flex-col gap-2">
-              <Label>Trainingstag</Label>
+              <Label>{t("Trainingstag")}</Label>
               <Input
                 type="number"
                 min={1}
@@ -390,6 +392,7 @@ export function GoalPlanCard({
   }
 
   const weeks = goal.trainingPlan ? groupByWeek(goal.trainingPlan.items) : [];
+  const tageText = (anzahl: number) => (anzahl === 1 ? t("1 Trainingstag") : t("{n} Trainingstage", { n: anzahl }));
   // Aktuelle Trainingswoche kalendarisch bestimmen: Woche 1 beginnt mit der
   // Plan-Erstellung (generatedAt), danach zählt jede angebrochene 7-Tage-Woche
   // hoch. Nur die aktuelle Woche ist standardmäßig aufgeklappt (nicht immer
@@ -398,6 +401,9 @@ export function GoalPlanCard({
   const effectiveOpenWeeks =
     openWeeks.size === 0 && currentWeek != null ? new Set([currentWeek]) : openWeeks;
   const gezeigteWochen = sichtbareWochen(weeks, currentWeek, alleWochenZeigen);
+  // Geplante Übungen der laufenden Woche; null in einer Pausenwoche oder ohne Plan.
+  const wocheItems = weeks.find(([nummer]) => nummer === currentWeek)?.[1] ?? [];
+  const geplanteUebungen = wocheItems.length > 0 && !istPausenwoche(wocheItems) ? wocheItems.length : null;
   // Ob das Verkürzen überhaupt etwas verbirgt. Bei einem Zwei-Wochen-Plan oder
   // einem abgeschlossenen Ziel tut es das nicht - dann wäre der Knopf ein
   // Versprechen ohne Wirkung.
@@ -420,10 +426,10 @@ export function GoalPlanCard({
             {goal.sportName}
             {goal.regulationName && <span className="font-normal text-muted-foreground"> · {goal.regulationName}</span>}
           </CardTitle>
-          <p className="text-sm text-muted-foreground">Ziel: {new Date(goal.targetDate).toLocaleDateString("de-DE")}</p>
+          <p className="text-sm text-muted-foreground">{t("Ziel: {datum}", { datum: new Date(goal.targetDate).toLocaleDateString(ort) })}</p>
         </div>
         <Badge className="shrink-0" variant={statusVariant[goal.status]}>
-          {statusLabel[goal.status]}
+          {t(statusLabel[goal.status])}
         </Badge>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -437,12 +443,12 @@ export function GoalPlanCard({
                 <Input type="number" min={1} max={12} className="h-8 w-20" value={cfgWeekly} onChange={(e) => setCfgWeekly(Number(e.target.value))} />
               </div>
               <div className="flex flex-col gap-1">
-                <Label className="text-xs">Trainingstage</Label>
+                <Label className="text-xs">{t("Trainingstage")}</Label>
                 <Input type="number" min={1} max={7} className="h-8 w-20" value={cfgDays} onChange={(e) => setCfgDays(Number(e.target.value))} />
               </div>
               <div className="flex gap-2">
                 <Button type="button" size="sm" disabled={savingConfig} onClick={saveConfig}>
-                  {savingConfig ? "Speichert…" : t("Speichern")}
+                  {savingConfig ? t("Speichert…") : t("Speichern")}
                 </Button>
                 <Button type="button" size="sm" variant="ghost" onClick={() => setEditingConfig(false)}>
 {t("Abbrechen")}
@@ -451,12 +457,20 @@ export function GoalPlanCard({
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              {/* Der Generator plant nicht immer genau so viele Übungen, wie als
+                  Wunsch eingestellt sind (kleiner Katalog, Mindestpensum von
+                  vier) - deshalb "Zielwert" und, wo es abweicht, die geplante
+                  Zahl der laufenden Woche dazu. */}
               <span>
-                Plan: {goal.weeklyExerciseCount} Übungen/Woche · {goal.trainingDaysPerWeek} Trainingstage
+                {goal.weeklyExerciseCount === 1
+                  ? t("Zielwert: {anzahl} Übung/Woche", { anzahl: goal.weeklyExerciseCount })
+                  : t("Zielwert: {anzahl} Übungen/Woche", { anzahl: goal.weeklyExerciseCount })} · {tageText(goal.trainingDaysPerWeek)}
+                {geplanteUebungen != null && geplanteUebungen !== goal.weeklyExerciseCount &&
+                  ` · ${t("diese Woche geplant: {anzahl}", { anzahl: geplanteUebungen })}`}
               </span>
               <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={startEditConfig}>
                 <Pencil className="size-3" />
-                Anpassen
+                {t("Anpassen")}
               </Button>
               <ExerciseWeightingSheet goalId={goal.id} />
             </div>
@@ -480,7 +494,7 @@ export function GoalPlanCard({
               disabled={switchingAuto}
               onClick={enableAutoRegeneration}
             >
-              {switchingAuto ? "Schaltet um…" : "Automatik wieder einschalten"}
+              {switchingAuto ? t("Schaltet um…") : t("Automatik wieder einschalten")}
             </Button>
           </div>
         )}
@@ -489,7 +503,7 @@ export function GoalPlanCard({
           <div className="flex flex-col gap-3">
             {gezeigteWochen.map(([weekNumber, items]) => {
               const isOpen = effectiveOpenWeeks.has(weekNumber);
-              const isRest = items[0].isRestWeek;
+              const isRest = istPausenwoche(items);
               const doneCount = items.filter((i) => i.isComplete).length;
               return (
                 <div key={weekNumber} className="rounded-md border">
@@ -501,10 +515,10 @@ export function GoalPlanCard({
                   >
                     <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                       {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-                      Woche {weekNumber}
+                      {t("Woche {nummer}", { nummer: weekNumber })}
                     </span>
                     {isRest ? (
-                      <span className="text-xs text-muted-foreground">Pause</span>
+                      <span className="text-xs text-muted-foreground">{t("Pause")}</span>
                     ) : (
                       <Badge variant="secondary">
                         {doneCount}/{items.length}
@@ -519,7 +533,7 @@ export function GoalPlanCard({
                               Plan-Default nur für diese Woche). */}
                           {editingWeekDays === weekNumber ? (
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <span>Trainingstage:</span>
+                              <span>{t("Trainingstage:")}</span>
                               <Input
                                 type="number"
                                 min={1}
@@ -542,7 +556,7 @@ export function GoalPlanCard({
                               onClick={() => startEditWeekDays(weekNumber)}
                               title={t("Trainingstage dieser Woche anpassen")}
                             >
-                              {daysForWeek(weekNumber)} Trainingstag{daysForWeek(weekNumber) > 1 ? "e" : ""}
+                              {tageText(daysForWeek(weekNumber))}
                               <Pencil className="size-3" />
                             </button>
                           )}
@@ -558,7 +572,7 @@ export function GoalPlanCard({
                                 title={t("Diese Woche adaptiv neu generieren (erhält manuelle & bereits trainierte Übungen)")}
                               >
                                 <RefreshCw className={cn("size-3", regeneratingWeek === weekNumber && "animate-spin")} />
-                                {regeneratingWeek === weekNumber ? "Generiere…" : "Neu generieren"}
+                                {regeneratingWeek === weekNumber ? t("Generiere…") : t("Neu generieren")}
                               </Button>
                             )}
                             <Button
@@ -575,13 +589,13 @@ export function GoalPlanCard({
                         </div>
                       )}
                       {isRest ? (
-                        <span className="text-sm text-muted-foreground">Pause</span>
+                        <span className="text-sm text-muted-foreground">{t("Pause")}</span>
                       ) : (
                         groupByDay(items).map(([dayNumber, dayItems], _dayIdx, dayGroups) => (
                           <div key={dayNumber} className="flex flex-col gap-1">
                             {dayGroups.length > 1 && (
                               <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                                Tag {dayNumber}
+                                {t("Tag {nummer}", { nummer: dayNumber })}
                               </span>
                             )}
                             {dayItems.map((item) => (
@@ -599,12 +613,12 @@ export function GoalPlanCard({
                           )}
                           <span className="flex min-w-0 flex-col">
                             <span className={cn("break-words", item.isComplete && "text-muted-foreground line-through")}>
-                              {item.exerciseName ?? item.freeTextLabel}
+                              {item.exerciseName ?? item.freeTextLabel ?? t("(Übung nicht mehr verfügbar)")}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {item.freeTextLabel && !item.exerciseName && (
                                 <span className="mr-1 rounded bg-muted px-1 py-0.5 text-[10px] uppercase tracking-wide">
-                                  Freitext
+                                  {t("Freitext")}
                                 </span>
                               )}
                               {item.reason !== null && (
@@ -612,7 +626,7 @@ export function GoalPlanCard({
                                   {t(reasonLabel[item.reason])}
                                 </span>
                               )}
-                              {item.completedCount}/{item.repetitionsTarget}x erledigt
+                              {t("{erledigt}/{ziel}x erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })}
                             </span>
                           </span>
                         </button>
@@ -649,12 +663,12 @@ export function GoalPlanCard({
                             <span>{t("Freitext-Übung")}</span>
                           </label>
                           <div className="flex flex-col gap-1">
-                            <Label className="text-xs">{editUseFreeText ? "Freitext" : t("Übung")}</Label>
+                            <Label className="text-xs">{editUseFreeText ? t("Freitext") : t("Übung")}</Label>
                             {editUseFreeText ? (
                               <Input
                                 value={editFreeText}
                                 onChange={(e) => setEditFreeText(e.target.value)}
-                                placeholder="z.B. Kopfarbeit ausprobieren"
+                                placeholder={t("z.B. Kopfarbeit ausprobieren")}
                                 maxLength={150}
                               />
                             ) : (
@@ -683,7 +697,7 @@ export function GoalPlanCard({
                             </div>
                             {daysForWeek(editWeek) > 1 && (
                               <div className="flex flex-col gap-1">
-                                <Label className="text-xs">Trainingstag</Label>
+                                <Label className="text-xs">{t("Trainingstag")}</Label>
                                 <Input type="number" min={1} max={daysForWeek(editWeek)} value={editDay} onChange={(e) => setEditDay(Number(e.target.value))} />
                               </div>
                             )}
@@ -711,7 +725,7 @@ export function GoalPlanCard({
                             // (Mobile-App-first, kein horizontaler Scroll).
                             <li key={log.trainingExerciseId} className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
                               <span className="whitespace-nowrap">
-                                {new Date(log.date).toLocaleDateString("de-DE")} · {"★".repeat(log.rating)}
+                                {new Date(log.date).toLocaleDateString(ort)} · {"★".repeat(log.rating)}
                                 {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}
                               </span>{" "}
                               <ExerciseNotes exerciseId={log.trainingExerciseId} notes={log.notes} onSaved={onChanged} compact />

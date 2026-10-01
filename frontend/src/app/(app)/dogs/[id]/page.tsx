@@ -288,15 +288,15 @@ export default function DogDetailPage() {
     // Doppelte Bestätigung: Hunde-Löschen entfernt Trainings, Fährten, Ziele
     // und Trainerzuweisungen mit - deutlich schwerwiegender als das Löschen
     // einer einzelnen Session, deshalb zusätzlich Name-Bestätigung.
-    if (!confirm(`Hund „${dog.name}" wirklich löschen? Alle Trainings, Fährten, Ziele und Trainerzuweisungen werden entfernt.`)) return;
-    const confirmName = prompt(`Zum Bestätigen bitte den Namen des Hundes eingeben: „${dog.name}"`);
+    if (!confirm(t("Hund „{name}“ wirklich löschen? Alle Trainings, Fährten, Ziele und Trainerzuweisungen werden entfernt.", { name: dog.name }))) return;
+    const confirmName = prompt(t("Zum Bestätigen bitte den Namen des Hundes eingeben: „{name}“", { name: dog.name }));
     if (confirmName?.trim() !== dog.name) {
       if (confirmName !== null) toast.error(t("Name stimmt nicht - Löschen abgebrochen."));
       return;
     }
     try {
       await api.delete(`/api/dogs/${id}`);
-      toast.success(`Hund „${dog.name}" gelöscht.`);
+      toast.success(t("Hund „{name}“ gelöscht.", { name: dog.name }));
       router.push("/dogs");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
@@ -307,13 +307,13 @@ export default function DogDetailPage() {
     if (!dog) return;
     // Archivieren blendet den Hund nur aus (reversibel, Daten bleiben) - daher
     // nur beim Archivieren eine leichte Rückfrage, das Aufheben ist harmlos.
-    if (archived && !confirm(`Hund „${dog.name}" archivieren? Er wird aus deiner aktiven Liste ausgeblendet, alle Daten bleiben erhalten.`)) return;
+    if (archived && !confirm(t("Hund „{name}“ archivieren? Er wird aus deiner aktiven Liste ausgeblendet, alle Daten bleiben erhalten.", { name: dog.name }))) return;
     try {
       await api.put(`/api/dogs/${id}/archive`, { archived });
-      toast.success(archived ? `„${dog.name}" archiviert.` : `„${dog.name}" wieder aktiviert.`);
+      toast.success(archived ? t("„{name}“ archiviert.", { name: dog.name }) : t("„{name}“ wieder aktiviert.", { name: dog.name }));
       await loadAll();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Aktion fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Aktion fehlgeschlagen."));
     }
   }
 
@@ -348,10 +348,10 @@ export default function DogDetailPage() {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold tracking-tight">{dog.name}</h1>
-              {dog.archivedAt && <Badge variant="secondary">Archiviert</Badge>}
+              {dog.archivedAt && <Badge variant="secondary">{t("Archiviert")}</Badge>}
             </div>
             <p className="text-muted-foreground">
-              {[dog.breed ?? "Unbekannte Rasse", formatDogAge(dog.birthday)].filter(Boolean).join(" · ")}
+              {[dog.breed ?? t("Unbekannte Rasse"), formatDogAge(dog.birthday, new Date(), t)].filter(Boolean).join(" · ")}
             </p>
           </div>
         </div>
@@ -364,7 +364,7 @@ export default function DogDetailPage() {
           )}
           <Link href={`/dogs/${id}/print`} className={buttonVariants({ variant: "outline", size: "sm" })}>
             <Printer className="size-4" />
-            Drucken / Exportieren
+            {t("Drucken / Exportieren")}
           </Link>
         </div>
       </div>
@@ -422,7 +422,7 @@ export default function DogDetailPage() {
         id="training-erfassen"
         className="scroll-mt-4"
         icon={NotebookPen}
-        title="Trainingstagebuch"
+        title={t("Trainingstagebuch")}
         action={
           <Button size="sm" onClick={() => setShowForm((v) => !v)}>
             <Plus className="size-4" />

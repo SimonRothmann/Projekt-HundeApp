@@ -167,7 +167,9 @@ public static class DemoDataSeeder
         };
         db.Goals.Add(goal);
 
-        var bhExercises = await db.Exercises.IgnoreQueryFilters().Where(e => e.SportId == bh.Id && e.ClubId == null).ToListAsync();
+        // Ohne weich gelöschte Übungen: Ein Plan aus ihnen zeigte im Frontend
+        // Zeilen ohne Namen (die Navigation zur Übung blendet der Filter aus).
+        var bhExercises = await db.Exercises.IgnoreQueryFilters().Where(e => e.SportId == bh.Id && e.ClubId == null && e.DeletedAt == null).ToListAsync();
         var bhCandidates = bhExercises.Select(e => new PlanExerciseCandidate(e.Id, e.Name, e.Difficulty, true)).ToList();
         var planItems = TrainingPlanGenerator.Generate(DateOnly.FromDateTime(DateTime.UtcNow), goal.TargetDate, bhCandidates);
         var plan = new TrainingPlan { GoalId = goal.Id };

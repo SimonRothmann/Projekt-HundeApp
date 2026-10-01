@@ -28,7 +28,8 @@ import { ExerciseNotes } from "@/components/dogs/exercise-notes";
 import { ExerciseRating } from "@/components/dogs/exercise-rating";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
 import { istNeuesFeedback, leseGesehen, markiereGesehen } from "@/lib/feedback-gesehen";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { cn } from "@/lib/utils";
@@ -38,8 +39,8 @@ function monthKey(iso: string): string {
   const d = new Date(iso);
   return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}`;
 }
-function monthLabel(iso: string): string {
-  return new Date(iso).toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+function monthLabel(iso: string, ort: string): string {
+  return new Date(iso).toLocaleDateString(ort, { month: "long", year: "numeric" });
 }
 
 /**
@@ -78,6 +79,14 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
   const joined = [
     ...new Set(sessions.map((s) => s.notes?.trim()).filter((n): n is string => !!n)),
   ].join("\n");
+  // Nur die ANZEIGE übersetzen: die Notiz "Fährtenaufnahme" hat der alte App-
+  // Stand selbst geschrieben, sie ist kein Nutzertext. Gespeichert und im
+  // Editor gezeigt wird weiter der Rohtext, damit ein Speichern nichts
+  // umschreibt.
+  const anzeige = joined
+    .split("\n")
+    .map((zeile) => (zeile === "Fährtenaufnahme" ? t("Fährtenaufnahme") : zeile))
+    .join("\n");
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(joined);
   const [saving, setSaving] = useState(false);
@@ -161,7 +170,7 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
         }}
       >
         <MessageSquarePlus className="size-3.5" />
-        Tages-Kommentar
+        {t("Tages-Kommentar")}
       </Button>
     );
   }
@@ -171,7 +180,7 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
   // ohne erkennbar zu einem der beiden zu gehören oder eben nicht.
   return (
     <div className="flex items-start gap-1 rounded-lg border border-l-2 border-surface-border border-l-primary/70 bg-surface px-2.5 py-2">
-      <p className="min-w-0 flex-1 text-sm whitespace-pre-line [overflow-wrap:anywhere]">{joined}</p>
+      <p className="min-w-0 flex-1 text-sm whitespace-pre-line [overflow-wrap:anywhere]">{anzeige}</p>
       <Button
         size="icon"
         variant="ghost"
@@ -201,6 +210,7 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
  */
 function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChanged: () => Promise<void> }) {
   const t = useT();
+  const ort = ortsformat(useSprache());
   const date = sessions[0].date;
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(date);
@@ -222,7 +232,7 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
       // Neues Datum nennen: die Hundeseite lädt nur die letzten drei Monate,
       // ein weiter zurück verschobenes Training verschwindet sonst wortlos aus
       // der Liste und sieht wie gelöscht aus.
-      toast.success(`Training auf den ${new Date(value).toLocaleDateString("de-DE")} verschoben.`);
+      toast.success(t("Training auf den {datum} verschoben.", { datum: new Date(value).toLocaleDateString(ort) }));
       setEditing(false);
       await onChanged();
     } catch (err) {
@@ -236,7 +246,7 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
     return (
       <CardTitle className="flex min-w-0 items-center gap-0.5 text-base font-semibold tracking-tight">
         <CalendarDays className="mr-1 size-4 shrink-0 text-primary-text" />
-        <span className="truncate">{new Date(date).toLocaleDateString("de-DE")}</span>
+        <span className="truncate">{new Date(date).toLocaleDateString(ort)}</span>
         <Button
           size="icon"
           variant="ghost"
@@ -270,7 +280,7 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
       />
       <Button size="sm" onClick={save} disabled={saving}>
         <Check className="size-3.5" />
-        {saving ? "Speichert…" : t("Speichern")}
+        {saving ? t("Speichert…") : t("Speichern")}
       </Button>
       <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
 {t("Abbrechen")}
@@ -312,6 +322,7 @@ export function SessionHistory({
   fokusEintrag?: string | null;
 }) {
   const t = useT();
+  const ort = ortsformat(useSprache());
   // null = Voreinstellung (neuester Monat, plus der des Fokus-Eintrags) - erst
   // der erste Tipp auf einen Monat legt die Auswahl fest. Ein leeres Set als
   // "Voreinstellung" ließ den einzigen offenen Monat nie wieder zuklappen.
@@ -432,7 +443,7 @@ export function SessionHistory({
                 ) : (
                   <ChevronRight className="size-4 shrink-0 text-primary-text" />
                 )}
-                <span className="truncate">{monthLabel(firstDate)}</span>
+                <span className="truncate">{monthLabel(firstDate, ort)}</span>
               </span>
               {/* Die nackte Zahl ließ offen, was sie zählt. */}
               <Badge variant="secondary" className="shrink-0">
@@ -466,7 +477,7 @@ export function SessionHistory({
                           <div className="flex shrink-0 items-center gap-1">
                             <Badge variant="outline" className="gap-1 text-muted-foreground">
                               <Clock />
-                              {totalMinutes} Min.
+                              {t("{n} Min.", { n: totalMinutes })}
                             </Badge>
                             <Button
                               size="icon"

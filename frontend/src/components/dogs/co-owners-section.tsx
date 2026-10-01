@@ -110,8 +110,8 @@ export function CoOwnersSection({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-        <UserPlus className="size-5 text-primary-text" />
-        <div className="flex flex-col gap-1">
+        <UserPlus className="size-5 shrink-0 text-primary-text" />
+        <div className="flex min-w-0 flex-col gap-1">
           <CardTitle className="text-base">{t("Mitbesitzer")}</CardTitle>
           <CardDescription>
             {t("Eingeladene werden Mitbesitzer:innen, sobald sie annehmen - dann mit denselben Rechten wie du.")}

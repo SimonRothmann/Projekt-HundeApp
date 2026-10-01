@@ -156,7 +156,7 @@ export function CatalogSection({
   }
 
   async function handleDeleteExercise(exercise: Exercise) {
-    if (!confirm(`Übung „${exercise.name}“ wirklich löschen?`)) return;
+    if (!confirm(t("Übung „{name}“ wirklich löschen?", { name: exercise.name }))) return;
     try {
       await api.delete(`/api/exercises/${exercise.id}`);
       toast.success(t("Übung gelöscht."));
@@ -177,15 +177,18 @@ export function CatalogSection({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
-        <div className="flex items-start gap-3">
-          <BookOpen className="mt-0.5 size-5 text-primary-text" />
-          <div>
-            <CardTitle className="text-base">{title}</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      {/* Die Knöpfe rutschen auf schmalen Geräten unter den Text, statt aus
+          der Karte zu ragen: Der Textblock behält mindestens 14 rem
+          (basis-56), darunter bricht die Kopfzeile um. */}
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+        <div className="flex min-w-0 flex-1 basis-56 items-start gap-3">
+          <BookOpen className="mt-0.5 size-5 shrink-0 text-primary-text" />
+          <div className="min-w-0">
+            <CardTitle className="text-base [overflow-wrap:anywhere]">{title}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{description}</p>
           </div>
         </div>
-        <div className="flex flex-shrink-0 flex-wrap gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setSportEditorOpen(true)}>
             <Plus className="size-4" />
 {t("Sportart")}
@@ -253,9 +256,9 @@ export function CatalogSection({
                       className="flex w-full items-center justify-between px-3 py-2 text-left"
                       onClick={() => toggleSport(sport.id)}
                     >
-                      <span className="flex items-center gap-3">
-                        <Trophy className="size-4 text-primary-text" />
-                        <span className="font-medium">{sport.name}</span>
+                      <span className="flex min-w-0 items-center gap-3">
+                        <Trophy className="size-4 shrink-0 text-primary-text" />
+                        <span className="font-medium [overflow-wrap:anywhere]">{sport.name}</span>
                         <Badge variant="secondary">{sport.code}</Badge>
                       </span>
                       <span className="flex items-center gap-2">
@@ -318,8 +321,8 @@ export function CatalogSection({
 function ExerciseListRow({ exercise, onDelete }: { exercise: Exercise; onDelete: () => void }) {
   const t = useT();
   return (
-    <li className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-      <div className="flex flex-col gap-0.5">
+    <li className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+      <div className="flex min-w-0 flex-col gap-0.5 [overflow-wrap:anywhere]">
         <span className="font-medium">{exercise.name}</span>
         {exercise.category && <span className="text-xs text-muted-foreground">{exercise.category}</span>}
       </div>

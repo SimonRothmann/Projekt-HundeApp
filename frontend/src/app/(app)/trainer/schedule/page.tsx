@@ -23,18 +23,17 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SessionCounts } from "@/components/schedule/session-counts";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
+import { ortsformat } from "@/lib/ortsformat";
 const CATS: GroupTrainingCategory[] = [0, 1, 2];
-const categoryLabel: Record<GroupTrainingCategory, string> = { 0: "Welpen", 1: "Junghunde", 2: "Basis" };
+const categoryLabel: Record<GroupTrainingCategory, string> = { 0: uebersetzbar("Welpen"), 1: uebersetzbar("Junghunde"), 2: uebersetzbar("Basis") };
 const categoryVariant: Record<GroupTrainingCategory, "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
-const WEEKDAYS = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
 
 const textareaClass =
   "w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
-const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
-const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
 
 type ContentDraft = { key: string; exerciseId: string | null; freeText: string | null };
 let draftSeq = 0;
@@ -80,6 +79,11 @@ const emptyForm = (): Form => ({
 
 export default function SchedulePage() {
   const t = useT();
+  const ort = ortsformat(useSprache());
+  const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(ort, { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+  const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(ort, { hour: "2-digit", minute: "2-digit" });
+  // 4.10.2026 ist ein Sonntag - so folgt der Wochentag (0 = Sonntag) der Sprache.
+  const wochentagName = (tag: number) => new Date(2026, 9, 4 + tag).toLocaleDateString(ort, { weekday: "long" });
   const { user } = useAuth();
   const [clubs, setClubs] = useState<Club[] | null>(null);
   const [clubId, setClubId] = useState("");
@@ -173,7 +177,7 @@ export default function SchedulePage() {
       location: s.location ?? "",
       notes: s.notes ?? "",
       content: s.items.map((i) => (i.exerciseId ? exDraft(i.exerciseId) : textDraft(i.freeText ?? ""))),
-      trainerIds: s.trainers.map((t) => t.userId),
+      trainerIds: s.trainers.map((trainer) => trainer.userId),
       autoContent: false,
     });
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
@@ -259,7 +263,7 @@ export default function SchedulePage() {
           autoGenerateContent: form.autoContent,
         };
         const created = await api.post<GroupTrainingSession[]>(`/api/group-training/schedule/clubs/${clubId}/series`, body);
-        toast.success(`${created.length} Termine angelegt.`);
+        toast.success(created.length === 1 ? t("1 Termin angelegt.") : t("{n} Termine angelegt.", { n: created.length }));
       }
       setForm(null);
       await loadSchedule();
@@ -271,17 +275,17 @@ export default function SchedulePage() {
   }
 
   async function cancelSession(s: GroupTrainingSession) {
-    if (!window.confirm(`Termin am ${fmtDate(s.startsAt)} absagen? Mitglieder sehen die Absage.`)) return;
+    if (!window.confirm(t("Termin am {datum} absagen? Mitglieder sehen die Absage.", { datum: fmtDate(s.startsAt) }))) return;
     try {
       await api.post(`/api/group-training/schedule/sessions/${s.id}/cancel`);
       toast.success(t("Termin abgesagt."));
       await loadSchedule();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Absagen fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Absagen fehlgeschlagen."));
     }
   }
   async function deleteSession(s: GroupTrainingSession) {
-    if (!window.confirm(`Termin am ${fmtDate(s.startsAt)} endgültig löschen?`)) return;
+    if (!window.confirm(t("Termin am {datum} endgültig löschen?", { datum: fmtDate(s.startsAt) }))) return;
     try {
       await api.delete(`/api/group-training/schedule/sessions/${s.id}`);
       toast.success(t("Termin gelöscht."));
@@ -291,7 +295,7 @@ export default function SchedulePage() {
     }
   }
 
-  const contentLabel = (c: ContentDraft) => (c.exerciseId ? exercisesById.get(c.exerciseId)?.title ?? "(Baustein)" : c.freeText ?? "");
+  const contentLabel = (c: ContentDraft) => (c.exerciseId ? exercisesById.get(c.exerciseId)?.title ?? t("(Baustein)") : c.freeText ?? "");
 
   return (
     <div className="flex flex-col gap-6">
@@ -327,7 +331,7 @@ export default function SchedulePage() {
               <CardContent className="flex flex-col gap-3 p-3 pt-0">
                 {!form.editingId && (
                   <div className="flex gap-2">
-                    <Button type="button" size="sm" variant={form.mode === "single" ? "default" : "outline"} onClick={() => patch({ mode: "single" })}>Einzeltermin</Button>
+                    <Button type="button" size="sm" variant={form.mode === "single" ? "default" : "outline"} onClick={() => patch({ mode: "single" })}>{t("Einzeltermin")}</Button>
                     <Button type="button" size="sm" variant={form.mode === "series" ? "default" : "outline"} onClick={() => patch({ mode: "series" })}>{t("Wöchentliche Serie")}</Button>
                   </div>
                 )}
@@ -341,10 +345,10 @@ export default function SchedulePage() {
                     </Select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Stufe</Label>
+                    <Label className="text-xs">{t("Stufe")}</Label>
                     <Select value={String(form.category)} onValueChange={(v) => patch({ category: Number(v ?? "0") as GroupTrainingCategory })}>
                       <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-                      <SelectContent>{CATS.map((c) => <SelectItem key={c} value={String(c)}>{categoryLabel[c]}</SelectItem>)}</SelectContent>
+                      <SelectContent>{CATS.map((c) => <SelectItem key={c} value={String(c)}>{t(categoryLabel[c])}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 </div>
@@ -367,27 +371,27 @@ export default function SchedulePage() {
                   <div className="flex flex-wrap gap-3">
                     <div className="flex flex-col gap-1"><Label className="text-xs">{t("Datum")}</Label><Input type="date" className="w-40" value={form.date} onChange={(e) => patch({ date: e.target.value })} /></div>
                     <div className="flex flex-col gap-1"><Label className="text-xs">{t("Uhrzeit")}</Label><Input type="time" className="w-28" value={form.time} onChange={(e) => patch({ time: e.target.value })} /></div>
-                    <div className="flex flex-col gap-1"><Label className="text-xs">Dauer (Min)</Label><Input type="number" min={15} max={240} className="w-24" value={form.durationMinutes} onChange={(e) => patch({ durationMinutes: e.target.value })} /></div>
+                    <div className="flex flex-col gap-1"><Label className="text-xs">{t("Dauer (Min)")}</Label><Input type="number" min={15} max={240} className="w-24" value={form.durationMinutes} onChange={(e) => patch({ durationMinutes: e.target.value })} /></div>
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-3">
                     <div className="flex flex-col gap-1">
-                      <Label className="text-xs">Wochentag</Label>
+                      <Label className="text-xs">{t("Wochentag")}</Label>
                       <Select value={String(form.weekday)} onValueChange={(v) => patch({ weekday: Number(v ?? "2") })}>
                         <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-                        <SelectContent>{[1, 2, 3, 4, 5, 6, 0].map((d) => <SelectItem key={d} value={String(d)}>{WEEKDAYS[d]}</SelectItem>)}</SelectContent>
+                        <SelectContent>{[1, 2, 3, 4, 5, 6, 0].map((d) => <SelectItem key={d} value={String(d)}>{wochentagName(d)}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="flex flex-col gap-1"><Label className="text-xs">{t("Uhrzeit")}</Label><Input type="time" className="w-28" value={form.time} onChange={(e) => patch({ time: e.target.value })} /></div>
-                    <div className="flex flex-col gap-1"><Label className="text-xs">Von</Label><Input type="date" className="w-40" value={form.fromDate} onChange={(e) => patch({ fromDate: e.target.value })} /></div>
-                    <div className="flex flex-col gap-1"><Label className="text-xs">Bis</Label><Input type="date" className="w-40" value={form.toDate} onChange={(e) => patch({ toDate: e.target.value })} /></div>
-                    <div className="flex flex-col gap-1"><Label className="text-xs">Dauer (Min)</Label><Input type="number" min={15} max={240} className="w-24" value={form.durationMinutes} onChange={(e) => patch({ durationMinutes: e.target.value })} /></div>
+                    <div className="flex flex-col gap-1"><Label className="text-xs">{t("Von")}</Label><Input type="date" className="w-40" value={form.fromDate} onChange={(e) => patch({ fromDate: e.target.value })} /></div>
+                    <div className="flex flex-col gap-1"><Label className="text-xs">{t("Bis")}</Label><Input type="date" className="w-40" value={form.toDate} onChange={(e) => patch({ toDate: e.target.value })} /></div>
+                    <div className="flex flex-col gap-1"><Label className="text-xs">{t("Dauer (Min)")}</Label><Input type="number" min={15} max={240} className="w-24" value={form.durationMinutes} onChange={(e) => patch({ durationMinutes: e.target.value })} /></div>
                   </div>
                 )}
-                {form.mode === "series" && <p className="text-xs text-muted-foreground">Erzeugt {seriesDates(form).length} Einzeltermine – danach frei einzeln anpass-/absagbar.</p>}
+                {form.mode === "series" && <p className="text-xs text-muted-foreground">{seriesDates(form).length === 1 ? t("Erzeugt 1 Einzeltermin – danach frei einzeln anpass-/absagbar.") : t("Erzeugt {n} Einzeltermine – danach frei einzeln anpass-/absagbar.", { n: seriesDates(form).length })}</p>}
 
                 <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Ort (optional, z.B. Wald / Parkplatz)</Label>
+                  <Label className="text-xs">{t("Ort (optional, z.B. Wald / Parkplatz)")}</Label>
                   <Input value={form.location} onChange={(e) => patch({ location: e.target.value })} maxLength={200} placeholder={t("Üblicher Platz, wenn leer")} />
                 </div>
                 {form.mode === "single" && (
@@ -412,11 +416,11 @@ export default function SchedulePage() {
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" size="sm" variant="outline" disabled={generating} onClick={generateContent}>
                         <Sparkles className="size-3.5" />
-                        {generating ? "Generiere…" : "Vorschlag generieren"}
+                        {generating ? t("Generiere…") : t("Vorschlag generieren")}
                       </Button>
                       {library && library.units.filter((u) => u.category === form.category).length > 0 && (
                         <Select value="" onValueChange={(v) => v && applyUnit(v)}>
-                          <SelectTrigger className="h-8 w-44"><SelectValue placeholder="Aus Bibliothek…" /></SelectTrigger>
+                          <SelectTrigger className="h-8 w-44"><SelectValue placeholder={t("Aus Bibliothek…")} /></SelectTrigger>
                           <SelectContent>{library.units.filter((u) => u.category === form.category).map((u) => <SelectItem key={u.id} value={u.id}>{u.title}</SelectItem>)}</SelectContent>
                         </Select>
                       )}
@@ -432,11 +436,11 @@ export default function SchedulePage() {
                           <span className="text-xs text-muted-foreground">{index + 1}.</span>
                           <span className="min-w-0 flex-1 text-sm [overflow-wrap:anywhere]">
                             {contentLabel(c)}
-                            {c.freeText && <Badge variant="outline" className="ml-1">Freitext</Badge>}
+                            {c.freeText && <Badge variant="outline" className="ml-1">{t("Freitext")}</Badge>}
                           </span>
                           <div className="flex shrink-0 gap-0.5">
-                            <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === 0} onClick={() => moveContent(index, -1)} aria-label="Hoch"><ChevronUp className="size-4" /></Button>
-                            <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === form.content.length - 1} onClick={() => moveContent(index, 1)} aria-label="Runter"><ChevronDown className="size-4" /></Button>
+                            <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === 0} onClick={() => moveContent(index, -1)} aria-label={t("Hoch")}><ChevronUp className="size-4" /></Button>
+                            <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === form.content.length - 1} onClick={() => moveContent(index, 1)} aria-label={t("Runter")}><ChevronDown className="size-4" /></Button>
                             <Button type="button" size="icon" variant="ghost" className="size-7" onClick={() => patch({ content: form.content.filter((_, i) => i !== index) })} aria-label={t("Entfernen")}><X className="size-4 text-muted-foreground" /></Button>
                           </div>
                         </li>
@@ -448,7 +452,7 @@ export default function SchedulePage() {
                     <Select value={addBausteinId} onValueChange={(v) => { if (v) { patch({ content: [...form.content, exDraft(v)] }); } setAddBausteinId(""); }}>
                       <SelectTrigger className="h-8 flex-1 min-w-40"><SelectValue placeholder={t("Baustein hinzufügen…")} /></SelectTrigger>
                       <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
-                        {(library?.exercises ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{categoryLabel[e.category]} · {e.title}</SelectItem>)}
+                        {(library?.exercises ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{t(categoryLabel[e.category])} · {e.title}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <div className="flex flex-1 gap-2">
@@ -460,7 +464,7 @@ export default function SchedulePage() {
                 )}
 
                 <div className="flex gap-2">
-                  <Button type="button" disabled={saving} onClick={submit}>{saving ? "Speichert…" : form.editingId ? t("Speichern") : form.mode === "series" ? t("Serie anlegen") : t("Anlegen")}</Button>
+                  <Button type="button" disabled={saving} onClick={submit}>{saving ? t("Speichert…") : form.editingId ? t("Speichern") : form.mode === "series" ? t("Serie anlegen") : t("Anlegen")}</Button>
                   <Button type="button" variant="ghost" onClick={() => setForm(null)}>{t("Abbrechen")}</Button>
                 </div>
               </CardContent>
@@ -477,13 +481,13 @@ export default function SchedulePage() {
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs">Stufe</Label>
+              <Label className="text-xs">{t("Stufe")}</Label>
               <Select value={filterCategory} onValueChange={(v) => setFilterCategory(v ?? "")}>
                 <SelectTrigger className="h-8 w-36"><SelectValue placeholder={t("Alle")} /></SelectTrigger>
-                <SelectContent><SelectItem value="">{t("Alle")}</SelectItem>{CATS.map((c) => <SelectItem key={c} value={String(c)}>{categoryLabel[c]}</SelectItem>)}</SelectContent>
+                <SelectContent><SelectItem value="">{t("Alle")}</SelectItem>{CATS.map((c) => <SelectItem key={c} value={String(c)}>{t(categoryLabel[c])}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <label className="flex items-center gap-1.5 pb-1.5 text-sm"><input type="checkbox" className="size-4 accent-primary" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />Nur meine</label>
+            <label className="flex items-center gap-1.5 pb-1.5 text-sm"><input type="checkbox" className="size-4 accent-primary" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />{t("Nur meine")}</label>
           </div>
 
           {/* Agenda */}
@@ -498,19 +502,19 @@ export default function SchedulePage() {
                   <CardContent className="flex flex-col gap-2 p-3">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium">{fmtDate(s.startsAt)} · {fmtTime(s.startsAt)} <span className="text-muted-foreground">({s.durationMinutes} Min)</span></p>
+                        <p className="text-sm font-medium">{fmtDate(s.startsAt)} · {fmtTime(s.startsAt)} <span className="text-muted-foreground">({t("{n} Min.", { n: s.durationMinutes })})</span></p>
                         <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{s.groupName}</p>
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-                        <Badge variant={categoryVariant[s.category]}>{categoryLabel[s.category]}</Badge>
-                        {s.status === 1 && <Badge variant="outline">Abgesagt</Badge>}
+                        <Badge variant={categoryVariant[s.category]}>{t(categoryLabel[s.category])}</Badge>
+                        {s.status === 1 && <Badge variant="outline">{t("Abgesagt")}</Badge>}
                       </div>
                     </div>
                     {s.location && <p className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3" />{s.location}</p>}
                     {s.status === 0 && <SessionCounts termin={s} />}
-                    {s.trainers.length > 0 && <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">Trainer: {s.trainers.map((t) => `${t.firstName} ${t.lastName}`.trim() || "?").join(", ")}</p>}
+                    {s.trainers.length > 0 && <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{t("Trainer:")} {s.trainers.map((trainer) => `${trainer.firstName} ${trainer.lastName}`.trim() || "?").join(", ")}</p>}
                     {s.items.length > 0 && (
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="size-3" />{s.items.length} Übungen · {s.plannedMinutes} Min</p>
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="size-3" />{s.items.length === 1 ? t("1 Übung · {minuten} Min.", { minuten: s.plannedMinutes }) : t("{anzahl} Übungen · {minuten} Min.", { anzahl: s.items.length, minuten: s.plannedMinutes })}</p>
                     )}
                     {s.items.length > 0 && (
                       <ol className="flex flex-col gap-0.5 pl-1 text-sm">
@@ -521,7 +525,7 @@ export default function SchedulePage() {
                     )}
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" size="sm" variant="outline" onClick={() => openEdit(s)}><Pencil className="size-3.5" />{t("Bearbeiten")}</Button>
-                      {s.status === 0 && <Button type="button" size="sm" variant="ghost" onClick={() => cancelSession(s)}>Absagen</Button>}
+                      {s.status === 0 && <Button type="button" size="sm" variant="ghost" onClick={() => cancelSession(s)}>{t("Absagen")}</Button>}
                       <Button type="button" size="sm" variant="ghost" onClick={() => deleteSession(s)}><Trash2 className="size-3.5 text-muted-foreground" />{t("Löschen")}</Button>
                     </div>
                   </CardContent>

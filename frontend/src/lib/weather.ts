@@ -1,18 +1,22 @@
+import type { Sprache } from "@/lib/i18n/sprachen";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
+import { zahlText } from "@/lib/ortsformat";
+
 // WMO-Wettercodes (siehe Open-Meteo weather_code) auf kurze deutsche Texte
-// und ein Symbol abgebildet. Bewusst gruppiert statt jeden Code einzeln:
+// (der Aufrufer übersetzt sie mit t()) und ein Symbol abgebildet. Bewusst gruppiert statt jeden Code einzeln:
 // für ein Trainingstagebuch reicht "Regen" statt "mäßiger gefrierender
 // Sprühregen".
 export function weatherLabel(code: number | null | undefined): string | null {
   if (code == null) return null;
-  if (code === 0) return "klar";
-  if (code <= 3) return "bewölkt";
-  if (code <= 48) return "Nebel";
-  if (code <= 57) return "Nieselregen";
-  if (code <= 67) return "Regen";
-  if (code <= 77) return "Schnee";
-  if (code <= 82) return "Schauer";
-  if (code <= 86) return "Schneeschauer";
-  return "Gewitter";
+  if (code === 0) return uebersetzbar("klar");
+  if (code <= 3) return uebersetzbar("bewölkt");
+  if (code <= 48) return uebersetzbar("Nebel");
+  if (code <= 57) return uebersetzbar("Nieselregen");
+  if (code <= 67) return uebersetzbar("Regen");
+  if (code <= 77) return uebersetzbar("Schnee");
+  if (code <= 82) return uebersetzbar("Schauer");
+  if (code <= 86) return uebersetzbar("Schneeschauer");
+  return uebersetzbar("Gewitter");
 }
 
 export function weatherIcon(code: number | null | undefined): string {
@@ -28,10 +32,10 @@ export function weatherIcon(code: number | null | undefined): string {
   return "⛈️";
 }
 
-/** "12,4 °C" - deutsche Schreibweise mit einer Nachkommastelle. */
-export function formatTemperature(celsius: number | null | undefined): string | null {
+/** "12,4 °C" bzw. "12.4 °C" - eine Nachkommastelle, Trennzeichen nach Sprache. */
+export function formatTemperature(celsius: number | null | undefined, sprache: Sprache = "de"): string | null {
   if (celsius == null) return null;
-  return `${celsius.toFixed(1).replace(".", ",")} °C`;
+  return `${zahlText(celsius, sprache)} °C`;
 }
 
 /**
@@ -39,8 +43,8 @@ export function formatTemperature(celsius: number | null | undefined): string | 
  * die eigentlich interessante Größe: die Änderung zwischen Legen und Suchen
  * bestimmt maßgeblich, wie sich die Geruchsspur hält.
  */
-export function formatDelta(delta: number | null | undefined): string | null {
+export function formatDelta(delta: number | null | undefined, sprache: Sprache = "de"): string | null {
   if (delta == null) return null;
   const sign = delta > 0 ? "+" : "";
-  return `${sign}${delta.toFixed(1).replace(".", ",")} K`;
+  return `${sign}${zahlText(delta, sprache)} K`;
 }

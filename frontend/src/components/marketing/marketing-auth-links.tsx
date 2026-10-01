@@ -46,3 +46,32 @@ export function MarketingAuthLinks() {
     </Link>
   );
 }
+
+/**
+ * Dasselbe für die Fußzeile: "Konto anlegen" und "Anmelden" werden bei
+ * Anmeldung zu "Zur App". Beide stehen als Verweise in der Link-Leiste, deshalb
+ * ein Fragment statt eines eigenen Blocks - die Leiste umbricht selbst.
+ */
+export function MarketingFooterAuthLinks() {
+  const { user, isLoading } = useAuth();
+  const t = useT();
+
+  if (isLoading || !user) {
+    return (
+      <>
+        <Link href="/register" className="hover:text-foreground">
+          Konto anlegen
+        </Link>
+        <Link href="/login" className="hover:text-foreground">
+          Anmelden
+        </Link>
+      </>
+    );
+  }
+
+  return (
+    <Link href="/dashboard" className="hover:text-foreground">
+      {t("Zur App")}
+    </Link>
+  );
+}

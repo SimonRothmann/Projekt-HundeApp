@@ -2,7 +2,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SITE } from "@/lib/seo";
-import { MarketingAuthLinks } from "@/components/marketing/marketing-auth-links";
+import { MarketingAuthLinks, MarketingFooterAuthLinks } from "@/components/marketing/marketing-auth-links";
 import { VersionStand } from "@/components/version-stand";
 
 /**
@@ -51,12 +51,7 @@ export function MarketingFooter() {
           <Link href="/pruefungsordnungen" className="hover:text-foreground">
             Prüfungsordnungen
           </Link>
-          <Link href="/register" className="hover:text-foreground">
-            Konto anlegen
-          </Link>
-          <Link href="/login" className="hover:text-foreground">
-            Anmelden
-          </Link>
+          <MarketingFooterAuthLinks />
           <Link href="/neuerungen" className="hover:text-foreground">
             Neuerungen
           </Link>

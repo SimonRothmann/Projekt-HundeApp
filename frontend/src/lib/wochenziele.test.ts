@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeCurrentWeek, groupByWeek, offeneWochenziele, wochenFortschritt } from "./trainingsplan";
+import { computeCurrentWeek, groupByWeek, istPausenwoche, offeneWochenziele, wochenFortschritt } from "./trainingsplan";
 import type { Goal, TrainingPlanItem } from "./types";
 
 function item(teil: Partial<TrainingPlanItem>): TrainingPlanItem {
@@ -129,5 +129,33 @@ describe("wochenFortschritt", () => {
     expect(wochenFortschritt(ziel([item({})], { status: 1 }), START)).toBeNull();
     expect(wochenFortschritt(ziel([item({})], { status: 2 }), START)).toBeNull();
     expect(wochenFortschritt(ziel([item({})], { trainingPlan: null }), START)).toBeNull();
+  });
+});
+
+describe("Pausen-Platzhalter neben echten Übungen", () => {
+  const platzhalter = item({ id: "p", weekNumber: 12, exerciseId: null, exerciseName: null, repetitionsTarget: 0, isRestWeek: true });
+
+  it("blendet den Platzhalter aus, wenn die Woche echte Übungen hat", () => {
+    const wochen = groupByWeek([platzhalter, item({ id: "a", weekNumber: 12 }), item({ id: "b", weekNumber: 12 })]);
+
+    expect(wochen).toHaveLength(1);
+    expect(wochen[0][1].map((i) => i.id)).toEqual(["a", "b"]);
+    expect(istPausenwoche(wochen[0][1])).toBe(false);
+  });
+
+  it("behält den Platzhalter einer reinen Pausenwoche", () => {
+    const wochen = groupByWeek([item({ id: "a", weekNumber: 1 }), { ...platzhalter, weekNumber: 4 }]);
+
+    const pause = wochen.find(([nummer]) => nummer === 4)!;
+    expect(istPausenwoche(pause[1])).toBe(true);
+  });
+
+  it("zählt die Wochenübungen ohne den Platzhalter", () => {
+    const ziel12 = ziel([platzhalter, item({ id: "a", weekNumber: 12 })], {
+      trainingPlan: { id: "tp", generatedAt: "2020-01-01T00:00:00Z", items: [platzhalter, item({ id: "a", weekNumber: 12 })] },
+    });
+
+    // Woche 12 ist die einzige und damit die laufende.
+    expect(wochenFortschritt(ziel12)).toMatchObject({ woche: 12, geplant: 1 });
   });
 });
