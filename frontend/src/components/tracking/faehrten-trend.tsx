@@ -28,6 +28,36 @@ export function TrendBadge({ trend }: { trend: number | null }) {
   );
 }
 
+/**
+ * Trend der Fährten in Worten statt als nacktes "+1,3": Ein Plus bei der
+ * Abweichung hieß "weniger Abweichung, also besser" - das konnte niemand
+ * ablesen. `aenderung` ist die Änderung der mittleren Abweichung in Metern
+ * (jüngere Hälfte der Abläufe minus ältere): negativ = näher an der Fährte.
+ */
+export function AbweichungsTrend({ aenderung }: { aenderung: number }) {
+  const t = useT();
+  const sprache = useSprache();
+  const titel = t("Mittlere Abweichung der jüngeren Hälfte der Abläufe im Vergleich zur älteren");
+  const meter = zahlText(Math.abs(aenderung), sprache);
+  if (Math.abs(aenderung) < 0.25)
+    return (
+      <span className="text-muted-foreground" title={titel}>
+        {t("Abweichung gleich geblieben")}
+      </span>
+    );
+  if (aenderung < 0)
+    return (
+      <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400" title={titel}>
+        <TrendingUp className="size-3.5 shrink-0" /> {t("{meter} m näher an der Fährte", { meter })}
+      </span>
+    );
+  return (
+    <span className="flex items-center gap-0.5 text-destructive" title={titel}>
+      <TrendingDown className="size-3.5 shrink-0" /> {t("{meter} m weiter weg von der Fährte", { meter })}
+    </span>
+  );
+}
+
 const AMPEL_BALKEN: Record<Ampel, string> = {
   gruen: "bg-emerald-500",
   gelb: "bg-amber-500",
@@ -102,12 +132,12 @@ export function FaehrtenTrend({
 
   return (
     <div className={className}>
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="min-w-0 text-xs font-medium text-muted-foreground">
+      {/* flex-wrap: Der Trend steht jetzt in Worten und passt bei 375 px nicht immer daneben. */}
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-xs">
+        <span className="min-w-0 font-medium text-muted-foreground">
           {t("Fährte · {n} Abläufe", { n: runs.length })}
         </span>
-        {/* Sinkende Abweichung = Verbesserung, daher invertiert übergeben. */}
-        {stats.deviationTrend !== null && <TrendBadge trend={-stats.deviationTrend} />}
+        {stats.deviationTrend !== null && <AbweichungsTrend aenderung={stats.deviationTrend} />}
       </div>
       {nachAbweichung ? (
         <>
