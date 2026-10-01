@@ -25,3 +25,13 @@ public record AdminUserPageDto(IReadOnlyList<AdminUserDto> Users, int TotalCount
 public record UpdateRegulationSourceRequest(string? SourceUrl, string? LatestKnownVersionLabel);
 
 public record SetUserPasswordRequest(string NewPassword);
+
+/// <summary>
+/// Was an Konten hängt, die es nicht mehr gibt - nur Zählungen, keine Personen-Ids
+/// und keine Namen. "Sonstige" fasst die kleinen Verweise zusammen (Besitzzeilen,
+/// Mitgliedschaften, Einstellungen, Lernstand ...), die einzeln keine Zahl wert sind.
+/// </summary>
+public record OrphanedDataDto(int Konten, int Trainings, int Hunde, int Ziele, int Benachrichtigungen, int Sonstige);
+
+/// <param name="Konten">Wie viele Konten bereinigt wurden.</param>
+public record OrphanedDataPurgeDto(int Konten);

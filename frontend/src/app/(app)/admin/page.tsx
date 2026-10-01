@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ClubsSection } from "@/components/admin/clubs-section";
 import { Letzte30TageSection } from "@/components/admin/letzte-30-tage-section";
 import { VereinsantraegeSection } from "@/components/admin/vereinsantraege-section";
+import { VerwaisteDatenSection } from "@/components/admin/verwaiste-daten-section";
 import { CatalogSection } from "@/components/sports/catalog-section";
 import { RegulationImportSection } from "@/components/admin/regulation-import-section";
 import { SachkundeSection } from "@/components/admin/sachkunde-section";
@@ -180,6 +181,8 @@ export default function AdminPage() {
       )}
 
       {stats && <Letzte30TageSection stats={stats} />}
+
+      <VerwaisteDatenSection />
 
       <CatalogSection
         scope={{ kind: "global" }}

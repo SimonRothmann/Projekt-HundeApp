@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IExerciseManagementService, ExerciseManagementService>();
         services.AddScoped<IRegulationManagementService, RegulationManagementService>();
         services.AddScoped<IGpsTrackEvaluationBackfill, GpsTrackEvaluationBackfill>();
+        services.AddScoped<IGpsTrackOrphanCleanup, GpsTrackOrphanCleanup>();
         services.AddScoped<IWeatherEnrichmentService, WeatherEnrichmentService>();
         services.AddScoped<IRegulationImportService, RegulationImportService>();
         services.AddScoped<ITrainingService, TrainingService>();

@@ -13,8 +13,13 @@ export function balkenProzent(wert: number, bezug: number): number {
   return Math.min(100, Math.max(2, prozent));
 }
 
-/** Anteil in ganzen Prozent, für die Zahl neben dem Balken; null ohne Bezugswert. */
+/**
+ * Anteil in ganzen Prozent, für die Zahl neben dem Balken; null ohne
+ * Bezugswert. Über 100 % wird nichts angezeigt: Ein Anteil über dem Ganzen
+ * ("600 %") ist immer ein Zählfehler, nie eine Auskunft - die Zahl selbst
+ * steht daneben und bleibt, wie sie ist.
+ */
 export function anteilProzent(wert: number, bezug: number): number | null {
   if (bezug <= 0) return null;
-  return Math.round((wert / bezug) * 100);
+  return Math.min(100, Math.round((wert / bezug) * 100));
 }

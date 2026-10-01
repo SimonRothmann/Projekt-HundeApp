@@ -2,6 +2,7 @@ using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Application.Notifications;
 using Dogity.Application.Planning;
+using Dogity.Application.Tracking;
 using Dogity.Application.Weather;
 using Dogity.Domain.Training;
 using Microsoft.EntityFrameworkCore;
@@ -346,7 +347,17 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             .Distinct()
             .ToList();
 
-        session.DeletedAt = DateTimeOffset.UtcNow;
+        // Die Fährten gehen mit dem Training: Über das Training erreicht sie
+        // niemand mehr, sie würden aber weiter mitgezählt und ihre GPS-Punkte
+        // blieben liegen. Beides in einem SaveChanges.
+        var jetzt = DateTimeOffset.UtcNow;
+        var faehrtenIds = await db.GpsTracks.IgnoreQueryFilters()
+            .Where(t => t.TrainingSessionId == sessionId)
+            .Select(t => t.Id)
+            .ToListAsync(ct);
+        await GpsTrackRemoval.WeichLoeschenAsync(db, faehrtenIds, jetzt, ct);
+
+        session.DeletedAt = jetzt;
         await db.SaveChangesAsync(ct);
 
         // Der Wiedervorlage-Zustand trägt das gelöschte Ergebnis sonst weiter

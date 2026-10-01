@@ -1180,4 +1180,13 @@ export const EN: Record<string, string> = {
   "Trainer:innen haken je Termin ab, wer da war, und sehen, wer bezahlt hat. Du wählst den Tag (heute, einen Termin aus der Terminplanung oder ein anderes Datum) und tippst die Teilnehmenden an, jeder Tipp wird sofort gespeichert. Bei jeder Anmeldung steht, wie oft sie schon da war, und „offen“ oder „bezahlt“ lässt sich mit einem Tipp umschalten.": "Trainers tick off who was there at each session and see who has paid. You choose the day (today, a session from the schedule or another date) and tap the participants, and every tap is saved immediately. Each registration shows how often it has been there, and “open” or “paid” can be switched with a tap.",
   "Bisherige Anmeldungen aus einem Google-Formular lassen sich als CSV-Datei übernehmen. Vorher siehst du, wie viele Einträge neu, schon vorhanden oder fehlerhaft sind. Anmeldungen kannst du außerdem von Hand hinzufügen, bearbeiten und löschen.": "Previous registrations from a Google Form can be imported as a CSV file. Beforehand you see how many entries are new, already present or have errors. You can also add, edit and delete registrations by hand.",
   "Anmeldungen zu einer Gruppe werden automatisch gelöscht, wenn ein Jahr lang nichts mehr damit passiert ist, und mit der Gruppe selbst. Das steht auch in der Datenschutzerklärung.": "Registrations for a group are deleted automatically when nothing has happened with them for a year, and together with the group itself. This is also stated in the privacy policy.",
+  "Daten gelöschter Konten": "Data of deleted accounts",
+  "Diese Daten gehören zu Konten, die es nicht mehr gibt. Sie stammen aus der Zeit vor der vollständigen Kontolöschung und werden nicht mehr gebraucht.": "This data belongs to accounts that no longer exist. It dates from before accounts were deleted completely and is no longer needed.",
+  "Konten": "Accounts",
+  "Ziele": "Goals",
+  "Benachrichtigungen": "Notifications",
+  "Sonstige Einträge": "Other entries",
+  "Diese Daten werden endgültig gelöscht. Das lässt sich nicht rückgängig machen. Wirklich löschen?": "This data will be deleted permanently. This cannot be undone. Really delete?",
+  "Daten eines gelöschten Kontos bereinigt.": "Data of one deleted account cleaned up.",
+  "Daten von {n} gelöschten Konten bereinigt.": "Data of {n} deleted accounts cleaned up.",
 };

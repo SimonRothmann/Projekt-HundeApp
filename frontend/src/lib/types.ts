@@ -467,6 +467,18 @@ export type AdminRecentStats = {
   activeAccounts: number;
 };
 
+/** Daten von Konten, die es nicht mehr gibt - nur Zählungen (siehe OrphanedDataDto). */
+export type AdminOrphanedData = {
+  konten: number;
+  trainings: number;
+  hunde: number;
+  ziele: number;
+  benachrichtigungen: number;
+  sonstige: number;
+};
+
+export type AdminOrphanedDataPurge = { konten: number };
+
 export type AdminUser = {
   id: string;
   email: string;

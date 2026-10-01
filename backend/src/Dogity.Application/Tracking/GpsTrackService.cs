@@ -397,7 +397,9 @@ public class GpsTrackService(
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
             return Result.NotFound("Fährte nicht gefunden.");
 
-        track.DeletedAt = DateTimeOffset.UtcNow;
+        // Mit Punkten, Abläufen und Stockungen - sonst blieben sie als Rückstand
+        // in der Datenbank (siehe GpsTrackRemoval).
+        await GpsTrackRemoval.WeichLoeschenAsync(db, [track.Id], DateTimeOffset.UtcNow, ct);
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }

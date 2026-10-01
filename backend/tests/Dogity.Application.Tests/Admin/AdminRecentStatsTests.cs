@@ -227,6 +227,32 @@ public class AdminRecentStatsTests
     }
 
     [Fact]
+    public async Task AktiveKonten_TrainingEinesNichtMehrVorhandenenKontosZaehltNicht()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var vorhanden = NeuesKonto(lookup, Vor40Tagen);
+        var geloescht = Guid.NewGuid(); // Konto weg, Trainings stehen noch (Altlast vor PurgeAsync)
+
+        foreach (var nutzer in new[] { vorhanden, geloescht })
+        {
+            var s = new TrainingSession
+            {
+                UserId = nutzer, DogId = Guid.NewGuid(), Date = DateOnly.FromDateTime(DateTime.UtcNow),
+                DurationMinutes = 30, CreatedAt = Vor5Tagen,
+            };
+            db.TrainingSessions.Add(s);
+            db.GpsTracks.Add(new GpsTrack { TrainingSessionId = s.Id, CreatedAt = Vor5Tagen });
+        }
+        await db.SaveChangesAsync();
+
+        var stats = (await dienst.GetStatsAsync()).Value!;
+
+        // Nie mehr aktive Konten als Konten überhaupt ("30 von 5").
+        Assert.Equal(1, stats.Last30Days.ActiveAccounts);
+        Assert.True(stats.Last30Days.ActiveAccounts <= stats.UserCount);
+    }
+
+    [Fact]
     public async Task NeueKontoZahlenSindTeilmengenDerNeuenKonten()
     {
         var (dienst, db, lookup) = Aufsetzen();

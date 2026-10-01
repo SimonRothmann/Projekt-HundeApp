@@ -25,6 +25,9 @@
     <ProjectReference Include="..\..\src\Dogity.Application\Dogity.Application.csproj" />
     <ProjectReference Include="..\..\src\Dogity.Domain\Dogity.Domain.csproj" />
     <ProjectReference Include="..\..\src\Dogity.Infrastructure\Dogity.Infrastructure.csproj" />
+    <!-- Nur für den Test, dass die Admin-Endpunkte den Admins vorbehalten sind
+         (Attribute am Controller, nicht im Service). -->
+    <ProjectReference Include="..\..\src\Dogity.Api\Dogity.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>

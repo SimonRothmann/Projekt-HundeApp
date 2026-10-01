@@ -25,6 +25,9 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, TimePro
     public async Task<IReadOnlyList<Guid>> ListUserIdsCreatedSinceAsync(DateTimeOffset since, CancellationToken ct = default) =>
         await userManager.Users.Where(u => u.CreatedAt >= since).Select(u => u.Id).ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Guid>> ListAllUserIdsAsync(CancellationToken ct = default) =>
+        await userManager.Users.Select(u => u.Id).ToListAsync(ct);
+
     public async Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, CancellationToken ct = default)
     {
         var totalCount = await userManager.Users.CountAsync(ct);

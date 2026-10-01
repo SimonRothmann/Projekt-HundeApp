@@ -22,6 +22,15 @@ public interface IUserLookupService
     /// Nur Ids, keine Personen: Die Admin-Kennzahlen zählen, sie zeigen niemanden.
     /// </summary>
     Task<IReadOnlyList<Guid>> ListUserIdsCreatedSinceAsync(DateTimeOffset since, CancellationToken ct = default);
+
+    /// <summary>
+    /// Die Ids ALLER Konten. Nur Ids, keine Personen - die Bereinigung der Daten
+    /// gelöschter Konten braucht die Menge der Konten, die es noch gibt, und
+    /// sonst nichts. Wirft bei einem Fehler, statt eine leere Liste zu liefern:
+    /// Aus "keine Konten" würde dort "alles ist verwaist".
+    /// </summary>
+    Task<IReadOnlyList<Guid>> ListAllUserIdsAsync(CancellationToken ct = default);
+
     Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, CancellationToken ct = default);
 
     /// <summary>Sperrt einen Benutzer dauerhaft (kein Login mehr möglich). False, falls Benutzer nicht existiert.</summary>

@@ -10,7 +10,7 @@ namespace Dogity.Api.Controllers;
 
 [Authorize(Roles = Roles.Admin)]
 [Route("api/admin")]
-public class AdminController(IAdminService adminService, IClubService clubService, IRegulationImportService importService, IClubRegistrationService registrations) : ApiControllerBase
+public class AdminController(IAdminService adminService, IClubService clubService, IRegulationImportService importService, IClubRegistrationService registrations, ILogger<AdminController> logger) : ApiControllerBase
 {
     [HttpGet("clubs")]
     public async Task<ActionResult<IReadOnlyList<ClubDto>>> GetClubs(CancellationToken ct)
@@ -85,6 +85,21 @@ public class AdminController(IAdminService adminService, IClubService clubServic
     public async Task<ActionResult<AdminStatsDto>> GetStats(CancellationToken ct)
     {
         var result = await adminService.GetStatsAsync(ct);
+        return FromResult(result);
+    }
+
+    /// <summary>Zählung der Daten gelöschter Konten - ohne Ids, ohne Namen.</summary>
+    [HttpGet("orphaned-data")]
+    public async Task<ActionResult<OrphanedDataDto>> GetOrphanedData(CancellationToken ct) =>
+        FromResult(await adminService.GetOrphanedDataAsync(CurrentUserId, ct));
+
+    [HttpPost("orphaned-data/purge")]
+    public async Task<ActionResult<OrphanedDataPurgeDto>> PurgeOrphanedData(CancellationToken ct)
+    {
+        var result = await adminService.PurgeOrphanedDataAsync(CurrentUserId, ct);
+        // Nur die Anzahl ins Log - keine Konto-Ids.
+        if (result.Succeeded)
+            logger.LogInformation("Daten gelöschter Konten bereinigt: {Anzahl} Konten.", result.Value!.Konten);
         return FromResult(result);
     }
 

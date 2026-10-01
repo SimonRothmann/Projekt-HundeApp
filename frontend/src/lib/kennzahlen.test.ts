@@ -28,6 +28,12 @@ describe("anteilProzent", () => {
     expect(anteilProzent(1, 3)).toBe(33);
   });
 
+  it("zeigt nie mehr als 100 %, auch wenn der Wert über dem Bezug liegt", () => {
+    // Früher stand dort "30 von 5 - 600 %".
+    expect(anteilProzent(30, 5)).toBe(100);
+    expect(balkenProzent(30, 5)).toBe(100);
+  });
+
   it("liefert ohne Bezugswert nichts statt NaN", () => {
     expect(anteilProzent(0, 0)).toBeNull();
   });

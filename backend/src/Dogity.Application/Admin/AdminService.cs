@@ -65,7 +65,10 @@ public class AdminService(
     /// Datum des Trainings selbst (nachgetragene Einheiten) zählt nicht, es
     /// geht um das Anlegen. Gelöschte Trainings und Fährten zählen nicht mit.
     /// Anders als die übrigen Zahlen umfasst das ALLE Konten, nicht nur die
-    /// neuen.
+    /// neuen. Nur Konten, die es noch gibt: Trainings gelöschter Konten aus der
+    /// Zeit vor der vollständigen Kontolöschung stehen noch in der Datenbank
+    /// und ließen die Zahl sonst über die Zahl aller Konten wachsen
+    /// ("30 von 5").
     /// </summary>
     private async Task<AdminRecentStatsDto> GetRecentStatsAsync(CancellationToken ct)
     {
@@ -105,7 +108,9 @@ public class AdminService(
         var ausFaehrten = db.GpsTracks
             .Where(t => t.CreatedAt >= since)
             .Join(db.TrainingSessions, t => t.TrainingSessionId, s => s.Id, (t, s) => s.UserId);
-        var aktiv = await ausTrainings.Union(ausFaehrten).CountAsync(ct);
+        var aktiveIds = await ausTrainings.Union(ausFaehrten).ToListAsync(ct);
+        var vorhanden = await userLookup.FindByIdsAsync(aktiveIds, ct);
+        var aktiv = aktiveIds.Count(vorhanden.ContainsKey);
 
         return new AdminRecentStatsDto(neu.Count, mitHund, imVerein, mitZiel, ueberLink, aktiv);
     }
@@ -157,6 +162,29 @@ public class AdminService(
         if (!ok) return Result.NotFound("Benutzer nicht gefunden oder Löschung fehlgeschlagen.");
         await refreshTokens.RevokeAllForUserAsync(userId, ct);
         return Result.Success();
+    }
+
+    public async Task<Result<OrphanedDataDto>> GetOrphanedDataAsync(Guid callerId, CancellationToken ct = default)
+    {
+        var verwaist = await VerwaisteKontodaten.VerwaisteIdsAsync(db, userLookup, callerId, ct);
+        if (!verwaist.Succeeded) return Result<OrphanedDataDto>.Failure([.. verwaist.Errors]);
+
+        return Result<OrphanedDataDto>.Success(await VerwaisteKontodaten.ZaehlenAsync(db, verwaist.Value!, ct));
+    }
+
+    public async Task<Result<OrphanedDataPurgeDto>> PurgeOrphanedDataAsync(Guid callerId, CancellationToken ct = default)
+    {
+        var verwaist = await VerwaisteKontodaten.VerwaisteIdsAsync(db, userLookup, callerId, ct);
+        if (!verwaist.Succeeded) return Result<OrphanedDataPurgeDto>.Failure([.. verwaist.Errors]);
+
+        // Dieselbe Löschung wie bei jedem Konto, das heute gelöscht wird - nur
+        // für Konten, die schon vorher weg waren. Eine zweite Löschlogik
+        // könnte vom echten Weg abweichen (Mitbesitz, Gruppen, Verweise).
+        var bereinigt = 0;
+        foreach (var userId in verwaist.Value!)
+            if ((await accountData.PurgeAsync(userId, ct)).Succeeded) bereinigt++;
+
+        return Result<OrphanedDataPurgeDto>.Success(new OrphanedDataPurgeDto(bereinigt));
     }
 
     public async Task<Result> SetUserPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)

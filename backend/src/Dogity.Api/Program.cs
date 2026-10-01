@@ -235,6 +235,13 @@ using (var scope = app.Services.CreateScope())
     var verwaiste = await scope.ServiceProvider.GetRequiredService<ICommunityOrphanCleanup>().CleanupAsync();
     if (verwaiste > 0)
         app.Logger.LogInformation("{Anzahl} verwaiste Vereins-/Gruppenzeilen entfernt.", verwaiste);
+
+    // Fährten gelöschter Trainings: Das Löschen eines Trainings hat sie früher
+    // stehen lassen (Admin-Zähler, GPS-Punkte). Idempotent - ohne Altbestand
+    // findet der Lauf nichts.
+    var verwaisteFaehrten = await scope.ServiceProvider.GetRequiredService<IGpsTrackOrphanCleanup>().CleanupAsync();
+    if (verwaisteFaehrten > 0)
+        app.Logger.LogInformation("{Anzahl} Fährten gelöschter Trainings weich gelöscht.", verwaisteFaehrten);
 }
 
 if (app.Environment.IsDevelopment())
