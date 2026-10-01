@@ -209,7 +209,12 @@ using (var scope = app.Services.CreateScope())
     await AdminBootstrapper.SeedAsync(scope.ServiceProvider, builder.Configuration);
 
     if (app.Environment.IsDevelopment())
+    {
         await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
+        // Danach und bei jedem Start: ergänzt die Demo-Konten um Szenarien (siehe
+        // DemoSzenarienSeeder) - der DemoDataSeeder oben bricht ab, sobald es die Konten gibt.
+        await DemoSzenarienSeeder.SeedAsync(scope.ServiceProvider);
+    }
 
     // Einmaliger Backfill der Übungs-Mastery aus der bestehenden Historie
     // (P2, siehe docs/SMART_TRAINING_PLAN.md). Läuft NACH allen Seedern und

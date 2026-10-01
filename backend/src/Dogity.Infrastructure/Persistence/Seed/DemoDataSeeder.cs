@@ -28,7 +28,7 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// </summary>
 public static class DemoDataSeeder
 {
-    private const string DemoPassword = "Demo1234!";
+    internal const string DemoPassword = "Demo1234!";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -181,7 +181,7 @@ public static class DemoDataSeeder
         await db.SaveChangesAsync();
     }
 
-    private static async Task<ApplicationUser> CreateUserAsync(UserManager<ApplicationUser> userManager, string email, string firstName, string lastName, string[] roles)
+    internal static async Task<ApplicationUser> CreateUserAsync(UserManager<ApplicationUser> userManager, string email, string firstName, string lastName, string[] roles)
     {
         var user = new ApplicationUser
         {

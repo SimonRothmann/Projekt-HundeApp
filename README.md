@@ -175,6 +175,9 @@ dotnet run   # läuft auf http://localhost:5080, Swagger unter /swagger
 Migrationen und Stammdaten (Rollen, Sportarten-Katalog) werden beim Start
 in der Development-Umgebung automatisch angewendet/eingespielt.
 
+Dazu kommen in Development Demo-Konten (Passwort `Demo1234!`) samt Szenarien für
+alle Funktionen: siehe [docs/DEMO_DATEN.md](docs/DEMO_DATEN.md).
+
 ## 3. Frontend
 
 ```bash
