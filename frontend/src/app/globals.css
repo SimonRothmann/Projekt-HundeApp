@@ -184,6 +184,22 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Safari auf dem iPhone zeichnet Datums- und Zeitfelder in nativer
+     Darstellung mit einer eigenen Mindestbreite und ignoriert dabei width
+     und min-width - in schmalen Karten ragen sie dann weit über den Rand
+     (z.B. "Anderer Tag" in der Anwesenheit). Ohne native Darstellung
+     richten sie sich nach dem Container; die Auswahl per Kalender bleibt. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+  }
   html {
     @apply font-sans;
   }
