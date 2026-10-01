@@ -104,7 +104,7 @@ export const SICHERUNG_AUFBEWAHRUNG = {
 } as const;
 
 /** Letzte inhaltliche Änderung an Impressum oder Datenschutzerklärung. */
-export const STAND = "2026-09-30";
+export const STAND = "2026-10-01";
 
 /** "Hauptstr. 20/2, 76307 Karlsbad" - für Fließtext und strukturierte Daten. */
 export const ANSCHRIFT_EINZEILIG = `${BETREIBER.strasse}, ${BETREIBER.plz} ${BETREIBER.ort}`;

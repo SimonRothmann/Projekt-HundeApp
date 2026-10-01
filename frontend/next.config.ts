@@ -116,6 +116,17 @@ const nextConfig: NextConfig = {
           { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],
       },
+      {
+        // Anmeldeformular der Gruppen (/anmeldung/{code}): Auch hier ist der
+        // Code in der Adresse der Schlüssel - wer ihn kennt, kann sich
+        // anmelden. Dieselbe Behandlung wie bei /v/{code}; die Seite setzt
+        // sie zusätzlich als Meta-Angabe (app/anmeldung/[code]/page.tsx).
+        source: "/anmeldung/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
     ];
   },
 };

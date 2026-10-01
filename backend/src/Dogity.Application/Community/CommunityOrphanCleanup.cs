@@ -27,6 +27,20 @@ public class CommunityOrphanCleanup(IApplicationDbContext db, IUserLookupService
 {
     public async Task<int> CleanupAsync(CancellationToken ct = default)
     {
+        // Anmeldungen zu Gruppen, die es nicht mehr gibt (gelöscht auf einem
+        // Weg, der sie nicht mitnahm): Sie hängen an keinem Konto, sondern an
+        // der Gruppe - und ohne Gruppe sieht sie niemand mehr, löschen kann sie
+        // aber auch niemand. Daten von Menschen ohne Konto gehören nicht in
+        // eine Datenbank, die keiner mehr verwaltet.
+        // IgnoreQueryFilters gilt für die ganze Abfrage, auch für die Gruppen
+        // darin - deshalb steht "nicht gelöscht" hier ausdrücklich.
+        var anmeldungen = await GroupRegistrationErasure.EntfernenAsync(
+            db,
+            db.GroupRegistrations.IgnoreQueryFilters()
+                .Where(r => !db.Groups.IgnoreQueryFilters().Any(g => g.Id == r.GroupId && g.DeletedAt == null)),
+            ct);
+        if (anmeldungen > 0) await db.SaveChangesAsync(ct);
+
         var mitgliedschaften = await db.ClubMemberships.ToListAsync(ct);
         var vereinstrainer = await db.ClubTrainers.ToListAsync(ct);
         var gruppenmitglieder = await db.GroupMembers.ToListAsync(ct);
@@ -43,11 +57,11 @@ public class CommunityOrphanCleanup(IApplicationDbContext db, IUserLookupService
             .Distinct()
             .ToList();
 
-        if (betroffene.Count == 0) return 0;
+        if (betroffene.Count == 0) return anmeldungen;
 
         var vorhanden = await users.FindByIdsAsync(betroffene, ct);
         var verwaist = betroffene.Where(id => !vorhanden.ContainsKey(id)).ToHashSet();
-        if (verwaist.Count == 0) return 0;
+        if (verwaist.Count == 0) return anmeldungen;
 
         var jetzt = DateTimeOffset.UtcNow;
         var entfernt = 0;
@@ -68,6 +82,6 @@ public class CommunityOrphanCleanup(IApplicationDbContext db, IUserLookupService
         Weg(zuweisungen.Where(a => verwaist.Contains(a.TrainerId) || verwaist.Contains(a.MemberId)));
 
         if (entfernt > 0) await db.SaveChangesAsync(ct);
-        return entfernt;
+        return entfernt + anmeldungen;
     }
 }

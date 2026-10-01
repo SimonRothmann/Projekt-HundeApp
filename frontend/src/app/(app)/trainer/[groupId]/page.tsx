@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GroupRegistrationsSection } from "@/components/trainer/group-registrations-section";
 import { UserPlus, Dog as DogIcon, ChevronDown, ChevronRight, Trash2, Pencil, UserCog } from "lucide-react";
 import { toast } from "sonner";
 
@@ -393,6 +394,11 @@ export default function TrainerGroupPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Anmeldungen ohne Dogity-Konto (Welpengruppe & Co.): Formular, Anwesenheit,
+          Liste. Sichtbar nur für die, die die Gruppe verwalten - sonst zeigt die
+          Komponente nichts. */}
+      <GroupRegistrationsSection groupId={groupId} groupName={detail.group.name} />
 
       <Card>
         <CardHeader>

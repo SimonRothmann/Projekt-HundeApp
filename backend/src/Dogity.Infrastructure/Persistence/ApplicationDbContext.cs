@@ -49,6 +49,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<GroupTrainer> GroupTrainers => Set<GroupTrainer>();
+    public DbSet<GroupRegistration> GroupRegistrations => Set<GroupRegistration>();
+    public DbSet<GroupRegistrationAttendance> GroupRegistrationAttendances => Set<GroupRegistrationAttendance>();
     public DbSet<TrainerAssignment> TrainerAssignments => Set<TrainerAssignment>();
     public DbSet<ClubTrainer> ClubTrainers => Set<ClubTrainer>();
     public DbSet<ClubMembership> ClubMemberships => Set<ClubMembership>();
@@ -136,6 +138,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // die Gruppe hier die erforderliche Seite der Beziehung ist.
         // Offene Co-Trainer-Einladungen gelten nirgends (siehe GroupTrainerStatus.Invited).
         builder.Entity<GroupTrainer>().HasQueryFilter(e => e.DeletedAt == null && e.Status == GroupTrainerStatus.Active && e.Group!.DeletedAt == null);
+        // Anmeldungen zu einer Gruppe: Die Gruppe ist die erforderliche Seite der
+        // Beziehung, ihr Filter wird mitgezogen - und ebenso der der Anmeldung
+        // bei der Anwesenheit.
+        builder.Entity<GroupRegistration>().HasQueryFilter(e => e.DeletedAt == null && e.Group!.DeletedAt == null);
+        builder.Entity<GroupRegistrationAttendance>().HasQueryFilter(e => e.DeletedAt == null && e.Registration!.DeletedAt == null);
         builder.Entity<TrainerAssignment>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<ClubTrainer>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<ClubMembership>().HasQueryFilter(e => e.DeletedAt == null);

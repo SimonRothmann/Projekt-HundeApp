@@ -44,6 +44,8 @@ public interface IApplicationDbContext
     DbSet<Group> Groups { get; }
     DbSet<GroupMember> GroupMembers { get; }
     DbSet<GroupTrainer> GroupTrainers { get; }
+    DbSet<GroupRegistration> GroupRegistrations { get; }
+    DbSet<GroupRegistrationAttendance> GroupRegistrationAttendances { get; }
     DbSet<TrainerAssignment> TrainerAssignments { get; }
     DbSet<ClubTrainer> ClubTrainers { get; }
     DbSet<ClubMembership> ClubMemberships { get; }

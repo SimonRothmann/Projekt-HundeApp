@@ -40,6 +40,9 @@ public static class DependencyInjection
         services.AddScoped<IGroupTrainingScheduleService, GroupTrainingScheduleService>();
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IClubInviteService, ClubInviteService>();
+        services.AddScoped<IGroupRegistrationService, GroupRegistrationService>();
+        services.AddScoped<IGroupRegistrationFormService, GroupRegistrationFormService>();
+        services.AddScoped<IGroupRegistrationRetention, GroupRegistrationRetention>();
         services.AddScoped<ICommunityOrphanCleanup, CommunityOrphanCleanup>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<INotificationService, NotificationService>();

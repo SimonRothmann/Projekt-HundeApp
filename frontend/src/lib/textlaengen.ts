@@ -26,4 +26,12 @@ export const TEXTLAENGE = {
   pruefungsNotiz: 500,
   /** TrainingSession.OwnerReply (Rückfrage zum Trainer-Feedback) */
   feedbackRueckfrage: 500,
+  /** GroupRegistration: Vor-/Nachname und Rufname des Hundes */
+  anmeldeName: 100,
+  /** GroupRegistration.DogBreed */
+  anmeldeRasse: 100,
+  /** GroupRegistration.Phone */
+  anmeldeTelefon: 30,
+  /** GroupRegistration.Notes */
+  anmeldeNotiz: 500,
 } as const;

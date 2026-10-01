@@ -522,18 +522,8 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
     private Task<bool> IsClubTrainerAsync(Guid userId, Guid clubId, CancellationToken ct) =>
         db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
 
-    /// <summary>Die Uhr, nach der Termine in Nachrichten als Datum erscheinen (Vereine sind in Deutschland).</summary>
-    private static readonly TimeZoneInfo Vereinszeit = FindeVereinszeit();
-
-    private static TimeZoneInfo FindeVereinszeit()
-    {
-        try { return TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"); }
-        // Schlanke Container ohne Zeitzonen-Datenbank: lieber UTC als ein Absturz.
-        catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException) { return TimeZoneInfo.Utc; }
-    }
-
     private static string FormatDatum(DateTimeOffset startsAt) =>
-        TimeZoneInfo.ConvertTime(startsAt, Vereinszeit).ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
+        TimeZoneInfo.ConvertTime(startsAt, Vereinszeit.Zone).ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
 
     private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }

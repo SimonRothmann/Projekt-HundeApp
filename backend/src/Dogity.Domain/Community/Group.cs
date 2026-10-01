@@ -21,6 +21,15 @@ public class Group : Entity
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
 
+    /// <summary>
+    /// Geheimer Teil des Anmeldelinks (<c>/anmeldung/{code}</c>); null, solange
+    /// die Gruppe kein Anmeldeformular hat oder es geschlossen ist. Wer den Code
+    /// kennt, kann sich - ohne Konto - zur Gruppe anmelden (siehe
+    /// <see cref="GroupRegistration"/>), mehr nicht. Gleiche Bauart wie
+    /// <see cref="Club.InviteCode"/>: ein neuer Code ersetzt den alten.
+    /// </summary>
+    public string? RegistrationCode { get; set; }
+
     public ICollection<GroupMember> Members { get; set; } = new List<GroupMember>();
 
     /// <summary>Weitere Trainer:innen neben <see cref="TrainerId"/>.</summary>

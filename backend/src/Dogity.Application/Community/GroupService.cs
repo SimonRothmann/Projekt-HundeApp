@@ -205,6 +205,10 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         var coTrainers = await db.GroupTrainers.Where(t => t.GroupId == groupId).ToListAsync(ct);
         foreach (var t in coTrainers) t.DeletedAt = now;
 
+        // Die Anmeldungen gehören der Gruppe und gehen mit ihr - endgültig, es
+        // sind Daten von Menschen ohne Konto (siehe GroupRegistrationErasure).
+        await GroupRegistrationErasure.EntfernenFuerGruppenAsync(db, [groupId], ct);
+
         group.DeletedAt = now;
         await db.SaveChangesAsync(ct);
 
@@ -866,18 +870,11 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 
     // Ob der/die Nutzer:in die Gruppe verwalten darf: als Hauptverantwortliche:r,
     // als weitere:r Trainer:in dieser Gruppe ODER als Trainer:in des Vereins,
-    // dem die Gruppe gehört ("jede:r Vereinstrainer:in").
+    // dem die Gruppe gehört ("jede:r Vereinstrainer:in"). Die Regel selbst steht
+    // in ClubAccessQueries, weil auch die Anmeldungen zur Gruppe sie brauchen.
     // Liefert die getrackte Entität zurück, damit Aufrufer sie direkt ändern können.
-    private async Task<Group?> GetManageableGroupAsync(Guid userId, Guid groupId, CancellationToken ct)
-    {
-        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
-        if (group is null) return null;
-        if (group.TrainerId == userId) return group;
-        if (await db.GroupTrainers.AnyAsync(t => t.GroupId == groupId && t.UserId == userId, ct)) return group;
-        if (group.ClubId is { } clubId && await db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct))
-            return group;
-        return null;
-    }
+    private Task<Group?> GetManageableGroupAsync(Guid userId, Guid groupId, CancellationToken ct) =>
+        db.GetManageableGroupAsync(userId, groupId, ct);
 
     private async Task<bool> IsGroupMemberAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct)
     {

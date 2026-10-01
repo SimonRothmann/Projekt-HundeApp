@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-09-30 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-10-01 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -79,6 +79,20 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Besonderheit | Zusagen: je Termin und Person eine Zeile (`group_training_session_responses`), nur aktive Gruppenmitglieder dürfen antworten und nur vor Beginn eines geplanten Termins; gezählt werden nur aktuelle Mitglieder. Eine Absage löst eine Benachrichtigung an die Trainer:innen des Termins aus, die Absage eines Termins eine an alle, die zugesagt hatten. „Zum Kalender“ erzeugt die Kalenderdatei auf dem Gerät (Gruppe, Zeit, Ort, Dauer – keine Personendaten), es wird nichts an den Server oder Dritte übertragen. Einladungslink/QR-Code je Verein (`clubs.InviteCode`, 128 Bit Zufall): Der Code selbst ist kein personenbezogenes Datum. Die öffentliche Einladungsseite gibt ohne Anmeldung nur den Vereinsnamen heraus; der Beitritt bleibt eine Anfrage, die der Verein freigibt. Der Code lässt sich jederzeit ersetzen oder abschalten. |
 | Löschfrist | bis zum Austritt bzw. zur Kontolöschung |
 | Tabellen | `clubs`, `club_memberships`, `club_trainers`, `club_registrations`, `groups`, `group_members`, `group_trainers`, `trainer_assignments`, `group_training_*` (u. a. `group_training_session_responses`) |
+
+### 2.4a Anmeldung zu einer Gruppe über ein Anmeldeformular (ohne Konto)
+
+| | |
+|---|---|
+| Zweck | Organisation einer Gruppe (z. B. Welpengruppe) durch den Verein: Wer ist angemeldet, wer ist erreichbar, wer war an welchem Tag da, wer hat bezahlt |
+| Betroffene | Kursteilnehmende (Menschen **ohne** Dogity-Konto, die sich über Link/QR-Code anmelden oder von Trainer:innen eingetragen bzw. aus einem früheren Google-Formular übernommen werden) |
+| Datenkategorien | Vorname, Nachname, Rufname und Rasse des Hundes, Wurftag, Telefonnummer; Zeitpunkt der Anmeldung und Herkunft (Formular, Import, von Hand); Anwesenheit je Tag (ggf. Verweis auf den Termin der Gruppe), Bezahlt-Zeitpunkt, optionale Notiz der Trainer:innen; Verweis auf die Trainer:in, die „bezahlt“ gesetzt bzw. abgehakt hat |
+| Rechtsgrundlage | Art. 6 Abs. 1 lit. b (Umsetzung der Anmeldung zur Gruppe). Das Pflicht-Häkchen im Formular dient der Transparenz, nicht als Einwilligung nach lit. a. |
+| Empfänger | Trainer:innen der Gruppe (Leitung, weitere Trainer:innen) und Trainer:innen des Vereins, zu dem die Gruppe gehört – sonst niemand; Hosting-Dienstleister (Auftragsverarbeiter). Das öffentliche Formular gibt ohne Anmeldung nur Vereins- und Gruppenname heraus. |
+| Drittland | nein |
+| Besonderheit | Zugang allein über den geheimen Code im Link (`groups.RegistrationCode`, 128 Bit Zufall, Erzeugung wie beim Vereins-Einladungslink; ersetzbar und abschaltbar). Das öffentliche Formular ist gegen Missbrauch geschützt: Ratenbegrenzung je IP (10 Anmeldungen/Minute), Köder-Feld gegen Roboter, serverseitige Prüfung aller Felder, Obergrenze von 500 Anmeldungen je Gruppe, Doppelanmeldungen (gleiche normalisierte Telefonnummer und gleicher Rufname innerhalb von 30 Tagen) legen nichts neu an. Die Seite hat `noindex` und `no-referrer`. Eine neue Anmeldung löst eine In-App-Benachrichtigung an die Trainer:innen der Gruppe aus (Rufname und Rasse des Hundes). CSV-Import: Die Datei wird im Browser gelesen, nur geprüfte Zeilen gehen an den Server. Die Anmeldungen sind **nicht** Teil des Datenexports einer Trainer:in (fremde Daten). |
+| Löschfrist | Löschen durch die Trainer:innen jederzeit (endgültig, samt Anwesenheit); automatisch endgültig nach 12 Monaten ohne Aktivität (täglicher Hintergrunddienst `RegistrationRetentionBackgroundService`; Aktivität = Anlegen in Dogity, letzte Änderung inkl. „bezahlt“, letzter Anwesenheits-Haken – nicht der Google-Zeitstempel eines Imports); mit Löschen der Gruppe; Anmeldungen zu Gruppen, die es nicht mehr gibt, räumt `CommunityOrphanCleanup` beim Start weg. Bei der Löschung des Kontos einer Trainer:in bleiben die Anmeldungen (sie gehören dem Verein), nur die Verweise auf sie werden auf null gesetzt; wird die Gruppe dabei mangels Nachfolger:in geschlossen, gehen die Anmeldungen mit. Sicherungen: siehe Abschnitt 2.6. |
+| Tabellen | `group_registrations`, `group_registration_attendances`, Spalte `groups.RegistrationCode` |
 
 ### 2.5 Sachkunde-Lernmodul und Benachrichtigungen
 
@@ -199,6 +213,7 @@ Auswahl.
 | Auskunft und Übertragbarkeit (Art. 15, 20) | `GET /api/profile/export`, in der App unter Profil → „Meine Daten herunterladen“ |
 | Löschung (Art. 17) | `DELETE /api/profile` mit Passwortbestätigung, in der App unter Profil → „Konto löschen“; entfernt die Fachdaten und anschließend das Konto |
 | Berichtigung (Art. 16) | Profil, Hunde- und Trainingsbearbeitung in der App |
+| Angemeldete ohne Konto (2.4a) | Auskunft, Berichtigung, Löschung formlos beim Verein oder per E-Mail an den Betreiber; die Trainer:innen bearbeiten und löschen Anmeldungen in der App (Trainer-Seite der Gruppe). Es gibt keinen Selbstbedienungs-Zugang, weil es kein Konto gibt. |
 | Einschränkung, Widerspruch (Art. 18, 21) | formlos per E-Mail |
 
 ---

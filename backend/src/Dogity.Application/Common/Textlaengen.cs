@@ -24,6 +24,14 @@ public static class Textlaengen
     public const int Kurzangabe = 100;
     /// <summary>Goal.ExamNote: Anmerkung zum Prüfungsergebnis.</summary>
     public const int PruefungsNotiz = 500;
+    /// <summary>GroupRegistration: Vor-/Nachname der Angemeldeten und Rufname des Hundes.</summary>
+    public const int Anmeldename = 100;
+    /// <summary>GroupRegistration.DogBreed.</summary>
+    public const int Hunderasse = 100;
+    /// <summary>GroupRegistration.Phone.</summary>
+    public const int Telefon = 30;
+    /// <summary>GroupRegistration.Notes: Notiz der Trainer:innen zur Anmeldung.</summary>
+    public const int AnmeldeNotiz = 500;
 
     /// <summary>
     /// Meldung, wenn <paramref name="text"/> (ohne Rand-Leerzeichen, so wie er

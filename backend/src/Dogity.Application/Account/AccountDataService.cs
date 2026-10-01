@@ -19,6 +19,11 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         var stammdaten = (await userLookup.FindByIdsAsync([userId], ct)).GetValueOrDefault(userId);
         if (stammdaten is null) return Result<AccountExportDto>.NotFound("Konto nicht gefunden.");
 
+        // Bewusst NICHT enthalten: die Anmeldungen zu Gruppen (GroupRegistration).
+        // Eine Trainer:in verwaltet sie, ist aber nicht die Betroffene - Namen
+        // und Telefonnummern der Kursteilnehmenden sind fremde Daten und gehören
+        // nicht in ihre Auskunft nach Art. 15/20 DSGVO.
+
         // Hunde, an denen dieser Mensch beteiligt ist - auch die geteilten.
         var besitz = await db.DogOwners
             .Where(o => o.UserId == userId)
@@ -397,7 +402,13 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                 .FirstOrDefaultAsync(ct);
 
             if (nachfolger != Guid.Empty) gruppe.TrainerId = nachfolger;
-            else gruppe.DeletedAt ??= jetzt;
+            else
+            {
+                gruppe.DeletedAt ??= jetzt;
+                // Mit der Gruppe gehen ihre Anmeldungen: Die Angemeldeten haben
+                // kein Konto, und niemand wäre mehr da, der sie verwaltet.
+                await Community.GroupRegistrationErasure.EntfernenFuerGruppenAsync(db, [gruppe.Id], ct);
+            }
         }
 
         // Was anderen gehört, bleibt - nur der Verweis auf diese Person geht.
@@ -430,6 +441,15 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         foreach (var o in await db.DogOwners.IgnoreQueryFilters()
                      .Where(o => o.InvitedByUserId == userId).ToListAsync(ct))
             o.InvitedByUserId = null;
+        // Die Anmeldungen zu Gruppen gehören dem Verein und bleiben - die
+        // Kursteilnehmenden sind nicht diese Person. Nur der Verweis auf sie als
+        // "hat bezahlt gesetzt" bzw. "hat abgehakt" geht.
+        foreach (var r in await db.GroupRegistrations.IgnoreQueryFilters()
+                     .Where(r => r.PaidByUserId == userId).ToListAsync(ct))
+            r.PaidByUserId = null;
+        foreach (var a in await db.GroupRegistrationAttendances.IgnoreQueryFilters()
+                     .Where(a => a.MarkedByUserId == userId).ToListAsync(ct))
+            a.MarkedByUserId = null;
 
         // Von innen nach außen entfernen, damit kein Fremdschlüssel ins Leere
         // zeigt, während die Datenbank noch mitten im Vorgang ist.

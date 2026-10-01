@@ -45,6 +45,29 @@ public static class ClubAccessQueries
         db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId && t.Role == ClubRole.Verwaltung, ct);
 
     /// <summary>
+    /// Die Gruppe, wenn der/die Nutzer:in sie VERWALTEN darf - sonst null.
+    /// Verwalten darf: wer die Gruppe leitet (<see cref="Group.TrainerId"/>), wer
+    /// als weitere:r Trainer:in angenommen hat (offene Einladungen blendet der
+    /// globale Filter aus) und jede:r Trainer:in des Vereins, dem die Gruppe
+    /// gehört.
+    ///
+    /// Eine Definition für Gruppenverwaltung und Anmeldungen, damit "wer darf
+    /// die Gruppe anfassen" nicht an zwei Stellen verschieden beantwortet wird.
+    /// Liefert die getrackte Entität zurück, damit Aufrufer sie direkt ändern
+    /// können.
+    /// </summary>
+    public static async Task<Group?> GetManageableGroupAsync(this IApplicationDbContext db, Guid userId, Guid groupId, CancellationToken ct = default)
+    {
+        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
+        if (group is null) return null;
+        if (group.TrainerId == userId) return group;
+        if (await db.GroupTrainers.AnyAsync(t => t.GroupId == groupId && t.UserId == userId, ct)) return group;
+        if (group.ClubId is { } clubId && await db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct))
+            return group;
+        return null;
+    }
+
+    /// <summary>
     /// Ob jemand überhaupt irgendwo Trainer:in ist: als Hauptverantwortliche:r
     /// einer Gruppe, als weitere:r Trainer:in einer Gruppe oder als Trainer:in
     /// eines Vereins.

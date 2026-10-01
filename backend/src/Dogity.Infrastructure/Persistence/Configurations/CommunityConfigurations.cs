@@ -1,3 +1,4 @@
+using Dogity.Application.Common;
 using Dogity.Domain.Community;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -33,6 +34,53 @@ public class GroupConfiguration : IEntityTypeConfiguration<Group>
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(g => g.TrainerId);
+
+        // Wie Club.InviteCode: nur über gesetzte Codes eindeutig.
+        builder.Property(g => g.RegistrationCode).HasMaxLength(32);
+        builder.HasIndex(g => g.RegistrationCode)
+            .IsUnique()
+            .HasFilter("\"RegistrationCode\" IS NOT NULL AND \"RegistrationCode\" <> ''");
+    }
+}
+
+public class GroupRegistrationConfiguration : IEntityTypeConfiguration<GroupRegistration>
+{
+    public void Configure(EntityTypeBuilder<GroupRegistration> builder)
+    {
+        builder.ToTable("group_registrations");
+        builder.Property(r => r.FirstName).HasMaxLength(Textlaengen.Anmeldename).IsRequired();
+        builder.Property(r => r.LastName).HasMaxLength(Textlaengen.Anmeldename).IsRequired();
+        builder.Property(r => r.DogName).HasMaxLength(Textlaengen.Anmeldename).IsRequired();
+        builder.Property(r => r.DogBreed).HasMaxLength(Textlaengen.Hunderasse).IsRequired();
+        builder.Property(r => r.Phone).HasMaxLength(Textlaengen.Telefon).IsRequired();
+        builder.Property(r => r.Notes).HasMaxLength(Textlaengen.AnmeldeNotiz);
+        // Wie das Nachbar-Enum GroupMember.Role als Text gespeichert.
+        builder.Property(r => r.Source).HasConversion<string>().HasMaxLength(20);
+
+        builder.HasOne(r => r.Group)
+            .WithMany()
+            .HasForeignKey(r => r.GroupId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(r => r.GroupId);
+    }
+}
+
+public class GroupRegistrationAttendanceConfiguration : IEntityTypeConfiguration<GroupRegistrationAttendance>
+{
+    public void Configure(EntityTypeBuilder<GroupRegistrationAttendance> builder)
+    {
+        builder.ToTable("group_registration_attendances");
+
+        builder.HasOne(a => a.Registration)
+            .WithMany(r => r.Attendances)
+            .HasForeignKey(a => a.RegistrationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Eine Zeile je Anmeldung und Tag. Der Index kennt kein DeletedAt -
+        // deshalb ändert der Service eine vorhandene (auch entfernte) Zeile,
+        // statt eine zweite anzulegen (SoftDeleteRevival).
+        builder.HasIndex(a => new { a.RegistrationId, a.Date }).IsUnique();
     }
 }
 

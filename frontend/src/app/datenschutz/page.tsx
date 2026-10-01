@@ -123,6 +123,12 @@ export default function DatenschutzPage() {
               "deine Zu- oder Absage zu einem Gruppentermin samt Zeitpunkt der Antwort",
             ]}
           />
+          <p className="font-medium text-foreground">Anmeldung zu einer Gruppe (ohne Konto)</p>
+          <Liste
+            punkte={[
+              "Angaben, die jemand im Anmeldeformular einer Gruppe einträgt, und die Haken der Trainer:innen dazu – ausführlich in Abschnitt 9",
+            ]}
+          />
           <p className="font-medium text-foreground">Sonstiges</p>
           <Liste
             punkte={[
@@ -158,6 +164,7 @@ export default function DatenschutzPage() {
           <Liste
             punkte={[
               "Konto, Hunde, Trainings, Fährten, Verein und Einstellungen: Art. 6 Abs. 1 lit. b DSGVO – ohne diese Daten gibt es die Funktion nicht, für die du dich angemeldet hast.",
+              "Anmeldung zu einer Gruppe über ein Anmeldeformular (ohne Konto): Art. 6 Abs. 1 lit. b DSGVO – siehe Abschnitt 9.",
               "Schutz vor Missbrauch, Fehlersuche und Sicherheit des Betriebs: Art. 6 Abs. 1 lit. f DSGVO. Mein berechtigtes Interesse ist, dass der Dienst erreichbar bleibt und Konten nicht übernommen werden.",
               "Das Auslesen deines Standorts erlaubst du im Browser ausdrücklich und kannst die Erlaubnis jederzeit zurücknehmen.",
             ]}
@@ -293,11 +300,67 @@ export default function DatenschutzPage() {
           </p>
         </Abschnitt>
 
-        <Abschnitt titel="9. Wie lange gespeichert wird">
+        <Abschnitt titel="9. Anmeldung zu einer Gruppe über ein Anmeldeformular">
+          <p>
+            Gruppen eines Vereins – etwa eine Welpengruppe – können ein Anmeldeformular mit Link und QR-Code anbieten.
+            Wer sich darüber anmeldet, braucht <span className="text-foreground">kein Dogity-Konto</span> und wird auch
+            keines. Für diese Anmeldungen gilt:
+          </p>
+          <p className="font-medium text-foreground">Welche Daten gespeichert werden</p>
+          <Liste
+            punkte={[
+              "Vor- und Nachname, Rufname und Rasse des Hundes, Wurftag und Telefonnummer – das, was du im Formular einträgst",
+              "der Zeitpunkt der Anmeldung",
+              "was die Trainer:innen dazu festhalten: an welchen Tagen du mit deinem Hund da warst, ob bezahlt ist, und – wenn sie eine anlegen – eine Notiz",
+              "bei Anmeldungen, die ein Verein aus einem früheren Formular übernommen hat, der Zeitstempel von damals",
+            ]}
+          />
+          <p className="font-medium text-foreground">Wozu</p>
+          <p>
+            Allein zur Organisation der Gruppe durch den Verein: damit die Trainer:innen wissen, wer angemeldet ist, dich
+            bei Bedarf anrufen können, die Teilnahme festhalten und sehen, wer schon bezahlt hat. Zu anderen Zwecken
+            werden die Angaben nicht verwendet, nicht weitergegeben und nicht verkauft.
+          </p>
+          <p className="font-medium text-foreground">Wer sie sieht</p>
+          <p>
+            Die Trainer:innen der Gruppe und die Trainer:innen des Vereins, zu dem die Gruppe gehört – sonst niemand.
+            Auch andere Mitglieder der Gruppe, andere Angemeldete und Besucher:innen der Seite sehen die Angaben nicht.
+            Wer das Formular öffnet, sieht nur den Namen des Vereins und der Gruppe. Bei einer neuen Anmeldung erhalten
+            die Trainer:innen der Gruppe eine Benachrichtigung in der App, in der Rufname und Rasse des Hundes stehen.
+          </p>
+          <p className="font-medium text-foreground">Rechtsgrundlage</p>
+          <p>
+            Art. 6 Abs. 1 lit. b DSGVO: Die Angaben sind nötig, um deine Anmeldung zur Gruppe umzusetzen. Das Häkchen im
+            Formular macht das sichtbar; ohne die Angaben ist eine Anmeldung nicht möglich.
+          </p>
+          <p className="font-medium text-foreground">Löschung</p>
+          <Liste
+            punkte={[
+              "Die Trainer:innen können eine Anmeldung jederzeit löschen. Dabei verschwinden auch die Anwesenheitshaken, endgültig.",
+              "Anmeldungen, an denen seit zwölf Monaten nichts mehr passiert ist – keine Anwesenheit, keine Änderung, nichts, das als bezahlt gesetzt wurde –, werden automatisch endgültig gelöscht. Geprüft wird täglich.",
+              "Wird die Gruppe aufgelöst, werden ihre Anmeldungen mit gelöscht.",
+              "Bis eine Löschung auch aus den Datenbanksicherungen verschwindet, dauert es so lange wie in Abschnitt 6 beschrieben.",
+            ]}
+          />
+          <p>
+            Auskunft, Berichtigung oder Löschung kannst du beim Verein verlangen, bei dem du dich angemeldet hast, oder
+            per Nachricht an{" "}
+            <a
+              href={`mailto:${BETREIBER.email}`}
+              className="text-primary-text underline-offset-4 hover:underline [overflow-wrap:anywhere]"
+            >
+              {BETREIBER.email}
+            </a>
+            . Die übrigen Rechte aus Abschnitt 11 gelten für dich genauso.
+          </p>
+        </Abschnitt>
+
+        <Abschnitt titel="10. Wie lange gespeichert wird">
           <Liste
             punkte={[
               "Kontodaten und alles, was daran hängt: bis du das Konto löschst.",
               "Einzelne Einträge – Trainings, Fährten, Hunde: bis du sie löschst.",
+              "Anmeldungen zu einer Gruppe ohne Konto (Abschnitt 9): bis die Trainer:innen sie löschen, spätestens zwölf Monate nach der letzten Anwesenheit, Änderung oder Anmeldung.",
               "Anmelde-Token auf dem Server: der kurzlebige nach einer Stunde, der Erneuerungs-Token spätestens nach 60 Tagen.",
               `Sicherungen der Datenbank: ${SICHERUNG_AUFBEWAHRUNG.lokal} Tage auf dem Server; ausgelagert ${SICHERUNG_AUFBEWAHRUNG.taeglich} Tage (tägliche Stände), ${SICHERUNG_AUFBEWAHRUNG.woechentlich} Tage (wöchentliche) und ${SICHERUNG_AUFBEWAHRUNG.monatlich} Tage (monatliche).`,
             ]}
@@ -307,11 +370,13 @@ export default function DatenschutzPage() {
             Lernfortschritt, deine Zusagen zu Gruppenterminen und deine Vereins- und Gruppenzugehörigkeiten entfernt. Hunde, die du dir mit jemandem
             teilst, bleiben bei der anderen Person – nur deine Verknüpfung damit verschwindet. Wo du als Trainer:in
             Inhalte für einen Verein angelegt hast, bleiben diese Inhalte dem Verein erhalten, die Angabe deiner
-            Urheberschaft wird aber entfernt.
+            Urheberschaft wird aber entfernt. Anmeldungen zu Gruppen, die du als Trainer:in verwaltet hast, gehören dem
+            Verein und bleiben bestehen; nur der Hinweis, dass du „bezahlt“ gesetzt oder jemanden abgehakt hast, wird
+            entfernt.
           </p>
         </Abschnitt>
 
-        <Abschnitt titel="10. Deine Rechte">
+        <Abschnitt titel="11. Deine Rechte">
           <p>Nach der DSGVO stehen dir zu:</p>
           <Liste
             punkte={[
@@ -351,7 +416,7 @@ export default function DatenschutzPage() {
           </p>
         </Abschnitt>
 
-        <Abschnitt titel="11. Sicherheit">
+        <Abschnitt titel="12. Sicherheit">
           <p>
             Die Verbindung ist durchgehend mit TLS verschlüsselt, auch zwischen Cloudflare und dem Server. Passwörter
             werden nur als Hash gespeichert. Anmeldungen laufen über kurzlebige Token, die sich serverseitig widerrufen
@@ -362,7 +427,7 @@ export default function DatenschutzPage() {
           </p>
         </Abschnitt>
 
-        <Abschnitt titel="12. Automatisierte Entscheidungen">
+        <Abschnitt titel="13. Automatisierte Entscheidungen">
           <p>
             Eine automatisierte Entscheidung mit rechtlicher Wirkung findet nicht statt. Dogity erstellt allerdings aus
             deinen eigenen Bewertungen einen Trainingsvorschlag: Übungen, die du schwächer bewertest, plant es häufiger
@@ -370,14 +435,14 @@ export default function DatenschutzPage() {
           </p>
         </Abschnitt>
 
-        <Abschnitt titel="13. Kinder und Jugendliche">
+        <Abschnitt titel="14. Kinder und Jugendliche">
           <p>
             Dogity richtet sich an Erwachsene. Wer jünger als 16 Jahre ist, sollte ein Konto nur mit Zustimmung der
             Eltern anlegen. Erfahre ich, dass ein Konto ohne diese Zustimmung besteht, lösche ich es.
           </p>
         </Abschnitt>
 
-        <Abschnitt titel="14. Änderungen">
+        <Abschnitt titel="15. Änderungen">
           <p>
             Kommt eine Funktion dazu, die Daten anders verarbeitet, ändert sich dieser Text mit. Über nennenswerte
             Änderungen informiert die Seite{" "}

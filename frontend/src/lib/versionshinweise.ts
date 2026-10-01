@@ -62,7 +62,7 @@ export const NACHTRAEGLICH_BIS = "0.9";
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
     version: "0.20",
-    datum: "2026-09-30",
+    datum: "2026-10-01",
     titel: uebersetzbar("Dein Verein lädt dich per QR-Code ein"),
     aenderungen: [
       {
@@ -136,6 +136,22 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       {
         art: "behoben",
         text: uebersetzbar("Auf der Trainer-Seite stand der Pfeil bei „Gruppentraining“ und „Terminplanung“ auf schmalen Bildschirmen unter dem Text. Jetzt steht er rechts daneben."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Gruppen können jetzt ein eigenes Anmeldeformular mit QR-Code anbieten, zum Beispiel für die Welpengruppe. Wer sich anmeldet, braucht kein Dogity-Konto: Name, Rufname und Rasse des Hundes, Wurftag und Telefonnummer genügen. Link und QR-Code findest du auf der Seite der Gruppe, dort gibt es auch einen Aushang zum Ausdrucken. Über eine neue Anmeldung informiert die Glocke die Trainer:innen der Gruppe."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Trainer:innen haken je Termin ab, wer da war, und sehen, wer bezahlt hat. Du wählst den Tag (heute, einen Termin aus der Terminplanung oder ein anderes Datum) und tippst die Teilnehmenden an, jeder Tipp wird sofort gespeichert. Bei jeder Anmeldung steht, wie oft sie schon da war, und „offen“ oder „bezahlt“ lässt sich mit einem Tipp umschalten."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Bisherige Anmeldungen aus einem Google-Formular lassen sich als CSV-Datei übernehmen. Vorher siehst du, wie viele Einträge neu, schon vorhanden oder fehlerhaft sind. Anmeldungen kannst du außerdem von Hand hinzufügen, bearbeiten und löschen."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Anmeldungen zu einer Gruppe werden automatisch gelöscht, wenn ein Jahr lang nichts mehr damit passiert ist, und mit der Gruppe selbst. Das steht auch in der Datenschutzerklärung."),
       },
     ],
   },

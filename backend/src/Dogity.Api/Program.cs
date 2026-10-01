@@ -69,6 +69,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // Adaptive Trainingsplan-Regenerierung im Hintergrund (P4b).
 builder.Services.AddHostedService<PlanRegenerationBackgroundService>();
 
+// Aufbewahrungsfrist der Gruppen-Anmeldungen (12 Monate ohne Aktivität).
+builder.Services.AddHostedService<RegistrationRetentionBackgroundService>();
+
 // Hinter Caddy (Reverse Proxy im Docker-Netzwerk) sieht Kestrel als
 // RemoteIpAddress nur die Proxy-IP. Für IP-basiertes Rate-Limiting und
 // korrekte Logs die X-Forwarded-*-Header übernehmen. KnownIPNetworks/-Proxies
@@ -132,6 +135,21 @@ builder.Services.AddRateLimiter(options =>
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+            }));
+
+    // Öffentliches Anmeldeformular der Gruppen (POST, ohne Konto erreichbar).
+    // Enger als "invite": Hier wird geschrieben, und der Link hängt auf einem
+    // Aushang - jede:r mit dem Code könnte das Formular sonst vollschreiben
+    // (zusätzlich zur Obergrenze je Gruppe und dem Köder-Feld). Zehn je Minute
+    // reichen für jede echte Anmeldung, auch wenn mehrere im Vereinsheim-WLAN
+    // dieselbe IP haben.
+    options.AddPolicy("anmeldung", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
                 Window = TimeSpan.FromMinutes(1),
             }));
 });

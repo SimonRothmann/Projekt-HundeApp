@@ -501,6 +501,48 @@ export type ClubInviteLink = { code: string };
 /** Was die öffentliche Einladungsseite ohne Anmeldung erfährt: nur den Namen. */
 export type ClubInvitePreview = { clubName: string };
 
+/** Anmeldelink einer Gruppe (GET/POST /api/groups/{id}/registration-link). */
+export type GroupRegistrationLink = { code: string };
+
+/**
+ * Was die öffentliche Anmeldeseite ohne Konto erfährt: Vereins- und Gruppenname.
+ * Gehört die Gruppe keinem Verein, fehlt der Vereinsname.
+ */
+export type GroupRegistrationForm = { clubName: string | null; groupName: string };
+
+/** Herkunft einer Anmeldung (numerisch wie alle Aufzählungen der API). */
+export type GroupRegistrationSource = 0 | 1 | 2; // 0 = Formular, 1 = Import, 2 = von Hand
+
+/**
+ * Eine Anmeldung zu einer Gruppe (z. B. Welpengruppe). Die Angemeldeten haben
+ * kein Konto - das sind Kursteilnehmende, keine Gruppenmitglieder.
+ */
+export type GroupRegistration = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dogName: string;
+  dogBreed: string;
+  /** Wurftag, "JJJJ-MM-TT". */
+  dogBirthDate: string;
+  phone: string;
+  source: GroupRegistrationSource;
+  registeredAt: string;
+  /** Wann "bezahlt" gesetzt wurde; null = offen. */
+  paidAt: string | null;
+  notes: string | null;
+  attendanceCount: number;
+};
+
+/** Ein Tag mit Termin der Gruppe, für die Tagesauswahl der Anwesenheit. */
+export type AttendanceDay = { date: string; sessionId: string; startsAt: string };
+
+export type ImportRegistrationsResult = {
+  angelegt: number;
+  uebersprungen: number;
+  fehler: { zeile: number; meldung: string }[];
+};
+
 export type ClubMembership = {
   id: string;
   clubId: string;

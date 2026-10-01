@@ -1,16 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Printer } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { einladungsUrl } from "@/lib/einladung";
 import { useT } from "@/lib/i18n";
 import type { Club, ClubInviteLink } from "@/lib/types";
-import { Button } from "@/components/ui/button";
-import { QrCode } from "@/components/ui/qr-code";
+import { AushangAnsicht, AushangKeinInhalt } from "@/components/trainer/aushang-blatt";
 
 type Stand =
   | { art: "laedt" }
@@ -28,10 +25,9 @@ type Stand =
  * der Server, hier wird nur seine Antwort in eine verständliche Meldung
  * übersetzt. Ohne Berechtigung liefert er den Code gar nicht erst aus.
  *
- * Das Blatt ist bewusst fest schwarz auf weiß (nicht themenabhängig): Im
- * dunklen Erscheinungsbild druckte sonst helle Schrift auf weißes Papier, und
- * ein QR-Code braucht ohnehin hellen Grund. Auf dem Bildschirm dient es
- * zugleich als Vorschau.
+ * Das Blatt selbst (fest schwarz auf weiß, druckfähig) steht in
+ * components/trainer/aushang-blatt.tsx und ist für den Aushang der
+ * Gruppenanmeldung dasselbe.
  */
 export default function AushangPage() {
   const t = useT();
@@ -80,58 +76,26 @@ export default function AushangPage() {
 
   if (stand.art !== "bereit") {
     return (
-      <div className="mx-auto flex max-w-md flex-col gap-4 py-10 text-center">
-        <p>
-          {stand.art === "keinLink"
+      <AushangKeinInhalt
+        text={
+          stand.art === "keinLink"
             ? t("Für diesen Verein gibt es noch keinen Einladungslink. Erstelle ihn zuerst in der Trainer-Übersicht.")
             : stand.art === "keinZugriff"
               ? t("Diesen Aushang kannst du nicht erstellen: Den Verein gibt es nicht, oder du verwaltest ihn nicht.")
-              : t("Der Aushang konnte nicht geladen werden. Versuche es gleich noch einmal.")}
-        </p>
-        <Link href="/trainer" className="text-primary-text underline-offset-4 hover:underline">
-          {t("Zur Trainer-Übersicht")}
-        </Link>
-      </div>
+              : t("Der Aushang konnte nicht geladen werden. Versuche es gleich noch einmal.")
+        }
+      />
     );
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl min-w-0 flex-col gap-6 print:max-w-none">
-      <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("Aushang für {verein}", { verein: stand.vereinsname })}</h1>
-        <Button onClick={() => window.print()}>
-          <Printer className="size-4" />
-          {t("Drucken")}
-        </Button>
-      </div>
-
-      <section className="flex min-w-0 flex-col items-center gap-6 rounded-xl border bg-white p-6 text-center text-black print:rounded-none print:border-0 print:p-0">
-        <p className="text-lg font-semibold [overflow-wrap:anywhere]">{stand.vereinsname}</p>
-        <h2 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">{t("Trainiere mit uns in Dogity")}</h2>
-
-        {/* Gedruckt mindestens 10 cm (Scanner brauchen Reserve, wenn der Aushang
-            in einigen Metern Abstand hängt); auf dem Bildschirm so groß wie
-            der Platz, aber nie breiter als das Blatt - auch bei 375 px. */}
-        <QrCode
-          wert={stand.link}
-          ecc="Q"
-          beschreibung={t("QR-Code mit dem Einladungslink zu {verein}", { verein: stand.vereinsname })}
-          className="w-72 max-w-full print:w-[10cm]"
-        />
-
-        <ol className="flex w-full max-w-md flex-col gap-3 text-left text-lg">
-          {[t("QR-Code scannen"), t("Konto erstellen"), t("Der Verein bestätigt deine Anfrage")].map((schritt, index) => (
-            <li key={index} className="flex items-start gap-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black font-bold text-white">
-                {index + 1}
-              </span>
-              <span className="min-w-0 pt-0.5 [overflow-wrap:anywhere]">{schritt}</span>
-            </li>
-          ))}
-        </ol>
-
-        <p className="w-full text-sm [overflow-wrap:anywhere]">{stand.link}</p>
-      </section>
-    </div>
+    <AushangAnsicht
+      seitentitel={t("Aushang für {verein}", { verein: stand.vereinsname })}
+      name={stand.vereinsname}
+      ueberschrift={t("Trainiere mit uns in Dogity")}
+      schritte={[t("QR-Code scannen"), t("Konto erstellen"), t("Der Verein bestätigt deine Anfrage")]}
+      link={stand.link}
+      qrBeschreibung={t("QR-Code mit dem Einladungslink zu {verein}", { verein: stand.vereinsname })}
+    />
   );
 }
