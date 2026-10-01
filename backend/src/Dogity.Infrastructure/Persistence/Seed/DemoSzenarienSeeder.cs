@@ -198,9 +198,11 @@ public static class DemoSzenarienSeeder
                 await FortschrittEintragenAsync(emma!, aktiv, ct);
             }
 
-            // Prüfung war gestern, Ergebnis fehlt: Zustand "Ergebnis eintragen" - beim zweiten
-            // Hund, damit die Hundeliste beides nebeneinander zeigt.
-            var (offen, offenNeu) = await ZielMitPlanAsync(emma, "FPR", "FCI-FPr 1", 28, NotizFaehrteOffen, ct);
+            // Prüfung war gestern, Ergebnis fehlt: Zustand "Ergebnis eintragen" - bei Wauwau,
+            // NICHT bei Emma: Die Startseite zeigt je Hund nur das nächste Ziel, ein überfälliges
+            // hat Vorrang. An Emma verdeckte es die Zielkarte mit dem Wochenfortschritt.
+            var wauwau = await HundAsync(hunde, "Wauwau", "Beagle", DogGender.Male, new DateOnly(2022, 3, 14), ct);
+            var (offen, offenNeu) = await ZielMitPlanAsync(wauwau, "FPR", "FCI-FPr 1", 28, NotizFaehrteOffen, ct);
             if (offen is not null && offenNeu)
             {
                 await ZielRueckdatierenAsync(offen, tage: 28, ct);
@@ -213,22 +215,21 @@ public static class DemoSzenarienSeeder
         /// Max' zweiter Hund. Einen zweiten Hund gibt es in den Demo-Daten sonst nicht, und ohne ihn
         /// entfielen Leistungen, Fortschritt und der Zustand "Ergebnis eintragen" in der Hundeliste.
         /// </summary>
-        private async Task<Dog?> EmmaAsync(List<Dog> hunde, CancellationToken ct)
-        {
-            var emma = hunde.FirstOrDefault(h => h.Name == "Emma");
-            if (emma is not null) return emma;
+        private Task<Dog?> EmmaAsync(List<Dog> hunde, CancellationToken ct) =>
+            HundAsync(hunde, "Emma", "Australian Shepherd", DogGender.Female, new DateOnly(2023, 5, 20), ct);
 
-            emma = new Dog
-            {
-                Name = "Emma",
-                Breed = "Australian Shepherd",
-                Gender = DogGender.Female,
-                Birthday = new DateOnly(2023, 5, 20),
-            };
-            db.Dogs.Add(emma);
-            db.DogOwners.Add(new DogOwner { DogId = emma.Id, UserId = max.Id });
+        /// <summary>Ein Hund von Max mit diesem Namen - vorhanden oder neu angelegt.</summary>
+        private async Task<Dog?> HundAsync(List<Dog> hunde, string name, string rasse, DogGender geschlecht, DateOnly geburtstag, CancellationToken ct)
+        {
+            var hund = hunde.FirstOrDefault(h => h.Name == name);
+            if (hund is not null) return hund;
+
+            hund = new Dog { Name = name, Breed = rasse, Gender = geschlecht, Birthday = geburtstag };
+            db.Dogs.Add(hund);
+            db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = max.Id });
             await db.SaveChangesAsync(ct);
-            return emma;
+            hunde.Add(hund);
+            return hund;
         }
 
         private async Task<List<Dog>> HundeVonMaxAsync(CancellationToken ct) =>
