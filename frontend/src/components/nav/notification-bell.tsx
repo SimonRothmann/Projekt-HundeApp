@@ -63,7 +63,17 @@ export function NotificationBell() {
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         render={
-          <Button variant="ghost" size="icon" className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            // Sonst liest ein Screenreader nur die Zahl am Symbol vor - oder gar nichts.
+            aria-label={
+              unreadNotificationCount > 0
+                ? t("Benachrichtigungen, {n} ungelesen", { n: unreadNotificationCount })
+                : t("Benachrichtigungen")
+            }
+          >
             <Bell className="size-5" />
             {unreadNotificationCount > 0 && (
               <Badge variant="destructive" className="absolute -right-1 -top-1 h-4 min-w-4 px-1 text-[10px]">

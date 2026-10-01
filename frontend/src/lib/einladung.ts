@@ -48,10 +48,16 @@ export async function beitrittMitMeldung(code: string, t: ReturnType<typeof useT
   try {
     const mitgliedschaft = await api.post<ClubMembership>(`/api/clubs/invite/${code}/join`);
     // 1 = Approved: Wer schon drin ist, bekommt keine "Anfrage gesendet".
+    // Eine schon länger offene Anfrage gibt der Server unverändert zurück
+    // (idempotent) - dann ist "gesendet" falsch, sie wartet bereits.
+    const verein = mitgliedschaft.clubName;
+    const schonOffen = mitgliedschaft.status === 0 && Date.now() - Date.parse(mitgliedschaft.requestedAt) > 60_000;
     toast.success(
       mitgliedschaft.status === 1
-        ? t("Du bist bereits Mitglied bei {verein}.", { verein: mitgliedschaft.clubName })
-        : t("Beitrittsanfrage an {verein} gesendet.", { verein: mitgliedschaft.clubName }),
+        ? t("Du bist bereits Mitglied bei {verein}.", { verein })
+        : schonOffen
+          ? t("Deine Anfrage an {verein} wartet schon auf Freigabe.", { verein })
+          : t("Beitrittsanfrage an {verein} gesendet.", { verein }),
     );
     return true;
   } catch (err) {

@@ -310,8 +310,16 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             .Where(t => t.ClubId == clubId && t.UserId != userId)
             .Select(t => t.UserId)
             .ToListAsync(ct);
-        foreach (var trainerId in trainerIds)
-            await notifications.CreateAsync(trainerId, $"Neue Beitrittsanfrage für \"{club.Name}\".", "/trainer", ct);
+        if (trainerIds.Count > 0)
+        {
+            // Mit Namen: Wer die Glocke öffnet, soll ohne Umweg sehen, wer wartet.
+            var anfragende = await userLookup.FindByIdsAsync([userId], ct);
+            var name = anfragende.TryGetValue(userId, out var info) && !string.IsNullOrWhiteSpace(info.FirstName)
+                ? $"{info.FirstName} {info.LastName}".Trim()
+                : "Jemand";
+            foreach (var trainerId in trainerIds)
+                await notifications.CreateAsync(trainerId, $"{name} möchte dem Verein \"{club.Name}\" beitreten.", "/trainer", ct);
+        }
 
         return Result<ClubMembershipDto>.Success(new ClubMembershipDto(membership.Id, clubId, club.Name, membership.Status, membership.RequestedAt, membership.DecidedAt));
     }
