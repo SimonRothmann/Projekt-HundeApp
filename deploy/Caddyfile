@@ -34,7 +34,13 @@
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
-		Referrer-Policy "strict-origin-when-cross-origin"
+		# "?" = nur setzen, wenn die Antwort keinen eigenen Wert mitbringt.
+		# Die Einladungs- und Anmeldeseiten (/v/…, /anmeldung/…) schicken
+		# bewusst "no-referrer", weil der Code in der Adresse der Schlüssel
+		# ist; ohne "?" überschrieb dieser Standard ihn. Der Block wird wegen
+		# "-Server" erst beim Schreiben der Antwort angewendet und sieht
+		# deshalb, was das Frontend gesetzt hat.
+		?Referrer-Policy "strict-origin-when-cross-origin"
 		-Server
 	}
 }
