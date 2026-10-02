@@ -30,14 +30,19 @@ neu starten. Das gehört an einen Zeitpunkt, den man sich aussucht.
 ssh dogity 'sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin'
 ```
 
-**Wenn sich `deploy/Caddyfile` geändert hat.** Kein Deploy lädt Caddy neu,
-und ein `caddy reload` im laufenden Container sähe weiter die alte Datei: Sie
-ist als einzelne Datei eingebunden, `git pull` legt aber eine neue an, und die
-Einbindung hängt an der alten. Erst prüfen, dann neu starten - ein Fehler in
-der Datei legte sonst alle vier Domains lahm:
+**Ein geänderter `deploy/caddy/Caddyfile` braucht keinen Handgriff mehr.**
+Beide Deploy-Skripte rufen am Ende `scripts/caddy-neu-laden.sh` auf: Caddy
+prüft die neue Datei und tauscht sie ohne Unterbrechung aus; ist sie
+fehlerhaft, läuft er mit der alten weiter und der Deploy endet mit einer
+Fehlermeldung. Das geht, weil der Ordner `deploy/caddy` eingebunden ist und
+nicht die einzelne Datei - die hinge nach `git pull` an der alten Fassung.
+Achtung: Der Caddyfile gilt für alle vier Domains, schon der Test-Deploy
+bringt eine Änderung also auch auf Prod.
+
+Von Hand, etwa nach einer Änderung direkt auf dem Server:
 
 ```bash
-ssh dogity 'cd /opt/dogity && git pull && docker compose run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile && docker compose restart caddy'
+ssh dogity '/opt/dogity/scripts/caddy-neu-laden.sh'
 ```
 
 **2. Postgres und Caddy nachziehen.** Die beiden fasst kein Deploy an - sie

@@ -127,7 +127,10 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Der ORDNER, nicht die Datei: git pull legt den Caddyfile neu an, eine
+      # Einzeldatei-Einbindung hinge weiter an der alten. So kann
+      # scripts/caddy-neu-laden.sh ihn bei jedem Deploy ohne Neustart laden.
+      - ./deploy/caddy:/etc/caddy:ro
       - caddy-data:/data
       - caddy-config:/config
     environment:

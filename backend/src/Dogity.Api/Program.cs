@@ -95,7 +95,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // pro IP reicht für jede legitime Nutzung (auch Familien hinter einem NAT).
 //
 // Die IP stimmt nur, weil Caddy hinter Cloudflare die echte Client-Adresse
-// weiterreicht (siehe deploy/Caddyfile, servers-Block). Ohne das zählte
+// weiterreicht (siehe deploy/caddy/Caddyfile, servers-Block). Ohne das zählte
 // dieser Topf je Cloudflare-Knoten statt je Person.
 builder.Services.AddRateLimiter(options =>
 {

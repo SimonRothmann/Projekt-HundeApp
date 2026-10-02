@@ -95,6 +95,11 @@ export BUILD_REF="$BUILD_TIME"
 docker compose build --pull frontend-test
 docker compose up -d --force-recreate frontend-test
 
+# Ein geänderter Caddyfile greift sonst erst beim nächsten Handgriff.
+# Scheitert das Laden, bricht der Deploy hier ab - die App läuft dann
+# schon neu, nur Caddy noch mit der alten Datei.
+"$REPO_DIR/scripts/caddy-neu-laden.sh"
+
 echo "==> Abschliessender Rauchtest"
 curl -sS -o /dev/null -w "test-api: HTTP %{http_code}\n" https://api-test.dogity.net/health
 curl -sS -o /dev/null -w "test:     HTTP %{http_code}\n" https://test.dogity.net/

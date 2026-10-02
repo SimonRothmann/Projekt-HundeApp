@@ -218,9 +218,9 @@ Avatar-Adresse, JWT-Schlüssel wird beim Start geprüft, kein X-Powered-By.
 
 Nicht im Code lösbar - auf dem Server bzw. im Cloudflare-Dashboard:
 
-- [ ] **Caddy neu starten** nach dem nächsten Pull - sonst greift die echte
-      Client-IP nicht (Befehl in docs/BETRIEB.md, "Wenn sich deploy/Caddyfile
-      geändert hat").
+- [x] **Caddy neu starten** nach dem nächsten Pull - sonst greift die echte
+      Client-IP nicht. Erledigt (2026-10-01); künftig lädt jeder Deploy den
+      Caddyfile selbst (scripts/caddy-neu-laden.sh, docs/BETRIEB.md).
 - [ ] **SSH nur mit Schlüssel.** Der Server bietet Passwort-Anmeldung an
       (`Permission denied (publickey,password)`, auch für root). In
       `/etc/ssh/sshd_config.d/` `PasswordAuthentication no` und
