@@ -201,7 +201,7 @@ export default function StatsPage() {
                             {dog.planItemsCompleted} / {dog.planItemsTotal}
                           </span>
                         </div>
-                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div className="h-2 rounded-full bg-primary/15 overflow-hidden">
                           <div
                             className="h-full bg-primary transition-all"
                             style={{ width: `${(dog.planItemsCompleted / dog.planItemsTotal) * 100}%` }}

@@ -29,7 +29,7 @@ import { useT } from "@/lib/i18n";
 import { usePreferences } from "@/lib/preferences-context";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
 const textareaClass =
-  "w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/60 md:text-sm dark:bg-input/30";
+  "w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/85 dark:focus-visible:ring-ring/60 md:text-sm dark:bg-input/30";
 
 const DIFFICULTIES: ExerciseDifficulty[] = [0, 1, 2];
 

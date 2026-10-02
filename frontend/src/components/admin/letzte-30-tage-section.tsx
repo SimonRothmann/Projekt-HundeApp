@@ -96,7 +96,7 @@ function Balkenzeile({
         </span>
       </div>
       {/* Reiner Schmuck: die Zahl steht daneben im Text. */}
-      <div aria-hidden className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+      <div aria-hidden className="mt-1 h-2 overflow-hidden rounded-full bg-primary/15">
         <div className="h-full rounded-full bg-primary" style={{ width: `${balkenProzent(wert, bezug)}%` }} />
       </div>
       {bezugText && <p className="mt-1 text-xs text-muted-foreground">{bezugText}</p>}

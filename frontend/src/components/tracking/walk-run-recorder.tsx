@@ -220,8 +220,13 @@ export function WalkRunRecorder({
             <>
               {" · "}
               <span
+                // Wie beim Legen: im Sonnenlicht lesbar (siehe fahrte-recorder.tsx).
                 className={
-                  currentAccuracy <= 10 ? "text-green-600" : currentAccuracy <= 25 ? "text-yellow-600" : "text-red-600"
+                  currentAccuracy <= 10
+                    ? "font-semibold text-green-700 dark:text-green-400"
+                    : currentAccuracy <= 25
+                      ? "font-semibold text-amber-700 dark:text-amber-400"
+                      : "font-semibold text-destructive"
                 }
                 title={t("GPS-Genauigkeit (Radius des Fehlerkreises).")}
               >

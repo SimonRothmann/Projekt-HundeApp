@@ -117,7 +117,7 @@ function schluesselKlasse(
   if (!aufgeloest) {
     return aktiv
       ? "border-primary bg-primary/15 text-primary-text"
-      : "border-border/60 hover:border-primary/50 hover:bg-accent/30";
+      : "border-input hover:border-primary/50 hover:bg-accent/30";
   }
   // Nach dem Auflösen: die richtige Zuordnung immer grün, eine falsch gewählte
   // rot. So sieht man in einem Blick, was man verwechselt hat.

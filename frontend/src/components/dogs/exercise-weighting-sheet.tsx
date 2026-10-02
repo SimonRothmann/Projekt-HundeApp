@@ -116,7 +116,7 @@ export function ExerciseWeightingSheet({ goalId }: { goalId: string }) {
                               ? s.value === 0
                                 ? "border-border bg-muted text-foreground"
                                 : "border-primary bg-primary/10 text-primary-text"
-                              : "border-border text-muted-foreground hover:bg-muted",
+                              : "border-input text-muted-foreground hover:bg-muted",
                           )}
                         >
                           {s.short}

@@ -123,7 +123,7 @@ export function RegistrationList({
                 onClick={() => setFilter(wert)}
                 className={cn(
                   "min-h-9 rounded-full border px-3 text-sm font-medium transition-colors coarse:min-h-11",
-                  filter === wert ? "border-primary bg-primary/10 text-primary-text" : "border-border text-muted-foreground hover:bg-muted",
+                  filter === wert ? "border-primary bg-primary/10 text-primary-text" : "border-input text-muted-foreground hover:bg-muted",
                 )}
               >
                 {label}

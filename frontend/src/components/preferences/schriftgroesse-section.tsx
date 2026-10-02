@@ -78,7 +78,7 @@ export function SchriftgroesseSection() {
                 STUFEN[stufe].vorschau,
                 gewaehlt === stufe
                   ? "border-primary bg-primary/10 font-medium text-foreground"
-                  : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+                  : "border-input text-muted-foreground hover:border-foreground/30 hover:text-foreground",
               )}
             >
               {t(STUFEN[stufe].label)}

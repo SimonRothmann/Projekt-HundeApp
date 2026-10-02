@@ -374,7 +374,7 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
                         <span
                           className={cn(
                             "block size-4 rounded-full border",
-                            gewaehlt.includes(option.id) ? "border-primary bg-primary/30" : "border-muted-foreground/40",
+                            gewaehlt.includes(option.id) ? "border-primary bg-primary/30" : "border-muted-foreground",
                           )}
                         />
                       )}
@@ -456,7 +456,7 @@ function antwortKlasse(
   if (!auswertung) {
     return gewaehlt.includes(optionId)
       ? "border-primary bg-primary/10"
-      : "border-border/60 hover:border-primary/50 hover:bg-accent/30";
+      : "border-input hover:border-primary/50 hover:bg-accent/30";
   }
   if (istRichtig) return "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
   if (gewaehlt.includes(optionId)) return "border-destructive/60 bg-destructive/10 text-destructive";

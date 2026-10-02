@@ -77,7 +77,7 @@ export default function TrainerVereinPage() {
                 "inline-flex min-h-9 max-w-full min-w-0 items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors coarse:min-h-11",
                 c.id === club.id
                   ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background hover:bg-muted",
+                  : "border-input bg-background hover:bg-muted",
               )}
             >
               <span className="truncate">{c.name}</span>

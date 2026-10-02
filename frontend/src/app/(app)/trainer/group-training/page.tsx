@@ -28,7 +28,7 @@ const EXAM_FLAGS: { bit: number; label: string }[] = [
 const examLabels = (mask: number) => EXAM_FLAGS.filter((f) => (mask & f.bit) !== 0).map((f) => f.label);
 
 const textareaClass =
-  "w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
+  "w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/85 dark:focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
 
 type ExerciseForm = {
   id: string | null;

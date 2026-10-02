@@ -78,14 +78,17 @@ export function UpcomingTrainingsSection({ sessions }: { sessions: GroupTraining
         {sessions.slice(0, 5).map((quelle) => {
           const s = angezeigt(quelle);
           return (
-          <div key={s.id} className={s.status === 1 ? "rounded-md border p-2.5 opacity-60" : "rounded-md border p-2.5"}>
+          // Abgesagt: kein Abdunkeln des ganzen Termins (das drückte auch die
+          // Schrift unter die Lesbarkeitsgrenze), sondern Titel durchgestrichen
+          // und gedämpft, dazu das Abzeichen in voller Deckkraft.
+          <div key={s.id} className="rounded-md border p-2.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-medium [overflow-wrap:anywhere]">
+              <span className={cn("text-sm font-medium [overflow-wrap:anywhere]", s.status === 1 && "text-muted-foreground line-through")}>
                 {fmt(s.startsAt, ort)} · {s.groupName}
               </span>
               <span className="flex shrink-0 items-center gap-1">
                 <Badge variant="secondary">{t(categoryLabel[s.category])}</Badge>
-                {s.status === 1 && <Badge variant="outline">{t("Abgesagt")}</Badge>}
+                {s.status === 1 && <Badge variant="destructive">{t("Abgesagt")}</Badge>}
               </span>
             </div>
             {s.location && (
@@ -121,7 +124,7 @@ export function UpcomingTrainingsSection({ sessions }: { sessions: GroupTraining
                               ? wahl.kommt
                                 ? "border-primary bg-primary/15 font-medium text-primary-text"
                                 : "border-destructive/50 bg-destructive/10 font-medium text-destructive"
-                              : "border-border/60 text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
+                              : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
                           )}
                         >
                           {wahl.text}

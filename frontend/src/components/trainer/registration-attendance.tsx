@@ -146,7 +146,7 @@ export function RegistrationAttendance({
               onClick={() => setDatum(tag)}
               className={cn(
                 "min-h-9 rounded-full border px-3 text-sm font-medium transition-colors coarse:min-h-11",
-                datum === tag ? "border-primary bg-primary/10 text-primary-text" : "border-border text-muted-foreground hover:bg-muted",
+                datum === tag ? "border-primary bg-primary/10 text-primary-text" : "border-input text-muted-foreground hover:bg-muted",
               )}
             >
               {tag === heute ? t("Heute") : tagKurz(tag, sprache)}
@@ -200,14 +200,14 @@ export function RegistrationAttendance({
                     onClick={() => void umschalten(r)}
                     className={cn(
                       "flex min-h-14 w-full min-w-0 items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors disabled:opacity-60",
-                      istDa ? "border-primary bg-primary/10" : "border-border hover:bg-muted",
+                      istDa ? "border-primary bg-primary/10" : "border-input hover:bg-muted",
                     )}
                   >
                     <span
                       aria-hidden="true"
                       className={cn(
                         "flex size-8 shrink-0 items-center justify-center rounded-md border-2",
-                        istDa ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40",
+                        istDa ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground",
                       )}
                     >
                       {istDa && <Check className="size-5" strokeWidth={3} />}

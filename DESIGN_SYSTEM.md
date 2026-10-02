@@ -255,6 +255,34 @@ Radix Colors und WCAG 2.2 (geprüft 2026-09-10). Die Werte stehen in
 | Eingabefeld-Rand auf Karte | 1,51:1 (durchgefallen) | 3,30:1 |
 | Helligkeitsstufe Karte über Seite | ΔL 0,05 | ΔL 0,07 |
 
+**Heller Modus, Fassung L3 (2026-10-02)** - draußen in der Sonne gelesen,
+gemessen wie oben (OKLCH → sRGB → WCAG):
+
+| Paar | vorher | nachher |
+|---|---|---|
+| Eingabe-/Knopfrand (`--input`) auf Karte / Seite | 1,26:1 / 1,21:1 (durchgefallen) | 3,36:1 / 3,22:1 |
+| Fokusring (`--ring` deckend, Klasse `/85`) auf Karte / Seite | ca. 1,3:1 | 3,45:1 / 3,38:1 |
+| Rot (`--destructive`) als Text auf Weiß | 4,41:1 | 6,15:1 |
+| Weiße Schrift auf Rot | 4,29:1 | 5,98:1 |
+| Status-Text (`green-700` / `amber-700`) auf Karte | 3,2:1 (`-600`) | 5,02:1 |
+
+Folgen für den Code:
+
+- Alles, was man antippt und das einen Rand hat (Eingabe, Auswahl,
+  Outline-Knopf, nicht gewählter Chip/Umschalter), nutzt `border-input`.
+  `--border` bleibt leise und ist nur für Trennlinien und Karten da.
+- `--input` ist kein Flächenton mehr. Als Fläche dient `muted` (hell);
+  `bg-input/30` steht nur noch hinter `dark:`.
+- Fokusringe: hell `ring-ring/85`, dunkel `dark:ring-ring/50` bzw. `/60`
+  (dunkel unverändert: 3,3:1 auf Karte). Wer einen neuen Baustein mit
+  Fokusring baut, setzt beide Klassen.
+- Leere Spur eines Fortschrittsbalkens: `bg-primary/15` (1,14:1 auf Karte
+  statt 1,10:1 mit `bg-muted`) - sie verschwindet draußen nicht mehr
+  ganz; die Aussage trägt die gefüllte Strecke (5,31:1 dazu).
+- Abgesagte Termine nicht per `opacity` ausblenden (drückt die Schrift unter
+  4,5:1), sondern Titel `line-through text-muted-foreground` und
+  `Badge variant="destructive"`.
+
 
 ---
 

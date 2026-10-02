@@ -57,7 +57,9 @@ export function WalkRunEvaluation({ run }: { run: GpsWalkRun }) {
   const unexplained = stops.filter((s) => s.kind === 0).length;
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-md border bg-muted/30 p-2.5">
+    // Kein eigener Rand/Hintergrund: Der Ablauf-Kasten (gps-track-section.tsx)
+    // trägt die Werte schon - ein dritter Kasten darin machte die Zeile eng.
+    <div className="flex flex-col gap-1.5 pt-1">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className={cn("text-sm font-semibold", ampelClass(avg))}>
           {t("Ø {meter} m", { meter: Math.round(avg) })}

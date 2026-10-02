@@ -86,10 +86,16 @@
      siehe DESIGN_SYSTEM.md "Gliederung einer Seite". */
   --surface: oklch(0.968 0.008 255 / 75%);
   --surface-border: oklch(0.922 0.014 255);
-  --destructive: oklch(0.6 0.22 22);
+  /* Rot als Text und als Fläche mit weißer Schrift: 6,15:1 auf Weiß, 5,98:1
+     für weiße Schrift (vorher 4,41:1 bzw. 4,29:1). */
+  --destructive: oklch(0.52 0.21 22);
   --border: oklch(0.922 0.014 255); /* slate-200 */
-  --input: oklch(0.922 0.014 255);
-  --ring: oklch(0.52 0.24 277 / 45%);
+  /* Rand von Eingaben und Knöpfen (WCAG 1.4.11, >= 3:1): 3,36:1 auf Karte,
+     3,22:1 auf Seite. Trennlinien und Karten (--border) bleiben leise. */
+  --input: oklch(0.64 0.025 262);
+  /* Deckend: die Fokusringe der Bausteine mischen ihn mit /85 (hell) bzw.
+     /50-/60 (dunkel), siehe DESIGN_SYSTEM.md "Kontrast". */
+  --ring: oklch(0.52 0.24 277);
   --chart-1: oklch(0.52 0.24 277); /* indigo */
   --chart-2: oklch(0.72 0.13 205); /* cyan */
   --chart-3: oklch(0.67 0.27 330); /* fuchsia */
@@ -175,7 +181,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring/85 dark:outline-ring/50;
     /* Theme-Wechsel (Light/Dark) und Hover/Fokus-Zustände sollen weich
        ineinander überblenden statt hart umzuschalten - ohne das wechseln
        Hintergrund-/Textfarben beim Klick auf den Theme-Toggle abrupt. */

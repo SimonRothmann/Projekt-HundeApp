@@ -274,7 +274,7 @@ export function ZielAbschliessen({
                         "flex min-h-10 items-center justify-center rounded-md border px-2 text-sm font-medium transition-colors coarse:min-h-11",
                         bestanden === wert
                           ? "border-primary bg-primary/10 text-primary-text"
-                          : "border-border text-muted-foreground hover:bg-muted",
+                          : "border-input text-muted-foreground hover:bg-muted",
                       )}
                     >
                       {label}

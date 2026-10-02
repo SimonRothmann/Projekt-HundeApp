@@ -24,7 +24,7 @@ const chipKlasse = (aktiv: boolean) =>
     "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11 disabled:opacity-60",
     aktiv
       ? "border-primary bg-primary/15 font-medium text-primary-text"
-      : "border-border/60 text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
+      : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
   );
 
 /**

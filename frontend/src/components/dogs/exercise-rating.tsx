@@ -65,8 +65,8 @@ export function ExerciseRating({
         {/* Gefüllte und leere Sterne verschieden eingefärbt: einfarbig grau
             musste man die Sternchen zählen, um die Bewertung zu lesen. */}
         <span role="img" aria-label={t("Bewertung {wert} von 5", { wert: rating })}>
-          <span className="text-accent">{"★".repeat(rating)}</span>
-          <span className="text-muted-foreground/40">{"☆".repeat(5 - rating)}</span>
+          <span className="text-amber-700 dark:text-amber-400">{"★".repeat(rating)}</span>
+          <span className="text-muted-foreground">{"☆".repeat(5 - rating)}</span>
         </span>
         {/* Nicht erfolgreich ist die Ausnahme und die eigentliche Auskunft -
             die wird hervorgehoben, das Häkchen bleibt zurückhaltend. */}

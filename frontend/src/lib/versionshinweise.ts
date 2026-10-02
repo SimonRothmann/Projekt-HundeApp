@@ -113,6 +113,14 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("Beim Abhaken der Anwesenheit stehen nur „Heute“ und vergangene Termine zur Wahl, das Feld für einen anderen Tag folgt direkt dahinter. In der Anmeldeliste steht statt „offen“ jetzt „nicht bezahlt“, der Filter heißt „Unbezahlt“."),
       },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Besser lesbar im hellen Modus und draußen: Ränder von Eingabefeldern, Knöpfen und Auswahlfeldern sowie der Rahmen beim Antippen sind deutlicher, Rot ist kräftiger. Beim Aufzeichnen sind GPS-Werte und Beschriftungen der Marker-Knöpfe auch in der Sonne gut zu lesen."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Abgesagte Termine sind jetzt gut lesbar: der Titel ist durchgestrichen und „Abgesagt“ steht deutlich in Rot, statt dass der ganze Termin verblasst. Sterne bei Bewertungen und leere Fortschrittsbalken heben sich besser ab."),
+      },
     ],
   },
   {

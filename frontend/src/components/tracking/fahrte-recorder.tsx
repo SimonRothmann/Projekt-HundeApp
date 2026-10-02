@@ -276,7 +276,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
                           "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11",
                           aktiv
                             ? "border-primary bg-primary/15 text-primary-text"
-                            : "border-border/60 text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
+                            : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
                         )}
                       >
                         {t(u)}
@@ -306,12 +306,14 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
             <>
               {" · "}
               <span
+                // Draußen im Sonnenlicht gelesen: 700er-Töne im Hellen (>= 5:1 auf
+                // Weiß), halbfett, damit "±6 m" nicht in der Leiste untergeht.
                 className={
                   currentAccuracy <= 8
-                    ? "text-green-600"
+                    ? "font-semibold text-green-700 dark:text-green-400"
                     : currentAccuracy <= 15
-                      ? "text-yellow-600"
-                      : "text-red-600"
+                      ? "font-semibold text-amber-700 dark:text-amber-400"
+                      : "font-semibold text-destructive"
                 }
                 title={t("GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als 8 m werden verworfen; findet das GPS länger keinen genauen Fix (z.B. ohne Netz), lockert sich der Filter schrittweise bis 20 m.")}
               >
@@ -324,7 +326,9 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
       aktionen={
         // Ein Knopf je Markerart, nebeneinander im Daumenbereich. h-16 statt
         // der üblichen Knopfhöhe: Das Ziel muss mit einer Hand, im Stehen,
-        // ohne Hinsehen zu treffen sein.
+        // ohne Hinsehen zu treffen sein. Die Beschriftung bricht um statt
+        // abgeschnitten zu werden ("Leckerlipot" muss man draußen ganz lesen
+        // können); min-h-16 hält die Tippfläche bei jedem Umbruch >= 44 px.
         <div className="grid grid-cols-4 gap-2">
           {MARKER_TYPES.map((markerArt) => (
             <Button
@@ -333,10 +337,10 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
               variant="outline"
               disabled={isMarking}
               onClick={() => markObject(markerArt.value)}
-              className="h-16 flex-col gap-1 px-1 text-[11px] leading-tight"
+              className="h-auto min-h-16 flex-col gap-1 px-1 py-1.5 text-xs leading-tight whitespace-normal"
             >
               <markerArt.icon className="size-5 shrink-0" />
-              <span className="w-full truncate">{t(markerArt.label)}</span>
+              <span className="w-full min-w-0 text-center break-words">{t(markerArt.label)}</span>
             </Button>
           ))}
         </div>

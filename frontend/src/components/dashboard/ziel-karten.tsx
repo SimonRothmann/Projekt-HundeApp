@@ -82,7 +82,7 @@ function ZielKarte({ eintrag }: { eintrag: ZielKarteEintrag }) {
               {Array.from({ length: fortschritt.geplant }, (_, i) => (
                 <span
                   key={i}
-                  className={cn("h-1.5 min-w-0 flex-1 rounded-full", i < fortschritt.erledigt ? "bg-primary" : "bg-muted")}
+                  className={cn("h-1.5 min-w-0 flex-1 rounded-full", i < fortschritt.erledigt ? "bg-primary" : "bg-primary/15")}
                 />
               ))}
             </div>

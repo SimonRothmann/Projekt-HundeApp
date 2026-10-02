@@ -32,7 +32,7 @@ const categoryLabel: Record<GroupTrainingCategory, string> = { 0: uebersetzbar("
 const categoryVariant: Record<GroupTrainingCategory, "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
 
 const textareaClass =
-  "w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
+  "w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/85 dark:focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -528,16 +528,16 @@ export default function SchedulePage() {
           ) : (
             <div className="flex flex-col gap-2">
               {sessions.map((s) => (
-                <Card key={s.id} className={cn(s.status === 1 && "opacity-60")}>
+                <Card key={s.id}>
                   <CardContent className="flex flex-col gap-2 p-3">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium">{fmtDate(s.startsAt)} · {fmtTime(s.startsAt)} <span className="text-muted-foreground">({t("{n} Min.", { n: s.durationMinutes })})</span></p>
+                        <p className={cn("text-sm font-medium", s.status === 1 && "text-muted-foreground line-through")}>{fmtDate(s.startsAt)} · {fmtTime(s.startsAt)} <span className="text-muted-foreground">({t("{n} Min.", { n: s.durationMinutes })})</span></p>
                         <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{s.groupName}</p>
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                         <Badge variant={categoryVariant[s.category]}>{t(categoryLabel[s.category])}</Badge>
-                        {s.status === 1 && <Badge variant="outline">{t("Abgesagt")}</Badge>}
+                        {s.status === 1 && <Badge variant="destructive">{t("Abgesagt")}</Badge>}
                       </div>
                     </div>
                     {s.location && <p className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3" />{s.location}</p>}
@@ -547,7 +547,7 @@ export default function SchedulePage() {
                       <p className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="size-3" />{uebungenText(s)}</p>
                     )}
                     {s.items.length > 0 && (
-                      <ol className="flex flex-col gap-0.5 pl-1 text-sm">
+                      <ol className={cn("flex flex-col gap-0.5 pl-1 text-sm", s.status === 1 && "text-muted-foreground")}>
                         {s.items.map((i, idx) => (
                           <li key={i.id} className="[overflow-wrap:anywhere]">{idx + 1}. {i.exercise ? i.exercise.title : i.freeText}{i.exercise?.focus && <span className="text-muted-foreground"> · {i.exercise.focus}</span>}</li>
                         ))}

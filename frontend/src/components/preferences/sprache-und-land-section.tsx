@@ -165,7 +165,7 @@ function Wahl({
         "inline-flex min-h-9 items-center rounded-full border px-3 text-sm transition-colors disabled:opacity-60",
         aktiv
           ? "border-primary bg-primary/10 font-medium text-foreground"
-          : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+          : "border-input text-muted-foreground hover:border-foreground/30 hover:text-foreground",
       )}
     >
       {children}
