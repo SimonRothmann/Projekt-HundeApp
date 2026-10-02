@@ -64,7 +64,7 @@ public class ClubServiceTests
 
         var hinweis = Assert.Single(notifications.Created);
         Assert.Equal(trainerId, hinweis.UserId);
-        Assert.Equal("/trainer", hinweis.LinkPath);
+        Assert.Equal("/trainer/anfragen", hinweis.LinkPath);
     }
 
     [Fact]

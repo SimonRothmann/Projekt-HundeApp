@@ -77,9 +77,10 @@ export default function AushangPage() {
   if (stand.art !== "bereit") {
     return (
       <AushangKeinInhalt
+        zurueck={{ href: "/trainer/verein", label: t("Zum Verein") }}
         text={
           stand.art === "keinLink"
-            ? t("Für diesen Verein gibt es noch keinen Einladungslink. Erstelle ihn zuerst in der Trainer-Übersicht.")
+            ? t("Für diesen Verein gibt es noch keinen Einladungslink. Erstelle ihn zuerst auf der Seite „Verein“.")
             : stand.art === "keinZugriff"
               ? t("Diesen Aushang kannst du nicht erstellen: Den Verein gibt es nicht, oder du verwaltest ihn nicht.")
               : t("Der Aushang konnte nicht geladen werden. Versuche es gleich noch einmal.")

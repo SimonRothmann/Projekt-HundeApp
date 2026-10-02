@@ -15,14 +15,25 @@ import { useT } from "@/lib/i18n";
 /**
  * Offene Beitrittsanfragen an die eigenen Vereine.
  *
- * Steht oben auf der Trainerseite und zeigt sich deshalb nur, solange es
- * offene Anfragen gibt - ein Kasten "Keine offenen Anfragen" ganz oben wäre
- * Lärm. Dafür werden die Anfragen ALLER Vereine geladen, nicht nur die des
- * gewählten: Sonst verschwände der Kasten samt Vereinsauswahl, sobald der
- * erste Verein keine Anfragen hat, und die eines zweiten Vereins wären
- * unerreichbar.
+ * Steht auf /trainer/anfragen und zeigt sich nur, solange es offene Anfragen
+ * gibt - den Leerzustand ("Keine offenen Anfragen.") zeigt die Seite, die
+ * über `onAnzahl` erfährt, wie viele es sind. Dafür werden die Anfragen ALLER
+ * Vereine geladen, nicht nur die des gewählten: Sonst verschwände der Kasten
+ * samt Vereinsauswahl, sobald der erste Verein keine Anfragen hat, und die
+ * eines zweiten Vereins wären unerreichbar.
+ *
+ * `onFehler` meldet, wenn eine Abfrage scheiterte: Die Seite darf dann nicht
+ * "Keine offenen Anfragen." behaupten.
  */
-export function ClubJoinRequestsSection({ clubs }: { clubs: Club[] }) {
+export function ClubJoinRequestsSection({
+  clubs,
+  onAnzahl,
+  onFehler,
+}: {
+  clubs: Club[];
+  onAnzahl?: (anzahl: number) => void;
+  onFehler?: () => void;
+}) {
   const t = useT();
   const [anfragen, setAnfragen] = useState<Record<string, ClubMemberRequest[]> | null>(null);
   const [selectedClubId, setSelectedClubId] = useState("");
@@ -36,12 +47,14 @@ export function ClubJoinRequestsSection({ clubs }: { clubs: Club[] }) {
           return [id, await api.get<ClubMemberRequest[]>(`/api/clubs/${id}/join-requests`)] as const;
         } catch (err) {
           toast.error(err instanceof ApiError ? err.message : t("Beitrittsanfragen konnten nicht geladen werden."));
+          onFehler?.();
           return [id, [] as ClubMemberRequest[]] as const;
         }
       }),
     );
     const nachVerein = Object.fromEntries(ergebnisse);
     setAnfragen(nachVerein);
+    onAnzahl?.(Object.values(nachVerein).reduce((summe, liste) => summe + liste.length, 0));
     // Beim gewählten Verein bleiben, solange er noch Anfragen hat; sonst zum
     // nächsten mit offenen Anfragen wechseln.
     setSelectedClubId((aktuell) =>

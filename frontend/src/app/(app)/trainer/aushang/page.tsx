@@ -6,5 +6,5 @@ import { redirect } from "next/navigation";
  * und die soll nicht ins Leere laufen.
  */
 export default function AushangIndexPage() {
-  redirect("/trainer");
+  redirect("/trainer/verein");
 }

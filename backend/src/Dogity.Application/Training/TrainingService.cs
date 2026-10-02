@@ -580,9 +580,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         // Offen = kein Gesamt-Feedback ODER mindestens eine unbewertete Übung.
         // Geladen werden ALLE Übungen des Trainings (auch bereits bewertete),
         // damit der Trainer den ganzen Trainingstag auf einen Blick sieht.
-        var sessions = await db.TrainingSessions
-            .Where(s => assignedDogIds.Contains(s.DogId))
-            .Where(s => s.TrainerFeedback == null || s.Exercises.Any(e => e.TrainerRating == null))
+        var sessions = await db.TrainingSessionsToRate(assignedDogIds)
             .OrderByDescending(s => s.Date)
             .Include(s => s.Exercises)
             .ThenInclude(e => e.Exercise)

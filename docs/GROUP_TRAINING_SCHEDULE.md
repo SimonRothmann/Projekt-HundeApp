@@ -72,7 +72,7 @@ mit passenden Fokus-Labels ab (Futterhand/Spielen/Ablage/Ablenkung …).
   Inhalt generieren/aus Bibliothek/manuell, Ort, Absage/Löschen).
 - Mitglieder: „Nächste Gruppentrainings"-Sektion auf dem Dashboard mit „Ich komme" /
   „Kann nicht" und „Zum Kalender" (iCalendar-Datei aus `lib/kalender.ts`, ohne Personendaten).
-- Trainer:innen: Karte „Nächster Termin" mit Zählung ganz oben auf `/trainer`.
+- Trainer:innen: Karte „Nächster Termin" mit Zählung oben auf `/trainer` (unter „Zu erledigen", falls etwas offen ist).
 
 ## Zurückgestellt (Follow-up)
 

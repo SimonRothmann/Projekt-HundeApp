@@ -8,15 +8,16 @@ import { QrCode } from "@/components/ui/qr-code";
 
 /**
  * Meldung statt Aushang: kein Link, kein Zugriff, Ladefehler. Eine Stelle für
- * beide Aushänge (Vereinseinladung und Gruppenanmeldung).
+ * beide Aushänge (Vereinseinladung und Gruppenanmeldung). `zurueck` ersetzt
+ * den Weg zur Trainer-Übersicht, wo der Aushang woanders hingehört (Verein).
  */
-export function AushangKeinInhalt({ text }: { text: string }) {
+export function AushangKeinInhalt({ text, zurueck }: { text: string; zurueck?: { href: string; label: string } }) {
   const t = useT();
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4 py-10 text-center">
       <p>{text}</p>
-      <Link href="/trainer" className="text-primary-text underline-offset-4 hover:underline">
-        {t("Zur Trainer-Übersicht")}
+      <Link href={zurueck?.href ?? "/trainer"} className="text-primary-text underline-offset-4 hover:underline">
+        {zurueck?.label ?? t("Zur Trainer-Übersicht")}
       </Link>
     </div>
   );

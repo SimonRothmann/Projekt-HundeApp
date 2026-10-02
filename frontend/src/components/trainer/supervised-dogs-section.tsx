@@ -6,13 +6,14 @@ import { api, ApiError } from "@/lib/api";
 import type { SupervisedDog } from "@/lib/types";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
-import { ChevronRight, PawPrint } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, PawPrint } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
 /**
- * Die betreuten Hunde als flache Liste, direkt auf der Trainerseite.
+ * Die betreuten Hunde als flache Liste, direkt auf der Trainer-Übersicht.
  *
  * Vorher führte der einzige Weg zum Trainingsplan eines betreuten Hundes über
  * Gruppe öffnen -> Mitglied aufklappen -> Hund antippen -> auf der Hundeseite
@@ -21,10 +22,16 @@ import { useT } from "@/lib/i18n";
  * (#trainingsplan, siehe Hundeseite).
  *
  * Der Rückweg führt zurück hierher statt zu den eigenen Hunden (?from=).
+ *
+ * Mit `vorschau` zeigt die Karte nur die ersten Hunde und darunter "Alle
+ * anzeigen (n)", das die Liste an Ort und Stelle aufklappt: Bei vielen
+ * betreuten Hunden schob die volle Liste sonst alles Weitere der
+ * Trainer-Übersicht aus dem Bild.
  */
-export function SupervisedDogsSection() {
+export function SupervisedDogsSection({ vorschau }: { vorschau?: number } = {}) {
   const t = useT();
   const [dogs, setDogs] = useState<SupervisedDog[] | null>(null);
+  const [alleZeigen, setAlleZeigen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -53,6 +60,10 @@ export function SupervisedDogsSection() {
   // betreut wird über die Gruppe ("Hund betreuen"), nicht von hier aus.
   if (dogs !== null && dogs.length === 0) return null;
 
+  const gekuerzt = vorschau !== undefined && dogs !== null && dogs.length > vorschau && !alleZeigen;
+  const sichtbar = dogs && gekuerzt ? dogs.slice(0, vorschau) : dogs;
+  const kuerzbar = vorschau !== undefined && dogs !== null && dogs.length > vorschau;
+
   return (
     <Card>
       <CardHeader className="items-center">
@@ -71,7 +82,7 @@ export function SupervisedDogsSection() {
           <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : (
           <ul className="flex flex-col gap-1.5">
-            {dogs.map((dog) => (
+            {sichtbar?.map((dog) => (
               <li key={dog.id}>
                 <Link
                   // scroll={false}: Next scrollt sonst selbst - und zwar nach
@@ -107,6 +118,18 @@ export function SupervisedDogsSection() {
               </li>
             ))}
           </ul>
+        )}
+        {kuerzbar && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-1 w-full"
+            onClick={() => setAlleZeigen((v) => !v)}
+            aria-expanded={alleZeigen}
+          >
+            {alleZeigen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+            {alleZeigen ? t("Weniger anzeigen") : t("Alle anzeigen ({n})", { n: dogs?.length ?? 0 })}
+          </Button>
         )}
       </CardContent>
     </Card>

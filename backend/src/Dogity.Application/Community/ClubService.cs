@@ -318,7 +318,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
                 ? $"{info.FirstName} {info.LastName}".Trim()
                 : "Jemand";
             foreach (var trainerId in trainerIds)
-                await notifications.CreateAsync(trainerId, $"{name} möchte dem Verein \"{club.Name}\" beitreten.", "/trainer", ct);
+                await notifications.CreateAsync(trainerId, $"{name} möchte dem Verein \"{club.Name}\" beitreten.", "/trainer/anfragen", ct);
         }
 
         return Result<ClubMembershipDto>.Success(new ClubMembershipDto(membership.Id, clubId, club.Name, membership.Status, membership.RequestedAt, membership.DecidedAt));

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dogity.Api.Controllers;
 
 [Route("api/groups")]
-public class GroupsController(IGroupService groupService, IClubService clubService) : ApiControllerBase
+public class GroupsController(IGroupService groupService, IClubService clubService, ITrainerOpenCountsService openCounts) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<GroupDto>>> GetMyGroups(CancellationToken ct)
@@ -18,6 +18,14 @@ public class GroupsController(IGroupService groupService, IClubService clubServi
     {
         var isTrainer = await groupService.IsTrainerAsync(CurrentUserId, ct);
         return Ok(new { isTrainer });
+    }
+
+    /// <summary>Zahlen für "Zu erledigen" auf der Trainer-Übersicht (siehe TrainerOpenCountsService).</summary>
+    [HttpGet("open-counts")]
+    public async Task<ActionResult<TrainerOpenCountsDto>> GetOpenCounts(CancellationToken ct)
+    {
+        var result = await openCounts.GetAsync(CurrentUserId, ct);
+        return FromResult(result);
     }
 
     [HttpGet("my-clubs")]

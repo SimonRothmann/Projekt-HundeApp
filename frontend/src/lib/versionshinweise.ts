@@ -67,7 +67,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
     aenderungen: [
       {
         art: "neu",
-        text: uebersetzbar("Vereine können jetzt einen Einladungslink mit QR-Code erstellen. Wer ihn öffnet, landet direkt bei der Beitrittsanfrage, und der Verein gibt jede Anfrage weiterhin selbst frei. Du findest die Karte „Neue Mitglieder einladen“ in der Trainer-Übersicht."),
+        text: uebersetzbar("Vereine können jetzt einen Einladungslink mit QR-Code erstellen. Wer ihn öffnet, landet direkt bei der Beitrittsanfrage, und der Verein gibt jede Anfrage weiterhin selbst frei. Du findest die Karte „Neue Mitglieder einladen“ in der Trainer-Übersicht unter „Verein“."),
       },
       {
         art: "neu",
@@ -160,6 +160,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       {
         art: "verbessert",
         text: uebersetzbar("Beim Anmelden eines Welpen schlägt das Feld „Wurftag“ beim ersten Antippen den Tag vor acht Wochen vor - der Kalender geht dort auf, statt beim heutigen Tag."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Trainer-Übersicht ist aufgeräumt: Oben steht „Zu erledigen“ mit den offenen Beitrittsanfragen und den Trainings zum Bewerten, darunter „Meine Gruppen“ mit den Gruppen als kompakte Liste. Bewerten, Anfragen und alles rund um den Verein (Einladungslink, Mitglieder, Katalog) haben jetzt eigene Seiten, und von den betreuten Hunden siehst du zuerst drei."),
       },
     ],
   },

@@ -21,7 +21,7 @@ const wann = (iso: string, ort: string) =>
   new Date(iso).toLocaleString(ort, { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 /**
- * Ganz oben auf der Trainer-Seite: der nächste geplante Termin über alle
+ * Oben auf der Trainer-Übersicht (nur „Zu erledigen" steht davor): der nächste geplante Termin über alle
  * Vereine, die die Person als Trainer:in betreut - mit der Zählung, wer kommt.
  * Es ist die Frage, die vor jedem Training gestellt wird ("Wie viele sind
  * heute?"), und stand vorher erst auf einer eigenen Seite.

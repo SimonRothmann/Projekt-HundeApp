@@ -89,7 +89,9 @@ export function TrainerReviewSection() {
   }
   for (const entry of byDog.values()) entry.sessions.sort((a, b) => a.date.localeCompare(b.date));
 
-  const totalOpen = (sessions ?? []).reduce((sum, s) => sum + openCount(s), 0);
+  // Anzahl Trainings, nicht offener Einzelpunkte: dieselbe Einheit wie die
+  // Kachel "Zu erledigen" auf der Übersicht, von der man hierher kommt.
+  const totalOpen = sessions?.length ?? 0;
 
   return (
     <Card>

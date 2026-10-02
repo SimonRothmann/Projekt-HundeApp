@@ -11,11 +11,15 @@ import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 type Props = {
   groups: Group[];
+  /** Meldet nach jedem Laden, wie viele Anfragen offen sind (für den Leerzustand der Seite). */
+  onAnzahl?: (anzahl: number) => void;
+  /** Meldet, wenn die Anfragen einer Gruppe nicht geladen werden konnten (die Seite darf dann nicht "leer" sagen). */
+  onFehler?: () => void;
 };
 
 type RequestWithGroup = GroupJoinRequest & { groupId: string; groupName: string };
 
-export function GroupJoinRequestsSection({ groups }: Props) {
+export function GroupJoinRequestsSection({ groups, onAnzahl, onFehler }: Props) {
   const t = useT();
   const [requests, setRequests] = useState<RequestWithGroup[] | null>(null);
   const [decidingId, setDecidingId] = useState<string | null>(null);
@@ -26,10 +30,16 @@ export function GroupJoinRequestsSection({ groups }: Props) {
         api
           .get<GroupJoinRequest[]>(`/api/groups/${g.id}/join-requests`)
           .then((reqs) => reqs.map((r) => ({ ...r, groupId: g.id, groupName: g.name })))
-          .catch(() => [] as RequestWithGroup[]),
+          .catch((err) => {
+            toast.error(err instanceof ApiError ? err.message : t("Gruppenanfragen konnten nicht geladen werden."));
+            onFehler?.();
+            return [] as RequestWithGroup[];
+          }),
       ),
     );
-    setRequests(all.flat());
+    const alle = all.flat();
+    setRequests(alle);
+    onAnzahl?.(alle.length);
   }
 
   useEffect(() => {

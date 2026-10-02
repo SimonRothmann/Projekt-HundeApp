@@ -270,6 +270,16 @@ export type Group = {
   myRelation: GroupRelation;
 };
 
+// Offenes bei einer Trainer:in (Backend: TrainerOpenCountsDto) - nur Zahlen,
+// die Listen laden erst auf den Seiten, auf denen man sie bearbeitet.
+export type TrainerOpenCounts = {
+  groupJoinRequests: number;
+  clubJoinRequests: number;
+  sessionsToRate: number;
+  /** Offene Beitrittsanfragen je Gruppe; Gruppen ohne Anfragen fehlen. */
+  groups: { groupId: string; joinRequests: number }[];
+};
+
 // Möglicher Gruppen-Trainer (alle Trainer:innen des Vereins der Gruppe).
 export type GroupTrainerOption = {
   userId: string;
