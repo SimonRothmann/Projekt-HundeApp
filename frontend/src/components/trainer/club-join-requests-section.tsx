@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserCheck, Check, X } from "lucide-react";
+import { UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
@@ -69,7 +69,10 @@ export function ClubJoinRequestsSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vereineSchluessel]);
 
-  async function handleDecide(membershipId: string, approve: boolean) {
+  async function handleDecide(r: ClubMemberRequest, approve: boolean) {
+    // Ablehnen lässt sich nicht zurücknehmen und liegt nach dem Annehmen-Knopf: ein Fehltipp kostet sonst eine Anfrage.
+    if (!approve && !window.confirm(t("Beitrittsanfrage von {name} ablehnen?", { name: `${r.firstName} ${r.lastName}`.trim() || r.email }))) return;
+    const membershipId = r.membershipId;
     try {
       await api.post(`/api/clubs/${selectedClubId}/join-requests/${membershipId}/${approve ? "approve" : "reject"}`);
       toast.success(approve ? t("Beitritt angenommen.") : t("Beitritt abgelehnt."));
@@ -113,7 +116,7 @@ export function ClubJoinRequestsSection({
         ) : (
           <ul className="flex flex-col gap-2">
             {requests.map((r) => (
-              <li key={r.membershipId} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
+              <li key={r.membershipId} className="flex flex-col gap-3 rounded-md border px-3 py-2">
                 <div className="flex min-w-0 flex-col items-start gap-1">
                   <span className="min-w-0 text-sm [overflow-wrap:anywhere]">
                     {r.firstName} {r.lastName} ({r.email})
@@ -121,12 +124,13 @@ export function ClubJoinRequestsSection({
                   {/* 1 = über den Einladungslink bzw. QR-Code des Vereins */}
                   {r.source === 1 && <Badge variant="outline">{t("über Einladungslink")}</Badge>}
                 </div>
-                <div className="flex shrink-0 gap-2">
-                  <Button size="icon-sm" variant="outline" onClick={() => handleDecide(r.membershipId, true)} title={t("Annehmen")}>
-                    <Check className="size-4" />
+                {/* Beschriftete Knöpfe statt Symbolen: Haken und Kreuz nebeneinander wurden verwechselt. */}
+                <div className="flex flex-wrap gap-3">
+                  <Button size="sm" onClick={() => handleDecide(r, true)}>
+                    {t("Annehmen")}
                   </Button>
-                  <Button size="icon-sm" variant="ghost" onClick={() => handleDecide(r.membershipId, false)} title={t("Ablehnen")}>
-                    <X className="size-4" />
+                  <Button size="sm" variant="outline" onClick={() => handleDecide(r, false)}>
+                    {t("Ablehnen")}
                   </Button>
                 </div>
               </li>

@@ -437,6 +437,33 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         bool SiehtNamen(GroupTrainingSession s) =>
             callerClubIds.Contains(s.ClubId) || s.Trainers.Any(t => t.UserId == callerId);
 
+        // Anmeldungen zählt nur, wer die Gruppe verwalten darf - dieselbe
+        // Reichweite wie GetManageableGroupAsync (Leitung, aktive Mit-
+        // Trainer:in, Trainer:in des Vereins). Eine gruppierte Abfrage für
+        // alle Gruppen der Termine; wer nichts verwaltet, löst gar keine aus.
+        var weitereGruppen = (await db.GroupTrainers
+            .Where(t => t.UserId == callerId && groupIds.Contains(t.GroupId))
+            .Select(t => t.GroupId)
+            .ToListAsync(ct)).ToHashSet();
+        var gruppenClubIds = sessions.Where(s => s.Group?.ClubId != null).Select(s => s.Group!.ClubId!.Value).Distinct().ToList();
+        var gruppenClubsAlsTrainer = (await db.ClubTrainers
+            .Where(t => t.UserId == callerId && gruppenClubIds.Contains(t.ClubId))
+            .Select(t => t.ClubId)
+            .ToListAsync(ct)).ToHashSet();
+        var verwaltbareGruppen = sessions
+            .Where(s => s.Group is { } g
+                && (g.TrainerId == callerId || weitereGruppen.Contains(g.Id) || (g.ClubId is { } cid && gruppenClubsAlsTrainer.Contains(cid))))
+            .Select(s => s.GroupId)
+            .Distinct()
+            .ToList();
+        var anmeldungen = verwaltbareGruppen.Count == 0
+            ? new Dictionary<Guid, int>()
+            : await db.GroupRegistrations
+                .Where(r => verwaltbareGruppen.Contains(r.GroupId))
+                .GroupBy(r => r.GroupId)
+                .Select(g => new { GroupId = g.Key, Anzahl = g.Count() })
+                .ToDictionaryAsync(x => x.GroupId, x => x.Anzahl, ct);
+
         var responses = await db.GroupTrainingSessionResponses
             .Where(r => sessionIds.Contains(r.GroupTrainingSessionId))
             .Select(r => new { r.GroupTrainingSessionId, r.UserId, r.IsAttending })
@@ -487,13 +514,13 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
             // "Offen" ergäbe mit Zu- und Absagen die Mitgliederzahl der Gruppe -
             // die ist Sache der Trainer:innen, Mitglieder bekommen 0.
             var offen = SiehtNamen(s) ? Math.Max(0, aktive.Count - gezaehlt.Count) : 0;
-            return ToDto(s, names, meine, zusagen, absagen, offen, liste);
+            return ToDto(s, names, meine, zusagen, absagen, offen, liste, anmeldungen.GetValueOrDefault(s.GroupId));
         }).ToList();
     }
 
     private static GroupTrainingSessionDto ToDto(
         GroupTrainingSession s, IReadOnlyDictionary<Guid, UserLookupResult> names,
-        bool? myResponse, int attending, int declining, int open, IReadOnlyList<SessionResponseDto> responses)
+        bool? myResponse, int attending, int declining, int open, IReadOnlyList<SessionResponseDto> responses, int registrations)
     {
         var items = s.Items
             .OrderBy(i => i.SortOrder)
@@ -513,7 +540,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
             s.StartsAt, s.DurationMinutes, s.Location, s.Notes, s.Status,
             items.Sum(i => i.Exercise?.DurationMinutes ?? 0),
             items, trainers,
-            myResponse, attending, declining, open, responses);
+            myResponse, attending, declining, open, responses, registrations);
     }
 
     private static GroupTrainingExerciseDto ToExerciseDto(GroupTrainingExercise e) =>

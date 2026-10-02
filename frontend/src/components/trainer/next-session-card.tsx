@@ -85,6 +85,10 @@ export function NextSessionCard({ clubs }: { clubs: Club[] }) {
 
         <SessionCounts termin={termin} className="text-sm" />
 
+        {termin.registrationCount > 0 && (
+          <p className="text-sm text-muted-foreground">{t("{n} angemeldet", { n: termin.registrationCount })}</p>
+        )}
+
         {namen.length > 0 && (
           <ul className="flex flex-wrap gap-1.5" aria-label={t("Zusagen")}>
             {namen.map((name, i) => (
@@ -107,7 +111,16 @@ export function NextSessionCard({ clubs }: { clubs: Club[] }) {
           >
             {t("Vorbereiten")}
           </Link>
-          <KalenderKnopf termin={termin} />
+          {termin.registrationCount > 0 && (
+            <Link
+              href={`/trainer/${termin.groupId}?ansicht=anmeldungen`}
+              className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+            >
+              {t("Anwesenheit")}
+            </Link>
+          )}
+          {/* Nur das Symbol: Mit drei beschrifteten Knöpfen bräche die Zeile bei 390 px um. */}
+          <KalenderKnopf termin={termin} kompakt />
         </div>
       </CardContent>
     </Card>

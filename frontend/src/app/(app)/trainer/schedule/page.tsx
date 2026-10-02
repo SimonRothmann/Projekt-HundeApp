@@ -26,6 +26,7 @@ import { SessionCounts } from "@/components/schedule/session-counts";
 import { useSprache, useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { ortsformat } from "@/lib/ortsformat";
+import { serieStandardEnde, wochentagVon } from "@/lib/termin-serie";
 const CATS: GroupTrainingCategory[] = [0, 1, 2];
 const categoryLabel: Record<GroupTrainingCategory, string> = { 0: uebersetzbar("Welpen"), 1: uebersetzbar("Junghunde"), 2: uebersetzbar("Basis") };
 const categoryVariant: Record<GroupTrainingCategory, "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
@@ -66,9 +67,11 @@ const emptyForm = (): Form => ({
   category: 0,
   date: todayIso(),
   time: "18:00",
-  weekday: 2,
+  // Serie vorbelegt: Beginn heute, Wochentag des Beginns, Ende nach zwölf Wochen -
+  // sonst stünde dort "heute bis heute" und ergäbe meist null Termine.
+  weekday: wochentagVon(todayIso()) ?? 2,
   fromDate: todayIso(),
-  toDate: todayIso(),
+  toDate: serieStandardEnde(todayIso()),
   durationMinutes: "60",
   location: "",
   notes: "",
@@ -93,7 +96,6 @@ export default function SchedulePage() {
   const [sessions, setSessions] = useState<GroupTrainingSession[] | null>(null);
 
   const [filterGroup, setFilterGroup] = useState("");
-  const [filterCategory, setFilterCategory] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
 
   const [form, setForm] = useState<Form | null>(null);
@@ -112,7 +114,6 @@ export default function SchedulePage() {
     if (!clubId) return;
     const params = new URLSearchParams({ from: todayIso() });
     if (filterGroup) params.set("groupId", filterGroup);
-    if (filterCategory) params.set("category", filterCategory);
     if (mineOnly) params.set("mineOnly", "true");
     try {
       setSessions(await api.get<GroupTrainingSession[]>(`/api/group-training/schedule/clubs/${clubId}?${params}`));
@@ -122,7 +123,7 @@ export default function SchedulePage() {
   // t bewusst nicht in der Liste - siehe die Effekte oben: Der
   // Uebersetzer wird nur im Fehlerfall gebraucht.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubId, filterGroup, filterCategory, mineOnly]);
+  }, [clubId, filterGroup, mineOnly]);
 
   useEffect(() => {
     api.get<Club[]>("/api/groups/my-clubs").then((data) => {
@@ -195,6 +196,20 @@ export default function SchedulePage() {
 
   function patch(p: Partial<Form>) {
     setForm((f) => (f ? { ...f, ...p } : f));
+  }
+  // Ändert sich der Beginn der Serie, ziehen Ende und Wochentag mit - aber nur, solange sie
+  // noch die Vorbelegung zum alten Beginn sind. Was jemand von Hand gewählt hat, bleibt.
+  function aendereBeginn(neu: string) {
+    setForm((f) => {
+      if (!f) return f;
+      const neuerTag = wochentagVon(neu);
+      return {
+        ...f,
+        fromDate: neu,
+        toDate: f.toDate === serieStandardEnde(f.fromDate) ? serieStandardEnde(neu) : f.toDate,
+        weekday: neuerTag !== null && f.weekday === wochentagVon(f.fromDate) ? neuerTag : f.weekday,
+      };
+    });
   }
   function moveContent(index: number, dir: -1 | 1) {
     setForm((f) => {
@@ -295,13 +310,26 @@ export default function SchedulePage() {
     }
   }
 
+  // Eine Serie ohne einen einzigen Termin lässt sich nicht anlegen - der Hinweis darunter sagt warum.
+  const serieTermine = form ? seriesDates(form).length : 0;
+
+  // Minuten stehen nur da, wo Bausteine sie liefern - bei reinem Freitext wäre "0 Min." irreführend.
+  const uebungenText = (s: GroupTrainingSession) =>
+    s.plannedMinutes === 0
+      ? s.items.length === 1 ? t("1 Übung") : t("{anzahl} Übungen", { anzahl: s.items.length })
+      : s.items.length === 1
+        ? t("1 Übung · {minuten} Min.", { minuten: s.plannedMinutes })
+        : t("{anzahl} Übungen · {minuten} Min.", { anzahl: s.items.length, minuten: s.plannedMinutes });
+
   const contentLabel = (c: ContentDraft) => (c.exerciseId ? exercisesById.get(c.exerciseId)?.title ?? t("(Baustein)") : c.freeText ?? "");
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("Terminplanung")}</h1>
-        <p className="text-muted-foreground">{t("Plane Gruppentrainings: wann, welche Gruppe, was gemacht wird. Mitglieder sehen die Termine ihrer Gruppe.")}</p>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 text-2xl font-semibold tracking-tight">{t("Terminplanung")}</h1>
+        {clubs !== null && clubs.length > 0 && !form && (
+          <Button className="shrink-0" onClick={openCreate}><Plus className="size-4" />{t("Neuer Termin")}</Button>
+        )}
       </div>
 
       {clubs === null ? (
@@ -310,18 +338,23 @@ export default function SchedulePage() {
         <Card><CardContent className="py-10 text-center text-muted-foreground">{t("Die Terminplanung ist für Vereinstrainer:innen. Du bist für keinen Verein als Trainer:in eingetragen.")}</CardContent></Card>
       ) : (
         <>
-          <div className="flex flex-wrap items-end gap-3">
-            {clubs.length > 1 && (
-              <div className="flex flex-col gap-1">
-                <Label>{t("Verein")}</Label>
-                <Select value={clubId} onValueChange={(v) => setClubId(v ?? "")}>
-                  <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-                  <SelectContent>{clubs.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            )}
-            {!form && <Button className="ml-auto" onClick={openCreate}><Plus className="size-4" />{t("Neuer Termin")}</Button>}
-          </div>
+          {clubs.length > 1 && (
+            <div className="flex flex-col gap-1">
+              <Label>{t("Verein")}</Label>
+              <Select
+                value={clubId}
+                onValueChange={(v) => {
+                  setClubId(v ?? "");
+                  // Gruppe und "Nur meine" gehören zum alten Verein - und ohne Filterzeile (eine Gruppe) ließen sie sich nicht mehr lösen.
+                  setFilterGroup("");
+                  setMineOnly(false);
+                }}
+              >
+                <SelectTrigger className="w-56 max-w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>{clubs.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
 
           {form && (
             <Card>
@@ -383,12 +416,14 @@ export default function SchedulePage() {
                       </Select>
                     </div>
                     <div className="flex flex-col gap-1"><Label className="text-xs">{t("Uhrzeit")}</Label><Input type="time" className="w-28" value={form.time} onChange={(e) => patch({ time: e.target.value })} /></div>
-                    <div className="flex flex-col gap-1"><Label className="text-xs">{t("Von")}</Label><Input type="date" className="w-40" value={form.fromDate} onChange={(e) => patch({ fromDate: e.target.value })} /></div>
+                    <div className="flex flex-col gap-1"><Label className="text-xs">{t("Von")}</Label><Input type="date" className="w-40" value={form.fromDate} onChange={(e) => aendereBeginn(e.target.value)} /></div>
                     <div className="flex flex-col gap-1"><Label className="text-xs">{t("Bis")}</Label><Input type="date" className="w-40" value={form.toDate} onChange={(e) => patch({ toDate: e.target.value })} /></div>
                     <div className="flex flex-col gap-1"><Label className="text-xs">{t("Dauer (Min)")}</Label><Input type="number" min={15} max={240} className="w-24" value={form.durationMinutes} onChange={(e) => patch({ durationMinutes: e.target.value })} /></div>
                   </div>
                 )}
-                {form.mode === "series" && <p className="text-xs text-muted-foreground">{seriesDates(form).length === 1 ? t("Erzeugt 1 Einzeltermin – danach frei einzeln anpass-/absagbar.") : t("Erzeugt {n} Einzeltermine – danach frei einzeln anpass-/absagbar.", { n: seriesDates(form).length })}</p>}
+                {form.mode === "series" && (serieTermine === 0
+                  ? <p className="text-xs text-destructive" role="status">{t("Kein Termin im Zeitraum am gewählten Wochentag.")}</p>
+                  : <p className="text-xs text-muted-foreground">{serieTermine === 1 ? t("Erzeugt 1 Einzeltermin – danach frei einzeln anpass-/absagbar.") : t("Erzeugt {n} Einzeltermine – danach frei einzeln anpass-/absagbar.", { n: serieTermine })}</p>)}
 
                 <div className="flex flex-col gap-1">
                   <Label className="text-xs">{t("Ort (optional, z.B. Wald / Parkplatz)")}</Label>
@@ -420,7 +455,7 @@ export default function SchedulePage() {
                       </Button>
                       {library && library.units.filter((u) => u.category === form.category).length > 0 && (
                         <Select value="" onValueChange={(v) => v && applyUnit(v)}>
-                          <SelectTrigger className="h-8 w-44"><SelectValue placeholder={t("Aus Bibliothek…")} /></SelectTrigger>
+                          <SelectTrigger className="h-8 w-44"><SelectValue placeholder={t("Einheit übernehmen…")} /></SelectTrigger>
                           <SelectContent>{library.units.filter((u) => u.category === form.category).map((u) => <SelectItem key={u.id} value={u.id}>{u.title}</SelectItem>)}</SelectContent>
                         </Select>
                       )}
@@ -464,31 +499,26 @@ export default function SchedulePage() {
                 )}
 
                 <div className="flex gap-2">
-                  <Button type="button" disabled={saving} onClick={submit}>{saving ? t("Speichert…") : form.editingId ? t("Speichern") : form.mode === "series" ? t("Serie anlegen") : t("Anlegen")}</Button>
+                  <Button type="button" disabled={saving || (form.mode === "series" && !form.editingId && serieTermine === 0)} onClick={submit}>{saving ? t("Speichert…") : form.editingId ? t("Speichern") : form.mode === "series" ? t("Serie anlegen") : t("Anlegen")}</Button>
                   <Button type="button" variant="ghost" onClick={() => setForm(null)}>{t("Abbrechen")}</Button>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Filter */}
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{t("Gruppe")}</Label>
-              <Select value={filterGroup} onValueChange={(v) => setFilterGroup(v ?? "")}>
-                <SelectTrigger className="h-8 w-44"><SelectValue placeholder={t("Alle Gruppen")} /></SelectTrigger>
-                <SelectContent><SelectItem value="">{t("Alle Gruppen")}</SelectItem>{groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
-              </Select>
+          {/* Filter: erst ab zwei Gruppen - mit einer gäbe es nichts auszuwählen. */}
+          {groups.length > 1 && (
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs">{t("Gruppe")}</Label>
+                <Select value={filterGroup} onValueChange={(v) => setFilterGroup(v ?? "")}>
+                  <SelectTrigger className="h-8 w-44 max-w-full"><SelectValue placeholder={t("Alle Gruppen")} /></SelectTrigger>
+                  <SelectContent><SelectItem value="">{t("Alle Gruppen")}</SelectItem>{groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <label className="flex items-center gap-1.5 pb-1.5 text-sm"><input type="checkbox" className="size-4 accent-primary" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />{t("Nur meine")}</label>
             </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{t("Stufe")}</Label>
-              <Select value={filterCategory} onValueChange={(v) => setFilterCategory(v ?? "")}>
-                <SelectTrigger className="h-8 w-36"><SelectValue placeholder={t("Alle")} /></SelectTrigger>
-                <SelectContent><SelectItem value="">{t("Alle")}</SelectItem>{CATS.map((c) => <SelectItem key={c} value={String(c)}>{t(categoryLabel[c])}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <label className="flex items-center gap-1.5 pb-1.5 text-sm"><input type="checkbox" className="size-4 accent-primary" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />{t("Nur meine")}</label>
-          </div>
+          )}
 
           {/* Agenda */}
           {sessions === null ? (
@@ -514,7 +544,7 @@ export default function SchedulePage() {
                     {s.status === 0 && <SessionCounts termin={s} />}
                     {s.trainers.length > 0 && <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{t("Trainer:")} {s.trainers.map((trainer) => `${trainer.firstName} ${trainer.lastName}`.trim() || "?").join(", ")}</p>}
                     {s.items.length > 0 && (
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="size-3" />{s.items.length === 1 ? t("1 Übung · {minuten} Min.", { minuten: s.plannedMinutes }) : t("{anzahl} Übungen · {minuten} Min.", { anzahl: s.items.length, minuten: s.plannedMinutes })}</p>
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="size-3" />{uebungenText(s)}</p>
                     )}
                     {s.items.length > 0 && (
                       <ol className="flex flex-col gap-0.5 pl-1 text-sm">

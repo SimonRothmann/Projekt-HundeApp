@@ -61,7 +61,15 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
     }
   }
 
-  async function handlePromote(userId: string) {
+  // Der Server entscheidet (Rolle Verwaltung) und liefert es mit dem Verein mit; wer nur
+  // trainiert, bekäme beim Antippen ohnehin "Verein nicht gefunden". Fehlt die Angabe, gilt: nein.
+  const darfBefoerdern = clubs.find((c) => c.id === selectedClubId)?.canManage === true;
+
+  async function handlePromote(m: ClubMemberRequest) {
+    // Die Rolle lässt sich hier nicht wieder entziehen - deshalb vorher fragen.
+    const name = `${m.firstName} ${m.lastName}`.trim() || m.email;
+    if (!window.confirm(t("{name} zum Trainer machen?", { name }))) return;
+    const userId = m.userId;
     setPromotingUserId(userId);
     try {
       await api.post(`/api/clubs/${selectedClubId}/members/${userId}/promote`);
@@ -151,16 +159,18 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
 {t("Trainer:in")}
                   </span>
                 ) : (
-                  <Button
-                    className="shrink-0"
-                    size="sm"
-                    variant="outline"
-                    disabled={promotingUserId === m.userId}
-                    onClick={() => handlePromote(m.userId)}
-                  >
-                    <ShieldPlus className="size-4" />
+                  darfBefoerdern && (
+                    <Button
+                      className="shrink-0"
+                      size="sm"
+                      variant="outline"
+                      disabled={promotingUserId === m.userId}
+                      onClick={() => handlePromote(m)}
+                    >
+                      <ShieldPlus className="size-4" />
 {t("Zum Trainer machen")}
-                  </Button>
+                    </Button>
+                  )
                 )}
               </li>
             ))}

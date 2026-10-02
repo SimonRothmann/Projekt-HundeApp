@@ -294,6 +294,8 @@ export type Club = {
   description: string | null;
   trainerCount: number;
   groupCount: number;
+  // Ob die Person den Verein verwalten darf (Rolle Verwaltung) - nur in "meine Vereine" gesetzt.
+  canManage?: boolean;
 };
 
 // Vereins-Trainingsbibliothek (siehe docs/GROUP_TRAINING_LIBRARY.md).
@@ -378,6 +380,8 @@ export type GroupTrainingSession = {
   openCount: number;
   // Namen nur für Trainer:innen - für Mitglieder leer.
   responses: SessionResponse[];
+  // Anmeldungen der Gruppe - nur für die, die die Gruppe verwalten dürfen, sonst 0.
+  registrationCount: number;
 };
 
 export type ClubTrainerInfo = {

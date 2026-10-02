@@ -30,6 +30,8 @@ export function waehleAnsicht(
   if (zahlen.anmeldungen === null) return "mitglieder";
   const gewuenscht = ansichtAusParameter(parameter);
   if (gewuenscht) return gewuenscht;
-  // Eine reine Anmeldegruppe (Welpenkurs) hat keine Mitglieder: Dort wäre die erste Ansicht leer.
-  return zahlen.anmeldungen > 0 && zahlen.mitglieder === 0 ? "anmeldungen" : "mitglieder";
+  // Gibt es Anmeldungen, beginnt die Seite dort - auch wenn es zugleich Mitglieder gibt: Wer
+  // die Gruppe verwaltet, kommt für das Abhaken der Anwesenheit (Kursteilnehmende), die
+  // Mitglieder sind einen Tipp entfernt. Ohne Anmeldungen bleibt es bei den Mitgliedern.
+  return zahlen.anmeldungen > 0 ? "anmeldungen" : "mitglieder";
 }

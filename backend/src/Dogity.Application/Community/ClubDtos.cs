@@ -2,7 +2,13 @@ using Dogity.Domain.Community;
 
 namespace Dogity.Application.Community;
 
-public record ClubDto(Guid Id, string Name, string? Description, int TrainerCount, int GroupCount);
+/// <param name="CanManage">
+/// Ob die anfragende Person den Verein VERWALTEN darf (ClubRole.Verwaltung, siehe
+/// ClubAccessQueries.CanManageClubAsync) - der Server entscheidet, das Frontend
+/// blendet danach nur Knöpfe aus (Beförderung zur Trainer:in). Gefüllt nur in
+/// "meine Vereine"; überall sonst false, weil dort keine Person gefragt wird.
+/// </param>
+public record ClubDto(Guid Id, string Name, string? Description, int TrainerCount, int GroupCount, bool CanManage = false);
 
 public record ClubTrainerDto(Guid UserId, string Email, string FirstName, string LastName, DateTimeOffset AssignedAt);
 

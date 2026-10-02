@@ -93,6 +93,26 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("Das Feld „Erfolgreich“ beim Eintragen einer Übung ist größer und lässt sich auf dem Handy leichter antippen. Die Benachrichtigung über Trainer-Feedback nennt jetzt den Hund, und bei den Zusagen steht korrekt „1 kommt“."),
       },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Auf der Karte „Nächster Termin“ steht jetzt, wie viele angemeldet sind, und „Anwesenheit“ führt direkt zum Abhaken. „Zum Kalender“ ist dort ein kleines Symbol, damit die Knöpfe auf dem Handy in einer Zeile bleiben. Öffnest du eine Gruppe mit Anmeldungen, beginnt sie bei den Anmeldungen. Die Zeile „0 kommen · 0 können nicht · 0 offen“ erscheint nicht mehr, solange noch niemand geantwortet hat."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Bei „Trainings bewerten“ zählen nur noch Trainings der letzten acht Wochen. Ältere stehen nicht mehr als offene Aufgabe da."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("In der Terminplanung steht „Neuer Termin“ neben dem Titel, und die Filter erscheinen erst, wenn der Verein mehr als eine Gruppe hat. Eine neue wöchentliche Serie startet mit dem Wochentag des Beginns und läuft zwölf Wochen. Ergibt der Zeitraum keinen Termin, steht der Grund da und „Serie anlegen“ ist gesperrt. Beim Termin heißt es „Einheit übernehmen…“, und in den Werkzeugen „Einheiten und Bausteine“."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Beitrittsanfragen an den Verein hast du jetzt mit den Knöpfen „Annehmen“ und „Ablehnen“ unter dem Namen. Vor dem Ablehnen fragt die App nach. „Zum Trainer machen“ sehen nur noch die, die den Verein verwalten, und auch das fragt vorher nach."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Beim Abhaken der Anwesenheit stehen nur „Heute“ und vergangene Termine zur Wahl, das Feld für einen anderen Tag folgt direkt dahinter. In der Anmeldeliste steht statt „offen“ jetzt „nicht bezahlt“, der Filter heißt „Unbezahlt“."),
+      },
     ],
   },
   {

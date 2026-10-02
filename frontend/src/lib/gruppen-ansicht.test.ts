@@ -33,15 +33,22 @@ describe("waehleAnsicht", () => {
     expect(waehleAnsicht(null, { anmeldungen: 7, mitglieder: 0 })).toBe("anmeldungen");
   });
 
+  it("beginnt ohne Parameter bei den Anmeldungen, sobald es welche gibt - auch neben Mitgliedern", () => {
+    // Bewusst geändert: Früher gewannen die Mitglieder, sobald es welche gab. Wer eine Gruppe
+    // mit Anmeldungen verwaltet, kommt aber zum Abhaken der Anwesenheit (Karte "Nächster
+    // Termin" führt hierher); die Mitglieder zeigt der Umschalter mit einem Tipp.
+    expect(waehleAnsicht(null, { anmeldungen: 7, mitglieder: 2 })).toBe("anmeldungen");
+    expect(waehleAnsicht(undefined, { anmeldungen: 1, mitglieder: 40 })).toBe("anmeldungen");
+  });
+
   it("beginnt ohne Parameter sonst bei den Mitgliedern", () => {
-    expect(waehleAnsicht(null, { anmeldungen: 7, mitglieder: 2 })).toBe("mitglieder");
     expect(waehleAnsicht(undefined, { anmeldungen: 0, mitglieder: 0 })).toBe("mitglieder");
     expect(waehleAnsicht(null, { anmeldungen: 0, mitglieder: 3 })).toBe("mitglieder");
   });
 
   it("behandelt ungültige Werte wie keinen Parameter", () => {
     expect(waehleAnsicht("quatsch", { anmeldungen: 7, mitglieder: 0 })).toBe("anmeldungen");
-    expect(waehleAnsicht("", { anmeldungen: 7, mitglieder: 2 })).toBe("mitglieder");
+    expect(waehleAnsicht("", { anmeldungen: 0, mitglieder: 2 })).toBe("mitglieder");
     expect(waehleAnsicht("ANMELDUNGEN", { anmeldungen: 0, mitglieder: 0 })).toBe("mitglieder");
   });
 });

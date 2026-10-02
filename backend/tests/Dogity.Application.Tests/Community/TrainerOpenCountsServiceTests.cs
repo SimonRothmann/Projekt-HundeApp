@@ -1,3 +1,4 @@
+using Dogity.Application.Abstractions;
 using Dogity.Application.Community;
 using Dogity.Application.Planning;
 using Dogity.Application.Tests.TestSupport;
@@ -95,7 +96,7 @@ public class TrainerOpenCountsServiceTests
 
         TrainingSession Session(Guid dogId, string? feedback, int? bewertung) => new()
         {
-            UserId = besitzer, DogId = dogId, Date = new DateOnly(2026, 9, 12), DurationMinutes = 30, TrainerFeedback = feedback,
+            UserId = besitzer, DogId = dogId, Date = Vereinszeit.Heute().AddDays(-14), DurationMinutes = 30, TrainerFeedback = feedback,
             Exercises = { new TrainingExercise { FreeTextLabel = "Sitz", TrainerRating = bewertung } },
         };
         db.TrainingSessions.AddRange(
@@ -166,14 +167,14 @@ public class TrainerOpenCountsServiceTests
         for (var i = 0; i < 3; i++)
             db.TrainingSessions.Add(new TrainingSession
             {
-                UserId = besitzer, DogId = hund.Id, Date = new DateOnly(2026, 9, 10 + i), DurationMinutes = 30,
+                UserId = besitzer, DogId = hund.Id, Date = Vereinszeit.Heute().AddDays(-10 - i), DurationMinutes = 30,
                 TrainerFeedback = i == 0 ? "Gut." : null,
                 Exercises = { new TrainingExercise { FreeTextLabel = "Sitz", TrainerRating = i == 0 ? 5 : null } },
             });
         // Gelöscht: darf weder in der Liste noch im Zähler auftauchen.
         db.TrainingSessions.Add(new TrainingSession
         {
-            UserId = besitzer, DogId = hund.Id, Date = new DateOnly(2026, 9, 20), DurationMinutes = 30, DeletedAt = DateTimeOffset.UtcNow,
+            UserId = besitzer, DogId = hund.Id, Date = Vereinszeit.Heute().AddDays(-2), DurationMinutes = 30, DeletedAt = DateTimeOffset.UtcNow,
         });
         await db.SaveChangesAsync();
 
@@ -183,5 +184,36 @@ public class TrainerOpenCountsServiceTests
 
         Assert.Equal(2, liste.Value!.Count);
         Assert.Equal(liste.Value.Count, zahlen.Value!.SessionsToRate);
+    }
+
+    [Fact]
+    public async Task Zu_Bewerten_Reicht_Nur_Acht_Wochen_Nach_Trainingsdatum_Zurueck()
+    {
+        var db = InMemoryDbContext.Create();
+        var trainer = Guid.NewGuid();
+        var besitzer = Guid.NewGuid();
+        var hund = new Dog { Name = "Bello" };
+        db.Dogs.Add(hund);
+        db.TrainerAssignments.Add(new TrainerAssignment { DogId = hund.Id, TrainerId = trainer, MemberId = besitzer });
+
+        var grenze = Vereinszeit.Heute().AddDays(-7 * TrainerSessionQueries.BewertungsWochen);
+        TrainingSession Session(DateOnly tag) => new()
+        {
+            UserId = besitzer, DogId = hund.Id, Date = tag, DurationMinutes = 30,
+            // Angelegt wird alles jetzt: Maßgeblich ist das Trainingsdatum, nicht das Anlegedatum.
+            Exercises = { new TrainingExercise { FreeTextLabel = "Sitz" } },
+        };
+        db.TrainingSessions.AddRange(
+            Session(grenze), // genau acht Wochen her: noch dabei
+            Session(grenze.AddDays(-1)), // einen Tag länger her: fällt heraus
+            Session(grenze.AddDays(-200)));
+        await db.SaveChangesAsync();
+
+        var training = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var liste = await training.GetSessionsToRateAsync(trainer);
+        var zahlen = await new TrainerOpenCountsService(db).GetAsync(trainer);
+
+        Assert.Equal(grenze, Assert.Single(liste.Value!).Date);
+        Assert.Equal(1, zahlen.Value!.SessionsToRate);
     }
 }

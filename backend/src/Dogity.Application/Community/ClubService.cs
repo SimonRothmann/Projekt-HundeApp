@@ -21,7 +21,10 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     {
         var clubs = await db.Clubs
             .Where(c => c.Trainers.Any(t => t.UserId == userId))
-            .Select(c => new ClubDto(c.Id, c.Name, c.Description, c.Trainers.Count, c.Groups.Count))
+            // Dieselbe Definition wie CanManageClubAsync (Rolle Verwaltung), hier
+            // als Teil der Abfrage statt einer weiteren je Verein.
+            .Select(c => new ClubDto(c.Id, c.Name, c.Description, c.Trainers.Count, c.Groups.Count,
+                c.Trainers.Any(t => t.UserId == userId && t.Role == ClubRole.Verwaltung)))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<ClubDto>>.Success(clubs);

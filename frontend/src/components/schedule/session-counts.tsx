@@ -19,6 +19,9 @@ export function SessionCounts({
   className?: string;
 }) {
   const t = useT();
+  // Wo noch niemand geantwortet hat und niemand in der Gruppe ist (oder die Zahlen für
+  // Mitglieder nicht gelten), stünde "0 kommen · 0 können nicht · 0 offen" da und wirkte kaputt.
+  if (termin.attendingCount === 0 && termin.decliningCount === 0 && termin.openCount === 0) return null;
   const teile = [
     // Singular bei 1: "1 kommen" liest sich falsch. Ein Plural-Helfer im i18n
     // gibt es nicht; wie sonst im Code zwei Sätze nebeneinander.

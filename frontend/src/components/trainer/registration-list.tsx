@@ -113,7 +113,7 @@ export function RegistrationList({
             {(
               [
                 ["alle", t("Alle ({n})", { n: registrierungen.length })],
-                ["offen", t("Offen ({n})", { n: offene })],
+                ["offen", t("Unbezahlt ({n})", { n: offene })],
               ] as const
             ).map(([wert, label]) => (
               <button
@@ -135,7 +135,7 @@ export function RegistrationList({
         {registrierungen.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">{t("Noch keine Anmeldungen.")}</p>
         ) : sichtbar.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">{t("Keine offenen Anmeldungen.")}</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">{t("Keine unbezahlten Anmeldungen.")}</p>
         ) : (
           <ul className="flex min-w-0 flex-col gap-2">
             {sichtbar.map((r) => {
@@ -197,12 +197,12 @@ export function RegistrationList({
                       onClick={() => void bezahltUmschalten(r)}
                       disabled={beschaeftigt === r.id}
                       aria-pressed={bezahlt}
-                      aria-label={bezahlt ? t("Bezahlt - zum Zurücknehmen tippen") : t("Offen - als bezahlt markieren")}
+                      aria-label={bezahlt ? t("Bezahlt - zum Zurücknehmen tippen") : t("Nicht bezahlt - als bezahlt markieren")}
                       className="inline-flex min-h-9 items-center coarse:min-h-11 disabled:opacity-50"
                     >
                       <Badge variant={bezahlt ? "default" : "secondary"} className="h-6 gap-1 px-2.5 text-xs">
                         {bezahlt ? <CheckCircle2 /> : <CircleDashed />}
-                        {bezahlt ? t("bezahlt") : t("offen")}
+                        {bezahlt ? t("bezahlt") : t("nicht bezahlt")}
                       </Badge>
                     </button>
                     <span className="text-sm text-muted-foreground">{t("{n}× da", { n: r.attendanceCount })}</span>

@@ -8,7 +8,7 @@ function termin(id: string, startsAt: string, status: 0 | 1 = 0): GroupTrainingS
   return {
     id, clubId: "c", groupId: "g", groupName: "Gruppe", category: 0, startsAt, durationMinutes: 60,
     location: null, notes: null, status, plannedMinutes: 0, items: [], trainers: [],
-    myResponse: null, attendingCount: 0, decliningCount: 0, openCount: 0, responses: [],
+    myResponse: null, attendingCount: 0, decliningCount: 0, openCount: 0, responses: [], registrationCount: 0,
   };
 }
 

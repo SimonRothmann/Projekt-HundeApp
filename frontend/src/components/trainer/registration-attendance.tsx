@@ -20,8 +20,10 @@ import { Input } from "@/components/ui/input";
  * Gedacht für den Platz: Handschuhe, Leine in der Hand, Sonne auf dem Display.
  * Deshalb sind die Zeilen groß, und es gibt keinen "Speichern"-Knopf.
  *
- * Zukünftige Tage lassen sich ansehen (ein Termin steht ja schon im Kalender),
- * aber nicht abhaken - der Server lehnt sie ohnehin ab.
+ * Zur Wahl stehen "Heute", die zurückliegenden Termine der Gruppe und ein
+ * Datumsfeld für jeden anderen Tag. Zukünftige Termine fehlen bei den Chips:
+ * Sie lassen sich nicht abhaken (der Server lehnt sie ab), also wären sie
+ * Chips ohne Zweck.
  */
 export function RegistrationAttendance({
   groupId,
@@ -88,9 +90,9 @@ export function RegistrationAttendance({
     [registrierungen],
   );
 
-  // Die Chips: Heute, dazu die Termine der Gruppe (ohne den heutigen doppelt zu zeigen).
+  // Die Chips: Heute, dazu die zurückliegenden Termine der Gruppe (ohne den heutigen doppelt zu zeigen).
   const chips = useMemo(() => {
-    const termine = tage.filter((tag) => tag.date !== heute).map((tag) => tag.date);
+    const termine = tage.filter((tag) => tag.date < heute).map((tag) => tag.date);
     return [heute, ...termine.sort().reverse()];
   }, [tage, heute]);
 
@@ -133,10 +135,9 @@ export function RegistrationAttendance({
     <Card>
       <CardHeader className="space-y-1">
         <CardTitle className="text-base">{t("Anwesenheit")}</CardTitle>
-        <p className="text-sm text-muted-foreground">{t("Tag wählen und abhaken, wer da ist. Jeder Tipp wird sofort gespeichert.")}</p>
       </CardHeader>
       <CardContent className="flex min-w-0 flex-col gap-4">
-        <div className="flex flex-wrap gap-2" role="group" aria-label={t("Tag wählen")}>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("Tag wählen")}>
           {chips.map((tag) => (
             <button
               key={tag}
@@ -151,22 +152,20 @@ export function RegistrationAttendance({
               {tag === heute ? t("Heute") : tagKurz(tag, sprache)}
             </button>
           ))}
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <label htmlFor="anwesenheit-datum" className="text-sm font-medium">
-            {t("Anderer Tag")}
-          </label>
+          {/* Hinter den Chips, ohne sichtbare Beschriftung (das Feld erklärt sich selbst). Keine feste
+              Mindestbreite: Safari auf dem iPhone ließe sonst das Feld über den Kartenrand ragen
+              (siehe globals.css). */}
           <Input
             id="anwesenheit-datum"
             type="date"
+            aria-label={t("Anderer Tag")}
             value={datum}
             max={heute}
             onChange={(e) => {
               // Ein geleertes Feld lässt den Tag stehen, statt ins Leere zu fragen.
               if (e.target.value) setDatum(e.target.value);
             }}
-            className="min-w-0 sm:max-w-48"
+            className="min-w-0 flex-1 basis-36 sm:max-w-48"
           />
         </div>
 

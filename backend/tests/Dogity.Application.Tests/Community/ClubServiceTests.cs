@@ -314,4 +314,23 @@ public class ClubServiceTests
         Assert.True(again.Succeeded);
         Assert.Equal(1, await db.ClubTrainers.IgnoreQueryFilters().CountAsync(t => t.ClubId == club.Id && t.UserId == userId));
     }
+
+    [Fact]
+    public async Task GetMyClubs_CanManage_NurFuerRolleVerwaltung()
+    {
+        var service = MakeService(out var db, out _);
+        var verwaltung = Guid.NewGuid();
+        var training = Guid.NewGuid();
+        var club = new Club { Name = "Verein" };
+        db.Clubs.Add(club);
+        db.ClubTrainers.AddRange(
+            new ClubTrainer { ClubId = club.Id, UserId = verwaltung, Role = ClubRole.Verwaltung },
+            new ClubTrainer { ClubId = club.Id, UserId = training, Role = ClubRole.Training });
+        await db.SaveChangesAsync();
+
+        Assert.True(Assert.Single((await service.GetMyClubsAsync(verwaltung)).Value!).CanManage);
+        Assert.False(Assert.Single((await service.GetMyClubsAsync(training)).Value!).CanManage);
+        // Wer nicht Trainer:in ist, bekommt den Verein gar nicht erst geliefert.
+        Assert.Empty((await service.GetMyClubsAsync(Guid.NewGuid())).Value!);
+    }
 }

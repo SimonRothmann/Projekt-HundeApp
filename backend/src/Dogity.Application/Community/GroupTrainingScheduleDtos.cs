@@ -37,7 +37,13 @@ public record GroupTrainingSessionDto(
     /// Wer zu- bzw. abgesagt hat, mit Namen - NUR für Trainer:innen des
     /// Vereins bzw. des Termins. Für Mitglieder leer: sie sehen Zahlen, keine Personen.
     /// </summary>
-    IReadOnlyList<SessionResponseDto> Responses);
+    IReadOnlyList<SessionResponseDto> Responses,
+    /// <summary>
+    /// Anzahl der Anmeldungen der Gruppe (siehe GroupRegistration) - NUR für
+    /// Personen, die die Gruppe verwalten dürfen, für alle anderen 0: Wer die
+    /// Anmeldungen nicht sehen darf, soll auch nicht ablesen können, wie viele es sind.
+    /// </summary>
+    int RegistrationCount = 0);
 
 /// <summary>Antwort eines Mitglieds auf einen Termin ("Ich komme" / "Kann nicht").</summary>
 public record RespondToSessionRequest(bool Attending);

@@ -43,10 +43,10 @@ export default function TrainerGroupPage() {
   const parameter = suchparameter.get(ANSICHT_PARAMETER);
   const ansicht = waehleAnsicht(parameter, { anmeldungen: liste?.length ?? null, mitglieder });
   // Auf die Anmeldungen warten nur, wenn sie die Ansicht sein könnten: ausdrücklich
-  // verlangt, oder ohne Wahl bei einer Gruppe ohne Mitglieder. Sonst stehen die
-  // Mitglieder sofort da - für Mitglieder ohne Trainerrechte endet die zweite
-  // Anfrage ohnehin mit 404.
-  const koennteAnmeldungenSein = parameter === "anmeldungen" || (parameter !== "mitglieder" && mitglieder === 0);
+  // verlangt, oder ohne Wahl (gibt es welche, beginnt die Seite dort). Wird ausdrücklich
+  // "mitglieder" verlangt, stehen die sofort da - für Mitglieder ohne Trainerrechte endet
+  // die zweite Anfrage ohnehin mit 404.
+  const koennteAnmeldungenSein = parameter !== "mitglieder";
 
   function wechseln(neu: GruppenAnsicht) {
     const parameter = new URLSearchParams(suchparameter.toString());

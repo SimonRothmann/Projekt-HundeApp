@@ -110,9 +110,9 @@ export default function TrainerPage() {
           <SectionHeading icon={ClipboardList} title={t("Werkzeuge")} />
           <Card className="gap-0 py-0">
             <ul className="divide-y">
-              <Werkzeug href="/trainer/group-training" icon={ClipboardList} titel={t("Gruppentraining")} zeile={t("Einheiten und Übungen")} />
+              <Werkzeug href="/trainer/group-training" icon={ClipboardList} titel={t("Gruppentraining")} zeile={t("Einheiten und Bausteine")} />
               <Werkzeug href="/trainer/schedule" icon={CalendarDays} titel={t("Terminplanung")} zeile={t("Termine und Serien")} />
-              <Werkzeug href="/trainer/verein" icon={Building2} titel={t("Verein")} zeile={t("Einladung, Mitglieder, Katalog")} />
+              <Werkzeug href="/trainer/verein" icon={Building2} titel={t("Verein")} zeile={t("Einladung, Mitglieder, eigene Sportarten")} />
             </ul>
           </Card>
         </section>
