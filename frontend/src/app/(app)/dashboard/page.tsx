@@ -141,6 +141,31 @@ export default function DashboardPage() {
   // beizutreten, den sie leiten.
   const hasNoClub = daten?.onboarding != null && !daten.onboarding.hasClubMembership;
 
+  const erststart = daten !== null && zeigtErststart(daten.onboarding);
+
+  // Wofür die Seite täglich geöffnet wird: Training erfassen, Fährte legen,
+  // und was gerade auf sein Fährtenalter wartet. Steht direkt unter der
+  // Begrüßung - bei drei Hunden lagen die Kacheln sonst unter Zielkarten,
+  // Neuigkeiten und Gruppentrainings außerhalb des ersten Bildschirms. Nur
+  // der Erststart behält seine alte Reihenfolge (Leitfaden zuerst), er führt
+  // die Neuen ohnehin zum ersten Training.
+  const schnellzugriff =
+    daten === null ? null : (
+      <>
+        {/* Nur wenn relevant: eine heute gelegte, noch nicht abgelaufene
+            Fährte steht über den Kacheln - sie wartet auf ihr Alter. */}
+        {faehrteAn && (
+          <HeuteGelegtSection faehrten={daten.faehrten} mehrereHunde={daten.hunde.length > 1} onChanged={neuLaden} />
+        )}
+
+        {daten.hunde.length > 0 && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ErfassenKacheln hunde={daten.hunde} faehrtenHundeIds={faehrteAn ? daten.faehrtenHundeIds : []} />
+          </div>
+        )}
+      </>
+    );
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -161,11 +186,13 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          {/* Direkt unter der Begrüßung: Wann ist die Prüfung, wie weit ist die
-              Woche? Ohne Ziel eine einzige Aufforderung - nicht, solange der
-              Erststart mit seinem "Ziel setzen" noch da ist. */}
+          {!erststart && schnellzugriff}
+
+          {/* Danach: Wann ist die Prüfung, wie weit ist die Woche? Ohne Ziel
+              eine einzige Aufforderung - nicht, solange der Erststart mit
+              seinem "Ziel setzen" noch da ist. */}
           <ZielKartenSection eintraege={daten.zielkarten} />
-          {!zeigtErststart(daten.onboarding) && <KeinZielKarte hunde={daten.hundeOhneZiel} />}
+          {!erststart && <KeinZielKarte hunde={daten.hundeOhneZiel} />}
 
           <OnboardingGuide
             status={daten.onboarding}
@@ -176,7 +203,7 @@ export default function DashboardPage() {
 
           {/* Solange der Erststart läuft, spricht er den Vereinsbeitritt schon an -
               eine zweite Kachel mit derselben Botschaft wäre Lärm. */}
-          {hasNoClub && !zeigtErststart(daten.onboarding) && (
+          {hasNoClub && !erststart && (
             <Link href="/clubs" className="group block">
               <Card className="border-primary/40 bg-primary/5 transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary/10 hover:shadow-[var(--shadow-glow)]">
                 <CardHeader className="flex flex-row items-center gap-4 space-y-0">
@@ -196,21 +223,11 @@ export default function DashboardPage() {
 
           {/* Unter dem Erststart und über den Trainings: sichtbar, ohne das zu
               verdrängen, wofür die Seite täglich geöffnet wird. */}
-          <NeuerungenHinweis erststartLaeuft={zeigtErststart(daten.onboarding)} />
+          <NeuerungenHinweis erststartLaeuft={erststart} />
 
           <UpcomingTrainingsSection sessions={daten.termine} />
 
-          {/* Nur wenn relevant: eine heute gelegte, noch nicht abgelaufene Fährte
-              steht über allem Übrigen - sie wartet auf ihr Alter. */}
-          {faehrteAn && (
-            <HeuteGelegtSection faehrten={daten.faehrten} mehrereHunde={daten.hunde.length > 1} onChanged={neuLaden} />
-          )}
-
-          {daten.hunde.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <ErfassenKacheln hunde={daten.hunde} faehrtenHundeIds={faehrteAn ? daten.faehrtenHundeIds : []} />
-            </div>
-          )}
+          {erststart && schnellzugriff}
 
           <DieseWocheSection eintraege={daten.wochenziele} mehrereHunde={daten.hunde.length > 1} onChanged={neuLaden} />
 

@@ -27,7 +27,6 @@ export function ErfassenKacheln({ hunde, faehrtenHundeIds }: { hunde: Dog[]; fae
     <>
       <Kachel
         icon={NotebookPen}
-        akzent
         titel={t("Training erfassen")}
         beschreibung={
           hunde.length === 1 ? t("Einheit für {name} eintragen", { name: hunde[0].name }) : t("Für welchen Hund?")
@@ -42,7 +41,7 @@ export function ErfassenKacheln({ hunde, faehrtenHundeIds }: { hunde: Dog[]; fae
           titel={t("Fährte legen")}
           beschreibung={
             faehrtenHunde.length === 1
-              ? t("Fährte mit {name} aufnehmen", { name: faehrtenHunde[0].name })
+              ? t("Fährte mit {name} legen", { name: faehrtenHunde[0].name })
               : t("Mit welchem Hund?")
           }
           hunde={faehrtenHunde}
@@ -56,7 +55,6 @@ export function ErfassenKacheln({ hunde, faehrtenHundeIds }: { hunde: Dog[]; fae
 
 function Kachel({
   icon: Icon,
-  akzent = false,
   titel,
   beschreibung,
   hunde,
@@ -64,7 +62,6 @@ function Kachel({
   breit,
 }: {
   icon: LucideIcon;
-  akzent?: boolean;
   titel: string;
   beschreibung: string;
   hunde: Dog[];
@@ -73,14 +70,9 @@ function Kachel({
 }) {
   const kopf = (
     <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-      <span
-        className={cn(
-          "flex size-12 shrink-0 items-center justify-center rounded-xl ring-1 transition-colors",
-          akzent
-            ? "bg-accent/15 text-accent ring-accent/25 group-hover:bg-accent/20"
-            : "bg-primary/10 text-primary-text ring-primary/20 group-hover:bg-primary/15",
-        )}
-      >
+      {/* Beide Symbole in derselben Farbe: zwei Akzentfarben nebeneinander
+          lasen sich wie zwei Zustände, es sind aber zwei gleichrangige Wege. */}
+      <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text ring-1 ring-primary/20 transition-colors group-hover:bg-primary/15">
         <Icon className="size-6" />
       </span>
       <div className="min-w-0">

@@ -159,3 +159,37 @@ describe("Pausen-Platzhalter neben echten Übungen", () => {
     expect(wochenFortschritt(ziel12)).toMatchObject({ woche: 12, geplant: 1 });
   });
 });
+
+describe("abgelaufene Ziele", () => {
+  // Zieldatum 2026-09-20; lokale Mittagszeit, damit die Zeitzone des Rechners
+  // den Kalendertag nicht verschiebt.
+  const g = ziel([item({ id: "a", weekNumber: 1 }), item({ id: "b", weekNumber: 2 })], { targetDate: "2026-09-20" });
+  const mittag = (tag: string) => new Date(`${tag}T12:00:00`).getTime();
+
+  it("liefert nach dem Zieldatum weder Wochenübungen noch Fortschritt", () => {
+    expect(offeneWochenziele(g, mittag("2026-09-21"))).toBeNull();
+    expect(wochenFortschritt(g, mittag("2026-09-21"))).toBeNull();
+    expect(wochenFortschritt(g, mittag("2026-12-01"))).toBeNull();
+  });
+
+  it("zählt den Prüfungstag selbst noch als laufend", () => {
+    expect(offeneWochenziele(g, mittag("2026-09-20"))).not.toBeNull();
+    expect(wochenFortschritt(g, mittag("2026-09-20"))).not.toBeNull();
+  });
+
+  it("gilt bis zur letzten Minute des Prüfungstags, nicht nur bis zum Mittag", () => {
+    expect(wochenFortschritt(g, new Date("2026-09-20T23:59:00").getTime())).not.toBeNull();
+    expect(wochenFortschritt(g, new Date("2026-09-21T00:01:00").getTime())).toBeNull();
+  });
+
+  it("liefert vor dem Zieldatum wie bisher die laufende Woche", () => {
+    expect(wochenFortschritt(g, mittag("2026-09-10"))).toMatchObject({ woche: 2, geplant: 1 });
+  });
+
+  it("berücksichtigt ein Zieldatum mit Zeitanteil wie ein reines Datum", () => {
+    const mitZeit = ziel([item({})], { targetDate: "2026-09-20T00:00:00Z" });
+
+    expect(wochenFortschritt(mitZeit, mittag("2026-09-20"))).not.toBeNull();
+    expect(wochenFortschritt(mitZeit, mittag("2026-09-21"))).toBeNull();
+  });
+});

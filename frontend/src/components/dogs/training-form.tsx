@@ -494,13 +494,16 @@ export function TrainingForm({
                       ))}
                     </div>
                   </div>
-                  <label className="flex items-center gap-2 text-sm">
+                  {/* Die ganze Zeile ist die Tippfläche, nicht nur das winzige
+                      Kästchen. */}
+                  <label className="flex items-center gap-2 text-sm coarse:min-h-11">
                     <input
                       type="checkbox"
+                      className="size-5 shrink-0 accent-primary"
                       checked={row.success}
                       onChange={(e) => updateRow(index, { success: e.target.checked })}
                     />
-                    Erfolgreich
+                    {t("Erfolgreich")}
                   </label>
                 </div>
                 {/* Kommentar und Bewertungskriterien eine Ebene tiefer: selten
@@ -526,7 +529,7 @@ export function TrainingForm({
                     </div>
                     {selectedExercise?.scoringCriteria && (
                       <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                        <strong className="text-foreground">Bewertungskriterien:</strong>{" "}
+                        <strong className="text-foreground">{t("Bewertungskriterien")}:</strong>{" "}
                         {selectedExercise.scoringCriteria}
                       </p>
                     )}
@@ -570,7 +573,7 @@ export function TrainingForm({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label>Verfassung (optional)</Label>
+            <Label>{t("Verfassung (optional)")}</Label>
             <ConditionPicker value={condition} onChange={setCondition} disabled={isSubmitting} />
           </div>
 

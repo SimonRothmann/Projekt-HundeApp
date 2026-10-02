@@ -52,7 +52,7 @@ function formatDuration(ms: number): string {
 /**
  * Zeigt die Fährten eines Trainings (Karte, Metadaten, Ablauf-Versuche).
  * Das AUFNEHMEN neuer Fährten passiert bewusst NICHT mehr hier, sondern
- * ausschließlich über den "Fährte aufnehmen"-Recorder oberhalb des
+ * ausschließlich über den "Fährte legen"-Recorder oberhalb des
  * Tagebuchs (FahrteRecorder) - die aufgenommene Fährte erscheint dann als
  * Bestandteil des jeweiligen Trainingstags (siehe SessionHistory).
  *

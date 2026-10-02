@@ -41,6 +41,7 @@ public static class DependencyInjection
                 options.Lockout.AllowedForNewUsers = true;
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddErrorDescriber<DeutscherIdentityErrorDescriber>()
             .AddDefaultTokenProviders();
 
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
@@ -77,6 +78,12 @@ public static class DependencyInjection
         // LoggingEmailSender ist aktiv, bis echte SMTP-Zugangsdaten vorliegen
         // (siehe SmtpEmailSender-Kommentar) - dann hier auf
         // AddTransient<IEmailSender, SmtpEmailSender>() umstellen.
+        // Beim Umstellen auch den Text der Seite "Passwort vergessen"
+        // (frontend/src/app/forgot-password/page.tsx: Erfolgstext, Untertitel
+        // und Knopf) zurückändern: Sie sagen heute ehrlich, dass der Betreiber
+        // das Passwort zurücksetzt, statt eine Mail zu versprechen, die
+        // LoggingEmailSender nie verschickt. Auch die Antwort von
+        // AuthController.ForgotPassword ("wurde ein Link verschickt") prüfen.
         services.AddTransient<IEmailSender, LoggingEmailSender>();
 
         var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();

@@ -20,7 +20,10 @@ import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 export default function DogsPage() {
   const [dogs, setDogs] = useState<Dog[] | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  // null = automatisch: offen, solange die geladene Liste leer ist (wer noch
+  // keinen Hund hat, ist genau dafür hier). Erst ein Tippen auf den Knopf oder
+  // das Speichern legt es fest.
+  const [formWunsch, setFormWunsch] = useState<boolean | null>(null);
   const [name, setName] = useState("");
   const [breed, setBreed] = useState("");
   const [gender, setGender] = useState<0 | 1>(0);
@@ -63,7 +66,7 @@ export default function DogsPage() {
       setBreed("");
       setGender(0);
       setBirthday("");
-      setShowForm(false);
+      setFormWunsch(false);
       toast.success(t("Hund angelegt."));
       await loadDogs();
     } catch (err) {
@@ -77,6 +80,7 @@ export default function DogsPage() {
   // sie bleiben erreichbar, verstellen aber nicht die tägliche Liste.
   const activeDogs = dogs?.filter((d) => !d.archivedAt) ?? [];
   const archivedDogs = dogs?.filter((d) => d.archivedAt) ?? [];
+  const showForm = formWunsch ?? dogs?.length === 0;
 
   function dogCard(dog: Dog, archived = false) {
     return (
@@ -103,7 +107,7 @@ export default function DogsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">{t("Meine Hunde")}</h1>
-        <Button onClick={() => setShowForm((v) => !v)} size="sm">
+        <Button onClick={() => setFormWunsch(!showForm)} size="sm">
           <Plus className="size-4" />
           {t("Hund hinzufügen")}
         </Button>
@@ -166,7 +170,7 @@ export default function DogsPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
             <DogIcon className="size-10" />
-            <p>{t("Noch keine Hunde angelegt.")}</p>
+            <p>{t("Leg deinen ersten Hund an.")}</p>
           </CardContent>
         </Card>
       ) : (

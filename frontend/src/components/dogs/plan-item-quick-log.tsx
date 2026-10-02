@@ -82,7 +82,7 @@ export function PlanItemQuickLog({
 
   return (
     <div className={cn("flex flex-col gap-2 rounded-md border bg-muted/40 p-2.5", className)}>
-      <div className="flex gap-1" role="group" aria-label={t("Bewertung, 1 bis 5")}>
+      <div className="flex flex-wrap items-center gap-1" role="group" aria-label={t("Bewertung, 1 bis 5")}>
         {[1, 2, 3, 4, 5].map((value) => (
           <button
             key={value}
@@ -98,9 +98,14 @@ export function PlanItemQuickLog({
             {value}
           </button>
         ))}
-        <label className="ml-2 flex items-center gap-1.5 text-xs">
-          <input type="checkbox" checked={success} onChange={(e) => setSuccess(e.target.checked)} />
-          Erfolgreich
+        <label className="ml-2 flex items-center gap-1.5 text-xs coarse:min-h-11">
+          <input
+            type="checkbox"
+            className="size-5 shrink-0 accent-primary"
+            checked={success}
+            onChange={(e) => setSuccess(e.target.checked)}
+          />
+          {t("Erfolgreich")}
         </label>
       </div>
       <Input

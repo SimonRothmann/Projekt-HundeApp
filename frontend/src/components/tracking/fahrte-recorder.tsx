@@ -213,7 +213,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <MapPin className="size-5 text-primary-text" />
-{t("Fährte aufnehmen")}
+{t("Fährte legen")}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -287,7 +287,7 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
               </div>
               <Button onClick={startRecording} disabled={speichert} className="self-start coarse:min-h-11">
                 <MapPin className="size-4" />
-                {t("Aufnahme starten")}
+                {t("Legen starten")}
               </Button>
             </>
           )}

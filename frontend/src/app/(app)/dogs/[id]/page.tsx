@@ -370,7 +370,7 @@ export default function DogDetailPage() {
       </div>
 
       {/* Sprungknöpfe zu dem, wofür man die Seite öffnet. Die Seite ist gut
-          fünf Bildschirme lang; "Aufnahme starten" lag 1,6 und "Training
+          fünf Bildschirme lang; "Legen starten" lag 1,6 und "Training
           erfassen" 1,7 Bildschirme tief. */}
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" onClick={zumFormular}>

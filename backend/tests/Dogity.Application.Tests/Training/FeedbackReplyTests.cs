@@ -63,6 +63,33 @@ public class FeedbackReplyTests
     }
 
     [Fact]
+    public async Task SetFeedback_MeldungNenntHundUndTag_OhneGenitivform()
+    {
+        // "Bello" steht in der Szene; die Form "Training von <Name>" gilt
+        // auch für Namen auf s, x und z, bei denen ein Genitiv-s falsch wäre.
+        var s = await AufbauenAsync(mitFeedback: false);
+
+        await s.Dienst.SetFeedbackAsync(s.Trainer, s.EintragId, new SetFeedbackRequest("Gut."));
+
+        var meldung = Assert.Single(s.Meldungen.Created);
+        Assert.Equal("Dein Trainer hat Feedback zum Training von Bello vom 12.09.2026 hinterlassen.", meldung.Message);
+    }
+
+    [Fact]
+    public async Task SetFeedback_MeldungBeiNameAufS_BleibtKorrekt()
+    {
+        var s = await AufbauenAsync(mitFeedback: false);
+        var hund = await s.Db.Dogs.FindAsync(s.Hund);
+        hund!.Name = "Max";
+        await s.Db.SaveChangesAsync();
+
+        await s.Dienst.SetFeedbackAsync(s.Trainer, s.EintragId, new SetFeedbackRequest("Gut."));
+
+        var meldung = Assert.Single(s.Meldungen.Created);
+        Assert.Contains("zum Training von Max vom 12.09.2026", meldung.Message);
+    }
+
+    [Fact]
     public async Task Reply_Besitzer_SpeichertReaktionUndRueckfrage()
     {
         var s = await AufbauenAsync();

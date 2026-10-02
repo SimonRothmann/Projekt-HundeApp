@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
 import { Building2, ChevronRight, Download, LogOut, Pencil, Sparkles, Trash2, Trophy } from "lucide-react";
 import { toast } from "sonner";
+import { PasswortHinweis } from "@/components/passwort-hinweis";
 
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
@@ -335,31 +336,35 @@ export default function ProfilePage() {
               <CardTitle className="text-base">{t("Passwort ändern")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleChangePassword} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                <div className="flex flex-col gap-2 sm:flex-1">
-                  <Label htmlFor="currentPassword">{t("Aktuelles Passwort")}</Label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    required
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                  />
+              <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                  <div className="flex flex-col gap-2 sm:flex-1">
+                    <Label htmlFor="currentPassword">{t("Aktuelles Passwort")}</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      required
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-1">
+                    <Label htmlFor="newPassword">{t("Neues Passwort")}</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      required
+                      minLength={8}
+                      aria-describedby="newPassword-hinweis"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                  </div>
+                  <Button type="submit" disabled={savingPassword}>
+                    {savingPassword ? t("Ändert…") : t("Ändern")}
+                  </Button>
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-1">
-                  <Label htmlFor="newPassword">{t("Neues Passwort")}</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    required
-                    minLength={8}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                  />
-                </div>
-                <Button type="submit" disabled={savingPassword}>
-                  {savingPassword ? t("Ändert…") : t("Ändern")}
-                </Button>
+                <PasswortHinweis id="newPassword-hinweis" />
               </form>
             </CardContent>
           </Card>

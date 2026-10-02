@@ -80,7 +80,7 @@ export function BottomNav() {
   );
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/80 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl supports-backdrop-filter:bg-background/60 md:hidden print:hidden">
+    <nav data-bottom-nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/80 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl supports-backdrop-filter:bg-background/60 md:hidden print:hidden">
       <ul className={cn("grid", GRID_COLS_CLASS[navItems.length])}>
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href);

@@ -13,6 +13,37 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+const SPEICHER_SCHLUESSEL = "dogity.pwa-hinweis.weggeklickt";
+
+// Je Gerät gemerkt, ob der Hinweis weggeklickt wurde. Jeder Zugriff gesichert:
+// in privaten Fenstern und bei gesperrten Website-Daten wirft localStorage -
+// dann erscheint der Hinweis eben beim nächsten Besuch wieder, statt dass die
+// App abstürzt.
+function warWeggeklickt(): boolean {
+  try {
+    return window.localStorage.getItem(SPEICHER_SCHLUESSEL) !== null;
+  } catch {
+    return false;
+  }
+}
+
+function merkeWeggeklickt(): void {
+  try {
+    window.localStorage.setItem(SPEICHER_SCHLUESSEL, "1");
+  } catch {
+    // Ohne Speicher kommt der Hinweis beim nächsten Besuch wieder - harmlos.
+  }
+}
+
+// Über der unteren Navigation (rund 4,3 rem hoch, plus Sicherheitsabstand am
+// iPhone), sonst läge der Hinweis darüber und verdeckte "Profil". Den Abstand
+// gibt es nur, wenn die Leiste wirklich gerendert wird (data-bottom-nav): Sie
+// hängt in der App-Gruppe, dieser Hinweis dagegen im Root-Layout - auf Login-
+// und Passwort-Seiten schwebte er sonst grundlos über dem Rand. Ab md gibt es
+// die Leiste nicht mehr.
+const POSITION =
+  "fixed bottom-4 left-1/2 -translate-x-1/2 z-50 [body:has([data-bottom-nav])_&]:max-md:bottom-[calc(5rem+env(safe-area-inset-bottom))]";
+
 function isIos() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
@@ -31,8 +62,8 @@ export function PwaInstallPrompt() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Bereits installiert → nichts anzeigen.
-    if (isInStandaloneMode()) return;
+    // Bereits installiert oder weggeklickt → nichts anzeigen.
+    if (isInStandaloneMode() || warWeggeklickt()) return;
 
     if (isIos()) {
       // iOS: kein beforeinstallprompt — manuellen Hinweis nach 3 s zeigen.
@@ -59,17 +90,27 @@ export function PwaInstallPrompt() {
     setDeferredPrompt(null);
   }
 
+  function wegklicken() {
+    merkeWeggeklickt();
+    setDismissed(true);
+  }
+
   if (dismissed) return null;
 
   if (deferredPrompt) {
     return (
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border bg-background px-4 py-3 shadow-lg text-sm max-w-sm w-[calc(100%-2rem)]">
+      <div className={`${POSITION} flex items-center gap-3 rounded-xl border bg-background px-4 py-3 shadow-lg text-sm max-w-sm w-[calc(100%-2rem)]`}>
         <Download className="size-5 shrink-0 text-primary-text" />
-        <span className="flex-1">{t("Als App installieren – für die beste Erfahrung offline.")}</span>
+        <span className="min-w-0 flex-1">{t("Als App installieren – für die beste Erfahrung offline.")}</span>
         <Button size="sm" onClick={installAndroid}>
           Installieren
         </Button>
-        <button onClick={() => setDismissed(true)} className="text-muted-foreground hover:text-foreground">
+        <button
+          type="button"
+          onClick={wegklicken}
+          aria-label={t("Schließen")}
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground coarse:size-11"
+        >
           <X className="size-4" />
         </button>
       </div>
@@ -78,11 +119,16 @@ export function PwaInstallPrompt() {
 
   if (showIosHint) {
     return (
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 rounded-xl border bg-background px-4 py-3 shadow-lg text-sm max-w-sm w-[calc(100%-2rem)]">
+      <div className={`${POSITION} flex flex-col gap-2 rounded-xl border bg-background px-4 py-3 shadow-lg text-sm max-w-sm w-[calc(100%-2rem)]`}>
         <div className="flex items-center gap-2">
           <Download className="size-5 shrink-0 text-primary-text" />
           <span className="font-medium">Als App installieren</span>
-          <button onClick={() => setDismissed(true)} className="ml-auto text-muted-foreground hover:text-foreground">
+          <button
+            type="button"
+            onClick={wegklicken}
+            aria-label={t("Schließen")}
+            className="ml-auto flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground coarse:size-11"
+          >
             <X className="size-4" />
           </button>
         </div>

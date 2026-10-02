@@ -20,8 +20,16 @@ export function SessionCounts({
 }) {
   const t = useT();
   const teile = [
-    { punkt: "bg-primary", text: t("{n} kommen", { n: termin.attendingCount }) },
-    { punkt: "bg-destructive", text: t("{n} können nicht", { n: termin.decliningCount }) },
+    // Singular bei 1: "1 kommen" liest sich falsch. Ein Plural-Helfer im i18n
+    // gibt es nicht; wie sonst im Code zwei Sätze nebeneinander.
+    {
+      punkt: "bg-primary",
+      text: termin.attendingCount === 1 ? t("1 kommt") : t("{n} kommen", { n: termin.attendingCount }),
+    },
+    {
+      punkt: "bg-destructive",
+      text: termin.decliningCount === 1 ? t("1 kann nicht") : t("{n} können nicht", { n: termin.decliningCount }),
+    },
     { punkt: "bg-muted-foreground/60", text: t("{n} offen", { n: termin.openCount }) },
   ];
   return (

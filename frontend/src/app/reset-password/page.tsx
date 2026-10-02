@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PawPrint } from "lucide-react";
 import { AuthBackLink } from "@/components/auth-back-link";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
+import { PasswortHinweis } from "@/components/passwort-hinweis";
 
 import { useT } from "@/lib/i18n";
 function ResetPasswordForm() {
@@ -64,9 +65,11 @@ function ResetPasswordForm() {
           autoComplete="new-password"
           required
           minLength={8}
+          aria-describedby="newPassword-hinweis"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
         />
+        <PasswortHinweis id="newPassword-hinweis" />
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" className="h-11" disabled={isSubmitting}>

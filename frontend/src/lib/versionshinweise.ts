@@ -61,6 +61,41 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.21",
+    datum: "2026-10-02",
+    titel: uebersetzbar("Schneller zum Training, klarere Anmeldung"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Auf der Startseite stehen „Training erfassen“ und „Fährte legen“ jetzt gleich unter der Begrüßung - auch mit mehreren Hunden musst du nicht mehr nach unten scrollen."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Wer noch keinen Hund hat, bekommt unter „Meine Hunde“ gleich das offene Formular zum Anlegen. Der Hinweis zum Installieren der App liegt nicht mehr über der unteren Leiste, lässt sich bequem wegtippen und kommt dann nicht wieder."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Bei der Registrierung, beim Zurücksetzen und beim Ändern des Passworts steht jetzt unter dem Feld, was ein Passwort braucht. Fehlermeldungen dazu sind auf Deutsch."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("„Passwort vergessen“ sagt jetzt ehrlich, wie es weitergeht: Der Betreiber wird informiert, setzt das Passwort zurück und meldet sich bei dir."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Bei der Fährte heißt es jetzt „Fährte legen“ und „Legen starten“ - „aufnehmen“ meint im Fährtensport das Suchen des Hundes."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Ist der Prüfungstermin eines Ziels vorbei, zeigt die Startseite keine Wochenübungen und keinen Wochenfortschritt mehr dafür - nur noch „Ergebnis eintragen“."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Das Feld „Erfolgreich“ beim Eintragen einer Übung ist größer und lässt sich auf dem Handy leichter antippen. Die Benachrichtigung über Trainer-Feedback nennt jetzt den Hund, und bei den Zusagen steht korrekt „1 kommt“."),
+      },
+    ],
+  },
+  {
     version: "0.20",
     datum: "2026-10-01",
     titel: uebersetzbar("Dein Verein lädt dich per QR-Code ein"),

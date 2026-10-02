@@ -469,10 +469,19 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         session.OwnerReplyAt = null;
         await db.SaveChangesAsync(ct);
 
+        // Bei mehreren Hunden muss die Meldung sagen, um wen es geht. "Training
+        // von Max" statt "Maxs Training": die Genitivform (Max' / Maxens /
+        // Felix') stimmt nicht für jeden Namen, die Umschreibung mit "von"
+        // dagegen immer.
+        var hundName = await db.Dogs.Where(d => d.Id == session.DogId).Select(d => d.Name).FirstOrDefaultAsync(ct);
+        var training = string.IsNullOrWhiteSpace(hundName)
+            ? $"zu deinem Training vom {session.Date:dd.MM.yyyy}"
+            : $"zum Training von {hundName} vom {session.Date:dd.MM.yyyy}";
+
         // Der Link öffnet den Eintrag selbst, nicht nur die Hundeseite.
         await notifications.CreateAsync(
             session.UserId,
-            $"Dein Trainer hat Feedback zu deinem Training vom {session.Date:dd.MM.yyyy} hinterlassen.",
+            $"Dein Trainer hat Feedback {training} hinterlassen.",
             $"/dogs/{session.DogId}?eintrag={session.Id}",
             ct);
 

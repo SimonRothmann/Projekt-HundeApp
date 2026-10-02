@@ -1,4 +1,5 @@
 import type { Goal, TrainingPlanItem } from "@/lib/types";
+import { tageBisPruefung } from "@/lib/pruefung";
 
 /**
  * Welche Wochen eines Trainingsplans die Hundeseite zeigt.
@@ -92,13 +93,20 @@ export function computeCurrentWeek(
  *
  * Die eine Stelle, die "laufende Woche" für die Startseite bestimmt: "Diese
  * Woche" (offene Übungen) und die Zielkarte (Fortschritt) rechnen beide damit
- * und können deshalb nicht auseinanderlaufen.
+ * und können deshalb nicht auseinanderlaufen. Ist das Zieldatum vorbei, gibt
+ * es keine laufende Woche mehr (null).
  */
 function uebungenDerLaufendenWoche(
   goal: Goal,
   jetzt: number,
 ): { woche: number; uebungen: TrainingPlanItem[] } | null {
   if (goal.status !== 0 || !goal.trainingPlan) return null;
+  // Nach dem Zieldatum läuft keine Woche mehr: computeCurrentWeek hielte sonst
+  // die letzte Planwoche fest, und die Startseite zeigte monatelang "Diese
+  // Woche: 0 von 3" für eine Prüfung, die längst vorbei ist. Der Prüfungstag
+  // selbst zählt noch (tageBisPruefung == 0); gerechnet wird mit dem
+  // Kalendertag des Geräts, wie überall bei Prüfungsdaten.
+  if (tageBisPruefung(goal.targetDate, jetzt) < 0) return null;
   const wochen = groupByWeek(goal.trainingPlan.items);
   const woche = computeCurrentWeek(wochen, goal.trainingPlan.generatedAt, jetzt);
   if (woche == null) return null;
