@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ClipboardList, Copy, Link2Off, Printer, QrCode as QrIcon, RefreshCw, Share2 } from "lucide-react";
+import { Copy, Link2Off, Printer, QrCode as QrIcon, RefreshCw, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { anmeldungsUrl } from "@/lib/anmeldung";
@@ -11,17 +11,46 @@ import type { GroupRegistrationLink } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { kopiereText, teileLink } from "@/lib/zwischenablage";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QrCode } from "@/components/ui/qr-code";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 /**
- * Karte "Anmeldeformular" einer Gruppe: Link und QR-Code, mit dem sich
- * Kursteilnehmende ohne Dogity-Konto anmelden (z. B. zur Welpengruppe).
+ * Anmeldelink und QR-Code einer Gruppe in einem Sheet: Kursteilnehmende ohne
+ * Dogity-Konto melden sich damit an (z. B. zur Welpengruppe).
  *
- * Gleiche Bauart wie ClubInviteSection - und derselbe Grund, sie nie zu
- * verstecken: Den Link braucht man gerade, wenn noch niemand angemeldet ist.
+ * Früher eine große Karte oben auf der Gruppenseite - den QR-Code braucht man
+ * aber nur zum Zeigen oder Teilen, nicht bei jedem Besuch. Der Link wird erst
+ * geladen, wenn das Sheet aufgeht. Und er bleibt für jede:n erreichbar, der die
+ * Anmeldungen sieht: Gebraucht wird er gerade, wenn noch niemand angemeldet ist.
  */
-export function RegistrationFormCard({ groupId, groupName }: { groupId: string; groupName: string }) {
+export function RegistrationFormSheet({
+  groupId,
+  groupName,
+  offen,
+  onOffenChange,
+}: {
+  groupId: string;
+  groupName: string;
+  offen: boolean;
+  onOffenChange: (offen: boolean) => void;
+}) {
+  const t = useT();
+  return (
+    <Sheet open={offen} onOpenChange={onOffenChange}>
+      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{t("Anmeldelink & QR-Code")}</SheetTitle>
+          <SheetDescription>
+            {t("Wer den Code scannt oder den Link öffnet, kann sich ohne Dogity-Konto zur Gruppe anmelden. Die Anmeldungen erscheinen in der Liste.")}
+          </SheetDescription>
+        </SheetHeader>
+        <Inhalt groupId={groupId} groupName={groupName} />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function Inhalt({ groupId, groupName }: { groupId: string; groupName: string }) {
   const t = useT();
   // undefined = wird geladen, null = es gibt keinen (oder geschlossenen) Link.
   const [code, setCode] = useState<string | null | undefined>(undefined);
@@ -100,67 +129,55 @@ export function RegistrationFormCard({ groupId, groupName }: { groupId: string; 
   }
 
   return (
-    <Card>
-      <CardHeader className="space-y-1">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <ClipboardList className="size-5 shrink-0" />
-          {t("Anmeldeformular")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex min-w-0 flex-col gap-4">
-        <p className="text-sm text-muted-foreground">
-          {t("Wer den Code scannt oder den Link öffnet, kann sich ohne Dogity-Konto zur Gruppe anmelden. Die Anmeldungen erscheinen weiter unten.")}
-        </p>
+    <div className="flex min-w-0 flex-col gap-4 px-4 pb-4">
+      {code === undefined && <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>}
 
-        {code === undefined && <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>}
+      {code === null && (
+        <Button className="h-11 self-start" disabled={arbeitet} onClick={erzeugen}>
+          <QrIcon className="size-4" />
+          {t("Anmeldeformular erstellen")}
+        </Button>
+      )}
 
-        {code === null && (
-          <Button className="h-11 self-start" disabled={arbeitet} onClick={erzeugen}>
-            <QrIcon className="size-4" />
-            {t("Anmeldeformular erstellen")}
-          </Button>
-        )}
+      {link && (
+        <>
+          <div className="flex justify-center">
+            <QrCode
+              wert={link}
+              beschreibung={t("QR-Code mit dem Anmeldelink zu {gruppe}", { gruppe: groupName })}
+              className="w-44 border"
+            />
+          </div>
 
-        {link && (
-          <>
-            <div className="flex justify-center">
-              <QrCode
-                wert={link}
-                beschreibung={t("QR-Code mit dem Anmeldelink zu {gruppe}", { gruppe: groupName })}
-                className="w-44 border"
-              />
+          <div className="flex min-w-0 flex-col gap-2">
+            <p className="min-w-0 rounded-md border bg-muted/40 px-3 py-2 text-xs [overflow-wrap:anywhere]">{link}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={kopieren}>
+                <Copy className="size-4" />
+                {t("Link kopieren")}
+              </Button>
+              <Button variant="outline" onClick={teilen}>
+                <Share2 className="size-4" />
+                {t("Link teilen")}
+              </Button>
+              <Link href={`/trainer/aushang/gruppe/${groupId}`} className={cn(buttonVariants({ variant: "outline" }))}>
+                <Printer className="size-4" />
+                {t("Aushang drucken")}
+              </Link>
             </div>
-
-            <div className="flex min-w-0 flex-col gap-2">
-              <p className="min-w-0 rounded-md border bg-muted/40 px-3 py-2 text-xs [overflow-wrap:anywhere]">{link}</p>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={kopieren}>
-                  <Copy className="size-4" />
-                  {t("Link kopieren")}
-                </Button>
-                <Button variant="outline" onClick={teilen}>
-                  <Share2 className="size-4" />
-                  {t("Link teilen")}
-                </Button>
-                <Link href={`/trainer/aushang/gruppe/${groupId}`} className={cn(buttonVariants({ variant: "outline" }))}>
-                  <Printer className="size-4" />
-                  {t("Aushang drucken")}
-                </Link>
-              </div>
-              <div className="flex flex-wrap gap-2 border-t pt-3">
-                <Button variant="ghost" disabled={arbeitet} onClick={neuErzeugen}>
-                  <RefreshCw className="size-4" />
-                  {t("Neuen Link erzeugen")}
-                </Button>
-                <Button variant="ghost" disabled={arbeitet} onClick={schliessen}>
-                  <Link2Off className="size-4" />
-                  {t("Formular schließen")}
-                </Button>
-              </div>
+            <div className="flex flex-wrap gap-2 border-t pt-3">
+              <Button variant="ghost" disabled={arbeitet} onClick={neuErzeugen}>
+                <RefreshCw className="size-4" />
+                {t("Neuen Link erzeugen")}
+              </Button>
+              <Button variant="ghost" disabled={arbeitet} onClick={schliessen}>
+                <Link2Off className="size-4" />
+                {t("Formular schließen")}
+              </Button>
             </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

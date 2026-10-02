@@ -70,10 +70,11 @@ public class GroupRegistrationFormService(IApplicationDbContext db, INotificatio
         await db.SaveChangesAsync(ct);
 
         // Die Trainer:innen der Gruppe erfahren es in der App - die Anmeldung
-        // kommt von einem Menschen ohne Konto, sonst bemerkte sie niemand.
+        // kommt von einem Menschen ohne Konto, sonst bemerkte sie niemand. Der Link
+        // öffnet gleich die Ansicht "Anmeldungen" der Gruppe, nicht die der Mitglieder.
         var text = $"Neue Anmeldung für {info.GroupName}: {eingabe.DogName} ({eingabe.DogBreed}).";
         foreach (var id in await TrainerIdsAsync(info.GroupId, info.LeadId, ct))
-            await notifications.CreateAsync(id, text, $"/trainer/{info.GroupId}", ct);
+            await notifications.CreateAsync(id, text, $"/trainer/{info.GroupId}?ansicht=anmeldungen", ct);
 
         return Result.Success();
     }

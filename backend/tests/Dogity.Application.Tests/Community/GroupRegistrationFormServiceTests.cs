@@ -98,7 +98,7 @@ public class GroupRegistrationFormServiceTests
         Assert.All(a.Meldungen.Created, m =>
         {
             Assert.Equal("Neue Anmeldung für Welpengruppe: Bella (Labrador).", m.Message);
-            Assert.Equal($"/trainer/{a.Gruppe.Id}", m.LinkPath);
+            Assert.Equal($"/trainer/{a.Gruppe.Id}?ansicht=anmeldungen", m.LinkPath);
         });
     }
 

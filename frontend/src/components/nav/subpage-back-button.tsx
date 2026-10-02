@@ -38,7 +38,8 @@ const ROOT_PATHS = new Set([
  * eigenen Seite fortführen.
  */
 function safeInternalPath(value: string | null): string | null {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  // Auch ein Backslash nach dem ersten Schrägstrich: Browser lesen ihn als "/", aus "/\\host" würde "//host" - eine fremde Seite.
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return null;
   return value;
 }
 

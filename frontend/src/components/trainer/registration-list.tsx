@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, CircleDashed, FileUp, MoreVertical, Pencil, Phone, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, CircleDashed, FileUp, MoreVertical, Pencil, Phone, Plus, QrCode as QrIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { telefonLink } from "@/lib/anmeldung";
 import { api, ApiError } from "@/lib/api";
@@ -30,6 +30,7 @@ export function RegistrationList({
   onNeu,
   onBearbeiten,
   onImport,
+  onLink,
 }: {
   groupId: string;
   registrierungen: GroupRegistration[];
@@ -38,6 +39,8 @@ export function RegistrationList({
   onNeu: () => void;
   onBearbeiten: (r: GroupRegistration) => void;
   onImport: () => void;
+  /** Öffnet Anmeldelink und QR-Code. */
+  onLink: () => void;
 }) {
   const t = useT();
   const [filter, setFilter] = useState<Filter>("alle");
@@ -91,6 +94,10 @@ export function RegistrationList({
       </CardHeader>
       <CardContent className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={onLink}>
+            <QrIcon className="size-4" />
+            {t("Anmeldelink & QR-Code")}
+          </Button>
           <Button variant="outline" onClick={onNeu}>
             <Plus className="size-4" />
             {t("Anmeldung hinzufügen")}

@@ -165,6 +165,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("Die Trainer-Übersicht ist aufgeräumt: Oben steht „Zu erledigen“ mit den offenen Beitrittsanfragen und den Trainings zum Bewerten, darunter „Meine Gruppen“ mit den Gruppen als kompakte Liste. Bewerten, Anfragen und alles rund um den Verein (Einladungslink, Mitglieder, Katalog) haben jetzt eigene Seiten, und von den betreuten Hunden siehst du zuerst drei."),
       },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Gruppenseite ist aufgeräumt: Oben stehen Mitglieder und Anmeldungen als zwei Ansichten zum Umschalten, bei der Welpengruppe zuerst das Abhaken der Anwesenheit. Anmeldelink und QR-Code öffnen sich auf Tipp, und ein Mitglied lädst du über einen eigenen Knopf ein. Name, Trainer:innen und „Gruppe auflösen“ liegen auf einer eigenen Einstellungsseite (Zahnrad oben rechts). Ein Mitglied zu entfernen fragt jetzt vorher nach, und die Benachrichtigung über eine neue Anmeldung öffnet gleich die Anmeldungen."),
+      },
     ],
   },
   {
