@@ -1063,6 +1063,7 @@ export const EN: Record<string, string> = {
   "Abgelaufen": "Search run",
   "→ stabil": "→ steady",
   "Mittlere Abweichung der jüngeren Hälfte der Abläufe im Vergleich zur älteren": "Average deviation of the more recent half of the runs compared with the older half",
+  "Beim Anmelden eines Welpen schlägt das Feld „Wurftag“ beim ersten Antippen den Tag vor acht Wochen vor - der Kalender geht dort auf, statt beim heutigen Tag.": "When registering a puppy, the date of birth field suggests the date eight weeks ago on first tap - the calendar opens there instead of at today.",
   "Abweichung gleich geblieben": "Deviation unchanged",
   "{meter} m näher an der Fährte": "{meter} m closer to the track",
   "{meter} m weiter weg von der Fährte": "{meter} m further from the track",

@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { CheckCircle2, PawPrint } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
-import { istGueltigerAnmeldecode, jahreZurueck, MAX_HUNDEALTER_JAHRE, pruefeAnmeldung } from "@/lib/anmeldung";
+import { istGueltigerAnmeldecode, jahreZurueck, MAX_HUNDEALTER_JAHRE, pruefeAnmeldung, wurftagVorschlag } from "@/lib/anmeldung";
 import { anmeldeFehlerSatz } from "@/lib/anmeldung-texte";
 import { useT } from "@/lib/i18n";
 import { heuteIso } from "@/lib/pruefung";
@@ -238,6 +238,10 @@ export function Anmeldeformular({ code }: { code: string }) {
                     type="date"
                     value={wurftag}
                     onChange={(e) => setWurftag(e.target.value)}
+                    // Leer angetippt: Vorschlag 8 Wochen zurück, damit der Kalender
+                    // dort aufgeht statt beim heutigen Tag (siehe wurftagVorschlag).
+                    onFocus={() => { if (!wurftag) setWurftag(wurftagVorschlag(heute)); }}
+                    onPointerDown={() => { if (!wurftag) setWurftag(wurftagVorschlag(heute)); }}
                     min={jahreZurueck(heute, MAX_HUNDEALTER_JAHRE)}
                     max={heute}
                     required

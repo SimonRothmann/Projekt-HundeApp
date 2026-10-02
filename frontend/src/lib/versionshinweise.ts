@@ -157,6 +157,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "behoben",
         text: uebersetzbar("Auf schmalen Bildschirmen ragten einige Knöpfe aus ihrer Karte und waren abgeschnitten, zum Beispiel „Bearbeiten“ im Profil und „+ Übung“ im Katalog. Die englische Oberfläche ist vollständiger: Trainer-Bereich, Terminplanung, Fährten im Tagebuch und Profil sind übersetzt, Datum und Zahlen folgen der gewählten Sprache. Im Trainingsplan steht keine namenlose Zeile mehr in Pausenwochen, die Druckansicht zeigt den Plan Woche für Woche, und der Plankopf nennt neben dem Zielwert auch, wie viele Übungen diese Woche wirklich geplant sind."),
       },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Beim Anmelden eines Welpen schlägt das Feld „Wurftag“ beim ersten Antippen den Tag vor acht Wochen vor - der Kalender geht dort auf, statt beim heutigen Tag."),
+      },
     ],
   },
   {

@@ -5,6 +5,7 @@ import {
   istGueltigeTelefonnummer,
   istGueltigerAnmeldecode,
   jahreZurueck,
+  wurftagVorschlag,
   normalisiereTelefon,
   pruefeAnmeldung,
   telefonLink,
@@ -162,4 +163,12 @@ describe("pruefeAnmeldung", () => {
   it("meldet den ersten Fehler in der Reihenfolge des Formulars", () => {
     expect(pruefeAnmeldung({ ...gut, vorname: "", wurftag: "" }, heute)).toBe("vorname");
   });
+});
+
+describe("wurftagVorschlag", () => {
+  it.each([
+    ["2026-10-02", "2026-08-07"],
+    ["2026-03-05", "2026-01-08"],
+    ["2024-04-25", "2024-02-29"],
+  ])("macht aus %j %j (8 Wochen zurück)", (heute, erwartet) => expect(wurftagVorschlag(heute)).toBe(erwartet));
 });

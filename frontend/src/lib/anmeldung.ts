@@ -88,6 +88,20 @@ export function istDoppelteAnmeldung(
   );
 }
 
+/**
+ * Welpen kommen frühestens mit 8 Wochen in die Gruppe, meist mit 10-12. Der
+ * Vorschlag beim ersten Antippen des Wurftags spart das Zurückblättern vom
+ * heutigen Monat aus - geändert werden kann er wie jede Eingabe.
+ */
+export const WURFTAG_VORSCHLAG_WOCHEN = 8;
+
+/** Heute (ISO-Tag) minus 8 Wochen, als ISO-Tag. Rechnet in UTC, damit Sommerzeit nichts verschiebt. */
+export function wurftagVorschlag(heuteIsoTag: string): string {
+  const [jahr, monat, tag] = heuteIsoTag.slice(0, 10).split("-").map(Number);
+  const datum = new Date(Date.UTC(jahr, monat - 1, tag - WURFTAG_VORSCHLAG_WOCHEN * 7));
+  return datum.toISOString().slice(0, 10);
+}
+
 /** Ein Kalendertag um ganze Jahre zurück; der 29. Februar wird zum 28. (wie DateOnly.AddYears im Backend). */
 export function jahreZurueck(iso: string, jahre: number): string {
   const [jahr, monat, tag] = iso.slice(0, 10).split("-").map(Number);

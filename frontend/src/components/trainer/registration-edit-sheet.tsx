@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
-import { jahreZurueck, MAX_HUNDEALTER_JAHRE, pruefeAnmeldung, tagDerAnmeldung } from "@/lib/anmeldung";
+import { jahreZurueck, MAX_HUNDEALTER_JAHRE, pruefeAnmeldung, tagDerAnmeldung, wurftagVorschlag } from "@/lib/anmeldung";
 import { anmeldeFehlerSatz } from "@/lib/anmeldung-texte";
 import { useT } from "@/lib/i18n";
 import { heuteIso } from "@/lib/pruefung";
@@ -167,6 +167,9 @@ function Formular({
               min={jahreZurueck(referenz, MAX_HUNDEALTER_JAHRE)}
               max={heute}
               onChange={(e) => patch({ wurftag: e.target.value })}
+              // Wie im öffentlichen Formular: leer angetippt, 8 Wochen zurück vorschlagen.
+              onFocus={() => { if (!eingabe.wurftag) patch({ wurftag: wurftagVorschlag(heute) }); }}
+              onPointerDown={() => { if (!eingabe.wurftag) patch({ wurftag: wurftagVorschlag(heute) }); }}
             />
           </div>
           <div className="flex min-w-0 flex-col gap-1.5">
