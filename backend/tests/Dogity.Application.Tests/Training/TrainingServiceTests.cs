@@ -154,6 +154,30 @@ public class TrainingServiceTests
     }
 
     [Fact]
+    public async Task GetByDog_ReturnsLengthAndSurfaceOfFirstTrack()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var withTrack = new Dogity.Domain.Training.TrainingSession { UserId = setup.UserId, DogId = setup.DogId, Date = today, DurationMinutes = 30 };
+        var withoutTrack = new Dogity.Domain.Training.TrainingSession { UserId = setup.UserId, DogId = setup.DogId, Date = today.AddDays(-1), DurationMinutes = 30 };
+        db.TrainingSessions.AddRange(withTrack, withoutTrack);
+        db.GpsTracks.AddRange(
+            new Dogity.Domain.Tracking.GpsTrack { TrainingSessionId = withTrack.Id, LengthMeters = 400, Surface = "Wiese", CreatedAt = DateTimeOffset.UtcNow.AddHours(-2) },
+            new Dogity.Domain.Tracking.GpsTrack { TrainingSessionId = withTrack.Id, LengthMeters = 150, Surface = "Wald", CreatedAt = DateTimeOffset.UtcNow.AddHours(-1) });
+        await db.SaveChangesAsync();
+
+        var result = await service.GetByDogAsync(setup.UserId, setup.DogId);
+
+        var mit = result.Value!.Single(s => s.Id == withTrack.Id);
+        Assert.Equal(400, mit.TrackLengthMeters);
+        Assert.Equal("Wiese", mit.TrackSurface);
+        var ohne = result.Value!.Single(s => s.Id == withoutTrack.Id);
+        Assert.Null(ohne.TrackLengthMeters);
+        Assert.Null(ohne.TrackSurface);
+    }
+
+    [Fact]
     public async Task Create_SameDayWithoutClientId_MergesIntoExistingSession()
     {
         var service = MakeService(out var db);

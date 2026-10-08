@@ -48,17 +48,23 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             .AsNoTracking()
             .ToListAsync(ct);
 
-        // EIN Existenz-Lookup für alle geladenen Sessions statt eines
-        // GPS-Requests pro Trainings-Karte im Frontend (HTTP-N+1).
+        // EIN Lookup für alle geladenen Sessions statt eines GPS-Requests pro
+        // Trainings-Karte im Frontend (HTTP-N+1). Er liefert nebenbei Länge und
+        // Untergrund der ersten Fährte des Tages für die Tageszeile des Tagebuchs.
         var sessionIds = sessions.Select(s => s.Id).ToList();
-        var idsWithTrack = (await db.GpsTracks
+        var tracks = await db.GpsTracks
             .Where(t => sessionIds.Contains(t.TrainingSessionId))
-            .Select(t => t.TrainingSessionId)
-            .Distinct()
-            .ToListAsync(ct)).ToHashSet();
+            .OrderBy(t => t.CreatedAt)
+            .Select(t => new { t.TrainingSessionId, t.LengthMeters, t.Surface })
+            .ToListAsync(ct);
+        var firstTrackBySession = tracks
+            .GroupBy(t => t.TrainingSessionId)
+            .ToDictionary(g => g.Key, g => g.First());
 
         return Result<IReadOnlyList<TrainingSessionDto>>.Success(
-            sessions.Select(s => ToDto(s, idsWithTrack.Contains(s.Id))).ToList());
+            sessions.Select(s => firstTrackBySession.TryGetValue(s.Id, out var track)
+                ? ToDto(s, hasGpsTrack: true, track.LengthMeters, track.Surface)
+                : ToDto(s, hasGpsTrack: false)).ToList());
     }
 
     public async Task<Result<TrainingSessionDto>> GetByIdAsync(Guid userId, Guid sessionId, CancellationToken ct = default)
@@ -871,7 +877,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return null;
     }
 
-    private static TrainingSessionDto ToDto(TrainingSession s, bool hasGpsTrack) => new(
+    private static TrainingSessionDto ToDto(TrainingSession s, bool hasGpsTrack, double? trackLengthMeters = null, string? trackSurface = null) => new(
         s.Id,
         s.DogId,
         s.Date,
@@ -903,5 +909,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         s.OwnerReaction,
         s.OwnerReply,
         s.OwnerReplyAt,
-        s.TrainerReviewedAt);
+        s.TrainerReviewedAt,
+        trackLengthMeters,
+        trackSurface);
 }

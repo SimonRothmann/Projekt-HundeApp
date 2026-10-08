@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { GpsMarkerType, GpsPoint, GpsTrack } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cookie, MapPin, MapPinPlus, Package, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -54,7 +53,20 @@ const MARKER_TYPES = [
  * zu müssen. Gespeichert wird mit EINER Anfrage (Hund, Datum, Fährte); der
  * Server hängt die Fährte an die Einheit des Tages - siehe stopRecording.
  */
-export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () => Promise<void> }) {
+export function FahrteRecorder({
+  dogId,
+  onSaved,
+  onAufzeichnung,
+}: {
+  dogId: string;
+  onSaved: () => Promise<void>;
+  /**
+   * Meldet, ob gerade aufgezeichnet wird. Der Recorder steht in einem Fenster
+   * der Hundeseite, das sich währenddessen nicht schließen darf: Mit dem Fenster
+   * ginge die laufende Aufzeichnung verloren.
+   */
+  onAufzeichnung?: (laeuft: boolean) => void;
+}) {
   const t = useT();
   const { isRecording, points, setPoints, currentAccuracy, start, stop, markPoint } = useGpsRecorder(
     toAutomaticPoint,
@@ -66,6 +78,12 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
     // (der Kalman-Filter gewichtet schlechtere Messungen ohnehin schwächer).
     { maxAccuracyMeters: 8, relaxedMaxAccuracyMeters: 20, kalman: true },
   );
+  // Auch der Ablauf der eben gelegten Fährte (Karte "Fährte gespeichert") ist
+  // eine Aufzeichnung, die das Fenster nicht überleben würde.
+  const [ablaufLaeuft, setAblaufLaeuft] = useState(false);
+  useEffect(() => {
+    onAufzeichnung?.(isRecording || ablaufLaeuft);
+  }, [isRecording, ablaufLaeuft, onAufzeichnung]);
   const [untergrund, setUntergrund] = useState<string[]>([]);
   const [isMarking, setIsMarking] = useState(false);
   // Die eben gelegte Fährte: bietet direkt danach das Ablaufen an, statt dass
@@ -206,93 +224,87 @@ export function FahrteRecorder({ dogId, onSaved }: { dogId: string; onSaved: () 
   const autoPunkte = points.filter((p) => p.pointType !== 1).length;
   const markerPunkte = points.filter((p) => p.pointType === 1).length;
 
-  // Nicht am Aufzeichnen: nur der Einstiegsknopf in der Hundeseite.
+  // Nicht am Aufzeichnen: Untergrund wählen und starten. Die Hundeseite zeigt
+  // das im Fenster "Fährte legen" (Titel und Rahmen kommen von dort).
   if (!isRecording) {
     return (
-      <Card id="faehrte-aufnehmen" className="scroll-mt-20 border-primary/40">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MapPin className="size-5 text-primary-text" />
-{t("Fährte legen")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {unterbrochen && (
-            <UnterbrocheneAufzeichnungKarte
-              sicherung={unterbrochen}
-              beschaeftigt={speichert}
-              onFortsetzen={() => fortsetzen(unterbrochen)}
-              onSpeichern={() => speichern(unterbrochen)}
-              onVerwerfen={() => {
-                sicherungLoeschen(schluessel);
-                setUnterbrochen(null);
-              }}
-            />
-          )}
-          {gelegt && (
-            <div className="flex flex-col gap-2 rounded-lg border border-surface-border bg-surface p-3">
-              <p className="text-sm">
-                <span className="font-medium">{t("Fährte gespeichert.")}</span>{" "}
-                {t("Ablaufen, sobald sie alt genug ist - die Startseite erinnert dich daran.")}
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <WalkRunRecorder
-                  trackId={gelegt.id}
-                  laidTrackPoints={gelegt.points}
-                  label={t("Jetzt ablaufen")}
-                  onSaved={async () => {
-                    setGelegt(null);
-                    await onSaved();
-                  }}
-                />
-                <Button type="button" size="sm" variant="ghost" onClick={() => setGelegt(null)}>
-                  {t("Später")}
-                </Button>
+      <div className="flex flex-col gap-3">
+        {unterbrochen && (
+          <UnterbrocheneAufzeichnungKarte
+            sicherung={unterbrochen}
+            beschaeftigt={speichert}
+            onFortsetzen={() => fortsetzen(unterbrochen)}
+            onSpeichern={() => speichern(unterbrochen)}
+            onVerwerfen={() => {
+              sicherungLoeschen(schluessel);
+              setUnterbrochen(null);
+            }}
+          />
+        )}
+        {gelegt && (
+          <div className="flex flex-col gap-2 rounded-lg border border-surface-border bg-surface p-3">
+            <p className="text-sm">
+              <span className="font-medium">{t("Fährte gespeichert.")}</span>{" "}
+              {t("Ablaufen, sobald sie alt genug ist - die Startseite erinnert dich daran.")}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <WalkRunRecorder
+                trackId={gelegt.id}
+                laidTrackPoints={gelegt.points}
+                label={t("Jetzt ablaufen")}
+                onAufzeichnung={setAblaufLaeuft}
+                onSaved={async () => {
+                  setGelegt(null);
+                  await onSaved();
+                }}
+              />
+              <Button type="button" size="sm" variant="ghost" onClick={() => setGelegt(null)}>
+                {t("Später")}
+              </Button>
+            </div>
+          </div>
+        )}
+        {!unterbrochen && (
+          <>
+            {/* Antippen statt Tippen: Getippter Text vor dem Start löste auf
+                dem iPhone beim Legen "Eingabe widerrufen" aus (siehe
+                lib/untergrund.ts). Aussehen wie die Verfassung
+                (ConditionPicker), Trefferfläche aber 44 px - beim Fährtelegen
+                oft mit Handschuh. */}
+            <div className="flex flex-col gap-2">
+              <span id="fahrte-untergrund" className="text-sm font-medium">
+                {t("Untergrund (optional)")}{" "}
+                <span className="font-normal text-muted-foreground">· {t("mehrere möglich")}</span>
+              </span>
+              <div role="group" aria-labelledby="fahrte-untergrund" className="flex flex-wrap gap-1.5">
+                {UNTERGRUENDE.map((u) => {
+                  const aktiv = untergrund.includes(u);
+                  return (
+                    <button
+                      key={u}
+                      type="button"
+                      aria-pressed={aktiv}
+                      onClick={() => setUntergrund((vorher) => untergrundUmschalten(vorher, u))}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11",
+                        aktiv
+                          ? "border-primary bg-primary/15 text-primary-text"
+                          : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
+                      )}
+                    >
+                      {t(u)}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          )}
-          {!unterbrochen && (
-            <>
-              {/* Antippen statt Tippen: Getippter Text vor dem Start löste auf
-                  dem iPhone beim Legen "Eingabe widerrufen" aus (siehe
-                  lib/untergrund.ts). Aussehen wie die Verfassung
-                  (ConditionPicker), Trefferfläche aber 44 px - beim Fährtelegen
-                  oft mit Handschuh. */}
-              <div className="flex flex-col gap-2">
-                <span id="fahrte-untergrund" className="text-sm font-medium">
-                  {t("Untergrund (optional)")}{" "}
-                  <span className="font-normal text-muted-foreground">· {t("mehrere möglich")}</span>
-                </span>
-                <div role="group" aria-labelledby="fahrte-untergrund" className="flex flex-wrap gap-1.5">
-                  {UNTERGRUENDE.map((u) => {
-                    const aktiv = untergrund.includes(u);
-                    return (
-                      <button
-                        key={u}
-                        type="button"
-                        aria-pressed={aktiv}
-                        onClick={() => setUntergrund((vorher) => untergrundUmschalten(vorher, u))}
-                        className={cn(
-                          "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11",
-                          aktiv
-                            ? "border-primary bg-primary/15 text-primary-text"
-                            : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-                        )}
-                      >
-                        {t(u)}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              <Button onClick={startRecording} disabled={speichert} className="self-start coarse:min-h-11">
-                <MapPin className="size-4" />
-                {t("Legen starten")}
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            <Button onClick={startRecording} disabled={speichert} className="w-full coarse:min-h-11">
+              <MapPin className="size-4" />
+              {t("Legen starten")}
+            </Button>
+          </>
+        )}
+      </div>
     );
   }
 

@@ -131,6 +131,10 @@ export type TrainingSession = {
   // Trainings-Karte (GpsTrackSection wird bei abgeschlossenen Trainings
   // ohne Fährte gar nicht erst gemountet, siehe SessionHistory).
   hasGpsTrack: boolean;
+  // Länge und Untergrund der ersten Fährte des Tages - für die Tageszeile im
+  // Tagebuch. Nur in der Liste gefüllt, fehlt bei älteren Lesecache-Ständen.
+  trackLengthMeters?: number | null;
+  trackSurface?: string | null;
   // Antwort des Besitzers auf das Trainer-Feedback (siehe FEEDBACK_REACTION).
   // Fehlt bei Zwischenständen aus dem Lesecache, die vor dieser Fassung
   // gespeichert wurden - deshalb optional.

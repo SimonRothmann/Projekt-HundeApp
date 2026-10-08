@@ -93,6 +93,14 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("Hat die Trainer:in ein Training abgehakt, steht auf der Hundeseite nicht mehr „Noch kein Trainer-Feedback“."),
       },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Hundeseite ist aufgeräumt: Oben stehen „Training erfassen“ und „Fährte legen“, darunter zwei Reiter - „Plan“ mit deinen Zielen und „Tagebuch“ mit deinen Trainingstagen. Eine Zeile zeigt, wo du im Plan stehst und ob neues Feedback wartet. Wer mehrere Hunde hat, wechselt oben mit einem Tipp zwischen ihnen. Bearbeiten, Drucken, Mitbesitzer, Archivieren und Löschen findest du hinter den drei Punkten oben rechts, „Fährte legen“ öffnet ein eigenes Fenster."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Im Tagebuch ist jeder Trainingstag eine Zeile mit Datum, Dauer und einem Kurzbild. Ein Tipp klappt genau diesen Tag auf - mit Karte, Übungen, Notizen und Feedback. Mit den Filtern über der Liste siehst du nur Fährten oder nur Tage mit Feedback."),
+      },
     ],
   },
   {

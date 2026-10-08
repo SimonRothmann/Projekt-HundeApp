@@ -85,6 +85,7 @@ export function FaehrtenTrend({
   nachAbweichung = false,
   className = "border-t pt-2",
   aktualisiert,
+  stats: vorgegeben,
 }: {
   dogId: string;
   /** Wie viele ausgewertete Abläufe es geben muss, damit etwas erscheint. */
@@ -96,26 +97,34 @@ export function FaehrtenTrend({
   className?: string;
   /** Ändert sich der Wert, wird neu geladen - z. B. nach einem neuen Ablauf. */
   aktualisiert?: unknown;
+  /**
+   * Schon geladene Auswertung des Hundes. Die Hundeseite braucht dieselben
+   * Zahlen für die Tageszeilen des Tagebuchs und lädt sie einmal für beide;
+   * ohne Angabe holt sich der Verlauf seine Daten selbst. null = noch nicht da.
+   */
+  stats?: DogTrackStats | null;
 }) {
   const t = useT();
   const sprache = useSprache();
-  const [stats, setStats] = useState<DogTrackStats | null>(null);
+  const [eigene, setEigene] = useState<DogTrackStats | null>(null);
+  const stats = vorgegeben !== undefined ? vorgegeben : eigene;
 
   useEffect(() => {
+    if (vorgegeben !== undefined) return;
     let active = true;
     api
       .get<DogTrackStats>(`/api/stats/dogs/${dogId}/tracks`)
       .then((data) => {
-        if (active) setStats(data);
+        if (active) setEigene(data);
       })
       .catch(() => {
         // Still: der Block ist optional, ein Fehler soll die Karte nicht stören.
-        if (active) setStats({ runs: [], deviationTrend: null, onTrackTrend: null });
+        if (active) setEigene({ runs: [], deviationTrend: null, onTrackTrend: null });
       });
     return () => {
       active = false;
     };
-  }, [dogId, aktualisiert]);
+  }, [dogId, aktualisiert, vorgegeben]);
 
   if (stats === null || stats.runs.length === 0 || stats.runs.length < mindestens) return null;
 

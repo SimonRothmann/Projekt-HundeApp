@@ -76,6 +76,13 @@ export function UnterbrocheneAufzeichnungKarte({
       <p className="text-sm">
         {t("Die Aufzeichnung wurde nicht beendet, ist aber auf diesem Gerät gesichert.")}
       </p>
+      {/* Ohne Weiterknopf (Ablauf auf der Seite des Hundes) wüsste niemand, wo
+          der Recorder steckt: in der aufgeklappten Tageskarte der Fährte. */}
+      {!onFortsetzen && !faehrte && (
+        <p className="text-sm text-muted-foreground">
+          {t("Zum Weitermachen den Tag der Fährte im Tagebuch aufklappen.")}
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         {onFortsetzen && (
           <Button size="sm" disabled={beschaeftigt} onClick={onFortsetzen} className="coarse:min-h-11">
@@ -171,11 +178,18 @@ export function UnterbrocheneAufzeichnungen() {
           // Weitermachen geht nur am Recorder. Liegt er auf einer anderen
           // Seite, führt der Knopf dorthin; auf dieser Seite ist er gerade
           // nicht zu sehen (etwa eine zugeklappte Einheit im Tagebuch) -
-          // dann bleiben Speichern und Verwerfen.
+          // dann bleiben Speichern und Verwerfen (die Karte sagt, wo der
+          // Recorder zu finden ist). Ausnahme die Fährte auf der
+          // Hundeseite: ihr Recorder steckt im Fenster "Fährte legen", und das
+          // Fragment öffnet es (die Seite hört auf Änderungen des Fragments).
           onFortsetzen={
             s.seite !== pfad
               ? () => router.push(s.art === "faehrte" ? `${s.seite}#faehrte-aufnehmen` : s.seite)
-              : undefined
+              : s.art === "faehrte"
+                ? () => {
+                    window.location.hash = "faehrte-aufnehmen";
+                  }
+                : undefined
           }
           onSpeichern={() => speichern(s)}
           onVerwerfen={() => sicherungLoeschen(schluesselVon(s))}

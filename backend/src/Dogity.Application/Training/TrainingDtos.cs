@@ -67,7 +67,15 @@ public record TrainingSessionDto(
     /// TrainingSession.TrainerReviewedAt); null, solange nicht. Die Hundeseite
     /// zeigt dann kein "Noch kein Trainer-Feedback" mehr.
     /// </summary>
-    DateTimeOffset? TrainerReviewedAt = null);
+    DateTimeOffset? TrainerReviewedAt = null,
+    /// <summary>
+    /// Länge (Meter) der ersten Fährte des Tages - Kurzbild der Tageszeile im
+    /// Tagebuch. Nur in der Liste (GetByDog) gefüllt; null ohne Fährte oder
+    /// solange die Länge nicht feststeht.
+    /// </summary>
+    double? TrackLengthMeters = null,
+    /// <summary>Untergrund derselben Fährte (kommagetrennte Auswahl); wie TrackLengthMeters nur in der Liste.</summary>
+    string? TrackSurface = null);
 
 public record SetFeedbackRequest(string Feedback);
 

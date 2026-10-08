@@ -64,6 +64,7 @@ function formatDuration(ms: number): string {
 export function GpsTrackSection({
   trainingSessionIds,
   readOnly = false,
+  darfLoeschen = true,
   hundeName,
   onChanged,
 }: {
@@ -75,6 +76,8 @@ export function GpsTrackSection({
    */
   trainingSessionIds: string[];
   readOnly?: boolean;
+  /** Löschen nur für Besitzer:innen - der Server prüft das ohnehin. Ohne Angabe wie bisher erlaubt. */
+  darfLoeschen?: boolean;
   /** Für das Bild zum Teilen - ohne Namen gibt es keinen Schalter "Hundename zeigen". */
   hundeName?: string;
   /**
@@ -189,6 +192,7 @@ export function GpsTrackSection({
                   />
                 )}
                 <FaehrteTeilen track={track} hundeName={hundeName} />
+                {darfLoeschen && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -208,6 +212,7 @@ export function GpsTrackSection({
                   <Trash2 className="size-4" />
 {t("Löschen")}
                 </Button>
+                )}
               </div>
               <TrackMap
                 points={track.points}

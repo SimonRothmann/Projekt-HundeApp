@@ -1,320 +1,116 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useState } from "react";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { api, ApiError } from "@/lib/api";
-import { MODULE, type Dog, type DogOwner, type Goal, type Sport, type TrainingSession } from "@/lib/types";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { MODULE } from "@/lib/types";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { SectionHeading } from "@/components/ui/section-heading";
-import { Archive, ArchiveRestore, NotebookPen, Pencil, Plus, Printer, Route, Target, Trash2 } from "lucide-react";
 import { laeuftFaehrte } from "@/lib/faehrte";
-import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { DogEditForm } from "@/components/dogs/dog-edit-form";
-import { formatDogAge } from "@/lib/dog-age";
-import { toast } from "sonner";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { LeistungenCard } from "@/components/dogs/leistungen-card";
-import { TrainingForm } from "@/components/dogs/training-form";
-import { SessionHistory } from "@/components/dogs/session-history";
-import { CoOwnersSection } from "@/components/dogs/co-owners-section";
-import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
-import { FaehrtenTrend } from "@/components/tracking/faehrten-trend";
-import { clearCachedData, getCachedData, setCachedData } from "@/lib/read-cache";
+import { DogHeader } from "@/components/dogs/dog-header";
+import { DogActionBar } from "@/components/dogs/dog-action-bar";
+import { DogStatusLine } from "@/components/dogs/dog-status-line";
+import { DogTabs, reiterPanelId, reiterTabId } from "@/components/dogs/dog-tabs";
+import { DiaryTab } from "@/components/dogs/diary-tab";
+import { DogActionsSheet } from "@/components/dogs/dog-actions-sheet";
+import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { useAuth } from "@/lib/auth-context";
-import { eintragIdAus } from "@/lib/feedback-gesehen";
+import { eintragIdAus, leseGesehen } from "@/lib/feedback-gesehen";
+import { adresseMit, geltenderReiter, REITER_PARAMETER, ungeseheneRueckmeldungen, waehleReiter, zielStatus, type HundeReiter } from "@/lib/hundeseite";
+import { tageAnzahl } from "@/lib/tagebuch";
 import { usePreferences } from "@/lib/preferences-context";
-
+import { useDogAnker } from "@/lib/use-dog-anker";
+import { useDogPage } from "@/lib/use-dog-page";
 import { useT } from "@/lib/i18n";
-// Initial werden nur die Trainings der letzten 3 Monate geladen (die
-// Historie wächst unbegrenzt) - ältere Monate holt SessionHistory über
-// "Ältere Trainings anzeigen" nach. Statistik und Druckansicht laden ihre
-// Daten separat und sind davon unberührt.
-
-function threeMonthsAgoIso(): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() - 3);
-  return d.toISOString().slice(0, 10);
-}
 
 /**
- * Hundeseite: orchestriert Kopfzeile, Ziele, Fährten-Recorder,
- * Trainingstagebuch (TrainingForm + SessionHistory) und Mitbesitzer.
- * Die eigentliche Logik lebt in den Sektions-Komponenten - Zerlegung nach
- * dem goals-section-Muster (siehe TODO.md Roadmap 5b), nachdem die
- * frühere 686-Zeilen-Variante derselbe Wartbarkeits-Risikofall war wie
- * goals-section.tsx vor ihrem Refactor.
+ * Hundeseite: Kopf, zwei Aktionen, Statuszeile und zwei Reiter - "Plan" (Ziele)
+ * und "Tagebuch" (Training erfassen, Fährten-Verlauf, kompakte Tageszeilen).
+ * Verwalten (Bearbeiten, Drucken, Mitbesitzer, Archivieren, Löschen) und
+ * "Fährte legen" öffnen als Sheets. Die Logik lebt in den Bausteinen unter
+ * components/dogs und in lib/use-dog-page.ts.
+ *
+ * Reiter und Eintrag stehen in der Adresse (?tab=, ?eintrag=): Zurück, Neuladen
+ * und Links aus Benachrichtigungen führen dorthin, wo man war. Die alten Anker
+ * (#trainingsplan, #training-erfassen, #faehrte-aufnehmen) setzt useDogAnker um.
  */
 export default function DogDetailPage() {
-  const t = useT();
   const { id } = useParams<{ id: string }>();
+  // key: Beim Wechsel zu einem anderen Hund (Chips im Kopf) beginnt die Seite
+  // mit leerem Zustand - sonst blieben offenes Formular, Bearbeiten und
+  // Tagebuchfilter des vorigen Hundes stehen.
+  return <DogPage key={id} id={id} />;
+}
+
+function DogPage({ id }: { id: string }) {
+  const t = useT();
   const router = useRouter();
+  const pathname = usePathname();
+  const suchparameter = useSearchParams();
   const { user } = useAuth();
+  const { moduleEnabled } = usePreferences();
   // Benachrichtigungen zu Feedback führen auf den Eintrag (?eintrag=). Nur eine
   // Id in GUID-Form wird übernommen; alles andere ist, als stünde nichts da.
-  const eintragId = eintragIdAus(useSearchParams().get("eintrag"));
+  const eintragId = eintragIdAus(suchparameter.get("eintrag"));
+  const { dog, sessions, sports, goals, isOwner, owners, myDogs, nichtGefunden, showAllHistory, dogSportIds, frischGeladen, loadAll, loadOlderSessions } =
+    useDogPage(id, eintragId);
 
-  const [dog, setDog] = useState<Dog | null>(null);
-  const [sessions, setSessions] = useState<TrainingSession[] | null>(null);
-  const [sports, setSports] = useState<Sport[]>([]);
-  const [goals, setGoals] = useState<Goal[] | null>(null);
-  const [isOwner, setIsOwner] = useState(true);
-  const [owners, setOwners] = useState<DogOwner[]>([]);
-  // Der Server kennt den Hund (für mich) nicht: gelöscht, Mitbesitz beendet,
-  // Betreuung vorbei - oder die Seite einer anderen Person aus dem
-  // Browserverlauf.
-  const [nichtGefunden, setNichtGefunden] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [menuOffen, setMenuOffen] = useState(false);
+  const [faehrteOffen, setFaehrteOffen] = useState(false);
   // Zählt die Änderungen, nach denen der Fährten-Verlauf neu zu laden ist (neue
   // Fährte, neuer Ablauf, gelöscht). Ein Zähler statt der Trainingsliste als
   // Auslöser: Die Liste wechselt schon beim Öffnen der Seite mehrmals (Cache,
   // dann frische Daten) und ergäbe jedes Mal einen eigenen Abruf.
   const [faehrtenStand, setFaehrtenStand] = useState(0);
-  const [editing, setEditing] = useState(false);
-  // false = nur die letzten 3 Monate geladen, true = komplette Historie.
-  const [showAllHistory, setShowAllHistory] = useState(false);
-  // Für diesen Hund geltende Sportarten (eigene Auswahl, sonst die des
-  // Menschen). Leere Liste = keine Einschränkung, die Regel dazu steht im
-  // Backend (PreferenceService.GetEffectiveDogSportsAsync) - hier wird sie
-  // nur angewandt, nicht ein zweites Mal formuliert.
-  const [dogSportIds, setDogSportIds] = useState<string[] | null>(null);
-  // Ob die Seite ihren frischen Stand vom Server hat (nicht nur den Lesecache).
-  // Der Sprung zu einem Eintrag wartet darauf: Erst dann steht fest, ob er in
-  // der Liste ist, und erst dann ist das Layout darüber fertig.
-  const [frischGeladen, setFrischGeladen] = useState(false);
-  const versuchteAlleZuLaden = useRef(false);
-  const { moduleEnabled } = usePreferences();
-
-  type DogPageCache = {
-    dog: Dog;
-    sessions: TrainingSession[];
-    sports: Sport[];
-    myDogIds: string[];
-    goals: Goal[];
-    owners: DogOwner[];
-  };
-
-  function applyPageData(data: DogPageCache) {
-    setNichtGefunden(false);
-    setDog(data.dog);
-    setSessions(data.sessions);
-    setSports(data.sports);
-    setIsOwner(data.myDogIds.includes(id));
-    setGoals(data.goals);
-    setOwners(data.owners);
-  }
+  // Welches Feedback beim Öffnen der Seite schon gesehen war (eingefroren, damit
+  // "Neu" während des Besuchs stehen bleibt), und was seither aufgeklappt wurde.
+  const [gesehenBeiStart] = useState<ReadonlySet<string>>(() => new Set(leseGesehen()));
+  const [jetztGesehen, setJetztGesehen] = useState<ReadonlySet<string>>(() => new Set());
+  const onGesehen = useCallback(
+    (kennung: string) => setJetztGesehen((vorher) => (vorher.has(kennung) ? vorher : new Set(vorher).add(kennung))),
+    [],
+  );
 
   // Sportarten, die dem Tagebuch angeboten werden. Leere Auswahl heißt
   // "keine Einschränkung" - und solange noch nichts geladen ist ebenfalls,
   // damit die Liste nicht kurz leer aufblitzt.
   const angeboteneSportarten =
     dogSportIds && dogSportIds.length > 0 ? sports.filter((s) => dogSportIds.includes(s.id)) : sports;
+  // Fährte anbieten, wenn das Modul an ist UND der Hund Fährte läuft. Beides
+  // zusammen, weil die GPS-Aufzeichnung auch für Spaziergänge taugt: Wer sie
+  // dafür nutzt, darf sie behalten, ohne "Fährte" als Sportart anzugeben - dann
+  // lässt er das Modul an und wählt die Sportart ab. Erkannt am Code der
+  // Sportart, nicht am Namen - Namen ändern sich, Codes nicht.
+  const zeigtFaehrte = moduleEnabled(MODULE.faehrte) && laeuftFaehrte(dogSportIds, sports);
+  // Der Standard-Reiter wird einmal festgelegt, sobald die frischen Daten da
+  // sind, und bleibt dann stehen: Trägt jemand sein einziges laufendes Ziel als
+  // erreicht ein, soll der Plan nicht unter den Händen verschwinden. (Zustand
+  // während des Renderns angleichen - so gibt es keinen Frame mit dem alten.)
+  const [standardReiter, setStandardReiter] = useState<HundeReiter | null>(null);
+  if (frischGeladen && standardReiter === null) {
+    setStandardReiter(waehleReiter(null, goals, { eintrag: eintragId !== null }));
+  }
+  const reiter = geltenderReiter(suchparameter.get(REITER_PARAMETER), standardReiter, goals, { eintrag: eintragId !== null });
 
-  // Fährte anzeigen, solange keine Einschränkung gilt oder sie ausdrücklich
-  // dabei ist. Erkannt am Code der Sportart, nicht am Namen - Namen ändern
-  // sich (aus "Leinenführigkeit" wurde "Fußarbeit"), Codes nicht.
-  const zeigtFaehrte = laeuftFaehrte(dogSportIds, sports);
-
-  async function loadAll(all = showAllHistory) {
-    // 1. Gecachte Daten sofort anzeigen (Stale-While-Revalidate) - ermöglicht
-    //    Offline-Nutzung der letzten gesehenen Daten ohne Wartezeit.
-    const cacheKey = `dog-page-${id}`;
-    const cached = await getCachedData<DogPageCache>(cacheKey);
-    if (cached) applyPageData(cached);
-
-    // 2. Frische Daten im Hintergrund laden.
-    try {
-      const sessionsPath = all
-        ? `/api/trainings?dogId=${id}`
-        : `/api/trainings?dogId=${id}&from=${threeMonthsAgoIso()}`;
-      const [dogData, sessionDataRaw, sportsData, myDogs, goalData, ownersData] = await Promise.all([
-        api.get<Dog>(`/api/dogs/${id}`),
-        api.get<TrainingSession[]>(sessionsPath),
-        api.get<Sport[]>("/api/sports"),
-        api.get<Dog[]>("/api/dogs"),
-        api.get<Goal[]>(`/api/goals?dogId=${id}`),
-        api.get<DogOwner[]>(`/api/dogs/${id}/owners`).catch(() => [] as DogOwner[]),
-      ]);
-      // Getrennt vom Block oben: Fällt der Abruf aus, soll die Seite trotzdem
-      // stehen - dann gilt "keine Einschränkung" wie bisher.
-      api
-        .get<string[]>(`/api/preferences/dogs/${id}/sports`)
-        .then((ids) => setDogSportIds(ids))
-        .catch(() => setDogSportIds([]));
-      // Leeres 3-Monats-Fenster: automatisch auf die komplette Historie
-      // zurückfallen, damit ein lange nicht trainierter Hund nicht
-      // fälschlich "Noch keine Trainingseinheiten" anzeigt.
-      let sessionData = sessionDataRaw;
-      if (!all && sessionData.length === 0) {
-        sessionData = await api.get<TrainingSession[]>(`/api/trainings?dogId=${id}`);
-        setShowAllHistory(true);
-      }
-      const fresh: DogPageCache = {
-        dog: dogData,
-        sessions: sessionData,
-        sports: sportsData,
-        myDogIds: myDogs.map((d) => d.id),
-        goals: goalData,
-        owners: ownersData,
-      };
-      applyPageData(fresh);
-      setFrischGeladen(true);
-      await setCachedData(cacheKey, fresh);
-    } catch (err) {
-      // "Gibt es nicht" ist kein Netzproblem: Dann darf auch kein
-      // Zwischenstand stehen bleiben. Vorher zeigte die Seite bei 404 still
-      // das gespeicherte Tagebuch weiter - auch einer anderen Person, die
-      // sich vorher am selben Gerät angemeldet hatte.
-      if (err instanceof ApiError && (err.status === 404 || err.status === 403)) {
-        await clearCachedData(cacheKey);
-        setDog(null);
-        setNichtGefunden(true);
-        return;
-      }
-      // Sonst nur Fehler melden wenn kein Cache vorhanden - mit Cache sind die
-      // alten Daten bereits sichtbar und ein Toast wäre verwirrend.
-      const cachedAvailable = cached !== null;
-      if (!cachedAvailable) toast.error(err instanceof ApiError ? err.message : t("Daten konnten nicht geladen werden."));
-    }
+  function aendereAdresse(aenderungen: Record<string, string | null>) {
+    router.replace(adresseMit(pathname, suchparameter.toString(), aenderungen), { scroll: false });
   }
 
-  // Aus der Trainerübersicht wird direkt auf #trainingsplan verlinkt. Der
-  // Browser kann dort beim Laden nicht hinspringen: die Ziele kommen erst per
-  // Netzantwort, der Anker existiert zu diesem Zeitpunkt noch gar nicht.
-  //
-  // Auf "dog" UND "goals" gewartet: solange der Hund fehlt, rendert die Seite
-  // nur "Lädt…" - der Anker ist dann selbst dann nicht da, wenn die Ziele
-  // schon eingetroffen sind. Nur einmal springen, sonst reißt es einen beim
-  // späteren Neuladen (nach jedem Speichern) wieder nach oben.
-  // Vom Dashboard führt "Training erfassen" direkt hierher (#training-erfassen).
-  // Dasselbe Problem wie beim Trainingsplan unten: der Anker existiert beim
-  // Laden noch nicht. Anders als dort wird zusätzlich das Formular geöffnet -
-  // wer den Weg wählt, will erfassen und nicht erst noch einen Knopf suchen.
-  const sprangZumFormular = useRef(false);
-  // Zählt jeden Wunsch, zum Formular zu springen (Anker von der Startseite,
-  // Sprungknopf oben). Ein Zähler statt eines Schalters, damit auch ein
-  // zweiter Sprung bei schon offenem Formular noch scrollt.
-  const [formularSprung, setFormularSprung] = useState(0);
-  useEffect(() => {
-    if (sprangZumFormular.current || !dog) return;
-    if (window.location.hash !== "#training-erfassen") return;
-    sprangZumFormular.current = true;
-    // Der Server sieht das Fragment einer Adresse nie - aus dem Anfangszustand
-    // heraus ließe sich das Formular also gar nicht öffnen, ohne beim
-    // Hydratisieren auseinanderzulaufen. Das Ref sorgt dafür, dass es bei
-    // genau einem Durchlauf bleibt.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setShowForm(true); setFormularSprung((n) => n + 1);
-  }, [dog]);
-
-  useEffect(() => {
-    if (!showForm || formularSprung === 0) return;
-    document.getElementById("training-erfassen")?.scrollIntoView({ behavior: "auto", block: "start" });
-  }, [showForm, formularSprung]);
-
-  function zumFormular() {
-    setShowForm(true);
-    setFormularSprung((n) => n + 1);
-  }
-
-  function springeZu(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: "auto", block: "start" });
-  }
-
-  // Von der Startseite führt "Fährte legen" hierher (#faehrte-aufnehmen). Der
-  // Recorder erscheint erst, wenn die Sportarten des Hundes geladen sind -
-  // vorher gibt es kein Ziel, also bei jedem Nachladen erneut schauen, aber
-  // nur einmal springen.
-  const sprangZurFaehrte = useRef(false);
-  useEffect(() => {
-    if (sprangZurFaehrte.current || window.location.hash !== "#faehrte-aufnehmen") return;
-    const ziel = document.getElementById("faehrte-aufnehmen");
-    if (!ziel) return;
-    sprangZurFaehrte.current = true;
-    ziel.scrollIntoView({ behavior: "auto", block: "start" });
-  }, [dog, dogSportIds, sports]);
+  useDogAnker(dog !== null, (wunsch) => {
+    if (wunsch.formular) setShowForm(true);
+    if (wunsch.faehrte && zeigtFaehrte) setFaehrteOffen(true);
+    // Auch ohne neuen Reiter: die Adresse verliert dabei das Fragment.
+    aendereAdresse(wunsch.reiter ? { [REITER_PARAMETER]: wunsch.reiter } : {});
+  });
 
   async function faehrteGeaendert() {
     await loadAll();
     setFaehrtenStand((n) => n + 1);
-  }
-
-  const jumpedToPlan = useRef(false);
-  useEffect(() => {
-    if (jumpedToPlan.current || !dog || goals === null) return;
-    if (window.location.hash !== "#trainingsplan") return;
-    const target = document.getElementById("trainingsplan");
-    if (!target) return;
-    jumpedToPlan.current = true;
-    // Direkt und ohne Animation: requestAnimationFrame läuft in einem Tab im
-    // Hintergrund gar nicht (wer den Link in einem neuen Tab öffnet, landete
-    // sonst oben), und eine weiche Animation bricht ab, sobald ein
-    // nachladender Abschnitt das Layout verschiebt.
-    target.scrollIntoView({ behavior: "auto", block: "start" });
-  }, [dog, goals]);
-
-  useEffect(() => {
-    // Initialer Datenabruf bei Mount/Routenwechsel (externe Quelle: REST API).
-    // loadAll() wird bei jedem Render neu erzeugt, daher absichtlich nicht in
-    // den Dependencies - nur "id" soll einen erneuten Abruf auslösen.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  async function loadOlderSessions() {
-    setShowAllHistory(true);
-    await loadAll(true);
-  }
-
-  // Liegt der Eintrag, auf den der Link zeigt, außerhalb der geladenen drei
-  // Monate, wird die ganze Historie nachgeladen - einmal. Steht er danach
-  // immer noch nicht in der Liste (fremde oder erfundene Id), passiert weiter
-  // nichts: SessionHistory findet ihn nicht und ignoriert den Parameter.
-  useEffect(() => {
-    if (!eintragId || !frischGeladen || !sessions || showAllHistory || versuchteAlleZuLaden.current) return;
-    if (sessions.some((s) => s.id === eintragId)) return;
-    versuchteAlleZuLaden.current = true;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadOlderSessions();
-    // loadOlderSessions wird bei jedem Render neu erzeugt - nur die Bedingungen oben zählen.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eintragId, frischGeladen, sessions, showAllHistory]);
-
-  async function deleteDog() {
-    if (!dog) return;
-    // Doppelte Bestätigung: Hunde-Löschen entfernt Trainings, Fährten, Ziele
-    // und Trainerzuweisungen mit - deutlich schwerwiegender als das Löschen
-    // einer einzelnen Session, deshalb zusätzlich Name-Bestätigung.
-    if (!confirm(t("Hund „{name}“ wirklich löschen? Alle Trainings, Fährten, Ziele und Trainerzuweisungen werden entfernt.", { name: dog.name }))) return;
-    const confirmName = prompt(t("Zum Bestätigen bitte den Namen des Hundes eingeben: „{name}“", { name: dog.name }));
-    if (confirmName?.trim() !== dog.name) {
-      if (confirmName !== null) toast.error(t("Name stimmt nicht - Löschen abgebrochen."));
-      return;
-    }
-    try {
-      await api.delete(`/api/dogs/${id}`);
-      toast.success(t("Hund „{name}“ gelöscht.", { name: dog.name }));
-      router.push("/dogs");
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
-    }
-  }
-
-  async function setArchived(archived: boolean) {
-    if (!dog) return;
-    // Archivieren blendet den Hund nur aus (reversibel, Daten bleiben) - daher
-    // nur beim Archivieren eine leichte Rückfrage, das Aufheben ist harmlos.
-    if (archived && !confirm(t("Hund „{name}“ archivieren? Er wird aus deiner aktiven Liste ausgeblendet, alle Daten bleiben erhalten.", { name: dog.name }))) return;
-    try {
-      await api.put(`/api/dogs/${id}/archive`, { archived });
-      toast.success(archived ? t("„{name}“ archiviert.", { name: dog.name }) : t("„{name}“ wieder aktiviert.", { name: dog.name }));
-      await loadAll();
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : t("Aktion fehlgeschlagen."));
-    }
   }
 
   async function handleTrainingSaved(offline: boolean) {
@@ -337,180 +133,78 @@ export default function DogDetailPage() {
     );
   if (!dog) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
 
-  return (
-    <div className="flex flex-col gap-6">
-      {/* Auf dem Handy untereinander: Name und Knöpfe nebeneinander lassen für
-          "Labrador Retriever · 4 Jahre" auf 375px nur eine schmale Spalte
-          übrig, die vierzeilig unter die Knöpfe läuft. */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-3">
-          <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight">{dog.name}</h1>
-              {dog.archivedAt && <Badge variant="secondary">{t("Archiviert")}</Badge>}
-            </div>
-            <p className="text-muted-foreground">
-              {[dog.breed ?? t("Unbekannte Rasse"), formatDogAge(dog.birthday, new Date(), t)].filter(Boolean).join(" · ")}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {isOwner && (
-            <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)}>
-              <Pencil className="size-4" />
-{t("Bearbeiten")}
-            </Button>
-          )}
-          <Link href={`/dogs/${id}/print`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            <Printer className="size-4" />
-            {t("Drucken / Exportieren")}
-          </Link>
-        </div>
-      </div>
+  const neueRueckmeldungen = ungeseheneRueckmeldungen(sessions, new Set([...gesehenBeiStart, ...jetztGesehen]), isOwner);
+  const wechseln = (neu: HundeReiter) => aendereAdresse({ [REITER_PARAMETER]: neu });
 
-      {/* Sprungknöpfe zu dem, wofür man die Seite öffnet. Die Seite ist gut
-          fünf Bildschirme lang; "Legen starten" lag 1,6 und "Training
-          erfassen" 1,7 Bildschirme tief. */}
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={zumFormular}>
-          <NotebookPen className="size-4" />
-          {t("Training erfassen")}
-        </Button>
-        {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && (
-          <Button size="sm" variant="outline" onClick={() => springeZu("faehrte-aufnehmen")}>
-            <Route className="size-4" />
-            {t("Fährte legen")}
-          </Button>
-        )}
-        {goals?.some((g) => g.status === 0 && g.trainingPlan) && (
-          <Button size="sm" variant="outline" onClick={() => springeZu("trainingsplan")}>
-            <Target className="size-4" />
-            {t("Trainingsplan")}
-          </Button>
-        )}
-      </div>
+  return (
+    <div className="flex flex-col gap-4">
+      <DogHeader dog={dog} meineHunde={myDogs} gehoertMir={isOwner} onVerwalten={() => setMenuOffen(true)} />
 
       {editing && <DogEditForm dog={dog} onSaved={loadAll} onCancel={() => setEditing(false)} />}
 
-      <GoalsSection dogId={id} dogName={dog.name} sports={angeboteneSportarten} goals={goals} onChanged={loadAll} />
-
-      <LeistungenCard goals={goals} onChanged={loadAll} />
-
-      {/* Die Fährtenaufzeichnung erscheint nur, wenn das Modul an ist UND
-          der Hund Fährte läuft. Beides zusammen, weil die GPS-Aufzeichnung
-          auch für Spaziergänge taugt: Wer sie dafür nutzt, darf sie behalten,
-          ohne t("Fährte") als Sportart anzugeben - dann lässt er das Modul an
-          und wählt die Sportart ab. */}
-      {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && <FahrteRecorder dogId={id} onSaved={faehrteGeaendert} />}
-
-      {/* Der Verlauf gehört zur Fährtenarbeit, deshalb unter dem Recorder und
-          mit denselben Bedingungen. Erst ab drei ausgewerteten Abläufen: bei
-          einem oder zwei Balken sagt ein Verlauf nichts. */}
-      {moduleEnabled(MODULE.faehrte) && zeigtFaehrte && (
-        <FaehrtenTrend
-          dogId={id}
-          mindestens={3}
-          hoechstens={10}
-          nachAbweichung
-          className="rounded-lg border border-surface-border bg-surface p-3"
-          aktualisiert={faehrtenStand}
-        />
-      )}
-
-      <SectionHeading
-        id="training-erfassen"
-        className="scroll-mt-4"
-        icon={NotebookPen}
-        title={t("Trainingstagebuch")}
-        action={
-          <Button size="sm" onClick={() => setShowForm((v) => !v)}>
-            <Plus className="size-4" />
-            {t("Training erfassen")}
-          </Button>
-        }
+      <DogActionBar
+        zeigtFaehrte={zeigtFaehrte}
+        onTraining={() => {
+          setShowForm(true);
+          wechseln("tagebuch");
+        }}
+        onFaehrte={() => setFaehrteOffen(true)}
       />
 
-      {showForm && (
-        <TrainingForm
-          dogId={id}
-          sports={angeboteneSportarten}
-          goals={goals}
-          // Die Historie kommt absteigend nach Datum vom Server (siehe
-          // TrainingService). Einheiten ohne Übungen übersprungen: Eine
-          // gelegte Fährte legt die Einheit des Tages an, und die Vorlage
-          // hieße sonst "Übernimmt die 0 Übungen".
-          letzteEinheit={sessions?.find((einheit) => einheit.exercises.length > 0) ?? null}
-          onSaved={handleTrainingSaved}
-        />
-      )}
-
-      <SessionHistory
-        sessions={sessions}
-        dogName={dog.name}
-        isOwner={isOwner}
-        onChanged={faehrteGeaendert}
-        onLoadOlder={showAllHistory ? null : loadOlderSessions}
-        // Erst fokussieren, wenn alles geladen ist: Die Fährtenaufzeichnung
-        // darüber erscheint erst mit den Sportarten des Hundes und würde den
-        // Eintrag sonst nach dem Hinscrollen wieder wegschieben.
-        fokusEintrag={frischGeladen && dogSportIds !== null ? eintragId : null}
+      <DogStatusLine
+        ziel={zielStatus(goals)}
+        neuesFeedback={neueRueckmeldungen.length > 0}
+        onZiel={() => wechseln("plan")}
+        onFeedback={() => aendereAdresse({ [REITER_PARAMETER]: "tagebuch", eintrag: neueRueckmeldungen[0].id })}
       />
 
-      {isOwner && (
-        <CoOwnersSection
+      <DogTabs reiter={reiter} tage={tageAnzahl(sessions)} onChange={wechseln} />
+
+      {/* Beide Reiter bleiben im Baum, der andere ist nur versteckt: Ein halb
+          ausgefülltes Trainingsformular oder ein offenes Ziel-Formular geht
+          beim Hin- und Herschalten nicht verloren. Das display liegt auf dem
+          Innenelement, damit "hidden" nicht von einer Klasse überstimmt wird. */}
+      <div role="tabpanel" id={reiterPanelId("plan")} aria-labelledby={reiterTabId("plan")} hidden={reiter !== "plan"}>
+        <div className="flex flex-col gap-6">
+          <GoalsSection dogId={id} dogName={dog.name} sports={angeboteneSportarten} goals={goals} onChanged={loadAll} />
+          <LeistungenCard goals={goals} onChanged={loadAll} />
+        </div>
+      </div>
+      <div role="tabpanel" id={reiterPanelId("tagebuch")} aria-labelledby={reiterTabId("tagebuch")} hidden={reiter !== "tagebuch"}>
+        <DiaryTab
           dogId={id}
           dogName={dog.name}
-          owners={owners}
-          currentUserId={user?.userId}
-          onChanged={loadAll}
+          isOwner={isOwner}
+          sports={angeboteneSportarten}
+          goals={goals}
+          sessions={sessions}
+          formularOffen={showForm}
+          onFormularSchliessen={() => setShowForm(false)}
+          onTrainingGespeichert={handleTrainingSaved}
+          faehrteAn={zeigtFaehrte}
+          faehrtenStand={faehrtenStand}
+          onChanged={faehrteGeaendert}
+          onLoadOlder={showAllHistory ? null : loadOlderSessions}
+          // Nur im sichtbaren Reiter: Im versteckten gälte das Feedback als
+          // gesehen, und die Karte würde in einem 0x0-Container aufgebaut.
+          fokusEintrag={frischGeladen && reiter === "tagebuch" ? eintragId : null}
+          gesehenBeiStart={gesehenBeiStart}
+          onGesehen={onGesehen}
         />
-      )}
+      </div>
 
-      {isOwner && (
-        <Card>
-          <CardContent className="flex flex-col gap-4 pt-6">
-            {/* Archivieren: reversibel, blendet nur aus. */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <p className="font-medium">{dog.archivedAt ? t("Hund ist archiviert") : t("Hund archivieren")}</p>
-                <p className="text-sm text-muted-foreground">
-                  {dog.archivedAt
-                    ? t("Ausgeblendet aus deiner aktiven Liste – alle Daten bleiben erhalten. Du kannst die Archivierung jederzeit aufheben.")
-                    : t("Blendet den Hund aus deiner Liste aus – Trainings, Fährten und Ziele bleiben vollständig erhalten. Ideal, wenn dein Hund verstorben ist oder pausiert.")}
-                </p>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="shrink-0 self-start"
-                onClick={() => setArchived(!dog.archivedAt)}
-              >
-                {dog.archivedAt ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
-                {dog.archivedAt ? "Archivierung aufheben" : "Archivieren"}
-              </Button>
-            </div>
-
-            {/* Endgültig löschen: unwiderruflich, deshalb klar abgesetzt. */}
-            <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <p className="font-medium">{t("Hund endgültig löschen")}</p>
-                <p className="text-sm text-muted-foreground">
-{t("Entfernt den Hund samt aller Trainings, Fährten, Ziele und Trainerzuweisungen unwiderruflich.")}
-                </p>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="shrink-0 self-start text-destructive hover:text-destructive"
-                onClick={deleteDog}
-              >
-                <Trash2 className="size-4" />
-{t("Endgültig löschen")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <DogActionsSheet
+        dog={dog}
+        isOwner={isOwner}
+        owners={owners}
+        currentUserId={user?.userId}
+        open={menuOffen}
+        onOpenChange={setMenuOffen}
+        onEdit={() => setEditing(true)}
+        onChanged={loadAll}
+      />
+      {zeigtFaehrte && (
+        <DogFaehrteSheet dogId={id} open={faehrteOffen} onOpenChange={setFaehrteOffen} onSaved={faehrteGeaendert} />
       )}
     </div>
   );

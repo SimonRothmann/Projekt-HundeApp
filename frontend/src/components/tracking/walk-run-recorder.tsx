@@ -53,11 +53,14 @@ export function WalkRunRecorder({
   trackId,
   onSaved,
   onLivePointsChange,
+  onAufzeichnung,
   laidTrackPoints,
   label,
 }: {
   trackId: string;
   onSaved: () => Promise<void>;
+  /** Meldet, ob gerade aufgezeichnet wird - für Aufrufer, die währenddessen nicht verschwinden dürfen. */
+  onAufzeichnung?: (laeuft: boolean) => void;
   // (trackId, points): der Aufrufer kann so EINEN stabilen Callback für alle
   // Tracks nutzen, statt pro Track eine neue Funktion zu erzeugen - Letzteres
   // führte zu einer Endlos-Render-Schleife (Effect unten hängt von
@@ -111,6 +114,10 @@ export function WalkRunRecorder({
     }
     startRecording(fortsetzen?.points);
   }
+
+  useEffect(() => {
+    onAufzeichnung?.(isRecording);
+  }, [isRecording, onAufzeichnung]);
 
   useEffect(() => {
     // EMPTY_WALK_POINTS ist eine stabile Referenz (Modul-Konstante), damit der
