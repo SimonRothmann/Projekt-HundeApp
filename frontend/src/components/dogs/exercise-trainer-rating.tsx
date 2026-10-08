@@ -32,7 +32,9 @@ export function ExerciseTrainerRating({
   rating: number | null;
   note: string | null;
   canEdit: boolean;
-  onSaved: () => Promise<void>;
+  // Bekommt die gespeicherten Werte mit, damit die Liste die Übung lokal
+  // nachziehen kann, ohne neu zu laden.
+  onSaved: (rating: number, note: string | null) => Promise<void>;
 }) {
   const t = useT();
   const [editingNote, setEditingNote] = useState(false);
@@ -48,12 +50,13 @@ export function ExerciseTrainerRating({
     setSaving(true);
     setOptimistic(nextRating);
     try {
+      const gespeicherteNotiz = nextNote?.trim() || null;
       await api.put(`/api/trainings/exercises/${exerciseId}/trainer-rating`, {
         rating: nextRating,
-        note: nextNote?.trim() || null,
+        note: gespeicherteNotiz,
       });
       setEditingNote(false);
-      await onSaved();
+      await onSaved(nextRating, gespeicherteNotiz);
     } catch (err) {
       setOptimistic(null);
       toast.error(err instanceof ApiError ? err.message : t("Trainer-Bewertung konnte nicht gespeichert werden."));

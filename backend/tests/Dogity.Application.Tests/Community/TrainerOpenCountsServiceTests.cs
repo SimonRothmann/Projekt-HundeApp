@@ -100,15 +100,16 @@ public class TrainerOpenCountsServiceTests
             Exercises = { new TrainingExercise { FreeTextLabel = "Sitz", TrainerRating = bewertung } },
         };
         db.TrainingSessions.AddRange(
-            Session(betreut.Id, null, 4), // Feedback fehlt
-            Session(betreut.Id, "Gut.", null), // Bewertung fehlt
+            Session(betreut.Id, null, 4), // Feedback fehlt, aber alle Übungen bewertet: fertig (Feedback ist freiwillig)
+            Session(betreut.Id, "Gut.", null), // Feedback da: fertig
             Session(betreut.Id, "Gut.", 5), // fertig
+            Session(betreut.Id, null, null), // weder Feedback noch Bewertung: offen
             Session(fremd.Id, null, null)); // nicht betreut
         await db.SaveChangesAsync();
 
         var result = await new TrainerOpenCountsService(db).GetAsync(trainer);
 
-        Assert.Equal(2, result.Value!.SessionsToRate);
+        Assert.Equal(1, result.Value!.SessionsToRate);
     }
 
     [Fact]
@@ -215,5 +216,69 @@ public class TrainerOpenCountsServiceTests
 
         Assert.Equal(grenze, Assert.Single(liste.Value!).Date);
         Assert.Equal(1, zahlen.Value!.SessionsToRate);
+    }
+
+    [Fact]
+    public async Task Zu_Bewerten_Erledigt_Ist_Abgehakt_Oder_Mit_Text_Oder_Alle_Uebungen_Bewertet()
+    {
+        var db = InMemoryDbContext.Create();
+        var trainer = Guid.NewGuid();
+        var besitzer = Guid.NewGuid();
+        var hund = new Dog { Name = "Bello" };
+        db.Dogs.Add(hund);
+        db.TrainerAssignments.Add(new TrainerAssignment { DogId = hund.Id, TrainerId = trainer, MemberId = besitzer });
+
+        TrainingSession Session(string? feedback, DateTimeOffset? abgehakt, int?[] bewertungen)
+        {
+            var s = new TrainingSession
+            {
+                UserId = besitzer, DogId = hund.Id, Date = Vereinszeit.Heute().AddDays(-3), DurationMinutes = 30,
+                TrainerFeedback = feedback, TrainerReviewedAt = abgehakt,
+            };
+            foreach (var b in bewertungen)
+                s.Exercises.Add(new TrainingExercise { FreeTextLabel = "Sitz", Rating = 3, TrainerRating = b });
+            return s;
+        }
+
+        db.TrainingSessions.AddRange(
+            Session(null, DateTimeOffset.UtcNow, [null, null]), // abgehakt trotz offener Übungen: fertig
+            Session(null, DateTimeOffset.UtcNow, []), // Fährte-only, abgehakt: fertig
+            Session("Gut.", null, [null]), // Text: fertig
+            Session(null, null, [4, 5]), // alle Übungen bewertet: fertig
+            Session(null, null, []), // Fährte-only ohne Text und ohne Haken: offen
+            Session(null, null, [4, null]), // eine Übung unbewertet: offen
+            Session("Gut.", null, [])); // Fährte-only mit Text: fertig
+        await db.SaveChangesAsync();
+
+        var training = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var liste = await training.GetSessionsToRateAsync(trainer);
+        var zahlen = await new TrainerOpenCountsService(db).GetAsync(trainer);
+
+        Assert.Equal(2, liste.Value!.Count);
+        Assert.Equal(2, zahlen.Value!.SessionsToRate);
+        Assert.Contains(liste.Value, s => s.Exercises.Count == 0);
+        Assert.Contains(liste.Value, s => s.Exercises.Count == 2);
+    }
+
+    [Fact]
+    public async Task Zu_Bewerten_Kommt_Nach_Dem_Abhaken_Aller_Trainings_Auf_Null()
+    {
+        var db = InMemoryDbContext.Create();
+        var trainer = Guid.NewGuid();
+        var besitzer = Guid.NewGuid();
+        var hund = new Dog { Name = "Bello" };
+        db.Dogs.Add(hund);
+        db.TrainerAssignments.Add(new TrainerAssignment { DogId = hund.Id, TrainerId = trainer, MemberId = besitzer });
+        var session = new TrainingSession { UserId = besitzer, DogId = hund.Id, Date = Vereinszeit.Heute().AddDays(-1), DurationMinutes = 20 };
+        db.TrainingSessions.Add(session);
+        await db.SaveChangesAsync();
+        var training = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var zaehler = new TrainerOpenCountsService(db);
+
+        Assert.Equal(1, (await zaehler.GetAsync(trainer)).Value!.SessionsToRate);
+
+        await training.MarkSessionReviewedAsync(trainer, session.Id);
+
+        Assert.Equal(0, (await zaehler.GetAsync(trainer)).Value!.SessionsToRate);
     }
 }

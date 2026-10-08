@@ -172,7 +172,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     .ToList(),
                 einheit.OwnerReaction?.ToString(),
                 einheit.OwnerReply,
-                einheit.OwnerReplyAt))
+                einheit.OwnerReplyAt,
+                einheit.TrainerReviewedAt))
                 .OrderByDescending(t => t.Datum)
                 .ToList(),
             faehrten.Select(faehrte => new FaehrteExportDto(

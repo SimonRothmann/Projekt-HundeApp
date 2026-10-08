@@ -137,6 +137,9 @@ export type TrainingSession = {
   ownerReaction?: FeedbackReaction | null;
   ownerReply?: string | null;
   ownerReplyAt?: string | null;
+  // Wann die Trainer:in das Training als erledigt abgehakt hat ("Fertig" /
+  // "Passt so"). Optional aus demselben Grund wie ownerReaction.
+  trainerReviewedAt?: string | null;
 };
 
 // Schnelle Reaktion auf Trainer-Feedback. Numerisch wie alle Enums der API.

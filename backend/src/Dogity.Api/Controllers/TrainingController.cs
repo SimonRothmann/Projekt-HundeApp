@@ -112,6 +112,30 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         return FromResult(result);
     }
 
+    /// <summary>"Fertig": das Training ohne Feedback-Text abhaken.</summary>
+    [HttpPut("{id:guid}/trainer-reviewed")]
+    public async Task<IActionResult> MarkSessionReviewed(Guid id, CancellationToken ct)
+    {
+        var result = await trainingService.MarkSessionReviewedAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
+    /// <summary>Das Abhaken zurücknehmen ("Rückgängig").</summary>
+    [HttpDelete("{id:guid}/trainer-reviewed")]
+    public async Task<IActionResult> UnmarkSessionReviewed(Guid id, CancellationToken ct)
+    {
+        var result = await trainingService.UnmarkSessionReviewedAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
+    /// <summary>"Passt so": Selbsteinschätzungen als Trainer-Bewertung übernehmen und abhaken.</summary>
+    [HttpPut("{id:guid}/accept-self-ratings")]
+    public async Task<IActionResult> AcceptSelfRatings(Guid id, CancellationToken ct)
+    {
+        var result = await trainingService.AcceptSelfRatingsAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
     [HttpGet("trainer/sessions")]
     public async Task<ActionResult<IReadOnlyList<TrainerSessionToRateDto>>> GetSessionsToRate(CancellationToken ct)
     {

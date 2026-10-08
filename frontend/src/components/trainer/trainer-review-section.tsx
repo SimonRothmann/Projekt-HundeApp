@@ -1,23 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { TrainerSessionToRate } from "@/lib/types";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, MessageSquarePlus, Pencil } from "lucide-react";
+import { Check, CheckCheck, ClipboardCheck, MessageSquarePlus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 import { TEXTLAENGE } from "@/lib/textlaengen";
+import { istDurchBewertungErledigt, kannSelbsteinschaetzungUebernehmen } from "@/lib/trainer-bewertung";
+
 /**
  * Trainerseite: alle offenen Trainings der betreuten Hunde in EINER Ansicht -
  * je Trainingstag das Gesamt-Feedback und alle Übungen, ohne ins Tagebuch des
- * jeweiligen Hundes zu wechseln. Ein Training verschwindet, sobald Feedback
- * gegeben UND alle Übungen bewertet sind.
+ * jeweiligen Hundes zu wechseln. Ein Training verschwindet, sobald die
+ * Trainer:in es abgehakt hat ("Fertig" / "Passt so"), Feedback gegeben hat oder
+ * alle Übungen bewertet sind - Feedback ist freiwillig, die Definition steht
+ * im Backend (TrainerSessionQueries) und gilt auch für den Zähler.
  *
  * Auf Überblick gebaut, nicht auf Vollständigkeit:
  * - nach Hund gruppiert, der Name steht einmal statt über jedem Training;
@@ -40,11 +44,24 @@ export function TrainerReviewSection() {
   const [openFeedbackId, setOpenFeedbackId] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [savingFeedback, setSavingFeedback] = useState(false);
+  // Das Training, dessen Knopf gerade arbeitet - sperrt beide Knöpfe der Karte
+  // gegen Doppeltippen, ohne die anderen Karten festzuhalten.
+  const [arbeitetId, setArbeitetId] = useState<string | null>(null);
+  // Karten, die erst durch einen Stern erledigt wurden: der Server führt sie
+  // nicht mehr als offen, sie bleiben aber bis zum Neuladen der Seite stehen.
+  // Sonst verschwände die Karte unter dem Finger - ein Fehltipp auf der letzten
+  // Übung ließe sich nicht mehr korrigieren und Notiz oder Feedback gingen nicht
+  // mehr. Abhaken ("Fertig" / "Passt so") oder Feedback räumt sie weg.
+  const bleibtStehen = useRef(new Set<string>());
 
   async function load() {
     try {
       const data = await api.get<TrainerSessionToRate[]>("/api/trainings/trainer/sessions");
-      setSessions(data);
+      setSessions((alt) => {
+        if (!alt) return data;
+        const imServer = new Set(data.map((x) => x.sessionId));
+        return [...data, ...alt.filter((x) => bleibtStehen.current.has(x.sessionId) && !imServer.has(x.sessionId))];
+      });
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Trainings konnten nicht geladen werden."));
     }
@@ -68,12 +85,82 @@ export function TrainerReviewSection() {
       await api.put(`/api/trainings/${sessionId}/feedback`, { feedback: feedbackText });
       toast.success(t("Feedback gespeichert."));
       setOpenFeedbackId(null);
+      // Mit Feedback ist das Training bewusst abgeschlossen - es darf gehen.
+      bleibtStehen.current.delete(sessionId);
       await load();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Feedback konnte nicht gespeichert werden."));
     } finally {
       setSavingFeedback(false);
     }
+  }
+
+  // Die Karte verschwindet sofort; der Abruf danach gleicht mit dem Server ab
+  // (auch wenn die Aktion scheiterte, dann steht sie wieder da).
+  function ausblenden(sessionId: string) {
+    bleibtStehen.current.delete(sessionId);
+    setSessions((aktuell) => (aktuell ? aktuell.filter((x) => x.sessionId !== sessionId) : aktuell));
+  }
+
+  // Die Übung lokal nachziehen statt neu zu laden: Der Abruf liefert ein
+  // Training, dessen letzte Übung gerade Sterne bekam, nicht mehr mit.
+  function sterneGespeichert(sessionId: string, exerciseId: string, rating: number, note: string | null) {
+    bleibtStehen.current.add(sessionId);
+    setSessions((aktuell) =>
+      aktuell
+        ? aktuell.map((x) =>
+            x.sessionId !== sessionId
+              ? x
+              : {
+                  ...x,
+                  exercises: x.exercises.map((e) =>
+                    e.exerciseId === exerciseId ? { ...e, trainerRating: rating, trainerNote: note } : e,
+                  ),
+                },
+          )
+        : aktuell,
+    );
+    return Promise.resolve();
+  }
+
+  async function rueckgaengig(sessionId: string) {
+    try {
+      await api.delete(`/api/trainings/${sessionId}/trainer-reviewed`);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Das ging nicht zurück."));
+    }
+    await load();
+  }
+
+  async function fertig(sessionId: string) {
+    setArbeitetId(sessionId);
+    ausblenden(sessionId);
+    try {
+      await api.put(`/api/trainings/${sessionId}/trainer-reviewed`);
+      toast.success(t("Training abgehakt."), {
+        action: { label: t("Rückgängig"), onClick: () => void rueckgaengig(sessionId) },
+        duration: 8000,
+      });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Das Training konnte nicht abgehakt werden."));
+    } finally {
+      setArbeitetId(null);
+    }
+    await load();
+  }
+
+  async function passtSo(sessionId: string) {
+    setArbeitetId(sessionId);
+    ausblenden(sessionId);
+    try {
+      await api.put(`/api/trainings/${sessionId}/accept-self-ratings`);
+      toast.success(t("Selbsteinschätzung übernommen."));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Die Selbsteinschätzung konnte nicht übernommen werden."));
+    } finally {
+      setArbeitetId(null);
+    }
+    await load();
   }
 
   // Nach Hund gruppieren, Reihenfolge der Hunde nach dem ältesten offenen
@@ -91,7 +178,8 @@ export function TrainerReviewSection() {
 
   // Anzahl Trainings, nicht offener Einzelpunkte: dieselbe Einheit wie die
   // Kachel "Zu erledigen" auf der Übersicht, von der man hierher kommt.
-  const totalOpen = sessions?.length ?? 0;
+  // Stehengebliebene, schon erledigte Karten zählen nicht mit.
+  const totalOpen = (sessions ?? []).filter((x) => !istDurchBewertungErledigt(x)).length;
 
   return (
     <Card>
@@ -111,7 +199,7 @@ export function TrainerReviewSection() {
           <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : sessions.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-{t("Keine offenen Trainings – alle betreuten Trainings sind bewertet und kommentiert.")}
+{t("Alles erledigt – im Moment ist nichts mehr zu bewerten.")}
           </p>
         ) : (
           <div className="flex flex-col gap-4">
@@ -127,6 +215,7 @@ export function TrainerReviewSection() {
                 {dogSessions.map((s) => {
                   const rated = s.exercises.filter((e) => e.trainerRating !== null).length;
                   const open = openCount(s);
+                  const uebernehmbar = kannSelbsteinschaetzungUebernehmen(s);
                   return (
                     <div key={s.sessionId} className="min-w-0 rounded-md border p-2.5">
                       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
@@ -163,7 +252,7 @@ export function TrainerReviewSection() {
                                 rating={ex.trainerRating}
                                 note={ex.trainerNote}
                                 canEdit
-                                onSaved={load}
+                                onSaved={(rating, note) => sterneGespeichert(s.sessionId, ex.exerciseId, rating, note)}
                               />
                             </li>
                           ))}
@@ -213,6 +302,39 @@ export function TrainerReviewSection() {
                             <MessageSquarePlus className="size-3.5" />
                             {t("Gesamt-Feedback geben")}
                           </Button>
+                        )}
+                      </div>
+
+                      {/* Feedback und Sterne sind freiwillig: Wer nichts zu sagen
+                          hat, hakt das Training ab. "Passt so" nur, wenn es
+                          Selbsteinschätzungen zu übernehmen gibt. */}
+                      <div className="mt-2 flex flex-col gap-1.5 border-t pt-2">
+                        <div className="flex flex-wrap gap-2">
+                          {uebernehmbar && (
+                            <Button
+                              variant="secondary"
+                              className="min-w-0 flex-1"
+                              disabled={arbeitetId === s.sessionId}
+                              onClick={() => void passtSo(s.sessionId)}
+                            >
+                              <CheckCheck />
+                              {t("Passt so")}
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            className="min-w-0 flex-1"
+                            disabled={arbeitetId === s.sessionId}
+                            onClick={() => void fertig(s.sessionId)}
+                          >
+                            <Check />
+                            {t("Fertig")}
+                          </Button>
+                        </div>
+                        {uebernehmbar && (
+                          <p className="text-xs text-muted-foreground">
+                            {t("„Passt so“ übernimmt die Selbsteinschätzung der Hundeführer:in als deine Bewertung.")}
+                          </p>
                         )}
                       </div>
                     </div>

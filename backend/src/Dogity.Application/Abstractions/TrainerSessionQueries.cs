@@ -20,8 +20,16 @@ public static class TrainerSessionQueries
     public const int BewertungsWochen = 8;
 
     /// <summary>
-    /// Trainings betreuter Hunde, die noch etwas brauchen: kein Gesamt-Feedback
-    /// ODER mindestens eine unbewertete Übung.
+    /// Trainings betreuter Hunde, die noch etwas brauchen. Erledigt ist ein
+    /// Training, wenn die Trainer:in es abgehakt hat (TrainerReviewedAt), ein
+    /// Feedback-Text vorliegt ODER es Übungen gibt und alle eine Trainer-
+    /// Bewertung haben. Alles andere ist offen.
+    ///
+    /// Feedback ist freiwillig (Betreiberentscheidung 2026-10-08): Ehrenamtliche
+    /// sollen ein Training auch ohne Text loswerden können, sonst käme der
+    /// Zähler nie auf null. Ein Training ohne Übungen (zum Beispiel nur eine
+    /// Fährte) hat nichts zu bewerten und braucht deshalb Text oder Haken -
+    /// "alle Übungen bewertet" ist bei null Übungen nicht erfüllt.
     ///
     /// Eine Definition für die Liste (TrainingService.GetSessionsToRateAsync)
     /// und den Zähler auf der Trainer-Übersicht - sonst zeigte der Zähler eine
@@ -34,6 +42,8 @@ public static class TrainerSessionQueries
         return db.TrainingSessions
             .Where(s => assignedDogIds.Contains(s.DogId))
             .Where(s => s.Date >= ab)
-            .Where(s => s.TrainerFeedback == null || s.Exercises.Any(e => e.TrainerRating == null));
+            .Where(s => s.TrainerReviewedAt == null)
+            .Where(s => s.TrainerFeedback == null)
+            .Where(s => !s.Exercises.Any() || s.Exercises.Any(e => e.TrainerRating == null));
     }
 }

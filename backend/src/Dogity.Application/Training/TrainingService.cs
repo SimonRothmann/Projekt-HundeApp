@@ -651,6 +651,62 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return Result.Success();
     }
 
+    public async Task<Result> MarkSessionReviewedAsync(Guid trainerId, Guid sessionId, CancellationToken ct = default)
+    {
+        var session = await db.TrainingSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        if (session is null)
+            return Result.NotFound("Training nicht gefunden.");
+        if (!await IsAssignedTrainerAsync(trainerId, session.DogId, ct))
+            return Result.Failure("Nur ein für diesen Hund zugewiesener Trainer kann ein Training abhaken.");
+
+        // Ein zweites "Fertig" lässt den ersten Zeitpunkt stehen.
+        session.TrainerReviewedAt ??= DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> UnmarkSessionReviewedAsync(Guid trainerId, Guid sessionId, CancellationToken ct = default)
+    {
+        var session = await db.TrainingSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        if (session is null)
+            return Result.NotFound("Training nicht gefunden.");
+        if (!await IsAssignedTrainerAsync(trainerId, session.DogId, ct))
+            return Result.Failure("Nur ein für diesen Hund zugewiesener Trainer kann ein Training abhaken.");
+
+        session.TrainerReviewedAt = null;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> AcceptSelfRatingsAsync(Guid trainerId, Guid sessionId, CancellationToken ct = default)
+    {
+        var session = await db.TrainingSessions
+            .Include(s => s.Exercises)
+            .FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        if (session is null)
+            return Result.NotFound("Training nicht gefunden.");
+        if (!await IsAssignedTrainerAsync(trainerId, session.DogId, ct))
+            return Result.Failure("Nur ein für diesen Hund zugewiesener Trainer kann Übungen bewerten.");
+
+        // Nur Übungen ohne Trainer-Bewertung, und nur dort, wo es eine
+        // Selbsteinschätzung gibt (1-5). Eine vorhandene Trainer-Bewertung samt
+        // Notiz bleibt unangetastet; die Notiz der Hundeführer:in wird nicht
+        // mitkopiert, sie steht ohnehin an der Übung.
+        foreach (var exercise in session.Exercises.Where(e => e.TrainerRating is null && e.Rating is >= 1 and <= 5))
+            exercise.TrainerRating = exercise.Rating;
+
+        session.TrainerReviewedAt ??= DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        // Wie SetExerciseTrainerRatingAsync: keine Benachrichtigung. Das normale
+        // Bewerten meldet der Hundeführer:in nichts; "Passt so" tut dasselbe
+        // und gibt deshalb auch keine Meldung aus.
+        return Result.Success();
+    }
+
+    private Task<bool> IsAssignedTrainerAsync(Guid trainerId, Guid dogId, CancellationToken ct) =>
+        db.TrainerAssignments.AnyAsync(t => t.DogId == dogId && t.TrainerId == trainerId, ct);
+
     public async Task<Result<IReadOnlyList<TrainerSessionToRateDto>>> GetSessionsToRateAsync(Guid trainerId, CancellationToken ct = default)
     {
         // Nur Hunde mit direkter Trainer-Zuweisung: genau diese darf der Trainer
@@ -665,7 +721,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         if (assignedDogIds.Count == 0)
             return Result<IReadOnlyList<TrainerSessionToRateDto>>.Success([]);
 
-        // Offen = kein Gesamt-Feedback ODER mindestens eine unbewertete Übung.
+        // Offen = nicht abgehakt, ohne Feedback und mit unbewerteten Übungen
+        // (oder ohne Übungen) - Definition in TrainerSessionQueries.
         // Geladen werden ALLE Übungen des Trainings (auch bereits bewertete),
         // damit der Trainer den ganzen Trainingstag auf einen Blick sieht.
         var sessions = await db.TrainingSessionsToRate(assignedDogIds)
@@ -845,5 +902,6 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         hasGpsTrack,
         s.OwnerReaction,
         s.OwnerReply,
-        s.OwnerReplyAt);
+        s.OwnerReplyAt,
+        s.TrainerReviewedAt);
 }

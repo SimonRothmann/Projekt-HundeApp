@@ -456,4 +456,25 @@ public class AccountDataServiceTests
         Assert.Equal("Wie oft üben?", training.RueckfrageZurRueckmeldung);
         Assert.NotNull(training.RueckfrageAm);
     }
+
+    [Fact]
+    public async Task Export_EnthaeltAbhakzeitpunktDerTrainerin()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        lookup.Register(ich, "ich@dogity.test", "Ich", "Selbst");
+        var hund = new Dog { Name = "Bello" };
+        db.Dogs.Add(hund);
+        db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = ich });
+        db.TrainingSessions.Add(new TrainingSession
+        {
+            UserId = ich, DogId = hund.Id, Date = new DateOnly(2026, 9, 1), DurationMinutes = 30,
+            TrainerReviewedAt = DateTimeOffset.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var training = Assert.Single((await dienst.ExportAsync(ich)).Value!.Trainings);
+
+        Assert.NotNull(training.VonTrainerAbgehaktAm);
+    }
 }

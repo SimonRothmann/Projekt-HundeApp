@@ -61,7 +61,13 @@ public record TrainingSessionDto(
     /// </summary>
     FeedbackReaction? OwnerReaction = null,
     string? OwnerReply = null,
-    DateTimeOffset? OwnerReplyAt = null);
+    DateTimeOffset? OwnerReplyAt = null,
+    /// <summary>
+    /// Wann die Trainer:in das Training als erledigt abgehakt hat (siehe
+    /// TrainingSession.TrainerReviewedAt); null, solange nicht. Die Hundeseite
+    /// zeigt dann kein "Noch kein Trainer-Feedback" mehr.
+    /// </summary>
+    DateTimeOffset? TrainerReviewedAt = null);
 
 public record SetFeedbackRequest(string Feedback);
 
@@ -107,9 +113,9 @@ public record UpdateSessionNotesRequest(string? Notes);
 /// <summary>
 /// Ein vom Trainer zu bewertendes Training eines betreuten Hundes: Gesamt-
 /// Feedback UND alle Übungen in einer Ansicht, damit der Trainer alles auf
-/// einen Blick bewerten kann. Erscheint auf der Trainerseite, solange noch
-/// etwas offen ist - kein Gesamt-Feedback ODER mindestens eine unbewertete
-/// Übung. HandlerName = Hundeführer, Rating je Übung = dessen Selbstbewertung.
+/// einen Blick bewerten kann. Erscheint auf der Trainerseite, bis die Trainer:in
+/// es abgehakt, kommentiert oder alle Übungen bewertet hat (siehe
+/// TrainerSessionQueries). HandlerName = Hundeführer, Rating je Übung = dessen Selbstbewertung.
 /// </summary>
 public record TrainerSessionToRateDto(
     Guid SessionId,

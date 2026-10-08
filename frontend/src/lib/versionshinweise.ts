@@ -85,6 +85,14 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "behoben",
         text: uebersetzbar("Trainierst du an einem Tag, an dem schon eine Fährte eingetragen ist, behält das Training jetzt seine Uhrzeit und seinen Ort - und bekommt damit auch das Wetter."),
       },
+      {
+        art: "neu",
+        text: uebersetzbar("Unter „Trainings bewerten“ musst du als Trainer:in nicht mehr zu jedem Training etwas schreiben: Mit „Fertig“ hakst du ein Training ab, mit „Passt so“ übernimmst du die Selbsteinschätzung der Hundeführer:in als deine Bewertung. Auch wenn alle Übungen bewertet sind, gilt das Training als erledigt - die Zahl „Zu erledigen“ kann dadurch wieder auf null kommen."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Hat die Trainer:in ein Training abgehakt, steht auf der Hundeseite nicht mehr „Noch kein Trainer-Feedback“."),
+      },
     ],
   },
   {

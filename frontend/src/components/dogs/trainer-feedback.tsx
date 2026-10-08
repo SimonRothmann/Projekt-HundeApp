@@ -211,6 +211,11 @@ export function TrainerFeedback({
     }
   }
 
+  // Hat die Trainer:in das Training abgehakt, ohne Text zu schreiben, ist die
+  // Leerstelle kein Versäumnis mehr: "Noch kein Trainer-Feedback" stünde dann
+  // neben ihren Sternen und wäre falsch.
+  if (isOwner && !session.trainerFeedback && session.trainerReviewedAt) return null;
+
   return (
     // Vorhandenes Feedback ist eine fremde Stimme im eigenen Tagebuch und
     // bekommt deshalb eine eigene, farbig abgesetzte Fläche. Fehlt es, bleibt

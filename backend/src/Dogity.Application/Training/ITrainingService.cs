@@ -79,8 +79,26 @@ public interface ITrainingService
     Task<Result> SetExerciseTrainerRatingAsync(Guid trainerId, Guid exerciseId, int rating, string? note, CancellationToken ct = default);
 
     /// <summary>
+    /// "Fertig": hakt das Training ohne Feedback-Text und ohne Sterne ab (setzt
+    /// TrainerReviewedAt). Nur für zugewiesene Trainer:innen des Hundes.
+    /// </summary>
+    Task<Result> MarkSessionReviewedAsync(Guid trainerId, Guid sessionId, CancellationToken ct = default);
+
+    /// <summary>Nimmt "Fertig" zurück (Toast "Rückgängig"). Gleiche Rechte wie <see cref="MarkSessionReviewedAsync"/>.</summary>
+    Task<Result> UnmarkSessionReviewedAsync(Guid trainerId, Guid sessionId, CancellationToken ct = default);
+
+    /// <summary>
+    /// "Passt so": übernimmt für alle noch unbewerteten Übungen die
+    /// Selbsteinschätzung der Hundeführer:in als Trainer-Bewertung und hakt das
+    /// Training ab. Vorhandene Trainer-Bewertungen werden nie überschrieben.
+    /// Rechte wie <see cref="SetExerciseTrainerRatingAsync"/>.
+    /// </summary>
+    Task<Result> AcceptSelfRatingsAsync(Guid trainerId, Guid sessionId, CancellationToken ct = default);
+
+    /// <summary>
     /// Trainings betreuter Hunde (per TrainerAssignment), bei denen noch etwas
-    /// offen ist - kein Gesamt-Feedback ODER mindestens eine unbewertete Übung.
+    /// offen ist - nicht abgehakt, ohne Feedback und mit unbewerteten Übungen
+    /// (oder ganz ohne Übungen).
     /// Liefert je Training das Gesamt-Feedback und alle Übungen, damit der
     /// Trainer alles in einer Ansicht bewerten kann. Neueste zuerst.
     /// </summary>

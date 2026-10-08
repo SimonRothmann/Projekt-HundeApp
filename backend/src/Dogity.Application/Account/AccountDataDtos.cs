@@ -69,7 +69,9 @@ public record TrainingExportDto(
     // Die eigene Antwort auf die Trainer-Rückmeldung (Danke/Verstanden, Rückfrage).
     string? ReaktionAufRueckmeldung = null,
     string? RueckfrageZurRueckmeldung = null,
-    DateTimeOffset? RueckfrageAm = null);
+    DateTimeOffset? RueckfrageAm = null,
+    // Wann die Trainer:in das Training als erledigt abgehakt hat.
+    DateTimeOffset? VonTrainerAbgehaktAm = null);
 
 public record TrainingsuebungExportDto(
     string Uebung,

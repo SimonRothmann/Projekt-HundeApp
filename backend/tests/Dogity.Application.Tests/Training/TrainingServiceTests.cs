@@ -376,15 +376,198 @@ public class TrainingServiceTests
         Assert.Equal(exerciseId, ex.ExerciseId);
         Assert.Null(ex.TrainerRating);
 
-        // Nur Übung bewertet, aber noch kein Gesamt-Feedback -> Training bleibt offen.
+        // Feedback ist freiwillig: Sind alle Übungen bewertet, ist das Training
+        // erledigt, auch ohne Gesamt-Feedback.
         await service.SetExerciseTrainerRatingAsync(trainerId, exerciseId, 4, null);
         var afterRating = await service.GetSessionsToRateAsync(trainerId);
-        Assert.Single(afterRating.Value!);
+        Assert.Empty(afterRating.Value!);
+    }
 
-        // Zusätzlich Gesamt-Feedback -> Training ist vollständig bearbeitet und verschwindet.
+    [Fact]
+    public async Task GetSessionsToRate_GesamtFeedbackAllein_NimmtTrainingAusDerListe()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (trainerId, sessionId, _) = await SetupTrainerAndExerciseAsync(service, db, setup);
+        Assert.Single((await service.GetSessionsToRateAsync(trainerId)).Value!);
+
         await service.SetFeedbackAsync(trainerId, sessionId, new SetFeedbackRequest("Gut gemacht."));
-        var afterAll = await service.GetSessionsToRateAsync(trainerId);
-        Assert.Empty(afterAll.Value!);
+
+        Assert.Empty((await service.GetSessionsToRateAsync(trainerId)).Value!);
+    }
+
+    // ---- "Fertig" und "Passt so" ----
+
+    [Fact]
+    public async Task MarkSessionReviewed_AssignedTrainer_SetztZeitstempelUndNimmtTrainingAusDerListe()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (trainerId, sessionId, exerciseId) = await SetupTrainerAndExerciseAsync(service, db, setup);
+
+        var result = await service.MarkSessionReviewedAsync(trainerId, sessionId);
+
+        Assert.True(result.Succeeded);
+        Assert.Empty((await service.GetSessionsToRateAsync(trainerId)).Value!);
+        var reloaded = (await service.GetByIdAsync(setup.UserId, sessionId)).Value!;
+        Assert.NotNull(reloaded.TrainerReviewedAt);
+        // Weder Text noch Sterne entstehen durch "Fertig".
+        Assert.Null(reloaded.TrainerFeedback);
+        Assert.Null(Assert.Single(reloaded.Exercises, e => e.Id == exerciseId).TrainerRating);
+    }
+
+    [Fact]
+    public async Task MarkSessionReviewed_ZweitesMal_BehaeltErstenZeitpunkt()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (trainerId, sessionId, _) = await SetupTrainerAndExerciseAsync(service, db, setup);
+        await service.MarkSessionReviewedAsync(trainerId, sessionId);
+        var erster = (await service.GetByIdAsync(setup.UserId, sessionId)).Value!.TrainerReviewedAt;
+
+        await service.MarkSessionReviewedAsync(trainerId, sessionId);
+
+        Assert.Equal(erster, (await service.GetByIdAsync(setup.UserId, sessionId)).Value!.TrainerReviewedAt);
+    }
+
+    [Fact]
+    public async Task MarkSessionReviewed_Besitzerin_Fremder_Trainer_Und_Unbekanntes_Training_Scheitern()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (_, sessionId, _) = await SetupTrainerAndExerciseAsync(service, db, setup);
+
+        Assert.False((await service.MarkSessionReviewedAsync(setup.UserId, sessionId)).Succeeded);
+        Assert.False((await service.MarkSessionReviewedAsync(Guid.NewGuid(), sessionId)).Succeeded);
+        Assert.False((await service.MarkSessionReviewedAsync(Guid.NewGuid(), Guid.NewGuid())).Succeeded);
+        Assert.Null((await service.GetByIdAsync(setup.UserId, sessionId)).Value!.TrainerReviewedAt);
+    }
+
+    [Fact]
+    public async Task UnmarkSessionReviewed_NimmtAbhakenZurueck_UndTrainingIstWiederOffen()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (trainerId, sessionId, _) = await SetupTrainerAndExerciseAsync(service, db, setup);
+        await service.MarkSessionReviewedAsync(trainerId, sessionId);
+
+        var result = await service.UnmarkSessionReviewedAsync(trainerId, sessionId);
+
+        Assert.True(result.Succeeded);
+        Assert.Single((await service.GetSessionsToRateAsync(trainerId)).Value!);
+        Assert.Null((await service.GetByIdAsync(setup.UserId, sessionId)).Value!.TrainerReviewedAt);
+    }
+
+    [Fact]
+    public async Task UnmarkSessionReviewed_Besitzerin_Und_Fremder_Trainer_Scheitern()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (trainerId, sessionId, _) = await SetupTrainerAndExerciseAsync(service, db, setup);
+        await service.MarkSessionReviewedAsync(trainerId, sessionId);
+
+        Assert.False((await service.UnmarkSessionReviewedAsync(setup.UserId, sessionId)).Succeeded);
+        Assert.False((await service.UnmarkSessionReviewedAsync(Guid.NewGuid(), sessionId)).Succeeded);
+        Assert.NotNull((await service.GetByIdAsync(setup.UserId, sessionId)).Value!.TrainerReviewedAt);
+    }
+
+    [Fact]
+    public async Task AcceptSelfRatings_UebernimmtSelbsteinschaetzung_ButUeberschreibtNichts()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (trainerId, sessionId, firstExerciseId) = await SetupTrainerAndExerciseAsync(service, db, setup);
+        // Zweite Übung (Selbsteinschätzung 5), die die Trainer:in bereits anders bewertet hat.
+        db.TrainingExercises.Add(new Dogity.Domain.Training.TrainingExercise
+        {
+            TrainingSessionId = sessionId, FreeTextLabel = "Platz", Rating = 5, TrainerRating = 2, TrainerNote = "Zu langsam",
+        });
+        await db.SaveChangesAsync();
+
+        var result = await service.AcceptSelfRatingsAsync(trainerId, sessionId);
+
+        Assert.True(result.Succeeded);
+        var reloaded = (await service.GetByIdAsync(setup.UserId, sessionId)).Value!;
+        Assert.Equal(3, reloaded.Exercises.Single(e => e.Id == firstExerciseId).TrainerRating);
+        var vorhanden = reloaded.Exercises.Single(e => e.Id != firstExerciseId);
+        Assert.Equal(2, vorhanden.TrainerRating);
+        Assert.Equal("Zu langsam", vorhanden.TrainerNote);
+        Assert.NotNull(reloaded.TrainerReviewedAt);
+        Assert.Empty((await service.GetSessionsToRateAsync(trainerId)).Value!);
+    }
+
+    [Fact]
+    public async Task AcceptSelfRatings_UebungOhneSelbsteinschaetzung_BleibtUnbewertet_TrainingTrotzdemAbgehakt()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (trainerId, sessionId, _) = await SetupTrainerAndExerciseAsync(service, db, setup);
+        db.TrainingExercises.Add(new Dogity.Domain.Training.TrainingExercise
+        {
+            TrainingSessionId = sessionId, FreeTextLabel = "Fährte", Rating = 0,
+        });
+        await db.SaveChangesAsync();
+
+        await service.AcceptSelfRatingsAsync(trainerId, sessionId);
+
+        var reloaded = (await service.GetByIdAsync(setup.UserId, sessionId)).Value!;
+        Assert.Null(reloaded.Exercises.Single(e => e.ExerciseName == "Fährte").TrainerRating);
+        Assert.NotNull(reloaded.TrainerReviewedAt);
+    }
+
+    [Fact]
+    public async Task AcceptSelfRatings_OhneUebungen_HaktNurAb()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (trainerId, _, _) = await SetupTrainerAndExerciseAsync(service, db, setup);
+        var faehrte = new Dogity.Domain.Training.TrainingSession
+        {
+            UserId = setup.UserId, DogId = setup.DogId, Date = DateOnly.FromDateTime(DateTime.Today), DurationMinutes = 15,
+        };
+        db.TrainingSessions.Add(faehrte);
+        await db.SaveChangesAsync();
+
+        var result = await service.AcceptSelfRatingsAsync(trainerId, faehrte.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull((await service.GetByIdAsync(setup.UserId, faehrte.Id)).Value!.TrainerReviewedAt);
+    }
+
+    [Fact]
+    public async Task AcceptSelfRatings_LoestKeineBenachrichtigungAus_WieDasNormaleBewerten()
+    {
+        var db = InMemoryDbContext.Create();
+        var notifications = new FakeNotificationService();
+        var service = new TrainingService(db, notifications, new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var setup = await SetupPlanAsync(db);
+        var (trainerId, sessionId, _) = await SetupTrainerAndExerciseAsync(service, db, setup);
+        // Die Übung bleibt unbewertet, damit "Passt so" wirklich Sterne kopiert -
+        // nur dieser Pfad könnte eine Benachrichtigung auslösen.
+        var vorher = notifications.Created.Count;
+
+        var result = await service.AcceptSelfRatingsAsync(trainerId, sessionId);
+
+        Assert.True(result.Succeeded);
+        var reloaded = (await service.GetByIdAsync(trainerId, sessionId)).Value!;
+        Assert.Equal(3, Assert.Single(reloaded.Exercises).TrainerRating);
+        Assert.Equal(vorher, notifications.Created.Count);
+    }
+
+    [Fact]
+    public async Task AcceptSelfRatings_Besitzerin_Und_Fremder_Trainer_Scheitern_OhneAenderung()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var (_, sessionId, exerciseId) = await SetupTrainerAndExerciseAsync(service, db, setup);
+
+        Assert.False((await service.AcceptSelfRatingsAsync(setup.UserId, sessionId)).Succeeded);
+        Assert.False((await service.AcceptSelfRatingsAsync(Guid.NewGuid(), sessionId)).Succeeded);
+        Assert.False((await service.AcceptSelfRatingsAsync(Guid.NewGuid(), Guid.NewGuid())).Succeeded);
+
+        var reloaded = (await service.GetByIdAsync(setup.UserId, sessionId)).Value!;
+        Assert.Null(reloaded.TrainerReviewedAt);
+        Assert.Null(Assert.Single(reloaded.Exercises, e => e.Id == exerciseId).TrainerRating);
     }
 
     [Fact]

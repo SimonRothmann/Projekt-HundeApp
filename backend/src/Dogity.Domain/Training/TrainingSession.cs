@@ -57,6 +57,16 @@ public class TrainingSession : Entity
     public DateTimeOffset? FeedbackAt { get; set; }
 
     /// <summary>
+    /// Wann eine zugewiesene Trainer:in das Training als erledigt abgehakt hat -
+    /// ohne Feedback-Text ("Fertig") oder durch Übernehmen der
+    /// Selbsteinschätzung ("Passt so"). Feedback ist freiwillig (Betreiber-
+    /// entscheidung 2026-10-08, ehrenamtliche Trainer:innen); dieses Feld
+    /// nimmt das Training aus der Liste "Trainings bewerten", ohne dass dafür
+    /// ein Text erfunden werden müsste. Null = nicht abgehakt.
+    /// </summary>
+    public DateTimeOffset? TrainerReviewedAt { get; set; }
+
+    /// <summary>
     /// Antwort des Hundebesitzers auf das Trainer-Feedback: ein Danke bzw.
     /// Verstanden und/oder eine kurze Rückfrage. Bewusst kein Gespräch - je
     /// Eintrag höchstens eine Reaktion und eine Rückfrage, ohne Verlauf.
