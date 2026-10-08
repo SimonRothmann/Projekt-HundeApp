@@ -1,5 +1,5 @@
 import type { Goal, TrainingPlanItem } from "@/lib/types";
-import { tageBisPruefung } from "@/lib/pruefung";
+import { heuteIso, tageBisPruefung } from "@/lib/pruefung";
 
 /**
  * Welche Wochen eines Trainingsplans die Hundeseite zeigt.
@@ -99,7 +99,7 @@ export function computeCurrentWeek(
 function uebungenDerLaufendenWoche(
   goal: Goal,
   jetzt: number,
-): { woche: number; uebungen: TrainingPlanItem[] } | null {
+): { woche: number; wochen: [number, TrainingPlanItem[]][]; uebungen: TrainingPlanItem[] } | null {
   if (goal.status !== 0 || !goal.trainingPlan) return null;
   // Nach dem Zieldatum läuft keine Woche mehr: computeCurrentWeek hielte sonst
   // die letzte Planwoche fest, und die Startseite zeigte monatelang "Diese
@@ -111,7 +111,116 @@ function uebungenDerLaufendenWoche(
   const woche = computeCurrentWeek(wochen, goal.trainingPlan.generatedAt, jetzt);
   if (woche == null) return null;
   const uebungen = (wochen.find(([nummer]) => nummer === woche)?.[1] ?? []).filter((item) => !item.isRestWeek);
-  return { woche, uebungen };
+  return { woche, wochen, uebungen };
+}
+
+/**
+ * Der Zeitpunkt, an dem ein Trainingsdatum für die Wochenrechnung gilt.
+ *
+ * Heute ist "jetzt": Eine Woche beginnt mit der Uhrzeit der Plan-Erstellung,
+ * und ein Training von heute läge mit der Tagesmitte sonst vor dem Planstart,
+ * wenn der Plan erst am Nachmittag entstand. Das Formular belegt das Datum mit
+ * dem UTC-Tag vor, deshalb zählen beide Kalendertage als heute. Jeder andere
+ * Tag gilt als sein Ende - er gehört zu der Woche, in der er endet.
+ */
+function zeitpunktDesTages(datum: string, jetzt: number): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return null;
+  if (datum === heuteIso(jetzt) || datum === new Date(jetzt).toISOString().slice(0, 10)) return jetzt;
+  const [jahr, monat, tag] = datum.split("-").map(Number);
+  const ende = new Date(jahr, monat - 1, tag, 23, 59, 59, 999).getTime();
+  return Number.isNaN(ende) ? null : ende;
+}
+
+/** Die Antwort des Servers, wenn ein Plan-Ziel nicht (mehr) existiert (TrainingService). */
+const PLAN_ZIEL_FEHLT = "Ein oder mehrere Plan-Ziele wurden nicht gefunden.";
+
+export function istPlanZielFehler(err: unknown): boolean {
+  return err instanceof Error && err.message.includes(PLAN_ZIEL_FEHLT);
+}
+
+/**
+ * Das Training ohne Plan-Verknüpfungen - oder null, wenn es keine hat.
+ *
+ * Die Verknüpfung setzt das Formular von selbst, aus den zuletzt geladenen
+ * Zielen. Wurde der Plan inzwischen woanders neu erzeugt, gibt es das Ziel
+ * nicht mehr, und der Server lehnt das ganze Training ab - ein Training, das
+ * man nie bewusst verknüpft hat, darf deshalb nicht verloren gehen. Dann lieber
+ * einmal ohne Plan-Zählung speichern.
+ */
+export function ohnePlanVerknuepfung(body: unknown): unknown | null {
+  if (typeof body !== "object" || body === null) return null;
+  const exercises = (body as { exercises?: unknown }).exercises;
+  if (!Array.isArray(exercises)) return null;
+  const verknuepft = exercises.some(
+    (e) => typeof e === "object" && e !== null && (e as { trainingPlanItemId?: unknown }).trainingPlanItemId,
+  );
+  if (!verknuepft) return null;
+  return {
+    ...(body as object),
+    exercises: exercises.map((e) =>
+      typeof e === "object" && e !== null ? { ...(e as object), trainingPlanItemId: null } : e,
+    ),
+  };
+}
+
+/**
+ * Das offene Plan-Ziel, das ein Training dieser Übung an diesem Tag zählen
+ * soll - damit niemand beim Eintragen von Hand "Plan-Ziel" wählen muss.
+ *
+ * Gesucht wird nur dort, wo die Zuordnung eindeutig und gewollt ist:
+ * - dieselbe Katalog-Übung (Freitext-Übungen haben keine Kennung, an der man
+ *   sie sicher wiedererkennt - dort verknüpft nur, wer es selbst wählt),
+ * - im aktiven, noch nicht abgelaufenen Ziel (dieselbe Regel wie bei
+ *   "Diese Woche" auf der Startseite),
+ * - in der laufenden Woche, und das Trainingsdatum liegt in ihr. Wer ein altes
+ *   Training nachträgt, würde sonst die Wochenzahl von heute aufbessern.
+ * - noch nicht erfüllt. Eine erfüllte Übung weiter zu verknüpfen hieße, das
+ *   Wochenziel zu überfüllen, ohne dass die Karte das je anzeigt.
+ *
+ * Hat der Hund mehrere passende Ziele, gewinnt das mit dem früheren
+ * Zieldatum - dessen Prüfung steht zuerst an.
+ *
+ * vergeben: wie viele Einträge für ein Plan-Ziel derselben Eingabe schon
+ * unterwegs sind (Schlüssel: Item-Id). Zwei Zeilen mit derselben Übung dürfen
+ * ein einmal offenes Ziel nicht beide füllen.
+ */
+export function passendesPlanItem(
+  goals: readonly Goal[] | null | undefined,
+  exerciseId: string | null | undefined,
+  datum: string,
+  jetzt: number = Date.now(),
+  vergeben?: ReadonlyMap<string, number>,
+): TrainingPlanItem | null {
+  if (!exerciseId) return null;
+  const zeitpunkt = zeitpunktDesTages(datum, jetzt);
+  // Ein Training ist etwas Geschehenes: ein Datum in der Zukunft zählt noch
+  // nicht, auch wenn es in dieselbe Planwoche fällt. Das deckt nebenbei Tage
+  // nach dem Zieldatum ab, die computeCurrentWeek der letzten Woche zuschlüge.
+  if (zeitpunkt === null || zeitpunkt > jetzt) return null;
+
+  let bestes: { item: TrainingPlanItem; zieldatum: string } | null = null;
+  for (const goal of goals ?? []) {
+    const laufend = uebungenDerLaufendenWoche(goal, jetzt);
+    if (!laufend || !goal.trainingPlan) continue;
+
+    // Vor dem Planstart gibt es noch keine Woche; computeCurrentWeek würde
+    // dort die erste Woche zurückgeben und ein Training von vor dem Plan
+    // dieser zurechnen.
+    const generatedAt = goal.trainingPlan.generatedAt;
+    const start = generatedAt ? new Date(generatedAt).getTime() : NaN;
+    if (!Number.isNaN(start) && zeitpunkt < start) continue;
+    if (computeCurrentWeek(laufend.wochen, generatedAt, zeitpunkt) !== laufend.woche) continue;
+
+    const item = laufend.uebungen.find(
+      (kandidat) =>
+        kandidat.exerciseId === exerciseId &&
+        kandidat.completedCount + (vergeben?.get(kandidat.id) ?? 0) < kandidat.repetitionsTarget,
+    );
+    if (item && (bestes === null || goal.targetDate < bestes.zieldatum)) {
+      bestes = { item, zieldatum: goal.targetDate };
+    }
+  }
+  return bestes?.item ?? null;
 }
 
 /**

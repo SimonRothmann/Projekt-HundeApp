@@ -21,6 +21,7 @@ import { useAuth } from "@/lib/auth-context";
 import { eintragIdAus, leseGesehen } from "@/lib/feedback-gesehen";
 import { adresseMit, geltenderReiter, REITER_PARAMETER, ungeseheneRueckmeldungen, waehleReiter, zielStatus, type HundeReiter } from "@/lib/hundeseite";
 import { tageAnzahl } from "@/lib/tagebuch";
+import { letzteUebungsdauer } from "@/lib/trainingsvorlage";
 import { usePreferences } from "@/lib/preferences-context";
 import { useDogAnker } from "@/lib/use-dog-anker";
 import { useDogPage } from "@/lib/use-dog-page";
@@ -166,7 +167,7 @@ function DogPage({ id }: { id: string }) {
           Innenelement, damit "hidden" nicht von einer Klasse überstimmt wird. */}
       <div role="tabpanel" id={reiterPanelId("plan")} aria-labelledby={reiterTabId("plan")} hidden={reiter !== "plan"}>
         <div className="flex flex-col gap-6">
-          <GoalsSection dogId={id} dogName={dog.name} sports={angeboteneSportarten} goals={goals} onChanged={loadAll} />
+          <GoalsSection dogId={id} dogName={dog.name} sports={angeboteneSportarten} goals={goals} letzteDauer={letzteUebungsdauer(sessions)} onChanged={loadAll} />
           <LeistungenCard goals={goals} onChanged={loadAll} />
         </div>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { GpsPoint, GpsWalkPoint } from "@/lib/types";
+import type { GpsPoint, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Footprints } from "lucide-react";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/aufzeichnung-sicherung";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
 import { TrackMap } from "@/components/tracking/track-map";
+import { AblaufErgebnisSheet } from "@/components/tracking/ablauf-ergebnis-sheet";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
 import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/components/tracking/unterbrochene-aufzeichnung";
 import { primeHapticsAudio, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
@@ -85,6 +86,10 @@ export function WalkRunRecorder({
   const [unterbrochen, setUnterbrochen] = useState<AblaufSicherung | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const laufendRef = useRef<{ begonnen: number; seite: string } | null>(null);
+  // Der gerade gespeicherte, ausgewertete Ablauf: solange er gesetzt ist, steht
+  // das Ergebnis-Fenster. onSaved kommt erst mit dem Schließen (siehe
+  // AblaufErgebnisSheet).
+  const [ergebnis, setErgebnis] = useState<GpsWalkRun | null>(null);
 
   useEffect(() => sicherungAnzeigen(schluessel), [schluessel]);
 
@@ -176,41 +181,65 @@ export function WalkRunRecorder({
   // das Speichern, bleibt er als unterbrochener Ablauf stehen.
   async function speichern(sicherung: AblaufSicherung) {
     setSpeichert(true);
-    const ergebnis = await sicherungSpeichern(sicherung, t("Ablauf-Versuch"));
+    const gespeichert = await sicherungSpeichern(sicherung, t("Ablauf-Versuch"));
     setSpeichert(false);
-    speicherErgebnisMelden(ergebnis, t, "ablauf");
+    // Mit Ergebnis-Fenster braucht es den Hinweis nicht: Das Fenster ist die
+    // Bestätigung. Offline gibt es nichts auszuwerten - dort bleibt der Hinweis.
+    const mitErgebnis = gespeichert.ausgang === "gespeichert" && gespeichert.ablauf != null;
+    if (!mitErgebnis) speicherErgebnisMelden(gespeichert, t, "ablauf");
     setPoints([]);
     setComment("");
 
-    if (ergebnis.ausgang === "fehler") {
+    if (gespeichert.ausgang === "fehler") {
       setUnterbrochen(user ? sicherung : null);
       return;
     }
     setUnterbrochen(null);
-    if (ergebnis.ausgang === "gespeichert") await onSaved();
+    if (gespeichert.ausgang === "gespeichert") {
+      if (gespeichert.ablauf) setErgebnis(gespeichert.ablauf);
+      else await onSaved();
+    }
   }
+
+  async function ergebnisSchliessen() {
+    setErgebnis(null);
+    await onSaved();
+  }
+
+  // Auch im Ruhezustand des Recorders gerendert (Knopf bzw. Hinweis auf eine
+  // unterbrochene Aufzeichnung): Das Fenster erscheint, wenn die Aufnahme
+  // gerade beendet wurde.
+  const ergebnisFenster = ergebnis && (
+    <AblaufErgebnisSheet trackId={trackId} run={ergebnis} laidTrackPoints={laidTrackPoints} onClose={() => void ergebnisSchliessen()} />
+  );
 
   if (!isRecording && unterbrochen) {
     return (
-      <UnterbrocheneAufzeichnungKarte
-        sicherung={unterbrochen}
-        beschaeftigt={speichert}
-        onFortsetzen={() => aufzeichnen(unterbrochen)}
-        onSpeichern={() => speichern(unterbrochen)}
-        onVerwerfen={() => {
-          sicherungLoeschen(schluessel);
-          setUnterbrochen(null);
-        }}
-      />
+      <>
+        <UnterbrocheneAufzeichnungKarte
+          sicherung={unterbrochen}
+          beschaeftigt={speichert}
+          onFortsetzen={() => aufzeichnen(unterbrochen)}
+          onSpeichern={() => speichern(unterbrochen)}
+          onVerwerfen={() => {
+            sicherungLoeschen(schluessel);
+            setUnterbrochen(null);
+          }}
+        />
+        {ergebnisFenster}
+      </>
     );
   }
 
   if (!isRecording) {
     return (
-      <Button size="sm" variant="outline" disabled={speichert} onClick={() => aufzeichnen()}>
-        <Footprints className="size-4" />
-        {label ?? t("Fährte erneut ablaufen")}
-      </Button>
+      <>
+        <Button size="sm" variant="outline" disabled={speichert} onClick={() => aufzeichnen()}>
+          <Footprints className="size-4" />
+          {label ?? t("Fährte erneut ablaufen")}
+        </Button>
+        {ergebnisFenster}
+      </>
     );
   }
 

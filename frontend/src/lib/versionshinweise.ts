@@ -61,6 +61,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.23",
+    datum: "2026-10-09",
+    titel: uebersetzbar("Weniger tippen beim Eintragen"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Trägst du eine Übung ein, die diese Woche in deinem Trainingsplan steht, zählt sie jetzt von selbst für den Plan - du musst kein „Plan-Ziel“ mehr wählen. Im Formular steht dann „zählt für den Plan“ mit dem Stand der Woche; mit „nicht zählen“ nimmst du die Übung wieder heraus. Das gilt auch bei „Wie beim letzten Mal“. Trainings, die du nachträgst, zählen nur für die Woche, in der sie stattgefunden haben."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Der Schnelleintrag zu einer Planübung startet mit vier Sternen statt stillschweigend mit fünf. Die Dauer wählst du jetzt selbst aus: Auf der Hundeseite ist die Dauer deiner letzten Einheit vorgewählt, sonst 15 Minuten (vorher waren es immer 10)."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Nach dem Ablaufen einer Fährte siehst du das Ergebnis sofort: Abweichung, Anteil auf der Fährte, gefundene Gegenstände und die Karte. Einen Kommentar schreibst du gleich dazu, mit „Fertig“ oder Wischen nach unten schließt du das Fenster. Der Ablauf steht danach wie gewohnt im Tagebuch."),
+      },
+    ],
+  },
+  {
     version: "0.22",
     datum: "2026-10-08",
     titel: uebersetzbar("Die Startseite zeigt, was heute dran ist"),

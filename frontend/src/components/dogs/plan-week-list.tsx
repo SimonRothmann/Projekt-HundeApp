@@ -46,6 +46,7 @@ function PlanUebung({
   item,
   bearbeiten,
   uebungen,
+  letzteDauer,
   onChanged,
 }: {
   goal: Goal;
@@ -53,6 +54,7 @@ function PlanUebung({
   item: TrainingPlanItem;
   bearbeiten: boolean;
   uebungen: ReturnType<typeof useUebungKatalog>;
+  letzteDauer?: number | null;
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
@@ -137,6 +139,7 @@ function PlanUebung({
         <PlanItemQuickLog
           dogId={dogId}
           item={item}
+          letzteDauer={letzteDauer}
           onDone={async () => {
             setQuickOffen(false);
             await onChanged();
@@ -159,6 +162,7 @@ export function PlanWeekList({
   weeks,
   currentWeek,
   bearbeiten,
+  letzteDauer,
   onChanged,
 }: {
   goal: Goal;
@@ -166,6 +170,8 @@ export function PlanWeekList({
   weeks: [number, TrainingPlanItem[]][];
   currentWeek: number | undefined;
   bearbeiten: boolean;
+  /** Dauer der letzten Einheit des Hundes - Vorbelegung des Schnelleintrags. */
+  letzteDauer?: number | null;
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
@@ -248,6 +254,7 @@ export function PlanWeekList({
                           item={item}
                           bearbeiten={aktiv}
                           uebungen={uebungen}
+                          letzteDauer={letzteDauer}
                           onChanged={onChanged}
                         />
                       ))}

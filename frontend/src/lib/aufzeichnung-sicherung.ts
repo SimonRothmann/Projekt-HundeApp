@@ -2,7 +2,7 @@ import { api, ApiError } from "@/lib/api";
 import { estimateLengthMeters } from "@/lib/geo";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { untergrundAlsText } from "@/lib/untergrund";
-import type { GpsPoint, GpsTrack, GpsWalkPoint } from "@/lib/types";
+import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 
 /**
  * Sicherung einer laufenden GPS-Aufzeichnung auf dem Gerät.
@@ -262,8 +262,15 @@ export function anfrageAusSicherung(sicherung: AufzeichnungsSicherung): { path: 
   };
 }
 
+/** Ob die Antwort des Servers ein Ablauf ist, mit dem sich ein Ergebnis zeigen lässt (Kennung und Punkte da). */
+function istAblauf(antwort: unknown): antwort is GpsWalkRun {
+  const run = antwort as Partial<GpsWalkRun> | null;
+  return typeof run?.id === "string" && Array.isArray(run.points);
+}
+
 export type SpeicherErgebnis =
-  | { ausgang: "gespeichert"; faehrte: GpsTrack | null }
+  /** ablauf: die ausgewertete Antwort des Servers bei einem Ablauf - Grundlage des Ergebnis-Fensters. */
+  | { ausgang: "gespeichert"; faehrte: GpsTrack | null; ablauf?: GpsWalkRun | null }
   | { ausgang: "offline" }
   /** meldung: die Begründung des Servers; null, wenn nicht einmal die Warteschlange ging. */
   | { ausgang: "fehler"; meldung: string | null };
@@ -283,7 +290,9 @@ export async function sicherungSpeichern(
   try {
     const antwort = await api.post<unknown>(path, body);
     sicherungLoeschen(schluesselVon(sicherung));
-    return { ausgang: "gespeichert", faehrte: sicherung.art === "faehrte" ? (antwort as GpsTrack) : null };
+    return sicherung.art === "faehrte"
+      ? { ausgang: "gespeichert", faehrte: antwort as GpsTrack }
+      : { ausgang: "gespeichert", faehrte: null, ablauf: istAblauf(antwort) ? antwort : null };
   } catch (err) {
     if (err instanceof ApiError) return { ausgang: "fehler", meldung: err.message };
     try {

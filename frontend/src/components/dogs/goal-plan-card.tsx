@@ -38,12 +38,15 @@ export function GoalPlanCard({
   goal,
   dogId,
   dogName,
+  letzteDauer,
   onChanged,
   onFolgeziel,
 }: {
   goal: Goal;
   dogId: string;
   dogName: string;
+  /** Dauer der letzten Einheit des Hundes - Vorbelegung des Schnelleintrags. */
+  letzteDauer?: number | null;
   onChanged: () => Promise<void>;
   onFolgeziel?: (stufe: NextStage) => void;
 }) {
@@ -115,6 +118,7 @@ export function GoalPlanCard({
           weeks={weeks}
           currentWeek={currentWeek}
           bearbeiten={bearbeiten}
+          letzteDauer={letzteDauer}
           onChanged={onChanged}
         />
 

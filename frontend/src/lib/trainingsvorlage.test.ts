@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { emptyRow, letzteSportart, zeilenAusEinheit, VORGABE_BEWERTUNG } from "./trainingsvorlage";
+import {
+  emptyRow,
+  letzteSportart,
+  letzteUebungsdauer,
+  schnelleintragDauer,
+  schnelleintragDauerAuswahl,
+  zeilenAusEinheit,
+  VORGABE_BEWERTUNG,
+} from "./trainingsvorlage";
 import type { TrainingExercise, TrainingSession } from "@/lib/types";
 
 function uebung(teil: Partial<TrainingExercise>): TrainingExercise {
@@ -112,5 +120,47 @@ describe("zeilenAusEinheit", () => {
 
   it("liefert eine leere Zeile statt gar keiner", () => {
     expect(zeilenAusEinheit(einheit([]), sportVonUebung)).toEqual([emptyRow()]);
+  });
+});
+
+describe("letzteUebungsdauer", () => {
+  it("nimmt die Dauer der jüngsten Einheit mit Übungen", () => {
+    const fuerFaehrte = { ...einheit([]), durationMinutes: 90 };
+    const training = { ...einheit([uebung({})]), durationMinutes: 25 };
+
+    expect(letzteUebungsdauer([fuerFaehrte, training])).toBe(25);
+  });
+
+  it("liefert null ohne Einheiten oder ohne geladene Liste", () => {
+    expect(letzteUebungsdauer([])).toBeNull();
+    expect(letzteUebungsdauer(null)).toBeNull();
+    expect(letzteUebungsdauer(undefined)).toBeNull();
+    expect(letzteUebungsdauer([einheit([])])).toBeNull();
+  });
+});
+
+describe("schnelleintragDauer", () => {
+  it("nimmt die letzte Dauer, wenn sie bekannt ist", () => {
+    expect(schnelleintragDauer(40)).toBe(40);
+  });
+
+  it("fällt auf 15 Minuten zurück, wenn nichts Brauchbares vorliegt", () => {
+    expect(schnelleintragDauer(null)).toBe(15);
+    expect(schnelleintragDauer(undefined)).toBe(15);
+    expect(schnelleintragDauer(0)).toBe(15);
+    expect(schnelleintragDauer(-5)).toBe(15);
+    expect(schnelleintragDauer(7.5)).toBe(15);
+    expect(schnelleintragDauer(100000)).toBe(15);
+  });
+});
+
+describe("schnelleintragDauerAuswahl", () => {
+  it("bietet die festen Dauern an", () => {
+    expect(schnelleintragDauerAuswahl(15)).toEqual([10, 15, 30, 45]);
+  });
+
+  it("nimmt eine andere vorbelegte Dauer sortiert dazu, damit sie sichtbar gewählt ist", () => {
+    expect(schnelleintragDauerAuswahl(20)).toEqual([10, 15, 20, 30, 45]);
+    expect(schnelleintragDauerAuswahl(60)).toEqual([10, 15, 30, 45, 60]);
   });
 });

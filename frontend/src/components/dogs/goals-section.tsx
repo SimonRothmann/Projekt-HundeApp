@@ -27,12 +27,15 @@ export function GoalsSection({
   dogName,
   sports,
   goals,
+  letzteDauer,
   onChanged,
 }: {
   dogId: string;
   dogName: string;
   sports: Sport[];
   goals: Goal[] | null;
+  /** Dauer der letzten Einheit des Hundes - Vorbelegung des Schnelleintrags. */
+  letzteDauer?: number | null;
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
@@ -113,6 +116,7 @@ export function GoalsSection({
               goal={goal}
               dogId={dogId}
               dogName={dogName}
+              letzteDauer={letzteDauer}
               onChanged={onChanged}
               onFolgeziel={handleFolgeziel}
             />

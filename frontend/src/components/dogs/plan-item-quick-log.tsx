@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { enqueueRequest } from "@/lib/offline-queue";
 import type { TrainingPlanItem } from "@/lib/types";
@@ -8,14 +8,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { schnelleintragDauer, schnelleintragDauerAuswahl } from "@/lib/trainingsvorlage";
 
 import { useT } from "@/lib/i18n";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 
 /**
+ * Vorbelegte Bewertung: eine gute Einheit, aber nicht die beste. Vorher stand
+ * still eine 5 dahinter, die niemand gewählt hatte - und die Bewertung ist die
+ * Grundlage, auf der der Plangenerator Schwächen erkennt. Jetzt sieht man die
+ * 4 in den Sternen und ändert sie mit einem Tipp.
+ */
+const VORGABE_SCHNELLBEWERTUNG = 4;
+
+/**
  * Schnelleintrag für ein Wochenziel: Bewertung, Erfolg, optional ein
  * Kommentar - und eintragen. Speichert einen minimalen Tagebucheintrag mit
  * Verknüpfung zum Plan-Ziel.
+ *
+ * Die Dauer ist die der letzten Einheit des Hundes, sonst 15 Minuten, und als
+ * Auswahl sichtbar - vorher stand fest 10 Minuten im Eintrag, ohne dass man es
+ * sah oder ändern konnte.
  *
  * Aus GoalPlanCard herausgelöst, weil derselbe Handgriff jetzt auch auf der
  * Startseite angeboten wird ("Diese Woche"). Zwei Formulare mit je eigener
@@ -26,16 +39,23 @@ export function PlanItemQuickLog({
   item,
   onDone,
   onCancel,
+  letzteDauer,
   className,
 }: {
   dogId: string;
   item: TrainingPlanItem;
   onDone: () => Promise<void>;
   onCancel: () => void;
+  /** Dauer der letzten Einheit des Hundes in Minuten, wo die Seite sie schon kennt (Hundeseite); sonst 15. */
+  letzteDauer?: number | null;
   className?: string;
 }) {
   const t = useT();
-  const [rating, setRating] = useState(5);
+  const [rating, setRating] = useState(VORGABE_SCHNELLBEWERTUNG);
+  // Einmal beim Öffnen festgelegt: Lädt die Seite im Hintergrund neu, soll
+  // die gewählte Dauer nicht unter dem Finger wechseln.
+  const [dauer, setDauer] = useState(() => schnelleintragDauer(letzteDauer));
+  const dauerAuswahl = useMemo(() => schnelleintragDauerAuswahl(schnelleintragDauer(letzteDauer)), [letzteDauer]);
   const [success, setSuccess] = useState(true);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -46,7 +66,7 @@ export function PlanItemQuickLog({
       const payload = {
         dogId,
         date: new Date().toISOString().slice(0, 10),
-        durationMinutes: 10,
+        durationMinutes: dauer,
         notes: null,
         exercises: [
           {
@@ -108,8 +128,25 @@ export function PlanItemQuickLog({
           {t("Erfolgreich")}
         </label>
       </div>
+      <div className="flex flex-wrap items-center gap-1" role="group" aria-label={t("Dauer in Minuten")}>
+        {dauerAuswahl.map((minuten) => (
+          <button
+            key={minuten}
+            type="button"
+            onClick={() => setDauer(minuten)}
+            aria-pressed={dauer === minuten}
+            className={cn(
+              "flex h-7 min-w-9 items-center justify-center rounded-md border px-2 text-xs coarse:h-11 coarse:min-w-11",
+              dauer === minuten ? "border-accent bg-accent text-accent-foreground" : "border-input text-muted-foreground",
+            )}
+          >
+            {minuten}
+          </button>
+        ))}
+        <span className="ml-1 text-xs text-muted-foreground">{t("Min.")}</span>
+      </div>
       <Input
-        placeholder="Kommentar (optional)"
+        placeholder={t("Kommentar (optional)")}
         value={notes}
         maxLength={TEXTLAENGE.uebungsNotiz}
         onChange={(e) => setNotes(e.target.value)}

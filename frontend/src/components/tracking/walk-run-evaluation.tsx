@@ -40,8 +40,12 @@ const stopClass: Record<number, string> = {
  * ausscheren und zurückkommen, ohne dass sich das Gerät bewegt - solche
  * Ausschläge sind hier unsichtbar. Sichtbar werden sie über die Stockungen:
  * sucht oder kreist der Hund, bleibt der Hundeführer stehen.
+ *
+ * gross: für das Ergebnis-Fenster direkt nach dem Ablaufen (ablauf-ergebnis-
+ * sheet.tsx) - dieselben Werte, aber die Abweichung als Überschrift und die
+ * übrigen Zahlen als Felder, die man im Stehen am Platz ohne Brille liest.
  */
-export function WalkRunEvaluation({ run }: { run: GpsWalkRun }) {
+export function WalkRunEvaluation({ run, gross = false }: { run: GpsWalkRun; gross?: boolean }) {
   const t = useT();
   // Lose Prüfungen (== null statt === null, ?? []): aus einem älteren
   // Read-Cache oder von einem älteren Backend-Stand fehlen diese Felder ganz
@@ -55,26 +59,43 @@ export function WalkRunEvaluation({ run }: { run: GpsWalkRun }) {
   const avg = run.avgDeviationMeters;
   const stops = run.stops ?? [];
   const unexplained = stops.filter((s) => s.kind === 0).length;
+  const zahl = gross ? "rounded-md border border-input px-2.5 py-1.5 text-sm font-medium text-foreground" : "text-xs";
+  const abweichung = t("Ø {meter} m", { meter: Math.round(avg) });
+  const kennzahlen = (
+    <>
+      {run.maxDeviationMeters != null && (
+        <span className={zahl}>{t("max {meter} m", { meter: Math.round(run.maxDeviationMeters) })}</span>
+      )}
+      {run.onTrackPercent != null && (
+        <span className={zahl}>{t("{prozent} % auf Fährte", { prozent: Math.round(run.onTrackPercent) })}</span>
+      )}
+      {run.articlesTotal != null && run.articlesTotal > 0 && (
+        <span className={zahl}>
+          {t("{gefunden}/{gesamt} Gegenstände", { gefunden: run.articlesFound ?? 0, gesamt: run.articlesTotal })}
+        </span>
+      )}
+    </>
+  );
 
   return (
     // Kein eigener Rand/Hintergrund: Der Ablauf-Kasten (gps-track-section.tsx)
     // trägt die Werte schon - ein dritter Kasten darin machte die Zeile eng.
-    <div className="flex flex-col gap-1.5 pt-1">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className={cn("text-sm font-semibold", ampelClass(avg))}>
-          {t("Ø {meter} m", { meter: Math.round(avg) })}
-        </span>
-        <span className={cn("text-xs", ampelClass(avg))}>{t(ampelLabel(avg))}</span>
-        {run.maxDeviationMeters != null && (
-          <span className="text-xs">{t("max {meter} m", { meter: Math.round(run.maxDeviationMeters) })}</span>
-        )}
-        {run.onTrackPercent != null && <span className="text-xs">{t("{prozent} % auf Fährte", { prozent: Math.round(run.onTrackPercent) })}</span>}
-        {run.articlesTotal != null && run.articlesTotal > 0 && (
-          <span className="text-xs">
-            {t("{gefunden}/{gesamt} Gegenstände", { gefunden: run.articlesFound ?? 0, gesamt: run.articlesTotal })}
-          </span>
-        )}
-      </div>
+    <div className={cn("flex flex-col pt-1", gross ? "gap-3" : "gap-1.5")}>
+      {gross ? (
+        <>
+          <div className="flex flex-col gap-1">
+            <span className={cn("text-3xl font-semibold", ampelClass(avg))}>{abweichung}</span>
+            <span className={cn("text-sm", ampelClass(avg))}>{t(ampelLabel(avg))}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">{kennzahlen}</div>
+        </>
+      ) : (
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className={cn("text-sm font-semibold", ampelClass(avg))}>{abweichung}</span>
+          <span className={cn("text-xs", ampelClass(avg))}>{t(ampelLabel(avg))}</span>
+          {kennzahlen}
+        </div>
+      )}
 
       {stops.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">

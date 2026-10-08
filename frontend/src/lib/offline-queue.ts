@@ -1,5 +1,6 @@
 import { api, ApiError, USER_KEY } from "@/lib/api";
 import { sharedDb } from "@/lib/idb";
+import { istPlanZielFehler, ohnePlanVerknuepfung } from "@/lib/trainingsplan";
 
 /**
  * Offline-Warteschlange für Schreibvorgänge, die laut PRODUCT_REQUIREMENTS.md
@@ -139,6 +140,21 @@ function isPermanentFailure(err: unknown): err is ApiError {
 }
 
 /**
+ * Ein Training, dessen Plan-Ziel es nicht mehr gibt (Plan woanders neu erzeugt),
+ * wird einmal ohne Verknüpfung gesendet statt verworfen - siehe
+ * ohnePlanVerknuepfung.
+ */
+async function postMitPlanAusweg(item: QueuedRequest): Promise<void> {
+  try {
+    await api.post(item.path, item.body);
+  } catch (err) {
+    const ohne = item.path === "/api/trainings" && istPlanZielFehler(err) ? ohnePlanVerknuepfung(item.body) : null;
+    if (ohne === null) throw err;
+    await api.post(item.path, ohne);
+  }
+}
+
+/**
  * Spielt offen gebliebene Requests in Aufnahmereihenfolge ab. Bricht bei
  * Netzwerkfehlern/5xx/401 ab, damit die Reihenfolge erhalten bleibt (z.B.
  * Training vor zugehöriger Fährte) und später erneut versucht wird.
@@ -161,7 +177,7 @@ export async function syncQueuedRequests(
 
   for (const item of items) {
     try {
-      if (item.method === "POST") await api.post(item.path, item.body);
+      if (item.method === "POST") await postMitPlanAusweg(item);
       else if (item.method === "PUT") await api.put(item.path, item.body);
       else await api.delete(item.path);
 

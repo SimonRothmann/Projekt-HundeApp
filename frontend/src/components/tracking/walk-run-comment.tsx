@@ -11,6 +11,15 @@ import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 /**
+ * Speichert den Kommentar eines Ablauf-Versuchs; leer heißt "kein Kommentar".
+ * Eine Stelle für den Aufruf, damit die Zeile im Tagebuch und das Ergebnis-
+ * Fenster nach dem Ablauf (ablauf-ergebnis-sheet.tsx) dasselbe tun.
+ */
+export function ablaufKommentarSpeichern(trackId: string, runId: string, kommentar: string): Promise<unknown> {
+  return api.put(`/api/gps-tracks/${trackId}/walk-runs/${runId}`, { comment: kommentar.trim() || null });
+}
+
+/**
  * Zeigt den Kommentar eines Ablauf-Versuchs (GpsWalkRun) und erlaubt, ihn
  * inline zu bearbeiten (siehe Wunsch 1). Auch bei abgeschlossenen Trainings
  * nutzbar - ein Kommentar ist keine Aufzeichnung, sondern eine nachträgliche
@@ -33,7 +42,7 @@ export function WalkRunComment({
   async function save() {
     setSaving(true);
     try {
-      await api.put(`/api/gps-tracks/${trackId}/walk-runs/${run.id}`, { comment: value.trim() || null });
+      await ablaufKommentarSpeichern(trackId, run.id, value);
       setEditing(false);
       await onSaved();
     } catch (err) {

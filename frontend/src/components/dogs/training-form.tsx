@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { DogCondition, Exercise, Goal, Sport, TrainingSession } from "@/lib/types";
+import type { DogCondition, Exercise, Goal, Sport, TrainingPlanItem, TrainingSession } from "@/lib/types";
+import { istPlanZielFehler, ohnePlanVerknuepfung, passendesPlanItem } from "@/lib/trainingsplan";
 import {
   emptyRow,
   letzteSportart,
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, History, ListChecks, MapPin, MessageSquarePlus, Plus, Trash2 } from "lucide-react";
+import { Check, Clock, History, ListChecks, MapPin, MessageSquarePlus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { LocationTimeFields, type LocationValue } from "@/components/dogs/location-time-fields";
@@ -138,29 +139,51 @@ export function TrainingForm({
   }, [exercisesBySport]);
 
   /**
-   * Die Zeilen, wie sie angezeigt werden - mit nachgetragener Sportart.
+   * Die Zeilen, wie sie angezeigt werden - mit nachgetragener Sportart und
+   * eingesetztem Plan-Ziel.
    *
-   * "Wie beim letzten Mal" lässt sich antippen, bevor die Übungslisten da
-   * sind; auf dem Hundeplatz können das einige Sekunden sein. Die Zeilen
-   * bekamen dann eine leere Sportart, ihre Übungsliste blieb leer - und weil
-   * in der Zeile trotzdem eine Übungs-Id steht, zeigte das Übungs-Feld diese
-   * Id an statt des Namens. Genau das war im Tagebuch als "Nummer statt
-   * Übungsname" zu sehen.
+   * Sportart: "Wie beim letzten Mal" lässt sich antippen, bevor die
+   * Übungslisten da sind; auf dem Hundeplatz können das einige Sekunden sein.
+   * Die Zeilen bekamen dann eine leere Sportart, ihre Übungsliste blieb leer -
+   * und weil in der Zeile trotzdem eine Übungs-Id steht, zeigte das
+   * Übungs-Feld diese Id an statt des Namens. Genau das war im Tagebuch als
+   * "Nummer statt Übungsname" zu sehen.
    *
-   * Abgeleitet und nicht in den Zustand geschrieben: die Zuordnung ist keine
-   * Eingabe des Nutzers, sondern ergibt sich aus den geladenen Listen. Sobald
-   * sie da sind, stimmt die Anzeige von selbst.
+   * Plan-Ziel: Steht die Übung diese Woche offen im Plan, zählt der Eintrag
+   * dafür (siehe passendesPlanItem) - ohne dass man es wählen müsste. Wer es
+   * vergisst, ließ den Wochenfortschritt auf 0/3 stehen, und Startseite,
+   * Statistik und der Plangenerator liefen ins Leere. Weil das Ziel aus Übung
+   * und Datum folgt, stimmt es bei jeder Vorbelegung ("Wie beim letzten Mal",
+   * Übungswechsel) und nach jeder Änderung des Datums von selbst. Auch eine
+   * erst später geladene Zielliste wird so noch berücksichtigt.
    *
-   * Nur Zeilen ohne eigene Sportart: eine von Hand gewählte darf das nicht
+   * Abgeleitet und nicht in den Zustand geschrieben: beides ist keine Eingabe
+   * des Nutzers, sondern ergibt sich aus den geladenen Daten. Die einzige
+   * Eingabe dazu ist "nicht zählen" (planGeloest).
+   *
+   * Sportart nur bei Zeilen ohne eigene: eine von Hand gewählte darf das nicht
    * überschreiben.
    */
-  const zeilen = useMemo(
-    () =>
-      rows.map((row) =>
-        row.sportId || !row.exerciseId ? row : { ...row, sportId: sportVonUebung[row.exerciseId] ?? "" },
-      ),
-    [rows, sportVonUebung],
-  );
+  const { zeilen, planInfo } = useMemo(() => {
+    // Wie viele Zeilen davor ein Plan-Ziel schon belegen: Zwei Zeilen mit
+    // derselben Übung dürfen ein nur einmal offenes Ziel nicht beide füllen.
+    const vergeben = new Map<string, number>();
+    const info: ({ item: TrainingPlanItem; erledigt: number } | null)[] = [];
+    const fertig = rows.map((row) => {
+      const mitSportart =
+        row.sportId || !row.exerciseId ? row : { ...row, sportId: sportVonUebung[row.exerciseId] ?? "" };
+      const item = row.isFreeText ? null : passendesPlanItem(goals, row.exerciseId, date, undefined, vergeben);
+      if (!item) {
+        info.push(null);
+        return mitSportart;
+      }
+      info.push({ item, erledigt: item.completedCount + (vergeben.get(item.id) ?? 0) });
+      if (row.planGeloest) return mitSportart;
+      vergeben.set(item.id, (vergeben.get(item.id) ?? 0) + 1);
+      return { ...mitSportart, trainingPlanItemId: item.id };
+    });
+    return { zeilen: fertig, planInfo: info };
+  }, [rows, sportVonUebung, goals, date]);
 
   const vorlageDatum = letzteEinheit
     ? new Date(letzteEinheit.date).toLocaleDateString("de-DE", { day: "numeric", month: "long" })
@@ -184,7 +207,7 @@ export function TrainingForm({
   }
 
   function switchToFreeText(index: number) {
-    updateRow(index, { isFreeText: true, sportId: "", exerciseId: "", trainingPlanItemId: "", freeText: "" });
+    updateRow(index, { isFreeText: true, sportId: "", exerciseId: "", planGeloest: false, freeText: "" });
   }
 
   async function handleSportChange(index: number, sportId: string) {
@@ -192,7 +215,7 @@ export function TrainingForm({
       switchToFreeText(index);
       return;
     }
-    updateRow(index, { sportId, exerciseId: "", trainingPlanItemId: "" });
+    updateRow(index, { sportId, exerciseId: "", planGeloest: false });
     await ensureExercisesLoaded(sportId);
   }
 
@@ -201,20 +224,8 @@ export function TrainingForm({
       switchToFreeText(index);
       return;
     }
-    updateRow(index, { exerciseId, trainingPlanItemId: "" });
-  }
-
-  // Plan-Ziele (siehe GoalsSection), die zur gewählten Übung passen - nur
-  // aus aktiven Zielen (Status 0) und ohne Pausenwochen, damit man einen
-  // Tagebucheintrag optional einem Wochenziel zuordnen kann (siehe
-  // TrainingExercise.TrainingPlanItemId). Bereits erfüllte Ziele bleiben
-  // wählbar, falls man dieselbe Übung öfter als das Ziel trainieren möchte.
-  function planItemOptionsFor(exerciseId: string) {
-    if (!exerciseId) return [];
-    return (goals ?? [])
-      .filter((g) => g.status === 0)
-      .flatMap((g) => g.trainingPlan?.items ?? [])
-      .filter((item) => !item.isRestWeek && item.exerciseId === exerciseId);
+    // Eine neue Übung ist eine neue Entscheidung: "nicht zählen" galt der alten.
+    updateRow(index, { exerciseId, planGeloest: false });
   }
 
   function addRow() {
@@ -269,7 +280,15 @@ export function TrainingForm({
 
     setIsSubmitting(true);
     try {
-      await api.post<TrainingSession>("/api/trainings", payload);
+      try {
+        await api.post<TrainingSession>("/api/trainings", payload);
+      } catch (err) {
+        // Das automatisch gesetzte Plan-Ziel gibt es nicht mehr (Plan woanders
+        // neu erzeugt): ohne Verknüpfung speichern statt das Training zu verlieren.
+        const ohne = istPlanZielFehler(err) ? ohnePlanVerknuepfung(payload) : null;
+        if (ohne === null) throw err;
+        await api.post<TrainingSession>("/api/trainings", ohne);
+      }
       toast.success(t("Training gespeichert."));
       setRows([emptyRow(letzteSportart(zeilen))]);
       setOffeneDetails(new Set());
@@ -379,7 +398,7 @@ export function TrainingForm({
             {zeilen.map((row, index) => {
               const exercises = exercisesBySport[row.sportId] ?? [];
               const selectedExercise = exercises.find((ex) => ex.id === row.exerciseId);
-              const planItemOptions = planItemOptionsFor(row.exerciseId);
+              const plan = planInfo[index];
               return (
                 <div key={index} className="flex flex-col gap-3 rounded-md border p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -450,27 +469,6 @@ export function TrainingForm({
                       </SelectContent>
                     </Select>
                   </div>
-                  {planItemOptions.length > 0 && (
-                    <div className="flex flex-col gap-2 sm:w-48">
-                      <Label>{t("Plan-Ziel (optional)")}</Label>
-                      <Select
-                        value={row.trainingPlanItemId}
-                        onValueChange={(value) => updateRow(index, { trainingPlanItemId: value ?? "" })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("Kein Plan-Ziel")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">{t("Kein Plan-Ziel")}</SelectItem>
-                          {planItemOptions.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              KW {item.weekNumber} ({item.completedCount}/{item.repetitionsTarget}x)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
                     </>
                   )}
                   <div className="flex flex-col gap-2">
@@ -506,11 +504,38 @@ export function TrainingForm({
                     {t("Erfolgreich")}
                   </label>
                 </div>
+                {/* Steht die Übung diese Woche offen im Plan, zählt der
+                    Eintrag dafür - die Zeile sagt es und lässt es ausschalten
+                    (z. B. für eine Übung, die nur zum Spaß lief). Bleibt
+                    sichtbar, auch nach dem Abwählen, damit man es zurücknehmen
+                    kann. */}
+                {plan && (
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-muted px-3 py-1.5 text-xs">
+                    <span className="flex min-w-0 items-center gap-1.5 [overflow-wrap:anywhere]">
+                      <Check
+                        className={`size-3.5 shrink-0 ${row.planGeloest ? "text-muted-foreground" : "text-emerald-600 dark:text-emerald-500"}`}
+                        aria-hidden
+                      />
+                      {row.planGeloest
+                        ? t("zählt nicht für den Plan")
+                        : t("zählt für den Plan · {erledigt}/{ziel} diese Woche", {
+                            erledigt: plan.erledigt,
+                            ziel: plan.item.repetitionsTarget,
+                          })}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="px-2 text-xs text-muted-foreground"
+                      onClick={() => updateRow(index, { planGeloest: !row.planGeloest })}
+                    >
+                      {row.planGeloest ? t("doch zählen") : t("nicht zählen")}
+                    </Button>
+                  </div>
+                )}
                 {/* Kommentar und Bewertungskriterien eine Ebene tiefer: selten
-                    gebraucht, aufgeklappt aber jede Zeile doppelt so hoch.
-                    Das Plan-Ziel oben bleibt bewusst sichtbar - es erscheint
-                    nur, wenn die Übung im laufenden Plan steht, und zählt dort
-                    den Fortschritt. */}
+                    gebraucht, aufgeklappt aber jede Zeile doppelt so hoch. */}
                 {offeneDetails.has(index) && (
                   <div className="flex flex-col gap-2">
                     {/* Kommentar zur einzelnen Übung. Der Wert wurde schon

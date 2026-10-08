@@ -197,6 +197,22 @@ describe("Speichern einer Sicherung", () => {
     expect(sicherungenAuflisten("nutzer-a")).toEqual([]);
   });
 
+  it("gibt bei einem Ablauf die ausgewertete Antwort mit, damit das Ergebnis gezeigt werden kann", async () => {
+    const lauf = { id: "lauf-1", points: [], avgDeviationMeters: 2 };
+    vi.mocked(api.post).mockResolvedValue(lauf);
+    sicherungSchreiben(ablauf());
+    const ergebnis = await sicherungSpeichern(ablauf(), "Ablauf-Versuch");
+    expect(ergebnis).toEqual({ ausgang: "gespeichert", faehrte: null, ablauf: lauf });
+    expect(sicherungenAuflisten("nutzer-a")).toEqual([]);
+  });
+
+  it("zeigt kein Ergebnis, wenn die Antwort kein brauchbarer Ablauf ist - gespeichert ist er trotzdem", async () => {
+    vi.mocked(api.post).mockResolvedValue({});
+    sicherungSchreiben(ablauf());
+    const ergebnis = await sicherungSpeichern(ablauf(), "Ablauf-Versuch");
+    expect(ergebnis).toEqual({ ausgang: "gespeichert", faehrte: null, ablauf: null });
+  });
+
   it("behält sie, wenn der Server ablehnt - vorher waren die Punkte dann weg", async () => {
     vi.mocked(api.post).mockRejectedValue(new ApiError(400, ["Hund nicht gefunden."]));
     sicherungSchreiben(faehrte());
