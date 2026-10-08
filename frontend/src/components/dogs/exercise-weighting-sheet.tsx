@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { WeightableExercise } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,14 @@ const masteryClass: Record<number, string> = {
  * einplant (ManualPriority −2..+2). Wirkt ab dem nächsten Wochen-Neuaufbau;
  * die laufende Woche bleibt unangetastet.
  */
-export function ExerciseWeightingSheet({ goalId }: { goalId: string }) {
+export function ExerciseWeightingSheet({
+  goalId,
+  ausloeser,
+}: {
+  goalId: string;
+  /** Eigener Auslöser statt des kleinen Knopfs - das Menü "Ziel verwalten" zeigt eine Zeile. */
+  ausloeser?: (oeffnen: () => void) => ReactNode;
+}) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<WeightableExercise[] | null>(null);
@@ -72,10 +79,14 @@ export function ExerciseWeightingSheet({ goalId }: { goalId: string }) {
 
   return (
     <>
-      <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => onOpenChange(true)}>
-        <SlidersHorizontal className="size-3" />
-{t("Übungen gewichten")}
-      </Button>
+      {ausloeser ? (
+        ausloeser(() => onOpenChange(true))
+      ) : (
+        <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => onOpenChange(true)}>
+          <SlidersHorizontal className="size-3" />
+          {t("Übungen gewichten")}
+        </Button>
+      )}
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
           <SheetHeader>

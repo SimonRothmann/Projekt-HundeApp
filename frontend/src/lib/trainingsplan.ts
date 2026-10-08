@@ -150,3 +150,34 @@ export function wochenFortschritt(
     erledigt: laufend.uebungen.filter((item) => item.isComplete).length,
   };
 }
+
+/**
+ * Wie viele Übungen einer Woche erledigt sind - für "Woche 9 · 1/4" und den
+ * Fortschrittsbalken der Plankarte. Eine Pausenwoche hat nichts zu erledigen
+ * (geplant 0), damit die Karte dort "Pause" statt "0/0" schreibt.
+ */
+export function fortschrittDerWoche(items: TrainingPlanItem[]): { geplant: number; erledigt: number } {
+  const uebungen = items.filter((item) => !item.isRestWeek);
+  return { geplant: uebungen.length, erledigt: uebungen.filter((item) => item.isComplete).length };
+}
+
+/** Der Anzeigename einer Planübung: Katalog-Übung, sonst Freitext, sonst null (Übung nicht mehr im Katalog). */
+export function planItemName(item: Pick<TrainingPlanItem, "exerciseName" | "freeTextLabel">): string | null {
+  return item.exerciseName ?? item.freeTextLabel ?? null;
+}
+
+/**
+ * Effektive Trainingstage einer Woche: Überschreibung für genau diese Woche,
+ * sonst der Plan-Standard. Bestimmt, wie viele Tage beim Hinzufügen oder
+ * Bearbeiten einer Übung wählbar sind.
+ *
+ * weekConfigs darf fehlen: Der Lesecache des Geräts (IndexedDB) kann beim
+ * Öffnen zuerst ältere Ziel-Daten ohne dieses (neuere) Feld liefern - ohne
+ * den Schutz stürzte die Seite beim Zugriff ab.
+ */
+export function trainingstageDerWoche(
+  goal: Pick<Goal, "weekConfigs" | "trainingDaysPerWeek">,
+  woche: number,
+): number {
+  return (goal.weekConfigs ?? []).find((w) => w.weekNumber === woche)?.trainingDaysPerWeek ?? goal.trainingDaysPerWeek;
+}

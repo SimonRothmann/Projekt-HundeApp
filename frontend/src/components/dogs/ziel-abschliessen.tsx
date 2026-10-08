@@ -106,7 +106,7 @@ export function ErgebnisFelder({
 }
 
 /**
- * "Ziel abschließen": Die Prüfung ist gelaufen - bestanden oder nicht.
+ * "Ergebnis eintragen": Die Prüfung ist gelaufen - bestanden oder nicht.
  *
  * Ersetzt das bloße "Als erreicht markieren", bei dem Tag, Ergebnis und Punkte
  * verloren gingen und ein Folgeziel von Hand angelegt werden musste.
@@ -133,7 +133,7 @@ export function ZielAbschliessen({
   onChanged: () => Promise<void>;
   onFolgeziel?: (stufe: NextStage) => void;
   /**
-   * Eigener Auslöser statt des Knopfs "Ziel abschließen" - die Startseite öffnet
+   * Eigener Auslöser statt des Knopfs "Ergebnis eintragen" - die Startseite öffnet
    * den Dialog direkt aus der Zeile "Ergebnis fehlt", ohne Seitenwechsel.
    */
   ausloeser?: (oeffnen: () => void) => ReactNode;
@@ -218,7 +218,7 @@ export function ZielAbschliessen({
         ausloeser(oeffnen)
       ) : (
         <Button size="sm" variant="outline" className="coarse:min-h-11" onClick={oeffnen}>
-          {t("Ziel abschließen")}
+          {t("Ergebnis eintragen")}
         </Button>
       )}
       <Sheet open={offen} onOpenChange={(neu) => (neu ? setOffen(true) : void schliessen())}>

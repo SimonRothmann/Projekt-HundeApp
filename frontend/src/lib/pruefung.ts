@@ -40,6 +40,17 @@ export function tageBisPruefung(zieldatum: string, jetzt: number = Date.now()): 
 }
 
 /**
+ * Die Restzeit bis zum Prüfungstag in Worten: "noch 12 Tage", "heute". Ist der
+ * Tag vorbei, fehlt nur noch das Ergebnis - das sagt der Text statt einer
+ * negativen Zahl.
+ */
+export function restzeitText(t: Uebersetzer, tage: number): string {
+  if (tage < 0) return t("Ergebnis fehlt");
+  if (tage === 0) return t("heute");
+  return tage === 1 ? t("noch 1 Tag") : t("noch {n} Tage", { n: tage });
+}
+
+/**
  * Vorgabe für "Prüfungstag" beim Abschließen: das Zieldatum, wenn es schon
  * erreicht ist (dann war die Prüfung meist genau da), sonst heute - wer vor dem
  * Termin abschließt, hat die Prüfung offenbar früher abgelegt.

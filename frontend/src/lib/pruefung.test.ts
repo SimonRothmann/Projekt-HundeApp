@@ -8,6 +8,7 @@ import {
   naechstesZiel,
   pruefungsName,
   punkteText,
+  restzeitText,
   tageBisPruefung,
   vorgabePruefungstag,
 } from "./pruefung";
@@ -146,5 +147,21 @@ describe("Anzeigetexte", () => {
     expect(datumKurz("2026-10-03")).toBe("03.10.2026");
     expect(datumMitWochentag("2026-10-03")).toBe("Samstag, 3. Oktober");
     expect(datumMitWochentag("2026-10-03", "en")).toContain("Saturday");
+  });
+});
+
+describe("restzeitText", () => {
+  // Reicht die Platzhalter durch, damit der Test die Wortwahl nicht festschreibt.
+  const t = (text: string, werte?: Record<string, string | number>) =>
+    Object.entries(werte ?? {}).reduce((acc, [k, v]) => acc.replace(`{${k}}`, String(v)), text);
+
+  it("nennt Tage, heute und den einen Tag", () => {
+    expect(restzeitText(t, 12)).toBe("noch 12 Tage");
+    expect(restzeitText(t, 1)).toBe("noch 1 Tag");
+    expect(restzeitText(t, 0)).toBe("heute");
+  });
+
+  it("sagt nach dem Prüfungstag, dass das Ergebnis fehlt", () => {
+    expect(restzeitText(t, -3)).toBe("Ergebnis fehlt");
   });
 });

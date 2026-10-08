@@ -37,7 +37,7 @@ export function GoalsSection({
 }) {
   const t = useT();
   const [showForm, setShowForm] = useState(false);
-  // Folgestufe, mit der das Formular geöffnet wurde ("Ziel abschließen" ->
+  // Folgestufe, mit der das Formular geöffnet wurde ("Ergebnis eintragen" ->
   // "IGP 2 als Ziel anlegen"). Bewusst über Props durchgereicht und nicht über
   // den Merkzettel der Prüfungsordnungs-Seite (lib/start-po.ts): Der gilt für
   // Neuanmeldungen, hier ist die Person längst drin.

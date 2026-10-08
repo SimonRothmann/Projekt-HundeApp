@@ -101,6 +101,18 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("Im Tagebuch ist jeder Trainingstag eine Zeile mit Datum, Dauer und einem Kurzbild. Ein Tipp klappt genau diesen Tag auf - mit Karte, Übungen, Notizen und Feedback. Mit den Filtern über der Liste siehst du nur Fährten oder nur Tage mit Feedback."),
       },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Der Plan auf der Hundeseite ist ruhiger: Du siehst die laufende Woche mit Fortschrittsbalken und deinen Übungen, ein Tipp auf eine Übung öffnet gleich den Eintrag. Alles zum Umbauen - Trainingstage, Neu generieren, Übungen ändern, hinzufügen oder entfernen - steht erst hinter „Plan bearbeiten“."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Was das Ziel selbst betrifft, findest du hinter den drei Punkten an der Plan-Karte unter „Ziel verwalten“: Anpassen, Übungen gewichten, „Ergebnis eintragen“ (früher „Ziel abschließen“) und „Ziel beenden ohne Ergebnis“ (früher „Abbrechen“)."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Eine Übung aus dem Plan zu entfernen und ein Ziel zu beenden ging bisher mit einem Tipp und ohne Rückfrage. Jetzt fragt Dogity vorher nach."),
+      },
     ],
   },
   {
