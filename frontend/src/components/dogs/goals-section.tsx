@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Goal, NextStage, Sport } from "@/lib/types";
+import type { Goal, NextStage, Sport, TrainingPlanItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -12,13 +12,13 @@ import { GoalPlanCard } from "@/components/dogs/goal-plan-card";
 import { useT } from "@/lib/i18n";
 // "goals"/"onChanged" kommen von der Eltern-Seite statt aus einem eigenen
 // Fetch hier (siehe dogs/[id]/page.tsx) - die Seite braucht dieselben Daten
-// ohnehin für die "Plan-Ziel"-Auswahl im Trainingstagebuch-Formular, und nur
-// ein gemeinsamer State stellt sicher, dass der Fortschritt hier sofort
-// sichtbar wird, sobald dort ein verknüpftes Training gespeichert wird.
+// ohnehin für das Eintragen-Fenster, und nur ein gemeinsamer State stellt
+// sicher, dass der Fortschritt hier sofort sichtbar wird, sobald dort ein
+// verknüpftes Training gespeichert wird.
 //
 // Diese Komponente orchestriert nur noch: Anlege-Formular ein-/ausblenden
 // und die Ziel-Karten auflisten. Die Anlege-Logik lebt in GoalCreateForm,
-// die gesamte Plan-/Übungs-/Schnelleintrag-Logik pro Ziel in GoalPlanCard.
+// die gesamte Plan-/Übungslogik pro Ziel in GoalPlanCard.
 //
 // Erreichte Ziele zeigt diese Liste nicht mehr: Sie stehen mit Prüfungstag und
 // Punkten in der Karte "Leistungen" (leistungen-card.tsx).
@@ -27,15 +27,15 @@ export function GoalsSection({
   dogName,
   sports,
   goals,
-  letzteDauer,
+  onEintragen,
   onChanged,
 }: {
   dogId: string;
   dogName: string;
   sports: Sport[];
   goals: Goal[] | null;
-  /** Dauer der letzten Einheit des Hundes - Vorbelegung des Schnelleintrags. */
-  letzteDauer?: number | null;
+  /** Eine Planübung wurde angetippt: das Eintragen-Fenster mit ihr öffnen. */
+  onEintragen: (item: TrainingPlanItem) => void;
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
@@ -114,9 +114,8 @@ export function GoalsSection({
             <GoalPlanCard
               key={goal.id}
               goal={goal}
-              dogId={dogId}
               dogName={dogName}
-              letzteDauer={letzteDauer}
+              onEintragen={onEintragen}
               onChanged={onChanged}
               onFolgeziel={handleFolgeziel}
             />

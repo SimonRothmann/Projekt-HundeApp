@@ -4,9 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, ChevronRight, GraduationCap, Plus, Target } from "lucide-react";
-import type { Dog } from "@/lib/types";
+import type { Dog, TrainingPlanItem } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
-import { PlanItemQuickLog } from "@/components/dogs/plan-item-quick-log";
 import { ZielAbschliessen } from "@/components/dogs/ziel-abschliessen";
 import { pruefungsName } from "@/lib/pruefung";
 import type { AbgelaufenesZiel, ZielKartenEintrag } from "@/lib/startseite";
@@ -24,7 +23,8 @@ const LINK =
 
 /**
  * Je Hund mit laufendem Ziel EINE Karte: Prüfung und Restzeit, der Stand der
- * Woche und darunter die offenen Wochenübungen mit dem Schnelleintrag.
+ * Woche und darunter die offenen Wochenübungen. Ein Tipp auf eine Übung öffnet
+ * das Eintragen-Fenster mit dieser Übung schon gewählt.
  *
  * Sie führt, was früher zwei Blöcke waren - die Zielkarte oben und "Diese
  * Woche" weiter unten, beide mit demselben Hund, demselben Ziel und demselben
@@ -37,18 +37,18 @@ const LINK =
 export function ZielKarten({
   eintraege,
   sachkundeAn,
-  onChanged,
+  onEintragen,
 }: {
   eintraege: ZielKartenEintrag[];
   sachkundeAn: boolean;
-  onChanged: () => Promise<void>;
+  onEintragen: (dogId: string, item: TrainingPlanItem) => void;
 }) {
   if (eintraege.length === 0) return null;
 
   return (
     <section className="flex flex-col gap-3">
       {eintraege.map((eintrag) => (
-        <ZielKarte key={eintrag.goal.id} eintrag={eintrag} sachkundeAn={sachkundeAn} onChanged={onChanged} />
+        <ZielKarte key={eintrag.goal.id} eintrag={eintrag} sachkundeAn={sachkundeAn} onEintragen={onEintragen} />
       ))}
     </section>
   );
@@ -57,20 +57,18 @@ export function ZielKarten({
 function ZielKarte({
   eintrag,
   sachkundeAn,
-  onChanged,
+  onEintragen,
 }: {
   eintrag: ZielKartenEintrag;
   sachkundeAn: boolean;
-  onChanged: () => Promise<void>;
+  onEintragen: (dogId: string, item: TrainingPlanItem) => void;
 }) {
   const t = useT();
-  const [offenesItem, setOffenesItem] = useState<string | null>(null);
   const [alleZeigen, setAlleZeigen] = useState(false);
   const { hund, goal, tage, fortschritt, offen, bh, weitereZiele } = eintrag;
   // Höchstens drei Übungen, je eine Zeile: Mit fünf zweizeiligen Kästen pro
   // Hund war die Startseite schon bei einem Ziel wieder zwei Bildschirme lang.
-  // Eine gerade geöffnete Übung bleibt sichtbar, auch wenn sie weiter hinten steht.
-  const sichtbar = alleZeigen ? offen : offen.filter((item, i) => i < MAX_UEBUNGEN || item.id === offenesItem);
+  const sichtbar = alleZeigen ? offen : offen.slice(0, MAX_UEBUNGEN);
   const versteckt = offen.length - sichtbar.length;
   const alles = fortschritt !== null && fortschritt.erledigt >= fortschritt.geplant;
 
@@ -109,32 +107,20 @@ function ZielKarte({
         )}
 
         {sichtbar.map((item) => (
-          <div key={item.id} className="flex flex-col gap-1.5">
-            <button
-              type="button"
-              onClick={() => setOffenesItem((aktuell) => (aktuell === item.id ? null : item.id))}
-              aria-expanded={offenesItem === item.id}
-              aria-label={`${item.exerciseName ?? item.freeTextLabel} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })} · ${t("Eintragen")}`}
-              className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-surface-border bg-surface px-3 py-1.5 text-left transition-colors hover:border-primary/40"
-            >
-              <span className="min-w-0 flex-1 truncate font-medium">{item.exerciseName ?? item.freeTextLabel}</span>
-              <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-                {item.completedCount}/{item.repetitionsTarget}
-              </span>
-              <Plus className="size-4 shrink-0 text-primary-text" aria-hidden />
-            </button>
-            {offenesItem === item.id && (
-              <PlanItemQuickLog
-                dogId={hund.id}
-                item={item}
-                onDone={async () => {
-                  setOffenesItem(null);
-                  await onChanged();
-                }}
-                onCancel={() => setOffenesItem(null)}
-              />
-            )}
-          </div>
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onEintragen(hund.id, item)}
+            aria-haspopup="dialog"
+            aria-label={`${item.exerciseName ?? item.freeTextLabel} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })} · ${t("Eintragen")}`}
+            className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-surface-border bg-surface px-3 py-1.5 text-left transition-colors hover:border-primary/40"
+          >
+            <span className="min-w-0 flex-1 truncate font-medium">{item.exerciseName ?? item.freeTextLabel}</span>
+            <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+              {item.completedCount}/{item.repetitionsTarget}
+            </span>
+            <Plus className="size-4 shrink-0 text-primary-text" aria-hidden />
+          </button>
         ))}
 
         <div className="flex flex-wrap items-center gap-x-4">

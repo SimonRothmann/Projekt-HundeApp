@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Goal, NextStage } from "@/lib/types";
+import type { Goal, NextStage, TrainingPlanItem } from "@/lib/types";
 import { computeCurrentWeek, groupByWeek, istPausenwoche } from "@/lib/trainingsplan";
 import { pruefungsName, restzeitText, tageBisPruefung } from "@/lib/pruefung";
 import { GoalManageSheet } from "@/components/dogs/goal-manage-sheet";
@@ -24,8 +24,8 @@ const statusVariant: Record<Goal["status"], "default" | "secondary" | "outline">
  * Ein einzelnes Ziel mit seinem Wochenplan.
  *
  * Die Karte ist standardmäßig zum Lesen und Abhaken da: Prüfung und Restzeit,
- * die laufende Woche mit Fortschritt und die Übungen, ein Tipp öffnet den
- * Schnelleintrag. Umbauen (Trainingstage, Neu generieren, Übungen ändern oder
+ * die laufende Woche mit Fortschritt und die Übungen, ein Tipp öffnet das
+ * Eintragen-Fenster. Umbauen (Trainingstage, Neu generieren, Übungen ändern oder
  * entfernen) steht hinter "Plan bearbeiten", alles am Ziel selbst hinter dem
  * Menü "Ziel verwalten". Früher stand die Karte dauerhaft im Bearbeitungsmodus -
  * mit mehr als zwanzig Tippzielen für vier Übungen.
@@ -36,17 +36,15 @@ const statusVariant: Record<Goal["status"], "default" | "secondary" | "outline">
  */
 export function GoalPlanCard({
   goal,
-  dogId,
   dogName,
-  letzteDauer,
+  onEintragen,
   onChanged,
   onFolgeziel,
 }: {
   goal: Goal;
-  dogId: string;
   dogName: string;
-  /** Dauer der letzten Einheit des Hundes - Vorbelegung des Schnelleintrags. */
-  letzteDauer?: number | null;
+  /** Eine Planübung wurde angetippt: das Eintragen-Fenster mit ihr öffnen. */
+  onEintragen: (item: TrainingPlanItem) => void;
   onChanged: () => Promise<void>;
   onFolgeziel?: (stufe: NextStage) => void;
 }) {
@@ -114,11 +112,10 @@ export function GoalPlanCard({
 
         <PlanWeekList
           goal={goal}
-          dogId={dogId}
           weeks={weeks}
           currentWeek={currentWeek}
           bearbeiten={bearbeiten}
-          letzteDauer={letzteDauer}
+          onEintragen={onEintragen}
           onChanged={onChanged}
         />
 

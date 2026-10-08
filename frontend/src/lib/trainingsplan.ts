@@ -131,6 +131,25 @@ function zeitpunktDesTages(datum: string, jetzt: number): number | null {
   return Number.isNaN(ende) ? null : ende;
 }
 
+/**
+ * Ob der Zeitpunkt in der laufenden Planwoche des Ziels liegt - die Prüfung,
+ * die ein Training erfüllen muss, um für die Woche zu zählen.
+ *
+ * Vor dem Planstart gibt es noch keine Woche; computeCurrentWeek würde dort
+ * die erste Woche zurückgeben und ein Training von vor dem Plan dieser
+ * zurechnen.
+ */
+function zeitpunktInLaufenderWoche(
+  goal: Goal,
+  laufend: { woche: number; wochen: [number, TrainingPlanItem[]][] },
+  zeitpunkt: number,
+): boolean {
+  const generatedAt = goal.trainingPlan?.generatedAt;
+  const start = generatedAt ? new Date(generatedAt).getTime() : NaN;
+  if (!Number.isNaN(start) && zeitpunkt < start) return false;
+  return computeCurrentWeek(laufend.wochen, generatedAt, zeitpunkt) === laufend.woche;
+}
+
 /** Die Antwort des Servers, wenn ein Plan-Ziel nicht (mehr) existiert (TrainingService). */
 const PLAN_ZIEL_FEHLT = "Ein oder mehrere Plan-Ziele wurden nicht gefunden.";
 
@@ -203,13 +222,7 @@ export function passendesPlanItem(
     const laufend = uebungenDerLaufendenWoche(goal, jetzt);
     if (!laufend || !goal.trainingPlan) continue;
 
-    // Vor dem Planstart gibt es noch keine Woche; computeCurrentWeek würde
-    // dort die erste Woche zurückgeben und ein Training von vor dem Plan
-    // dieser zurechnen.
-    const generatedAt = goal.trainingPlan.generatedAt;
-    const start = generatedAt ? new Date(generatedAt).getTime() : NaN;
-    if (!Number.isNaN(start) && zeitpunkt < start) continue;
-    if (computeCurrentWeek(laufend.wochen, generatedAt, zeitpunkt) !== laufend.woche) continue;
+    if (!zeitpunktInLaufenderWoche(goal, laufend, zeitpunkt)) continue;
 
     const item = laufend.uebungen.find(
       (kandidat) =>
@@ -221,6 +234,35 @@ export function passendesPlanItem(
     }
   }
   return bestes?.item ?? null;
+}
+
+/**
+ * Die ausdrücklich gewählte Planübung (Chip, Planzeile), soweit sie für das
+ * Trainingsdatum zählt - dieselben Regeln wie bei passendesPlanItem: laufende
+ * Woche, nicht vor dem Planstart, nicht in der Zukunft. Wer erst die Übung
+ * antippt und dann "Gestern" wählt, trägt sonst ein Training der Vorwoche in
+ * die laufende ein.
+ *
+ * Erfüllte Übungen bleiben wählbar (der Nutzer wollte sie ausdrücklich); nur
+ * das Datum entscheidet. Ist die Übung in den geladenen Zielen nicht zu finden:
+ * gibt es Ziele, wurde der Plan inzwischen ersetzt (null); gibt es noch keine
+ * (nicht geladen), gilt die Wahl nur für heute, weil sich das Datum nicht
+ * prüfen lässt.
+ */
+export function gewaehltesPlanItem(
+  goals: readonly Goal[] | null | undefined,
+  gewaehlt: TrainingPlanItem,
+  datum: string,
+  jetzt: number = Date.now(),
+): TrainingPlanItem | null {
+  const zeitpunkt = zeitpunktDesTages(datum, jetzt);
+  if (zeitpunkt === null || zeitpunkt > jetzt) return null;
+  for (const goal of goals ?? []) {
+    const laufend = uebungenDerLaufendenWoche(goal, jetzt);
+    const item = laufend?.uebungen.find((kandidat) => kandidat.id === gewaehlt.id);
+    if (laufend && item) return zeitpunktInLaufenderWoche(goal, laufend, zeitpunkt) ? item : null;
+  }
+  return (goals ?? []).length === 0 && datum === heuteIso(jetzt) ? gewaehlt : null;
 }
 
 /**

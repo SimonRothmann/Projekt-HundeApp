@@ -52,7 +52,7 @@ export function ConditionPicker({
             title={t(c.hint)}
             onClick={() => onChange(aktiv ? null : c.key)}
             className={cn(
-              "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-10 disabled:opacity-50",
+              "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11 disabled:opacity-50",
               aktiv
                 ? "border-primary bg-primary/15 text-primary-text"
                 : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",

@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { MODULE } from "@/lib/types";
+import { MODULE, type TrainingPlanItem } from "@/lib/types";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { laeuftFaehrte } from "@/lib/faehrte";
@@ -17,11 +17,12 @@ import { DogTabs, reiterPanelId, reiterTabId } from "@/components/dogs/dog-tabs"
 import { DiaryTab } from "@/components/dogs/diary-tab";
 import { DogActionsSheet } from "@/components/dogs/dog-actions-sheet";
 import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
+import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
 import { useAuth } from "@/lib/auth-context";
 import { eintragIdAus, leseGesehen } from "@/lib/feedback-gesehen";
-import { adresseMit, geltenderReiter, REITER_PARAMETER, ungeseheneRueckmeldungen, waehleReiter, zielStatus, type HundeReiter } from "@/lib/hundeseite";
+import { adresseMit, aktiveHunde, geltenderReiter, REITER_PARAMETER, ungeseheneRueckmeldungen, waehleReiter, zeigeHundeChips, zielStatus, type HundeReiter } from "@/lib/hundeseite";
 import { tageAnzahl } from "@/lib/tagebuch";
-import { letzteUebungsdauer } from "@/lib/trainingsvorlage";
+import { angeboteneSportarten } from "@/lib/eintragen";
 import { usePreferences } from "@/lib/preferences-context";
 import { useDogAnker } from "@/lib/use-dog-anker";
 import { useDogPage } from "@/lib/use-dog-page";
@@ -29,7 +30,7 @@ import { useT } from "@/lib/i18n";
 
 /**
  * Hundeseite: Kopf, zwei Aktionen, Statuszeile und zwei Reiter - "Plan" (Ziele)
- * und "Tagebuch" (Training erfassen, Fährten-Verlauf, kompakte Tageszeilen).
+ * und "Tagebuch" (Fährten-Verlauf, kompakte Tageszeilen). Training eintragen,
  * Verwalten (Bearbeiten, Drucken, Mitbesitzer, Archivieren, Löschen) und
  * "Fährte legen" öffnen als Sheets. Die Logik lebt in den Bausteinen unter
  * components/dogs und in lib/use-dog-page.ts.
@@ -59,7 +60,9 @@ function DogPage({ id }: { id: string }) {
   const { dog, sessions, sports, goals, isOwner, owners, myDogs, nichtGefunden, showAllHistory, dogSportIds, frischGeladen, loadAll, loadOlderSessions } =
     useDogPage(id, eintragId);
 
-  const [showForm, setShowForm] = useState(false);
+  // Das Eintragen-Fenster und die Planübung, mit der es aufging (null = leer).
+  const [eintragenOffen, setEintragenOffen] = useState(false);
+  const [eintragenPlan, setEintragenPlan] = useState<TrainingPlanItem | null>(null);
   const [editing, setEditing] = useState(false);
   const [menuOffen, setMenuOffen] = useState(false);
   const [faehrteOffen, setFaehrteOffen] = useState(false);
@@ -77,11 +80,10 @@ function DogPage({ id }: { id: string }) {
     [],
   );
 
-  // Sportarten, die dem Tagebuch angeboten werden. Leere Auswahl heißt
-  // "keine Einschränkung" - und solange noch nichts geladen ist ebenfalls,
+  // Sportarten, die dem Eintragen und den Zielen angeboten werden. Leere Auswahl
+  // heißt "keine Einschränkung" - und solange noch nichts geladen ist ebenfalls,
   // damit die Liste nicht kurz leer aufblitzt.
-  const angeboteneSportarten =
-    dogSportIds && dogSportIds.length > 0 ? sports.filter((s) => dogSportIds.includes(s.id)) : sports;
+  const angebotene = angeboteneSportarten(sports, dogSportIds);
   // Fährte anbieten, wenn das Modul an ist UND der Hund Fährte läuft. Beides
   // zusammen, weil die GPS-Aufzeichnung auch für Spaziergänge taugt: Wer sie
   // dafür nutzt, darf sie behalten, ohne "Fährte" als Sportart anzugeben - dann
@@ -103,7 +105,7 @@ function DogPage({ id }: { id: string }) {
   }
 
   useDogAnker(dog !== null, (wunsch) => {
-    if (wunsch.formular) setShowForm(true);
+    if (wunsch.formular) oeffneEintragen(null);
     if (wunsch.faehrte && zeigtFaehrte) setFaehrteOffen(true);
     // Auch ohne neuen Reiter: die Adresse verliert dabei das Fragment.
     aendereAdresse(wunsch.reiter ? { [REITER_PARAMETER]: wunsch.reiter } : {});
@@ -114,8 +116,12 @@ function DogPage({ id }: { id: string }) {
     setFaehrtenStand((n) => n + 1);
   }
 
+  function oeffneEintragen(plan: TrainingPlanItem | null) {
+    setEintragenPlan(plan);
+    setEintragenOffen(true);
+  }
+
   async function handleTrainingSaved(offline: boolean) {
-    setShowForm(false);
     // Offline gespeicherte Trainings liegen nur in der Warteschlange - ein
     // Server-Reload würde sie nicht enthalten und nur verwirren.
     if (!offline) await loadAll();
@@ -136,6 +142,9 @@ function DogPage({ id }: { id: string }) {
 
   const neueRueckmeldungen = ungeseheneRueckmeldungen(sessions, new Set([...gesehenBeiStart, ...jetztGesehen]), isOwner);
   const wechseln = (neu: HundeReiter) => aendereAdresse({ [REITER_PARAMETER]: neu });
+  // Zwischen diesen Hunden wechselt das Eintragen-Fenster: meine aktiven, wenn dies
+  // mein Hund ist; sonst (Trainer:in bei einem betreuten Hund) nur dieser.
+  const sheetHunde = zeigeHundeChips(myDogs, isOwner) && myDogs.some((h) => h.id === dog.id) ? aktiveHunde(myDogs) : [dog];
 
   return (
     <div className="flex flex-col gap-4">
@@ -145,10 +154,7 @@ function DogPage({ id }: { id: string }) {
 
       <DogActionBar
         zeigtFaehrte={zeigtFaehrte}
-        onTraining={() => {
-          setShowForm(true);
-          wechseln("tagebuch");
-        }}
+        onTraining={() => oeffneEintragen(null)}
         onFaehrte={() => setFaehrteOffen(true)}
       />
 
@@ -161,13 +167,12 @@ function DogPage({ id }: { id: string }) {
 
       <DogTabs reiter={reiter} tage={tageAnzahl(sessions)} onChange={wechseln} />
 
-      {/* Beide Reiter bleiben im Baum, der andere ist nur versteckt: Ein halb
-          ausgefülltes Trainingsformular oder ein offenes Ziel-Formular geht
-          beim Hin- und Herschalten nicht verloren. Das display liegt auf dem
+      {/* Beide Reiter bleiben im Baum, der andere ist nur versteckt: Ein offenes
+          Ziel-Formular geht beim Hin- und Herschalten nicht verloren. Das display liegt auf dem
           Innenelement, damit "hidden" nicht von einer Klasse überstimmt wird. */}
       <div role="tabpanel" id={reiterPanelId("plan")} aria-labelledby={reiterTabId("plan")} hidden={reiter !== "plan"}>
         <div className="flex flex-col gap-6">
-          <GoalsSection dogId={id} dogName={dog.name} sports={angeboteneSportarten} goals={goals} letzteDauer={letzteUebungsdauer(sessions)} onChanged={loadAll} />
+          <GoalsSection dogId={id} dogName={dog.name} sports={angebotene} goals={goals} onEintragen={oeffneEintragen} onChanged={loadAll} />
           <LeistungenCard goals={goals} onChanged={loadAll} />
         </div>
       </div>
@@ -176,12 +181,7 @@ function DogPage({ id }: { id: string }) {
           dogId={id}
           dogName={dog.name}
           isOwner={isOwner}
-          sports={angeboteneSportarten}
-          goals={goals}
           sessions={sessions}
-          formularOffen={showForm}
-          onFormularSchliessen={() => setShowForm(false)}
-          onTrainingGespeichert={handleTrainingSaved}
           faehrteAn={zeigtFaehrte}
           faehrtenStand={faehrtenStand}
           onChanged={faehrteGeaendert}
@@ -193,6 +193,18 @@ function DogPage({ id }: { id: string }) {
           onGesehen={onGesehen}
         />
       </div>
+
+      <EintragenSheet
+        open={eintragenOffen}
+        onOpenChange={setEintragenOffen}
+        dogId={id}
+        hunde={sheetHunde}
+        // Was die Seite von diesem Hund schon weiß: Das Fenster lädt es nicht
+        // noch einmal (und widerspricht ihr so nie).
+        vorab={{ dogId: id, sports: angebotene, goals, sessions }}
+        vorgabePlan={eintragenPlan}
+        onSaved={handleTrainingSaved}
+      />
 
       <DogActionsSheet
         dog={dog}

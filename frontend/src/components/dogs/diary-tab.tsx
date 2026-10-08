@@ -1,11 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { NotebookPen } from "lucide-react";
-import type { Goal, Sport, TrainingSession } from "@/lib/types";
-import { Button } from "@/components/ui/button";
-import { SectionHeading } from "@/components/ui/section-heading";
-import { TrainingForm } from "@/components/dogs/training-form";
+import type { TrainingSession } from "@/lib/types";
 import { SessionHistory } from "@/components/dogs/session-history";
 import { FaehrtenTrend } from "@/components/tracking/faehrten-trend";
 import { useT } from "@/lib/i18n";
@@ -14,22 +10,14 @@ import { geltenderFilter, nachTagen, verfuegbareFilter, type TagesFilter } from 
 import { cn } from "@/lib/utils";
 
 /**
- * Der Reiter "Tagebuch": oben das geöffnete Trainingsformular, dann der
- * Fährten-Verlauf, die Filter und das kompakte Tagebuch.
- *
- * Sitzt auch im Hintergrund im Baum (siehe Hundeseite): Ein halb ausgefülltes
- * Trainingsformular überlebt so das Hin- und Herschalten zwischen den Reitern.
+ * Der Reiter "Tagebuch": der Fährten-Verlauf, die Filter und das kompakte
+ * Tagebuch. Training eintragen läuft über das Eintragen-Fenster der Hundeseite.
  */
 export function DiaryTab({
   dogId,
   dogName,
   isOwner,
-  sports,
-  goals,
   sessions,
-  formularOffen,
-  onFormularSchliessen,
-  onTrainingGespeichert,
   faehrteAn,
   faehrtenStand,
   onChanged,
@@ -41,13 +29,7 @@ export function DiaryTab({
   dogId: string;
   dogName: string;
   isOwner: boolean;
-  /** Die Sportarten, die dem Formular angeboten werden. */
-  sports: Sport[];
-  goals: Goal[] | null;
   sessions: TrainingSession[] | null;
-  formularOffen: boolean;
-  onFormularSchliessen: () => void;
-  onTrainingGespeichert: (offline: boolean) => Promise<void>;
   /** Fährte-Modul an UND der Hund läuft Fährte: dann Verlauf und Auswertung in den Zeilen. */
   faehrteAn: boolean;
   /** Ändert sich nach jeder neuen Fährte oder jedem Ablauf; lädt die Auswertung neu. */
@@ -81,31 +63,6 @@ export function DiaryTab({
 
   return (
     <div className="flex flex-col gap-4">
-      {formularOffen && (
-        <div className="flex flex-col gap-3">
-          <SectionHeading
-            icon={NotebookPen}
-            title={t("Training erfassen")}
-            action={
-              <Button size="sm" variant="ghost" onClick={onFormularSchliessen}>
-                {t("Abbrechen")}
-              </Button>
-            }
-          />
-          <TrainingForm
-            dogId={dogId}
-            sports={sports}
-            goals={goals}
-            // Die Historie kommt absteigend nach Datum vom Server (siehe
-            // TrainingService). Einheiten ohne Übungen übersprungen: Eine
-            // gelegte Fährte legt die Einheit des Tages an, und die Vorlage
-            // hieße sonst "Übernimmt die 0 Übungen".
-            letzteEinheit={sessions?.find((einheit) => einheit.exercises.length > 0) ?? null}
-            onSaved={onTrainingGespeichert}
-          />
-        </div>
-      )}
-
       {/* Der Verlauf gehört zur Fährtenarbeit, deshalb nur mit denselben
           Bedingungen wie das Fährtelegen. Erst ab drei ausgewerteten Abläufen:
           bei einem oder zwei Balken sagt ein Verlauf nichts. */}

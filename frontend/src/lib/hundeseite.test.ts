@@ -128,7 +128,7 @@ describe("waehleReiter", () => {
 describe("ankerWunsch", () => {
   it("ordnet die drei alten Anker zu", () => {
     expect(ankerWunsch("#trainingsplan")).toEqual({ reiter: "plan", formular: false, faehrte: false });
-    expect(ankerWunsch("#training-erfassen")).toEqual({ reiter: "tagebuch", formular: true, faehrte: false });
+    expect(ankerWunsch("#training-erfassen")).toEqual({ reiter: null, formular: true, faehrte: false });
     expect(ankerWunsch("#faehrte-aufnehmen")).toEqual({ reiter: null, formular: false, faehrte: true });
   });
 

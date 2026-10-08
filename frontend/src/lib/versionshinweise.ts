@@ -67,11 +67,19 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
     aenderungen: [
       {
         art: "neu",
-        text: uebersetzbar("Trägst du eine Übung ein, die diese Woche in deinem Trainingsplan steht, zählt sie jetzt von selbst für den Plan - du musst kein „Plan-Ziel“ mehr wählen. Im Formular steht dann „zählt für den Plan“ mit dem Stand der Woche; mit „nicht zählen“ nimmst du die Übung wieder heraus. Das gilt auch bei „Wie beim letzten Mal“. Trainings, die du nachträgst, zählen nur für die Woche, in der sie stattgefunden haben."),
+        text: uebersetzbar("Trägst du eine Übung ein, die diese Woche in deinem Trainingsplan steht, zählt sie jetzt von selbst für den Plan - du musst kein „Plan-Ziel“ mehr wählen. Beim Eintragen steht dann „zählt für den Plan“ mit dem Stand der Woche; mit „nicht zählen“ nimmst du die Übung wieder heraus. Das gilt auch bei „Wie beim letzten Mal“. Trainings, die du nachträgst, zählen nur für die Woche, in der sie stattgefunden haben."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Training eintragen geht jetzt mit wenigen Tipps - und überall im selben Fenster: bei „Training erfassen“ auf der Startseite und auf der Hundeseite, und mit einem Tipp auf eine Übung im Plan. Du tippst die Übungen an, die ihr gemacht habt - aus „Diese Woche“, „Zuletzt geübt“ oder mit „Wie beim letzten Mal“. Mit „Andere Übung“ suchst du in allen Sportarten deines Hundes oder trägst eine eigene ein. Dann antwortest du einmal auf „Wie lief es?“ (Mäßig, Gut oder Top) und speicherst. Willst du es für eine Übung genauer, öffnest du „genauer“: Sterne, Erfolgreich, Kommentar. Der Tag ist Heute, Gestern oder ein anderer."),
       },
       {
         art: "verbessert",
-        text: uebersetzbar("Der Schnelleintrag zu einer Planübung startet mit vier Sternen statt stillschweigend mit fünf. Die Dauer wählst du jetzt selbst aus: Auf der Hundeseite ist die Dauer deiner letzten Einheit vorgewählt, sonst 15 Minuten (vorher waren es immer 10)."),
+        text: uebersetzbar("Dauer, Uhrzeit und Ort sind im Fenster schon vorbelegt und stehen unten, mit einem Tipp änderbar: die Dauer deiner letzten Einheit (sonst 30 Minuten), die Uhrzeit von jetzt und der Ort, wenn dein letztes Training höchstens 14 Tage her ist oder heute ein Gruppentermin mit Ort ansteht - sonst übernimmst du ihn mit „Standort verwenden“. Verfassung und eine Notiz zum ganzen Training findest du hinter „Mehr“."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Nach dem Speichern bringt dich „Ansehen“ zum Eintrag im Tagebuch. Ein Tipp neben das Fenster schließt es nicht mehr, sobald du schon Übungen gewählt hast - das X tut es. Auch ohne Internet trägst du ein: Das Training wird übertragen, sobald wieder eine Verbindung besteht."),
       },
       {
         art: "neu",

@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { GeocodeResult, RecentLocation } from "@/lib/types";
+import { useAktuellerStandort } from "@/lib/use-aktueller-standort";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Clock, Crosshair, History, Search } from "lucide-react";
-import { toast } from "sonner";
 
 import { useSprache, useT } from "@/lib/i18n";
 import { zahlText } from "@/lib/ortsformat";
@@ -38,7 +38,7 @@ export type LocationValue = {
  *
  * Rein gesteuert (Werte kommen von außen, kein eigenes Speichern): so nutzen
  * das nachträgliche Ändern im Tagebuch (SessionContextEditor) und das
- * Erfassen eines neuen Trainings (TrainingForm) dieselbe Eingabe. Vorher gab
+ * Erfassen eines neuen Trainings (Eintragen-Fenster) dieselbe Eingabe. Vorher gab
  * es sie nur im Tagebuch - beim Erfassen ließen sich Ort und Zeit gar nicht
  * angeben, obwohl der Server sie von Anfang an entgegennimmt.
  */
@@ -61,7 +61,7 @@ export function LocationTimeFields({
   const [results, setResults] = useState<GeocodeResult[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [recent, setRecent] = useState<RecentLocation[]>([]);
-  const [locating, setLocating] = useState(false);
+  const { ermitteln: ermittleStandort, laeuft: locating } = useAktuellerStandort(location, onLocationChange);
 
   // Verhindert, dass eine langsame ältere Antwort eine neuere überschreibt.
   const searchSeq = useRef(0);
@@ -120,42 +120,6 @@ export function LocationTimeFields({
     // Suche auslösen, deshalb bewusst nicht in den Abhängigkeiten.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
-
-  function useCurrentLocation() {
-    if (!navigator.geolocation) {
-      toast.error(t("Standort wird von diesem Gerät nicht unterstützt."));
-      return;
-    }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        // Namen zu den Koordinaten holen. Ohne das hieße jeder so gesetzte Ort
-        // "Aktueller Standort" - in der Liste der zuletzt genutzten Orte
-        // fielen sie zu einem Knopf zusammen, der auf die zuletzt
-        // gespeicherten Koordinaten zeigt. Nur vorbelegen, wenn noch nichts
-        // dasteht; ein selbst vergebener Name bleibt unangetastet.
-        let suggestion: string | null = null;
-        try {
-          const params = new URLSearchParams({ lat: String(pos.coords.latitude), lon: String(pos.coords.longitude) });
-          suggestion = (await api.get<GeocodeResult | null>(`/api/weather/locations/reverse?${params}`))?.name ?? null;
-        } catch {
-          // Reiner Komfort - schlägt es fehl, tippt man den Namen eben selbst.
-        }
-        onLocationChange({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          locationName: location.locationName || suggestion || "Aktueller Standort",
-        });
-        setLocating(false);
-        toast.success(t("Standort übernommen."));
-      },
-      () => {
-        setLocating(false);
-        toast.error(t("Standort konnte nicht ermittelt werden."));
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
-  }
 
   function onQueryChange(value: string) {
     setQuery(value);
@@ -225,7 +189,7 @@ export function LocationTimeFields({
           onChange={(e) => onLocationChange({ ...location, locationName: e.target.value })}
         />
 
-        <Button type="button" variant="outline" size="sm" disabled={locating} onClick={useCurrentLocation}>
+        <Button type="button" variant="outline" size="sm" disabled={locating} onClick={ermittleStandort}>
           <Crosshair className="size-3.5" />
           {locating ? t("Ermittle…") : t("Aktuellen Standort verwenden")}
         </Button>

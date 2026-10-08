@@ -83,7 +83,8 @@ export function OnboardingGuide({
     {
       titel: t("Erstes Training eintragen"),
       erledigt: status.hasTraining,
-      ziel: hundZiel,
+      // Mit Hund gleich das Eintragen-Fenster (useDogAnker), sonst die Hundeliste.
+      ziel: status.firstDogId ? `${hundZiel}#training-erfassen` : hundZiel,
       hinweis: t("Übung, Bewertung, fertig. Der Rest ist optional."),
     },
   ];

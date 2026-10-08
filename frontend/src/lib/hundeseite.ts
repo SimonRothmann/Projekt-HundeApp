@@ -77,7 +77,7 @@ export function geltenderReiter(
 export type AnkerWunsch = {
   /** Reiter, der zu öffnen ist; null = der Anker sagt dazu nichts. */
   reiter: HundeReiter | null;
-  /** Das Trainingsformular öffnen. */
+  /** Das Eintragen-Fenster öffnen. */
   formular: boolean;
   /** Das Fenster "Fährte legen" öffnen. */
   faehrte: boolean;
@@ -93,7 +93,8 @@ export function ankerWunsch(hash: string | null | undefined): AnkerWunsch | null
     case "trainingsplan":
       return { reiter: "plan", formular: false, faehrte: false };
     case "training-erfassen":
-      return { reiter: "tagebuch", formular: true, faehrte: false };
+      // Das Fenster liegt über jedem Reiter; ein Wechsel im Hintergrund wäre nur ein Sprung.
+      return { reiter: null, formular: true, faehrte: false };
     case "faehrte-aufnehmen":
       return { reiter: null, formular: false, faehrte: true };
     default:

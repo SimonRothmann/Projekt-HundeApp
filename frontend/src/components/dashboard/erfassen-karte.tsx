@@ -14,11 +14,20 @@ import { useT } from "@/lib/i18n";
  *
  * Früher waren es zwei große Kacheln (zusammen etwa 390 px hoch), die bei
  * mehreren Hunden jeweils noch die Hunde enthielten. Jetzt ist jeder Handgriff
- * eine Zeile: Mit genau einem Hund ist die ganze Zeile der Knopf und landet
- * direkt an der richtigen Stelle der Hundeseite; mit mehreren stehen die Hunde
- * als Chips darunter. Chips und Zeilen sind mindestens 44 px hoch.
+ * eine Zeile: Mit genau einem Hund ist die ganze Zeile der Knopf; mit mehreren
+ * stehen die Hunde als Chips darunter. "Training erfassen" öffnet das
+ * Eintragen-Fenster gleich hier auf der Startseite, "Fährte legen" führt zur
+ * Hundeseite. Chips und Zeilen sind mindestens 44 px hoch.
  */
-export function ErfassenKarte({ hunde, faehrtenHundeIds }: { hunde: Dog[]; faehrtenHundeIds: string[] }) {
+export function ErfassenKarte({
+  hunde,
+  faehrtenHundeIds,
+  onEintragen,
+}: {
+  hunde: Dog[];
+  faehrtenHundeIds: string[];
+  onEintragen: (dogId: string) => void;
+}) {
   const t = useT();
   const faehrtenHunde = hunde.filter((h) => faehrtenHundeIds.includes(h.id));
 
@@ -30,7 +39,7 @@ export function ErfassenKarte({ hunde, faehrtenHundeIds }: { hunde: Dog[]; faehr
           titel={t("Training erfassen")}
           beschreibung={hunde.length === 1 ? t("Einheit für {name} eintragen", { name: hunde[0].name }) : null}
           hunde={hunde}
-          ziel={(id) => `/dogs/${id}#training-erfassen`}
+          onWaehle={onEintragen}
         />
         {faehrtenHunde.length > 0 && (
           <Zeile
@@ -52,12 +61,15 @@ function Zeile({
   beschreibung,
   hunde,
   ziel,
+  onWaehle,
 }: {
   icon: LucideIcon;
   titel: string;
   beschreibung: string | null;
   hunde: Dog[];
-  ziel: (dogId: string) => string;
+  /** Adresse der Hundeseite - oder, wenn der Handgriff hier erledigt wird, `onWaehle`. */
+  ziel?: (dogId: string) => string;
+  onWaehle?: (dogId: string) => void;
 }) {
   // Beide Symbole in derselben Farbe: zwei Akzentfarben nebeneinander lasen
   // sich wie zwei Zustände, es sind aber zwei gleichrangige Wege.
@@ -68,14 +80,24 @@ function Zeile({
   );
 
   if (hunde.length === 1) {
-    return (
-      <Link href={ziel(hunde[0].id)} className="group flex min-h-11 min-w-0 items-center gap-3 rounded-lg">
+    const inhalt = (
+      <>
         {symbol}
         <span className="min-w-0 flex-1">
           <span className="block font-medium">{titel}</span>
           {beschreibung && <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{beschreibung}</span>}
         </span>
         <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
+      </>
+    );
+    const klasse = "group flex min-h-11 w-full min-w-0 items-center gap-3 rounded-lg text-left";
+    return onWaehle ? (
+      <button type="button" onClick={() => onWaehle(hunde[0].id)} aria-haspopup="dialog" className={klasse}>
+        {inhalt}
+      </button>
+    ) : (
+      <Link href={ziel!(hunde[0].id)} className={klasse}>
+        {inhalt}
       </Link>
     );
   }
@@ -87,16 +109,25 @@ function Zeile({
         {titel}
       </p>
       <div className="flex flex-wrap gap-2">
-        {hunde.map((hund) => (
-          <Link
-            key={hund.id}
-            href={ziel(hund.id)}
-            className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full border border-surface-border bg-surface py-1 pr-4 pl-1.5 text-sm font-medium transition-colors hover:border-primary/50"
-          >
-            <DogAvatar dogId={hund.id} hasImage={hund.hasImage} name={hund.name} className="size-8" iconClassName="size-4" />
-            <span className="truncate">{hund.name}</span>
-          </Link>
-        ))}
+        {hunde.map((hund) => {
+          const klasse =
+            "inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full border border-surface-border bg-surface py-1 pr-4 pl-1.5 text-sm font-medium transition-colors hover:border-primary/50";
+          const inhalt = (
+            <>
+              <DogAvatar dogId={hund.id} hasImage={hund.hasImage} name={hund.name} className="size-8" iconClassName="size-4" />
+              <span className="truncate">{hund.name}</span>
+            </>
+          );
+          return onWaehle ? (
+            <button key={hund.id} type="button" onClick={() => onWaehle(hund.id)} aria-haspopup="dialog" className={klasse}>
+              {inhalt}
+            </button>
+          ) : (
+            <Link key={hund.id} href={ziel!(hund.id)} className={klasse}>
+              {inhalt}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

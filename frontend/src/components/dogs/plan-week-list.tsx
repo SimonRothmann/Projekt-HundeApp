@@ -5,7 +5,6 @@ import type { Goal, PlanItemReason, TrainingPlanItem } from "@/lib/types";
 import { fortschrittDerWoche, istPausenwoche, planItemName, sichtbareWochen } from "@/lib/trainingsplan";
 import { FreieUebungHinzufuegen, ItemWerkzeuge, WochenWerkzeuge } from "@/components/dogs/plan-edit-tools";
 import { PlanItemEditForm, useUebungKatalog } from "@/components/dogs/plan-item-forms";
-import { PlanItemQuickLog } from "@/components/dogs/plan-item-quick-log";
 import { ExerciseNotes } from "@/components/dogs/exercise-notes";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronDown, ChevronRight, Plus } from "lucide-react";
@@ -36,30 +35,27 @@ function groupByDay(items: TrainingPlanItem[]): [number, TrainingPlanItem[]][] {
 
 /**
  * Eine Übung der Woche. Im Lesemodus eine einzeilige Zeile (Name, x/y, Plus),
- * die den Schnelleintrag aufklappt; im Bearbeitungsmodus kommen Stift und
+ * die das Eintragen-Fenster mit dieser Übung öffnet; im Bearbeitungsmodus kommen Stift und
  * Entfernen dazu. Jede Zeile hält ihren Auf-/Zu-Zustand selbst - so gibt es
  * keine kartenweite Kopplung (früher quickLogItemId/editItemId als Einzelwerte).
  */
 function PlanUebung({
   goal,
-  dogId,
   item,
   bearbeiten,
   uebungen,
-  letzteDauer,
+  onEintragen,
   onChanged,
 }: {
   goal: Goal;
-  dogId: string;
   item: TrainingPlanItem;
   bearbeiten: boolean;
   uebungen: ReturnType<typeof useUebungKatalog>;
-  letzteDauer?: number | null;
+  onEintragen: (item: TrainingPlanItem) => void;
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
   const ort = ortsformat(useSprache());
-  const [quickOffen, setQuickOffen] = useState(false);
   const [formOffen, setFormOffen] = useState(false);
   // Beim Verlassen des Bearbeitungsmodus klappt ein offenes Formular zu, damit
   // es beim nächsten "Plan bearbeiten" nicht von gestern übrig ist. (Zustand
@@ -81,8 +77,8 @@ function PlanUebung({
       <div className="flex items-center gap-1">
         <button
           type="button"
-          onClick={() => setQuickOffen((offen) => !offen)}
-          aria-expanded={quickOffen}
+          onClick={() => onEintragen(item)}
+          aria-haspopup="dialog"
           aria-label={`${name} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })} · ${t("Eintragen")}`}
           className={ZEILE}
         >
@@ -135,18 +131,6 @@ function PlanUebung({
           ))}
         </ul>
       )}
-      {quickOffen && (
-        <PlanItemQuickLog
-          dogId={dogId}
-          item={item}
-          letzteDauer={letzteDauer}
-          onDone={async () => {
-            setQuickOffen(false);
-            await onChanged();
-          }}
-          onCancel={() => setQuickOffen(false)}
-        />
-      )}
     </div>
   );
 }
@@ -158,20 +142,18 @@ function PlanUebung({
  */
 export function PlanWeekList({
   goal,
-  dogId,
   weeks,
   currentWeek,
   bearbeiten,
-  letzteDauer,
+  onEintragen,
   onChanged,
 }: {
   goal: Goal;
-  dogId: string;
   weeks: [number, TrainingPlanItem[]][];
   currentWeek: number | undefined;
   bearbeiten: boolean;
-  /** Dauer der letzten Einheit des Hundes - Vorbelegung des Schnelleintrags. */
-  letzteDauer?: number | null;
+  /** Eine Übung wurde angetippt: das Eintragen-Fenster mit ihr öffnen. */
+  onEintragen: (item: TrainingPlanItem) => void;
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
@@ -250,11 +232,10 @@ export function PlanWeekList({
                         <PlanUebung
                           key={item.id}
                           goal={goal}
-                          dogId={dogId}
                           item={item}
                           bearbeiten={aktiv}
                           uebungen={uebungen}
-                          letzteDauer={letzteDauer}
+                          onEintragen={onEintragen}
                           onChanged={onChanged}
                         />
                       ))}

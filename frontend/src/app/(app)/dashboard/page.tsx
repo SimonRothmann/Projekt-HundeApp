@@ -13,6 +13,7 @@ import type {
   OnboardingStatus,
   Sport,
   TrainerOpenCounts,
+  TrainingPlanItem,
 } from "@/lib/types";
 import { OnboardingGuide, zeigtErststart } from "@/components/onboarding/onboarding-guide";
 import { usePreferences } from "@/lib/preferences-context";
@@ -26,6 +27,7 @@ import { TerminKarte } from "@/components/dashboard/termin-karte";
 import { ZuErledigenZeile } from "@/components/dashboard/zu-erledigen-zeile";
 import { AbgelaufeneZiele, OhneZielZeilen, ZielKarten } from "@/components/dashboard/ziel-karten";
 import { HeuteGelegtSection, type FaehrteMitHund } from "@/components/dashboard/heute-gelegt-section";
+import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
 import { useT } from "@/lib/i18n";
 
 /** Kompakte Zeile, wie sie die Startseite für Nebensächliches nutzt (Verein, Sachkunde). */
@@ -35,6 +37,8 @@ const ZEILE =
 type Startdaten = {
   hunde: HundDaten[];
   faehrtenHundeIds: string[];
+  /** Die Sportarten je Hund (leer = keine Einschränkung); fehlt bei Zwischenständen aus älteren Fassungen. */
+  sportIdsJeHund?: Record<string, string[]>;
   // Aufgeteilt nach Zielen: Karten (laufend), Ergebnis fehlt (abgelaufen), ohne Ziel.
   ziele: ReturnType<typeof zielAufteilung>;
   faehrten: FaehrteMitHund[];
@@ -86,6 +90,7 @@ async function ladeStartdaten(): Promise<Startdaten> {
     // Dieselbe Regel wie auf der Hundeseite (laeuftFaehrte): sonst führte
     // "Fährte legen" auf eine Hundeseite ohne Recorder.
     faehrtenHundeIds: eintraege.filter((e) => laeuftFaehrte(e.sportIds, sports)).map((e) => e.dog.id),
+    sportIdsJeHund: Object.fromEntries(eintraege.map((e) => [e.dog.id, e.sportIds])),
     ziele: zielAufteilung(
       eintraege.map((e) => ({ dog: e.dog, activeGoals: e.activeGoals })),
       bhSportIds,
@@ -119,6 +124,21 @@ export default function DashboardPage() {
 
   async function neuLaden() {
     uebernehmen(await ladeStartdaten());
+  }
+
+  // Das Eintragen-Fenster: offen oder zu, getrennt von dem, wofür es aufging -
+  // beim Schließen soll das Ziel stehen bleiben, sonst bräche der Inhalt schon
+  // während des Wegschiebens weg.
+  const [eintragenOffen, setEintragenOffen] = useState(false);
+  const [eintragenZiel, setEintragenZiel] = useState<{ dogId: string; plan: TrainingPlanItem | null } | null>(null);
+  function oeffneEintragen(dogId: string, plan: TrainingPlanItem | null = null) {
+    setEintragenZiel({ dogId, plan });
+    setEintragenOffen(true);
+  }
+  // Offline gespeicherte Trainings liegen nur in der Warteschlange: Ein
+  // Neuladen vom Server zeigte sie nicht und ließe die Seite im Netzlosen leer.
+  async function trainingGespeichert(offline: boolean) {
+    if (!offline) await neuLaden();
   }
 
   useEffect(() => {
@@ -185,11 +205,25 @@ export default function DashboardPage() {
 
   const erfassen =
     daten !== null && daten.hunde.length > 0 ? (
-      <ErfassenKarte hunde={daten.hunde} faehrtenHundeIds={faehrteAn ? daten.faehrtenHundeIds : []} />
+      <ErfassenKarte hunde={daten.hunde} faehrtenHundeIds={faehrteAn ? daten.faehrtenHundeIds : []} onEintragen={oeffneEintragen} />
     ) : null;
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Unabhängig davon, ob die Seite gerade neu lädt: Ein halb ausgefülltes
+          Fenster darf nicht mit einem Neuladen im Hintergrund verschwinden. */}
+      {eintragenZiel && (
+        <EintragenSheet
+          open={eintragenOffen}
+          onOpenChange={setEintragenOffen}
+          dogId={eintragenZiel.dogId}
+          hunde={(daten?.hunde ?? []).filter((hund) => !hund.archivedAt)}
+          termine={daten?.termine}
+          sportIdsJeHund={daten?.sportIdsJeHund}
+          vorgabePlan={eintragenZiel.plan}
+          onSaved={trainingGespeichert}
+        />
+      )}
       {erststart ? (
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -213,7 +247,7 @@ export default function DashboardPage() {
       ) : erststart ? (
         <>
           {/* Der Erststart behält seine Reihenfolge: Ziele, Leitfaden, Termine, Erfassen. */}
-          <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onChanged={neuLaden} />
+          <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} />
 
           <OnboardingGuide
             status={daten.onboarding}
@@ -243,7 +277,7 @@ export default function DashboardPage() {
 
           {erfassen}
 
-          <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onChanged={neuLaden} />
+          <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} />
           <AbgelaufeneZiele eintraege={daten.ziele.abgelaufen} onChanged={neuLaden} />
           <OhneZielZeilen hunde={daten.ziele.ohneZiel} />
 
