@@ -66,6 +66,20 @@ public record TrainingSessionDto(
 public record SetFeedbackRequest(string Feedback);
 
 /// <summary>
+/// Ein Trainer-Feedback, auf das die Besitzer:in noch nicht reagiert hat
+/// (weder Danke/Verstanden noch Rückfrage) - Quelle der Feedback-Karte auf der
+/// Startseite. TrainerName ist null, wenn das Konto der Trainer:in nicht mehr
+/// da ist. SessionId führt zu <c>/dogs/{DogId}?eintrag={SessionId}</c>.
+/// </summary>
+public record OpenFeedbackDto(
+    Guid SessionId,
+    Guid DogId,
+    string DogName,
+    string? TrainerName,
+    string Feedback,
+    DateTimeOffset? FeedbackAt);
+
+/// <summary>
 /// Antwort des Besitzers auf Trainer-Feedback. Beide Felder ersetzen den
 /// bisherigen Stand (null/leer = zurücknehmen), damit das Umschalten einer
 /// Reaktion die Rückfrage nicht berührt und umgekehrt.

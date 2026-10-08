@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { Goal, NextStage } from "@/lib/types";
 import { TEXTLAENGE } from "@/lib/textlaengen";
@@ -126,11 +126,17 @@ export function ZielAbschliessen({
   hundName,
   onChanged,
   onFolgeziel,
+  ausloeser,
 }: {
   goal: Goal;
   hundName: string;
   onChanged: () => Promise<void>;
   onFolgeziel?: (stufe: NextStage) => void;
+  /**
+   * Eigener Auslöser statt des Knopfs "Ziel abschließen" - die Startseite öffnet
+   * den Dialog direkt aus der Zeile "Ergebnis fehlt", ohne Seitenwechsel.
+   */
+  ausloeser?: (oeffnen: () => void) => ReactNode;
 }) {
   const t = useT();
   const sprache = useSprache();
@@ -208,9 +214,13 @@ export function ZielAbschliessen({
 
   return (
     <>
-      <Button size="sm" variant="outline" className="coarse:min-h-11" onClick={oeffnen}>
-        {t("Ziel abschließen")}
-      </Button>
+      {ausloeser ? (
+        ausloeser(oeffnen)
+      ) : (
+        <Button size="sm" variant="outline" className="coarse:min-h-11" onClick={oeffnen}>
+          {t("Ziel abschließen")}
+        </Button>
+      )}
       <Sheet open={offen} onOpenChange={(neu) => (neu ? setOffen(true) : void schliessen())}>
         <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
           {ergebnis ? (

@@ -16,7 +16,7 @@ import { useSprache, useT } from "@/lib/i18n";
  * Punkte - und der Weg zur vollständigen Liste.
  *
  * Absichtlich nur ein Auszug. Vollständigkeit hat die Seite /neuerungen; an
- * den Stellen, an denen dieser Baustein steht (Startseite, Profil), ist die
+ * der Stelle, an der dieser Baustein steht (Profil), ist die
  * Frage eine andere und kleinere: Tut sich hier überhaupt noch etwas, und
  * seit wann?
  */

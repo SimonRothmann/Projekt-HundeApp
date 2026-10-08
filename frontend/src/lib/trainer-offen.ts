@@ -43,3 +43,16 @@ export function anfragenJeGruppe(counts: TrainerOpenCounts | null): Record<strin
   }
   return nachGruppe;
 }
+
+type Uebersetzer = (text: string, werte?: Record<string, string | number>) => string;
+
+/**
+ * Beschriftung eines Zählers ("Beitrittsanfragen", "Training bewerten") -
+ * gemeinsam für die Trainer-Übersicht und die Zeile "Zu erledigen" auf der
+ * Startseite, damit beide dasselbe sagen.
+ */
+export function zaehlerBeschriftung(t: Uebersetzer, z: ZuErledigen): string {
+  return z.art === "anfragen"
+    ? z.anzahl === 1 ? t("Beitrittsanfrage") : t("Beitrittsanfragen")
+    : z.anzahl === 1 ? t("Training bewerten") : t("Trainings bewerten");
+}

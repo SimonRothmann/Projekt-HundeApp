@@ -11,12 +11,14 @@ import { usePreferences } from "@/lib/preferences-context";
 import { PawPrint } from "lucide-react";
 import { EnvBadge } from "@/components/env-badge";
 import { useT } from "@/lib/i18n";
+import { useNeuerungenUngelesen } from "@/lib/neuerungen-gelesen";
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { user, isTrainer } = useAuth();
   const { moduleEnabled } = usePreferences();
   const t = useT();
+  const neuerungenUngelesen = useNeuerungenUngelesen();
   // Wie in der unteren Navigation: Ein ausgeblendetes Modul verschwindet auch
   // aus dem Menü.
   const items = [
@@ -52,6 +54,11 @@ export function SidebarNav() {
             >
               <Icon className={cn("size-4", isActive && "text-primary-text")} />
               {t(label)}
+              {href === profileNavItem.href && neuerungenUngelesen && (
+                <span className="size-2 rounded-full bg-primary">
+                  <span className="sr-only">{t("Neu")}</span>
+                </span>
+              )}
             </Link>
           );
         })}

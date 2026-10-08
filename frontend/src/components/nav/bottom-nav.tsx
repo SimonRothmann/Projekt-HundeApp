@@ -7,6 +7,7 @@ import { adminNavItem, bottomNavItems, profileNavItem, statsNavItem, trainerNavI
 import { useAuth } from "@/lib/auth-context";
 import { usePreferences } from "@/lib/preferences-context";
 import { useT } from "@/lib/i18n";
+import { useNeuerungenUngelesen } from "@/lib/neuerungen-gelesen";
 
 // Tailwind muss Klassennamen als Literal im Quellcode sehen, um sie ins CSS
 // aufzunehmen - eine zur Laufzeit interpolierte Klasse wie `grid-cols-${n}`
@@ -63,6 +64,9 @@ export function BottomNav() {
   const { user, isTrainer } = useAuth();
   const { moduleEnabled } = usePreferences();
   const t = useT();
+  // Punkt am Profil-Reiter, solange die laufende Fassung ungelesen ist (die
+  // Neuerungen stehen im Profil; die Startseite zeigt dafür keine Karte mehr).
+  const neuerungenUngelesen = useNeuerungenUngelesen();
   // Ausgeblendete Module verschwinden auch aus der Navigation - sonst führte
   // ein Menüpunkt auf eine Seite, die es für diesen Nutzer nicht gibt.
   //
@@ -104,7 +108,14 @@ export function BottomNav() {
                     isActive && "bg-primary/12",
                   )}
                 >
-                  <Icon className={ICON_SIZE_CLASS(navItems.length)} />
+                  <span className="relative">
+                    <Icon className={ICON_SIZE_CLASS(navItems.length)} />
+                    {href === profileNavItem.href && neuerungenUngelesen && (
+                      <span className="absolute -top-0.5 -right-1 size-2.5 rounded-full bg-primary ring-2 ring-background">
+                        <span className="sr-only">{t("Neu")}</span>
+                      </span>
+                    )}
+                  </span>
                 </span>
                 {/* truncate als Auffangnetz für sehr schmale Geräte (320 px):
                     lieber ein abgeschnittenes Wort als zwei ineinander

@@ -28,16 +28,18 @@ public class DashboardServiceTests
         public override DateTimeOffset GetUtcNow() => Jetzt;
     }
 
-    private static (DashboardService Dienst, ApplicationDbContext Db) Erstelle()
+    private static (DashboardService Dienst, ApplicationDbContext Db) Erstelle() => Erstelle(new FakeUserLookupService());
+
+    private static (DashboardService Dienst, ApplicationDbContext Db) Erstelle(FakeUserLookupService nutzer)
     {
         var db = InMemoryDbContext.Create();
         var uhr = new FesteUhr();
         var mastery = new ExerciseMasteryService(db);
         var dienst = new DashboardService(
-            new DogService(db, new FakeUserLookupService(), new FakeNotificationService()),
+            new DogService(db, nutzer, new FakeNotificationService()),
             new PreferenceService(db),
             new GoalService(db, uhr, new FakeNotificationService(), mastery),
-            new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), mastery, new FakeWeatherEnrichmentService()),
+            new TrainingService(db, new FakeNotificationService(), nutzer, mastery, new FakeWeatherEnrichmentService()),
             new GpsTrackService(db, new FakeWeatherEnrichmentService()),
             uhr);
         return (dienst, db);
@@ -126,5 +128,94 @@ public class DashboardServiceTests
 
         Assert.True(ergebnis.Succeeded);
         Assert.Empty(ergebnis.Value!.Dogs);
+    }
+
+    private static TrainingSession Feedback(ApplicationDbContext db, Guid besitzer, Guid hund, Guid? trainer, string text, DateTimeOffset am,
+        FeedbackReaction? reaktion = null, string? rueckfrage = null)
+    {
+        var einheit = new TrainingSession
+        {
+            UserId = besitzer, DogId = hund, Date = Heute, DurationMinutes = 10,
+            TrainerFeedback = text, FeedbackByTrainerId = trainer, FeedbackAt = am,
+            OwnerReaction = reaktion, OwnerReply = rueckfrage
+        };
+        db.TrainingSessions.Add(einheit);
+        return einheit;
+    }
+
+    [Fact]
+    public async Task OffenesFeedback_ZeigtUnbeantwortetesNeuestesZuerstMitTrainerName()
+    {
+        var nutzer = new FakeUserLookupService();
+        var trainer = Guid.NewGuid();
+        nutzer.Register(trainer, "t@example.org", "Tina", "Trainer");
+        var (dienst, db) = Erstelle(nutzer);
+        var ich = Guid.NewGuid();
+        var bello = Hund(db, ich, "Bello");
+        var emma = Hund(db, ich, "Emma");
+        var aelter = Feedback(db, ich, bello, trainer, "Schön gearbeitet", Jetzt.AddDays(-3));
+        var neuer = Feedback(db, ich, emma, trainer, "Bleib dran", Jetzt.AddDays(-1));
+        await db.SaveChangesAsync();
+
+        var offen = (await dienst.GetAsync(ich)).Value!.OpenFeedback;
+
+        Assert.Equal([neuer.Id, aelter.Id], offen.Select(f => f.SessionId));
+        Assert.Equal("Emma", offen[0].DogName);
+        Assert.Equal("Tina Trainer", offen[0].TrainerName);
+        Assert.Equal("Bleib dran", offen[0].Feedback);
+    }
+
+    [Fact]
+    public async Task OffenesFeedback_BeantwortetesUndFeedbackOhneTextFaelltWeg()
+    {
+        var (dienst, db) = Erstelle();
+        var ich = Guid.NewGuid();
+        var bello = Hund(db, ich, "Bello");
+        Feedback(db, ich, bello, null, "Danke gesagt", Jetzt, reaktion: FeedbackReaction.Thanks);
+        Feedback(db, ich, bello, null, "Rückfrage gestellt", Jetzt, rueckfrage: "Wie meinst du das?");
+        Feedback(db, ich, bello, null, "", Jetzt);
+        var offenes = Feedback(db, ich, bello, null, "Noch offen", Jetzt);
+        await db.SaveChangesAsync();
+
+        var offen = (await dienst.GetAsync(ich)).Value!.OpenFeedback;
+
+        var eintrag = Assert.Single(offen);
+        Assert.Equal(offenes.Id, eintrag.SessionId);
+        // Trainer:in ohne auffindbares Konto: kein Name statt eines Platzhalters.
+        Assert.Null(eintrag.TrainerName);
+    }
+
+    [Fact]
+    public async Task OffenesFeedback_FremderHundUndBetreuterHundZaehlenNicht()
+    {
+        var (dienst, db) = Erstelle();
+        var ich = Guid.NewGuid();
+        var fremder = Guid.NewGuid();
+        Hund(db, ich, "Bello");
+        var nachbarshund = Hund(db, fremder, "Nachbarshund");
+        Feedback(db, fremder, nachbarshund, null, "Nicht für mich", Jetzt);
+        // Als Trainer:in betreut: erscheint nicht in den eigenen Hunden und ist keine Aufgabe.
+        db.TrainerAssignments.Add(new Dogity.Domain.Community.TrainerAssignment { TrainerId = ich, MemberId = fremder, DogId = nachbarshund });
+        await db.SaveChangesAsync();
+
+        var offen = (await dienst.GetAsync(ich)).Value!.OpenFeedback;
+
+        Assert.Empty(offen);
+    }
+
+    [Fact]
+    public async Task OffenesFeedback_MitbesitzerSiehtFeedbackDesGemeinsamenHundes()
+    {
+        var (dienst, db) = Erstelle();
+        var besitzerin = Guid.NewGuid();
+        var mitbesitzer = Guid.NewGuid();
+        var bello = Hund(db, besitzerin, "Bello");
+        db.DogOwners.Add(new DogOwner { DogId = bello, UserId = mitbesitzer, Role = DogOwnerRole.Owner });
+        var einheit = Feedback(db, besitzerin, bello, null, "Gemeinsam", Jetzt);
+        await db.SaveChangesAsync();
+
+        var offen = (await dienst.GetAsync(mitbesitzer)).Value!.OpenFeedback;
+
+        Assert.Equal(einheit.Id, Assert.Single(offen).SessionId);
     }
 }

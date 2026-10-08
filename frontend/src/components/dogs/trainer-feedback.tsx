@@ -35,8 +35,16 @@ const chipKlasse = (aktiv: boolean) =>
  * Text, siehe TrainingService.SetFeedbackAsync).
  *
  * Die Antwort erscheint sofort und wird bei einem Fehler zurückgenommen.
+ * Auch die Feedback-Karte der Startseite nutzt sie.
  */
-function FeedbackAntwort({ session, onUpdated }: { session: TrainingSession; onUpdated: () => Promise<void> }) {
+export function FeedbackAntwort({
+  session,
+  onUpdated,
+}: {
+  // Nur das, was die Antwort braucht - die Startseite kennt zum Feedback nicht die ganze Einheit.
+  session: Pick<TrainingSession, "id" | "ownerReaction" | "ownerReply">;
+  onUpdated: () => Promise<void>;
+}) {
   const t = useT();
   const [lokal, setLokal] = useState<{ reaction: FeedbackReaction | null; reply: string | null } | null>(null);
   const [fragen, setFragen] = useState(false);

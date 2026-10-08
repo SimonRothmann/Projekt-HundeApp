@@ -711,4 +711,195 @@ public class TrainingServiceTests
         Assert.False(result.Succeeded);
         Assert.True((await service.UpdateSessionNotesAsync(setup.UserId, angelegt.Value!.Id, "  " + new string('x', 4000) + "  ")).Succeeded);
     }
+    /// <summary>Merkt sich, für welche Einheiten das Wetter angefordert wurde.</summary>
+    private sealed class MerkendeWetterAnreicherung : Dogity.Application.Weather.IWeatherEnrichmentService
+    {
+        public List<(Guid SessionId, double? Lat, TimeOnly? Zeit)> Aufrufe { get; } = [];
+
+        public Task EnrichTrackAsync(Dogity.Domain.Tracking.GpsTrack track, CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task EnrichSessionAsync(Dogity.Domain.Training.TrainingSession session, CancellationToken ct = default)
+        {
+            Aufrufe.Add((session.Id, session.Latitude, session.StartTime));
+            return Task.CompletedTask;
+        }
+    }
+
+    private static TrainingService MakeServiceMitWetter(out Dogity.Infrastructure.Persistence.ApplicationDbContext db, out MerkendeWetterAnreicherung wetter)
+    {
+        db = InMemoryDbContext.Create();
+        wetter = new MerkendeWetterAnreicherung();
+        return new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), wetter);
+    }
+
+    [Fact]
+    public async Task Create_SameDay_TagOhneOrt_BekommtOrtZeitUndKoordinatenUndWetter()
+    {
+        // Fehlerbild: Der Tag begann mit einer Einheit ohne Ort (z.B. durch
+        // eine gelegte Fährte); das Training mit Ort und Zeit wurde angehängt,
+        // Ort/Zeit gingen verloren und damit auch das Wetter.
+        var service = MakeServiceMitWetter(out var db, out var wetter);
+        var setup = await SetupPlanAsync(db);
+        var uebung = new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null);
+        var erste = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung));
+        wetter.Aufrufe.Clear(); // der Neu-Anlegen-Zweig fragt immer an; die Anreicherung selbst prüft Ort+Zeit
+
+        var zweite = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with
+        {
+            StartTime = new TimeOnly(18, 30),
+            Latitude = 52.5,
+            Longitude = 13.4,
+            LocationName = "  Hundewiese  "
+        });
+
+        Assert.Equal(erste.Value!.Id, zweite.Value!.Id);
+        Assert.Equal(new TimeOnly(18, 30), zweite.Value!.StartTime);
+        Assert.Equal(52.5, zweite.Value!.Latitude);
+        Assert.Equal(13.4, zweite.Value!.Longitude);
+        Assert.Equal("Hundewiese", zweite.Value!.LocationName);
+        var aufruf = Assert.Single(wetter.Aufrufe);
+        Assert.Equal(erste.Value!.Id, aufruf.SessionId);
+        Assert.Equal(52.5, aufruf.Lat);
+        Assert.Equal(new TimeOnly(18, 30), aufruf.Zeit);
+    }
+
+    [Fact]
+    public async Task Create_SameDay_TagMitOrtUndZeit_BehaeltSeineWerteUndFordertKeinWetterAn()
+    {
+        var service = MakeServiceMitWetter(out var db, out var wetter);
+        var setup = await SetupPlanAsync(db);
+        var uebung = new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null);
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with
+        {
+            StartTime = new TimeOnly(8, 0),
+            Latitude = 48.1,
+            Longitude = 11.5,
+            LocationName = "Waldweg"
+        });
+        wetter.Aufrufe.Clear();
+
+        var zweite = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with
+        {
+            StartTime = new TimeOnly(19, 0),
+            Latitude = 52.5,
+            Longitude = 13.4,
+            LocationName = "Hundewiese"
+        });
+
+        Assert.Equal(new TimeOnly(8, 0), zweite.Value!.StartTime);
+        Assert.Equal(48.1, zweite.Value!.Latitude);
+        Assert.Equal(11.5, zweite.Value!.Longitude);
+        Assert.Equal("Waldweg", zweite.Value!.LocationName);
+        Assert.Empty(wetter.Aufrufe);
+    }
+
+    [Fact]
+    public async Task Create_SameDay_TagMitOrtAberOhneZeit_UebernimmtNurDieZeitUndHaeltDenOrt()
+    {
+        var service = MakeServiceMitWetter(out var db, out var wetter);
+        var setup = await SetupPlanAsync(db);
+        var uebung = new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null);
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with
+        {
+            Latitude = 48.1,
+            Longitude = 11.5,
+            LocationName = "Waldweg"
+        });
+        wetter.Aufrufe.Clear();
+
+        var zweite = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with
+        {
+            StartTime = new TimeOnly(19, 0),
+            Latitude = 52.5,
+            Longitude = 13.4,
+            LocationName = "Hundewiese"
+        });
+
+        Assert.Equal(new TimeOnly(19, 0), zweite.Value!.StartTime);
+        Assert.Equal("Waldweg", zweite.Value!.LocationName);
+        Assert.Equal(48.1, zweite.Value!.Latitude);
+        // Erstmals Ort UND Zeit zusammen -> Wetter wird angefordert.
+        Assert.Single(wetter.Aufrufe);
+    }
+
+    [Fact]
+    public async Task Create_SameDay_TagMitNamenAberOhneKoordinaten_BekommtKoordinatenUndWetterUndHaeltDenNamen()
+    {
+        // Mischfall: Der Tag kennt nur einen Ortsnamen. Die Koordinaten der
+        // Anfrage müssen trotzdem übernommen werden, sonst fehlt das Wetter.
+        var service = MakeServiceMitWetter(out var db, out var wetter);
+        var setup = await SetupPlanAsync(db);
+        var uebung = new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null);
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with
+        {
+            StartTime = new TimeOnly(8, 0),
+            LocationName = "Waldweg"
+        });
+        wetter.Aufrufe.Clear();
+
+        var zweite = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with
+        {
+            Latitude = 52.5,
+            Longitude = 13.4,
+            LocationName = "Hundewiese"
+        });
+
+        Assert.Equal("Waldweg", zweite.Value!.LocationName);
+        Assert.Equal(new TimeOnly(8, 0), zweite.Value!.StartTime);
+        Assert.Equal(52.5, zweite.Value!.Latitude);
+        Assert.Equal(13.4, zweite.Value!.Longitude);
+        var aufruf = Assert.Single(wetter.Aufrufe);
+        Assert.Equal(52.5, aufruf.Lat);
+    }
+
+    [Fact]
+    public async Task Create_SameDay_TagMitKoordinatenAberOhneNamen_BekommtNamenUndHaeltKoordinaten()
+    {
+        var service = MakeServiceMitWetter(out var db, out var wetter);
+        var setup = await SetupPlanAsync(db);
+        var uebung = new CreateTrainingExerciseRequest(setup.CatalogExerciseId, 4, ExerciseDifficulty.Beginner, true, null);
+        await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with
+        {
+            StartTime = new TimeOnly(8, 0),
+            Latitude = 48.1,
+            Longitude = 11.5
+        });
+        wetter.Aufrufe.Clear();
+
+        var zweite = await service.CreateAsync(setup.UserId, MakeRequest(setup.DogId, uebung) with
+        {
+            Latitude = 52.5,
+            Longitude = 13.4,
+            LocationName = " Hundewiese "
+        });
+
+        Assert.Equal("Hundewiese", zweite.Value!.LocationName);
+        Assert.Equal(48.1, zweite.Value!.Latitude);
+        Assert.Equal(11.5, zweite.Value!.Longitude);
+        // Nur der Name kam neu dazu - am Wetter ändert das nichts.
+        Assert.Empty(wetter.Aufrufe);
+    }
+
+    [Fact]
+    public async Task GetOpenFeedback_FremderHundImAufruf_LiefertNichts()
+    {
+        // Die übergebenen Ids sind keine Berechtigung: Wer nicht Besitzer:in
+        // des Hundes ist, sieht dessen Feedback auch dann nicht, wenn er die
+        // Id mitschickt.
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        db.TrainingSessions.Add(new Dogity.Domain.Training.TrainingSession
+        {
+            UserId = setup.UserId, DogId = setup.DogId, Date = DateOnly.FromDateTime(DateTime.Today), DurationMinutes = 10,
+            TrainerFeedback = "Schön gearbeitet.", FeedbackByTrainerId = Guid.NewGuid(), FeedbackAt = DateTimeOffset.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var fremd = await service.GetOpenFeedbackAsync(Guid.NewGuid(), [setup.DogId]);
+        var eigen = await service.GetOpenFeedbackAsync(setup.UserId, [setup.DogId]);
+
+        Assert.True(fremd.Succeeded);
+        Assert.Empty(fremd.Value!);
+        Assert.Single(eigen.Value!);
+    }
 }

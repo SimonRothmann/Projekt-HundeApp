@@ -1,6 +1,7 @@
 using Dogity.Application.Dogs;
 using Dogity.Application.Planning;
 using Dogity.Application.Tracking;
+using Dogity.Application.Training;
 
 namespace Dogity.Application.Dashboard;
 
@@ -16,4 +17,6 @@ public record DashboardDogDto(
     IReadOnlyList<GoalDto> ActiveGoals,
     IReadOnlyList<GpsTrackDto> TracksToday);
 
-public record DashboardDto(IReadOnlyList<DashboardDogDto> Dogs);
+// OpenFeedback: Trainer-Feedback zu den eigenen Hunden, auf das noch nicht
+// reagiert wurde (neuestes zuerst) - die Quelle der Feedback-Karte.
+public record DashboardDto(IReadOnlyList<DashboardDogDto> Dogs, IReadOnlyList<OpenFeedbackDto> OpenFeedback);

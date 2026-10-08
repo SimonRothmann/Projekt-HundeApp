@@ -13,6 +13,8 @@ import {
 } from "@/lib/versionshinweise";
 import { SITE } from "@/lib/seo";
 import { useSprache, useT } from "@/lib/i18n";
+import { merkeGelesen } from "@/lib/neuerungen-gelesen";
+import { useEffect } from "react";
 
 
 /**
@@ -30,6 +32,12 @@ const ART_VARIANTE: Record<Aenderungsart, "default" | "secondary" | "outline"> =
 export function NeuerungenInhalt() {
   const t = useT();
   const sprache = useSprache();
+
+  // Wer die Liste öffnet, hat die Neuerungen gesehen - sonst stünde der Punkt am
+  // Profil-Reiter nach dem Zurückkommen unverändert da.
+  useEffect(() => {
+    merkeGelesen();
+  }, []);
 
   return (
     <div className="flex min-h-full min-w-0 flex-col">

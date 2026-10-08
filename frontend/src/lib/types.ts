@@ -1041,8 +1041,22 @@ export type DashboardHund = {
   tracksToday: GpsTrack[];
 };
 
+// Trainer-Feedback, auf das noch nicht reagiert wurde (Danke/Verstanden/
+// Rückfrage) - Quelle der Feedback-Karte. Spiegel von Application/Training/OpenFeedbackDto.
+export type OffenesFeedback = {
+  sessionId: string;
+  dogId: string;
+  dogName: string;
+  // null, wenn das Konto der Trainer:in nicht mehr existiert.
+  trainerName: string | null;
+  feedback: string;
+  feedbackAt: string | null;
+};
+
 export type DashboardDaten = {
   dogs: DashboardHund[];
+  // Optional, weil der Stale-While-Revalidate-Cache noch Antworten ohne dieses Feld liefern kann.
+  openFeedback?: OffenesFeedback[];
 };
 
 /**

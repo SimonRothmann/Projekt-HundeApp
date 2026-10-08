@@ -1,152 +1,236 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Check, Target } from "lucide-react";
-import type { Dog, Goal } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { Check, ChevronRight, GraduationCap, Plus, Target } from "lucide-react";
+import type { Dog } from "@/lib/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { PlanItemQuickLog } from "@/components/dogs/plan-item-quick-log";
+import { ZielAbschliessen } from "@/components/dogs/ziel-abschliessen";
+import { pruefungsName } from "@/lib/pruefung";
+import type { AbgelaufenesZiel, ZielKartenEintrag } from "@/lib/startseite";
 import { cn } from "@/lib/utils";
-import { datumMitWochentag, pruefungsName, tageBisPruefung } from "@/lib/pruefung";
-import { useSprache, useT } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 
-export type ZielKarteEintrag = {
-  hund: Dog;
-  goal: Goal;
-  // Stand der laufenden Woche (siehe wochenFortschritt); null ohne geplante Übung.
-  fortschritt: { woche: number; geplant: number; erledigt: number } | null;
-};
+/** Wie viele offene Wochenübungen eine Zielkarte auf der Startseite zeigt, bevor „+n weitere“ kommt. */
+const MAX_UEBUNGEN = 3;
+
+const ZEILE =
+  "flex min-h-11 min-w-0 items-center gap-2 rounded-lg border border-surface-border bg-surface px-3 text-left text-sm transition-colors hover:border-primary/40";
+
+const LINK =
+  "inline-flex min-h-11 items-center gap-0.5 rounded-md text-sm text-primary-text underline-offset-4 hover:underline";
 
 /**
- * Je Hund mit aktivem Ziel eine kompakte Karte direkt unter der Begrüßung:
- * Wann ist die Prüfung, und wie weit ist die Woche?
+ * Je Hund mit laufendem Ziel EINE Karte: Prüfung und Restzeit, der Stand der
+ * Woche und darunter die offenen Wochenübungen mit dem Schnelleintrag.
  *
- * Bisher zeigte die Startseite den Plan nur über die offenen Wochenübungen -
- * wer alles erledigt hatte, sah von seinem Ziel gar nichts mehr.
+ * Sie führt, was früher zwei Blöcke waren - die Zielkarte oben und "Diese
+ * Woche" weiter unten, beide mit demselben Hund, demselben Ziel und demselben
+ * Link zum Plan. Wer alles erledigt hat, sieht den Stand der Woche mit Haken
+ * statt einer leeren Liste.
  *
- * Bei überschrittenem Datum steht statt der Tage ein Link zur Hundeseite: Dort
- * sitzt "Ziel abschließen", und ein Datum, das verstrichen ist, wartet auf sein
- * Ergebnis.
+ * Bei einer Begleithundeprüfung steht (mit aktivem Sachkunde-Modul) eine kleine
+ * Zeile "Sachkunde üben" in der Karte.
  */
-export function ZielKartenSection({ eintraege }: { eintraege: ZielKarteEintrag[] }) {
+export function ZielKarten({
+  eintraege,
+  sachkundeAn,
+  onChanged,
+}: {
+  eintraege: ZielKartenEintrag[];
+  sachkundeAn: boolean;
+  onChanged: () => Promise<void>;
+}) {
   if (eintraege.length === 0) return null;
 
   return (
     <section className="flex flex-col gap-3">
       {eintraege.map((eintrag) => (
-        <ZielKarte key={eintrag.goal.id} eintrag={eintrag} />
+        <ZielKarte key={eintrag.goal.id} eintrag={eintrag} sachkundeAn={sachkundeAn} onChanged={onChanged} />
       ))}
     </section>
   );
 }
 
-function ZielKarte({ eintrag }: { eintrag: ZielKarteEintrag }) {
+function ZielKarte({
+  eintrag,
+  sachkundeAn,
+  onChanged,
+}: {
+  eintrag: ZielKartenEintrag;
+  sachkundeAn: boolean;
+  onChanged: () => Promise<void>;
+}) {
   const t = useT();
-  const sprache = useSprache();
-  const { hund, goal, fortschritt } = eintrag;
-  const tage = tageBisPruefung(goal.targetDate);
-  const planLink = `/dogs/${hund.id}#trainingsplan`;
+  const [offenesItem, setOffenesItem] = useState<string | null>(null);
+  const [alleZeigen, setAlleZeigen] = useState(false);
+  const { hund, goal, tage, fortschritt, offen, bh, weitereZiele } = eintrag;
+  // Höchstens drei Übungen, je eine Zeile: Mit fünf zweizeiligen Kästen pro
+  // Hund war die Startseite schon bei einem Ziel wieder zwei Bildschirme lang.
+  // Eine gerade geöffnete Übung bleibt sichtbar, auch wenn sie weiter hinten steht.
+  const sichtbar = alleZeigen ? offen : offen.filter((item, i) => i < MAX_UEBUNGEN || item.id === offenesItem);
+  const versteckt = offen.length - sichtbar.length;
   const alles = fortschritt !== null && fortschritt.erledigt >= fortschritt.geplant;
 
   return (
     <Card size="sm">
-      <CardContent className="flex flex-col gap-2.5">
-        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-          <div className="min-w-0">
-            <p className="flex items-center gap-1.5 font-semibold [overflow-wrap:anywhere]">
-              <Target className="size-4 shrink-0 text-primary-text" />
-              <span className="min-w-0">
-                {hund.name} · {pruefungsName(goal)}
-              </span>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {t("am {datum}", { datum: datumMitWochentag(goal.targetDate, sprache) })}
-            </p>
-          </div>
-          {tage < 0 ? (
-            <Link
-              href={planLink}
-              className="shrink-0 text-sm font-medium text-primary-text underline-offset-4 hover:underline coarse:flex coarse:min-h-11 coarse:items-center"
-            >
-              {t("Ergebnis eintragen")}
-            </Link>
-          ) : (
-            <span className="shrink-0 text-sm font-medium">
+      <CardContent className="flex flex-col gap-2">
+        <p className="flex items-start gap-1.5 font-semibold [overflow-wrap:anywhere]">
+          <Target className="mt-0.5 size-4 shrink-0 text-primary-text" aria-hidden />
+          <span className="min-w-0">
+            {hund.name} · {pruefungsName(goal)} ·{" "}
+            <span className="font-medium text-muted-foreground">
               {tage === 0 ? t("heute") : tage === 1 ? t("noch 1 Tag") : t("noch {n} Tage", { n: tage })}
             </span>
-          )}
-        </div>
+          </span>
+        </p>
 
         {fortschritt && (
-          <div className="flex flex-col gap-1.5">
-            <div className="flex gap-1" aria-hidden>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {alles && <Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-500" aria-hidden />}
+            <span className="shrink-0">
+              {t("Woche {woche} · {erledigt}/{geplant}", {
+                woche: fortschritt.woche,
+                erledigt: fortschritt.erledigt,
+                geplant: fortschritt.geplant,
+              })}
+            </span>
+            <span className="flex min-w-0 flex-1 gap-1" aria-hidden>
               {Array.from({ length: fortschritt.geplant }, (_, i) => (
                 <span
                   key={i}
                   className={cn("h-1.5 min-w-0 flex-1 rounded-full", i < fortschritt.erledigt ? "bg-primary" : "bg-primary/15")}
                 />
               ))}
-            </div>
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              {alles ? (
-                <>
-                  <Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-500" />
-                  {t("Diese Woche geschafft")}
-                </>
-              ) : fortschritt.geplant === 1 ? (
-                t("Diese Woche: {erledigt} von 1 Übung", { erledigt: fortschritt.erledigt })
-              ) : (
-                t("Diese Woche: {erledigt} von {geplant} Übungen", {
-                  erledigt: fortschritt.erledigt,
-                  geplant: fortschritt.geplant,
-                })
-              )}
-            </p>
+            </span>
           </div>
         )}
 
-        <Link
-          href={planLink}
-          className="self-start text-sm text-primary-text underline-offset-4 hover:underline coarse:flex coarse:min-h-11 coarse:items-center"
-        >
-          {t("Zum Plan")}
-        </Link>
+        {sichtbar.map((item) => (
+          <div key={item.id} className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => setOffenesItem((aktuell) => (aktuell === item.id ? null : item.id))}
+              aria-expanded={offenesItem === item.id}
+              aria-label={`${item.exerciseName ?? item.freeTextLabel} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })} · ${t("Eintragen")}`}
+              className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-surface-border bg-surface px-3 py-1.5 text-left transition-colors hover:border-primary/40"
+            >
+              <span className="min-w-0 flex-1 truncate font-medium">{item.exerciseName ?? item.freeTextLabel}</span>
+              <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                {item.completedCount}/{item.repetitionsTarget}
+              </span>
+              <Plus className="size-4 shrink-0 text-primary-text" aria-hidden />
+            </button>
+            {offenesItem === item.id && (
+              <PlanItemQuickLog
+                dogId={hund.id}
+                item={item}
+                onDone={async () => {
+                  setOffenesItem(null);
+                  await onChanged();
+                }}
+                onCancel={() => setOffenesItem(null)}
+              />
+            )}
+          </div>
+        ))}
+
+        <div className="flex flex-wrap items-center gap-x-4">
+          {(versteckt > 0 || (alleZeigen && offen.length > MAX_UEBUNGEN)) && (
+            <button type="button" onClick={() => setAlleZeigen((a) => !a)} className={LINK}>
+              {alleZeigen ? t("Weniger anzeigen") : t("+{n} weitere", { n: versteckt })}
+            </button>
+          )}
+          <Link href={`/dogs/${hund.id}#trainingsplan`} className={LINK}>
+            {t("Ganzer Plan")}
+            <ChevronRight className="size-4" aria-hidden />
+          </Link>
+          {weitereZiele > 0 && (
+            <Link href={`/dogs/${hund.id}#trainingsplan`} className={LINK}>
+              {t("Weitere Ziele ({n})", { n: weitereZiele })}
+              <ChevronRight className="size-4" aria-hidden />
+            </Link>
+          )}
+          {bh && sachkundeAn && (
+            <Link href="/sachkunde" className={LINK}>
+              <GraduationCap className="size-4" aria-hidden />
+              {t("Sachkunde üben")}
+              <ChevronRight className="size-4" aria-hidden />
+            </Link>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
 }
 
 /**
- * Eine einzige Karte für alle Hunde ohne aktives Ziel - bei drei Hunden keine
- * drei gleichlautenden Aufforderungen. Der Knopf führt zum ersten der genannten
- * Hunde, dorthin, wo das Ziel angelegt wird.
+ * Ziele, deren Prüfungstag vorbei ist und die auf ihr Ergebnis warten: eine
+ * Zeile je Ziel. Ein Tipp öffnet den Dialog "Wie lief die Prüfung?" gleich hier
+ * auf der Startseite; nach dem Speichern lädt sie neu.
+ *
+ * Für ein Folgeziel nach "bestanden" geht es zur Hundeseite: Das Formular zum
+ * Anlegen sitzt dort bei den Zielen.
  */
-export function KeinZielKarte({ hunde }: { hunde: Dog[] }) {
+export function AbgelaufeneZiele({
+  eintraege,
+  onChanged,
+}: {
+  eintraege: AbgelaufenesZiel[];
+  onChanged: () => Promise<void>;
+}) {
+  const t = useT();
+  const router = useRouter();
+  if (eintraege.length === 0) return null;
+
+  return (
+    <section className="flex flex-col gap-2">
+      {eintraege.map(({ hund, goal }) => (
+        <ZielAbschliessen
+          key={goal.id}
+          goal={goal}
+          hundName={hund.name}
+          onChanged={onChanged}
+          onFolgeziel={() => router.push(`/dogs/${hund.id}#trainingsplan`)}
+          ausloeser={(oeffnen) => (
+            <button type="button" onClick={oeffnen} className={ZEILE}>
+              <Target className="size-4 shrink-0 text-primary-text" aria-hidden />
+              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                <span className="font-medium">
+                  {hund.name} · {pruefungsName(goal)}
+                </span>{" "}
+                <span className="text-muted-foreground">· {t("Ergebnis fehlt")}</span>
+              </span>
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </button>
+          )}
+        />
+      ))}
+    </section>
+  );
+}
+
+/**
+ * Hunde ohne Ziel: je eine schmale Zeile "Bello · Prüfungsziel setzen" statt
+ * der früheren großen Werbekarte. Führt dorthin, wo das Ziel angelegt wird.
+ */
+export function OhneZielZeilen({ hunde }: { hunde: Dog[] }) {
   const t = useT();
   if (hunde.length === 0) return null;
 
-  const [erster, ...weitere] = hunde;
-  const untertitel =
-    weitere.length === 0
-      ? erster.name
-      : weitere.length === 1
-        ? t("Für {name} und einen weiteren", { name: erster.name })
-        : t("Für {name} und {n} weitere", { name: erster.name, n: weitere.length });
-
   return (
-    <Card size="sm" className="border-primary/40 bg-primary/5">
-      <CardHeader>
-        <CardTitle className="text-base">{t("Noch kein Prüfungsziel")}</CardTitle>
-        <CardDescription className="[overflow-wrap:anywhere]">{untertitel}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <p className="text-sm">{t("Mit einem Ziel plant Dogity jede Woche passende Übungen bis zur Prüfung.")}</p>
-        <Link
-          href={`/dogs/${erster.id}#trainingsplan`}
-          className={cn(buttonVariants({ size: "sm" }), "self-start coarse:min-h-11")}
-        >
-          {t("Prüfungsziel setzen")}
+    <section className="flex flex-col gap-2">
+      {hunde.map((hund) => (
+        <Link key={hund.id} href={`/dogs/${hund.id}#trainingsplan`} className={ZEILE}>
+          <Target className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+            <span className="font-medium">{hund.name}</span> <span className="text-muted-foreground">· {t("Prüfungsziel setzen")}</span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </Link>
-      </CardContent>
-    </Card>
+      ))}
+    </section>
   );
 }

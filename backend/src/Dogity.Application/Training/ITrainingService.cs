@@ -32,6 +32,14 @@ public interface ITrainingService
     /// </summary>
     Task<Result<TrainingSessionDto>> MoveTrainingDayAsync(Guid userId, Guid sessionId, DateOnly date, CancellationToken ct = default);
 
+    /// <summary>
+    /// Trainer-Feedback zu den angegebenen Hunden, auf das noch nicht reagiert
+    /// wurde - neuestes zuerst, höchstens eine feste Obergrenze. Berücksichtigt
+    /// nur Hunde, die dem Nutzer als Besitzer:in/Mitbesitzer:in gehören (die
+    /// übergebenen Ids sind nur eine Vorauswahl, keine Berechtigung).
+    /// </summary>
+    Task<Result<IReadOnlyList<OpenFeedbackDto>>> GetOpenFeedbackAsync(Guid userId, IReadOnlyCollection<Guid> dogIds, CancellationToken ct = default);
+
     /// <summary>Zuletzt benutzte Trainingsorte als Schnellauswahl.</summary>
     Task<Result<IReadOnlyList<RecentLocationDto>>> GetRecentLocationsAsync(Guid userId, CancellationToken ct = default);
 

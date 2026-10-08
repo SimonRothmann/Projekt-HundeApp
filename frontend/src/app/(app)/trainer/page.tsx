@@ -6,7 +6,7 @@ import { CalendarDays, ChevronRight, ClipboardList, ListChecks, Building2 } from
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
-import { anfragenJeGruppe, zuErledigen, type ZuErledigen } from "@/lib/trainer-offen";
+import { anfragenJeGruppe, zaehlerBeschriftung, zuErledigen } from "@/lib/trainer-offen";
 import type { Club, TrainerOpenCounts } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,11 +53,6 @@ export default function TrainerPage() {
   const clubs = myClubs ?? [];
   const offen = zuErledigen(counts);
 
-  const zaehlerText = (z: ZuErledigen) =>
-    z.art === "anfragen"
-      ? z.anzahl === 1 ? t("Beitrittsanfrage") : t("Beitrittsanfragen")
-      : z.anzahl === 1 ? t("Training bewerten") : t("Trainings bewerten");
-
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -79,7 +74,7 @@ export default function TrainerPage() {
                   <span className="font-heading text-2xl font-semibold tabular-nums text-primary-text">{z.anzahl}</span>
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                 </span>
-                <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">{zaehlerText(z)}</span>
+                <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">{zaehlerBeschriftung(t, z)}</span>
               </Link>
             ))}
           </div>

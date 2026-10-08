@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TrainerOpenCounts } from "@/lib/types";
-import { anfragenJeGruppe, offeneAnfragen, zuErledigen } from "./trainer-offen";
+import { anfragenJeGruppe, offeneAnfragen, zaehlerBeschriftung, zuErledigen } from "./trainer-offen";
 
 const zahlen = (teil: Partial<TrainerOpenCounts> = {}): TrainerOpenCounts => ({
   groupJoinRequests: 0,
@@ -61,5 +61,16 @@ describe("anfragenJeGruppe", () => {
 
   it("liefert ohne Zahlen nichts", () => {
     expect(anfragenJeGruppe(null)).toStrictEqual({});
+  });
+});
+
+describe("zaehlerBeschriftung", () => {
+  const t = (text: string) => text;
+
+  it("unterscheidet Einzahl und Mehrzahl", () => {
+    expect(zaehlerBeschriftung(t, { art: "anfragen", href: "", anzahl: 1 })).toBe("Beitrittsanfrage");
+    expect(zaehlerBeschriftung(t, { art: "anfragen", href: "", anzahl: 2 })).toBe("Beitrittsanfragen");
+    expect(zaehlerBeschriftung(t, { art: "bewerten", href: "", anzahl: 1 })).toBe("Training bewerten");
+    expect(zaehlerBeschriftung(t, { art: "bewerten", href: "", anzahl: 5 })).toBe("Trainings bewerten");
   });
 });

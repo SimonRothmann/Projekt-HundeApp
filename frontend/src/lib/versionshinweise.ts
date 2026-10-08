@@ -61,6 +61,33 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.22",
+    datum: "2026-10-08",
+    titel: uebersetzbar("Die Startseite zeigt, was heute dran ist"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Startseite ist kompakter: Oben steht der nächste Gruppentermin (nur wenn in den nächsten sieben Tagen einer ansteht) mit „Ich komme“ und „Kann nicht“, dann das Wichtigste zum Erfassen von Training und Fährte in einer Karte. Zu jedem Hund gibt es nur noch eine Karte mit Prüfung, Woche und den offenen Übungen - der Block „Diese Woche“ ist darin aufgegangen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Auf Trainer-Feedback antwortest du jetzt gleich auf der Startseite mit „Danke“, „Verstanden“ oder einer Rückfrage."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Fehlt noch das Ergebnis einer Prüfung, trägst du es mit einem Tipp auf die Zeile direkt auf der Startseite ein. Hunde ohne Prüfungsziel und der Hinweis zum Vereinsbeitritt sind nur noch eine schmale Zeile, und Trainer:innen sehen offene Beitrittsanfragen und Trainings zum Bewerten gleich dort."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Neuerungen zeigt Dogity jetzt als kleinen Punkt am Reiter „Profil“, bis du sie dir angesehen hast - nicht mehr als Karte auf der Startseite."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Trainierst du an einem Tag, an dem schon eine Fährte eingetragen ist, behält das Training jetzt seine Uhrzeit und seinen Ort - und bekommt damit auch das Wetter."),
+      },
+    ],
+  },
+  {
     version: "0.21",
     datum: "2026-10-02",
     titel: uebersetzbar("Schneller zum Training, klarere Anmeldung"),

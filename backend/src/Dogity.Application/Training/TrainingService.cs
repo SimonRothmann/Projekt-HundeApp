@@ -163,8 +163,39 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                 // Trainingskarte.
                 daySession.Condition ??= request.Condition;
 
+                // Uhrzeit und Ort der Anfrage gehen nicht verloren, wenn der Tag
+                // sie noch nicht hat (typisch: Der Tag begann mit einer gelegten
+                // Fährte ohne Ort, das Training kommt mit Ort und Zeit dazu).
+                // Jeder Wert wird einzeln übernommen und ein vorhandener nie
+                // überschrieben: Hat der Tag nur einen Namen, bekommt er trotzdem
+                // die Koordinaten (und damit das Wetter), und umgekehrt. Die
+                // beiden Koordinaten wandern nur zusammen, eine halbe Position
+                // nützt dem Wetterdienst nichts.
+                var wetterNeu = false;
+                if (daySession.StartTime is null && request.StartTime is { } startTime)
+                {
+                    daySession.StartTime = startTime;
+                    wetterNeu = true;
+                }
+                if (daySession.Latitude is null && daySession.Longitude is null
+                    && request.Latitude is { } breite && request.Longitude is { } laenge)
+                {
+                    daySession.Latitude = breite;
+                    daySession.Longitude = laenge;
+                    wetterNeu = true;
+                }
+                if (string.IsNullOrWhiteSpace(daySession.LocationName) && !string.IsNullOrWhiteSpace(request.LocationName))
+                    daySession.LocationName = request.LocationName.Trim();
+
                 daySession.DurationMinutes += request.DurationMinutes;
                 daySession.Notes = tagesNotiz;
+
+                // Wetter wie im Neu-Anlegen-Zweig nachziehen, sobald durch die
+                // Übernahme Zeit oder Koordinaten neu hinzukamen (die Anreicherung
+                // prüft selbst, ob beides vorliegt). Ohne Übernahme
+                // bleibt ein vorhandenes Wetter des Tages unangetastet.
+                if (wetterNeu)
+                    await RefreshWeatherAsync(daySession, ct);
 
                 await db.SaveChangesAsync(ct);
 
@@ -219,6 +250,54 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         var created = await GetOwnedSessionAsync(userId, session.Id, ct, track: false);
         // Frisch angelegtes Training kann noch keine Fährte haben.
         return Result<TrainingSessionDto>.Success(ToDto(created!, hasGpsTrack: false));
+    }
+
+    /// <summary>So viele offene Feedbacks liefert die Startseite höchstens (die Karte zeigt eines, der Rest wird gezählt).</summary>
+    private const int MaxOpenFeedback = 20;
+
+    public async Task<Result<IReadOnlyList<OpenFeedbackDto>>> GetOpenFeedbackAsync(Guid userId, IReadOnlyCollection<Guid> dogIds, CancellationToken ct = default)
+    {
+        if (dogIds.Count == 0)
+            return Result<IReadOnlyList<OpenFeedbackDto>>.Success([]);
+
+        // Zugriff wie bei der Antwort selbst (ReplyToFeedbackAsync): nur
+        // Besitzer:innen - die betreuende Trainer:in soll ihr eigenes Feedback
+        // nicht als offene Aufgabe sehen. Die übergebenen Ids sind nur eine
+        // Vorauswahl; ein fremder Hund fällt hier heraus.
+        var offen = await db.TrainingSessions
+            .Where(s => dogIds.Contains(s.DogId)
+                        && s.TrainerFeedback != null && s.TrainerFeedback != ""
+                        && s.OwnerReaction == null && s.OwnerReply == null
+                        && db.DogOwners.Any(o => o.DogId == s.DogId && o.UserId == userId))
+            .OrderByDescending(s => s.FeedbackAt)
+            .ThenByDescending(s => s.Date)
+            .Take(MaxOpenFeedback)
+            .Select(s => new
+            {
+                s.Id,
+                s.DogId,
+                DogName = db.Dogs.Where(d => d.Id == s.DogId).Select(d => d.Name).FirstOrDefault(),
+                s.FeedbackByTrainerId,
+                Feedback = s.TrainerFeedback!,
+                s.FeedbackAt
+            })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var trainerIds = offen.Where(o => o.FeedbackByTrainerId.HasValue).Select(o => o.FeedbackByTrainerId!.Value).Distinct().ToList();
+        var trainer = trainerIds.Count == 0
+            ? new Dictionary<Guid, UserLookupResult>()
+            : (await userLookup.FindByIdsAsync(trainerIds, ct)).ToDictionary(k => k.Key, k => k.Value);
+
+        return Result<IReadOnlyList<OpenFeedbackDto>>.Success(offen
+            .Select(o =>
+            {
+                string? name = null;
+                if (o.FeedbackByTrainerId is { } id && trainer.TryGetValue(id, out var t))
+                    name = $"{t.FirstName} {t.LastName}".Trim();
+                return new OpenFeedbackDto(o.Id, o.DogId, o.DogName ?? "", string.IsNullOrEmpty(name) ? null : name, o.Feedback, o.FeedbackAt);
+            })
+            .ToList());
     }
 
     /// <summary>

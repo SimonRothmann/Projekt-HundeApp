@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EinstellungenSection } from "@/components/preferences/einstellungen-section";
 import { SupportButton } from "@/components/support-button";
 import { LetzteNeuerung } from "@/components/letzte-neuerung";
+import { NeuerungenGesehen } from "@/components/neuerungen-gesehen";
 import { VersionStand } from "@/components/version-stand";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -453,18 +454,20 @@ export default function ProfilePage() {
 
       {/* Angemeldete Nutzer sehen die Fußzeile der öffentlichen Seiten nie -
           ohne diesen Block gäbe es für sie keinen Weg zu den Neuerungen. */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="size-5" />
-            {t("Neuerungen")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <LetzteNeuerung />
-          <VersionStand verlinkt={false} className="border-t pt-3" />
-        </CardContent>
-      </Card>
+      <NeuerungenGesehen>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Sparkles className="size-5" />
+              {t("Neuerungen")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <LetzteNeuerung />
+            <VersionStand verlinkt={false} className="border-t pt-3" />
+          </CardContent>
+        </Card>
+      </NeuerungenGesehen>
 
       <div className="flex flex-col items-center gap-2 pt-2 text-center">
         <p className="text-xs text-muted-foreground">{t("Gefällt dir Dogity? Über Unterstützung freue ich mich sehr.")}</p>

@@ -57,6 +57,8 @@ public class DashboardService(
             eintraege.Add(new DashboardDogDto(hund, sportIds, aktiveZiele, faehrten));
         }
 
-        return Result<DashboardDto>.Success(new DashboardDto(eintraege));
+        var offenesFeedback = (await trainings.GetOpenFeedbackAsync(userId, eintraege.Select(e => e.Dog.Id).ToList(), ct)).Value ?? [];
+
+        return Result<DashboardDto>.Success(new DashboardDto(eintraege, offenesFeedback));
     }
 }
