@@ -299,7 +299,7 @@ export default function DashboardPage() {
           stehen im Profil) - deshalb diese eine kleine Zeile, außer eine
           BH-Karte trägt den Link schon. */}
       {daten !== null && zeigeSachkundeZeile(daten.ziele.karten, sachkundeAn) && (
-        <Link href="/sachkunde" className={ZEILE}>
+        <Link href="/lernen" className={ZEILE}>
           <GraduationCap className="size-4 shrink-0 text-primary-text" aria-hidden />
           <span className="min-w-0 flex-1">{t("Sachkunde üben")}</span>
           <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />

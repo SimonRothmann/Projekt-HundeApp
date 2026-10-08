@@ -54,7 +54,6 @@ export const EN: Record<string, string> = {
   "Als App installieren – für die beste Erfahrung offline.": "Install as an app – for the best experience offline.",
   "Als Trainer betreuen": "Take on as trainer",
   "Alter: {alter}": "Age: {alter}",
-  "An": "On",
   "Anfrage ausstehend": "Request pending",
   "Anfrage fehlgeschlagen.": "Request failed.",
   "Anfrage gestellt – warte auf Freigabe.": "Request sent – waiting for approval.",
@@ -71,7 +70,6 @@ export const EN: Record<string, string> = {
   "Archivierte Hunde": "Archived dogs",
   "Auf Ko-fi unterstützen": "Support on Ko-fi",
   "Aufzeichnung verwerfen? Die bisher aufgezeichnete Fährte geht verloren.": "Discard the recording? The track recorded so far will be lost.",
-  "Aus": "Off",
   "Aus Prüfungstermin und Ziel entsteht ein Wochenplan, der schwache Übungen häufiger einplant und sitzende seltener.": "From the test date and your goal comes a weekly plan that schedules weak exercises more often and solid ones less often.",
   "Aus Verein entfernen": "Remove from the club",
   "Aus dem Plan entfernen": "Remove from the plan",
@@ -420,7 +418,6 @@ export const EN: Record<string, string> = {
   "Löschen fehlgeschlagen.": "Deleting failed.",
   "Lösung zeigen": "Show the solution",
   "Meine Hunde": "My dogs",
-  "Meine Sportarten": "My sports",
   "Mindestens eine Übung auswählen oder eintragen.": "Select or enter at least one exercise.",
   "Mindestens einen Baustein wählen.": "Choose at least one building block.",
   "Mit Ort und Uhrzeit wird das Wetter automatisch ermittelt – auch für Trainings, die du nachträgst.": "With a place and a time the weather is fetched automatically – including for sessions you add later.",
@@ -1500,4 +1497,34 @@ export const EN: Record<string, string> = {
   "Übung suchen oder eigene eintragen": "Search an exercise or enter your own",
   "Übung wählen": "Choose exercise",
   "Übungen antippen und speichern.": "Tap the exercises and save.",
+  // Profil als Einstellungsliste und Sachkunde in der App
+  "Darstellung & Sprache": "Appearance & language",
+  "Daten & Konto": "Data & account",
+  "Der theoretische Teil der BH/VT: Frage für Frage, mit sofortiger Auflösung. Falsch beantwortete Fragen kommen wieder, bis sie sitzen.":
+    "The theory part of the BH/VT: question by question, with instant answers. Questions you get wrong come back until they stick.",
+  "Die Fragenkataloge sind gerade nicht abrufbar. Bitte später erneut versuchen.":
+    "The question catalogues are not available right now. Please try again later.",
+  "Dunkel": "Dark",
+  "E-Mail": "Email",
+  "Erscheinungsbild": "Appearance",
+  "Fragen: {herausgeber}": "Questions: {herausgeber}",
+  "Hell": "Light",
+  "Konto": "Account",
+  "Neu in Dogity": "New in Dogity",
+  "Passwort": "Password",
+  "Sportarten, die ich trainiere": "Sports I train",
+  "Sprache": "Language",
+  "Stand {ausgabe}": "Edition {ausgabe}",
+  "alle": "all",
+  "{an} von {gesamt} an": "{an} of {gesamt} on",
+  "{namen} +{n}": "{namen} +{n}",
+  "{n} Fragen": "{n} questions",
+  "{n} gewählt": "{n} chosen",
+  "Üben": "Practise",
+  "Das Profil ist jetzt eine übersichtliche Liste und passt auf einen Bildschirm. Jede Zeile führt zu einer eigenen Seite: Konto (Name, E-Mail und Passwort ändern), Darstellung & Sprache (Hell oder Dunkel, Schriftgröße, Sprache), Funktionen, die Sportarten, die du trainierst, und Daten & Konto. Rechts in der Zeile siehst du gleich, was gerade eingestellt ist. „Abmelden“ steht ganz unten.":
+    "The profile is now a clear list that fits on one screen. Each row leads to its own page: Account (change name, email and password), Appearance & language (light or dark, text size, language), Features, the sports you train, and Data & account. On the right of each row you see what is currently set. “Log out” is at the very bottom.",
+  "Die Länderauswahl für Prüfungsordnungen zeigt Dogity nur noch, wenn es mehr als ein Land mit Prüfungsordnungen gibt. Was du bisher gewählt hast, bleibt gespeichert.":
+    "Dogity now only shows the country choice for exam regulations when more than one country has regulations. What you chose before stays saved.",
+  "„Sachkunde üben“ öffnet jetzt in der App, mit der unteren Leiste, statt auf einer eigenen Seite. Öffnest du angemeldet einen Sachkunde-Link, landest du ebenfalls dort.":
+    "“Practise theory” now opens inside the app, with the bottom bar, instead of on a separate page. If you open a theory link while logged in, you end up there too.",
 };

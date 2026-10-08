@@ -21,6 +21,7 @@ export default function robots(): MetadataRoute.Robots {
         "/trainer",
         "/admin",
         "/profile",
+        "/lernen",
         "/stats",
         "/sports",
         "/login",

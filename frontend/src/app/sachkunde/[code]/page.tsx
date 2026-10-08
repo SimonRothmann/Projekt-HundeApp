@@ -5,6 +5,8 @@ import { getQuizCatalog, getQuizCatalogs, getQuizQuestions } from "@/lib/public-
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-chrome";
 import { QuizTrainer } from "@/components/sachkunde/quiz-trainer";
 import { FragenUebersicht } from "@/components/sachkunde/fragen-uebersicht";
+import { KatalogDaten } from "@/components/sachkunde/katalog-liste";
+import { SachkundeAppWeiterleitung } from "@/components/sachkunde/app-weiterleitung";
 import { absoluteUrl } from "@/lib/seo";
 import { ChevronLeft } from "lucide-react";
 
@@ -56,6 +58,7 @@ export default async function SachkundeCatalogPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
+      <SachkundeAppWeiterleitung />
       <MarketingHeader />
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
@@ -68,10 +71,7 @@ export default async function SachkundeCatalogPage({ params }: Props) {
         </Link>
 
         <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-balance sm:text-3xl">{catalog.name}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {catalog.questionCount} Fragen · Fragen: {catalog.publisher}
-          {catalog.edition && <> · Stand {catalog.edition}</>}
-        </p>
+        <KatalogDaten catalog={catalog} />
 
         <div className="mt-6">
           <QuizTrainer catalog={catalog} />

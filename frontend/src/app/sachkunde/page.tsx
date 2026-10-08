@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getQuizCatalogs } from "@/lib/public-sachkunde";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-chrome";
 import { absoluteUrl } from "@/lib/seo";
-import { buttonVariants } from "@/components/ui/button";
-import { GraduationCap } from "lucide-react";
+import { KatalogListe } from "@/components/sachkunde/katalog-liste";
+import { SachkundeAppWeiterleitung } from "@/components/sachkunde/app-weiterleitung";
 
 export const metadata: Metadata = {
   title: "Sachkunde für die Begleithundeprüfung – Fragen üben",
@@ -35,6 +34,7 @@ export default async function SachkundeIndexPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
+      <SachkundeAppWeiterleitung />
       <MarketingHeader />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
@@ -47,57 +47,9 @@ export default async function SachkundeIndexPage() {
           Fragen kommen wieder, bis sie sitzen.
         </p>
 
-        {catalogs.length === 0 ? (
-          <p className="mt-10 text-sm text-muted-foreground">
-            Die Fragenkataloge sind gerade nicht abrufbar. Bitte später erneut versuchen.
-          </p>
-        ) : (
-          <div className="mt-10 flex flex-col gap-6">
-            {catalogs.map((catalog) => (
-              <section
-                key={catalog.code}
-                className="min-w-0 rounded-xl border border-border/60 bg-card p-5 sm:p-6"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <h2 className="text-xl font-bold tracking-tight">{catalog.name}</h2>
-                  <span className="text-sm text-muted-foreground tabular-nums">
-                    {catalog.questionCount} Fragen
-                  </span>
-                </div>
-
-                {catalog.description && (
-                  <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{catalog.description}</p>
-                )}
-
-                <ul className="mt-4 flex flex-wrap gap-2">
-                  {catalog.sections.map((section) => (
-                    <li
-                      key={section.key}
-                      className="rounded-full border border-border/60 px-3 py-1 text-xs text-muted-foreground"
-                    >
-                      {section.name}
-                      <span className="ml-1.5 tabular-nums">{section.questionCount}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <Link
-                    href={`/sachkunde/${catalog.code.toLowerCase()}`}
-                    className={buttonVariants({ size: "sm" })}
-                  >
-                    <GraduationCap className="size-4" />
-                    Üben
-                  </Link>
-                  <span className="text-xs text-muted-foreground">
-                    Fragen: {catalog.publisher}
-                    {catalog.edition && <> · Stand {catalog.edition}</>}
-                  </span>
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
+        <div className="mt-10">
+          <KatalogListe catalogs={catalogs} basis="/sachkunde" />
+        </div>
 
         <p className="mt-10 max-w-2xl text-xs text-muted-foreground">
           Angemeldet merkt sich Dogity, was schon sitzt: Jede Frage wandert nach einer richtigen Antwort ein Fach

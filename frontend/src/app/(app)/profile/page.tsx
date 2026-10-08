@@ -1,473 +1,97 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
+import { Building2, Database, Palette, SlidersHorizontal, Sparkles, Trophy, Dumbbell } from "lucide-react";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { useRouter } from "next/navigation";
-import { api, ApiError, REFRESH_KEY } from "@/lib/api";
-import { listOwnQueuedRequests, removeQueuedRequestsOf } from "@/lib/offline-queue";
-import type { Profile } from "@/lib/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EinstellungenSection } from "@/components/preferences/einstellungen-section";
+import { useProfil } from "@/lib/use-profil";
+import { usePreferences } from "@/lib/preferences-context";
+import { useNeuerungenUngelesen } from "@/lib/neuerungen-gelesen";
+import { AKTUELLE_VERSION } from "@/lib/versionshinweise";
+import { bestimmeSchriftgroesse } from "@/lib/schriftgroesse";
+import { useSprache, useT } from "@/lib/i18n";
+import { vorschauDarstellung, vorschauFunktionen, vorschauSportarten } from "@/lib/profil";
+import type { Sport } from "@/lib/types";
+import { ListenGruppe, ListenZeile } from "@/components/profile/einstellungs-liste";
+import { ProfilKopf } from "@/components/profile/profil-kopf";
+import { AbmeldenZeile } from "@/components/profile/abmelden-zeile";
 import { SupportButton } from "@/components/support-button";
-import { LetzteNeuerung } from "@/components/letzte-neuerung";
-import { NeuerungenGesehen } from "@/components/neuerungen-gesehen";
-import { VersionStand } from "@/components/version-stand";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
-import { Building2, ChevronRight, Download, LogOut, Pencil, Sparkles, Trash2, Trophy } from "lucide-react";
-import { toast } from "sonner";
-import { PasswortHinweis } from "@/components/passwort-hinweis";
 
-import { useT } from "@/lib/i18n";
-import { uebersetzbar } from "@/lib/i18n/sprachen";
-
-// Die Rollen kommen als Rohwerte vom Server; lesbar gemacht werden sie erst hier.
-const ROLLEN_NAME: Record<string, string> = {
-  USER: uebersetzbar("Mitglied"),
-  TRAINER: uebersetzbar("Trainer:in"),
-  ADMIN: uebersetzbar("Admin"),
-};
-
+/**
+ * Das Profil als Einstellungsliste (wie die iOS-Einstellungen): Jede Zeile
+ * führt auf eine eigene Unterseite oder zeigt rechts, was dort gerade
+ * eingestellt ist. Die Seite selbst passt auf einen Bildschirm; alles, was
+ * früher hier ausgebreitet stand, liegt unter /profile/...
+ */
 export default function ProfilePage() {
   const t = useT();
-  const { user, logout, updateUser } = useAuth();
-  const router = useRouter();
-  const [editing, setEditing] = useState(false);
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [savingProfile, setSavingProfile] = useState(false);
-
-  const [newEmail, setNewEmail] = useState("");
-  const [emailPassword, setEmailPassword] = useState("");
-  const [savingEmail, setSavingEmail] = useState(false);
-
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [savingPassword, setSavingPassword] = useState(false);
-
-  const [exportLaeuft, setExportLaeuft] = useState(false);
-  const [loeschenOffen, setLoeschenOffen] = useState(false);
-  const [loeschPasswort, setLoeschPasswort] = useState("");
-  const [loeschenLaeuft, setLoeschenLaeuft] = useState(false);
+  const sprache = useSprache();
+  const { isTrainer } = useAuth();
+  const { profil } = useProfil();
+  const { preferences } = usePreferences();
+  const { resolvedTheme } = useTheme();
+  const neuerungenUngelesen = useNeuerungenUngelesen();
+  const [sportarten, setSportarten] = useState<Sport[] | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    // Nur für die Vorschau "BH, Fährte"; fällt der Abruf aus, fehlt die Vorschau.
     api
-      .get<Profile>("/api/profile")
-      .then((p) => {
-        setFirstName(p.firstName);
-        setLastName(p.lastName);
-        setAvatarUrl(p.avatarUrl ?? "");
-      })
-      .catch((err) => toast.error(err instanceof ApiError ? err.message : t("Profil konnte nicht geladen werden.")));
-    // t bewusst nicht in der Liste: Der Uebersetzer wird hier nur im
-    // Fehlerfall gebraucht. Stuende er drin, liefe der ganze Abruf bei
-    // jedem Sprachwechsel erneut - Daten neu laden, weil ein Toast
-    // anders heissen wuerde.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  if (!user) return null;
-
-  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
-
-  async function handleLogout() {
-    // Offline Erfasstes bleibt beim Abmelden auf dem Gerät und geht hinaus,
-    // sobald die Person sich wieder anmeldet - löschen würde Trainingsdaten
-    // vernichten. Wer sich abmeldet, soll aber wissen, dass sie noch
-    // unterwegs sind.
-    const offen = await listOwnQueuedRequests().catch(() => []);
-    if (
-      offen.length > 0 &&
-      !window.confirm(
-        offen.length === 1
-          ? t("Ein Eintrag ist noch nicht übertragen. Er bleibt auf diesem Gerät und wird gesendet, sobald du dich hier wieder anmeldest. Trotzdem abmelden?")
-          : t("{anzahl} Einträge sind noch nicht übertragen. Sie bleiben auf diesem Gerät und werden gesendet, sobald du dich hier wieder anmeldest. Trotzdem abmelden?", {
-              anzahl: offen.length,
-            }),
-      )
-    )
-      return;
-    logout();
-    router.push("/login");
-  }
-
-  async function handleSaveProfile(e: FormEvent) {
-    e.preventDefault();
-    setSavingProfile(true);
-    try {
-      await api.put("/api/profile", { firstName, lastName, avatarUrl: avatarUrl || null });
-      updateUser({ firstName, lastName });
-      toast.success(t("Profil aktualisiert."));
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : t("Speichern fehlgeschlagen."));
-    } finally {
-      setSavingProfile(false);
-    }
-  }
-
-  async function handleChangeEmail(e: FormEvent) {
-    e.preventDefault();
-    setSavingEmail(true);
-    try {
-      await api.put("/api/profile/email", { newEmail, currentPassword: emailPassword });
-      updateUser({ email: newEmail });
-      toast.success(t("E-Mail-Adresse geändert."));
-      setNewEmail("");
-      setEmailPassword("");
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : t("Ändern fehlgeschlagen."));
-    } finally {
-      setSavingEmail(false);
-    }
-  }
-
-  async function handleChangePassword(e: FormEvent) {
-    e.preventDefault();
-    setSavingPassword(true);
-    try {
-      // Der Refresh-Token dieses Geräts geht mit: Alle ANDEREN Sitzungen
-      // enden mit dem Wechsel, diese bleibt bestehen.
-      await api.put("/api/profile/password", {
-        currentPassword,
-        newPassword,
-        refreshToken: window.localStorage.getItem(REFRESH_KEY),
-      });
-      toast.success(t("Passwort geändert. Andere Geräte wurden abgemeldet."));
-      setCurrentPassword("");
-      setNewPassword("");
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : t("Ändern fehlgeschlagen."));
-    } finally {
-      setSavingPassword(false);
-    }
-  }
-
-  /**
-   * Auskunft nach Art. 15 DSGVO - als Datei zum Behalten.
-   *
-   * Der Umweg über einen Blob statt eines schlichten Links ist nötig, weil
-   * der Abruf den Anmelde-Token in der Kopfzeile tragen muss; ein <a href>
-   * kann das nicht.
-   */
-  async function handleExport() {
-    setExportLaeuft(true);
-    try {
-      const daten = await api.get<unknown>("/api/profile/export");
-      const datei = new Blob([JSON.stringify(daten, null, 2)], { type: "application/json" });
-      const adresse = URL.createObjectURL(datei);
-      const link = document.createElement("a");
-      link.href = adresse;
-      link.download = `dogity-meine-daten-${new Date().toISOString().slice(0, 10)}.json`;
-      // Safari lädt nur herunter, wenn das Element im Dokument hängt.
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(adresse);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : t("Daten konnten nicht geladen werden."));
-    } finally {
-      setExportLaeuft(false);
-    }
-  }
-
-  async function handleKontoLoeschen(e: FormEvent) {
-    e.preventDefault();
-    setLoeschenLaeuft(true);
-    try {
-      await api.delete("/api/profile", { currentPassword: loeschPasswort });
-      // Das Konto gibt es nicht mehr - niemand könnte offene Einträge je
-      // abschicken, und sie enthalten Trainingsdaten.
-      await removeQueuedRequestsOf(user!.userId).catch(() => undefined);
-      logout();
-      router.push("/");
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
-      // Kein finally: Bei Erfolg ist die Seite schon unterwegs, und ein
-      // Zustandswechsel auf einer verlassenen Seite bringt nichts.
-      setLoeschenLaeuft(false);
-    }
-  }
+      .get<Sport[]>("/api/sports")
+      .then(setSportarten)
+      .catch(() => setSportarten(null));
+  }, []);
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t("Profil")}</h1>
 
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center gap-4 space-y-0">
-          <Avatar className="size-16 shrink-0">
-            {avatarUrl && <AvatarImage src={avatarUrl} />}
-            <AvatarFallback className="text-lg">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1 basis-40">
-            <CardTitle className="break-words">
-              {user.firstName} {user.lastName}
-            </CardTitle>
-            <p className="break-all text-sm text-muted-foreground">{user.email}</p>
-          </div>
-          {!editing && (
-            <Button variant="outline" size="sm" className="shrink-0" onClick={() => setEditing(true)}>
-              <Pencil className="size-4" />
-{t("Bearbeiten")}
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-wrap gap-2">
-            {user.roles.map((role) => (
-              <Badge key={role} variant="secondary">
-                {t(ROLLEN_NAME[role] ?? role)}
-              </Badge>
-            ))}
-          </div>
-          <Button variant="destructive" className="self-start" onClick={handleLogout}>
-            <LogOut className="size-4" />
-            {t("Abmelden")}
-          </Button>
-        </CardContent>
-      </Card>
+      <ProfilKopf avatarUrl={profil?.avatarUrl ?? null} />
 
       {/* Verein und Sportarten: aus der unteren Leiste hierher gezogen. Beides
           öffnet man selten; die Leiste bleibt so bei höchstens fünf Zielen.
           Wer noch keinem Verein angehört, sieht die Beitrittskarte weiterhin
           auf der Startseite. */}
-      <Card className="py-0">
-        <CardContent className="flex flex-col divide-y divide-border px-0">
-          <Link href="/clubs" className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50 coarse:min-h-14">
-            <Building2 className="size-5 shrink-0 text-primary-text" />
-            <span className="min-w-0 flex-1">
-              <span className="block font-medium">{t("Mein Verein")}</span>
-              <span className="block text-sm text-muted-foreground">{t("Vereine finden, beitreten und verwalten")}</span>
-            </span>
-            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-          </Link>
-          <Link href="/sports" className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50 coarse:min-h-14">
-            <Trophy className="size-5 shrink-0 text-primary-text" />
-            <span className="min-w-0 flex-1">
-              <span className="block font-medium">{t("Sportarten")}</span>
-              <span className="block text-sm text-muted-foreground">{t("Prüfungsordnungen & Übungen entdecken")}</span>
-            </span>
-            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-          </Link>
-        </CardContent>
-      </Card>
+      <ListenGruppe>
+        <ListenZeile href="/clubs" icon={Building2} titel={t("Mein Verein")} untertitel={t("Vereine finden, beitreten und verwalten")} />
+        <ListenZeile href="/sports" icon={Trophy} titel={t("Sportarten")} untertitel={t("Prüfungsordnungen & Übungen entdecken")} />
+        <ListenZeile
+          href="/profile/sportarten"
+          icon={Dumbbell}
+          titel={t("Sportarten, die ich trainiere")}
+          vorschau={vorschauSportarten(preferences.sportIds, sportarten, t)}
+        />
+      </ListenGruppe>
 
-      {editing && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">{t("Name & Avatar")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="firstName">{t("Vorname")}</Label>
-                    <Input id="firstName" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="lastName">{t("Nachname")}</Label>
-                    <Input id="lastName" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="avatarUrl">{t("Avatar-URL (optional)")}</Label>
-                  <Input
-                    id="avatarUrl"
-                    type="url"
-                    placeholder="https://..."
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                  />
-                  {avatarUrl && (
-                    <Avatar className="size-12">
-                      <AvatarImage src={avatarUrl} />
-                      <AvatarFallback>{initials}</AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit" disabled={savingProfile}>
-                    {savingProfile ? t("Speichert…") : t("Speichern")}
-                  </Button>
-                  <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
-{t("Schließen")}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">{t("E-Mail ändern")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleChangeEmail} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                <div className="flex flex-col gap-2 sm:flex-1">
-                  <Label htmlFor="newEmail">{t("Neue E-Mail")}</Label>
-                  <Input id="newEmail" type="email" required value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-1">
-                  <Label htmlFor="emailPassword">{t("Aktuelles Passwort")}</Label>
-                  <Input
-                    id="emailPassword"
-                    type="password"
-                    required
-                    value={emailPassword}
-                    onChange={(e) => setEmailPassword(e.target.value)}
-                  />
-                </div>
-                <Button type="submit" disabled={savingEmail}>
-                  {savingEmail ? t("Ändert…") : t("Ändern")}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">{t("Passwort ändern")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                  <div className="flex flex-col gap-2 sm:flex-1">
-                    <Label htmlFor="currentPassword">{t("Aktuelles Passwort")}</Label>
-                    <Input
-                      id="currentPassword"
-                      type="password"
-                      required
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2 sm:flex-1">
-                    <Label htmlFor="newPassword">{t("Neues Passwort")}</Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      required
-                      minLength={8}
-                      aria-describedby="newPassword-hinweis"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                    />
-                  </div>
-                  <Button type="submit" disabled={savingPassword}>
-                    {savingPassword ? t("Ändert…") : t("Ändern")}
-                  </Button>
-                </div>
-                <PasswortHinweis id="newPassword-hinweis" />
-              </form>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      <EinstellungenSection />
-
-      {/* Auskunft und Löschung (Art. 15 und 17 DSGVO) gehören in die App und
-          nicht in eine E-Mail an den Betreiber: Ein Recht, das man erst
-          erfragen muss, übt kaum jemand aus. */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Download className="size-5" />
-            {t("Deine Daten")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <p className="text-sm text-muted-foreground">
-            {t(
-              "Alles, was Dogity über dich gespeichert hat, als Datei: Konto, Hunde, Trainings, Fährten samt Punkten, Ziele, Verein und Lernfortschritt.",
-            )}
-          </p>
-          <Button variant="outline" className="self-start" onClick={handleExport} disabled={exportLaeuft}>
-            <Download className="size-4" />
-            {exportLaeuft ? t("Wird vorbereitet…") : t("Meine Daten herunterladen")}
-          </Button>
-
-          <div className="flex flex-col gap-3 border-t pt-4">
-            {loeschenOffen ? (
-              <form onSubmit={handleKontoLoeschen} className="flex flex-col gap-3">
-                <p className="text-sm text-destructive">
-                  {t(
-                    "Das lässt sich nicht rückgängig machen. Einen Hund, den du dir mit jemandem teilst, behält die andere Person.",
-                  )}
-                </p>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="loeschPasswort">{t("Zur Bestätigung dein Passwort")}</Label>
-                  <Input
-                    id="loeschPasswort"
-                    type="password"
-                    required
-                    autoComplete="current-password"
-                    value={loeschPasswort}
-                    onChange={(e) => setLoeschPasswort(e.target.value)}
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="submit" variant="destructive" disabled={loeschenLaeuft}>
-                    <Trash2 className="size-4" />
-                    {loeschenLaeuft ? t("Wird gelöscht…") : t("Konto endgültig löschen")}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setLoeschenOffen(false);
-                      setLoeschPasswort("");
-                    }}
-                  >
-                    {t("Abbrechen")}
-                  </Button>
-                </div>
-              </form>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  {t(
-                    "Du kannst dein Konto jederzeit löschen. Deine Hunde, Trainings, Fährten, Ziele und Einstellungen werden dabei entfernt.",
-                  )}
-                </p>
-                <Button
-                  variant="ghost"
-                  className="self-start text-destructive hover:text-destructive"
-                  onClick={() => setLoeschenOffen(true)}
-                >
-                  <Trash2 className="size-4" />
-                  {t("Konto löschen")}
-                </Button>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <ListenGruppe>
+        <ListenZeile
+          href="/profile/darstellung"
+          icon={Palette}
+          titel={t("Darstellung & Sprache")}
+          vorschau={vorschauDarstellung(resolvedTheme, bestimmeSchriftgroesse(preferences.fontScale), sprache, t)}
+        />
+        <ListenZeile
+          href="/profile/funktionen"
+          icon={SlidersHorizontal}
+          titel={t("Funktionen")}
+          vorschau={vorschauFunktionen(preferences.disabledModules, isTrainer, t)}
+        />
+      </ListenGruppe>
 
       {/* Angemeldete Nutzer sehen die Fußzeile der öffentlichen Seiten nie -
-          ohne diesen Block gäbe es für sie keinen Weg zu den Neuerungen. */}
-      <NeuerungenGesehen>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Sparkles className="size-5" />
-              {t("Neuerungen")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <LetzteNeuerung />
-            <VersionStand verlinkt={false} className="border-t pt-3" />
-          </CardContent>
-        </Card>
-      </NeuerungenGesehen>
+          ohne diese Zeile gäbe es für sie keinen Weg zu den Neuerungen. */}
+      <ListenGruppe>
+        <ListenZeile href="/profile/daten" icon={Database} titel={t("Daten & Konto")} />
+        <ListenZeile
+          href="/profile/neuerungen"
+          icon={Sparkles}
+          titel={t("Neu in Dogity")}
+          vorschau={t("Version {v}", { v: AKTUELLE_VERSION })}
+          punkt={neuerungenUngelesen}
+          punktText={t("Neu")}
+        />
+      </ListenGruppe>
 
       <div className="flex flex-col items-center gap-2 pt-2 text-center">
         <p className="text-xs text-muted-foreground">{t("Gefällt dir Dogity? Über Unterstützung freue ich mich sehr.")}</p>
@@ -476,7 +100,9 @@ export default function ProfilePage() {
 
       {/* Auch im eingeloggten Bereich erreichbar - die Fußzeile der
           öffentlichen Seiten sieht hier niemand. */}
-      <RechtlicheLinks className="pb-2" />
+      <RechtlicheLinks />
+
+      <AbmeldenZeile />
     </div>
   );
 }

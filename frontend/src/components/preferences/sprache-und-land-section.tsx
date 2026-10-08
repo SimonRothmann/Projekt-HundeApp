@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useSprache, useT } from "@/lib/i18n";
 import { SPRACHE_NAME, SPRACHEN } from "@/lib/i18n/sprachen";
 import { landName, VORGABE_LAND } from "@/lib/i18n/laender";
+import { zeigeLaenderwahl } from "@/lib/profil";
 
 /**
  * Sprache und Geltungsbereich - zwei Einstellungen, bewusst nebeneinander
@@ -24,6 +25,10 @@ import { landName, VORGABE_LAND } from "@/lib/i18n/laender";
  *
  * Deshalb der gemeinsame Kasten mit zwei getrennten Reglern: Die Nähe
  * erklärt den Zusammenhang, die Trennung verhindert den Kurzschluss.
+ *
+ * Der Geltungsbereich erscheint nur, wenn es etwas zu wählen gibt (siehe
+ * zeigeLaenderwahl in lib/profil.ts). Ein ausgeblendeter Regler lässt den
+ * gespeicherten Wert unberührt.
  */
 export function SpracheUndLandSection() {
   const { preferences, reload } = usePreferences();
@@ -56,17 +61,22 @@ export function SpracheUndLandSection() {
   const gewaehltesLand = preferences.country ?? VORGABE_LAND;
   const land = laender?.find((l) => l.code === gewaehltesLand);
   const leer = land !== undefined && land.regulationCount === 0;
+  // Bis die Liste da ist, bleibt der Geltungsbereich verborgen: Meist gibt es
+  // ihn gar nicht zu sehen, und ein kurz aufblitzender Abschnitt wäre Unruhe.
+  const mitLand = laender !== null && zeigeLaenderwahl(laender, gewaehltesLand);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Languages className="size-5" />
-          {t("Sprache & Geltungsbereich")}
+          {mitLand ? t("Sprache & Geltungsbereich") : t("Sprache")}
         </CardTitle>
-        <CardDescription>
-          {t("Die Oberfläche hat eine Sprache, der Prüfungskatalog einen Geltungsbereich. Beides wird getrennt gewählt.")}
-        </CardDescription>
+        {mitLand && (
+          <CardDescription>
+            {t("Die Oberfläche hat eine Sprache, der Prüfungskatalog einen Geltungsbereich. Beides wird getrennt gewählt.")}
+          </CardDescription>
+        )}
       </CardHeader>
 
       <CardContent className="flex flex-col gap-5">
@@ -91,49 +101,49 @@ export function SpracheUndLandSection() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 border-t pt-4">
-          <p className="flex items-center gap-2 text-sm font-medium">
-            <Globe className="size-4 text-muted-foreground" />
-            {t("Geltungsbereich der Prüfungsordnungen")}
-          </p>
+        {mitLand && laender && (
+          <div className="flex flex-col gap-2 border-t pt-4">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <Globe className="size-4 text-muted-foreground" />
+              {t("Geltungsbereich der Prüfungsordnungen")}
+            </p>
 
-          {laender === null ? (
-            <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
-          ) : laender.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("Die Länderliste konnte nicht geladen werden.")}</p>
-          ) : (
-            <>
-              <div className="flex flex-wrap gap-1.5">
-                {laender.map((l) => (
-                  <Wahl
-                    key={l.code}
-                    aktiv={l.code === gewaehltesLand}
-                    disabled={speichert}
-                    onClick={() => void speichern(() => api.put("/api/preferences/country", { country: l.code }))}
-                  >
-                    {landName(l.code, sprache)}
-                    {l.regulationCount === 0 && (
-                      <span className="ml-1.5 text-xs opacity-60">{t("leer")}</span>
-                    )}
-                  </Wahl>
-                ))}
-              </div>
+            {laender.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("Die Länderliste konnte nicht geladen werden.")}</p>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-1.5">
+                  {laender.map((l) => (
+                    <Wahl
+                      key={l.code}
+                      aktiv={l.code === gewaehltesLand}
+                      disabled={speichert}
+                      onClick={() => void speichern(() => api.put("/api/preferences/country", { country: l.code }))}
+                    >
+                      {landName(l.code, sprache)}
+                      {l.regulationCount === 0 && (
+                        <span className="ml-1.5 text-xs opacity-60">{t("leer")}</span>
+                      )}
+                    </Wahl>
+                  ))}
+                </div>
 
-              {/* Ein leeres Land ist ein Merkmal, kein Defekt - aber nur,
-                  wenn man es ausspricht. Ohne diesen Satz stünde jemand vor
-                  einem Bildschirm, der kaputt aussieht. */}
-              {leer ? (
-                <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                  {t("Für dieses Land sind noch keine Prüfungsordnungen hinterlegt. Tagebuch, Fährte, Trainingsplanung und Verein funktionieren davon unabhängig vollständig - nur der Prüfungskatalog bleibt leer.")}
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  {t("Es werden die Prüfungsordnungen dieses Landes angeboten, dazu die international gültigen.")}
-                </p>
-              )}
-            </>
-          )}
-        </div>
+                {/* Ein leeres Land ist ein Merkmal, kein Defekt - aber nur,
+                    wenn man es ausspricht. Ohne diesen Satz stünde jemand vor
+                    einem Bildschirm, der kaputt aussieht. */}
+                {leer ? (
+                  <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                    {t("Für dieses Land sind noch keine Prüfungsordnungen hinterlegt. Tagebuch, Fährte, Trainingsplanung und Verein funktionieren davon unabhängig vollständig - nur der Prüfungskatalog bleibt leer.")}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {t("Es werden die Prüfungsordnungen dieses Landes angeboten, dazu die international gültigen.")}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -162,7 +172,7 @@ function Wahl({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex min-h-9 items-center rounded-full border px-3 text-sm transition-colors disabled:opacity-60",
+        "inline-flex min-h-9 items-center rounded-full coarse:min-h-11 border px-3 text-sm transition-colors disabled:opacity-60",
         aktiv
           ? "border-primary bg-primary/10 font-medium text-foreground"
           : "border-input text-muted-foreground hover:border-foreground/30 hover:text-foreground",

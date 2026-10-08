@@ -210,8 +210,8 @@ Auswahl.
 
 | Recht | Umsetzung |
 |---|---|
-| Auskunft und Übertragbarkeit (Art. 15, 20) | `GET /api/profile/export`, in der App unter Profil → „Meine Daten herunterladen“ |
-| Löschung (Art. 17) | `DELETE /api/profile` mit Passwortbestätigung, in der App unter Profil → „Konto löschen“; entfernt die Fachdaten und anschließend das Konto |
+| Auskunft und Übertragbarkeit (Art. 15, 20) | `GET /api/profile/export`, in der App unter Profil → „Daten & Konto“ → „Meine Daten herunterladen“ |
+| Löschung (Art. 17) | `DELETE /api/profile` mit Passwortbestätigung, in der App unter Profil → „Daten & Konto“ → „Konto löschen“; entfernt die Fachdaten und anschließend das Konto |
 | Berichtigung (Art. 16) | Profil, Hunde- und Trainingsbearbeitung in der App |
 | Angemeldete ohne Konto (2.4a) | Auskunft, Berichtigung, Löschung formlos beim Verein oder per E-Mail an den Betreiber; die Trainer:innen bearbeiten und löschen Anmeldungen in der App (Trainer-Seite der Gruppe). Es gibt keinen Selbstbedienungs-Zugang, weil es kein Konto gibt. |
 | Einschränkung, Widerspruch (Art. 18, 21) | formlos per E-Mail |

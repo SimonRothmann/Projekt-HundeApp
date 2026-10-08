@@ -85,6 +85,18 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "neu",
         text: uebersetzbar("Nach dem Ablaufen einer Fährte siehst du das Ergebnis sofort: Abweichung, Anteil auf der Fährte, gefundene Gegenstände und die Karte. Einen Kommentar schreibst du gleich dazu, mit „Fertig“ oder Wischen nach unten schließt du das Fenster. Der Ablauf steht danach wie gewohnt im Tagebuch."),
       },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Das Profil ist jetzt eine übersichtliche Liste und passt auf einen Bildschirm. Jede Zeile führt zu einer eigenen Seite: Konto (Name, E-Mail und Passwort ändern), Darstellung & Sprache (Hell oder Dunkel, Schriftgröße, Sprache), Funktionen, die Sportarten, die du trainierst, und Daten & Konto. Rechts in der Zeile siehst du gleich, was gerade eingestellt ist. „Abmelden“ steht ganz unten."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Länderauswahl für Prüfungsordnungen zeigt Dogity nur noch, wenn es mehr als ein Land mit Prüfungsordnungen gibt. Was du bisher gewählt hast, bleibt gespeichert."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("„Sachkunde üben“ öffnet jetzt in der App, mit der unteren Leiste, statt auf einer eigenen Seite. Öffnest du angemeldet einen Sachkunde-Link, landest du ebenfalls dort."),
+      },
     ],
   },
   {

@@ -1,3 +1,5 @@
+import { uebersetzbar } from "@/lib/i18n/sprachen";
+
 /**
  * Schriftgröße der Oberfläche.
  *
@@ -17,6 +19,13 @@ export const SCHRIFTGROESSEN = ["normal", "gross", "sehr-gross"] as const;
 export type Schriftgroesse = (typeof SCHRIFTGROESSEN)[number];
 
 export const VORGABE_SCHRIFT: Schriftgroesse = "normal";
+
+/** Wie die Stufe heißt - in der Auswahl und in der Vorschau des Profils. */
+export const SCHRIFT_NAME: Record<Schriftgroesse, string> = {
+  normal: uebersetzbar("Normal"),
+  gross: uebersetzbar("Groß"),
+  "sehr-gross": uebersetzbar("Sehr groß"),
+};
 
 /**
  * Wo die Stufe zusätzlich im Browser liegt.

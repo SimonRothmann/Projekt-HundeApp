@@ -389,7 +389,7 @@ export default function DatenschutzPage() {
             ]}
           />
           <p className="text-foreground">
-            Für Auskunft und Löschung musst du niemandem schreiben: Unter Profil findest du „Meine Daten herunterladen“
+            Für Auskunft und Löschung musst du niemandem schreiben: Unter Profil → „Daten & Konto“ findest du „Meine Daten herunterladen“
             – das liefert dir alles Gespeicherte als Datei – und „Konto löschen“, das dein Konto samt Daten sofort
             entfernt.
           </p>

@@ -8,9 +8,9 @@ import { Type } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
-import { uebersetzbar } from "@/lib/i18n/sprachen";
 import {
   bestimmeSchriftgroesse,
+  SCHRIFT_NAME,
   SCHRIFTGROESSEN,
   VORGABE_SCHRIFT,
   type Schriftgroesse,
@@ -24,9 +24,9 @@ import {
  * Jede Schaltfläche zeigt darum ihre eigene Größe.
  */
 const STUFEN: Record<Schriftgroesse, { label: string; vorschau: string }> = {
-  normal: { label: uebersetzbar("Normal"), vorschau: "text-sm" },
-  gross: { label: uebersetzbar("Groß"), vorschau: "text-base" },
-  "sehr-gross": { label: uebersetzbar("Sehr groß"), vorschau: "text-lg" },
+  normal: { label: SCHRIFT_NAME.normal, vorschau: "text-sm" },
+  gross: { label: SCHRIFT_NAME.gross, vorschau: "text-base" },
+  "sehr-gross": { label: SCHRIFT_NAME["sehr-gross"], vorschau: "text-lg" },
 };
 
 export function SchriftgroesseSection() {

@@ -140,7 +140,7 @@ function ZielKarte({
             </Link>
           )}
           {bh && sachkundeAn && (
-            <Link href="/sachkunde" className={LINK}>
+            <Link href="/lernen" className={LINK}>
               <GraduationCap className="size-4" aria-hidden />
               {t("Sachkunde üben")}
               <ChevronRight className="size-4" aria-hidden />
