@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { ChevronRight, NotebookPen, Route } from "lucide-react";
 import type { Dog } from "@/lib/types";
@@ -15,18 +14,20 @@ import { useT } from "@/lib/i18n";
  * Früher waren es zwei große Kacheln (zusammen etwa 390 px hoch), die bei
  * mehreren Hunden jeweils noch die Hunde enthielten. Jetzt ist jeder Handgriff
  * eine Zeile: Mit genau einem Hund ist die ganze Zeile der Knopf; mit mehreren
- * stehen die Hunde als Chips darunter. "Training erfassen" öffnet das
- * Eintragen-Fenster gleich hier auf der Startseite, "Fährte legen" führt zur
- * Hundeseite. Chips und Zeilen sind mindestens 44 px hoch.
+ * stehen die Hunde als Chips darunter. Beide öffnen ihr Fenster gleich hier
+ * auf der Startseite - "Fährte legen" führte früher erst auf die Hundeseite.
+ * Chips und Zeilen sind mindestens 44 px hoch.
  */
 export function ErfassenKarte({
   hunde,
   faehrtenHundeIds,
   onEintragen,
+  onFaehrte,
 }: {
   hunde: Dog[];
   faehrtenHundeIds: string[];
   onEintragen: (dogId: string) => void;
+  onFaehrte: (dogId: string) => void;
 }) {
   const t = useT();
   const faehrtenHunde = hunde.filter((h) => faehrtenHundeIds.includes(h.id));
@@ -47,7 +48,7 @@ export function ErfassenKarte({
             titel={t("Fährte legen")}
             beschreibung={faehrtenHunde.length === 1 ? t("Fährte mit {name} legen", { name: faehrtenHunde[0].name }) : null}
             hunde={faehrtenHunde}
-            ziel={(id) => `/dogs/${id}#faehrte-aufnehmen`}
+            onWaehle={onFaehrte}
           />
         )}
       </CardContent>
@@ -60,16 +61,13 @@ function Zeile({
   titel,
   beschreibung,
   hunde,
-  ziel,
   onWaehle,
 }: {
   icon: LucideIcon;
   titel: string;
   beschreibung: string | null;
   hunde: Dog[];
-  /** Adresse der Hundeseite - oder, wenn der Handgriff hier erledigt wird, `onWaehle`. */
-  ziel?: (dogId: string) => string;
-  onWaehle?: (dogId: string) => void;
+  onWaehle: (dogId: string) => void;
 }) {
   // Beide Symbole in derselben Farbe: zwei Akzentfarben nebeneinander lasen
   // sich wie zwei Zustände, es sind aber zwei gleichrangige Wege.
@@ -91,14 +89,10 @@ function Zeile({
       </>
     );
     const klasse = "group flex min-h-11 w-full min-w-0 items-center gap-3 rounded-lg text-left";
-    return onWaehle ? (
+    return (
       <button type="button" onClick={() => onWaehle(hunde[0].id)} aria-haspopup="dialog" className={klasse}>
         {inhalt}
       </button>
-    ) : (
-      <Link href={ziel!(hunde[0].id)} className={klasse}>
-        {inhalt}
-      </Link>
     );
   }
 
@@ -118,14 +112,10 @@ function Zeile({
               <span className="truncate">{hund.name}</span>
             </>
           );
-          return onWaehle ? (
+          return (
             <button key={hund.id} type="button" onClick={() => onWaehle(hund.id)} aria-haspopup="dialog" className={klasse}>
               {inhalt}
             </button>
-          ) : (
-            <Link key={hund.id} href={ziel!(hund.id)} className={klasse}>
-              {inhalt}
-            </Link>
           );
         })}
       </div>

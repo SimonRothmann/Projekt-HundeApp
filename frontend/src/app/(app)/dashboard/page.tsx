@@ -32,6 +32,7 @@ import { ZuErledigenZeile } from "@/components/dashboard/zu-erledigen-zeile";
 import { AbgelaufeneZiele, OhneZielZeilen, ZielKarten } from "@/components/dashboard/ziel-karten";
 import { HeuteGelegtSection, type FaehrteMitHund } from "@/components/dashboard/heute-gelegt-section";
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
+import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { useT } from "@/lib/i18n";
 
 /** Kompakte Zeile, wie sie die Startseite für Nebensächliches nutzt (Verein, Sachkunde). */
@@ -196,6 +197,15 @@ export default function DashboardPage() {
     if (!offline) await neuLaden();
   }
 
+  // "Fährte legen" im Fenster statt über die Hundeseite. Wie beim Eintragen
+  // bleibt der Hund beim Schließen stehen, damit der Inhalt nicht wegbricht.
+  const [faehrteOffen, setFaehrteOffen] = useState(false);
+  const [faehrteHund, setFaehrteHund] = useState<string | null>(null);
+  function oeffneFaehrte(dogId: string) {
+    setFaehrteHund(dogId);
+    setFaehrteOffen(true);
+  }
+
   useEffect(() => {
     let abgebrochen = false;
     void ladeStartdaten().then((frisch) => {
@@ -270,13 +280,17 @@ export default function DashboardPage() {
 
   const erfassen =
     daten !== null && daten.hunde.length > 0 ? (
-      <ErfassenKarte hunde={daten.hunde} faehrtenHundeIds={faehrteAn ? daten.faehrtenHundeIds : []} onEintragen={oeffneEintragen} />
+      <ErfassenKarte hunde={daten.hunde} faehrtenHundeIds={faehrteAn ? daten.faehrtenHundeIds : []} onEintragen={oeffneEintragen} onFaehrte={oeffneFaehrte} />
     ) : null;
 
   return (
     <div className="flex flex-col gap-4">
       {/* Unabhängig davon, ob die Seite gerade neu lädt: Ein halb ausgefülltes
           Fenster darf nicht mit einem Neuladen im Hintergrund verschwinden. */}
+      {faehrteHund && (
+        // key: Ein anderer Hund bekommt einen frischen Recorder statt des Zustands des vorigen.
+        <DogFaehrteSheet key={faehrteHund} dogId={faehrteHund} open={faehrteOffen} onOpenChange={setFaehrteOffen} onSaved={neuLaden} />
+      )}
       {eintragenZiel && (
         <EintragenSheet
           open={eintragenOffen}

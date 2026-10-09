@@ -66,6 +66,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
     titel: uebersetzbar("Weniger tippen beim Eintragen"),
     aenderungen: [
       {
+        art: "verbessert",
+        text: uebersetzbar("Hast du genau einen Hund, führt „Hunde“ unten gleich auf seine Seite - die Liste mit nur einer Karte entfällt. Über „Zurück“ kommst du zur Liste, etwa um einen zweiten Hund anzulegen. „Fährte legen“ auf der Startseite öffnet jetzt direkt das Fenster zum Legen, ohne erst zur Hundeseite zu wechseln."),
+      },
+      {
         art: "neu",
         text: uebersetzbar("Trägst du eine Übung ein, die diese Woche in deinem Trainingsplan steht, zählt sie jetzt von selbst für den Plan - du musst kein „Plan-Ziel“ mehr wählen. Beim Eintragen steht dann „zählt für den Plan“ mit dem Stand der Woche; mit „nicht zählen“ nimmst du die Übung wieder heraus. Das gilt auch bei „Wie beim letzten Mal“. Trainings, die du nachträgst, zählen nur für die Woche, in der sie stattgefunden haben."),
       },

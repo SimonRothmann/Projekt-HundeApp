@@ -20,18 +20,28 @@ import { useT } from "@/lib/i18n";
  *
  * Die Einladung kommt zusätzlich als Benachrichtigung, die hierher führt.
  */
-export function HundEinladungen({ onAngenommen }: { onAngenommen?: () => void }) {
+export function HundEinladungen({
+  onAngenommen,
+  onGeladen,
+}: {
+  onAngenommen?: () => void;
+  /** Wie viele Einladungen warten - auch 0, wenn die Abfrage scheitert. */
+  onGeladen?: (anzahl: number) => void;
+}) {
   const t = useT();
   const [einladungen, setEinladungen] = useState<DogInvitation[]>([]);
   const [laeuft, setLaeuft] = useState<string | null>(null);
 
   async function laden() {
     try {
-      setEinladungen(await api.get<DogInvitation[]>("/api/dogs/invitations"));
+      const liste = await api.get<DogInvitation[]>("/api/dogs/invitations");
+      setEinladungen(liste);
+      onGeladen?.(liste.length);
     } catch {
       // Ohne die Liste bleibt die Seite nutzbar - die Glocke zeigt die
       // Einladung ebenfalls.
       setEinladungen([]);
+      onGeladen?.(0);
     }
   }
 
@@ -39,6 +49,8 @@ export function HundEinladungen({ onAngenommen }: { onAngenommen?: () => void })
     // Initialer Datenabruf bei Mount (externe Quelle: REST API).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     laden();
+    // Nur beim Mount: onGeladen ist ein Rückruf der Seite, kein Anlass für einen neuen Abruf.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function antworten(e: DogInvitation, annehmen: boolean) {

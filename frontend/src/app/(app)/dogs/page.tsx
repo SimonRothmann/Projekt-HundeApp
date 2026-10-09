@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
 import type { Dog, DogGender } from "@/lib/types";
@@ -16,6 +17,7 @@ import { HundEinladungen } from "@/components/dogs/hund-einladungen";
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
 import { GeschlechtWahl } from "@/components/dogs/geschlecht-wahl";
 import { pruefeErstenHund } from "@/lib/erststart";
+import { direktZumHund, HUNDELISTE_IMMER } from "@/lib/hundeliste";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { formatDogAge } from "@/lib/dog-age";
 import { toast } from "sonner";
@@ -44,7 +46,34 @@ export default function DogsPage() {
   const [eintragenHund, setEintragenHund] = useState<Dog | null>(null);
   const [birthday, setBirthday] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Wartende Einladungen zum Mitverwalten (null = noch nicht geladen) - sie
+  // stehen nur hier, deshalb bleibt die Liste dann stehen.
+  const [einladungen, setEinladungen] = useState<number | null>(null);
+  const [springt, setSpringt] = useState(false);
+  const entschieden = useRef(false);
+  const router = useRouter();
   const t = useT();
+
+  // Bei genau einem aktiven Hund führt der Reiter "Hunde" gleich auf dessen
+  // Seite (siehe direktZumHund). Entschieden wird einmal je Besuch, sobald
+  // Hunde und Einladungen da sind - nicht mehr nach dem Anlegen eines Hundes
+  // hier, dann gilt der Hinweis mit den nächsten Schritten.
+  useEffect(() => {
+    if (entschieden.current || dogs === null || einladungen === null) return;
+    entschieden.current = true;
+    // window statt useSearchParams: Die Seite wird vorab gebaut, und für den
+    // einen Parameter braucht es keine Suspense-Grenze.
+    const listeGewuenscht = new URLSearchParams(window.location.search).has("liste");
+    const ziel = direktZumHund(dogs, { einladungen, listeGewuenscht });
+    if (!ziel) return;
+    void (async () => {
+      // Offline nur, wenn die Hundeseite etwas zum Zeigen hat - sonst ist die
+      // Liste aus dem Zwischenspeicher das Bessere.
+      if (!navigator.onLine && !(await getCachedData(`dog-page-${ziel}`))) return;
+      setSpringt(true);
+      router.replace(`/dogs/${ziel}?from=${encodeURIComponent(HUNDELISTE_IMMER)}`);
+    })();
+  }, [dogs, einladungen, router]);
 
   async function loadDogs() {
     const cached = await getCachedData<Dog[]>("dogs-list");
@@ -141,7 +170,7 @@ export default function DogsPage() {
         </Button>
       </div>
 
-      <HundEinladungen onAngenommen={loadDogs} />
+      <HundEinladungen onAngenommen={loadDogs} onGeladen={setEinladungen} />
 
       {angelegt && (
         <Card className="border-primary/40 bg-primary/5">
@@ -240,7 +269,7 @@ export default function DogsPage() {
         </Card>
       )}
 
-      {dogs === null ? (
+      {dogs === null || springt ? (
         <p className="text-muted-foreground">{t("Lädt…")}</p>
       ) : dogs.length === 0 ? (
         <Card>
