@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import type {
   DashboardDaten,
+  DashboardGruppeneinladung,
   Dog as HundDaten,
   GroupTrainingSession,
   OffenesFeedback,
@@ -24,6 +25,7 @@ import { laeuftFaehrte, nichtAbgelaufeneFaehrten } from "@/lib/faehrte";
 import { merkeGelesenImErststart } from "@/lib/neuerungen-gelesen";
 import { zeigeSachkundeZeile, zielAufteilung } from "@/lib/startseite";
 import { ErfassenKarte } from "@/components/dashboard/erfassen-karte";
+import { GruppeneinladungKarte } from "@/components/dashboard/gruppeneinladung-karte";
 import { FeedbackKarte } from "@/components/dashboard/feedback-karte";
 import { TerminKarte } from "@/components/dashboard/termin-karte";
 import { ZuErledigenZeile } from "@/components/dashboard/zu-erledigen-zeile";
@@ -64,6 +66,8 @@ type Startdaten = {
   onboarding: OnboardingStatus | null;
   termine: GroupTrainingSession[];
   feedback: OffenesFeedback[];
+  /** Eigene offene Gruppeneinladungen; fehlt bei Zwischenständen aus älteren Fassungen. */
+  einladungen?: DashboardGruppeneinladung[];
 };
 
 /**
@@ -122,6 +126,7 @@ async function ladeStartdaten(): Promise<Startdaten> {
     termine,
     // Fehlt bei einem zwischengespeicherten Stand aus der Zeit vor der Feedback-Karte.
     feedback: dashboard?.openFeedback ?? [],
+    einladungen: dashboard?.groupInvitations ?? [],
   };
 }
 
@@ -258,6 +263,11 @@ export default function DashboardPage() {
       <HeuteGelegtSection faehrten={daten.faehrten} mehrereHunde={daten.hunde.length > 1} onChanged={neuLaden} />
     ) : null;
 
+  // Direkt unter dem Kopf, vor allem anderen: Wer eingeladen ist, wartet auf
+  // diesen einen Tipp - und danach erscheinen ggf. die Termine der Gruppe.
+  const einladungen =
+    daten !== null ? <GruppeneinladungKarte einladungen={daten.einladungen} onChanged={neuLaden} /> : null;
+
   const erfassen =
     daten !== null && daten.hunde.length > 0 ? (
       <ErfassenKarte hunde={daten.hunde} faehrtenHundeIds={faehrteAn ? daten.faehrtenHundeIds : []} onEintragen={oeffneEintragen} />
@@ -300,6 +310,8 @@ export default function DashboardPage() {
         </div>
       ) : erststart ? (
         <>
+          {einladungen}
+
           {/* Der Erststart behält seine Reihenfolge: Ziele, Karte, Termine, Erfassen. */}
           <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} />
 
@@ -320,6 +332,8 @@ export default function DashboardPage() {
         </>
       ) : (
         <>
+          {einladungen}
+
           {heuteGelegt}
 
           {/* Nur mit einem Termin in den nächsten 7 Tagen - viele Vereine regeln

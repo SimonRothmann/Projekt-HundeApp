@@ -385,53 +385,21 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (user is null)
             return Result.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
 
-        // Auch entfernte Zeilen ansehen (Soft-Delete + eindeutiger Index, siehe
-        // SoftDeleteRevival) - sonst scheitert das erneute Aufnehmen eines
-        // zuvor entfernten Mitglieds mit einem 500er.
-        var (existing, isActive) = await db.GroupMembers
-            .FindIncludingRemovedAsync(m => m.GroupId == groupId && m.UserId == user.UserId, ct);
-        if (isActive)
+        // Der Kern (Einladung statt Aufnahme, Wiederbelebung entfernter Zeilen,
+        // "hat selbst schon angefragt") steht in GroupInvitations - dieselbe
+        // Regel gilt, wenn ein Vereinsbeitritt mit Gruppe freigegeben wird.
+        var outcome = await GroupInvitations.PrepareAsync(db, groupId, user.UserId, request.Email.Trim(), ct);
+        switch (outcome)
         {
-            switch (existing!.Status)
-            {
-                case GroupMemberStatus.Active:
-                    return Result.Failure("Dieser Benutzer ist bereits Mitglied der Gruppe.");
-                case GroupMemberStatus.Invited:
-                    return Result.Failure("Diese Person ist bereits eingeladen.");
-                default:
-                    // Die Person hat selbst um Aufnahme gebeten - beide Seiten
-                    // wollen es, also gleich aufnehmen statt noch einmal
-                    // einzuladen.
-                    existing.Status = GroupMemberStatus.Active;
-                    existing.JoinedAt = DateTimeOffset.UtcNow;
-                    await db.SaveChangesAsync(ct);
-                    return Result.Success();
-            }
-        }
-
-        // Eine Einladung, keine Aufnahme: Mitglied wird erst, wer annimmt
-        // (siehe GroupMemberStatus.Invited). Das gilt auch für jemanden, der
-        // früher schon einmal Mitglied war - wer gegangen ist oder entfernt
-        // wurde, hat damit nicht für immer zugestimmt.
-        if (existing is not null)
-        {
-            existing.DeletedAt = null;
-            existing.Status = GroupMemberStatus.Invited;
-            existing.JoinedAt = DateTimeOffset.UtcNow;
-            existing.InvitedEmail = request.Email.Trim();
-        }
-        else
-        {
-            db.GroupMembers.Add(new GroupMember
-            {
-                GroupId = groupId,
-                UserId = user.UserId,
-                Status = GroupMemberStatus.Invited,
-                InvitedEmail = request.Email.Trim(),
-            });
+            case GroupInvitationOutcome.AlreadyMember:
+                return Result.Failure("Dieser Benutzer ist bereits Mitglied der Gruppe.");
+            case GroupInvitationOutcome.AlreadyInvited:
+                return Result.Failure("Diese Person ist bereits eingeladen.");
         }
 
         await db.SaveChangesAsync(ct);
+        if (outcome == GroupInvitationOutcome.JoinedDirectly)
+            return Result.Success();
 
         var einladende = await userLookup.FindByIdsAsync([trainerId], ct);
         var name = TrainerDisplayName(einladende, trainerId) ?? "Eine Trainer:in";
@@ -457,6 +425,23 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         await EndSupervisionsViaGroupAsync(group, memberId, ct);
         await db.SaveChangesAsync(ct);
         return Result.Success();
+    }
+
+    public async Task<IReadOnlyList<(Guid GroupId, string GroupName, string? ClubName)>> GetMyOpenInvitationsAsync(Guid userId, CancellationToken ct = default)
+    {
+        // Die Startseite fragt das bei jedem Öffnen: nur die drei Felder der Karte,
+        // ohne Trainer-Einladungen und ohne Namensabfrage wie in GetMyMembershipsAsync.
+        var rows = await db.GroupMembers
+            .Where(m => m.UserId == userId && m.Status == GroupMemberStatus.Invited)
+            .Select(m => new
+            {
+                m.GroupId,
+                GroupName = m.Group!.Name,
+                ClubName = db.Clubs.Where(c => c.Id == m.Group.ClubId).Select(c => c.Name).FirstOrDefault(),
+            })
+            .AsNoTracking()
+            .ToListAsync(ct);
+        return rows.Select(r => (r.GroupId, r.GroupName, r.ClubName)).ToList();
     }
 
     public async Task<Result<IReadOnlyList<MyGroupMembershipDto>>> GetMyMembershipsAsync(Guid userId, CancellationToken ct = default)

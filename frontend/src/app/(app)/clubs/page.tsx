@@ -76,7 +76,7 @@ export default function ClubsPage() {
     setJoiningClubId(clubId);
     try {
       await api.post(`/api/clubs/${clubId}/join-requests`);
-      toast.success("Beitrittsanfrage gesendet.");
+      toast.success(t("Beitrittsanfrage gesendet."));
       await loadAll();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Anfrage fehlgeschlagen."));
@@ -86,14 +86,14 @@ export default function ClubsPage() {
   }
 
   async function handleLeave(clubId: string, clubName: string) {
-    if (!window.confirm(`"${clubName}" wirklich verlassen?`)) return;
+    if (!window.confirm(t("„{name}“ wirklich verlassen?", { name: clubName }))) return;
     setLeavingClubId(clubId);
     try {
       await api.delete(`/api/clubs/${clubId}/membership`);
       toast.success(t("Verein verlassen."));
       await loadAll();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Verlassen fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Verlassen fehlgeschlagen."));
     } finally {
       setLeavingClubId(null);
     }
@@ -103,12 +103,12 @@ export default function ClubsPage() {
     setJoiningGroupId(groupId);
     try {
       await api.post(`/api/groups/${groupId}/join-requests`);
-      toast.success(eingeladen ? t("Einladung angenommen.") : "Gruppenanfrage gesendet.");
+      toast.success(eingeladen ? t("Einladung angenommen.") : t("Gruppenanfrage gesendet."));
       if (eingeladen) setGruppenStand((n) => n + 1);
       // Ohne Neuladen stünde weiter "Beitreten" da und man tippt ein zweites Mal.
       await loadAll();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Gruppenanfrage fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Gruppenanfrage fehlgeschlagen."));
     } finally {
       setJoiningGroupId(null);
     }
@@ -157,17 +157,23 @@ export default function ClubsPage() {
                         {leavingClubId === club.id ? t("Wird verlassen…") : t("Verein verlassen")}
                       </Button>
                     </div>
+                  ) : club.isTrainer ? (
+                    // Vereinstrainer:innen haben keine Mitgliedschaftszeile und
+                    // gehören trotzdem dazu - "Beitreten" wäre hier falsch.
+                    <div>
+                      <Badge variant="secondary">{t("Trainer:in")}</Badge>
+                    </div>
                   ) : membership?.status === 0 ? (
                     <Badge variant="secondary">{t("Anfrage ausstehend")}</Badge>
                   ) : (
                     <Button size="sm" disabled={joiningClubId === club.id} onClick={() => handleJoin(club.id)}>
-                      {joiningClubId === club.id ? t("Wird gesendet…") : "Beitreten"}
+                      {joiningClubId === club.id ? t("Wird gesendet…") : t("Beitreten")}
                     </Button>
                   )}
 
                   {groups.length > 0 && (
                     <div className="flex flex-col gap-2 border-t pt-3">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Gruppen</p>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("Gruppen")}</p>
                       {groups.map((g) => (
                         <div key={g.id} className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-2 text-sm">
@@ -205,7 +211,7 @@ export default function ClubsPage() {
                               disabled={joiningGroupId === g.id}
                               onClick={() => handleJoinGroup(g.id)}
                             >
-                              {joiningGroupId === g.id ? t("Wird gesendet…") : "Beitreten"}
+                              {joiningGroupId === g.id ? t("Wird gesendet…") : t("Beitreten")}
                             </Button>
                           )}
                         </div>

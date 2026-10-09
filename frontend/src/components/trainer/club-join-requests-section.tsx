@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Club, ClubMemberRequest } from "@/lib/types";
+import type { Club, ClubMemberRequest, Group } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/dogs/eintragen-chip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
+import { einladbareGruppen, gewaehlteGruppe } from "@/lib/beitrittsfreigabe";
 
 /**
  * Offene Beitrittsanfragen an die eigenen Vereine.
@@ -21,6 +23,11 @@ import { useT } from "@/lib/i18n";
  * Vereine geladen, nicht nur die des gewählten: Sonst verschwände der Kasten
  * samt Vereinsauswahl, sobald der erste Verein keine Anfragen hat, und die
  * eines zweiten Vereins wären unerreichbar.
+ *
+ * Hat der Verein Gruppen, lädt "Annehmen" auf Wunsch gleich in eine davon ein
+ * ("In Gruppe einladen:"). Eine Einladung, keine Aufnahme: Die Vereinsanfrage
+ * ist keine Zustimmung zur Gruppe, Mitglied wird erst, wer annimmt. So braucht
+ * ein neues Mitglied nicht mehr zwei Freigaben derselben Trainer:in.
  *
  * `onFehler` meldet, wenn eine Abfrage scheiterte: Die Seite darf dann nicht
  * "Keine offenen Anfragen." behaupten.
@@ -37,6 +44,10 @@ export function ClubJoinRequestsSection({
   const t = useT();
   const [anfragen, setAnfragen] = useState<Record<string, ClubMemberRequest[]> | null>(null);
   const [selectedClubId, setSelectedClubId] = useState("");
+  // Gruppen je Verein, die die Trainer:in verwalten darf - Ziel der Einladung.
+  const [gruppen, setGruppen] = useState<Record<string, Group[]>>({});
+  // Die Wahl je Anfrage: fehlt = nichts angetippt (dann gilt die Vorauswahl), null = ausdrücklich "Keine".
+  const [wahl, setWahl] = useState<Record<string, string | null>>({});
   const vereineSchluessel = clubs.map((c) => c.id).join(",");
 
   async function laden() {
@@ -54,6 +65,16 @@ export function ClubJoinRequestsSection({
     );
     const nachVerein = Object.fromEntries(ergebnisse);
     setAnfragen(nachVerein);
+    // Ohne Gruppen (oder wenn der Abruf scheitert) bleibt es beim Annehmen wie bisher.
+    const gruppenListen = await Promise.all(
+      ids.map((id) =>
+        api
+          .get<Group[]>(`/api/clubs/${id}/groups`)
+          .then((liste) => [id, einladbareGruppen(liste)] as const)
+          .catch(() => [id, [] as Group[]] as const),
+      ),
+    );
+    setGruppen(Object.fromEntries(gruppenListen));
     onAnzahl?.(Object.values(nachVerein).reduce((summe, liste) => summe + liste.length, 0));
     // Beim gewählten Verein bleiben, solange er noch Anfragen hat; sonst zum
     // nächsten mit offenen Anfragen wechseln.
@@ -73,9 +94,22 @@ export function ClubJoinRequestsSection({
     // Ablehnen lässt sich nicht zurücknehmen und liegt nach dem Annehmen-Knopf: ein Fehltipp kostet sonst eine Anfrage.
     if (!approve && !window.confirm(t("Beitrittsanfrage von {name} ablehnen?", { name: `${r.firstName} ${r.lastName}`.trim() || r.email }))) return;
     const membershipId = r.membershipId;
+    // Nur beim Annehmen; beim Ablehnen ignoriert der Server die Gruppe ohnehin.
+    const verfuegbar = gruppen[selectedClubId] ?? [];
+    const gruppeId = approve ? gewaehlteGruppe(wahl[membershipId], verfuegbar) : null;
+    const gruppe = verfuegbar.find((g) => g.id === gruppeId);
     try {
-      await api.post(`/api/clubs/${selectedClubId}/join-requests/${membershipId}/${approve ? "approve" : "reject"}`);
-      toast.success(approve ? t("Beitritt angenommen.") : t("Beitritt abgelehnt."));
+      await api.post(
+        `/api/clubs/${selectedClubId}/join-requests/${membershipId}/${approve ? "approve" : "reject"}`,
+        approve && gruppeId ? { groupId: gruppeId } : undefined,
+      );
+      toast.success(
+        !approve
+          ? t("Beitritt abgelehnt.")
+          : gruppe
+            ? t("Angenommen und in {gruppe} eingeladen.", { gruppe: gruppe.name })
+            : t("Beitritt angenommen."),
+      );
       await laden();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Aktion fehlgeschlagen."));
@@ -86,6 +120,8 @@ export function ClubJoinRequestsSection({
   const offen = Object.values(anfragen).reduce((summe, liste) => summe + liste.length, 0);
   if (offen === 0) return null;
   const requests = anfragen[selectedClubId] ?? [];
+  const einladbar = gruppen[selectedClubId] ?? [];
+  const gewaehltFuer = (r: ClubMemberRequest) => gewaehlteGruppe(wahl[r.membershipId], einladbar);
 
   return (
     <Card>
@@ -124,6 +160,25 @@ export function ClubJoinRequestsSection({
                   {/* 1 = über den Einladungslink bzw. QR-Code des Vereins */}
                   {r.source === 1 && <Badge variant="outline">{t("über Einladungslink")}</Badge>}
                 </div>
+                {einladbar.length > 0 && (
+                  <div className="flex min-w-0 flex-col gap-1.5">
+                    <p className="text-sm text-muted-foreground">{t("In Gruppe einladen:")}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Chip gewaehlt={gewaehltFuer(r) === null} onClick={() => setWahl((w) => ({ ...w, [r.membershipId]: null }))}>
+                        {t("Keine")}
+                      </Chip>
+                      {einladbar.map((g) => (
+                        <Chip
+                          key={g.id}
+                          gewaehlt={gewaehltFuer(r) === g.id}
+                          onClick={() => setWahl((w) => ({ ...w, [r.membershipId]: g.id }))}
+                        >
+                          {g.name}
+                        </Chip>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {/* Beschriftete Knöpfe statt Symbolen: Haken und Kreuz nebeneinander wurden verwechselt. */}
                 <div className="flex flex-wrap gap-3">
                   <Button size="sm" onClick={() => handleDecide(r, true)}>

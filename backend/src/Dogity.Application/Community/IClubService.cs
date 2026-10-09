@@ -34,7 +34,7 @@ public interface IClubService
     Task<Result> RemoveMemberAsync(Guid clubId, Guid userId, CancellationToken ct = default);
 
     /// <summary>Browsbare Liste aller Vereine für jeden eingeloggten User (nur Stammdaten, keine Trainer-/Mitgliederdetails).</summary>
-    Task<Result<IReadOnlyList<ClubSummaryDto>>> GetBrowsableClubsAsync(CancellationToken ct = default);
+    Task<Result<IReadOnlyList<ClubSummaryDto>>> GetBrowsableClubsAsync(Guid userId, CancellationToken ct = default);
 
     /// <summary>Eigene Mitgliedschaften/Beitrittsanfragen des aufrufenden Users, über alle Vereine.</summary>
     Task<Result<IReadOnlyList<ClubMembershipDto>>> GetMyMembershipsAsync(Guid userId, CancellationToken ct = default);
@@ -48,8 +48,14 @@ public interface IClubService
     /// <summary>Offene Beitrittsanfragen eines Vereins - nur für Trainer dieses Vereins.</summary>
     Task<Result<IReadOnlyList<ClubMemberDto>>> GetJoinRequestsAsync(Guid callerId, Guid clubId, CancellationToken ct = default);
 
-    /// <summary>Beitrittsanfrage annehmen oder ablehnen - nur für Trainer des Vereins.</summary>
-    Task<Result> DecideJoinRequestAsync(Guid callerId, Guid clubId, Guid membershipId, bool approve, CancellationToken ct = default);
+    /// <summary>
+    /// Beitrittsanfrage annehmen oder ablehnen - nur für Trainer des Vereins.
+    /// Mit <paramref name="groupId"/> (nur beim Annehmen) wird die Person
+    /// zugleich in diese Gruppe EINGELADEN - nie aufgenommen, denn die
+    /// Vereinsanfrage ist keine Zustimmung zur Gruppe. Scheitert die Gruppe,
+    /// bleibt auch die Anfrage offen.
+    /// </summary>
+    Task<Result> DecideJoinRequestAsync(Guid callerId, Guid clubId, Guid membershipId, bool approve, Guid? groupId = null, CancellationToken ct = default);
 
     /// <summary>Aktive Mitglieder eines Vereins - nur für Trainer dieses Vereins (kein Zugriff auf fremde Vereine).</summary>
     Task<Result<IReadOnlyList<ClubMemberDto>>> GetMembersAsync(Guid callerId, Guid clubId, CancellationToken ct = default);

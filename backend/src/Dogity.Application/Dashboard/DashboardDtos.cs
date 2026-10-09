@@ -17,6 +17,15 @@ public record DashboardDogDto(
     IReadOnlyList<GoalDto> ActiveGoals,
     IReadOnlyList<GpsTrackDto> TracksToday);
 
+// Eine offene Einladung in eine Trainingsgruppe (als Mitglied), die die Person
+// auf der Startseite mit einem Tipp annehmen oder ablehnen kann.
+public record DashboardGroupInvitationDto(Guid GroupId, string GroupName, string? ClubName);
+
 // OpenFeedback: Trainer-Feedback zu den eigenen Hunden, auf das noch nicht
 // reagiert wurde (neuestes zuerst) - die Quelle der Feedback-Karte.
-public record DashboardDto(IReadOnlyList<DashboardDogDto> Dogs, IReadOnlyList<OpenFeedbackDto> OpenFeedback);
+// GroupInvitations: nur die EIGENEN offenen Gruppeneinladungen - die Quelle der
+// Einladungs-Karte direkt unter dem Kopf.
+public record DashboardDto(
+    IReadOnlyList<DashboardDogDto> Dogs,
+    IReadOnlyList<OpenFeedbackDto> OpenFeedback,
+    IReadOnlyList<DashboardGroupInvitationDto> GroupInvitations);

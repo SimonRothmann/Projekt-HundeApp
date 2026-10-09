@@ -25,6 +25,8 @@ public interface IGroupService
 
     // Sicht des Mitglieds: Einladungen annehmen/ablehnen, Gruppe verlassen.
     Task<Result<IReadOnlyList<MyGroupMembershipDto>>> GetMyMembershipsAsync(Guid userId, CancellationToken ct = default);
+    /// <summary>Offene Einladungen als Mitglied (nicht als Trainer:in) - schlank für die Startseite.</summary>
+    Task<IReadOnlyList<(Guid GroupId, string GroupName, string? ClubName)>> GetMyOpenInvitationsAsync(Guid userId, CancellationToken ct = default);
     Task<Result> RespondToInvitationAsync(Guid userId, Guid groupId, bool accept, CancellationToken ct = default);
     Task<Result> LeaveGroupAsync(Guid userId, Guid groupId, CancellationToken ct = default);
 

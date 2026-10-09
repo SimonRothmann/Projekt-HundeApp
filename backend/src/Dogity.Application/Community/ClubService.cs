@@ -269,10 +269,13 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         return Result.Success();
     }
 
-    public async Task<Result<IReadOnlyList<ClubSummaryDto>>> GetBrowsableClubsAsync(CancellationToken ct = default)
+    public async Task<Result<IReadOnlyList<ClubSummaryDto>>> GetBrowsableClubsAsync(Guid userId, CancellationToken ct = default)
     {
         var clubs = await db.Clubs
-            .Select(c => new ClubSummaryDto(c.Id, c.Name, c.Description))
+            // Vereinstrainer:innen haben keine ClubMembership (siehe
+            // ClubAccessQueries.BelongsToAnyClubAsync) - ohne dieses Kennzeichen
+            // bot die Liste ihnen bei ihrem eigenen Verein "Beitreten" an.
+            .Select(c => new ClubSummaryDto(c.Id, c.Name, c.Description, c.Trainers.Any(t => t.UserId == userId)))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<ClubSummaryDto>>.Success(clubs);
@@ -345,7 +348,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         return Result<IReadOnlyList<ClubMemberDto>>.Success(dtos);
     }
 
-    public async Task<Result> DecideJoinRequestAsync(Guid callerId, Guid clubId, Guid membershipId, bool approve, CancellationToken ct = default)
+    public async Task<Result> DecideJoinRequestAsync(Guid callerId, Guid clubId, Guid membershipId, bool approve, Guid? groupId = null, CancellationToken ct = default)
     {
         if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
             return Result.NotFound("Verein nicht gefunden.");
@@ -354,16 +357,50 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         if (membership is null || membership.Status != ClubMembershipStatus.Pending)
             return Result.NotFound("Beitrittsanfrage nicht gefunden.");
 
+        // Die Gruppe wird VOR jeder Änderung geprüft: Scheitert sie, bleibt auch
+        // der Vereinsbeitritt offen (alles oder nichts). Beim Ablehnen zählt sie nicht.
+        Group? group = null;
+        if (approve && groupId is { } gruppenId)
+        {
+            // Dieselbe Rechteprüfung wie bei jeder Gruppenverwaltung.
+            group = await db.GetManageableGroupAsync(callerId, gruppenId, ct);
+            if (group is null)
+                return Result.NotFound("Gruppe nicht gefunden.");
+            if (group.ClubId != clubId)
+                return Result.Failure("Diese Gruppe gehört nicht zu diesem Verein.");
+        }
+
         membership.Status = approve ? ClubMembershipStatus.Approved : ClubMembershipStatus.Rejected;
         membership.DecidedAt = DateTimeOffset.UtcNow;
         membership.DecidedByUserId = callerId;
+
+        // Eine Einladung, keine Aufnahme: Die Vereinsanfrage ist keine
+        // Zustimmung zur Gruppe (siehe GroupInvitations). Beides wird in einem
+        // Rutsch gespeichert.
+        var einladung = GroupInvitationOutcome.AlreadyMember;
+        if (group is not null)
+        {
+            var nutzer = await userLookup.FindByIdsAsync([membership.UserId], ct);
+            var mail = nutzer.TryGetValue(membership.UserId, out var info) ? info.Email : null;
+            einladung = await GroupInvitations.PrepareAsync(db, group.Id, membership.UserId, mail, ct);
+        }
+
         await db.SaveChangesAsync(ct);
 
         var club = await db.Clubs.AsNoTracking().FirstAsync(c => c.Id == clubId, ct);
-        var message = approve
-            ? $"Dein Beitritt zu \"{club.Name}\" wurde angenommen."
-            : $"Dein Beitritt zu \"{club.Name}\" wurde abgelehnt.";
-        await notifications.CreateAsync(membership.UserId, message, "/clubs", ct);
+        // EINE Meldung statt zwei: Verein und Gruppe in einem Satz, mit Link auf
+        // die Stelle, an der man annimmt (Karte auf der Startseite).
+        var message = !approve
+            ? $"Dein Beitritt zu \"{club.Name}\" wurde abgelehnt."
+            : group is null || einladung == GroupInvitationOutcome.AlreadyMember
+                ? $"Dein Beitritt zu \"{club.Name}\" wurde angenommen."
+                : einladung == GroupInvitationOutcome.JoinedDirectly
+                    ? $"Dein Beitritt zu \"{club.Name}\" wurde angenommen. Du bist jetzt Mitglied der Gruppe \"{group.Name}\"."
+                    : $"Dein Beitritt zu \"{club.Name}\" wurde angenommen. Du bist in die Gruppe \"{group.Name}\" eingeladen - einmal tippen zum Annehmen.";
+        var link = einladung is GroupInvitationOutcome.Invited or GroupInvitationOutcome.AlreadyInvited && group is not null
+            ? "/dashboard"
+            : "/clubs";
+        await notifications.CreateAsync(membership.UserId, message, link, ct);
 
         return Result.Success();
     }

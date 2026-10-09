@@ -1,4 +1,5 @@
 using Dogity.Application.Common;
+using Dogity.Application.Community;
 using Dogity.Application.Dogs;
 using Dogity.Application.Planning;
 using Dogity.Application.Preferences;
@@ -28,6 +29,7 @@ public class DashboardService(
     IGoalService goals,
     ITrainingService trainings,
     IGpsTrackService tracks,
+    IGroupService groups,
     TimeProvider timeProvider) : IDashboardService
 {
     public async Task<Result<DashboardDto>> GetAsync(Guid userId, CancellationToken ct = default)
@@ -59,6 +61,12 @@ public class DashboardService(
 
         var offenesFeedback = (await trainings.GetOpenFeedbackAsync(userId, eintraege.Select(e => e.Dog.Id).ToList(), ct)).Value ?? [];
 
-        return Result<DashboardDto>.Success(new DashboardDto(eintraege, offenesFeedback));
+        // Einladungen als Trainer:in bleiben außen vor: Sie haben eigene Endpunkte
+        // und gehören auf die Gruppenseite, nicht in eine Ein-Tipp-Karte.
+        var einladungen = (await groups.GetMyOpenInvitationsAsync(userId, ct))
+            .Select(e => new DashboardGroupInvitationDto(e.GroupId, e.GroupName, e.ClubName))
+            .ToList();
+
+        return Result<DashboardDto>.Success(new DashboardDto(eintraege, offenesFeedback, einladungen));
     }
 }

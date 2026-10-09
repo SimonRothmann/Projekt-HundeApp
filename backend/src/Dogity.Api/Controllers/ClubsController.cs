@@ -24,7 +24,7 @@ public class ClubsController(
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ClubSummaryDto>>> GetClubs(CancellationToken ct)
     {
-        var result = await clubService.GetBrowsableClubsAsync(ct);
+        var result = await clubService.GetBrowsableClubsAsync(CurrentUserId, ct);
         return FromResult(result);
     }
 
@@ -50,16 +50,17 @@ public class ClubsController(
     }
 
     [HttpPost("{id:guid}/join-requests/{membershipId:guid}/approve")]
-    public async Task<IActionResult> ApproveJoinRequest(Guid id, Guid membershipId, CancellationToken ct)
+    public async Task<IActionResult> ApproveJoinRequest(Guid id, Guid membershipId, ApproveJoinRequestRequest? request, CancellationToken ct)
     {
-        var result = await clubService.DecideJoinRequestAsync(CurrentUserId, id, membershipId, approve: true, ct);
+        // Körper optional: Ohne Gruppe verhält sich der Aufruf wie bisher.
+        var result = await clubService.DecideJoinRequestAsync(CurrentUserId, id, membershipId, approve: true, request?.GroupId, ct);
         return FromResult(result);
     }
 
     [HttpPost("{id:guid}/join-requests/{membershipId:guid}/reject")]
     public async Task<IActionResult> RejectJoinRequest(Guid id, Guid membershipId, CancellationToken ct)
     {
-        var result = await clubService.DecideJoinRequestAsync(CurrentUserId, id, membershipId, approve: false, ct);
+        var result = await clubService.DecideJoinRequestAsync(CurrentUserId, id, membershipId, approve: false, ct: ct);
         return FromResult(result);
     }
 

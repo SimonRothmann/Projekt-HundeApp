@@ -28,8 +28,15 @@ public record CreateClubRequest(string Name, string? Description);
 public record AssignClubTrainerRequest(string Email, ClubRole Role = ClubRole.Training);
 public record AssignClubMemberRequest(string Email);
 
-/// <summary>Schlanke, für jeden eingeloggten User browsbare Vereinsliste ohne Trainer-/Gruppendetails.</summary>
-public record ClubSummaryDto(Guid Id, string Name, string? Description);
+/// <summary>
+/// Schlanke, für jeden eingeloggten User browsbare Vereinsliste ohne Trainer-/Gruppendetails.
+/// <paramref name="IsTrainer"/>: die anfragende Person ist Trainer:in dieses Vereins -
+/// dann gehört sie schon dazu, auch ohne Mitgliedschaftszeile.
+/// </summary>
+public record ClubSummaryDto(Guid Id, string Name, string? Description, bool IsTrainer = false);
+
+/// <summary>Annehmen mit Gruppe: optional, abwärtskompatibel zum Annehmen ohne Körper.</summary>
+public record ApproveJoinRequestRequest(Guid? GroupId);
 
 public record ClubMembershipDto(Guid Id, Guid ClubId, string ClubName, ClubMembershipStatus Status, DateTimeOffset RequestedAt, DateTimeOffset? DecidedAt);
 

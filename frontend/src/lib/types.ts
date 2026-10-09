@@ -521,6 +521,8 @@ export type ClubSummary = {
   id: string;
   name: string;
   description: string | null;
+  /** Die angemeldete Person ist Trainer:in dieses Vereins (hat dann keine Mitgliedschaftszeile). */
+  isTrainer?: boolean;
 };
 
 export type ClubMembershipStatus = 0 | 1 | 2; // 0 = Pending, 1 = Approved, 2 = Rejected
@@ -1067,6 +1069,15 @@ export type DashboardDaten = {
   dogs: DashboardHund[];
   // Optional, weil der Stale-While-Revalidate-Cache noch Antworten ohne dieses Feld liefern kann.
   openFeedback?: OffenesFeedback[];
+  /** Eigene offene Gruppeneinladungen (als Mitglied). Optional wie openFeedback: ältere Zwischenstände haben das Feld nicht. */
+  groupInvitations?: DashboardGruppeneinladung[];
+};
+
+/** Eine offene Einladung in eine Trainingsgruppe (Backend: DashboardGroupInvitationDto). */
+export type DashboardGruppeneinladung = {
+  groupId: string;
+  groupName: string;
+  clubName: string | null;
 };
 
 /**

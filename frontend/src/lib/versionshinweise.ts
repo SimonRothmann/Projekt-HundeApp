@@ -113,6 +113,18 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("Die Statistik zeigt, solange du noch keinen Hund angelegt hast, einen kurzen Hinweis mit Weg zur Startseite statt leerer Karten."),
       },
+      {
+        art: "neu",
+        text: uebersetzbar("Nimmt eine Trainer:in deine Anfrage an einen Verein an, kann sie dich gleich in eine Gruppe einladen - du musst nicht mehr zweimal auf eine Freigabe warten. Die Einladung steht dann direkt oben auf deiner Startseite: Mit „Annehmen“ wirst du Mitglied der Gruppe, mit „Ablehnen“ nicht. Aufgenommen wirst du also nur, wenn du selbst zustimmst."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Trainer:innen sehen bei jeder Beitrittsanfrage unter „In Gruppe einladen:“ die Gruppen des Vereins. Gibt es nur eine, ist sie schon gewählt; mit „Keine“ nimmst du nur in den Verein auf."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Trainer:innen eines Vereins sahen bei ihrem eigenen Verein den Knopf „Beitreten“. Auf der Seite „Vereine“ steht dort jetzt „Trainer:in“. Außerdem ist die Seite jetzt vollständig übersetzt."),
+      },
     ],
   },
   {

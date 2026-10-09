@@ -1534,4 +1534,34 @@ export const EN: Record<string, string> = {
     "When you add a dog on the “Dogs” page, you can go straight to “Log your first session” or open its page with “To the dog”. Sex is no longer preselected anywhere: you choose male or female yourself, so nothing gets saved wrong by accident.",
   "Die Statistik zeigt, solange du noch keinen Hund angelegt hast, einen kurzen Hinweis mit Weg zur Startseite statt leerer Karten.":
     "Until you have added a dog, the statistics page shows a short note with a way to the home page instead of empty cards.",
+  "Beitreten":
+    "Join",
+  "Gruppen":
+    "Groups",
+  "Beitrittsanfrage gesendet.":
+    "Join request sent.",
+  "Gruppenanfrage gesendet.":
+    "Group request sent.",
+  "Verlassen fehlgeschlagen.":
+    "Leaving failed.",
+  "Gruppenanfrage fehlgeschlagen.":
+    "Group request failed.",
+  "„{name}“ wirklich verlassen?":
+    "Really leave “{name}”?",
+  "In Gruppe einladen:":
+    "Invite to group:",
+  "Keine":
+    "None",
+  "Angenommen und in {gruppe} eingeladen.":
+    "Accepted and invited to {gruppe}.",
+  "Einladung in die Gruppe {gruppe} ({verein})":
+    "Invitation to the group {gruppe} ({verein})",
+  "Einladung in die Gruppe {gruppe}":
+    "Invitation to the group {gruppe}",
+  "Nimmt eine Trainer:in deine Anfrage an einen Verein an, kann sie dich gleich in eine Gruppe einladen - du musst nicht mehr zweimal auf eine Freigabe warten. Die Einladung steht dann direkt oben auf deiner Startseite: Mit „Annehmen“ wirst du Mitglied der Gruppe, mit „Ablehnen“ nicht. Aufgenommen wirst du also nur, wenn du selbst zustimmst.":
+    "If a trainer accepts your request to join a club, she or he can invite you to a group right away – you no longer have to wait for two separate approvals. The invitation then appears at the top of your home page: with “Accept” you become a member of the group, with “Decline” you do not. So you are only added if you agree yourself.",
+  "Trainer:innen sehen bei jeder Beitrittsanfrage unter „In Gruppe einladen:“ die Gruppen des Vereins. Gibt es nur eine, ist sie schon gewählt; mit „Keine“ nimmst du nur in den Verein auf.":
+    "For each join request, trainers now see the club's groups under “Invite to group:”. If there is only one, it is already selected; with “None” you only accept the person into the club.",
+  "Trainer:innen eines Vereins sahen bei ihrem eigenen Verein den Knopf „Beitreten“. Auf der Seite „Vereine“ steht dort jetzt „Trainer:in“. Außerdem ist die Seite jetzt vollständig übersetzt.":
+    "Trainers of a club saw a “Join” button on their own club. On the “Clubs” page it now says “Trainer”. The page is also fully translated now.",
 };

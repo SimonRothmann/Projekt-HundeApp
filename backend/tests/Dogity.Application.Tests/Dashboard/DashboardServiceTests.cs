@@ -1,3 +1,4 @@
+using Dogity.Application.Community;
 using Dogity.Application.Dashboard;
 using Dogity.Application.Dogs;
 using Dogity.Application.Planning;
@@ -41,6 +42,7 @@ public class DashboardServiceTests
             new GoalService(db, uhr, new FakeNotificationService(), mastery),
             new TrainingService(db, new FakeNotificationService(), nutzer, mastery, new FakeWeatherEnrichmentService()),
             new GpsTrackService(db, new FakeWeatherEnrichmentService()),
+            new GroupService(db, nutzer, new TrainerRoleService(db, nutzer), new FakeNotificationService()),
             uhr);
         return (dienst, db);
     }
@@ -217,5 +219,30 @@ public class DashboardServiceTests
         var offen = (await dienst.GetAsync(mitbesitzer)).Value!.OpenFeedback;
 
         Assert.Equal(einheit.Id, Assert.Single(offen).SessionId);
+    }
+
+    [Fact]
+    public async Task Gruppeneinladungen_NurDieEigenenOffenenAlsMitglied()
+    {
+        var (dienst, db) = Erstelle();
+        var ich = Guid.NewGuid();
+        var andere = Guid.NewGuid();
+        var verein = new Dogity.Domain.Community.Club { Name = "Testverein" };
+        var eingeladen = new Dogity.Domain.Community.Group { ClubId = verein.Id, TrainerId = Guid.NewGuid(), Name = "Dienstagsgruppe" };
+        var aktiv = new Dogity.Domain.Community.Group { ClubId = verein.Id, TrainerId = Guid.NewGuid(), Name = "Aktive Gruppe" };
+        var fremd = new Dogity.Domain.Community.Group { ClubId = verein.Id, TrainerId = Guid.NewGuid(), Name = "Fremde Einladung" };
+        db.Clubs.Add(verein);
+        db.Groups.AddRange(eingeladen, aktiv, fremd);
+        db.GroupMembers.Add(new Dogity.Domain.Community.GroupMember { GroupId = eingeladen.Id, UserId = ich, Status = Dogity.Domain.Community.GroupMemberStatus.Invited });
+        db.GroupMembers.Add(new Dogity.Domain.Community.GroupMember { GroupId = aktiv.Id, UserId = ich, Status = Dogity.Domain.Community.GroupMemberStatus.Active });
+        db.GroupMembers.Add(new Dogity.Domain.Community.GroupMember { GroupId = fremd.Id, UserId = andere, Status = Dogity.Domain.Community.GroupMemberStatus.Invited });
+        await db.SaveChangesAsync();
+
+        var einladungen = (await dienst.GetAsync(ich)).Value!.GroupInvitations;
+
+        var eintrag = Assert.Single(einladungen);
+        Assert.Equal(eingeladen.Id, eintrag.GroupId);
+        Assert.Equal("Dienstagsgruppe", eintrag.GroupName);
+        Assert.Equal("Testverein", eintrag.ClubName);
     }
 }
