@@ -97,6 +97,22 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("„Sachkunde üben“ öffnet jetzt in der App, mit der unteren Leiste, statt auf einer eigenen Seite. Öffnest du angemeldet einen Sachkunde-Link, landest du ebenfalls dort."),
       },
+      {
+        art: "neu",
+        text: uebersetzbar("Neu bei Dogity? Auf der Startseite fragt dich jetzt eine Karte „Wie heißt dein Hund?“: Name eingeben, Rüde oder Hündin wählen, „Weiter“ - und gleich öffnet sich das Fenster, in dem du das erste Training einträgst. Rasse und Geburtstag trägst du später über „Bearbeiten“ im Menü der Hundeseite nach."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Hast du dein erstes Training gespeichert, fragt die Startseite einmal „Gut gemacht! Wie geht es weiter?“: Du kannst ein Prüfungsziel setzen oder einem Verein beitreten - oder die Karte ausblenden."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Legst du auf der Seite „Hunde“ einen Hund an, kannst du gleich „Erstes Training eintragen“ oder mit „Zum Hund“ auf seine Seite wechseln. Das Geschlecht ist nirgends mehr vorausgewählt: Du wählst Rüde oder Hündin selbst, damit nichts versehentlich falsch gespeichert wird."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Statistik zeigt, solange du noch keinen Hund angelegt hast, einen kurzen Hinweis mit Weg zur Startseite statt leerer Karten."),
+      },
     ],
   },
   {

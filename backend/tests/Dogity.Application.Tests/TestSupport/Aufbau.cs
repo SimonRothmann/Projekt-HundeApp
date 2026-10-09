@@ -21,15 +21,18 @@ public class Aufbau(ApplicationDbContext db)
         return hund.Id;
     }
 
-    public void Training(Guid nutzer, Guid hund)
+    public void Training(Guid nutzer, Guid hund, DateTimeOffset? angelegtAm = null, bool geloescht = false)
     {
-        db.TrainingSessions.Add(new TrainingSession
+        var training = new TrainingSession
         {
             UserId = nutzer,
             DogId = hund,
             Date = DateOnly.FromDateTime(DateTime.UtcNow),
             DurationMinutes = 30,
-        });
+        };
+        if (angelegtAm is not null) training.CreatedAt = angelegtAm.Value;
+        if (geloescht) training.DeletedAt = DateTimeOffset.UtcNow;
+        db.TrainingSessions.Add(training);
     }
 
     public void Ziel(Guid hund)

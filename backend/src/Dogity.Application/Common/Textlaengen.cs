@@ -26,7 +26,9 @@ public static class Textlaengen
     public const int PruefungsNotiz = 500;
     /// <summary>GroupRegistration: Vor-/Nachname der Angemeldeten und Rufname des Hundes.</summary>
     public const int Anmeldename = 100;
-    /// <summary>GroupRegistration.DogBreed.</summary>
+    /// <summary>Dog.Name: Rufname des Hundes.</summary>
+    public const int Hundename = 100;
+    /// <summary>Dog.Breed und GroupRegistration.DogBreed.</summary>
     public const int Hunderasse = 100;
     /// <summary>GroupRegistration.Phone.</summary>
     public const int Telefon = 30;

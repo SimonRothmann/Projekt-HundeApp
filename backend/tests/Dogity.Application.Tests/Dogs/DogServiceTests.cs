@@ -1,4 +1,5 @@
 using Dogity.Application.Abstractions;
+using Dogity.Application.Common;
 using Dogity.Application.Dogs;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Domain.Dogs;
@@ -544,5 +545,68 @@ public class DogServiceTests
 
         // Und das Bild des Besitzers ist noch da.
         Assert.True((await service.GetImageAsync(ownerId, dogId)).Succeeded);
+    }
+
+    // ---- Anlegen ----
+
+    [Fact]
+    public async Task Create_MakesCallerOwner_AndTrimsName()
+    {
+        var service = MakeService(out var db, out _);
+        var userId = Guid.NewGuid();
+
+        var ergebnis = await service.CreateAsync(userId, new CreateDogRequest("  Bella ", null, null, DogGender.Female, null, null));
+
+        Assert.True(ergebnis.Succeeded);
+        Assert.Equal("Bella", ergebnis.Value!.Name);
+        Assert.Equal(DogGender.Female, ergebnis.Value.Gender);
+        Assert.True(await db.DogOwners.AnyAsync(o => o.DogId == ergebnis.Value.Id && o.UserId == userId));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Create_WithoutName_Fails(string name)
+    {
+        var service = MakeService(out var db, out _);
+
+        var ergebnis = await service.CreateAsync(Guid.NewGuid(), new CreateDogRequest(name, null, null, DogGender.Male, null, null));
+
+        Assert.False(ergebnis.Succeeded);
+        Assert.Empty(db.Dogs);
+    }
+
+    [Fact]
+    public async Task Create_NameBeyondColumnLength_FailsInsteadOfServerError()
+    {
+        var service = MakeService(out var db, out _);
+
+        var ergebnis = await service.CreateAsync(
+            Guid.NewGuid(),
+            new CreateDogRequest(new string('A', Textlaengen.Hundename + 1), null, null, DogGender.Male, null, null));
+
+        Assert.False(ergebnis.Succeeded);
+        Assert.Empty(db.Dogs);
+        // Genau an der Grenze geht es noch.
+        Assert.True((await service.CreateAsync(
+            Guid.NewGuid(),
+            new CreateDogRequest(new string('A', Textlaengen.Hundename), null, null, DogGender.Male, null, null))).Succeeded);
+    }
+
+    [Fact]
+    public async Task Create_BreedBeyondColumnLength_FailsInsteadOfServerError()
+    {
+        var service = MakeService(out var db, out _);
+
+        var ergebnis = await service.CreateAsync(
+            Guid.NewGuid(),
+            new CreateDogRequest("Bella", new string('R', Textlaengen.Hunderasse + 1), null, DogGender.Female, null, null));
+
+        Assert.False(ergebnis.Succeeded);
+        Assert.Empty(db.Dogs);
+        // Genau an der Grenze geht es noch.
+        Assert.True((await service.CreateAsync(
+            Guid.NewGuid(),
+            new CreateDogRequest("Bella", new string('R', Textlaengen.Hunderasse), null, DogGender.Female, null, null))).Succeeded);
     }
 }

@@ -1032,6 +1032,9 @@ export type OnboardingStatus = {
   hasPendingGroupRequest: boolean;
   isDismissed: boolean;
   isComplete: boolean;
+  // Wann das erste Training angelegt wurde (nicht: für welchen Tag). Fehlt bei
+  // einem Zwischenstand aus der Zeit davor.
+  firstTrainingAt?: string | null;
 };
 
 // ---- Startseite ----

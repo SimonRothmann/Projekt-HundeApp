@@ -28,7 +28,11 @@ export const TEXTLAENGE = {
   feedbackRueckfrage: 500,
   /** GroupRegistration: Vor-/Nachname und Rufname des Hundes */
   anmeldeName: 100,
-  /** GroupRegistration.DogBreed */
+  /** Dog.Name: Rufname des Hundes */
+  hundename: 100,
+  /** Dog.Breed (Rasse des Hundes) */
+  hundeRasse: 100,
+  /** Dog.Breed und GroupRegistration.DogBreed */
   anmeldeRasse: 100,
   /** GroupRegistration.Phone */
   anmeldeTelefon: 30,

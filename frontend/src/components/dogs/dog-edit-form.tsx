@@ -15,6 +15,7 @@ import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { Camera, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { TEXTLAENGE } from "@/lib/textlaengen";
 import { useT } from "@/lib/i18n";
 /**
  * Stammdaten eines Hundes ändern.
@@ -167,7 +168,7 @@ export function DogEditForm({
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="edit-breed">Rasse</Label>
-              <Input id="edit-breed" value={breed} onChange={(e) => setBreed(e.target.value)} />
+              <Input id="edit-breed" value={breed} maxLength={TEXTLAENGE.hundeRasse} onChange={(e) => setBreed(e.target.value)} />
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="edit-gender">Geschlecht</Label>

@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
 import type { DashboardStats, DogExerciseStat } from "@/lib/types";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, ChevronDown, ChevronRight, Dog } from "lucide-react";
 import { toast } from "sonner";
@@ -119,6 +121,8 @@ export default function StatsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Weder Hund noch Training: Die Wochen- und Hundekarten wären nur Nullen.
+  const ohneTraining = stats !== null && stats.perDog.every((dog) => dog.sessionCount === 0);
   const maxWeekCount = stats ? Math.max(...stats.weeklyActivity.map((w) => w.count), 1) : 1;
 
   return (
@@ -130,6 +134,25 @@ export default function StatsPage() {
 
       {stats === null ? (
         <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
+      ) : ohneTraining ? (
+        // Ohne Hund oder ohne ein einziges Training gibt es nichts zu zeigen
+        // (auch die Fährten-Entwicklung hängt an Trainings) - statt leerer
+        // Karten und Nullen ein Satz und der Weg dorthin: Hund und erstes
+        // Training entstehen auf der Startseite.
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <BarChart className="size-10 text-muted-foreground" aria-hidden />
+            <p className="font-medium">{t("Hier erscheint dein Trainingsfortschritt.")}</p>
+            <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
+              {stats.perDog.length === 0
+                ? t("Leg auf der Startseite deinen Hund an und trag das erste Training ein – dann siehst du hier, wie ihr vorankommt.")
+                : t("Trag auf der Startseite das erste Training ein – dann siehst du hier, wie ihr vorankommt.")}
+            </p>
+            <Link href="/dashboard" className={cn(buttonVariants(), "h-11 px-4 text-base")}>
+              {t("Zur Startseite")}
+            </Link>
+          </CardContent>
+        </Card>
       ) : (
         <>
           <Card>
@@ -160,84 +183,76 @@ export default function StatsPage() {
             </CardContent>
           </Card>
 
-          {stats.perDog.length === 0 ? (
-            <Card>
-              <CardContent className="py-10 text-center text-muted-foreground">
-{t("Noch keine Hunde vorhanden.")}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {stats.perDog.map((dog) => (
-                <Card key={dog.dogId}>
-                  <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-                    <Dog className="size-6 shrink-0 text-primary-text" />
-                    <CardTitle className="min-w-0 text-base [overflow-wrap:anywhere]">{dog.dogName}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-3">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <p className="text-muted-foreground text-xs">{t("Trainings gesamt")}</p>
-                        <p className="font-medium">{dog.sessionCount}</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {stats.perDog.map((dog) => (
+              <Card key={dog.dogId}>
+                <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+                  <Dog className="size-6 shrink-0 text-primary-text" />
+                  <CardTitle className="min-w-0 text-base [overflow-wrap:anywhere]">{dog.dogName}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-3">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">{t("Trainings gesamt")}</p>
+                      <p className="font-medium">{dog.sessionCount}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">{t("Letzte 30 Tage")}</p>
+                      <p className="font-medium">{dog.sessionsLast30d}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">{t("Aktive Ziele")}</p>
+                      <p className="font-medium">{dog.activeGoals}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">{t("Ø Bewertung (30d)")}</p>
+                      <p className="font-medium">{dog.avgRating30d !== null ? `${zahlText(dog.avgRating30d, sprache)} / 5` : "–"}</p>
+                    </div>
+                  </div>
+                  {dog.planItemsTotal > 0 && (
+                    <div>
+                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                        <span>{t("Planziele")}</span>
+                        <span>
+                          {dog.planItemsCompleted} / {dog.planItemsTotal}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs">{t("Letzte 30 Tage")}</p>
-                        <p className="font-medium">{dog.sessionsLast30d}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs">{t("Aktive Ziele")}</p>
-                        <p className="font-medium">{dog.activeGoals}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs">{t("Ø Bewertung (30d)")}</p>
-                        <p className="font-medium">{dog.avgRating30d !== null ? `${zahlText(dog.avgRating30d, sprache)} / 5` : "–"}</p>
+                      <div className="h-2 rounded-full bg-primary/15 overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all"
+                          style={{ width: `${(dog.planItemsCompleted / dog.planItemsTotal) * 100}%` }}
+                        />
                       </div>
                     </div>
-                    {dog.planItemsTotal > 0 && (
-                      <div>
-                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                          <span>{t("Planziele")}</span>
-                          <span>
-                            {dog.planItemsCompleted} / {dog.planItemsTotal}
-                          </span>
-                        </div>
-                        <div className="h-2 rounded-full bg-primary/15 overflow-hidden">
-                          <div
-                            className="h-full bg-primary transition-all"
-                            style={{ width: `${(dog.planItemsCompleted / dog.planItemsTotal) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    <FaehrtenTrend dogId={dog.dogId} />
-                    {dog.sessionCount > 0 && (
-                      <div className="border-t pt-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 self-start px-2 text-xs text-muted-foreground"
-                          onClick={() => toggleDog(dog.dogId)}
-                        >
-                          {openDogs.has(dog.dogId) ? (
-                            <ChevronDown className="size-3.5" />
-                          ) : (
-                            <ChevronRight className="size-3.5" />
-                          )}
-                          Übungen &amp; Schwerpunkte
-                        </Button>
-                        {openDogs.has(dog.dogId) && (
-                          <div className="mt-2 flex flex-col gap-4">
-                            <DogExercises dogId={dog.dogId} />
-                            <ConditionStats dogId={dog.dogId} />
-                          </div>
+                  )}
+                  <FaehrtenTrend dogId={dog.dogId} />
+                  {dog.sessionCount > 0 && (
+                    <div className="border-t pt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 self-start px-2 text-xs text-muted-foreground"
+                        onClick={() => toggleDog(dog.dogId)}
+                      >
+                        {openDogs.has(dog.dogId) ? (
+                          <ChevronDown className="size-3.5" />
+                        ) : (
+                          <ChevronRight className="size-3.5" />
                         )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                        Übungen &amp; Schwerpunkte
+                      </Button>
+                      {openDogs.has(dog.dogId) && (
+                        <div className="mt-2 flex flex-col gap-4">
+                          <DogExercises dogId={dog.dogId} />
+                          <ConditionStats dogId={dog.dogId} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </>
       )}
     </div>

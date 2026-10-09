@@ -83,7 +83,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
 
     public async Task<Result<DogDto>> CreateAsync(Guid userId, CreateDogRequest request, CancellationToken ct = default)
     {
-        var validationError = Validate(request.Name);
+        var validationError = Validate(request.Name, request.Breed);
         if (validationError is not null)
             return Result<DogDto>.Failure(validationError);
 
@@ -106,7 +106,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
 
     public async Task<Result<DogDto>> UpdateAsync(Guid userId, Guid dogId, UpdateDogRequest request, CancellationToken ct = default)
     {
-        var validationError = Validate(request.Name);
+        var validationError = Validate(request.Name, request.Breed);
         if (validationError is not null)
             return Result<DogDto>.Failure(validationError);
 
@@ -523,8 +523,11 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
             .Where(d => d.Owners.Any(o => o.UserId == userId))
             .FirstOrDefaultAsync(ct);
 
-    private static string? Validate(string name) =>
-        string.IsNullOrWhiteSpace(name) ? "Name ist erforderlich." : null;
+    private static string? Validate(string name, string? breed) =>
+        string.IsNullOrWhiteSpace(name)
+            ? "Name ist erforderlich."
+            : Textlaengen.ZuLang(name, Textlaengen.Hundename, "Der Name")
+                ?? Textlaengen.ZuLang(breed, Textlaengen.Hunderasse, "Die Rasse");
 
     private Task<bool> HasImageAsync(Guid dogId, CancellationToken ct) =>
         db.DogImages.AnyAsync(i => i.DogId == dogId, ct);

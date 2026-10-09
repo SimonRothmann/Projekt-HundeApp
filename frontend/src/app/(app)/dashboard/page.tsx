@@ -15,7 +15,9 @@ import type {
   TrainerOpenCounts,
   TrainingPlanItem,
 } from "@/lib/types";
-import { OnboardingGuide, zeigtErststart } from "@/components/onboarding/onboarding-guide";
+import { OnboardingGuide } from "@/components/onboarding/onboarding-guide";
+import { ErsterHundKarte } from "@/components/onboarding/erster-hund-karte";
+import { erststartZustand } from "@/lib/erststart";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
 import { laeuftFaehrte, nichtAbgelaufeneFaehrten } from "@/lib/faehrte";
@@ -33,6 +35,23 @@ import { useT } from "@/lib/i18n";
 /** Kompakte Zeile, wie sie die Startseite für Nebensächliches nutzt (Verein, Sachkunde). */
 const ZEILE =
   "flex min-h-11 min-w-0 items-center gap-2 rounded-lg border border-surface-border bg-surface px-3 text-sm font-medium transition-colors hover:border-primary/40";
+
+/** Stand eines Kontos, das gerade erst den Hund angelegt hat - Grundlage, wenn der Server-Status fehlt. */
+const OHNE_FORTSCHRITT: OnboardingStatus = {
+  hasDog: false,
+  firstDogId: null,
+  firstDogName: null,
+  dogCount: 0,
+  hasGoal: false,
+  hasTraining: false,
+  hasClubMembership: false,
+  hasPendingClubRequest: false,
+  hasGroupMembership: false,
+  hasPendingGroupRequest: false,
+  isDismissed: false,
+  isComplete: false,
+  firstTrainingAt: null,
+};
 
 type Startdaten = {
   hunde: HundDaten[];
@@ -126,6 +145,37 @@ export default function DashboardPage() {
     uebernehmen(await ladeStartdaten());
   }
 
+  // Der Hund der Karte "Wie heißt dein Hund?" ist angelegt: Startseite neu
+  // laden (damit sie als normale Startseite mit Hund dasteht) und gleich das
+  // Eintragen-Fenster für ihn öffnen - ohne Seitenwechsel. Schließt der
+  // Nutzer es ohne Speichern, bleibt genau diese Startseite stehen.
+  async function ersterHundAngelegt(hund: HundDaten) {
+    const frisch = await ladeStartdaten();
+    // Kam der Hund im Neuladen nicht an (kurz ohne Netz), tragen wir ihn von
+    // Hand ein: Die Karte bliebe sonst stehen, und ein zweiter Druck auf
+    // "Weiter" legte ihn doppelt an.
+    if (frisch.hunde.some((h) => h.id === hund.id)) {
+      uebernehmen(frisch);
+    } else {
+      uebernehmen({
+        ...frisch,
+        hunde: [...frisch.hunde, hund],
+        onboarding: {
+          ...(frisch.onboarding ?? OHNE_FORTSCHRITT),
+          hasDog: true,
+          firstDogId: hund.id,
+          firstDogName: hund.name,
+          dogCount: 1,
+        },
+      });
+    }
+    oeffneEintragen(hund.id);
+  }
+
+  function erststartWegklicken() {
+    if (daten) uebernehmen({ ...daten, onboarding: daten.onboarding && { ...daten.onboarding, isDismissed: true } });
+  }
+
   // Das Eintragen-Fenster: offen oder zu, getrennt von dem, wofür es aufging -
   // beim Schließen soll das Ziel stehen bleiben, sonst bräche der Inhalt schon
   // während des Wegschiebens weg.
@@ -182,14 +232,19 @@ export default function DashboardPage() {
   // beizutreten, den sie leiten.
   const hasNoClub = daten?.onboarding != null && !daten.onboarding.hasClubMembership;
 
-  const erststart = daten !== null && zeigtErststart(daten.onboarding);
+  const erststartKarte = daten === null ? null : erststartZustand(daten.onboarding);
+  const erststart = erststartKarte !== null;
 
   // Wer gerade erst anfängt, dem sagt "Neuerungen" nichts: still als gelesen
   // vermerken, damit der Punkt am Profil-Reiter später nicht nachträglich
-  // auftaucht. Ohne den Status (noch nicht geladen) steht erststart auf false.
+  // auftaucht. Nur solange der Hund fehlt: In der Gabelung steht auch, wer
+  // schon länger dabei ist und sein erstes Training erst vor wenigen Tagen
+  // eingetragen hat - der soll "Neuerungen" nicht still verpassen. Ohne den
+  // Status (noch nicht geladen) steht ohneHund auf false.
+  const ohneHund = erststartKarte === "hund";
   useEffect(() => {
-    merkeGelesenImErststart(erststart);
-  }, [erststart]);
+    merkeGelesenImErststart(ohneHund);
+  }, [ohneHund]);
 
   // Wofür die Seite täglich geöffnet wird: was heute gelegt wurde und aufs
   // Ablaufen wartet, und die Karte zum Erfassen. Nur der Erststart behält die
@@ -227,9 +282,8 @@ export default function DashboardPage() {
       {erststart ? (
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {t("Willkommen zurück, {name}", { name: user?.firstName ?? "" })}
+            {t("Willkommen bei Dogity, {name}", { name: user?.firstName ?? "" })}
           </h1>
-          <p className="text-muted-foreground">{t("Hier ist dein Überblick für heute.")}</p>
         </div>
       ) : (
         <h1 className="text-2xl font-semibold tracking-tight">{t("Hallo, {name}", { name: user?.firstName ?? "" })}</h1>
@@ -246,15 +300,14 @@ export default function DashboardPage() {
         </div>
       ) : erststart ? (
         <>
-          {/* Der Erststart behält seine Reihenfolge: Ziele, Leitfaden, Termine, Erfassen. */}
+          {/* Der Erststart behält seine Reihenfolge: Ziele, Karte, Termine, Erfassen. */}
           <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} />
 
-          <OnboardingGuide
-            status={daten.onboarding}
-            onDismissed={() =>
-              uebernehmen({ ...daten, onboarding: daten.onboarding && { ...daten.onboarding, isDismissed: true } })
-            }
-          />
+          {erststartKarte === "hund" ? (
+            <ErsterHundKarte onAngelegt={ersterHundAngelegt} onDismissed={erststartWegklicken} />
+          ) : (
+            daten.onboarding && <OnboardingGuide status={daten.onboarding} onDismissed={erststartWegklicken} />
+          )}
 
           <TerminKarte sessions={daten.termine} />
 

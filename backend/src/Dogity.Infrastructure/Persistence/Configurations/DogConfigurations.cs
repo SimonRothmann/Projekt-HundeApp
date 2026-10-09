@@ -1,3 +1,4 @@
+using Dogity.Application.Common;
 using Dogity.Domain.Dogs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -9,8 +10,8 @@ public class DogConfiguration : IEntityTypeConfiguration<Dog>
     public void Configure(EntityTypeBuilder<Dog> builder)
     {
         builder.ToTable("dogs");
-        builder.Property(d => d.Name).HasMaxLength(100).IsRequired();
-        builder.Property(d => d.Breed).HasMaxLength(100);
+        builder.Property(d => d.Name).HasMaxLength(Textlaengen.Hundename).IsRequired();
+        builder.Property(d => d.Breed).HasMaxLength(Textlaengen.Hunderasse);
         builder.Property(d => d.Gender).HasConversion<string>().HasMaxLength(20);
         builder.Property(d => d.ImageUrl).HasMaxLength(2048);
     }

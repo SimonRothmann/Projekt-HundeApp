@@ -27,6 +27,7 @@ public class OnboardingServiceTests
         Assert.False(stand.HasDog);
         Assert.Null(stand.FirstDogId);
         Assert.False(stand.IsComplete);
+        Assert.Null(stand.FirstTrainingAt);
     }
 
     [Fact]
@@ -58,6 +59,40 @@ public class OnboardingServiceTests
 
         Assert.True(stand.HasTraining);
         Assert.True(stand.IsComplete);
+    }
+
+    [Fact]
+    public async Task ErstesTraining_MeldetDenZeitpunktDesAeltestenTrainings()
+    {
+        var (dienst, nutzerId, aufbau) = Erstelle();
+        var hund = aufbau.Hund(nutzerId, "Bella");
+        var zweiterHund = aufbau.Hund(nutzerId, "Zweithund");
+        var vorTagen = DateTimeOffset.UtcNow.AddDays(-3);
+        aufbau.Training(nutzerId, hund, vorTagen);
+        aufbau.Training(nutzerId, zweiterHund, DateTimeOffset.UtcNow);
+        // Das Training eines fremden Hundes zählt nicht - auch nicht, wenn es älter ist.
+        aufbau.Training(Guid.NewGuid(), aufbau.Hund(Guid.NewGuid(), "Fremder"), DateTimeOffset.UtcNow.AddDays(-30));
+        await aufbau.Speichern();
+
+        var stand = (await dienst.GetStatusAsync(nutzerId)).Value!;
+
+        Assert.Equal(vorTagen, stand.FirstTrainingAt);
+    }
+
+    [Fact]
+    public async Task GeloeschtesTraining_BestimmtDenZeitpunktDesErstenTrainingsNicht()
+    {
+        var (dienst, nutzerId, aufbau) = Erstelle();
+        var hund = aufbau.Hund(nutzerId, "Bella");
+        var vorTagen = DateTimeOffset.UtcNow.AddDays(-2);
+        // Das älteste Training ist gelöscht: Die Gabelung darf sich nicht an ihm orientieren.
+        aufbau.Training(nutzerId, hund, DateTimeOffset.UtcNow.AddDays(-30), geloescht: true);
+        aufbau.Training(nutzerId, hund, vorTagen);
+        await aufbau.Speichern();
+
+        var stand = (await dienst.GetStatusAsync(nutzerId)).Value!;
+
+        Assert.Equal(vorTagen, stand.FirstTrainingAt);
     }
 
     [Fact]

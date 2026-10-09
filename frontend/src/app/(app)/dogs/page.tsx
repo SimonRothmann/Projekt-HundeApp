@@ -4,18 +4,22 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
-import type { Dog } from "@/lib/types";
-import { Button } from "@/components/ui/button";
+import type { Dog, DogGender } from "@/lib/types";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dog as DogIcon, Plus } from "lucide-react";
+import { CircleCheck, Dog as DogIcon, Plus } from "lucide-react";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { HundEinladungen } from "@/components/dogs/hund-einladungen";
+import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
+import { GeschlechtWahl } from "@/components/dogs/geschlecht-wahl";
+import { pruefeErstenHund } from "@/lib/erststart";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 import { formatDogAge } from "@/lib/dog-age";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 import { useT } from "@/lib/i18n";
 export default function DogsPage() {
@@ -26,7 +30,18 @@ export default function DogsPage() {
   const [formWunsch, setFormWunsch] = useState<boolean | null>(null);
   const [name, setName] = useState("");
   const [breed, setBreed] = useState("");
-  const [gender, setGender] = useState<0 | 1>(0);
+  // Ohne Vorbelegung: Das Backend nimmt bei fehlender Angabe "Rüde" - eine
+  // Hündin würde sonst unbemerkt falsch angelegt. Gespeichert wird erst nach
+  // einer Auswahl.
+  const [gender, setGender] = useState<DogGender | null>(null);
+  const [versucht, setVersucht] = useState(false);
+  // Der gerade angelegte Hund: Statt still in der Liste zu bleiben, bietet die
+  // Seite den nächsten Schritt an (erstes Training, Hundeseite).
+  const [angelegt, setAngelegt] = useState<Dog | null>(null);
+  // Das Eintragen-Fenster hält seinen Hund selbst fest: Nach dem Speichern
+  // verschwindet der Hinweis, das Fenster soll aber in Ruhe zugehen können.
+  const [eintragenOffen, setEintragenOffen] = useState(false);
+  const [eintragenHund, setEintragenHund] = useState<Dog | null>(null);
   const [birthday, setBirthday] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const t = useT();
@@ -52,22 +67,27 @@ export default function DogsPage() {
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
+    setVersucht(true);
+    const eingabe = pruefeErstenHund(name, gender);
+    if (!eingabe.ok) return;
+
     setIsSubmitting(true);
     try {
-      await api.post<Dog>("/api/dogs", {
-        name,
+      const hund = await api.post<Dog>("/api/dogs", {
+        name: eingabe.name,
         breed: breed || null,
         birthday: birthday || null,
-        gender,
+        gender: eingabe.geschlecht,
         imageUrl: null,
         notes: null,
       });
       setName("");
       setBreed("");
-      setGender(0);
+      setGender(null);
+      setVersucht(false);
       setBirthday("");
       setFormWunsch(false);
-      toast.success(t("Hund angelegt."));
+      setAngelegt(hund);
       await loadDogs();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Hund konnte nicht angelegt werden."));
@@ -81,6 +101,8 @@ export default function DogsPage() {
   const activeDogs = dogs?.filter((d) => !d.archivedAt) ?? [];
   const archivedDogs = dogs?.filter((d) => d.archivedAt) ?? [];
   const showForm = formWunsch ?? dogs?.length === 0;
+  const geschlechtFehlt = versucht && gender === null;
+  const nameFehlt = versucht && name.trim() === "";
 
   function dogCard(dog: Dog, archived = false) {
     return (
@@ -107,7 +129,13 @@ export default function DogsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">{t("Meine Hunde")}</h1>
-        <Button onClick={() => setFormWunsch(!showForm)} size="sm">
+        <Button
+          onClick={() => {
+            setFormWunsch(!showForm);
+            setAngelegt(null);
+          }}
+          size="sm"
+        >
           <Plus className="size-4" />
           {t("Hund hinzufügen")}
         </Button>
@@ -115,36 +143,84 @@ export default function DogsPage() {
 
       <HundEinladungen onAngenommen={loadDogs} />
 
+      {angelegt && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="flex flex-col gap-3">
+            <p role="status" className="flex min-w-0 items-start gap-2 font-medium">
+              <CircleCheck className="mt-0.5 size-5 shrink-0 text-primary-text" aria-hidden />
+              <span className="min-w-0 [overflow-wrap:anywhere]">{t("{name} ist angelegt.", { name: angelegt.name })}</span>
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                className="h-11 min-w-0 flex-1 text-base"
+                aria-haspopup="dialog"
+                onClick={() => {
+                  setEintragenHund(angelegt);
+                  setEintragenOffen(true);
+                }}
+              >
+                {t("Erstes Training eintragen")}
+              </Button>
+              <Link
+                href={`/dogs/${angelegt.id}`}
+                className={cn(buttonVariants({ variant: "outline" }), "h-11 min-w-0 flex-1 text-base")}
+              >
+                {t("Zum Hund")}
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {eintragenHund && (
+        <EintragenSheet
+          open={eintragenOffen}
+          onOpenChange={setEintragenOffen}
+          dogId={eintragenHund.id}
+          hunde={[eintragenHund]}
+          onSaved={async () => {
+            // Das Training steht - der Hinweis hat seine Aufgabe erfüllt.
+            setAngelegt(null);
+          }}
+        />
+      )}
+
       {showForm && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">{t("Neuer Hund")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreate} className="flex flex-col gap-4">
+            <form onSubmit={handleCreate} noValidate className="flex flex-col gap-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="name">{t("Name")}</Label>
-                  <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
+                  <Input
+                    id="name"
+                    required
+                    value={name}
+                    maxLength={TEXTLAENGE.hundename}
+                    aria-invalid={nameFehlt || undefined}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                  {nameFehlt && (
+                    <p role="alert" className="text-sm text-destructive">
+                      {t("Wie heißt dein Hund?")}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="breed">{t("Rasse")}</Label>
-                  <Input id="breed" value={breed} onChange={(e) => setBreed(e.target.value)} />
+                  <Input id="breed" value={breed} maxLength={TEXTLAENGE.hundeRasse} onChange={(e) => setBreed(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="gender">{t("Geschlecht")}</Label>
-                  <Select
-                    value={gender}
-                    onValueChange={(value) => setGender(value as 0 | 1)}
-                  >
-                    <SelectTrigger id="gender">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={0}>{t("Rüde")}</SelectItem>
-                      <SelectItem value={1}>{t("Hündin")}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label id="gender">{t("Geschlecht")}</Label>
+                  <GeschlechtWahl wert={gender} onChange={setGender} labelId="gender" ungueltig={geschlechtFehlt} />
+                  {geschlechtFehlt && (
+                    <p role="alert" className="text-sm text-destructive">
+                      {t("Bitte wähle Rüde oder Hündin.")}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="birthday">{t("Geburtsdatum")}</Label>

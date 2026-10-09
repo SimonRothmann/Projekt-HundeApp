@@ -36,6 +36,7 @@ export function EintragenZeilen({
   onNeutral,
   onEntferne,
   uebungen,
+  ohneVorschlaege = false,
 }: {
   zeilen: readonly AufgeloesteZeile[];
   bewertung: Bewertung;
@@ -50,13 +51,17 @@ export function EintragenZeilen({
   onEntferne: (schluessel: string) => void;
   /** Katalog-Übungen nach Kennung - für die Bewertungskriterien. */
   uebungen: ReadonlyMap<string, Exercise>;
+  /** Weder Plan noch frühere Einheiten: Es gibt oben keine Chips, nur „Andere Übung“. */
+  ohneVorschlaege?: boolean;
 }) {
   const t = useT();
 
   if (zeilen.length === 0) {
     return (
       <p className="rounded-lg border border-dashed px-3 py-3 text-sm text-muted-foreground">
-        {t("Tippe oben auf die Übungen, die ihr gemacht habt.")}
+        {ohneVorschlaege
+          ? t("Tippe auf „Andere Übung“ und such eure Übung - beim nächsten Mal steht sie hier schon zur Auswahl.")
+          : t("Tippe oben auf die Übungen, die ihr gemacht habt.")}
       </p>
     );
   }

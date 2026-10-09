@@ -588,6 +588,7 @@ function EintragenInhalt({
           onNeutral={(schluessel) => aendereZeile(schluessel, { eigeneWerte: null })}
           onEntferne={entferneZeile}
           uebungen={uebungen}
+          ohneVorschlaege={wochen.length === 0 && !letzte && zuletzt.length === 0}
         />
 
         {mehrOffen && (

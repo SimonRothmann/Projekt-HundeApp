@@ -31,9 +31,11 @@ public class OnboardingService(IApplicationDbContext db, IUserLookupService user
         // Ziel und Training in EINER Abfrage: zwei Existenzprüfungen über
         // verschiedene Tabellen, die sich zu einer einzigen Zeile verrechnen
         // lassen. Ohne Hunde ist beides ohnehin falsch - dann entfällt die
-        // Abfrage ganz.
+        // Abfrage ganz. Statt einer Existenzprüfung fürs Training fragen wir
+        // nach dem ältesten Anlegezeitpunkt: kostet nichts extra, und "gibt es
+        // eins" ist dann schlicht "es gibt einen Zeitpunkt".
         var hatZiel = false;
-        var hatTraining = false;
+        DateTimeOffset? erstesTraining = null;
         if (hundeIds.Count > 0)
         {
             var stand = await db.Dogs
@@ -42,13 +44,16 @@ public class OnboardingService(IApplicationDbContext db, IUserLookupService user
                 .Select(g => new
                 {
                     Ziel = db.Goals.Any(z => hundeIds.Contains(z.DogId) && z.Status == GoalStatus.Active),
-                    Training = db.TrainingSessions.Any(t => hundeIds.Contains(t.DogId)),
+                    Training = db.TrainingSessions
+                        .Where(t => hundeIds.Contains(t.DogId))
+                        .Min(t => (DateTimeOffset?)t.CreatedAt),
                 })
                 .FirstOrDefaultAsync(ct);
 
             hatZiel = stand?.Ziel ?? false;
-            hatTraining = stand?.Training ?? false;
+            erstesTraining = stand?.Training;
         }
+        var hatTraining = erstesTraining is not null;
 
         // Vereins- und Gruppenzugehörigkeit in je EINER Abfrage.
         //
@@ -106,7 +111,8 @@ public class OnboardingService(IApplicationDbContext db, IUserLookupService user
             hatGruppe,
             gruppeAngefragt,
             weggeklickt,
-            fertig));
+            fertig,
+            erstesTraining));
     }
 
     public async Task<Result> DismissAsync(Guid userId, CancellationToken ct = default)

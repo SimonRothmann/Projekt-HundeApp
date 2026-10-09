@@ -23,6 +23,13 @@ namespace Dogity.Application.Onboarding;
 /// ohne diesen Unterschied stünde der Schritt offen da, obwohl der Nutzer
 /// getan hat, was er tun konnte.
 /// </param>
+/// <param name="FirstTrainingAt">
+/// Wann das älteste Training der eigenen Hunde angelegt wurde (nicht: für
+/// welchen Tag es eingetragen ist). Daran hängt die einmalige Karte "Gut
+/// gemacht! Wie geht es weiter?": Sie gilt nur kurz nach dem ersten Training -
+/// wer es vor Monaten eingetragen hat, soll sie nicht plötzlich sehen. Null,
+/// solange es kein Training gibt.
+/// </param>
 public record OnboardingStatusDto(
     bool HasDog,
     Guid? FirstDogId,
@@ -35,4 +42,5 @@ public record OnboardingStatusDto(
     bool HasGroupMembership,
     bool HasPendingGroupRequest,
     bool IsDismissed,
-    bool IsComplete);
+    bool IsComplete,
+    DateTimeOffset? FirstTrainingAt);
