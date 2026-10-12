@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "leaflet/dist/leaflet.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 @custom-variant dark (&:is(.dark *));
 /* Touch-Geräte (grober Zeiger): erlaubt "coarse:"-Utilities, um Touch-
@@ -357,4 +357,84 @@
       animation: none;
     }
   }
+}
+
+/* Karte (MapLibre): Zoomknöpfe, Maßstab, Namensnennung und Popups in den
+   Farben der App. MapLibre zeichnet sie weiß auf schwarz - auf der dunklen
+   Karte wäre das ein heller Kasten. Über die Theme-Tokens folgen sie beiden
+   Modi von selbst. Absichtlich nach dem Import und mit denselben Selektoren
+   wie dort: Bei gleicher Gewichtung gewinnt die spätere Regel. */
+.maplibregl-ctrl-group {
+  background: var(--popover);
+}
+.maplibregl-ctrl-group:not(:empty) {
+  box-shadow: 0 0 0 1px var(--border), 0 1px 3px rgb(0 0 0 / 0.25);
+}
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--border);
+}
+.maplibregl-ctrl-group button:not(:disabled):hover {
+  background-color: var(--muted);
+}
+/* Die Symbole sind dunkle Grafiken; im dunklen Modus umkehren. */
+.dark .maplibregl-ctrl-group .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+/* Auf dem Handy sind 29 px zu klein für einen Finger. */
+@media (pointer: coarse) {
+  .maplibregl-ctrl-group button {
+    width: 40px;
+    height: 40px;
+  }
+}
+/* Die Namensnennung ist Pflicht und bleibt ausgeschrieben (nicht eingeklappt).
+   Damit sie auf 375 px nicht über Zoomknöpfe und Maßstab links läuft, bricht sie
+   um, statt breiter zu werden. Die Grenze setzt der Container (links 9rem frei):
+   Er ist absolut positioniert und so breit wie sein Inhalt - ein Prozentwert am
+   Control selbst würde gegen diese Inhaltsbreite gerechnet und ließe nur eine
+   schmale Spalte übrig. Mit festem linken Rand bekommt der Container die Restbreite,
+   und das Control darin bricht an ihr um. */
+.maplibregl-ctrl-bottom-right {
+  left: 9rem;
+}
+.maplibregl-ctrl.maplibregl-ctrl-attrib {
+  background-color: color-mix(in oklch, var(--background) 80%, transparent);
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.maplibregl-ctrl-attrib a {
+  color: var(--foreground);
+}
+.maplibregl-ctrl-scale {
+  background-color: color-mix(in oklch, var(--background) 80%, transparent);
+  border-color: var(--foreground);
+  color: var(--foreground);
+}
+/* Popup beim Antippen einer Linie oder eines Punkts. Texte stammen teils von
+   Nutzer:innen (Marker-Beschriftung) und können lang sein: umbrechen. */
+.maplibregl-popup-content {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  box-shadow: 0 0 0 1px var(--border), 0 2px 6px rgb(0 0 0 / 0.25);
+}
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--popover);
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--popover);
+}
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--popover);
+}
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--popover);
 }

@@ -258,7 +258,9 @@ Bewusst so gelassen (bekannt, abgewogen):
   getrennten API-Domain ein größerer Umbau. Die letzte Voraussetzung war bis
   2026-09-28 verletzt (Marker-Beschriftung per innerHTML in Leaflet-Tooltips);
   seitdem prüft `frontend/src/lib/html-senken.test.ts` jede Stelle, an der
-  Text als HTML in die Seite geht.
+  Text als HTML in die Seite geht. Seit 2026-10-12 (MapLibre statt Leaflet)
+  zeigt die Karte Text nur noch über `Popup.setText`; `setHTML` ist dort
+  verboten.
 - `script-src 'unsafe-inline'` (Next.js-Hydration, siehe next.config.ts).
 - Registrierung und Einladen verraten, ob eine E-Mail-Adresse ein Konto hat.
   Anmelden ist gedrosselt; ohne E-Mail-Versand gibt es keinen besseren Weg.

@@ -20,6 +20,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Kopien aus node_modules (scripts/maplibre-worker.mjs), minifiziert -
+    // nicht unser Code.
+    "public/karte/maplibre-*/**",
   ]),
 ]);
 

@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-10-01 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-10-12 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -159,8 +159,8 @@ Risiko erheblich.
 
 | Stelle | Wann | Was fließt | Drittland |
 |---|---|---|---|
-| OpenStreetMap Foundation | Kartenkacheln, Standardansicht | IP-Adresse und Kartenausschnitt, direkt vom Gerät | UK (Angemessenheitsbeschluss) |
-| Esri | Kartenkacheln, nur bei aktiv gewähltem Luftbild | IP-Adresse und Kartenausschnitt, direkt vom Gerät | **USA** |
+| OpenStreetMap Foundation | Vektorkacheln der Karte (Standardansicht); das Gerät zeichnet die Karte selbst, Schriften und Symbole liefert Dogity | IP-Adresse und Kartenausschnitt, direkt vom Gerät | UK (Angemessenheitsbeschluss) |
+| Esri | Luftbild-Kacheln, nur bei aktiv gewähltem Luftbild | IP-Adresse und Kartenausschnitt, direkt vom Gerät | **USA** |
 | komoot GmbH (Photon) | Ortssuche | Suchbegriff, ggf. Umkreis-Koordinaten – **vom Server**, ohne Nutzer-IP | nein |
 | Open-Meteo | Wetter zu Ort und Zeitpunkt | Koordinaten und Datum – **vom Server**, ohne Nutzer-IP | nein |
 | Ko-fi | nur ausgehender Verweis | nichts, solange der Link nicht angeklickt wird | USA (erst nach Klick) |

@@ -6,7 +6,9 @@ import { uebersetzbar } from "@/lib/i18n/sprachen";
  * Der Stil entscheidet über das Aussehen der Karte, nicht die
  * Kartenbibliothek. Der OSM-Standardstil ist für Kartenzeichner gemacht und
  * zeigt jede Drogerie und jedes Bekleidungsgeschäft - auf einem Acker hilft
- * davon nichts.
+ * davon nichts. Die Straßenkarte ist deshalb ein eigener Stil auf den
+ * Vektorkacheln der OpenStreetMap Foundation (lib/karte/stil.ts); nur das
+ * Luftbild kommt als Rasterkachel.
  *
  * Bewusst nur Quellen OHNE Schlüssel: CARTO und Stadia sähen moderner aus,
  * liefern ohne API-Schlüssel aber ein Bild mit der Aufschrift
@@ -16,16 +18,13 @@ import { uebersetzbar } from "@/lib/i18n/sprachen";
  */
 export type KartenEbene = "strasse" | "luftbild";
 
-export const KARTEN_EBENEN: Record<
-  KartenEbene,
-  { label: string; url: string; attribution: string; maxZoom: number; abdunkelbar: boolean }
-> = {
+/** Rasterkacheln einer Ebene; null = Vektorkarte mit eigenem Stil. */
+export type RasterQuelle = { url: string; attribution: string; maxZoom: number };
+
+export const KARTEN_EBENEN: Record<KartenEbene, { label: string; raster: RasterQuelle | null }> = {
   strasse: {
     label: uebersetzbar("Straße"),
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: "&copy; OpenStreetMap-Mitwirkende",
-    maxZoom: 19,
-    abdunkelbar: true,
+    raster: null,
   },
   luftbild: {
     // Für das Fährtelegen fachlich die bessere Grundlage: Man sieht den
@@ -34,12 +33,11 @@ export const KARTEN_EBENEN: Record<
     // Straßenstil desselben Anbieters meldet dort "Map data not yet
     // available" und fällt deshalb aus.
     label: uebersetzbar("Luftbild"),
-    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attribution: "&copy; Esri, Maxar, Earthstar Geographics",
-    maxZoom: 19,
-    // Ein invertiertes Luftbild sähe aus wie ein Negativ - das Bild ist
-    // ohnehin dunkel genug.
-    abdunkelbar: false,
+    raster: {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      attribution: "&copy; Esri, Maxar, Earthstar Geographics",
+      maxZoom: 19,
+    },
   },
 };
 

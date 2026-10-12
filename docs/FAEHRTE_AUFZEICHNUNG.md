@@ -159,6 +159,11 @@ grelles Magenta.
    und es schloss, sah darunter weiter die alte Ebene. Die Karten stimmen
    sich jetzt über ein Ereignis ab.
 
+*Überholt seit 2026-10-12:* Der Filter ist durch einen echten dunklen
+Kartenstil ersetzt, siehe
+[Umstieg auf MapLibre GL](#umstieg-auf-maplibre-gl-2026-10-12). Umschalter,
+Merken im localStorage und das Ereignis zwischen den Karten gelten weiter.
+
 ---
 
 ### Gibt es einen Standard für drehbare Karten? (geprüft 2026-09-03)
@@ -226,6 +231,99 @@ Sollte die Karte einmal echte Interaktion im gedrehten Zustand brauchen -
 oder Vektorkacheln, Neigung, Beschriftungen, die sich mitdrehen -, lohnt
 sich dieser Aufwand. Für das Fährtelegen, wo die Karte ohnehin der eigenen
 Position folgt, nicht.
+
+*Überholt seit 2026-10-12:* Der Worker-Fehlschlag ist gelöst, der Aufwand
+wurde betrieben - siehe den folgenden Abschnitt.
+
+---
+
+### Umstieg auf MapLibre GL (2026-10-12)
+
+Die Gegenprobe oben endete mit "lohnt sich, sobald die Karte echte
+Interaktion im gedrehten Zustand oder Vektorkacheln braucht". Beides war der
+Fall: Beim Fährtelegen soll sich die Karte mitdrehen UND verschiebbar bleiben,
+und der Filter-Dunkelmodus sah nur mäßig aus. Die Fährtenkarte läuft deshalb
+seit diesem Tag vollständig auf MapLibre GL; Leaflet (und `leaflet.css`) ist
+raus.
+
+**Was sich ändert**
+
+- Vektorkarte aus den Shortbread-Vektorkacheln der OpenStreetMap Foundation:
+  gestochen scharf bei jeder Zoomstufe, beim Hineinzoomen kaum Nachladen.
+- Zwei eigene Stile (hell/dunkel) statt Invertier-Filter - ein echter
+  Dunkelstil, abgestimmt auf den App-Hintergrund.
+- Drehung in Laufrichtung nativ per `bearing`. Ziehen und Zoomen bleiben in
+  allen Ausrichtungen aktiv; das abgeschaltete Ziehen entfällt. Die Kompassnadel
+  zeigt jetzt in jedem Modus nach Norden (sie drehte vorher fälschlich auch im
+  Nord-Modus mit der Peilung).
+- Eingebettete Karten (Hundeseite) nutzen *kooperative Gesten*: Ein Finger
+  scrollt die Seite, die Karte verschiebt und zoomt man mit zwei Fingern. Im
+  Vollbild der Aufzeichnung ist das aus. Die Hinweistexte sind übersetzt.
+- Antippen einer Linie oder eines Punkts zeigt ein Popup (`Popup.setText`,
+  nie `setHTML` - `html-senken.test.ts` verbietet es). Trefferfläche ±12 px.
+- Maßstab in Metern unten links, daneben Zoomknöpfe. Die Namensnennung bleibt
+  ausgeschrieben (Lizenzpflicht).
+- Ohne WebGL2, oder wenn die Karte nicht erzeugt werden kann, steht ein ruhiger
+  Hinweis in der Kartenfläche. Die Aufzeichnung selbst hängt nicht an der
+  Karte und läuft weiter.
+
+**Größe:** rund +250 KB gzip, aber nur auf Seiten mit Karte. Danach liegen
+Worker, Schriften und Symbole im Service-Worker-Cache (cache-first für
+`/karte/maplibre-`, `/karte/schriften/`, `/karte/symbole/`; wer Schriften oder
+Symbole austauscht, erhöht `CACHE_NAME` in `public/sw.js`).
+
+**Wie der Worker jetzt läuft.** Der Grund des alten Fehlschlags war die leere
+Worker-Adresse: MapLibre leitet sie aus `import.meta.url` ab, und die ist unter
+dem Bundler keine http-Adresse. Das Rezept, im Produktionsbau in Chromium und
+iOS-Safari (Simulator) nachgewiesen:
+
+1. `scripts/maplibre-worker.mjs` kopiert `maplibre-gl-worker.mjs` und
+   `maplibre-gl-shared.mjs` aus `node_modules/maplibre-gl/dist` nach
+   `public/karte/maplibre-<Version>/` (und löscht andere `maplibre-*`-Ordner).
+   Die Dateien sind eingecheckt, es gibt keinen `prebuild`-Hook.
+2. Vor dem ersten `new Map` ruft die Karte einmal je Seite
+   `setWorkerUrl(location.origin + "/karte/maplibre-" + getVersion() + "/maplibre-gl-worker.mjs")`.
+   Absolut und vom eigenen Ursprung: MapLibre startet ihn dann als
+   Modul-Worker ohne Blob. Deshalb bleibt `worker-src 'self'`, ein `blob:` ist
+   nicht nötig.
+3. `src/lib/karte/karten-dateien.test.ts` scheitert, wenn die Kopien nicht zur
+   installierten Version passen - nach einem Update von `maplibre-gl` also
+   `npm run maplibre-worker` ausführen.
+
+**CSP.** `connect-src` kennt `vector.openstreetmap.org` und
+`server.arcgisonline.com` (MapLibre holt Kacheln per `fetch` im Worker, auch das
+Esri-Luftbild; beide senden `access-control-allow-origin: *`).
+`style-src 'unsafe-inline'` gilt jetzt wegen MapLibres Inline-Styles an
+Markern, Popups und Canvas; `img-src https:` bleibt wegen der Avatare.
+
+**Stile und Paletten.** `scripts/karten-stile.mjs` erzeugt
+`public/karte/stil-hell.json` und `stil-dunkel.json` aus `@versatiles/style`
+(nur Entwicklungsabhängigkeit; `npm run karten-stile`, `--pruefen` scheitert bei
+veralteten Dateien und läuft im Test mit). Die Paletten sind eigene: Die fertigen
+von VersaTiles - und damit die von Home Assistant - zeichnen Acker, Wiese und
+Feldweg in fast demselben Hellbeige. In der Stadt ruhig, auf dem Übungsgelände
+aber genau das, was man sehen will, verschwunden. Hier sind Acker, Wiese und
+Wald klar getrennt und Feldwege sichtbar. Die Stile verweisen auf das TileJSON
+der OSMF; wohin Kacheln gehen, ist damit eine Zeile im Skript.
+
+**Schriften und Symbole** liefert Dogity selbst aus (`public/karte/schriften/`,
+Noto Sans, OFL; `public/karte/symbole/`, CC0; Herkunft in
+`public/karte/HERKUNFT.txt`). Kein weiterer Dienst sieht IP-Adressen, und
+offline reicht der Cache.
+
+**Aufbau im Code.** Die Komponente `track-map.tsx` bleibt dünn, die Logik liegt
+testbar unter `src/lib/karte/`: `stil.ts` (Stilauswahl, Laden, absolute
+Adressen, Luftbild-Stil), `spur-daten.ts` (Fährte als GeoJSON, Farben und
+Texte), `spur-ebenen.ts` (Quellen und Ebenen), `peilung.ts` (Mindestabstand,
+Glättung). Live-Takt: nur `setData` auf die betroffenen Quellen,
+die Karte wird nie neu erzeugt. Nach jedem Stilwechsel (`style.load`) legt sie
+ihre Quellen und Ebenen idempotent neu an, mit dem aktuellen Stand.
+
+**Peilung unverändert:** Die Berechnung ist 1:1 die frühere: vom jüngsten
+früheren Punkt, der mindestens 3 m entfernt liegt, zum neuesten; danach
+exponentielle Glättung. Die frühere Konstante für ein Fenster von fünf Punkten
+hatte nie eine Wirkung (die Rückwärtssuche überschrieb den Startwert sofort)
+und ist entfallen.
 
 ---
 

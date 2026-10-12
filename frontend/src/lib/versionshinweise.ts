@@ -61,6 +61,29 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.24",
+    datum: "2026-10-12",
+    titel: uebersetzbar("Neue Karte für Fährten"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Karte ist neu: gestochen scharf bei jeder Zoomstufe, mit einem echten dunklen Stil, und Acker, Wiese, Wald und Feldwege sind klar zu unterscheiden. Unten links zeigt ein Maßstab die Meter."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Beim Legen und Ablaufen dreht sich die Karte in Laufrichtung - du kannst sie dabei trotzdem verschieben und zoomen. Mit dem Kompass schaltest du wie gewohnt auf „Nord oben“."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("In Karten auf der Hundeseite verschiebst und zoomst du mit zwei Fingern; mit einem Finger scrollst du einfach die Seite weiter. Ein Tipp auf eine Linie oder einen Punkt zeigt, was er bedeutet."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Beim Hineinzoomen lädt die Karte kaum noch nach - hilfreich bei schlechtem Empfang auf dem Platz."),
+      },
+    ],
+  },
+  {
     version: "0.23",
     datum: "2026-10-09",
     titel: uebersetzbar("Weniger tippen beim Eintragen"),

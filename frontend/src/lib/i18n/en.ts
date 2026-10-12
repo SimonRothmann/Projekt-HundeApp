@@ -11,6 +11,21 @@
  * nach der BH.
  */
 export const EN: Record<string, string> = {
+  "Neue Karte für Fährten": "A new map for tracks",
+  "Die Karte ist neu: gestochen scharf bei jeder Zoomstufe, mit einem echten dunklen Stil, und Acker, Wiese, Wald und Feldwege sind klar zu unterscheiden. Unten links zeigt ein Maßstab die Meter.": "The map is new: razor sharp at every zoom level, with a true dark style, and fields, meadows, woods and farm tracks are easy to tell apart. A scale at the bottom left shows the metres.",
+  "Beim Legen und Ablaufen dreht sich die Karte in Laufrichtung - du kannst sie dabei trotzdem verschieben und zoomen. Mit dem Kompass schaltest du wie gewohnt auf „Nord oben“.": "While laying and following a track, the map turns in your direction of travel – and you can still move and zoom it. As usual, the compass switches to “North up”.",
+  "In Karten auf der Hundeseite verschiebst und zoomst du mit zwei Fingern; mit einem Finger scrollst du einfach die Seite weiter. Ein Tipp auf eine Linie oder einen Punkt zeigt, was er bedeutet.": "On maps in the dog's page you move and zoom with two fingers; with one finger you simply keep scrolling the page. Tapping a line or a point shows what it means.",
+  "Beim Hineinzoomen lädt die Karte kaum noch nach - hilfreich bei schlechtem Empfang auf dem Platz.": "When you zoom in, the map hardly has to load anything more – helpful with poor reception on the training field.",
+  "Die Karte lässt sich auf diesem Gerät nicht anzeigen.": "The map cannot be shown on this device.",
+  "Die Karte konnte nicht geladen werden.": "The map could not be loaded.",
+  "Namensnennung ein- oder ausblenden": "Show or hide attribution",
+  "Mit Strg + Scrollen zoomst du die Karte": "Use Ctrl + scroll to zoom the map",
+  "Mit ⌘ + Scrollen zoomst du die Karte": "Use ⌘ + scroll to zoom the map",
+  "Mit zwei Fingern verschiebst du die Karte": "Use two fingers to move the map",
+  "Karte": "Map",
+  "Hineinzoomen": "Zoom in",
+  "Herauszoomen": "Zoom out",
+  "Hinweis schließen": "Close hint",
   "Schneller zum Training, klarere Anmeldung": "Faster to training, clearer sign-in",
   "Auf der Startseite stehen „Training erfassen“ und „Fährte legen“ jetzt gleich unter der Begrüßung - auch mit mehreren Hunden musst du nicht mehr nach unten scrollen.": "On the home page, “Log a session” and “Lay the track” now sit right under the greeting – even with several dogs you no longer have to scroll down.",
   "Wer noch keinen Hund hat, bekommt unter „Meine Hunde“ gleich das offene Formular zum Anlegen. Der Hinweis zum Installieren der App liegt nicht mehr über der unteren Leiste, lässt sich bequem wegtippen und kommt dann nicht wieder.": "If you do not have a dog yet, “My dogs” opens the form to add one right away. The hint to install the app no longer covers the bottom bar, is easy to dismiss, and does not come back after that.",

@@ -28,6 +28,8 @@ import { TEXTLAENGE } from "@/lib/textlaengen";
 // Stabile Leerreferenz für den Idle-Fall (keine Aufzeichnung läuft) - siehe
 // onLivePointsChange-Effect. Ein Inline-[] wäre bei jedem Render neu.
 const EMPTY_WALK_POINTS: GpsWalkPoint[] = [];
+// Ebenso für die Karte: Ein neues [] je Rendern ließe sie ihre Daten neu setzen.
+const KEINE_PUNKTE: GpsPoint[] = [];
 
 function toWalkPoint(position: GeolocationPosition): GpsWalkPoint {
   return {
@@ -285,7 +287,7 @@ export function WalkRunRecorder({
       onAbschluss={stopRecording}
       onAbbrechen={abbrechen}
     >
-      <TrackMap points={laidTrackPoints ?? []} liveWalkRunPoints={points} fill />
+      <TrackMap points={laidTrackPoints ?? KEINE_PUNKTE} liveWalkRunPoints={points} fill />
     </AufzeichnungVollbild>
   );
 }

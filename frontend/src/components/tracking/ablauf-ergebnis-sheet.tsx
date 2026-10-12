@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ApiError } from "@/lib/api";
 import type { GpsPoint, GpsWalkRun } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,10 @@ export function AblaufErgebnisSheet({
   }
 
   const ausgewertet = run.evaluatedAt != null && run.avgDeviationMeters != null;
+  // Stabile Liste: Ein neues Array je Rendern (jeder Tastendruck im
+  // Kommentarfeld) ließe die Karte ihre Daten neu setzen und den Ausschnitt
+  // zurückspringen, den man mit dem Finger gewählt hat.
+  const laufListe = useMemo(() => [run], [run]);
 
   return (
     <Sheet open onOpenChange={(offen) => !offen && void schliessen()}>
@@ -116,7 +120,7 @@ export function AblaufErgebnisSheet({
           )}
 
           {laidTrackPoints && laidTrackPoints.length > 0 && (
-            <TrackMap points={laidTrackPoints} walkRuns={[run]} />
+            <TrackMap points={laidTrackPoints} walkRuns={laufListe} />
           )}
 
           <div className="flex flex-col gap-1.5">

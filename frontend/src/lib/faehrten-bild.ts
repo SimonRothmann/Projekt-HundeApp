@@ -139,7 +139,7 @@ export function ampelStufe(abweichungMeter: number): Ampel {
   return "rot";
 }
 
-/** Dieselben Farben wie die Ablauflinie auf der Karte (track-map.tsx). */
+/** Dieselben Farben wie die Ablauflinie auf der Karte (DEVIATION_COLORS in lib/karte/spur-daten.ts). */
 export const AMPEL_FARBEN: Record<Ampel, string> = { gruen: "#16a34a", gelb: "#d97706", rot: "#dc2626" };
 
 export type Linienstueck = {

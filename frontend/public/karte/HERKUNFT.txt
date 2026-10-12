@@ -1,0 +1,17 @@
+Herkunft der Kartendateien in diesem Ordner
+
+stil-hell.json, stil-dunkel.json
+  Erzeugt mit scripts/karten-stile.mjs aus @versatiles/style (MIT-Lizenz,
+  https://github.com/versatiles-org/versatiles-style). Kartendaten:
+  (c) OpenStreetMap-Mitwirkende, ODbL, über die Vektorkacheln der
+  OpenStreetMap Foundation.
+
+schriften/
+  Noto Sans als Glyphen-Dateien aus versatiles-fonts v3.0.0
+  (https://github.com/versatiles-org/versatiles-fonts). Lizenz: SIL Open
+  Font License 1.1, siehe schriften/OFL.txt. Nur die Zeichenbereiche für
+  lateinische, griechische und kyrillische Schrift samt Satzzeichen.
+
+symbole/
+  Symbolbogen "base" aus versatiles-style v6.3.1 (sprites.tar.gz),
+  CC0 1.0 (gemeinfrei).

@@ -1,122 +1,147 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
+import type { Map as KartenObjekt, Marker, Popup } from "maplibre-gl";
+import { Map as KartenSymbol, Satellite } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { EBENE_GEAENDERT, KARTEN_EBENEN, ebeneMerken, gespeicherteEbene, type KartenEbene } from "@/lib/karten-ebenen";
 import type { GpsWalkRun } from "@/lib/types";
-import { bearingDegrees } from "@/lib/geo";
-import { Map, Satellite } from "lucide-react";
-
 import { useT } from "@/lib/i18n";
-import { uebersetzbar } from "@/lib/i18n/sprachen";
-import { alsHtmlText } from "@/lib/html-text";
 import { AMBER_MAX_M, GREEN_MAX_M } from "@/components/tracking/walk-run-evaluation";
-/// <reference types="leaflet" />
-
-// Kompatibel zu sowohl GpsPoint (pointType/label gesetzt) als auch
-// GpsWalkPoint (kennt beide Felder nicht - zählt dann automatisch als
-// "automatischer Punkt", siehe pointType !== 1 unten).
-type MapPoint = { latitude: number; longitude: number; pointType?: number; label?: string | null; markerType?: number };
-
-// Eigene Farbe pro Ablauf-Versuch, damit mehrere Wiederholungen auf der
-// Karte unterscheidbar bleiben (zyklisch wiederverwendet, falls mehr
-// Versuche als Farben vorhanden sind). Gilt für den gerade laufenden und für
-// noch nicht ausgewertete Abläufe.
-//
-// Nur kühle Blau- und Türkistöne: Violett lag zu nah am Magenta der Legung,
-// Rot mitten in der Ampel der Auswertung - beides hätte genau die
-// Verwechslung zurückgebracht, die die Farbordnung verhindern soll.
-const WALK_RUN_COLORS = ["#3b82f6", "#14b8a6", "#6366f1", "#06b6d4"];
-
-// Fester Farbwert statt einer Theme-CSS-Variable: Leaflet setzt "color" als
-// reines SVG-Attribut (stroke="..."), nicht als CSS-Eigenschaft - var(...)
-// wird in einem XML-Attribut nicht aufgelöst, die Linie blieb dadurch
-// unsichtbar (nur Kacheln/Marker waren zu sehen).
-//
-// Bewusst KEIN Ampelton mehr: die Legung war bis hierher im selben Grün
-// gezeichnet wie ein sauber gelaufener Ablauf (DEVIATION_COLORS.green). Auf
-// der Karte lagen dann zwei gleich grüne Linien übereinander, und was Legung
-// und was Ablauf war, ließ sich nicht mehr auseinanderhalten. Die Legung ist
-// auch keine Bewertung, sondern die Bezugslinie, an der gemessen wird - sie
-// gehört deshalb gar nicht in die Ampelskala.
-//
-// Magenta mit dunkler Fassung. Der erste Versuch - dunkler Kern, helle
-// Fassung - war auf Test kaum zu sehen: auf dem Luftbild und auf den im Dark
-// Mode invertierten Kacheln verschwand der dunkle Kern im Untergrund, übrig
-// blieb ein dünner heller Doppelrand. Die Last muss der Kern tragen, nicht
-// die Fassung. Magenta kommt in keinem Untergrund vor (weder Wiese, Acker
-// noch Wald), ist in keiner Ampel und in keiner Ablauf-Farbe - und ist die
-// übliche Farbe für die vorgegebene Route (Garmin, Luftfahrt-Navigation).
-// Die dunkle Fassung trägt nur auf hellen Straßenkacheln etwas bei.
-const TRACK_LINE_COLOR = "#e11dde";
-const TRACK_CASING_COLOR = "#1e1b2e";
-
-// Ampelfarben für die Abweichung der Ablauf-Linie. Die Schwellen sind die der
-// Auswertung (walk-run-evaluation.tsx, identisch zum GpsTrackEvaluator im
-// Backend) - dieselben Zahlen, damit Karte, Auswertung und Fährtenbild nie
-// verschiedene Farben für denselben Ablauf zeigen.
-const DEVIATION_COLORS = { green: "#16a34a", amber: "#d97706", red: "#dc2626" } as const;
-
-function deviationColor(meters: number | null | undefined): string | null {
-  if (meters == null) return null;
-  if (meters <= GREEN_MAX_M) return DEVIATION_COLORS.green;
-  if (meters <= AMBER_MAX_M) return DEVIATION_COLORS.amber;
-  return DEVIATION_COLORS.red;
-}
-
-// Beschriftung manueller Marker nach fachlicher Bedeutung (GpsMarkerType).
-const MARKER_LABELS = [
-  uebersetzbar("Gegenstand"),
-  uebersetzbar("Leckerlipot"),
-  uebersetzbar("Verleitung"),
-  uebersetzbar("Marker"),
-] as const;
-const MARKER_COLORS = ["orange", "#a855f7", "#0ea5e9", "#94a3b8"] as const;
-
-// Stockungen: unerklärt = Warnsignal (rot), Verweisen am Gegenstand = gut
-// (grün), erklärt/neutral (grau).
-const STOP_COLORS = ["#dc2626", "#16a34a", "#94a3b8"] as const;
-const STOP_LABELS = [uebersetzbar("Unerklärte Stockung"), uebersetzbar("Verweisen"), uebersetzbar("Halt (erklärt)")] as const;
+import { kartenTexte } from "@/lib/karte/kartentexte";
+import { glaettePeilung, naechsteAusrichtung, rohePeilung, zielPeilung, type Ausrichtung } from "@/lib/karte/peilung";
+import {
+  DEVIATION_COLORS,
+  TRACK_CASING_COLOR,
+  TRACK_LINE_COLOR,
+  WALK_RUN_COLORS,
+  ablaufDaten,
+  kartenGrenzen,
+  legungDaten,
+  leer,
+  liveAblaufDaten,
+  type KartenPunkt,
+} from "@/lib/karte/spur-daten";
+import {
+  TIPPBARE_EBENEN,
+  datenAnwenden,
+  ebenenAnlegen,
+  leererDatensatz,
+  type SpurDatensatz,
+} from "@/lib/karte/spur-ebenen";
+import { stilLaden, stilWaehlen } from "@/lib/karte/stil";
+import { webgl2Verfuegbar } from "@/lib/karte/webgl";
 
 // Schrittgeschwindigkeit, kurze Distanzen - ein nahes Zoom-Level zeigt
 // einzelne Abbiegungen deutlich, statt die ganze (noch kurze) Strecke winzig
-// in der Bildmitte darzustellen.
-const LIVE_INITIAL_ZOOM = 18;
+// in der Bildmitte darzustellen. MapLibre-Zoom ist der von Leaflet minus 1:
+// 17 hier entspricht dem früheren 18.
+const LIVE_INITIAL_ZOOM = 17;
 
-// Für die Peilungs-Berechnung (Karte in Laufrichtung drehen) werden nicht
-// nur die letzten zwei Punkte genommen: bei geringer Schrittgeschwindigkeit
-// liegen aufeinanderfolgende Punkte oft nur wenige Meter auseinander und die
-// gemessene Richtung springt durch GPS-Rauschen wild um. Peilung über ein
-// größeres Fenster mittelt das aus. Mindestabstand verhindert zusätzlich
-// Sprünge im Stillstand.
-const BEARING_WINDOW_POINTS = 5;
-const BEARING_MIN_DISTANCE_M = 3;
-// EMA-Glättung für die Rotation selbst: harte Sprünge in der Kartenanzeige
-// wirken schwindelerregend. α klein = langsam nachdrehen, aber ruhig.
-const HEADING_SMOOTH_ALPHA = 0.2;
+// Wie weit neben einer Linie oder einem Punkt ein Tipp noch trifft. Die Linien
+// sind 4 px schmal, ein Finger ist es nicht.
+const TREFFER_RADIUS_PX = 12;
+
+// Das Nachführen der Karte zur eigenen Position: lang genug, dass es nicht
+// ruckelt, kürzer als der GPS-Takt, damit es nicht hinterherhinkt.
+const NACHFUEHR_DAUER_MS = 600;
+
+// Eigene Konstante statt eines Standardwerts []: Der wäre bei jedem Rendern ein
+// neues Array, und jeder Effekt, der von walkRuns abhängt, liefe jedes Mal.
+const KEINE_ABLAEUFE: GpsWalkRun[] = [];
+
+// MapLibre startet seinen Web Worker nicht von selbst: Es leitet dessen
+// Adresse aus import.meta.url ab, und die ist unter dem Bundler keine
+// http-Adresse - der Worker startet nie, die Karte bleibt leer, ohne dass ein
+// Fehler fällt. Deshalb zeigen wir auf die mitgelieferten Dateien
+// (public/karte/maplibre-<Version>/, kopiert von scripts/maplibre-worker.mjs).
+// Absolut und vom eigenen Ursprung, dann startet MapLibre ihn als Modul-Worker
+// ohne Blob. Einmal je Seite genügt.
+let workerEingerichtet = false;
+function workerEinrichten(maplibre: typeof import("maplibre-gl")): void {
+  if (workerEingerichtet) return;
+  maplibre.setWorkerUrl(`${location.origin}/karte/maplibre-${maplibre.getVersion()}/maplibre-gl-worker.mjs`);
+  workerEingerichtet = true;
+}
 
 /**
- * Rendert eine Fährte auf einer OpenStreetMap-Karte (kostenlos, kein API-Key
- * nötig - siehe COST STRATEGY.md "Ziel: 0-10€ monatlich"). Leaflet wird
- * dynamisch importiert, da es auf `window`/`document` zugreift und daher
- * nicht serverseitig gerendert werden darf. Optional werden Ablauf-Versuche
- * (siehe FahrteRecorder "Fährte erneut ablaufen") als zusätzliche Linien
- * zum Vergleich mit der gelegten Fährte eingezeichnet.
+ * Der oberste antippbare Text an dieser Stelle, mit großzügiger Trefferfläche.
+ * queryRenderedFeatures liefert das oberste Feature zuerst.
+ */
+function textAn(map: KartenObjekt, x: number, y: number): string | null {
+  const ebenen = TIPPBARE_EBENEN.filter((id) => map.getLayer(id));
+  if (ebenen.length === 0) return null;
+  const treffer = map.queryRenderedFeatures(
+    [
+      [x - TREFFER_RADIUS_PX, y - TREFFER_RADIUS_PX],
+      [x + TREFFER_RADIUS_PX, y + TREFFER_RADIUS_PX],
+    ],
+    { layers: ebenen },
+  );
+  const text = treffer[0]?.properties?.text;
+  return typeof text === "string" ? text : null;
+}
+
+/**
+ * Der Richtungspfeil an der eigenen Position, als SVG-Element gebaut (kein
+ * innerHTML - siehe html-senken.test.ts). Die Spitze zeigt nach oben; gedreht
+ * wird über Marker.setRotation, nicht hier.
+ */
+function pfeilElement(farbe: string): HTMLElement {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "28");
+  svg.setAttribute("height", "28");
+
+  const kreis = document.createElementNS(ns, "circle");
+  kreis.setAttribute("cx", "12");
+  kreis.setAttribute("cy", "12");
+  kreis.setAttribute("r", "10");
+  kreis.setAttribute("fill", farbe);
+  kreis.setAttribute("fill-opacity", "0.25");
+
+  const spitze = document.createElementNS(ns, "polygon");
+  spitze.setAttribute("points", "12,3 18,20 12,16 6,20");
+  spitze.setAttribute("fill", farbe);
+  spitze.setAttribute("stroke", "white");
+  spitze.setAttribute("stroke-width", "1");
+
+  svg.append(kreis, spitze);
+  const huelle = document.createElement("div");
+  // Der Pfeil soll Tipps und Ziehen nicht abfangen.
+  huelle.style.pointerEvents = "none";
+  huelle.append(svg);
+  return huelle;
+}
+
+/**
+ * Rendert eine Fährte auf einer Karte aus OpenStreetMap-Vektorkacheln
+ * (kostenlos, kein API-Key nötig - siehe COST STRATEGY.md "Ziel: 0-10€
+ * monatlich"). MapLibre GL wird dynamisch importiert, da es auf
+ * `window`/`document` zugreift und daher nicht serverseitig gerendert werden
+ * darf. Optional werden Ablauf-Versuche (siehe FahrteRecorder "Fährte erneut
+ * ablaufen") als zusätzliche Linien zum Vergleich mit der gelegten Fährte
+ * eingezeichnet.
  *
- * Mit `live` Karte einmalig erzeugen und bei neuen Punkten nur die Layer
- * aktualisieren (statt komplett neu aufzubauen) - damit ruckelt die Karte
- * nicht bei jedem GPS-Tick während einer laufenden Aufnahme. Zusätzlich
- * folgt die Kartenmitte per `panTo` dem aktuellen Standort, ohne den vom
- * Nutzer gewählten Zoom zu verändern.
+ * Die Karte wird genau einmal erzeugt. Neue Punkte (live) schreiben nur in die
+ * Datenquellen - damit ruckelt nichts bei jedem GPS-Tick einer laufenden
+ * Aufnahme. Zusätzlich folgt die Kartenmitte dem aktuellen Standort, ohne den
+ * vom Nutzer gewählten Zoom zu verändern.
+ *
+ * Die Aufzeichnung hängt nicht an dieser Karte: Sie liest den GPS-Strom selbst
+ * und reicht nur die Punkte herein. Kann die Karte nicht gezeichnet werden,
+ * läuft die Aufzeichnung unverändert weiter.
  */
 export function TrackMap({
   points,
-  walkRuns = [],
+  walkRuns = KEINE_ABLAEUFE,
   live = false,
   liveWalkRunPoints,
   fill = false,
 }: {
-  points: MapPoint[];
+  points: KartenPunkt[];
   walkRuns?: GpsWalkRun[];
   live?: boolean;
   // Punkte eines aktuell laufenden Ablauf-Versuchs. Wenn gesetzt und nicht
@@ -124,7 +149,7 @@ export function TrackMap({
   // Rotation, Kompass) UND zeigt weiter die Legung + historische Abläufe -
   // der neue Versuch entsteht dabei live in derselben Karte, statt in einer
   // zweiten daneben.
-  liveWalkRunPoints?: MapPoint[];
+  liveWalkRunPoints?: KartenPunkt[];
   // Füllt die Fläche des Elternelements statt der festen Höhe von 256 px.
   // Gebraucht für die Vollbildaufzeichnung, wo die Karte den ganzen
   // verbleibenden Platz bekommt.
@@ -135,42 +160,67 @@ export function TrackMap({
   // oder weil ein Ablauf-Versuch mitten in der Aufzeichnung ist.
   const hasLiveWalkRun = !!(liveWalkRunPoints && liveWalkRunPoints.length > 0);
   const isLive = live || hasLiveWalkRun;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<import("leaflet").Map | null>(null);
-  const leafletRef = useRef<typeof import("leaflet") | null>(null);
-  const layerGroupRef = useRef<import("leaflet").LayerGroup | null>(null);
-  const hasSetInitialViewRef = useRef(false);
-  const [mapReady, setMapReady] = useState(false);
 
-  // Kantenlänge der Drehfläche (siehe unten): die Diagonale des Rahmens.
+  // Das Element, das MapLibre übernimmt. Sein className ist KONSTANT: MapLibre
+  // setzt eigene Klassen darauf, und schriebe React das Attribut nach einer
+  // Änderung neu, gingen sie verloren.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<KartenObjekt | null>(null);
+  const maplibreRef = useRef<typeof import("maplibre-gl") | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  // "geraet": kein WebGL2, oder die Karte ließ sich nicht erzeugen - ein
+  // neuer Versuch ändert daran nichts. "laden": Kartenbibliothek oder Stil
+  // kamen nicht an, auf dem Platz bei schlechtem Empfang der wahrscheinliche
+  // Fall; dafür gibt es "Erneut versuchen" (zählt versuch hoch und erzeugt
+  // die Karte neu).
+  const [kartenFehler, setKartenFehler] = useState<"geraet" | "laden" | null>(null);
+  const [versuch, setVersuch] = useState(0);
+
+  // Werte, die nur beim Erzeugen der Karte gelten.
+  const anfangRef = useRef({ fill, t });
+
+  // Aktueller Stand der Quellen. Neue Daten gehen hierher UND in die Karte;
+  // nach einem Stilwechsel füllt ebenenAnlegen die frischen Quellen aus dem
+  // Stand statt aus dem, womit die Karte einmal erzeugt wurde.
+  const datenRef = useRef<SpurDatensatz>(leererDatensatz());
+
+  const hasSetInitialViewRef = useRef(false);
+  // Ob schon grob auf den Standort zentriert wurde (siehe Effect unten).
+  const hatGrobeZentrierungRef = useRef(false);
+  const smoothedHeadingRef = useRef<number | null>(null);
+  const letzterPunktRef = useRef<string | null>(null);
+  const pfeilRef = useRef<Marker | null>(null);
+  const pfeilFarbeRef = useRef<string | null>(null);
+  const popupRef = useRef<Popup | null>(null);
+  const nadelRef = useRef<SVGSVGElement>(null);
+
   // Kartenhintergrund. Der Anfangswert wird erst nach dem Einhängen gelesen -
   // beim Serverrendern gibt es keinen localStorage, und ein abweichender
   // erster Wert würde die Hydration stören.
   const [ebene, setEbene] = useState<KartenEbene>("strasse");
-  const kachelEbeneRef = useRef<import("leaflet").TileLayer | null>(null);
-  // Eindeutige Kennung dieser Karte. Gebraucht, um die Stilregeln unten auf
-  // GENAU DIESE Karte zu begrenzen: Auf einer Seite können mehrere Karten
-  // liegen - das Vollbild der Aufzeichnung und die Karten der bisherigen
-  // Fährten in der Historie. Eine seitenweite Regel wie
-  // ".leaflet-tile-pane { filter: … }" greift auf alle durch; das Luftbild im
-  // Vollbild wurde dadurch von der dunklen Straßenkarte im Hintergrund
-  // invertiert und sah aus wie ein Negativ.
-  const kartenId = `karte-${useId().replace(/:/g, "")}`;
   const { resolvedTheme } = useTheme();
-  // Nur der Straßenstil wird abgedunkelt; ein invertiertes Luftbild sähe aus
-  // wie ein Negativ.
-  const dunkel = resolvedTheme === "dark" && KARTEN_EBENEN[ebene].abdunkelbar;
+  // Der tatsächlich aktive Modus. Solange next-themes ihn noch nicht kennt,
+  // gilt die Klasse am <html>: Sonst startete die dunkle App mit dem hellen
+  // Stil und wechselte erst einen Moment später.
+  const dunkel =
+    resolvedTheme !== undefined
+      ? resolvedTheme === "dark"
+      : typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  const stilName = stilWaehlen(ebene, dunkel);
+  const dunkelRef = useRef(dunkel);
+  // Welcher Stil gerade auf der Karte liegt, und welche Anfrage die neueste ist.
+  const angewandterStilRef = useRef<string | null>(null);
+  const stilAnfrageRef = useRef(0);
+
+  useEffect(() => {
+    dunkelRef.current = dunkel;
+  }, [dunkel]);
 
   function ebeneWechseln() {
     const naechste: KartenEbene = ebene === "strasse" ? "luftbild" : "strasse";
     setEbene(naechste);
     ebeneMerken(naechste);
   }
-
-  const rahmenRef = useRef<HTMLDivElement | null>(null);
-  const [kantenlaenge, setKantenlaenge] = useState(0);
-  // Ob schon grob auf den Standort zentriert wurde (siehe Effect unten).
-  const hatGrobeZentrierungRef = useRef(false);
 
   // Gespeicherte Ebene erst hier lesen, siehe oben - und auf Wechsel in
   // anderen Karten derselben Seite hören.
@@ -183,60 +233,17 @@ export function TrackMap({
     return () => window.removeEventListener(EBENE_GEAENDERT, beiWechsel);
   }, []);
 
-  // Ebene wechseln: alte Kachelschicht entfernen, neue setzen.
-  useEffect(() => {
-    const map = mapRef.current;
-    const L = leafletRef.current;
-    if (!map || !L) return;
-
-    const gewaehlt = KARTEN_EBENEN[ebene];
-    kachelEbeneRef.current?.remove();
-    kachelEbeneRef.current = L.tileLayer(gewaehlt.url, {
-      attribution: gewaehlt.attribution,
-      maxZoom: gewaehlt.maxZoom,
-    }).addTo(map);
-    // Unter die Spur legen, nicht darüber.
-    kachelEbeneRef.current.bringToBack();
-  }, [ebene, mapReady]);
-
-  // Rahmen messen: Die Drehfläche muss so groß sein wie die Diagonale, sonst
-  // deckt sie bei schrägem Winkel ihren eigenen Ausschnitt nicht mehr ab.
-  // Leaflet muss danach seine Größe neu bestimmen, sonst rechnet es weiter
-  // mit den alten Maßen und die Karte sitzt versetzt.
-  useEffect(() => {
-    const rahmen = rahmenRef.current;
-    if (!rahmen) return;
-
-    const messen = () => {
-      const { width, height } = rahmen.getBoundingClientRect();
-      const diagonale = Math.ceil(Math.hypot(width, height));
-      setKantenlaenge((vorher) => (vorher === diagonale ? vorher : diagonale));
-    };
-
-    messen();
-    const beobachter = new ResizeObserver(messen);
-    beobachter.observe(rahmen);
-    return () => beobachter.disconnect();
-  }, []);
-
   // Kartenausrichtung: nur im Live-Modus umschaltbar; Nutzer kann per
-  // Kompass-Button zwischen den drei Modi zyklen.
-  // - "north-arrow": Nord oben, Richtungspfeil an der eigenen Position
-  //   (klassisch, wie Google Maps 'North Up' - keine dreh-bedingten Glitches)
-  // - "heading": Karte selbst in Fahrtrichtung gedreht (klassischer Navi-Modus)
-  // - "north": Nord oben ohne Zusatzpfeil (statische Ansicht)
-  type OrientationMode = "north-arrow" | "heading" | "north";
+  // Kompass-Button zwischen den drei Modi zyklen. Gezogen und gezoomt werden
+  // kann in jedem Modus - gedreht wird allein hierüber.
   // Während der Aufzeichnung dreht die Karte standardmäßig mit der
   // Laufrichtung. Vorher stand hier "north-arrow" - der Modus war also
   // vorhanden, aber hinter dem Kompass-Knopf versteckt, und wer ihn nicht
   // fand, lief mit fest nach Norden ausgerichteter Karte über den Acker.
   // Die drei Modi bleiben, nur die Voreinstellung wechselt.
-  const [orientation, setOrientation] = useState<OrientationMode>(isLive ? "heading" : "north");
-  const [headingDeg, setHeadingDeg] = useState(0);
-  const smoothedHeadingRef = useRef<number | null>(null);
-
-  const rotateWithHeading = orientation === "heading";
+  const [orientation, setOrientation] = useState<Ausrichtung>(isLive ? "heading" : "north");
   const showPositionArrow = isLive && orientation === "north-arrow";
+
   // Sofort grob auf den eigenen Standort zentrieren, ohne auf den ersten
   // aufgezeichneten Punkt zu warten.
   //
@@ -260,10 +267,10 @@ export function TrackMap({
       (position) => {
         if (abgebrochen || hasSetInitialViewRef.current) return;
         hatGrobeZentrierungRef.current = true;
-        mapRef.current?.setView(
-          [position.coords.latitude, position.coords.longitude],
-          LIVE_INITIAL_ZOOM,
-        );
+        mapRef.current?.jumpTo({
+          center: [position.coords.longitude, position.coords.latitude],
+          zoom: LIVE_INITIAL_ZOOM,
+        });
       },
       () => {
         // Kein Standort (verweigert, kein Empfang): Es bleibt bei der
@@ -280,282 +287,276 @@ export function TrackMap({
     };
   }, [mapReady, isLive]);
 
-  // Nach jedem Größen- oder Moduswechsel muss Leaflet seine Maße neu
-  // bestimmen - sonst rechnet es mit der alten Fläche weiter und die Karte
-  // sitzt versetzt oder zeigt graue Kacheln.
-  useEffect(() => {
-    mapRef.current?.invalidateSize({ animate: false });
-  }, [kantenlaenge, rotateWithHeading]);
-
-  // Ziehen abschalten, solange die Karte mitdreht.
-  //
-  // Leaflet weiß nichts von der Drehung - sie liegt als CSS-Transformation
-  // darüber. Eine Zugbewegung nach oben verschiebt die Karte deshalb nicht
-  // nach oben, sondern um den Drehwinkel versetzt. Beim Aufzeichnen fällt
-  // das kaum auf, weil die Karte ohnehin jede Sekunde der eigenen Position
-  // nachgeführt wird und jedes Verschieben sofort überschreibt - aber eine
-  // Bedienung, die in die falsche Richtung zieht, ist schlechter als eine,
-  // die es gar nicht anbietet. Wer verschieben will, schaltet per Kompass
-  // auf "Nord oben".
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    if (rotateWithHeading) map.dragging.disable();
-    else map.dragging.enable();
-  }, [rotateWithHeading, mapReady]);
-
   function cycleOrientation() {
-    setOrientation((prev) =>
-      prev === "north-arrow" ? "heading" : prev === "heading" ? "north" : "north-arrow",
-    );
+    setOrientation(naechsteAusrichtung);
   }
 
-  // Effect 1: Karte + Tile-Layer genau einmal erzeugen (nur beim Mount).
+  // Karte genau einmal erzeugen (nur beim Mount).
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-    // imporleaflet ist asynchron - läuft der Effect erneut, bevor das
-    // Promise aufgelöst ist (React Strict Mode ruft Effects im Dev-Modus
-    // doppelt auf), würde sonst ein zweites L.map() auf demselben Container
-    // aufgerufen werden, während das erste noch nicht aufgeräumt ist -
-    // Leaflet wirft dann "Map container is already initialized".
-    let cancelled = false;
+    // import ist asynchron - läuft der Effect erneut, bevor das Promise
+    // aufgelöst ist (React Strict Mode ruft Effects im Dev-Modus doppelt
+    // auf), würde sonst eine zweite Karte auf demselben Container entstehen,
+    // während die erste noch nicht aufgeräumt ist.
+    let abgebrochen = false;
+    let map: KartenObjekt | null = null;
 
-    import("leaflet").then((L) => {
-      if (cancelled || !containerRef.current) return;
+    (async () => {
+      // Die Ebene direkt aus dem Speicher, nicht aus dem State: Der hat beim
+      // Start noch den Vorgabewert, und wer das Luftbild gewählt hat, sähe
+      // sonst erst kurz die Straßenkarte.
+      const geladenerStil = stilWaehlen(gespeicherteEbene(), dunkelRef.current);
+      let maplibre: typeof import("maplibre-gl");
+      let stil: Awaited<ReturnType<typeof stilLaden>>;
+      try {
+        [maplibre, stil] = await Promise.all([import("maplibre-gl"), stilLaden(geladenerStil, location.origin)]);
+      } catch {
+        if (!abgebrochen) setKartenFehler("laden");
+        return;
+      }
+      if (abgebrochen) return;
 
-      leafletRef.current = L;
-      // Vorläufige Sicht (Deutschland-Mitte), bis der erste GPS-Punkt
-      // eintrifft und Effect 2 per setView auf den tatsächlichen Standort
-      // springt - ohne das bliebe die Karte ohne jede Kachel leer/grau.
-      // zoomSnap 0.25: fitBounds rundet sonst auf ganze Zoomstufen ab, und
-      // eine kurze Fährte füllte nur ein Drittel der Karte - der Rest war
-      // leerer Rand um eine winzige Figur.
-      const map = L.map(containerRef.current, { zoomSnap: 0.25 }).setView([51.1657, 10.4515], 6);
-      mapRef.current = map;
+      try {
+        // Erst nach dem Laden prüfen: Die Probe legt einen Kontext an, und der
+        // Fehlerfall braucht keinen eigenen Zweig im Effect selbst.
+        if (!webgl2Verfuegbar()) throw new Error("WebGL2 nicht verfügbar");
+        workerEinrichten(maplibre);
 
-      const start = KARTEN_EBENEN[gespeicherteEbene()];
-      kachelEbeneRef.current = L.tileLayer(start.url, {
-        attribution: start.attribution,
-        maxZoom: start.maxZoom,
-      }).addTo(map);
+        map = new maplibre.Map({
+          container,
+          style: stil,
+          // Vorläufige Sicht (Deutschland-Mitte), bis der erste GPS-Punkt
+          // eintrifft - ohne das bliebe die Karte leer.
+          center: [10.4515, 51.1657],
+          zoom: 5,
+          maxZoom: 20,
+          // Die Namensnennung der Kartendaten ist Lizenzpflicht und muss
+          // sichtbar bleiben, nicht hinter einem Knopf.
+          attributionControl: { compact: false },
+          // Gedreht wird allein über die Ausrichtung des Kompass-Knopfs, nicht
+          // per Geste: Zwei-Finger-Drehen und Neigen würden gegen das
+          // Nachführen kämpfen.
+          dragRotate: false,
+          pitchWithRotate: false,
+          touchPitch: false,
+          maxPitch: 0,
+          // Eingebettet (Hundeseite) scrollt ein Finger die Seite statt die
+          // Karte zu verschieben; im Vollbild gehört die ganze Fläche der Karte.
+          cooperativeGestures: !anfangRef.current.fill,
+          locale: kartenTexte(anfangRef.current.t),
+        });
+        map.touchZoomRotate.disableRotation();
+        map.keyboard.disableRotation();
 
-      layerGroupRef.current = L.layerGroup().addTo(map);
-      setMapReady(true);
-    });
+        // Meter sind beim Fährtelegen die Einheit. Unten gestapelt: Was zuerst
+        // hinzukommt, liegt zuunterst.
+        map.addControl(new maplibre.ScaleControl({ unit: "metric" }), "bottom-left");
+        // Zoomknöpfe nur mit Maus: Am Handy zoomt man mit zwei Fingern, und auf
+        // der 256 px hohen Karte der Hundeseite verdeckten die beiden Knöpfe
+        // ein Viertel der Fläche - oft genau den Start der Fährte.
+        if (window.matchMedia("(pointer: fine)").matches) {
+          map.addControl(new maplibre.NavigationControl({ showCompass: false }), "bottom-left");
+        }
+
+        const karte = map;
+        karte.on("style.load", () => ebenenAnlegen(karte, datenRef.current));
+
+        // Kompassnadel: zeigt immer nach geografisch Nord, also gegen die
+        // Drehung der Karte.
+        karte.on("rotate", () => {
+          nadelRef.current?.style.setProperty("transform", `rotate(${-karte.getBearing()}deg)`);
+        });
+
+        // Antippen: Text der Linie oder des Punkts als Popup. setText, nie
+        // HTML - Labels stammen von Nutzer:innen.
+        karte.on("click", (e) => {
+          const text = textAn(karte, e.point.x, e.point.y);
+          popupRef.current?.remove();
+          popupRef.current = null;
+          if (text === null) return;
+          popupRef.current = new maplibre.Popup({ closeButton: false, maxWidth: "240px" })
+            .setLngLat(e.lngLat)
+            .setText(text)
+            .addTo(karte);
+        });
+        // Mit der Maus zeigt der Zeiger, was antippbar ist (Touch hat keinen).
+        karte.on("mousemove", (e) => {
+          karte.getCanvas().style.cursor = textAn(karte, e.point.x, e.point.y) !== null ? "pointer" : "";
+        });
+
+        mapRef.current = karte;
+        maplibreRef.current = maplibre;
+        angewandterStilRef.current = geladenerStil;
+        setMapReady(true);
+      } catch {
+        // Kein WebGL2 oder die Karte ließ sich nicht erzeugen: ruhiger Hinweis
+        // statt leerer Fläche. Die Aufzeichnung selbst bleibt davon unberührt.
+        if (!abgebrochen) setKartenFehler("geraet");
+      }
+    })();
 
     return () => {
-      cancelled = true;
-      mapRef.current?.remove();
+      abgebrochen = true;
+      popupRef.current?.remove();
+      pfeilRef.current?.remove();
+      map?.remove();
       mapRef.current = null;
-      leafletRef.current = null;
-      layerGroupRef.current = null;
+      maplibreRef.current = null;
+      popupRef.current = null;
+      pfeilRef.current = null;
+      pfeilFarbeRef.current = null;
+      angewandterStilRef.current = null;
       hasSetInitialViewRef.current = false;
+      hatGrobeZentrierungRef.current = false;
+      letzterPunktRef.current = null;
     };
-  }, []);
+  }, [versuch]);
 
-  // Effect 2: bei jeder Änderung von points/walkRuns nur die Layer neu
-  // zeichnen (Karte selbst bleibt bestehen) - läuft auch einmal direkt
-  // nachdem die Karte fertig initialisiert ist (mapReady wechselt auf true).
+  // Stil wechseln, wenn Ebene oder Theme sich ändern. Nur die neueste Anfrage
+  // darf anwenden: Wer zweimal schnell umschaltet, soll nicht den Stil sehen,
+  // dessen Datei zuletzt eintraf.
   useEffect(() => {
-    const L = leafletRef.current;
     const map = mapRef.current;
-    const layerGroup = layerGroupRef.current;
-    if (!L || !map || !layerGroup) return;
+    // Zähler vor dem frühen Abbruch erhöhen: Wer von hell auf Luftbild und
+    // gleich zurück auf hell tippt, entwertet damit die noch laufende Anfrage
+    // - sie käme sonst später an und legte das Luftbild über die Straße.
+    const nr = ++stilAnfrageRef.current;
+    if (!mapReady || !map || angewandterStilRef.current === stilName) return;
 
-    layerGroup.clearLayers();
-
-    // Linie/Start/Ende beziehen sich nur auf die automatischen GPS-Punkte -
-    // manuell gesetzte Marker für gelegte Gegenstände (Schussstelle,
-    // Apportel etc.) gehören nicht zur eigentlichen Laufstrecke und würden
-    // die Linienführung verzerren.
-    const automaticPoints = points.filter((p) => p.pointType !== 1);
-    const manualPoints = points.filter((p) => p.pointType === 1);
-    const latLngs = automaticPoints.map((p) => [p.latitude, p.longitude] as [number, number]);
-
-    if (latLngs.length > 0) {
-      // Deutlich breiter als der Ablauf (4), der darüber gezeichnet wird: Die
-      // Legung erscheint als farbiger Korridor, der Ablauf als Linie darin.
-      // 6 px waren zu wenig - dort, wo der Hund sauber sucht, verschwand die
-      // Legung unter dem Ablauf. 9 px waren auf Test gut sichtbar, aber
-      // breiter als nötig; 7 px lassen beidseits des Ablaufs noch einen
-      // klaren Saum.
-      L.polyline(latLngs, { color: TRACK_CASING_COLOR, weight: 10, opacity: 0.5 }).addTo(layerGroup);
-      L.polyline(latLngs, { color: TRACK_LINE_COLOR, weight: 7, opacity: 0.9 }).addTo(layerGroup);
-      // Start gefüllt, Ende hohl - dieselbe Farbe wie die Linie, statt wie
-      // bisher Grün und Rot: beides sind Ampeltöne und meinten hier gerade
-      // NICHT gut und schlecht, sondern Anfang und Ende der Legung.
-      L.circleMarker(latLngs[0], {
-        radius: 8,
-        color: "#ffffff",
-        weight: 3,
-        fillColor: TRACK_LINE_COLOR,
-        fillOpacity: 1,
+    stilLaden(stilName, location.origin)
+      .then((stil) => {
+        if (nr !== stilAnfrageRef.current || mapRef.current !== map) return;
+        // Ohne diff: Der Stil wird ganz ersetzt, "style.load" feuert und legt
+        // die eigenen Ebenen neu an.
+        map.setStyle(stil, { diff: false });
+        angewandterStilRef.current = stilName;
       })
-        .addTo(layerGroup)
-        .bindTooltip(alsHtmlText(t("Start (gelegt)")));
-      if (!live) {
-        L.circleMarker(latLngs[latLngs.length - 1], {
-          radius: 8,
-          color: TRACK_LINE_COLOR,
-          weight: 4,
-          fillColor: "#ffffff",
-          fillOpacity: 1,
-        })
-          .addTo(layerGroup)
-          .bindTooltip(alsHtmlText(t("Ende (gelegt)")));
-      }
-    }
-
-    manualPoints.forEach((p) => {
-      const kind = p.markerType ?? 0;
-      const color = MARKER_COLORS[kind] ?? MARKER_COLORS[3];
-      L.circleMarker([p.latitude, p.longitude], {
-        radius: 7,
-        color,
-        fillColor: color,
-        fillOpacity: 0.9,
-      })
-        .addTo(layerGroup)
-        // Das Label stammt von Nutzer:innen - siehe alsHtmlText.
-        .bindTooltip(alsHtmlText(p.label || t(MARKER_LABELS[kind] ?? MARKER_LABELS[3])));
-    });
-
-    walkRuns.forEach((run, index) => {
-      if (run.points.length === 0) return;
-      const fallbackColor = WALK_RUN_COLORS[index % WALK_RUN_COLORS.length];
-      const runLatLngs = run.points.map((p) => [p.latitude, p.longitude] as [number, number]);
-      const isEvaluated = run.points.some((p) => p.deviationMeters != null);
-
-      if (isEvaluated) {
-        // Je Segment die Farbe des schlechteren der beiden Endpunkte - so ist
-        // auf einen Blick sichtbar, WO das Team abgekommen ist.
-        for (let i = 0; i < runLatLngs.length - 1; i++) {
-          const worse = Math.max(run.points[i].deviationMeters ?? 0, run.points[i + 1].deviationMeters ?? 0);
-          L.polyline([runLatLngs[i], runLatLngs[i + 1]], {
-            color: deviationColor(worse) ?? fallbackColor,
-            weight: 4,
-          })
-            .addTo(layerGroup)
-            .bindTooltip(
-              alsHtmlText(t("Ablauf {nr}: {meter} m Abweichung", { nr: index + 1, meter: Math.round(worse) })),
-            );
-        }
-      } else {
-        L.polyline(runLatLngs, { color: fallbackColor, dashArray: "6 6", weight: 4 })
-          .addTo(layerGroup)
-          .bindTooltip(alsHtmlText(t("Ablauf-Versuch {nr}", { nr: index + 1 })));
-      }
-
-      // Erkannte Halte als Ringe: zeigen die Stellen, an denen der Hund
-      // gesucht/verwiesen hat - auch dort, wo die Position gar nicht abweicht.
-      (run.stops ?? []).forEach((stop) => {
-        L.circleMarker([stop.latitude, stop.longitude], {
-          radius: 9,
-          color: STOP_COLORS[stop.kind] ?? STOP_COLORS[2],
-          fill: false,
-          weight: 3,
-        })
-          .addTo(layerGroup)
-          // markerLabel kopiert der Server aus dem Label des nächsten
-          // Markers - also ebenso Text von Nutzer:innen.
-          .bindTooltip(
-            alsHtmlText(
-              `${t(STOP_LABELS[stop.kind] ?? uebersetzbar("Halt"))}: ${stop.durationSeconds}s${stop.markerLabel ? ` (${stop.markerLabel})` : ""}`,
-            ),
-          );
+      .catch(() => {
+        // Stil nicht erreichbar: Die Karte bleibt im bisherigen.
       });
-    });
+  }, [mapReady, stilName]);
 
-    // Aktuell laufender Ablauf-Versuch (falls einer aktiv ist): nächste Farbe
-    // im Zyklus, breiter und dichter gestrichelt, damit sich die frische
-    // Linie visuell klar von den gespeicherten Versuchen abhebt.
-    let liveWalkLatLngs: [number, number][] = [];
-    if (hasLiveWalkRun && liveWalkRunPoints) {
-      const liveColor = WALK_RUN_COLORS[walkRuns.length % WALK_RUN_COLORS.length];
-      liveWalkLatLngs = liveWalkRunPoints.map((p) => [p.latitude, p.longitude] as [number, number]);
-      if (liveWalkLatLngs.length > 0) {
-        L.polyline(liveWalkLatLngs, { color: liveColor, dashArray: "3 4", weight: 4 })
-          .addTo(layerGroup)
-          .bindTooltip(alsHtmlText(t("Ablauf-Versuch {nr} (läuft)", { nr: walkRuns.length + 1 })));
-        const last = liveWalkLatLngs[liveWalkLatLngs.length - 1];
-        // Modus "Nord oben + Richtungspfeil": statt einfachem Punkt ein
-        // rotierendes SVG-Icon, dessen Spitze in die aktuelle Bewegungs-
-        // richtung zeigt - so sieht der Nutzer die Ausrichtung, ohne dass
-        // sich die ganze Karte drehen muss.
-        if (showPositionArrow) {
-          const arrowIcon = L.divIcon({
-            className: "",
-            html: `<svg viewBox="0 0 24 24" width="28" height="28" style="transform: rotate(${smoothedHeadingRef.current ?? 0}deg); transform-origin: 50% 50%;"><circle cx="12" cy="12" r="10" fill="${liveColor}" fill-opacity="0.25"/><polygon points="12,3 18,20 12,16 6,20" fill="${liveColor}" stroke="white" stroke-width="1"/></svg>`,
-            iconSize: [28, 28],
-            iconAnchor: [14, 14],
-          });
-          L.marker(last, { icon: arrowIcon }).addTo(layerGroup);
-        } else {
-          L.circleMarker(last, {
-            radius: 6,
-            color: liveColor,
-            fillColor: liveColor,
-            fillOpacity: 1,
-          }).addTo(layerGroup);
-        }
-      }
+  // Daten: je Gruppe nur die betroffenen Quellen schreiben. Läuft auch vor der
+  // Karte - dann landen die Daten im Stand und kommen mit "style.load" hinein.
+  useEffect(() => {
+    const d = legungDaten(points, live, t);
+    const teil = { "legung-linie": d.linie, "legung-enden": d.enden, marker: d.marker };
+    Object.assign(datenRef.current, teil);
+    datenAnwenden(mapRef.current, teil);
+  }, [mapReady, points, live, t]);
+
+  useEffect(() => {
+    const d = ablaufDaten(walkRuns, t);
+    const teil = { "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, halte: d.halte };
+    Object.assign(datenRef.current, teil);
+    datenAnwenden(mapRef.current, teil);
+  }, [mapReady, walkRuns, t]);
+
+  useEffect(() => {
+    const d = liveAblaufDaten(liveWalkRunPoints, walkRuns.length, t);
+    // Mit Richtungspfeil zeichnet ein Marker die Position, kein Punkt.
+    const teil = { "ablauf-live": d.linie, position: showPositionArrow ? leer<never>() : d.position };
+    Object.assign(datenRef.current, teil);
+    datenAnwenden(mapRef.current, teil);
+  }, [mapReady, liveWalkRunPoints, walkRuns.length, showPositionArrow, t]);
+
+  // Live: Kartenmitte folgt dem aktuellen Standort, der Zoom bleibt
+  // unverändert, damit der Nutzer nicht laufend neu hineinzoomen muss, sobald
+  // er die Karte einmal passend eingestellt hat. Bei einem laufenden
+  // Ablauf-Versuch folgt die Karte dessen Position, sonst dem letzten Punkt
+  // der aktuellen Legung. Läuft nur bei einem NEUEN Punkt: Die Peilung ist ein
+  // gleitender Mittelwert und darf nicht mehrfach mit demselben Punkt gefüttert
+  // werden.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map || !isLive) return;
+
+    const quelle = hasLiveWalkRun && liveWalkRunPoints ? liveWalkRunPoints : points.filter((p) => p.pointType !== 1);
+    const letzter = quelle[quelle.length - 1];
+    if (!letzter) return;
+
+    const schluessel = `${quelle.length}:${letzter.latitude}:${letzter.longitude}`;
+    if (schluessel === letzterPunktRef.current) return;
+    letzterPunktRef.current = schluessel;
+
+    const roh = rohePeilung(quelle);
+    if (roh !== null) smoothedHeadingRef.current = glaettePeilung(smoothedHeadingRef.current, roh);
+
+    const center: [number, number] = [letzter.longitude, letzter.latitude];
+    const bearing = zielPeilung(orientation, smoothedHeadingRef.current) ?? map.getBearing();
+    if (!hasSetInitialViewRef.current) {
+      map.jumpTo({ center, zoom: LIVE_INITIAL_ZOOM, bearing });
+      hasSetInitialViewRef.current = true;
+    } else {
+      // Ohne `essential`: Wer reduzierte Bewegung eingestellt hat, bei dem
+      // springt die Karte, statt zu gleiten.
+      map.easeTo({ center, bearing, duration: NACHFUEHR_DAUER_MS });
     }
-
-    const allLatLngs = [...latLngs, ...manualPoints.map((p) => [p.latitude, p.longitude] as [number, number])];
-    if (isLive) {
-      // Während der Aufnahme: Kartenmitte folgt dem aktuellen Standort, der
-      // Zoom bleibt unverändert, damit der Nutzer nicht laufend neu
-      // hineinzoomen muss, sobald er die Karte einmal passend eingestellt hat.
-      // Bei einem laufenden Ablauf-Versuch folgt die Karte dessen Position,
-      // sonst dem letzten Punkt der aktuellen Legung.
-      const followSource = hasLiveWalkRun && liveWalkRunPoints ? liveWalkRunPoints : automaticPoints;
-      const followLatLngs = hasLiveWalkRun && liveWalkRunPoints ? liveWalkLatLngs : latLngs;
-      if (followLatLngs.length > 0) {
-        const latest = followLatLngs[followLatLngs.length - 1];
-        if (!hasSetInitialViewRef.current) {
-          map.setView(latest, LIVE_INITIAL_ZOOM);
-          hasSetInitialViewRef.current = true;
-        } else {
-          map.panTo(latest);
-        }
-
-        // Peilung aus einem Fenster der letzten Punkte berechnen (Rauschen
-        // dämpfen). Das älteste Ende des Fensters wird so weit zurück
-        // verschoben, bis der Abstand zum aktuellen Punkt ausreicht -
-        // beugt Sprüngen bei Stillstand vor.
-        if (followSource.length >= 2) {
-          const latestPoint = followSource[followSource.length - 1];
-          let anchor = followSource[Math.max(0, followSource.length - BEARING_WINDOW_POINTS)];
-          for (let i = followSource.length - 2; i >= 0; i--) {
-            anchor = followSource[i];
-            const dx = (latestPoint.longitude - anchor.longitude) * 111111 * Math.cos((latestPoint.latitude * Math.PI) / 180);
-            const dy = (latestPoint.latitude - anchor.latitude) * 111111;
-            if (Math.sqrt(dx * dx + dy * dy) >= BEARING_MIN_DISTANCE_M) break;
-          }
-          const raw = bearingDegrees(anchor, latestPoint);
-          // Kürzeste Winkeldifferenz zum bisherigen (geglätteten) Wert -
-          // ohne die Behandlung würde ein Sprung von 350° auf 10° als
-          // -340°-Bewegung geglättet, obwohl es nur +20° sind.
-          const prev = smoothedHeadingRef.current;
-          if (prev === null) {
-            smoothedHeadingRef.current = raw;
-          } else {
-            let diff = raw - prev;
-            if (diff > 180) diff -= 360;
-            if (diff < -180) diff += 360;
-            smoothedHeadingRef.current = (prev + HEADING_SMOOTH_ALPHA * diff + 360) % 360;
-          }
-          setHeadingDeg(smoothedHeadingRef.current);
-        }
-      }
-    } else if (allLatLngs.length > 0) {
-      // Abgeschlossene/historische Fährte: ganze Strecke ins Bild einpassen.
-      const allWalkRunLatLngs = walkRuns.flatMap((r) => r.points.map((p) => [p.latitude, p.longitude] as [number, number]));
-      map.fitBounds([...allLatLngs, ...allWalkRunLatLngs], { padding: [16, 16] });
-    }
+    // orientation bewusst nicht in den Abhängigkeiten: Ein Moduswechsel ist
+    // kein neuer Punkt, ihn behandelt der Effect darunter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady, points, walkRuns, live, liveWalkRunPoints, showPositionArrow, headingDeg]);
+  }, [mapReady, isLive, hasLiveWalkRun, points, liveWalkRunPoints]);
+
+  // Ausrichtung gewechselt: Karte jetzt drehen, nicht erst beim nächsten Punkt.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map || !isLive) return;
+    const bearing = zielPeilung(orientation, smoothedHeadingRef.current);
+    if (bearing === null || Math.abs(map.getBearing() - bearing) < 0.5) return;
+    map.easeTo({ bearing, duration: NACHFUEHR_DAUER_MS });
+  }, [mapReady, isLive, orientation]);
+
+  // Modus "Nord oben + Richtungspfeil": statt einfachem Punkt ein drehbares
+  // Pfeil-Symbol, dessen Spitze in die aktuelle Bewegungsrichtung zeigt - so
+  // sieht der Nutzer die Ausrichtung, ohne dass sich die ganze Karte drehen
+  // muss. rotationAlignment "map": Die Drehung ist eine Himmelsrichtung und
+  // stimmt damit in jedem Modus. Steht NACH dem Nachführen, weil es dessen
+  // frische Peilung liest.
+  useEffect(() => {
+    const map = mapRef.current;
+    const maplibre = maplibreRef.current;
+    if (!mapReady || !map || !maplibre) return;
+
+    const d = liveAblaufDaten(liveWalkRunPoints, walkRuns.length, t);
+    if (!showPositionArrow || !d.letzter) {
+      pfeilRef.current?.remove();
+      pfeilRef.current = null;
+      pfeilFarbeRef.current = null;
+      return;
+    }
+
+    // Die Farbe hängt am Versuch (Zyklus) - bei einem neuen Versuch neu bauen.
+    if (pfeilRef.current && pfeilFarbeRef.current !== d.farbe) {
+      pfeilRef.current.remove();
+      pfeilRef.current = null;
+    }
+    if (!pfeilRef.current) {
+      pfeilRef.current = new maplibre.Marker({
+        element: pfeilElement(d.farbe),
+        rotationAlignment: "map",
+        pitchAlignment: "map",
+      })
+        .setLngLat(d.letzter)
+        .addTo(map);
+      pfeilFarbeRef.current = d.farbe;
+    } else {
+      pfeilRef.current.setLngLat(d.letzter);
+    }
+    pfeilRef.current.setRotation(smoothedHeadingRef.current ?? 0);
+  }, [mapReady, showPositionArrow, liveWalkRunPoints, walkRuns.length, t]);
+
+  // Abgeschlossene/historische Fährte: ganze Strecke ins Bild einpassen, ohne
+  // Animation - die Karte soll gleich so dastehen. Bei geänderten Daten erneut.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map || isLive) return;
+    const grenzen = kartenGrenzen(points, walkRuns);
+    // Oben Platz für den Ebenen-Umschalter, unten für Maßstab und
+    // Namensnennung - sonst lagen Start oder Ende der Fährte genau darunter.
+    if (grenzen) map.fitBounds(grenzen, { padding: { top: 52, bottom: 32, left: 16, right: 16 }, maxZoom: 19, animate: false });
+  }, [mapReady, isLive, points, walkRuns]);
 
   // Im Live-Modus die Karte schon vor dem ersten Punkt anzeigen (wartet auf
   // die erste Positionsmessung), damit sie nicht erst nach einigen Sekunden
@@ -564,11 +565,6 @@ export function TrackMap({
     return <p className="text-sm text-muted-foreground">{t("Keine GPS-Punkte aufgezeichnet.")}</p>;
   }
 
-  // Rotation nur im "heading"-Modus. Die Rotation wird per CSS-transform auf
-  // den Karten-Container gelegt, weil Leaflet selbst keine Rotation kennt.
-  // Kompass-Button und OSM-Attribution werden per Counter-Rotation aufrecht
-  // gehalten, damit Text/Steuerelemente immer lesbar bleiben.
-  const rotationDeg = rotateWithHeading ? -headingDeg : 0;
   const orientationTitle =
     orientation === "north-arrow"
       ? t("Nord oben + Richtungspfeil (klicken für 'in Laufrichtung')")
@@ -577,104 +573,58 @@ export function TrackMap({
         : t("Nord oben, statisch (klicken für 'Nord + Pfeil')");
 
   return (
-    <div
-      id={kartenId}
-      ref={rahmenRef}
-      className={`relative w-full overflow-hidden ${fill ? "h-full" : "h-64 rounded-md"}`}
-    >
-      {/* Drehebene und Leaflet-Element sind bewusst GETRENNT.
-          
-          Leaflet setzt eigene Klassen direkt auf sein Element
-          (leaflet-container, leaflet-touch, …). Stand am selben Element auch
-          ein von React verwaltetes className, das sich ändert - hier beim
-          Wechsel der Ausrichtung -, schrieb React das Attribut komplett neu
-          und löschte Leaflets Klassen mit. Ohne leaflet-container verliert
-          die Karte ihr gesamtes Styling: Sie wurde schwarz.
-
-          Deshalb gehört die Drehung auf eine eigene Ebene, und das
-          Leaflet-Element bekommt ein KONSTANTES className, das React nach
-          dem Einhängen nie wieder anfasst. */}
-      <div
-        className="transition-transform duration-500 ease-out [&_.leaflet-control-attribution]:origin-bottom-right"
-        style={
-          rotateWithHeading
-            ? {
-                // Quadrat mit der Diagonale des Rahmens als Kantenlänge, um
-                // den Mittelpunkt gedreht. Ohne das schauen bei gedrehter
-                // Karte die Ecken des Rahmens ins Leere - bei 90° blieben
-                // oben und unten schwarze Keile stehen, weil ein hochkantes
-                // Rechteck gedreht seinen eigenen Ausschnitt nicht mehr
-                // deckt. Ein Quadrat dieser Kantenlänge deckt jeden Winkel.
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                width: kantenlaenge,
-                height: kantenlaenge,
-                transform: `translate(-50%, -50%) rotate(${rotationDeg}deg)`,
-              }
-            : { width: "100%", height: "100%" }
-        }
-      >
-        <div ref={containerRef} className="size-full" />
-      </div>
-      {/* OSM-Attribution wieder aufrichten wenn Karte rotiert: gegenrotieren
-          um denselben Winkel. Selector greift die Leaflet-Attribution direkt
-          im rotierten Container. */}
-      {/* Dunkler Kartenstil per Filter statt per eigener Kachelquelle.
-          
-          Ein fertiger dunkler Straßenstil käme nur von Anbietern mit
-          API-Schlüssel (CARTO, Stadia) - der freie dunkle Stil von Esri hat
-          in den Zoomstufen, die das Fährtelegen braucht, gar keine Daten
-          ("Map data not yet available"). Invertieren plus Farbtondrehung
-          liefert aus derselben, schon geladenen Kachel ein dunkles Bild:
-          keine zweite Quelle, kein Schlüssel, keine zusätzlichen Abrufe.
-          
-          Nur auf die Kacheln, nicht auf die ganze Karte - sonst würden die
-          Linien gleich mit invertiert und trügen nicht mehr ihre Farbe.
-          
-          saturate(0.45) ist nicht Geschmack, sondern nötig: Der OSM-Stil ist
-          voller bunter Ladensymbole, und invert + hue-rotate macht daraus
-          grelles Magenta. Entsättigt fügen sie sich ein, ohne zu
-          verschwinden. */}
-      {dunkel && (
-        <style>
-          {`#${kartenId} .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.45); }`}
-        </style>
-      )}
-      {rotateWithHeading && (
-        <style>
-          {`#${kartenId} .leaflet-control-attribution { transform: rotate(${headingDeg}deg); transform-origin: 100% 100%; }`}
-        </style>
+    <div className={`relative isolate w-full overflow-hidden ${fill ? "h-full" : "h-64 rounded-md"}`}>
+      <div ref={containerRef} className="size-full" />
+      {kartenFehler && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted p-4 text-center text-sm text-muted-foreground">
+          <p>
+            {kartenFehler === "laden"
+              ? t("Die Karte konnte nicht geladen werden.")
+              : t("Die Karte lässt sich auf diesem Gerät nicht anzeigen.")}
+          </p>
+          {kartenFehler === "laden" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="coarse:min-h-11"
+              onClick={() => {
+                setKartenFehler(null);
+                setVersuch((v) => v + 1);
+              }}
+            >
+              {t("Erneut versuchen")}
+            </Button>
+          )}
+        </div>
       )}
       {/* Ebenenwechsel: immer erreichbar, auch bei fertigen Fährten - beim
           Auswerten will man denselben Wechsel wie beim Legen. */}
-      <button
-        type="button"
-        onClick={ebeneWechseln}
-        title={t("Kartenhintergrund: {jetzt} (klicken für {andere})", {
-          jetzt: t(KARTEN_EBENEN[ebene].label),
-          andere: t(KARTEN_EBENEN[ebene === "strasse" ? "luftbild" : "strasse"].label),
-        })}
-        className="absolute left-2 top-2 z-[400] flex items-center gap-1.5 rounded-full border bg-background/90 px-3 py-2 text-xs font-medium shadow-md backdrop-blur coarse:min-h-10"
-      >
-        {ebene === "strasse" ? <Map className="size-4" /> : <Satellite className="size-4" />}
-        {t(KARTEN_EBENEN[ebene].label)}
-      </button>
-      {isLive && (
+      {!kartenFehler && (
+        <button
+          type="button"
+          onClick={ebeneWechseln}
+          title={t("Kartenhintergrund: {jetzt} (klicken für {andere})", {
+            jetzt: t(KARTEN_EBENEN[ebene].label),
+            andere: t(KARTEN_EBENEN[ebene === "strasse" ? "luftbild" : "strasse"].label),
+          })}
+          className="absolute left-2 top-2 z-10 flex items-center gap-1.5 rounded-full border bg-background/90 px-3 py-2 text-xs font-medium shadow-md backdrop-blur coarse:min-h-10"
+        >
+          {ebene === "strasse" ? <KartenSymbol className="size-4" /> : <Satellite className="size-4" />}
+          {t(KARTEN_EBENEN[ebene].label)}
+        </button>
+      )}
+      {isLive && !kartenFehler && (
         <button
           type="button"
           onClick={cycleOrientation}
           title={orientationTitle}
-          className="absolute right-2 top-2 z-[400] flex size-10 items-center justify-center rounded-full border bg-background/90 shadow-md backdrop-blur"
+          className="absolute right-2 top-2 z-10 flex size-10 items-center justify-center rounded-full border bg-background/90 shadow-md backdrop-blur"
         >
-          {/* Kompassnadel: zeigt immer nach geografisch Nord. Bei rotierter
-              Karte kompensiert der Zeiger die Rotation, damit "N" sichtbar bleibt. */}
-          <svg
-            viewBox="0 0 24 24"
-            className="size-6 transition-transform duration-500 ease-out"
-            style={{ transform: `rotate(${headingDeg}deg)` }}
-            aria-hidden
-          >
+          {/* Kompassnadel: zeigt immer nach geografisch Nord. Ihre Drehung setzt
+              das rotate-Ereignis der Karte (gegen deren bearing), ohne dass
+              jedes Bild einer Drehung die Komponente neu rendert. */}
+          <svg ref={nadelRef} viewBox="0 0 24 24" className="size-6" aria-hidden>
             <polygon points="12,3 15,13 12,11 9,13" fill="#dc2626" />
             <polygon points="12,21 9,11 12,13 15,11" fill="#64748b" />
             <text x="12" y="8.5" textAnchor="middle" fontSize="4" fill="white" fontWeight="bold">N</text>

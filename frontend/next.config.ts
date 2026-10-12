@@ -23,11 +23,18 @@ import type { NextConfig } from "next";
 //   Inline-Bootstrap-Skripte für die Hydration; eine Nonce-Infrastruktur
 //   (Middleware + überall dynamisches Rendering) wäre dafür nötig und steht
 //   in keinem Verhältnis. Externe Skript-Quellen bleiben trotzdem blockiert.
-// - style-src 'unsafe-inline': Leaflet setzt style-Attribute auf Marker-/
-//   Karten-Elemente.
+// - style-src 'unsafe-inline': MapLibre setzt style-Attribute auf Marker-,
+//   Popup- und Canvas-Elemente.
 // - img-src https:: Avatar-URLs sind bewusst freie https-Links (Profil ohne
-//   Datei-Upload); deckt zugleich die OSM-Kartenkacheln ab. Bilder können
-//   kein Skript ausführen, das Risiko ist begrenzt.
+//   Datei-Upload). Bilder können kein Skript ausführen, das Risiko ist
+//   begrenzt. Die Karte braucht es nicht mehr: MapLibre holt Kacheln per
+//   fetch im Worker, nicht als Bild.
+// - connect-src enthält deshalb auch die Kachelhosts der Karte:
+//   vector.openstreetmap.org (Vektorkacheln und TileJSON) und
+//   server.arcgisonline.com (Esri-Luftbild, nur auf eigene Wahl). Beide senden
+//   access-control-allow-origin: *.
+// - worker-src 'self': MapLibre startet seinen Worker als Modul-Worker aus
+//   public/karte/maplibre-<Version>/ - ohne Blob, deshalb kein blob: nötig.
 // - connect-src statisch mit BEIDEN API-Domains: NEXT_PUBLIC_API_URL ist
 //   ein Docker-Build-ARG der Build-Stage und steht zur Laufzeit von
 //   `next start` (liest diese Config beim Serverstart) nicht zur Verfügung.
@@ -60,11 +67,15 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
-  // https: deckt weiterhin alle Kachelquellen ab (OSM, Esri-Luftbild) und
-  // die frei wählbaren Avatar-Adressen. Bilder können kein Skript ausführen.
+  // https: für die frei wählbaren Avatar-Adressen. Bilder können kein Skript
+  // ausführen. Die Kartenkacheln laufen über connect-src.
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  ["connect-src 'self' https://api.dogity.net https://api-test.dogity.net", ...lokaleApiQuelle()].join(" "),
+  [
+    "connect-src 'self' https://api.dogity.net https://api-test.dogity.net",
+    "https://vector.openstreetmap.org https://server.arcgisonline.com",
+    ...lokaleApiQuelle(),
+  ].join(" "),
   "worker-src 'self'",
   "manifest-src 'self'",
   "frame-ancestors 'none'",

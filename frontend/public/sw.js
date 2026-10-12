@@ -20,6 +20,23 @@ function isImmutableBuildAsset(url) {
   return url.pathname.startsWith("/_next/static/");
 }
 
+// Die Dateien der Karte (public/karte/) ändern sich nie unter demselben Pfad:
+// - /karte/maplibre-<Version>/ trägt die Version im Pfad (Worker der
+//   Kartenbibliothek, siehe scripts/maplibre-worker.mjs),
+// - Schriften und Symbole sind ausgelieferte Zeichensätze und Bildbögen.
+// Draußen bei schlechtem Netz sollen sie nicht bei jedem Öffnen der Karte übers
+// Netz gehen. Wer Schriften oder Symbole austauscht, erhöht CACHE_NAME - sonst
+// bleibt die alte Fassung im Cache. Die Stil-JSONs (/karte/stil-*.json) gehören
+// bewusst NICHT dazu, sie laufen wie alles Übrige network-first. Kacheln kommen
+// von fremden Ursprüngen und werden unten ohnehin nicht angefasst.
+function isImmutableKartenDatei(url) {
+  return (
+    url.pathname.startsWith("/karte/maplibre-") ||
+    url.pathname.startsWith("/karte/schriften/") ||
+    url.pathname.startsWith("/karte/symbole/")
+  );
+}
+
 // API-Aufrufe an das Backend werden bewusst nicht gecacht - Schreibvorgänge
 // laufen offline über die IndexedDB-Warteschlange (siehe lib/offline-queue.ts),
 // nicht über den Service Worker. Registriert wird diese Datei laut
@@ -60,7 +77,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (isImmutableBuildAsset(url)) {
+  if (isImmutableBuildAsset(url) || isImmutableKartenDatei(url)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;

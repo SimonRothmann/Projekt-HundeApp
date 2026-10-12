@@ -40,7 +40,7 @@ function Liste({ punkte }: { punkte: string[] }) {
  * Informationspflicht nach Art. 13 DSGVO.
  *
  * Der Text beschreibt, was die App TATSÄCHLICH tut - jede genannte Stelle ist
- * im Code nachweisbar (Kartenkacheln, Ortssuche, Wetterdienst, Speicherung im
+ * im Code nachweisbar (Kartendaten, Ortssuche, Wetterdienst, Speicherung im
  * Browser, Sicherungen). Kommt eine Datenverarbeitung dazu oder fällt eine
  * weg, gehört dieser Text in denselben Commit: Eine Datenschutzerklärung, die
  * etwas anderes behauptet als der Code tut, ist schlimmer als keine.
@@ -255,14 +255,14 @@ export default function DatenschutzPage() {
 
         <Abschnitt titel="7. Dienste Dritter">
           <p>Dogity bindet keine Analyse-, Werbe- oder Social-Media-Dienste ein. Diese Stellen sind beteiligt:</p>
-          <p className="font-medium text-foreground">Kartenbilder (in deinem Browser)</p>
+          <p className="font-medium text-foreground">Karte (in deinem Browser)</p>
           <p>
-            Die Karten bestehen aus Kacheln, die dein Gerät direkt beim Kartenanbieter abruft. Dabei erfährt dieser
-            technisch bedingt deine IP-Adresse und den gezeigten Kartenausschnitt. Standard ist die Karte der{" "}
-            <span className="text-foreground">OpenStreetMap Foundation</span> (Vereinigtes Königreich). Schaltest du auf
-            das Luftbild um, kommen die Kacheln von <span className="text-foreground">Esri</span>; dabei werden Daten in
-            die USA übertragen. Das Luftbild wird nur geladen, wenn du es selbst auswählst – die Karte startet immer mit
-            OpenStreetMap.
+            Dein Gerät zeichnet die Karte selbst, aus Kartendaten, die es direkt bei der{" "}
+            <span className="text-foreground">OpenStreetMap Foundation</span> (Vereinigtes Königreich) abruft. Dabei
+            erfährt diese technisch bedingt deine IP-Adresse und den gezeigten Kartenausschnitt. Schriften und Symbole
+            der Karte liefert Dogity selbst aus; dafür geht nichts an Dritte. Schaltest du auf das Luftbild um, kommen
+            die Bildkacheln von <span className="text-foreground">Esri</span>; dabei werden Daten in die USA übertragen.
+            Das Luftbild wird nur geladen, wenn du es selbst auswählst – die Karte startet immer mit OpenStreetMap.
           </p>
           <p className="font-medium text-foreground">Ortssuche und Wetter (vom Server, nicht von deinem Gerät)</p>
           <p>
