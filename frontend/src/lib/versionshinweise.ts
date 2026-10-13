@@ -71,7 +71,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       },
       {
         art: "verbessert",
-        text: uebersetzbar("Beim Legen und Ablaufen dreht sich die Karte in Laufrichtung - du kannst sie dabei trotzdem verschieben und zoomen. Mit dem Kompass schaltest du wie gewohnt auf „Nord oben“."),
+        text: uebersetzbar("Beim Legen und Ablaufen dreht sich die Karte in Laufrichtung, sobald du ein paar Schritte gegangen bist - verschieben und zoomen kannst du sie dabei trotzdem. Der Knopf oben rechts zeigt, was gerade gilt, und schaltet zwischen „Laufrichtung“ und „Norden“ um; bei „Norden“ zeigt ein Pfeil, wohin du gehst."),
       },
       {
         art: "verbessert",

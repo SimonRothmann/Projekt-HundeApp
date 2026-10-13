@@ -91,16 +91,15 @@ describe("glaettePeilung", () => {
 });
 
 describe("Ausrichtung", () => {
-  it("läuft im Kreis: Nord + Pfeil, Laufrichtung, Nord", () => {
-    expect(naechsteAusrichtung("north-arrow")).toBe("heading");
+  it("schaltet zwischen Laufrichtung und Norden hin und her", () => {
     expect(naechsteAusrichtung("heading")).toBe("north");
-    expect(naechsteAusrichtung("north")).toBe("north-arrow");
+    expect(naechsteAusrichtung("north")).toBe("heading");
   });
 
   it("dreht nur in Laufrichtung mit der Peilung, sonst steht Nord oben", () => {
     expect(zielPeilung("heading", 42)).toBe(42);
     expect(zielPeilung("heading", null)).toBeNull();
     expect(zielPeilung("north", 42)).toBe(0);
-    expect(zielPeilung("north-arrow", 42)).toBe(0);
+    expect(zielPeilung("north", null)).toBe(0);
   });
 });

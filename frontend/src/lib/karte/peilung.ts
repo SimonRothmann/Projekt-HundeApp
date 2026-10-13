@@ -49,17 +49,22 @@ export function glaettePeilung(bisher: number | null, roh: number): number {
 }
 
 /**
- * Wie die Karte ausgerichtet ist (nur live umschaltbar, per Kompass-Knopf):
- * - "north-arrow": Nord oben, Richtungspfeil an der eigenen Position
- *   (klassisch, wie Google Maps 'North Up')
- * - "heading": Karte selbst in Laufrichtung gedreht (klassischer Navi-Modus)
- * - "north": Nord oben ohne Zusatzpfeil (statische Ansicht)
+ * Wie die Karte ausgerichtet ist (nur live, per Knopf oben rechts):
+ * - "heading": Die Karte dreht sich, die Laufrichtung steht oben (Navi-Modus).
+ * - "north": Norden steht oben; ein Pfeil an der eigenen Position zeigt die
+ *   Laufrichtung.
+ *
+ * Zwei Modi, nicht drei: Bis 2026-10-13 gab es zusätzlich "Nord oben ohne
+ * Pfeil". Beim Legen zeigte aber auch "Nord + Pfeil" keinen Pfeil (der kam nur
+ * beim Ablaufen), und ohne Bewegung dreht auch die Laufrichtung nicht - drei
+ * Tipps auf den Knopf, und auf dem Bildschirm änderte sich nichts. Auf dem
+ * Handy sah das aus wie ein Knopf, der nicht reagiert.
  */
-export type Ausrichtung = "north-arrow" | "heading" | "north";
+export type Ausrichtung = "heading" | "north";
 
-/** Der nächste Modus im Kreis, wie ihn der Kompass-Knopf durchschaltet. */
+/** Der andere Modus - der Knopf schaltet hin und her. */
 export function naechsteAusrichtung(aktuell: Ausrichtung): Ausrichtung {
-  return aktuell === "north-arrow" ? "heading" : aktuell === "heading" ? "north" : "north-arrow";
+  return aktuell === "heading" ? "north" : "heading";
 }
 
 /**

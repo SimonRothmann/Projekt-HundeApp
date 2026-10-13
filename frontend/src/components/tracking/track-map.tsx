@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import type { Map as KartenObjekt, Marker, Popup } from "maplibre-gl";
 import { Map as KartenSymbol, Satellite } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EBENE_GEAENDERT, KARTEN_EBENEN, ebeneMerken, gespeicherteEbene, type KartenEbene } from "@/lib/karten-ebenen";
 import type { GpsWalkRun } from "@/lib/types";
@@ -233,16 +234,14 @@ export function TrackMap({
     return () => window.removeEventListener(EBENE_GEAENDERT, beiWechsel);
   }, []);
 
-  // Kartenausrichtung: nur im Live-Modus umschaltbar; Nutzer kann per
-  // Kompass-Button zwischen den drei Modi zyklen. Gezogen und gezoomt werden
-  // kann in jedem Modus - gedreht wird allein hierüber.
+  // Kartenausrichtung: nur im Live-Modus, per Knopf oben rechts - Laufrichtung
+  // oder Norden (warum nur zwei Modi: lib/karte/peilung.ts). Gezogen und
+  // gezoomt werden kann in beiden, gedreht wird allein hierüber.
   // Während der Aufzeichnung dreht die Karte standardmäßig mit der
-  // Laufrichtung. Vorher stand hier "north-arrow" - der Modus war also
-  // vorhanden, aber hinter dem Kompass-Knopf versteckt, und wer ihn nicht
-  // fand, lief mit fest nach Norden ausgerichteter Karte über den Acker.
-  // Die drei Modi bleiben, nur die Voreinstellung wechselt.
+  // Laufrichtung: Wer den Knopf nicht fand, lief sonst mit fest nach Norden
+  // ausgerichteter Karte über den Acker.
   const [orientation, setOrientation] = useState<Ausrichtung>(isLive ? "heading" : "north");
-  const showPositionArrow = isLive && orientation === "north-arrow";
+  const showPositionArrow = isLive && orientation === "north";
 
   // Sofort grob auf den eigenen Standort zentrieren, ohne auf den ersten
   // aufgezeichneten Punkt zu warten.
@@ -288,7 +287,13 @@ export function TrackMap({
   }, [mapReady, isLive]);
 
   function cycleOrientation() {
-    setOrientation(naechsteAusrichtung);
+    const naechste = naechsteAusrichtung(orientation);
+    setOrientation(naechste);
+    // Wer steht, hat keine Laufrichtung - die Karte bliebe nach Norden
+    // ausgerichtet, und der Tipp sähe aus, als hätte er nichts bewirkt.
+    if (naechste === "heading" && smoothedHeadingRef.current === null) {
+      toast(t("Die Karte dreht sich, sobald du ein paar Schritte gehst."));
+    }
   }
 
   // Karte genau einmal erzeugen (nur beim Mount).
@@ -456,8 +461,10 @@ export function TrackMap({
 
   useEffect(() => {
     const d = liveAblaufDaten(liveWalkRunPoints, walkRuns.length, t);
-    // Mit Richtungspfeil zeichnet ein Marker die Position, kein Punkt.
-    const teil = { "ablauf-live": d.linie, position: showPositionArrow ? leer<never>() : d.position };
+    // Mit Richtungspfeil zeichnet ein Marker die Position, kein Punkt. Den
+    // Pfeil gibt es erst mit bekannter Laufrichtung (siehe unten).
+    const mitPfeil = showPositionArrow && smoothedHeadingRef.current !== null;
+    const teil = { "ablauf-live": d.linie, position: mitPfeil ? leer<never>() : d.position };
     Object.assign(datenRef.current, teil);
     datenAnwenden(mapRef.current, teil);
   }, [mapReady, liveWalkRunPoints, walkRuns.length, showPositionArrow, t]);
@@ -508,11 +515,12 @@ export function TrackMap({
     map.easeTo({ bearing, duration: NACHFUEHR_DAUER_MS });
   }, [mapReady, isLive, orientation]);
 
-  // Modus "Nord oben + Richtungspfeil": statt einfachem Punkt ein drehbares
-  // Pfeil-Symbol, dessen Spitze in die aktuelle Bewegungsrichtung zeigt - so
-  // sieht der Nutzer die Ausrichtung, ohne dass sich die ganze Karte drehen
-  // muss. rotationAlignment "map": Die Drehung ist eine Himmelsrichtung und
-  // stimmt damit in jedem Modus. Steht NACH dem Nachführen, weil es dessen
+  // Modus "Norden": ein drehbares Pfeil-Symbol an der eigenen Position, dessen
+  // Spitze in die Laufrichtung zeigt - so sieht man die Richtung, ohne dass
+  // sich die ganze Karte drehen muss. Beim Ablaufen am Ende des laufenden
+  // Versuchs, beim Legen am Ende der Legung (bis 2026-10-13 gab es ihn nur beim
+  // Ablaufen). rotationAlignment "map": Die Drehung ist eine Himmelsrichtung
+  // und stimmt damit in jedem Modus. Steht NACH dem Nachführen, weil es dessen
   // frische Peilung liest.
   useEffect(() => {
     const map = mapRef.current;
@@ -520,7 +528,14 @@ export function TrackMap({
     if (!mapReady || !map || !maplibre) return;
 
     const d = liveAblaufDaten(liveWalkRunPoints, walkRuns.length, t);
-    if (!showPositionArrow || !d.letzter) {
+    const legung = live ? points.filter((p) => p.pointType !== 1) : [];
+    const legungsEnde = legung.length > 0 ? legung[legung.length - 1] : null;
+    const ziel: [number, number] | null =
+      d.letzter ?? (legungsEnde ? [legungsEnde.longitude, legungsEnde.latitude] : null);
+    const farbe = d.letzter ? d.farbe : TRACK_LINE_COLOR;
+    // Ohne bekannte Laufrichtung kein Pfeil: einer, der stur nach Norden
+    // zeigt, führte in die Irre.
+    if (!showPositionArrow || !ziel || smoothedHeadingRef.current === null) {
       pfeilRef.current?.remove();
       pfeilRef.current = null;
       pfeilFarbeRef.current = null;
@@ -528,24 +543,24 @@ export function TrackMap({
     }
 
     // Die Farbe hängt am Versuch (Zyklus) - bei einem neuen Versuch neu bauen.
-    if (pfeilRef.current && pfeilFarbeRef.current !== d.farbe) {
+    if (pfeilRef.current && pfeilFarbeRef.current !== farbe) {
       pfeilRef.current.remove();
       pfeilRef.current = null;
     }
     if (!pfeilRef.current) {
       pfeilRef.current = new maplibre.Marker({
-        element: pfeilElement(d.farbe),
+        element: pfeilElement(farbe),
         rotationAlignment: "map",
         pitchAlignment: "map",
       })
-        .setLngLat(d.letzter)
+        .setLngLat(ziel)
         .addTo(map);
-      pfeilFarbeRef.current = d.farbe;
+      pfeilFarbeRef.current = farbe;
     } else {
-      pfeilRef.current.setLngLat(d.letzter);
+      pfeilRef.current.setLngLat(ziel);
     }
-    pfeilRef.current.setRotation(smoothedHeadingRef.current ?? 0);
-  }, [mapReady, showPositionArrow, liveWalkRunPoints, walkRuns.length, t]);
+    pfeilRef.current.setRotation(smoothedHeadingRef.current);
+  }, [mapReady, showPositionArrow, liveWalkRunPoints, walkRuns.length, live, points, t]);
 
   // Abgeschlossene/historische Fährte: ganze Strecke ins Bild einpassen, ohne
   // Animation - die Karte soll gleich so dastehen. Bei geänderten Daten erneut.
@@ -566,11 +581,9 @@ export function TrackMap({
   }
 
   const orientationTitle =
-    orientation === "north-arrow"
-      ? t("Nord oben + Richtungspfeil (klicken für 'in Laufrichtung')")
-      : orientation === "heading"
-        ? t("Karte in Laufrichtung (klicken für 'Nord oben ohne Pfeil')")
-        : t("Nord oben, statisch (klicken für 'Nord + Pfeil')");
+    orientation === "heading"
+      ? t("Die Karte dreht mit der Laufrichtung - tippen für Norden oben")
+      : t("Norden oben, der Pfeil zeigt deine Laufrichtung - tippen, damit die Karte mitdreht");
 
   return (
     <div className={`relative isolate w-full overflow-hidden ${fill ? "h-full" : "h-64 rounded-md"}`}>
@@ -619,16 +632,20 @@ export function TrackMap({
           type="button"
           onClick={cycleOrientation}
           title={orientationTitle}
-          className="absolute right-2 top-2 z-10 flex size-10 items-center justify-center rounded-full border bg-background/90 shadow-md backdrop-blur"
+          aria-label={orientationTitle}
+          // Mit Beschriftung wie der Ebenen-Knopf: Ein Kompass allein verriet
+          // nicht, welcher Modus gilt - wer stand, sah nach dem Tipp keine
+          // Änderung und hielt den Knopf für tot.
+          className="absolute right-2 top-2 z-10 flex items-center gap-1.5 rounded-full border bg-background/90 px-3 py-2 text-xs font-medium shadow-md backdrop-blur coarse:min-h-10"
         >
           {/* Kompassnadel: zeigt immer nach geografisch Nord. Ihre Drehung setzt
               das rotate-Ereignis der Karte (gegen deren bearing), ohne dass
               jedes Bild einer Drehung die Komponente neu rendert. */}
-          <svg ref={nadelRef} viewBox="0 0 24 24" className="size-6" aria-hidden>
+          <svg ref={nadelRef} viewBox="0 0 24 24" className="size-5 shrink-0" aria-hidden>
             <polygon points="12,3 15,13 12,11 9,13" fill="#dc2626" />
             <polygon points="12,21 9,11 12,13 15,11" fill="#64748b" />
-            <text x="12" y="8.5" textAnchor="middle" fontSize="4" fill="white" fontWeight="bold">N</text>
           </svg>
+          {orientation === "heading" ? t("Laufrichtung") : t("Norden")}
         </button>
       )}
     </div>

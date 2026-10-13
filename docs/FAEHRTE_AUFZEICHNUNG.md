@@ -25,6 +25,9 @@ zu bauen, sondern sie **erreichbar** zu machen.
 
 ## 1. Karte in Laufrichtung
 
+> Überholt (2026-10-13): Es gibt nur noch zwei Ausrichtungen, "Laufrichtung"
+> und "Norden" - siehe "Zwei Ausrichtungen statt drei" weiter unten.
+
 `TrackMap` hat drei Ausrichtungen, umschaltbar über den Kompass-Knopf:
 
 - `north-arrow` — Norden oben, Richtungspfeil an der eigenen Position
@@ -324,6 +327,21 @@ früheren Punkt, der mindestens 3 m entfernt liegt, zum neuesten; danach
 exponentielle Glättung. Die frühere Konstante für ein Fenster von fünf Punkten
 hatte nie eine Wirkung (die Rückwärtssuche überschrieb den Startwert sofort)
 und ist entfallen.
+
+**Zwei Ausrichtungen statt drei (2026-10-13):** Rückmeldung vom Handy: "Der
+Knopf lässt sich nicht klicken." Er ließ sich klicken - nur änderte sich nichts
+Sichtbares. Beim Legen zeigte auch "Nord + Pfeil" keinen Pfeil (den gab es nur
+beim Ablaufen), "Nord ohne Pfeil" sah also genauso aus; und wer steht, hat
+keine Laufrichtung, die Karte bleibt auch im Laufrichtungs-Modus nach Norden
+ausgerichtet. Drei Tipps, dreimal dasselbe Bild. Jetzt:
+
+- zwei Modi, `heading` ("Laufrichtung", Standard) und `north` ("Norden" -
+  mit Richtungspfeil am Ende der Legung bzw. des laufenden Ablaufs, sobald
+  eine Richtung bekannt ist),
+- der Knopf trägt den aktuellen Modus als Beschriftung, wie der
+  Ebenen-Umschalter daneben,
+- wer ohne bekannte Richtung auf "Laufrichtung" schaltet, bekommt den Hinweis
+  "Die Karte dreht sich, sobald du ein paar Schritte gehst."
 
 ---
 
