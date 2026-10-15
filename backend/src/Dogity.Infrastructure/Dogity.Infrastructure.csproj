@@ -6,6 +6,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Web Push (VAPID, RFC 8030/8291) für die Push-Benachrichtigungen. Auf
+         net5+ ohne BouncyCastle (nur Lib.Net.Http.EncryptedContentEncoding).
+         Exakt festgelegt statt "3.*": der Versand hängt an dieser Bibliothek. -->
+    <PackageReference Include="Lib.Net.Http.WebPush" Version="3.3.1" />
     <PackageReference Include="MailKit" Version="4.*" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.*" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.*" />

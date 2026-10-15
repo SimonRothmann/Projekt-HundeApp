@@ -5,10 +5,8 @@ using Microsoft.Extensions.Logging;
 namespace Dogity.Infrastructure.Email;
 
 /// <summary>
-/// Platzhalter-Implementierung, solange kein echter SMTP-Versand
-/// angebunden ist (Umschalten: SmtpEmailSender in DependencyInjection.cs
-/// registrieren, sobald SMTP-Zugangsdaten vorliegen - laut Roadmap bewusst
-/// ganz hinten angestellt, siehe TODO.md).
+/// Aktiv, solange "Email:Smtp:Host" nicht gesetzt ist: protokolliert statt zu
+/// versenden (lokale Entwicklung, Testumgebung ohne Mailkonto).
 ///
 /// Der Mail-BODY wird nur in Development geloggt: er enthält beim
 /// Passwort-Reset den vollständigen Reset-Link inkl. gültigem Token - in
@@ -16,11 +14,12 @@ namespace Dogity.Infrastructure.Email;
 /// für jeden mit Log-Zugriff ein Konto-Übernahme-Vektor. In Development
 /// (lokal + Test-VPS) bleibt der Body einsehbar, dort ist der geloggte Link
 /// der dokumentierte Weg, den Reset ohne echten E-Mail-Versand
-/// durchzuspielen (siehe deploy/README.md "Logs / Status").
+/// durchzuspielen (siehe deploy/README.md "Logs / Status"). Es wird nur die
+/// Textfassung geloggt, nie das HTML.
 /// </summary>
 public class LoggingEmailSender(ILogger<LoggingEmailSender> logger, IHostEnvironment environment) : IEmailSender
 {
-    public Task SendAsync(string toEmail, string subject, string bodyText, CancellationToken ct = default)
+    public Task SendAsync(string toEmail, string subject, string bodyText, string? bodyHtml = null, CancellationToken ct = default)
     {
         if (environment.IsDevelopment())
         {

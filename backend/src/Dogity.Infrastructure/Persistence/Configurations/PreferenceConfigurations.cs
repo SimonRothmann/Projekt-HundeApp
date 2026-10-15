@@ -12,6 +12,13 @@ public class UserPreferenceConfiguration : IEntityTypeConfiguration<UserPreferen
         builder.Property(p => p.Locale).HasMaxLength(10);
         builder.Property(p => p.Country).HasMaxLength(2);
 
+        // Vorgabe "ja": Bestehende Zeilen bekommen mit der Migration true - wer
+        // vorher nichts eingestellt hat, hat auch nichts abgelehnt.
+        // ValueGeneratedNever, weil EF bei einem bool mit Datenbank-Vorgabe true
+        // sonst ein ausdrückliches false für "nicht gesetzt" hält, beim Einfügen
+        // weglässt - und die Datenbank daraus wieder true machte.
+        builder.Property(p => p.EmailNotifications).HasDefaultValue(true).ValueGeneratedNever();
+
         // Eine Einstellungszeile je Nutzer. Ohne den eindeutigen Index
         // entstünde beim gleichzeitigen Speichern aus zwei Geräten eine
         // zweite Zeile, und ab da läse man je nach Zufall die eine oder die

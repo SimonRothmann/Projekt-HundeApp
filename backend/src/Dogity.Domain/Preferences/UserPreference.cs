@@ -50,6 +50,18 @@ public class UserPreference : Entity
     /// </summary>
     public string? FontScale { get; set; }
 
+    /// <summary>
+    /// Ob wichtige Benachrichtigungen (Einladungen, Entscheidungen über
+    /// Beitrittsanfragen) zusätzlich per E-Mail kommen. Standard: ja.
+    ///
+    /// Betrifft NUR diese Mails. Die Willkommensmail und die Mail zum
+    /// Zurücksetzen des Passworts gehören zum Konto und sind davon unabhängig -
+    /// ohne die zweite käme niemand mehr ins Konto, der das Passwort vergessen hat.
+    /// Bestehende Zeilen sind beim Einführen auf "ja" gesetzt worden: Wer nie
+    /// etwas eingestellt hat, hat auch nichts abgelehnt.
+    /// </summary>
+    public bool EmailNotifications { get; set; } = true;
+
     public ICollection<UserDisabledModule> DisabledModules { get; set; } = new List<UserDisabledModule>();
     public ICollection<UserSportSelection> Sports { get; set; } = new List<UserSportSelection>();
 }

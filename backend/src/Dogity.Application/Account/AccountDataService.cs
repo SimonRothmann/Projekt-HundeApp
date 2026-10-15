@@ -106,6 +106,13 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             .Where(g => terminGruppenIds.Contains(g.Id))
             .ToDictionaryAsync(g => g.Id, g => g.Name, ct);
 
+        var pushGeraete = await db.PushSubscriptions
+            .Where(s => s.UserId == userId)
+            .OrderBy(s => s.CreatedAt)
+            .Select(s => new PushGeraetExportDto(s.UserAgent, s.CreatedAt, s.LastUsedAt))
+            .AsNoTracking()
+            .ToListAsync(ct);
+
         var einstellung = await db.UserPreferences
             .Where(p => p.UserId == userId)
             .Include(p => p.DisabledModules)
@@ -129,7 +136,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     einstellung.Country,
                     einstellung.FontScale,
                     einstellung.DisabledModules.Select(m => m.ModuleKey).ToList(),
-                    einstellung.Sports.Select(s => s.SportId).ToList()),
+                    einstellung.Sports.Select(s => s.SportId).ToList(),
+                    einstellung.EmailNotifications),
             hunde.Select(hund =>
             {
                 var rolle = besitz.First(b => b.DogId == hund.Id);
@@ -276,7 +284,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     z.StartsAt,
                     z.IsAttending,
                     z.RespondedAt))
-                .ToList());
+                .ToList(),
+            pushGeraete);
 
         return Result<AccountExportDto>.Success(export);
     }
@@ -376,6 +385,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
 
         var lernstand = await db.QuizMasteries.IgnoreQueryFilters().Where(m => m.UserId == userId).ToListAsync(ct);
         var benachrichtigungen = await db.Notifications.IgnoreQueryFilters().Where(n => n.UserId == userId).ToListAsync(ct);
+        var pushGeraete = await db.PushSubscriptions.IgnoreQueryFilters().Where(s => s.UserId == userId).ToListAsync(ct);
 
         var mitgliedschaften = await db.ClubMemberships.IgnoreQueryFilters().Where(m => m.UserId == userId).ToListAsync(ct);
         var vereinstrainer = await db.ClubTrainers.IgnoreQueryFilters().Where(t => t.UserId == userId).ToListAsync(ct);
@@ -476,6 +486,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         db.UserPreferences.RemoveRange(einstellungen);
         db.QuizMasteries.RemoveRange(lernstand);
         db.Notifications.RemoveRange(benachrichtigungen);
+        db.PushSubscriptions.RemoveRange(pushGeraete);
         db.TrainerAssignments.RemoveRange(zuweisungen);
         db.GroupTrainingSessionTrainers.RemoveRange(termintrainer);
         db.GroupTrainingSessionResponses.RemoveRange(terminzusagen);

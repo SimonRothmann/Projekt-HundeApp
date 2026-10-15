@@ -1121,6 +1121,8 @@ export type UserPreferences = {
   fontScale: string | null;
   disabledModules: string[];
   sportIds: string[];
+  /** Ob wichtige Benachrichtigungen (Einladungen, Entscheidungen) auch per E-Mail kommen. Vorgabe: ja. */
+  emailNotifications: boolean;
 };
 
 /** Ein wählbarer Geltungsbereich - Spiegel von Application/Sports/CountryDto. */

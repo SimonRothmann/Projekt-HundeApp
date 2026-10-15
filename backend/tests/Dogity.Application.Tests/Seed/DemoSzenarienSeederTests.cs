@@ -1,5 +1,6 @@
 using Dogity.Application;
 using Dogity.Application.Abstractions;
+using Dogity.Application.Notifications;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Application.Weather;
 using Dogity.Domain.Community;
@@ -42,6 +43,12 @@ public class DemoSzenarienSeederTests
         services.AddApplication();
         // Nach AddApplication, damit sie die echte Anreicherung ersetzt: kein Netz im Test.
         services.AddScoped<IWeatherEnrichmentService, FakeWeatherEnrichmentService>();
+        // Was NotificationService zum Einreihen von Mail und Push braucht (sonst in
+        // AddInfrastructure registriert): Fakes, die nichts versenden.
+        services.AddSingleton<INotificationChannels, FakeNotificationChannels>();
+        services.AddSingleton<IFrontendLinks>(TestLinks.Mit());
+        services.AddSingleton<IMailQueue, FakeMailQueue>();
+        services.AddSingleton<IPushQueue, FakePushQueue>();
         return services.BuildServiceProvider();
     }
 

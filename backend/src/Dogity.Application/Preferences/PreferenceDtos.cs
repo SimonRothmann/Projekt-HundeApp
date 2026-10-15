@@ -8,18 +8,21 @@ namespace Dogity.Application.Preferences;
 /// <param name="DisabledModules">ABGEWÄHLTE Module. Leer = alles an.</param>
 /// <param name="SportIds">Betriebene Sportarten. Leer = keine Einschränkung.</param>
 /// <param name="FontScale">Schriftgröße der Oberfläche, null = Vorgabe ("normal").</param>
+/// <param name="EmailNotifications">Ob wichtige Benachrichtigungen auch per E-Mail kommen. Vorgabe: ja.</param>
 public record UserPreferenceDto(
     string? Locale,
     string? Country,
     IReadOnlyList<string> DisabledModules,
     IReadOnlyList<Guid> SportIds,
-    string? FontScale);
+    string? FontScale,
+    bool EmailNotifications = true);
 
 public record UpdateModulesRequest(IReadOnlyList<string> DisabledModules);
 public record UpdateSportsRequest(IReadOnlyList<Guid> SportIds);
 public record UpdateLocaleRequest(string? Locale);
 public record UpdateCountryRequest(string? Country);
 public record UpdateFontScaleRequest(string? FontScale);
+public record UpdateEmailNotificationsRequest(bool Enabled);
 
 /// <summary>
 /// Die wählbaren Schriftgrößen. Steht hier und nicht im Service, weil auch der

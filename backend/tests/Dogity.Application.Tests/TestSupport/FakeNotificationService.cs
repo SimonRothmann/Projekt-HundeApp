@@ -11,9 +11,13 @@ public class FakeNotificationService : INotificationService
 {
     public List<(Guid UserId, string Message, string? LinkPath)> Created { get; } = [];
 
-    public Task CreateAsync(Guid userId, string message, string? linkPath = null, CancellationToken ct = default)
+    /// <summary>Die Meldungen, die als "wichtig" (also zusätzlich per Mail) angelegt wurden.</summary>
+    public List<(Guid UserId, string Message)> Wichtige { get; } = [];
+
+    public Task CreateAsync(Guid userId, string message, string? linkPath = null, CancellationToken ct = default, bool wichtig = false)
     {
         Created.Add((userId, message, linkPath));
+        if (wichtig) Wichtige.Add((userId, message));
         return Task.CompletedTask;
     }
 

@@ -1592,4 +1592,34 @@ export const EN: Record<string, string> = {
   "Nimmst du an, bist du Mitglied im Verein - die Trainer:innen sehen dann deinen Namen und deine E-Mail-Adresse.": "If you accept, you are a member of the club – its trainers will then see your name and email address.",
   "Du bist jetzt Mitglied im Verein {verein}.": "You are now a member of the club {verein}.",
   "„{verein}“ lädt dich ein": "“{verein}” invites you",
+  "Push-Benachrichtigungen auf diesem Gerät": "Push notifications on this device",
+  "Neue Meldungen aus der Glocke kommen dann auch als Mitteilung aufs Gerät, selbst wenn Dogity geschlossen ist.":
+    "New alerts from the bell then also arrive as a notification on this device, even when Dogity is closed.",
+  "Einschalten": "Turn on",
+  "Ausschalten": "Turn off",
+  "Auf diesem Gerät eingeschaltet.": "Turned on for this device.",
+  "Mitteilungen sind für Dogity blockiert. Erlaube sie in den Einstellungen deines Geräts oder Browsers (iPhone: Einstellungen → Mitteilungen → Dogity) und öffne diese Seite danach neu.":
+    "Notifications are blocked for Dogity. Allow them in the settings of your device or browser (iPhone: Settings → Notifications → Dogity) and then reopen this page.",
+  "Auf dem iPhone kommen Push-Nachrichten nur, wenn du Dogity zum Home-Bildschirm hinzufügst (Teilen → Zum Home-Bildschirm).":
+    "On the iPhone, push notifications only arrive if you add Dogity to your Home Screen (Share → Add to Home Screen).",
+  "Dieses Gerät oder dieser Browser unterstützt keine Push-Nachrichten.":
+    "This device or browser does not support push notifications.",
+  "Push-Nachrichten sind auf diesem Gerät eingeschaltet.": "Push notifications are turned on for this device.",
+  "Push-Nachrichten sind auf diesem Gerät ausgeschaltet.": "Push notifications are turned off for this device.",
+  "Die Erlaubnis für Mitteilungen wurde nicht erteilt.": "Permission for notifications was not granted.",
+  "Push-Nachrichten konnten nicht eingeschaltet werden.": "Push notifications could not be turned on.",
+  "Das Gerät konnte nicht vollständig abgemeldet werden. Auf diesem Gerät ist Push aus.":
+    "The device could not be fully signed off. Push is off on this device.",
+  "Wichtiges auch per E-Mail": "Important things by email too",
+  "Einladungen und Entscheidungen über Beitrittsanfragen": "Invitations and decisions on join requests",
+  "Wir schicken dir einen Link zum Zurücksetzen per E-Mail": "We will email you a link to reset it",
+  "Falls diese E-Mail-Adresse registriert ist, haben wir dir einen Link zum Zurücksetzen geschickt. Bitte prüfe dein Postfach - auch den Spam-Ordner.":
+    "If this email address is registered, we have sent you a link to reset your password. Please check your inbox – and your spam folder.",
+  "Link anfordern": "Request link",
+  "Push-Nachrichten aufs Handy: Unter Profil → Funktionen schaltest du für jedes Gerät einzeln ein, dass neue Meldungen aus der Glocke auch als Mitteilung ankommen, selbst wenn Dogity geschlossen ist. Auf dem iPhone geht das nur, wenn du Dogity zum Home-Bildschirm hinzufügst (Teilen → Zum Home-Bildschirm). Am App-Symbol kann dann auch die Zahl der ungelesenen Meldungen stehen.":
+    "Push notifications on your phone: under Profile → Features you turn on, device by device, that new alerts from the bell also arrive as a notification, even when Dogity is closed. On the iPhone this only works if you add Dogity to your Home Screen (Share → Add to Home Screen). The app icon can then also show the number of unread alerts.",
+  "Dogity kann dir E-Mails schicken: eine Willkommensmail nach der Registrierung und - bei „Passwort vergessen“ - den Link zum Zurücksetzen direkt in dein Postfach, statt dass der Betreiber sich meldet.":
+    "Dogity can send you emails: a welcome email after you sign up and – with “Forgot password” – the link to reset your password straight to your inbox, instead of the operator getting in touch.",
+  "Einladungen (in einen Verein, eine Gruppe, als Trainer:in einer Gruppe oder zum Mitbesitz eines Hundes) und Entscheidungen über Beitrittsanfragen kann Dogity dir auch per E-Mail schicken. Unter Profil → Funktionen schaltest du das mit „Wichtiges auch per E-Mail“ ab. Wer um Aufnahme in eine Gruppe gebeten hat, bekommt jetzt außerdem Bescheid, ob die Trainer:in zugestimmt hat.":
+    "Dogity can also email you invitations (to a club, a group, as a trainer of a group or to co-own a dog) and decisions on join requests. Under Profile → Features you turn this off with “Important things by email too”. Anyone who asked to join a group now also hears whether the trainer agreed.",
 };

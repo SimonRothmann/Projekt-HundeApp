@@ -38,7 +38,7 @@ public class FakeUserLookupService : IUserLookupService
             hit.Key == default ? null : new UserLookupResult(hit.Key, hit.Value.Email, hit.Value.FirstName, hit.Value.LastName));
     }
 
-    public Task<IReadOnlyDictionary<Guid, UserLookupResult>> FindByIdsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default)
+    public virtual Task<IReadOnlyDictionary<Guid, UserLookupResult>> FindByIdsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default)
     {
         var result = userIds
             .Where(_users.ContainsKey)
@@ -62,8 +62,11 @@ public class FakeUserLookupService : IUserLookupService
     public Task<bool> UnlockUserAsync(Guid userId, CancellationToken ct = default) => Task.FromResult(_users.ContainsKey(userId));
     public Task<bool> DeleteUserAsync(Guid userId, CancellationToken ct = default) => Task.FromResult(_users.Remove(userId));
 
+    /// <summary>Wer in welcher Rolle ist - für Tests, die Admins benachrichtigen. Standard: niemand.</summary>
+    public Dictionary<string, List<Guid>> Rollen { get; } = [];
+
     public Task<IReadOnlyList<Guid>> ListUserIdsInRoleAsync(string role, CancellationToken ct = default)
-        => Task.FromResult<IReadOnlyList<Guid>>([]);
+        => Task.FromResult<IReadOnlyList<Guid>>(Rollen.TryGetValue(role, out var ids) ? ids.ToList() : []);
 
     /// <summary>Wer aktuell das TRAINER-Kennzeichen trägt - damit Tests es prüfen können.</summary>
     public HashSet<Guid> TrainerRole { get; } = [];

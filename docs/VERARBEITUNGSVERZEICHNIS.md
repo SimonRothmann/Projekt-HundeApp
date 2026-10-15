@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-10-12 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-10-15 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -117,6 +117,34 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Drittland | nein |
 | Löschfrist | keine eigene Speicherung - die Zahlen entstehen bei jedem Abruf neu |
 
+### 2.5b E-Mail-Versand
+
+| | |
+|---|---|
+| Zweck | Willkommensmail nach der Registrierung, Mail zum Zurücksetzen des Passworts, wichtige Benachrichtigungen (Einladungen in Verein, Gruppe, als Mit-Trainer:in einer Gruppe, zum Mitbesitz eines Hundes; Entscheidungen über Beitrittsanfragen an Verein oder Gruppe, angenommen/abgelehnt). Alles andere kommt nur als Benachrichtigung in der App bzw. als Push. |
+| Betroffene | Registrierte Nutzer:innen |
+| Datenkategorien | E-Mail-Adresse (Empfänger), Vorname (Anrede), Inhalt der Mail: Text der Benachrichtigung (kann Namen von Vereinen, Gruppen, Hunden und der einladenden Person enthalten) bzw. der Link zum Zurücksetzen des Passworts. Absender- und Antwortadresse sind Adressen des Betreibers. |
+| Rechtsgrundlage | Art. 6 Abs. 1 lit. b (Willkommens- und Passwort-Mail gehören zum Konto; Einladungen und Entscheidungen sind Teil der Vereins-/Gruppenfunktion). Die zusätzliche Mail zu Einladungen und Entscheidungen ist je Person unter Profil → Funktionen abschaltbar (`user_preferences.EmailNotifications`, Vorgabe ein); Willkommens- und Passwort-Mail sind davon unabhängig. |
+| Empfänger | Brevo (Sendinblue SAS, Paris, Frankreich) als Auftragsverarbeiter für den SMTP-Versand, Server in der EU; das Postfach der Empfänger:in |
+| Drittland | nein (Brevo, EU) |
+| Besonderheit | Der Versand läuft nicht im Request, sondern über eine In-Memory-Warteschlange mit Hintergrunddienst: ein Wiederholungsversuch, dann wird die Mail verworfen. Es wird nichts dauerhaft gespeichert; bei einem Neustart verfällt, was noch in der Warteschlange lag. Im Log erscheinen weder Empfänger noch Inhalt noch Links (Ausnahme: Development, Textfassung des Platzhalter-Senders ohne SMTP). Ohne `Email:Smtp:Host` wird nichts versendet. Beim Zurücksetzen des Passworts gilt unverändert: Die Antwort ist für vorhandene und unbekannte Adressen gleich. Ist kein Mailversand eingerichtet, benachrichtigt die App stattdessen die Admins. |
+| Löschfrist | keine eigene Speicherung auf dem Server; bei Brevo gelten dessen Aufbewahrungsfristen für Transaktionsmails (im Konto einsehbar, im Vertrag zur Auftragsverarbeitung geregelt) |
+| Tabellen | keine; Einstellung in `user_preferences` |
+
+### 2.5c Push-Benachrichtigungen (Web Push)
+
+| | |
+|---|---|
+| Zweck | Benachrichtigungen der App zusätzlich auf dem Handy oder Rechner anzeigen (auf dem iPhone nur für Dogity als Home-Bildschirm-App), mit Zahl am App-Symbol |
+| Betroffene | Registrierte Nutzer:innen, die Push auf einem Gerät selbst einschalten |
+| Datenkategorien | Je Gerät: Adresse beim Push-Dienst des Geräteherstellers (Endpoint, zugleich Kennung des Geräts), Schlüssel des Geräts zur Verschlüsselung (p256dh, auth), Kurzbezeichnung des Geräts (z. B. „iPhone (Safari)“, aus dem User-Agent gebildet, der selbst nicht gespeichert wird), Zeitpunkte von Anmeldung und letzter Zustellung. Inhalt einer Push-Nachricht: der Text der Benachrichtigung, Zieladresse, Anzahl ungelesener Meldungen. |
+| Rechtsgrundlage | Art. 6 Abs. 1 lit. a (Einwilligung): Push beginnt erst mit „Einschalten“ und der Erlaubnis im Browser bzw. Betriebssystem, je Gerät, jederzeit widerrufbar (Ausschalten in der App oder Entzug der Erlaubnis im Gerät); § 25 Abs. 1 TDDDG (Zugriff auf Endeinrichtung) ebenso |
+| Empfänger | Push-Dienst des Geräteherstellers bzw. Browser-Anbieters (Apple, Google, Mozilla, bei Edge Microsoft) – siehe Abschnitt 4. Er erhält die Geräteadresse und die Nachricht **Ende-zu-Ende verschlüsselt** (RFC 8291) und kann sie nicht lesen. Hosting-Dienstleister (Auftragsverarbeiter) für die Speicherung der Abos. |
+| Drittland | **USA möglich** (Apple, Google, Microsoft; Mozilla: weltweit) – die Nachricht ist verschlüsselt, Metadaten (Geräteadresse, Zeitpunkt, IP des Servers) sind dem Dienst bekannt |
+| Besonderheit | Der Server nimmt als Push-Adresse nur Adressen bekannter Push-Dienste an (https, feste Hostnamen), damit er nicht zu Anfragen an interne Adressen missbraucht werden kann. Höchstens 20 Geräte je Person. Meldet sich auf demselben Gerät eine andere Person an, gehört das Abo danach ihr; beim Abmelden entfernt die App das Abo des Geräts. Meldet der Push-Dienst ein Gerät als unbekannt (HTTP 404/410), wird es gelöscht. Nachricht höchstens einen Tag gültig. Schlüssel des Geräts stehen weder im Datenexport noch im Log. |
+| Löschfrist | bis zum Ausschalten, Abmelden oder zur Kontolöschung; unbekannte Geräte beim nächsten Versand; bei Kontolöschung endgültig (`AccountDataService.PurgeAsync`), nicht nur ausgeblendet |
+| Tabellen | `push_subscriptions` |
+
 ### 2.6 Betrieb der Server
 
 | | |
@@ -137,6 +165,7 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 |---|---|---|---|
 | Contabo GmbH, München | Server, Datenbank, laufender Betrieb | AV-Vertrag erforderlich | nein (Standort Deutschland) |
 | Cloudflare, Inc. | Auslagerung der verschlüsselten Datenbanksicherungen (R2) | AV-Vertrag erforderlich (Cloudflare DPA) | Bucket fest auf EU-Jurisdiktion gestellt; Endpunkt `.eu.r2.cloudflarestorage.com` |
+| Sendinblue SAS (Marke Brevo), Paris, Frankreich | SMTP-Versand der Mails (Abschnitt 2.5b): Empfängeradresse, Vorname, Inhalt der Mail | AV-Vertrag erforderlich (Brevo DPA, im Konto abzuschließen) | nein (Server in der EU) |
 | Cloudflare, Inc. | Vorgeschalteter Proxy für alle vier Domains: TLS, Abwehr von Angriffen und Bots, Weiterleitung an den Server. Fügt nach Dashboard-Einstellung ein Bot-Prüfskript, E-Mail-Verschleierung und Network Error Logging hinzu | derselbe AV-Vertrag (Cloudflare DPA) | **USA möglich** – Anfragen laufen meist über ein nahes Rechenzentrum; Cloudflare ist unter dem EU-U.S. Data Privacy Framework zertifiziert (Art. 45) |
 
 Zum dritten Eintrag, am 2026-09-21 nachgetragen: Die DNS-Namen zeigen auf
@@ -151,7 +180,10 @@ nicht beim Speicheranbieter - Cloudflare verwahrt damit einen Datenbestand,
 den es nicht lesen kann. Das ersetzt den AV-Vertrag nicht, senkt aber das
 Risiko erheblich.
 
-**Offen:** Abschluss bzw. Nachweis beider AV-Verträge dokumentieren.
+**Offen:** Abschluss bzw. Nachweis der AV-Verträge (Contabo, Cloudflare, Brevo)
+dokumentieren. Brevo wird erst benötigt, wenn der Mailversand eingeschaltet
+wird (siehe docs/BETRIEB.md „E-Mail und Push aktivieren“) – ohne SMTP-Konfiguration
+fließen keine Daten dorthin.
 
 ---
 
@@ -163,6 +195,7 @@ Risiko erheblich.
 | Esri | Luftbild-Kacheln, nur bei aktiv gewähltem Luftbild | IP-Adresse und Kartenausschnitt, direkt vom Gerät | **USA** |
 | komoot GmbH (Photon) | Ortssuche | Suchbegriff, ggf. Umkreis-Koordinaten – **vom Server**, ohne Nutzer-IP | nein |
 | Open-Meteo | Wetter zu Ort und Zeitpunkt | Koordinaten und Datum – **vom Server**, ohne Nutzer-IP | nein |
+| Push-Dienste der Geräte-/Browserhersteller: Apple (`*.push.apple.com`), Google (`fcm.googleapis.com`), Mozilla (`*.push.services.mozilla.com`), Microsoft (`*.notify.windows.com`) | Zustellung von Push-Nachrichten an Geräte, die Push eingeschaltet haben (Abschnitt 2.5c); der Dienst gehört zu dem Gerät/Browser, das die Person nutzt, und wird von diesem ausgewählt – Dogity schickt an die Adresse, die das Gerät nennt | Geräteadresse (Endpoint), Zeitpunkt und Größe der Nachricht; der Inhalt ist Ende-zu-Ende verschlüsselt und für den Dienst nicht lesbar – **vom Server** | Apple, Google, Microsoft: **USA möglich**; Mozilla: weltweit |
 | Ko-fi | nur ausgehender Verweis | nichts, solange der Link nicht angeklickt wird | USA (erst nach Klick) |
 
 **Offen:** Für Esri prüfen, ob eine Teilnahme am EU-U.S. Data Privacy Framework
@@ -210,7 +243,7 @@ Auswahl.
 
 | Recht | Umsetzung |
 |---|---|
-| Auskunft und Übertragbarkeit (Art. 15, 20) | `GET /api/profile/export`, in der App unter Profil → „Daten & Konto“ → „Meine Daten herunterladen“ |
+| Auskunft und Übertragbarkeit (Art. 15, 20) | `GET /api/profile/export`, in der App unter Profil → „Daten & Konto“ → „Meine Daten herunterladen“; enthält auch die Geräte mit Push (Bezeichnung und Zeitpunkte, ohne Adresse und Schlüssel) und die Einstellung zu E-Mails |
 | Löschung (Art. 17) | `DELETE /api/profile` mit Passwortbestätigung, in der App unter Profil → „Daten & Konto“ → „Konto löschen“; entfernt die Fachdaten und anschließend das Konto |
 | Berichtigung (Art. 16) | Profil, Hunde- und Trainingsbearbeitung in der App |
 | Angemeldete ohne Konto (2.4a) | Auskunft, Berichtigung, Löschung formlos beim Verein oder per E-Mail an den Betreiber; die Trainer:innen bearbeiten und löschen Anmeldungen in der App (Trainer-Seite der Gruppe). Es gibt keinen Selbstbedienungs-Zugang, weil es kein Konto gibt. |

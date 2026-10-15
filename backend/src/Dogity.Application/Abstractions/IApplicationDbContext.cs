@@ -75,6 +75,7 @@ public interface IApplicationDbContext
     DbSet<QuizMastery> QuizMasteries { get; }
 
     DbSet<Notification> Notifications { get; }
+    DbSet<PushSubscription> PushSubscriptions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

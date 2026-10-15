@@ -12,8 +12,13 @@ import { AuthBackLink } from "@/components/auth-back-link";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
 
 import { useT } from "@/lib/i18n";
+import { useSystemFeatures } from "@/lib/system-features";
 export default function ForgotPasswordPage() {
   const t = useT();
+  // Ob der Server Mails versendet. Solange das nicht feststeht (oder der Abruf
+  // scheitert), gilt der ehrliche Text ohne Mail: Er verspricht nichts, was nicht läuft.
+  const features = useSystemFeatures();
+  const perMail = features?.email === true;
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,26 +47,29 @@ export default function ForgotPasswordPage() {
             <PawPrint className="size-8 text-primary-text" />
             <CardTitle className="text-xl">{t("Passwort vergessen")}</CardTitle>
             {!sent && (
-              <CardDescription>{t("Wir informieren den Betreiber, der dein Passwort zurücksetzt")}</CardDescription>
+              <CardDescription>
+                {perMail
+                  ? t("Wir schicken dir einen Link zum Zurücksetzen per E-Mail")
+                  : t("Wir informieren den Betreiber, der dein Passwort zurücksetzt")}
+              </CardDescription>
             )}
           </CardHeader>
           <CardContent>
             {sent ? (
-              // Ehrlicher Text für den Stand ohne Mailversand: Im Backend ist
-              // nur LoggingEmailSender aktiv, es geht keine Mail raus - die
-              // Admins bekommen stattdessen eine In-App-Benachrichtigung
-              // (AuthController.ForgotPassword) und setzen das Passwort selbst
-              // zurück. Weiterhin ohne Aussage, ob die Adresse existiert.
-              // BEIM UMSCHALTEN AUF SmtpEmailSender (DependencyInjection.cs)
-              // wieder zurückändern: Erfolgstext auf "Falls diese E-Mail-Adresse
-              // registriert ist, wurde ein Link zum Zurücksetzen verschickt.
-              // Bitte prüfe dein Postfach.", Untertitel oben auf "Wir schicken
-              // dir einen Link zum Zurücksetzen" und Knopf auf "Link anfordern"
-              // (alle drei in en.ts neu anlegen, die heutigen dort entfernen).
+              // Zwei Fassungen, je nachdem, ob der Server Mails versendet
+              // (GET /api/system/features). Ohne Mailversand sagt der Text
+              // ehrlich, dass der Betreiber das Passwort zurücksetzt - die Admins
+              // bekommen dann eine Benachrichtigung in der App
+              // (AccountMailService). In beiden Fällen ohne Aussage, ob die
+              // Adresse existiert; die Antwort des Servers ist immer gleich.
               <p className="text-sm text-muted-foreground">
-                {t(
-                  "Wenn die Adresse bei Dogity registriert ist, haben wir den Betreiber informiert. Er setzt dein Passwort zurück und meldet sich bei dir - das kann etwas dauern.",
-                )}
+                {perMail
+                  ? t(
+                      "Falls diese E-Mail-Adresse registriert ist, haben wir dir einen Link zum Zurücksetzen geschickt. Bitte prüfe dein Postfach - auch den Spam-Ordner.",
+                    )
+                  : t(
+                      "Wenn die Adresse bei Dogity registriert ist, haben wir den Betreiber informiert. Er setzt dein Passwort zurück und meldet sich bei dir - das kann etwas dauern.",
+                    )}
               </p>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -78,7 +86,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button type="submit" className="h-11" disabled={isSubmitting}>
-                  {isSubmitting ? t("Wird gesendet…") : t("Zurücksetzen anfragen")}
+                  {isSubmitting ? t("Wird gesendet…") : perMail ? t("Link anfordern") : t("Zurücksetzen anfragen")}
                 </Button>
               </form>
             )}

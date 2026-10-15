@@ -173,6 +173,143 @@ Vorgabe 60 lagert der Kernel auch ohne Not aus, was bei einer Datenbank
 unnötig Tempo kostet. 10 heißt: Swap erst, wenn es eng wird - genau der
 Zweck hier.
 
+## E-Mail und Push aktivieren
+
+Beides ist im Code fertig und wird allein über die `.env` auf dem Server
+eingeschaltet - ohne Codewechsel. Solange nichts eingetragen ist, passiert
+nichts Neues: Mails werden nur protokolliert, Push ist aus, die Glocke in der
+App bleibt der einzige Weg.
+
+Per Mail kommt nur Wichtiges: die Willkommensmail, die Mail zum Zurücksetzen
+des Passworts, Einladungen (Verein, Gruppe, Mit-Trainer:in, Mitbesitz eines
+Hundes) und die Entscheidung über eine Beitrittsanfrage (Verein, Gruppe). Alles
+andere bleibt Glocke und Push. Wichtiges per Mail lässt sich je Person unter
+Profil → Funktionen abschalten; Willkommens- und Passwort-Mail nicht.
+
+### E-Mail über Brevo
+
+Stand der Recherche Oktober 2026; Brevo ändert gelegentlich Menünamen. Der Code
+spricht nur SMTP (STARTTLS), jeder andere Relay geht genauso.
+
+Warum Brevo: kostenloser Tarif mit 300 Mails am Tag (hier reichen einige
+wenige), Sitz in Paris, Server in der EU, SMTP-Relay ohne eigene Software. Bei
+300 Mails am Tag ist Schluss - weitere weist Brevo ab. Das Backend protokolliert
+es (ohne Inhalt), verwirft die Mail und lässt die Glocke unberührt.
+
+1. **Konto anlegen** bei Brevo (EU-Konto) und den Auftragsverarbeitungsvertrag
+   abschließen: Brevo stellt ihn als Data Processing Agreement in den
+   Kontoeinstellungen bereit - herunterladen, ablegen und in
+   `VERARBEITUNGSVERZEICHNIS.md` (Abschnitt 3, "Offen") als erledigt eintragen.
+2. **Domain `dogity.net` authentifizieren** (Brevo: Senders, Domains & Dedicated
+   IPs → Domains → Domain hinzufügen). Brevo zeigt die Einträge an; sie kommen
+   in das DNS bei Cloudflare:
+   - **Brevo-Code** als TXT-Eintrag auf `dogity.net` (`brevo-code:…`),
+   - **DKIM**: die CNAME-Einträge, die Brevo nennt (`brevo1._domainkey`,
+     `brevo2._domainkey`) - in Cloudflare auf **"Nur DNS"** (graue Wolke), sonst
+     findet Brevo sie nicht,
+   - **DMARC** als TXT auf `_dmarc`, zum Anfang nur beobachtend:
+     `v=DMARC1; p=none; rua=mailto:hallo@dogity.net`. Gmail und Yahoo verlangen
+     für Absender wie uns mindestens diesen Eintrag.
+3. **Genau ein SPF-Eintrag.** Eine Domain darf nur *einen* TXT-Eintrag mit
+   `v=spf1` haben - zwei machen beide ungültig. Läuft gleichzeitig Cloudflare
+   Email Routing (siehe unten), werden beide Anbieter in einem Eintrag
+   zusammengeführt:
+
+   ```
+   v=spf1 include:_spf.mx.cloudflare.net include:spf.brevo.com ~all
+   ```
+
+   Ohne Email Routing genügt `v=spf1 include:spf.brevo.com ~all`.
+4. **SMTP-Schlüssel** in Brevo erzeugen (SMTP & API → SMTP). Der **SMTP-Login** ist
+   die dort angezeigte Kennung (meist die Konto-Mailadresse), das Passwort ist
+   der **SMTP-Schlüssel** - nicht der API-Schlüssel.
+5. **Absenderadresse** `hallo@dogity.net` als Absender in Brevo anlegen (sie
+   muss zur authentifizierten Domain gehören).
+6. **Antwortadresse über Cloudflare Email Routing:** In Cloudflare unter
+   `dogity.net` → E-Mail → Email Routing die Adresse `hallo@dogity.net` anlegen
+   und an das private Postfach weiterleiten (Zielpostfach einmal bestätigen).
+   Das ist die Adresse hinter "Antworte einfach auf diese Mail" in der
+   Willkommensmail. Email Routing setzt MX-Einträge und - falls Cloudflare es
+   anbietet - einen SPF-Eintrag: den mit Schritt 3 zusammenführen.
+7. **`.env` auf dem Server** ergänzen (Namen siehe `.env.example`, Werte
+   nirgends einchecken). **Voraussetzung: der AV-Vertrag aus Schritt 1 ist
+   abgeschlossen** - die Datenschutzerklärung sagt, dass der Versand erst dann
+   beginnt. Mit dem Eintrag von `SMTP_HOST` ist der Versand aktiv:
+
+   | Variable | Wert |
+   |---|---|
+   | `SMTP_HOST` | `smtp-relay.brevo.com` |
+   | `SMTP_PORT` | `587` |
+   | `SMTP_USERNAME` | SMTP-Login aus Schritt 4 |
+   | `SMTP_PASSWORD` | SMTP-Schlüssel aus Schritt 4 |
+   | `SMTP_FROM_ADDRESS` | `hallo@dogity.net` |
+   | `SMTP_FROM_NAME` | `Dogity` |
+   | `SMTP_REPLY_TO_ADDRESS` | `hallo@dogity.net` |
+
+   `docker-compose.yml` reicht sie als `Email__Smtp__Host` usw. an `backend-prod`
+   durch. Nur Prod versendet; die Testumgebung hat keinen Mailversand, ihre
+   Demo-Konten haben keine echten Adressen.
+
+Ist der Host gesetzt, ändert sich auch die Seite "Passwort vergessen": Sie
+verspricht dann einen Link per Mail statt "der Betreiber meldet sich", und die
+Benachrichtigung an die Admins ("möchte das Passwort zurücksetzen") entfällt.
+Ohne Host bleibt es beim bisherigen Weg.
+
+### Push-Benachrichtigungen
+
+Web Push mit VAPID: Jede Meldung der Glocke geht zusätzlich an die Geräte, die
+Push eingeschaltet haben (Profil → Funktionen → "Push-Benachrichtigungen auf
+diesem Gerät", je Gerät).
+
+1. **Schlüsselpaar erzeugen** - lokal, nur mit `openssl`:
+
+   ```bash
+   scripts/vapid-schluessel.sh PROD .env      # oder TEST
+   ```
+
+   hängt `PROD_VAPID_PUBLIC_KEY`, `PROD_VAPID_PRIVATE_KEY` und
+   `PROD_VAPID_SUBJECT` an die angegebene Datei an; auf dem Bildschirm erscheint
+   nur der öffentliche Schlüssel. Wer die Zeilen sehen will, lässt die Datei weg
+   (`scripts/vapid-schluessel.sh PROD >> .env` tut dasselbe). Der Kontakt
+   (`mailto:hallo@dogity.net`) ist änderbar mit `VAPID_SUBJECT=mailto:… `
+   vor dem Aufruf.
+2. **Auf den Server:** die drei Zeilen in die `.env` dort übernehmen. Prod und
+   Test bekommen bewusst verschiedene Paare.
+3. **Ein einmal erzeugtes Paar nie ersetzen.** Mit einem neuen Schlüssel sind
+   alle angemeldeten Geräte ungültig; jede Person müsste Push neu einschalten.
+   Das Skript weigert sich deshalb, in eine Datei zu schreiben, in der der
+   private Schlüssel schon einen Wert hat. Leere Platzhalter aus `.env.example`
+   (`PROD_VAPID_PRIVATE_KEY=`) ersetzt es. Die Ausgabe nach stdout
+   (`… >> .env`) prüft nichts - dort vorher selbst nachsehen.
+
+Auf dem iPhone/iPad funktioniert Web Push nur, wenn Dogity **zum
+Home-Bildschirm hinzugefügt** ist (Teilen → "Zum Home-Bildschirm"; iOS/iPadOS
+16.4 oder neuer, auch in der EU). Im normalen Safari-Tab gibt es keine
+Push-Nachrichten; die App zeigt dort einen entsprechenden Hinweis statt des
+Knopfes. Die Nachricht ist Ende-zu-Ende verschlüsselt (RFC 8291): Apple, Google
+und Mozilla leiten sie nur weiter und können sie nicht lesen. Ein Gerät, das der
+Push-Dienst nicht mehr kennt (App gelöscht, Erlaubnis entzogen), wird beim
+nächsten Versand automatisch vergessen.
+
+### Nach dem Einschalten prüfen
+
+```bash
+curl -s https://<PROD_API_DOMAIN>/api/system/features
+# {"email":true,"pushPublicKey":"B…"}   - "email":false / null = nicht eingerichtet
+```
+
+Die Antwort nennt nur Wahrheitswerte und den öffentlichen Schlüssel, keine
+Geheimnisse. Danach:
+
+- **Mail:** "Passwort vergessen" mit dem eigenen Konto anfordern; die Mail
+  sollte in Minuten da sein (sonst Brevo → Logs → Transactional). Der Link
+  beginnt mit `https://<PROD_DOMAIN>/reset-password`.
+- **Push:** auf dem Handy Dogity zum Home-Bildschirm hinzufügen, anmelden,
+  Profil → Funktionen → "Einschalten"; dann lässt man sich von einem zweiten
+  Konto zum Mitbesitzer eines Hundes einladen - die Einladung kommt als Push.
+- Fehler beim Versand stehen ohne Inhalt im Backend-Log
+  (`docker compose logs backend-prod | grep -i "versand\|push"`).
+
 ## Bewusst offen
 
 **SSH-Passwort-Anmeldung.** Steht auf `yes`, Port 22 ist weltweit offen.

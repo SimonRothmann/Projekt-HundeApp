@@ -50,6 +50,21 @@ services:
       Jwt__Audience: Dogity
       Cors__AllowedOrigins__0: "https://${PROD_DOMAIN}"
       AdminBootstrap__Email: ${PROD_ADMIN_EMAIL:-}
+      # Basis für Links in Mails und Push (Passwort zurücksetzen, "In Dogity ansehen").
+      Frontend__BaseUrl: "https://${PROD_DOMAIN}"
+      # E-Mail: Ist Email__Smtp__Host leer, wird nur protokolliert statt versendet.
+      # Einrichtung siehe docs/BETRIEB.md "E-Mail und Push aktivieren".
+      Email__Smtp__Host: ${SMTP_HOST:-}
+      Email__Smtp__Port: ${SMTP_PORT:-587}
+      Email__Smtp__Username: ${SMTP_USERNAME:-}
+      Email__Smtp__Password: ${SMTP_PASSWORD:-}
+      Email__Smtp__FromAddress: ${SMTP_FROM_ADDRESS:-}
+      Email__Smtp__FromName: ${SMTP_FROM_NAME:-Dogity}
+      Email__Smtp__ReplyToAddress: ${SMTP_REPLY_TO_ADDRESS:-}
+      # Push: Fehlt eines der drei, ist Push aus (scripts/vapid-schluessel.sh erzeugt sie).
+      Push__VapidPublicKey: ${PROD_VAPID_PUBLIC_KEY:-}
+      Push__VapidPrivateKey: ${PROD_VAPID_PRIVATE_KEY:-}
+      Push__Subject: ${PROD_VAPID_SUBJECT:-}
     volumes:
       # DataProtection-Keys persistieren: Ohne Volume liegen sie im Container
       # unter /root/.aspnet/DataProtection-Keys und gehen bei jedem
@@ -98,6 +113,12 @@ services:
       Jwt__Issuer: Dogity
       Jwt__Audience: Dogity
       AdminBootstrap__Email: ${TEST_ADMIN_EMAIL:-}
+      Frontend__BaseUrl: "https://${TEST_DOMAIN}"
+      # Push mit eigenem Schlüsselpaar; Mails versendet die Testumgebung bewusst
+      # nicht (die Demo-Konten haben keine echten Adressen) - kein Email__Smtp__Host.
+      Push__VapidPublicKey: ${TEST_VAPID_PUBLIC_KEY:-}
+      Push__VapidPrivateKey: ${TEST_VAPID_PRIVATE_KEY:-}
+      Push__Subject: ${TEST_VAPID_SUBJECT:-}
     volumes:
       - backend-test-dp-keys:/root/.aspnet/DataProtection-Keys
 

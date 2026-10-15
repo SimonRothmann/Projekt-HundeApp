@@ -24,7 +24,14 @@ type PreferencesValue = {
   reload: () => Promise<void>;
 };
 
-const VORGABE: UserPreferences = { locale: null, country: null, fontScale: null, disabledModules: [], sportIds: [] };
+const VORGABE: UserPreferences = {
+  locale: null,
+  country: null,
+  fontScale: null,
+  disabledModules: [],
+  sportIds: [],
+  emailNotifications: true,
+};
 
 const PreferencesContext = createContext<PreferencesValue | undefined>(undefined);
 

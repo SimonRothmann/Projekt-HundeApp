@@ -48,6 +48,10 @@ public static class DependencyInjection
         services.AddScoped<ICommunityOrphanCleanup, CommunityOrphanCleanup>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddSingleton<MailDrossel>();
+        services.AddScoped<IAccountMailService, AccountMailService>();
+        services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
+        services.AddScoped<IPushDispatcher, PushDispatcher>();
         services.AddScoped<IStatsService, StatsService>();
         services.AddScoped<IPreferenceService, PreferenceService>();
         services.AddScoped<IClubRoleBackfill, ClubRoleBackfill>();
