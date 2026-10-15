@@ -62,7 +62,7 @@ export const NACHTRAEGLICH_BIS = "0.9";
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
     version: "0.25",
-    datum: "2026-10-16",
+    datum: "2026-10-15",
     titel: uebersetzbar("Push-Nachrichten und E-Mails"),
     aenderungen: [
       {
