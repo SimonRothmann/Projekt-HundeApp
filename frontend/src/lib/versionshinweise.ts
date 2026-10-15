@@ -66,6 +66,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
     titel: uebersetzbar("Neue Karte für Fährten"),
     aenderungen: [
       {
+        art: "behoben",
+        text: uebersetzbar("Beim Anlegen eines Ziels wählst du jetzt immer die Prüfung, etwa UPr 1. Vorher ging auch „Allgemein“ – dann standen im Plan Übungen aller Stufen, bei der UPr zum Beispiel „Steh“, das erst ab UPr 2 geprüft wird. Wer ohne Prüfung trainieren will, wählt den individuellen Plan."),
+      },
+      {
         art: "verbessert",
         text: uebersetzbar("Die Karte ist neu: gestochen scharf bei jeder Zoomstufe, mit einem echten dunklen Stil, und Acker, Wiese, Wald und Feldwege sind klar zu unterscheiden. Unten links zeigt ein Maßstab die Meter."),
       },
