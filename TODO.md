@@ -84,6 +84,19 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
       Bewertung (Fehler/Zeit statt Punkte?) - davon hängt ab, ob das
       Katalogmodell (Übungen mit Höchstpunkten) passt.
 
+- [ ] **E-Mail: Opt-in/Opt-out ausbauen** (Wunsch des Betreibers, 2026-10-15) —
+      NÄCHSTER Entwicklungsschritt. Stand heute: Willkommens- und
+      Passwort-Mail gehen immer (gehören zum Konto); Einladungen und
+      Entscheidungen über Beitrittsanfragen kommen zusätzlich per Mail,
+      abschaltbar unter Profil → Funktionen („Wichtiges auch per E-Mail“,
+      Vorgabe AN = Opt-out, `user_preferences.EmailNotifications`).
+      Vorher mit dem Betreiber klären: Vorgabe auf AUS (echtes Opt-in, z. B.
+      Frage bei der Registrierung oder beim ersten Einladen)? Abmelde-Link in
+      jeder Benachrichtigungs-Mail, der ohne Anmeldung wirkt (signierter
+      Token) plus `List-Unsubscribe`/`List-Unsubscribe-Post`-Kopfzeilen
+      (One-Click, RFC 8058 - erwarten Gmail/Yahoo)? Bestehende Konten:
+      Einstellung beibehalten oder neu fragen? Datenschutz/VV anpassen.
+
 - [x] **Adminbereich entschlacken** (Wunsch des Betreibers, 2026-10-15; umgesetzt 2026-10-15, vor Hoopers vorgezogen: /admin als Übersicht + Unterseiten Nutzer/Vereine/Statistik/Katalog/Sachkunde/System, Nutzersuche) — als
       Schritt NACH Hoopers. Die Nutzerseiten sind visuell überarbeitet, der
       Adminbereich ist noch überladen und sehr lang zu scrollen. Ziel: auf
