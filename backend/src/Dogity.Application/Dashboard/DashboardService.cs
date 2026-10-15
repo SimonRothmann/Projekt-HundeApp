@@ -30,6 +30,7 @@ public class DashboardService(
     ITrainingService trainings,
     IGpsTrackService tracks,
     IGroupService groups,
+    IClubService clubs,
     TimeProvider timeProvider) : IDashboardService
 {
     public async Task<Result<DashboardDto>> GetAsync(Guid userId, CancellationToken ct = default)
@@ -67,6 +68,10 @@ public class DashboardService(
             .Select(e => new DashboardGroupInvitationDto(e.GroupId, e.GroupName, e.ClubName))
             .ToList();
 
-        return Result<DashboardDto>.Success(new DashboardDto(eintraege, offenesFeedback, einladungen));
+        var vereinsEinladungen = (await clubs.GetMyOpenInvitationsAsync(userId, ct))
+            .Select(e => new DashboardClubInvitationDto(e.ClubId, e.ClubName))
+            .ToList();
+
+        return Result<DashboardDto>.Success(new DashboardDto(eintraege, offenesFeedback, einladungen, vereinsEinladungen));
     }
 }

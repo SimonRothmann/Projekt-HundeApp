@@ -21,15 +21,28 @@ public interface IClubService
     Task<Result> UpdateTrainerRoleAsync(Guid callerId, bool isAdmin, Guid clubId, Guid userId, ClubRole role, CancellationToken ct = default);
     Task<Result> RemoveTrainerAsync(Guid callerId, bool isAdmin, Guid clubId, Guid userId, CancellationToken ct = default);
 
-    /// <summary>Admin-Weg zur direkten Aufnahme eines Mitglieds ohne Beitrittsanfrage-Workflow.</summary>
     /// <summary>
-    /// Nimmt jemanden direkt in den Verein auf, ohne den Antragsweg.
+    /// Holt jemanden per E-Mail-Adresse in den Verein.
     ///
-    /// Erlaubt für Admins und für Trainer:innen DIESES Vereins - sie führen
-    /// den Verein, und wer eine Beitrittsanfrage freigeben darf, darf auch
-    /// jemanden von sich aus aufnehmen.
+    /// Der Betreiber (Admin) nimmt direkt auf. Trainer:innen DIESES Vereins
+    /// laden ein - Mitglied wird die Person erst mit ihrer Zusage
+    /// (<see cref="RespondToInvitationAsync"/>); hatte sie selbst schon
+    /// angefragt, wird die Anfrage gleich freigegeben.
     /// </summary>
-    Task<Result> AddMemberAsync(Guid callerId, bool isAdmin, Guid clubId, AssignClubMemberRequest request, CancellationToken ct = default);
+    Task<Result<AddClubMemberResultDto>> AddMemberAsync(Guid callerId, bool isAdmin, Guid clubId, AssignClubMemberRequest request, CancellationToken ct = default);
+
+    /// <summary>Offene Einladungen eines Vereins (nur eingegebene Adresse, kein Name) - nur für Trainer dieses Vereins.</summary>
+    Task<Result<IReadOnlyList<ClubInvitationDto>>> GetInvitationsAsync(Guid callerId, Guid clubId, CancellationToken ct = default);
+
+    /// <summary>Eine offene Einladung zurückziehen - nur für Trainer dieses Vereins.</summary>
+    Task<Result> WithdrawInvitationAsync(Guid callerId, Guid clubId, Guid membershipId, CancellationToken ct = default);
+
+    /// <summary>Die eigene Einladung in einen Verein annehmen (Mitglied) oder ablehnen.</summary>
+    Task<Result> RespondToInvitationAsync(Guid userId, Guid clubId, bool accept, CancellationToken ct = default);
+
+    /// <summary>Die eigenen offenen Vereinseinladungen für die Startseite (Verein-Id und -Name).</summary>
+    Task<IReadOnlyList<(Guid ClubId, string ClubName)>> GetMyOpenInvitationsAsync(Guid userId, CancellationToken ct = default);
+
     /// <summary>Admin-Weg zum Entfernen eines aktiven Mitglieds aus einem Verein.</summary>
     Task<Result> RemoveMemberAsync(Guid clubId, Guid userId, CancellationToken ct = default);
 

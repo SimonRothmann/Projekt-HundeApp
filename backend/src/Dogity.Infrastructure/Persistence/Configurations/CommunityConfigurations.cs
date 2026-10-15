@@ -158,6 +158,7 @@ public class ClubMembershipConfiguration : IEntityTypeConfiguration<ClubMembersh
         builder.ToTable("club_memberships");
         builder.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(m => m.Source).HasConversion<string>().HasMaxLength(20);
+        builder.Property(m => m.InvitedEmail).HasMaxLength(256);
 
         builder.HasOne(m => m.Club)
             .WithMany(c => c.Memberships)

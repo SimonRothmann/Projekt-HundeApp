@@ -27,6 +27,7 @@ export default function ClubsPage() {
   const [groupsByClub, setGroupsByClub] = useState<Record<string, Group[]>>({});
   const [joiningClubId, setJoiningClubId] = useState<string | null>(null);
   const [leavingClubId, setLeavingClubId] = useState<string | null>(null);
+  const [antwortClubId, setAntwortClubId] = useState<string | null>(null);
   const [joiningGroupId, setJoiningGroupId] = useState<string | null>(null);
   // Zählt hoch, wenn hier unten eine Einladung angenommen wird - die Liste
   // "Deine Gruppen" oben lädt dann neu.
@@ -85,6 +86,23 @@ export default function ClubsPage() {
     }
   }
 
+  // Eingeladen ist noch kein Mitglied: Erst "Annehmen" macht daraus eine
+  // Mitgliedschaft, und bis dahin kennt der Verein nur die Adresse, die er
+  // selbst eingetippt hat.
+  async function handleInvitation(clubId: string, annehmen: boolean) {
+    setAntwortClubId(clubId);
+    try {
+      await api.post(`/api/clubs/${clubId}/invitation/${annehmen ? "accept" : "decline"}`);
+      toast.success(annehmen ? t("Einladung angenommen.") : t("Einladung abgelehnt."));
+      // Neu laden: Nach dem Annehmen erscheinen die Gruppen des Vereins.
+      await loadAll();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Das hat nicht geklappt."));
+    } finally {
+      setAntwortClubId(null);
+    }
+  }
+
   async function handleLeave(clubId: string, clubName: string) {
     if (!window.confirm(t("„{name}“ wirklich verlassen?", { name: clubName }))) return;
     setLeavingClubId(clubId);
@@ -114,6 +132,10 @@ export default function ClubsPage() {
     }
   }
 
+  // Wer eingeladen ist, wartet auf eine Antwort - diese Vereine zuerst.
+  const eingeladen = (clubId: string) => membershipFor(memberships, clubId)?.status === 3;
+  const geordnet = [...(clubs ?? [])].sort((a, b) => Number(eingeladen(b.id)) - Number(eingeladen(a.id)));
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -131,7 +153,7 @@ export default function ClubsPage() {
         <p className="text-sm text-muted-foreground">{t("Noch keine Vereine vorhanden.")}</p>
       ) : (
         <div className="flex flex-col gap-4">
-          {clubs.map((club) => {
+          {geordnet.map((club) => {
             const membership = membershipFor(memberships, club.id);
             const isApproved = membership?.status === 1;
             const groups = groupsByClub[club.id] ?? [];
@@ -165,6 +187,28 @@ export default function ClubsPage() {
                     </div>
                   ) : membership?.status === 0 ? (
                     <Badge variant="secondary">{t("Anfrage ausstehend")}</Badge>
+                  ) : membership?.status === 3 ? (
+                    <div className="flex min-w-0 flex-col gap-2 rounded-md border border-l-2 border-primary/25 border-l-primary bg-primary/6 p-3 dark:border-primary/35 dark:bg-primary/12">
+                      <p className="text-sm font-medium [overflow-wrap:anywhere]">
+                        {t("„{verein}“ lädt dich ein", { verein: club.name })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {t("Nimmst du an, bist du Mitglied im Verein - die Trainer:innen sehen dann deinen Namen und deine E-Mail-Adresse.")}
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        <Button size="sm" disabled={antwortClubId === club.id} onClick={() => handleInvitation(club.id, true)}>
+                          {t("Annehmen")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={antwortClubId === club.id}
+                          onClick={() => handleInvitation(club.id, false)}
+                        >
+                          {t("Ablehnen")}
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
                     <Button size="sm" disabled={joiningClubId === club.id} onClick={() => handleJoin(club.id)}>
                       {joiningClubId === club.id ? t("Wird gesendet…") : t("Beitreten")}

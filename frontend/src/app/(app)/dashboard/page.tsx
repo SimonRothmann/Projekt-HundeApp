@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import type {
   DashboardDaten,
   DashboardGruppeneinladung,
+  DashboardVereinseinladung,
   Dog as HundDaten,
   GroupTrainingSession,
   OffenesFeedback,
@@ -25,7 +26,7 @@ import { laeuftFaehrte, nichtAbgelaufeneFaehrten } from "@/lib/faehrte";
 import { merkeGelesenImErststart } from "@/lib/neuerungen-gelesen";
 import { zeigeSachkundeZeile, zielAufteilung } from "@/lib/startseite";
 import { ErfassenKarte } from "@/components/dashboard/erfassen-karte";
-import { GruppeneinladungKarte } from "@/components/dashboard/gruppeneinladung-karte";
+import { EinladungenKarte } from "@/components/dashboard/einladungen-karte";
 import { FeedbackKarte } from "@/components/dashboard/feedback-karte";
 import { TerminKarte } from "@/components/dashboard/termin-karte";
 import { ZuErledigenZeile } from "@/components/dashboard/zu-erledigen-zeile";
@@ -69,6 +70,8 @@ type Startdaten = {
   feedback: OffenesFeedback[];
   /** Eigene offene Gruppeneinladungen; fehlt bei Zwischenständen aus älteren Fassungen. */
   einladungen?: DashboardGruppeneinladung[];
+  /** Eigene offene Vereinseinladungen; fehlt ebenso bei älteren Zwischenständen. */
+  vereinsEinladungen?: DashboardVereinseinladung[];
 };
 
 /**
@@ -128,6 +131,7 @@ async function ladeStartdaten(): Promise<Startdaten> {
     // Fehlt bei einem zwischengespeicherten Stand aus der Zeit vor der Feedback-Karte.
     feedback: dashboard?.openFeedback ?? [],
     einladungen: dashboard?.groupInvitations ?? [],
+    vereinsEinladungen: dashboard?.clubInvitations ?? [],
   };
 }
 
@@ -276,7 +280,7 @@ export default function DashboardPage() {
   // Direkt unter dem Kopf, vor allem anderen: Wer eingeladen ist, wartet auf
   // diesen einen Tipp - und danach erscheinen ggf. die Termine der Gruppe.
   const einladungen =
-    daten !== null ? <GruppeneinladungKarte einladungen={daten.einladungen} onChanged={neuLaden} /> : null;
+    daten !== null ? <EinladungenKarte gruppen={daten.einladungen} vereine={daten.vereinsEinladungen} onChanged={neuLaden} /> : null;
 
   const erfassen =
     daten !== null && daten.hunde.length > 0 ? (

@@ -88,6 +88,8 @@ public class ClubInviteService(IApplicationDbContext db, IClubService clubs) : I
 
         // Frühere abgelehnte oder verlassene Mitgliedschaften behandelt
         // RequestJoinAsync wie beim Weg über die Liste - eine Stelle dafür.
+        // Auch eine offene Einladung des Vereins: wer den Link selbst öffnet,
+        // sagt damit zu, und sie wird dort direkt zur Mitgliedschaft.
         return await clubs.RequestJoinAsync(userId, club.Id, ClubMembershipSource.InviteLink, ct);
     }
 

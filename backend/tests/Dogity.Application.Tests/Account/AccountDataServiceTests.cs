@@ -330,6 +330,49 @@ public class AccountDataServiceTests
     }
 
     [Fact]
+    public async Task Purge_EntferntOffeneVereinseinladungMitDerEingegebenenAdresse()
+    {
+        var (dienst, db, _) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        var verein = new Club { Name = "Testverein" };
+        db.Clubs.Add(verein);
+        db.ClubMemberships.Add(new ClubMembership
+        {
+            ClubId = verein.Id, UserId = nutzer, Status = ClubMembershipStatus.Invited,
+            Source = ClubMembershipSource.Invitation, InvitedEmail = "ich@test.de",
+        });
+        await db.SaveChangesAsync();
+
+        await dienst.PurgeAsync(nutzer);
+
+        // Die eingegebene Adresse ist eine Angabe über die Person und darf nicht
+        // in einer weich gelöschten Zeile überleben.
+        Assert.Empty(db.ClubMemberships.IgnoreQueryFilters().Where(m => m.UserId == nutzer));
+    }
+
+    [Fact]
+    public async Task Export_ZeigtEineOffeneVereinseinladungAlsSolche()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        lookup.Register(nutzer, "ich@test.de", "Max", "Muster");
+        var verein = new Club { Name = "Testverein" };
+        db.Clubs.Add(verein);
+        db.ClubMemberships.Add(new ClubMembership
+        {
+            ClubId = verein.Id, UserId = nutzer, Status = ClubMembershipStatus.Invited,
+            Source = ClubMembershipSource.Invitation, InvitedEmail = "ich@test.de",
+        });
+        await db.SaveChangesAsync();
+
+        var export = (await dienst.ExportAsync(nutzer)).Value!;
+
+        var eintrag = Assert.Single(export.Vereine);
+        Assert.Equal("Invited", eintrag.Status);
+        Assert.Equal("Invitation", eintrag.Herkunft);
+    }
+
+    [Fact]
     public async Task Purge_UebergibtGruppeAnZweiteTrainerin()
     {
         var (dienst, db, _) = Aufsetzen();

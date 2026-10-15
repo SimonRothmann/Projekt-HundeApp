@@ -105,6 +105,15 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         if (isActive)
             return Result.Failure("Dieser Benutzer ist bereits Trainer dieses Vereins.");
 
+        // Eine Vereinsverwaltung beruft nur aus den eigenen Mitgliedern. Sonst
+        // genügte die E-Mail-Adresse irgendeiner registrierten Person, um sie
+        // ohne ihr Zutun zur Trainer:in zu machen - mit Einblick in alle
+        // Mitglieder und, über die Betreuung, in deren Hunde. Wer noch nicht
+        // dazugehört, wird zuerst eingeladen und muss zusagen. Nur der Betreiber
+        // (Admin) legt den ersten Trainer eines neuen Vereins ohne Mitglieder an.
+        if (!isAdmin && !await IstFreigegebenesMitgliedAsync(clubId, user.UserId, ct))
+            return Result.Failure("Nur Mitglieder dieses Vereins können Trainer:in werden. Lade die Person zuerst in den Verein ein.");
+
         if (existing is not null)
         {
             existing.DeletedAt = null;
@@ -206,25 +215,37 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     }
 
     /// <summary>
-    /// Admin-Weg, ein Mitglied direkt (ohne Beitrittsanfrage-Workflow) in
-    /// einen Verein aufzunehmen. Nutzt dieselbe ClubMembership-Tabelle wie
-    /// der Antrag-Weg, setzt Status aber sofort auf <see cref="ClubMembershipStatus.Approved"/>.
+    /// Jemanden per E-Mail-Adresse in den Verein holen.
+    ///
+    /// Der Betreiber (Admin) nimmt direkt auf - Status sofort
+    /// <see cref="ClubMembershipStatus.Approved"/>. Eine Vereinstrainer:in
+    /// LÄDT EIN (<see cref="ClubMembershipStatus.Invited"/>): Mitglied wird die
+    /// Person erst mit ihrer Zusage. Vorher nahm jede Trainer:in jede
+    /// registrierte Person sofort auf und sah danach deren Namen und
+    /// E-Mail-Adresse. Bis zur Zusage sieht der Verein nur die Adresse, die er
+    /// selbst eingegeben hat (siehe <see cref="GetInvitationsAsync"/>).
+    ///
+    /// Hat die Person selbst schon um Aufnahme gebeten, wollen es beide
+    /// Seiten - dann wird die Anfrage gleich freigegeben.
     /// </summary>
-    public async Task<Result> AddMemberAsync(Guid callerId, bool isAdmin, Guid clubId, AssignClubMemberRequest request, CancellationToken ct = default)
+    /// <summary>Wie lange nach einem Nein derselbe Verein nicht erneut einladen kann (siehe AddMemberAsync).</summary>
+    public static readonly TimeSpan EinladungsSperreNachNein = TimeSpan.FromDays(30);
+
+    public async Task<Result<AddClubMemberResultDto>> AddMemberAsync(Guid callerId, bool isAdmin, Guid clubId, AssignClubMemberRequest request, CancellationToken ct = default)
     {
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
         if (club is null)
-            return Result.NotFound("Verein nicht gefunden.");
+            return Result<AddClubMemberResultDto>.NotFound("Verein nicht gefunden.");
 
         // Die Prüfung gehört hierher und nicht in den Controller: Der Aufruf
         // hängt jetzt an zwei Routen (Admin und Verein), und eine Regel, die
         // an der Route klebt, geht beim Hinzufügen der zweiten verloren.
         if (!isAdmin && !await db.IsClubTrainerAsync(callerId, clubId, ct))
-            return Result.NotFound("Verein nicht gefunden.");
+            return Result<AddClubMemberResultDto>.NotFound("Verein nicht gefunden.");
 
         var user = await userLookup.FindByEmailAsync(request.Email, ct);
         if (user is null)
-            return Result.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
+            return Result<AddClubMemberResultDto>.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
 
         var existing = await db.ClubMemberships
             .Where(m => m.ClubId == clubId && m.UserId == user.UserId)
@@ -232,29 +253,154 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             .FirstOrDefaultAsync(ct);
 
         if (existing is not null && existing.Status == ClubMembershipStatus.Approved)
-            return Result.Failure("Dieser Benutzer ist bereits Mitglied dieses Vereins.");
+            return Result<AddClubMemberResultDto>.Failure("Dieser Benutzer ist bereits Mitglied dieses Vereins.");
 
-        if (existing is not null && existing.Status == ClubMembershipStatus.Pending)
+        if (!isAdmin && existing is not null && existing.Status == ClubMembershipStatus.Invited)
+            return Result<AddClubMemberResultDto>.Failure("Diese Person ist bereits eingeladen.");
+
+        // Wer eine Einladung dieses Vereins abgelehnt hat, bekommt eine Weile
+        // keine neue. Sonst könnte ein Verein - auch ein fremder, dem nur die
+        // Adresse bekannt ist - dieselbe Person nach jedem Nein sofort wieder
+        // einladen und sie mit Benachrichtigungen zuschütten. Selbst beitreten
+        // kann sie jederzeit (Anfrage oder Einladungslink).
+        if (!isAdmin
+            && existing is { Status: ClubMembershipStatus.Rejected, Source: ClubMembershipSource.Invitation, DecidedAt: { } abgelehntAm }
+            && abgelehntAm > DateTimeOffset.UtcNow - EinladungsSperreNachNein)
+            return Result<AddClubMemberResultDto>.Failure("Diese Person hat eine Einladung eures Vereins vor Kurzem abgelehnt. Beitreten kann sie jederzeit selbst, etwa über euren Einladungslink.");
+
+        // Direkt aufnehmen darf nur der Betreiber - oder wer eine Person freigibt,
+        // die selbst angefragt hat (Pending): Dann haben beide Seiten zugestimmt.
+        var hatSelbstAngefragt = existing is not null && existing.Status == ClubMembershipStatus.Pending;
+        if (isAdmin || hatSelbstAngefragt)
         {
-            // Bestehende Anfrage direkt genehmigen statt eine zweite Zeile anzulegen.
-            existing.Status = ClubMembershipStatus.Approved;
-            existing.DecidedAt = DateTimeOffset.UtcNow;
-        }
-        else
-        {
-            db.ClubMemberships.Add(new ClubMembership
+            // Bestehende Anfrage (oder, beim Betreiber, Einladung) direkt genehmigen
+            // statt eine zweite Zeile anzulegen.
+            if (existing is not null && (existing.Status == ClubMembershipStatus.Pending || existing.Status == ClubMembershipStatus.Invited))
             {
-                ClubId = clubId,
-                UserId = user.UserId,
-                Status = ClubMembershipStatus.Approved,
-                DecidedAt = DateTimeOffset.UtcNow,
-            });
+                existing.Status = ClubMembershipStatus.Approved;
+                existing.DecidedAt = DateTimeOffset.UtcNow;
+                existing.DecidedByUserId = callerId;
+                existing.InvitedEmail = null;
+            }
+            else
+            {
+                db.ClubMemberships.Add(new ClubMembership
+                {
+                    ClubId = clubId,
+                    UserId = user.UserId,
+                    Status = ClubMembershipStatus.Approved,
+                    DecidedAt = DateTimeOffset.UtcNow,
+                });
+            }
+
+            await db.SaveChangesAsync(ct);
+            await notifications.CreateAsync(user.UserId, $"Du wurdest zum Verein \"{club.Name}\" hinzugefügt.", "/clubs", ct);
+            return Result<AddClubMemberResultDto>.Success(new AddClubMemberResultDto(Joined: true));
         }
 
+        db.ClubMemberships.Add(new ClubMembership
+        {
+            ClubId = clubId,
+            UserId = user.UserId,
+            Status = ClubMembershipStatus.Invited,
+            Source = ClubMembershipSource.Invitation,
+            InvitedEmail = request.Email.Trim(),
+            RequestedAt = DateTimeOffset.UtcNow,
+        });
         await db.SaveChangesAsync(ct);
-        await notifications.CreateAsync(user.UserId, $"Du wurdest zum Verein \"{club.Name}\" hinzugefügt.", "/clubs", ct);
+
+        var einladende = await userLookup.FindByIdsAsync([callerId], ct);
+        var name = einladende.TryGetValue(callerId, out var info) && !string.IsNullOrWhiteSpace($"{info.FirstName} {info.LastName}")
+            ? $"{info.FirstName} {info.LastName}".Trim()
+            : "Eine Trainer:in";
+        await notifications.CreateAsync(user.UserId, $"{name} lädt dich in den Verein \"{club.Name}\" ein.", "/clubs", ct);
+        return Result<AddClubMemberResultDto>.Success(new AddClubMemberResultDto(Joined: false));
+    }
+
+    /// <summary>
+    /// Die offenen Einladungen eines Vereins - für dessen Trainer:innen.
+    /// Bewusst nur Adresse und Zeitpunkt: Vor der Zusage gehört der Name der
+    /// eingeladenen Person ihr (eigenes DTO statt <see cref="ClubMemberDto"/>,
+    /// damit ein Name hier gar nicht erst mitgeliefert werden kann).
+    /// </summary>
+    public async Task<Result<IReadOnlyList<ClubInvitationDto>>> GetInvitationsAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
+    {
+        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+            return Result<IReadOnlyList<ClubInvitationDto>>.NotFound("Verein nicht gefunden.");
+
+        var einladungen = await db.ClubMemberships
+            .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Invited)
+            .OrderBy(m => m.RequestedAt)
+            .Select(m => new ClubInvitationDto(m.Id, m.InvitedEmail ?? "", m.RequestedAt))
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        return Result<IReadOnlyList<ClubInvitationDto>>.Success(einladungen);
+    }
+
+    /// <summary>Eine offene Einladung zurückziehen - nur durch Trainer:innen dieses Vereins.</summary>
+    public async Task<Result> WithdrawInvitationAsync(Guid callerId, Guid clubId, Guid membershipId, CancellationToken ct = default)
+    {
+        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+            return Result.NotFound("Verein nicht gefunden.");
+
+        // Nur Einladungen: Eine Mitgliedschaft oder Anfrage zieht niemand über
+        // diesen Weg zurück.
+        var einladung = await db.ClubMemberships.FirstOrDefaultAsync(
+            m => m.Id == membershipId && m.ClubId == clubId && m.Status == ClubMembershipStatus.Invited, ct);
+        if (einladung is null)
+            return Result.NotFound("Einladung nicht gefunden.");
+
+        einladung.DeletedAt = DateTimeOffset.UtcNow;
+        // Die eingegebene Adresse wird nicht länger gebraucht.
+        einladung.InvitedEmail = null;
+        await db.SaveChangesAsync(ct);
         return Result.Success();
     }
+
+    /// <summary>Die Einladung in einen Verein annehmen oder ablehnen - nur die eigene.</summary>
+    public async Task<Result> RespondToInvitationAsync(Guid userId, Guid clubId, bool accept, CancellationToken ct = default)
+    {
+        // Alle offenen Einladungen dieses Vereins: Zwei fast gleichzeitige Einladungen
+        // (Doppelklick, zwei Trainer:innen) legen zwei Zeilen an, und eine übrig
+        // gebliebene bliebe sonst als Einladung stehen, obwohl die Person längst
+        // geantwortet hat.
+        var offene = await db.ClubMemberships
+            .Where(m => m.ClubId == clubId && m.UserId == userId && m.Status == ClubMembershipStatus.Invited)
+            .OrderByDescending(m => m.RequestedAt)
+            .ToListAsync(ct);
+        if (offene.Count == 0)
+            return Result.NotFound("Einladung nicht gefunden.");
+
+        // Abgelehnt bleibt als Rejected stehen (wie eine abgelehnte Anfrage),
+        // die eingegebene Adresse wird in beiden Fällen gelöscht.
+        var einladung = offene[0];
+        einladung.Status = accept ? ClubMembershipStatus.Approved : ClubMembershipStatus.Rejected;
+        einladung.DecidedAt = DateTimeOffset.UtcNow;
+        einladung.InvitedEmail = null;
+        foreach (var doppelt in offene.Skip(1))
+        {
+            doppelt.DeletedAt = DateTimeOffset.UtcNow;
+            doppelt.InvitedEmail = null;
+        }
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<IReadOnlyList<(Guid ClubId, string ClubName)>> GetMyOpenInvitationsAsync(Guid userId, CancellationToken ct = default)
+    {
+        // Die Startseite fragt das bei jedem Öffnen: nur die zwei Felder der Karte.
+        var rows = await db.ClubMemberships
+            .Where(m => m.UserId == userId && m.Status == ClubMembershipStatus.Invited)
+            .OrderBy(m => m.RequestedAt)
+            .Select(m => new { m.ClubId, ClubName = m.Club!.Name })
+            .AsNoTracking()
+            .ToListAsync(ct);
+        return rows.Select(r => (r.ClubId, r.ClubName)).ToList();
+    }
+
+    private Task<bool> IstFreigegebenesMitgliedAsync(Guid clubId, Guid userId, CancellationToken ct) =>
+        db.ClubMemberships.AnyAsync(m => m.ClubId == clubId && m.UserId == userId && m.Status == ClubMembershipStatus.Approved, ct);
 
     public async Task<Result> RemoveMemberAsync(Guid clubId, Guid userId, CancellationToken ct = default)
     {
@@ -304,6 +450,19 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
         if (existing is not null && existing.Status is ClubMembershipStatus.Pending or ClubMembershipStatus.Approved)
             return Result<ClubMembershipDto>.Failure("Du hast bereits eine Anfrage oder Mitgliedschaft für diesen Verein.");
+
+        // Der Verein hat die Person schon eingeladen und sie fragt jetzt selbst
+        // an (Liste oder Einladungslink): beide Seiten wollen es - gleich
+        // aufnehmen, statt eine zweite Zeile mit einer Anfrage anzulegen, die
+        // dann noch jemand freigeben müsste.
+        if (existing is not null && existing.Status == ClubMembershipStatus.Invited)
+        {
+            existing.Status = ClubMembershipStatus.Approved;
+            existing.DecidedAt = DateTimeOffset.UtcNow;
+            existing.InvitedEmail = null;
+            await db.SaveChangesAsync(ct);
+            return Result<ClubMembershipDto>.Success(new ClubMembershipDto(existing.Id, clubId, club.Name, existing.Status, existing.RequestedAt, existing.DecidedAt));
+        }
 
         var membership = new ClubMembership { ClubId = clubId, UserId = userId, Source = source };
         db.ClubMemberships.Add(membership);

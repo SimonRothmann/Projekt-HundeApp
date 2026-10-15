@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Club, ClubMemberRequest } from "@/lib/types";
+import type { Club, ClubInvitation, ClubMemberRequest } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,14 +10,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, ShieldPlus, ShieldCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
+
 export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
   const t = useT();
+  const ort = ortsformat(useSprache());
   const [selectedClubId, setSelectedClubId] = useState(clubs[0]?.id ?? "");
   const [members, setMembers] = useState<ClubMemberRequest[] | null>(null);
   const [promotingUserId, setPromotingUserId] = useState<string | null>(null);
   const [neueMail, setNeueMail] = useState("");
-  const [nimmtAuf, setNimmtAuf] = useState(false);
+  const [ladtEin, setLadtEin] = useState(false);
+  // Ein Fehlschlag beim Laden lässt sie leer - die Mitgliederliste darunter ist
+  // wichtiger als diese Nebenliste.
+  const [einladungen, setEinladungen] = useState<ClubInvitation[]>([]);
+  const [zieheZurueck, setZieheZurueck] = useState<string | null>(null);
 
   async function loadMembers(clubId: string) {
     if (!clubId) {
@@ -32,32 +39,68 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
     }
   }
 
+  async function loadInvitations(clubId: string) {
+    if (!clubId) {
+      setEinladungen([]);
+      return;
+    }
+    try {
+      setEinladungen(await api.get<ClubInvitation[]>(`/api/clubs/${clubId}/invitations`));
+    } catch {
+      setEinladungen([]);
+    }
+  }
+
   useEffect(() => {
     // Initialer Datenabruf bei Mount (externe Quelle: REST API).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadMembers(selectedClubId);
+    loadInvitations(selectedClubId);
   }, [selectedClubId]);
 
   /**
-   * Jemanden direkt aufnehmen, ohne dass er selbst eine Anfrage stellt.
+   * Jemanden per E-Mail-Adresse EINLADEN - nicht aufnehmen.
    *
-   * Der Antragsweg deckt den Normalfall ab, aber nicht den häufigsten Anlass:
-   * Auf dem Platz steht jemand vor einem, der eben Mitglied geworden ist -
-   * ihn erst nach Hause zu schicken, um eine Anfrage zu stellen, ist umständlich.
+   * Der häufigste Anlass bleibt: Auf dem Platz steht jemand, der eben
+   * Mitglied geworden ist. Aber Mitglied wird die Person erst mit ihrer
+   * Zusage. Sonst genügte die Adresse irgendeiner registrierten Person, um sie
+   * ohne ihr Wissen in den Verein zu ziehen und danach ihren Namen zu sehen.
+   * Der Verein sieht bis dahin nur die Adresse, die er selbst eingetippt hat.
    */
-  async function aufnehmen() {
+  async function einladen() {
     const mail = neueMail.trim();
     if (!mail) return;
-    setNimmtAuf(true);
+    setLadtEin(true);
     try {
-      await api.post(`/api/clubs/${selectedClubId}/members`, { email: mail });
-      toast.success(t("{mail} ist jetzt Mitglied.", { mail }));
+      const ergebnis = await api.post<{ joined: boolean }>(`/api/clubs/${selectedClubId}/members`, { email: mail });
+      // Hatte die Person selbst schon angefragt, nimmt der Server sie gleich auf -
+      // dann wäre "eingeladen" falsch. Deshalb meldet er, was passiert ist.
+      toast.success(
+        ergebnis?.joined
+          ? t("{mail} hatte schon angefragt und ist jetzt Mitglied.", { mail })
+          : t("{mail} ist eingeladen. Sobald die Person annimmt, ist sie Mitglied.", { mail }),
+      );
       setNeueMail("");
-      await loadMembers(selectedClubId);
+      // Beide Listen neu laden: Mitglied oder offene Einladung.
+      await Promise.all([loadMembers(selectedClubId), loadInvitations(selectedClubId)]);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : t("Aufnahme fehlgeschlagen."));
+      toast.error(err instanceof ApiError ? err.message : t("Einladung fehlgeschlagen."));
     } finally {
-      setNimmtAuf(false);
+      setLadtEin(false);
+    }
+  }
+
+  async function zurueckziehen(einladung: ClubInvitation) {
+    if (!window.confirm(t("Einladung an {mail} zurückziehen?", { mail: einladung.invitedEmail }))) return;
+    setZieheZurueck(einladung.membershipId);
+    try {
+      await api.delete(`/api/clubs/${selectedClubId}/invitations/${einladung.membershipId}`);
+      toast.success(t("Einladung zurückgezogen."));
+      await loadInvitations(selectedClubId);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Das hat nicht geklappt."));
+    } finally {
+      setZieheZurueck(null);
     }
   }
 
@@ -111,7 +154,7 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
           className="flex flex-wrap items-end gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            void aufnehmen();
+            void einladen();
           }}
         >
           <Input
@@ -120,13 +163,44 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
             placeholder={t("E-Mail-Adresse")}
             value={neueMail}
             onChange={(e) => setNeueMail(e.target.value)}
-            disabled={!selectedClubId || nimmtAuf}
+            disabled={!selectedClubId || ladtEin}
           />
-          <Button type="submit" size="sm" disabled={!neueMail.trim() || nimmtAuf}>
+          <Button type="submit" size="sm" disabled={!neueMail.trim() || ladtEin}>
             <UserPlus className="size-4" />
-            {t("Aufnehmen")}
+            {t("Einladen")}
           </Button>
         </form>
+
+        {einladungen.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("Offene Einladungen")}</p>
+            <ul className="flex flex-col gap-2">
+              {einladungen.map((e) => (
+                // Vor der Zusage kennt der Verein nur die eingegebene Adresse.
+                <li
+                  key={e.membershipId}
+                  className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-md border px-3 py-2"
+                >
+                  <div className="flex min-w-[12rem] flex-1 flex-col gap-0.5">
+                    <span className="min-w-0 text-sm [overflow-wrap:anywhere]">{e.invitedEmail}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t("eingeladen am {datum}", { datum: new Date(e.requestedAt).toLocaleDateString(ort) })}
+                    </span>
+                  </div>
+                  <Button
+                    className="shrink-0"
+                    size="sm"
+                    variant="outline"
+                    disabled={zieheZurueck === e.membershipId}
+                    onClick={() => zurueckziehen(e)}
+                  >
+                    {t("Zurückziehen")}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {members === null ? (
           <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>

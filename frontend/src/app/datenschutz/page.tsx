@@ -117,7 +117,7 @@ export default function DatenschutzPage() {
           <p className="font-medium text-foreground">Verein und Gruppen</p>
           <Liste
             punkte={[
-              "Mitgliedschaften und Beitrittsanfragen samt Status und der Angabe, ob die Anfrage über den Einladungslink oder QR-Code des Vereins kam",
+              "Mitgliedschaften, Beitrittsanfragen und Einladungen in einen Verein samt Status und der Angabe, ob die Anfrage über den Einladungslink oder QR-Code des Vereins kam; bei einer offenen Einladung die E-Mail-Adresse, die der Verein dafür eingegeben hat",
               "Trainerrollen, Gruppenzugehörigkeit und die Zuordnung zwischen Trainer:in und Hund",
               "geplante Gruppentrainings, an denen du teilnimmst oder die du leitest",
               "deine Zu- oder Absage zu einem Gruppentermin samt Zeitpunkt der Antwort",
@@ -290,7 +290,7 @@ export default function DatenschutzPage() {
               "Deine Antwort auf das Feedback einer Trainer:in (Danke, Verstanden, Rückfrage) sehen die Trainer:in, die es gegeben hat, und die Besitzer:innen des Hundes; sie löst bei der Trainer:in eine Benachrichtigung aus. Schreibt die Trainer:in neues Feedback, wird deine Antwort zurückgesetzt.",
               "Die Vereinsverwaltung sieht Mitgliedschaften, Gruppenzugehörigkeit und Namen ihrer Mitglieder – nicht deren Trainingstagebuch. Bei einer Beitrittsanfrage sieht sie auch, ob sie über den Einladungslink des Vereins kam.",
               "Der Betreiber sieht in der Verwaltung zusammengezählte Kennzahlen, etwa wie viele der Konten der letzten 30 Tage einen Hund angelegt haben. Das sind Zahlen, keine Personen; dafür wird nichts im Browser gemessen.",
-              "Wer dich in eine Gruppe, als Trainer:in einer Gruppe oder als Mitbesitzer:in eines Hundes einlädt, sieht bis zu deiner Zusage nur die E-Mail-Adresse, die dabei eingegeben wurde – nicht deinen Namen. Lehnst du ab, bleibt es dabei.",
+              "Wer dich in einen Verein, in eine Gruppe, als Trainer:in einer Gruppe oder als Mitbesitzer:in eines Hundes einlädt, sieht bis zu deiner Zusage nur die E-Mail-Adresse, die dabei eingegeben wurde – nicht deinen Namen. Lehnst du ab, bleibt es dabei.",
               "Der Betreiber kann aus technischen Gründen auf die Datenbank zugreifen, tut das aber nur zur Fehlersuche und zum Betrieb.",
             ]}
           />

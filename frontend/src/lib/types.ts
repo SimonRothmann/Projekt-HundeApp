@@ -525,10 +525,15 @@ export type ClubSummary = {
   isTrainer?: boolean;
 };
 
-export type ClubMembershipStatus = 0 | 1 | 2; // 0 = Pending, 1 = Approved, 2 = Rejected
+/**
+ * 0 = Pending, 1 = Approved, 2 = Rejected, 3 = Invited. Eingeladen ist noch
+ * KEIN Mitglied: Der Verein hat die Person eingeladen, sie hat nicht
+ * zugesagt (Backend: ClubMembershipStatus.Invited).
+ */
+export type ClubMembershipStatus = 0 | 1 | 2 | 3;
 
 /** Auf welchem Weg eine Beitrittsanfrage kam. Numerisch, wie alle Aufzählungen der API. */
-export type ClubMembershipSource = 0 | 1; // 0 = Directory (Vereinsliste), 1 = InviteLink
+export type ClubMembershipSource = 0 | 1 | 2; // 0 = Directory (Vereinsliste), 1 = InviteLink, 2 = Invitation (eingeladen)
 
 /** Einladungscode eines Vereins (GET/POST /api/clubs/{id}/invite-link). */
 export type ClubInviteLink = { code: string };
@@ -585,6 +590,17 @@ export type ClubMembership = {
   status: ClubMembershipStatus;
   requestedAt: string;
   decidedAt: string | null;
+};
+
+/**
+ * Eine offene Einladung, wie der Verein sie sieht (GET /api/clubs/{id}/invitations):
+ * nur die Adresse, die er selbst eingegeben hat - KEIN Name. Der gehört der
+ * eingeladenen Person, bis sie zusagt.
+ */
+export type ClubInvitation = {
+  membershipId: string;
+  invitedEmail: string;
+  requestedAt: string;
 };
 
 export type ClubMemberRequest = {
@@ -1071,6 +1087,8 @@ export type DashboardDaten = {
   openFeedback?: OffenesFeedback[];
   /** Eigene offene Gruppeneinladungen (als Mitglied). Optional wie openFeedback: ältere Zwischenstände haben das Feld nicht. */
   groupInvitations?: DashboardGruppeneinladung[];
+  /** Eigene offene Vereinseinladungen. Optional aus demselben Grund wie groupInvitations. */
+  clubInvitations?: DashboardVereinseinladung[];
 };
 
 /** Eine offene Einladung in eine Trainingsgruppe (Backend: DashboardGroupInvitationDto). */
@@ -1078,6 +1096,12 @@ export type DashboardGruppeneinladung = {
   groupId: string;
   groupName: string;
   clubName: string | null;
+};
+
+/** Eine offene Einladung in einen Verein (Backend: DashboardClubInvitationDto). */
+export type DashboardVereinseinladung = {
+  clubId: string;
+  clubName: string;
 };
 
 /**

@@ -43,6 +43,7 @@ public class DashboardServiceTests
             new TrainingService(db, new FakeNotificationService(), nutzer, mastery, new FakeWeatherEnrichmentService()),
             new GpsTrackService(db, new FakeWeatherEnrichmentService()),
             new GroupService(db, nutzer, new TrainerRoleService(db, nutzer), new FakeNotificationService()),
+            new ClubService(db, nutzer, new FakeNotificationService(), new TrainerRoleService(db, nutzer)),
             uhr);
         return (dienst, db);
     }

@@ -49,8 +49,15 @@ public record ClubMembershipDto(Guid Id, Guid ClubId, string ClubName, ClubMembe
 /// Mitgliedschaften. Wer die Liste ohne dieses Wissen anzeigt, bietet
 /// "Zum Trainer machen" auch bei denen an, die es längst sind.
 /// </summary>
-/// <param name="Source">Wie die Anfrage entstanden ist (numerisch: 0 = Liste, 1 = Einladungslink).</param>
+/// <param name="Source">Wie die Anfrage entstanden ist (numerisch: 0 = Liste, 1 = Einladungslink, 2 = Einladung durch eine Trainer:in).</param>
 public record ClubMemberDto(Guid MembershipId, Guid UserId, string Email, string FirstName, string LastName, DateTimeOffset RequestedAt, DateTimeOffset? DecidedAt, bool IsTrainer, ClubMembershipSource Source);
+
+/// <summary>
+/// Eine offene Einladung, wie der einladende Verein sie sieht: nur die Adresse,
+/// die er selbst eingegeben hat, und wann - KEIN Name und nicht die Adresse des
+/// Kontos. Der Name gehört der eingeladenen Person, bis sie zusagt.
+/// </summary>
+public record ClubInvitationDto(Guid MembershipId, string InvitedEmail, DateTimeOffset RequestedAt);
 
 public record UpdateClubRequest(string? Name, string? Description);
 public record UpdateTrainerRoleRequest(ClubRole Role);
@@ -64,3 +71,11 @@ public record ClubInviteLinkDto(string Code);
 /// Gruppen oder Mitglieder erfahren.
 /// </summary>
 public record ClubInvitePreviewDto(string ClubName);
+
+/// <summary>
+/// Was "Mitglied per E-Mail" bewirkt hat: <c>Joined</c> = jetzt Mitglied (die
+/// Person hatte selbst angefragt, oder der Betreiber nimmt auf), sonst ist sie
+/// nur eingeladen und muss zusagen. Die Oberfläche braucht das für die richtige
+/// Meldung - vorher hieß es "eingeladen", auch wenn die Person schon aufgenommen war.
+/// </summary>
+public record AddClubMemberResultDto(bool Joined);

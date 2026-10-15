@@ -238,7 +238,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             }).ToList(),
             vereinIds.Select(vereinId =>
             {
-                var mitgliedschaft = mitgliedschaften.FirstOrDefault(m => m.ClubId == vereinId);
+                // Die neueste Zeile: Nach einer Ablehnung oder Einladung kann es mehrere geben.
+                var mitgliedschaft = mitgliedschaften.Where(m => m.ClubId == vereinId).OrderByDescending(m => m.RequestedAt).FirstOrDefault();
                 return new VereinExportDto(
                     vereinId,
                     vereinsnamen.GetValueOrDefault(vereinId, "(gelöschter Verein)"),

@@ -72,12 +72,30 @@ public class ClubsController(
     }
 
     /// <summary>
-    /// Jemanden direkt in den Verein aufnehmen - ohne dass er selbst eine
-    /// Anfrage stellen muss. Für Trainer:innen dieses Vereins.
+    /// Jemanden per E-Mail-Adresse in den Verein einladen. Für Trainer:innen
+    /// dieses Vereins - Mitglied wird die Person erst mit ihrer Zusage.
     /// </summary>
     [HttpPost("{id:guid}/members")]
-    public async Task<IActionResult> AddMember(Guid id, AssignClubMemberRequest request, CancellationToken ct) =>
+    public async Task<ActionResult<AddClubMemberResultDto>> AddMember(Guid id, AssignClubMemberRequest request, CancellationToken ct) =>
         FromResult(await clubService.AddMemberAsync(CurrentUserId, IsAdmin, id, request, ct));
+
+    /// <summary>Offene Einladungen des Vereins - nur die eingegebene Adresse, kein Name.</summary>
+    [HttpGet("{id:guid}/invitations")]
+    public async Task<ActionResult<IReadOnlyList<ClubInvitationDto>>> GetInvitations(Guid id, CancellationToken ct) =>
+        FromResult(await clubService.GetInvitationsAsync(CurrentUserId, id, ct));
+
+    [HttpDelete("{id:guid}/invitations/{membershipId:guid}")]
+    public async Task<IActionResult> WithdrawInvitation(Guid id, Guid membershipId, CancellationToken ct) =>
+        FromResult(await clubService.WithdrawInvitationAsync(CurrentUserId, id, membershipId, ct));
+
+    /// <summary>Die eigene Einladung in den Verein annehmen.</summary>
+    [HttpPost("{id:guid}/invitation/accept")]
+    public async Task<IActionResult> AcceptInvitation(Guid id, CancellationToken ct) =>
+        FromResult(await clubService.RespondToInvitationAsync(CurrentUserId, id, accept: true, ct));
+
+    [HttpPost("{id:guid}/invitation/decline")]
+    public async Task<IActionResult> DeclineInvitation(Guid id, CancellationToken ct) =>
+        FromResult(await clubService.RespondToInvitationAsync(CurrentUserId, id, accept: false, ct));
 
     [HttpPost("{id:guid}/members/{userId:guid}/promote")]
     public async Task<IActionResult> PromoteToTrainer(Guid id, Guid userId, CancellationToken ct)

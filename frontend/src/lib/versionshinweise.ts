@@ -62,7 +62,7 @@ export const NACHTRAEGLICH_BIS = "0.9";
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
     version: "0.24",
-    datum: "2026-10-12",
+    datum: "2026-10-15",
     titel: uebersetzbar("Neue Karte für Fährten"),
     aenderungen: [
       {
@@ -80,6 +80,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       {
         art: "verbessert",
         text: uebersetzbar("Beim Hineinzoomen lädt die Karte kaum noch nach - hilfreich bei schlechtem Empfang auf dem Platz."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Lädt dich eine Trainer:in per E-Mail-Adresse in einen Verein ein, nimmst du die Einladung jetzt selbst an oder lehnst sie ab - auf der Startseite oder unter Vereine. Bis dahin bist du kein Mitglied, und der Verein sieht nur die Adresse, die eingegeben wurde."),
       },
     ],
   },

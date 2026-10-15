@@ -51,7 +51,7 @@ public class AdminController(IAdminService adminService, IClubService clubServic
     }
 
     [HttpPost("clubs/{id:guid}/members")]
-    public async Task<IActionResult> AddClubMember(Guid id, AssignClubMemberRequest request, CancellationToken ct)
+    public async Task<ActionResult<AddClubMemberResultDto>> AddClubMember(Guid id, AssignClubMemberRequest request, CancellationToken ct)
     {
         var result = await clubService.AddMemberAsync(CurrentUserId, isAdmin: true, id, request, ct);
         return FromResult(result);
