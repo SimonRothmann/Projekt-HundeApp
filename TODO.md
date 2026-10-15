@@ -89,13 +89,24 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
       Passwort-Mail gehen immer (gehören zum Konto); Einladungen und
       Entscheidungen über Beitrittsanfragen kommen zusätzlich per Mail,
       abschaltbar unter Profil → Funktionen („Wichtiges auch per E-Mail“,
-      Vorgabe AN = Opt-out, `user_preferences.EmailNotifications`).
-      Vorher mit dem Betreiber klären: Vorgabe auf AUS (echtes Opt-in, z. B.
-      Frage bei der Registrierung oder beim ersten Einladen)? Abmelde-Link in
-      jeder Benachrichtigungs-Mail, der ohne Anmeldung wirkt (signierter
-      Token) plus `List-Unsubscribe`/`List-Unsubscribe-Post`-Kopfzeilen
-      (One-Click, RFC 8058 - erwarten Gmail/Yahoo)? Bestehende Konten:
-      Einstellung beibehalten oder neu fragen? Datenschutz/VV anpassen.
+      Vorgabe AN, `user_preferences.EmailNotifications`).
+      **Entschieden (Betreiber, 2026-10-15):**
+      1. Registrierung: Häkchen „Wichtiges auch per E-Mail“ im Formular,
+         VORAUSGEWÄHLT. (Zulässig, weil es keine Einwilligung nach
+         Art. 6 Abs. 1 lit. a ist, sondern eine Einstellung zu
+         vertragsbezogenen Mitteilungen - für Werbung/Newsletter müsste es
+         leer sein.) Wert landet in `user_preferences.EmailNotifications`.
+      2. Abmelde-Link in jeder Benachrichtigungs-Mail (und in der
+         Willkommensmail), der ohne Anmeldung direkt abmeldet: signierter,
+         zweckgebundener Token (DataProtection, kein Ablauf nötig oder lang),
+         Seite meldet beim Öffnen per POST ab (nicht per GET - Link-Scanner
+         wie Outlook SafeLinks rufen GET-Links vorab auf) und bietet
+         „wieder anmelden“. Dazu `List-Unsubscribe` + `List-Unsubscribe-Post:
+         List-Unsubscribe=One-Click` (RFC 8058). Passwort-Mail ohne
+         Abmelde-Link (selbst angefordert) - beim Betreiber bestätigen.
+      3. Bestehende Konten behalten die Mails (Vorgabe bleibt AN) und können
+         sich selbst abmelden - per Link oder unter Profil → Funktionen.
+      Dazu: Datenschutz/VV (Abmeldeweg), Tests, Versionshinweis.
 
 - [x] **Adminbereich entschlacken** (Wunsch des Betreibers, 2026-10-15; umgesetzt 2026-10-15, vor Hoopers vorgezogen: /admin als Übersicht + Unterseiten Nutzer/Vereine/Statistik/Katalog/Sachkunde/System, Nutzersuche) — als
       Schritt NACH Hoopers. Die Nutzerseiten sind visuell überarbeitet, der
