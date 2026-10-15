@@ -153,8 +153,8 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Betroffene | alle, die an info@dogity.net schreiben |
 | Datenkategorien | Absenderadresse, Name (soweit angegeben), Inhalt der Nachricht, Kopfzeilen |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. f (Anfragen beantworten); bei Fragen zum eigenen Konto lit. b |
-| Empfänger | Cloudflare (Email Routing, nimmt die Mail für dogity.net an und leitet sie weiter, ohne sie zu speichern); Google (Gmail-Postfach des Betreibers) |
-| Drittland | **USA möglich** (Cloudflare, Google; beide unter dem EU-U.S. Data Privacy Framework zertifiziert, Art. 45) |
+| Empfänger | Cloudflare (Email Routing, nimmt die Mail für dogity.net an und leitet sie weiter, ohne sie zu speichern); E-Mail-Anbieter des persönlichen Postfachs des Betreibers |
+| Drittland | **USA möglich** (Cloudflare, unter dem EU-U.S. Data Privacy Framework zertifiziert, Art. 45) |
 | Löschfrist | nach Erledigung, sofern keine Aufbewahrungspflicht besteht |
 | Tabellen | keine - nichts davon landet in der Datenbank |
 
@@ -198,8 +198,10 @@ dokumentieren.
 Zum Mailversand, entschieden 2026-10-15: kein Versanddienst (Brevo verworfen),
 sondern ein eigener Mailserver auf dem Contabo-Server - damit kein weiterer
 Auftragsverarbeiter. Eingehende Mails an info@dogity.net laufen über
-Cloudflare Email Routing (vom Cloudflare-DPA erfasst) in das Gmail-Postfach
-des Betreibers; siehe Abschnitt 2.5d.
+Cloudflare Email Routing (vom Cloudflare-DPA erfasst) in das persönliche
+Postfach des Betreibers; siehe Abschnitt 2.5d. Der Anbieter dieses Postfachs
+wird bewusst nicht öffentlich genannt (Entscheidung des Betreibers
+2026-10-15); die Datenschutzerklärung nennt die Kategorie (Art. 13 Abs. 1 lit. e).
 
 ---
 

@@ -97,7 +97,10 @@ public static class DependencyInjection
         // mit kurzem Timeout: Ein träger Push-Dienst soll den Versand der übrigen
         // Geräte nicht ewig aufhalten.
         services.Configure<PushSettings>(configuration.GetSection(PushSettings.SectionName));
-        services.AddHttpClient<IPushSender, WebPushSender>(client => client.Timeout = TimeSpan.FromSeconds(15));
+        // Ohne Weiterleitungen: Angefragt werden nur die freigegebenen Push-Dienste
+        // (PushEndpointPruefung); eine Umleitung führte an dieser Prüfung vorbei.
+        services.AddHttpClient<IPushSender, WebPushSender>(client => client.Timeout = TimeSpan.FromSeconds(15))
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
         services.AddSingleton<PushQueue>();
         services.AddSingleton<IPushQueue>(sp => sp.GetRequiredService<PushQueue>());
 

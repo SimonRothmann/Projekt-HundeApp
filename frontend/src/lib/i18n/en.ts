@@ -11,6 +11,7 @@
  * nach der BH.
  */
 export const EN: Record<string, string> = {
+  "Push-Nachrichten und E-Mails": "Push notifications and emails",
   "Neue Karte für Fährten": "A new map for tracks",
   "Die Karte ist neu: gestochen scharf bei jeder Zoomstufe, mit einem echten dunklen Stil, und Acker, Wiese, Wald und Feldwege sind klar zu unterscheiden. Unten links zeigt ein Maßstab die Meter.": "The map is new: razor sharp at every zoom level, with a true dark style, and fields, meadows, woods and farm tracks are easy to tell apart. A scale at the bottom left shows the metres.",
   "Beim Legen und Ablaufen dreht sich die Karte in Laufrichtung, sobald du ein paar Schritte gegangen bist - verschieben und zoomen kannst du sie dabei trotzdem. Der Knopf oben rechts zeigt, was gerade gilt, und schaltet zwischen „Laufrichtung“ und „Norden“ um; bei „Norden“ zeigt ein Pfeil, wohin du gehst.": "While laying and following a track, the map turns in your direction of travel once you have taken a few steps – you can still move and zoom it. The button at the top right shows the current mode and switches between “Direction” and “North”; with “North”, an arrow shows where you are heading.",
@@ -1163,6 +1164,13 @@ export const EN: Record<string, string> = {
   "Bisherige Anmeldungen aus einem Google-Formular lassen sich als CSV-Datei übernehmen. Vorher siehst du, wie viele Einträge neu, schon vorhanden oder fehlerhaft sind. Anmeldungen kannst du außerdem von Hand hinzufügen, bearbeiten und löschen.": "Previous registrations from a Google Form can be imported as a CSV file. Beforehand you see how many entries are new, already present or have errors. You can also add, edit and delete registrations by hand.",
   "Anmeldungen zu einer Gruppe werden automatisch gelöscht, wenn ein Jahr lang nichts mehr damit passiert ist, und mit der Gruppe selbst. Das steht auch in der Datenschutzerklärung.": "Registrations for a group are deleted automatically when nothing has happened with them for a year, and together with the group itself. This is also stated in the privacy policy.",
   "Daten gelöschter Konten": "Data of deleted accounts",
+  "Testmail senden": "Send test email",
+  "Prüft den Mailversand. Für eine Bewertung von SPF, DKIM und DMARC die Adresse von mail-tester.com eintragen.": "Checks email delivery. To have SPF, DKIM and DMARC rated, enter the address from mail-tester.com.",
+  "Empfänger": "Recipient",
+  "Der Mailversand ist nicht eingerichtet, es wurde nichts verschickt. Eingeschaltet wird er in der .env auf dem Server: SMTP_HOST für Prod, TEST_SMTP_HOST für Test.": "Email delivery is not set up, nothing was sent. It is switched on in the .env on the server: SMTP_HOST for prod, TEST_SMTP_HOST for test.",
+  "Der Mailserver hat die Mail angenommen. Ob sie im Posteingang oder im Spam landet, zeigt das Postfach.": "The mail server accepted the email. Whether it lands in the inbox or in spam shows in the mailbox.",
+  "Der Mailserver hat die Mail nicht angenommen:": "The mail server did not accept the email:",
+  "Die Testmail konnte nicht gesendet werden.": "The test email could not be sent.",
   "Diese Daten gehören zu Konten, die es nicht mehr gibt. Sie stammen aus der Zeit vor der vollständigen Kontolöschung und werden nicht mehr gebraucht.": "This data belongs to accounts that no longer exist. It dates from before accounts were deleted completely and is no longer needed.",
   "Konten": "Accounts",
   "Ziele": "Goals",

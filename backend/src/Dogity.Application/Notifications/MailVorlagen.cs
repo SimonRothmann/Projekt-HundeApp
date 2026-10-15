@@ -49,6 +49,22 @@ public static class MailVorlagen
         return Baue($"{Marke}: Passwort zurücksetzen", anrede, absaetze, "Passwort zurücksetzen", link, fusszeile: null);
     }
 
+    /// <summary>
+    /// "Testmail senden" im Adminbereich. Gleicher Aufbau wie jede echte Mail
+    /// (Text und HTML, ein Knopf), damit ein Prüfdienst wie mail-tester.com
+    /// bewertet, was später tatsächlich verschickt wird.
+    /// </summary>
+    public static MailInhalt Testmail(string appUrl, DateTimeOffset zeitpunkt)
+    {
+        var anrede = Anrede("");
+        var absaetze = new[]
+        {
+            $"das ist eine Testmail aus dem Adminbereich von Dogity, verschickt am {zeitpunkt.UtcDateTime:dd.MM.yyyy} um {zeitpunkt.UtcDateTime:HH:mm} Uhr (UTC).",
+            "Ist sie angekommen, funktioniert der Versand. Landet sie im Spam, lohnt ein Blick in die Kopfzeilen: Dort sollte bei SPF, DKIM und DMARC jeweils \"pass\" stehen.",
+        };
+        return Baue($"{Marke}: Testmail", anrede, absaetze, "Zu Dogity", appUrl, fusszeile: null);
+    }
+
     /// <param name="nachricht">Der Text der Glockenmeldung.</param>
     /// <param name="link">Wohin der Knopf führt; null = kein Knopf (keine Basis-Adresse bekannt).</param>
     /// <param name="einstellungenUrl">Wohin der Hinweis zum Abschalten verweist (Profil → Funktionen).</param>

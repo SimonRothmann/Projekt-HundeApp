@@ -289,11 +289,10 @@ export default function DatenschutzPage() {
             der Inhalt; es ist in der Größe begrenzt und wird laufend überschrieben.
           </p>
           <p>
-            Schreibst du an {BETREIBER.email}, nimmt {NETZWERKDIENST.anbieter} die Mail an (Email Routing) und leitet
-            sie an mein Postfach bei Google (Gmail) weiter. Eine Verarbeitung in den USA ist dabei möglich; beide
-            Anbieter sind nach dem EU-US Data Privacy Framework zertifiziert. Deine Nachricht und deine Adresse nutze
-            ich nur, um dir zu antworten (Art. 6 Abs. 1 lit. f DSGVO, geht es um dein Konto, lit. b), und lösche sie,
-            wenn die Sache erledigt ist und keine Aufbewahrungspflicht besteht.
+            Schreibst du an {BETREIBER.email}, nimmt {NETZWERKDIENST.anbieter} die Mail an (Email Routing, siehe
+            Abschnitt 6) und leitet sie an mein persönliches Postfach weiter, ohne sie selbst zu speichern. Deine
+            Nachricht und deine Adresse nutze ich nur, um dir zu antworten (Art. 6 Abs. 1 lit. f DSGVO, geht es um
+            dein Konto, lit. b), und lösche sie, wenn die Sache erledigt ist und keine Aufbewahrungspflicht besteht.
           </p>
           <p className="font-medium text-foreground">Push-Dienste der Gerätehersteller (vom Server)</p>
           <p>

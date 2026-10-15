@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<MailDrossel>();
         services.AddScoped<IAccountMailService, AccountMailService>();
+        services.AddScoped<IMailTestService, MailTestService>();
         services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
         services.AddScoped<IPushDispatcher, PushDispatcher>();
         services.AddScoped<IStatsService, StatsService>();

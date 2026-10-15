@@ -5,6 +5,9 @@ public enum KontomailArt
 {
     Willkommen,
     PasswortZuruecksetzen,
+
+    /// <summary>"Testmail senden" im Adminbereich - knapp bemessen, sie geht an beliebige Adressen.</summary>
+    Testmail,
 }
 
 /// <summary>
@@ -29,6 +32,7 @@ public class MailDrossel(TimeProvider time)
     private static readonly TimeSpan ResetAbstand = TimeSpan.FromMinutes(10);
     private const int WillkommenProTag = 100;
     private const int ResetProTag = 100;
+    private const int TestmailProTag = 20;
 
     // Ab dieser Größe werden abgelaufene Einträge weggeräumt, damit viele
     // verschiedene Adressen den Speicher nicht dauerhaft füllen.
@@ -54,7 +58,14 @@ public class MailDrossel(TimeProvider time)
             }
 
             var bisher = _heute.GetValueOrDefault(art);
-            if (bisher >= (art == KontomailArt.Willkommen ? WillkommenProTag : ResetProTag))
+            var hoechstens = art switch
+            {
+                KontomailArt.Willkommen => WillkommenProTag,
+                KontomailArt.PasswortZuruecksetzen => ResetProTag,
+                KontomailArt.Testmail => TestmailProTag,
+                _ => throw new ArgumentOutOfRangeException(nameof(art), art, null),
+            };
+            if (bisher >= hoechstens)
                 return false;
 
             if (art == KontomailArt.PasswortZuruecksetzen)

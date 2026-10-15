@@ -19,6 +19,7 @@ import { VerwaisteDatenSection } from "@/components/admin/verwaiste-daten-sectio
 import { CatalogSection } from "@/components/sports/catalog-section";
 import { RegulationImportSection } from "@/components/admin/regulation-import-section";
 import { SachkundeSection } from "@/components/admin/sachkunde-section";
+import { TestmailSection } from "@/components/admin/testmail-section";
 
 import { useT } from "@/lib/i18n";
 export default function AdminPage() {
@@ -183,6 +184,8 @@ export default function AdminPage() {
       {stats && <Letzte30TageSection stats={stats} />}
 
       <VerwaisteDatenSection />
+
+      <TestmailSection />
 
       <CatalogSection
         scope={{ kind: "global" }}

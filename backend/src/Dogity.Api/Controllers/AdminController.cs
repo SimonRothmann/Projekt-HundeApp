@@ -1,6 +1,7 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Admin;
 using Dogity.Application.Community;
+using Dogity.Application.Notifications;
 using Dogity.Application.Sports;
 using Dogity.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +11,7 @@ namespace Dogity.Api.Controllers;
 
 [Authorize(Roles = Roles.Admin)]
 [Route("api/admin")]
-public class AdminController(IAdminService adminService, IClubService clubService, IRegulationImportService importService, IClubRegistrationService registrations, ILogger<AdminController> logger) : ApiControllerBase
+public class AdminController(IAdminService adminService, IClubService clubService, IRegulationImportService importService, IClubRegistrationService registrations, IMailTestService mailTest, ILogger<AdminController> logger) : ApiControllerBase
 {
     [HttpGet("clubs")]
     public async Task<ActionResult<IReadOnlyList<ClubDto>>> GetClubs(CancellationToken ct)
@@ -159,6 +160,20 @@ public class AdminController(IAdminService adminService, IClubService clubServic
             return BadRequest(new { errors = result.Errors });
 
         return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Testmail an eine beliebige Adresse, direkt statt über die Warteschlange:
+    /// Die Antwort sagt, ob der Mailserver sie angenommen hat. Höchstens 20 am Tag.
+    /// </summary>
+    [HttpPost("testmail")]
+    public async Task<ActionResult<TestmailErgebnisDto>> SendTestmail(TestmailRequest request, CancellationToken ct)
+    {
+        var result = await mailTest.SendeAsync(request.An, ct);
+        // Ohne Empfänger - der steht im Log des Mailservers, hier genügt das Ergebnis.
+        if (result.Succeeded && result.Value!.VersandEingerichtet && !result.Value.Versendet)
+            logger.LogWarning("Testmail vom Mailserver nicht angenommen: {Fehler}", result.Value.Fehler);
+        return FromResult(result);
     }
 
     [HttpPost("regulation-import/apply")]
