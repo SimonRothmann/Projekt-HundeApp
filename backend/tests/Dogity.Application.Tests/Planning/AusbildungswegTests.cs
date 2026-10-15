@@ -42,6 +42,8 @@ public class AusbildungswegTests
     [InlineData("FCI-FPr 1", "FCI-FPr 2")]
     [InlineData("Agility 0 (A0)", "Agility 1 (A1)")]
     [InlineData("Agility 2 (A2)", "Agility 3 (A3)")]
+    [InlineData("Hoopers 0 (H0)", "Hoopers 1 (H1)")]
+    [InlineData("Hoopers 2 (H2)", "Hoopers 3 (H3)")]
     [InlineData("VDH-VK1", "VDH-VK2")]
     public void Stufen_FuehrenZurNaechstenStufe(string von, string nach)
     {
@@ -51,6 +53,7 @@ public class AusbildungswegTests
     [Theory]
     [InlineData("FCI-IGP 3")]
     [InlineData("Agility 3 (A3)")]
+    [InlineData("Hoopers 3 (H3)")]
     [InlineData("VDH-VK3")]
     [InlineData("Unbekannte PO")]
     [InlineData(null)]

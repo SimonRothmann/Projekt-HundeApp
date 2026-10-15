@@ -11,6 +11,8 @@
  * nach der BH.
  */
 export const EN: Record<string, string> = {
+  "Hoopers": "Hoopers",
+  "Hoopers ist dabei – nach der neuen VDH-Prüfungsordnung, die ab Januar 2027 gilt, mit den Klassen H0 bis H3. Wähle Hoopers unter Profil → „Sportarten, die ich trainiere“, dann kannst du Trainings eintragen und ein Ziel mit Trainingsplan anlegen. Der Plan übt nicht nur Hoop, Tonne, Gate und Tunnel, sondern auch das Führen auf Distanz: Start, Richtungszeichen, flüssiger Lauf und Reihenfolge.": "Hoopers is here – following the new VDH regulations that apply from January 2027, with the classes H0 to H3. Choose Hoopers under Profile → “Sports I train”, then you can log sessions and set a goal with a training plan. The plan practises not only hoop, barrel, gate and tunnel, but also handling at a distance: start, directional cues, flowing run and order.",
   "Push-Nachrichten und E-Mails": "Push notifications and emails",
   "Push-Nachrichten mit einem Tipp": "Push notifications in one tap",
   "Push-Nachrichten schaltest du jetzt direkt auf der Startseite oder in der Glocke ein – ein Tipp genügt. Auf dem iPhone geht das in Dogity vom Home-Bildschirm.": "You can now turn on push notifications right on the home page or in the bell – one tap is enough. On iPhone, this works in Dogity from the home screen.",

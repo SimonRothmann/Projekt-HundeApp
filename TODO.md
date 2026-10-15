@@ -76,7 +76,7 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
 
 ## Nächste Features (Briefs in docs/)
 
-- [ ] **Hoopers als Sportart** (Wunsch des zweiten Vereins, 2026-10-15) —
+- [x] **Hoopers als Sportart** (Wunsch des zweiten Vereins, 2026-10-15; umgesetzt 2026-10-15 nach der VDH-PO Hoopers ab 01.01.2027, Klassen H0-H3, siehe docs/PO_VERIFIKATION.md) —
       als NÄCHSTER Entwicklungsschritt, sobald E-Mail (eigener Versandserver)
       und Push auf Prod laufen (Zweig `mail-push`). Vorher klären: Welche
       Prüfungs-/Turnierordnung (z. B. VDH/dhv-Hoopers-Ordnung, Klassen),

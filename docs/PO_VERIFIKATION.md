@@ -11,6 +11,7 @@ kleiner.
 | [FCI-Prüfungsordnung, deutsch, gültig ab 01.01.2025](https://www.fci.be/medias/uti-reg-igp-de-2025-19769.pdf) (UTI-REG-IGP-de-2025, 84 Seiten) | IGP 1-3, IBGH 1-3, UPr/SPr/GPr/FPr, IFH 1-3, IGP-FH, IAD, BH/VT |
 | [VDH, Informationen zur Prüfungsordnung, Stand April 2026](https://www.vdh.de/fileadmin/media/hundesport/Gebrauchshundesport/2026/VDH_Info_PO_Stand_April_3-2026.pdf) | nationale Festlegungen (Mindestalter, Durchführung) |
 | [VDH, Begleithundeprüfung](https://www.vdh.de/hundesport/begleithundpruefung/) | BH-Rahmenbedingungen |
+| [VDH-Prüfungsordnung Hoopers, gültig ab 01.01.2027](https://www.vdh.de/fileadmin/media/hundesport/Hoopers-Agility/2026/VDH-PO-Hoopers_2027_V01.pdf) (beschlossen 25.09.2026, 18 Seiten; Übersicht auf [vdh.de/hundesport/hoopers](https://www.vdh.de/hundesport/hoopers/)) | Hoopers H0-H3 (seit 2026-10-15) |
 
 ## Ergebnis: das meiste stimmt
 
@@ -173,6 +174,18 @@ dadurch nicht.
   die IAD. Achtung bei Agility: ältere deutschsprachige Fassungen der
   FCI-Wettkampfordnung führen noch Tisch und Stofftunnel — beide sind in der
   aktuellen Geräteliste nicht mehr enthalten.
+
+- **Hoopers** ist seit dem 2026-10-15 im Katalog, bewusst gleich nach der
+  VDH-PO Hoopers **gültig ab 01.01.2027** (nicht der von 2023): Sie bringt die
+  Beginner-Klasse H0, Größenklassen (Small bis 40,00 cm, Large ab 40,01 cm),
+  3 statt 4 Minuten Maximalzeit und „Teilgenommen“ statt „ohne Bewertung“ ab
+  mehr als 25 Fehlerpunkten. Gewertet wird nur über Fehlerpunkte, die Übungen
+  stehen mit 0 Punkten. Neben den vier Geräten (Hoop, Tonne, Gate, Tunnel)
+  stehen sechs Fertigkeiten des Führens auf Distanz im Katalog — die PO
+  bewertet genau sie (Fehlstart, Lauflinie, flüssiger Lauf, Reihenfolge),
+  und ohne sie bestünde jeder Trainingsplan nur aus den Geräten. Die Texte
+  sind eigene Beschreibungen. Der VDH-Server liefert das PDF nur an
+  Browser aus (403 für Skripte).
 
 ## Dritte Durchsicht (2026-08-31): der Turnierhundsport war halb abgebildet
 

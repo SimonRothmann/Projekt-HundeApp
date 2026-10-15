@@ -44,6 +44,7 @@ public static class Ausbildungsweg
             new[] { "FCI-StöPr 1", "FCI-StöPr 2", "FCI-StöPr 3" },
             new[] { "FCI-IFH 1", "FCI-IFH 2", "FCI-IFH 3" },
             new[] { "Agility 0 (A0)", "Agility 1 (A1)", "Agility 2 (A2)", "Agility 3 (A3)" },
+            new[] { "Hoopers 0 (H0)", "Hoopers 1 (H1)", "Hoopers 2 (H2)", "Hoopers 3 (H3)" },
             new[] { "VDH-VK1", "VDH-VK2", "VDH-VK3" },
         })
         {

@@ -51,6 +51,8 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// den VDH-Prüfungsordnungen (THS gültig ab 01.01.2025, Agility ab
 /// 01.01.2026). Beide werden über Zeit und Fehlerpunkte gewertet - ihre
 /// Disziplinen tragen deshalb 0 Punkte, wie schon Teil B der BH und die IAD.
+/// Hoopers (2026-10-15 ergänzt) ebenso: VDH-Prüfungsordnung Hoopers, gültig
+/// ab 01.01.2027, nur Fehlerpunkte, Übungen mit 0 Punkten.
 ///
 /// Vierte Durchsicht am 2026-08-31: Die Übung "Leinenführigkeit" heißt in BH
 /// und IBGH jetzt "Fußarbeit" - die PO beschreibt unter diesem Titel
@@ -1402,6 +1404,105 @@ public static class SportCatalogSeeder
             "Dadurch schneller als der A-Lauf - entsprechend höher liegen die Mindestlaufgeschwindigkeiten.\n" +
             "Für den Aufstieg zählen in der Regel nur die A-Läufe; Jumping-Ergebnisse zählen ab A2 anteilig mit.\n" +
             "Mindestalter: 18 Monate."));
+
+        // ---------------------------------------------------------------
+        // Hoopers (VDH-Prüfungsordnung Hoopers, gültig ab 01.01.2027,
+        // beschlossen am 25.09.2026; Wunsch eines Vereins, 2026-10-15).
+        //
+        // Bewusst gleich die Fassung 2027 und nicht die von 2023: Sie gilt in
+        // wenigen Wochen, bringt die neue Beginner-Klasse H0 und die
+        // Größenklassen - wer heute ein Ziel anlegt, läuft seine Prüfung nach
+        // ihr. Die Unterschiede zur alten Fassung stehen in den Beschreibungen.
+        //
+        // Gewertet wird wie im Agility nur über Fehlerpunkte (Fünfer-Schritte),
+        // ohne Übungspunkte - die Übungen tragen deshalb 0 Punkte. Anders als
+        // beim Agility sind es nicht nur die vier Geräte: Beim Hoopers führt
+        // der Hundeführer aus dem Führbereich auf Distanz, und genau das -
+        // Start, Distanz, Richtungszeichen, flüssiger Lauf, Reihenfolge - ist
+        // das, was man trainiert und was die meisten Fehlerpunkte kostet.
+        // Nur mit den Geräten bestünde jeder Trainingsplan aus "Hoop, Tonne,
+        // Gate, Tunnel".
+        // ---------------------------------------------------------------
+        var hoopers = await SeedSportAsync(db, "HOOPERS", "Hoopers",
+        [
+            new("Hoop", ExerciseDifficulty.Beginner, "Geräte",
+                "Bogen, durch den der Hund läuft (80-100 cm lichte Weite, 90-120 cm hoch). Mindestens die Hälfte der Geräte eines Parcours sind Hoops; Start und Ziel sind immer ein Hoop."),
+            new("Tonne", ExerciseDifficulty.Intermediate, "Geräte",
+                "Wird in der vorgegebenen Richtung umrundet (45-70 cm Durchmesser, 65-110 cm hoch). Entgegen der Laufrichtung oder Sprung über die Tonne: je 5 Fehlerpunkte."),
+            new("Gate", ExerciseDifficulty.Intermediate, "Geräte",
+                "Zaunelement (90-130 cm breit, 90-110 cm hoch), das der Hund auf der vorgegebenen Seite und in der vorgegebenen Richtung passiert. Entgegen der Laufrichtung: 5 Fehlerpunkte."),
+            new("Tunnel", ExerciseDifficulty.Beginner, "Geräte",
+                "Kurzer, flexibler Tunnel (80 cm Durchmesser, 100 cm lang), auch bodenlos. Wenden im Tunnel und Verlassen auf der falschen Seite: 5 Fehlerpunkte. Tunnel mit Lauffläche sind nur noch bis Ende 2029 zugelassen."),
+            new("Start vor dem Starthoop", ExerciseDifficulty.Beginner, "Führen auf Distanz",
+                "Der Hund wartet vor dem Starthoop, bis der Hundeführer mit beiden Füßen im Führbereich steht, und läuft erst auf das Signal los. Freiwillige Startkorrektur oder Fehlstart: je 5 Fehlerpunkte, höchstens zweimal - das dritte Mal führt zu „ohne Bewertung“."),
+            new("Distanz zum Führbereich", ExerciseDifficulty.Intermediate, "Führen auf Distanz",
+                "Der Hund arbeitet selbstständig vom Führbereich (2 x 2 m oder 2 m Durchmesser) weg, den der Hundeführer während des Laufs nicht verlassen darf. Weitestes Gerät: bis 10 m in H0, bis 12/15 m in H1, 18/20 m in H2, 25/30 m in H3 (Small/Large)."),
+            new("Richtungszeichen", ExerciseDifficulty.Intermediate, "Führen auf Distanz",
+                "Links, rechts, weiter, zu mir - nur mit Hör- und Sichtzeichen aus dem Führbereich, der Hundeführer hält nichts in der Hand. Verlässt der Hund die Lauflinie: 5 Fehlerpunkte."),
+            new("Flüssiger Lauf", ExerciseDifficulty.Intermediate, "Führen auf Distanz",
+                "Ohne Wenden, Kreiseln, Anhalten, Schnüffeln oder Stillstehen durch den Parcours - auch ein Anhalten durch den Hundeführer zählt. Jede Unterbrechung: 5 Fehlerpunkte."),
+            new("Reihenfolge und Verleitungen", ExerciseDifficulty.Advanced, "Führen auf Distanz",
+                "Geräte, die nicht an der Reihe sind, links liegen lassen. Tonne oder Gate außerhalb der Reihenfolge: 5 Fehlerpunkte. Hoop oder Tunnel außerhalb der Reihenfolge: 5 Fehlerpunkte in H0 und H1, „ohne Bewertung“ in H2 und H3."),
+            new("Zielhoop und Abschluss", ExerciseDifficulty.Beginner, "Führen auf Distanz",
+                "Der Lauf endet erst mit dem Zielhoop - läuft der Hund nicht hindurch: „ohne Bewertung“. Danach die versteckte Belohnung geben (nicht werfen, kein Futter auf der Parcoursfläche) und den Hund angeleint hinausführen."),
+        ]);
+
+        // Allgemeines, das für alle vier Klassen gilt - einmal formuliert, damit
+        // die Beschreibungen nicht auseinanderlaufen.
+        const string hoopersBewertung =
+            "Bewertung: Fehlerpunkte in Fünfer-Schritten, keine Zeitfehler; Maximalzeit 3 Minuten.\n" +
+            "Werturteil: 0-5 Fehlerpunkte Vorzüglich, 10-15 Sehr gut, 20-25 Gut, mehr als 25 Teilgenommen.\n" +
+            "Der Hundeführer bleibt den ganzen Lauf im Führbereich (2 x 2 m oder 2 m Durchmesser); Verlassen mit einem ganzen Fuß oder Berühren des Hundes: ohne Bewertung.\n" +
+            "Mindestens die Hälfte der Geräte sind Hoops; Start und Ziel sind immer ein Hoop.\n" +
+            "Größenklassen: Small bis 40,00 cm, Large ab 40,01 cm Widerristhöhe - vor der ersten Prüfung offiziell vermessen.\n" +
+            "Mindestalter: 18 Monate.";
+        const string hoopersBis2026 =
+            "Bis 31.12.2026 gilt noch die Prüfungsordnung von 2023: drei Klassen ohne H0 und ohne Größenklassen, Maximalzeit 4 Minuten, mehr als 25 Fehlerpunkte ohne Bewertung.";
+
+        RegulationExerciseSeed[] HoopersUebungen(string reihenfolge, string distanz) =>
+        [
+            new("Hoop", true, 0, "Vorbeilaufen oder Auslassen: 5 Fehlerpunkte (höchstens zwei in Folge)."),
+            new("Tonne", true, 0, "Entgegen der Laufrichtung, außerhalb der Reihenfolge oder darübergesprungen: je 5 Fehlerpunkte."),
+            new("Gate", true, 0, "Entgegen der Laufrichtung oder außerhalb der Reihenfolge: je 5 Fehlerpunkte."),
+            new("Tunnel", true, 0, "Wenden im Tunnel und Verlassen auf der falschen Seite: 5 Fehlerpunkte."),
+            new("Start vor dem Starthoop", true, 0, "Startkorrektur oder Fehlstart je 5 Fehlerpunkte, höchstens zweimal."),
+            new("Distanz zum Führbereich", true, 0, distanz),
+            new("Richtungszeichen", true, 0, "Verlässt der Hund die Lauflinie: 5 Fehlerpunkte."),
+            new("Flüssiger Lauf", true, 0, "Jede Unterbrechung (Wenden, Kreiseln, Anhalten, Schnüffeln): 5 Fehlerpunkte."),
+            new("Reihenfolge und Verleitungen", true, 0, reihenfolge),
+            new("Zielhoop und Abschluss", true, 0, "Ohne Zielhoop: ohne Bewertung."),
+        ];
+
+        const string reihenfolgeEinstieg = "Hoop oder Tunnel außerhalb der Reihenfolge: 5 Fehlerpunkte.";
+        const string reihenfolgeFci = "Hoop oder Tunnel außerhalb der Reihenfolge: ohne Bewertung.";
+
+        await SeedRegulationAsync(db, hoopers, new RegulationSeed("Hoopers 0 (H0)", "2027", new DateOnly(2027, 1, 1),
+            HoopersUebungen(reihenfolgeEinstieg, "Weitestes Gerät höchstens 10 m vom Führbereich."),
+            Description: "VDH-H0 - optionale Beginner-Klasse, neu ab 2027. Wer einsteigt, startet wahlweise in H0 oder gleich in H1; ein Abstieg nach H0 ist jederzeit möglich.\n" +
+                "Parcours: 10-15 Geräte, 4-8 m Abstand, weitestes Gerät höchstens 10 m vom Führbereich. Der VDH veröffentlicht einen Katalog von Beginner-Parcours, aus dem der Richter wählen kann.\n" +
+                hoopersBewertung));
+
+        await SeedRegulationAsync(db, hoopers, new RegulationSeed("Hoopers 1 (H1)", "2027", new DateOnly(2027, 1, 1),
+            HoopersUebungen(reihenfolgeEinstieg, "Weitestes Gerät höchstens 12 m (Small) bzw. 15 m (Large) vom Führbereich."),
+            Description: "VDH-H1 - die Einstiegsklasse.\n" +
+                "Parcours: 12-18 Geräte, 5-8 m Abstand, weitestes Gerät höchstens 12 m (Small) bzw. 15 m (Large) vom Führbereich.\n" +
+                "Aufstieg nach H2: dreimal V0 (Vorzüglich mit 0 Fehlerpunkten) aus Einzelläufen an mindestens drei verschiedenen Veranstaltungstagen, an jedem dieser Tage mindestens ein V0, bei zwei verschiedenen Richtern. Ein Verbleib in H1 ist möglich, erreichte Qualifikationen bleiben erhalten.\n" +
+                hoopersBewertung + "\n" + hoopersBis2026));
+
+        await SeedRegulationAsync(db, hoopers, new RegulationSeed("Hoopers 2 (H2)", "2027", new DateOnly(2027, 1, 1),
+            HoopersUebungen(reihenfolgeFci, "Weitestes Gerät höchstens 18 m (Small) bzw. 20 m (Large) vom Führbereich."),
+            Description: "FCI-H2 - zweite Klasse.\n" +
+                "Parcours: 16-22 Geräte, 6-10 m Abstand, weitestes Gerät höchstens 18 m (Small) bzw. 20 m (Large) vom Führbereich.\n" +
+                "Strenger als H0/H1: Ein Hoop oder Tunnel außerhalb der Reihenfolge führt hier zu ohne Bewertung.\n" +
+                "Aufstieg nach H3: wie von H1 nach H2 - dreimal V0 an drei verschiedenen Tagen bei zwei verschiedenen Richtern. Ein freiwilliger Abstieg nach H1 oder H0 ist jederzeit möglich.\n" +
+                hoopersBewertung + "\n" + hoopersBis2026));
+
+        await SeedRegulationAsync(db, hoopers, new RegulationSeed("Hoopers 3 (H3)", "2027", new DateOnly(2027, 1, 1),
+            HoopersUebungen(reihenfolgeFci, "Weitestes Gerät höchstens 25 m (Small) bzw. 30 m (Large) vom Führbereich."),
+            Description: "FCI-H3 - höchste Klasse.\n" +
+                "Parcours: 20-26 Geräte, 7-12 m Abstand, weitestes Gerät höchstens 25 m (Small) bzw. 30 m (Large) vom Führbereich.\n" +
+                "Ein Hoop oder Tunnel außerhalb der Reihenfolge führt zu ohne Bewertung. Ein freiwilliger Abstieg nach H2, H1 oder H0 ist jederzeit möglich.\n" +
+                hoopersBewertung + "\n" + hoopersBis2026));
 
         // Die ursprünglichen fehlerhaften RegulationVersions (BH/IBGH "2024",
         // IGP "2025") wurden inzwischen aus dem Code entfernt, nachdem die

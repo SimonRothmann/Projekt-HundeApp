@@ -33,6 +33,10 @@ describe("groupIntoFamilies", () => {
     expect(titles(["Agility 1 (A1)", "Jumping (JP0-JP3)"])).toEqual(["Agility"]);
   });
 
+  it("gibt Hoopers eine eigene Familie, getrennt vom Agility", () => {
+    expect(titles(["Hoopers 0 (H0)", "Hoopers 3 (H3)", "Agility 1 (A1)"])).toEqual(["Agility", "Hoopers"]);
+  });
+
   it("trennt die Fährten von den Einzelprüfungen", () => {
     // "FCI-FPr 1" enthält kein "Fährte" im Namen und gehört zu den
     // Einzelprüfungen - sonst stünde dieselbe Prüfung in zwei Familien.

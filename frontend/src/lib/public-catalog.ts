@@ -204,6 +204,12 @@ const FAMILIES: { key: string; title: string; description: string; matches: (nam
     description: "Parcours auf Zeit, gewertet über Fehler- und Zeitfehlerpunkte.",
     matches: (name) => name.startsWith("Agility ") || name.startsWith("Jumping"),
   },
+  {
+    key: "hoopers",
+    title: "Hoopers",
+    description: "Parcours ohne Sprünge, aus dem Führbereich auf Distanz geführt – gewertet nur über Fehlerpunkte.",
+    matches: (name) => name.startsWith("Hoopers "),
+  },
 ];
 
 /** Bündelt den Katalog in Familien. Alles ohne Treffer landet unter "Weitere". */

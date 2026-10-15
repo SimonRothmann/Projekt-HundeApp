@@ -61,6 +61,17 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.27",
+    datum: "2026-10-15",
+    titel: uebersetzbar("Hoopers"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Hoopers ist dabei – nach der neuen VDH-Prüfungsordnung, die ab Januar 2027 gilt, mit den Klassen H0 bis H3. Wähle Hoopers unter Profil → „Sportarten, die ich trainiere“, dann kannst du Trainings eintragen und ein Ziel mit Trainingsplan anlegen. Der Plan übt nicht nur Hoop, Tonne, Gate und Tunnel, sondern auch das Führen auf Distanz: Start, Richtungszeichen, flüssiger Lauf und Reihenfolge."),
+      },
+    ],
+  },
+  {
     version: "0.26",
     datum: "2026-10-15",
     titel: uebersetzbar("Push-Nachrichten mit einem Tipp"),
