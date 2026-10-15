@@ -12,6 +12,12 @@
  */
 export const EN: Record<string, string> = {
   "Push-Nachrichten und E-Mails": "Push notifications and emails",
+  "Push-Nachrichten mit einem Tipp": "Push notifications in one tap",
+  "Push-Nachrichten schaltest du jetzt direkt auf der Startseite oder in der Glocke ein – ein Tipp genügt. Auf dem iPhone geht das in Dogity vom Home-Bildschirm.": "You can now turn on push notifications right on the home page or in the bell – one tap is enough. On iPhone, this works in Dogity from the home screen.",
+  "Mitteilungen aufs Handy": "Notifications on your phone",
+  "Erfahre sofort von Einladungen, Feedback und Änderungen an Terminen – auch wenn Dogity geschlossen ist.": "Hear right away about invitations, feedback and changes to sessions – even when Dogity is closed.",
+  "Auch als Mitteilung aufs Handy": "Also as a notification on your phone",
+  "Nicht jetzt": "Not now",
   "Neue Karte für Fährten": "A new map for tracks",
   "Die Karte ist neu: gestochen scharf bei jeder Zoomstufe, mit einem echten dunklen Stil, und Acker, Wiese, Wald und Feldwege sind klar zu unterscheiden. Unten links zeigt ein Maßstab die Meter.": "The map is new: razor sharp at every zoom level, with a true dark style, and fields, meadows, woods and farm tracks are easy to tell apart. A scale at the bottom left shows the metres.",
   "Beim Legen und Ablaufen dreht sich die Karte in Laufrichtung, sobald du ein paar Schritte gegangen bist - verschieben und zoomen kannst du sie dabei trotzdem. Der Knopf oben rechts zeigt, was gerade gilt, und schaltet zwischen „Laufrichtung“ und „Norden“ um; bei „Norden“ zeigt ein Pfeil, wohin du gehst.": "While laying and following a track, the map turns in your direction of travel once you have taken a few steps – you can still move and zoom it. The button at the top right shows the current mode and switches between “Direction” and “North”; with “North”, an arrow shows where you are heading.",

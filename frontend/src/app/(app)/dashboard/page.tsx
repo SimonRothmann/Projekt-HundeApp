@@ -26,6 +26,7 @@ import { laeuftFaehrte, nichtAbgelaufeneFaehrten } from "@/lib/faehrte";
 import { merkeGelesenImErststart } from "@/lib/neuerungen-gelesen";
 import { zeigeSachkundeZeile, zielAufteilung } from "@/lib/startseite";
 import { ErfassenKarte } from "@/components/dashboard/erfassen-karte";
+import { PushHinweisKarte } from "@/components/dashboard/push-hinweis-karte";
 import { EinladungenKarte } from "@/components/dashboard/einladungen-karte";
 import { FeedbackKarte } from "@/components/dashboard/feedback-karte";
 import { TerminKarte } from "@/components/dashboard/termin-karte";
@@ -361,6 +362,11 @@ export default function DashboardPage() {
           <FeedbackKarte eintraege={daten.feedback} onChanged={neuLaden} />
 
           {erfassen}
+
+          {/* Unter "Erfassen", damit der Hauptweg oben bleibt - aber vor den
+              Zielen, damit ihn alle sehen, ohne zu scrollen. Nicht im Erststart:
+              Dort geht es erst einmal um den ersten Hund. */}
+          <PushHinweisKarte />
 
           <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} />
           <AbgelaufeneZiele eintraege={daten.ziele.abgelaufen} onChanged={neuLaden} />

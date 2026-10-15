@@ -8,8 +8,9 @@ import type { Notification } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Bell } from "lucide-react";
+import { Bell, BellRing } from "lucide-react";
 import { toast } from "sonner";
+import { usePush } from "@/lib/use-push";
 
 import { useT } from "@/lib/i18n";
 export function NotificationBell() {
@@ -18,6 +19,8 @@ export function NotificationBell() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[] | null>(null);
+  // Erst beim Öffnen lesen: Die Glocke steht auf jeder Seite.
+  const push = usePush(open);
 
   async function loadNotifications() {
     try {
@@ -85,7 +88,7 @@ export function NotificationBell() {
       />
       <PopoverContent>
         <div className="flex items-center justify-between border-b p-3">
-          <span className="text-sm font-medium">Benachrichtigungen</span>
+          <span className="text-sm font-medium">{t("Benachrichtigungen")}</span>
           {notifications && notifications.some((n) => !n.isRead) && (
             <Button variant="ghost" size="sm" onClick={handleMarkAllRead}>
 {t("Alle gelesen")}
@@ -116,6 +119,17 @@ export function NotificationBell() {
             </ul>
           )}
         </div>
+        {/* Wer hier nachsieht, will Meldungen - genau der richtige Moment, sie
+            auch aufs Handy anzubieten. Bleibt, solange Push aus ist. */}
+        {push.zustand === "aus" && (
+          <div className="flex items-center gap-2 border-t p-3">
+            <BellRing className="size-4 shrink-0 text-primary-text" aria-hidden />
+            <span className="min-w-0 flex-1 text-xs text-muted-foreground">{t("Auch als Mitteilung aufs Handy")}</span>
+            <Button size="sm" disabled={push.arbeitet} onClick={() => void push.einschalten()}>
+              {t("Einschalten")}
+            </Button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );

@@ -61,6 +61,17 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.26",
+    datum: "2026-10-15",
+    titel: uebersetzbar("Push-Nachrichten mit einem Tipp"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Push-Nachrichten schaltest du jetzt direkt auf der Startseite oder in der Glocke ein – ein Tipp genügt. Auf dem iPhone geht das in Dogity vom Home-Bildschirm."),
+      },
+    ],
+  },
+  {
     version: "0.25",
     datum: "2026-10-15",
     titel: uebersetzbar("Push-Nachrichten und E-Mails"),

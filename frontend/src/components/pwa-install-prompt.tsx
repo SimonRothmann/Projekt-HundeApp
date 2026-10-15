@@ -148,7 +148,7 @@ export function PwaInstallPrompt() {
               <line x1="12" y1="2" x2="12" y2="15" />
             </svg>
           </span>{" "}
-          und wähle <span className="font-medium text-foreground">&bdquo;Zum Home-Bildschirm&ldquo;</span> um Dogity offline zu nutzen.
+          und wähle <span className="font-medium text-foreground">&bdquo;Zum Home-Bildschirm&ldquo;</span> um Dogity offline zu nutzen und Mitteilungen zu bekommen.
         </p>
       </div>
     );

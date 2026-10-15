@@ -1,16 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { usePreferences } from "@/lib/preferences-context";
 import { useSystemFeatures } from "@/lib/system-features";
-import {
-  bestimmePushZustand,
-  lesePushUmgebung,
-  schaltePushAus,
-  schaltePushEin,
-  type PushZustand,
-} from "@/lib/push";
+import { usePush } from "@/lib/use-push";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SchalterZeile } from "@/components/ui/switch";
@@ -33,63 +27,16 @@ export function BenachrichtigungenSection() {
 
   return (
     <>
-      {features.pushPublicKey && <PushKarte publicKey={features.pushPublicKey} />}
+      {features.pushPublicKey && <PushKarte />}
       {features.email && <EmailZeile />}
     </>
   );
 }
 
-function PushKarte({ publicKey }: { publicKey: string }) {
+function PushKarte() {
   const t = useT();
-  // null = wird noch ermittelt (der Browser antwortet asynchron).
-  const [zustand, setZustand] = useState<PushZustand | null>(null);
-  const [arbeitet, setArbeitet] = useState(false);
+  const { zustand, arbeitet, einschalten, ausschalten } = usePush();
 
-  useEffect(() => {
-    // Zustand des Geräts lesen (externe Quelle: Browser). Gesetzt wird erst nach
-    // der asynchronen Antwort, nicht im Rumpf des Effekts.
-    let abgebrochen = false;
-    void lesePushUmgebung(publicKey).then((umgebung) => {
-      if (!abgebrochen) setZustand(bestimmePushZustand(umgebung));
-    });
-    return () => {
-      abgebrochen = true;
-    };
-  }, [publicKey]);
-
-  async function ermitteln() {
-    setZustand(bestimmePushZustand(await lesePushUmgebung(publicKey)));
-  }
-
-  // Direkt aus dem Tipp, ohne vorherige Wartepunkte: iOS zeigt die Frage nach
-  // der Erlaubnis nur nach einer Nutzergeste (siehe schaltePushEin).
-  async function einschalten() {
-    setArbeitet(true);
-    try {
-      const ergebnis = await schaltePushEin(publicKey);
-      if (ergebnis === "erteilt") toast.success(t("Push-Nachrichten sind auf diesem Gerät eingeschaltet."));
-      else if (ergebnis === "verweigert") toast.error(t("Die Erlaubnis für Mitteilungen wurde nicht erteilt."));
-      else toast.error(t("Push-Nachrichten konnten nicht eingeschaltet werden."));
-      await ermitteln();
-    } finally {
-      setArbeitet(false);
-    }
-  }
-
-  async function ausschalten() {
-    setArbeitet(true);
-    try {
-      const serverOk = await schaltePushAus();
-      if (serverOk) toast.success(t("Push-Nachrichten sind auf diesem Gerät ausgeschaltet."));
-      else toast.error(t("Das Gerät konnte nicht vollständig abgemeldet werden. Auf diesem Gerät ist Push aus."));
-      await ermitteln();
-    } finally {
-      setArbeitet(false);
-    }
-  }
-
-  // Solange unklar ist, was das Gerät kann, nichts anzeigen - ein kurz
-  // aufblitzendes "nicht unterstützt" wäre falsch.
   if (zustand === null || zustand === "ausgeblendet") return null;
 
   return (
