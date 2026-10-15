@@ -69,6 +69,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("Push-Nachrichten schaltest du jetzt direkt auf der Startseite oder in der Glocke ein – ein Tipp genügt. Auf dem iPhone geht das in Dogity vom Home-Bildschirm."),
       },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Hinweise „Als App installieren“ und „Mitteilungen aufs Handy“ erscheinen nur noch auf Handy und Tablet, nicht mehr am Rechner. Push lässt sich am Rechner weiterhin unter Profil → Funktionen einschalten."),
+      },
     ],
   },
   {

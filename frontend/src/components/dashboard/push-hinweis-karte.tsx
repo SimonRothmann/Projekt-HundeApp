@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { istTouchGeraet } from "@/lib/geraet";
 import { useT } from "@/lib/i18n";
 import { usePush } from "@/lib/use-push";
 
@@ -34,14 +35,16 @@ function merkeWeggeklickt(): void {
  * Browser übernimmt der Hinweis "Als App installieren" (pwa-install-prompt),
  * danach erscheint diese Karte in der App vom Home-Bildschirm. Einmal
  * weggetippt, kommt sie nicht wieder; die Glocke und das Profil bieten Push
- * weiter an.
+ * weiter an. Nur auf Handy und Tablet ("aufs Handy") - am Rechner bleibt Push
+ * über das Profil erreichbar.
  */
 export function PushHinweisKarte() {
   const t = useT();
-  const { zustand, arbeitet, einschalten } = usePush();
+  const [mobil] = useState(() => typeof window !== "undefined" && istTouchGeraet());
+  const { zustand, arbeitet, einschalten } = usePush(mobil);
   const [weggeklickt, setWeggeklickt] = useState(warWeggeklickt);
 
-  if (zustand !== "aus" || weggeklickt) return null;
+  if (!mobil || zustand !== "aus" || weggeklickt) return null;
 
   function nichtJetzt() {
     merkeWeggeklickt();

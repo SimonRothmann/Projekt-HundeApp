@@ -6,6 +6,7 @@ import { Download, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
+import { istTouchGeraet } from "@/lib/geraet";
 // Chrome/Edge/Android fire this event before showing the native install prompt.
 // iOS Safari has no equivalent — we show manual instructions there instead.
 interface BeforeInstallPromptEvent extends Event {
@@ -63,7 +64,9 @@ export function PwaInstallPrompt() {
 
   useEffect(() => {
     // Bereits installiert oder weggeklickt → nichts anzeigen.
-    if (isInStandaloneMode() || warWeggeklickt()) return;
+    // Nur auf Handy und Tablet - am Rechner bietet der Browser das Installieren
+    // selbst an, ein eigener Hinweis wäre dort nur Lärm.
+    if (isInStandaloneMode() || warWeggeklickt() || !istTouchGeraet()) return;
 
     if (isIos()) {
       // iOS: kein beforeinstallprompt — manuellen Hinweis nach 3 s zeigen.
