@@ -162,8 +162,12 @@ public class AdminService(
         // Bis 2026-09-13 löste das nur Vereins- und Gruppenzeilen - Hunde,
         // Trainings, Fährten, Ziele, Einstellungen und Lernfortschritt blieben
         // stehen. Für eine Löschung nach Art. 17 DSGVO ist das zu wenig,
-        // deshalb geht es jetzt denselben Weg wie die Selbstlöschung im Profil.
-        await accountData.PurgeAsync(userId, ct);
+        // deshalb geht es jetzt denselben Weg wie die Selbstlöschung im Profil -
+        // samt Abbruch, wenn die Fachdaten nicht weg sind: Ein gelöschtes Konto
+        // mit stehengebliebenen Daten wäre genau die Altlast, die "Daten
+        // gelöschter Konten" aufräumt.
+        var purge = await accountData.PurgeAsync(userId, ct);
+        if (!purge.Succeeded) return purge;
 
         var ok = await userLookup.DeleteUserAsync(userId, ct);
         if (!ok) return Result.NotFound("Benutzer nicht gefunden oder Löschung fehlgeschlagen.");
@@ -179,19 +183,37 @@ public class AdminService(
         return Result<OrphanedDataDto>.Success(await VerwaisteKontodaten.ZaehlenAsync(db, verwaist.Value!, ct));
     }
 
+    /// <summary>
+    /// Immer nur eine Bereinigung zur Zeit - Knopf doppelt getippt, zwei
+    /// Fenster, der tägliche Lauf auf Test. Parallel griffen zwei Läufe nach
+    /// denselben Zeilen, und der langsamere endete mit einer Concurrency-Ausnahme
+    /// (HTTP 500), obwohl am Ende alles gelöscht war (so geschehen auf Test,
+    /// 2026-10-15). Nacheinander findet der zweite einfach nichts mehr. Eine
+    /// Sperre im Prozess genügt: Je Umgebung läuft genau ein Backend.
+    /// </summary>
+    private static readonly SemaphoreSlim BereinigungSperre = new(1, 1);
+
     public async Task<Result<OrphanedDataPurgeDto>> PurgeOrphanedDataAsync(Guid callerId, CancellationToken ct = default)
     {
-        var verwaist = await VerwaisteKontodaten.VerwaisteIdsAsync(db, userLookup, callerId, ct);
-        if (!verwaist.Succeeded) return Result<OrphanedDataPurgeDto>.Failure([.. verwaist.Errors]);
+        await BereinigungSperre.WaitAsync(ct);
+        try
+        {
+            var verwaist = await VerwaisteKontodaten.VerwaisteIdsAsync(db, userLookup, callerId, ct);
+            if (!verwaist.Succeeded) return Result<OrphanedDataPurgeDto>.Failure([.. verwaist.Errors]);
 
-        // Dieselbe Löschung wie bei jedem Konto, das heute gelöscht wird - nur
-        // für Konten, die schon vorher weg waren. Eine zweite Löschlogik
-        // könnte vom echten Weg abweichen (Mitbesitz, Gruppen, Verweise).
-        var bereinigt = 0;
-        foreach (var userId in verwaist.Value!)
-            if ((await accountData.PurgeAsync(userId, ct)).Succeeded) bereinigt++;
+            // Dieselbe Löschung wie bei jedem Konto, das heute gelöscht wird - nur
+            // für Konten, die schon vorher weg waren. Eine zweite Löschlogik
+            // könnte vom echten Weg abweichen (Mitbesitz, Gruppen, Verweise).
+            var bereinigt = 0;
+            foreach (var userId in verwaist.Value!)
+                if ((await accountData.PurgeAsync(userId, ct)).Succeeded) bereinigt++;
 
-        return Result<OrphanedDataPurgeDto>.Success(new OrphanedDataPurgeDto(bereinigt));
+            return Result<OrphanedDataPurgeDto>.Success(new OrphanedDataPurgeDto(bereinigt));
+        }
+        finally
+        {
+            BereinigungSperre.Release();
+        }
     }
 
     public async Task<Result> SetUserPasswordAsync(Guid userId, string newPassword, CancellationToken ct = default)

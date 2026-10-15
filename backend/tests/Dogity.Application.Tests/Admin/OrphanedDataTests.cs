@@ -189,6 +189,41 @@ public class OrphanedDataTests
     }
 
     [Fact]
+    public async Task ZweiParalleleBereinigungen_LaufenNacheinander_OhneFehler()
+    {
+        // Zwei Anfragen mit je eigenem DbContext auf derselben Datenbank - wie
+        // ein doppelt getippter Knopf. Das verzögerte Auflisten der Konten lässt
+        // die zweite ohne Sperre loslaufen, bevor die erste gelöscht hat.
+        var name = Guid.NewGuid().ToString();
+        ApplicationDbContext NeuerKontext() =>
+            new(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(name).Options);
+        var lookup = new FakeUserLookupService { AuflistenDauert = TimeSpan.FromMilliseconds(50) };
+        var admin = Guid.NewGuid();
+        lookup.Register(admin, "admin@test.de");
+
+        using (var vorbereitung = NeuerKontext())
+        {
+            HundMitAllem(vorbereitung, Guid.NewGuid());
+            HundMitAllem(vorbereitung, Guid.NewGuid());
+            await vorbereitung.SaveChangesAsync();
+        }
+
+        using var db1 = NeuerKontext();
+        using var db2 = NeuerKontext();
+        var dienst1 = new AdminService(db1, lookup, new FakeRefreshTokenService(), new AccountDataService(db1, lookup));
+        var dienst2 = new AdminService(db2, lookup, new FakeRefreshTokenService(), new AccountDataService(db2, lookup));
+
+        var ergebnisse = await Task.WhenAll(dienst1.PurgeOrphanedDataAsync(admin), dienst2.PurgeOrphanedDataAsync(admin));
+
+        Assert.All(ergebnisse, e => Assert.True(e.Succeeded));
+        // Jedes Konto genau einmal bereinigt - nicht doppelt gezählt.
+        Assert.Equal(2, ergebnisse.Sum(e => e.Value!.Konten));
+        using var pruefung = NeuerKontext();
+        Assert.Empty(pruefung.Dogs.IgnoreQueryFilters());
+        Assert.Empty(pruefung.TrainingSessions.IgnoreQueryFilters());
+    }
+
+    [Fact]
     public async Task LeereKontoListe_MeldetUndLoeschtNichts()
     {
         var db = InMemoryDbContext.Create();

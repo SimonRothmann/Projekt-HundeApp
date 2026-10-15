@@ -26,10 +26,15 @@ public class FakeUserLookupService : IUserLookupService
     /// <summary>Setzen, um den Ausfall der Konto-Liste nachzustellen.</summary>
     public bool AuflistenSchlaegtFehl { get; set; }
 
-    public Task<IReadOnlyList<Guid>> ListAllUserIdsAsync(CancellationToken ct = default) =>
-        AuflistenSchlaegtFehl
-            ? throw new InvalidOperationException("Konto-Liste nicht lesbar.")
-            : Task.FromResult<IReadOnlyList<Guid>>(_users.Keys.ToList());
+    /// <summary>Wartezeit beim Auflisten der Konten - lässt zwei parallele Bereinigungen sich überholen.</summary>
+    public TimeSpan AuflistenDauert { get; set; } = TimeSpan.Zero;
+
+    public async Task<IReadOnlyList<Guid>> ListAllUserIdsAsync(CancellationToken ct = default)
+    {
+        if (AuflistenSchlaegtFehl) throw new InvalidOperationException("Konto-Liste nicht lesbar.");
+        if (AuflistenDauert > TimeSpan.Zero) await Task.Delay(AuflistenDauert, ct);
+        return _users.Keys.ToList();
+    }
 
     public Task<UserLookupResult?> FindByEmailAsync(string email, CancellationToken ct = default)
     {
