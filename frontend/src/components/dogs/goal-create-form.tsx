@@ -148,9 +148,11 @@ export function GoalCreateForm({
     try {
       const data = await api.get<Regulation[]>(`/api/sports/${value}/regulations`);
       setRegulations(data);
+      // Nur eine Prüfung: Es gibt nichts zu wählen.
+      if (data.length === 1) setRegulationId(data[0].id);
     } catch {
-      // Prüfungsauswahl ist optional - bleibt leer, Plan wird dann aus
-      // allen Übungen der Sportart generiert (Fallback, siehe Backend).
+      // Ohne Liste keine Auswahl - das Backend verlangt die Prüfung trotzdem,
+      // wenn die Sportart welche hat, und meldet es beim Anlegen.
     }
   }
 
@@ -184,6 +186,11 @@ export function GoalCreateForm({
   }
 
   const selectedRegulation = regulations.find((r) => r.id === regulationId);
+  // Hat die Sportart Prüfungen, gehört eine zum Ziel. Die frühere Wahl
+  // "Allgemein (alle Übungen der Sportart)" ist weg: Bei der UPr zog sie die
+  // Übungen aller drei Stufen heran, also auch "Steh", das die UPr 1 gar
+  // nicht prüft. Wer ohne Prüfung trainieren will, nimmt den individuellen Plan.
+  const pruefungFehlt = !isCustom && regulations.length > 0 && !regulationId;
 
   return (
     <Card>
@@ -231,12 +238,11 @@ export function GoalCreateForm({
           {!isCustom && regulations.length > 0 && (
             <div className="flex flex-col gap-2">
               <Label>{t("Prüfung")}</Label>
-              <Select value={regulationId} onValueChange={(value) => setRegulationId(value ?? "")}>
+              <Select required value={regulationId} onValueChange={(value) => setRegulationId(value ?? "")}>
                 <SelectTrigger>
-                  <SelectValue placeholder={t("Allgemein (alle Übungen der Sportart)")} />
+                  <SelectValue placeholder={t("Prüfung wählen…")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{t("Allgemein (alle Übungen der Sportart)")}</SelectItem>
                   {regulations.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
                       {r.name}
@@ -245,7 +251,7 @@ export function GoalCreateForm({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-{t("Legt fest, aus welcher Pflichtübungsliste der Plan generiert wird - mehrere Prüfungsordnungen derselben Sportart (z.B. Fährte A/B/C) haben unterschiedliche Anforderungen.")}
+{t("Der Plan enthält genau die Übungen dieser Prüfung. Ohne Prüfung trainieren: oben „Individueller Plan“ wählen.")}
               </p>
               {selectedRegulation?.description && (
                 <div className="rounded-md bg-primary/5 px-3 py-2.5">
@@ -259,7 +265,7 @@ export function GoalCreateForm({
             <Label htmlFor="goalNotes">{t("Notizen")}</Label>
             <Input id="goalNotes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
-          <Button type="submit" className="self-start" disabled={isSubmitting}>
+          <Button type="submit" className="self-start" disabled={isSubmitting || pruefungFehlt}>
             {isSubmitting
               ? isCustom
                 ? t("Wird angelegt…")

@@ -76,6 +76,14 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
 
 ## Nächste Features (Briefs in docs/)
 
+- [ ] **Hoopers als Sportart** (Wunsch des zweiten Vereins, 2026-10-15) —
+      als NÄCHSTER Entwicklungsschritt, sobald E-Mail (eigener Versandserver)
+      und Push auf Prod laufen (Zweig `mail-push`). Vorher klären: Welche
+      Prüfungs-/Turnierordnung (z. B. VDH/dhv-Hoopers-Ordnung, Klassen),
+      welche Übungen/Elemente (Hoops, Tunnel, Tonnen, Zäune, Distanzarbeit),
+      Bewertung (Fehler/Zeit statt Punkte?) - davon hängt ab, ob das
+      Katalogmodell (Übungen mit Höchstpunkten) passt.
+
 - [x] **Fährte: Aufzeichnung im Vollbild** (umgesetzt 2026-09-03) — siehe [docs/FAEHRTE_AUFZEICHNUNG.md](docs/FAEHRTE_AUFZEICHNUNG.md).
       Vollbildansicht beim Aufzeichnen, große Marker-Knöpfe je Typ, Karte in
       Laufrichtung als Standard, Start- UND Endzeit des Legens anzeigen.

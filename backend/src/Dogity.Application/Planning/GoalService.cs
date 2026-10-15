@@ -56,6 +56,16 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         // Individueller Plan schließt eine Prüfungsordnung aus - Nutzer legt
         // die Wochenübungen ohnehin manuell fest.
         var regulationId = request.IsCustom ? (Guid?)null : request.RegulationId;
+
+        // Hat die Sportart Prüfungen, gehört eine davon zum Ziel. Ohne sie zog
+        // der Plan ALLE Übungen der Sportart heran (ResolvePlanCandidatesAsync)
+        // - bei der UPr also auch "Steh aus der Bewegung", das es erst ab
+        // Stufe 2 gibt (Rückmeldung eines Vereins, 2026-10-15). Wer ohne
+        // Prüfung trainieren will, nimmt den individuellen Plan.
+        if (!request.IsCustom && regulationId is null
+            && await db.Regulations.AnyAsync(r => r.SportId == request.SportId, ct))
+            return Result<GoalDto>.Failure("Bitte wähle die Prüfung, auf die ihr hinarbeitet - oder einen individuellen Plan ohne Prüfung.");
+
         if (regulationId is { } regId)
         {
             var regulationBelongsToSport = await db.Regulations.AnyAsync(r => r.Id == regId && r.SportId == request.SportId, ct);
