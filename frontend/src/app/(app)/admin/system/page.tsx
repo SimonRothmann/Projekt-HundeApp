@@ -2,6 +2,7 @@
 
 import { useT } from "@/lib/i18n";
 import { TestmailSection } from "@/components/admin/testmail-section";
+import { TestpushSection } from "@/components/admin/testpush-section";
 import { VerwaisteDatenSection } from "@/components/admin/verwaiste-daten-section";
 
 export default function AdminSystemPage() {
@@ -14,6 +15,7 @@ export default function AdminSystemPage() {
           zwischen vorhandenen Blöcken. */}
       <VerwaisteDatenSection />
       <TestmailSection />
+      <TestpushSection />
     </div>
   );
 }

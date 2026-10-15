@@ -1172,3 +1172,11 @@ export type AdminTestmailErgebnis = {
   /** Antwort bzw. Fehler des Mailservers, wenn er die Mail nicht angenommen hat. */
   fehler: string | null;
 };
+
+/** Antwort von POST /api/admin/testpush ("Test-Push an mich" im Adminbereich). */
+export type AdminTestpushErgebnis = {
+  /** false: Server ohne VAPID-Schlüssel oder ohne Frontend-Adresse - nichts verschickt. */
+  pushEingerichtet: boolean;
+  /** Auf wie vielen eigenen Geräten Push eingeschaltet ist - an die geht die Meldung. */
+  geraete: number;
+};

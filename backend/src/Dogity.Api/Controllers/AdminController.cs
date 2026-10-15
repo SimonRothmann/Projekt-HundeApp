@@ -11,7 +11,7 @@ namespace Dogity.Api.Controllers;
 
 [Authorize(Roles = Roles.Admin)]
 [Route("api/admin")]
-public class AdminController(IAdminService adminService, IClubService clubService, IRegulationImportService importService, IClubRegistrationService registrations, IMailTestService mailTest, ILogger<AdminController> logger) : ApiControllerBase
+public class AdminController(IAdminService adminService, IClubService clubService, IRegulationImportService importService, IClubRegistrationService registrations, IMailTestService mailTest, IPushTestService pushTest, ILogger<AdminController> logger) : ApiControllerBase
 {
     [HttpGet("clubs")]
     public async Task<ActionResult<IReadOnlyList<ClubDto>>> GetClubs(CancellationToken ct)
@@ -175,6 +175,15 @@ public class AdminController(IAdminService adminService, IClubService clubServic
             logger.LogWarning("Testmail vom Mailserver nicht angenommen: {Fehler}", result.Value.Fehler);
         return FromResult(result);
     }
+
+    /// <summary>
+    /// Test-Push an die eigenen Geräte - über den normalen Weg einer
+    /// Benachrichtigung (Glocke, Warteschlange, Versand im Hintergrund).
+    /// Die Antwort sagt, an wie viele Geräte er geht.
+    /// </summary>
+    [HttpPost("testpush")]
+    public async Task<ActionResult<TestpushErgebnisDto>> SendTestpush(CancellationToken ct) =>
+        Ok(await pushTest.SendeAnMichAsync(CurrentUserId, ct));
 
     [HttpPost("regulation-import/apply")]
     public async Task<IActionResult> ApplyRegulationImport(ApplyRegulationImportRequest request, CancellationToken ct)

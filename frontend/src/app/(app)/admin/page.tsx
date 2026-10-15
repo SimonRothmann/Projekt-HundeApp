@@ -122,7 +122,7 @@ function Uebersicht() {
         <ListenZeile href="/admin/statistik" icon={BarChart3} titel={t("Statistik")} />
         <ListenZeile href="/admin/katalog" icon={Trophy} titel={t("Sportarten & Prüfungsordnungen")} />
         <ListenZeile href="/admin/sachkunde" icon={GraduationCap} titel={t("Sachkunde-Fragen")} />
-        <ListenZeile href="/admin/system" icon={Settings2} titel={t("System")} untertitel={t("Testmail, Aufräumen")} />
+        <ListenZeile href="/admin/system" icon={Settings2} titel={t("System")} untertitel={t("Testmail, Test-Push, Aufräumen")} />
       </ListenGruppe>
     </div>
   );
