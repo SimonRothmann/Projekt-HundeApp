@@ -61,6 +61,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.25",
+    datum: "2026-10-16",
+    titel: uebersetzbar("Push-Nachrichten und E-Mails"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Push-Nachrichten aufs Handy: Unter Profil → Funktionen schaltest du für jedes Gerät einzeln ein, dass neue Meldungen aus der Glocke auch als Mitteilung ankommen, selbst wenn Dogity geschlossen ist. Auf dem iPhone geht das nur, wenn du Dogity zum Home-Bildschirm hinzufügst (Teilen → Zum Home-Bildschirm). Am App-Symbol kann dann auch die Zahl der ungelesenen Meldungen stehen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Dogity kann dir E-Mails schicken: eine Willkommensmail nach der Registrierung und - bei „Passwort vergessen“ - den Link zum Zurücksetzen direkt in dein Postfach, statt dass der Betreiber sich meldet."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Einladungen (in einen Verein, eine Gruppe, als Trainer:in einer Gruppe oder zum Mitbesitz eines Hundes) und Entscheidungen über Beitrittsanfragen kann Dogity dir auch per E-Mail schicken. Unter Profil → Funktionen schaltest du das mit „Wichtiges auch per E-Mail“ ab. Wer um Aufnahme in eine Gruppe gebeten hat, bekommt jetzt außerdem Bescheid, ob die Trainer:in zugestimmt hat."),
+      },
+    ],
+  },
+  {
     version: "0.24",
     datum: "2026-10-15",
     titel: uebersetzbar("Neue Karte für Fährten"),

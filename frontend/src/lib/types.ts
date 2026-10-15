@@ -1121,6 +1121,8 @@ export type UserPreferences = {
   fontScale: string | null;
   disabledModules: string[];
   sportIds: string[];
+  /** Ob wichtige Benachrichtigungen (Einladungen, Entscheidungen) auch per E-Mail kommen. Vorgabe: ja. */
+  emailNotifications: boolean;
 };
 
 /** Ein wählbarer Geltungsbereich - Spiegel von Application/Sports/CountryDto. */
@@ -1160,3 +1162,13 @@ export type ClubRegistration = {
 };
 
 export const CLUB_REGISTRATION_STATUS = { offen: 0, freigegeben: 1, abgelehnt: 2 } as const;
+
+/** Antwort von POST /api/admin/testmail ("Testmail senden" im Adminbereich). */
+export type AdminTestmailErgebnis = {
+  /** false: kein SMTP konfiguriert - es wurde nichts verschickt. */
+  versandEingerichtet: boolean;
+  /** Ob der Mailserver die Mail angenommen hat (zugestellt ist sie damit noch nicht). */
+  versendet: boolean;
+  /** Antwort bzw. Fehler des Mailservers, wenn er die Mail nicht angenommen hat. */
+  fehler: string | null;
+};

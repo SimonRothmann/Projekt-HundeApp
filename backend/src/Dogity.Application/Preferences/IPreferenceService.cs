@@ -22,6 +22,12 @@ public interface IPreferenceService
     Task<Result> UpdateFontScaleAsync(Guid userId, UpdateFontScaleRequest request, CancellationToken ct = default);
 
     /// <summary>
+    /// Schaltet "Wichtiges auch per E-Mail" ein oder aus - siehe
+    /// <see cref="Dogity.Domain.Preferences.UserPreference.EmailNotifications"/>.
+    /// </summary>
+    Task<Result> UpdateEmailNotificationsAsync(Guid userId, UpdateEmailNotificationsRequest request, CancellationToken ct = default);
+
+    /// <summary>
     /// Die Sportarten, die für diesen Hund tatsächlich gelten - Auswahl des
     /// Hundes, sonst die des Menschen, sonst alle.
     /// </summary>

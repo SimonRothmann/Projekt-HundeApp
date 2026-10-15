@@ -294,7 +294,8 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             }
 
             await db.SaveChangesAsync(ct);
-            await notifications.CreateAsync(user.UserId, $"Du wurdest zum Verein \"{club.Name}\" hinzugefügt.", "/clubs", ct);
+            // Mail: Die Aufnahme geschah ohne Zutun der Person - sie soll es erfahren.
+            await notifications.CreateAsync(user.UserId, $"Du wurdest zum Verein \"{club.Name}\" hinzugefügt.", "/clubs", ct, wichtig: true);
             return Result<AddClubMemberResultDto>.Success(new AddClubMemberResultDto(Joined: true));
         }
 
@@ -313,7 +314,8 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         var name = einladende.TryGetValue(callerId, out var info) && !string.IsNullOrWhiteSpace($"{info.FirstName} {info.LastName}")
             ? $"{info.FirstName} {info.LastName}".Trim()
             : "Eine Trainer:in";
-        await notifications.CreateAsync(user.UserId, $"{name} lädt dich in den Verein \"{club.Name}\" ein.", "/clubs", ct);
+        // Mail: Eine Einladung wartet auf eine Antwort - die Person soll sie nicht erst in der App finden müssen.
+        await notifications.CreateAsync(user.UserId, $"{name} lädt dich in den Verein \"{club.Name}\" ein.", "/clubs", ct, wichtig: true);
         return Result<AddClubMemberResultDto>.Success(new AddClubMemberResultDto(Joined: false));
     }
 
@@ -559,7 +561,8 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         var link = einladung is GroupInvitationOutcome.Invited or GroupInvitationOutcome.AlreadyInvited && group is not null
             ? "/dashboard"
             : "/clubs";
-        await notifications.CreateAsync(membership.UserId, message, link, ct);
+        // Mail: Wer um Aufnahme gebeten hat, wartet auf genau diese Antwort (angenommen wie abgelehnt).
+        await notifications.CreateAsync(membership.UserId, message, link, ct, wichtig: true);
 
         return Result.Success();
     }

@@ -26,7 +26,8 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
                 eintrag.Country,
                 eintrag.DisabledModules.Select(m => m.ModuleKey).ToList(),
                 eintrag.Sports.Select(s => s.SportId).ToList(),
-                eintrag.FontScale));
+                eintrag.FontScale,
+                eintrag.EmailNotifications));
     }
 
     public async Task<Result> UpdateModulesAsync(Guid userId, UpdateModulesRequest request, CancellationToken ct = default)
@@ -119,6 +120,15 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
 
         var eintrag = await LadenOderAnlegenAsync(userId, ct);
         eintrag.FontScale = string.IsNullOrEmpty(stufe) ? null : stufe;
+        eintrag.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> UpdateEmailNotificationsAsync(Guid userId, UpdateEmailNotificationsRequest request, CancellationToken ct = default)
+    {
+        var eintrag = await LadenOderAnlegenAsync(userId, ct);
+        eintrag.EmailNotifications = request.Enabled;
         eintrag.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Result.Success();

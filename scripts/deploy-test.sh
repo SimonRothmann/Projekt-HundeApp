@@ -63,6 +63,13 @@ echo "==> Test-Container bauen und starten"
 # am 2026-08-23 passiert (Turnierhundsport/Agility im Backend da, im Frontend
 # 404). Deshalb: erst das Backend hochziehen, auf seinen Health-Check warten,
 # dann das Frontend bauen.
+echo "==> Versand-Mailserver (gemeinsam für Prod und Test, deploy/mail)"
+# Baut nur neu, wenn sich deploy/mail oder das Alpine-Basisimage geändert hat;
+# "up -d" ersetzt den Container nur dann. Warteschlange und DKIM-Schlüssel
+# liegen in Volumes und bleiben. Ohne SMTP_HOST verschickt niemand über ihn.
+docker compose build --pull mail
+docker compose up -d mail
+
 docker compose build --pull backend-test
 docker compose up -d --force-recreate backend-test
 

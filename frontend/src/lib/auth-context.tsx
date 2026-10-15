@@ -6,6 +6,7 @@ import { alleSicherungenLoeschen } from "@/lib/aufzeichnung-sicherung";
 import { loescheGesehen } from "@/lib/feedback-gesehen";
 import { abrufFaellig } from "@/lib/glocke";
 import { leseCacheLeeren } from "@/lib/read-cache";
+import { pushBeimAbmeldenEntfernen, pushLokalLoesen, setzeAppBadge } from "@/lib/push";
 import { loescheStartPo } from "@/lib/start-po";
 import type { AuthResponse } from "@/lib/types";
 
@@ -45,6 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isTrainer, setIsTrainer] = useState<boolean | null>(null);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  // Ob der Zähler schon einmal vom Server kam. Bis dahin ist die 0 nur der
+  // Startwert - sie am App-Symbol anzuzeigen hieße, eine per Push gesetzte
+  // Zahl beim Öffnen (oder bei fehlendem Netz) zu löschen.
+  const [zaehlerBekannt, setZaehlerBekannt] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
@@ -88,7 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api
         .get<number>("/api/notifications/unread-count")
         .then((count) => {
-          if (!cancelled) setUnreadNotificationCount(count);
+          if (cancelled) return;
+          setUnreadNotificationCount(count);
+          setZaehlerBekannt(true);
         })
         .catch(() => {
           // Stiller Fehlschlag - die Glocke ist nur ein Komfort-Hinweis.
@@ -114,6 +121,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user, refreshTick]);
 
+  // Die Zahl am App-Symbol (Home-Bildschirm) folgt der Glocke: sobald der Zähler
+  // vom Server da ist und bei jeder Änderung, beim Abmelden fällt sie auf 0. Ein
+  // Push setzt sie ebenfalls (Service Worker) - das hier gleicht sie mit dem
+  // tatsächlichen Stand ab, statt sie vorher mit dem Startwert 0 zu überschreiben.
+  // Nicht überall unterstützt; ein Fehlschlag bleibt still (siehe setzeAppBadge).
+  useEffect(() => {
+    if (!user) {
+      setzeAppBadge(0);
+      return;
+    }
+    if (zaehlerBekannt) setzeAppBadge(unreadNotificationCount);
+  }, [user, zaehlerBekannt, unreadNotificationCount]);
+
   function refreshUnreadNotificationCount() {
     setRefreshTick((t) => t + 1);
   }
@@ -132,7 +152,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // der vorigen Person vorher weg - auch wenn sie sich nie abgemeldet hat,
     // sondern ihre Sitzung nur abgelaufen ist (dann räumt kein logout() auf).
     // Abgewartet, bevor die ersten Seiten den Speicher lesen.
-    if (letztePerson() !== response.userId) await leseCacheLeeren();
+    if (letztePerson() !== response.userId) {
+      await leseCacheLeeren();
+      // Auch Push gehört der Person, nicht dem Gerät: War die Sitzung der
+      // vorigen Person nur abgelaufen (kein logout()), hinge ihre Anmeldung noch
+      // am Browser - und ihre Meldungen kämen auf dem Gerät der neuen Person an.
+      void pushLokalLoesen();
+    }
     try {
       window.localStorage.setItem(LETZTE_PERSON_KEY, response.userId);
     } catch {
@@ -171,6 +197,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Refresh-Token serverseitig widerrufen (nur dieses Gerät), damit ein
     // evtl. noch kopierter Token nach dem Logout wertlos ist. Fire-and-forget:
     // der lokale Logout darf nicht an einem Netzwerkfehler hängen.
+    // Das Gerät gehört danach niemandem mehr: Push für diese Person hier beenden.
+    // VOR dem Löschen des Tokens, die Anfrage liest ihn sofort (siehe
+    // pushBeimAbmeldenEntfernen).
+    pushBeimAbmeldenEntfernen();
     const refreshToken = window.localStorage.getItem(REFRESH_KEY);
     if (refreshToken) {
       api.post("/api/auth/logout", { refreshToken }).catch(() => {
@@ -193,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setIsTrainer(null);
     setUnreadNotificationCount(0);
+    setZaehlerBekannt(false);
   }
 
   return (

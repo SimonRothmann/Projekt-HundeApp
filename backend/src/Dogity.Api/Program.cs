@@ -72,6 +72,12 @@ builder.Services.AddHostedService<PlanRegenerationBackgroundService>();
 // Aufbewahrungsfrist der Gruppen-Anmeldungen (12 Monate ohne Aktivität).
 builder.Services.AddHostedService<RegistrationRetentionBackgroundService>();
 
+// Versand von Mails und Push-Nachrichten außerhalb des Requests (Warteschlangen
+// in Dogity.Infrastructure). Auch ohne SMTP/VAPID registriert: Dann
+// protokolliert bzw. verwirft der Dienst nur, es ändert sich nichts an der Anwendung.
+builder.Services.AddHostedService<MailVersandBackgroundService>();
+builder.Services.AddHostedService<PushVersandBackgroundService>();
+
 // Hinter Caddy (Reverse Proxy im Docker-Netzwerk) sieht Kestrel als
 // RemoteIpAddress nur die Proxy-IP. Für IP-basiertes Rate-Limiting und
 // korrekte Logs die X-Forwarded-*-Header übernehmen. KnownIPNetworks/-Proxies

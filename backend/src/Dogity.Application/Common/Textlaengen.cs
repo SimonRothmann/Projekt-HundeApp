@@ -34,6 +34,12 @@ public static class Textlaengen
     public const int Telefon = 30;
     /// <summary>GroupRegistration.Notes: Notiz der Trainer:innen zur Anmeldung.</summary>
     public const int AnmeldeNotiz = 500;
+    /// <summary>PushSubscription.Endpoint: Adresse beim Push-Dienst (kein Freitext, vom Browser geliefert).</summary>
+    public const int PushEndpoint = 2048;
+    /// <summary>PushSubscription.P256dh/Auth: Schlüssel des Geräts (base64url, 87 bzw. 22 Zeichen).</summary>
+    public const int PushSchluessel = 200;
+    /// <summary>PushSubscription.UserAgent: Kurzbezeichnung des Geräts, vom Server gebildet.</summary>
+    public const int GeraeteBezeichnung = 200;
 
     /// <summary>
     /// Meldung, wenn <paramref name="text"/> (ohne Rand-Leerzeichen, so wie er

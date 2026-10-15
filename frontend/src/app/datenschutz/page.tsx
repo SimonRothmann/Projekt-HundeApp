@@ -134,7 +134,8 @@ export default function DatenschutzPage() {
             punkte={[
               "dein Lernfortschritt im Sachkunde-Fragentrainer",
               "Benachrichtigungen innerhalb der App",
-              "deine Einstellungen: Sprache, Land, Schriftgröße, ausgeblendete Bereiche, gewählte Sportarten",
+              "deine Einstellungen: Sprache, Land, Schriftgröße, ausgeblendete Bereiche, gewählte Sportarten und ob wichtige Benachrichtigungen auch per E-Mail kommen",
+              "Geräte, auf denen du Push-Benachrichtigungen eingeschaltet hast: die Adresse des Geräts beim Push-Dienst seines Herstellers, die Schlüssel des Geräts zur Verschlüsselung, eine Kurzbezeichnung wie „iPhone (Safari)“ sowie Zeitpunkt der Anmeldung und der letzten Zustellung – ausführlich in Abschnitt 7",
             ]}
           />
         </Abschnitt>
@@ -165,6 +166,8 @@ export default function DatenschutzPage() {
             punkte={[
               "Konto, Hunde, Trainings, Fährten, Verein und Einstellungen: Art. 6 Abs. 1 lit. b DSGVO – ohne diese Daten gibt es die Funktion nicht, für die du dich angemeldet hast.",
               "Anmeldung zu einer Gruppe über ein Anmeldeformular (ohne Konto): Art. 6 Abs. 1 lit. b DSGVO – siehe Abschnitt 9.",
+              "E-Mails (Willkommen, Passwort zurücksetzen, Einladungen und Entscheidungen über Beitrittsanfragen): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu Konto und Vereinsfunktionen. Die Mails zu Einladungen und Entscheidungen kannst du unter Profil → Funktionen abschalten.",
+              "Push-Benachrichtigungen: Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TDDDG – sie beginnen erst, wenn du sie auf einem Gerät selbst einschaltest und der Browser oder das Betriebssystem dich um Erlaubnis gefragt hat. Du kannst sie jederzeit in der App ausschalten oder die Erlaubnis im Gerät zurücknehmen.",
               "Schutz vor Missbrauch, Fehlersuche und Sicherheit des Betriebs: Art. 6 Abs. 1 lit. f DSGVO. Mein berechtigtes Interesse ist, dass der Dienst erreichbar bleibt und Konten nicht übernommen werden.",
               "Das Auslesen deines Standorts erlaubst du im Browser ausdrücklich und kannst die Erlaubnis jederzeit zurücknehmen.",
             ]}
@@ -181,6 +184,7 @@ export default function DatenschutzPage() {
               "dein Anmelde-Token und der zugehörige Erneuerungs-Token – ohne sie wärst du bei jedem Seitenwechsel abgemeldet",
               "dein Name, deine E-Mail-Adresse und deine Rolle, damit die App sie beim Start nicht erst nachladen muss",
               "die zuletzt gewählte Kartenart, die Schriftgröße und welchen Neuerungs-Hinweis du schon gesehen hast",
+              "wenn du Push-Benachrichtigungen eingeschaltet hast: die Adresse deines Geräts beim Push-Dienst, damit das Abmelden sie wieder lösen kann",
               "zuletzt geladene Hunde, Trainings, Ziele, Statistik und Hundebilder als Zwischenspeicher, damit die App schnell startet und auch ohne Verbindung etwas zeigt – beim Abmelden und beim Anmelden einer anderen Person wird er gelöscht; dafür merkt sich die App die interne Kennung der zuletzt angemeldeten Person",
               "noch nicht abgeschickte Einträge, solange du offline bist – sie gehen an den Server, sobald wieder Verbindung besteht, und zwar nur mit deiner eigenen Anmeldung; meldest du dich vorher ab, bleiben sie bis zu deiner nächsten Anmeldung auf dem Gerät",
               "das Kürzel einer Prüfungsordnung, wenn du dich über deren öffentliche Seite registriert hast – nur bis du dein erstes Ziel angelegt hast; es wählt dort die Prüfung vor, mehr nicht",
@@ -272,6 +276,36 @@ export default function DatenschutzPage() {
             Anfrage selbst hinaus – Suchbegriff beziehungsweise Koordinaten und Zeitpunkt. Deine IP-Adresse und dein Name
             werden nicht übermittelt; die Dienste sehen nur den Server von Dogity.
           </p>
+          <p className="font-medium text-foreground">E-Mails</p>
+          <p>
+            Sobald der E-Mail-Versand eingerichtet ist, verschickt Dogity E-Mails nur in diesen Fällen: eine Willkommensmail nach der Registrierung, der Link zum
+            Zurücksetzen deines Passworts auf Anfrage, und – wenn du es nicht abgeschaltet hast – Einladungen (in einen
+            Verein, in eine Gruppe, als Trainer:in einer Gruppe, zum Mitbesitz eines Hundes) und Entscheidungen über
+            Beitrittsanfragen. Alles andere erscheint nur in der App oder als Push. Versendet wird von einem eigenen
+            Mailserver auf dem Server von Dogity bei {HOSTING.anbieter} – ohne Versanddienst, ohne weiteren
+            Dienstleister. Er gibt die Mail direkt an deinen E-Mail-Anbieter weiter, verschlüsselt, sofern dieser das
+            unterstützt, und behält sie nur, bis sie angenommen ist – ist dein Anbieter nicht erreichbar, höchstens
+            zwei Tage. In seinem Protokoll stehen Empfängeradresse, Zeitpunkt und ob die Zustellung geklappt hat, nicht
+            der Inhalt; es ist in der Größe begrenzt und wird laufend überschrieben.
+          </p>
+          <p>
+            Schreibst du an {BETREIBER.email}, nimmt {NETZWERKDIENST.anbieter} die Mail an (Email Routing, siehe
+            Abschnitt 6) und leitet sie an mein persönliches Postfach weiter, ohne sie selbst zu speichern. Deine
+            Nachricht und deine Adresse nutze ich nur, um dir zu antworten (Art. 6 Abs. 1 lit. f DSGVO, geht es um
+            dein Konto, lit. b), und lösche sie, wenn die Sache erledigt ist und keine Aufbewahrungspflicht besteht.
+          </p>
+          <p className="font-medium text-foreground">Push-Dienste der Gerätehersteller (vom Server)</p>
+          <p>
+            Schaltest du Push-Benachrichtigungen ein, schickt der Server die Nachricht an den Push-Dienst, den dein
+            Browser oder dein Gerät dafür vorgibt: <span className="text-foreground">Apple</span> (Safari, auf dem
+            iPhone nur für Dogity auf dem Home-Bildschirm), <span className="text-foreground">Google</span> (Chrome,
+            Android und andere), <span className="text-foreground">Mozilla</span> (Firefox) oder{" "}
+            <span className="text-foreground">Microsoft</span> (Edge unter Windows). Dieser Dienst erfährt die Adresse
+            deines Geräts, Zeitpunkt und Größe der Nachricht – den Inhalt dagegen nicht: Er ist Ende-zu-Ende
+            verschlüsselt (RFC 8291), nur dein Gerät kann ihn lesen. Je nach Anbieter kann die Verarbeitung auch in den
+            USA stattfinden. Die Dienste sind eigene Verantwortliche; sie bekommen nur, was für die Zustellung nötig
+            ist.
+          </p>
           <p className="font-medium text-foreground">Ko-fi</p>
           <p>
             Die Seite verweist auf eine Spendenseite bei Ko-fi. Das ist ein gewöhnlicher Verweis, kein eingebettetes
@@ -362,12 +396,15 @@ export default function DatenschutzPage() {
               "Einzelne Einträge – Trainings, Fährten, Hunde: bis du sie löschst.",
               "Anmeldungen zu einer Gruppe ohne Konto (Abschnitt 9): bis die Trainer:innen sie löschen, spätestens zwölf Monate nach der letzten Anwesenheit, Änderung oder Anmeldung.",
               "Anmelde-Token auf dem Server: der kurzlebige nach einer Stunde, der Erneuerungs-Token spätestens nach 60 Tagen.",
+              "Geräte für Push-Benachrichtigungen: bis du Push dort ausschaltest, dich abmeldest oder dein Konto löschst; ein Gerät, das der Push-Dienst nicht mehr kennt, wird beim nächsten Versand entfernt.",
+              "Mails von Dogity: Der Mailserver behält sie nur, bis dein E-Mail-Anbieter sie angenommen hat, höchstens zwei Tage; sein Protokoll (Empfänger, Zeitpunkt, Zustellung) ist in der Größe begrenzt und wird laufend überschrieben (Abschnitt 7).",
+              `Mails an ${BETREIBER.email}: bis die Sache erledigt ist, sofern keine Aufbewahrungspflicht besteht.`,
               `Sicherungen der Datenbank: ${SICHERUNG_AUFBEWAHRUNG.lokal} Tage auf dem Server; ausgelagert ${SICHERUNG_AUFBEWAHRUNG.taeglich} Tage (tägliche Stände), ${SICHERUNG_AUFBEWAHRUNG.woechentlich} Tage (wöchentliche) und ${SICHERUNG_AUFBEWAHRUNG.monatlich} Tage (monatliche).`,
             ]}
           />
           <p>
             Löschst du dein Konto, werden dein Zugang, deine Hunde, Trainings, Fährten, Ziele, Einstellungen, dein
-            Lernfortschritt, deine Zusagen zu Gruppenterminen und deine Vereins- und Gruppenzugehörigkeiten entfernt. Hunde, die du dir mit jemandem
+            Lernfortschritt, deine Zusagen zu Gruppenterminen, die Geräte für Push-Benachrichtigungen und deine Vereins- und Gruppenzugehörigkeiten entfernt. Hunde, die du dir mit jemandem
             teilst, bleiben bei der anderen Person – nur deine Verknüpfung damit verschwindet. Wo du als Trainer:in
             Inhalte für einen Verein angelegt hast, bleiben diese Inhalte dem Verein erhalten, die Angabe deiner
             Urheberschaft wird aber entfernt. Anmeldungen zu Gruppen, die du als Trainer:in verwaltet hast, gehören dem

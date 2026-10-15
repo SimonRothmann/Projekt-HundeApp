@@ -173,6 +173,142 @@ Vorgabe 60 lagert der Kernel auch ohne Not aus, was bei einer Datenbank
 unnötig Tempo kostet. 10 heißt: Swap erst, wenn es eng wird - genau der
 Zweck hier.
 
+## E-Mail und Push aktivieren
+
+Beides ist im Code fertig und wird allein über die `.env` auf dem Server
+eingeschaltet - ohne Codewechsel. Solange nichts eingetragen ist, passiert
+nichts Neues: Mails werden nur protokolliert, Push ist aus, die Glocke in der
+App bleibt der einzige Weg.
+
+Per Mail kommt nur Wichtiges: die Willkommensmail, die Mail zum Zurücksetzen
+des Passworts, Einladungen (Verein, Gruppe, Mit-Trainer:in, Mitbesitz eines
+Hundes) und die Entscheidung über eine Beitrittsanfrage (Verein, Gruppe). Alles
+andere bleibt Glocke und Push. Wichtiges per Mail lässt sich je Person unter
+Profil → Funktionen abschalten; Willkommens- und Passwort-Mail nicht.
+
+### E-Mail über den eigenen Versandserver
+
+Entschieden 2026-10-15: kein Versanddienst, sondern ein eigener, reiner
+Versandserver - kostenlos, Standort Deutschland (Contabo), kein
+Auftragsverarbeiter für Mails. Brevo wurde verworfen. Ausweg, falls die
+Zustellung trotz allem schlecht bleibt: ein externer SMTP-Relay (etwa
+Lettermint, NL, 300 Mails/Monat frei) - nur `.env`, kein Code.
+
+**Aufbau:** Container `mail` (`deploy/mail`: Postfix + OpenDKIM auf Alpine).
+Er nimmt Mails NUR aus dem Compose-Netz an (kein veröffentlichter Port), nur
+mit Absender `@dogity.net`, verschickt nur über IPv4 und signiert jede Mail
+mit DKIM. Warteschlange und DKIM-Schlüssel liegen in den Volumes `mail-spool`
+und `mail-dkim`. Das Backend übergibt ohne Anmeldung an `mail:25`. Absender ist
+`noreply@dogity.net`, Antworten gehen an `info@dogity.net`.
+
+**Empfang** läuft getrennt davon über Cloudflare Email Routing:
+`info@dogity.net` → Postfach des Betreibers. Die MX-Einträge gehören
+Cloudflare und bleiben unverändert.
+
+**Einrichtung, in dieser Reihenfolge:**
+
+1. **DNS bei Cloudflare** (`dogity.net` → DNS → Records):
+   - `A`-Eintrag `mail` → `161.97.135.174`, **"DNS only"** (graue Wolke).
+     Mails können nicht durch den Cloudflare-Proxy.
+   - Den bestehenden SPF-Eintrag (TXT auf `@`) **ändern**, keinen zweiten
+     anlegen - es darf nur einen geben:
+     `v=spf1 ip4:161.97.135.174 include:_spf.mx.cloudflare.net ~all`
+     (der Cloudflare-Teil gehört zur Weiterleitung von info@).
+   - DMARC: TXT `_dmarc` → `v=DMARC1; p=none; rua=mailto:info@dogity.net; fo=1`.
+     Nach der Testphase auf `p=quarantine` stellen.
+2. **Reverse DNS bei Contabo** (Kundenbereich → Reverse DNS) für
+   `161.97.135.174`: `mail.dogity.net`. Viele Empfänger prüfen, dass IP, Name
+   und HELO zusammenpassen; ohne das landen Mails im Spam.
+3. **Deploy** (Test genügt): Die Deploy-Skripte bauen und starten den Dienst
+   `mail` mit. Beim allerersten Mal, falls das laufende Skript noch die alte
+   Fassung las: `docker compose up -d --build mail` von Hand.
+4. **DKIM-Eintrag setzen.** Den Schlüssel erzeugt der Container beim ersten
+   Start selbst; der private Teil verlässt das Volume nie. Den DNS-Wert zeigt
+   jedes Startprotokoll:
+
+   ```bash
+   docker compose logs mail | grep "DKIM-Eintrag"
+   ```
+
+   In Cloudflare: TXT, Name `mail._domainkey`, Inhalt = der ausgegebene Wert
+   (`v=DKIM1; h=sha256; k=rsa; p=…`).
+5. **Testphase auf Test:** in der Server-`.env` `TEST_SMTP_HOST=mail`, Test
+   neu deployen, dann im Adminbereich "Testmail senden" an eigene Adressen
+   (Gmail, GMX/Web.de, Outlook, iCloud, T-Online) und an eine Adresse von
+   mail-tester.com (Ziel: 10/10). Prüfen: Posteingang oder Spam? In den
+   Kopfzeilen `spf=pass`, `dkim=pass`, `dmarc=pass`?
+6. **T-Online freischalten lassen.** T-Online lehnt unbekannte Server ab
+   (Antwort `554 … None/bad reputation … (NOWL)`, gemessen 2026-10-15). Eine
+   kurze Mail an `tobr@rx.t-online.de` mit IP, Hostname `mail.dogity.net` und
+   Verweis auf das Impressum unter https://dogity.net/impressum - T-Online
+   verlangt ein erreichbares Impressum auf der Domain.
+7. **Prod einschalten:** `SMTP_HOST=mail` in die Server-`.env`, Prod deployen.
+   Danach `TEST_SMTP_HOST` wieder leeren, wenn Test nicht mehr senden soll.
+
+**Laufend im Blick behalten:** Sperrlisten (z. B. mxtoolbox.com
+"Blacklist Check" für die IP), DMARC-Berichte im info@-Postfach, die
+Warteschlange (`docker compose exec mail mailq`). Hängende Mails stehen mit
+Grund im Log (`docker compose logs mail | grep -i "status=deferred\|status=bounced"`).
+
+**Sicherung:** Das Volume `mail-dkim` ist nicht im Datenbank-Backup. Geht es
+verloren, entsteht beim nächsten Start ein neuer Schlüssel - dann den
+DKIM-Eintrag in Cloudflare neu setzen (Schritt 4). Mehr nicht.
+
+### Push-Benachrichtigungen
+
+Web Push mit VAPID: Jede Meldung der Glocke geht zusätzlich an die Geräte, die
+Push eingeschaltet haben (Profil → Funktionen → "Push-Benachrichtigungen auf
+diesem Gerät", je Gerät).
+
+1. **Schlüsselpaar erzeugen** - lokal, nur mit `openssl`:
+
+   ```bash
+   scripts/vapid-schluessel.sh PROD .env      # oder TEST
+   ```
+
+   hängt `PROD_VAPID_PUBLIC_KEY`, `PROD_VAPID_PRIVATE_KEY` und
+   `PROD_VAPID_SUBJECT` an die angegebene Datei an; auf dem Bildschirm erscheint
+   nur der öffentliche Schlüssel. Wer die Zeilen sehen will, lässt die Datei weg
+   (`scripts/vapid-schluessel.sh PROD >> .env` tut dasselbe). Der Kontakt
+   (`mailto:info@dogity.net`) ist änderbar mit `VAPID_SUBJECT=mailto:… `
+   vor dem Aufruf.
+2. **Auf den Server:** die drei Zeilen in die `.env` dort übernehmen. Prod und
+   Test bekommen bewusst verschiedene Paare.
+3. **Ein einmal erzeugtes Paar nie ersetzen.** Mit einem neuen Schlüssel sind
+   alle angemeldeten Geräte ungültig; jede Person müsste Push neu einschalten.
+   Das Skript weigert sich deshalb, in eine Datei zu schreiben, in der der
+   private Schlüssel schon einen Wert hat. Leere Platzhalter aus `.env.example`
+   (`PROD_VAPID_PRIVATE_KEY=`) ersetzt es. Die Ausgabe nach stdout
+   (`… >> .env`) prüft nichts - dort vorher selbst nachsehen.
+
+Auf dem iPhone/iPad funktioniert Web Push nur, wenn Dogity **zum
+Home-Bildschirm hinzugefügt** ist (Teilen → "Zum Home-Bildschirm"; iOS/iPadOS
+16.4 oder neuer, auch in der EU). Im normalen Safari-Tab gibt es keine
+Push-Nachrichten; die App zeigt dort einen entsprechenden Hinweis statt des
+Knopfes. Die Nachricht ist Ende-zu-Ende verschlüsselt (RFC 8291): Apple, Google
+und Mozilla leiten sie nur weiter und können sie nicht lesen. Ein Gerät, das der
+Push-Dienst nicht mehr kennt (App gelöscht, Erlaubnis entzogen), wird beim
+nächsten Versand automatisch vergessen.
+
+### Nach dem Einschalten prüfen
+
+```bash
+curl -s https://<PROD_API_DOMAIN>/api/system/features
+# {"email":true,"pushPublicKey":"B…"}   - "email":false / null = nicht eingerichtet
+```
+
+Die Antwort nennt nur Wahrheitswerte und den öffentlichen Schlüssel, keine
+Geheimnisse. Danach:
+
+- **Mail:** "Passwort vergessen" mit dem eigenen Konto anfordern; die Mail
+  sollte in Minuten da sein (sonst `docker compose logs mail`). Der Link
+  beginnt mit `https://<PROD_DOMAIN>/reset-password`.
+- **Push:** auf dem Handy Dogity zum Home-Bildschirm hinzufügen, anmelden,
+  Profil → Funktionen → "Einschalten"; dann lässt man sich von einem zweiten
+  Konto zum Mitbesitzer eines Hundes einladen - die Einladung kommt als Push.
+- Fehler beim Versand stehen ohne Inhalt im Backend-Log
+  (`docker compose logs backend-prod | grep -i "versand\|push"`).
+
 ## Bewusst offen
 
 **SSH-Passwort-Anmeldung.** Steht auf `yes`, Port 22 ist weltweit offen.

@@ -1,9 +1,12 @@
 using Dogity.Application.Abstractions;
+using Dogity.Application.Notifications;
 using Dogity.Infrastructure.Email;
 using Dogity.Infrastructure.Geocoding;
 using Dogity.Infrastructure.Identity;
 using Dogity.Infrastructure.Weather;
 using Dogity.Infrastructure.Import;
+using Dogity.Infrastructure.Notifications;
+using Dogity.Infrastructure.Push;
 using Dogity.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -74,17 +77,35 @@ public static class DependencyInjection
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Dogity/1.0 (Hundesport-Trainingstagebuch)");
         });
 
+        // E-Mail: Der Host entscheidet. Ist "Email:Smtp:Host" gesetzt, wird per
+        // SMTP versendet, sonst nur protokolliert (LoggingEmailSender) - ohne
+        // Codewechsel zum Aktivieren. Versendet wird nie im Request, sondern vom
+        // Hintergrunddienst hinter der Warteschlange (MailVersandBackgroundService).
+        // Zum Aktivieren siehe docs/BETRIEB.md "E-Mail und Push aktivieren".
         services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
-        // LoggingEmailSender ist aktiv, bis echte SMTP-Zugangsdaten vorliegen
-        // (siehe SmtpEmailSender-Kommentar) - dann hier auf
-        // AddTransient<IEmailSender, SmtpEmailSender>() umstellen.
-        // Beim Umstellen auch den Text der Seite "Passwort vergessen"
-        // (frontend/src/app/forgot-password/page.tsx: Erfolgstext, Untertitel
-        // und Knopf) zurückändern: Sie sagen heute ehrlich, dass der Betreiber
-        // das Passwort zurücksetzt, statt eine Mail zu versprechen, die
-        // LoggingEmailSender nie verschickt. Auch die Antwort von
-        // AuthController.ForgotPassword ("wurde ein Link verschickt") prüfen.
-        services.AddTransient<IEmailSender, LoggingEmailSender>();
+        if (!string.IsNullOrWhiteSpace(configuration[$"{SmtpSettings.SectionName}:Host"]))
+            services.AddTransient<IEmailSender, SmtpEmailSender>();
+        else
+            services.AddTransient<IEmailSender, LoggingEmailSender>();
+
+        services.AddSingleton<MailQueue>();
+        services.AddSingleton<IMailQueue>(sp => sp.GetRequiredService<MailQueue>());
+        services.AddSingleton<MailVersender>();
+
+        // Push: nur mit vollständigem VAPID-Schlüsselpaar aktiv (siehe
+        // PushSettings); ohne tut WebPushSender nichts. Typisierter HttpClient
+        // mit kurzem Timeout: Ein träger Push-Dienst soll den Versand der übrigen
+        // Geräte nicht ewig aufhalten.
+        services.Configure<PushSettings>(configuration.GetSection(PushSettings.SectionName));
+        // Ohne Weiterleitungen: Angefragt werden nur die freigegebenen Push-Dienste
+        // (PushEndpointPruefung); eine Umleitung führte an dieser Prüfung vorbei.
+        services.AddHttpClient<IPushSender, WebPushSender>(client => client.Timeout = TimeSpan.FromSeconds(15))
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+        services.AddSingleton<PushQueue>();
+        services.AddSingleton<IPushQueue>(sp => sp.GetRequiredService<PushQueue>());
+
+        services.AddSingleton<INotificationChannels, NotificationChannels>();
+        services.AddSingleton<IFrontendLinks, FrontendLinks>();
 
         var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();
 

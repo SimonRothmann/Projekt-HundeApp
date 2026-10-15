@@ -56,6 +56,7 @@ internal static class VerwaisteKontodaten
         await Sammeln(db.UserPreferences.IgnoreQueryFilters().Select(p => p.UserId));
         await Sammeln(db.QuizMasteries.IgnoreQueryFilters().Select(m => m.UserId));
         await Sammeln(db.Notifications.IgnoreQueryFilters().Select(n => n.UserId));
+        await Sammeln(db.PushSubscriptions.IgnoreQueryFilters().Select(s => s.UserId));
         await Sammeln(db.ClubMemberships.IgnoreQueryFilters().Select(m => m.UserId));
         await Sammeln(db.ClubTrainers.IgnoreQueryFilters().Select(t => t.UserId));
         await Sammeln(db.ClubRegistrations.IgnoreQueryFilters().Select(r => r.RequestedByUserId));

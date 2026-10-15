@@ -80,6 +80,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<QuizMastery> QuizMasteries => Set<QuizMastery>();
 
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
     public DbSet<Identity.RefreshToken> RefreshTokens => Set<Identity.RefreshToken>();
 
@@ -167,5 +168,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<QuizOption>().HasQueryFilter(e => e.DeletedAt == null && e.Question!.DeletedAt == null);
         builder.Entity<QuizMastery>().HasQueryFilter(e => e.DeletedAt == null && e.Question!.DeletedAt == null);
         builder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<PushSubscription>().HasQueryFilter(e => e.DeletedAt == null);
     }
 }

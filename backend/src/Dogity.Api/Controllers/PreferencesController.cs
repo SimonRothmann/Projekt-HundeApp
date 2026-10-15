@@ -46,6 +46,15 @@ public class PreferencesController(IPreferenceService preferences) : ApiControll
         FromResult(await preferences.UpdateFontScaleAsync(CurrentUserId, request, ct));
 
     /// <summary>
+    /// "Wichtiges auch per E-Mail" (Einladungen, Entscheidungen über
+    /// Beitrittsanfragen). Betrifft weder die Willkommens- noch die
+    /// Passwort-Mail.
+    /// </summary>
+    [HttpPut("email-notifications")]
+    public async Task<IActionResult> UpdateEmailNotifications(UpdateEmailNotificationsRequest request, CancellationToken ct) =>
+        FromResult(await preferences.UpdateEmailNotificationsAsync(CurrentUserId, request, ct));
+
+    /// <summary>
     /// Die Sportarten, die für diesen Hund gelten - eigene Auswahl, sonst die
     /// des Menschen, sonst alle (leere Liste = keine Einschränkung).
     /// </summary>

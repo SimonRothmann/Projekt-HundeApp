@@ -247,7 +247,8 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
             target.UserId,
             $"{name} lädt dich ein, {hundName ?? "einen Hund"} gemeinsam zu verwalten.",
             "/dogs",
-            ct);
+            ct,
+            wichtig: true);
         return Result.Success();
     }
 

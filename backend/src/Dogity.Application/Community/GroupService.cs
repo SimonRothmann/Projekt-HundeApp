@@ -321,7 +321,8 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             user.UserId,
             $"{einladende} lädt dich ein, Trainer:in der Gruppe \"{group.Name}\" zu werden.",
             "/clubs",
-            ct);
+            ct,
+            wichtig: true);
         return Result.Success();
     }
 
@@ -407,7 +408,8 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             user.UserId,
             $"{name} lädt dich in die Gruppe \"{group.Name}\" ein.",
             "/clubs",
-            ct);
+            ct,
+            wichtig: true);
         return Result.Success();
     }
 
@@ -834,6 +836,17 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             memberRow.DeletedAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync(ct);
+
+        // Wer um Aufnahme gebeten hat, wartet auf diese Antwort - bis hierher
+        // erfuhr er sie nur, indem er die Gruppe wieder aufrief. Auch per Mail.
+        await notifications.CreateAsync(
+            memberId,
+            approve
+                ? $"Dein Beitritt zur Gruppe \"{group.Name}\" wurde angenommen."
+                : $"Dein Beitritt zur Gruppe \"{group.Name}\" wurde abgelehnt.",
+            "/clubs",
+            ct,
+            wichtig: true);
         return Result.Success();
     }
 

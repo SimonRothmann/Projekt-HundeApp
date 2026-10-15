@@ -11,6 +11,7 @@
  * nach der BH.
  */
 export const EN: Record<string, string> = {
+  "Push-Nachrichten und E-Mails": "Push notifications and emails",
   "Neue Karte für Fährten": "A new map for tracks",
   "Die Karte ist neu: gestochen scharf bei jeder Zoomstufe, mit einem echten dunklen Stil, und Acker, Wiese, Wald und Feldwege sind klar zu unterscheiden. Unten links zeigt ein Maßstab die Meter.": "The map is new: razor sharp at every zoom level, with a true dark style, and fields, meadows, woods and farm tracks are easy to tell apart. A scale at the bottom left shows the metres.",
   "Beim Legen und Ablaufen dreht sich die Karte in Laufrichtung, sobald du ein paar Schritte gegangen bist - verschieben und zoomen kannst du sie dabei trotzdem. Der Knopf oben rechts zeigt, was gerade gilt, und schaltet zwischen „Laufrichtung“ und „Norden“ um; bei „Norden“ zeigt ein Pfeil, wohin du gehst.": "While laying and following a track, the map turns in your direction of travel once you have taken a few steps – you can still move and zoom it. The button at the top right shows the current mode and switches between “Direction” and “North”; with “North”, an arrow shows where you are heading.",
@@ -1163,6 +1164,13 @@ export const EN: Record<string, string> = {
   "Bisherige Anmeldungen aus einem Google-Formular lassen sich als CSV-Datei übernehmen. Vorher siehst du, wie viele Einträge neu, schon vorhanden oder fehlerhaft sind. Anmeldungen kannst du außerdem von Hand hinzufügen, bearbeiten und löschen.": "Previous registrations from a Google Form can be imported as a CSV file. Beforehand you see how many entries are new, already present or have errors. You can also add, edit and delete registrations by hand.",
   "Anmeldungen zu einer Gruppe werden automatisch gelöscht, wenn ein Jahr lang nichts mehr damit passiert ist, und mit der Gruppe selbst. Das steht auch in der Datenschutzerklärung.": "Registrations for a group are deleted automatically when nothing has happened with them for a year, and together with the group itself. This is also stated in the privacy policy.",
   "Daten gelöschter Konten": "Data of deleted accounts",
+  "Testmail senden": "Send test email",
+  "Prüft den Mailversand. Für eine Bewertung von SPF, DKIM und DMARC die Adresse von mail-tester.com eintragen.": "Checks email delivery. To have SPF, DKIM and DMARC rated, enter the address from mail-tester.com.",
+  "Empfänger": "Recipient",
+  "Der Mailversand ist nicht eingerichtet, es wurde nichts verschickt. Eingeschaltet wird er in der .env auf dem Server: SMTP_HOST für Prod, TEST_SMTP_HOST für Test.": "Email delivery is not set up, nothing was sent. It is switched on in the .env on the server: SMTP_HOST for prod, TEST_SMTP_HOST for test.",
+  "Der Mailserver hat die Mail angenommen. Ob sie im Posteingang oder im Spam landet, zeigt das Postfach.": "The mail server accepted the email. Whether it lands in the inbox or in spam shows in the mailbox.",
+  "Der Mailserver hat die Mail nicht angenommen:": "The mail server did not accept the email:",
+  "Die Testmail konnte nicht gesendet werden.": "The test email could not be sent.",
   "Diese Daten gehören zu Konten, die es nicht mehr gibt. Sie stammen aus der Zeit vor der vollständigen Kontolöschung und werden nicht mehr gebraucht.": "This data belongs to accounts that no longer exist. It dates from before accounts were deleted completely and is no longer needed.",
   "Konten": "Accounts",
   "Ziele": "Goals",
@@ -1593,4 +1601,34 @@ export const EN: Record<string, string> = {
   "Nimmst du an, bist du Mitglied im Verein - die Trainer:innen sehen dann deinen Namen und deine E-Mail-Adresse.": "If you accept, you are a member of the club – its trainers will then see your name and email address.",
   "Du bist jetzt Mitglied im Verein {verein}.": "You are now a member of the club {verein}.",
   "„{verein}“ lädt dich ein": "“{verein}” invites you",
+  "Push-Benachrichtigungen auf diesem Gerät": "Push notifications on this device",
+  "Neue Meldungen aus der Glocke kommen dann auch als Mitteilung aufs Gerät, selbst wenn Dogity geschlossen ist.":
+    "New alerts from the bell then also arrive as a notification on this device, even when Dogity is closed.",
+  "Einschalten": "Turn on",
+  "Ausschalten": "Turn off",
+  "Auf diesem Gerät eingeschaltet.": "Turned on for this device.",
+  "Mitteilungen sind für Dogity blockiert. Erlaube sie in den Einstellungen deines Geräts oder Browsers (iPhone: Einstellungen → Mitteilungen → Dogity) und öffne diese Seite danach neu.":
+    "Notifications are blocked for Dogity. Allow them in the settings of your device or browser (iPhone: Settings → Notifications → Dogity) and then reopen this page.",
+  "Auf dem iPhone kommen Push-Nachrichten nur, wenn du Dogity zum Home-Bildschirm hinzufügst (Teilen → Zum Home-Bildschirm).":
+    "On the iPhone, push notifications only arrive if you add Dogity to your Home Screen (Share → Add to Home Screen).",
+  "Dieses Gerät oder dieser Browser unterstützt keine Push-Nachrichten.":
+    "This device or browser does not support push notifications.",
+  "Push-Nachrichten sind auf diesem Gerät eingeschaltet.": "Push notifications are turned on for this device.",
+  "Push-Nachrichten sind auf diesem Gerät ausgeschaltet.": "Push notifications are turned off for this device.",
+  "Die Erlaubnis für Mitteilungen wurde nicht erteilt.": "Permission for notifications was not granted.",
+  "Push-Nachrichten konnten nicht eingeschaltet werden.": "Push notifications could not be turned on.",
+  "Das Gerät konnte nicht vollständig abgemeldet werden. Auf diesem Gerät ist Push aus.":
+    "The device could not be fully signed off. Push is off on this device.",
+  "Wichtiges auch per E-Mail": "Important things by email too",
+  "Einladungen und Entscheidungen über Beitrittsanfragen": "Invitations and decisions on join requests",
+  "Wir schicken dir einen Link zum Zurücksetzen per E-Mail": "We will email you a link to reset it",
+  "Falls diese E-Mail-Adresse registriert ist, haben wir dir einen Link zum Zurücksetzen geschickt. Bitte prüfe dein Postfach - auch den Spam-Ordner.":
+    "If this email address is registered, we have sent you a link to reset your password. Please check your inbox – and your spam folder.",
+  "Link anfordern": "Request link",
+  "Push-Nachrichten aufs Handy: Unter Profil → Funktionen schaltest du für jedes Gerät einzeln ein, dass neue Meldungen aus der Glocke auch als Mitteilung ankommen, selbst wenn Dogity geschlossen ist. Auf dem iPhone geht das nur, wenn du Dogity zum Home-Bildschirm hinzufügst (Teilen → Zum Home-Bildschirm). Am App-Symbol kann dann auch die Zahl der ungelesenen Meldungen stehen.":
+    "Push notifications on your phone: under Profile → Features you turn on, device by device, that new alerts from the bell also arrive as a notification, even when Dogity is closed. On the iPhone this only works if you add Dogity to your Home Screen (Share → Add to Home Screen). The app icon can then also show the number of unread alerts.",
+  "Dogity kann dir E-Mails schicken: eine Willkommensmail nach der Registrierung und - bei „Passwort vergessen“ - den Link zum Zurücksetzen direkt in dein Postfach, statt dass der Betreiber sich meldet.":
+    "Dogity can send you emails: a welcome email after you sign up and – with “Forgot password” – the link to reset your password straight to your inbox, instead of the operator getting in touch.",
+  "Einladungen (in einen Verein, eine Gruppe, als Trainer:in einer Gruppe oder zum Mitbesitz eines Hundes) und Entscheidungen über Beitrittsanfragen kann Dogity dir auch per E-Mail schicken. Unter Profil → Funktionen schaltest du das mit „Wichtiges auch per E-Mail“ ab. Wer um Aufnahme in eine Gruppe gebeten hat, bekommt jetzt außerdem Bescheid, ob die Trainer:in zugestimmt hat.":
+    "Dogity can also email you invitations (to a club, a group, as a trainer of a group or to co-own a dog) and decisions on join requests. Under Profile → Features you turn this off with “Important things by email too”. Anyone who asked to join a group now also hears whether the trainer agreed.",
 };

@@ -6,7 +6,6 @@ using Dogity.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Configuration;
 
 namespace Dogity.Api.Controllers;
 
@@ -21,10 +20,8 @@ public class AuthController(
     SignInManager<ApplicationUser> signInManager,
     IJwtTokenGenerator jwtTokenGenerator,
     IRefreshTokenService refreshTokens,
-    IEmailSender emailSender,
-    INotificationService notifications,
-    IUserLookupService userLookup,
-    IConfiguration configuration,
+    IAccountMailService accountMails,
+    IFrontendLinks frontendLinks,
     TimeProvider timeProvider) : ControllerBase
 {
     [HttpPost("register")]
@@ -55,6 +52,10 @@ public class AuthController(
             return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
 
         await userManager.AddToRoleAsync(user, Roles.User);
+
+        // Eingereiht, nicht gesendet: Der Versand läuft im Hintergrund, die
+        // Registrierung wartet nie auf den Mailserver und scheitert nie an ihm.
+        accountMails.SendeWillkommen(user.Email!);
 
         return Ok(await BuildAuthResponseAsync(user, [Roles.User]));
     }
@@ -142,27 +143,16 @@ public class AuthController(
         if (user is not null)
         {
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
-            var baseUrl = configuration["Frontend:BaseUrl"]?.TrimEnd('/');
-            var link = $"{baseUrl}/reset-password?email={WebUtility.UrlEncode(user.Email)}&token={WebUtility.UrlEncode(token)}";
+            var link = frontendLinks.Absolut($"/reset-password?email={WebUtility.UrlEncode(user.Email)}&token={WebUtility.UrlEncode(token)}");
 
-            await emailSender.SendAsync(
-                user.Email!,
-                "Dogity: Passwort zurücksetzen",
-                $"Hallo {user.FirstName},\n\nüber diesen Link kannst du dein Passwort zurücksetzen:\n{link}\n\nWenn du das nicht angefordert hast, kannst du diese Mail ignorieren.");
-
-            // Solange der E-Mail-Versand noch manuell läuft (kein SMTP-Relay),
-            // bekommen zusätzlich alle Admins eine In-App-Benachrichtigung,
-            // damit sie das Passwort direkt in der Nutzerverwaltung neu setzen
-            // können. LinkPath zeigt auf die Admin-Seite mit dem betroffenen
-            // Nutzer vorselektiert.
-            var adminIds = await userLookup.ListUserIdsInRoleAsync(Roles.Admin);
-            foreach (var adminId in adminIds)
-            {
-                await notifications.CreateAsync(
-                    adminId,
-                    $"{user.FirstName} {user.LastName} ({user.Email}) möchte das Passwort zurücksetzen.",
-                    $"/admin?resetUser={user.Id}");
-            }
+            // Die Mail mit dem Link geht über die Warteschlange (Vorlage und
+            // Versand siehe AccountMailService). Ist kein Mailversand eingerichtet,
+            // bekommen stattdessen alle Admins eine In-App-Benachrichtigung und
+            // setzen das Passwort in der Nutzerverwaltung selbst zurück - mit
+            // Mailversand entfällt sie.
+            await accountMails.SendePasswortZuruecksetzenAsync(
+                new PasswortResetAnfrage(user.Id, user.Email!, user.FirstName, user.LastName, link),
+                Roles.Admin);
         }
 
         return Ok(new { message = "Falls diese E-Mail-Adresse registriert ist, wurde ein Link zum Zurücksetzen verschickt." });

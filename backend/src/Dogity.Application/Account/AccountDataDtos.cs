@@ -22,7 +22,8 @@ public record AccountExportDto(
     IReadOnlyList<GruppeExportDto> Gruppen,
     IReadOnlyList<SachkundeExportDto> Sachkunde,
     IReadOnlyList<BenachrichtigungExportDto> Benachrichtigungen,
-    IReadOnlyList<TerminzusageExportDto> Terminzusagen);
+    IReadOnlyList<TerminzusageExportDto> Terminzusagen,
+    IReadOnlyList<PushGeraetExportDto> PushGeraete);
 
 public record KontoExportDto(
     Guid Id,
@@ -36,7 +37,16 @@ public record EinstellungenExportDto(
     string? Land,
     string? Schriftgroesse,
     IReadOnlyList<string> AusgeblendeteModule,
-    IReadOnlyList<Guid> GewaehlteSportarten);
+    IReadOnlyList<Guid> GewaehlteSportarten,
+    bool WichtigesPerEMail = true);
+
+/// <summary>
+/// Ein Gerät, das Push-Benachrichtigungen bekommt. Bewusst nur Bezeichnung und
+/// Zeitpunkte: Die Adresse beim Push-Dienst und die Schlüssel des Geräts sind
+/// technische Zugangsdaten, keine Auskunft - wer sie hat, könnte Nachrichten
+/// an das Gerät senden.
+/// </summary>
+public record PushGeraetExportDto(string? Geraet, DateTimeOffset AngemeldetAm, DateTimeOffset? ZuletztZugestellt);
 
 public record HundExportDto(
     Guid Id,

@@ -84,6 +84,14 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
       Bewertung (Fehler/Zeit statt Punkte?) - davon hängt ab, ob das
       Katalogmodell (Übungen mit Höchstpunkten) passt.
 
+- [ ] **Adminbereich entschlacken** (Wunsch des Betreibers, 2026-10-15) — als
+      Schritt NACH Hoopers. Die Nutzerseiten sind visuell überarbeitet, der
+      Adminbereich ist noch überladen und sehr lang zu scrollen. Ziel: auf
+      dem Handy (375-390 px) schnell das Gesuchte finden - etwa Gliederung in
+      Bereiche/Reiter statt einer langen Seite, Zusammenfassung oben, Details
+      erst auf Antippen. Vorher Bestand aufnehmen (welche Abschnitte, wie oft
+      gebraucht) und mit dem Betreiber die Reihenfolge abstimmen.
+
 - [x] **Fährte: Aufzeichnung im Vollbild** (umgesetzt 2026-09-03) — siehe [docs/FAEHRTE_AUFZEICHNUNG.md](docs/FAEHRTE_AUFZEICHNUNG.md).
       Vollbildansicht beim Aufzeichnen, große Marker-Knöpfe je Typ, Karte in
       Laufrichtung als Standard, Start- UND Endzeit des Legens anzeigen.
