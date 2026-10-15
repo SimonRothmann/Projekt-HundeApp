@@ -59,8 +59,8 @@ export function VereinsantraegeSection() {
     }
   }
 
-  // Der Abschnitt verschwindet, wenn nichts anliegt - eine leere Karte auf
-  // der ohnehin langen Admin-Seite wäre nur Rauschen.
+  // Der Abschnitt verschwindet, wenn nichts anliegt - eine leere Karte
+  // über der Vereinsverwaltung wäre nur Rauschen.
   if (antraege !== null && antraege.length === 0) return null;
 
   return (

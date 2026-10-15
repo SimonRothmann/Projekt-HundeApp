@@ -84,7 +84,7 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
       Bewertung (Fehler/Zeit statt Punkte?) - davon hängt ab, ob das
       Katalogmodell (Übungen mit Höchstpunkten) passt.
 
-- [ ] **Adminbereich entschlacken** (Wunsch des Betreibers, 2026-10-15) — als
+- [x] **Adminbereich entschlacken** (Wunsch des Betreibers, 2026-10-15; umgesetzt 2026-10-15, vor Hoopers vorgezogen: /admin als Übersicht + Unterseiten Nutzer/Vereine/Statistik/Katalog/Sachkunde/System, Nutzersuche) — als
       Schritt NACH Hoopers. Die Nutzerseiten sind visuell überarbeitet, der
       Adminbereich ist noch überladen und sehr lang zu scrollen. Ziel: auf
       dem Handy (375-390 px) schnell das Gesuchte finden - etwa Gliederung in

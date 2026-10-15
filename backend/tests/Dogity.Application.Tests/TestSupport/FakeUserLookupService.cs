@@ -48,10 +48,17 @@ public class FakeUserLookupService : IUserLookupService
 
     public Task<int> CountAsync(CancellationToken ct = default) => Task.FromResult(_users.Count);
 
-    public Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, string? suche, CancellationToken ct = default)
     {
+        // Dieselbe Semantik wie NutzerSuche in Infrastructure (dort getestet).
+        var begriff = suche?.Trim().ToLowerInvariant();
         var all = _users.Select(kvp =>
             new UserDirectoryEntry(kvp.Key, kvp.Value.Email, kvp.Value.FirstName, kvp.Value.LastName, [], false))
+            .Where(u => string.IsNullOrEmpty(begriff)
+                || (Guid.TryParse(begriff, out var gesucht)
+                    ? u.UserId == gesucht
+                    : u.Email.ToLowerInvariant().Contains(begriff)
+                        || $"{u.FirstName} {u.LastName}".ToLowerInvariant().Contains(begriff)))
             .OrderBy(u => u.Email)
             .ToList();
         var paged = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();

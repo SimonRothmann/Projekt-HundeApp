@@ -58,7 +58,7 @@ public class ClubRegistrationService(
         // Alle Admins informieren - sonst bliebe der Antrag liegen, bis
         // zufällig jemand in die Verwaltung schaut.
         foreach (var adminId in await userLookup.ListUserIdsInRoleAsync(AdminRoleName, ct))
-            await notifications.CreateAsync(adminId, $"Neuer Vereinsantrag: \"{name}\".", "/admin", ct);
+            await notifications.CreateAsync(adminId, $"Neuer Vereinsantrag: \"{name}\".", "/admin/vereine", ct);
 
         return Result<ClubRegistrationDto>.Success(await ZuDtoAsync(eintrag, ct));
     }

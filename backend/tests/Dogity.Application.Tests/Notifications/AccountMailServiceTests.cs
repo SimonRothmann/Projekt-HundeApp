@@ -89,7 +89,7 @@ public class AccountMailServiceTests
         Assert.All(u.Meldungen.Created, m =>
         {
             Assert.Contains("möchte das Passwort zurücksetzen", m.Message);
-            Assert.Equal($"/admin?resetUser={anfrage.UserId}", m.LinkPath);
+            Assert.Equal($"/admin/nutzer?resetUser={anfrage.UserId}", m.LinkPath);
             // Die Admin-Meldung trägt den Link nicht - sie führt zur Nutzerverwaltung.
             Assert.DoesNotContain("geheim", m.Message);
         });

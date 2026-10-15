@@ -179,7 +179,7 @@ Die Antwort trägt je nach Fragetyp `selectedOptionIds`, `assignments`
 
 ## Verwaltung: Fragen von Hand überarbeiten
 
-`/admin` → „Sachkunde-Fragen". Alle 112 Fragen zum Durchsehen, mit Filter nach
+`/admin/sachkunde` (Admin → „Sachkunde-Fragen"). Alle 112 Fragen zum Durchsehen, mit Filter nach
 Katalog und Komplex, Volltextsuche (auch über Antworten und Musterlösungen) und
 zwei Schaltern: **nur auffällige** und **nur bearbeitete**.
 

@@ -115,12 +115,19 @@ public class AdminService(
         return new AdminRecentStatsDto(neu.Count, mitHund, imVerein, mitZiel, ueberLink, aktiv);
     }
 
-    public async Task<Result<AdminUserPageDto>> GetUsersAsync(int page = 1, int pageSize = 50, CancellationToken ct = default)
+    public async Task<Result<AdminUserPageDto>> GetUsersAsync(int page = 1, int pageSize = 50, string? suche = null, CancellationToken ct = default)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 200);
 
-        var (users, total) = await userLookup.ListPagedAsync(page, pageSize, ct);
+        // Getrimmt; leer heißt "alle". Eine Suche über der Grenze kann keinen
+        // Namen und keine Adresse treffen - lieber ablehnen als still kürzen
+        // und etwas anderes finden.
+        suche = suche?.Trim();
+        var zuLang = Textlaengen.ZuLang(suche, Textlaengen.NutzerSuche, "Die Suche");
+        if (zuLang is not null) return Result<AdminUserPageDto>.Failure(zuLang);
+
+        var (users, total) = await userLookup.ListPagedAsync(page, pageSize, suche, ct);
         var dtos = users.Select(u => new AdminUserDto(u.UserId, u.Email, u.FirstName, u.LastName, u.Roles, u.IsLockedOut)).ToList();
         var totalPages = (int)Math.Ceiling(total / (double)pageSize);
 

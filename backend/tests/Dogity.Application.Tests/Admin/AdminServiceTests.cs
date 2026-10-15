@@ -107,6 +107,95 @@ public class AdminServiceTests
     }
 
     [Fact]
+    public async Task GetUsers_Suche_TrifftEmailVornameNachname_OhneGrossKleinschreibung()
+    {
+        var service = MakeService(out var lookup);
+        lookup.Register(Guid.NewGuid(), "anna@test.de", "Anna", "Schmidt");
+        lookup.Register(Guid.NewGuid(), "bert@beispiel.de", "Bert", "Müller");
+        lookup.Register(Guid.NewGuid(), "carla@test.de", "Carla", "Annabauer");
+
+        var perEmail = await service.GetUsersAsync(suche: "BEISPIEL");
+        var perVorname = await service.GetUsersAsync(suche: "bert");
+        var perNachname = await service.GetUsersAsync(suche: "SCHMIDT");
+        var perBeidenNamen = await service.GetUsersAsync(suche: "anna schmidt");
+
+        Assert.Equal(["bert@beispiel.de"], perEmail.Value!.Users.Select(u => u.Email));
+        Assert.Equal(["bert@beispiel.de"], perVorname.Value!.Users.Select(u => u.Email));
+        Assert.Equal(["anna@test.de"], perNachname.Value!.Users.Select(u => u.Email));
+        Assert.Equal(["anna@test.de"], perBeidenNamen.Value!.Users.Select(u => u.Email));
+    }
+
+    [Fact]
+    public async Task GetUsers_Suche_ZaehltNurTreffer_UndBlaettertDarin()
+    {
+        var service = MakeService(out var lookup);
+        for (var i = 0; i < 7; i++)
+            lookup.Register(Guid.NewGuid(), $"hit{i}@test.de", "Hit", "Person");
+        for (var i = 0; i < 5; i++)
+            lookup.Register(Guid.NewGuid(), $"andere{i}@test.de", "Andere", "Leute");
+
+        var seite2 = await service.GetUsersAsync(page: 2, pageSize: 5, suche: "hit");
+
+        Assert.Equal(7, seite2.Value!.TotalCount);
+        Assert.Equal(2, seite2.Value.TotalPages);
+        Assert.Equal(2, seite2.Value.Users.Count);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task GetUsers_LeereSuche_ListetAlle(string? suche)
+    {
+        var service = MakeService(out var lookup);
+        lookup.Register(Guid.NewGuid(), "a@test.de", "A", "A");
+        lookup.Register(Guid.NewGuid(), "b@test.de", "B", "B");
+
+        var result = await service.GetUsersAsync(suche: suche);
+
+        Assert.Equal(2, result.Value!.TotalCount);
+    }
+
+    [Fact]
+    public async Task GetUsers_Suche_MitGuid_FindetDasKonto()
+    {
+        var service = MakeService(out var lookup);
+        var gesucht = Guid.NewGuid();
+        lookup.Register(gesucht, "a@test.de", "A", "A");
+        lookup.Register(Guid.NewGuid(), "b@test.de", "B", "B");
+
+        var result = await service.GetUsersAsync(suche: gesucht.ToString());
+
+        Assert.Equal(gesucht, Assert.Single(result.Value!.Users).Id);
+        Assert.Equal(1, result.Value.TotalCount);
+    }
+
+    [Fact]
+    public async Task GetUsers_SucheOhneTreffer_LiefertLeereListe()
+    {
+        var service = MakeService(out var lookup);
+        lookup.Register(Guid.NewGuid(), "a@test.de", "A", "A");
+
+        var result = await service.GetUsersAsync(suche: "gibtesnicht");
+
+        Assert.True(result.Succeeded);
+        Assert.Empty(result.Value!.Users);
+        Assert.Equal(0, result.Value.TotalCount);
+    }
+
+    [Fact]
+    public async Task GetUsers_ZuLangeSuche_WirdAbgelehnt()
+    {
+        var service = MakeService(out _);
+
+        var ok = await service.GetUsersAsync(suche: new string('a', 100));
+        var zuLang = await service.GetUsersAsync(suche: new string('a', 101));
+
+        Assert.True(ok.Succeeded);
+        Assert.False(zuLang.Succeeded);
+    }
+
+    [Fact]
     public async Task GetUsers_PageClampsAtOne_WhenZeroGiven()
     {
         var service = MakeService(out var lookup);

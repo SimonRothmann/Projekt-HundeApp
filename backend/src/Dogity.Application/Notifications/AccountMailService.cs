@@ -42,7 +42,7 @@ public class AccountMailService(
             await notifications.CreateAsync(
                 adminId,
                 $"{anfrage.Vorname} {anfrage.Nachname} ({anfrage.Email}) möchte das Passwort zurücksetzen.",
-                $"/admin?resetUser={anfrage.UserId}",
+                $"/admin/nutzer?resetUser={anfrage.UserId}",
                 ct);
         }
     }

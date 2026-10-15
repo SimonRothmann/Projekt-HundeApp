@@ -31,7 +31,13 @@ public interface IUserLookupService
     /// </summary>
     Task<IReadOnlyList<Guid>> ListAllUserIdsAsync(CancellationToken ct = default);
 
-    Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, CancellationToken ct = default);
+    /// <summary>
+    /// Eine Seite der Nutzerliste, sortiert nach E-Mail. <paramref name="suche"/>
+    /// filtert ohne Rücksicht auf Groß-/Kleinschreibung auf E-Mail, Vor- und
+    /// Nachname (Teilstück genügt; auch "Vorname Nachname" zusammen); eine Guid
+    /// findet genau dieses Konto. Leer oder null heißt: alle. <c>TotalCount</c> zählt nur die Treffer.
+    /// </summary>
+    Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, string? suche, CancellationToken ct = default);
 
     /// <summary>Sperrt einen Benutzer dauerhaft (kein Login mehr möglich). False, falls Benutzer nicht existiert.</summary>
     Task<bool> LockUserAsync(Guid userId, CancellationToken ct = default);

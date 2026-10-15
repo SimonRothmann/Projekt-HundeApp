@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
  * endgültig, über dieselbe Löschung wie jede Kontolöschung heute.
  *
  * Ohne Altdaten verschwindet die Karte, wie die Vereinsanträge: Eine leere
- * Karte auf der ohnehin langen Admin-Seite wäre nur Rauschen. Dasselbe, wenn
+ * Karte auf der System-Seite wäre nur Rauschen. Dasselbe, wenn
  * der Server die Konten nicht zuverlässig lesen konnte - dann gibt es nichts
  * Sicheres zu zeigen.
  */

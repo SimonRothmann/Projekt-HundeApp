@@ -28,10 +28,11 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, TimePro
     public async Task<IReadOnlyList<Guid>> ListAllUserIdsAsync(CancellationToken ct = default) =>
         await userManager.Users.Select(u => u.Id).ToListAsync(ct);
 
-    public async Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, string? suche, CancellationToken ct = default)
     {
-        var totalCount = await userManager.Users.CountAsync(ct);
-        var rawUsers = await userManager.Users
+        var treffer = NutzerSuche.Filtern(userManager.Users, suche);
+        var totalCount = await treffer.CountAsync(ct);
+        var rawUsers = await treffer
             .OrderBy(u => u.Email)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)

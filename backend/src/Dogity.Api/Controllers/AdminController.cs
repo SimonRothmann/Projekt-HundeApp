@@ -105,9 +105,9 @@ public class AdminController(IAdminService adminService, IClubService clubServic
     }
 
     [HttpGet("users")]
-    public async Task<ActionResult<AdminUserPageDto>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken ct = default)
+    public async Task<ActionResult<AdminUserPageDto>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] string? suche = null, CancellationToken ct = default)
     {
-        var result = await adminService.GetUsersAsync(page, pageSize, ct);
+        var result = await adminService.GetUsersAsync(page, pageSize, suche, ct);
         return FromResult(result);
     }
 

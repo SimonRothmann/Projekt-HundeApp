@@ -40,6 +40,8 @@ public static class Textlaengen
     public const int PushSchluessel = 200;
     /// <summary>PushSubscription.UserAgent: Kurzbezeichnung des Geräts, vom Server gebildet.</summary>
     public const int GeraeteBezeichnung = 200;
+    /// <summary>Suchbegriff der Admin-Nutzerliste (wird nicht gespeichert).</summary>
+    public const int NutzerSuche = 100;
 
     /// <summary>
     /// Meldung, wenn <paramref name="text"/> (ohne Rand-Leerzeichen, so wie er

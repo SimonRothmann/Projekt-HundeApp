@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, UserPlus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, UserPlus, Trash2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
@@ -158,170 +158,195 @@ export function ClubsSection() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Building2 className="size-5" />
-          Vereine
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex flex-col gap-2 sm:flex-1">
-            <Label htmlFor="club-name">Name</Label>
-            <Input id="club-name" value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-1">
-            <Label htmlFor="club-description">Beschreibung (optional)</Label>
-            <Input id="club-description" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-          <Button type="submit" disabled={submitting}>
-            <Plus className="size-4" />
-{t("Anlegen")}
-          </Button>
-        </form>
-
-        {clubs === null ? (
-          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
-        ) : clubs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("Noch keine Vereine angelegt.")}</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {clubs.map((club) => {
-              const isOpen = expandedClubId === club.id;
-              return (
-                <li key={club.id} className="rounded-md border">
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
-                    onClick={() => toggleClub(club.id)}
-                  >
-                    <div className="min-w-0 [overflow-wrap:anywhere]">
-                      <span className="font-medium">{club.name}</span>
-                      {club.description && (
-                        <span className="ml-2 text-sm text-muted-foreground">{club.description}</span>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+    // Ohne eigene Titelzeile: Die Seite /admin/vereine trägt den Titel schon.
+    // Die Liste steht oben - angelegt wird selten (meist über einen Antrag),
+    // nachgesehen oft.
+    <div className="flex flex-col gap-6">
+      {clubs === null ? (
+        <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
+      ) : clubs.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("Noch keine Vereine angelegt.")}</p>
+      ) : (
+        <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-xl bg-card text-sm ring-1 ring-foreground/10">
+          {clubs.map((club) => {
+            const isOpen = expandedClubId === club.id;
+            return (
+              <li key={club.id}>
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  className="flex min-h-[3.25rem] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 active:bg-muted"
+                  onClick={() => toggleClub(club.id)}
+                >
+                  {/* Name und Beschreibung über die ganze Breite, die Zahlen
+                      darunter: Nebeneinander drückten die Abzeichen den Namen
+                      bei 375 px auf eine Wortbreite zusammen. */}
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium [overflow-wrap:anywhere]">{club.name}</span>
+                    {club.description && (
+                      <span className="block text-muted-foreground [overflow-wrap:anywhere]">{club.description}</span>
+                    )}
+                    <span className="mt-1 flex flex-wrap gap-1">
                       <Badge variant="secondary">
                         {club.trainerCount === 1 ? t("1 Trainer") : t("{n} Trainer", { n: club.trainerCount })}
                       </Badge>
                       <Badge variant="secondary">
                         {club.groupCount === 1 ? t("1 Gruppe") : t("{n} Gruppen", { n: club.groupCount })}
                       </Badge>
-                      {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-                    </div>
-                  </button>
-                  {isOpen && detail && (
-                    <div className="flex flex-col gap-3 border-t px-3 py-3">
-                      <form onSubmit={(e) => handleAssignTrainer(club.id, e)} className="flex gap-2">
-                        <Input
-                          type="email"
-                          placeholder="trainer@example.com"
-                          value={trainerEmail}
-                          onChange={(e) => setTrainerEmail(e.target.value)}
-                          required
-                        />
-                        <Button type="submit" size="sm" variant="outline">
-                          <UserPlus className="size-4" />
-{t("Trainer zuweisen")}
-                        </Button>
-                      </form>
+                    </span>
+                  </span>
+                  <ChevronDown
+                    className={`size-5 shrink-0 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    aria-hidden
+                  />
+                </button>
+                {isOpen && detail && (
+                  <div className="flex flex-col gap-4 border-t px-4 py-3">
+                    <div className="flex flex-col gap-2">
+                      <p className="font-medium">{t("Trainer:innen")}</p>
                       {detail.trainers.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">{t("Noch keine Trainer zugewiesen.")}</p>
+                        <p className="text-muted-foreground">{t("Noch keine Trainer zugewiesen.")}</p>
                       ) : (
                         <ul className="flex flex-col gap-1">
                           {/* Der Laufparameter hiess t und verdeckte damit den
                               Uebersetzer - umbenannt statt umgangen. */}
                           {detail.trainers.map((trainer) => (
-                            <li key={trainer.userId} className="flex items-center justify-between text-sm">
-                              <span>
-                                <Badge variant="secondary" className="mr-2">{t("Trainer")}</Badge>
-                                {trainer.firstName} {trainer.lastName} ({trainer.email})
+                            <li key={trainer.userId} className="flex items-center gap-2">
+                              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                                {trainer.firstName} {trainer.lastName}{" "}
+                                <span className="text-muted-foreground">({trainer.email})</span>
                               </span>
                               <Button
                                 type="button"
-                                size="icon-sm"
+                                size="icon"
                                 variant="ghost"
+                                className="shrink-0"
                                 onClick={() => handleRemoveTrainer(club.id, trainer.userId)}
                                 title={t("Trainer-Rolle entfernen")}
+                                aria-label={t("Trainer-Rolle entfernen")}
                               >
-                                <Trash2 className="size-3.5" />
+                                <Trash2 className="size-4" />
                               </Button>
                             </li>
                           ))}
                         </ul>
                       )}
+                      <form onSubmit={(e) => handleAssignTrainer(club.id, e)} className="flex flex-col gap-2 sm:flex-row">
+                        <Input
+                          type="email"
+                          placeholder="trainer@example.com"
+                          aria-label={t("E-Mail der Trainer:in")}
+                          className="h-11 sm:flex-1"
+                          value={trainerEmail}
+                          onChange={(e) => setTrainerEmail(e.target.value)}
+                          required
+                        />
+                        <Button type="submit" variant="outline" className="h-11">
+                          <UserPlus className="size-4" />
+                          {t("Trainer zuweisen")}
+                        </Button>
+                      </form>
+                    </div>
 
-                      <div className="border-t pt-3">
-                        <form onSubmit={(e) => handleAddMember(club.id, e)} className="flex gap-2">
-                          <Input
-                            type="email"
-                            placeholder="mitglied@example.com"
-                            value={memberEmail}
-                            onChange={(e) => setMemberEmail(e.target.value)}
-                            required
-                          />
-                          <Button type="submit" size="sm" variant="outline">
-                            <UserPlus className="size-4" />
-{t("Mitglied hinzufügen")}
-                          </Button>
-                        </form>
-                        {detail.members.length === 0 ? (
-                          <p className="mt-2 text-sm text-muted-foreground">{t("Noch keine Mitglieder.")}</p>
-                        ) : (
-                          <ul className="mt-2 flex flex-col gap-1">
-                            {detail.members.map((m) => (
-                              // gap-2 + min-w-0 + flex-wrap: Eine lange
-                              // E-Mail-Adresse schob die Knöpfe sonst aus der
-                              // Zeile - Flex-Kinder haben von Haus aus
-                              // min-width:auto und schrumpfen nicht.
-                              <li
-                                key={m.userId}
-                                className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm"
-                              >
-                                <span className="min-w-[10rem] flex-1 [overflow-wrap:anywhere]">
-                                  {m.firstName} {m.lastName} ({m.email})
-                                </span>
-                                <div className="flex shrink-0 items-center gap-1">
-                                  {/* Wer schon Trainer:in ist, braucht die
-                                      Beförderung nicht angeboten zu bekommen. */}
-                                  {m.isTrainer ? (
-                                    <Badge variant="secondary">{t("Trainer")}</Badge>
-                                  ) : (
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => handlePromoteMember(club.id, m.email)}
-                                      title={t("Zum Trainer befördern")}
-                                    >
-{t("Zum Trainer")}
-                                    </Button>
-                                  )}
+                    <div className="flex flex-col gap-2 border-t pt-3">
+                      <p className="font-medium">{t("Mitglieder")}</p>
+                      {detail.members.length === 0 ? (
+                        <p className="text-muted-foreground">{t("Noch keine Mitglieder.")}</p>
+                      ) : (
+                        <ul className="flex flex-col gap-1">
+                          {detail.members.map((m) => (
+                            // gap-2 + min-w-0 + flex-wrap: Eine lange
+                            // E-Mail-Adresse schob die Knöpfe sonst aus der
+                            // Zeile - Flex-Kinder haben von Haus aus
+                            // min-width:auto und schrumpfen nicht.
+                            <li key={m.userId} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                              <span className="min-w-[10rem] flex-1 [overflow-wrap:anywhere]">
+                                {m.firstName} {m.lastName} <span className="text-muted-foreground">({m.email})</span>
+                              </span>
+                              <div className="flex shrink-0 items-center gap-1">
+                                {/* Wer schon Trainer:in ist, braucht die
+                                    Beförderung nicht angeboten zu bekommen. */}
+                                {m.isTrainer ? (
+                                  <Badge variant="secondary">{t("Trainer")}</Badge>
+                                ) : (
                                   <Button
                                     type="button"
-                                    size="icon-sm"
+                                    size="sm"
                                     variant="ghost"
-                                    onClick={() => handleRemoveMember(club.id, m.userId)}
-                                    title={t("Aus Verein entfernen")}
+                                    onClick={() => handlePromoteMember(club.id, m.email)}
+                                    title={t("Zum Trainer befördern")}
                                   >
-                                    <Trash2 className="size-3.5" />
+                                    {t("Zum Trainer")}
                                   </Button>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
+                                )}
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleRemoveMember(club.id, m.userId)}
+                                  title={t("Aus Verein entfernen")}
+                                  aria-label={t("Aus Verein entfernen")}
+                                >
+                                  <Trash2 className="size-4" />
+                                </Button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <form onSubmit={(e) => handleAddMember(club.id, e)} className="flex flex-col gap-2 sm:flex-row">
+                        <Input
+                          type="email"
+                          placeholder="mitglied@example.com"
+                          aria-label={t("E-Mail des Mitglieds")}
+                          className="h-11 sm:flex-1"
+                          value={memberEmail}
+                          onChange={(e) => setMemberEmail(e.target.value)}
+                          required
+                        />
+                        <Button type="submit" variant="outline" className="h-11">
+                          <UserPlus className="size-4" />
+                          {t("Mitglied hinzufügen")}
+                        </Button>
+                      </form>
                     </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Plus className="size-5 shrink-0" />
+            {t("Verein anlegen")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex flex-col gap-2 sm:flex-1">
+              <Label htmlFor="club-name">{t("Name")}</Label>
+              <Input id="club-name" className="h-11" value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-1">
+              <Label htmlFor="club-description">{t("Beschreibung (optional)")}</Label>
+              <Input
+                id="club-description"
+                className="h-11"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+            <Button type="submit" className="h-11" disabled={submitting}>
+              <Plus className="size-4" />
+              {t("Anlegen")}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

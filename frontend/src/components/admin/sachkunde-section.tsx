@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { AdminQuizOption, AdminQuizQuestion, QuizCatalog } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, ChevronDown, ChevronRight, GraduationCap, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
@@ -154,14 +154,8 @@ export function SachkundeSection() {
   const bearbeitet = (fragen ?? []).filter((f) => f.editedAt).length;
 
   return (
+    // Ohne eigene Titelzeile: Die Seite /admin/sachkunde trägt den Titel schon.
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <GraduationCap className="size-5" />
-          Sachkunde-Fragen
-        </CardTitle>
-      </CardHeader>
-
       <CardContent className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">
 {t("Die Kataloge kommen aus einer PDF-Auswertung – einzelne Texte brauchen eine Hand. Wer hier speichert, hat ab dann das Sagen: Der Katalog überschreibt diese Frage beim nächsten Start der App nicht mehr.")}

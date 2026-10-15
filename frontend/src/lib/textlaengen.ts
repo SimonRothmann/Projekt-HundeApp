@@ -38,4 +38,6 @@ export const TEXTLAENGE = {
   anmeldeTelefon: 30,
   /** GroupRegistration.Notes */
   anmeldeNotiz: 500,
+  /** Suchbegriff der Admin-Nutzerliste (Textlaengen.NutzerSuche, wird nicht gespeichert) */
+  nutzerSuche: 100,
 } as const;
