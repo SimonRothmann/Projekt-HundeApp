@@ -125,10 +125,10 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Betroffene | Registrierte Nutzer:innen |
 | Datenkategorien | E-Mail-Adresse (Empfänger), Vorname (Anrede), Inhalt der Mail: Text der Benachrichtigung (kann Namen von Vereinen, Gruppen, Hunden und der einladenden Person enthalten) bzw. der Link zum Zurücksetzen des Passworts. Absender- und Antwortadresse sind Adressen des Betreibers. |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. b (Willkommens- und Passwort-Mail gehören zum Konto; Einladungen und Entscheidungen sind Teil der Vereins-/Gruppenfunktion). Die zusätzliche Mail zu Einladungen und Entscheidungen ist je Person unter Profil → Funktionen abschaltbar (`user_preferences.EmailNotifications`, Vorgabe ein); Willkommens- und Passwort-Mail sind davon unabhängig. |
-| Empfänger | Brevo (Sendinblue SAS, Paris, Frankreich) als Auftragsverarbeiter für den SMTP-Versand, Server in der EU; das Postfach der Empfänger:in |
-| Drittland | nein (Brevo, EU) |
-| Besonderheit | Der Versand läuft nicht im Request, sondern über eine In-Memory-Warteschlange mit Hintergrunddienst: ein Wiederholungsversuch, dann wird die Mail verworfen. Es wird nichts dauerhaft gespeichert; bei einem Neustart verfällt, was noch in der Warteschlange lag. Im Log erscheinen weder Empfänger noch Inhalt noch Links (Ausnahme: Development, Textfassung des Platzhalter-Senders ohne SMTP). Ohne `Email:Smtp:Host` wird nichts versendet. Beim Zurücksetzen des Passworts gilt unverändert: Die Antwort ist für vorhandene und unbekannte Adressen gleich. Ist kein Mailversand eingerichtet, benachrichtigt die App stattdessen die Admins. |
-| Löschfrist | keine eigene Speicherung auf dem Server; bei Brevo gelten dessen Aufbewahrungsfristen für Transaktionsmails (im Konto einsehbar, im Vertrag zur Auftragsverarbeitung geregelt) |
+| Empfänger | keiner außer dem Mailanbieter der Empfänger:in: Versand über den eigenen Mailserver (Container `mail`, Postfix + OpenDKIM) auf dem Server bei Contabo, kein Versanddienst. Contabo als Hoster (Auftragsverarbeiter, Abschnitt 3). |
+| Drittland | nein; wohin der Mailanbieter der Empfänger:in die Mail speichert, liegt bei ihr |
+| Besonderheit | Der Versand läuft nicht im Request, sondern über eine In-Memory-Warteschlange mit Hintergrunddienst: ein Wiederholungsversuch, dann wird die Mail verworfen. Es wird nichts dauerhaft gespeichert; bei einem Neustart verfällt, was noch in der Warteschlange lag. Im Log erscheinen weder Empfänger noch Inhalt noch Links (Ausnahme: Development, Textfassung des Platzhalter-Senders ohne SMTP). Ohne `Email:Smtp:Host` wird nichts versendet. Der Mailserver nimmt Mails nur aus dem internen Netz und nur mit Absender @dogity.net an, signiert sie mit DKIM und überträgt sie per TLS, wenn der Empfänger es anbietet. Beim Zurücksetzen des Passworts gilt unverändert: Die Antwort ist für vorhandene und unbekannte Adressen gleich. Ist kein Mailversand eingerichtet, benachrichtigt die App stattdessen die Admins. |
+| Löschfrist | Die Warteschlange des Mailservers (Volume `mail-spool`) hält eine Mail bis zur Annahme beim Empfänger, höchstens 2 Tage (`maximal_queue_lifetime`), danach Rückläufer an den Absender und Löschung. Das Postfix-Protokoll (stdout → Container-Log) enthält Empfängeradresse, Message-ID, Zeitpunkt und Zustellstatus, keinen Inhalt und keinen Betreff; es rolliert wie alle Container-Logs (10 MB × 3, Abschnitt 2.6). |
 | Tabellen | keine; Einstellung in `user_preferences` |
 
 ### 2.5c Push-Benachrichtigungen (Web Push)
@@ -144,6 +144,19 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Besonderheit | Der Server nimmt als Push-Adresse nur Adressen bekannter Push-Dienste an (https, feste Hostnamen), damit er nicht zu Anfragen an interne Adressen missbraucht werden kann. Höchstens 20 Geräte je Person. Meldet sich auf demselben Gerät eine andere Person an, gehört das Abo danach ihr; beim Abmelden entfernt die App das Abo des Geräts. Meldet der Push-Dienst ein Gerät als unbekannt (HTTP 404/410), wird es gelöscht. Nachricht höchstens einen Tag gültig. Schlüssel des Geräts stehen weder im Datenexport noch im Log. |
 | Löschfrist | bis zum Ausschalten, Abmelden oder zur Kontolöschung; unbekannte Geräte beim nächsten Versand; bei Kontolöschung endgültig (`AccountDataService.PurgeAsync`), nicht nur ausgeblendet |
 | Tabellen | `push_subscriptions` |
+
+### 2.5d Kontakt per E-Mail (info@dogity.net)
+
+| | |
+|---|---|
+| Zweck | Anfragen, Fehlermeldungen und Wünsche an den Betreiber beantworten; Antworten auf Mails der App (Reply-To) |
+| Betroffene | alle, die an info@dogity.net schreiben |
+| Datenkategorien | Absenderadresse, Name (soweit angegeben), Inhalt der Nachricht, Kopfzeilen |
+| Rechtsgrundlage | Art. 6 Abs. 1 lit. f (Anfragen beantworten); bei Fragen zum eigenen Konto lit. b |
+| Empfänger | Cloudflare (Email Routing, nimmt die Mail für dogity.net an und leitet sie weiter, ohne sie zu speichern); Google (Gmail-Postfach des Betreibers) |
+| Drittland | **USA möglich** (Cloudflare, Google; beide unter dem EU-U.S. Data Privacy Framework zertifiziert, Art. 45) |
+| Löschfrist | nach Erledigung, sofern keine Aufbewahrungspflicht besteht |
+| Tabellen | keine - nichts davon landet in der Datenbank |
 
 ### 2.6 Betrieb der Server
 
@@ -165,7 +178,6 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 |---|---|---|---|
 | Contabo GmbH, München | Server, Datenbank, laufender Betrieb | AV-Vertrag erforderlich | nein (Standort Deutschland) |
 | Cloudflare, Inc. | Auslagerung der verschlüsselten Datenbanksicherungen (R2) | AV-Vertrag erforderlich (Cloudflare DPA) | Bucket fest auf EU-Jurisdiktion gestellt; Endpunkt `.eu.r2.cloudflarestorage.com` |
-| Sendinblue SAS (Marke Brevo), Paris, Frankreich | SMTP-Versand der Mails (Abschnitt 2.5b): Empfängeradresse, Vorname, Inhalt der Mail | AV-Vertrag erforderlich (Brevo DPA, im Konto abzuschließen) | nein (Server in der EU) |
 | Cloudflare, Inc. | Vorgeschalteter Proxy für alle vier Domains: TLS, Abwehr von Angriffen und Bots, Weiterleitung an den Server. Fügt nach Dashboard-Einstellung ein Bot-Prüfskript, E-Mail-Verschleierung und Network Error Logging hinzu | derselbe AV-Vertrag (Cloudflare DPA) | **USA möglich** – Anfragen laufen meist über ein nahes Rechenzentrum; Cloudflare ist unter dem EU-U.S. Data Privacy Framework zertifiziert (Art. 45) |
 
 Zum dritten Eintrag, am 2026-09-21 nachgetragen: Die DNS-Namen zeigen auf
@@ -180,10 +192,14 @@ nicht beim Speicheranbieter - Cloudflare verwahrt damit einen Datenbestand,
 den es nicht lesen kann. Das ersetzt den AV-Vertrag nicht, senkt aber das
 Risiko erheblich.
 
-**Offen:** Abschluss bzw. Nachweis der AV-Verträge (Contabo, Cloudflare, Brevo)
-dokumentieren. Brevo wird erst benötigt, wenn der Mailversand eingeschaltet
-wird (siehe docs/BETRIEB.md „E-Mail und Push aktivieren“) – ohne SMTP-Konfiguration
-fließen keine Daten dorthin.
+**Offen:** Abschluss bzw. Nachweis der AV-Verträge (Contabo, Cloudflare)
+dokumentieren.
+
+Zum Mailversand, entschieden 2026-10-15: kein Versanddienst (Brevo verworfen),
+sondern ein eigener Mailserver auf dem Contabo-Server - damit kein weiterer
+Auftragsverarbeiter. Eingehende Mails an info@dogity.net laufen über
+Cloudflare Email Routing (vom Cloudflare-DPA erfasst) in das Gmail-Postfach
+des Betreibers; siehe Abschnitt 2.5d.
 
 ---
 

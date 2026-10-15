@@ -16,14 +16,12 @@ export const BETREIBER = {
   ort: "Karlsbad",
   land: "Deutschland",
   /**
-   * Die private Adresse des Betreibers.
-   *
-   * Sie steht damit öffentlich im Netz und wird von Adresssammlern gefunden.
-   * Wer das ändern will, richtet beim Domain-Anbieter eine Weiterleitung für
-   * kontakt@dogity.net ein und trägt sie hier ein - eine Zeile, und weder
-   * Impressum noch Datenschutzerklärung müssen angefasst werden.
+   * Kontaktadresse für Impressum und Datenschutz. Seit 2026-10-15 nicht mehr
+   * die private Adresse des Betreibers: info@dogity.net leitet Cloudflare
+   * Email Routing an dessen Postfach weiter - die private Adresse steht so
+   * nicht mehr öffentlich im Netz.
    */
-  email: "simonrothmann72@gmail.com",
+  email: "info@dogity.net",
 } as const;
 
 /**

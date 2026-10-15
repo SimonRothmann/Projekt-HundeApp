@@ -49,6 +49,9 @@ echo "==> Prod-Container bauen und starten"
 # am 2026-08-23 passiert (Turnierhundsport/Agility im Backend da, im Frontend
 # 404). Deshalb: erst das Backend hochziehen, auf seinen Health-Check warten,
 # dann das Frontend bauen.
+echo "==> Versand-Mailserver (deploy/mail) - ohne --pull, wie oben begründet"
+docker compose up -d --build mail
+
 docker compose up -d --build --force-recreate backend-prod
 
 echo "==> Warte auf das neue Backend (prod)"

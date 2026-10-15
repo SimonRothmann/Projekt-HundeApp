@@ -19,7 +19,7 @@
 #
 # Der Kontakt (VAPID_SUBJECT, "mailto:...") steht für die Push-Dienste von
 # Apple/Google/Mozilla: Sie melden sich dort, falls etwas schiefläuft. Vorgabe
-# hallo@dogity.net; mit `VAPID_SUBJECT=mailto:... scripts/vapid-schluessel.sh`
+# info@dogity.net; mit `VAPID_SUBJECT=mailto:... scripts/vapid-schluessel.sh`
 # änderbar.
 #
 # Ein vorhandenes Schlüsselpaar wird NIE überschrieben: Mit einem neuen Paar
@@ -32,7 +32,7 @@ set -euo pipefail
 
 PRAEFIX="${1:-PROD}"
 DATEI="${2:-}"
-SUBJECT="${VAPID_SUBJECT:-mailto:hallo@dogity.net}"
+SUBJECT="${VAPID_SUBJECT:-mailto:info@dogity.net}"
 
 case "$PRAEFIX" in
   PROD | TEST) ;;

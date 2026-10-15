@@ -186,74 +186,73 @@ Hundes) und die Entscheidung über eine Beitrittsanfrage (Verein, Gruppe). Alles
 andere bleibt Glocke und Push. Wichtiges per Mail lässt sich je Person unter
 Profil → Funktionen abschalten; Willkommens- und Passwort-Mail nicht.
 
-### E-Mail über Brevo
+### E-Mail über den eigenen Versandserver
 
-Stand der Recherche Oktober 2026; Brevo ändert gelegentlich Menünamen. Der Code
-spricht nur SMTP (STARTTLS), jeder andere Relay geht genauso.
+Entschieden 2026-10-15: kein Versanddienst, sondern ein eigener, reiner
+Versandserver - kostenlos, Standort Deutschland (Contabo), kein
+Auftragsverarbeiter für Mails. Brevo wurde verworfen. Ausweg, falls die
+Zustellung trotz allem schlecht bleibt: ein externer SMTP-Relay (etwa
+Lettermint, NL, 300 Mails/Monat frei) - nur `.env`, kein Code.
 
-Warum Brevo: kostenloser Tarif mit 300 Mails am Tag (hier reichen einige
-wenige), Sitz in Paris, Server in der EU, SMTP-Relay ohne eigene Software. Bei
-300 Mails am Tag ist Schluss - weitere weist Brevo ab. Das Backend protokolliert
-es (ohne Inhalt), verwirft die Mail und lässt die Glocke unberührt.
+**Aufbau:** Container `mail` (`deploy/mail`: Postfix + OpenDKIM auf Alpine).
+Er nimmt Mails NUR aus dem Compose-Netz an (kein veröffentlichter Port), nur
+mit Absender `@dogity.net`, verschickt nur über IPv4 und signiert jede Mail
+mit DKIM. Warteschlange und DKIM-Schlüssel liegen in den Volumes `mail-spool`
+und `mail-dkim`. Das Backend übergibt ohne Anmeldung an `mail:25`. Absender ist
+`noreply@dogity.net`, Antworten gehen an `info@dogity.net`.
 
-1. **Konto anlegen** bei Brevo (EU-Konto) und den Auftragsverarbeitungsvertrag
-   abschließen: Brevo stellt ihn als Data Processing Agreement in den
-   Kontoeinstellungen bereit - herunterladen, ablegen und in
-   `VERARBEITUNGSVERZEICHNIS.md` (Abschnitt 3, "Offen") als erledigt eintragen.
-2. **Domain `dogity.net` authentifizieren** (Brevo: Senders, Domains & Dedicated
-   IPs → Domains → Domain hinzufügen). Brevo zeigt die Einträge an; sie kommen
-   in das DNS bei Cloudflare:
-   - **Brevo-Code** als TXT-Eintrag auf `dogity.net` (`brevo-code:…`),
-   - **DKIM**: die CNAME-Einträge, die Brevo nennt (`brevo1._domainkey`,
-     `brevo2._domainkey`) - in Cloudflare auf **"Nur DNS"** (graue Wolke), sonst
-     findet Brevo sie nicht,
-   - **DMARC** als TXT auf `_dmarc`, zum Anfang nur beobachtend:
-     `v=DMARC1; p=none; rua=mailto:hallo@dogity.net`. Gmail und Yahoo verlangen
-     für Absender wie uns mindestens diesen Eintrag.
-3. **Genau ein SPF-Eintrag.** Eine Domain darf nur *einen* TXT-Eintrag mit
-   `v=spf1` haben - zwei machen beide ungültig. Läuft gleichzeitig Cloudflare
-   Email Routing (siehe unten), werden beide Anbieter in einem Eintrag
-   zusammengeführt:
+**Empfang** läuft getrennt davon über Cloudflare Email Routing:
+`info@dogity.net` → Postfach des Betreibers. Die MX-Einträge gehören
+Cloudflare und bleiben unverändert.
 
+**Einrichtung, in dieser Reihenfolge:**
+
+1. **DNS bei Cloudflare** (`dogity.net` → DNS → Records):
+   - `A`-Eintrag `mail` → `161.97.135.174`, **"DNS only"** (graue Wolke).
+     Mails können nicht durch den Cloudflare-Proxy.
+   - Den bestehenden SPF-Eintrag (TXT auf `@`) **ändern**, keinen zweiten
+     anlegen - es darf nur einen geben:
+     `v=spf1 ip4:161.97.135.174 include:_spf.mx.cloudflare.net ~all`
+     (der Cloudflare-Teil gehört zur Weiterleitung von info@).
+   - DMARC: TXT `_dmarc` → `v=DMARC1; p=none; rua=mailto:info@dogity.net; fo=1`.
+     Nach der Testphase auf `p=quarantine` stellen.
+2. **Reverse DNS bei Contabo** (Kundenbereich → Reverse DNS) für
+   `161.97.135.174`: `mail.dogity.net`. Viele Empfänger prüfen, dass IP, Name
+   und HELO zusammenpassen; ohne das landen Mails im Spam.
+3. **Deploy** (Test genügt): Die Deploy-Skripte bauen und starten den Dienst
+   `mail` mit. Beim allerersten Mal, falls das laufende Skript noch die alte
+   Fassung las: `docker compose up -d --build mail` von Hand.
+4. **DKIM-Eintrag setzen.** Den Schlüssel erzeugt der Container beim ersten
+   Start selbst; der private Teil verlässt das Volume nie. Den DNS-Wert zeigt
+   jedes Startprotokoll:
+
+   ```bash
+   docker compose logs mail | grep "DKIM-Eintrag"
    ```
-   v=spf1 include:_spf.mx.cloudflare.net include:spf.brevo.com ~all
-   ```
 
-   Ohne Email Routing genügt `v=spf1 include:spf.brevo.com ~all`.
-4. **SMTP-Schlüssel** in Brevo erzeugen (SMTP & API → SMTP). Der **SMTP-Login** ist
-   die dort angezeigte Kennung (meist die Konto-Mailadresse), das Passwort ist
-   der **SMTP-Schlüssel** - nicht der API-Schlüssel.
-5. **Absenderadresse** `hallo@dogity.net` als Absender in Brevo anlegen (sie
-   muss zur authentifizierten Domain gehören).
-6. **Antwortadresse über Cloudflare Email Routing:** In Cloudflare unter
-   `dogity.net` → E-Mail → Email Routing die Adresse `hallo@dogity.net` anlegen
-   und an das private Postfach weiterleiten (Zielpostfach einmal bestätigen).
-   Das ist die Adresse hinter "Antworte einfach auf diese Mail" in der
-   Willkommensmail. Email Routing setzt MX-Einträge und - falls Cloudflare es
-   anbietet - einen SPF-Eintrag: den mit Schritt 3 zusammenführen.
-7. **`.env` auf dem Server** ergänzen (Namen siehe `.env.example`, Werte
-   nirgends einchecken). **Voraussetzung: der AV-Vertrag aus Schritt 1 ist
-   abgeschlossen** - die Datenschutzerklärung sagt, dass der Versand erst dann
-   beginnt. Mit dem Eintrag von `SMTP_HOST` ist der Versand aktiv:
+   In Cloudflare: TXT, Name `mail._domainkey`, Inhalt = der ausgegebene Wert
+   (`v=DKIM1; h=sha256; k=rsa; p=…`).
+5. **Testphase auf Test:** in der Server-`.env` `TEST_SMTP_HOST=mail`, Test
+   neu deployen, dann im Adminbereich "Testmail senden" an eigene Adressen
+   (Gmail, GMX/Web.de, Outlook, iCloud, T-Online) und an eine Adresse von
+   mail-tester.com (Ziel: 10/10). Prüfen: Posteingang oder Spam? In den
+   Kopfzeilen `spf=pass`, `dkim=pass`, `dmarc=pass`?
+6. **T-Online freischalten lassen.** T-Online lehnt unbekannte Server ab
+   (Antwort `554 … None/bad reputation … (NOWL)`, gemessen 2026-10-15). Eine
+   kurze Mail an `tobr@rx.t-online.de` mit IP, Hostname `mail.dogity.net` und
+   Verweis auf das Impressum unter https://dogity.net/impressum - T-Online
+   verlangt ein erreichbares Impressum auf der Domain.
+7. **Prod einschalten:** `SMTP_HOST=mail` in die Server-`.env`, Prod deployen.
+   Danach `TEST_SMTP_HOST` wieder leeren, wenn Test nicht mehr senden soll.
 
-   | Variable | Wert |
-   |---|---|
-   | `SMTP_HOST` | `smtp-relay.brevo.com` |
-   | `SMTP_PORT` | `587` |
-   | `SMTP_USERNAME` | SMTP-Login aus Schritt 4 |
-   | `SMTP_PASSWORD` | SMTP-Schlüssel aus Schritt 4 |
-   | `SMTP_FROM_ADDRESS` | `hallo@dogity.net` |
-   | `SMTP_FROM_NAME` | `Dogity` |
-   | `SMTP_REPLY_TO_ADDRESS` | `hallo@dogity.net` |
+**Laufend im Blick behalten:** Sperrlisten (z. B. mxtoolbox.com
+"Blacklist Check" für die IP), DMARC-Berichte im info@-Postfach, die
+Warteschlange (`docker compose exec mail mailq`). Hängende Mails stehen mit
+Grund im Log (`docker compose logs mail | grep -i "status=deferred\|status=bounced"`).
 
-   `docker-compose.yml` reicht sie als `Email__Smtp__Host` usw. an `backend-prod`
-   durch. Nur Prod versendet; die Testumgebung hat keinen Mailversand, ihre
-   Demo-Konten haben keine echten Adressen.
-
-Ist der Host gesetzt, ändert sich auch die Seite "Passwort vergessen": Sie
-verspricht dann einen Link per Mail statt "der Betreiber meldet sich", und die
-Benachrichtigung an die Admins ("möchte das Passwort zurücksetzen") entfällt.
-Ohne Host bleibt es beim bisherigen Weg.
+**Sicherung:** Das Volume `mail-dkim` ist nicht im Datenbank-Backup. Geht es
+verloren, entsteht beim nächsten Start ein neuer Schlüssel - dann den
+DKIM-Eintrag in Cloudflare neu setzen (Schritt 4). Mehr nicht.
 
 ### Push-Benachrichtigungen
 
@@ -271,7 +270,7 @@ diesem Gerät", je Gerät).
    `PROD_VAPID_SUBJECT` an die angegebene Datei an; auf dem Bildschirm erscheint
    nur der öffentliche Schlüssel. Wer die Zeilen sehen will, lässt die Datei weg
    (`scripts/vapid-schluessel.sh PROD >> .env` tut dasselbe). Der Kontakt
-   (`mailto:hallo@dogity.net`) ist änderbar mit `VAPID_SUBJECT=mailto:… `
+   (`mailto:info@dogity.net`) ist änderbar mit `VAPID_SUBJECT=mailto:… `
    vor dem Aufruf.
 2. **Auf den Server:** die drei Zeilen in die `.env` dort übernehmen. Prod und
    Test bekommen bewusst verschiedene Paare.
@@ -302,7 +301,7 @@ Die Antwort nennt nur Wahrheitswerte und den öffentlichen Schlüssel, keine
 Geheimnisse. Danach:
 
 - **Mail:** "Passwort vergessen" mit dem eigenen Konto anfordern; die Mail
-  sollte in Minuten da sein (sonst Brevo → Logs → Transactional). Der Link
+  sollte in Minuten da sein (sonst `docker compose logs mail`). Der Link
   beginnt mit `https://<PROD_DOMAIN>/reset-password`.
 - **Push:** auf dem Handy Dogity zum Home-Bildschirm hinzufügen, anmelden,
   Profil → Funktionen → "Einschalten"; dann lässt man sich von einem zweiten

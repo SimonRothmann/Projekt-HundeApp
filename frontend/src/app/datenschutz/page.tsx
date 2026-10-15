@@ -276,15 +276,24 @@ export default function DatenschutzPage() {
             Anfrage selbst hinaus – Suchbegriff beziehungsweise Koordinaten und Zeitpunkt. Deine IP-Adresse und dein Name
             werden nicht übermittelt; die Dienste sehen nur den Server von Dogity.
           </p>
-          <p className="font-medium text-foreground">E-Mail-Versand (vom Server)</p>
+          <p className="font-medium text-foreground">E-Mails</p>
           <p>
             Sobald der E-Mail-Versand eingerichtet ist, verschickt Dogity E-Mails nur in diesen Fällen: eine Willkommensmail nach der Registrierung, der Link zum
             Zurücksetzen deines Passworts auf Anfrage, und – wenn du es nicht abgeschaltet hast – Einladungen (in einen
             Verein, in eine Gruppe, als Trainer:in einer Gruppe, zum Mitbesitz eines Hundes) und Entscheidungen über
-            Beitrittsanfragen. Alles andere erscheint nur in der App oder als Push. Versendet wird über den Dienst{" "}
-            <span className="text-foreground">Brevo</span> (Sendinblue SAS, Paris, Frankreich; Server in der EU). Der Versand
-            beginnt erst, wenn mit dem Dienst ein Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO abgeschlossen ist. Brevo erhält deine E-Mail-Adresse, deinen
-            Vornamen und den Inhalt der Mail; Dogity speichert die Mails selbst nicht.
+            Beitrittsanfragen. Alles andere erscheint nur in der App oder als Push. Versendet wird von einem eigenen
+            Mailserver auf dem Server von Dogity bei {HOSTING.anbieter} – ohne Versanddienst, ohne weiteren
+            Dienstleister. Er gibt die Mail direkt an deinen E-Mail-Anbieter weiter, verschlüsselt, sofern dieser das
+            unterstützt, und behält sie nur, bis sie angenommen ist – ist dein Anbieter nicht erreichbar, höchstens
+            zwei Tage. In seinem Protokoll stehen Empfängeradresse, Zeitpunkt und ob die Zustellung geklappt hat, nicht
+            der Inhalt; es ist in der Größe begrenzt und wird laufend überschrieben.
+          </p>
+          <p>
+            Schreibst du an {BETREIBER.email}, nimmt {NETZWERKDIENST.anbieter} die Mail an (Email Routing) und leitet
+            sie an mein Postfach bei Google (Gmail) weiter. Eine Verarbeitung in den USA ist dabei möglich; beide
+            Anbieter sind nach dem EU-US Data Privacy Framework zertifiziert. Deine Nachricht und deine Adresse nutze
+            ich nur, um dir zu antworten (Art. 6 Abs. 1 lit. f DSGVO, geht es um dein Konto, lit. b), und lösche sie,
+            wenn die Sache erledigt ist und keine Aufbewahrungspflicht besteht.
           </p>
           <p className="font-medium text-foreground">Push-Dienste der Gerätehersteller (vom Server)</p>
           <p>
@@ -389,7 +398,8 @@ export default function DatenschutzPage() {
               "Anmeldungen zu einer Gruppe ohne Konto (Abschnitt 9): bis die Trainer:innen sie löschen, spätestens zwölf Monate nach der letzten Anwesenheit, Änderung oder Anmeldung.",
               "Anmelde-Token auf dem Server: der kurzlebige nach einer Stunde, der Erneuerungs-Token spätestens nach 60 Tagen.",
               "Geräte für Push-Benachrichtigungen: bis du Push dort ausschaltest, dich abmeldest oder dein Konto löschst; ein Gerät, das der Push-Dienst nicht mehr kennt, wird beim nächsten Versand entfernt.",
-              "Mails: Dogity speichert sie nicht; es gelten die Fristen des Versanddienstes (Abschnitt 7).",
+              "Mails von Dogity: Der Mailserver behält sie nur, bis dein E-Mail-Anbieter sie angenommen hat, höchstens zwei Tage; sein Protokoll (Empfänger, Zeitpunkt, Zustellung) ist in der Größe begrenzt und wird laufend überschrieben (Abschnitt 7).",
+              `Mails an ${BETREIBER.email}: bis die Sache erledigt ist, sofern keine Aufbewahrungspflicht besteht.`,
               `Sicherungen der Datenbank: ${SICHERUNG_AUFBEWAHRUNG.lokal} Tage auf dem Server; ausgelagert ${SICHERUNG_AUFBEWAHRUNG.taeglich} Tage (tägliche Stände), ${SICHERUNG_AUFBEWAHRUNG.woechentlich} Tage (wöchentliche) und ${SICHERUNG_AUFBEWAHRUNG.monatlich} Tage (monatliche).`,
             ]}
           />
