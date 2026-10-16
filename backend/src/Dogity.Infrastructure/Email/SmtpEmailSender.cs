@@ -15,7 +15,7 @@ public class SmtpEmailSender(IOptions<SmtpSettings> options) : IEmailSender
 {
     private readonly SmtpSettings _settings = options.Value;
 
-    public async Task SendAsync(string toEmail, string subject, string bodyText, string? bodyHtml = null, IReadOnlyDictionary<string, string>? kopfzeilen = null, CancellationToken ct = default)
+    public async Task SendAsync(string toEmail, string subject, string bodyText, string? bodyHtml = null, CancellationToken ct = default)
     {
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromAddress));
@@ -24,7 +24,6 @@ public class SmtpEmailSender(IOptions<SmtpSettings> options) : IEmailSender
         message.To.Add(MailboxAddress.Parse(toEmail));
         message.Subject = subject;
         message.Body = BuildBody(bodyText, bodyHtml);
-        SetzeKopfzeilen(message, kopfzeilen);
 
         using var client = new SmtpClient();
         await client.ConnectAsync(_settings.Host, _settings.Port, Verschluesselung(_settings), ct);
@@ -49,13 +48,6 @@ public class SmtpEmailSender(IOptions<SmtpSettings> options) : IEmailSender
     /// </summary>
     public static SecureSocketOptions Verschluesselung(SmtpSettings s) =>
         MitAnmeldung(s) ? SecureSocketOptions.StartTls : SecureSocketOptions.StartTlsWhenAvailable;
-
-    /// <summary>Hängt die zusätzlichen Kopfzeilen an die Mail; ohne Angabe bleibt sie unverändert.</summary>
-    public static void SetzeKopfzeilen(MimeMessage message, IReadOnlyDictionary<string, string>? kopfzeilen)
-    {
-        if (kopfzeilen is null) return;
-        foreach (var (name, wert) in kopfzeilen) message.Headers.Add(name, wert);
-    }
 
     /// <summary>
     /// Text allein, oder multipart/alternative mit Text UND HTML. Die Textfassung

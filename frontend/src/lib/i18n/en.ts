@@ -1661,8 +1661,8 @@ export const EN: Record<string, string> = {
   "Das hat gerade nicht geklappt. Bitte versuche es gleich noch einmal.": "That did not work just now. Please try again in a moment.",
   "Bei der Registrierung wählst du jetzt, ob wichtige Benachrichtigungen – Einladungen und Entscheidungen über Beitrittsanfragen – auch per E-Mail kommen. Das Häkchen „Wichtiges auch per E-Mail“ ist vorausgewählt, du kannst es abwählen.":
     "When you sign up, you now choose whether important notifications – invitations and decisions on join requests – also arrive by email. The “Important things by email too” checkbox is preselected; you can untick it.",
-  "Jede dieser Mails und die Willkommensmail haben unten einen Link „Hier abmelden“. Damit bestellst du sie ohne Anmeldung ab – und auf der Seite dahinter schaltest du sie mit „Wieder anmelden“ genauso wieder ein. Auch die Abbestellen-Funktion deines Mailprogramms klappt mit einem Tipp.":
-    "Each of these emails and the welcome email has a “Hier abmelden” (unsubscribe here) link at the bottom. It unsubscribes you without signing in – and on the page behind it you turn them back on with “Subscribe again”. The unsubscribe button of your mail app works with one tap, too.",
+  "Jede dieser Mails und die Willkommensmail haben unten einen Link „Hier abmelden“. Damit bestellst du sie ohne Anmeldung ab – und auf der Seite dahinter schaltest du sie mit „Wieder anmelden“ genauso wieder ein.":
+    "Each of these emails and the welcome email has a “Hier abmelden” (unsubscribe here) link at the bottom. It unsubscribes you without signing in – and on the page behind it you turn them back on with “Subscribe again”.",
   "Wir schicken dir einen Link zum Zurücksetzen per E-Mail": "We will email you a link to reset it",
   "Falls diese E-Mail-Adresse registriert ist, haben wir dir einen Link zum Zurücksetzen geschickt. Bitte prüfe dein Postfach - auch den Spam-Ordner.":
     "If this email address is registered, we have sent you a link to reset your password. Please check your inbox – and your spam folder.",

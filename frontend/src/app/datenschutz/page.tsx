@@ -284,7 +284,7 @@ export default function DatenschutzPage() {
             Beitrittsanfragen. Alles andere erscheint nur in der App oder als Push. Bei der Registrierung wählst du, ob
             du diese Mails bekommst (das Häkchen ist vorausgewählt). Die Willkommensmail und jede dieser Mails enthalten
             einen Link zum Abmelden, der ohne Anmeldung wirkt; er enthält nur eine signierte Kennung deines Kontos,
-            keine Angaben im Klartext. Dazu bietet dein Mailprogramm die Abmeldung mit einem Klick an. Die Mail zum
+            keine Angaben im Klartext. Die Mail zum
             Zurücksetzen des Passworts hat keinen solchen Link, weil du sie selbst angefordert hast. Versendet wird von einem eigenen
             Mailserver auf dem Server von Dogity bei {HOSTING.anbieter} – ohne Versanddienst, ohne weiteren
             Dienstleister. Er gibt die Mail direkt an deinen E-Mail-Anbieter weiter, verschlüsselt, sofern dieser das

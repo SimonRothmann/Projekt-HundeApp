@@ -46,11 +46,6 @@ SignatureAlgorithm      rsa-sha256
 # From doppelt signieren: Ein nachträglich hinzugefügtes zweites From würde
 # die Signatur brechen, statt unbemerkt durchzugehen.
 OversignHeaders         From
-# Die von RFC 6376 empfohlene Liste plus List-Unsubscribe-Post: RFC 8058
-# (Ein-Klick-Abmeldung) verlangt, dass beide List-Unsubscribe-Kopfzeilen
-# von der DKIM-Signatur gedeckt sind - sonst ignorieren Gmail und Yahoo sie.
-# Die Vorgabe von OpenDKIM kennt List-Unsubscribe-Post noch nicht.
-SignHeaders             From,Reply-To,Subject,Date,To,Cc,Message-ID,MIME-Version,Content-Type,In-Reply-To,References,List-Id,List-Help,List-Unsubscribe,List-Unsubscribe-Post,List-Subscribe,List-Post,List-Owner,List-Archive
 # Nur Mails aus dem eigenen Netz signieren (InternalHosts = 127.0.0.1 und das
 # Compose-Netz, siehe unten).
 InternalHosts           refile:/etc/opendkim/internal-hosts

@@ -12,8 +12,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Dogity.Application.Tests.Notifications;
 
 /// <summary>
-/// Die Abmelde-Endpunkte sind anonym und begrenzt; der Ein-Klick-Endpunkt
-/// antwortet immer 200 und verlangt keinen Body.
+/// Der Abmelde-Endpunkt ist anonym, begrenzt und ändert nichts per GET.
 /// </summary>
 public class EmailAbmeldungControllerTests
 {
@@ -65,27 +64,6 @@ public class EmailAbmeldungControllerTests
 
         var schlecht = Assert.IsType<BadRequestObjectResult>(antwort);
         Assert.Contains("errors", JsonSerializer.Serialize(schlecht.Value));
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task EinKlick_MeldetImmerAb_UndAntwortetImmer200(bool gueltig)
-    {
-        var dienst = new MerkenderDienst(gueltig);
-
-        var antwort = await new EmailAbmeldungController(dienst).EinKlick("abc", CancellationToken.None);
-
-        Assert.IsType<OkResult>(antwort);
-        Assert.Equal(("abc", false), Assert.Single(dienst.Aufrufe));
-    }
-
-    [Fact]
-    public async Task EinKlick_OhneToken_200_OhneAusnahme()
-    {
-        var antwort = await new EmailAbmeldungController(new MerkenderDienst(gueltig: false)).EinKlick(null, CancellationToken.None);
-
-        Assert.IsType<OkResult>(antwort);
     }
 
     [Fact]

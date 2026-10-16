@@ -190,21 +190,15 @@ Profil → Funktionen abschalten; Willkommens- und Passwort-Mail nicht.
 Person, ob sie diese Mails will (Häkchen, vorausgewählt). Jede Benachrichtigungs-
 und die Willkommensmail enthält einen Abmelde-Link (`/email-abmelden?t=…`), der
 ohne Anmeldung `EmailNotifications = false` setzt; die Passwort- und die Testmail
-enthalten keinen. Zusätzlich tragen diese Mails die Kopfzeilen `List-Unsubscribe`
-und `List-Unsubscribe-Post` (RFC 8058, Ein-Klick-Abmeldung im Mailprogramm). Die
-Kopfzeile zeigt auf die **API**, deshalb braucht das Backend ihre öffentliche
-Adresse: `Api__BaseUrl` (in `docker-compose.yml` aus `PROD_API_DOMAIN` bzw.
-`TEST_API_DOMAIN` gesetzt, analog zu `Frontend__BaseUrl`). Fehlt sie, entfallen
-die Kopfzeilen; der Link im Mailtext bleibt. Das Token im Link ist eine
-DataProtection-Nutzlast - die Schlüssel liegen im Volume `*-dp-keys`; gehen sie
-verloren, werden alte Abmelde-Links ungültig (die Person stellt es dann unter
-Profil → Funktionen ein). Damit die Kopfzeilen bei DKIM mitsigniert werden,
-setzt `deploy/mail/entrypoint.sh` die OpenDKIM-Liste `SignHeaders` ausdrücklich
-(RFC-6376-Empfehlung plus `List-Unsubscribe-Post`, das die Vorgabe von OpenDKIM
-nicht kennt). Ohne Signatur dieser Kopfzeilen ignorieren Gmail und Yahoo die
-Ein-Klick-Abmeldung; der Link im Mailtext funktioniert trotzdem. Prüfen nach
-dem Deploy: In den Kopfzeilen einer zugestellten Mail steht im `h=` der
-DKIM-Signatur auch `list-unsubscribe:list-unsubscribe-post`.
+enthalten keinen. Das Token im Link ist eine DataProtection-Nutzlast - die
+Schlüssel liegen im Volume `*-dp-keys`; gehen sie verloren, werden alte
+Abmelde-Links ungültig (die Person stellt es dann unter Profil → Funktionen ein).
+
+Bewusst **ohne** die Kopfzeilen `List-Unsubscribe`/`List-Unsubscribe-Post`
+(RFC 8058, „Abbestellen“ im Mailprogramm): Mit ihnen sortierte Gmail die
+Willkommensmail unter „Werbung“ (Test, 2026-10-16). Sie kennzeichnen Massen-
+und Werbemail; für Mails zum eigenen Konto verlangt sie niemand. Sollte Dogity
+je einen Newsletter verschicken, gehören sie dort hinein.
 
 ### E-Mail über den eigenen Versandserver
 

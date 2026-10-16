@@ -52,10 +52,6 @@ services:
       AdminBootstrap__Email: ${PROD_ADMIN_EMAIL:-}
       # Basis für Links in Mails und Push (Passwort zurücksetzen, "In Dogity ansehen").
       Frontend__BaseUrl: "https://${PROD_DOMAIN}"
-      # Öffentliche Adresse der API: nur für die Ein-Klick-Abmeldung im
-      # Mailprogramm (Kopfzeile List-Unsubscribe). Ohne sie entfällt die Kopfzeile,
-      # der Abmelde-Link im Mailtext bleibt.
-      Api__BaseUrl: "https://${PROD_API_DOMAIN}"
       # E-Mail: Ist Email__Smtp__Host leer, wird nur protokolliert statt versendet.
       # Eingeschaltet wird mit SMTP_HOST=mail (eigener Versandserver, Dienst
       # "mail" unten) - erst, wenn die DNS-Einträge stehen (docs/BETRIEB.md
@@ -123,7 +119,6 @@ services:
       Jwt__Audience: Dogity
       AdminBootstrap__Email: ${TEST_ADMIN_EMAIL:-}
       Frontend__BaseUrl: "https://${TEST_DOMAIN}"
-      Api__BaseUrl: "https://${TEST_API_DOMAIN}"
       # Mails nur, wenn TEST_SMTP_HOST=mail gesetzt ist - gedacht für die
       # Testphase des Versandservers ("Testmail senden" im Adminbereich). Die
       # Demo-Konten haben keine echten Adressen. Absender muss @PROD_DOMAIN

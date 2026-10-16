@@ -7,12 +7,7 @@ namespace Dogity.Application.Notifications;
 /// Die Abmelde-Seite der App, die schon im Text steht - hier nur mitgeführt,
 /// damit sich prüfen lässt, welche Mail einen Abmelde-Link trägt. Trägt ein Token.
 /// </param>
-/// <param name="EinKlickUrl">
-/// Ein-Klick-Abmeldung (RFC 8058) für die Kopfzeilen List-Unsubscribe; null =
-/// keine Kopfzeilen (Passwort-Mail, Testmail, oder keine "Api:BaseUrl"). Trägt
-/// ein Token - nie loggen.
-/// </param>
-public record MailNachricht(string An, string Betreff, string Text, string? Html, string? AbmeldeSeite = null, string? EinKlickUrl = null);
+public record MailNachricht(string An, string Betreff, string Text, string? Html, string? AbmeldeSeite = null);
 
 /// <summary>
 /// Übergabe an den Versand im Hintergrund. Reiht nur ein und kehrt sofort

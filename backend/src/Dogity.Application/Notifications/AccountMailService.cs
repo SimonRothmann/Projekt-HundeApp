@@ -22,9 +22,9 @@ public class AccountMailService(
         // ein Weg, eigenen Text zuzustellen.
         // Auch die Willkommensmail lässt sich abbestellen - gemeint sind die
         // späteren Benachrichtigungen; die Konto-Mails selbst bleiben.
-        var abmeldung = AbmeldeAdressen.Fuer(userId, abmeldeTokens, links);
-        var inhalt = MailVorlagen.Willkommen(links.Absolut("/dashboard"), abmeldung.Seite);
-        mailQueue.Enqueue(new MailNachricht(email, inhalt.Betreff, inhalt.Text, inhalt.Html, abmeldung.Seite, abmeldung.EinKlickUrl));
+        var abmeldeSeite = AbmeldeAdressen.Seite(userId, abmeldeTokens, links);
+        var inhalt = MailVorlagen.Willkommen(links.Absolut("/dashboard"), abmeldeSeite);
+        mailQueue.Enqueue(new MailNachricht(email, inhalt.Betreff, inhalt.Text, inhalt.Html, abmeldeSeite));
     }
 
     public async Task SendePasswortZuruecksetzenAsync(PasswortResetAnfrage anfrage, string adminRolle, CancellationToken ct = default)

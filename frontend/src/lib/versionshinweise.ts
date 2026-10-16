@@ -71,7 +71,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       },
       {
         art: "neu",
-        text: uebersetzbar("Jede dieser Mails und die Willkommensmail haben unten einen Link „Hier abmelden“. Damit bestellst du sie ohne Anmeldung ab – und auf der Seite dahinter schaltest du sie mit „Wieder anmelden“ genauso wieder ein. Auch die Abbestellen-Funktion deines Mailprogramms klappt mit einem Tipp."),
+        text: uebersetzbar("Jede dieser Mails und die Willkommensmail haben unten einen Link „Hier abmelden“. Damit bestellst du sie ohne Anmeldung ab – und auf der Seite dahinter schaltest du sie mit „Wieder anmelden“ genauso wieder ein."),
       },
     ],
   },

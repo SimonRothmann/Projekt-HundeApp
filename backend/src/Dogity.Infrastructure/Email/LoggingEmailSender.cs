@@ -15,11 +15,11 @@ namespace Dogity.Infrastructure.Email;
 /// (lokal + Test-VPS) bleibt der Body einsehbar, dort ist der geloggte Link
 /// der dokumentierte Weg, den Reset ohne echten E-Mail-Versand
 /// durchzuspielen (siehe deploy/README.md "Logs / Status"). Es wird nur die
-/// Textfassung geloggt, nie das HTML und nie die Kopfzeilen (die Abmeldung trägt ein Token).
+/// Textfassung geloggt, nie das HTML.
 /// </summary>
 public class LoggingEmailSender(ILogger<LoggingEmailSender> logger, IHostEnvironment environment) : IEmailSender
 {
-    public Task SendAsync(string toEmail, string subject, string bodyText, string? bodyHtml = null, IReadOnlyDictionary<string, string>? kopfzeilen = null, CancellationToken ct = default)
+    public Task SendAsync(string toEmail, string subject, string bodyText, string? bodyHtml = null, CancellationToken ct = default)
     {
         if (environment.IsDevelopment())
         {

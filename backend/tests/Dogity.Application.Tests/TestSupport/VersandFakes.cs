@@ -38,18 +38,14 @@ public class FakeNotificationChannels : INotificationChannels
     public string? PushPublicKey { get; set; }
 }
 
-/// <summary>
-/// Mit "https://dogity.example" als Basis und "https://api.dogity.example" als
-/// API-Adresse - die echte <see cref="FrontendLinks"/>, nur anders konfiguriert.
-/// </summary>
+/// <summary>Mit "https://dogity.example" als Basis - die echte <see cref="FrontendLinks"/>, nur anders konfiguriert.</summary>
 public static class TestLinks
 {
     public const string Basis = "https://dogity.example";
-    public const string ApiBasis = "https://api.dogity.example";
 
-    public static FrontendLinks Mit(string? basis = Basis, string? apiBasis = ApiBasis) =>
+    public static FrontendLinks Mit(string? basis = Basis) =>
         new(new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Frontend:BaseUrl"] = basis, ["Api:BaseUrl"] = apiBasis })
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Frontend:BaseUrl"] = basis })
             .Build());
 }
 

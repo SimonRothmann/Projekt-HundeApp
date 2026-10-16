@@ -19,18 +19,4 @@ public class EmailAbmeldungController(IEmailAbmeldungService abmeldung) : ApiCon
     [HttpPost]
     public async Task<IActionResult> Setze(EmailAbmeldungRequest request, CancellationToken ct) =>
         FromResult(await abmeldung.SetzeAsync(request.Token, request.Aktiv, ct));
-
-    /// <summary>
-    /// Ein-Klick-Abmeldung im Mailprogramm (RFC 8058): Es schickt einen POST mit
-    /// dem Formular-Body "List-Unsubscribe=One-Click" an die Adresse aus der
-    /// Kopfzeile. Der Body wird weder verlangt noch ausgewertet. Die Antwort ist
-    /// immer 200 - Mailprogramme werten sie nicht aus, und ein ungültiges Token
-    /// soll sich nicht von einem gültigen unterscheiden lassen.
-    /// </summary>
-    [HttpPost("ein-klick")]
-    public async Task<IActionResult> EinKlick([FromQuery(Name = "t")] string? token, CancellationToken ct)
-    {
-        await abmeldung.SetzeAsync(token, aktiv: false, ct);
-        return Ok();
-    }
 }

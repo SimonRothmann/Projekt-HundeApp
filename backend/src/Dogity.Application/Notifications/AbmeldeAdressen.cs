@@ -1,25 +1,24 @@
 namespace Dogity.Application.Notifications;
 
 /// <summary>
-/// Die Adressen zum Abbestellen für eine Mail an ein Konto: die Seite der App
-/// (Link im Text) und der Ein-Klick-Endpunkt der API (Kopfzeile
-/// List-Unsubscribe, RFC 8058). Beides steckt dasselbe Token.
+/// Die Seite zum Abbestellen für eine Mail an ein Konto - als Link im Mailtext.
+///
+/// Bewusst OHNE die Kopfzeilen List-Unsubscribe/List-Unsubscribe-Post
+/// (RFC 8058, "Abbestellen" im Mailprogramm): Mit ihnen sortierte Gmail die
+/// Willkommensmail unter "Werbung" (Test, 2026-10-16). Die Kopfzeilen
+/// kennzeichnen Massen- und Werbemail; für Mails zum eigenen Konto verlangt
+/// sie niemand, und der Link im Text erfüllt den Zweck.
 /// </summary>
-/// <param name="Seite">Null ohne Frontend:BaseUrl - dann steht kein Link in der Mail.</param>
-/// <param name="EinKlickUrl">Null ohne Api:BaseUrl - dann entfallen die Kopfzeilen.</param>
-public record AbmeldeAdressen(string? Seite, string? EinKlickUrl)
+public static class AbmeldeAdressen
 {
-    public static readonly AbmeldeAdressen Keine = new(null, null);
-
-    public static AbmeldeAdressen Fuer(Guid userId, IEmailAbmeldeToken tokens, IFrontendLinks links)
+    /// <returns>Null ohne Frontend:BaseUrl - dann steht kein Link in der Mail.</returns>
+    public static string? Seite(Guid userId, IEmailAbmeldeToken tokens, IFrontendLinks links)
     {
-        if (!links.HatBasis && !links.HatApiBasis) return Keine;
+        if (!links.HatBasis) return null;
 
         // base64url braucht kein Kodieren; trotzdem, damit ein anderes Tokenformat
         // die Adresse nicht still zerlegt.
         var token = Uri.EscapeDataString(tokens.Erzeuge(userId));
-        return new AbmeldeAdressen(
-            links.HatBasis ? links.Absolut($"/email-abmelden?t={token}") : null,
-            links.ApiAbsolut($"/api/email-abmeldung/ein-klick?t={token}"));
+        return links.Absolut($"/email-abmelden?t={token}");
     }
 }

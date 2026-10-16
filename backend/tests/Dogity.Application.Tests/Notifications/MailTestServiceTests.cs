@@ -24,7 +24,7 @@ public class MailTestServiceTests
         public Exception? Wirft { get; set; }
         public bool HaengtFest { get; set; }
 
-        public async Task SendAsync(string toEmail, string subject, string bodyText, string? bodyHtml = null, IReadOnlyDictionary<string, string>? kopfzeilen = null, CancellationToken ct = default)
+        public async Task SendAsync(string toEmail, string subject, string bodyText, string? bodyHtml = null, CancellationToken ct = default)
         {
             if (HaengtFest) await Task.Delay(Timeout.Infinite, ct);
             if (Wirft is not null) throw Wirft;

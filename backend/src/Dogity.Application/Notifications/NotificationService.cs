@@ -56,11 +56,11 @@ public class NotificationService(
 
         var link = links.HatBasis ? links.Absolut(linkPath ?? "/dashboard") : null;
         var einstellungen = links.HatBasis ? links.Absolut("/profile/funktionen") : null;
-        // Jede dieser Mails lässt sich ohne Anmeldung abbestellen - im Text per Link,
-        // im Mailprogramm per Ein-Klick-Kopfzeile (siehe AbmeldeAdressen).
-        var abmeldung = AbmeldeAdressen.Fuer(userId, abmeldeTokens, links);
-        var inhalt = MailVorlagen.WichtigeBenachrichtigung(empfaenger.FirstName, message, link, einstellungen, abmeldung.Seite);
-        mailQueue.Enqueue(new MailNachricht(empfaenger.Email, inhalt.Betreff, inhalt.Text, inhalt.Html, abmeldung.Seite, abmeldung.EinKlickUrl));
+        // Jede dieser Mails lässt sich ohne Anmeldung abbestellen - per Link im Text
+        // (siehe AbmeldeAdressen, auch zur Frage der List-Unsubscribe-Kopfzeilen).
+        var abmeldeSeite = AbmeldeAdressen.Seite(userId, abmeldeTokens, links);
+        var inhalt = MailVorlagen.WichtigeBenachrichtigung(empfaenger.FirstName, message, link, einstellungen, abmeldeSeite);
+        mailQueue.Enqueue(new MailNachricht(empfaenger.Email, inhalt.Betreff, inhalt.Text, inhalt.Html, abmeldeSeite));
     }
 
     private async Task PushEinreihenAsync(Guid userId, string message, string? linkPath, CancellationToken ct)
