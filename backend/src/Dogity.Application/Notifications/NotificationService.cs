@@ -18,8 +18,14 @@ public class NotificationService(
 {
     private const int MaxReturned = 50;
 
-    public async Task CreateAsync(Guid userId, string message, string? linkPath = null, CancellationToken ct = default, bool wichtig = false)
+    public async Task CreateAsync(Guid userId, Meldung meldung, string? linkPath = null, CancellationToken ct = default, bool wichtig = false)
     {
+        // Der Satz entsteht EINMAL, in der Sprache der Empfänger:in, und geht so
+        // in Glocke, Mail und Push: dieselbe Meldung, drei Orte, kein Auseinanderlaufen.
+        // Schon Gespeichertes wird nie nachträglich übersetzt.
+        var sprache = await SpracheAsync(userId, ct);
+        var message = Uebersetzung.Rendere(meldung, sprache);
+
         db.Notifications.Add(new Notification { UserId = userId, Message = message, LinkPath = linkPath });
         await db.SaveChangesAsync(ct);
 
@@ -28,8 +34,8 @@ public class NotificationService(
         // lassen: Der hat gerade eine Einladung oder Entscheidung durchgeführt.
         try
         {
-            if (wichtig) await MailEinreihenAsync(userId, message, linkPath, ct);
-            await PushEinreihenAsync(userId, message, linkPath, ct);
+            if (wichtig) await MailEinreihenAsync(userId, message, sprache, linkPath, ct);
+            await PushEinreihenAsync(userId, message, sprache, linkPath, ct);
         }
         catch (OperationCanceledException)
         {
@@ -42,7 +48,17 @@ public class NotificationService(
         }
     }
 
-    private async Task MailEinreihenAsync(Guid userId, string message, string? linkPath, CancellationToken ct)
+    private async Task<string?> SpracheAsync(Guid userId, CancellationToken ct) =>
+        await db.UserPreferences.Where(p => p.UserId == userId).Select(p => p.Locale).FirstOrDefaultAsync(ct);
+
+    public async Task<bool> HatUngelesenAsync(Guid userId, Meldung meldung, string linkPath, CancellationToken ct = default)
+    {
+        var message = Uebersetzung.Rendere(meldung, await SpracheAsync(userId, ct));
+        return await db.Notifications.AnyAsync(
+            n => n.UserId == userId && !n.IsRead && n.LinkPath == linkPath && n.Message == message, ct);
+    }
+
+    private async Task MailEinreihenAsync(Guid userId, string message, string? sprache, string? linkPath, CancellationToken ct)
     {
         if (!channels.EmailAktiv) return;
 
@@ -59,11 +75,11 @@ public class NotificationService(
         // Jede dieser Mails lässt sich ohne Anmeldung abbestellen - per Link im Text
         // (siehe AbmeldeAdressen, auch zur Frage der List-Unsubscribe-Kopfzeilen).
         var abmeldeSeite = AbmeldeAdressen.Seite(userId, abmeldeTokens, links);
-        var inhalt = MailVorlagen.WichtigeBenachrichtigung(empfaenger.FirstName, message, link, einstellungen, abmeldeSeite);
+        var inhalt = MailVorlagen.WichtigeBenachrichtigung(empfaenger.FirstName, message, link, einstellungen, abmeldeSeite, sprache);
         mailQueue.Enqueue(new MailNachricht(empfaenger.Email, inhalt.Betreff, inhalt.Text, inhalt.Html, abmeldeSeite));
     }
 
-    private async Task PushEinreihenAsync(Guid userId, string message, string? linkPath, CancellationToken ct)
+    private async Task PushEinreihenAsync(Guid userId, string message, string? sprache, string? linkPath, CancellationToken ct)
     {
         if (channels.PushPublicKey is null) return;
         // Das Declarative-Web-Push-Format verlangt in "navigate" eine ABSOLUTE
@@ -74,7 +90,7 @@ public class NotificationService(
         if (!await db.PushSubscriptions.AnyAsync(s => s.UserId == userId, ct)) return;
 
         var ungelesen = await db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead, ct);
-        var payload = PushPayload.Erzeuge(message, links.Absolut(linkPath ?? "/dashboard"), ungelesen);
+        var payload = PushPayload.Erzeuge(message, links.Absolut(linkPath ?? "/dashboard"), ungelesen, sprache);
         pushQueue.Enqueue(new PushAuftrag(userId, payload));
     }
 

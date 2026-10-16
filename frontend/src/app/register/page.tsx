@@ -15,13 +15,14 @@ import { AuthKopfzeile } from "@/components/auth-back-link";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
 import { PasswortHinweis } from "@/components/passwort-hinweis";
 
-import { mitBausteinen, useT } from "@/lib/i18n";
+import { mitBausteinen, useSprache, useT } from "@/lib/i18n";
 /**
  * Formular samt Verweisen. Eigene Komponente, weil useSearchParams eine
  * Suspense-Grenze braucht - sonst ließe sich die Seite nicht vorab bauen.
  */
 function RegisterForm() {
   const t = useT();
+  const sprache = useSprache();
   const { register } = useAuth();
   const router = useRouter();
   const suchparameter = useSearchParams();
@@ -47,7 +48,7 @@ function RegisterForm() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await register(email, password, firstName, lastName, perMail);
+      await register(email, password, firstName, lastName, perMail, sprache);
       // Erst nach dem Anlegen des Kontos: Bricht die Registrierung ab, soll
       // nichts vom Wunsch hängen bleiben.
       if (pruefungsordnung) merkeStartPo(pruefungsordnung);

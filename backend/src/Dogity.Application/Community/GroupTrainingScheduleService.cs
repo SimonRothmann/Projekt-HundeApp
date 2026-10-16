@@ -160,8 +160,12 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         if (empfaenger.Count == 0) return;
 
         var namen = await userLookup.FindByIdsAsync([userId], ct);
-        var vorname = namen.TryGetValue(userId, out var n) && !string.IsNullOrWhiteSpace(n.FirstName) ? n.FirstName : "Ein Mitglied";
-        var text = $"{vorname} hat für {session.Group!.Name} am {FormatDatum(session.StartsAt)} abgesagt.";
+        var vorname = namen.TryGetValue(userId, out var n) && !string.IsNullOrWhiteSpace(n.FirstName) ? n.FirstName : null;
+        var gruppe = session.Group!.Name;
+        var datum = Datum(session.StartsAt);
+        var text = vorname is null
+            ? Meldung.Von("Ein Mitglied hat für {gruppe} am {datum} abgesagt.", ("gruppe", gruppe), ("datum", datum))
+            : Meldung.Von("{name} hat für {gruppe} am {datum} abgesagt.", ("name", vorname), ("gruppe", gruppe), ("datum", datum));
         foreach (var id in empfaenger)
             await notifications.CreateAsync(id, text, "/trainer/schedule", ct);
     }
@@ -245,7 +249,9 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
                 .Select(m => m.UserId)
                 .Distinct()
                 .ToListAsync(ct);
-            var text = $"Das Training {session.Group?.Name} am {FormatDatum(session.StartsAt)} fällt aus.";
+            var text = Meldung.Von(
+                "Das Training {gruppe} am {datum} fällt aus.",
+                ("gruppe", session.Group?.Name ?? ""), ("datum", Datum(session.StartsAt)));
             foreach (var id in empfaenger.Where(id => id != userId))
                 await notifications.CreateAsync(id, text, "/", ct);
         }
@@ -549,8 +555,9 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
     private Task<bool> IsClubTrainerAsync(Guid userId, Guid clubId, CancellationToken ct) =>
         db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
 
-    private static string FormatDatum(DateTimeOffset startsAt) =>
-        TimeZoneInfo.ConvertTime(startsAt, Vereinszeit.Zone).ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
+    /// <summary>Der Kalendertag in der Vereinszeit - als Datum, das der NotificationService je Sprache schreibt.</summary>
+    private static DateOnly Datum(DateTimeOffset startsAt) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(startsAt, Vereinszeit.Zone).DateTime);
 
     private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }

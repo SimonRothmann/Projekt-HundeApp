@@ -25,7 +25,8 @@ public class AccountMailServiceTests
         FakeNotificationChannels Kanaele,
         FakeNotificationService Meldungen,
         FakeUserLookupService Lookup,
-        FesteUhr Uhr);
+        FesteUhr Uhr,
+        Dogity.Infrastructure.Persistence.ApplicationDbContext Db);
 
     private static Umgebung Aufbauen(bool email)
     {
@@ -35,8 +36,9 @@ public class AccountMailServiceTests
         var lookup = new FakeUserLookupService();
         lookup.Rollen[AdminRolle] = [Guid.NewGuid(), Guid.NewGuid()];
         var uhr = new FesteUhr(new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero));
-        var service = new AccountMailService(mails, kanaele, TestLinks.Mit(), TestAbmeldeToken.Neu(), lookup, meldungen, new MailDrossel(uhr));
-        return new Umgebung(service, mails, kanaele, meldungen, lookup, uhr);
+        var db = InMemoryDbContext.Create();
+        var service = new AccountMailService(db, mails, kanaele, TestLinks.Mit(), TestAbmeldeToken.Neu(), lookup, meldungen, new MailDrossel(uhr));
+        return new Umgebung(service, mails, kanaele, meldungen, lookup, uhr, db);
     }
 
     private static PasswortResetAnfrage Anfrage() =>
@@ -194,5 +196,59 @@ public class AccountMailServiceTests
 
         // Beide Anfragen erreichen die Admins (2 Admins x 2 Anfragen).
         Assert.Equal(4, u.Meldungen.Created.Count);
+    }
+
+    [Fact]
+    public void Willkommen_InDerBeiDerRegistrierungGewaehltenSprache()
+    {
+        var u = Aufbauen(email: true);
+
+        u.Service.SendeWillkommen(Guid.NewGuid(), "max@example.com", "en");
+
+        var mail = Assert.Single(u.Mails.Mails);
+        Assert.Equal("Welcome to Dogity", mail.Betreff);
+        Assert.StartsWith("Hi,", mail.Text);
+        Assert.Contains("lang=\"en\"", mail.Html);
+        // Der Abmelde-Link gehört auch zur englischen Willkommensmail.
+        Assert.NotNull(mail.AbmeldeSeite);
+        Assert.Contains("Unsubscribe here", mail.Html);
+    }
+
+    [Fact]
+    public async Task Passwort_InDerSpracheDerEmpfaengerin()
+    {
+        var u = Aufbauen(email: true);
+        var anfrage = Anfrage();
+        u.Db.UserPreferences.Add(new Dogity.Domain.Preferences.UserPreference { UserId = anfrage.UserId, Locale = "en" });
+        await u.Db.SaveChangesAsync();
+
+        await u.Service.SendePasswortZuruecksetzenAsync(anfrage, AdminRolle);
+
+        var mail = Assert.Single(u.Mails.Mails);
+        Assert.Equal("Dogity: Reset your password", mail.Betreff);
+        Assert.Contains("Hi Max,", mail.Text);
+        Assert.Contains(ResetLink, mail.Text);
+    }
+
+    [Fact]
+    public async Task Passwort_OhneGespeicherteSprache_IstDeutsch()
+    {
+        var u = Aufbauen(email: true);
+
+        await u.Service.SendePasswortZuruecksetzenAsync(Anfrage(), AdminRolle);
+
+        Assert.Equal("Dogity: Passwort zurücksetzen", Assert.Single(u.Mails.Mails).Betreff);
+    }
+
+    [Fact]
+    public async Task Passwort_SpracheEinerAnderenPerson_GiltNicht()
+    {
+        var u = Aufbauen(email: true);
+        u.Db.UserPreferences.Add(new Dogity.Domain.Preferences.UserPreference { UserId = Guid.NewGuid(), Locale = "en" });
+        await u.Db.SaveChangesAsync();
+
+        await u.Service.SendePasswortZuruecksetzenAsync(Anfrage(), AdminRolle);
+
+        Assert.Equal("Dogity: Passwort zurücksetzen", Assert.Single(u.Mails.Mails).Betreff);
     }
 }

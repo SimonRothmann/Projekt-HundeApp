@@ -383,6 +383,37 @@ Lücken der Oberfläche, Servermeldungen.
   an den Server gesendet) gehört in Datenschutzerklärung und
   Verarbeitungsverzeichnis.
 
+**Paket E2 umgesetzt (2026-10-16, Fassung 0.30):** Benachrichtigungen, Push und
+Mails in der Sprache der Empfänger:in.
+
+- Sprache bei der Registrierung: `RegisterRequest.Locale` ("de"/"en"); die
+  Oberfläche schickt die gerade angezeigte Sprache mit. Gespeichert wird sie
+  vor der Willkommensmail in `UserPreference.Locale`
+  (`PreferenceService.SetRegistrationLocaleAsync`); unbekannte oder leere Werte
+  speichern nichts. Bestehende Konten ohne Sprache bekommen weiter Deutsch.
+  `Sprachen` (Application/Preferences) ist die eine Stelle, die die Sprachen
+  des Servers kennt.
+- Server-Übersetzung nach dem Muster des Frontends (`Common/Uebersetzung.cs`):
+  `Meldung.Von("deutscher Satz mit {platzhaltern}", ("name", wert))`, das
+  Wörterbuch `Uebersetzung.Englisch` liefert die englische Fassung, Fehlendes
+  bleibt Deutsch. `INotificationService.CreateAsync` nimmt nur noch eine
+  `Meldung`; der Service schlägt die Sprache nach und rendert den Satz einmal
+  für Glocke, Mail und Push. Satzteile als Werte gibt es nicht - Fälle mit und
+  ohne Name oder Hund sind eigene Vorlagen. Daten (`DateOnly`) schreibt der
+  Server je Sprache (de 05.09.2026, en 5 Sep 2026, InvariantCulture).
+- Der Schutz gegen gleichlautende Meldungen (Rückmeldung zum Feedback) fragt
+  `HatUngelesenAsync`, das mit dem Text in der Sprache der Empfänger:in
+  vergleicht.
+- Mails: `MailVorlagen` nehmen die Sprache als Parameter (Betreff, Anrede,
+  Absätze, Knopf, Fußzeile, Abmeldesatz, `<html lang>`); die Testmail bleibt
+  deutsch. Die Passwort-Mail schlägt die Sprache der Empfänger:in nach, die
+  Willkommensmail bekommt die bei der Registrierung gewählte.
+- Push: Text = gerenderte Meldung, `lang` im Payload folgt der Sprache, Titel
+  "Dogity". Der Test-Push kommt in der Sprache der Admin-Person.
+- Wächter: `UebersetzungTests` liest alle `Meldung.Von("...")` aus dem
+  Quelltext und verlangt eine englische Fassung mit denselben Platzhaltern, die
+  passenden Werte am Aufruf und keine verwaisten Wörterbuchzeilen.
+
 ---
 
 ## Reihenfolge

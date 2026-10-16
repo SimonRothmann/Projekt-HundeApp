@@ -14,11 +14,27 @@ public class FakeNotificationService : INotificationService
     /// <summary>Die Meldungen, die als "wichtig" (also zusätzlich per Mail) angelegt wurden.</summary>
     public List<(Guid UserId, string Message)> Wichtige { get; } = [];
 
-    public Task CreateAsync(Guid userId, string message, string? linkPath = null, CancellationToken ct = default, bool wichtig = false)
+    /// <summary>Die Meldungen mit Vorlage und Werten, wie die Services sie übergeben haben.</summary>
+    public List<(Guid UserId, Meldung Meldung)> Vorlagen { get; } = [];
+
+    /// <summary>
+    /// <see cref="Created"/> hält den deutschen Satz (wie ihn eine Person ohne gespeicherte
+    /// Sprache lesen würde) - so prüfen die Tests den Wortlaut, ohne den NotificationService zu brauchen.
+    /// </summary>
+    public Task CreateAsync(Guid userId, Meldung meldung, string? linkPath = null, CancellationToken ct = default, bool wichtig = false)
     {
+        var message = Uebersetzung.Rendere(meldung, null);
+        Vorlagen.Add((userId, meldung));
         Created.Add((userId, message, linkPath));
         if (wichtig) Wichtige.Add((userId, message));
         return Task.CompletedTask;
+    }
+
+    /// <summary>Alles in <see cref="Created"/> gilt als ungelesen (der Fake kennt kein Lesen).</summary>
+    public Task<bool> HatUngelesenAsync(Guid userId, Meldung meldung, string linkPath, CancellationToken ct = default)
+    {
+        var message = Uebersetzung.Rendere(meldung, null);
+        return Task.FromResult(Created.Any(c => c.UserId == userId && c.Message == message && c.LinkPath == linkPath));
     }
 
     public Task<Result<IReadOnlyList<NotificationDto>>> GetMyNotificationsAsync(Guid userId, CancellationToken ct = default)

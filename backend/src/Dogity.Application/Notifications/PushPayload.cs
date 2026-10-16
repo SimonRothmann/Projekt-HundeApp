@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Dogity.Application.Preferences;
 
 namespace Dogity.Application.Notifications;
 
@@ -25,7 +26,8 @@ public static class PushPayload
 
     public const string Titel = "Dogity";
 
-    public static string Erzeuge(string nachricht, string navigateUrl, int ungelesen)
+    /// <param name="sprache">Sprache der Empfänger:in (UserPreference.Locale); der Text ist schon in ihr geschrieben, "lang" sagt es dem Betriebssystem. Ohne Angabe: Deutsch.</param>
+    public static string Erzeuge(string nachricht, string navigateUrl, int ungelesen, string? sprache = null)
     {
         var inhalt = new Dictionary<string, object>
         {
@@ -35,7 +37,7 @@ public static class PushPayload
                 ["title"] = Titel,
                 ["body"] = nachricht,
                 ["navigate"] = navigateUrl,
-                ["lang"] = "de",
+                ["lang"] = Sprachen.IstEnglisch(sprache) ? Sprachen.Englisch : Sprachen.Deutsch,
                 // Die Zahl am App-Symbol auf dem Home-Bildschirm.
                 ["app_badge"] = ungelesen,
             },

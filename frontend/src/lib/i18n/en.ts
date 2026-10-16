@@ -2069,4 +2069,8 @@ export const EN: Record<string, string> = {
     "Messages from the server – such as “Dog not found.” or password hints – now appear in the language you have set.",
   "An einigen Stellen blieb auch bei eingestelltem Englisch deutscher Text stehen, zum Beispiel im Sachkunde-Trainer, beim Installationshinweis, im Katalog-Editor und bei einigen Beschriftungen für Screenreader. Das ist jetzt durchgehend übersetzt.":
     "In a few places German text remained even with English selected, for example in the theory trainer, the install hint, the catalogue editor and some labels for screen readers. All of it is now translated.",
+  "Benachrichtigungen, Mitteilungen auf dem Gerät und E-Mails von Dogity kommen jetzt in der Sprache, die du eingestellt hast – Deutsch oder English. Schon erhaltene Benachrichtigungen bleiben, wie sie waren.":
+    "Notifications, device alerts and emails from Dogity now come in the language you have set – Deutsch or English. Notifications you have already received stay as they were.",
+  "Registrierst du dich auf English, kommt schon die Willkommensmail auf English, und die Sprache bleibt gespeichert. Bestehende Konten bekommen weiter deutsche Mails und Mitteilungen, bis du die Sprache im Profil auf English stellst.":
+    "If you sign up in English, even the welcome email arrives in English, and the language stays saved. Existing accounts keep receiving German emails and alerts until you switch the language to English in your profile.",
 };

@@ -41,7 +41,7 @@ public class PushTestServiceTests
         Assert.Equal(new TestpushErgebnisDto(PushEingerichtet: true, Geraete: 2), ergebnis);
         var meldung = Assert.Single(meldungen.Created);
         Assert.Equal(ich, meldung.UserId);
-        Assert.Equal(PushTestService.Meldung, meldung.Message);
+        Assert.Equal("Test-Push aus dem Adminbereich: Kommt diese Mitteilung an, funktioniert Push auf deinen Geräten.", meldung.Message);
         Assert.Equal("/admin/system", meldung.LinkPath);
     }
 

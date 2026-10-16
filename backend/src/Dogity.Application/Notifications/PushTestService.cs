@@ -1,4 +1,5 @@
 using Dogity.Application.Abstractions;
+using Dogity.Application.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Notifications;
@@ -10,8 +11,6 @@ public class PushTestService(
     INotificationChannels channels,
     IFrontendLinks links) : IPushTestService
 {
-    public const string Meldung = "Test-Push aus dem Adminbereich: Kommt diese Mitteilung an, funktioniert Push auf deinen Geräten.";
-
     public async Task<TestpushErgebnisDto> SendeAnMichAsync(Guid userId, CancellationToken ct = default)
     {
         // Dieselben Bedingungen wie NotificationService.PushEinreihenAsync: ohne
@@ -23,7 +22,11 @@ public class PushTestService(
 
         // Ohne Gerät keine Meldung: Sie stünde nur in der Glocke und bewiese nichts.
         if (geraete > 0)
-            await notifications.CreateAsync(userId, Meldung, "/admin/system", ct);
+            await notifications.CreateAsync(
+                userId,
+                Meldung.Von("Test-Push aus dem Adminbereich: Kommt diese Mitteilung an, funktioniert Push auf deinen Geräten."),
+                "/admin/system",
+                ct);
 
         return new TestpushErgebnisDto(PushEingerichtet: true, Geraete: geraete);
     }

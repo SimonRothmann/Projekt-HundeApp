@@ -1,3 +1,4 @@
+using Dogity.Application.Common;
 using Dogity.Application.Notifications;
 using Dogity.Application.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -38,7 +39,7 @@ public class AbmeldeLinksTests
         var mails = new FakeMailQueue();
         var tokens = TestAbmeldeToken.Neu();
         var service = new AccountMailService(
-            mails, new FakeNotificationChannels { EmailAktiv = true }, TestLinks.Mit(basis), tokens,
+            InMemoryDbContext.Create(), mails, new FakeNotificationChannels { EmailAktiv = true }, TestLinks.Mit(basis), tokens,
             new FakeUserLookupService(), new FakeNotificationService(), new MailDrossel(new FesteUhr()));
         return (service, mails, tokens);
     }
@@ -51,7 +52,7 @@ public class AbmeldeLinksTests
     {
         var n = Benachrichtigung();
 
-        await n.Service.CreateAsync(n.UserId, "Anna lädt dich ein.", "/clubs", wichtig: true);
+        await n.Service.CreateAsync(n.UserId, new Meldung("Anna lädt dich ein."), "/clubs", wichtig: true);
 
         var mail = Assert.Single(n.Mails.Mails);
         Assert.StartsWith("https://dogity.example/email-abmelden?t=", mail.AbmeldeSeite);
@@ -65,7 +66,7 @@ public class AbmeldeLinksTests
     {
         var n = Benachrichtigung(basis: "");
 
-        await n.Service.CreateAsync(n.UserId, "Anna lädt dich ein.", "/clubs", wichtig: true);
+        await n.Service.CreateAsync(n.UserId, new Meldung("Anna lädt dich ein."), "/clubs", wichtig: true);
 
         var mail = Assert.Single(n.Mails.Mails);
         Assert.Null(mail.AbmeldeSeite);

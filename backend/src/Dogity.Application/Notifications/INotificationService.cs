@@ -24,7 +24,22 @@ public interface INotificationService
     /// Mailversand eingerichtet ist. Am Ende der Parameter, damit bestehende
     /// Aufrufe mit <c>ct</c> an vierter Stelle unverändert bleiben; Aufrufer nennen ihn.
     /// </param>
-    Task CreateAsync(Guid userId, string message, string? linkPath = null, CancellationToken ct = default, bool wichtig = false);
+    /// <param name="meldung">
+    /// Vorlage und Werte, kein fertiger Text: Der Service schreibt den Satz in der
+    /// Sprache der Empfänger:in (UserPreference.Locale) und verwendet denselben
+    /// Text für Glocke, Mail und Push. Eine Überladung mit fertigem Text gibt es
+    /// bewusst nicht - sie lüde dazu ein, wieder feste deutsche Sätze zu schreiben.
+    /// </param>
+    Task CreateAsync(Guid userId, Meldung meldung, string? linkPath = null, CancellationToken ct = default, bool wichtig = false);
+
+    /// <summary>
+    /// Ob die Person genau diese Meldung mit diesem Link schon ungelesen in der
+    /// Glocke hat. Verglichen wird der Text in IHRER Sprache - der gespeicherte
+    /// Satz ist schon übersetzt, ein Vergleich mit dem deutschen Text träfe bei
+    /// englischen Empfänger:innen nie.
+    /// </summary>
+    Task<bool> HatUngelesenAsync(Guid userId, Meldung meldung, string linkPath, CancellationToken ct = default);
+
     Task<Result<IReadOnlyList<NotificationDto>>> GetMyNotificationsAsync(Guid userId, CancellationToken ct = default);
     Task<Result<int>> GetUnreadCountAsync(Guid userId, CancellationToken ct = default);
     Task<Result> MarkReadAsync(Guid userId, Guid notificationId, CancellationToken ct = default);

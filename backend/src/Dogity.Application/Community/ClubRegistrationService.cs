@@ -58,7 +58,7 @@ public class ClubRegistrationService(
         // Alle Admins informieren - sonst bliebe der Antrag liegen, bis
         // zufällig jemand in die Verwaltung schaut.
         foreach (var adminId in await userLookup.ListUserIdsInRoleAsync(AdminRoleName, ct))
-            await notifications.CreateAsync(adminId, $"Neuer Vereinsantrag: \"{name}\".", "/admin/vereine", ct);
+            await notifications.CreateAsync(adminId, Meldung.Von("Neuer Vereinsantrag: \"{name}\".", ("name", name)), "/admin/vereine", ct);
 
         return Result<ClubRegistrationDto>.Success(await ZuDtoAsync(eintrag, ct));
     }
@@ -118,7 +118,7 @@ public class ClubRegistrationService(
         await trainerRoles.SyncAsync(eintrag.RequestedByUserId, ct);
         await notifications.CreateAsync(
             eintrag.RequestedByUserId,
-            $"Dein Verein \"{verein.Name}\" wurde freigegeben. Du verwaltest ihn.",
+            Meldung.Von("Dein Verein \"{verein}\" wurde freigegeben. Du verwaltest ihn.", ("verein", verein.Name)),
             "/trainer",
             ct);
 
@@ -139,10 +139,14 @@ public class ClubRegistrationService(
         eintrag.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        var grund = eintrag.DecisionNote is null ? "" : $" Begründung: {eintrag.DecisionNote}";
+        // Mit und ohne Begründung sind zwei ganze Sätze: Ein angehängtes "Begründung: ..."
+        // als Satzteil ließe sich nicht übersetzen.
+        var meldung = eintrag.DecisionNote is null
+            ? Meldung.Von("Dein Vereinsantrag \"{verein}\" wurde abgelehnt.", ("verein", eintrag.Name))
+            : Meldung.Von("Dein Vereinsantrag \"{verein}\" wurde abgelehnt. Begründung: {grund}", ("verein", eintrag.Name), ("grund", eintrag.DecisionNote));
         await notifications.CreateAsync(
             eintrag.RequestedByUserId,
-            $"Dein Vereinsantrag \"{eintrag.Name}\" wurde abgelehnt.{grund}",
+            meldung,
             "/clubs",
             ct);
 

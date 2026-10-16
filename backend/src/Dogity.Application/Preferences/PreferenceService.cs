@@ -85,6 +85,18 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
         return Result.Success();
     }
 
+    public async Task<string?> SetRegistrationLocaleAsync(Guid userId, string? locale, CancellationToken ct = default)
+    {
+        var sprache = Sprachen.Normalisiere(locale);
+        if (sprache is null) return null;
+
+        var eintrag = await LadenOderAnlegenAsync(userId, ct);
+        eintrag.Locale = sprache;
+        eintrag.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return sprache;
+    }
+
     public async Task<Result> UpdateCountryAsync(Guid userId, UpdateCountryRequest request, CancellationToken ct = default)
     {
         var land = request.Country?.Trim().ToUpperInvariant();

@@ -72,7 +72,9 @@ public class GroupRegistrationFormService(IApplicationDbContext db, INotificatio
         // Die Trainer:innen der Gruppe erfahren es in der App - die Anmeldung
         // kommt von einem Menschen ohne Konto, sonst bemerkte sie niemand. Der Link
         // öffnet gleich die Ansicht "Anmeldungen" der Gruppe, nicht die der Mitglieder.
-        var text = $"Neue Anmeldung für {info.GroupName}: {eingabe.DogName} ({eingabe.DogBreed}).";
+        var text = Meldung.Von(
+            "Neue Anmeldung für {gruppe}: {hund} ({rasse}).",
+            ("gruppe", info.GroupName), ("hund", eingabe.DogName), ("rasse", eingabe.DogBreed));
         foreach (var id in await TrainerIdsAsync(info.GroupId, info.LeadId, ct))
             await notifications.CreateAsync(id, text, $"/trainer/{info.GroupId}?ansicht=anmeldungen", ct);
 

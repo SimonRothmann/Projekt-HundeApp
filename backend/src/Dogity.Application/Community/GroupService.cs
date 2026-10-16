@@ -316,10 +316,12 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         }
 
         await db.SaveChangesAsync(ct);
-        var einladende = TrainerDisplayName(await userLookup.FindByIdsAsync([userId], ct), userId) ?? "Eine Trainer:in";
+        var einladende = TrainerDisplayName(await userLookup.FindByIdsAsync([userId], ct), userId);
         await notifications.CreateAsync(
             user.UserId,
-            $"{einladende} lädt dich ein, Trainer:in der Gruppe \"{group.Name}\" zu werden.",
+            einladende is null
+                ? Meldung.Von("Eine Trainer:in lädt dich ein, Trainer:in der Gruppe \"{gruppe}\" zu werden.", ("gruppe", group.Name))
+                : Meldung.Von("{name} lädt dich ein, Trainer:in der Gruppe \"{gruppe}\" zu werden.", ("name", einladende), ("gruppe", group.Name)),
             "/clubs",
             ct,
             wichtig: true);
@@ -403,10 +405,12 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             return Result.Success();
 
         var einladende = await userLookup.FindByIdsAsync([trainerId], ct);
-        var name = TrainerDisplayName(einladende, trainerId) ?? "Eine Trainer:in";
+        var name = TrainerDisplayName(einladende, trainerId);
         await notifications.CreateAsync(
             user.UserId,
-            $"{name} lädt dich in die Gruppe \"{group.Name}\" ein.",
+            name is null
+                ? Meldung.Von("Eine Trainer:in lädt dich in die Gruppe \"{gruppe}\" ein.", ("gruppe", group.Name))
+                : Meldung.Von("{name} lädt dich in die Gruppe \"{gruppe}\" ein.", ("name", name), ("gruppe", group.Name)),
             "/clubs",
             ct,
             wichtig: true);
@@ -636,10 +640,19 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         // Wer ab jetzt ins Tagebuch schaut, soll das Mitglied erfahren - und
         // nicht erst, wenn eine Bewertung auftaucht.
         var hundName = await db.Dogs.Where(d => d.Id == request.DogId).Select(d => d.Name).FirstOrDefaultAsync(ct);
-        var trainerName = TrainerDisplayName(await userLookup.FindByIdsAsync([trainerId], ct), trainerId) ?? "Eine Trainer:in";
+        var trainerName = TrainerDisplayName(await userLookup.FindByIdsAsync([trainerId], ct), trainerId);
+        // Ohne Namen (Konto weg) oder ohne Hund (gelöscht) je ein eigener ganzer Satz -
+        // "deinen Hund" als eingesetzter Satzteil ließe sich nicht übersetzen.
+        var meldung = trainerName is null
+            ? hundName is null
+                ? Meldung.Von("Eine Trainer:in betreut jetzt deinen Hund und sieht Tagebuch, Ziele und Fährten.")
+                : Meldung.Von("Eine Trainer:in betreut jetzt {hund} und sieht Tagebuch, Ziele und Fährten.", ("hund", hundName))
+            : hundName is null
+                ? Meldung.Von("{name} betreut jetzt deinen Hund und sieht Tagebuch, Ziele und Fährten.", ("name", trainerName))
+                : Meldung.Von("{name} betreut jetzt {hund} und sieht Tagebuch, Ziele und Fährten.", ("name", trainerName), ("hund", hundName));
         await notifications.CreateAsync(
             request.MemberId,
-            $"{trainerName} betreut jetzt {hundName ?? "deinen Hund"} und sieht Tagebuch, Ziele und Fährten.",
+            meldung,
             "/clubs",
             ct);
         return Result.Success();
@@ -842,8 +855,8 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         await notifications.CreateAsync(
             memberId,
             approve
-                ? $"Dein Beitritt zur Gruppe \"{group.Name}\" wurde angenommen."
-                : $"Dein Beitritt zur Gruppe \"{group.Name}\" wurde abgelehnt.",
+                ? Meldung.Von("Dein Beitritt zur Gruppe \"{gruppe}\" wurde angenommen.", ("gruppe", group.Name))
+                : Meldung.Von("Dein Beitritt zur Gruppe \"{gruppe}\" wurde abgelehnt.", ("gruppe", group.Name)),
             "/clubs",
             ct,
             wichtig: true);

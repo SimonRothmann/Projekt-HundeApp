@@ -17,7 +17,12 @@ public interface IAccountMailService
     /// was jemand lesen wollte. Ohne Namen, weil die Adresse unbestätigt ist.
     /// Mit Abmelde-Link für die Benachrichtigungen - dafür die Konto-Id.
     /// </summary>
-    void SendeWillkommen(Guid userId, string email);
+    /// <param name="sprache">
+    /// Die Sprache, in der die Person sich registriert hat (null = Deutsch). Wird
+    /// übergeben statt nachgeschlagen: Die Mail ist synchron eingereiht, und die
+    /// Registrierung hat die Sprache gerade selbst in der Hand.
+    /// </param>
+    void SendeWillkommen(Guid userId, string email, string? sprache = null);
 
     /// <summary>
     /// Mail mit dem Link zum Zurücksetzen. Ist KEIN Mailversand eingerichtet,

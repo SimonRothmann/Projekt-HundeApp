@@ -559,14 +559,14 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         // Felix') stimmt nicht für jeden Namen, die Umschreibung mit "von"
         // dagegen immer.
         var hundName = await db.Dogs.Where(d => d.Id == session.DogId).Select(d => d.Name).FirstOrDefaultAsync(ct);
-        var training = string.IsNullOrWhiteSpace(hundName)
-            ? $"zu deinem Training vom {session.Date:dd.MM.yyyy}"
-            : $"zum Training von {hundName} vom {session.Date:dd.MM.yyyy}";
+        var feedback = string.IsNullOrWhiteSpace(hundName)
+            ? Meldung.Von("Dein Trainer hat Feedback zu deinem Training vom {datum} hinterlassen.", ("datum", session.Date))
+            : Meldung.Von("Dein Trainer hat Feedback zum Training von {hund} vom {datum} hinterlassen.", ("hund", hundName), ("datum", session.Date));
 
         // Der Link öffnet den Eintrag selbst, nicht nur die Hundeseite.
         await notifications.CreateAsync(
             session.UserId,
-            $"Dein Trainer hat Feedback {training} hinterlassen.",
+            feedback,
             $"/dogs/{session.DogId}?eintrag={session.Id}",
             ct);
 
@@ -611,14 +611,16 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             var lookup = await userLookup.FindByIdsAsync([userId], ct);
             var vorname = lookup.TryGetValue(userId, out var owner) && !string.IsNullOrWhiteSpace(owner.FirstName)
                 ? owner.FirstName
-                : "Jemand";
-            var nachricht = $"{vorname} hat auf dein Feedback zum Training vom {session.Date:dd.MM.yyyy} geantwortet.";
+                : null;
+            var nachricht = vorname is null
+                ? Meldung.Von("Jemand hat auf dein Feedback zum Training vom {datum} geantwortet.", ("datum", session.Date))
+                : Meldung.Von("{name} hat auf dein Feedback zum Training vom {datum} geantwortet.", ("name", vorname), ("datum", session.Date));
             var link = $"/dogs/{session.DogId}?eintrag={session.Id}";
             // Wer die Chips mehrfach umschaltet, soll die Glocke nicht mit
             // gleichlautenden Meldungen füllen: Liegt dieselbe noch ungelesen
             // da, genügt sie - der Link führt ohnehin zum aktuellen Stand.
-            var schonOffen = await db.Notifications.AnyAsync(
-                n => n.UserId == trainerId && !n.IsRead && n.LinkPath == link && n.Message == nachricht, ct);
+            // Verglichen wird der Text in der Sprache der Trainer:in (so steht er in der Glocke).
+            var schonOffen = await notifications.HatUngelesenAsync(trainerId, nachricht, link, ct);
             if (!schonOffen)
                 await notifications.CreateAsync(trainerId, nachricht, link, ct);
         }

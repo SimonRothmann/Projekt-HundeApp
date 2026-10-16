@@ -81,6 +81,14 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "behoben",
         text: uebersetzbar("An einigen Stellen blieb auch bei eingestelltem Englisch deutscher Text stehen, zum Beispiel im Sachkunde-Trainer, beim Installationshinweis, im Katalog-Editor und bei einigen Beschriftungen für Screenreader. Das ist jetzt durchgehend übersetzt."),
       },
+      {
+        art: "neu",
+        text: uebersetzbar("Benachrichtigungen, Mitteilungen auf dem Gerät und E-Mails von Dogity kommen jetzt in der Sprache, die du eingestellt hast – Deutsch oder English. Schon erhaltene Benachrichtigungen bleiben, wie sie waren."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Registrierst du dich auf English, kommt schon die Willkommensmail auf English, und die Sprache bleibt gespeichert. Bestehende Konten bekommen weiter deutsche Mails und Mitteilungen, bis du die Sprache im Profil auf English stellst."),
+      },
     ],
   },
   {

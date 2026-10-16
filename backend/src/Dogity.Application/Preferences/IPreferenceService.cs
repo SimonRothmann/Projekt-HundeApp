@@ -10,6 +10,15 @@ public interface IPreferenceService
     Task<Result> UpdateLocaleAsync(Guid userId, UpdateLocaleRequest request, CancellationToken ct = default);
 
     /// <summary>
+    /// Merkt sich die Sprache, in der jemand das Konto anlegt - sie gilt für Mails und
+    /// Push, bis die Person sie im Profil ändert. Nimmt nur Sprachen an, die der Server
+    /// schreiben kann (<see cref="Sprachen"/>); alles andere ist kein Fehler, es wird
+    /// nur nichts gespeichert (keine Zeile angelegt). Gibt die gespeicherte Sprache
+    /// zurück, sonst null.
+    /// </summary>
+    Task<string?> SetRegistrationLocaleAsync(Guid userId, string? locale, CancellationToken ct = default);
+
+    /// <summary>
     /// Setzt den Geltungsbereich der Prüfungsordnungen. Getrennt von der
     /// Sprache - siehe <see cref="Dogity.Domain.Preferences.UserPreference.Country"/>.
     /// </summary>

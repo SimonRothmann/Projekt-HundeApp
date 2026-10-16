@@ -589,7 +589,10 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     // manuellen "Neu generieren" hat der Nutzer die Änderung selbst ausgelöst.
     private async Task NotifyOwnersOfAutoRegenerationAsync(Goal goal, int weekNumber, CancellationToken ct)
     {
-        var dogName = await db.Dogs.Where(d => d.Id == goal.DogId).Select(d => d.Name).FirstOrDefaultAsync(ct) ?? "deinen Hund";
+        var dogName = await db.Dogs.Where(d => d.Id == goal.DogId).Select(d => d.Name).FirstOrDefaultAsync(ct);
+        var meldung = dogName is null
+            ? Meldung.Von("Der Trainingsplan für deinen Hund wurde für Woche {woche} automatisch angepasst.", ("woche", weekNumber))
+            : Meldung.Von("Der Trainingsplan für {hund} wurde für Woche {woche} automatisch angepasst.", ("hund", dogName), ("woche", weekNumber));
         var ownerIds = await db.DogOwners
             .Where(o => o.DogId == goal.DogId && o.Role == DogOwnerRole.Owner)
             .Select(o => o.UserId)
@@ -598,7 +601,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         foreach (var ownerId in ownerIds)
             await notifications.CreateAsync(
                 ownerId,
-                $"Der Trainingsplan für {dogName} wurde für Woche {weekNumber} automatisch angepasst.",
+                meldung,
                 $"/dogs/{goal.DogId}",
                 ct);
     }

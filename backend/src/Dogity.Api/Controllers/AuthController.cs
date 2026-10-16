@@ -74,12 +74,26 @@ public class AuthController(
             }
         }
 
+        // Die Sprache der Oberfläche beim Registrieren gilt ab jetzt für Mails und Push.
+        // VOR der Willkommensmail gespeichert, damit schon sie in dieser Sprache kommt.
+        // Wie bei der Abwahl oben: Scheitert das Speichern, gelingt die Registrierung trotzdem -
+        // die Person stellt die Sprache dann im Profil ein. Unbekanntes wird gar nicht erst gespeichert.
+        var sprache = Sprachen.Normalisiere(request.Locale);
+        try
+        {
+            sprache = await preferences.SetRegistrationLocaleAsync(user.Id, request.Locale) ?? sprache;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Die Sprache konnte bei der Registrierung nicht gespeichert werden.");
+        }
+
         // Eingereiht, nicht gesendet: Der Versand läuft im Hintergrund, die
         // Registrierung wartet nie auf den Mailserver und scheitert nie an ihm.
         // Das gilt auch für das Erzeugen des Abmelde-Tokens (Schlüsselring).
         try
         {
-            accountMails.SendeWillkommen(user.Id, user.Email!);
+            accountMails.SendeWillkommen(user.Id, user.Email!, sprache);
         }
         catch (Exception ex)
         {

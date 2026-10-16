@@ -1,3 +1,4 @@
+using Dogity.Application.Common;
 using Dogity.Application.Notifications;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Domain.Notifications;
@@ -41,7 +42,7 @@ public class NotificationVersandTests
     {
         var u = Aufbauen();
 
-        await u.Service.CreateAsync(u.UserId, "Anna lädt dich ein.", "/clubs", wichtig: true);
+        await u.Service.CreateAsync(u.UserId, new Meldung("Anna lädt dich ein."), "/clubs", wichtig: true);
 
         var mail = Assert.Single(u.Mails.Mails);
         Assert.Equal("max@example.com", mail.An);
@@ -58,7 +59,7 @@ public class NotificationVersandTests
         u.Db.UserPreferences.Add(new UserPreference { UserId = u.UserId, EmailNotifications = false });
         await u.Db.SaveChangesAsync();
 
-        await u.Service.CreateAsync(u.UserId, "Anna lädt dich ein.", "/clubs", wichtig: true);
+        await u.Service.CreateAsync(u.UserId, new Meldung("Anna lädt dich ein."), "/clubs", wichtig: true);
 
         Assert.Empty(u.Mails.Mails);
         Assert.Single(u.Db.Notifications);
@@ -69,7 +70,7 @@ public class NotificationVersandTests
     {
         var u = Aufbauen();
 
-        await u.Service.CreateAsync(u.UserId, "Anna lädt dich ein.", "/clubs", wichtig: true);
+        await u.Service.CreateAsync(u.UserId, new Meldung("Anna lädt dich ein."), "/clubs", wichtig: true);
 
         Assert.Single(u.Mails.Mails);
     }
@@ -79,7 +80,7 @@ public class NotificationVersandTests
     {
         var u = Aufbauen();
 
-        await u.Service.CreateAsync(u.UserId, "Dein Trainer hat Feedback hinterlassen.", "/dogs");
+        await u.Service.CreateAsync(u.UserId, new Meldung("Dein Trainer hat Feedback hinterlassen."), "/dogs");
 
         Assert.Empty(u.Mails.Mails);
         Assert.Single(u.Db.Notifications);
@@ -90,7 +91,7 @@ public class NotificationVersandTests
     {
         var u = Aufbauen(email: false);
 
-        await u.Service.CreateAsync(u.UserId, "Anna lädt dich ein.", "/clubs", wichtig: true);
+        await u.Service.CreateAsync(u.UserId, new Meldung("Anna lädt dich ein."), "/clubs", wichtig: true);
 
         Assert.Empty(u.Mails.Mails);
         Assert.Single(u.Db.Notifications);
@@ -101,7 +102,7 @@ public class NotificationVersandTests
     {
         var u = Aufbauen(basis: "");
 
-        await u.Service.CreateAsync(u.UserId, "Anna lädt dich ein.", "/clubs", wichtig: true);
+        await u.Service.CreateAsync(u.UserId, new Meldung("Anna lädt dich ein."), "/clubs", wichtig: true);
 
         var mail = Assert.Single(u.Mails.Mails);
         Assert.DoesNotContain("<a ", mail.Html);
@@ -113,9 +114,9 @@ public class NotificationVersandTests
         var u = Aufbauen();
         u.Db.PushSubscriptions.Add(new PushSubscription { UserId = u.UserId, Endpoint = "https://fcm.googleapis.com/x", P256dh = "a", Auth = "b" });
         await u.Db.SaveChangesAsync();
-        await u.Service.CreateAsync(u.UserId, "Erste.", "/dashboard");
+        await u.Service.CreateAsync(u.UserId, new Meldung("Erste."), "/dashboard");
 
-        await u.Service.CreateAsync(u.UserId, "Zweite.", "/dogs/1");
+        await u.Service.CreateAsync(u.UserId, new Meldung("Zweite."), "/dogs/1");
 
         Assert.Equal(2, u.Pushs.Auftraege.Count);
         var auftrag = u.Pushs.Auftraege[1];
@@ -132,7 +133,7 @@ public class NotificationVersandTests
     {
         var u = Aufbauen();
 
-        await u.Service.CreateAsync(u.UserId, "Hallo.", "/dashboard");
+        await u.Service.CreateAsync(u.UserId, new Meldung("Hallo."), "/dashboard");
 
         Assert.Empty(u.Pushs.Auftraege);
     }
@@ -144,7 +145,7 @@ public class NotificationVersandTests
         u.Db.PushSubscriptions.Add(new PushSubscription { UserId = u.UserId, Endpoint = "https://fcm.googleapis.com/x", P256dh = "a", Auth = "b" });
         await u.Db.SaveChangesAsync();
 
-        await u.Service.CreateAsync(u.UserId, "Hallo.", "/dashboard");
+        await u.Service.CreateAsync(u.UserId, new Meldung("Hallo."), "/dashboard");
 
         Assert.Empty(u.Pushs.Auftraege);
         Assert.Single(u.Db.Notifications);
@@ -157,7 +158,7 @@ public class NotificationVersandTests
         u.Db.PushSubscriptions.Add(new PushSubscription { UserId = u.UserId, Endpoint = "https://fcm.googleapis.com/x", P256dh = "a", Auth = "b" });
         await u.Db.SaveChangesAsync();
 
-        await u.Service.CreateAsync(u.UserId, "Hallo.", "/dashboard");
+        await u.Service.CreateAsync(u.UserId, new Meldung("Hallo."), "/dashboard");
 
         Assert.Empty(u.Pushs.Auftraege);
     }
@@ -170,7 +171,7 @@ public class NotificationVersandTests
         u.Db.PushSubscriptions.Add(new PushSubscription { UserId = andere, Endpoint = "https://fcm.googleapis.com/y", P256dh = "a", Auth = "b" });
         await u.Db.SaveChangesAsync();
 
-        await u.Service.CreateAsync(u.UserId, "Hallo.", "/dashboard");
+        await u.Service.CreateAsync(u.UserId, new Meldung("Hallo."), "/dashboard");
 
         Assert.Empty(u.Pushs.Auftraege);
     }
@@ -182,7 +183,7 @@ public class NotificationVersandTests
         var service = new NotificationService(
             u.Db, new WerfendeNutzersuche(), u.Kanaele, TestLinks.Mit(), TestAbmeldeToken.Neu(), u.Mails, u.Pushs, NullLogger<NotificationService>.Instance);
 
-        await service.CreateAsync(u.UserId, "Anna lädt dich ein.", "/clubs", wichtig: true);
+        await service.CreateAsync(u.UserId, new Meldung("Anna lädt dich ein."), "/clubs", wichtig: true);
 
         Assert.Single(u.Db.Notifications);
         Assert.Empty(u.Mails.Mails);

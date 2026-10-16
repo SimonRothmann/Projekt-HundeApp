@@ -243,10 +243,18 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
         await db.SaveChangesAsync(ct);
 
         var hundName = await db.Dogs.Where(d => d.Id == dogId).Select(d => d.Name).FirstOrDefaultAsync(ct);
-        var name = await DisplayNameAsync(userId, ct) ?? "Jemand";
+        var name = await DisplayNameAsync(userId, ct);
+        // Ohne Namen oder ohne Hund je ein eigener ganzer Satz (kein übersetzbarer Satzteil als Wert).
+        var einladung = name is null
+            ? hundName is null
+                ? Meldung.Von("Jemand lädt dich ein, einen Hund gemeinsam zu verwalten.")
+                : Meldung.Von("Jemand lädt dich ein, {hund} gemeinsam zu verwalten.", ("hund", hundName))
+            : hundName is null
+                ? Meldung.Von("{name} lädt dich ein, einen Hund gemeinsam zu verwalten.", ("name", name))
+                : Meldung.Von("{name} lädt dich ein, {hund} gemeinsam zu verwalten.", ("name", name), ("hund", hundName));
         await notifications.CreateAsync(
             target.UserId,
-            $"{name} lädt dich ein, {hundName ?? "einen Hund"} gemeinsam zu verwalten.",
+            einladung,
             "/dogs",
             ct,
             wichtig: true);
@@ -351,10 +359,17 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
         if (warAktiv && targetUserId != userId)
         {
             var hundName = await db.Dogs.Where(d => d.Id == dogId).Select(d => d.Name).FirstOrDefaultAsync(ct);
-            var name = await DisplayNameAsync(userId, ct) ?? "Eine Besitzer:in";
+            var name = await DisplayNameAsync(userId, ct);
+            var entfernt = name is null
+                ? hundName is null
+                    ? Meldung.Von("Eine Besitzer:in hat dich als Mitbesitzer:in von einem Hund entfernt.")
+                    : Meldung.Von("Eine Besitzer:in hat dich als Mitbesitzer:in von {hund} entfernt.", ("hund", hundName))
+                : hundName is null
+                    ? Meldung.Von("{name} hat dich als Mitbesitzer:in von einem Hund entfernt.", ("name", name))
+                    : Meldung.Von("{name} hat dich als Mitbesitzer:in von {hund} entfernt.", ("name", name), ("hund", hundName));
             await notifications.CreateAsync(
                 targetUserId,
-                $"{name} hat dich als Mitbesitzer:in von {hundName ?? "einem Hund"} entfernt.",
+                entfernt,
                 null,
                 ct);
         }
@@ -416,10 +431,17 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
         // Die Trainer:in soll nicht rätseln, warum der Hund aus ihrer Liste
         // verschwunden ist (vgl. Entfernen als Mitbesitzer:in).
         var hundName = await db.Dogs.Where(d => d.Id == dogId).Select(d => d.Name).FirstOrDefaultAsync(ct);
-        var name = await DisplayNameAsync(userId, ct) ?? "Eine Besitzer:in";
+        var name = await DisplayNameAsync(userId, ct);
+        var beendet = name is null
+            ? hundName is null
+                ? Meldung.Von("Eine Besitzer:in hat die Betreuung von einem Hund beendet.")
+                : Meldung.Von("Eine Besitzer:in hat die Betreuung von {hund} beendet.", ("hund", hundName))
+            : hundName is null
+                ? Meldung.Von("{name} hat die Betreuung von einem Hund beendet.", ("name", name))
+                : Meldung.Von("{name} hat die Betreuung von {hund} beendet.", ("name", name), ("hund", hundName));
         await notifications.CreateAsync(
             trainerId,
-            $"{name} hat die Betreuung von {hundName ?? "einem Hund"} beendet.",
+            beendet,
             "/trainer",
             ct);
         return Result.Success();

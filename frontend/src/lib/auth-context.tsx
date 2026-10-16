@@ -29,6 +29,7 @@ type AuthContextValue = {
     firstName: string,
     lastName: string,
     emailBenachrichtigungen?: boolean,
+    locale?: string,
   ) => Promise<void>;
   updateUser: (patch: Partial<Pick<AuthUser, "firstName" | "lastName" | "email">>) => void;
   logout: () => void;
@@ -196,6 +197,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastName: string,
     // "Wichtiges auch per E-Mail" aus dem Formular - vorausgewählt, daher "ja" als Vorgabe.
     emailBenachrichtigungen = true,
+    // Die Oberflächensprache beim Registrieren: Der Server merkt sie sich und schreibt
+    // Mails und Push von Anfang an in ihr (die Willkommensmail eingeschlossen).
+    locale?: string,
   ) {
     const response = await api.post<AuthResponse>("/api/auth/register", {
       email,
@@ -203,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       firstName,
       lastName,
       emailBenachrichtigungen,
+      locale,
     });
     await persist(response);
   }

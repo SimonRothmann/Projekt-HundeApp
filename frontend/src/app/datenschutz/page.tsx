@@ -282,7 +282,8 @@ export default function DatenschutzPage() {
             Zurücksetzen deines Passworts auf Anfrage, und – wenn du es nicht abgeschaltet hast – Einladungen (in einen
             Verein, in eine Gruppe, als Trainer:in einer Gruppe, zum Mitbesitz eines Hundes) und Entscheidungen über
             Beitrittsanfragen. Alles andere erscheint nur in der App oder als Push. Bei der Registrierung wählst du, ob
-            du diese Mails bekommst (das Häkchen ist vorausgewählt). Die Willkommensmail und jede dieser Mails enthalten
+            du diese Mails bekommst (das Häkchen ist vorausgewählt). Die Sprache, die du dabei eingestellt hast (Deutsch oder
+            English), merkt sich Dogity: Mails und Push-Mitteilungen kommen in dieser Sprache, bis du sie im Profil änderst. Die Willkommensmail und jede dieser Mails enthalten
             einen Link zum Abmelden, der ohne Anmeldung wirkt; er enthält nur eine signierte Kennung deines Kontos,
             keine Angaben im Klartext. Die Mail zum
             Zurücksetzen des Passworts hat keinen solchen Link, weil du sie selbst angefordert hast. Versendet wird von einem eigenen

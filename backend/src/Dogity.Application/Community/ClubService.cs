@@ -295,7 +295,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
             await db.SaveChangesAsync(ct);
             // Mail: Die Aufnahme geschah ohne Zutun der Person - sie soll es erfahren.
-            await notifications.CreateAsync(user.UserId, $"Du wurdest zum Verein \"{club.Name}\" hinzugefügt.", "/clubs", ct, wichtig: true);
+            await notifications.CreateAsync(user.UserId, Meldung.Von("Du wurdest zum Verein \"{verein}\" hinzugefügt.", ("verein", club.Name)), "/clubs", ct, wichtig: true);
             return Result<AddClubMemberResultDto>.Success(new AddClubMemberResultDto(Joined: true));
         }
 
@@ -313,9 +313,12 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         var einladende = await userLookup.FindByIdsAsync([callerId], ct);
         var name = einladende.TryGetValue(callerId, out var info) && !string.IsNullOrWhiteSpace($"{info.FirstName} {info.LastName}")
             ? $"{info.FirstName} {info.LastName}".Trim()
-            : "Eine Trainer:in";
+            : null;
+        var einladungsMeldung = name is null
+            ? Meldung.Von("Eine Trainer:in lädt dich in den Verein \"{verein}\" ein.", ("verein", club.Name))
+            : Meldung.Von("{name} lädt dich in den Verein \"{verein}\" ein.", ("name", name), ("verein", club.Name));
         // Mail: Eine Einladung wartet auf eine Antwort - die Person soll sie nicht erst in der App finden müssen.
-        await notifications.CreateAsync(user.UserId, $"{name} lädt dich in den Verein \"{club.Name}\" ein.", "/clubs", ct, wichtig: true);
+        await notifications.CreateAsync(user.UserId, einladungsMeldung, "/clubs", ct, wichtig: true);
         return Result<AddClubMemberResultDto>.Success(new AddClubMemberResultDto(Joined: false));
     }
 
@@ -483,9 +486,12 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             var anfragende = await userLookup.FindByIdsAsync([userId], ct);
             var name = anfragende.TryGetValue(userId, out var info) && !string.IsNullOrWhiteSpace(info.FirstName)
                 ? $"{info.FirstName} {info.LastName}".Trim()
-                : "Jemand";
+                : null;
+            var anfrage = name is null
+                ? Meldung.Von("Jemand möchte dem Verein \"{verein}\" beitreten.", ("verein", club.Name))
+                : Meldung.Von("{name} möchte dem Verein \"{verein}\" beitreten.", ("name", name), ("verein", club.Name));
             foreach (var trainerId in trainerIds)
-                await notifications.CreateAsync(trainerId, $"{name} möchte dem Verein \"{club.Name}\" beitreten.", "/trainer/anfragen", ct);
+                await notifications.CreateAsync(trainerId, anfrage, "/trainer/anfragen", ct);
         }
 
         return Result<ClubMembershipDto>.Success(new ClubMembershipDto(membership.Id, clubId, club.Name, membership.Status, membership.RequestedAt, membership.DecidedAt));
@@ -552,12 +558,12 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         // EINE Meldung statt zwei: Verein und Gruppe in einem Satz, mit Link auf
         // die Stelle, an der man annimmt (Karte auf der Startseite).
         var message = !approve
-            ? $"Dein Beitritt zu \"{club.Name}\" wurde abgelehnt."
+            ? Meldung.Von("Dein Beitritt zu \"{verein}\" wurde abgelehnt.", ("verein", club.Name))
             : group is null || einladung == GroupInvitationOutcome.AlreadyMember
-                ? $"Dein Beitritt zu \"{club.Name}\" wurde angenommen."
+                ? Meldung.Von("Dein Beitritt zu \"{verein}\" wurde angenommen.", ("verein", club.Name))
                 : einladung == GroupInvitationOutcome.JoinedDirectly
-                    ? $"Dein Beitritt zu \"{club.Name}\" wurde angenommen. Du bist jetzt Mitglied der Gruppe \"{group.Name}\"."
-                    : $"Dein Beitritt zu \"{club.Name}\" wurde angenommen. Du bist in die Gruppe \"{group.Name}\" eingeladen - einmal tippen zum Annehmen.";
+                    ? Meldung.Von("Dein Beitritt zu \"{verein}\" wurde angenommen. Du bist jetzt Mitglied der Gruppe \"{gruppe}\".", ("verein", club.Name), ("gruppe", group.Name))
+                    : Meldung.Von("Dein Beitritt zu \"{verein}\" wurde angenommen. Du bist in die Gruppe \"{gruppe}\" eingeladen - einmal tippen zum Annehmen.", ("verein", club.Name), ("gruppe", group.Name));
         var link = einladung is GroupInvitationOutcome.Invited or GroupInvitationOutcome.AlreadyInvited && group is not null
             ? "/dashboard"
             : "/clubs";
@@ -719,7 +725,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         await trainerRoles.SyncAsync(targetUserId, ct);
 
         var club = await db.Clubs.AsNoTracking().FirstAsync(c => c.Id == clubId, ct);
-        await notifications.CreateAsync(targetUserId, $"Du bist jetzt Trainer bei \"{club.Name}\".", "/trainer", ct);
+        await notifications.CreateAsync(targetUserId, Meldung.Von("Du bist jetzt Trainer bei \"{verein}\".", ("verein", club.Name)), "/trainer", ct);
 
         return Result.Success();
     }
