@@ -61,6 +61,21 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.28",
+    datum: "2026-10-16",
+    titel: uebersetzbar("E-Mails abbestellen"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Bei der Registrierung wählst du jetzt, ob wichtige Benachrichtigungen – Einladungen und Entscheidungen über Beitrittsanfragen – auch per E-Mail kommen. Das Häkchen „Wichtiges auch per E-Mail“ ist vorausgewählt, du kannst es abwählen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Jede dieser Mails und die Willkommensmail haben unten einen Link „Hier abmelden“. Damit bestellst du sie ohne Anmeldung ab – und auf der Seite dahinter schaltest du sie mit „Wieder anmelden“ genauso wieder ein. Auch die Abbestellen-Funktion deines Mailprogramms klappt mit einem Tipp."),
+      },
+    ],
+  },
+  {
     version: "0.27",
     datum: "2026-10-15",
     titel: uebersetzbar("Hoopers"),

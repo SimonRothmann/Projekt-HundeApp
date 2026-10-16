@@ -106,6 +106,7 @@ public static class DependencyInjection
 
         services.AddSingleton<INotificationChannels, NotificationChannels>();
         services.AddSingleton<IFrontendLinks, FrontendLinks>();
+        services.AddSingleton<IEmailAbmeldeToken, EmailAbmeldeToken>();
 
         var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();
 

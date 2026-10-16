@@ -35,7 +35,7 @@ public class AccountMailServiceTests
         var lookup = new FakeUserLookupService();
         lookup.Rollen[AdminRolle] = [Guid.NewGuid(), Guid.NewGuid()];
         var uhr = new FesteUhr(new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero));
-        var service = new AccountMailService(mails, kanaele, TestLinks.Mit(), lookup, meldungen, new MailDrossel(uhr));
+        var service = new AccountMailService(mails, kanaele, TestLinks.Mit(), TestAbmeldeToken.Neu(), lookup, meldungen, new MailDrossel(uhr));
         return new Umgebung(service, mails, kanaele, meldungen, lookup, uhr);
     }
 
@@ -47,7 +47,7 @@ public class AccountMailServiceTests
     {
         var u = Aufbauen(email: true);
 
-        u.Service.SendeWillkommen("max@example.com");
+        u.Service.SendeWillkommen(Guid.NewGuid(), "max@example.com");
 
         var mail = Assert.Single(u.Mails.Mails);
         Assert.Equal("max@example.com", mail.An);
@@ -60,7 +60,7 @@ public class AccountMailServiceTests
     {
         var u = Aufbauen(email: false);
 
-        u.Service.SendeWillkommen("max@example.com");
+        u.Service.SendeWillkommen(Guid.NewGuid(), "max@example.com");
 
         Assert.Empty(u.Mails.Mails);
     }
@@ -112,7 +112,7 @@ public class AccountMailServiceTests
     {
         var u = Aufbauen(email: true);
 
-        u.Service.SendeWillkommen("max@example.com");
+        u.Service.SendeWillkommen(Guid.NewGuid(), "max@example.com");
 
         var mail = Assert.Single(u.Mails.Mails);
         Assert.StartsWith("Hallo,", mail.Text);
@@ -164,11 +164,11 @@ public class AccountMailServiceTests
     {
         var u = Aufbauen(email: true);
 
-        for (var i = 0; i < 150; i++) u.Service.SendeWillkommen($"person{i}@example.com");
+        for (var i = 0; i < 150; i++) u.Service.SendeWillkommen(Guid.NewGuid(), $"person{i}@example.com");
         Assert.Equal(100, u.Mails.Mails.Count);
 
         u.Uhr.Jetzt += TimeSpan.FromDays(1);
-        u.Service.SendeWillkommen("neu@example.com");
+        u.Service.SendeWillkommen(Guid.NewGuid(), "neu@example.com");
         Assert.Equal(101, u.Mails.Mails.Count);
     }
 
@@ -176,7 +176,7 @@ public class AccountMailServiceTests
     public async Task Passwort_BleibtMoeglich_AuchWennDasWillkommenKontingentErschoepftIst()
     {
         var u = Aufbauen(email: true);
-        for (var i = 0; i < 150; i++) u.Service.SendeWillkommen($"person{i}@example.com");
+        for (var i = 0; i < 150; i++) u.Service.SendeWillkommen(Guid.NewGuid(), $"person{i}@example.com");
         var vorher = u.Mails.Mails.Count;
 
         await u.Service.SendePasswortZuruecksetzenAsync(Anfrage(), AdminRolle);

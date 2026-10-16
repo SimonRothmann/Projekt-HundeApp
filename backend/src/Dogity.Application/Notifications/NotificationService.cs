@@ -11,6 +11,7 @@ public class NotificationService(
     IUserLookupService userLookup,
     INotificationChannels channels,
     IFrontendLinks links,
+    IEmailAbmeldeToken abmeldeTokens,
     IMailQueue mailQueue,
     IPushQueue pushQueue,
     ILogger<NotificationService> logger) : INotificationService
@@ -55,8 +56,11 @@ public class NotificationService(
 
         var link = links.HatBasis ? links.Absolut(linkPath ?? "/dashboard") : null;
         var einstellungen = links.HatBasis ? links.Absolut("/profile/funktionen") : null;
-        var inhalt = MailVorlagen.WichtigeBenachrichtigung(empfaenger.FirstName, message, link, einstellungen);
-        mailQueue.Enqueue(new MailNachricht(empfaenger.Email, inhalt.Betreff, inhalt.Text, inhalt.Html));
+        // Jede dieser Mails lässt sich ohne Anmeldung abbestellen - im Text per Link,
+        // im Mailprogramm per Ein-Klick-Kopfzeile (siehe AbmeldeAdressen).
+        var abmeldung = AbmeldeAdressen.Fuer(userId, abmeldeTokens, links);
+        var inhalt = MailVorlagen.WichtigeBenachrichtigung(empfaenger.FirstName, message, link, einstellungen, abmeldung.Seite);
+        mailQueue.Enqueue(new MailNachricht(empfaenger.Email, inhalt.Betreff, inhalt.Text, inhalt.Html, abmeldung.Seite, abmeldung.EinKlickUrl));
     }
 
     private async Task PushEinreihenAsync(Guid userId, string message, string? linkPath, CancellationToken ct)

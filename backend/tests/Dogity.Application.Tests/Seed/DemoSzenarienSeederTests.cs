@@ -47,6 +47,7 @@ public class DemoSzenarienSeederTests
         // AddInfrastructure registriert): Fakes, die nichts versenden.
         services.AddSingleton<INotificationChannels, FakeNotificationChannels>();
         services.AddSingleton<IFrontendLinks>(TestLinks.Mit());
+        services.AddSingleton<IEmailAbmeldeToken>(TestAbmeldeToken.Neu());
         services.AddSingleton<IMailQueue, FakeMailQueue>();
         services.AddSingleton<IPushQueue, FakePushQueue>();
         return services.BuildServiceProvider();

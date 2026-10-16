@@ -84,7 +84,7 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
       Bewertung (Fehler/Zeit statt Punkte?) - davon hängt ab, ob das
       Katalogmodell (Übungen mit Höchstpunkten) passt.
 
-- [ ] **E-Mail: Opt-in/Opt-out ausbauen** (Wunsch des Betreibers, 2026-10-15) —
+- [x] **E-Mail: Opt-in/Opt-out ausbauen** (Wunsch des Betreibers, 2026-10-15; umgesetzt 2026-10-16) —
       NÄCHSTER Entwicklungsschritt. Stand heute: Willkommens- und
       Passwort-Mail gehen immer (gehören zum Konto); Einladungen und
       Entscheidungen über Beitrittsanfragen kommen zusätzlich per Mail,

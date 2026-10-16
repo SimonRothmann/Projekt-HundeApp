@@ -186,6 +186,26 @@ Hundes) und die Entscheidung über eine Beitrittsanfrage (Verein, Gruppe). Alles
 andere bleibt Glocke und Push. Wichtiges per Mail lässt sich je Person unter
 Profil → Funktionen abschalten; Willkommens- und Passwort-Mail nicht.
 
+**Abmelden ohne Anmeldung (seit 2026-10-16):** Bei der Registrierung wählt die
+Person, ob sie diese Mails will (Häkchen, vorausgewählt). Jede Benachrichtigungs-
+und die Willkommensmail enthält einen Abmelde-Link (`/email-abmelden?t=…`), der
+ohne Anmeldung `EmailNotifications = false` setzt; die Passwort- und die Testmail
+enthalten keinen. Zusätzlich tragen diese Mails die Kopfzeilen `List-Unsubscribe`
+und `List-Unsubscribe-Post` (RFC 8058, Ein-Klick-Abmeldung im Mailprogramm). Die
+Kopfzeile zeigt auf die **API**, deshalb braucht das Backend ihre öffentliche
+Adresse: `Api__BaseUrl` (in `docker-compose.yml` aus `PROD_API_DOMAIN` bzw.
+`TEST_API_DOMAIN` gesetzt, analog zu `Frontend__BaseUrl`). Fehlt sie, entfallen
+die Kopfzeilen; der Link im Mailtext bleibt. Das Token im Link ist eine
+DataProtection-Nutzlast - die Schlüssel liegen im Volume `*-dp-keys`; gehen sie
+verloren, werden alte Abmelde-Links ungültig (die Person stellt es dann unter
+Profil → Funktionen ein). Damit die Kopfzeilen bei DKIM mitsigniert werden,
+setzt `deploy/mail/entrypoint.sh` die OpenDKIM-Liste `SignHeaders` ausdrücklich
+(RFC-6376-Empfehlung plus `List-Unsubscribe-Post`, das die Vorgabe von OpenDKIM
+nicht kennt). Ohne Signatur dieser Kopfzeilen ignorieren Gmail und Yahoo die
+Ein-Klick-Abmeldung; der Link im Mailtext funktioniert trotzdem. Prüfen nach
+dem Deploy: In den Kopfzeilen einer zugestellten Mail steht im `h=` der
+DKIM-Signatur auch `list-unsubscribe:list-unsubscribe-post`.
+
 ### E-Mail über den eigenen Versandserver
 
 Entschieden 2026-10-15: kein Versanddienst, sondern ein eigener, reiner

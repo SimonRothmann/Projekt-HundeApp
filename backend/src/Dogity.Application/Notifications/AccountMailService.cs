@@ -7,11 +7,12 @@ public class AccountMailService(
     IMailQueue mailQueue,
     INotificationChannels channels,
     IFrontendLinks links,
+    IEmailAbmeldeToken abmeldeTokens,
     IUserLookupService userLookup,
     INotificationService notifications,
     MailDrossel drossel) : IAccountMailService
 {
-    public void SendeWillkommen(string email)
+    public void SendeWillkommen(Guid userId, string email)
     {
         if (!channels.EmailAktiv) return;
         if (!drossel.Erlaubt(KontomailArt.Willkommen, email)) return;
@@ -19,8 +20,11 @@ public class AccountMailService(
         // Ohne Vornamen: Die Adresse ist bei der Registrierung nicht bestätigt, und
         // der Name ist frei wählbar - in der Anrede einer Mail an Fremde wäre er
         // ein Weg, eigenen Text zuzustellen.
-        var inhalt = MailVorlagen.Willkommen(links.Absolut("/dashboard"));
-        mailQueue.Enqueue(new MailNachricht(email, inhalt.Betreff, inhalt.Text, inhalt.Html));
+        // Auch die Willkommensmail lässt sich abbestellen - gemeint sind die
+        // späteren Benachrichtigungen; die Konto-Mails selbst bleiben.
+        var abmeldung = AbmeldeAdressen.Fuer(userId, abmeldeTokens, links);
+        var inhalt = MailVorlagen.Willkommen(links.Absolut("/dashboard"), abmeldung.Seite);
+        mailQueue.Enqueue(new MailNachricht(email, inhalt.Betreff, inhalt.Text, inhalt.Html, abmeldung.Seite, abmeldung.EinKlickUrl));
     }
 
     public async Task SendePasswortZuruecksetzenAsync(PasswortResetAnfrage anfrage, string adminRolle, CancellationToken ct = default)

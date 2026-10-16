@@ -26,7 +26,8 @@ public static class MailVorlagen
     /// Bewusst ohne Namen: Die Mail geht an eine bei der Registrierung noch
     /// unbestätigte Adresse, der Name ist frei wählbar.
     /// </remarks>
-    public static MailInhalt Willkommen(string appUrl)
+    /// <param name="abmeldeSeite">Seite zum Abbestellen der Benachrichtigungen; null = kein Hinweis (keine Basis-Adresse bekannt).</param>
+    public static MailInhalt Willkommen(string appUrl, string? abmeldeSeite = null)
     {
         var anrede = Anrede("");
         var absaetze = new[]
@@ -35,7 +36,9 @@ public static class MailVorlagen
             "Das kannst du als Erstes tun: einen Hund anlegen und dein erstes Training eintragen - oder einem Verein beitreten, wenn du in einer Gruppe trainierst.",
             "Fragen oder Fehler? Antworte einfach auf diese Mail.",
         };
-        return Baue($"Willkommen bei {Marke}", anrede, absaetze, "Zu Dogity", appUrl, fusszeile: null);
+        return Baue(
+            $"Willkommen bei {Marke}", anrede, absaetze, "Zu Dogity", appUrl, fusszeile: null,
+            "Benachrichtigungen per E-Mail (Einladungen, Entscheidungen) kannst du jederzeit abbestellen:", abmeldeSeite);
     }
 
     public static MailInhalt PasswortZuruecksetzen(string vorname, string link)
@@ -46,7 +49,7 @@ public static class MailVorlagen
             "über den Knopf unten kannst du ein neues Passwort für dein Dogity-Konto festlegen.",
             "Wenn du das nicht angefordert hast, kannst du diese Mail ignorieren - dein Passwort bleibt dann, wie es ist.",
         };
-        return Baue($"{Marke}: Passwort zurücksetzen", anrede, absaetze, "Passwort zurücksetzen", link, fusszeile: null);
+        return Baue($"{Marke}: Passwort zurücksetzen", anrede, absaetze, "Passwort zurücksetzen", link, fusszeile: null, abmeldeSatz: null, abmeldeSeite: null);
     }
 
     /// <summary>
@@ -62,20 +65,23 @@ public static class MailVorlagen
             $"das ist eine Testmail aus dem Adminbereich von Dogity, verschickt am {zeitpunkt.UtcDateTime:dd.MM.yyyy} um {zeitpunkt.UtcDateTime:HH:mm} Uhr (UTC).",
             "Ist sie angekommen, funktioniert der Versand. Landet sie im Spam, lohnt ein Blick in die Kopfzeilen: Dort sollte bei SPF, DKIM und DMARC jeweils \"pass\" stehen.",
         };
-        return Baue($"{Marke}: Testmail", anrede, absaetze, "Zu Dogity", appUrl, fusszeile: null);
+        return Baue($"{Marke}: Testmail", anrede, absaetze, "Zu Dogity", appUrl, fusszeile: null, abmeldeSatz: null, abmeldeSeite: null);
     }
 
     /// <param name="nachricht">Der Text der Glockenmeldung.</param>
     /// <param name="link">Wohin der Knopf führt; null = kein Knopf (keine Basis-Adresse bekannt).</param>
     /// <param name="einstellungenUrl">Wohin der Hinweis zum Abschalten verweist (Profil → Funktionen).</param>
-    public static MailInhalt WichtigeBenachrichtigung(string vorname, string nachricht, string? link, string? einstellungenUrl)
+    /// <param name="abmeldeSeite">Seite, die ohne Anmeldung abmeldet; null = kein Abmelde-Link (keine Basis-Adresse bekannt).</param>
+    public static MailInhalt WichtigeBenachrichtigung(string vorname, string nachricht, string? link, string? einstellungenUrl, string? abmeldeSeite = null)
     {
         var anrede = Anrede(vorname);
         var fusszeile =
             "Du bekommst diese Mail, weil du bei Dogity wichtige Benachrichtigungen auch per E-Mail erhältst " +
             "(Einladungen und Entscheidungen über Beitrittsanfragen). Abschalten kannst du das unter Profil → Funktionen" +
             (einstellungenUrl is null ? "." : $": {einstellungenUrl}");
-        return Baue(Betreff(nachricht), anrede, [nachricht], "In Dogity ansehen", link, fusszeile);
+        return Baue(
+            Betreff(nachricht), anrede, [nachricht], "In Dogity ansehen", link, fusszeile,
+            "Keine solchen Mails mehr? Mit einem Klick abmelden:", abmeldeSeite);
     }
 
     /// <summary>
@@ -97,14 +103,25 @@ public static class MailVorlagen
     private static string Anrede(string vorname) =>
         string.IsNullOrWhiteSpace(vorname) ? "Hallo," : $"Hallo {vorname.Trim()},";
 
-    private static MailInhalt Baue(string betreff, string anrede, string[] absaetze, string knopfText, string? knopfUrl, string? fusszeile)
+    /// <param name="abmeldeSatz">Satz vor dem Abmelde-Link; wird nur mit <paramref name="abmeldeSeite"/> ausgegeben.</param>
+    private static MailInhalt Baue(
+        string betreff, string anrede, string[] absaetze, string knopfText, string? knopfUrl,
+        string? fusszeile, string? abmeldeSatz, string? abmeldeSeite)
     {
+        var mitAbmeldung = abmeldeSatz is not null && abmeldeSeite is not null;
+
         var text = new StringBuilder();
         text.AppendLine(anrede).AppendLine();
         foreach (var absatz in absaetze) text.AppendLine(absatz).AppendLine();
         if (knopfUrl is not null) text.AppendLine($"{knopfText}: {knopfUrl}").AppendLine();
         text.AppendLine("Dein Dogity-Team");
-        if (fusszeile is not null) text.AppendLine().AppendLine("--").AppendLine(fusszeile);
+        if (fusszeile is not null || mitAbmeldung) text.AppendLine().AppendLine("--");
+        if (fusszeile is not null) text.AppendLine(fusszeile);
+        if (mitAbmeldung)
+        {
+            if (fusszeile is not null) text.AppendLine();
+            text.AppendLine($"{abmeldeSatz} {abmeldeSeite}");
+        }
 
         var html = new StringBuilder();
         html.Append("<!doctype html><html lang=\"de\"><body style=\"margin:0;padding:0;background:#f7f8fa;\">");
@@ -121,6 +138,10 @@ public static class MailVorlagen
         html.Append("</div>");
         if (fusszeile is not null)
             html.Append($"<p style=\"margin:16px 0 0;font-size:12px;line-height:1.5;color:#6b7280;\">{Kodiert(fusszeile)}</p>");
+        if (mitAbmeldung)
+            html.Append(
+                $"<p style=\"margin:{(fusszeile is null ? "16px" : "8px")} 0 0;font-size:12px;line-height:1.5;color:#6b7280;\">{Kodiert(abmeldeSatz!)} " +
+                $"<a href=\"{Kodiert(abmeldeSeite!)}\" style=\"color:#6b7280;text-decoration:underline;\">Hier abmelden</a></p>");
         html.Append("</div></body></html>");
 
         return new MailInhalt(betreff, text.ToString(), html.ToString());

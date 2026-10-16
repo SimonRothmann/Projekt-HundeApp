@@ -23,7 +23,13 @@ type AuthContextValue = {
   unreadNotificationCount: number;
   refreshUnreadNotificationCount: () => void;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    emailBenachrichtigungen?: boolean,
+  ) => Promise<void>;
   updateUser: (patch: Partial<Pick<AuthUser, "firstName" | "lastName" | "email">>) => void;
   logout: () => void;
 };
@@ -183,12 +189,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await persist(response);
   }
 
-  async function register(email: string, password: string, firstName: string, lastName: string) {
+  async function register(
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    // "Wichtiges auch per E-Mail" aus dem Formular - vorausgewählt, daher "ja" als Vorgabe.
+    emailBenachrichtigungen = true,
+  ) {
     const response = await api.post<AuthResponse>("/api/auth/register", {
       email,
       password,
       firstName,
       lastName,
+      emailBenachrichtigungen,
     });
     await persist(response);
   }

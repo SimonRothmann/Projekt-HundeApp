@@ -15,5 +15,9 @@ public interface IEmailSender
 {
     /// <param name="bodyText">Textfassung - immer vorhanden, auch für Mailprogramme ohne HTML.</param>
     /// <param name="bodyHtml">Optionale HTML-Fassung; mit ihr entsteht eine multipart/alternative-Mail.</param>
-    Task SendAsync(string toEmail, string subject, string bodyText, string? bodyHtml = null, CancellationToken ct = default);
+    /// <param name="kopfzeilen">
+    /// Zusätzliche Kopfzeilen (List-Unsubscribe und List-Unsubscribe-Post für die
+    /// Ein-Klick-Abmeldung). Können ein Token tragen - nicht loggen.
+    /// </param>
+    Task SendAsync(string toEmail, string subject, string bodyText, string? bodyHtml = null, IReadOnlyDictionary<string, string>? kopfzeilen = null, CancellationToken ct = default);
 }

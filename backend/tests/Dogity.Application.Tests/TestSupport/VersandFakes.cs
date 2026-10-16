@@ -1,5 +1,6 @@
 using Dogity.Application.Notifications;
 using Dogity.Infrastructure.Notifications;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 
 namespace Dogity.Application.Tests.TestSupport;
@@ -37,15 +38,25 @@ public class FakeNotificationChannels : INotificationChannels
     public string? PushPublicKey { get; set; }
 }
 
-/// <summary>Mit "https://dogity.example" als Basis - die echte <see cref="FrontendLinks"/>, nur anders konfiguriert.</summary>
+/// <summary>
+/// Mit "https://dogity.example" als Basis und "https://api.dogity.example" als
+/// API-Adresse - die echte <see cref="FrontendLinks"/>, nur anders konfiguriert.
+/// </summary>
 public static class TestLinks
 {
     public const string Basis = "https://dogity.example";
+    public const string ApiBasis = "https://api.dogity.example";
 
-    public static FrontendLinks Mit(string? basis = Basis) =>
+    public static FrontendLinks Mit(string? basis = Basis, string? apiBasis = ApiBasis) =>
         new(new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Frontend:BaseUrl"] = basis })
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Frontend:BaseUrl"] = basis, ["Api:BaseUrl"] = apiBasis })
             .Build());
+}
+
+/// <summary>Das echte Abmelde-Token mit flüchtigen Schlüsseln - kein Fake, damit der Rundweg wirklich geprüft wird.</summary>
+public static class TestAbmeldeToken
+{
+    public static EmailAbmeldeToken Neu() => new(new EphemeralDataProtectionProvider());
 }
 
 /// <summary>Antwortet je Endpoint mit dem vorgegebenen Ergebnis und merkt sich, was ankam.</summary>

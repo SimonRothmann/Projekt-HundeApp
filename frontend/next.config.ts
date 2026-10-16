@@ -138,6 +138,17 @@ const nextConfig: NextConfig = {
           { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],
       },
+      {
+        // Abmelde-Seite hinter dem Link in den Mails (/email-abmelden?t=...): Das
+        // Token in der Adresse ist der Schlüssel zu einer Kontoeinstellung. Dieselbe
+        // Behandlung wie oben; die Seite setzt sie zusätzlich als Meta-Angabe
+        // (app/email-abmelden/page.tsx).
+        source: "/email-abmelden",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
     ];
   },
 };

@@ -107,4 +107,60 @@ public class MailVorlagenTests
     {
         Assert.Contains("Hallo,", MailVorlagen.PasswortZuruecksetzen("  ", AppUrl).Text);
     }
+
+    private const string AbmeldeSeite = "https://dogity.example/email-abmelden?t=abc_DEF-123";
+
+    [Fact]
+    public void Benachrichtigung_MitAbmeldeSeite_HatDenLink_InTextUndHtml_UndNochDenHinweisAufFunktionen()
+    {
+        var mail = MailVorlagen.WichtigeBenachrichtigung(
+            "Max", "Anna lädt dich ein.", "https://dogity.example/clubs", "https://dogity.example/profile/funktionen", AbmeldeSeite);
+
+        Assert.Contains($"Keine solchen Mails mehr? Mit einem Klick abmelden: {AbmeldeSeite}", mail.Text);
+        Assert.Contains($"href=\"{AbmeldeSeite}\"", mail.Html);
+        Assert.Contains(">Hier abmelden</a>", mail.Html);
+        Assert.Contains("Profil → Funktionen", mail.Text);
+    }
+
+    [Fact]
+    public void Benachrichtigung_OhneAbmeldeSeite_HatKeinenAbmeldeLink()
+    {
+        var mail = MailVorlagen.WichtigeBenachrichtigung("Max", "Hallo.", "https://dogity.example/clubs", null);
+
+        Assert.DoesNotContain("abmelden", mail.Text);
+        Assert.DoesNotContain("Hier abmelden", mail.Html);
+    }
+
+    [Fact]
+    public void Willkommen_MitAbmeldeSeite_HatDenLink_InTextUndHtml()
+    {
+        var mail = MailVorlagen.Willkommen(AppUrl, AbmeldeSeite);
+
+        Assert.Contains($"jederzeit abbestellen: {AbmeldeSeite}", mail.Text);
+        Assert.Contains($"href=\"{AbmeldeSeite}\"", mail.Html);
+        Assert.Contains(">Hier abmelden</a>", mail.Html);
+    }
+
+    [Fact]
+    public void Abmelde_Link_WirdImHtmlKodiert()
+    {
+        var mail = MailVorlagen.Willkommen(AppUrl, "https://dogity.example/email-abmelden?t=a&b=\"c\"");
+
+        Assert.Contains("href=\"https://dogity.example/email-abmelden?t=a&amp;b=&quot;c&quot;\"", mail.Html);
+        Assert.DoesNotContain("b=\"c\"", mail.Html);
+    }
+
+    [Fact]
+    public void Passwort_UndTestmail_HabenKeinenAbmeldeLink()
+    {
+        var passwort = MailVorlagen.PasswortZuruecksetzen("Max", "https://dogity.example/reset-password?token=x");
+        var test = MailVorlagen.Testmail(AppUrl, DateTimeOffset.UtcNow);
+
+        foreach (var mail in new[] { passwort, test })
+        {
+            Assert.DoesNotContain("abmelden", mail.Text);
+            Assert.DoesNotContain("abbestellen", mail.Text);
+            Assert.DoesNotContain("Hier abmelden", mail.Html);
+        }
+    }
 }

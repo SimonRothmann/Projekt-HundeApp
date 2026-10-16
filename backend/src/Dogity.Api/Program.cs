@@ -158,6 +158,19 @@ builder.Services.AddRateLimiter(options =>
                 PermitLimit = 10,
                 Window = TimeSpan.FromMinutes(1),
             }));
+
+    // Abmelden von den Mails über den Link in der Mail (ohne Anmeldung). Das Token
+    // lässt sich nicht erraten; das Limit begrenzt nur die Last. Großzügiger als
+    // "anmeldung": Mailprogramme und Link-Scanner rufen gern mehrfach auf, und
+    // hinter einem Firmen-Gateway teilen sich viele eine IP.
+    options.AddPolicy("abmeldung", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+            }));
 });
 
 builder.Services.AddCors(options =>

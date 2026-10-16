@@ -35,6 +35,10 @@ function RegisterForm() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Vorausgewählt: Das ist keine Einwilligung, sondern eine Einstellung zu
+  // Mitteilungen, die zum Konto gehören (Einladungen, Entscheidungen) - jederzeit
+  // über den Link in der Mail oder unter Profil → Funktionen änderbar.
+  const [perMail, setPerMail] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -43,7 +47,7 @@ function RegisterForm() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await register(email, password, firstName, lastName);
+      await register(email, password, firstName, lastName, perMail);
       // Erst nach dem Anlegen des Kontos: Bricht die Registrierung ab, soll
       // nichts vom Wunsch hängen bleiben.
       if (pruefungsordnung) merkeStartPo(pruefungsordnung);
@@ -99,6 +103,25 @@ function RegisterForm() {
           />
           <PasswortHinweis id="password-hinweis" />
         </div>
+        {/* Das ganze Feld ist das Klickziel (mindestens 44 px hoch), nicht nur das kleine Kästchen. */}
+        <label
+          htmlFor="perMail"
+          className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-border/60 px-3 py-2.5"
+        >
+          <input
+            id="perMail"
+            type="checkbox"
+            className="mt-0.5 size-5 shrink-0 accent-primary"
+            checked={perMail}
+            onChange={(e) => setPerMail(e.target.checked)}
+          />
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-sm font-medium">{t("Wichtiges auch per E-Mail")}</span>
+            <span className="break-words text-xs text-muted-foreground">
+              {t("Einladungen und Entscheidungen über Beitrittsanfragen. Jederzeit abbestellbar.")}
+            </span>
+          </span>
+        </label>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="h-11" disabled={isSubmitting}>
           {isSubmitting ? t("Wird erstellt…") : "Registrieren"}

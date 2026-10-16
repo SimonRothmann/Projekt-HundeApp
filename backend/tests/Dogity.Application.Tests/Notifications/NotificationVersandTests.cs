@@ -32,7 +32,7 @@ public class NotificationVersandTests
         var kanaele = new FakeNotificationChannels { EmailAktiv = email, PushPublicKey = pushKey };
         var mails = new FakeMailQueue();
         var pushs = new FakePushQueue();
-        var service = new NotificationService(db, lookup, kanaele, TestLinks.Mit(basis), mails, pushs, NullLogger<NotificationService>.Instance);
+        var service = new NotificationService(db, lookup, kanaele, TestLinks.Mit(basis), TestAbmeldeToken.Neu(), mails, pushs, NullLogger<NotificationService>.Instance);
         return new Umgebung(db, lookup, kanaele, mails, pushs, service, userId);
     }
 
@@ -180,7 +180,7 @@ public class NotificationVersandTests
     {
         var u = Aufbauen();
         var service = new NotificationService(
-            u.Db, new WerfendeNutzersuche(), u.Kanaele, TestLinks.Mit(), u.Mails, u.Pushs, NullLogger<NotificationService>.Instance);
+            u.Db, new WerfendeNutzersuche(), u.Kanaele, TestLinks.Mit(), TestAbmeldeToken.Neu(), u.Mails, u.Pushs, NullLogger<NotificationService>.Instance);
 
         await service.CreateAsync(u.UserId, "Anna lädt dich ein.", "/clubs", wichtig: true);
 

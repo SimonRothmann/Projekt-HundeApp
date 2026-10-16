@@ -18,12 +18,14 @@ public class MailVersandTests
     {
         public int Versuche { get; private set; }
         public List<(string An, string Betreff, string Text, string? Html)> Gesendet { get; } = [];
+        public List<IReadOnlyDictionary<string, string>?> Kopfzeilen { get; } = [];
 
-        public Task SendAsync(string toEmail, string subject, string bodyText, string? bodyHtml = null, CancellationToken ct = default)
+        public Task SendAsync(string toEmail, string subject, string bodyText, string? bodyHtml = null, IReadOnlyDictionary<string, string>? kopfzeilen = null, CancellationToken ct = default)
         {
             Versuche++;
             if (Versuche <= scheiternBis) throw new InvalidOperationException("SMTP nicht erreichbar.");
             Gesendet.Add((toEmail, subject, bodyText, bodyHtml));
+            Kopfzeilen.Add(kopfzeilen);
             return Task.CompletedTask;
         }
     }
@@ -81,6 +83,70 @@ public class MailVersandTests
             Assert.DoesNotContain("GEHEIM", z);
             Assert.DoesNotContain("Passwort", z);
         });
+    }
+
+    [Fact]
+    public async Task MitEinKlickUrl_GehenDieListUnsubscribeKopfzeilenAnDenSender()
+    {
+        var sender = new ZaehlenderSender(scheiternBis: 0);
+        var mail = Mail with { EinKlickUrl = "https://api.dogity.example/api/email-abmeldung/ein-klick?t=abc" };
+
+        await new MailVersender(NullLogger<MailVersender>.Instance).VersendeAsync(sender, mail, TimeSpan.Zero, CancellationToken.None);
+
+        var kopfzeilen = Assert.Single(sender.Kopfzeilen);
+        Assert.NotNull(kopfzeilen);
+        Assert.Equal("<https://api.dogity.example/api/email-abmeldung/ein-klick?t=abc>", kopfzeilen["List-Unsubscribe"]);
+        Assert.Equal("List-Unsubscribe=One-Click", kopfzeilen["List-Unsubscribe-Post"]);
+        // Kein mailto: - es gibt kein Postfach, das Abmeldungen liest.
+        Assert.DoesNotContain("mailto", kopfzeilen["List-Unsubscribe"]);
+    }
+
+    [Fact]
+    public async Task OhneEinKlickUrl_GehenKeineKopfzeilenAnDenSender()
+    {
+        var sender = new ZaehlenderSender(scheiternBis: 0);
+
+        // Auch eine Mail MIT Abmelde-Seite braucht für die Kopfzeilen die API-Adresse.
+        var mail = Mail with { AbmeldeSeite = "https://dogity.example/email-abmelden?t=abc" };
+        await new MailVersender(NullLogger<MailVersender>.Instance).VersendeAsync(sender, mail, TimeSpan.Zero, CancellationToken.None);
+
+        Assert.Null(Assert.Single(sender.Kopfzeilen));
+    }
+
+    [Fact]
+    public void Smtp_SetztDieKopfzeilenAnDieMail()
+    {
+        var message = new MimeMessage();
+
+        SmtpEmailSender.SetzeKopfzeilen(message, MailVersender.Kopfzeilen(
+            Mail with { EinKlickUrl = "https://api.dogity.example/api/email-abmeldung/ein-klick?t=abc" }));
+
+        Assert.Equal("<https://api.dogity.example/api/email-abmeldung/ein-klick?t=abc>", message.Headers["List-Unsubscribe"]);
+        Assert.Equal("List-Unsubscribe=One-Click", message.Headers["List-Unsubscribe-Post"]);
+    }
+
+    [Fact]
+    public void Smtp_OhneKopfzeilen_BleibtDieMailUnveraendert()
+    {
+        var message = new MimeMessage();
+        var vorher = message.Headers.Count;
+
+        SmtpEmailSender.SetzeKopfzeilen(message, null);
+
+        Assert.Equal(vorher, message.Headers.Count);
+        Assert.Null(message.Headers["List-Unsubscribe"]);
+    }
+
+    [Fact]
+    public async Task LoggingSender_ProtokolliertNieDieKopfzeilen()
+    {
+        var protokoll = new SammelLogger<LoggingEmailSender>();
+        var sender = new LoggingEmailSender(protokoll, new TestUmgebung(Environments.Development));
+        var kopfzeilen = new Dictionary<string, string> { ["List-Unsubscribe"] = "<https://api.example/ein-klick?t=GEHEIMTOKEN>" };
+
+        await sender.SendAsync("max@example.com", "Dogity: Test", "Text", "<p>Html</p>", kopfzeilen);
+
+        Assert.DoesNotContain("GEHEIMTOKEN", string.Join("\n", protokoll.Zeilen));
     }
 
     [Fact]

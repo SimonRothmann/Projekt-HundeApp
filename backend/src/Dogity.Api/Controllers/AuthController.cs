@@ -2,6 +2,7 @@ using System.Net;
 using Dogity.Api.Contracts;
 using Dogity.Application.Abstractions;
 using Dogity.Application.Notifications;
+using Dogity.Application.Preferences;
 using Dogity.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -21,8 +22,10 @@ public class AuthController(
     IJwtTokenGenerator jwtTokenGenerator,
     IRefreshTokenService refreshTokens,
     IAccountMailService accountMails,
+    IPreferenceService preferences,
     IFrontendLinks frontendLinks,
-    TimeProvider timeProvider) : ControllerBase
+    TimeProvider timeProvider,
+    ILogger<AuthController> logger) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
@@ -53,9 +56,35 @@ public class AuthController(
 
         await userManager.AddToRoleAsync(user, Roles.User);
 
+        // Konto und Einstellung entstehen nicht in einer Einheit. Scheitert das
+        // Speichern der Abwahl, soll die Registrierung trotzdem gelingen: Ein 500
+        // ließe das Konto zurück, der zweite Versuch endete mit 409. Die Abwahl
+        // geht dann verloren - die Person stellt es unter Profil -> Funktionen
+        // ein (die Willkommensmail unten trägt dafür ihren Abmelde-Link).
+        // Nur "abgewählt" muss gespeichert werden: Ohne Einstellungszeile gilt "an".
+        if (request.EmailBenachrichtigungen == false)
+        {
+            try
+            {
+                await preferences.UpdateEmailNotificationsAsync(user.Id, new UpdateEmailNotificationsRequest(false));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Die Abwahl der E-Mail-Benachrichtigungen konnte bei der Registrierung nicht gespeichert werden.");
+            }
+        }
+
         // Eingereiht, nicht gesendet: Der Versand läuft im Hintergrund, die
         // Registrierung wartet nie auf den Mailserver und scheitert nie an ihm.
-        accountMails.SendeWillkommen(user.Email!);
+        // Das gilt auch für das Erzeugen des Abmelde-Tokens (Schlüsselring).
+        try
+        {
+            accountMails.SendeWillkommen(user.Id, user.Email!);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Die Willkommensmail konnte nicht eingereiht werden.");
+        }
 
         return Ok(await BuildAuthResponseAsync(user, [Roles.User]));
     }

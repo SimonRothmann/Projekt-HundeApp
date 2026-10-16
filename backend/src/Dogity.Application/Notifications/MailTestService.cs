@@ -42,7 +42,7 @@ public class MailTestService(
         zeitlimit.CancelAfter(Zeitlimit);
         try
         {
-            await sender.SendAsync(adresse, inhalt.Betreff, inhalt.Text, inhalt.Html, zeitlimit.Token);
+            await sender.SendAsync(adresse, inhalt.Betreff, inhalt.Text, inhalt.Html, ct: zeitlimit.Token);
             return Result<TestmailErgebnisDto>.Success(new TestmailErgebnisDto(VersandEingerichtet: true, Versendet: true, Fehler: null));
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)

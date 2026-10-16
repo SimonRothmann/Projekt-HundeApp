@@ -166,7 +166,7 @@ export default function DatenschutzPage() {
             punkte={[
               "Konto, Hunde, Trainings, Fährten, Verein und Einstellungen: Art. 6 Abs. 1 lit. b DSGVO – ohne diese Daten gibt es die Funktion nicht, für die du dich angemeldet hast.",
               "Anmeldung zu einer Gruppe über ein Anmeldeformular (ohne Konto): Art. 6 Abs. 1 lit. b DSGVO – siehe Abschnitt 9.",
-              "E-Mails (Willkommen, Passwort zurücksetzen, Einladungen und Entscheidungen über Beitrittsanfragen): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu Konto und Vereinsfunktionen. Die Mails zu Einladungen und Entscheidungen kannst du unter Profil → Funktionen abschalten.",
+              "E-Mails (Willkommen, Passwort zurücksetzen, Einladungen und Entscheidungen über Beitrittsanfragen): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu Konto und Vereinsfunktionen. Ob du die Mails zu Einladungen und Entscheidungen bekommst, wählst du schon bei der Registrierung (vorausgewählt); abbestellen kannst du sie jederzeit über den Link in der Mail, ohne Anmeldung, oder unter Profil → Funktionen.",
               "Push-Benachrichtigungen: Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TDDDG – sie beginnen erst, wenn du sie auf einem Gerät selbst einschaltest und der Browser oder das Betriebssystem dich um Erlaubnis gefragt hat. Du kannst sie jederzeit in der App ausschalten oder die Erlaubnis im Gerät zurücknehmen.",
               "Schutz vor Missbrauch, Fehlersuche und Sicherheit des Betriebs: Art. 6 Abs. 1 lit. f DSGVO. Mein berechtigtes Interesse ist, dass der Dienst erreichbar bleibt und Konten nicht übernommen werden.",
               "Das Auslesen deines Standorts erlaubst du im Browser ausdrücklich und kannst die Erlaubnis jederzeit zurücknehmen.",
@@ -281,7 +281,11 @@ export default function DatenschutzPage() {
             Sobald der E-Mail-Versand eingerichtet ist, verschickt Dogity E-Mails nur in diesen Fällen: eine Willkommensmail nach der Registrierung, der Link zum
             Zurücksetzen deines Passworts auf Anfrage, und – wenn du es nicht abgeschaltet hast – Einladungen (in einen
             Verein, in eine Gruppe, als Trainer:in einer Gruppe, zum Mitbesitz eines Hundes) und Entscheidungen über
-            Beitrittsanfragen. Alles andere erscheint nur in der App oder als Push. Versendet wird von einem eigenen
+            Beitrittsanfragen. Alles andere erscheint nur in der App oder als Push. Bei der Registrierung wählst du, ob
+            du diese Mails bekommst (das Häkchen ist vorausgewählt). Die Willkommensmail und jede dieser Mails enthalten
+            einen Link zum Abmelden, der ohne Anmeldung wirkt; er enthält nur eine signierte Kennung deines Kontos,
+            keine Angaben im Klartext. Dazu bietet dein Mailprogramm die Abmeldung mit einem Klick an. Die Mail zum
+            Zurücksetzen des Passworts hat keinen solchen Link, weil du sie selbst angefordert hast. Versendet wird von einem eigenen
             Mailserver auf dem Server von Dogity bei {HOSTING.anbieter} – ohne Versanddienst, ohne weiteren
             Dienstleister. Er gibt die Mail direkt an deinen E-Mail-Anbieter weiter, verschlüsselt, sofern dieser das
             unterstützt, und behält sie nur, bis sie angenommen ist – ist dein Anbieter nicht erreichbar, höchstens

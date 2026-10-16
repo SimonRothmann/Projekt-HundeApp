@@ -15,8 +15,9 @@ public interface IAccountMailService
     /// Willkommensmail nach der Registrierung. Geht nur raus, wenn der
     /// Mailversand eingerichtet ist - sonst gäbe es nichts zu protokollieren,
     /// was jemand lesen wollte. Ohne Namen, weil die Adresse unbestätigt ist.
+    /// Mit Abmelde-Link für die Benachrichtigungen - dafür die Konto-Id.
     /// </summary>
-    void SendeWillkommen(string email);
+    void SendeWillkommen(Guid userId, string email);
 
     /// <summary>
     /// Mail mit dem Link zum Zurücksetzen. Ist KEIN Mailversand eingerichtet,
