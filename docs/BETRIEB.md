@@ -354,6 +354,29 @@ Zwei Funde sind behoben:
 
 Was offen bleibt, steht in `TODO.md` unter Performance.
 
+**Speicher der Datenbank.** Seit 2026-10-16 bekommt Postgres 2 GB Puffer
+(`shared_buffers`) statt 128 MB, dazu mehr Arbeitsspeicher je Sortierung
+und für Wartung - im ungünstigsten Fall (alle 70 Verbindungen sortieren
+gleichzeitig) zusammen rund 4 GB, im Alltag deutlich weniger. Die Werte stehen beim Dienst
+`postgres` in `docker-compose.yml`. Die Puffer füllen sich erst mit den
+Daten - bei damals 12 bzw. 14 MB pro Datenbank zeigt `docker stats` also
+weiterhin wenig, das ist kein Fehler.
+
+Geänderte Werte greifen erst nach einem Neustart der Datenbank - Prod und
+Test sind dabei rund eine halbe Minute weg. Die Deploy-Skripte starten
+Postgres nicht gezielt neu. Weil die Backends von Postgres abhängen, kann
+Compose die Datenbank beim Deploy aber mit neu erstellen, sobald sich ihre
+Einstellungen geändert haben - dann behält das jeweils andere Backend tote
+Verbindungen, und seine ersten Anfragen scheitern daran. Deshalb nach einer
+Änderung an diesen Werten: Test wie gewohnt deployen (das bringt die neue
+`docker-compose.yml` auf den Server), danach einmal:
+
+```bash
+ssh dogity 'cd /opt/dogity && docker compose up -d --wait postgres && docker compose restart backend-prod backend-test'
+```
+
+Prüfen: `SHOW shared_buffers;` liefert `2GB`.
+
 ## Bewusst offen
 
 **SSH-Passwort-Anmeldung.** Steht auf `yes`, Port 22 ist weltweit offen.

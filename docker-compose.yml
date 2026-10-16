@@ -18,6 +18,26 @@ services:
     image: postgres:17
     restart: unless-stopped
     logging: *logging
+    # Speicher für die VPS mit 12 GB (Vorgabe wären 128 MB Puffer, 4 MB je
+    # Sortierung). shared_buffers wird erst belegt, wenn Daten gelesen werden -
+    # bei kleiner Datenbank bleibt der Container klein. Mit work_mem (je
+    # Sortierung) und Wartung im ungünstigsten Fall rund 4 GB.
+    # effective_cache_size reserviert nichts, es sagt dem Planer nur, wie viel
+    # das Betriebssystem zwischenspeichert.
+    # shm_size: Parallele Abfragen tauschen Daten über /dev/shm aus, die
+    # Docker-Vorgabe von 64 MB reicht bei größeren Tabellen nicht.
+    # Änderungen hier greifen erst nach Neustart der Datenbank (BETRIEB.md).
+    command:
+      - postgres
+      - -c
+      - shared_buffers=2GB
+      - -c
+      - effective_cache_size=6GB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=256MB
+    shm_size: "512mb"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
