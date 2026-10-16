@@ -20,13 +20,15 @@ import { RechtlicheLinks } from "@/components/rechtliche-links";
 // nicht in Production. Aktiv wenn NEXT_PUBLIC_ENV_LABEL=TEST beim Build war;
 // NODE_ENV ist im produktiven Next.js-Build immer "production" (auch für die
 // Test-Umgebung), reicht als Diskriminator also nicht aus.
+// Die Klammer nennt die Besonderheit des Kontos (siehe docs/DEMO_DATEN.md) - kurz
+// halten, die Knöpfe stehen zu zweit in einer Reihe.
 const DEMO_ACCOUNTS = [
   { label: "Admin", email: "admin@dogity.test" },
   { label: "Trainer", email: "trainer@dogity.test" },
   { label: "Mitglied 1", email: "mitglied1@dogity.test" },
-  { label: "Mitglied 2", email: "mitglied2@dogity.test" },
-  { label: "Interessent", email: "interessent@dogity.test" },
-  { label: "Neuling", email: "neuling@dogity.test" },
+  { label: "Mitglied 2 (EN)", email: "mitglied2@dogity.test" },
+  { label: "Interessent (AT)", email: "interessent@dogity.test" },
+  { label: "Neuling (Hoopers)", email: "neuling@dogity.test" },
 ] as const;
 const DEMO_PASSWORD = "Demo1234!";
 
@@ -134,6 +136,8 @@ function LoginForm() {
                 type="button"
                 variant="outline"
                 size="sm"
+                // Notfalls umbrechen statt über den Rand ragen (320 px, andere Schriftart im Safari).
+                className="h-auto min-h-7 whitespace-normal py-1 leading-tight"
                 disabled={isSubmitting}
                 onClick={() => doLogin(account.email, DEMO_PASSWORD)}
               >

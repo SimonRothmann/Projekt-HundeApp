@@ -1,5 +1,7 @@
 using Dogity.Application.Community;
+using Dogity.Application.Dogs;
 using Dogity.Application.Planning;
+using Dogity.Application.Preferences;
 using Dogity.Application.Tracking;
 using Dogity.Application.Training;
 using Dogity.Application.Weather;
@@ -22,7 +24,10 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// mit denen sich ALLE Funktionen der App von Hand ausprobieren lassen:
 /// Einladungslink, Prüfungsziele mit Fortschritt und Ergebnissen, Fährten mit
 /// Trend, Trainer-Feedback, Gruppentermine mit Zu- und Absagen, Anmeldungen
-/// zur Welpengruppe mit Anwesenheit.
+/// zur Welpengruppe mit Anwesenheit. Seit 2026-10-16 außerdem, was danach
+/// dazukam: Englisch (Lisa), Mitbesitz-Einladung (Lisa), Österreich und
+/// Vereinsantrag (Tom), Hoopers (Nina) und eine Nachtfährte, die "erneut
+/// ablaufen" über Mitternacht zeigt (Bello).
 ///
 /// Warum ein eigener Seeder und nicht noch mehr im DemoDataSeeder: Der bricht
 /// ab, sobald das Trainer-Konto existiert - auf der Test-Umgebung gibt es die
@@ -30,7 +35,9 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// läuft bei JEDEM Start (siehe Program.cs, nur in Development), und jedes
 /// Szenario prüft für sich, ob seine Daten schon da sind (an festen Texten),
 /// und legt nur Fehlendes an. Termine sind "rollend": bei jedem Start gibt es
-/// wieder künftige.
+/// wieder künftige. Ebenso die Nachtfährte: Solange niemand sie abgelaufen hat,
+/// rückt sie auf "gestern Abend". Einstellungen (Sprache, Land) werden nur
+/// gesetzt, wenn die Person noch keine gewählt hat.
 ///
 /// Angefasst werden ausschließlich die Demo-Konten und der Demo-Verein; fehlt
 /// ein Konto, entfällt das Szenario. Gelöscht wird nichts. Die Daten entstehen
@@ -40,6 +47,7 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 public static class DemoSzenarienSeeder
 {
     public const string NeulingEmail = "neuling@dogity.test";
+    public const string InteressentEmail = "interessent@dogity.test";
 
     private const string VereinsName = "Hundesportverein Musterstadt e.V.";
     private const string GruppenName = "Welpengruppe Dienstag";
@@ -51,6 +59,12 @@ public static class DemoSzenarienSeeder
     public const string NotizFaehrteOffen = "Fährtenprüfung FPr 1 beim Verein Musterstadt.";
     public const string NotizFeedbackOhneReaktion = "Leinenführigkeit auf dem Vereinsgelände, viele andere Hunde in der Nähe.";
     public const string NotizFeedbackMitRueckfrage = "Verkehrstraining in der Innenstadt: Radfahrer, Kinderwagen, Straßenbahn.";
+
+    public const string NotizHoopersZiel = "Einstieg ins Hoopers: erste Prüfung in H0.";
+    public const string KommentarNachtfaehrte = "Abends gelegt, über Nacht liegen gelassen - morgen früh ablaufen.";
+
+    /// <summary>Der Antrag, den Tom stellt - der Name ist zugleich das Erkennungszeichen.</summary>
+    public const string VereinsAntragName = "Hundefreunde Wien";
 
     public static readonly string[] FaehrtenKommentare =
     [
@@ -123,11 +137,19 @@ public static class DemoSzenarienSeeder
             foreach (var (name, szenario) in new (string, Func<CancellationToken, Task>)[]
             {
                 ("Verein", VereinAsync),
+                // Vor allem, was Lisa benachrichtigt: Die Meldung entsteht in ihrer Sprache.
+                ("Englisch", EnglischAsync),
                 ("Prüfungsziele", ZieleAsync),
+                // Nach den Zielen (dort entsteht Emma) und nach "Englisch".
+                ("Mitbesitz", MitbesitzAsync),
+                ("Hoopers", HoopersAsync),
                 ("Fährten", FaehrtenAsync),
+                ("Nachtfährte", NachtfaehrteAsync),
                 ("Feedback", FeedbackAsync),
                 ("Termine", TermineAsync),
                 ("Anmeldungen", AnmeldungenAsync),
+                ("Österreich", OesterreichAsync),
+                ("Vereinsantrag", VereinsantragAsync),
             })
             {
                 try
@@ -175,7 +197,7 @@ public static class DemoSzenarienSeeder
 
         private async Task ZieleAsync(CancellationToken ct)
         {
-            var hunde = await HundeVonMaxAsync(ct);
+            var hunde = await HundeVonAsync(max, ct);
             var emma = await EmmaAsync(hunde, ct);
 
             var heute = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -191,7 +213,7 @@ public static class DemoSzenarienSeeder
             // Aktives Ziel in rund fünf Wochen, mit Plan und angefangener Woche: Die Zielkarte
             // auf der Startseite zeigt Fortschritt. Die Anker liegen drei Tage zurück, damit die
             // Woche 1 noch einige Tage "laufende Woche" bleibt.
-            var (aktiv, aktivNeu) = await ZielMitPlanAsync(emma, "UPR", "FCI-UPr 2", 32, NotizUprZiel, ct);
+            var (aktiv, aktivNeu) = await ZielMitPlanAsync(max, emma, "UPR", "FCI-UPr 2", 32, NotizUprZiel, ct);
             if (aktiv is not null)
             {
                 if (aktivNeu) await ZielRueckdatierenAsync(aktiv, tage: 3, ct);
@@ -201,8 +223,8 @@ public static class DemoSzenarienSeeder
             // Prüfung war gestern, Ergebnis fehlt: Zustand "Ergebnis eintragen" - bei Wauwau,
             // NICHT bei Emma: Die Startseite zeigt je Hund nur das nächste Ziel, ein überfälliges
             // hat Vorrang. An Emma verdeckte es die Zielkarte mit dem Wochenfortschritt.
-            var wauwau = await HundAsync(hunde, "Wauwau", "Beagle", DogGender.Male, new DateOnly(2022, 3, 14), ct);
-            var (offen, offenNeu) = await ZielMitPlanAsync(wauwau, "FPR", "FCI-FPr 1", 28, NotizFaehrteOffen, ct);
+            var wauwau = await HundAsync(max, hunde, "Wauwau", "Beagle", DogGender.Male, new DateOnly(2022, 3, 14), ct);
+            var (offen, offenNeu) = await ZielMitPlanAsync(max, wauwau, "FPR", "FCI-FPr 1", 28, NotizFaehrteOffen, ct);
             if (offen is not null && offenNeu)
             {
                 await ZielRueckdatierenAsync(offen, tage: 28, ct);
@@ -216,24 +238,24 @@ public static class DemoSzenarienSeeder
         /// entfielen Leistungen, Fortschritt und der Zustand "Ergebnis eintragen" in der Hundeliste.
         /// </summary>
         private Task<Dog?> EmmaAsync(List<Dog> hunde, CancellationToken ct) =>
-            HundAsync(hunde, "Emma", "Australian Shepherd", DogGender.Female, new DateOnly(2023, 5, 20), ct);
+            HundAsync(max, hunde, "Emma", "Australian Shepherd", DogGender.Female, new DateOnly(2023, 5, 20), ct);
 
-        /// <summary>Ein Hund von Max mit diesem Namen - vorhanden oder neu angelegt.</summary>
-        private async Task<Dog?> HundAsync(List<Dog> hunde, string name, string rasse, DogGender geschlecht, DateOnly geburtstag, CancellationToken ct)
+        /// <summary>Ein Hund der Person mit diesem Namen - vorhanden oder neu angelegt.</summary>
+        private async Task<Dog?> HundAsync(ApplicationUser besitzer, List<Dog> hunde, string name, string rasse, DogGender geschlecht, DateOnly geburtstag, CancellationToken ct)
         {
             var hund = hunde.FirstOrDefault(h => h.Name == name);
             if (hund is not null) return hund;
 
             hund = new Dog { Name = name, Breed = rasse, Gender = geschlecht, Birthday = geburtstag };
             db.Dogs.Add(hund);
-            db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = max.Id });
+            db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = besitzer.Id });
             await db.SaveChangesAsync(ct);
             hunde.Add(hund);
             return hund;
         }
 
-        private async Task<List<Dog>> HundeVonMaxAsync(CancellationToken ct) =>
-            await db.Dogs.Where(d => db.DogOwners.Any(o => o.DogId == d.Id && o.UserId == max.Id)).ToListAsync(ct);
+        private async Task<List<Dog>> HundeVonAsync(ApplicationUser besitzer, CancellationToken ct) =>
+            await db.Dogs.Where(d => db.DogOwners.Any(o => o.DogId == d.Id && o.UserId == besitzer.Id)).OrderBy(d => d.CreatedAt).ToListAsync(ct);
 
         private async Task ErreichtesZielAsync(
             Dog? hund, string sportCode, string ordnung, DateOnly pruefungstag, int? punkte, string bemerkung, string notiz, CancellationToken ct)
@@ -265,8 +287,8 @@ public static class DemoSzenarienSeeder
             await db.SaveChangesAsync(ct);
         }
 
-        /// <summary>Legt ein Ziel über den GoalService an - samt generiertem Plan - oder liefert das vorhandene (Neu = false).</summary>
-        private async Task<(Goal? Ziel, bool Neu)> ZielMitPlanAsync(Dog? hund, string sportCode, string ordnung, int tageBisZiel, string notiz, CancellationToken ct)
+        /// <summary>Legt ein Ziel für die Person über den GoalService an - samt generiertem Plan - oder liefert das vorhandene (Neu = false).</summary>
+        private async Task<(Goal? Ziel, bool Neu)> ZielMitPlanAsync(ApplicationUser besitzer, Dog? hund, string sportCode, string ordnung, int tageBisZiel, string notiz, CancellationToken ct)
         {
             if (hund is null) return (null, false);
 
@@ -279,7 +301,7 @@ public static class DemoSzenarienSeeder
 
             var heute = DateOnly.FromDateTime(DateTime.UtcNow);
             var ergebnis = await services.GetRequiredService<IGoalService>().CreateAsync(
-                max.Id, new CreateGoalRequest(hund.Id, sport.Id, regulation.Id, heute.AddDays(tageBisZiel), notiz), ct);
+                besitzer.Id, new CreateGoalRequest(hund.Id, sport.Id, regulation.Id, heute.AddDays(tageBisZiel), notiz), ct);
             if (!ergebnis.Succeeded)
             {
                 logger.LogWarning("Demo-Ziel {Ordnung} konnte nicht angelegt werden: {Fehler}", ordnung, string.Join("; ", ergebnis.Errors));
@@ -360,7 +382,7 @@ public static class DemoSzenarienSeeder
 
         private async Task FaehrtenAsync(CancellationToken ct)
         {
-            var bello = (await HundeVonMaxAsync(ct)).FirstOrDefault(h => h.Name == "Bello");
+            var bello = (await HundeVonAsync(max, ct)).FirstOrDefault(h => h.Name == "Bello");
             if (bello is null) return;
 
             // Eigene Instanz ohne Wetterabruf: Der echte Dienst fragte beim Start des Servers das
@@ -431,7 +453,7 @@ public static class DemoSzenarienSeeder
 
         private async Task FeedbackAsync(CancellationToken ct)
         {
-            var bello = (await HundeVonMaxAsync(ct)).FirstOrDefault(h => h.Name == "Bello");
+            var bello = (await HundeVonAsync(max, ct)).FirstOrDefault(h => h.Name == "Bello");
             if (bello is null) return;
 
             var bh = await db.Sports.FirstOrDefaultAsync(s => s.Code == "BH", ct);
@@ -639,6 +661,183 @@ public static class DemoSzenarienSeeder
                 if (!formular.Succeeded)
                     logger.LogWarning("Demo-Anmeldung über das Formular wurde abgelehnt: {Fehler}", string.Join("; ", formular.Errors));
             }
+        }
+
+        // ---------------------------------------------------------------- g) Englisch und Mitbesitz (Lisa)
+
+        /// <summary>
+        /// Lisa nutzt die App auf Englisch, lebt aber in Deutschland (Land bleibt leer): Oberfläche,
+        /// Glocke, Push und Mails englisch, die Prüfungsordnungen deutsch. Nur wenn noch keine Sprache
+        /// gespeichert ist - eine Umstellung im Profil bleibt.
+        /// </summary>
+        private async Task EnglischAsync(CancellationToken ct)
+        {
+            var einstellungen = services.GetRequiredService<IPreferenceService>();
+            var aktuell = await einstellungen.GetAsync(lisa.Id, ct);
+            if (aktuell.Value?.Locale is not null) return;
+
+            var ergebnis = await einstellungen.UpdateLocaleAsync(lisa.Id, new UpdateLocaleRequest("en"), ct);
+            if (!ergebnis.Succeeded)
+                logger.LogWarning("Demo-Sprache für Lisa konnte nicht gesetzt werden: {Fehler}", string.Join("; ", ergebnis.Errors));
+        }
+
+        /// <summary>
+        /// Max lädt Lisa ein, Emma gemeinsam zu verwalten - über den DogService, also mit der Benachrichtigung
+        /// an Lisa (auf Englisch, siehe <see cref="EnglischAsync"/>). Mitbesitz gibt es erst nach ihrer Zusage.
+        /// </summary>
+        private async Task MitbesitzAsync(CancellationToken ct)
+        {
+            var emma = (await HundeVonAsync(max, ct)).FirstOrDefault(h => h.Name == "Emma");
+            if (emma is null || lisa.Email is null) return;
+
+            // Jede Zeile zählt, auch eine abgelehnte, zurückgezogene oder beendete: Was in der Demo
+            // entschieden wurde, soll nicht beim nächsten Start wieder als Einladung auftauchen.
+            if (await db.DogOwners.IgnoreQueryFilters().AnyAsync(o => o.DogId == emma.Id && o.UserId == lisa.Id, ct)) return;
+
+            var ergebnis = await services.GetRequiredService<IDogService>().AddOwnerAsync(max.Id, emma.Id, new AddDogOwnerRequest(lisa.Email), ct);
+            if (!ergebnis.Succeeded)
+                logger.LogWarning("Demo-Einladung zum Mitbesitz konnte nicht angelegt werden: {Fehler}", string.Join("; ", ergebnis.Errors));
+        }
+
+        // ---------------------------------------------------------------- h) Österreich und Vereinsantrag (Tom)
+
+        /// <summary>
+        /// Tom ist "in Österreich": Der Katalog zeigt keine Ordnungen für AT, die Sachkunde ist ausgeblendet,
+        /// Tagebuch und Fährte funktionieren. Nur wenn noch kein Land gespeichert ist.
+        /// </summary>
+        private async Task OesterreichAsync(CancellationToken ct)
+        {
+            var tom = await userManager.FindByEmailAsync(InteressentEmail);
+            if (tom is null) return;
+
+            var einstellungen = services.GetRequiredService<IPreferenceService>();
+            var aktuell = await einstellungen.GetAsync(tom.Id, ct);
+            if (aktuell.Value?.Country is not null) return;
+
+            var ergebnis = await einstellungen.UpdateCountryAsync(tom.Id, new UpdateCountryRequest("AT"), ct);
+            if (!ergebnis.Succeeded)
+                logger.LogWarning("Demo-Land für Tom konnte nicht gesetzt werden: {Fehler}", string.Join("; ", ergebnis.Errors));
+        }
+
+        /// <summary>
+        /// Tom beantragt einen neuen Verein; der Antrag wartet im Adminbereich unter Vereine auf Freigabe
+        /// oder Ablehnung. Toms Beitrittsanfrage an den Demo-Verein bleibt davon unberührt.
+        /// </summary>
+        private async Task VereinsantragAsync(CancellationToken ct)
+        {
+            var tom = await userManager.FindByEmailAsync(InteressentEmail);
+            if (tom is null) return;
+
+            // Egal welcher Status: Ein abgelehnter oder freigegebener Antrag kommt nicht zurück, und ein
+            // freigegebener hat den Verein hinterlassen (auch ein gelöschter zählt).
+            if (await db.ClubRegistrations.IgnoreQueryFilters().AnyAsync(r => r.RequestedByUserId == tom.Id && r.Name == VereinsAntragName, ct)
+                || await db.Clubs.IgnoreQueryFilters().AnyAsync(c => c.Name == VereinsAntragName, ct))
+                return;
+            // Mehr als einen offenen Antrag je Person lässt der Dienst nicht zu: Hat Tom schon einen
+            // anderen offen, wäre jeder Start eine Warnung - dann still warten.
+            if (await db.ClubRegistrations.AnyAsync(r => r.RequestedByUserId == tom.Id && r.Status == ClubRegistrationStatus.Pending, ct))
+                return;
+
+            var ergebnis = await services.GetRequiredService<IClubRegistrationService>().RequestAsync(tom.Id,
+                new CreateClubRegistrationRequest(VereinsAntragName,
+                    "Neuer Hundesportverein in Wien für Begleithunde, Fährte und Agility - mit Welpengruppe für Einsteiger:innen."), ct);
+            if (!ergebnis.Succeeded)
+                logger.LogWarning("Demo-Vereinsantrag konnte nicht gestellt werden: {Fehler}", string.Join("; ", ergebnis.Errors));
+        }
+
+        // ---------------------------------------------------------------- i) Hoopers (Nina)
+
+        /// <summary>
+        /// Nina steigt ins Hoopers ein: ein Hund (falls sie noch keinen hat) und ein Ziel H0 mit Plan. Die Ordnung
+        /// gilt erst ab 1.1.2027, deshalb liegt die Prüfung rund fünf Monate voraus und jedenfalls danach.
+        /// </summary>
+        private async Task HoopersAsync(CancellationToken ct)
+        {
+            var nina = await userManager.FindByEmailAsync(NeulingEmail);
+            if (nina is null) return;
+
+            // Auch gelöschte Ziele zählen - Ninas Hunde bestimmen, wem es gehört.
+            if (await db.Goals.IgnoreQueryFilters().AnyAsync(g => g.Notes == NotizHoopersZiel
+                    && db.DogOwners.IgnoreQueryFilters().Any(o => o.DogId == g.DogId && o.UserId == nina.Id), ct))
+                return;
+
+            // Hat Nina schon einen Hund, bekommt er das Ziel; sonst kommt Flitzer. Dass ein Tester Flitzer
+            // samt Ziel gelöscht hat, fängt die Prüfung oben ab - ein anderer, früher gelöschter Hund nicht.
+            var hunde = await HundeVonAsync(nina, ct);
+            var hund = hunde.FirstOrDefault()
+                ?? await HundAsync(nina, hunde, "Flitzer", "Mischling", DogGender.Female, DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-14), ct);
+
+            var (_, regulation) = await KatalogAsync("HOOPERS", "Hoopers 0 (H0)", ct);
+            if (regulation is null) return;
+            var gueltigAb = await db.RegulationVersions.Where(v => v.RegulationId == regulation.Id)
+                .Select(v => (DateOnly?)v.ValidFrom).MaxAsync(ct) ?? new DateOnly(2027, 1, 1);
+            var tageBisZiel = Math.Max(150, gueltigAb.AddDays(14).DayNumber - DateOnly.FromDateTime(DateTime.UtcNow).DayNumber);
+
+            await ZielMitPlanAsync(nina, hund, "HOOPERS", "Hoopers 0 (H0)", tageBisZiel, NotizHoopersZiel, ct);
+        }
+
+        // ---------------------------------------------------------------- j) Nachtfährte (Bello)
+
+        /// <summary>
+        /// Eine Fährte ohne Ablauf, gestern um 22 Uhr gelegt: Damit lässt sich "erneut ablaufen" über
+        /// Mitternacht ausprobieren (die Frist läuft 24 Stunden nach dem Ende des Legens).
+        ///
+        /// ROLLEND wie die Termine: Hat sie keinen Ablauf und liegt nicht auf "gestern", rückt sie beim Start
+        /// auf gestern 22 Uhr. Ist sie abgelaufen oder gelöscht, bleibt sie, wie sie ist. Gedacht zum Testen
+        /// am Tag nach einem Neustart; nach 22 Uhr am Folgetag ist die Frist vorbei.
+        /// </summary>
+        private async Task NachtfaehrteAsync(CancellationToken ct)
+        {
+            var bello = (await HundeVonAsync(max, ct)).FirstOrDefault(h => h.Name == "Bello");
+            if (bello is null) return;
+
+            var gestern = Vereinszeit.Heute().AddDays(-1);
+            var gelegtUm = LokalZuUtc(gestern, new TimeOnly(22, 0));
+
+            var vorhanden = await db.GpsTracks.IgnoreQueryFilters().Include(t => t.Points).FirstOrDefaultAsync(
+                t => t.Comment == KommentarNachtfaehrte
+                    && db.TrainingSessions.IgnoreQueryFilters().Any(s => s.Id == t.TrainingSessionId && s.DogId == bello.Id), ct);
+
+            if (vorhanden is null)
+            {
+                // Die App kennt je Hund und Tag nur eine Einheit, und eine Fährte hängt sich an die vorhandene.
+                // Hat Bello gestern schon ein Training (von einem Tester), bliebe die Fährte in dessen Eintrag
+                // und ließe sich später nicht mehr verschieben - dann lieber morgen wieder versuchen.
+                if (await db.TrainingSessions.AnyAsync(s => s.DogId == bello.Id && s.Date == gestern, ct)) return;
+
+                // Ohne Wetterabruf wie die anderen Demo-Fährten (siehe FaehrtenAsync). Der fünfte Lauf der
+                // Geometrie (Nummer 4) ist bei keiner anderen Fährte in Gebrauch.
+                var (gelegt, _) = DemoFaehrtenGeometrie.Erzeuge(4, gelegtUm, TimeSpan.FromHours(10), 1.0);
+                var track = await new GpsTrackService(db, new OhneWetter()).CreateAsync(max.Id, new CreateGpsTrackRequest(
+                    TrainingSessionId: null, LengthMeters: Math.Round(DemoFaehrtenGeometrie.LaengeMeter), AgeMinutes: 600,
+                    Surface: "Wiese", Weather: "klar, kühl", Wind: "windstill", Comment: KommentarNachtfaehrte, Points: gelegt,
+                    DogId: bello.Id, Date: gestern, DurationMinutes: 30), ct);
+                if (!track.Succeeded)
+                    logger.LogWarning("Demo-Nachtfährte konnte nicht angelegt werden: {Fehler}", string.Join("; ", track.Errors));
+                return;
+            }
+
+            // Gelöscht oder (auch einmal) abgelaufen: Das hat jemand entschieden - nichts verschieben.
+            if (vorhanden.DeletedAt is not null) return;
+            if (await db.GpsWalkRuns.IgnoreQueryFilters().AnyAsync(r => r.TrackId == vorhanden.Id, ct)) return;
+
+            var einheit = await db.TrainingSessions.Include(s => s.Exercises).FirstOrDefaultAsync(s => s.Id == vorhanden.TrainingSessionId, ct);
+            if (einheit is null || einheit.Date == gestern) return;
+            // Verschoben wird nur die Einheit, die erkennbar die des Seeders ist: so angelegt (30 Minuten),
+            // ohne Übungen, Notiz und Feedback. Hat ein Tester darin etwas eingetragen oder liegt eine
+            // zweite Fährte dabei, gehört sie nicht mehr allein der Demo und bleibt, wie sie ist.
+            if (einheit.DurationMinutes != 30 || einheit.Exercises.Count > 0 || einheit.Notes is not null
+                || einheit.TrainerFeedback is not null || einheit.FeedbackByTrainerId is not null) return;
+            if (await db.GpsTracks.CountAsync(t => t.TrainingSessionId == einheit.Id, ct) > 1) return;
+            // Pro Hund und Tag nur eine Einheit: Liegt am Zieltag schon eine andere, nicht dorthin schieben.
+            if (await db.TrainingSessions.AnyAsync(s => s.DogId == einheit.DogId && s.Date == gestern && s.Id != einheit.Id, ct)) return;
+            if (vorhanden.Points.Count == 0) return;
+
+            var verschiebung = gelegtUm - vorhanden.Points.Min(p => p.Timestamp);
+            foreach (var punkt in vorhanden.Points)
+                punkt.Timestamp = (punkt.Timestamp + verschiebung).ToUniversalTime();
+            einheit.Date = gestern;
+            await db.SaveChangesAsync(ct);
         }
     }
 }

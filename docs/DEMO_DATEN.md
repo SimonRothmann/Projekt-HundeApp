@@ -1,6 +1,7 @@
 # Demo-Daten und Demo-Szenarien
 
-Status: **umgesetzt** (2026-09-30). Gilt nur für Development (lokal und die
+Status: **umgesetzt** (2026-09-30, ergänzt 2026-10-16: Englisch, Mitbesitz, Österreich,
+Vereinsantrag, Hoopers, Nachtfährte). Gilt nur für Development (lokal und die
 Test-Umgebung); Produktion bekommt nichts davon.
 
 ## Zwei Seeder, zwei Aufgaben
@@ -23,10 +24,27 @@ Der Szenarien-Seeder:
 - geht über dieselben Dienste wie die App (Rechte, Benachrichtigungen,
   Fährten-Auswertung durch den `GpsTrackEvaluator`) statt Kennzahlen selbst zu setzen.
 - legt **Termine rollend** an: Bei jedem Start gibt es wieder künftige Dienstage.
-- legt nichts wieder an, was ein Tester in der Demo gelöscht hat (Ziele, Trainings,
-  Fährten, Anmeldungen). Eine abgelehnte oder freigegebene Beitrittsanfrage von
-  Nina Neuling kommt ebenfalls nicht zurück. Nur Termine sind davon ausgenommen,
+- legt nichts wieder an, was ein Tester in der Demo gelöscht oder entschieden hat (Ziele,
+  Trainings, Fährten, Anmeldungen, Hunde). Eine abgelehnte oder freigegebene
+  Beitrittsanfrage von Nina Neuling kommt ebenfalls nicht zurück, ebenso wenig
+  eine abgelehnte oder zurückgezogene Mitbesitz-Einladung oder ein entschiedener
+  Vereinsantrag. Nur Termine und die Nachtfährte sind davon (teilweise) ausgenommen,
   weil sie rollend nachwachsen.
+- setzt **Einstellungen nur, wenn sie leer sind**: Lisas Sprache und Toms Land
+  entstehen nur, solange die Person noch nichts gewählt hat. Was ein Tester im
+  Profil auf eine andere Sprache bzw. ein anderes Land umstellt, bleibt. Die
+  Rückstellung auf „Automatisch“ bzw. „Keine Angabe“ gilt dagegen als „leer“: Beim
+  nächsten Start steht wieder Englisch bzw. Österreich da.
+- hält die **Nachtfährte rollend**: Sie hat keinen Ablauf und liegt auf „gestern Abend“
+  (22 Uhr Ortszeit). Solange niemand sie abgelaufen hat und ihr Tag nicht „gestern“ ist,
+  rückt sie beim Start auf gestern 22 Uhr (Datum der Einheit und alle Punktzeiten um
+  dieselbe Differenz). Ist sie abgelaufen oder gelöscht, bleibt sie, wie sie ist. Fasst
+  sie nur an, was erkennbar dem Seeder gehört: Hat Bello gestern schon ein Training
+  (App-Regel: ein Tag, eine Einheit), wird sie nicht angelegt; trägt ein Tester in ihrer
+  Einheit etwas ein (Übung, Notiz, Dauer, Feedback) oder liegt am Zieltag schon eine
+  andere Einheit, wird sie nicht verschoben.
+  Gedacht zum Testen am Tag nach einem Neustart: „Erneut ablaufen“ gilt bis 24 Stunden
+  nach dem Ende des Legens, nach 22 Uhr am Folgetag ist die Grenze überschritten.
 - ruft für die Fährten keinen Wetterdienst auf; die Temperaturen stehen in denselben
   Feldern wie beim Wetter-Feature.
 - darf keine Kennzahl verfälschen: Dem Admin-Konto legt er nichts an.
@@ -36,16 +54,17 @@ den Start des Servers.
 
 ## Welches Demo-Konto zeigt welche Funktion
 
-Passwort für alle Konten: `Demo1234!` (Knöpfe auf der Login-Seite der Test-Umgebung).
+Passwort für alle Konten: `Demo1234!` (Knöpfe auf der Login-Seite der Test-Umgebung; die
+Beschriftung nennt die Besonderheit, z. B. „Mitglied 2 (EN)“ und „Interessent (AT)“).
 
 | Konto | Was dort zu sehen ist |
 | --- | --- |
 | **Admin** (`admin@dogity.test`) | Nutzerverwaltung, Kennzahlen (`/api/admin/stats`), verwaiste Daten. Hat bewusst keine eigenen Demo-Daten. |
 | **Trainer** (`trainer@dogity.test`) | Einladungslink des Vereins; offene Beitrittsanfragen von Tom Neuling (von Hand) und Nina Neuling (über den Link, mit Benachrichtigung); Welpengruppe mit Anmeldeformular-Link und sieben Anmeldungen (Formular, Import, von Hand; Wurftage 8 bis 20 Wochen; eine mit Notiz; vier bezahlt; Anwesenheit 0 bis 3 Mal; die jüngste von heute, mit Benachrichtigung); Gruppentermine (zwei künftige, einer davon an anderem Treffpunkt, ein abgesagter, drei vergangene); Absage von Lisa mit Benachrichtigung; Feedback zu Bellos Trainings und die Rückfrage von Max mit Benachrichtigung. |
-| **Mitglied 1** (`mitglied1@dogity.test`, Max) | **Bello:** vier Winkelfährten mit je einem ausgewerteten Ablauf (drei Gegenstände, Abweichung sinkt von Fährte zu Fährte, Temperaturen beim Legen und Suchen), frisches Trainer-Feedback ohne Reaktion (Benachrichtigung führt auf den Eintrag), Feedback mit „Verstanden" und Rückfrage. **Emma** (zweiter Hund): zwei erreichte Prüfungen (BH ohne Punkte, FCI-UPr 1 mit 86 Punkten) als Leistungen, ein aktives Ziel FCI-UPr 2 in rund fünf Wochen mit Plan und angefangener Woche (Zielkarte auf der Startseite). **Wauwau:** ein Ziel FCI-FPr 1 mit Prüfungsdatum gestern (Zustand „Ergebnis eintragen") - bewusst nicht bei Emma, weil die Startseite je Hund nur das nächste Ziel zeigt und ein überfälliges Vorrang hat. Beim nächsten Gruppentermin zugesagt. |
-| **Mitglied 2** (`mitglied2@dogity.test`, Lisa) | Hund (Luna) ohne Prüfungsziel; beim nächsten Gruppentermin abgesagt. |
-| **Interessent** (`interessent@dogity.test`, Tom) | Kein Verein, offene Beitrittsanfrage; Dashboard-Hinweis „Tritt einem Verein bei". |
-| **Neuling** (`neuling@dogity.test`, Nina) | Ebenfalls offene Beitrittsanfrage, aber über den Einladungslink (Quelle „Einladungslink"). Zeigt die Wartesicht nach einem Beitritt per Link. |
+| **Mitglied 1** (`mitglied1@dogity.test`, Max) | **Bello:** eine **Nachtfährte** ohne Ablauf, gestern 22 Uhr gelegt („Erneut ablaufen“ über Mitternacht, rollend; siehe oben), dazu vier Winkelfährten mit je einem ausgewerteten Ablauf (drei Gegenstände, Abweichung sinkt von Fährte zu Fährte, Temperaturen beim Legen und Suchen), frisches Trainer-Feedback ohne Reaktion (Benachrichtigung führt auf den Eintrag), Feedback mit „Verstanden" und Rückfrage. **Emma** (zweiter Hund): zwei erreichte Prüfungen (BH ohne Punkte, FCI-UPr 1 mit 86 Punkten) als Leistungen, ein aktives Ziel FCI-UPr 2 in rund fünf Wochen mit Plan und angefangener Woche (Zielkarte auf der Startseite). **Wauwau:** ein Ziel FCI-FPr 1 mit Prüfungsdatum gestern (Zustand „Ergebnis eintragen") - bewusst nicht bei Emma, weil die Startseite je Hund nur das nächste Ziel zeigt und ein überfälliges Vorrang hat. Beim nächsten Gruppentermin zugesagt. Emma ist außerdem der Hund der **Mitbesitz-Einladung an Lisa** (Max ist der Einladende). |
+| **Mitglied 2** (`mitglied2@dogity.test`, Lisa) | **Englische Oberfläche** bei Land Deutschland: Glocke, Push und Mails auf Englisch, Prüfungsordnungen weiter deutsch. Dazu die **Mitbesitz-Einladung** von Max für Emma (Einladungskarte, Benachrichtigung auf Englisch; Mitbesitz erst nach ihrer Zusage). Hund (Luna) ohne Prüfungsziel; beim nächsten Gruppentermin abgesagt. |
+| **Interessent** (`interessent@dogity.test`, Tom) | Land **Österreich** (AT): Katalog ohne Prüfungsordnungen, Sachkunde ausgeblendet, Tagebuch und Fährte funktionieren. Stellt einen **Vereinsantrag** „Hundefreunde Wien“, den der Admin unter Vereine freigibt oder ablehnt. Kein Verein, offene Beitrittsanfrage; Dashboard-Hinweis „Tritt einem Verein bei". |
+| **Neuling** (`neuling@dogity.test`, Nina) | **Hoopers:** Hund „Flitzer“ (Mischling, gut ein Jahr; hat Nina schon einen Hund, bekommt der das Ziel) mit Ziel H0 und Plan; die Prüfung liegt nach dem 1.1.2027, dem Beginn der Ordnung. Ebenfalls offene Beitrittsanfrage, aber über den Einladungslink (Quelle „Einladungslink"). Zeigt die Wartesicht nach einem Beitritt per Link. |
 
 Der Link selbst: als Trainer unter dem Verein, Vorschau anonym unter `/v/<code>`;
 das Anmeldeformular der Welpengruppe unter `/anmeldung/<code>`.
@@ -53,7 +72,11 @@ das Anmeldeformular der Welpengruppe unter `/anmeldung/<code>`.
 ## Prüfen
 
 - Tests: `DemoSzenarienSeederTests` (zweimal ausführen = keine Duplikate, ohne
-  Demo-Konten passiert nichts, alle Szenarien sind da).
+  Demo-Konten passiert nichts, alle Szenarien sind da, gespeicherte Sprache und
+  gespeichertes Land bleiben, Entschiedenes kommt nicht zurück, die Nachtfährte
+  rückt auf gestern und bleibt bei Ablauf oder fremden Einträgen liegen, bei einem
+  schon vorhandenen Training gestern entsteht sie nicht, ein anderer offener
+  Vereinsantrag von Tom wird still übergangen).
 - Lokal: Backend zweimal starten und die Zeilenzahlen vergleichen; über die API
   sichtbar sind die Daten z. B. unter `/api/dashboard` (als Mitglied 1) und
   `/api/notifications` (als Trainer).

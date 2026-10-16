@@ -118,11 +118,13 @@ public static class DemoDataSeeder
         trainedSession.Exercises.Add(new TrainingExercise { ExerciseId = verkehr.Id, Rating = 3, Difficulty = ExerciseDifficulty.Intermediate, Success = true, Notes = "Noch etwas unsicher bei Fahrrädern." });
         db.TrainingSessions.Add(trainedSession);
 
+        // Vorgestern statt gestern: Pro Hund und Tag gibt es nur eine Einheit, und "gestern" gehört der
+        // Nachtfährte des DemoSzenarienSeeder (sie würde sich sonst an diese Einheit hängen).
         var openFeedbackSession = new TrainingSession
         {
             UserId = member1.Id,
             DogId = bello.Id,
-            Date = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1),
+            Date = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-2),
             DurationMinutes = 30,
             Notes = "Training ohne Trainer."
         };

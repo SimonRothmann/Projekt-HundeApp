@@ -2,15 +2,21 @@ using Dogity.Application;
 using Dogity.Application.Abstractions;
 using Dogity.Application.Notifications;
 using Dogity.Application.Tests.TestSupport;
+using Dogity.Application.Community;
 using Dogity.Application.Weather;
 using Dogity.Domain.Community;
+using Dogity.Domain.Dogs;
 using Dogity.Domain.Planning;
+using Dogity.Domain.Preferences;
+using Dogity.Domain.Tracking;
+using Dogity.Domain.Training;
 using Dogity.Infrastructure.Identity;
 using Dogity.Infrastructure.Persistence;
 using Dogity.Infrastructure.Persistence.Seed;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Dogity.Application.Tests.Seed;
 
@@ -58,6 +64,8 @@ public class DemoSzenarienSeederTests
         using var scope = provider.CreateScope();
         await RoleSeeder.SeedAsync(scope.ServiceProvider);
         await SportCatalogSeeder.SeedAsync(scope.ServiceProvider);
+        // Das Land (Tom: AT) wird nur angenommen, wenn es in der Länderliste steht.
+        await CountrySeeder.SeedAsync(scope.ServiceProvider);
         await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
     }
 
@@ -87,6 +95,10 @@ public class DemoSzenarienSeederTests
             await db.GroupRegistrationAttendances.IgnoreQueryFilters().CountAsync(),
             await db.ClubMemberships.IgnoreQueryFilters().CountAsync(),
             await db.Notifications.IgnoreQueryFilters().CountAsync(),
+            await db.UserPreferences.IgnoreQueryFilters().CountAsync(),
+            await db.DogOwners.IgnoreQueryFilters().CountAsync(),
+            await db.ClubRegistrations.IgnoreQueryFilters().CountAsync(),
+            await db.GpsPoints.IgnoreQueryFilters().CountAsync(),
         ];
     }
 
@@ -230,5 +242,369 @@ public class DemoSzenarienSeederTests
         Assert.Single(anmeldungen, r => r.Notes is not null);
         Assert.True(anmeldungen.Select(r => r.Attendances.Count).Distinct().Count() >= 3);
         Assert.Contains(await db.Notifications.Where(n => n.UserId == trainerId).ToListAsync(), n => n.Message.StartsWith("Neue Anmeldung"));
+    }
+
+    // ---------------------------------------------------------------- Szenarien seit 2026-10-16
+
+    private static async Task<Guid> IdAsync(IServiceProvider scopeProvider, string email) =>
+        (await scopeProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync(email))!.Id;
+
+    private static DateTimeOffset GesternUm(int stunde)
+    {
+        var gestern = Vereinszeit.Heute().AddDays(-1);
+        return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(gestern.ToDateTime(new TimeOnly(stunde, 0), DateTimeKind.Unspecified), Vereinszeit.Zone), TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task NeueSzenarien_LegenDieErwartetenDatenAn()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var sp = scope.ServiceProvider;
+        var db = sp.GetRequiredService<ApplicationDbContext>();
+        var maxId = await IdAsync(sp, "mitglied1@dogity.test");
+        var lisaId = await IdAsync(sp, "mitglied2@dogity.test");
+        var tomId = await IdAsync(sp, DemoSzenarienSeeder.InteressentEmail);
+        var ninaId = await IdAsync(sp, DemoSzenarienSeeder.NeulingEmail);
+        var adminId = await IdAsync(sp, "admin@dogity.test");
+
+        // Englisch: Lisa bekommt die Sprache, aber kein Land (englischsprachig in Deutschland)
+        var lisaEinstellung = await db.UserPreferences.SingleAsync(p => p.UserId == lisaId);
+        Assert.Equal("en", lisaEinstellung.Locale);
+        Assert.Null(lisaEinstellung.Country);
+
+        // Mitbesitz: eine Einladung (kein Mitbesitz), die Benachrichtigung an Lisa ist englisch
+        var emma = await db.Dogs.SingleAsync(d => d.Name == "Emma");
+        var einladung = await db.DogOwners.IgnoreQueryFilters().SingleAsync(o => o.DogId == emma.Id && o.UserId == lisaId);
+        Assert.Equal(DogOwnerStatus.Invited, einladung.Status);
+        Assert.Equal(maxId, einladung.InvitedByUserId);
+        var lisasMeldungen = await db.Notifications.Where(n => n.UserId == lisaId).Select(n => n.Message).ToListAsync();
+        Assert.Contains(lisasMeldungen, m => m.Contains("invites you to manage Emma together"));
+        Assert.DoesNotContain(lisasMeldungen, m => m.Contains("lädt dich ein"));
+
+        // Österreich: Tom bekommt das Land, die Beitrittsanfrage an den Verein bleibt offen
+        Assert.Equal("AT", (await db.UserPreferences.SingleAsync(p => p.UserId == tomId)).Country);
+        Assert.Equal(ClubMembershipStatus.Pending, (await db.ClubMemberships.SingleAsync(m => m.UserId == tomId)).Status);
+
+        // Vereinsantrag: offen, mit Benachrichtigung an den Admin
+        var antrag = await db.ClubRegistrations.SingleAsync(r => r.RequestedByUserId == tomId);
+        Assert.Equal(DemoSzenarienSeeder.VereinsAntragName, antrag.Name);
+        Assert.Equal(ClubRegistrationStatus.Pending, antrag.Status);
+        Assert.Contains(await db.Notifications.Where(n => n.UserId == adminId).ToListAsync(), n => n.Message.Contains(DemoSzenarienSeeder.VereinsAntragName));
+        Assert.Equal(1, await db.Clubs.CountAsync());
+
+        // Hoopers: Ninas Hund mit einem Ziel H0 samt Plan, Prüfung nach dem Beginn der Ordnung (1.1.2027)
+        var flitzer = await db.Dogs.SingleAsync(d => d.Name == "Flitzer");
+        Assert.True(await db.DogOwners.AnyAsync(o => o.DogId == flitzer.Id && o.UserId == ninaId));
+        var ziel = await db.Goals.Include(g => g.TrainingPlan).SingleAsync(g => g.Notes == DemoSzenarienSeeder.NotizHoopersZiel);
+        Assert.Equal(flitzer.Id, ziel.DogId);
+        Assert.Equal(GoalStatus.Active, ziel.Status);
+        Assert.Equal("Hoopers 0 (H0)", (await db.Regulations.SingleAsync(r => r.Id == ziel.RegulationId)).Name);
+        Assert.True(ziel.TargetDate > new DateOnly(2027, 1, 1));
+        Assert.NotEmpty(await db.TrainingPlanItems.Where(i => i.TrainingPlanId == ziel.TrainingPlan!.Id).ToListAsync());
+
+        // Nachtfährte: gestern 22 Uhr (Ortszeit) gelegt, ohne Ablauf, mit Punkten
+        var nacht = await db.GpsTracks.Include(t => t.Points).Include(t => t.WalkRuns).SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte);
+        Assert.Empty(nacht.WalkRuns);
+        Assert.Equal(GesternUm(22), nacht.Points.Min(p => p.Timestamp));
+        Assert.Equal(Vereinszeit.Heute().AddDays(-1), (await db.TrainingSessions.SingleAsync(s => s.Id == nacht.TrainingSessionId)).Date);
+    }
+
+    [Fact]
+    public async Task EinstellungenDerTester_BleibenErhalten()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+
+        Guid lisaId, tomId;
+        using (var scope = provider.CreateScope())
+        {
+            lisaId = await IdAsync(scope.ServiceProvider, "mitglied2@dogity.test");
+            tomId = await IdAsync(scope.ServiceProvider, DemoSzenarienSeeder.InteressentEmail);
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            // Wie nach einer Umstellung im Profil, bevor der Seeder je lief.
+            db.UserPreferences.Add(new UserPreference { UserId = lisaId, Locale = "de" });
+            db.UserPreferences.Add(new UserPreference { UserId = tomId, Country = "CH" });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Equal("de", (await pruefDb.UserPreferences.SingleAsync(p => p.UserId == lisaId)).Locale);
+        Assert.Equal("CH", (await pruefDb.UserPreferences.SingleAsync(p => p.UserId == tomId)).Country);
+        // Die Einladung entsteht trotzdem - dann eben in Lisas gespeicherter Sprache.
+        Assert.Contains(await pruefDb.Notifications.Where(n => n.UserId == lisaId).ToListAsync(), n => n.Message.Contains("lädt dich ein"));
+    }
+
+    [Fact]
+    public async Task WasInDerDemoEntschiedenWurde_KommtBeiDenNeuenSzenarienNichtZurueck()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var jetzt = DateTimeOffset.UtcNow;
+            // Wie Tester in der Demo: Antrag ablehnen, Einladung ablehnen (Zeile weg), Hoopers-Ziel samt
+            // Hund und die Nachtfährte löschen.
+            (await db.ClubRegistrations.SingleAsync()).Status = ClubRegistrationStatus.Rejected;
+            (await db.DogOwners.IgnoreQueryFilters().SingleAsync(o => o.Status == DogOwnerStatus.Invited)).DeletedAt = jetzt;
+            var hoopers = await db.Goals.SingleAsync(g => g.Notes == DemoSzenarienSeeder.NotizHoopersZiel);
+            hoopers.DeletedAt = jetzt;
+            (await db.Dogs.SingleAsync(d => d.Id == hoopers.DogId)).DeletedAt = jetzt;
+            (await db.DogOwners.SingleAsync(o => o.DogId == hoopers.DogId)).DeletedAt = jetzt;
+            (await db.GpsTracks.SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte)).DeletedAt = jetzt;
+            await db.SaveChangesAsync();
+        }
+
+        var davor = await ZaehleAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        Assert.Equal(davor, await ZaehleAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.DoesNotContain(await pruefDb.ClubRegistrations.ToListAsync(), r => r.Status == ClubRegistrationStatus.Pending);
+        Assert.Empty(await pruefDb.DogOwners.Where(o => o.Status == DogOwnerStatus.Invited).ToListAsync());
+    }
+
+    [Fact]
+    public async Task HatNinaSchonEinenHund_BekommtDieserDasHoopersZiel()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+
+        // Nina gibt es schon (der Seeder nimmt das vorhandene Konto): ein früher gelöschter Hund
+        // zählt nicht, ein vorhandener bekommt das Ziel statt eines zweiten Hundes.
+        Guid hundId;
+        using (var scope = provider.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var nina = new ApplicationUser { UserName = DemoSzenarienSeeder.NeulingEmail, Email = DemoSzenarienSeeder.NeulingEmail, EmailConfirmed = true, FirstName = "Nina", LastName = "Neuling" };
+            Assert.True((await users.CreateAsync(nina, "Demo1234!")).Succeeded);
+            var alt = new Dog { Name = "Alt", Breed = "Mischling", Gender = DogGender.Male, DeletedAt = DateTimeOffset.UtcNow };
+            var hund = new Dog { Name = "Rex", Breed = "Beagle", Gender = DogGender.Male };
+            hundId = hund.Id;
+            db.Dogs.AddRange(alt, hund);
+            db.DogOwners.Add(new DogOwner { DogId = alt.Id, UserId = nina.Id, DeletedAt = DateTimeOffset.UtcNow });
+            db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = nina.Id });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.DoesNotContain(await pruefDb.Dogs.IgnoreQueryFilters().ToListAsync(), d => d.Name == "Flitzer");
+        Assert.Equal(hundId, (await pruefDb.Goals.SingleAsync(g => g.Notes == DemoSzenarienSeeder.NotizHoopersZiel)).DogId);
+    }
+
+    [Fact]
+    public async Task Nachtfaehrte_RuecktAufGesternSolangeKeinAblaufExistiert()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        // Fünf Tage später: Fährte, Einheit und alle Punkte liegen fünf Tage zurück.
+        Guid trackId;
+        TimeSpan spanne;
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var track = await db.GpsTracks.Include(t => t.Points).SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte);
+            trackId = track.Id;
+            spanne = track.Points.Max(p => p.Timestamp) - track.Points.Min(p => p.Timestamp);
+            foreach (var punkt in track.Points) punkt.Timestamp = punkt.Timestamp.AddDays(-5);
+            (await db.TrainingSessions.SingleAsync(s => s.Id == track.TrainingSessionId)).Date = Vereinszeit.Heute().AddDays(-6);
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var track = await db.GpsTracks.Include(t => t.Points).SingleAsync(t => t.Id == trackId);
+            Assert.Equal(GesternUm(22), track.Points.Min(p => p.Timestamp));
+            Assert.Equal(spanne, track.Points.Max(p => p.Timestamp) - track.Points.Min(p => p.Timestamp));
+            Assert.Equal(Vereinszeit.Heute().AddDays(-1), (await db.TrainingSessions.SingleAsync(s => s.Id == track.TrainingSessionId)).Date);
+            Assert.Single(await db.GpsTracks.Where(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte).ToListAsync());
+        }
+    }
+
+    [Fact]
+    public async Task Nachtfaehrte_MitAblaufWirdNichtVerschoben()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        var alt = Vereinszeit.Heute().AddDays(-6);
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var track = await db.GpsTracks.Include(t => t.Points).SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte);
+            foreach (var punkt in track.Points) punkt.Timestamp = punkt.Timestamp.AddDays(-5);
+            (await db.TrainingSessions.SingleAsync(s => s.Id == track.TrainingSessionId)).Date = alt;
+            // Ein Tester hat die Fährte abgelaufen.
+            db.GpsWalkRuns.Add(new GpsWalkRun { TrackId = track.Id });
+            await db.SaveChangesAsync();
+        }
+
+        var davor = await ZaehleAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        Assert.Equal(davor, await ZaehleAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var track2 = await pruefDb.GpsTracks.Include(t => t.Points).SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte);
+        Assert.Equal(GesternUm(22).AddDays(-5), track2.Points.Min(p => p.Timestamp));
+        Assert.Equal(alt, (await pruefDb.TrainingSessions.SingleAsync(s => s.Id == track2.TrainingSessionId)).Date);
+    }
+    [Fact]
+    public async Task Nachtfaehrte_HatBelloGesternSchonEinTraining_EntstehtSieNicht()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        // Die Nachtfährte samt Einheit wird entfernt (wie vor dem ersten Start); dafür trägt ein
+        // Tester gestern ein eigenes Training für Bello ein.
+        Guid belloId;
+        Guid testerEinheitId;
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var track = await db.GpsTracks.Include(t => t.Points).SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte);
+            var einheit = await db.TrainingSessions.SingleAsync(s => s.Id == track.TrainingSessionId);
+            belloId = einheit.DogId;
+            db.GpsPoints.RemoveRange(track.Points);
+            db.GpsTracks.Remove(track);
+            db.TrainingSessions.Remove(einheit);
+            var tester = new TrainingSession { UserId = einheit.UserId, DogId = belloId, Date = Vereinszeit.Heute().AddDays(-1), DurationMinutes = 20, Notes = "Von Hand eingetragen." };
+            testerEinheitId = tester.Id;
+            db.TrainingSessions.Add(tester);
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Empty(await pruefDb.GpsTracks.IgnoreQueryFilters().Where(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte).ToListAsync());
+        var einheitNachher = await pruefDb.TrainingSessions.SingleAsync(s => s.Id == testerEinheitId);
+        Assert.Equal(20, einheitNachher.DurationMinutes);
+        Assert.Equal("Von Hand eingetragen.", einheitNachher.Notes);
+    }
+
+    [Fact]
+    public async Task Nachtfaehrte_EinheitMitEintragEinesTestersWirdNichtVerschoben()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        var alt = Vereinszeit.Heute().AddDays(-6);
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var track = await db.GpsTracks.Include(t => t.Points).SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte);
+            foreach (var punkt in track.Points) punkt.Timestamp = punkt.Timestamp.AddDays(-5);
+            var einheit = await db.TrainingSessions.SingleAsync(s => s.Id == track.TrainingSessionId);
+            einheit.Date = alt;
+            // Der Tester hat im Eintrag etwas notiert - er gehört nicht mehr allein der Demo.
+            einheit.Notes = "Eigene Notiz.";
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var track2 = await pruefDb.GpsTracks.Include(t => t.Points).SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte);
+        Assert.Equal(GesternUm(22).AddDays(-5), track2.Points.Min(p => p.Timestamp));
+        Assert.Equal(alt, (await pruefDb.TrainingSessions.SingleAsync(s => s.Id == track2.TrainingSessionId)).Date);
+    }
+
+    [Fact]
+    public async Task Nachtfaehrte_LiegtAmZieltagSchonEineAndereEinheit_WirdNichtVerschoben()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        var alt = Vereinszeit.Heute().AddDays(-6);
+        Guid andereId;
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var track = await db.GpsTracks.Include(t => t.Points).SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte);
+            foreach (var punkt in track.Points) punkt.Timestamp = punkt.Timestamp.AddDays(-5);
+            var einheit = await db.TrainingSessions.SingleAsync(s => s.Id == track.TrainingSessionId);
+            einheit.Date = alt;
+            // Ein Tester hat für gestern ein Training nachgetragen.
+            var andere = new TrainingSession { UserId = einheit.UserId, DogId = einheit.DogId, Date = Vereinszeit.Heute().AddDays(-1), DurationMinutes = 15 };
+            andereId = andere.Id;
+            db.TrainingSessions.Add(andere);
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var track2 = await pruefDb.GpsTracks.Include(t => t.Points).SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarNachtfaehrte);
+        Assert.Equal(alt, (await pruefDb.TrainingSessions.SingleAsync(s => s.Id == track2.TrainingSessionId)).Date);
+        Assert.Equal(Vereinszeit.Heute().AddDays(-1), (await pruefDb.TrainingSessions.SingleAsync(s => s.Id == andereId)).Date);
+    }
+
+    [Fact]
+    public async Task HatTomSchonEinenAnderenOffenenAntrag_BleibtDerDemoAntragAusUndEsGibtKeineWarnung()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        var warnungen = new WarnungsSammler();
+        provider.GetRequiredService<ILoggerFactory>().AddProvider(warnungen);
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var tomId = await IdAsync(scope.ServiceProvider, DemoSzenarienSeeder.InteressentEmail);
+            db.ClubRegistrations.Add(new ClubRegistration { Name = "Anderer Verein", RequestedByUserId = tomId });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.DoesNotContain(await pruefDb.ClubRegistrations.ToListAsync(), r => r.Name == DemoSzenarienSeeder.VereinsAntragName);
+        Assert.Empty(warnungen.Zeilen);
+    }
+
+    /// <summary>Hält Warnungen des Seeders fest - ein still übergangenes Szenario darf keine auslösen.</summary>
+    private sealed class WarnungsSammler : ILoggerProvider
+    {
+        public List<string> Zeilen { get; } = [];
+        public ILogger CreateLogger(string categoryName) => new Sammler(Zeilen);
+        public void Dispose() { }
+
+        private sealed class Sammler(List<string> zeilen) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+            public bool IsEnabled(LogLevel logLevel) => true;
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+            {
+                if (logLevel >= LogLevel.Warning) zeilen.Add(formatter(state, exception));
+            }
+        }
     }
 }
