@@ -215,7 +215,7 @@ Ergebnis eines vollständigen Code-Audits (Sicherheit, Performance, Wartbarkeit)
 ### 4. Content-Security-Policy
 
 - [x] Report-Only-Phase ausgerollt (2026-07-16): CSP via `headers()` in `next.config.ts` als `Content-Security-Policy-Report-Only`. Policy: script/style 'self'+'unsafe-inline' (Next-Hydration bzw. Leaflet-style-Attribute), img 'self'+data:+blob:+https: (freie Avatar-URLs + OSM-Kacheln), connect 'self'+beide API-Domains (statisch, da NEXT_PUBLIC_API_URL zur Laufzeit fehlt), worker/manifest 'self', frame-ancestors 'none'. Verstöße gehen an den neuen Route-Handler `/csp-report` (same-origin, loggt einzeilig in die Frontend-Container-Logs - `docker compose logs frontend-prod | grep CSP-Report`), damit auch iPhone-PWA-Verstöße zentral sichtbar sind.
-- [ ] Nach der Beobachtungswoche (ab ca. 2026-07-23): Reports sichten, Policy ggf. nachziehen, dann Header-Name von `Content-Security-Policy-Report-Only` auf `Content-Security-Policy` umstellen (scharf schalten). Muss vor Schritt 6 (JWT-Härtung) liegen.
+- [x] (erledigt: seit 2026-09-09 durchsetzend, siehe frontend/next.config.ts) Nach der Beobachtungswoche (ab ca. 2026-07-23): Reports sichten, Policy ggf. nachziehen, dann Header-Name von `Content-Security-Policy-Report-Only` auf `Content-Security-Policy` umstellen (scharf schalten). Muss vor Schritt 6 (JWT-Härtung) liegen.
 
 ### 5. Paket "Hundeseite schnell + wartbar" (strikt zweistufig, größtes Paket)
 
@@ -233,7 +233,7 @@ Ausgelöst durch die Nutzerfrage "wie verhindern wir, dass Nutzer, die 3x/Woche 
 
 ### Nur noch offen: CSP scharf schalten
 
-- [ ] Nach der Beobachtungswoche (ab ca. 2026-07-23): CSP-Reports aus den Prod-Frontend-Logs sichten (`docker compose logs frontend-prod | grep CSP-Report`), Policy ggf. nachziehen, dann Header von `Content-Security-Policy-Report-Only` auf `Content-Security-Policy` umstellen.
+- [x] (erledigt: seit 2026-09-09 durchsetzend) Nach der Beobachtungswoche (ab ca. 2026-07-23): CSP-Reports aus den Prod-Frontend-Logs sichten (`docker compose logs frontend-prod | grep CSP-Report`), Policy ggf. nachziehen, dann Header von `Content-Security-Policy-Report-Only` auf `Content-Security-Policy` umstellen.
 
 ### Zurückgestellt (Nice-to-have, bewusst NICHT auf der Roadmap)
 
@@ -408,7 +408,7 @@ Mal: Betriebswirklichkeit auf dem Server prüfen, nicht in den Entwürfen.
       Framework teilnimmt; sonst Anbieter wechseln oder das Umschalten an eine
       Einwilligung koppeln. Risiko derzeit gemindert: Die Karte startet immer
       mit OpenStreetMap.
-- [ ] Optional: **kontakt@dogity.net** einrichten und in `BETREIBER.email`
+- [x] (erledigt 2026-10-15: info@dogity.net über Cloudflare Email Routing) Optional: **kontakt@dogity.net** einrichten und in `BETREIBER.email`
       eintragen, damit die private Adresse nicht öffentlich im Impressum steht.
       Eine Zeile, sonst ändert sich nichts.
 - [ ] Aufräumen: `ClubService.PurgeUserAsync` hat seit der Kontolöschung über
