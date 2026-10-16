@@ -40,11 +40,23 @@ public class GpsTrackService(
     /// </summary>
     public const int MaxPunkteJeTrainingstag = 200_000;
 
-    private static readonly string ZuVielePunkte =
-        $"Die Aufzeichnung hat zu viele Punkte (höchstens {MitTausenderpunkt(MaxPunkteJeAufzeichnung)}).";
+    private static readonly string ZuVielePunkte = ZuVielePunkteMeldung(MaxPunkteJeAufzeichnung);
 
-    private string TagZuVoll =>
-        $"Für diesen Trainingstag sind schon zu viele GPS-Punkte gespeichert (höchstens {MitTausenderpunkt(punkteJeTrainingstag)}).";
+    private string TagZuVoll => TagZuVollMeldung(punkteJeTrainingstag);
+
+    // Die Werte stehen als einfache Namen im Satz: Das Frontend übersetzt die
+    // Meldung über genau diesen Wortlaut (siehe i18n.test.ts, Platzhalter).
+    private static string ZuVielePunkteMeldung(int grenze)
+    {
+        var hoechstens = MitTausenderpunkt(grenze);
+        return $"Die Aufzeichnung hat zu viele Punkte (höchstens {hoechstens}).";
+    }
+
+    private static string TagZuVollMeldung(int grenze)
+    {
+        var hoechstens = MitTausenderpunkt(grenze);
+        return $"Für diesen Trainingstag sind schon zu viele GPS-Punkte gespeichert (höchstens {hoechstens}).";
+    }
 
     // Tausenderpunkt von Hand: Der Container läuft mit neutraler Kultur, "N0"
     // ergäbe dort "50,000".

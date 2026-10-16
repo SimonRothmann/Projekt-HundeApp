@@ -13,9 +13,11 @@ import { toast } from "sonner";
 import { usePush } from "@/lib/use-push";
 import { istTouchGeraet } from "@/lib/geraet";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
 export function NotificationBell() {
   const t = useT();
+  const ort = ortsformat(useSprache());
   const { unreadNotificationCount, refreshUnreadNotificationCount } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -61,7 +63,7 @@ export function NotificationBell() {
       setNotifications((prev) => prev?.map((n) => ({ ...n, isRead: true })) ?? null);
       refreshUnreadNotificationCount();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Aktion fehlgeschlagen.");
+      toast.error(err instanceof ApiError ? err.message : t("Aktion fehlgeschlagen."));
     }
   }
 
@@ -114,7 +116,7 @@ export function NotificationBell() {
                   >
                     <span className={n.isRead ? "text-muted-foreground" : "font-medium"}>{n.message}</span>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(n.createdAt).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                      {new Date(n.createdAt).toLocaleDateString(ort, { day: "2-digit", month: "2-digit", year: "numeric" })}
                     </span>
                   </button>
                 </li>

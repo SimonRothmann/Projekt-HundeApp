@@ -61,6 +61,29 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.30",
+    datum: "2026-10-16",
+    titel: uebersetzbar("Dogity auf Englisch"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Auf der Startseite, bei der Anmeldung und bei der Registrierung gibt es oben jetzt einen kleinen Knopf (DE / EN), mit dem du zwischen Deutsch und English wechselst – auch ohne Konto. Deine Wahl bleibt in diesem Browser gespeichert. Wer angemeldet ist, ändert die Sprache wie bisher im Profil."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Startseite, Anmeldung, Registrierung und die Seiten zum Zurücksetzen des Passworts gibt es jetzt auch auf Englisch. Die Prüfungsordnungen, die Sachkundefragen und die Rechtstexte bleiben deutsch."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Meldungen vom Server – etwa „Hund nicht gefunden.“ oder Hinweise zum Passwort – erscheinen jetzt in der Sprache, die du eingestellt hast."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("An einigen Stellen blieb auch bei eingestelltem Englisch deutscher Text stehen, zum Beispiel im Sachkunde-Trainer, beim Installationshinweis, im Katalog-Editor und bei einigen Beschriftungen für Screenreader. Das ist jetzt durchgehend übersetzt."),
+      },
+    ],
+  },
+  {
     version: "0.29",
     datum: "2026-10-16",
     titel: uebersetzbar("Fährte über Mitternacht, Betreuung beenden"),

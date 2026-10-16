@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PawPrint } from "lucide-react";
-import { AuthBackLink } from "@/components/auth-back-link";
+import { AuthKopfzeile } from "@/components/auth-back-link";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
 import { PasswortHinweis } from "@/components/passwort-hinweis";
 
@@ -49,7 +49,7 @@ function ResetPasswordForm() {
       <div className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">{t("Dein Passwort wurde geändert.")}</p>
         <Button className="h-11" onClick={() => router.push("/login")}>
-          Zur Anmeldung
+          {t("Zur Anmeldung")}
         </Button>
       </div>
     );
@@ -84,7 +84,7 @@ export default function ResetPasswordPage() {
   return (
     <main className="flex min-h-full flex-1 items-center justify-center bg-muted/40 p-4">
       <div className="flex w-full max-w-sm flex-col gap-3">
-        <AuthBackLink />
+        <AuthKopfzeile />
         <Card className="w-full">
           <CardHeader className="items-center text-center">
             <PawPrint className="size-8 text-primary-text" />

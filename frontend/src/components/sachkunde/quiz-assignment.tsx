@@ -68,7 +68,7 @@ export function QuizAssignment({
               <span className="flex flex-wrap items-baseline gap-x-2 text-sm">
                 <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{term.text}</span>
                 {aufgeloest && ergebnis === false && (
-                  <span className="text-xs text-muted-foreground">richtig: {term.solutionKey}</span>
+                  <span className="text-xs text-muted-foreground">{t("richtig: {antwort}", { antwort: term.solutionKey })}</span>
                 )}
               </span>
 

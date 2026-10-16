@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { useT } from "@/lib/i18n";
+import { SprachUmschalter } from "@/components/sprach-umschalter";
 /**
  * Rückweg von den Anmeldeseiten zur Startseite.
  *
@@ -26,5 +27,19 @@ export function AuthBackLink() {
       <ArrowLeft className="size-4" />
 {t("Zurück zur Startseite")}
     </Link>
+  );
+}
+
+/**
+ * Die Zeile über der Karte der Anmeldeseiten: links der Rückweg, rechts der
+ * Sprachumschalter. Wer die App noch nicht kennt, hat hier meist auch noch kein
+ * Konto, in dem eine Sprache stünde (siehe SprachUmschalter).
+ */
+export function AuthKopfzeile() {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <AuthBackLink />
+      <SprachUmschalter />
+    </div>
   );
 }

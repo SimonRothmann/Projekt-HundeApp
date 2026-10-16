@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PawPrint } from "lucide-react";
 import { EnvBadge, isTestEnv } from "@/components/env-badge";
 import { SupportButton } from "@/components/support-button";
-import { AuthBackLink } from "@/components/auth-back-link";
+import { AuthKopfzeile } from "@/components/auth-back-link";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
 
 // Nur für die Test-/Dev-Datenbank (DemoDataSeeder, siehe TODO.md) - existiert
@@ -54,7 +54,7 @@ function LoginForm() {
       await login(loginEmail, loginPassword);
       await weiter();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Anmeldung fehlgeschlagen.");
+      setError(err instanceof ApiError ? err.message : t("Anmeldung fehlgeschlagen."));
     } finally {
       setIsSubmitting(false);
     }
@@ -82,7 +82,7 @@ function LoginForm() {
     <>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="email">E-Mail</Label>
+          <Label htmlFor="email">{t("E-Mail")}</Label>
           <Input
             id="email"
             type="email"
@@ -94,9 +94,9 @@ function LoginForm() {
         </div>
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Passwort</Label>
+            <Label htmlFor="password">{t("Passwort")}</Label>
             <Link href="/forgot-password" className="text-xs text-primary-text underline-offset-4 hover:underline">
-              Passwort vergessen?
+              {t("Passwort vergessen?")}
             </Link>
           </div>
           <Input
@@ -110,22 +110,22 @@ function LoginForm() {
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="h-11" disabled={isSubmitting}>
-          {isSubmitting ? "Anmelden…" : "Anmelden"}
+          {isSubmitting ? t("Anmelden…") : t("Anmelden")}
         </Button>
       </form>
       <p className="mt-4 text-center text-sm text-muted-foreground">
-        Noch kein Konto?{" "}
+        {t("Noch kein Konto?")}{" "}
         <Link
           href={einladung ? `/register?einladung=${encodeURIComponent(einladung)}` : "/register"}
           className="text-primary-text underline-offset-4 hover:underline"
         >
-          Registrieren
+          {t("Registrieren")}
         </Link>
       </p>
       {isTestEnv && (
         <div className="mt-6 border-t pt-4">
           <p className="mb-2 text-center text-xs text-muted-foreground">
-            Demo-Login (nur Test-Umgebung)
+            {t("Demo-Login (nur Test-Umgebung)")}
           </p>
           <div className="grid grid-cols-2 gap-2">
             {DEMO_ACCOUNTS.map((account) => (
@@ -148,18 +148,20 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+  const t = useT();
+
   return (
     <main className="flex min-h-full flex-1 items-center justify-center bg-muted/40 p-4">
       <div className="flex w-full max-w-sm flex-col gap-3">
-        <AuthBackLink />
+        <AuthKopfzeile />
         <Card className="w-full">
           <CardHeader className="items-center text-center">
             <PawPrint className="size-8 text-primary-text" />
             <div className="flex items-center gap-2">
-              <CardTitle className="text-xl">Bei Dogity anmelden</CardTitle>
+              <CardTitle className="text-xl">{t("Bei Dogity anmelden")}</CardTitle>
               <EnvBadge />
             </div>
-            <CardDescription>Trainingstagebuch & Hundesport-Plattform</CardDescription>
+            <CardDescription>{t("Trainingstagebuch & Hundesport-Plattform")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Suspense>

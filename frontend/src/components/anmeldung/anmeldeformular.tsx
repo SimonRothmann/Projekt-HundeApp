@@ -305,7 +305,7 @@ export function Anmeldeformular({ code }: { code: string }) {
                 )}
 
                 <Button type="submit" className={cn("h-11 text-base")} disabled={sendet}>
-                  {sendet ? t("Wird gesendet…") : t("Anmelden")}
+                  {sendet ? t("Wird gesendet…") : t("Anmeldung absenden")}
                 </Button>
               </form>
             )}

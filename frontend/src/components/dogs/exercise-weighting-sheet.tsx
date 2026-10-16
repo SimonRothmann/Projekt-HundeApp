@@ -136,7 +136,7 @@ export function ExerciseWeightingSheet({
                     })}
                   </div>
                   <p className="text-center text-xs text-muted-foreground">
-                    {STEPS.find((s) => s.value === e.manualPriority)?.label ?? "normal"}
+                    {STEPS.find((s) => s.value === e.manualPriority)?.label ?? t("normal")}
                   </p>
                 </div>
               ))

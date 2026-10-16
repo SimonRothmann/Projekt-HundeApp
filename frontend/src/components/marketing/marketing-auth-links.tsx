@@ -26,20 +26,15 @@ export function MarketingAuthLinks() {
     return (
       <>
         <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-          Anmelden
+          {t("Anmelden")}
         </Link>
         <Link href="/register" className={cn(buttonVariants({ size: "sm" }))}>
-          Kostenlos starten
+          {t("Kostenlos starten")}
         </Link>
       </>
     );
   }
 
-  // Nur dieser Zweig wird übersetzt, die beiden darüber nicht: "Anmelden"
-  // und "Kostenlos starten" stehen auf den öffentlichen Seiten, und die
-  // sind deutsch. Diesen Knopf sieht dagegen nur, wer angemeldet ist - also
-  // genau die Person, deren Spracheinstellung gilt. Ein Suchmaschinen-
-  // Besucher ist nie angemeldet und kommt hier nie vorbei.
   return (
     <Link href="/dashboard" className={cn(buttonVariants({ size: "sm" }))}>
       {t("Zur App")}
@@ -60,10 +55,10 @@ export function MarketingFooterAuthLinks() {
     return (
       <>
         <Link href="/register" className="hover:text-foreground">
-          Konto anlegen
+          {t("Konto anlegen")}
         </Link>
         <Link href="/login" className="hover:text-foreground">
-          Anmelden
+          {t("Anmelden")}
         </Link>
       </>
     );

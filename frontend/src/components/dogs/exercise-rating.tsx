@@ -106,7 +106,7 @@ export function ExerciseRating({
               key={n}
               type="button"
               onClick={() => setValue(n)}
-              aria-label={`${n} von 5`}
+              aria-label={t("{n} von 5", { n })}
               aria-pressed={value === n}
               className={`flex size-8 items-center justify-center rounded-md border text-sm coarse:size-11 ${
                 value >= n ? "border-accent bg-accent text-accent-foreground" : "border-input text-muted-foreground"
@@ -118,7 +118,7 @@ export function ExerciseRating({
         </span>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />
-          Erfolgreich
+          {t("Erfolgreich")}
         </label>
       </span>
       <span className="flex justify-end gap-2">
@@ -126,7 +126,7 @@ export function ExerciseRating({
 {t("Abbrechen")}
         </Button>
         <Button size="sm" onClick={save} disabled={saving}>
-          {saving ? "Speichert…" : t("Speichern")}
+          {saving ? t("Speichert…") : t("Speichern")}
         </Button>
       </span>
     </span>

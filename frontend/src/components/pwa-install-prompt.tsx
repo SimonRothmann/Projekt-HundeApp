@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Download, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { useT } from "@/lib/i18n";
+import { mitBausteinen, useT } from "@/lib/i18n";
 import { istTouchGeraet } from "@/lib/geraet";
 // Chrome/Edge/Android fire this event before showing the native install prompt.
 // iOS Safari has no equivalent — we show manual instructions there instead.
@@ -106,7 +106,7 @@ export function PwaInstallPrompt() {
         <Download className="size-5 shrink-0 text-primary-text" />
         <span className="min-w-0 flex-1">{t("Als App installieren – für die beste Erfahrung offline.")}</span>
         <Button size="sm" onClick={installAndroid}>
-          Installieren
+          {t("Installieren")}
         </Button>
         <button
           type="button"
@@ -125,7 +125,7 @@ export function PwaInstallPrompt() {
       <div className={`${POSITION} flex flex-col gap-2 rounded-xl border bg-background px-4 py-3 shadow-lg text-sm max-w-sm w-[calc(100%-2rem)]`}>
         <div className="flex items-center gap-2">
           <Download className="size-5 shrink-0 text-primary-text" />
-          <span className="font-medium">Als App installieren</span>
+          <span className="font-medium">{t("Als App installieren")}</span>
           <button
             type="button"
             onClick={wegklicken}
@@ -136,22 +136,28 @@ export function PwaInstallPrompt() {
           </button>
         </div>
         <p className="text-muted-foreground text-xs leading-relaxed">
-          Tippe auf{" "}
-          <span className="font-medium text-foreground">
-            Teilen{" "}
-            <svg
-              className="inline size-3.5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-              <polyline points="16 6 12 2 8 6" />
-              <line x1="12" y1="2" x2="12" y2="15" />
-            </svg>
-          </span>{" "}
-          und wähle <span className="font-medium text-foreground">&bdquo;Zum Home-Bildschirm&ldquo;</span> um Dogity offline zu nutzen und Mitteilungen zu bekommen.
+          {mitBausteinen(t("Tippe auf {teilen} und wähle {homebildschirm}, um Dogity offline zu nutzen und Mitteilungen zu bekommen."), {
+            teilen: (
+              <span className="font-medium text-foreground">
+                {t("Teilen")}{" "}
+                <svg
+                  className="inline size-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                  <polyline points="16 6 12 2 8 6" />
+                  <line x1="12" y1="2" x2="12" y2="15" />
+                </svg>
+              </span>
+            ),
+            homebildschirm: (
+              <span className="font-medium text-foreground">{t("„Zum Home-Bildschirm“")}</span>
+            ),
+          })}
         </p>
       </div>
     );

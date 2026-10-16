@@ -92,10 +92,10 @@ export function VereinsantragSection() {
 {t("In Prüfung")}
                   </Badge>
                 )}
-                {a.status === CLUB_REGISTRATION_STATUS.freigegeben && <Badge className="shrink-0">Freigegeben</Badge>}
+                {a.status === CLUB_REGISTRATION_STATUS.freigegeben && <Badge className="shrink-0">{t("Freigegeben")}</Badge>}
                 {a.status === CLUB_REGISTRATION_STATUS.abgelehnt && (
                   <Badge variant="destructive" className="shrink-0">
-                    Abgelehnt
+                    {t("Abgelehnt")}
                   </Badge>
                 )}
               </li>
@@ -110,19 +110,19 @@ export function VereinsantragSection() {
         ) : (
           <form className="flex flex-col gap-3" onSubmit={beantragen}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="verein-name">Name des Vereins</Label>
+              <Label htmlFor="verein-name">{t("Name des Vereins")}</Label>
               <Input
                 id="verein-name"
-                placeholder="z.B. Hundesportverein Beispieldorf e.V."
+                placeholder={t("z.B. Hundesportverein Beispieldorf e.V.")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="verein-beschreibung">Beschreibung (optional)</Label>
+              <Label htmlFor="verein-beschreibung">{t("Beschreibung (optional)")}</Label>
               <Input
                 id="verein-beschreibung"
-                placeholder="Kurz, worum es geht"
+                placeholder={t("Kurz, worum es geht")}
                 value={beschreibung}
                 onChange={(e) => setBeschreibung(e.target.value)}
               />

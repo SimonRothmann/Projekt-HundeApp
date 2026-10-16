@@ -25,7 +25,8 @@ import {
 import { toast } from "sonner";
 import { difficultyLabel } from "@/lib/constants";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { ortsformat } from "@/lib/ortsformat";
 import { usePreferences } from "@/lib/preferences-context";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
 const textareaClass =
@@ -356,16 +357,16 @@ function SportCard({
           {canEdit && editing && (
             <div className="flex flex-col gap-3 rounded-md border p-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`sport-name-${sport.id}`}>Name</Label>
+                <Label htmlFor={`sport-name-${sport.id}`}>{t("Name")}</Label>
                 <Input id={`sport-name-${sport.id}`} value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`sport-desc-${sport.id}`}>Beschreibung (optional)</Label>
+                <Label htmlFor={`sport-desc-${sport.id}`}>{t("Beschreibung (optional)")}</Label>
                 <textarea id={`sport-desc-${sport.id}`} className={textareaClass} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
               </div>
               <div className="flex gap-2">
                 <Button type="button" size="sm" disabled={saving} onClick={saveSport}>
-                  {saving ? "Speichert…" : t("Speichern")}
+                  {saving ? t("Speichert…") : t("Speichern")}
                 </Button>
                 <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
 {t("Abbrechen")}
@@ -444,6 +445,7 @@ function RegulationBlock({
   onChanged: () => void;
 }) {
   const t = useT();
+  const ort = ortsformat(useSprache());
   const [editingMeta, setEditingMeta] = useState(false);
   const [name, setName] = useState(regulation.name);
   const [description, setDescription] = useState(regulation.description ?? "");
@@ -498,8 +500,10 @@ function RegulationBlock({
             <>
               <div className="mb-2 flex items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground">
-                  Version {detail.currentVersion.versionLabel} · gültig ab{" "}
-                  {new Date(detail.currentVersion.validFrom).toLocaleDateString("de-DE")}
+                  {t("Version {version} · gültig ab {datum}", {
+                    version: detail.currentVersion.versionLabel,
+                    datum: new Date(detail.currentVersion.validFrom).toLocaleDateString(ort),
+                  })}
                 </p>
                 {canEdit && !editingMeta && (
                   <Button
@@ -522,20 +526,20 @@ function RegulationBlock({
               {canEdit && editingMeta ? (
                 <div className="mb-3 flex flex-col gap-3 rounded-md border p-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`reg-name-${regulation.id}`}>Name</Label>
+                    <Label htmlFor={`reg-name-${regulation.id}`}>{t("Name")}</Label>
                     <Input id={`reg-name-${regulation.id}`} value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`reg-desc-${regulation.id}`}>Rahmenbedingungen (mehrzeilig)</Label>
+                    <Label htmlFor={`reg-desc-${regulation.id}`}>{t("Rahmenbedingungen (mehrzeilig)")}</Label>
                     <textarea id={`reg-desc-${regulation.id}`} className={textareaClass} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={4000} />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`reg-url-${regulation.id}`}>Quelle (URL, optional)</Label>
+                    <Label htmlFor={`reg-url-${regulation.id}`}>{t("Quelle (URL, optional)")}</Label>
                     <Input id={`reg-url-${regulation.id}`} value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} maxLength={500} />
                   </div>
                   <div className="flex gap-2">
                     <Button type="button" size="sm" disabled={savingMeta} onClick={saveMeta}>
-                      {savingMeta ? "Speichert…" : t("Speichern")}
+                      {savingMeta ? t("Speichert…") : t("Speichern")}
                     </Button>
                     <Button type="button" size="sm" variant="ghost" onClick={() => setEditingMeta(false)}>
 {t("Abbrechen")}
@@ -545,7 +549,7 @@ function RegulationBlock({
               ) : (
                 detail.regulation.description && (
                   <div className="mb-3 rounded-md bg-primary/5 px-3 py-2.5">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary-text">Rahmenbedingungen</p>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary-text">{t("Rahmenbedingungen")}</p>
                     <p className="whitespace-pre-line text-sm leading-relaxed">{detail.regulation.description}</p>
                   </div>
                 )
@@ -624,7 +628,7 @@ function RegExerciseRow({
         maxPoints: Number(points) || 0,
         scoringNotes: notes.trim() || null,
       });
-      toast.success("Gespeichert.");
+      toast.success(t("Gespeichert."));
       setEditing(false);
       onChanged();
     } catch (err) {
@@ -635,7 +639,7 @@ function RegExerciseRow({
   }
 
   async function remove() {
-    if (!window.confirm(`„${re.exerciseName}" aus dieser Prüfungsordnung entfernen?`)) return;
+    if (!window.confirm(t("„{name}“ aus dieser Prüfungsordnung entfernen?", { name: re.exerciseName }))) return;
     try {
       await api.delete(`/api/sports/regulations/${regulationId}/exercises/${re.exerciseId}`);
       toast.success(t("Übung entfernt."));
@@ -652,7 +656,7 @@ function RegExerciseRow({
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex items-center gap-1.5">
             <input type="checkbox" className="size-4 accent-primary" checked={mandatory} onChange={(e) => setMandatory(e.target.checked)} />
-            Pflicht
+            {t("Pflicht")}
           </label>
           <div className="flex flex-col gap-1">
             <Label className="text-xs">{t("Punkte")}</Label>
@@ -660,12 +664,12 @@ function RegExerciseRow({
           </div>
         </div>
         <div className="flex flex-col gap-1">
-          <Label className="text-xs">Bewertungshinweise (optional)</Label>
+          <Label className="text-xs">{t("Bewertungshinweise (optional)")}</Label>
           <textarea className={textareaClass} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
         </div>
         <div className="flex gap-2">
           <Button type="button" size="sm" disabled={saving} onClick={save}>
-            {saving ? "Speichert…" : t("Speichern")}
+            {saving ? t("Speichert…") : t("Speichern")}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
 {t("Abbrechen")}
@@ -680,10 +684,10 @@ function RegExerciseRow({
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 font-medium [overflow-wrap:anywhere]">
           {re.exerciseName}
-          {!re.isMandatory && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(optional)</span>}
+          {!re.isMandatory && <span className="ml-1.5 text-xs font-normal text-muted-foreground">{t("(optional)")}</span>}
         </span>
         <div className="flex shrink-0 items-center gap-1">
-          {re.maxPoints > 0 && <Badge variant="outline">{re.maxPoints} Punkte</Badge>}
+          {re.maxPoints > 0 && <Badge variant="outline">{t("{n} Punkte", { n: re.maxPoints })}</Badge>}
           {canEdit && (
             <>
               <Button type="button" size="icon-sm" variant="ghost" aria-label={t("Bearbeiten")} onClick={() => { setMandatory(re.isMandatory); setPoints(String(re.maxPoints)); setNotes(re.scoringNotes ?? ""); setEditing(true); }}>
@@ -761,7 +765,7 @@ function AddRegExerciseForm({
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex items-center gap-1.5 text-sm">
           <input type="checkbox" className="size-4 accent-primary" checked={mandatory} onChange={(e) => setMandatory(e.target.checked)} />
-          Pflicht
+          {t("Pflicht")}
         </label>
         <div className="flex flex-col gap-1">
           <Label className="text-xs">{t("Punkte")}</Label>
@@ -769,7 +773,7 @@ function AddRegExerciseForm({
         </div>
       </div>
       <div className="flex flex-col gap-1">
-        <Label className="text-xs">Bewertungshinweise (optional)</Label>
+        <Label className="text-xs">{t("Bewertungshinweise (optional)")}</Label>
         <textarea className={textareaClass} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
       </div>
       <div className="flex gap-2">
@@ -830,12 +834,12 @@ function ExerciseRow({
     return (
       <li className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3">
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs">Name</Label>
+          <Label className="text-xs">{t("Name")}</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
         </div>
         <div className="flex flex-wrap gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">Schwierigkeit</Label>
+            <Label className="text-xs">{t("Schwierigkeit")}</Label>
             <Select value={String(difficulty)} onValueChange={(v) => setDifficulty(Number(v ?? "0") as ExerciseDifficulty)}>
               <SelectTrigger className="w-40">
                 <SelectValue />
@@ -850,21 +854,21 @@ function ExerciseRow({
             </Select>
           </div>
           <div className="flex flex-1 flex-col gap-1.5">
-            <Label className="text-xs">Kategorie (optional)</Label>
+            <Label className="text-xs">{t("Kategorie (optional)")}</Label>
             <Input value={category} onChange={(e) => setCategory(e.target.value)} maxLength={80} />
           </div>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs">Beschreibung (optional)</Label>
+          <Label className="text-xs">{t("Beschreibung (optional)")}</Label>
           <textarea className={textareaClass} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs">Bewertungskriterien (optional)</Label>
+          <Label className="text-xs">{t("Bewertungskriterien (optional)")}</Label>
           <textarea className={textareaClass} rows={2} value={scoring} onChange={(e) => setScoring(e.target.value)} maxLength={2000} />
         </div>
         <div className="flex gap-2">
           <Button type="button" size="sm" disabled={saving} onClick={save}>
-            {saving ? "Speichert…" : t("Speichern")}
+            {saving ? t("Speichert…") : t("Speichern")}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
 {t("Abbrechen")}

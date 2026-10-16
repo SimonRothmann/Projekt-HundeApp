@@ -19,7 +19,7 @@ import { Check, Eye, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-import { useT } from "@/lib/i18n";
+import { mitBausteinen, useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 /**
  * Fragentrainer nach dem Muster der Führerschein-Apps.
@@ -45,7 +45,7 @@ const WIEDERVORLAGE_ABSTAND = 4;
 const RUNDENGROESSE = 20;
 
 const MODI: { key: QuizMode; label: string }[] = [
-  { key: "learn", label: "Lernen" },
+  { key: "learn", label: uebersetzbar("Lernen") },
   { key: "mistakes", label: uebersetzbar("Fehler") },
   { key: "all", label: uebersetzbar("Alle") },
 ];
@@ -269,7 +269,7 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
               variant={mode === m.key ? "default" : "outline"}
               onClick={() => setMode(m.key)}
             >
-              {m.label}
+              {t(m.label)}
               {m.key === "mistakes" && progress && progress.inMistakes > 0 && (
                 <span className="ml-1 tabular-nums">{progress.inMistakes}</span>
               )}
@@ -282,11 +282,16 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
 
       {!angemeldet && (
         <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          Du übst ohne Anmeldung – dein Lernstand wird nicht gespeichert.{" "}
-          <Link href="/register" className="font-medium text-primary-text underline-offset-2 hover:underline">
-            Kostenlos anmelden
-          </Link>
-          , damit falsche Fragen gezielt wiederkommen.
+          {mitBausteinen(
+            t("Du übst ohne Anmeldung – dein Lernstand wird nicht gespeichert. {anmelden}, damit falsche Fragen gezielt wiederkommen."),
+            {
+              anmelden: (
+                <Link href="/register" className="font-medium text-primary-text underline-offset-2 hover:underline">
+                  {t("Kostenlos anmelden")}
+                </Link>
+              ),
+            },
+          )}
         </p>
       )}
 
@@ -303,12 +308,12 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
         <div className="min-w-0 rounded-xl border border-border/60 bg-card p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <span className="text-xs text-muted-foreground">
-              Frage {index + 1} von {queue.length} · {frage.sectionName}
+              {t("Frage {n} von {gesamt}", { n: index + 1, gesamt: queue.length })} · {frage.sectionName}
             </span>
             <div className="flex items-center gap-1.5">
               {frage.state && frage.state.box > 1 && (
                 <Badge variant="secondary" className="text-xs">
-                  Fach {frage.state.box}
+                  {t("Fach {n}", { n: frage.state.box })}
                 </Badge>
               )}
               <Badge variant="outline" className="text-xs">
@@ -395,7 +400,7 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
                         {/* eslint-disable-next-line @next/next/no-img-element -- feste Zeichnung aus /public. */}
                         <img
                           src={`/sachkunde/${option.imageName}`}
-                          alt={`Zeichnung ${option.text}`}
+                          alt={t("Zeichnung {text}", { text: option.text })}
                           className="h-auto w-full max-w-[12rem] rounded border border-border/40 bg-white"
                         />
                       </span>
@@ -422,10 +427,10 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
                   auswertung.correct ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
                 )}
               >
-                {auswertung.correct ? "Richtig" : t("Falsch – die Frage kommt gleich noch einmal.")}
+                {auswertung.correct ? t("Richtig") : t("Falsch – die Frage kommt gleich noch einmal.")}
               </span>
               <Button size="sm" onClick={weiter} autoFocus>
-                Weiter
+                {t("Weiter")}
               </Button>
             </div>
           )}
@@ -434,12 +439,12 @@ export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="tabular-nums">
-          Diese Runde: {bilanz.richtig} richtig · {bilanz.falsch} falsch
+          {t("Diese Runde: {richtig} richtig · {falsch} falsch", { richtig: bilanz.richtig, falsch: bilanz.falsch })}
         </span>
         {angemeldet && (
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={vonVorne}>
             <RotateCcw className="size-3.5" />
-            Von vorne anfangen
+            {t("Von vorne anfangen")}
           </Button>
         )}
       </div>
@@ -476,19 +481,23 @@ function antwortKlasse(
  * sicher sitzt.
  */
 function Lernstand({ progress }: { progress: QuizProgress }) {
+  const t = useT();
+
   return (
     <div className="min-w-0 rounded-lg border border-border/60 bg-card p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="text-sm font-medium">
-          <span className="tabular-nums">{progress.correct}</span> von{" "}
-          <span className="tabular-nums">{progress.total}</span> richtig
+          {mitBausteinen(t("{richtig} von {gesamt} richtig"), {
+            richtig: <span className="tabular-nums">{progress.correct}</span>,
+            gesamt: <span className="tabular-nums">{progress.total}</span>,
+          })}
         </span>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {progress.mastered > 0 && <>{progress.mastered} sitzen sicher</>}
+          {progress.mastered > 0 && <>{t("{n} sitzen sicher", { n: progress.mastered })}</>}
           {progress.inMistakes > 0 && (
             <>
               {progress.mastered > 0 && " · "}
-              {progress.inMistakes} im Fehlerspeicher
+              {t("{n} im Fehlerspeicher", { n: progress.inMistakes })}
             </>
           )}
         </span>
@@ -551,11 +560,11 @@ function SelbstKarte({
             <div className="flex flex-wrap gap-2">
               <Button size="sm" disabled={beschaeftigt} onClick={() => onEinschaetzen(true)}>
                 <Check className="size-4" />
-                Gewusst
+                {t("Gewusst")}
               </Button>
               <Button size="sm" variant="outline" disabled={beschaeftigt} onClick={() => onEinschaetzen(false)}>
                 <X className="size-4" />
-                Nicht gewusst
+                {t("Nicht gewusst")}
               </Button>
             </div>
           )}
@@ -586,14 +595,14 @@ function Rundenende({
   return (
     <div className="min-w-0 rounded-xl border border-border/60 bg-card p-5 text-center">
       <p className="text-lg font-semibold">
-        {rundeDurch ? "Alles durch." : mode === "mistakes" ? "Fehlerspeicher leer." : "Runde geschafft."}
+        {rundeDurch ? t("Alles durch.") : mode === "mistakes" ? t("Fehlerspeicher leer.") : t("Runde geschafft.")}
       </p>
       <p className="mt-1 text-sm text-muted-foreground">
         {gesamt === 0
           ? rundeDurch
             ? t("Im Moment ist keine Frage zur Wiederholung fällig.")
             : t("Hier ist gerade nichts zu tun.")
-          : `${bilanz.richtig} von ${gesamt} richtig.`}
+          : t("{richtig} von {gesamt} richtig.", { richtig: bilanz.richtig, gesamt })}
       </p>
 
       <div className="mt-4 flex flex-wrap justify-center gap-2">
@@ -604,7 +613,7 @@ function Rundenende({
         )}
         <Button size="sm" variant={rundeDurch ? "default" : "outline"} onClick={onVonVorne}>
           <RotateCcw className="size-4" />
-          Von vorne anfangen
+          {t("Von vorne anfangen")}
         </Button>
         {!angemeldet && (
           <Link href="/register" className={buttonVariants({ size: "sm", variant: "outline" })}>

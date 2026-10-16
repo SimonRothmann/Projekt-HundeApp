@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
 import { Dog as DogIcon } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 /**
  * Das Bild liegt zusammen mit seinem Kennzeichen im Cache. Ältere Einträge
@@ -43,6 +44,7 @@ export function DogAvatar({
   className?: string;
   iconClassName?: string;
 }) {
+  const t = useT();
   const [loaded, setLoaded] = useState<string | null>(null);
   // Abgeleitet statt im Effekt zurückgesetzt: fällt hasImage weg (Bild
   // entfernt), verschwindet damit auch das angezeigte Bild sofort.
@@ -92,7 +94,7 @@ export function DogAvatar({
     >
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element -- Data-URI aus der API, next/image bringt hier nichts.
-        <img src={src} alt={`Profilbild von ${name}`} className="size-full object-cover" />
+        <img src={src} alt={t("Profilbild von {name}", { name })} className="size-full object-cover" />
       ) : (
         <DogIcon className={`${iconClassName} text-secondary-foreground`} />
       )}

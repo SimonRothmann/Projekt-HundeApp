@@ -429,7 +429,7 @@ export default function GroupTrainingPage() {
                       </div>
                       <div className="flex gap-2">
                         <Button type="button" disabled={saving} onClick={saveExercise}>
-                          {saving ? "Speichert…" : exForm.id ? t("Speichern") : t("Anlegen")}
+                          {saving ? t("Speichert…") : exForm.id ? t("Speichern") : t("Anlegen")}
                         </Button>
                         <Button type="button" variant="ghost" onClick={() => setExForm(null)}>{t("Abbrechen")}</Button>
                       </div>
@@ -555,7 +555,7 @@ export default function GroupTrainingPage() {
 
                       <div className="flex gap-2">
                         <Button type="button" disabled={saving} onClick={saveUnit}>
-                          {saving ? "Speichert…" : unitForm.id ? t("Speichern") : t("Anlegen")}
+                          {saving ? t("Speichert…") : unitForm.id ? t("Speichern") : t("Anlegen")}
                         </Button>
                         <Button type="button" variant="ghost" onClick={() => setUnitForm(null)}>{t("Abbrechen")}</Button>
                       </div>

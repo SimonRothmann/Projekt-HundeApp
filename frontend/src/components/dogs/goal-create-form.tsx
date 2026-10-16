@@ -225,7 +225,7 @@ export function GoalCreateForm({
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="targetDate">Zieldatum</Label>
+              <Label htmlFor="targetDate">{t("Zieldatum")}</Label>
               <Input
                 id="targetDate"
                 type="date"
@@ -255,7 +255,7 @@ export function GoalCreateForm({
               </p>
               {selectedRegulation?.description && (
                 <div className="rounded-md bg-primary/5 px-3 py-2.5">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary-text">Rahmenbedingungen</p>
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary-text">{t("Rahmenbedingungen")}</p>
                   <p className="whitespace-pre-line text-sm leading-relaxed">{selectedRegulation.description}</p>
                 </div>
               )}

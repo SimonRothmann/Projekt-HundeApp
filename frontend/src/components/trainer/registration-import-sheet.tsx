@@ -12,7 +12,7 @@ import {
   type ImportVorschau,
 } from "@/lib/anmeldung-csv";
 import { anmeldeFehlerKurz, spaltenName } from "@/lib/anmeldung-texte";
-import { useT } from "@/lib/i18n";
+import { uebersetzeMeldung, useSprache, useT } from "@/lib/i18n";
 import type { GroupRegistration, ImportRegistrationsResult } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +80,7 @@ function Inhalt({
   onFertig: () => Promise<void>;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [datei, setDatei] = useState<Datei>({ art: "keine" });
   const [sendet, setSendet] = useState(false);
   // Was der Server zu Zeilen gesagt hat, die er trotz Prüfung im Browser abgelehnt hat.
@@ -218,7 +219,7 @@ function Inhalt({
           <p className="font-medium">{t("Der Server hat einige Zeilen abgelehnt:")}</p>
           <ul>
             {serverFehler.slice(0, MAX_FEHLERZEILEN).map((f) => (
-              <li key={f.zeile} className="[overflow-wrap:anywhere]">{t("Zeile {zeile}: {fehler}", { zeile: f.zeile, fehler: f.meldung })}</li>
+              <li key={f.zeile} className="[overflow-wrap:anywhere]">{t("Zeile {zeile}: {fehler}", { zeile: f.zeile, fehler: uebersetzeMeldung(sprache, f.meldung) })}</li>
             ))}
           </ul>
         </div>

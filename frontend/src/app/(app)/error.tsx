@@ -46,9 +46,9 @@ export default function AppError({
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-2">
-        <Button onClick={() => unstable_retry()}>Erneut versuchen</Button>
+        <Button onClick={() => unstable_retry()}>{t("Erneut versuchen")}</Button>
         <Button variant="outline" onClick={() => window.location.reload()}>
-          Seite neu laden
+          {t("Seite neu laden")}
         </Button>
       </div>
     </div>

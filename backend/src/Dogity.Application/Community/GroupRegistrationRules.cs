@@ -103,7 +103,10 @@ public static partial class GroupRegistrationRules
     public static string? PruefeTelefon(string telefon)
     {
         if (telefon.Length > Textlaengen.Telefon)
-            return $"Die Telefonnummer ist zu lang (höchstens {Textlaengen.Telefon} Zeichen).";
+        {
+            var hoechstens = Textlaengen.Telefon;
+            return $"Die Telefonnummer ist zu lang (höchstens {hoechstens} Zeichen).";
+        }
         if (telefon.Length < TelefonMinZeichen || !TelefonZeichen().IsMatch(telefon) || Ziffern(telefon).Length < TelefonMinZiffern)
             return "Bitte eine gültige Telefonnummer angeben.";
         return null;

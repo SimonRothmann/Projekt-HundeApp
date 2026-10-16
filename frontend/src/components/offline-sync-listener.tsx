@@ -5,13 +5,16 @@ import { syncQueuedRequests } from "@/lib/offline-queue";
 import { WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
-import { useT } from "@/lib/i18n";
+import { uebersetzeAktuell, useT } from "@/lib/i18n";
 /**
  * Synchronisiert die IndexedDB-Warteschlange (Training/GPS offline erfasst),
  * sobald die Verbindung wieder verfügbar ist, und zeigt den Online/Offline-
  * Status an (siehe PRODUCT_REQUIREMENTS.md "Offline": später synchronisieren).
  */
 export function OfflineSyncListener() {
+  // Die Meldungen im Effekt gehen über uebersetzeAktuell(): Der Effekt läuft
+  // nur einmal und hielte sonst das t() des ersten Renderns - und das spricht
+  // noch Deutsch, weil die Sprache erst nach dem Hydrieren feststeht.
   const [isOffline, setIsOffline] = useState(false);
   const t = useT();
 
@@ -21,12 +24,16 @@ export function OfflineSyncListener() {
         // Dauerhaft aussichtsloser Eintrag (z.B. 404 auf ein inzwischen
         // gelöschtes Training) wurde aus der Queue verworfen - dem Nutzer
         // sagen, WAS verloren ging, statt still zu scheitern.
-        toast.error(`"${item.label}" konnte nicht synchronisiert werden und wurde verworfen: ${error.message}`, {
+        toast.error(uebersetzeAktuell("„{label}“ konnte nicht synchronisiert werden und wurde verworfen: {fehler}", { label: item.label, fehler: error.message }), {
           duration: 10000,
         });
       });
       if (count > 0) {
-        toast.success(`${count} offline gespeicherte Eintragung${count > 1 ? "en" : ""} synchronisiert.`);
+        toast.success(
+          count === 1
+            ? uebersetzeAktuell("1 offline gespeicherte Eintragung synchronisiert.")
+            : uebersetzeAktuell("{n} offline gespeicherte Eintragungen synchronisiert.", { n: count }),
+        );
       }
     }
 

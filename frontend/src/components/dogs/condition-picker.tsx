@@ -40,7 +40,7 @@ export function ConditionPicker({
 }) {
   const t = useT();
   return (
-    <div role="group" aria-label="Verfassung des Hundes" className="flex flex-wrap gap-1.5">
+    <div role="group" aria-label={t("Verfassung des Hundes")} className="flex flex-wrap gap-1.5">
       {CONDITIONS.map((c) => {
         const aktiv = value === c.key;
         return (

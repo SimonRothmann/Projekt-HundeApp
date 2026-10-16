@@ -43,7 +43,7 @@ export function useAktuellerStandort(ort: LocationValue, onChange: (ort: Locatio
         onChange({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
-          locationName: ort.locationName || vorschlag || "Aktueller Standort",
+          locationName: ort.locationName || vorschlag || t("Aktueller Standort"),
         });
         setLaeuft(false);
         toast.success(t("Standort übernommen."));

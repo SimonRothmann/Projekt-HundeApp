@@ -62,7 +62,7 @@ export function NeuerungenInhalt() {
           {VERSIONSHINWEISE.map((hinweis) => (
             <article key={hinweis.version} className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <h2 className="text-xl font-bold tracking-tight">Version {hinweis.version}</h2>
+                <h2 className="text-xl font-bold tracking-tight">{t("Version {v}", { v: hinweis.version })}</h2>
                 <time dateTime={hinweis.datum} className="text-sm text-muted-foreground">
                   {formatiereVeroeffentlichung(hinweis.datum, sprache)}
                 </time>

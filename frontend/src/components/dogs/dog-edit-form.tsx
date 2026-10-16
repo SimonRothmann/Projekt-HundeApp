@@ -62,7 +62,7 @@ export function DogEditForm({
         imageUrl: dog.imageUrl,
         notes: notes.trim() || null,
       });
-      toast.success("Gespeichert.");
+      toast.success(t("Gespeichert."));
       await onSaved();
       onCancel();
     } catch (err) {
@@ -102,7 +102,7 @@ export function DogEditForm({
       await clearCachedData(`dog-image-${dog.id}`);
       setHasImage(false);
       setImageVersion((v) => v + 1);
-      toast.success("Bild entfernt.");
+      toast.success(t("Bild entfernt."));
       await onSaved();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Bild konnte nicht entfernt werden."));
@@ -143,7 +143,7 @@ export function DogEditForm({
                 onClick={() => fileInput.current?.click()}
               >
                 <Camera className="size-4" />
-                {uploading ? "Moment…" : hasImage ? t("Bild ändern") : t("Bild auswählen")}
+                {uploading ? t("Moment…") : hasImage ? t("Bild ändern") : t("Bild auswählen")}
               </Button>
               {hasImage && (
                 <Button
@@ -163,15 +163,15 @@ export function DogEditForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-name">Name</Label>
+              <Label htmlFor="edit-name">{t("Name")}</Label>
               <Input id="edit-name" required value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-breed">Rasse</Label>
+              <Label htmlFor="edit-breed">{t("Rasse")}</Label>
               <Input id="edit-breed" value={breed} maxLength={TEXTLAENGE.hundeRasse} onChange={(e) => setBreed(e.target.value)} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-gender">Geschlecht</Label>
+              <Label htmlFor="edit-gender">{t("Geschlecht")}</Label>
               <Select value={gender} onValueChange={(value) => setGender(value as DogGender)}>
                 <SelectTrigger id="edit-gender">
                   <SelectValue />
@@ -183,7 +183,7 @@ export function DogEditForm({
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-birthday">Geburtsdatum</Label>
+              <Label htmlFor="edit-birthday">{t("Geburtsdatum")}</Label>
               <Input
                 id="edit-birthday"
                 type="date"
@@ -191,7 +191,7 @@ export function DogEditForm({
                 onChange={(e) => setBirthday(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                {age ? `Alter: ${age}` : t("Daraus wird das Alter berechnet.")}
+                {age ? t("Alter: {alter}", { alter: age }) : t("Daraus wird das Alter berechnet.")}
               </p>
             </div>
           </div>

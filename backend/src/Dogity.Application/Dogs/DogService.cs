@@ -574,7 +574,8 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
 
         if (bytes.Length > MaxImageBytes)
         {
-            error = $"Bild ist zu groß (max. {MaxImageBytes / 1024 / 1024} MB).";
+            var megabyte = MaxImageBytes / 1024 / 1024;
+            error = $"Bild ist zu groß (max. {megabyte} MB).";
             return false;
         }
 

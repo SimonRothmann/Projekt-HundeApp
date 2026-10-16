@@ -7,6 +7,8 @@
  * minutenlang - und die Datenbank trüge die volle Größe mit.
  */
 
+import { uebersetzeAktuell } from "@/lib/i18n";
+
 /** Kantenlänge, auf die das Bild eingepasst wird (quadratischer Zuschnitt). */
 const TARGET_SIZE = 512;
 
@@ -28,7 +30,7 @@ export async function fileToSquareDataUrl(file: File): Promise<string> {
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Bild konnte nicht verarbeitet werden.");
+  if (!ctx) throw new Error(uebersetzeAktuell("Bild konnte nicht verarbeitet werden."));
 
   ctx.drawImage(bitmap, sx, sy, edge, edge, 0, 0, size, size);
   if ("close" in bitmap) bitmap.close();
@@ -55,7 +57,7 @@ async function loadBitmap(file: File): Promise<ImageBitmap | HTMLImageElement> {
     return await new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error("Bild konnte nicht gelesen werden."));
+      img.onerror = () => reject(new Error(uebersetzeAktuell("Bild konnte nicht gelesen werden.")));
       img.src = url;
     });
   } finally {

@@ -1,3 +1,7 @@
+"use client";
+
+import { useT } from "@/lib/i18n";
+
 /**
  * Umgebungs-Badge (z.B. "TEST"). Nur sichtbar, wenn NEXT_PUBLIC_ENV_LABEL
  * beim Build gesetzt war - in Prod leer, in Test = "TEST". Das rote Badge
@@ -8,12 +12,13 @@
  * hier lesbar ohne runtime-Behandlung.
  */
 export function EnvBadge({ className = "" }: { className?: string }) {
+  const t = useT();
   const label = process.env.NEXT_PUBLIC_ENV_LABEL;
   if (!label) return null;
   return (
     <span
       className={`inline-flex items-center rounded-md bg-red-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm ${className}`}
-      aria-label={`Umgebung: ${label}`}
+      aria-label={t("Umgebung: {label}", { label })}
     >
       {label}
     </span>

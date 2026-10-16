@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
+import { createContext, Fragment, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { EN } from "./en";
+import { aktuelleSprache, setzeAktuelleSprache } from "./aktuelle-sprache";
 import { bestimmeSprache, VORGABE_SPRACHE, type Sprache } from "./sprachen";
 
 /**
@@ -53,12 +54,98 @@ export function uebersetze(sprache: Sprache, text: string, werte?: Record<string
   return einsetzen(fassung, werte);
 }
 
+/**
+ * Servermeldungen mit eingesetzten Werten ("... höchstens 500 Zeichen ...").
+ *
+ * Der Server schickt den fertigen deutschen Satz. Im Wörterbuch steht er mit
+ * Platzhaltern ({hoechstens}); hier wird aus jedem solchen Eintrag ein
+ * Suchmuster, das auf den fertigen Satz passt und die Werte herauszieht.
+ *
+ * Der Schlüssel muss genug festen Text haben: Ein Eintrag wie "{name}" oder
+ * "{n} Hunde" träfe sonst jede beliebige Meldung.
+ */
+type Vorlage = { muster: RegExp; namen: string[]; englisch: string };
+let vorlagen: Vorlage[] | null = null;
+const MIN_FESTTEXT = 12;
+
+function ladeVorlagen(): Vorlage[] {
+  vorlagen ??= Object.keys(EN)
+    .filter((schluessel) => /\{\w+\}/.test(schluessel) && schluessel.replace(/\{\w+\}/g, "").length >= MIN_FESTTEXT)
+    // Der längere feste Text zuerst: Er ist spezifischer.
+    .sort((a, b) => b.replace(/\{\w+\}/g, "").length - a.replace(/\{\w+\}/g, "").length)
+    .map((schluessel) => {
+      const namen: string[] = [];
+      const muster = schluessel
+        .split(/(\{\w+\})/)
+        .map((teil) => {
+          const name = /^\{(\w+)\}$/.exec(teil)?.[1];
+          if (name === undefined) return teil.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          namen.push(name);
+          return "(.+?)";
+        })
+        .join("");
+      return { muster: new RegExp(`^${muster}$`, "s"), namen, englisch: EN[schluessel] };
+    });
+  return vorlagen;
+}
+
+/**
+ * Übersetzt eine Fehlermeldung des Servers (siehe ApiError in lib/api.ts).
+ *
+ * Erst der Satz als Ganzes, dann die Platzhalter-Fassungen. Eingesetzte Werte
+ * werden ihrerseits nachgeschlagen: "Die Notiz ist zu lang (höchstens 500
+ * Zeichen)." trägt als Wert "Die Notiz" ein Wort, das übersetzt gehört. Was
+ * sich nicht übersetzen lässt, bleibt Deutsch - der Rückfall wie überall.
+ */
+export function uebersetzeMeldung(sprache: Sprache, meldung: string): string {
+  if (sprache === "de") return meldung;
+  if (Object.hasOwn(EN, meldung)) return EN[meldung];
+  for (const { muster, namen, englisch } of ladeVorlagen()) {
+    const treffer = muster.exec(meldung);
+    if (!treffer) continue;
+    const werte: Record<string, string> = {};
+    namen.forEach((name, index) => {
+      const wert = treffer[index + 1];
+      werte[name] = Object.hasOwn(EN, wert) ? EN[wert] : wert;
+    });
+    return einsetzen(englisch, werte);
+  }
+  return meldung;
+}
+
+/**
+ * Setzt Bausteine (Links, Fettdruck) in einen übersetzten Satz ein.
+ *
+ * Für Sätze, in denen mitten im Text ein Verweis steht: Die Wortstellung ist
+ * je Sprache anders, ein Satz in drei Stücken ließe sich nicht übersetzen.
+ * Stattdessen steht der Verweis als {name} im Satz, und hier wird an dieser
+ * Stelle der Baustein eingesetzt. Unbekannte Platzhalter bleiben stehen.
+ */
+export function mitBausteinen(satz: string, bausteine: Record<string, ReactNode>): ReactNode {
+  return satz.split(/(\{\w+\})/).map((teil, index) => {
+    const name = /^\{(\w+)\}$/.exec(teil)?.[1];
+    return name !== undefined && name in bausteine ? <Fragment key={index}>{bausteine[name]}</Fragment> : teil;
+  });
+}
+
+/**
+ * Übersetzt in die Sprache, die der Provider zuletzt gemeldet hat.
+ *
+ * Für Code ohne Hook: Fehler aus reinen lib-Funktionen, ApiError. Wer in einer
+ * Komponente ist, nimmt useT() - das zieht beim Sprachwechsel von selbst nach.
+ * Hier wird erst beim Aufruf übersetzt, also gilt die Sprache dieses Moments.
+ */
+export function uebersetzeAktuell(text: string, werte?: Record<string, string | number>): string {
+  return uebersetze(aktuelleSprache(), text, werte);
+}
+
 export function I18nProvider({ sprache, children }: { sprache: Sprache; children: ReactNode }) {
   // Die Sprache gehört auch ins lang-Attribut: Sie steuert Silbentrennung,
   // die Aussprache durch Screenreader und das Übersetzungsangebot des
   // Browsers. Ohne das behauptete die Seite weiterhin, deutsch zu sein.
   useEffect(() => {
     document.documentElement.lang = sprache;
+    setzeAktuelleSprache(sprache);
   }, [sprache]);
 
   const wert = useMemo<I18nWert>(

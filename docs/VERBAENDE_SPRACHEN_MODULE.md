@@ -348,6 +348,41 @@ Freigabe.
 Offen: Sprachen (Schritt 3). `Locale` ist im Datenmodell schon vorgesehen,
 wird aber noch nirgends ausgewertet.
 
+**Paket E1 umgesetzt (2026-10-16, Fassung 0.30):** Englisch ohne Konto,
+Lücken der Oberfläche, Servermeldungen.
+
+- Reihenfolge der Sprache: Konto, dann lokale Wahl (`dogity.sprache` im
+  localStorage, `lib/i18n/lokale-sprache.ts`), dann Gerät, dann Deutsch. Der
+  Umschalter (`components/sprach-umschalter.tsx`) sitzt in der Kopfzeile der
+  öffentlichen Seiten und über den Karten von Anmeldung, Registrierung und den
+  Passwortseiten. Er setzt nur die lokale Wahl und blendet sich für
+  Angemeldete aus - deren Sprache steht im Profil und ginge in der Reihenfolge
+  vor, ein Klick wäre wirkungslos oder überschriebe still die Einstellung.
+- Das ausgelieferte HTML der Startseite bleibt deutsch (Vorgabe bis zum
+  Hydrieren), Metadaten und Vorschaubild ebenso: Die Seite wird so gefunden
+  wie vorher. Der sichtbare Inhalt liegt in Client-Komponenten
+  (`components/marketing/startseite-inhalt.tsx`), die Daten in
+  `startseite-daten.ts` (auch für das JSON-LD).
+- Servermeldungen werden im Browser übersetzt, nicht mit Codes: `ApiError`
+  übersetzt `message` über das Wörterbuch (`uebersetzeMeldung`), `errors`
+  behält die deutschen Originale. Meldungen mit Werten (`höchstens {hoechstens}
+  Zeichen`) werden über ihre Platzhalter-Fassung gefunden. Wer Meldungen
+  vergleicht, vergleicht `errors` (siehe `istPlanZielFehler`).
+- Wächter: `i18n.test.ts` liest die Meldungen aus dem C#-Quelltext
+  (Muster A bis E, siehe dort) und verlangt eine englische Fassung;
+  `oberflaechen-luecken.test.ts` meldet sichtbaren Text ohne `t()` mit dem
+  TypeScript-Compiler. Ausnahmen sind dort als kommentierte Liste geführt.
+- Bewusste Eigenschaften: Steht im Profil "automatisch", gilt eine zuvor
+  abgemeldet gewählte lokale Sprache weiter (Konto, dann lokale Wahl, dann
+  Gerät) - sie lässt sich nur durch Abmelden und neu Wählen ändern. Der
+  Standardname "Aktueller Standort" wird in der Oberflächensprache als Ortsname
+  gespeichert; nach einem Sprachwechsel kann derselbe Ort in der Liste der
+  zuletzt genutzten Orte zweimal stehen.
+- Nachzuziehen im Paket "englische Datenschutzerklärung": Der neue
+  localStorage-Eintrag `dogity.sprache` (reine Komforteinstellung, wird nicht
+  an den Server gesendet) gehört in Datenschutzerklärung und
+  Verarbeitungsverzeichnis.
+
 ---
 
 ## Reihenfolge

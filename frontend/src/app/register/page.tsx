@@ -11,11 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PawPrint } from "lucide-react";
-import { AuthBackLink } from "@/components/auth-back-link";
+import { AuthKopfzeile } from "@/components/auth-back-link";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
 import { PasswortHinweis } from "@/components/passwort-hinweis";
 
-import { useT } from "@/lib/i18n";
+import { mitBausteinen, useT } from "@/lib/i18n";
 /**
  * Formular samt Verweisen. Eigene Komponente, weil useSearchParams eine
  * Suspense-Grenze braucht - sonst ließe sich die Seite nicht vorab bauen.
@@ -59,7 +59,7 @@ function RegisterForm() {
       }
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Registrierung fehlgeschlagen.");
+      setError(err instanceof ApiError ? err.message : t("Registrierung fehlgeschlagen."));
     } finally {
       setIsSubmitting(false);
     }
@@ -70,16 +70,16 @@ function RegisterForm() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="firstName">Vorname</Label>
+            <Label htmlFor="firstName">{t("Vorname")}</Label>
             <Input id="firstName" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="lastName">Nachname</Label>
+            <Label htmlFor="lastName">{t("Nachname")}</Label>
             <Input id="lastName" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
           </div>
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="email">E-Mail</Label>
+          <Label htmlFor="email">{t("E-Mail")}</Label>
           <Input
             id="email"
             type="email"
@@ -90,7 +90,7 @@ function RegisterForm() {
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="password">Passwort</Label>
+          <Label htmlFor="password">{t("Passwort")}</Label>
           <Input
             id="password"
             type="password"
@@ -124,25 +124,27 @@ function RegisterForm() {
         </label>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="h-11" disabled={isSubmitting}>
-          {isSubmitting ? t("Wird erstellt…") : "Registrieren"}
+          {isSubmitting ? t("Wird erstellt…") : t("Registrieren")}
         </Button>
       </form>
       {/* Art. 13 DSGVO verlangt die Information zum Zeitpunkt der
           Erhebung - also hier, nicht erst irgendwo in der Fußzeile. */}
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        Mit dem Anlegen eines Kontos bestätigst du, die{" "}
-        <Link href="/datenschutz" className="text-primary-text underline-offset-4 hover:underline">
-          Datenschutzerklärung
-        </Link>{" "}
-        gelesen zu haben.
+        {mitBausteinen(t("Mit dem Anlegen eines Kontos bestätigst du, die {datenschutz} gelesen zu haben."), {
+          datenschutz: (
+            <Link href="/datenschutz" className="text-primary-text underline-offset-4 hover:underline">
+              {t("Datenschutzerklärung")}
+            </Link>
+          ),
+        })}
       </p>
       <p className="mt-4 text-center text-sm text-muted-foreground">
-        Bereits ein Konto?{" "}
+        {t("Bereits ein Konto?")}{" "}
         <Link
           href={einladung ? `/login?einladung=${encodeURIComponent(einladung)}` : "/login"}
           className="text-primary-text underline-offset-4 hover:underline"
         >
-          Anmelden
+          {t("Anmelden")}
         </Link>
       </p>
     </>
@@ -154,11 +156,11 @@ export default function RegisterPage() {
   return (
     <main className="flex min-h-full flex-1 items-center justify-center bg-muted/40 p-4">
       <div className="flex w-full max-w-sm flex-col gap-3">
-        <AuthBackLink />
+        <AuthKopfzeile />
         <Card className="w-full">
           <CardHeader className="items-center text-center">
             <PawPrint className="size-8 text-primary-text" />
-            <CardTitle className="text-xl">Konto erstellen</CardTitle>
+            <CardTitle className="text-xl">{t("Konto erstellen")}</CardTitle>
             <CardDescription>{t("Starte dein Trainingstagebuch")}</CardDescription>
           </CardHeader>
           <CardContent>

@@ -239,7 +239,7 @@ export default function StatsPage() {
                         ) : (
                           <ChevronRight className="size-3.5" />
                         )}
-                        Übungen &amp; Schwerpunkte
+                        {t("Übungen & Schwerpunkte")}
                       </Button>
                       {openDogs.has(dog.dogId) && (
                         <div className="mt-2 flex flex-col gap-4">

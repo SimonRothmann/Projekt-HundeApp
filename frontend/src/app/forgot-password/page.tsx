@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PawPrint } from "lucide-react";
-import { AuthBackLink } from "@/components/auth-back-link";
+import { AuthKopfzeile } from "@/components/auth-back-link";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
 
 import { useT } from "@/lib/i18n";
@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
   return (
     <main className="flex min-h-full flex-1 items-center justify-center bg-muted/40 p-4">
       <div className="flex w-full max-w-sm flex-col gap-3">
-        <AuthBackLink />
+        <AuthKopfzeile />
         <Card className="w-full">
           <CardHeader className="items-center text-center">
             <PawPrint className="size-8 text-primary-text" />
@@ -74,7 +74,7 @@ export default function ForgotPasswordPage() {
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="email">E-Mail</Label>
+                  <Label htmlFor="email">{t("E-Mail")}</Label>
                   <Input
                     id="email"
                     type="email"

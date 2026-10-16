@@ -91,9 +91,10 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
             request.DogBirthDate, request.Phone, request.Notes, heute, referenztag: heute);
         if (eingabe is null) return Result<GroupRegistrationDto>.Failure(fehler!);
 
-        if (await db.GroupRegistrations.CountAsync(r => r.GroupId == groupId, ct) >= GroupRegistrationRules.MaxProGruppe)
+        var hoechstensJeGruppe = GroupRegistrationRules.MaxProGruppe;
+        if (await db.GroupRegistrations.CountAsync(r => r.GroupId == groupId, ct) >= hoechstensJeGruppe)
             return Result<GroupRegistrationDto>.Failure(
-                $"Mehr als {GroupRegistrationRules.MaxProGruppe} Anmeldungen je Gruppe sind nicht möglich. Lösche alte Einträge.");
+                $"Mehr als {hoechstensJeGruppe} Anmeldungen je Gruppe sind nicht möglich. Lösche alte Einträge.");
 
         var zeile = new GroupRegistration
         {
@@ -274,9 +275,10 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
         var zeilen = request.Rows;
         if (zeilen is null || zeilen.Count == 0)
             return Result<ImportRegistrationsResultDto>.Failure("Die Datei enthält keine Zeilen zum Importieren.");
-        if (zeilen.Count > GroupRegistrationRules.MaxImportZeilen)
+        var hoechstensZeilen = GroupRegistrationRules.MaxImportZeilen;
+        if (zeilen.Count > hoechstensZeilen)
             return Result<ImportRegistrationsResultDto>.Failure(
-                $"Ein Import nimmt höchstens {GroupRegistrationRules.MaxImportZeilen} Zeilen auf. Teile die Datei auf.");
+                $"Ein Import nimmt höchstens {hoechstensZeilen} Zeilen auf. Teile die Datei auf.");
 
         var vorhandene = await db.GroupRegistrations
             .Where(r => r.GroupId == groupId)
@@ -284,7 +286,8 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
             .AsNoTracking()
             .ToListAsync(ct);
         var schluessel = vorhandene.Select(v => GroupRegistrationRules.SchluesselVon(v.Phone, v.DogName, v.RegisteredAt)).ToList();
-        var platz = GroupRegistrationRules.MaxProGruppe - vorhandene.Count;
+        var hoechstensJeGruppe = GroupRegistrationRules.MaxProGruppe;
+        var platz = hoechstensJeGruppe - vorhandene.Count;
 
         var heute = Vereinszeit.Heute();
         var jetzt = DateTimeOffset.UtcNow;
@@ -318,7 +321,7 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
             if (platz <= 0)
             {
                 fehler.Add(new ImportRegistrationErrorDto(z.Zeile,
-                    $"Mehr als {GroupRegistrationRules.MaxProGruppe} Anmeldungen je Gruppe sind nicht möglich."));
+                    $"Mehr als {hoechstensJeGruppe} Anmeldungen je Gruppe sind nicht möglich."));
                 continue;
             }
 

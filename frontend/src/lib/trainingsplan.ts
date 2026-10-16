@@ -154,7 +154,14 @@ function zeitpunktInLaufenderWoche(
 const PLAN_ZIEL_FEHLT = "Ein oder mehrere Plan-Ziele wurden nicht gefunden.";
 
 export function istPlanZielFehler(err: unknown): boolean {
-  return err instanceof Error && err.message.includes(PLAN_ZIEL_FEHLT);
+  if (!(err instanceof Error)) return false;
+  // ApiError.message ist für die Anzeige in die Oberflächensprache übersetzt
+  // (lib/api.ts) - verglichen wird deshalb mit den Originaltexten des Servers.
+  // Dieselbe Form wie dort, ohne ApiError zu importieren (offline-queue und
+  // api würden sich sonst im Kreis importieren).
+  const original = (err as { errors?: unknown }).errors;
+  if (Array.isArray(original)) return original.some((e) => typeof e === "string" && e.includes(PLAN_ZIEL_FEHLT));
+  return err.message.includes(PLAN_ZIEL_FEHLT);
 }
 
 /**

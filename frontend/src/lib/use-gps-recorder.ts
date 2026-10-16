@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { aufzeichnungBeendet, aufzeichnungGestartet } from "@/lib/api";
 import { haversineMeters } from "@/lib/geo";
+import { uebersetzeAktuell } from "@/lib/i18n";
 import { kalmanInit, kalmanStep, type KalmanState } from "@/lib/kalman";
 
 // maximumAge während der Aufzeichnung: erlaubt dem Browser, eine bis zu 1 s
@@ -221,7 +222,7 @@ export function useGpsRecorder<T>(
    */
   function start(fortsetzen: T[] = []) {
     if (!("geolocation" in navigator)) {
-      toast.error("Geolocation wird von diesem Browser nicht unterstützt.");
+      toast.error(uebersetzeAktuell("Geolocation wird von diesem Browser nicht unterstützt."));
       return;
     }
     setPoints(fortsetzen);
@@ -241,7 +242,7 @@ export function useGpsRecorder<T>(
       handlePosition,
       (error) => {
         if (!isRecordingRef.current) return;
-        toast.error(`GPS-Fehler: ${error.message}`);
+        toast.error(uebersetzeAktuell("GPS-Fehler: {fehler}", { fehler: error.message }));
       },
       { enableHighAccuracy: true, maximumAge: GPS_MAX_POSITION_AGE_MS },
     );
@@ -265,14 +266,14 @@ export function useGpsRecorder<T>(
 
   function markPoint(onMarked: (point: T) => void, onError?: () => void) {
     if (!("geolocation" in navigator)) {
-      toast.error("Geolocation wird von diesem Browser nicht unterstützt.");
+      toast.error(uebersetzeAktuell("Geolocation wird von diesem Browser nicht unterstützt."));
       onError?.();
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (position) => onMarked(toPoint(position)),
       (error) => {
-        toast.error(`GPS-Fehler: ${error.message}`);
+        toast.error(uebersetzeAktuell("GPS-Fehler: {fehler}", { fehler: error.message }));
         onError?.();
       },
       { enableHighAccuracy: true, maximumAge: MARK_POINT_MAX_POSITION_AGE_MS },

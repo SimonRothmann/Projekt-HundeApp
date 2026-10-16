@@ -96,7 +96,7 @@ export function ExerciseTrainerRating({
               type="button"
               disabled={saving}
               onClick={() => save(n, note)}
-              aria-label={`${n} von 5 Sternen`}
+              aria-label={t("{n} von 5 Sternen", { n })}
               aria-pressed={shown === n}
               className="inline-flex size-8 items-center justify-center rounded text-base leading-none text-primary-text disabled:opacity-50 coarse:size-11"
             >

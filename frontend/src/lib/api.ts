@@ -1,3 +1,6 @@
+import { uebersetzeAktuell, uebersetzeMeldung } from "@/lib/i18n";
+import { aktuelleSprache } from "@/lib/i18n/aktuelle-sprache";
+
 // Kestrel-Ports aus backend/src/Dogity.Api/Properties/launchSettings.json.
 // HTTPS ist nötig, um die App von einem iPhone aus testen zu können -
 // Safari verweigert navigator.geolocation außerhalb von localhost ohne
@@ -38,7 +41,13 @@ export class ApiError extends Error {
     // einen ApiError - und keinen TypeError, der die Offline-Warteschlange
     // anhält (siehe fehlerAusAntwort).
     const liste = Array.isArray(errors) ? errors.map(String) : [];
-    super(liste.join(", ") || "Ein Fehler ist aufgetreten.");
+    // message ist die Fassung für die Anzeige (Toasts) und folgt der
+    // Oberflächensprache; der deutsche Satz des Servers ist zugleich der
+    // Schlüssel im Wörterbuch. errors behält die Originaltexte, denn es gibt
+    // Code, der sie vergleicht (siehe istPlanZielFehler in lib/trainingsplan.ts).
+    // Übersetzt wird beim Erzeugen: Der Fehler entsteht unmittelbar vor der
+    // Anzeige, die Sprache ist dann die geltende.
+    super(liste.map((meldung) => uebersetzeMeldung(aktuelleSprache(), meldung)).join(", ") || uebersetzeAktuell("Ein Fehler ist aufgetreten."));
     this.errors = liste;
   }
 }

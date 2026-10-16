@@ -1,8 +1,12 @@
+"use client";
+
 import type { QuizQuestion } from "@/lib/types";
 import { nachAbschnitten } from "@/lib/public-sachkunde";
+import { useT } from "@/lib/i18n";
 
 /**
- * Alle Fragen des Katalogs am Stück, mit Lösung. Serverseitig gerendert.
+ * Alle Fragen des Katalogs am Stück, mit Lösung. Wird auch serverseitig
+ * gerendert (Client-Komponente, aber mit fertigem HTML).
  *
  * Zwei Gründe, und der zweite wiegt schwerer:
  *
@@ -19,17 +23,24 @@ import { nachAbschnitten } from "@/lib/public-sachkunde";
  * nach jeder Antwort sofort auf, eine zugeklappte Liste würde also nichts
  * verbergen, was einen Fingertipp weiter ohnehin offenliegt - sie würde nur
  * den Text wieder aus dem Blickfeld nehmen, um dessentwillen es sie gibt.
+ *
+ * Übersetzt wird nur, was die Seite bedient (Überschrift, Hinweise, "richtig",
+ * Bildbeschreibungen). Die Fragen und Antworten selbst bleiben deutsch - sie
+ * sind die Inhalte des deutschen Fragenkatalogs. Im ausgelieferten HTML gilt
+ * die Vorgabe Deutsch, die Suchmaschine sieht also dieselbe Seite wie zuvor.
  */
 export function FragenUebersicht({ fragen }: { fragen: QuizQuestion[] }) {
+  const t = useT();
+
   // Backend nicht erreichbar (siehe getQuizQuestions): dann trägt die Seite
   // den Trainer allein, statt eine leere Überschrift zu zeigen.
   if (fragen.length === 0) return null;
 
   return (
     <section className="mt-12 min-w-0 border-t border-border/60 pt-8">
-      <h2 className="text-xl font-bold tracking-tight">Alle {fragen.length} Fragen mit Lösung</h2>
+      <h2 className="text-xl font-bold tracking-tight">{t("Alle {n} Fragen mit Lösung", { n: fragen.length })}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Zum Durchlesen und Nachschlagen. Abgefragt wird im Trainer weiter oben.
+        {t("Zum Durchlesen und Nachschlagen. Abgefragt wird im Trainer weiter oben.")}
       </p>
 
       {nachAbschnitten(fragen).map((abschnitt) => (
@@ -47,7 +58,7 @@ export function FragenUebersicht({ fragen }: { fragen: QuizQuestion[] }) {
                   // eslint-disable-next-line @next/next/no-img-element -- feste Zeichnung aus /public, der Optimierer bringt hier nichts.
                   <img
                     src={`/sachkunde/${frage.imageName}`}
-                    alt={`Zeichnung zu Frage ${frage.number}`}
+                    alt={t("Zeichnung zu Frage {n}", { n: frage.number })}
                     className="mt-2 h-auto w-full max-w-md rounded-md border border-border/60 bg-white"
                   />
                 )}
@@ -64,11 +75,11 @@ export function FragenUebersicht({ fragen }: { fragen: QuizQuestion[] }) {
                             {/* Bildantwort: die Zeichnung IST die Antwort, der Text
                                 ist nur ihre Nummer (siehe Jugendfrage 30). Ohne das
                                 Wort davor stünde hier eine nackte Ziffer. */}
-                            {option.imageName ? `Antwort ${option.text}` : option.text}
+                            {option.imageName ? t("Antwort {text}", { text: option.text }) : option.text}
                           </span>
                           {option.isCorrect && (
                             <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary-text">
-                              richtig
+                              {t("richtig")}
                             </span>
                           )}
                         </span>
@@ -76,7 +87,7 @@ export function FragenUebersicht({ fragen }: { fragen: QuizQuestion[] }) {
                           // eslint-disable-next-line @next/next/no-img-element -- feste Zeichnung aus /public.
                           <img
                             src={`/sachkunde/${option.imageName}`}
-                            alt={`Zeichnung ${option.text}`}
+                            alt={t("Zeichnung {text}", { text: option.text })}
                             className="mt-1 ml-4 h-auto w-full max-w-[12rem] rounded border border-border/40 bg-white"
                           />
                         )}
@@ -89,7 +100,7 @@ export function FragenUebersicht({ fragen }: { fragen: QuizQuestion[] }) {
                     Antworten - bei ihnen steht die Musterlösung. */}
                 {frage.sampleSolution && (
                   <p className="mt-2 text-sm [overflow-wrap:anywhere]">
-                    <span className="font-semibold">Lösung: </span>
+                    <span className="font-semibold">{t("Lösung:")} </span>
                     <span className="text-muted-foreground">{frage.sampleSolution}</span>
                   </p>
                 )}
