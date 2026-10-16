@@ -323,6 +323,37 @@ Geheimnisse. Danach:
 - Fehler beim Versand stehen ohne Inhalt im Backend-Log
   (`docker compose logs backend-prod | grep -i "versand\|push"`).
 
+## Belastbarkeit (Lasttest 2026-10-16)
+
+Gemessen lokal mit einem Release-Build im Production-Modus gegen eine eigene
+Datenbank (500 Konten mit Hund, Ziel und 5.000 Trainings). Jede simulierte
+Sitzung lädt Startseite und Hundeseite, speichert in 30 % der Runden ein
+Training und in 5 % eine Fährte mit 400 Punkten, sonst die Statistik, und
+macht dazwischen Pausen von 2-8 Sekunden wie ein Mensch.
+
+| Gleichzeitige Sitzungen | Anfragen/s | Fehler | Startseite p95 | Fährte speichern p95 |
+|---|---|---|---|---|
+| 500 | ~470 | 0 | 28 ms | 251 ms |
+| 1.000 | ~1.010 | 0 | 25 ms | 55 ms |
+
+Bei 1.000 Sitzungen brauchte das Backend knapp 3 Kerne und 330 MB, Postgres
+gut einen Kern. Die VPS hat 6 vCPU und 12 GB - Luft ist da, auch wenn ein
+VPS-Kern langsamer ist als einer am Entwicklungsrechner.
+
+Zwei Funde sind behoben:
+- **Jede SQL-Abfrage landete im Protokoll** (EF-Core-Kategorie
+  `Database.Command` auf Information): 367 MB in fünf Minuten. Bei der
+  Obergrenze von 30 MB je Dienst wären die Protokolle nach Sekunden
+  überschrieben worden und hätten im Fehlerfall nichts mehr gezeigt. Steht
+  jetzt in `appsettings.json` auf Warning; lokal zeigt eine eigene
+  `appsettings.Development.json` die Abfragen weiter.
+- **Die Verbindungsvorräte waren unbegrenzt** (Npgsql-Vorgabe 100 je
+  Backend gegen `max_connections = 100` der gemeinsamen Postgres). Jetzt
+  `Maximum Pool Size` 50 (Prod) und 20 (Test) in `docker-compose.yml`; der
+  Wiederholungslauf mit 50 Verbindungen lief ohne Fehler.
+
+Was offen bleibt, steht in `TODO.md` unter Performance.
+
 ## Bewusst offen
 
 **SSH-Passwort-Anmeldung.** Steht auf `yes`, Port 22 ist weltweit offen.

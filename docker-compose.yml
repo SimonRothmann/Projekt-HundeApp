@@ -44,7 +44,13 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Default: "Host=postgres;Database=dogity_prod;Username=dogity_prod;Password=${DOGITY_PROD_DB_PASSWORD}"
+      # Maximum Pool Size: Prod und Test teilen sich eine Postgres mit
+      # max_connections = 100; ohne Obergrenze darf sich jedes Backend bis zu 100
+      # Verbindungen nehmen (Npgsql-Vorgabe), und unter Last wiese die Datenbank
+      # Verbindungen ab. 50 + 20 lässt Luft für Wartung und Sicherung; reicht der
+      # Vorrat nicht, wartet eine Anfrage kurz statt zu scheitern (Lasttest
+      # 2026-10-16: 1.000 gleichzeitige Sitzungen brauchten 60 Verbindungen).
+      ConnectionStrings__Default: "Host=postgres;Database=dogity_prod;Username=dogity_prod;Password=${DOGITY_PROD_DB_PASSWORD};Maximum Pool Size=50"
       Jwt__Secret: ${PROD_JWT_SECRET}
       Jwt__Issuer: Dogity
       Jwt__Audience: Dogity
@@ -113,7 +119,7 @@ services:
       # beschränkt - für eine nicht öffentlich beworbene Testumgebung
       # akzeptabel, für Prod bewusst NICHT verwendet.
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__Default: "Host=postgres;Database=dogity_test;Username=dogity_test;Password=${DOGITY_TEST_DB_PASSWORD}"
+      ConnectionStrings__Default: "Host=postgres;Database=dogity_test;Username=dogity_test;Password=${DOGITY_TEST_DB_PASSWORD};Maximum Pool Size=20"
       Jwt__Secret: ${TEST_JWT_SECRET}
       Jwt__Issuer: Dogity
       Jwt__Audience: Dogity
