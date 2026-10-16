@@ -71,7 +71,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       },
       {
         art: "verbessert",
-        text: uebersetzbar("Startseite, Anmeldung, Registrierung und die Seiten zum Zurücksetzen des Passworts gibt es jetzt auch auf Englisch. Die Prüfungsordnungen, die Sachkundefragen und die Rechtstexte bleiben deutsch."),
+        text: uebersetzbar("Startseite, Anmeldung, Registrierung und die Seiten zum Zurücksetzen des Passworts gibt es jetzt auch auf Englisch. Die Prüfungsordnungen, die Sachkundefragen und das Impressum bleiben deutsch."),
       },
       {
         art: "verbessert",
@@ -88,6 +88,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       {
         art: "verbessert",
         text: uebersetzbar("Registrierst du dich auf English, kommt schon die Willkommensmail auf English, und die Sprache bleibt gespeichert. Bestehende Konten bekommen weiter deutsche Mails und Mitteilungen, bis du die Sprache im Profil auf English stellst."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Die Datenschutzerklärung gibt es jetzt auch auf Englisch. Wer Dogity auf English nutzt, sieht sie dort automatisch und kann jederzeit zur deutschen Fassung wechseln – sie ist rechtlich verbindlich."),
       },
     ],
   },

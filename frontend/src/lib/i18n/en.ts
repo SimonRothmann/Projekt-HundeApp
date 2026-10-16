@@ -2063,8 +2063,8 @@ export const EN: Record<string, string> = {
     "Dogity in English",
   "Auf der Startseite, bei der Anmeldung und bei der Registrierung gibt es oben jetzt einen kleinen Knopf (DE / EN), mit dem du zwischen Deutsch und English wechselst – auch ohne Konto. Deine Wahl bleibt in diesem Browser gespeichert. Wer angemeldet ist, ändert die Sprache wie bisher im Profil.":
     "On the home page, at login and at sign-up there is now a small button (DE / EN) at the top to switch between Deutsch and English – even without an account. Your choice is remembered in this browser. If you are logged in, you change the language in your profile as before.",
-  "Startseite, Anmeldung, Registrierung und die Seiten zum Zurücksetzen des Passworts gibt es jetzt auch auf Englisch. Die Prüfungsordnungen, die Sachkundefragen und die Rechtstexte bleiben deutsch.":
-    "The home page, login, sign-up and the pages for resetting your password are now also available in English. The exam regulations, the theory-test questions and the legal texts stay in German.",
+  "Startseite, Anmeldung, Registrierung und die Seiten zum Zurücksetzen des Passworts gibt es jetzt auch auf Englisch. Die Prüfungsordnungen, die Sachkundefragen und das Impressum bleiben deutsch.":
+    "The home page, login, sign-up and the pages for resetting your password are now also available in English. The exam regulations, the theory-test questions and the legal notice stay in German.",
   "Meldungen vom Server – etwa „Hund nicht gefunden.“ oder Hinweise zum Passwort – erscheinen jetzt in der Sprache, die du eingestellt hast.":
     "Messages from the server – such as “Dog not found.” or password hints – now appear in the language you have set.",
   "An einigen Stellen blieb auch bei eingestelltem Englisch deutscher Text stehen, zum Beispiel im Sachkunde-Trainer, beim Installationshinweis, im Katalog-Editor und bei einigen Beschriftungen für Screenreader. Das ist jetzt durchgehend übersetzt.":
@@ -2073,4 +2073,10 @@ export const EN: Record<string, string> = {
     "Notifications, device alerts and emails from Dogity now come in the language you have set – Deutsch or English. Notifications you have already received stay as they were.",
   "Registrierst du dich auf English, kommt schon die Willkommensmail auf English, und die Sprache bleibt gespeichert. Bestehende Konten bekommen weiter deutsche Mails und Mitteilungen, bis du die Sprache im Profil auf English stellst.":
     "If you sign up in English, even the welcome email arrives in English, and the language stays saved. Existing accounts keep receiving German emails and alerts until you switch the language to English in your profile.",
+  "Die Datenschutzerklärung gibt es jetzt auch auf Englisch. Wer Dogity auf English nutzt, sieht sie dort automatisch und kann jederzeit zur deutschen Fassung wechseln – sie ist rechtlich verbindlich.":
+    "The privacy policy is now also available in English. If you use Dogity in English, you will see it there automatically and can switch to the German version at any time – it is the legally binding one.",
+  "Das ist eine Übersetzung zu deiner Orientierung. Rechtlich verbindlich ist die deutsche Fassung.":
+    "This is a translation for your convenience. The German version is legally binding.",
+  "Deutsche Fassung anzeigen": "Show German version",
+  "Englische Fassung anzeigen": "Show English version",
 };

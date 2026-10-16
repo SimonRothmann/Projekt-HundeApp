@@ -33,7 +33,7 @@ const WURZELN = ["app", "components"];
  */
 const BEWUSST_DEUTSCH: { pfad: string; grund: string }[] = [
   { pfad: "app/opengraph-image.tsx", grund: "Vorschaubild für Suchmaschinen und Link-Vorschauen: die SEO-Fassung bleibt deutsch" },
-  { pfad: "app/datenschutz/", grund: "Rechtstext - die englische Fassung ist ein eigenes Paket" },
+  { pfad: "app/datenschutz/", grund: "Rechtstext: deutsche Fassung verbindlich; die englische Übersetzung ist ein zusammenhängender Text (datenschutz-en.tsx), kein Satzbaukasten für en.ts. Nur die Bedienelemente (fassungswahl.tsx) laufen über t()" },
   { pfad: "app/impressum/", grund: "Rechtstext nach deutschem Recht (TMG/DDG), Inhalt bleibt deutsch" },
   { pfad: "app/pruefungsordnungen/", grund: "Inhalt der deutschen Prüfungsordnungen (Inhaltssprache, nicht Oberflächensprache)" },
   { pfad: "app/sachkunde/", grund: "öffentliche Sachkunde-Inhalte: Fragenkatalog des SWHV, deutsch" },

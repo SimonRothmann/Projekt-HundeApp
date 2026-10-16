@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-10-15 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-10-16 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -38,6 +38,7 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Drittland | nein |
 | Löschfrist | bis zur Kontolöschung; Refresh-Tokens spätestens nach 60 Tagen, bei Kontolöschung sofort und endgültig (kein bloßer Widerruf; Altbestand gelöschter Konten wird beim Start bereinigt) |
 | Tabellen | `users`, `user_roles`, `refresh_tokens` |
+| Speicherung im Browser | Wer ohne Konto die Oberflächensprache wählt (Deutsch/English), dessen Browser merkt sich die Wahl im lokalen Speicher unter `dogity.sprache`. Reine Komforteinstellung: bleibt auf dem Gerät, wird nicht an den Server gesendet und wird beim Abmelden nicht entfernt. Rechtsgrundlage wie bei den übrigen Komforteinträgen im Browser (Kartenart, Schriftgröße): § 25 Abs. 2 TDDDG (zur Bereitstellung des ausdrücklich gewünschten Dienstes erforderlich), keine Einwilligung nötig. Löschung: Löschen der Browserdaten. |
 
 ### 2.2 Hunde und Trainingstagebuch
 

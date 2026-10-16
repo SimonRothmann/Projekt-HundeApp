@@ -36,6 +36,8 @@ export const AUFSICHTSBEHOERDE = {
   plz: "70173",
   ort: "Stuttgart",
   web: "https://www.baden-wuerttemberg.datenschutz.de",
+  /** Nur zur Erläuterung in der englischen Fassung; der Name oben bleibt maßgeblich. */
+  nameEn: "State Commissioner for Data Protection and Freedom of Information of Baden-Württemberg",
 } as const;
 
 /**
@@ -51,6 +53,8 @@ export const AUFSICHTSBEHOERDE = {
 export const HOSTING = {
   anbieter: "Contabo GmbH, München",
   standort: "Deutschland",
+  // Die englischen Angaben (…En) gehören zur englischen Datenschutzerklärung.
+  standortEn: "Germany",
 } as const;
 
 /**
@@ -70,6 +74,7 @@ export const HOSTING = {
 export const NETZWERKDIENST = {
   anbieter: "Cloudflare, Inc.",
   sitz: "USA",
+  sitzEn: "USA",
 } as const;
 
 /**
@@ -83,6 +88,7 @@ export const NETZWERKDIENST = {
 export const SICHERUNGSSPEICHER = {
   anbieter: "Cloudflare, Inc.",
   jurisdiktion: "Europäische Union",
+  jurisdiktionEn: "European Union",
 } as const;
 
 /**
@@ -103,6 +109,16 @@ export const SICHERUNG_AUFBEWAHRUNG = {
 
 /** Letzte inhaltliche Änderung an Impressum oder Datenschutzerklärung. */
 export const STAND = "2026-10-16";
+
+/**
+ * Stand der englischen Datenschutzerklärung (app/datenschutz/datenschutz-en.tsx).
+ *
+ * Rechtlich verbindlich ist die deutsche Fassung; die englische ist eine
+ * Übersetzung. rechtliches.test.ts verlangt STAND_EN === STAND: Wer die
+ * deutsche Fassung ändert und STAND anhebt, bekommt so lange einen roten
+ * Test, bis die englische nachgezogen und dieses Datum angehoben ist.
+ */
+export const STAND_EN = "2026-10-16";
 
 /** "Hauptstr. 20/2, 76307 Karlsbad" - für Fließtext und strukturierte Daten. */
 export const ANSCHRIFT_EINZEILIG = `${BETREIBER.strasse}, ${BETREIBER.plz} ${BETREIBER.ort}`;
