@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { findeStartPo, leseStartPo, loescheStartPo } from "@/lib/start-po";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { katalogName } from "@/lib/katalog-name";
 /**
  * Formular zum Anlegen eines neuen Ziels (mit oder ohne Prüfungsbezug).
  * Eigenständig mit eigenem State - die Ziel-Anlage ist unabhängig von der
@@ -34,6 +35,7 @@ export function GoalCreateForm({
   onCreated: () => Promise<void>;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [sportId, setSportId] = useState(vorauswahl?.sportId ?? "");
   const [regulations, setRegulations] = useState<Regulation[]>([]);
   const [regulationId, setRegulationId] = useState(vorauswahl?.regulationId ?? "");
@@ -218,7 +220,7 @@ export function GoalCreateForm({
                 <SelectContent>
                   {sportOptionen.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
-                      {s.name}
+                      {katalogName(s, sprache)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -245,7 +247,7 @@ export function GoalCreateForm({
                 <SelectContent>
                   {regulations.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
-                      {r.name}
+                      {katalogName(r, sprache)}
                     </SelectItem>
                   ))}
                 </SelectContent>

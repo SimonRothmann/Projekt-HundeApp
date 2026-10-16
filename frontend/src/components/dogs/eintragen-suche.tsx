@@ -5,7 +5,8 @@ import { ArrowLeft, Check, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { eigeneUebungAngebot, inhaltsSchluessel, sucheUebungen, type KatalogGruppe } from "@/lib/eintragen";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { katalogName } from "@/lib/katalog-name";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import type { Exercise, Sport } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ export function EintragenSuche({
   onZurueck: () => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [suche, setSuche] = useState("");
 
   const gruppen = useMemo<KatalogGruppe[]>(
@@ -102,17 +104,17 @@ export function EintragenSuche({
         {angebot?.oben && eigeneZeile}
 
         {treffer.map(({ sport, uebungen }) => (
-          <section key={sport.id} className="flex flex-col gap-1.5" aria-label={mitKoepfen ? sport.name : undefined}>
+          <section key={sport.id} className="flex flex-col gap-1.5" aria-label={mitKoepfen ? katalogName(sport, sprache) : undefined}>
             {mitKoepfen && (
               <h3 className="pt-1 text-xs font-medium tracking-wide text-muted-foreground uppercase [overflow-wrap:anywhere]">
-                {sport.name}
+                {katalogName(sport, sprache)}
               </h3>
             )}
             {uebungen.map((uebung) => {
               const schonDa = gewaehlt.has(inhaltsSchluessel(uebung.id, uebung.name));
               return (
                 <button key={uebung.id} type="button" className={ZEILE} onClick={() => onWaehle(uebung)}>
-                  <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{uebung.name}</span>
+                  <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{katalogName(uebung, sprache)}</span>
                   {schonDa && <Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-500" aria-label={t("schon gewählt")} />}
                 </button>
               );

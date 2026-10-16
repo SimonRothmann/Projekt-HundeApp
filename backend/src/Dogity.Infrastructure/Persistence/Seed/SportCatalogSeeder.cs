@@ -69,6 +69,12 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// <see cref="Regulation.SourceUrl"/> kann später von einem Admin auf die
 /// offizielle Quelle verweisen.
 ///
+/// Geltungsbereich und englische Namen (Paket L1, 2026-10-16): Die Ordnungen
+/// der FCI-Sportarten gelten überall (CountryCode null) und tragen die
+/// englischen Namen der Originalfassung der FCI-Prüfungsordnung (NameEn); die
+/// VDH-Ordnungen (THS, Agility, Hoopers) gelten in Deutschland und bleiben
+/// deutsch. Die Zuordnung steht in <see cref="FciKatalog"/>.
+///
 /// Idempotent auf Ebene einzelner Übungen/Prüfungsordnungen (nicht nur
 /// pro Sportart), damit der Katalog auch nach dem ersten Start ergänzt
 /// werden kann, ohne Duplikate zu erzeugen.
@@ -1563,7 +1569,45 @@ public static class SportCatalogSeeder
         // DogScooter und Bikejöring getreten.
         await RemoveOrphanedExercisesAsync(db, ths);
 
+        // Zuletzt, wenn feststeht, welche Übungen und Ordnungen es noch gibt.
+        await SetzeEnglischeNamenAsync(db);
+
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Trägt die englischen Namen der FCI-Sportarten, -Ordnungen und -Übungen
+    /// ein (Quelle: <see cref="FciKatalog"/>).
+    ///
+    /// Gesetzt wird nur, wo <c>NameEn</c> noch leer ist: Eine Eingabe aus dem
+    /// Katalog-Editor bleibt stehen, und ein zweiter Lauf ändert nichts. Der
+    /// Preis: Wer einen englischen Namen bewusst wieder leert, bekommt beim
+    /// nächsten Start den der Ordnung zurück.
+    /// </summary>
+    private static async Task SetzeEnglischeNamenAsync(ApplicationDbContext db)
+    {
+        var codes = FciKatalog.InternationaleSportarten;
+        var sportarten = await db.Sports
+            .Where(s => s.ClubId == null && codes.Contains(s.Code))
+            .ToListAsync();
+        var codeNachId = sportarten.ToDictionary(s => s.Id, s => s.Code);
+        var ids = codeNachId.Keys.ToList();
+
+        foreach (var sport in sportarten)
+            if (sport.NameEn is null && FciKatalog.Sportarten.TryGetValue(sport.Code, out var sportEn))
+                sport.NameEn = sportEn;
+
+        var ordnungen = await db.Regulations.Where(r => ids.Contains(r.SportId)).ToListAsync();
+        foreach (var ordnung in ordnungen)
+            if (ordnung.NameEn is null && FciKatalog.Ordnungen.TryGetValue((codeNachId[ordnung.SportId], ordnung.Name), out var ordnungEn))
+                ordnung.NameEn = ordnungEn;
+
+        var uebungen = await db.Exercises
+            .Where(e => e.ClubId == null && e.SportId != null && ids.Contains(e.SportId.Value))
+            .ToListAsync();
+        foreach (var uebung in uebungen)
+            if (uebung.NameEn is null && FciKatalog.Uebungen.TryGetValue((codeNachId[uebung.SportId!.Value], uebung.Name), out var uebungEn))
+                uebung.NameEn = uebungEn;
     }
 
     /// <summary>
@@ -1654,7 +1698,17 @@ public static class SportCatalogSeeder
         var regulation = await db.Regulations.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.SportId == sport.Id && r.Name == seed.Name);
         if (regulation is null)
         {
-            regulation = new Regulation { SportId = sport.Id, Name = seed.Name, Description = seed.Description };
+            // Geltungsbereich gleich beim Anlegen: FCI-Ordnungen gelten überall
+            // (null), die nationalen VDH-Ordnungen nur in Deutschland. Eine
+            // bestehende Ordnung bleibt unberührt - dort entscheidet seit der
+            // Migration der Admin (siehe FciKatalog).
+            regulation = new Regulation
+            {
+                SportId = sport.Id,
+                Name = seed.Name,
+                Description = seed.Description,
+                CountryCode = FciKatalog.GeltungsbereichVon(sport.Code),
+            };
             db.Regulations.Add(regulation);
             await db.SaveChangesAsync();
         }

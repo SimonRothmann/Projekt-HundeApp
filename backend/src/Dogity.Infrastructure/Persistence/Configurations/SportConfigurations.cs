@@ -1,3 +1,4 @@
+using Dogity.Application.Common;
 using Dogity.Domain.Sports;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -11,6 +12,7 @@ public class SportConfiguration : IEntityTypeConfiguration<Sport>
         builder.ToTable("sports");
         builder.Property(s => s.Code).HasMaxLength(30).IsRequired();
         builder.Property(s => s.Name).HasMaxLength(100).IsRequired();
+        builder.Property(s => s.NameEn).HasMaxLength(Textlaengen.SportNameEn);
         // Code eindeutig im Scope einer ClubId - so kann jeder Verein einen
         // "GRUNDLAGEN"-Code haben, ohne mit dem globalen Katalog zu kollidieren.
         builder.HasIndex(s => new { s.Code, s.ClubId }).IsUnique();
@@ -24,6 +26,7 @@ public class RegulationConfiguration : IEntityTypeConfiguration<Regulation>
     {
         builder.ToTable("regulations");
         builder.Property(r => r.Name).HasMaxLength(100).IsRequired();
+        builder.Property(r => r.NameEn).HasMaxLength(Textlaengen.OrdnungNameEn);
         builder.Property(r => r.SourceUrl).HasMaxLength(500);
         builder.Property(r => r.LatestKnownVersionLabel).HasMaxLength(50);
         builder.Property(r => r.Description).HasMaxLength(2000);
@@ -56,6 +59,7 @@ public class ExerciseConfiguration : IEntityTypeConfiguration<Exercise>
     {
         builder.ToTable("exercises");
         builder.Property(e => e.Name).HasMaxLength(150).IsRequired();
+        builder.Property(e => e.NameEn).HasMaxLength(Textlaengen.UebungNameEn);
         builder.Property(e => e.Difficulty).HasConversion<string>().HasMaxLength(20);
         builder.Property(e => e.Category).HasMaxLength(100);
         builder.Property(e => e.ScoringCriteria).HasMaxLength(1000);

@@ -65,6 +65,13 @@ public static class CountrySeeder
     ///
     /// Die Annahme dahinter ist belegbar: Der gesamte bisherige Katalog
     /// besteht aus Ordnungen von VDH, FCI und SWHV.
+    ///
+    /// Seit Paket L1 setzt der <see cref="SportCatalogSeeder"/> (läuft in
+    /// Program.cs VOR diesem Seeder) den Geltungsbereich jeder neu angelegten
+    /// Ordnung ausdrücklich: FCI null, VDH "DE". Eine frische Datenbank trägt
+    /// damit schon Länder, wenn dieser Lauf kommt, und er tut nichts - die
+    /// FCI-Ordnungen bleiben "gilt überall". Bestehende Datenbanken hat die
+    /// Migration AddCatalogEnglishNamesAndFciScope einmalig umgestellt.
     /// </summary>
     private static async Task OrdneBestandDeutschlandZuAsync(ApplicationDbContext db, CancellationToken ct)
     {

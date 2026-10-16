@@ -28,6 +28,8 @@ import { difficultyLabel } from "@/lib/constants";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 import { usePreferences } from "@/lib/preferences-context";
+import { katalogName, uebungName } from "@/lib/katalog-name";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
 const textareaClass =
   "w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/85 dark:focus-visible:ring-ring/60 md:text-sm dark:bg-input/30";
@@ -165,7 +167,7 @@ export default function SportsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("Sportarten")}</h1>
         <p className="text-sm text-muted-foreground">
-          {t("Informativer Katalog nach VDH-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.")}
+          {t("Informativer Katalog nach FCI- und VDH-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.")}
           {isAdmin
             ? t(" Als Admin kannst du globale Sportarten und ihre Prüfungsordnungen hier direkt bearbeiten.")
             : t(" Globale Sportarten pflegt der Admin; Vereine können eigene Übungen & Sportarten anlegen (Trainer-Bereich).")}
@@ -288,8 +290,10 @@ function SportCard({
   onRegulationChanged: (regulationId: string) => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(sport.name);
+  const [nameEn, setNameEn] = useState(sport.nameEn ?? "");
   const [description, setDescription] = useState(sport.description ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -300,7 +304,11 @@ function SportCard({
     }
     setSaving(true);
     try {
-      await api.put(`/api/sports/${sport.id}`, { name: name.trim(), description: description.trim() || null });
+      await api.put(`/api/sports/${sport.id}`, {
+        name: name.trim(),
+        nameEn: nameEn.trim() || null,
+        description: description.trim() || null,
+      });
       toast.success(t("Sportart aktualisiert."));
       setEditing(false);
       onSportSaved();
@@ -321,7 +329,7 @@ function SportCard({
           <Trophy className={sport.clubId ? "size-6 shrink-0 text-amber-500" : "size-6 shrink-0 text-primary-text"} />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base [overflow-wrap:anywhere]">{sport.name}</CardTitle>
+              <CardTitle className="text-base [overflow-wrap:anywhere]">{katalogName(sport, sprache)}</CardTitle>
               {sport.clubId && (
                 <Badge variant="outline" className="border-amber-500/40 text-amber-700">
 {t("Verein")}
@@ -341,6 +349,7 @@ function SportCard({
               onClick={(e) => {
                 e.stopPropagation();
                 setName(sport.name);
+                setNameEn(sport.nameEn ?? "");
                 setDescription(sport.description ?? "");
                 setEditing(true);
                 if (!isOpen) onToggle();
@@ -359,6 +368,10 @@ function SportCard({
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor={`sport-name-${sport.id}`}>{t("Name")}</Label>
                 <Input id={`sport-name-${sport.id}`} value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`sport-name-en-${sport.id}`}>{t("Englischer Name (optional)")}</Label>
+                <Input id={`sport-name-en-${sport.id}`} value={nameEn} onChange={(e) => setNameEn(e.target.value)} maxLength={TEXTLAENGE.sportNameEn} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor={`sport-desc-${sport.id}`}>{t("Beschreibung (optional)")}</Label>
@@ -445,9 +458,11 @@ function RegulationBlock({
   onChanged: () => void;
 }) {
   const t = useT();
-  const ort = ortsformat(useSprache());
+  const sprache = useSprache();
+  const ort = ortsformat(sprache);
   const [editingMeta, setEditingMeta] = useState(false);
   const [name, setName] = useState(regulation.name);
+  const [nameEn, setNameEn] = useState(regulation.nameEn ?? "");
   const [description, setDescription] = useState(regulation.description ?? "");
   const [sourceUrl, setSourceUrl] = useState(regulation.sourceUrl ?? "");
   const [savingMeta, setSavingMeta] = useState(false);
@@ -462,8 +477,13 @@ function RegulationBlock({
     try {
       await api.put(`/api/sports/regulations/${regulation.id}`, {
         name: name.trim(),
+        nameEn: nameEn.trim() || null,
         description: description.trim() || null,
         sourceUrl: sourceUrl.trim() || null,
+        // Der Geltungsbereich gehört nicht zu diesem Formular, muss aber
+        // mitgeschickt werden: Das Backend liest "leer" als "gilt überall",
+        // und ein Speichern würde sonst jede Ordnung international machen.
+        countryCode: regulation.countryCode ?? null,
       });
       toast.success(t("Prüfungsordnung aktualisiert."));
       setEditingMeta(false);
@@ -488,7 +508,7 @@ function RegulationBlock({
       >
         <span className="flex min-w-0 items-center gap-2 font-medium">
           <ScrollText className="size-4 shrink-0" />
-          <span className="[overflow-wrap:anywhere]">{regulation.name}</span>
+          <span className="[overflow-wrap:anywhere]">{katalogName(regulation, sprache)}</span>
         </span>
         {isOpen ? <ChevronDown className="size-4 shrink-0" /> : <ChevronRight className="size-4 shrink-0" />}
       </button>
@@ -512,6 +532,7 @@ function RegulationBlock({
                     variant="outline"
                     onClick={() => {
                       setName(regulation.name);
+                      setNameEn(regulation.nameEn ?? "");
                       setDescription(regulation.description ?? "");
                       setSourceUrl(regulation.sourceUrl ?? "");
                       setEditingMeta(true);
@@ -528,6 +549,10 @@ function RegulationBlock({
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor={`reg-name-${regulation.id}`}>{t("Name")}</Label>
                     <Input id={`reg-name-${regulation.id}`} value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor={`reg-name-en-${regulation.id}`}>{t("Englischer Name (optional)")}</Label>
+                    <Input id={`reg-name-en-${regulation.id}`} value={nameEn} onChange={(e) => setNameEn(e.target.value)} maxLength={TEXTLAENGE.ordnungNameEn} />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor={`reg-desc-${regulation.id}`}>{t("Rahmenbedingungen (mehrzeilig)")}</Label>
@@ -614,6 +639,7 @@ function RegExerciseRow({
   onChanged: () => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [editing, setEditing] = useState(false);
   const [mandatory, setMandatory] = useState(re.isMandatory);
   const [points, setPoints] = useState(String(re.maxPoints));
@@ -639,7 +665,7 @@ function RegExerciseRow({
   }
 
   async function remove() {
-    if (!window.confirm(t("„{name}“ aus dieser Prüfungsordnung entfernen?", { name: re.exerciseName }))) return;
+    if (!window.confirm(t("„{name}“ aus dieser Prüfungsordnung entfernen?", { name: uebungName(re, sprache) }))) return;
     try {
       await api.delete(`/api/sports/regulations/${regulationId}/exercises/${re.exerciseId}`);
       toast.success(t("Übung entfernt."));
@@ -652,7 +678,7 @@ function RegExerciseRow({
   if (canEdit && editing) {
     return (
       <li className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3 text-sm">
-        <span className="font-medium [overflow-wrap:anywhere]">{re.exerciseName}</span>
+        <span className="font-medium [overflow-wrap:anywhere]">{uebungName(re, sprache)}</span>
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex items-center gap-1.5">
             <input type="checkbox" className="size-4 accent-primary" checked={mandatory} onChange={(e) => setMandatory(e.target.checked)} />
@@ -683,7 +709,7 @@ function RegExerciseRow({
     <li className="text-sm">
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 font-medium [overflow-wrap:anywhere]">
-          {re.exerciseName}
+          {uebungName(re, sprache)}
           {!re.isMandatory && <span className="ml-1.5 text-xs font-normal text-muted-foreground">{t("(optional)")}</span>}
         </span>
         <div className="flex shrink-0 items-center gap-1">
@@ -717,6 +743,7 @@ function AddRegExerciseForm({
   onCancel: () => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [exerciseId, setExerciseId] = useState("");
   const [mandatory, setMandatory] = useState(true);
   const [points, setPoints] = useState("0");
@@ -756,7 +783,7 @@ function AddRegExerciseForm({
           <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
             {addableExercises.map((e) => (
               <SelectItem key={e.id} value={e.id}>
-                {e.name}
+                {katalogName(e, sprache)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -798,8 +825,10 @@ function ExerciseRow({
   onSaved: () => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(exercise.name);
+  const [nameEn, setNameEn] = useState(exercise.nameEn ?? "");
   const [description, setDescription] = useState(exercise.description ?? "");
   const [difficulty, setDifficulty] = useState<ExerciseDifficulty>(exercise.difficulty);
   const [category, setCategory] = useState(exercise.category ?? "");
@@ -815,6 +844,7 @@ function ExerciseRow({
     try {
       await api.put(`/api/exercises/${exercise.id}`, {
         name: name.trim(),
+        nameEn: nameEn.trim() || null,
         description: description.trim() || null,
         difficulty,
         category: category.trim() || null,
@@ -836,6 +866,10 @@ function ExerciseRow({
         <div className="flex flex-col gap-1.5">
           <Label className="text-xs">{t("Name")}</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs">{t("Englischer Name (optional)")}</Label>
+          <Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} maxLength={TEXTLAENGE.uebungNameEn} />
         </div>
         <div className="flex flex-wrap gap-3">
           <div className="flex flex-col gap-1.5">
@@ -882,7 +916,7 @@ function ExerciseRow({
     <li className="rounded-md border px-3 py-2">
       <div className="flex items-center justify-between gap-2 text-sm">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="font-medium [overflow-wrap:anywhere]">{exercise.name}</span>
+          <span className="font-medium [overflow-wrap:anywhere]">{katalogName(exercise, sprache)}</span>
           {exercise.clubId && (
             <Badge variant="outline" className="border-amber-500/40 text-amber-700">
 {t("Verein")}
@@ -898,6 +932,7 @@ function ExerciseRow({
               aria-label={t("Übung bearbeiten")}
               onClick={() => {
                 setName(exercise.name);
+                setNameEn(exercise.nameEn ?? "");
                 setDescription(exercise.description ?? "");
                 setDifficulty(exercise.difficulty);
                 setCategory(exercise.category ?? "");

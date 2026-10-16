@@ -35,7 +35,9 @@ public record DogExerciseStatDto(
     /// (unter 4), um Zufallsschwankungen nicht als Trend zu deuten.
     /// </summary>
     double? RatingTrend,
-    DateOnly LastTrained);
+    DateOnly LastTrained,
+    /// <summary>Englischer Katalogname der Übung - null bei Freitext und ohne englische Bezeichnung.</summary>
+    string? ExerciseNameEn = null);
 
 /// <summary>
 /// Ein ausgewerteter Fährten-Ablauf für die Entwicklungsansicht.

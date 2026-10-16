@@ -1,5 +1,6 @@
 import type { Goal } from "@/lib/types";
 import type { Sprache } from "@/lib/i18n";
+import { katalogName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
 
 /**
@@ -95,9 +96,18 @@ export function leistungen(goals: Goal[]): Goal[] {
     });
 }
 
-/** Name der Prüfung für Überschriften: die Prüfungsordnung, sonst die Sportart. */
-export function pruefungsName(goal: Pick<Goal, "regulationName" | "sportName">): string {
-  return goal.regulationName ?? goal.sportName;
+/**
+ * Name der Prüfung für Überschriften: die Prüfungsordnung, sonst die Sportart.
+ * Mit Sprache zeigt sie bei FCI-Ordnungen auf Englisch den englischen Namen
+ * (siehe lib/katalog-name.ts); ohne bleibt es der deutsche.
+ */
+export function pruefungsName(
+  goal: Pick<Goal, "regulationName" | "sportName"> & Partial<Pick<Goal, "regulationNameEn" | "sportNameEn">>,
+  sprache: Sprache = "de",
+): string {
+  return goal.regulationName
+    ? katalogName({ name: goal.regulationName, nameEn: goal.regulationNameEn }, sprache)
+    : katalogName({ name: goal.sportName, nameEn: goal.sportNameEn }, sprache);
 }
 
 /** "272 von 300 Punkten" bzw. "272 Punkte", wenn keine Höchstpunktzahl bekannt ist. */

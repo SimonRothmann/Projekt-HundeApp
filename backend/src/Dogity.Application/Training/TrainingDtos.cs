@@ -24,7 +24,12 @@ public record TrainingExerciseDto(
     /// Übung bewertet hat (siehe TrainingExercise.TrainerRating).
     /// </summary>
     int? TrainerRating,
-    string? TrainerNote);
+    string? TrainerNote,
+    /// <summary>
+    /// Englischer Katalogname der Übung (Exercise.NameEn) - null bei
+    /// Freitext-Einträgen und bei Übungen ohne englische Bezeichnung.
+    /// </summary>
+    string? ExerciseNameEn = null);
 
 public record TrainingSessionDto(
     Guid Id,
@@ -141,7 +146,8 @@ public record TrainerSessionExerciseDto(
     int Rating,
     bool Success,
     int? TrainerRating,
-    string? TrainerNote);
+    string? TrainerNote,
+    string? ExerciseNameEn = null);
 
 public record CreateTrainingExerciseRequest(
     /// <summary>

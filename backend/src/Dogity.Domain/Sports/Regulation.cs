@@ -15,6 +15,13 @@ public class Regulation : Entity
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Englische Bezeichnung der FCI-Ordnung (null = keine, siehe
+    /// <see cref="Sport.NameEn"/>). Nationale Ordnungen (VDH) bekommen keine:
+    /// Es gibt sie nur auf Deutsch.
+    /// </summary>
+    public string? NameEn { get; set; }
+
+    /// <summary>
     /// Link zur offiziellen Quelle (z.B. VDH/Verband) zur Versionsprüfung
     /// (siehe DATABASE.md "Prüfungsordnung: automatische Prüfung ob neue
     /// Version verfügbar ist"). Der Volltext wird bewusst NICHT gespiegelt,

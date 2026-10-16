@@ -12,6 +12,10 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         if (string.IsNullOrWhiteSpace(request.Name))
             return Result<SportDto>.Failure("Name ist erforderlich.");
 
+        var nameEnFehler = Textlaengen.ZuLang(request.NameEn, Textlaengen.SportNameEn, "Der englische Name");
+        if (nameEnFehler is not null)
+            return Result<SportDto>.Failure(nameEnFehler);
+
         var sport = await db.Sports.FirstOrDefaultAsync(s => s.Id == sportId, ct);
         if (sport is null)
             return Result<SportDto>.NotFound("Sportart nicht gefunden.");
@@ -21,16 +25,21 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
             return Result<SportDto>.Failure(authError);
 
         sport.Name = request.Name.Trim();
+        sport.NameEn = NullIfBlank(request.NameEn);
         sport.Description = NullIfBlank(request.Description);
         await db.SaveChangesAsync(ct);
 
-        return Result<SportDto>.Success(new SportDto(sport.Id, sport.Code, sport.Name, sport.Description, sport.ClubId));
+        return Result<SportDto>.Success(new SportDto(sport.Id, sport.Code, sport.Name, sport.Description, sport.ClubId, sport.NameEn));
     }
 
     public async Task<Result<RegulationDto>> UpdateRegulationAsync(Guid actingUserId, bool isAdmin, Guid regulationId, UpdateRegulationRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
             return Result<RegulationDto>.Failure("Name ist erforderlich.");
+
+        var nameEnFehler = Textlaengen.ZuLang(request.NameEn, Textlaengen.OrdnungNameEn, "Der englische Name");
+        if (nameEnFehler is not null)
+            return Result<RegulationDto>.Failure(nameEnFehler);
 
         var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.Id == regulationId, ct);
         if (regulation is null)
@@ -41,6 +50,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
             return Result<RegulationDto>.Failure(authError);
 
         regulation.Name = request.Name.Trim();
+        regulation.NameEn = NullIfBlank(request.NameEn);
         regulation.Description = NullIfBlank(request.Description);
         regulation.SourceUrl = NullIfBlank(request.SourceUrl);
 
@@ -65,7 +75,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
             .FirstOrDefaultAsync(ct);
 
         return Result<RegulationDto>.Success(new RegulationDto(
-            regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, gueltigAb));
+            regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, gueltigAb, regulation.NameEn));
     }
 
     public async Task<Result<RegulationExerciseDto>> AddRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, AddRegulationExerciseRequest request, CancellationToken ct = default)
@@ -122,7 +132,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         await db.SaveChangesAsync(ct);
 
         return Result<RegulationExerciseDto>.Success(new RegulationExerciseDto(
-            exercise.Id, exercise.Name, link.IsMandatory, link.MaxPoints, link.ScoringNotes));
+            exercise.Id, exercise.Name, link.IsMandatory, link.MaxPoints, link.ScoringNotes, exercise.NameEn));
     }
 
     public async Task<Result> UpdateRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, Guid exerciseId, UpdateRegulationExerciseRequest request, CancellationToken ct = default)

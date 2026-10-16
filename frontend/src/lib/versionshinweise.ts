@@ -61,6 +61,29 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.31",
+    datum: "2026-10-16",
+    titel: uebersetzbar("Internationale Prüfungsordnungen in allen Ländern"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Die internationalen FCI-Prüfungsordnungen – Begleithundeprüfung (BH/VT), IBGH, IGP, Fährte, Unterordnung, Schutzdienst, Stöbern und Ausdauer – gelten jetzt in jedem Land und erscheinen bei jedem Geltungsbereich, nicht nur bei Deutschland. Turnierhundsport und Agility bleiben bei Deutschland, weil es Ordnungen des VDH sind."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Wenn du Dogity auf Englisch nutzt, zeigen die FCI-Prüfungsordnungen jetzt ihre offiziellen englischen Namen – bei Sportarten, Prüfungsstufen und Übungen, zum Beispiel „Heeling on leash“ statt „Fußarbeit“. Das gilt im Katalog, im Trainingsplan, im Tagebuch, in der Statistik und beim Eintragen. Die Beschreibungstexte bleiben deutsch."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Länderauswahl in den Einstellungen ist jetzt für alle sichtbar, weil die internationalen Prüfungsordnungen in jedem Land angeboten werden. Wer ein anderes Land als Deutschland wählt, sieht dort keine Ordnungen des VDH wie Hoopers, Agility und Turnierhundsport."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Hoopers war bei jedem Land zu sehen, obwohl es die Prüfungsordnung des VDH ist. Sie gilt jetzt nur bei Deutschland."),
+      },
+    ],
+  },
+  {
     version: "0.30",
     datum: "2026-10-16",
     titel: uebersetzbar("Dogity auf Englisch"),

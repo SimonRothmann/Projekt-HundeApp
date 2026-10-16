@@ -26,7 +26,7 @@ import { angeboteneSportarten } from "@/lib/eintragen";
 import { usePreferences } from "@/lib/preferences-context";
 import { useDogAnker } from "@/lib/use-dog-anker";
 import { useDogPage } from "@/lib/use-dog-page";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
 
 /**
  * Hundeseite: Kopf, zwei Aktionen, Statuszeile und zwei Reiter - "Plan" (Ziele)
@@ -49,6 +49,7 @@ export default function DogDetailPage() {
 
 function DogPage({ id }: { id: string }) {
   const t = useT();
+  const sprache = useSprache();
   const router = useRouter();
   const pathname = usePathname();
   const suchparameter = useSearchParams();
@@ -159,7 +160,7 @@ function DogPage({ id }: { id: string }) {
       />
 
       <DogStatusLine
-        ziel={zielStatus(goals)}
+        ziel={zielStatus(goals, Date.now(), sprache)}
         neuesFeedback={neueRueckmeldungen.length > 0}
         onZiel={() => wechseln("plan")}
         onFeedback={() => aendereAdresse({ [REITER_PARAMETER]: "tagebuch", eintrag: neueRueckmeldungen[0].id })}

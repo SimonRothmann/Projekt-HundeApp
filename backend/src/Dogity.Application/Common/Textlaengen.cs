@@ -40,6 +40,12 @@ public static class Textlaengen
     public const int PushSchluessel = 200;
     /// <summary>PushSubscription.UserAgent: Kurzbezeichnung des Geräts, vom Server gebildet.</summary>
     public const int GeraeteBezeichnung = 200;
+    /// <summary>Sport.NameEn: englischer Name, so lang wie <c>Sport.Name</c>.</summary>
+    public const int SportNameEn = 100;
+    /// <summary>Regulation.NameEn: englischer Name, so lang wie <c>Regulation.Name</c>.</summary>
+    public const int OrdnungNameEn = 100;
+    /// <summary>Exercise.NameEn: englischer Name, so lang wie <c>Exercise.Name</c>.</summary>
+    public const int UebungNameEn = 150;
     /// <summary>Suchbegriff der Admin-Nutzerliste (wird nicht gespeichert).</summary>
     public const int NutzerSuche = 100;
 

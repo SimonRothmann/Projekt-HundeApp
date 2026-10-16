@@ -37,7 +37,9 @@ public record TrainingPlanItemDto(
     // manuellen Einträgen/Pausenwochen.
     PlanItemReason? Reason,
     // Welcher Trainingstag der Woche (1..Goal.TrainingDaysPerWeek).
-    int DayIndex);
+    int DayIndex,
+    // Englischer Katalogname der Übung (Exercise.NameEn), null bei Freitext.
+    string? ExerciseNameEn = null);
 
 public record TrainingPlanDto(
     Guid Id,
@@ -89,10 +91,13 @@ public record GoalDto(
     /// Folgestufen der Prüfungsordnung (Ausbildungsweg) - nur bei erreichten
     /// Zielen gefüllt; daraus bietet die Oberfläche ein Folgeziel an.
     /// </summary>
-    IReadOnlyList<NextStageDto>? NextStages = null);
+    IReadOnlyList<NextStageDto>? NextStages = null,
+    // Englische Katalognamen (nur FCI-Sportarten/-Ordnungen), sonst null.
+    string? SportNameEn = null,
+    string? RegulationNameEn = null);
 
 /// <summary>Eine Prüfungsordnung, die als nächstes Ziel in Frage kommt.</summary>
-public record NextStageDto(Guid RegulationId, Guid SportId, string Name);
+public record NextStageDto(Guid RegulationId, Guid SportId, string Name, string? NameEn = null);
 
 public record CreateGoalRequest(Guid DogId, Guid SportId, Guid? RegulationId, DateOnly TargetDate, string? Notes, bool IsCustom = false);
 
@@ -124,7 +129,8 @@ public record WeightableExerciseDto(
     int ManualPriority,
     // 0 = noch nie trainiert, 1 = hängt, 2 = mittel, 3 = sitzt (aus Leitner-Box).
     int MasteryStatus,
-    bool PlannedThisWeek);
+    bool PlannedThisWeek,
+    string? ExerciseNameEn = null);
 
 /// <summary>Setzt die manuelle Gewichtung einer Übung (−2..+2).</summary>
 public record SetExercisePriorityRequest(int Value);

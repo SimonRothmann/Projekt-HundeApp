@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { SportEditorSheet, type SportScope } from "@/components/sports/sport-editor-sheet";
 import { ExerciseEditorSheet, type ExerciseScope } from "@/components/sports/exercise-editor-sheet";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { katalogName } from "@/lib/katalog-name";
 /**
  * Karte "Sportarten & Übungen verwalten". Wird von zwei Stellen genutzt:
  * - Admin-Bereich mit scope="global": pflegt den globalen VDH-Katalog.
@@ -34,6 +35,7 @@ export function CatalogSection({
   description: string;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [allSports, setAllSports] = useState<Sport[] | null>(null);
   const [uncategorized, setUncategorized] = useState<Exercise[]>([]);
   const [exercisesBySport, setExercisesBySport] = useState<Record<string, Exercise[]>>({});
@@ -253,7 +255,7 @@ export function CatalogSection({
                     >
                       <span className="flex min-w-0 items-center gap-3">
                         <Trophy className="size-4 shrink-0 text-primary-text" />
-                        <span className="font-medium [overflow-wrap:anywhere]">{sport.name}</span>
+                        <span className="font-medium [overflow-wrap:anywhere]">{katalogName(sport, sprache)}</span>
                         <Badge variant="secondary">{sport.code}</Badge>
                       </span>
                       <span className="flex items-center gap-2">
@@ -315,10 +317,11 @@ export function CatalogSection({
 
 function ExerciseListRow({ exercise, onDelete }: { exercise: Exercise; onDelete: () => void }) {
   const t = useT();
+  const sprache = useSprache();
   return (
     <li className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
       <div className="flex min-w-0 flex-col gap-0.5 [overflow-wrap:anywhere]">
-        <span className="font-medium">{exercise.name}</span>
+        <span className="font-medium">{katalogName(exercise, sprache)}</span>
         {exercise.category && <span className="text-xs text-muted-foreground">{exercise.category}</span>}
       </div>
       <Button type="button" size="icon-sm" variant="ghost" onClick={onDelete} title={t("Übung löschen")}>

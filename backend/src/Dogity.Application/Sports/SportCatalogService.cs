@@ -26,7 +26,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
 
         var exercises = await query
             .OrderBy(e => e.Name)
-            .Select(e => new ExerciseDto(e.Id, e.SportId, e.Name, e.Description, e.Difficulty, e.Category, e.ScoringCriteria, e.ClubId))
+            .Select(e => new ExerciseDto(e.Id, e.SportId, e.Name, e.Description, e.Difficulty, e.Category, e.ScoringCriteria, e.ClubId, e.NameEn))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<ExerciseDto>>.Success(exercises);
@@ -39,7 +39,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
             .Where(e => e.SportId == null)
             .Where(e => e.ClubId == null || visibleClubIds.Contains(e.ClubId.Value))
             .OrderBy(e => e.Name)
-            .Select(e => new ExerciseDto(e.Id, e.SportId, e.Name, e.Description, e.Difficulty, e.Category, e.ScoringCriteria, e.ClubId))
+            .Select(e => new ExerciseDto(e.Id, e.SportId, e.Name, e.Description, e.Difficulty, e.Category, e.ScoringCriteria, e.ClubId, e.NameEn))
             .ToListAsync(ct);
         return Result<IReadOnlyList<ExerciseDto>>.Success(exercises);
     }
@@ -53,7 +53,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
         var sports = await db.Sports
             .Where(s => s.ClubId == null || visibleClubIds.Contains(s.ClubId.Value))
             .OrderBy(s => s.Name)
-            .Select(s => new SportDto(s.Id, s.Code, s.Name, s.Description, s.ClubId))
+            .Select(s => new SportDto(s.Id, s.Code, s.Name, s.Description, s.ClubId, s.NameEn))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<SportDto>>.Success(sports);
@@ -74,6 +74,9 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
             if (!isClubTrainer) return Result<SportDto>.Failure("Du bist für diesen Verein nicht als Trainer eingetragen.");
         }
 
+        var nameEnFehler = Textlaengen.ZuLang(request.NameEn, Textlaengen.SportNameEn, "Der englische Name");
+        if (nameEnFehler is not null) return Result<SportDto>.Failure(nameEnFehler);
+
         var code = request.Code.Trim();
         var codeTaken = await db.Sports.AnyAsync(s => s.Code == code && s.ClubId == request.ClubId, ct);
         if (codeTaken) return Result<SportDto>.Failure("Ein Sportart-Code muss innerhalb seines Sichtbarkeitsbereichs eindeutig sein.");
@@ -82,13 +85,14 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
         {
             Code = code,
             Name = request.Name.Trim(),
+            NameEn = NullIfBlank(request.NameEn),
             Description = request.Description,
             ClubId = request.ClubId,
         };
         db.Sports.Add(sport);
         await db.SaveChangesAsync(ct);
 
-        return Result<SportDto>.Success(new SportDto(sport.Id, sport.Code, sport.Name, sport.Description, sport.ClubId));
+        return Result<SportDto>.Success(new SportDto(sport.Id, sport.Code, sport.Name, sport.Description, sport.ClubId, sport.NameEn));
     }
 
     public async Task<Result<IReadOnlyList<RegulationDto>>> GetRegulationsAsync(Guid sportId, string? country = null, CancellationToken ct = default)
@@ -110,7 +114,8 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
             // und Einzelseite nicht verschiedene Daten nennen.
             .Select(r => new RegulationDto(
                 r.Id, r.Name, r.SourceUrl, r.LastSyncedAt, r.LatestKnownVersionLabel, r.Description, r.CountryCode,
-                r.Versions.OrderByDescending(v => v.ValidFrom).Select(v => (DateOnly?)v.ValidFrom).FirstOrDefault()))
+                r.Versions.OrderByDescending(v => v.ValidFrom).Select(v => (DateOnly?)v.ValidFrom).FirstOrDefault(),
+                r.NameEn))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<RegulationDto>>.Success(regulations);
@@ -142,6 +147,8 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
                 (jeLand.FirstOrDefault(l => l.Code == code)?.Anzahl ?? 0) + international))
             .ToList());
     }
+
+    private static string? NullIfBlank(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 
     /// <summary>
     /// Normalisiert eine Landesangabe aus dem Aufruf: Groß, getrimmt,
@@ -179,11 +186,11 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
             .Where(re => re.RegulationVersionId == currentVersion.Id)
             .OrderBy(re => re.SortOrder)
             .ThenBy(re => re.Exercise!.Name)
-            .Select(re => new RegulationExerciseDto(re.ExerciseId, re.Exercise!.Name, re.IsMandatory, re.MaxPoints, re.ScoringNotes))
+            .Select(re => new RegulationExerciseDto(re.ExerciseId, re.Exercise!.Name, re.IsMandatory, re.MaxPoints, re.ScoringNotes, re.Exercise!.NameEn))
             .ToListAsync(ct);
 
         var detail = new RegulationDetailDto(
-            new RegulationDto(regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, currentVersion.ValidFrom),
+            new RegulationDto(regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, currentVersion.ValidFrom, regulation.NameEn),
             new RegulationVersionDto(currentVersion.Id, currentVersion.VersionLabel, currentVersion.ValidFrom),
             exercises);
 

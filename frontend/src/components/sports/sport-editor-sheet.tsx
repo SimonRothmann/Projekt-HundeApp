@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 /**
  * Sichtbarkeit einer neu angelegten Sportart.
  * - `{ kind: "global" }` legt eine für alle sichtbare Sportart an (nur Admin).
@@ -42,6 +43,7 @@ export function SportEditorSheet({
   const t = useT();
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -50,6 +52,7 @@ export function SportEditorSheet({
       /* eslint-disable react-hooks/set-state-in-effect */
       setCode("");
       setName("");
+      setNameEn("");
       setDescription("");
       /* eslint-enable react-hooks/set-state-in-effect */
     }
@@ -63,6 +66,7 @@ export function SportEditorSheet({
       const created = await api.post<Sport>("/api/sports", {
         code: code.trim().toUpperCase(),
         name: name.trim(),
+        nameEn: nameEn.trim() || null,
         description: description.trim() || null,
         clubId: scope.kind === "club" ? scope.clubId : null,
       });
@@ -113,6 +117,18 @@ export function SportEditorSheet({
               />
             </div>
           </div>
+
+          {scope.kind === "global" && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="sport-name-en">{t("Englischer Name (optional)")}</Label>
+              <Input
+                id="sport-name-en"
+                value={nameEn}
+                onChange={(e) => setNameEn(e.target.value)}
+                maxLength={TEXTLAENGE.sportNameEn}
+              />
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="sport-description">{t("Beschreibung (optional)")}</Label>

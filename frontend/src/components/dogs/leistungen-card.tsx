@@ -57,7 +57,7 @@ export function LeistungenCard({ goals, onChanged }: { goals: Goal[] | null; onC
           {eintraege.map((goal) => (
             <div key={goal.id} className="flex min-w-0 flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{pruefungsName(goal)}</span>
+                <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{pruefungsName(goal, sprache)}</span>
                 <Badge className="shrink-0" variant="secondary">
                   {t("bestanden")}
                 </Badge>
@@ -123,6 +123,7 @@ function ErgebnisBearbeiten({
   onSaved: () => Promise<void>;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [eingabe, setEingabe] = useState<ErgebnisEingabe>({
     datum: goal.examDate ?? vorgabePruefungstag(goal.targetDate),
     punkte: goal.examScore != null ? String(goal.examScore) : "",
@@ -156,7 +157,7 @@ function ErgebnisBearbeiten({
       <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{goal.examDate ? t("Ergebnis bearbeiten") : t("Ergebnis nachtragen")}</SheetTitle>
-          <SheetDescription className="[overflow-wrap:anywhere]">{pruefungsName(goal)}</SheetDescription>
+          <SheetDescription className="[overflow-wrap:anywhere]">{pruefungsName(goal, sprache)}</SheetDescription>
         </SheetHeader>
         <div className="flex min-w-0 flex-col gap-4 p-4 pt-0">
           <ErgebnisFelder eingabe={eingabe} onChange={setEingabe} hoechstens={goal.maxPoints} idPrefix="ergebnis" />

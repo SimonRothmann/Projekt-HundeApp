@@ -137,6 +137,16 @@ describe("Anzeigetexte", () => {
     expect(pruefungsName({ regulationName: null, sportName: "Agility" })).toBe("Agility");
   });
 
+  it("zeigt auf Englisch den englischen Namen der FCI-Ordnung, sonst den deutschen", () => {
+    const fci = { regulationName: "FCI-IGP 1", regulationNameEn: "FCI-IGP 1 – International Utility Dog Examination", sportName: "IGP 1", sportNameEn: "IGP 1 EN" };
+    expect(pruefungsName(fci, "en")).toBe("FCI-IGP 1 – International Utility Dog Examination");
+    expect(pruefungsName(fci, "de")).toBe("FCI-IGP 1");
+    expect(pruefungsName(fci)).toBe("FCI-IGP 1");
+    // Ohne Ordnung gilt der Sportartname; ohne englischen Namen der deutsche.
+    expect(pruefungsName({ regulationName: null, sportName: "IGP 1", sportNameEn: "IGP 1 EN" }, "en")).toBe("IGP 1 EN");
+    expect(pruefungsName({ regulationName: "Agility 1 (A1)", regulationNameEn: null, sportName: "Agility" }, "en")).toBe("Agility 1 (A1)");
+  });
+
   it("schreibt Punkte mit Höchstpunktzahl, wenn sie bekannt ist", () => {
     expect(punkteText(t, 272, 300)).toBe("272 von 300 Punkten");
     expect(punkteText(t, 272, null)).toBe("272 Punkte");

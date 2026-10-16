@@ -49,7 +49,8 @@ export function GoalPlanCard({
   onFolgeziel?: (stufe: NextStage) => void;
 }) {
   const t = useT();
-  const ort = ortsformat(useSprache());
+  const sprache = useSprache();
+  const ort = ortsformat(sprache);
   const [bearbeiten, setBearbeiten] = useState(false);
   const [switchingAuto, setSwitchingAuto] = useState(false);
 
@@ -84,7 +85,7 @@ export function GoalPlanCard({
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
         <div className="min-w-0">
-          <CardTitle className="text-base break-words">{pruefungsName(goal)}</CardTitle>
+          <CardTitle className="text-base break-words">{pruefungsName(goal, sprache)}</CardTitle>
           <p className="text-sm text-muted-foreground">
             {t("Ziel: {datum}", { datum: new Date(goal.targetDate).toLocaleDateString(ort) })}
             {aktiv && ` · ${restzeitText(t, tageBisPruefung(goal.targetDate))}`}

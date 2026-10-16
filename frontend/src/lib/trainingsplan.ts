@@ -1,4 +1,6 @@
 import type { Goal, TrainingPlanItem } from "@/lib/types";
+import type { Sprache } from "@/lib/i18n";
+import { katalogName } from "@/lib/katalog-name";
 import { heuteIso, tageBisPruefung } from "@/lib/pruefung";
 
 /**
@@ -319,9 +321,17 @@ export function fortschrittDerWoche(items: TrainingPlanItem[]): { geplant: numbe
   return { geplant: uebungen.length, erledigt: uebungen.filter((item) => item.isComplete).length };
 }
 
-/** Der Anzeigename einer Planübung: Katalog-Übung, sonst Freitext, sonst null (Übung nicht mehr im Katalog). */
-export function planItemName(item: Pick<TrainingPlanItem, "exerciseName" | "freeTextLabel">): string | null {
-  return item.exerciseName ?? item.freeTextLabel ?? null;
+/**
+ * Der Anzeigename einer Planübung: Katalog-Übung, sonst Freitext, sonst null
+ * (Übung nicht mehr im Katalog). Mit Sprache auf Englisch der englische
+ * Katalogname, falls es einen gibt - Freitext bleibt, wie er eingegeben wurde.
+ */
+export function planItemName(
+  item: Pick<TrainingPlanItem, "exerciseName" | "freeTextLabel"> & Partial<Pick<TrainingPlanItem, "exerciseNameEn">>,
+  sprache: Sprache = "de",
+): string | null {
+  if (item.exerciseName != null) return katalogName({ name: item.exerciseName, nameEn: item.exerciseNameEn }, sprache);
+  return item.freeTextLabel ?? null;
 }
 
 /**

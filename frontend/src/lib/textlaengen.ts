@@ -38,6 +38,12 @@ export const TEXTLAENGE = {
   anmeldeTelefon: 30,
   /** GroupRegistration.Notes */
   anmeldeNotiz: 500,
+  /** Sport.NameEn (Katalog-Editor, Englischer Name) */
+  sportNameEn: 100,
+  /** Regulation.NameEn (Katalog-Editor, Englischer Name) */
+  ordnungNameEn: 100,
+  /** Exercise.NameEn (Katalog-Editor, Englischer Name) */
+  uebungNameEn: 150,
   /** Suchbegriff der Admin-Nutzerliste (Textlaengen.NutzerSuche, wird nicht gespeichert) */
   nutzerSuche: 100,
 } as const;

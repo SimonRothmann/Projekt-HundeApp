@@ -247,6 +247,17 @@ describe("Diese Woche", () => {
     ]);
   });
 
+  it("führt den englischen Namen der Übung mit, ohne den Schlüssel zu ändern", () => {
+    const chips = wochenChips(
+      [ziel([planItem({ id: "a", exerciseId: "ex-1", exerciseName: "Fußarbeit", exerciseNameEn: "Heeling on leash" })])],
+      JETZT,
+    );
+
+    expect(chips[0].name).toBe("Fußarbeit");
+    expect(chips[0].nameEn).toBe("Heeling on leash");
+    expect(inhaltsSchluessel("ex-1", chips[0].name)).toBe("katalog:ex-1");
+  });
+
   it("fehlt ganz ohne laufendes Ziel", () => {
     expect(wochenChips([], JETZT)).toEqual([]);
     expect(wochenChips(null, JETZT)).toEqual([]);
@@ -356,6 +367,15 @@ describe("Übungssuche", () => {
 
   it("zeigt ohne Suchtext alles, in den Gruppen der Sportarten", () => {
     expect(sucheUebungen(katalog, "  ").map((g) => g.uebungen.length)).toEqual([2, 2]);
+  });
+
+  it("findet eine Übung auch über ihren englischen Namen", () => {
+    const mitEnglisch = [
+      { sport: sport("igp", "IGP"), uebungen: [{ ...ex("3", "Fußarbeit"), nameEn: "Heeling on leash" }, ex("4", "Hürde")] },
+    ];
+    expect(sucheUebungen(mitEnglisch, "heeling").map((g) => g.uebungen.map((u) => u.id))).toEqual([["3"]]);
+    // Wer den englischen Namen vollständig tippt, meint genau diese Übung.
+    expect(eigeneUebungAngebot("heeling on leash", sucheUebungen(mitEnglisch, "heeling on leash"))).toBeNull();
   });
 
   it("sucht auch in der Kategorie", () => {

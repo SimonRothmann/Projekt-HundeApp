@@ -14,6 +14,7 @@ import { ConditionStats } from "@/components/dogs/condition-stats";
 import { FaehrtenTrend, TrendBadge } from "@/components/tracking/faehrten-trend";
 
 import { useSprache, useT } from "@/lib/i18n";
+import { uebungName } from "@/lib/katalog-name";
 import { zahlText } from "@/lib/ortsformat";
 
 /**
@@ -61,13 +62,13 @@ function DogExercises({ dogId }: { dogId: string }) {
       <div className="rounded-md bg-muted/60 px-2 py-1.5 text-xs">
         <span className="font-medium">{t("Fokus-Empfehlung:")} </span>
         <span>
-          {focus.exerciseName} (Ø {zahlText(focus.avgRating, sprache)} ★, {t("{prozent} % erfolgreich", { prozent: Math.round(focus.successRate * 100) })})
+          {uebungName(focus, sprache)} (Ø {zahlText(focus.avgRating, sprache)} ★, {t("{prozent} % erfolgreich", { prozent: Math.round(focus.successRate * 100) })})
         </span>
       </div>
       <ul className="flex flex-col divide-y text-xs">
         {rows.map((ex) => (
           <li key={ex.exerciseName} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 py-1.5">
-            <span className="font-medium">{ex.exerciseName}</span>
+            <span className="font-medium">{uebungName(ex, sprache)}</span>
             <span className="flex items-center gap-2 text-muted-foreground">
               <span className="text-primary-text" title={t("Ø {wert} von 5", { wert: zahlText(ex.avgRating, sprache) })}>
                 {"★".repeat(Math.round(ex.avgRating))}

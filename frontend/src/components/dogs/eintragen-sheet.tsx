@@ -48,6 +48,7 @@ import { istPlanZielFehler, ohnePlanVerknuepfung } from "@/lib/trainingsplan";
 import { REITER_PARAMETER } from "@/lib/hundeseite";
 import { heuteIso } from "@/lib/pruefung";
 import { useSprache, useT } from "@/lib/i18n";
+import { katalogName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { useAktuellerStandort } from "@/lib/use-aktueller-standort";
@@ -522,11 +523,11 @@ function EintragenInhalt({
           <section className="flex flex-col gap-2" aria-labelledby="eintragen-woche">
             <Abschnittsname id="eintragen-woche">{t("Diese Woche")}</Abschnittsname>
             <div className="flex flex-wrap gap-2">
-              {wochen.map(({ item, name, erledigt, ziel }) => {
+              {wochen.map(({ item, name, nameEn, erledigt, ziel }) => {
                 const schluessel = inhaltsSchluessel(item.exerciseId, name);
                 return (
                   <Chip key={item.id} gewaehlt={gewaehlt.has(schluessel)} onClick={() => schalte(schluessel, () => zeileAusPlanItem(item))}>
-                    <span className="min-w-0">{name}</span>
+                    <span className="min-w-0">{katalogName({ name, nameEn }, sprache)}</span>
                     <span className="shrink-0 tabular-nums text-muted-foreground">
                       {erledigt}/{ziel}
                     </span>
@@ -550,15 +551,15 @@ function EintragenInhalt({
                   {t("Wie beim letzten Mal ({anzahl})", { anzahl: letzte.exercises.length })}
                 </Chip>
               )}
-              {zuletzt.map(({ exerciseId, name }) => {
+              {zuletzt.map(({ exerciseId, name, nameEn }) => {
                 const schluessel = inhaltsSchluessel(exerciseId, name);
                 return (
                   <Chip
                     key={schluessel}
                     gewaehlt={gewaehlt.has(schluessel)}
-                    onClick={() => schalte(schluessel, () => (exerciseId ? katalogZeile({ id: exerciseId, name }) : freitextZeile(name)))}
+                    onClick={() => schalte(schluessel, () => (exerciseId ? katalogZeile({ id: exerciseId, name, nameEn }) : freitextZeile(name)))}
                   >
-                    {name}
+                    {katalogName({ name, nameEn }, sprache)}
                   </Chip>
                 );
               })}

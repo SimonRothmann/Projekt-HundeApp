@@ -470,7 +470,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
                     (int)c.Difficulty,
                     m?.ManualPriority ?? 0,
                     MasteryStatusOf(m),
-                    plannedThisWeek.Contains(c.ExerciseId));
+                    plannedThisWeek.Contains(c.ExerciseId),
+                    c.NameEn);
             })
             .OrderBy(x => x.ExerciseName, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
@@ -784,7 +785,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             {
                 return await db.RegulationExercises
                     .Where(re => re.RegulationVersionId == currentVersion.Id)
-                    .Select(re => new PlanExerciseCandidate(re.ExerciseId, re.Exercise!.Name, re.Exercise!.Difficulty, re.IsMandatory))
+                    .Select(re => new PlanExerciseCandidate(re.ExerciseId, re.Exercise!.Name, re.Exercise!.Difficulty, re.IsMandatory, re.Exercise!.NameEn))
                     .ToListAsync(ct);
             }
         }
@@ -796,7 +797,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         // dem der Hundehalter gar nicht angehört.
         return await db.Exercises
             .Where(e => e.SportId == sportId && e.ClubId == null)
-            .Select(e => new PlanExerciseCandidate(e.Id, e.Name, e.Difficulty, true))
+            .Select(e => new PlanExerciseCandidate(e.Id, e.Name, e.Difficulty, true, e.NameEn))
             .ToListAsync(ct);
     }
 
@@ -819,7 +820,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     // dann null), und der Plan zeigte eine Zeile ohne Namen. Eine Übung, die
     // einmal geplant war, behält ihren Namen - sie ist nur nicht mehr im
     // Katalog wählbar.
-    private async Task<Dictionary<Guid, string>> GetDeletedExerciseNamesAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
+    private async Task<Dictionary<Guid, Katalogname>> GetDeletedExerciseNamesAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
     {
         var missingIds = goals
             .Where(g => g.TrainingPlan is not null)
@@ -828,29 +829,29 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .Select(i => i.ExerciseId!.Value)
             .Distinct()
             .ToList();
-        if (missingIds.Count == 0) return new Dictionary<Guid, string>();
+        if (missingIds.Count == 0) return new Dictionary<Guid, Katalogname>();
 
         return await db.Exercises
             .IgnoreQueryFilters()
             .Where(e => missingIds.Contains(e.Id))
-            .ToDictionaryAsync(e => e.Id, e => e.Name, ct);
+            .ToDictionaryAsync(e => e.Id, e => new Katalogname(e.Name, e.NameEn), ct);
     }
 
     // Folgestufen nur für erreichte Ziele mit Prüfungsordnung (siehe
     // Ausbildungsweg); ein Abruf für alle, nicht einer je Ziel. Namen, die es
     // im Katalog nicht gibt (z.B. länderbezogen nicht angelegt), fallen weg.
     private async Task<Dictionary<Guid, IReadOnlyList<NextStageDto>>> GetNextStagesAsync(
-        IReadOnlyList<Goal> goals, IReadOnlyDictionary<Guid, string> regulationNames, CancellationToken ct)
+        IReadOnlyList<Goal> goals, IReadOnlyDictionary<Guid, Katalogname> regulationNames, CancellationToken ct)
     {
         var namesByGoal = goals
             .Where(g => g.Status == GoalStatus.Achieved && g.RegulationId is not null)
-            .ToDictionary(g => g.Id, g => Ausbildungsweg.FolgestufenVon(regulationNames.GetValueOrDefault(g.RegulationId!.Value)));
+            .ToDictionary(g => g.Id, g => Ausbildungsweg.FolgestufenVon(regulationNames.GetValueOrDefault(g.RegulationId!.Value)?.Name));
         var names = namesByGoal.Values.SelectMany(n => n).Distinct().ToList();
         if (names.Count == 0) return new Dictionary<Guid, IReadOnlyList<NextStageDto>>();
 
         var known = (await db.Regulations
                 .Where(r => names.Contains(r.Name))
-                .Select(r => new NextStageDto(r.Id, r.SportId, r.Name))
+                .Select(r => new NextStageDto(r.Id, r.SportId, r.Name, r.NameEn))
                 .ToListAsync(ct))
             .GroupBy(r => r.Name)
             .ToDictionary(g => g.Key, g => g.First());
@@ -898,22 +899,22 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         return result;
     }
 
-    private async Task<Dictionary<Guid, string>> GetSportNamesAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
+    private async Task<Dictionary<Guid, Katalogname>> GetSportNamesAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
     {
         var sportIds = goals.Select(g => g.SportId).Distinct().ToList();
         return await db.Sports
             .Where(s => sportIds.Contains(s.Id))
-            .ToDictionaryAsync(s => s.Id, s => s.Name, ct);
+            .ToDictionaryAsync(s => s.Id, s => new Katalogname(s.Name, s.NameEn), ct);
     }
 
-    private async Task<Dictionary<Guid, string>> GetRegulationNamesAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
+    private async Task<Dictionary<Guid, Katalogname>> GetRegulationNamesAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
     {
         var regulationIds = goals.Where(g => g.RegulationId is not null).Select(g => g.RegulationId!.Value).Distinct().ToList();
-        if (regulationIds.Count == 0) return new Dictionary<Guid, string>();
+        if (regulationIds.Count == 0) return new Dictionary<Guid, Katalogname>();
 
         return await db.Regulations
             .Where(r => regulationIds.Contains(r.Id))
-            .ToDictionaryAsync(r => r.Id, r => r.Name, ct);
+            .ToDictionaryAsync(r => r.Id, r => new Katalogname(r.Name, r.NameEn), ct);
     }
 
     // Fortschritt eines Plan-Ziels ergibt sich aus echten, damit verknüpften
@@ -954,14 +955,14 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
     private static GoalDto ToDto(
         Goal g,
-        IReadOnlyDictionary<Guid, string> sportNames,
-        IReadOnlyDictionary<Guid, string> regulationNames,
+        IReadOnlyDictionary<Guid, Katalogname> sportNames,
+        IReadOnlyDictionary<Guid, Katalogname> regulationNames,
         IReadOnlyDictionary<Guid, IReadOnlyList<TrainingPlanItemLogDto>> logsByPlanItem,
         IReadOnlyDictionary<Guid, int> maxPoints,
         IReadOnlyDictionary<Guid, IReadOnlyList<NextStageDto>> nextStages,
-        IReadOnlyDictionary<Guid, string> deletedExerciseNames)
+        IReadOnlyDictionary<Guid, Katalogname> deletedExerciseNames)
     {
-        var sportName = sportNames.GetValueOrDefault(g.SportId, string.Empty);
+        var sportName = sportNames.GetValueOrDefault(g.SportId);
         var regulationName = g.RegulationId is { } regId ? regulationNames.GetValueOrDefault(regId) : null;
         TrainingPlanDto? planDto = g.TrainingPlan is null
             ? null
@@ -978,11 +979,14 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
                     {
                         var logs = logsByPlanItem.GetValueOrDefault(i.Id, Array.Empty<TrainingPlanItemLogDto>());
                         var completedCount = logs.Count(l => l.Success);
+                        var uebung = i.Exercise is { } katalogUebung
+                            ? new Katalogname(katalogUebung.Name, katalogUebung.NameEn)
+                            : i.ExerciseId is { } exerciseId ? deletedExerciseNames.GetValueOrDefault(exerciseId) : null;
                         return new TrainingPlanItemDto(
                             i.Id,
                             i.WeekNumber,
                             i.ExerciseId,
-                            i.Exercise?.Name ?? (i.ExerciseId is { } exerciseId ? deletedExerciseNames.GetValueOrDefault(exerciseId) : null),
+                            uebung?.Name,
                             i.FreeTextLabel,
                             i.RepetitionsTarget,
                             i.IsRestWeek,
@@ -990,7 +994,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
                             !i.IsRestWeek && completedCount >= i.RepetitionsTarget,
                             logs,
                             i.Reason,
-                            i.DayIndex);
+                            i.DayIndex,
+                            uebung?.NameEn);
                     })
                     .ToList());
 
@@ -999,6 +1004,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .Select(w => new WeekConfigDto(w.WeekNumber, w.TrainingDaysPerWeek))
             .ToList() ?? new List<WeekConfigDto>();
 
-        return new GoalDto(g.Id, g.DogId, g.SportId, sportName, g.RegulationId, regulationName, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, weekConfigs, planDto, g.PlanManagedByTrainerId is not null, g.ExamDate, g.ExamScore, g.ExamNote, maxPoints.TryGetValue(g.Id, out var hoechstens) ? hoechstens : null, nextStages.GetValueOrDefault(g.Id));
+        return new GoalDto(g.Id, g.DogId, g.SportId, sportName?.Name ?? string.Empty, g.RegulationId, regulationName?.Name, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, weekConfigs, planDto, g.PlanManagedByTrainerId is not null, g.ExamDate, g.ExamScore, g.ExamNote, maxPoints.TryGetValue(g.Id, out var hoechstens) ? hoechstens : null, nextStages.GetValueOrDefault(g.Id), sportName?.NameEn, regulationName?.NameEn);
     }
+
+    /// <summary>Deutscher und (falls gepflegt) englischer Katalogname, gemeinsam nachgeschlagen.</summary>
+    private sealed record Katalogname(string Name, string? NameEn);
 }

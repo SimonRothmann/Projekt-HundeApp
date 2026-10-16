@@ -60,7 +60,7 @@ export default function ProfilePage() {
           href="/profile/sportarten"
           icon={Dumbbell}
           titel={t("Sportarten, die ich trainiere")}
-          vorschau={vorschauSportarten(preferences.sportIds, sportarten, t)}
+          vorschau={vorschauSportarten(preferences.sportIds, sportarten, t, sprache)}
         />
       </ListenGruppe>
 

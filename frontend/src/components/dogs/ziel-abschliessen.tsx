@@ -13,6 +13,7 @@ import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useSprache, useT } from "@/lib/i18n";
+import { katalogName } from "@/lib/katalog-name";
 
 /**
  * Die Felder eines Prüfungsergebnisses: Tag, Punkte, Notiz. Gemeinsam genutzt
@@ -148,7 +149,7 @@ export function ZielAbschliessen({
   // Gesetzt, sobald "bestanden" gespeichert ist: zeigt dann das Ergebnis und die Folgeziele.
   const [ergebnis, setErgebnis] = useState<Goal | null>(null);
 
-  const pruefung = pruefungsName(goal);
+  const pruefung = pruefungsName(goal, sprache);
 
   function oeffnen() {
     setBestanden(true);
@@ -249,7 +250,7 @@ export function ZielAbschliessen({
                     className="h-auto min-h-9 whitespace-normal py-1.5 text-left coarse:min-h-11"
                     onClick={() => folgezielAnlegen(stufe)}
                   >
-                    {t("{name} als Ziel anlegen", { name: stufe.name })}
+                    {t("{name} als Ziel anlegen", { name: katalogName(stufe, sprache) })}
                   </Button>
                 ))}
                 <Button

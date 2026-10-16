@@ -16,6 +16,7 @@ import { ExerciseRating } from "@/components/dogs/exercise-rating";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
 import { useSprache, useT } from "@/lib/i18n";
+import { uebungName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
 import { istNeuesFeedback } from "@/lib/feedback-gesehen";
 import { TEXTLAENGE } from "@/lib/textlaengen";
@@ -285,6 +286,7 @@ export function SessionDayCard({
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const exercises = tag.flatMap((s) => s.exercises);
   const gpsSessions = tag.filter((s) => s.hasGpsTrack);
   const feedbackSessions = tag.filter((s) => s.trainerFeedback);
@@ -340,7 +342,7 @@ export function SessionDayCard({
                 className="flex flex-col gap-1 rounded-lg border border-surface-border bg-surface px-2.5 py-2"
               >
                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
-                  <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{ex.exerciseName}</span>
+                  <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{uebungName(ex, sprache)}</span>
                   <ExerciseRating
                     exerciseId={ex.id}
                     rating={ex.rating}

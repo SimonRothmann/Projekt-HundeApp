@@ -71,6 +71,8 @@ export type EintragZeile = {
   /** Katalog-Übung; null = frei eingetragen, dann ist der Name der Freitext. */
   exerciseId: string | null;
   name: string;
+  /** Englischer Katalogname, nur zur Anzeige (siehe lib/katalog-name.ts); der deutsche Name bleibt maßgeblich. */
+  nameEn?: string | null;
   eigeneWerte: Werte | null;
   notes: string;
   /**
@@ -90,11 +92,15 @@ function neueKennung(): string {
   return `zeile-${zeilenZaehler}`;
 }
 
-export function katalogZeile(uebung: { id: string; name: string }, vorgabePlan: TrainingPlanItem | null = null): EintragZeile {
+export function katalogZeile(
+  uebung: { id: string; name: string; nameEn?: string | null },
+  vorgabePlan: TrainingPlanItem | null = null,
+): EintragZeile {
   return {
     schluessel: neueKennung(),
     exerciseId: uebung.id,
     name: uebung.name,
+    nameEn: uebung.nameEn ?? null,
     eigeneWerte: null,
     notes: "",
     vorgabePlan,
@@ -117,7 +123,7 @@ export function freitextZeile(text: string, vorgabePlan: TrainingPlanItem | null
 /** Die Zeile zu einer Übung des Plans - Katalog-Übung oder Freitext, je nachdem, was der Plan führt. */
 export function zeileAusPlanItem(item: TrainingPlanItem): EintragZeile {
   return item.exerciseId
-    ? katalogZeile({ id: item.exerciseId, name: item.exerciseName ?? "" }, item)
+    ? katalogZeile({ id: item.exerciseId, name: item.exerciseName ?? "", nameEn: item.exerciseNameEn }, item)
     : freitextZeile(item.freeTextLabel ?? "", item);
 }
 
@@ -139,7 +145,7 @@ export function zeilenAusEinheit(einheit: TrainingSession): EintragZeile[] {
     // der Freitext (siehe TrainingExercise).
     uebung.exerciseId === null
       ? freitextZeile(uebung.exerciseName)
-      : katalogZeile({ id: uebung.exerciseId, name: uebung.exerciseName }),
+      : katalogZeile({ id: uebung.exerciseId, name: uebung.exerciseName, nameEn: uebung.exerciseNameEn }),
   );
 }
 
@@ -185,6 +191,8 @@ function nachDatum(einheiten: readonly TrainingSession[] | null | undefined): Tr
 export type WochenChip = {
   item: TrainingPlanItem;
   name: string;
+  /** Englischer Katalogname der Übung, falls es einen gibt. */
+  nameEn: string | null;
   /** Wie oft schon erledigt / Ziel dieser Woche - "1/3". */
   erledigt: number;
   ziel: number;
@@ -204,13 +212,13 @@ export function wochenChips(goals: readonly Goal[] | null | undefined, jetzt: nu
       const name = planItemName(item);
       if (!name || gesehen.has(item.id)) continue;
       gesehen.add(item.id);
-      chips.push({ item, name, erledigt: item.completedCount, ziel: item.repetitionsTarget });
+      chips.push({ item, name, nameEn: item.exerciseNameEn ?? null, erledigt: item.completedCount, ziel: item.repetitionsTarget });
     }
   }
   return chips;
 }
 
-export type ZuletztChip = { exerciseId: string | null; name: string };
+export type ZuletztChip = { exerciseId: string | null; name: string; nameEn: string | null };
 
 /** So viele weitere Übungen zeigt "Zuletzt geübt" neben "Wie beim letzten Mal". */
 export const MAX_ZULETZT = 6;
@@ -233,7 +241,7 @@ export function zuletztChips(
       const schluessel = inhaltsSchluessel(uebung.exerciseId, uebung.exerciseName);
       if (gesehen.has(schluessel) || !uebung.exerciseName.trim()) continue;
       gesehen.add(schluessel);
-      chips.push({ exerciseId: uebung.exerciseId, name: uebung.exerciseName });
+      chips.push({ exerciseId: uebung.exerciseId, name: uebung.exerciseName, nameEn: uebung.exerciseNameEn ?? null });
       if (chips.length >= max) return chips;
     }
   }
@@ -273,7 +281,7 @@ export function sucheUebungen(katalog: readonly KatalogGruppe[], suche: string):
   return katalog
     .map((gruppe) => ({
       sport: gruppe.sport,
-      uebungen: gruppe.uebungen.filter((uebung) => trifftSuche(`${uebung.name} ${uebung.category ?? ""}`, suche)),
+      uebungen: gruppe.uebungen.filter((uebung) => trifftSuche(`${uebung.name} ${uebung.nameEn ?? ""} ${uebung.category ?? ""}`, suche)),
     }))
     .filter((gruppe) => gruppe.uebungen.length > 0);
 }
@@ -294,7 +302,9 @@ export function eigeneUebungAngebot(
   const text = suche.trim();
   if (!text) return null;
   const [gesucht] = suchformen(text);
-  const gleichnamig = treffer.some((gruppe) => gruppe.uebungen.some((uebung) => suchformen(uebung.name)[0] === gesucht));
+  const gleichnamig = treffer.some((gruppe) =>
+    gruppe.uebungen.some((uebung) => suchformen(uebung.name)[0] === gesucht || (!!uebung.nameEn && suchformen(uebung.nameEn)[0] === gesucht)),
+  );
   if (gleichnamig) return null;
   return { text, oben: treffer.length === 0 };
 }

@@ -34,6 +34,8 @@ export type Sport = {
   id: string;
   code: string;
   name: string;
+  // Englische Bezeichnung (nur FCI-Sportarten), siehe lib/katalog-name.ts.
+  nameEn?: string | null;
   description: string | null;
   clubId: string | null;
 };
@@ -44,6 +46,7 @@ export type Exercise = {
   id: string;
   sportId: string | null;
   name: string;
+  nameEn?: string | null;
   description: string | null;
   difficulty: ExerciseDifficulty;
   category: string | null;
@@ -59,6 +62,9 @@ export type ParsedExerciseCandidate = {
 export type Regulation = {
   id: string;
   name: string;
+  nameEn?: string | null;
+  // ISO-Kürzel des Geltungsbereichs; null = gilt überall (siehe Domain.Sports.Regulation).
+  countryCode?: string | null;
   sourceUrl: string | null;
   lastSyncedAt: string | null;
   latestKnownVersionLabel: string | null;
@@ -78,6 +84,7 @@ export type RegulationVersionInfo = {
 export type RegulationExerciseInfo = {
   exerciseId: string;
   exerciseName: string;
+  exerciseNameEn?: string | null;
   isMandatory: boolean;
   maxPoints: number;
   scoringNotes: string | null;
@@ -95,6 +102,8 @@ export type TrainingExercise = {
   // den eingegebenen Freitext enthält statt eines Katalog-Übungsnamens).
   exerciseId: string | null;
   exerciseName: string;
+  // Englischer Katalogname; null bei Freitext und Übungen ohne englischen Namen.
+  exerciseNameEn?: string | null;
   rating: number;
   difficulty: ExerciseDifficulty;
   success: boolean;
@@ -176,6 +185,7 @@ export type PlanItemReason = 0 | 1 | 2; // 0 = Schwäche, 1 = Wiederholung, 2 = 
 export type WeightableExercise = {
   exerciseId: string;
   exerciseName: string;
+  exerciseNameEn?: string | null;
   difficulty: ExerciseDifficulty;
   manualPriority: number;
   // 0 = noch nie trainiert, 1 = hängt, 2 = mittel, 3 = sitzt.
@@ -188,6 +198,7 @@ export type TrainingPlanItem = {
   weekNumber: number;
   exerciseId: string | null;
   exerciseName: string | null;
+  exerciseNameEn?: string | null;
   freeTextLabel: string | null;
   repetitionsTarget: number;
   isRestWeek: boolean;
@@ -217,6 +228,7 @@ export type NextStage = {
   regulationId: string;
   sportId: string;
   name: string;
+  nameEn?: string | null;
 };
 
 export type Goal = {
@@ -224,8 +236,10 @@ export type Goal = {
   dogId: string;
   sportId: string;
   sportName: string;
+  sportNameEn?: string | null;
   regulationId: string | null;
   regulationName: string | null;
+  regulationNameEn?: string | null;
   targetDate: string;
   status: GoalStatus;
   notes: string | null;
@@ -742,6 +756,7 @@ export type Profile = {
 export type TrainerSessionExercise = {
   exerciseId: string;
   exerciseName: string;
+  exerciseNameEn?: string | null;
   rating: number;
   success: boolean;
   trainerRating: number | null;
@@ -815,6 +830,7 @@ export type DashboardStats = {
 // avgRating). Grundlage der lokalen, regelbasierten Fokus-Empfehlung.
 export type DogExerciseStat = {
   exerciseName: string;
+  exerciseNameEn?: string | null;
   count: number;
   avgRating: number;
   successRate: number; // 0..1

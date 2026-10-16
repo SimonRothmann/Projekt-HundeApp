@@ -10,7 +10,7 @@ namespace Dogity.Application.Planning;
 /// alle Übungen der Sportart als Pflicht markiert (Fallback-Verhalten für
 /// Sportarten ohne hinterlegte Prüfungsordnung).
 /// </summary>
-public readonly record struct PlanExerciseCandidate(Guid ExerciseId, string Name, ExerciseDifficulty Difficulty, bool IsMandatory);
+public readonly record struct PlanExerciseCandidate(Guid ExerciseId, string Name, ExerciseDifficulty Difficulty, bool IsMandatory, string? NameEn = null);
 
 /// <summary>
 /// Regelbasierter, deterministischer Generator für Wochenpläne (siehe

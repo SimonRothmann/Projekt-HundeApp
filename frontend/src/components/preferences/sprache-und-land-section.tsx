@@ -97,7 +97,7 @@ export function SpracheUndLandSection() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            {t("Prüfungsordnungen und Sachkundefragen bleiben in ihrer Ursprungssprache - eine übersetzte Prüfungsfrage wäre für die Prüfung wertlos.")}
+            {t("Die internationalen FCI-Prüfungsordnungen und ihre Übungen zeigen auf Englisch ihre offiziellen englischen Namen. Beschreibungen, nationale Ordnungen und Sachkundefragen bleiben deutsch - eine übersetzte Prüfungsfrage wäre für die Prüfung wertlos.")}
           </p>
         </div>
 

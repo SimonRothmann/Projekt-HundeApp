@@ -12,7 +12,8 @@ import { useSprache, useT } from "@/lib/i18n";
 import { datumKurz, leistungen, pruefungsName, punkteText } from "@/lib/pruefung";
 import { ortsformat } from "@/lib/ortsformat";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
-import { groupByWeek, istPausenwoche } from "@/lib/trainingsplan";
+import { groupByWeek, istPausenwoche, planItemName } from "@/lib/trainingsplan";
+import { katalogName, uebungName } from "@/lib/katalog-name";
 
 const GOAL_STATUS_LABEL: Record<number, string> = { 0: uebersetzbar("Aktiv"), 1: uebersetzbar("Erreicht"), 2: uebersetzbar("Abgebrochen") };
 
@@ -74,7 +75,7 @@ export default function DogPrintPage() {
           {leistungen(goals).map((goal) => (
             <div key={goal.id} className="break-inside-avoid rounded-md border p-4">
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{pruefungsName(goal)}</span>
+                <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{pruefungsName(goal, sprache)}</span>
                 <span className="text-sm text-muted-foreground">{t("bestanden")}</span>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -103,8 +104,8 @@ export default function DogPrintPage() {
             <div key={goal.id} className="rounded-md border p-4">
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                 <span className="min-w-0 font-medium [overflow-wrap:anywhere]">
-                  {goal.sportName}
-                  {goal.regulationName && ` - ${goal.regulationName}`}
+                  {katalogName({ name: goal.sportName, nameEn: goal.sportNameEn }, sprache)}
+                  {goal.regulationName && ` - ${katalogName({ name: goal.regulationName, nameEn: goal.regulationNameEn }, sprache)}`}
                 </span>
                 <span className="text-sm text-muted-foreground">
                   {t(GOAL_STATUS_LABEL[goal.status])} · {t("Ziel: {datum}", { datum: new Date(goal.targetDate).toLocaleDateString(ort) })}
@@ -137,7 +138,7 @@ export default function DogPrintPage() {
                             <tr key={item.id}>
                               <td className="py-1 pr-2">{index === 0 ? woche : ""}</td>
                               <td className="py-1 pr-2 [overflow-wrap:anywhere]">
-                                {item.exerciseName ?? item.freeTextLabel ?? t("(Übung nicht mehr verfügbar)")}
+                                {planItemName(item, sprache) ?? t("(Übung nicht mehr verfügbar)")}
                               </td>
                               <td className="py-1 pr-2">{item.repetitionsTarget}</td>
                               <td className="py-1">
@@ -172,7 +173,7 @@ export default function DogPrintPage() {
                 <ul className="mt-2 flex flex-col gap-1 text-sm">
                   {session.exercises.map((ex) => (
                     <li key={ex.id}>
-                      {ex.exerciseName} - {t("Bewertung {n}/5", { n: ex.rating })}{ex.success ? "" : ` ${t("(nicht erfolgreich)")}`}
+                      {uebungName(ex, sprache)} - {t("Bewertung {n}/5", { n: ex.rating })}{ex.success ? "" : ` ${t("(nicht erfolgreich)")}`}
                       {ex.notes && ` - ${ex.notes}`}
                     </li>
                   ))}

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
 import { useSprache, useT } from "@/lib/i18n";
+import { uebungName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { istDurchBewertungErledigt, kannSelbsteinschaetzungUebernehmen } from "@/lib/trainer-bewertung";
@@ -239,7 +240,7 @@ export function TrainerReviewSection() {
                               className={`flex min-w-0 flex-col gap-0.5 ${ex.trainerRating !== null ? "opacity-60" : ""}`}
                             >
                               <span className="flex flex-wrap items-baseline justify-between gap-x-2 text-sm">
-                                <span className="min-w-0 [overflow-wrap:anywhere]">{ex.exerciseName}</span>
+                                <span className="min-w-0 [overflow-wrap:anywhere]">{uebungName(ex, sprache)}</span>
                                 {/* Selbsteinschätzung des Hundeführers - klein
                                     und gedämpft, sie ist hier nur Kontext. */}
                                 <span className="shrink-0 text-xs text-muted-foreground">

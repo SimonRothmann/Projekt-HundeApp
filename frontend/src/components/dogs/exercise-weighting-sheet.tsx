@@ -10,7 +10,8 @@ import { SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { uebungName } from "@/lib/katalog-name";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 // 5-Stufen-Regler von "viel seltener" (−2) bis "viel öfter" (+2). 0 = normal
 // (setzt die Gewichtung zurück).
@@ -45,6 +46,7 @@ export function ExerciseWeightingSheet({
   ausloeser?: (oeffnen: () => void) => ReactNode;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<WeightableExercise[] | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -104,7 +106,7 @@ export function ExerciseWeightingSheet({
               items.map((e) => (
                 <div key={e.exerciseId} className="flex flex-col gap-2 rounded-md border p-3">
                   <div className="flex items-start justify-between gap-2">
-                    <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">{e.exerciseName}</span>
+                    <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">{uebungName(e, sprache)}</span>
                     <div className="flex shrink-0 items-center gap-1.5">
                       <span className={cn("text-xs font-medium", masteryClass[e.masteryStatus])}>{t(masteryLabel[e.masteryStatus])}</span>
                       {e.plannedThisWeek && <Badge variant="secondary">{t("diese Woche")}</Badge>}

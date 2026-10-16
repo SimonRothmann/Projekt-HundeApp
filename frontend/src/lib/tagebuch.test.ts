@@ -117,6 +117,12 @@ describe("tagesKurzbild", () => {
     expect(tagesKurzbild([einheit({ hasGpsTrack: true, trackLengthMeters: null, trackSurface: " " })], null, t)).toBe("Fährte");
   });
 
+  it("zeigt die erste Übung auf Englisch mit ihrem englischen Katalognamen", () => {
+    const tag = [einheit({ exercises: [{ ...uebung("Freifolge", 4), exerciseNameEn: "Free heeling" }, uebung("Kopfarbeit", 3)] })];
+    expect(tagesKurzbild(tag, null, t, "en")).toBe("Free heeling ★★★★ · +1");
+    expect(tagesKurzbild(tag, null, t)).toBe("Freifolge ★★★★ · +1");
+  });
+
   it("zeigt die erste Übung mit Sternen und die Zahl der übrigen", () => {
     const tag = [einheit({ exercises: [uebung("Fußarbeit", 4), uebung("Sitz", 3), uebung("Platz", 5)] })];
     expect(tagesKurzbild(tag, null, t)).toBe("Fußarbeit ★★★★ · +2");

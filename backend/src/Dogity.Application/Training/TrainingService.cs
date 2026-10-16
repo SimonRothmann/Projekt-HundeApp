@@ -761,7 +761,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                         e.Rating,
                         e.Success,
                         e.TrainerRating,
-                        e.TrainerNote))
+                        e.TrainerNote,
+                        e.Exercise?.NameEn))
                     .ToList()))
             .ToList();
 
@@ -895,7 +896,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             e.Notes,
             e.TrainingPlanItemId,
             e.TrainerRating,
-            e.TrainerNote)).ToList(),
+            e.TrainerNote,
+            e.Exercise?.NameEn)).ToList(),
         s.TrainerFeedback,
         s.FeedbackAt,
         s.StartTime,

@@ -28,6 +28,13 @@ public class Exercise : Entity
     public Sport? Sport { get; set; }
 
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Englische Bezeichnung laut FCI-Prüfungsordnung (null = keine, siehe
+    /// <see cref="Sport.NameEn"/>). Freitext-Übungen und vom Verein angelegte
+    /// Übungen tragen in der Regel keine.
+    /// </summary>
+    public string? NameEn { get; set; }
     public string? Description { get; set; }
     public ExerciseDifficulty Difficulty { get; set; } = ExerciseDifficulty.Beginner;
     public string? Category { get; set; }

@@ -11,6 +11,14 @@ public class Sport : Entity
 {
     public string Code { get; set; } = string.Empty; // z.B. "BH", "IBGH", "FAERTE"
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Englische Bezeichnung, nur für die internationalen FCI-Sportarten
+    /// gepflegt (null = es gibt keine, die Oberfläche zeigt dann auch auf
+    /// Englisch <see cref="Name"/>). Quelle ist die englische FCI-Prüfungsordnung,
+    /// weil Englisch dort die Originalsprache ist (docs/VERBAENDE_SPRACHEN_MODULE.md).
+    /// </summary>
+    public string? NameEn { get; set; }
     public string? Description { get; set; }
 
     /// <summary>

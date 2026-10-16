@@ -1,4 +1,5 @@
 import type { Dog, Goal, TrainingSession } from "@/lib/types";
+import type { Sprache } from "@/lib/i18n";
 import { pruefungsName, tageBisPruefung } from "@/lib/pruefung";
 import { wochenFortschritt } from "@/lib/trainingsplan";
 import { istNeuesFeedback } from "@/lib/feedback-gesehen";
@@ -159,12 +160,16 @@ export type ZielStatus = {
 };
 
 /** Was die Statuszeile über das laufende Ziel sagt; null, wenn es keins gibt. */
-export function zielStatus(goals: readonly Goal[] | null | undefined, jetzt: number = Date.now()): ZielStatus | null {
+export function zielStatus(
+  goals: readonly Goal[] | null | undefined,
+  jetzt: number = Date.now(),
+  sprache: Sprache = "de",
+): ZielStatus | null {
   const ziel = laufendesZiel(goals, jetzt);
   if (!ziel) return null;
   const stand = wochenFortschritt(ziel, jetzt);
   return {
-    name: pruefungsName(ziel),
+    name: pruefungsName(ziel, sprache),
     woche: stand ? { woche: stand.woche, erledigt: stand.erledigt, geplant: stand.geplant } : null,
     tage: tageBisPruefung(ziel.targetDate, jetzt),
   };

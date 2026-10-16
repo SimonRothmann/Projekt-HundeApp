@@ -2,9 +2,9 @@ using Dogity.Domain.Sports;
 
 namespace Dogity.Application.Sports;
 
-public record SportDto(Guid Id, string Code, string Name, string? Description, Guid? ClubId);
+public record SportDto(Guid Id, string Code, string Name, string? Description, Guid? ClubId, string? NameEn = null);
 
-public record CreateSportRequest(string Code, string Name, string? Description, Guid? ClubId);
+public record CreateSportRequest(string Code, string Name, string? Description, Guid? ClubId, string? NameEn = null);
 
 public record ExerciseDto(
     Guid Id,
@@ -14,7 +14,8 @@ public record ExerciseDto(
     ExerciseDifficulty Difficulty,
     string? Category,
     string? ScoringCriteria,
-    Guid? ClubId);
+    Guid? ClubId,
+    string? NameEn = null);
 
 /// <summary>
 /// Optionale Einschränkung der Übungsliste auf genau einen Katalog: den
@@ -35,16 +36,18 @@ public record CreateExerciseRequest(
     ExerciseDifficulty Difficulty,
     string? Category,
     string? ScoringCriteria,
-    Guid? ClubId);
+    Guid? ClubId,
+    string? NameEn = null);
 
 public record UpdateExerciseRequest(
     string Name,
     string? Description,
     ExerciseDifficulty Difficulty,
     string? Category,
-    string? ScoringCriteria);
+    string? ScoringCriteria,
+    string? NameEn = null);
 
-public record UpdateSportRequest(string Name, string? Description);
+public record UpdateSportRequest(string Name, string? Description, string? NameEn = null);
 
 /// <param name="CurrentVersionValidFrom">
 /// Gültig ab der aktuell geführten Fassung; null, wenn es noch keine gibt.
@@ -61,7 +64,8 @@ public record RegulationDto(
     string? LatestKnownVersionLabel,
     string? Description,
     string? CountryCode,
-    DateOnly? CurrentVersionValidFrom)
+    DateOnly? CurrentVersionValidFrom,
+    string? NameEn = null)
 {
     /// <summary>
     /// Namen der Prüfungsordnungen, die auf diese folgen (Ausbildungsweg) - für
@@ -71,7 +75,7 @@ public record RegulationDto(
     public IReadOnlyList<string> NextStageNames => Planning.Ausbildungsweg.FolgestufenVon(Name);
 }
 
-public record UpdateRegulationRequest(string Name, string? Description, string? SourceUrl, string? CountryCode);
+public record UpdateRegulationRequest(string Name, string? Description, string? SourceUrl, string? CountryCode, string? NameEn = null);
 
 public record AddRegulationExerciseRequest(Guid ExerciseId, bool IsMandatory, int MaxPoints, string? ScoringNotes);
 
@@ -84,7 +88,8 @@ public record RegulationExerciseDto(
     string ExerciseName,
     bool IsMandatory,
     int MaxPoints,
-    string? ScoringNotes);
+    string? ScoringNotes,
+    string? ExerciseNameEn = null);
 
 public record RegulationDetailDto(
     RegulationDto Regulation,

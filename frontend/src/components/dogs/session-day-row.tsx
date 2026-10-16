@@ -69,7 +69,7 @@ export function SessionDayRow({
           <span className="text-xs text-muted-foreground">{t("{n} Min.", { n: minuten })}</span>
         </span>
         <span className="line-clamp-2 min-w-0 flex-1 text-sm [overflow-wrap:anywhere]">
-          {tagesKurzbild(tag, laufAmTag(laeufe, datum), t)}
+          {tagesKurzbild(tag, laufAmTag(laeufe, datum), t, sprache)}
         </span>
         {feedback && (
           <span

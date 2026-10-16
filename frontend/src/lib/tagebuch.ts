@@ -1,4 +1,5 @@
 import type { DogTrackRun, TrainingSession } from "@/lib/types";
+import { uebungName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
 import type { Sprache } from "@/lib/i18n/sprachen";
 
@@ -91,6 +92,7 @@ export function tagesKurzbild(
   tag: readonly TrainingSession[],
   lauf: Pick<DogTrackRun, "avgDeviationMeters" | "onTrackPercent"> | null,
   t: Uebersetzer,
+  sprache: Sprache = "de",
 ): string {
   const teile: string[] = [];
 
@@ -116,7 +118,8 @@ export function tagesKurzbild(
   if (uebungen.length > 0) {
     const erste = uebungen[0];
     const sterne = Math.min(Math.max(Math.round(erste.rating), 0), 5);
-    teile.push(sterne > 0 ? `${erste.exerciseName} ${"★".repeat(sterne)}` : erste.exerciseName);
+    const name = uebungName(erste, sprache);
+    teile.push(sterne > 0 ? `${name} ${"★".repeat(sterne)}` : name);
     if (uebungen.length > 1) teile.push(`+${uebungen.length - 1}`);
   }
 

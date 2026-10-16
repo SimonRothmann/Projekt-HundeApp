@@ -135,6 +135,12 @@ Für international gebräuchliche Sparten (Agility, Turnierhundsport,
 Obedience) kann später ein optionales Namens-/Beschreibungsfeld je Sprache
 dazukommen — dort ist es fachlich sauber. Für BH, IGP und Sachkunde nicht.
 
+> **Überholt für die FCI-Ordnungen seit 2026-10-16 (Paket L1, Fassung 0.31, siehe
+> Ende dieses Dokuments):** Die Originalfassung der FCI-Prüfungsordnung ist
+> Englisch. Dort ist die englische Bezeichnung nicht „eine Übersetzung, die in
+> die Irre führt", sondern der Name, der gilt. Für Sachkunde und die deutschen
+> Verbandsordnungen (VDH) bleibt die Aussage richtig.
+
 ### Servermeldungen: Codes statt Sätze
 
 225 Fehlermeldungen liegen als deutscher Fließtext im `Result`-Objekt und
@@ -542,3 +548,73 @@ gemerkt. `versionshinweise.test.ts` vergleicht die Fassungen jetzt als
 Zahlen und meldet eine falsch einsortierte Fassung im Klartext. Gegenprobe
 gemacht: mit einer absichtlich zu kleinen Nummer schlägt der Test fehl,
 danach wieder grün.
+
+---
+
+## Paket L1 (2026-10-16, Fassung 0.31): FCI überall, englische Namen nur für FCI
+
+Anlass: Die internationale FCI-Prüfungsordnung („International Utility Dog
+Regulations", FCI-IGP, gültig ab 01.01.2025) sagt in ihrem Abschnitt „Validity"
+zweierlei: Sie gilt *„for all FCI members and contract partners"*, und sie ist
+*„written in the English language"* – bei Zweifeln hat der englische Text
+Vorrang. Beides hat der Katalog bisher nicht abgebildet: Er beruhte auf der
+deutschen Übersetzung, und der einmalige Lauf des `CountrySeeder` hatte alle
+Ordnungen Deutschland zugeordnet (Hoopers war als einzige auf „gilt überall"
+stehengeblieben, obwohl es die VDH-Ordnung ist).
+
+*Geltungsbereich*
+
+- Die 14 FCI-Sportarten (BH, IBGH 1-3, IGP 1-3, Fährte, FPr, UPr, SPr, GPr, StöPr,
+  IAD) haben `CountryCode` null – sie gelten in jedem Land. Turnierhundsport,
+  Agility und Hoopers (VDH) sind `DE`. Die Zuordnung je Sportart steht in
+  `FciKatalog`; Details und Zahlen in [PO_VERIFIKATION.md](PO_VERIFIKATION.md).
+- Bestehende Datenbanken stellt die Migration `AddCatalogEnglishNamesAndFciScope`
+  **einmalig** um (über den Sport-Code der Ordnung). Ein Seeder, der das bei jedem
+  Start tut, würde eine spätere bewusste Änderung im Katalog-Editor jedes Mal
+  zurückdrehen – dasselbe Prinzip wie beim `CountrySeeder`. Down: alles `DE`,
+  Hoopers null (der Zustand davor).
+- Frische Datenbanken: Der `SportCatalogSeeder` setzt den Geltungsbereich beim
+  Anlegen jeder Ordnung ausdrücklich. Er läuft in `Program.cs` vor dem
+  `CountrySeeder`; dessen einmalige DE-Zuordnung greift nur, solange keine
+  Ordnung ein Land trägt, und tut danach nichts – sie überschreibt das nicht.
+- Die Zählung je Land (`CountryDto.RegulationCount`) zählt „gilt überall" mit,
+  wie es diese Regel immer vorgesehen hat. Folge: Ein Land wie Österreich ist
+  nicht mehr „leer" (es hat die FCI-Ordnungen), und die Länderwahl im Profil
+  erscheint damit für alle – sie hängt an „mindestens zwei Länder mit Inhalt".
+  Dass dort ein Land mit nur den internationalen Ordnungen steht, ist gewollt:
+  Wer in Österreich trainiert, sieht die FCI-Ordnungen und nichts Deutsches.
+- Unverändert: Die Sachkunde hängt am Land DE, nicht am Katalog. Die öffentlichen
+  Prüfungsordnungs-Seiten zeigen weder Land noch filtern sie danach.
+- Nebenbefund: Der Katalog-Editor schickte beim Speichern einer Ordnung keinen
+  `countryCode` mit; das Backend liest „leer" als „gilt überall". Jedes Speichern
+  im Editor hätte die Ordnung damit still international gemacht. Der Editor
+  schickt den vorhandenen Wert jetzt mit.
+
+*Englische Namen*
+
+- Neue, optionale Spalte `NameEn` an `Sport`, `Regulation` und `Exercise` (Länge
+  wie `Name`: 100/100/150). Gepflegt nur für die FCI-Ordnungen; Vereinsübungen,
+  Freitext und nationale Ordnungen haben keinen und zeigen auch auf Englisch den
+  deutschen Namen.
+- Die Antworten liefern den englischen Namen **serverseitig** mit (`nameEn`,
+  `exerciseNameEn`, `sportNameEn`, `regulationNameEn`): Katalog, Tagebuch,
+  Trainingsplan, Gewichtung, Statistik, Traineransicht. Ein Nachschlagen im
+  Frontend über die Übungs-Id hätte den Katalog an jeder dieser Stellen
+  nachladen müssen – und offline hätte er gefehlt.
+- Das Frontend wählt mit `katalogName({ name, nameEn }, sprache)` bzw.
+  `uebungName(...)` (`lib/katalog-name.ts`): Englisch → `nameEn ?? name`, sonst
+  `name`. Der deutsche Name bleibt der Schlüssel (Gruppierung, Doppelprüfung,
+  Speichern); die englische Fassung ist nur Anzeige. In der Übungssuche zählt der
+  englische Name als Suchtext mit.
+- Die öffentlichen Seiten `/pruefungsordnungen/**` bleiben deutsch.
+- Der Seeder (`FciKatalog`) trägt die Namen nur ein, wo `NameEn` leer ist, und ist
+  damit idempotent; im Katalog-Editor (Sportart, Ordnung, Übung) gibt es das
+  Feld „Englischer Name", Grenze in `Textlaengen.cs` und `textlaengen.ts`.
+
+*Begründung der Ausnahme*
+
+Die Leitlinie „Oberflächensprache ≠ Inhaltssprache" bleibt für Sachkunde und die
+deutschen Verbandsordnungen richtig. Für die FCI-Ordnungen ist die Rechnung
+umgekehrt: Der englische Name ist der des Originals, und wer international
+startet, braucht ihn. Übungsbeschreibungen und Bewertungskriterien bleiben
+deutsch – das ist unsere eigene Beschreibung, keine Übersetzung der FCI-Ordnung.

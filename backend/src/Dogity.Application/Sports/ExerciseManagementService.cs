@@ -12,6 +12,10 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
         if (string.IsNullOrWhiteSpace(request.Name))
             return Result<ExerciseDto>.Failure("Name ist erforderlich.");
 
+        var nameEnFehler = Textlaengen.ZuLang(request.NameEn, Textlaengen.UebungNameEn, "Der englische Name");
+        if (nameEnFehler is not null)
+            return Result<ExerciseDto>.Failure(nameEnFehler);
+
         // SportId optional: sportartlose Übungen sind erlaubt (z.B. Grundlagen-
         // Training, das in mehreren Kontexten genutzt wird).
         if (request.SportId is { } sportId)
@@ -29,6 +33,7 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
         {
             SportId = request.SportId,
             Name = request.Name.Trim(),
+            NameEn = NullIfBlank(request.NameEn),
             Description = request.Description,
             Difficulty = request.Difficulty,
             Category = request.Category,
@@ -54,7 +59,12 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
         if (string.IsNullOrWhiteSpace(request.Name))
             return Result<ExerciseDto>.Failure("Name ist erforderlich.");
 
+        var nameEnFehler = Textlaengen.ZuLang(request.NameEn, Textlaengen.UebungNameEn, "Der englische Name");
+        if (nameEnFehler is not null)
+            return Result<ExerciseDto>.Failure(nameEnFehler);
+
         exercise.Name = request.Name.Trim();
+        exercise.NameEn = NullIfBlank(request.NameEn);
         exercise.Description = request.Description;
         exercise.Difficulty = request.Difficulty;
         exercise.Category = request.Category;
@@ -89,5 +99,7 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
     }
 
     private static ExerciseDto ToDto(Exercise e) =>
-        new(e.Id, e.SportId, e.Name, e.Description, e.Difficulty, e.Category, e.ScoringCriteria, e.ClubId);
+        new(e.Id, e.SportId, e.Name, e.Description, e.Difficulty, e.Category, e.ScoringCriteria, e.ClubId, e.NameEn);
+
+    private static string? NullIfBlank(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 }

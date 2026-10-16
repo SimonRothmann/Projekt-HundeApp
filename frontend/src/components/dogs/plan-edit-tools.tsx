@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
 
 /**
  * Die Werkzeuge der Plankarte im Bearbeitungsmodus. Im Lesemodus (Standard)
@@ -172,7 +172,8 @@ export function ItemWerkzeuge({
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
-  const name = planItemName(item) ?? t("(Übung nicht mehr verfügbar)");
+  const sprache = useSprache();
+  const name = planItemName(item, sprache) ?? t("(Übung nicht mehr verfügbar)");
 
   async function entfernen() {
     const frage = t("Übung „{name}“ aus dem Plan entfernen?", { name });

@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { katalogName } from "@/lib/katalog-name";
 
 /**
  * Die Übungen der Ziel-Sportart für die Auswahl beim Hinzufügen und Bearbeiten.
@@ -66,6 +67,7 @@ function UebungFelder({
   kompakt: boolean;
 }) {
   const t = useT();
+  const sprache = useSprache();
   return (
     <>
       <label className={cn("flex min-h-11 items-center gap-2", kompakt ? "text-xs" : "text-sm")}>
@@ -92,7 +94,7 @@ function UebungFelder({
             <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
               {(uebungen ?? []).map((ex) => (
                 <SelectItem key={ex.id} value={ex.id}>
-                  {ex.name}
+                  {katalogName(ex, sprache)}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -10,7 +10,8 @@ import { ZielAbschliessen } from "@/components/dogs/ziel-abschliessen";
 import { pruefungsName } from "@/lib/pruefung";
 import type { AbgelaufenesZiel, ZielKartenEintrag } from "@/lib/startseite";
 import { cn } from "@/lib/utils";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { planItemName } from "@/lib/trainingsplan";
 
 /** Wie viele offene Wochenübungen eine Zielkarte auf der Startseite zeigt, bevor „+n weitere“ kommt. */
 const MAX_UEBUNGEN = 3;
@@ -64,6 +65,7 @@ function ZielKarte({
   onEintragen: (dogId: string, item: TrainingPlanItem) => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [alleZeigen, setAlleZeigen] = useState(false);
   const { hund, goal, tage, fortschritt, offen, bh, weitereZiele } = eintrag;
   // Höchstens drei Übungen, je eine Zeile: Mit fünf zweizeiligen Kästen pro
@@ -78,7 +80,7 @@ function ZielKarte({
         <p className="flex items-start gap-1.5 font-semibold [overflow-wrap:anywhere]">
           <Target className="mt-0.5 size-4 shrink-0 text-primary-text" aria-hidden />
           <span className="min-w-0">
-            {hund.name} · {pruefungsName(goal)} ·{" "}
+            {hund.name} · {pruefungsName(goal, sprache)} ·{" "}
             <span className="font-medium text-muted-foreground">
               {tage === 0 ? t("heute") : tage === 1 ? t("noch 1 Tag") : t("noch {n} Tage", { n: tage })}
             </span>
@@ -112,10 +114,10 @@ function ZielKarte({
             type="button"
             onClick={() => onEintragen(hund.id, item)}
             aria-haspopup="dialog"
-            aria-label={`${item.exerciseName ?? item.freeTextLabel} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })} · ${t("Eintragen")}`}
+            aria-label={`${planItemName(item, sprache)} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })} · ${t("Eintragen")}`}
             className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-surface-border bg-surface px-3 py-1.5 text-left transition-colors hover:border-primary/40"
           >
-            <span className="min-w-0 flex-1 truncate font-medium">{item.exerciseName ?? item.freeTextLabel}</span>
+            <span className="min-w-0 flex-1 truncate font-medium">{planItemName(item, sprache)}</span>
             <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
               {item.completedCount}/{item.repetitionsTarget}
             </span>
@@ -168,6 +170,7 @@ export function AbgelaufeneZiele({
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const router = useRouter();
   if (eintraege.length === 0) return null;
 
@@ -185,7 +188,7 @@ export function AbgelaufeneZiele({
               <Target className="size-4 shrink-0 text-primary-text" aria-hidden />
               <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                 <span className="font-medium">
-                  {hund.name} · {pruefungsName(goal)}
+                  {hund.name} · {pruefungsName(goal, sprache)}
                 </span>{" "}
                 <span className="text-muted-foreground">· {t("Ergebnis fehlt")}</span>
               </span>

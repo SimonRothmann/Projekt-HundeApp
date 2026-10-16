@@ -35,6 +35,12 @@ describe("vorschauSportarten", () => {
     expect(vorschauSportarten(["1", "2", "3", "4"], SPORTARTEN, de)).toBe("BH, Fährte +2");
   });
 
+  it("nennt auf Englisch die englischen Namen der FCI-Sportarten", () => {
+    const sportarten = [{ id: "1", name: "FCI-Fährtenprüfung (FPr)", nameEn: "Tracking (FCI-FPr)" }, { id: "2", name: "Agility" }];
+    expect(vorschauSportarten(["1", "2"], sportarten, de, "en")).toBe("Tracking (FCI-FPr), Agility");
+    expect(vorschauSportarten(["1", "2"], sportarten, de)).toBe("FCI-Fährtenprüfung (FPr), Agility");
+  });
+
   it("zeigt nichts, solange die Liste noch lädt", () => {
     expect(vorschauSportarten(["1"], null, de)).toBe("");
   });

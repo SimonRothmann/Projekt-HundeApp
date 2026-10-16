@@ -9,6 +9,7 @@ kleiner.
 | Quelle | Verwendet für |
 |---|---|
 | [FCI-Prüfungsordnung, deutsch, gültig ab 01.01.2025](https://www.fci.be/medias/uti-reg-igp-de-2025-19769.pdf) (UTI-REG-IGP-de-2025, 84 Seiten) | IGP 1-3, IBGH 1-3, UPr/SPr/GPr/FPr, IFH 1-3, IGP-FH, IAD, BH/VT |
+| [FCI-Prüfungsordnung, englisch, gültig ab 01.01.2025](https://www.fci.be/medias/UTI-REG-IGP-en-2025-22401.pdf) (FCI-IGP 2025, beschlossen 03.09.2024, 82 Seiten) | **Originalfassung**: englische Namen der FCI-Sportarten, -Ordnungen und -Übungen (seit 2026-10-16) |
 | [VDH, Informationen zur Prüfungsordnung, Stand April 2026](https://www.vdh.de/fileadmin/media/hundesport/Gebrauchshundesport/2026/VDH_Info_PO_Stand_April_3-2026.pdf) | nationale Festlegungen (Mindestalter, Durchführung) |
 | [VDH, Begleithundeprüfung](https://www.vdh.de/hundesport/begleithundpruefung/) | BH-Rahmenbedingungen |
 | [VDH-Prüfungsordnung Hoopers, gültig ab 01.01.2027](https://www.vdh.de/fileadmin/media/hundesport/Hoopers-Agility/2026/VDH-PO-Hoopers_2027_V01.pdf) (beschlossen 25.09.2026, 18 Seiten; Übersicht auf [vdh.de/hundesport/hoopers](https://www.vdh.de/hundesport/hoopers/)) | Hoopers H0-H3 (seit 2026-10-15) |
@@ -296,3 +297,108 @@ löscht nur, worauf weder Trainingseinträge noch Planziele verweisen.
 Zeilen (`MaxPoints`, `ScoringNotes`, `IsMandatory`). Eine Korrektur im Code ist
 nach dem nächsten Deploy also überall wirksam — ein Eingriff von Hand über die
 Admin-Oberfläche ist dafür nicht nötig.
+
+## Geltungsbereich und englische Namen (2026-10-16, Paket L1)
+
+### Warum die englische Fassung maßgeblich ist
+
+Abschnitt „Validity" der englischen Ordnung: *„The regulations were written in
+the English language and approved by the Commission. In case of uncertainty,
+the English text takes precedence over other language translations."* und
+*„These IGP regulations are valid for all FCI members and contract partners."*
+Das deutsche PDF, auf dem der Katalog beruht, ist eine Übersetzung. Daraus
+folgen zwei Entscheidungen des Betreibers (2026-10-16):
+
+1. **Die FCI-Ordnungen gelten in allen Ländern** (`Regulation.CountryCode` null).
+2. **Die FCI-Ordnungen zeigen auf Englisch die offiziellen englischen Namen**
+   (`NameEn` an Sportart, Ordnung und Übung). Beschreibungen, Bewertungskriterien
+   und Hinweise bleiben deutsch.
+
+### Geltungsbereich je Ordnung
+
+| Geltungsbereich | Sportarten (Code) | Ordnungen |
+|---|---|---|
+| **international** (`CountryCode` null) | `BH`, `IBGH1`-`IBGH3`, `IGP1`-`IGP3`, `FAERTE`, `FPR`, `UPR`, `SPR`, `GPR`, `STOEPR`, `IAD` | BH, IBGH 1-3, FCI-IGP 1-3, FCI-IFH 1-3, FCI-IGP FH, FCI-FPr/UPr/SPr/GPr/StöPr 1-3, FCI-IAD (27 Ordnungen) |
+| **Deutschland** (`DE`, VDH) | `THS`, `AGILITY`, `HOOPERS` | VDH-Turnierhundsport (12), VDH-PO Agility inkl. A0 (5), VDH-PO Hoopers H0-H3 (4) |
+
+Die Liste steht im Code an einer Stelle (`FciKatalog.InternationaleSportarten`);
+ein Test prüft, dass sie genau die Sportarten des Katalogs ohne die drei
+VDH-Sportarten enthält. Nationales ist nicht darunter: Die BH im Katalog ist die
+FCI-BH/VT (Betreiberauskunft 2026-08-19, siehe oben).
+
+Hoopers stand bis hierher auf null („gilt überall") – ein Fehler, denn es ist die
+VDH-Ordnung; alle anderen Ordnungen standen auf `DE`. Die Migration
+`AddCatalogEnglishNamesAndFciScope` stellt bestehende Datenbanken einmalig um (über
+den Sport-Code der Ordnung); der Seeder setzt den Geltungsbereich nur bei neu
+angelegten Ordnungen.
+
+### Zuordnung der englischen Namen
+
+Ausgangspunkt war nicht eine Übersetzung der deutschen Namen, sondern der
+englische Text: Abschnitt (BH/VT, IBGH, Phase A/B/C, Zusatzprüfungen, IFH,
+Article search, Endurance), Reihenfolge der Übungstabellen („Distribution and
+values of the exercises", „Examination levels FCI-IGP-1 to IGP-3") und Punkte.
+
+| Deutsch (Katalog) | Englisch (FCI-IGP 2025) |
+|---|---|
+| Fußarbeit (BH, IBGH) | Heeling on leash |
+| Freifolge | Free heeling |
+| Sitzübung (BH) | Sit exercise |
+| Sitz aus der Bewegung / Absitzen aus der Bewegung (IBGH) | Sit in motion |
+| Ablegen in Verbindung mit Herankommen (IGP, UPr, GPr) / Ablegen aus der Bewegung (IBGH) | Down out of motion with recall |
+| Ablegen in Verbindung mit Herankommen (BH) | Down with recall |
+| Steh aus der Bewegung | Stand out of motion |
+| Steh aus dem Schritt (IBGH 3) | Stand out of motion with recall |
+| Bringen auf ebener Erde | Retrieve on the flat |
+| Freisprünge / Bringen über eine 1 Meter hohe Hürde | Retrieve / jump over the 1-meter hurdle |
+| Klettersprung / Bringen über die Schrägwand | Retrieve / climb-jump over the scaling wall |
+| Bringen über die Schrägwand (IBGH 3) | Retrieve over the scaling wall (140 cm) |
+| Voraussenden mit Hinlegen | Send out with down |
+| Ablegen unter Ablenkung | Down under distraction |
+| Fährtenarbeit (Eigenfährte / Fremdfährte) | Tracking (own track / strange track) |
+| Gegenstände verweisen | Indicating of the articles |
+| Revieren | Search for the helper |
+| Stellen und Verbellen | Hold and Bark |
+| Verhinderung eines Fluchtversuches | Prevention of attempted escape |
+| Abwehr eines Angriffs aus der Bewachungsphase (nach Fluchtversuch / Schlussphase) | Defense against an attack from the guarding phase (after attempted escape / with completion of phase C) |
+| Rückentransport | Back transport |
+| Überfall auf den Hund aus dem Rückentransport | Attack on the dog out of the back transport |
+| Angriff auf den Hund aus der Bewegung | Attack on the dog out of motion |
+| Begegnung mit Personengruppe (BH) | Encounter with group of persons |
+| Verhalten gegenüber anderen Hunden (BH) | Encounter with other dogs |
+| Führigkeit / Arbeitsintensität / Ausdauer der Sucharbeit / Sucheinteilung und Lenken / Finden und Anzeigen (StöPr) | die fünf Bewertungsmerkmale der „Evaluation criteria for all 3 levels" (Tenacity, Intensity of work, Stamina, Behaviour of the handler, Finding the articles) |
+
+Sportarten und Ordnungen behalten ihr Kürzel und bekommen den englischen Titel
+der Ordnung dazu – kurz genug für 375 px: Sportart z. B. „Obedience (FCI-UPr)",
+Ordnung z. B. „FCI-IGP 1 – International Utility Dog Examination". Die
+vollständige Zuordnung steht in `FciKatalog.cs`; ein Test stellt sicher, dass
+jede Sportart, Ordnung und Übung der FCI-Liste einen englischen Namen hat und
+keine VDH-Ordnung einen bekommt.
+
+**Ohne direkte Entsprechung im englischen Text** (sachliche Bezeichnung in der
+Terminologie des Textes gewählt):
+
+- BH „Verhalten im Verkehr": im Text getrennt als Begegnungen mit Radfahrern und
+  Autos beschrieben – „Encounter with cars and cyclists".
+- BH „Zurücklassen des Hundes": „Behaviour of the dog leashed and left alone in
+  traffic" (Überschrift im Text, ohne den Zusatz „behaviour towards animals").
+- BH „Freifolge": in der englischen BH/VT keine eigene Übung, deshalb der Name
+  aus der Unterordnung des Textes („Free heeling").
+- FAERTE-Trainingsübungen ohne Punkte – „Fährtenaufnahme" → „Starting the
+  track", „Winkelarbeit" → „Working the corners", „Eigenfährte vertiefen" →
+  „Working an own track", „Fremde Fährte folgen" → „Working a strange track".
+- IAD „Verfassungsprüfung in den Pausen": im Text keine Überschrift, nur die
+  Kontrolle auf Ermüdung und Pfoten durch den Richter – „Condition check during
+  the breaks".
+- IAD „Laufübung am Fahrrad": „Running exercise" (mit dem Rad, daher
+  „(beside the bike)").
+- StöPr-Bewertungsmerkmale: im Text ganze Sätze mit Punkten; für die
+  Übungsliste gekürzt, die Kernbegriffe stehen wörtlich darin.
+
+**Nicht übersetzt:** Übungsbeschreibungen, Bewertungskriterien und
+Bewertungshinweise, nationale Ordnungen, die öffentlichen Seiten
+`/pruefungsordnungen/**`.
+
+Der Seeder trägt die Namen nur ein, wo `NameEn` noch leer ist – eine Eingabe aus
+dem Katalog-Editor bleibt stehen. Wer einen Namen bewusst leert, bekommt beim
+nächsten Start den der Ordnung zurück.

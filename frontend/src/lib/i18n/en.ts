@@ -410,7 +410,7 @@ export const EN: Record<string, string> = {
   "Individuellen Plan anlegen": "Create an individual plan",
   "Individueller Plan (ohne Prüfungsziel) – leere Wochen, Übungen manuell festlegen": "Individual plan (no exam goal) – empty weeks, exercises set by hand",
   "Individueller Plan angelegt - füge jetzt Wochenübungen hinzu.": "Individual plan created – now add exercises for the week.",
-  "Informativer Katalog nach VDH-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.": "An informational catalogue following the VDH test regulations. Exercise texts and scoring criteria are our own descriptions, not copies of the official regulations.",
+  "Informativer Katalog nach FCI- und VDH-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.": "An informational catalogue following the FCI and VDH exam regulations. Exercise texts and scoring criteria are our own descriptions, not copies of the official regulations.",
   "Inhalt (Übungen in Reihenfolge)": "Content (exercises in order)",
   "Inhalt je Termin automatisch generieren (abwechslungsreicher Mix)": "Generate the content per date automatically (a varied mix)",
   "Junghunde": "Young dogs",
@@ -560,7 +560,7 @@ export const EN: Record<string, string> = {
   "Prüfungsordnungen": "Test regulations",
   "Prüfungsordnungen & Übungen entdecken": "Explore test regulations and exercises",
   "Prüfungsordnungen konnten nicht geladen werden.": "Test regulations could not be loaded.",
-  "Prüfungsordnungen und Sachkundefragen bleiben in ihrer Ursprungssprache - eine übersetzte Prüfungsfrage wäre für die Prüfung wertlos.": "Test regulations and theory questions stay in their original language – a translated exam question would be worthless for the exam.",
+  "Die internationalen FCI-Prüfungsordnungen und ihre Übungen zeigen auf Englisch ihre offiziellen englischen Namen. Beschreibungen, nationale Ordnungen und Sachkundefragen bleiben deutsch - eine übersetzte Prüfungsfrage wäre für die Prüfung wertlos.": "The international FCI test regulations and their exercises show their official English names in English. Descriptions, national regulations and theory questions stay German – a translated exam question would be worthless for the exam.",
   "Prüfungsordnungen öffentlich einsehbar": "Test regulations open to everyone",
   "Punkte": "Points",
   "Rasse": "Breed",
@@ -2079,4 +2079,15 @@ export const EN: Record<string, string> = {
     "This is a translation for your convenience. The German version is legally binding.",
   "Deutsche Fassung anzeigen": "Show German version",
   "Englische Fassung anzeigen": "Show English version",
+  "Internationale Prüfungsordnungen in allen Ländern": "International test regulations in every country",
+  "Die internationalen FCI-Prüfungsordnungen – Begleithundeprüfung (BH/VT), IBGH, IGP, Fährte, Unterordnung, Schutzdienst, Stöbern und Ausdauer – gelten jetzt in jedem Land und erscheinen bei jedem Geltungsbereich, nicht nur bei Deutschland. Turnierhundsport und Agility bleiben bei Deutschland, weil es Ordnungen des VDH sind.":
+    "The international FCI test regulations – companion dog test (BH/VT), IBGH, IGP, tracking, obedience, protection, article search and endurance – now apply in every country and appear for every scope, not just Germany. Dog sport tournaments (THS) and agility stay with Germany because they are VDH regulations.",
+  "Wenn du Dogity auf Englisch nutzt, zeigen die FCI-Prüfungsordnungen jetzt ihre offiziellen englischen Namen – bei Sportarten, Prüfungsstufen und Übungen, zum Beispiel „Heeling on leash“ statt „Fußarbeit“. Das gilt im Katalog, im Trainingsplan, im Tagebuch, in der Statistik und beim Eintragen. Die Beschreibungstexte bleiben deutsch.":
+    "If you use Dogity in English, the FCI test regulations now show their official English names – for sports, test levels and exercises, for example “Heeling on leash” instead of “Fußarbeit”. This applies in the catalogue, the training plan, the diary, the statistics and when logging. The description texts stay German.",
+  "Die Länderauswahl in den Einstellungen ist jetzt für alle sichtbar, weil die internationalen Prüfungsordnungen in jedem Land angeboten werden. Wer ein anderes Land als Deutschland wählt, sieht dort keine Ordnungen des VDH wie Hoopers, Agility und Turnierhundsport.":
+    "The country selection in the settings is now visible to everyone, because the international test regulations are offered in every country. If you choose a country other than Germany, you will not see VDH regulations such as Hoopers, agility and dog sport tournaments there.",
+  "Hoopers war bei jedem Land zu sehen, obwohl es die Prüfungsordnung des VDH ist. Sie gilt jetzt nur bei Deutschland.":
+    "Hoopers was visible for every country even though it is a VDH regulation. It now applies to Germany only.",
+  "Englischer Name (optional)": "English name (optional)",
+  "Der englische Name": "The English name",
 };

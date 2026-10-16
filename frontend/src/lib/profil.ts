@@ -2,6 +2,7 @@ import { MODULE, type Country } from "@/lib/types";
 import type { useT } from "@/lib/i18n";
 import { uebersetzbar, SPRACHE_NAME, type Sprache } from "@/lib/i18n/sprachen";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
+import { katalogName } from "@/lib/katalog-name";
 import { SCHRIFT_NAME, type Schriftgroesse } from "@/lib/schriftgroesse";
 
 /**
@@ -61,14 +62,15 @@ export function vorschauFunktionen(abgewaehlt: readonly string[], istTrainer: bo
  */
 export function vorschauSportarten(
   sportIds: readonly string[],
-  sportarten: readonly { id: string; name: string }[] | null,
+  sportarten: readonly { id: string; name: string; nameEn?: string | null }[] | null,
   t: Uebersetzer,
+  sprache: Sprache = "de",
 ): string {
   if (sportIds.length === 0) return t("alle");
   // Die Liste ist noch unterwegs: lieber keine Vorschau als eine falsche.
   if (sportarten === null) return "";
 
-  const namen = sportarten.filter((s) => sportIds.includes(s.id)).map((s) => s.name);
+  const namen = sportarten.filter((s) => sportIds.includes(s.id)).map((s) => katalogName(s, sprache));
   // Gewählte Sportarten, die es nicht mehr gibt: Die Zahl stimmt trotzdem.
   if (namen.length === 0) return t("{n} gewählt", { n: sportIds.length });
   if (namen.length <= 2) return namen.join(", ");
@@ -95,7 +97,10 @@ export function vorschauDarstellung(
  *
  * Eine Wahl zwischen einem Land mit Inhalt und dreizehn leeren ist keine:
  * Sie sähe aus wie ein Defekt. Erst wenn mindestens zwei Länder
- * Prüfungsordnungen haben, lohnt sich die Auswahl.
+ * Prüfungsordnungen haben, lohnt sich die Auswahl. Seit die internationalen
+ * FCI-Ordnungen überall gelten (2026-10-16), hat jedes Land Inhalt - die
+ * Auswahl erscheint damit für alle; die Regel bleibt für den Fall, dass
+ * der Katalog wieder nur nationale Ordnungen führt.
  *
  * Ausnahme: Hat jemand früher ein anderes Land gespeichert, bleibt die Liste
  * sichtbar - sonst käme die Person nie mehr zurück in den deutschen

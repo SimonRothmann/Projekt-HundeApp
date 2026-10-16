@@ -110,6 +110,7 @@ public class StatsService(IApplicationDbContext db) : IStatsService
             .Where(e => e.TrainingSession!.DogId == dogId)
             .Select(e => new ExerciseRow(
                 e.Exercise != null ? e.Exercise.Name : e.FreeTextLabel!,
+                e.Exercise != null ? e.Exercise.NameEn : null,
                 e.Rating,
                 e.Success,
                 e.TrainingSession!.Date))
@@ -143,7 +144,10 @@ public class StatsService(IApplicationDbContext db) : IStatsService
                     Math.Round(avg, 1),
                     Math.Round(successRate, 2),
                     trend,
-                    ordered[^1].Date);
+                    ordered[^1].Date,
+                    // Gruppiert wird nach dem deutschen Namen; eine Gruppe hat
+                    // damit höchstens eine englische Bezeichnung.
+                    ordered.Select(x => x.NameEn).FirstOrDefault(n => n is not null));
             })
             // Schwächste Übung zuerst - die Reihenfolge ist zugleich die
             // regelbasierte "Fokus"-Empfehlung ohne externe KI.
@@ -206,7 +210,7 @@ public class StatsService(IApplicationDbContext db) : IStatsService
         return Result<DogTrackStatsDto>.Success(new DogTrackStatsDto(runs, deviationTrend, onTrackTrend));
     }
 
-    private record ExerciseRow(string Name, int Rating, bool Success, DateOnly Date);
+    private record ExerciseRow(string Name, string? NameEn, int Rating, bool Success, DateOnly Date);
 
     private static IReadOnlyList<WeeklyActivityDto> BuildWeeklyActivity(List<DateOnly> dates)
     {

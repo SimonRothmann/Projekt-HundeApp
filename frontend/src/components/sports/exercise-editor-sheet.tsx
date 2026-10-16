@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { katalogName } from "@/lib/katalog-name";
+import { TEXTLAENGE } from "@/lib/textlaengen";
 const NO_SPORT_SENTINEL = "__none__";
 
 /**
@@ -48,8 +50,10 @@ export function ExerciseEditorSheet({
   onCreated: (exercise: Exercise) => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [sportId, setSportId] = useState<string>(NO_SPORT_SENTINEL);
   const [name, setName] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [description, setDescription] = useState("");
   const [difficulty, setDifficulty] = useState<ExerciseDifficulty>(0);
   const [category, setCategory] = useState("");
@@ -61,6 +65,7 @@ export function ExerciseEditorSheet({
       /* eslint-disable react-hooks/set-state-in-effect */
       setSportId(presetSportId ?? NO_SPORT_SENTINEL);
       setName("");
+      setNameEn("");
       setDescription("");
       setDifficulty(0);
       setCategory("");
@@ -77,6 +82,7 @@ export function ExerciseEditorSheet({
       const created = await api.post<Exercise>("/api/exercises", {
         sportId: sportId === NO_SPORT_SENTINEL ? null : sportId,
         name: name.trim(),
+        nameEn: nameEn.trim() || null,
         description: description.trim() || null,
         difficulty,
         category: category.trim() || null,
@@ -123,7 +129,7 @@ export function ExerciseEditorSheet({
                 <SelectItem value={NO_SPORT_SENTINEL}>{t("Ohne Sportart")}</SelectItem>
                 {sports.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    {s.name}
+                    {katalogName(s, sprache)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -141,6 +147,18 @@ export function ExerciseEditorSheet({
               maxLength={150}
             />
           </div>
+
+          {scope.kind === "global" && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ex-name-en">{t("Englischer Name (optional)")}</Label>
+              <Input
+                id="ex-name-en"
+                value={nameEn}
+                onChange={(e) => setNameEn(e.target.value)}
+                maxLength={TEXTLAENGE.uebungNameEn}
+              />
+            </div>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">

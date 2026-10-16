@@ -78,6 +78,13 @@ describe("planItemName", () => {
   it("liefert null, wenn die Übung nicht mehr im Katalog steht", () => {
     expect(planItemName(uebung({ exerciseName: null }))).toBeNull();
   });
+
+  it("zeigt auf Englisch den englischen Katalognamen, den Freitext aber unverändert", () => {
+    expect(planItemName(uebung({ exerciseName: "Sitz aus der Bewegung", exerciseNameEn: "Sit in motion" }), "en")).toBe("Sit in motion");
+    expect(planItemName(uebung({ exerciseName: "Sitz aus der Bewegung", exerciseNameEn: "Sit in motion" }), "de")).toBe("Sitz aus der Bewegung");
+    expect(planItemName(uebung({ exerciseName: "Sitz" }), "en")).toBe("Sitz");
+    expect(planItemName(uebung({ exerciseName: null, freeTextLabel: "Kopfarbeit" }), "en")).toBe("Kopfarbeit");
+  });
 });
 
 describe("trainingstageDerWoche", () => {

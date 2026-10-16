@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { CheckCircle2, ChevronDown, MoreHorizontal, Pencil, SlidersHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
 
 const ZEILE =
   "flex min-h-12 w-full items-center gap-3 rounded-lg border border-surface-border bg-surface px-3 text-left text-sm font-medium transition-colors hover:bg-muted";
@@ -44,6 +44,7 @@ export function GoalManageSheet({
   onFolgeziel?: (stufe: NextStage) => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [offen, setOffen] = useState(false);
   const [anpassenOffen, setAnpassenOffen] = useState(false);
   // Plan-Konfiguration (Übungen/Woche, Trainingstage) des adaptiven Generators.
@@ -52,7 +53,7 @@ export function GoalManageSheet({
   const [speichert, setSpeichert] = useState(false);
 
   const aktiv = goal.status === 0;
-  const name = pruefungsName(goal);
+  const name = pruefungsName(goal, sprache);
   // Plan-Einstellungen und Gewichtung gibt es nur für den adaptiven Plan -
   // individuelle Ziele legen ihre Übungen von Hand an.
   const adaptiv = aktiv && !goal.isCustom && goal.trainingPlan !== null;

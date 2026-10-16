@@ -55,7 +55,8 @@ function PlanUebung({
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
-  const ort = ortsformat(useSprache());
+  const sprache = useSprache();
+  const ort = ortsformat(sprache);
   const [formOffen, setFormOffen] = useState(false);
   // Beim Verlassen des Bearbeitungsmodus klappt ein offenes Formular zu, damit
   // es beim nächsten "Plan bearbeiten" nicht von gestern übrig ist. (Zustand
@@ -66,7 +67,7 @@ function PlanUebung({
     if (!bearbeiten) setFormOffen(false);
   }
 
-  const name = planItemName(item) ?? t("(Übung nicht mehr verfügbar)");
+  const name = planItemName(item, sprache) ?? t("(Übung nicht mehr verfügbar)");
   const zusatz = [
     item.freeTextLabel && !item.exerciseName ? t("Freitext") : null,
     item.reason !== null ? t(reasonLabel[item.reason]) : null,

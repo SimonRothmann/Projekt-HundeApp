@@ -13,7 +13,8 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { katalogName } from "@/lib/katalog-name";
 import { sichtbareModule } from "@/lib/profil";
 import { BenachrichtigungenSection } from "@/components/preferences/benachrichtigungen-section";
 
@@ -123,6 +124,7 @@ export function SportartenSection() {
   const { speichert, speichern } = useSpeichern();
   const [sports, setSports] = useState<Sport[] | null>(null);
   const t = useT();
+  const sprache = useSprache();
 
   useEffect(() => {
     api
@@ -164,7 +166,7 @@ export function SportartenSection() {
                     disabled={speichert}
                     onClick={() => sportartUmschalten(s.id, gewaehlt)}
                   >
-                    {s.name}
+                    {katalogName(s, sprache)}
                   </Umschalter>
                 );
               })}
