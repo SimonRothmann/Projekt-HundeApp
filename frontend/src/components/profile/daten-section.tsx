@@ -8,6 +8,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { removeQueuedRequestsOf } from "@/lib/offline-queue";
 import { useT } from "@/lib/i18n";
+import { heuteIso } from "@/lib/pruefung";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,7 +38,7 @@ export function DatenExport() {
       const adresse = URL.createObjectURL(datei);
       const link = document.createElement("a");
       link.href = adresse;
-      link.download = `dogity-meine-daten-${new Date().toISOString().slice(0, 10)}.json`;
+      link.download = `dogity-meine-daten-${heuteIso()}.json`;
       // Safari lädt nur herunter, wenn das Element im Dokument hängt.
       document.body.appendChild(link);
       link.click();

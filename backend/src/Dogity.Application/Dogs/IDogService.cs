@@ -16,6 +16,18 @@ public interface IDogService
     Task<Result> AddOwnerAsync(Guid userId, Guid dogId, AddDogOwnerRequest request, CancellationToken ct = default);
     Task<Result> RemoveOwnerAsync(Guid userId, Guid dogId, Guid targetUserId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Die Trainer:innen, die den Hund betreuen und damit Tagebuch, Ziele und
+    /// Fährten sehen. Nur für Besitzer:innen und Mitbesitzer:innen.
+    /// </summary>
+    Task<Result<IReadOnlyList<DogBetreuungDto>>> GetSupervisionsAsync(Guid userId, Guid dogId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Beendet die Betreuung durch eine Trainer:in. Nur für Besitzer:innen und
+    /// Mitbesitzer:innen; die Trainer:in verliert sofort den Zugriff und erfährt es.
+    /// </summary>
+    Task<Result> EndSupervisionAsync(Guid userId, Guid dogId, Guid trainerId, CancellationToken ct = default);
+
     /// <summary>Offene Einladungen, Mitbesitzer:in zu werden - die Sicht der eingeladenen Person.</summary>
     Task<Result<IReadOnlyList<DogInvitationDto>>> GetMyInvitationsAsync(Guid userId, CancellationToken ct = default);
 

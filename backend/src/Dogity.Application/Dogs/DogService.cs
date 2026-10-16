@@ -1,6 +1,7 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Application.Notifications;
+using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
@@ -357,6 +358,70 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
                 null,
                 ct);
         }
+        return Result.Success();
+    }
+
+    public async Task<Result<IReadOnlyList<DogBetreuungDto>>> GetSupervisionsAsync(Guid userId, Guid dogId, CancellationToken ct = default)
+    {
+        // Wer den Hund nur betreut, bekommt dieselbe Antwort wie jede fremde
+        // Person: Die Liste gehört der Familie (siehe GetOwnersAsync).
+        if (!await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId, ct))
+            return Result<IReadOnlyList<DogBetreuungDto>>.NotFound("Hund nicht gefunden.");
+
+        var betreuungen = await db.TrainerAssignments
+            .Where(a => a.DogId == dogId)
+            .OrderBy(a => a.StartDate)
+            .Select(a => new { a.TrainerId, a.MemberId, a.StartDate })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var lookup = await userLookup.FindByIdsAsync(betreuungen.Select(b => b.TrainerId).Distinct().ToList(), ct);
+        var dtos = new List<DogBetreuungDto>();
+        foreach (var b in betreuungen)
+        {
+            var name = lookup.TryGetValue(b.TrainerId, out var info) ? $"{info.FirstName} {info.LastName}".Trim() : "";
+            // Dieselbe Beziehung wie beim Beenden durch die Gruppenverwaltung
+            // (GroupService.GehoertZurGruppeAsync): das betreute Mitglied ist
+            // aktiv in der Gruppe, die betreuende Person dort Trainer:in. Ohne
+            // Treffer (Gruppe verlassen, Betreuung blieb) bleibt der Name offen.
+            var gruppe = await db.Groups
+                .Where(g => g.Members.Any(m => m.UserId == b.MemberId && m.Status == GroupMemberStatus.Active))
+                .Where(g => g.TrainerId == b.TrainerId
+                    || g.Trainers.Any(t => t.UserId == b.TrainerId)
+                    || (g.ClubId != null && db.ClubTrainers.Any(t => t.ClubId == g.ClubId && t.UserId == b.TrainerId)))
+                .OrderBy(g => g.Name)
+                .Select(g => g.Name)
+                .FirstOrDefaultAsync(ct);
+            dtos.Add(new DogBetreuungDto(b.TrainerId, name.Length > 0 ? name : "(unbekannt)", b.StartDate, gruppe));
+        }
+
+        return Result<IReadOnlyList<DogBetreuungDto>>.Success(dtos);
+    }
+
+    public async Task<Result> EndSupervisionAsync(Guid userId, Guid dogId, Guid trainerId, CancellationToken ct = default)
+    {
+        if (!await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId, ct))
+            return Result.NotFound("Hund nicht gefunden.");
+
+        // Eine schon beendete Betreuung fällt am Query-Filter heraus: wie bei
+        // RemoveTrainerFromDogAsync dann "nicht gefunden" - und die Trainer:in
+        // wird nicht ein zweites Mal benachrichtigt.
+        var betreuung = await db.TrainerAssignments.FirstOrDefaultAsync(a => a.DogId == dogId && a.TrainerId == trainerId, ct);
+        if (betreuung is null)
+            return Result.NotFound("Betreuung nicht gefunden.");
+
+        betreuung.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        // Die Trainer:in soll nicht rätseln, warum der Hund aus ihrer Liste
+        // verschwunden ist (vgl. Entfernen als Mitbesitzer:in).
+        var hundName = await db.Dogs.Where(d => d.Id == dogId).Select(d => d.Name).FirstOrDefaultAsync(ct);
+        var name = await DisplayNameAsync(userId, ct) ?? "Eine Besitzer:in";
+        await notifications.CreateAsync(
+            trainerId,
+            $"{name} hat die Betreuung von {hundName ?? "einem Hund"} beendet.",
+            "/trainer",
+            ct);
         return Result.Success();
     }
 

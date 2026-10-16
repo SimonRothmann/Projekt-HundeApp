@@ -173,6 +173,14 @@ describe("Anfrage aus einer Sicherung", () => {
     }
   });
 
+  it("Fährte: gelegt kurz nach Mitternacht Ortszeit gehört zum neuen Tag, nicht zum UTC-Vortag", () => {
+    // Lokal konstruiert, damit der Test in jeder Zeitzone dasselbe prüft
+    // (in Deutschland liegt UTC um diese Zeit noch beim Vortag).
+    const begonnen = new Date(2026, 5, 21, 0, 30).getTime();
+    const body = anfrageAusSicherung(faehrte({ begonnen })).body as Record<string, unknown>;
+    expect(body.date).toBe("2026-06-21");
+  });
+
   it("zählt Marker getrennt und nimmt als Ende den letzten Punkt", () => {
     expect(markerAnzahl(faehrte())).toBe(1);
     expect(markerAnzahl(ablauf())).toBe(0);

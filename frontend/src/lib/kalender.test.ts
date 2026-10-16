@@ -154,7 +154,9 @@ describe("kannInKalender", () => {
 });
 
 describe("icsDateiname", () => {
-  it("trägt das Datum in UTC", () => {
-    expect(icsDateiname("2026-10-05T16:30:00Z")).toBe("Gruppentraining-2026-10-05.ics");
+  it("trägt das Datum des Termins", () => {
+    // 12:00 UTC ist in jeder Zeitzone von UTC-11 bis UTC+11 derselbe Kalendertag -
+    // der Test hängt so nicht an der Zeitzone des Rechners.
+    expect(icsDateiname("2026-10-05T12:00:00Z")).toBe("Gruppentraining-2026-10-05.ics");
   });
 });

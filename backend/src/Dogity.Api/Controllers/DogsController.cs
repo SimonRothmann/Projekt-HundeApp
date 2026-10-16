@@ -140,4 +140,18 @@ public class DogsController(IDogService dogService) : ApiControllerBase
         var result = await dogService.RemoveOwnerAsync(CurrentUserId, id, userId, ct);
         return FromResult(result);
     }
+
+    [HttpGet("{id:guid}/betreuungen")]
+    public async Task<ActionResult<IReadOnlyList<DogBetreuungDto>>> GetSupervisions(Guid id, CancellationToken ct)
+    {
+        var result = await dogService.GetSupervisionsAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
+    [HttpDelete("{id:guid}/betreuungen/{trainerId:guid}")]
+    public async Task<IActionResult> EndSupervision(Guid id, Guid trainerId, CancellationToken ct)
+    {
+        var result = await dogService.EndSupervisionAsync(CurrentUserId, id, trainerId, ct);
+        return FromResult(result);
+    }
 }

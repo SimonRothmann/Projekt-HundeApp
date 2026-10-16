@@ -12,6 +12,7 @@ import { SessionCounts } from "@/components/schedule/session-counts";
 import { naechsterTermin, zusageNamen } from "@/lib/naechster-termin";
 import { cn } from "@/lib/utils";
 import { useSprache, useT } from "@/lib/i18n";
+import { heuteIso } from "@/lib/pruefung";
 import { ortsformat } from "@/lib/ortsformat";
 
 /** So weit voraus wird gesucht - ein Termin jenseits davon ist noch nicht "der nächste". */
@@ -42,7 +43,7 @@ export function NextSessionCard({ clubs }: { clubs: Club[] }) {
 
     const heute = new Date();
     const bis = new Date(heute.getTime() + SUCHE_TAGE * 24 * 60 * 60 * 1000);
-    const params = new URLSearchParams({ from: heute.toISOString().slice(0, 10), to: bis.toISOString().slice(0, 10) });
+    const params = new URLSearchParams({ from: heuteIso(heute.getTime()), to: heuteIso(bis.getTime()) });
 
     Promise.all(
       ids.map((id) =>

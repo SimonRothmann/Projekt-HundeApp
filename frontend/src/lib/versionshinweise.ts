@@ -61,6 +61,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.29",
+    datum: "2026-10-16",
+    titel: uebersetzbar("Fährte über Mitternacht, Betreuung beenden"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Unter „Verwalten“ bei deinem Hund siehst du jetzt, welche Trainer:innen ihn betreuen – und kannst die Betreuung selbst beenden. Die Trainer:in sieht den Hund danach nicht mehr und wird benachrichtigt."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Eine Fährte lässt sich jetzt bis 24 Stunden nach dem Legen erneut ablaufen – auch nach Mitternacht. Vorher ging das nur am selben Kalendertag, sodass abends gelegte Fährten am nächsten Morgen nicht mehr zu suchen waren."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Zwischen Mitternacht und 1 bzw. 2 Uhr nachts hielt die App noch den Vortag für „heute“: Eine kurz nach Mitternacht gespeicherte Fährte landete am Vortag, die Startseite zeigte Termine von gestern, und neue Termine waren mit dem Vortag vorbelegt. Jetzt zählt die Uhr deines Geräts."),
+      },
+    ],
+  },
+  {
     version: "0.28",
     datum: "2026-10-16",
     titel: uebersetzbar("E-Mails abbestellen"),

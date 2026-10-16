@@ -772,6 +772,16 @@ export type DogOwner = {
   isInvited: boolean;
 };
 
+/** Eine Trainer:in, die den Hund betreut und Tagebuch, Ziele und Fährten sieht - die Sicht der Besitzer:innen. */
+export type DogBetreuung = {
+  trainerId: string;
+  trainerName: string;
+  /** Beginn der Betreuung als ISO-Datum (YYYY-MM-DD). */
+  startDate: string;
+  /** Die Gruppe, über die sie läuft; null, wenn sich keine ermitteln lässt. */
+  groupName: string | null;
+};
+
 /** Offene Einladung, einen Hund mitzuverwalten - die Sicht der eingeladenen Person. */
 export type DogInvitation = {
   dogId: string;

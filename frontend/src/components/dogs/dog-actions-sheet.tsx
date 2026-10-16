@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Archive, ArchiveRestore, ChevronDown, Pencil, Printer, Trash2, Users } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronDown, Eye, Pencil, Printer, Trash2, Users } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
-import type { Dog, DogOwner } from "@/lib/types";
+import type { Dog, DogBetreuung, DogOwner } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { BetreuungenSection } from "@/components/dogs/betreuungen-section";
 import { CoOwnersSection } from "@/components/dogs/co-owners-section";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,7 @@ const ZEILE =
 /**
  * Das Menü "Verwalten" der Hundeseite als Sheet: alles, was den Hund selbst
  * betrifft und nicht sein Training - Bearbeiten, Drucken/Exportieren,
- * Mitbesitzer, Archivieren, Endgültig löschen. Früher standen die letzten drei
+ * Mitbesitzer, Trainer:innen mit Einblick, Archivieren, Endgültig löschen. Früher standen die letzten drei
  * als Karten am Seitenende, hinter dem ganzen Tagebuch.
  *
  * Gezeigt wird, was die Person darf: Besitzer:innen (auch Mitbesitzer:innen)
@@ -49,6 +50,27 @@ export function DogActionsSheet({
   const t = useT();
   const router = useRouter();
   const [mitbesitzerOffen, setMitbesitzerOffen] = useState(false);
+  const [betreuungOffen, setBetreuungOffen] = useState(false);
+  // Wer den Hund betreut. Geladen wird erst beim Öffnen des Sheets: Die Liste
+  // gehört den Besitzer:innen und wird auf der Hundeseite sonst nirgends gebraucht.
+  const [betreuungen, setBetreuungen] = useState<DogBetreuung[]>([]);
+
+  const ladeBetreuungen = useCallback(async () => {
+    try {
+      setBetreuungen(await api.get<DogBetreuung[]>(`/api/dogs/${dog.id}/betreuungen`));
+    } catch {
+      // Ohne Liste fehlt nur die Zeile - offline oder bei einem Serverfehler
+      // soll das Verwalten-Sheet trotzdem aufgehen.
+      setBetreuungen([]);
+    }
+  }, [dog.id]);
+
+  useEffect(() => {
+    if (!open || !isOwner) return;
+    // Datenabruf beim Öffnen (externe Quelle: REST API).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    ladeBetreuungen();
+  }, [open, isOwner, ladeBetreuungen]);
 
   async function deleteDog() {
     // Doppelte Bestätigung: Hunde-Löschen entfernt Trainings, Fährten, Ziele
@@ -129,6 +151,28 @@ export function DogActionsSheet({
                   currentUserId={currentUserId}
                   onChanged={onChanged}
                 />
+              )}
+
+              {/* Nur wenn der Hund betreut wird: Ohne Betreuung gäbe es hier
+                  nichts zu tun, und die Zeile wäre für die meisten nur
+                  Rauschen. Die Datenschutzerklärung beschreibt, wer sonst
+                  mitliest. */}
+              {betreuungen.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    className={ZEILE}
+                    aria-expanded={betreuungOffen}
+                    onClick={() => setBetreuungOffen((v) => !v)}
+                  >
+                    <Eye className="size-4 shrink-0" />
+                    <span className="min-w-0 flex-1">{t("Trainer:innen mit Einblick")}</span>
+                    <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", betreuungOffen && "rotate-180")} />
+                  </button>
+                  {betreuungOffen && (
+                    <BetreuungenSection dogId={dog.id} dogName={dog.name} betreuungen={betreuungen} onChanged={ladeBetreuungen} />
+                  )}
+                </>
               )}
 
               {/* Archivieren: reversibel, blendet nur aus. */}

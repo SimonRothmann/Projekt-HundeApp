@@ -1,6 +1,7 @@
 import { api, ApiError } from "@/lib/api";
 import { estimateLengthMeters } from "@/lib/geo";
 import { enqueueRequest } from "@/lib/offline-queue";
+import { heuteIso } from "@/lib/pruefung";
 import { untergrundAlsText } from "@/lib/untergrund";
 import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 
@@ -249,7 +250,9 @@ export function anfrageAusSicherung(sicherung: AufzeichnungsSicherung): { path: 
       id: sicherung.trackId,
       dogId: sicherung.dogId,
       // Der Tag, an dem gelegt wurde - nicht der, an dem gespeichert wird.
-      date: new Date(sicherung.begonnen).toISOString().slice(0, 10),
+      // Der Kalendertag auf dem Gerät: Der UTC-Tag wäre zwischen 0 und 1 bzw.
+      // 2 Uhr Ortszeit noch "gestern".
+      date: heuteIso(sicherung.begonnen),
       durationMinutes: Math.max(1, Math.round((aufzeichnungsEnde(sicherung) - sicherung.begonnen) / 60000)),
       lengthMeters: estimateLengthMeters(sicherung.points),
       ageMinutes: null,

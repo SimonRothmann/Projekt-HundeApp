@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { clearCachedData, getCachedData, setCachedData } from "@/lib/read-cache";
 import { useT } from "@/lib/i18n";
+import { heuteIso } from "@/lib/pruefung";
 import type { Dog, DogOwner, Goal, Sport, TrainingSession } from "@/lib/types";
 
 // Initial werden nur die Trainings der letzten 3 Monate geladen (die
@@ -14,7 +15,7 @@ import type { Dog, DogOwner, Goal, Sport, TrainingSession } from "@/lib/types";
 function threeMonthsAgoIso(): string {
   const d = new Date();
   d.setMonth(d.getMonth() - 3);
-  return d.toISOString().slice(0, 10);
+  return heuteIso(d.getTime());
 }
 
 /** Was die Hundeseite zwischen den Besuchen im Lesecache (`dog-page-<id>`) hält. */

@@ -57,6 +57,18 @@ public record DogOwnerDto(
     DateTimeOffset AddedAt,
     bool IsInvited = false);
 
+/// <summary>
+/// Eine Trainer:in, die den Hund betreut (TrainerAssignment) - die Sicht der
+/// Besitzer:innen. Bewusst ohne E-Mail-Adresse: Es geht darum, WER Einblick
+/// hat und seit wann, nicht darum, die Person zu erreichen.
+/// </summary>
+/// <param name="GroupName">Die Gruppe, über die die Betreuung läuft; null, wenn sich keine ermitteln lässt (etwa nach einem Gruppenwechsel).</param>
+public record DogBetreuungDto(
+    Guid TrainerId,
+    string TrainerName,
+    DateOnly StartDate,
+    string? GroupName);
+
 /// <summary>Eine offene Einladung, Mitbesitzer:in eines Hundes zu werden - die Sicht der eingeladenen Person.</summary>
 public record DogInvitationDto(
     Guid DogId,

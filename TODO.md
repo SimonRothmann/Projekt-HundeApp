@@ -84,6 +84,12 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
       Bewertung (Fehler/Zeit statt Punkte?) - davon hängt ab, ob das
       Katalogmodell (Übungen mit Höchstpunkten) passt.
 
+- [ ] **"Heute" im Backend aus UTC** (gefunden 2026-10-16 bei Paket F1): DashboardService
+      und GoalService bilden "heute" aus `DateTime.UtcNow` - Zielstatus und Fristen
+      hängen zwischen 0 und 1 bzw. 2 Uhr Ortszeit einen Tag nach; ebenso das
+      `StartDate` einer Betreuung (seit F1 unter "Trainer:innen mit Einblick"
+      sichtbar). Über die Ortszeit bilden (vgl. `Vereinszeit.cs`). Kleiner Effekt.
+
 - [x] **E-Mail: Opt-in/Opt-out ausbauen** (Wunsch des Betreibers, 2026-10-15; umgesetzt 2026-10-16) —
       NÄCHSTER Entwicklungsschritt. Stand heute: Willkommens- und
       Passwort-Mail gehen immer (gehören zum Konto); Einladungen und

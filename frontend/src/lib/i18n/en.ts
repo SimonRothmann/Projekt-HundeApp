@@ -1703,4 +1703,17 @@ export const EN: Record<string, string> = {
   "{name} wirklich endgültig löschen?": "Really delete {name} permanently?",
   "{n} Treffer · Seite {seite} / {gesamt}": "{n} results · page {seite} / {gesamt}",
   "{n} gesamt · Seite {seite} / {gesamt}": "{n} in total · page {seite} / {gesamt}",
+  "Trainer:innen mit Einblick": "Trainers with access",
+  "Diese Trainer:innen betreuen {hund} und sehen Tagebuch, Ziele und Fährten.": "These trainers supervise {hund} and can see the diary, goals and tracks.",
+  "seit {datum}": "since {datum}",
+  "Gruppe {gruppe}": "Group {gruppe}",
+  "Betreuung von {hund} durch {name} beenden? {name} sieht danach Tagebuch, Ziele und Fährten von {hund} nicht mehr.":
+    "End {name}'s supervision of {hund}? {name} will no longer see {hund}'s diary, goals and tracks.",
+  "Fährte über Mitternacht, Betreuung beenden": "Tracks past midnight, ending supervision",
+  "Unter „Verwalten“ bei deinem Hund siehst du jetzt, welche Trainer:innen ihn betreuen – und kannst die Betreuung selbst beenden. Die Trainer:in sieht den Hund danach nicht mehr und wird benachrichtigt.":
+    "Under “Verwalten” (Manage) on your dog you can now see which trainers supervise it – and end the supervision yourself. The trainer no longer sees the dog afterwards and is notified.",
+  "Eine Fährte lässt sich jetzt bis 24 Stunden nach dem Legen erneut ablaufen – auch nach Mitternacht. Vorher ging das nur am selben Kalendertag, sodass abends gelegte Fährten am nächsten Morgen nicht mehr zu suchen waren.":
+    "A track can now be run again up to 24 hours after it was laid – also after midnight. Before, that only worked on the same calendar day, so tracks laid in the evening could not be searched the next morning.",
+  "Zwischen Mitternacht und 1 bzw. 2 Uhr nachts hielt die App noch den Vortag für „heute“: Eine kurz nach Mitternacht gespeicherte Fährte landete am Vortag, die Startseite zeigte Termine von gestern, und neue Termine waren mit dem Vortag vorbelegt. Jetzt zählt die Uhr deines Geräts.":
+    "Between midnight and 1 or 2 a.m. the app still took the previous day for “today”: a track saved shortly after midnight ended up on the day before, the start page showed yesterday’s appointments, and new appointments were pre-filled with the previous day. Now your device’s clock decides.",
 };

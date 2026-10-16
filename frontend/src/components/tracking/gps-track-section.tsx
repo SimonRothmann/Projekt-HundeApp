@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { BlockLabel } from "@/components/ui/block-label";
 import { TrackMap, TrackLegend } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
+import { kannNochAblaufen } from "@/lib/faehrte";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
 import { WalkRunComment } from "@/components/tracking/walk-run-comment";
@@ -56,14 +57,14 @@ function formatDuration(ms: number): string {
  * Tagebuchs (FahrteRecorder) - die aufgenommene Fährte erscheint dann als
  * Bestandteil des jeweiligen Trainingstags (siehe SessionHistory).
  *
- * readOnly (Trainingstag in der Vergangenheit): blendet zusätzlich das
- * erneute Ablaufen aus - eine Live-GPS-Aufzeichnung ergibt nur für den
- * heutigen Trainingstag Sinn. Kommentare zu Ablauf-Versuchen bleiben immer
- * bearbeitbar (nachträgliche Notiz, keine Aufzeichnung).
+ * Das erneute Ablaufen hängt an der Fährte, nicht am Kalendertag: Es gibt es
+ * bis 24 Stunden nach dem Ende des Legens (siehe kannNochAblaufen) - abends
+ * gelegt und nach Mitternacht gesucht ist der Normalfall. Danach ergibt ein
+ * Ablauf kein vergleichbares Fährtenalter mehr. Kommentare zu Ablauf-Versuchen
+ * bleiben immer bearbeitbar (nachträgliche Notiz, keine Aufzeichnung).
  */
 export function GpsTrackSection({
   trainingSessionIds,
-  readOnly = false,
   darfLoeschen = true,
   hundeName,
   onChanged,
@@ -75,7 +76,6 @@ export function GpsTrackSection({
    * in EINEM Block: Mehrere Fährten pro Übungsstunde sind der Normalfall.
    */
   trainingSessionIds: string[];
-  readOnly?: boolean;
   /** Löschen nur für Besitzer:innen - der Server prüft das ohnehin. Ohne Angabe wie bisher erlaubt. */
   darfLoeschen?: boolean;
   /** Für das Bild zum Teilen - ohne Namen gibt es keinen Schalter "Hundename zeigen". */
@@ -180,7 +180,7 @@ export function GpsTrackSection({
                     der Fährte selbst nicht: Wer die Aufzeichnung abschaltet,
                     soll seine bereits gelaufenen Fährten weiter ansehen,
                     auswerten und löschen können. */}
-                {!readOnly && moduleEnabled(MODULE.faehrte) && (
+                {moduleEnabled(MODULE.faehrte) && kannNochAblaufen(track) && (
                   <WalkRunRecorder
                     trackId={track.id}
                     onSaved={async () => {

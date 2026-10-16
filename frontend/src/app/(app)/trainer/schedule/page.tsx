@@ -26,6 +26,7 @@ import { SessionCounts } from "@/components/schedule/session-counts";
 import { useSprache, useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { ortsformat } from "@/lib/ortsformat";
+import { heuteIso } from "@/lib/pruefung";
 import { serieStandardEnde, wochentagVon } from "@/lib/termin-serie";
 const CATS: GroupTrainingCategory[] = [0, 1, 2];
 const categoryLabel: Record<GroupTrainingCategory, string> = { 0: uebersetzbar("Welpen"), 1: uebersetzbar("Junghunde"), 2: uebersetzbar("Basis") };
@@ -34,7 +35,8 @@ const categoryVariant: Record<GroupTrainingCategory, "default" | "secondary" | "
 const textareaClass =
   "w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/85 dark:focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+// Kalendertag auf dem Gerät (nicht UTC), sonst steht nach Mitternacht noch "gestern" im Formular.
+const todayIso = () => heuteIso();
 
 type ContentDraft = { key: string; exerciseId: string | null; freeText: string | null };
 let draftSeq = 0;
@@ -169,7 +171,7 @@ export default function SchedulePage() {
       mode: "single",
       groupId: s.groupId,
       category: s.category,
-      date: d.toISOString().slice(0, 10),
+      date: heuteIso(d.getTime()),
       time: d.toTimeString().slice(0, 5),
       weekday: d.getDay(),
       fromDate: todayIso(),

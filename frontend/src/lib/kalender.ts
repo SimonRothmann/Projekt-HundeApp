@@ -1,3 +1,4 @@
+import { heuteIso } from "@/lib/pruefung";
 import type { GroupTrainingSession } from "@/lib/types";
 
 /**
@@ -115,9 +116,12 @@ export function kannInKalender(termin: Pick<GroupTrainingSession, "status" | "st
   return termin.status === 0 && new Date(termin.startsAt).getTime() > jetzt;
 }
 
-/** Dateiname mit Datum, nur aus sicheren Zeichen ("Gruppentraining-2026-10-05.ics"). */
+/**
+ * Dateiname mit Datum, nur aus sicheren Zeichen ("Gruppentraining-2026-10-05.ics").
+ * Der Tag in Ortszeit - so steht der Termin auch im Kalender.
+ */
 export function icsDateiname(startsAt: string): string {
-  const tag = new Date(startsAt).toISOString().slice(0, 10);
+  const tag = heuteIso(new Date(startsAt).getTime());
   return `Gruppentraining-${tag}.ics`;
 }
 

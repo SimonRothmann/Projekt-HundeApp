@@ -36,6 +36,7 @@ import { HeuteGelegtSection, type FaehrteMitHund } from "@/components/dashboard/
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
 import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { useT } from "@/lib/i18n";
+import { heuteIso } from "@/lib/pruefung";
 
 /** Kompakte Zeile, wie sie die Startseite für Nebensächliches nutzt (Verein, Sachkunde). */
 const ZEILE =
@@ -100,7 +101,9 @@ let zwischenstand: { nutzerId: string; daten: Startdaten } | null = null;
  * steht auch offline oder bei einem Serverfehler.
  */
 async function ladeStartdaten(): Promise<Startdaten> {
-  const heute = new Date().toISOString().slice(0, 10);
+  // Der Kalendertag auf dem Gerät, nicht der UTC-Tag: Nach Mitternacht läge
+  // dieser sonst noch beim gestrigen und zeigte schon vorbeigegangene Termine.
+  const heute = heuteIso();
   const [dashboard, sports, onboarding, termine] = await Promise.all([
     api.get<DashboardDaten>("/api/dashboard").catch(() => null),
     api.get<Sport[]>("/api/sports").catch(() => [] as Sport[]),

@@ -32,17 +32,6 @@ function hatKontext(s: TrainingSession): boolean {
   return !!s.startTime || !!s.locationName || s.latitude != null || s.condition != null || s.temperatureC != null;
 }
 
-// Ein Trainingstag gilt als abgeschlossen, sobald sein Datum in der
-// Vergangenheit liegt (vor dem heutigen Tag) - dann entfällt z.B. das
-// erneute Ablaufen der Fährte.
-function isCompletedDay(iso: string): boolean {
-  const d = new Date(iso);
-  d.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return d.getTime() < today.getTime();
-}
-
 /**
  * Tages-Kommentar: zeigt die Notizen aller Trainingseinheiten des Tages als
  * EINEN Text und speichert Änderungen als Tages-Kommentar (auf der ersten
@@ -296,8 +285,6 @@ export function SessionDayCard({
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
-  const datum = tag[0].date;
-  const completed = isCompletedDay(datum);
   const exercises = tag.flatMap((s) => s.exercises);
   const gpsSessions = tag.filter((s) => s.hasGpsTrack);
   const feedbackSessions = tag.filter((s) => s.trainerFeedback);
@@ -382,7 +369,6 @@ export function SessionDayCard({
       {gpsSessions.length > 0 && (
         <GpsTrackSection
           trainingSessionIds={gpsSessions.map((s) => s.id)}
-          readOnly={completed}
           hundeName={dogName}
           onChanged={onChanged}
           darfLoeschen={isOwner}
