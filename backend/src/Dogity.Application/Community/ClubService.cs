@@ -587,27 +587,6 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     /// Die Trainingsdaten selbst bleiben unangetastet - sie gehören dem
     /// Besitzer, nicht dem Verein.
     /// </summary>
-    public async Task PurgeUserAsync(Guid userId, CancellationToken ct = default)
-    {
-        var now = DateTimeOffset.UtcNow;
-
-        foreach (var m in await db.ClubMemberships.Where(m => m.UserId == userId).ToListAsync(ct))
-            m.DeletedAt = now;
-        foreach (var t in await db.ClubTrainers.Where(t => t.UserId == userId).ToListAsync(ct))
-            t.DeletedAt = now;
-        foreach (var m in await db.GroupMembers.Where(m => m.UserId == userId).ToListAsync(ct))
-            m.DeletedAt = now;
-        // Einschließlich offener Einladungen als Trainer:in.
-        foreach (var t in await db.GroupTrainers.IgnoreQueryFilters()
-                     .Where(t => t.UserId == userId && t.DeletedAt == null).ToListAsync(ct))
-            t.DeletedAt = now;
-        foreach (var a in await db.TrainerAssignments
-                     .Where(a => a.TrainerId == userId || a.MemberId == userId).ToListAsync(ct))
-            a.DeletedAt = now;
-
-        await db.SaveChangesAsync(ct);
-    }
-
     private async Task DetachFromClubAsync(Guid clubId, Guid userId, CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;

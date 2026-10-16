@@ -36,7 +36,7 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. b (Nutzungsverhältnis), lit. f (Missbrauchsabwehr) |
 | Empfänger | Hosting-Dienstleister (Auftragsverarbeiter) |
 | Drittland | nein |
-| Löschfrist | bis zur Kontolöschung; Refresh-Tokens spätestens nach 60 Tagen |
+| Löschfrist | bis zur Kontolöschung; Refresh-Tokens spätestens nach 60 Tagen, bei Kontolöschung sofort und endgültig (kein bloßer Widerruf; Altbestand gelöschter Konten wird beim Start bereinigt) |
 | Tabellen | `users`, `user_roles`, `refresh_tokens` |
 
 ### 2.2 Hunde und Trainingstagebuch

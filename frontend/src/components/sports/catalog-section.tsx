@@ -94,18 +94,13 @@ export function CatalogSection({
 
   async function loadExercisesFor(sportId: string) {
     try {
-      const data = await api.get<Exercise[]>(`/api/sports/${sportId}/exercises`);
-      // Nur die Übungen dieses Scopes anzeigen: Admin-Global sieht keine
-      // Vereinsübungen, Trainer sieht keine anderer Vereine (Backend filtert
-      // ohnehin, aber im Vereinsscope kommen globale Übungen mit - die
-      // filtern wir hier raus, weil die "Übungsliste im Vereinskatalog" nur
-      // die vereinseigenen zeigen soll).
-      setExercisesBySport((prev) => ({
-        ...prev,
-        [sportId]: data.filter((e) =>
-          scope.kind === "global" ? e.clubId === null : e.clubId === scope.clubId,
-        ),
-      }));
+      // Der Server liefert nur den Katalog dieses Scopes: Admin-Global ohne
+      // Vereinsübungen, im Vereinsscope nur die vereinseigenen (ohne die
+      // globalen, die dort nicht mitgeführt werden sollen).
+      const katalog =
+        scope.kind === "global" ? "katalog=global" : `katalog=verein&clubId=${scope.clubId}`;
+      const data = await api.get<Exercise[]>(`/api/sports/${sportId}/exercises?${katalog}`);
+      setExercisesBySport((prev) => ({ ...prev, [sportId]: data }));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Übungen konnten nicht geladen werden."));
     }

@@ -1,5 +1,7 @@
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Infrastructure.Identity;
+using Dogity.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace Dogity.Application.Tests.Identity;
@@ -12,9 +14,11 @@ namespace Dogity.Application.Tests.Identity;
 /// </summary>
 public class RefreshTokenServiceTests
 {
-    private static RefreshTokenService MakeService()
+    private static RefreshTokenService MakeService() => MakeService(out _);
+
+    private static RefreshTokenService MakeService(out ApplicationDbContext db)
     {
-        var db = InMemoryDbContext.Create();
+        db = InMemoryDbContext.Create();
         var settings = Options.Create(new JwtSettings { RefreshExpiryDays = 60 });
         return new RefreshTokenService(db, settings);
     }
@@ -124,5 +128,45 @@ public class RefreshTokenServiceTests
 
         Assert.False((await service.RotateAsync(meiner)).Succeeded);
         Assert.True((await service.RotateAsync(fremder)).Succeeded);
+    }
+
+    [Fact]
+    public async Task DeleteAllForUser_RemovesTheRowsForGood_AndLeavesOthersAlone()
+    {
+        var service = MakeService(out var db);
+        var geloescht = Guid.NewGuid();
+        var anderer = Guid.NewGuid();
+        await service.IssueAsync(geloescht);
+        var widerrufen = await service.IssueAsync(geloescht);
+        await service.RevokeAsync(widerrufen);
+        var fremd = await service.IssueAsync(anderer);
+
+        await service.DeleteAllForUserAsync(geloescht);
+
+        // Auch widerrufene Zeilen sind weg, nicht nur die aktiven.
+        Assert.Empty(await db.RefreshTokens.Where(t => t.UserId == geloescht).ToListAsync());
+        Assert.True((await service.RotateAsync(fremd)).Succeeded);
+    }
+
+    [Fact]
+    public async Task DeleteOrphaned_RemovesOnlyTokensOfMissingAccounts()
+    {
+        var service = MakeService(out var db);
+        var bestehend = new ApplicationUser { UserName = "da@test.de", Email = "da@test.de" };
+        db.Users.Add(bestehend);
+        await db.SaveChangesAsync();
+        var behalten = await service.IssueAsync(bestehend.Id);
+        var geloeschtesKonto = Guid.NewGuid();
+        await service.IssueAsync(geloeschtesKonto);
+        var widerrufen = await service.IssueAsync(geloeschtesKonto);
+        await service.RevokeAsync(widerrufen);
+
+        var entfernt = await service.DeleteOrphanedAsync();
+
+        Assert.Equal(2, entfernt);
+        Assert.Empty(await db.RefreshTokens.Where(t => t.UserId == geloeschtesKonto).ToListAsync());
+        Assert.True((await service.RotateAsync(behalten)).Succeeded);
+        // Idempotent: Ein zweiter Lauf findet nichts mehr.
+        Assert.Equal(0, await service.DeleteOrphanedAsync());
     }
 }

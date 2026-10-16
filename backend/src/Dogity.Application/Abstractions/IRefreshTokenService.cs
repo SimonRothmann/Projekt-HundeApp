@@ -34,4 +34,19 @@ public interface IRefreshTokenService
     /// bleibt angemeldet. Ein fremder oder ungültiger Token schützt nichts.
     /// </summary>
     Task RevokeAllExceptAsync(Guid userId, string? keepRawToken, CancellationToken ct = default);
+
+    /// <summary>
+    /// Löscht alle Tokens eines Nutzers endgültig (nicht weich, nicht nur
+    /// widerrufen) - für die Kontolöschung: Die Zeilen hätten danach keinen
+    /// Zweck mehr. Idempotent.
+    /// </summary>
+    Task DeleteAllForUserAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Löscht endgültig alle Tokens, deren Konto es nicht mehr gibt.
+    /// Altbestand: Die Kontolöschung hat die Zeilen früher nur widerrufen. Läuft
+    /// beim Start und ist idempotent.
+    /// </summary>
+    /// <returns>Wie viele Tokens entfernt wurden.</returns>
+    Task<int> DeleteOrphanedAsync(CancellationToken ct = default);
 }

@@ -47,10 +47,29 @@ public class SportsController(ISportCatalogService catalogService, IRegulationMa
 
     [HttpGet("{sportId:guid}/exercises")]
     [Authorize]
-    public async Task<ActionResult<IReadOnlyList<ExerciseDto>>> GetExercises(Guid sportId, CancellationToken ct)
+    public async Task<ActionResult<IReadOnlyList<ExerciseDto>>> GetExercises(
+        Guid sportId, [FromQuery] string? katalog, [FromQuery] Guid? clubId, CancellationToken ct)
     {
+        // Ohne "katalog" alles Sichtbare (z. B. Trainingsformular); "global"
+        // bzw. "verein" (mit clubId) schränken auf einen einzelnen Katalog ein.
+        ExerciseScope? scope;
+        switch (katalog)
+        {
+            case null:
+                scope = null;
+                break;
+            case "global":
+                scope = ExerciseScope.Global;
+                break;
+            case "verein" when clubId is { } id:
+                scope = ExerciseScope.ForClub(id);
+                break;
+            default:
+                return BadRequest(new { errors = new[] { "Ungültiger Katalog: erlaubt sind \"global\" oder \"verein\" mit clubId." } });
+        }
+
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await catalogService.GetExercisesAsync(sportId, userId, ct);
+        var result = await catalogService.GetExercisesAsync(sportId, userId, scope, ct);
         if (!result.Succeeded)
             return NotFound(new { errors = result.Errors });
 

@@ -26,8 +26,11 @@ public interface ISportCatalogService
     /// <summary>
     /// Liefert globale Übungen plus vereinsspezifische Übungen der Vereine,
     /// denen der Nutzer als Trainer oder Gruppenmitglied zugeordnet ist.
+    /// Mit <paramref name="scope"/> nur der globale bzw. der eine
+    /// Vereinskatalog; die Sichtbarkeitsprüfung gilt weiterhin, ein fremder
+    /// Verein ergibt also eine leere Liste.
     /// </summary>
-    Task<Result<IReadOnlyList<ExerciseDto>>> GetExercisesAsync(Guid sportId, Guid userId, CancellationToken ct = default);
+    Task<Result<IReadOnlyList<ExerciseDto>>> GetExercisesAsync(Guid sportId, Guid userId, ExerciseScope? scope = null, CancellationToken ct = default);
 
     /// <summary>
     /// Sportartlose Übungen (SportId = null), gefiltert nach Sichtbarkeit

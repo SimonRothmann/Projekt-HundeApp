@@ -87,7 +87,7 @@ angefordert hat, wäre schlimmer als sein Fehlen.
 
 - **Gruppen, die ein gelöschter Nutzer geleitet hat**, bleiben stehen. Was mit
   ihnen passieren soll, ist eine Entscheidung, keine Aufräumarbeit — deshalb
-  fasst `ClubService.PurgeUserAsync` sie bewusst nicht an.
+  fasst die Kontolöschung (`AccountDataService.PurgeAsync`) sie bewusst nicht an.
 - **Ein zweiter Hund** startet den Erststart nicht neu — richtig so, aber wer
   Jahre später einen Welpen bekommt, bekäme die Anleitung vielleicht gern noch
   einmal. Bisher nur über das Ausblenden-Rücknehmen möglich, das es nicht gibt.

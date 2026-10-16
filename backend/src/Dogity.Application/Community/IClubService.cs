@@ -76,21 +76,6 @@ public interface IClubService
     /// <summary>Ein bereits genehmigtes Mitglied des eigenen Vereins zum Trainer befördern.</summary>
     Task<Result> PromoteMemberToTrainerAsync(Guid callerId, Guid clubId, Guid targetUserId, CancellationToken ct = default);
 
-    /// <summary>Eigene aktive Mitgliedschaft beenden (Selbstbedienung, betrifft nur die Vereinsmitgliedschaft, keine Gruppen-/Trainer-Zuordnungen).</summary>
+    /// <summary>Eigene aktive Mitgliedschaft beenden (Selbstbedienung). Löst über DetachFromClubAsync auch Gruppen- und Betreuungszuordnungen in diesem Verein.</summary>
     Task<Result> LeaveClubAsync(Guid userId, Guid clubId, CancellationToken ct = default);
-    /// <summary>
-    /// Löst einen Nutzer aus allem Vereins- und Gruppenzusammenhang: offene und
-    /// freigegebene Mitgliedschaften, Vereins- und Gruppentrainer-Zeilen,
-    /// Trainerzuweisungen in beide Richtungen.
-    ///
-    /// Wird beim Löschen des Kontos aufgerufen. Ohne das bleiben die Zeilen
-    /// stehen und tauchen mit "(unbekannt)" wieder auf - eine Beitrittsanfrage
-    /// eines gelöschten Nutzers steht dann für immer in der Liste eines
-    /// Trainers, der sie nicht auflösen kann.
-    ///
-    /// Nicht angefasst werden Gruppen, die der Nutzer LEITET: was mit ihnen
-    /// passieren soll, ist eine Entscheidung, keine Aufräumarbeit.
-    /// </summary>
-    Task PurgeUserAsync(Guid userId, CancellationToken ct = default);
-
 }

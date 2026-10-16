@@ -171,7 +171,12 @@ public class AdminService(
 
         var ok = await userLookup.DeleteUserAsync(userId, ct);
         if (!ok) return Result.NotFound("Benutzer nicht gefunden oder Löschung fehlgeschlagen.");
-        await refreshTokens.RevokeAllForUserAsync(userId, ct);
+        // Erst nach dem Konto: Schlägt das Löschen fehl, bleibt die Sitzung
+        // gültig wie das Konto. Danach bekommt niemand mehr einen Access-Token
+        // (der Refresh findet das Konto nicht mehr); die Zeilen selbst haben
+        // ohne Konto keinen Zweck und fliegen ganz raus, statt nur widerrufen
+        // zu stehen.
+        await refreshTokens.DeleteAllForUserAsync(userId, ct);
         return Result.Success();
     }
 

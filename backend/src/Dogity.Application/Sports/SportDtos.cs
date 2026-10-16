@@ -16,6 +16,18 @@ public record ExerciseDto(
     string? ScoringCriteria,
     Guid? ClubId);
 
+/// <summary>
+/// Optionale Einschränkung der Übungsliste auf genau einen Katalog: den
+/// globalen (ClubId = null) oder den eines Vereins. Ohne Scope liefert die
+/// Liste weiterhin alles, was die Person sehen darf.
+/// </summary>
+public record ExerciseScope(Guid? ClubId)
+{
+    public static ExerciseScope Global { get; } = new((Guid?)null);
+
+    public static ExerciseScope ForClub(Guid clubId) => new(clubId);
+}
+
 public record CreateExerciseRequest(
     Guid? SportId,
     string Name,

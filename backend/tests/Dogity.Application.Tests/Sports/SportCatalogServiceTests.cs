@@ -1,5 +1,6 @@
 using Dogity.Application.Sports;
 using Dogity.Application.Tests.TestSupport;
+using Dogity.Domain.Community;
 using Dogity.Domain.Sports;
 using Dogity.Infrastructure.Persistence;
 
@@ -83,5 +84,74 @@ public class SportCatalogServiceTests
         Assert.Equal(
             ["Apportieren über die Hürde", "Leinenführigkeit", "Voran mit Platz"],
             result.Value!.Exercises.Select(e => e.ExerciseName));
+    }
+
+    /// <summary>
+    /// Eine Sportart mit je einer globalen Übung, einer Übung des eigenen
+    /// Vereins (Trainer = "ich") und einer Übung eines fremden Vereins.
+    /// </summary>
+    private static async Task<(Guid SportId, Guid Ich, Guid MeinVerein, Guid FremderVerein)> SeedVereinsUebungenAsync(
+        ApplicationDbContext db)
+    {
+        var ich = Guid.NewGuid();
+        var sport = new Sport { Code = "BH", Name = "BH" };
+        var mein = new Club { Name = "Mein Verein" };
+        var fremd = new Club { Name = "Fremder Verein" };
+        db.Sports.Add(sport);
+        db.Clubs.AddRange(mein, fremd);
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = mein.Id, UserId = ich });
+        db.Exercises.AddRange(
+            new Exercise { SportId = sport.Id, Name = "Global" },
+            new Exercise { SportId = sport.Id, Name = "Meine Übung", ClubId = mein.Id },
+            new Exercise { SportId = sport.Id, Name = "Fremde Übung", ClubId = fremd.Id });
+        await db.SaveChangesAsync();
+        return (sport.Id, ich, mein.Id, fremd.Id);
+    }
+
+    [Fact]
+    public async Task GetExercises_WithoutScope_ReturnsEverythingVisible()
+    {
+        var db = InMemoryDbContext.Create();
+        var (sportId, ich, _, _) = await SeedVereinsUebungenAsync(db);
+
+        var result = await new SportCatalogService(db).GetExercisesAsync(sportId, ich);
+
+        // Verhalten wie vor dem Scope-Filter: global plus eigener Verein, nie der fremde.
+        Assert.Equal(["Global", "Meine Übung"], result.Value!.Select(e => e.Name));
+    }
+
+    [Fact]
+    public async Task GetExercises_GlobalScope_ReturnsOnlyGlobal()
+    {
+        var db = InMemoryDbContext.Create();
+        var (sportId, ich, _, _) = await SeedVereinsUebungenAsync(db);
+
+        var result = await new SportCatalogService(db).GetExercisesAsync(sportId, ich, ExerciseScope.Global);
+
+        Assert.Equal(["Global"], result.Value!.Select(e => e.Name));
+    }
+
+    [Fact]
+    public async Task GetExercises_ClubScope_ReturnsOnlyThatClubsExercises()
+    {
+        var db = InMemoryDbContext.Create();
+        var (sportId, ich, meinVerein, _) = await SeedVereinsUebungenAsync(db);
+
+        var result = await new SportCatalogService(db).GetExercisesAsync(sportId, ich, ExerciseScope.ForClub(meinVerein));
+
+        Assert.Equal(["Meine Übung"], result.Value!.Select(e => e.Name));
+    }
+
+    [Fact]
+    public async Task GetExercises_ClubScopeOfForeignClub_ReturnsEmptyList()
+    {
+        var db = InMemoryDbContext.Create();
+        var (sportId, ich, _, fremderVerein) = await SeedVereinsUebungenAsync(db);
+
+        var result = await new SportCatalogService(db).GetExercisesAsync(sportId, ich, ExerciseScope.ForClub(fremderVerein));
+
+        // Kein Fehler, aber auch nichts: Die Sichtbarkeitsprüfung greift vor dem Scope.
+        Assert.True(result.Succeeded);
+        Assert.Empty(result.Value!);
     }
 }

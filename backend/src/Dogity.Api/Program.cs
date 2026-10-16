@@ -1,5 +1,6 @@
 using Dogity.Api.Hosting;
 using Dogity.Application;
+using Dogity.Application.Abstractions;
 using Dogity.Application.Community;
 using Dogity.Application.Planning;
 using Dogity.Application.Tracking;
@@ -13,7 +14,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,15 +49,11 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Description = "JWT Bearer Token: \"Bearer {token}\""
     });
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    // Microsoft.OpenApi v2: Das Schema wird über eine Referenz auf das Dokument
+    // angesprochen, daher der Delegate statt eines fertigen Objekts.
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
 
@@ -259,6 +256,12 @@ using (var scope = app.Services.CreateScope())
     var verwaiste = await scope.ServiceProvider.GetRequiredService<ICommunityOrphanCleanup>().CleanupAsync();
     if (verwaiste > 0)
         app.Logger.LogInformation("{Anzahl} verwaiste Vereins-/Gruppenzeilen entfernt.", verwaiste);
+
+    // Anmelde-Tokens gelöschter Konten: Die Kontolöschung hat sie früher nur
+    // widerrufen stehen lassen. Idempotent - ohne Altbestand findet der Lauf nichts.
+    var verwaisteTokens = await scope.ServiceProvider.GetRequiredService<IRefreshTokenService>().DeleteOrphanedAsync();
+    if (verwaisteTokens > 0)
+        app.Logger.LogInformation("{Anzahl} Anmelde-Tokens gelöschter Konten entfernt.", verwaisteTokens);
 
     // Fährten gelöschter Trainings: Das Löschen eines Trainings hat sie früher
     // stehen lassen (Admin-Zähler, GPS-Punkte). Idempotent - ohne Altbestand

@@ -7,7 +7,7 @@ namespace Dogity.Application.Sports;
 
 public class SportCatalogService(IApplicationDbContext db) : ISportCatalogService
 {
-    public async Task<Result<IReadOnlyList<ExerciseDto>>> GetExercisesAsync(Guid sportId, Guid userId, CancellationToken ct = default)
+    public async Task<Result<IReadOnlyList<ExerciseDto>>> GetExercisesAsync(Guid sportId, Guid userId, ExerciseScope? scope = null, CancellationToken ct = default)
     {
         var exists = await db.Sports.AnyAsync(s => s.Id == sportId, ct);
         if (!exists)
@@ -15,9 +15,16 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
 
         var visibleClubIds = await db.GetVisibleClubIdsAsync(userId, ct);
 
-        var exercises = await db.Exercises
+        var query = db.Exercises
             .Where(e => e.SportId == sportId)
-            .Where(e => e.ClubId == null || visibleClubIds.Contains(e.ClubId.Value))
+            .Where(e => e.ClubId == null || visibleClubIds.Contains(e.ClubId.Value));
+
+        // Erst nach der Sichtbarkeitsprüfung eingrenzen: Ein Verein, den die
+        // Person nicht sehen darf, liefert so nie etwas, egal was angefragt wird.
+        if (scope is not null)
+            query = query.Where(e => e.ClubId == scope.ClubId);
+
+        var exercises = await query
             .OrderBy(e => e.Name)
             .Select(e => new ExerciseDto(e.Id, e.SportId, e.Name, e.Description, e.Difficulty, e.Category, e.ScoringCriteria, e.ClubId))
             .ToListAsync(ct);

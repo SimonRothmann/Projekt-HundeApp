@@ -142,7 +142,12 @@ public class AuthController(
         // Anmeldung (siehe Sperren).
         if (user is null || Sperren.Bestimme(user.LockoutEnd, timeProvider.GetUtcNow()) == Sperrart.Dauerhaft)
         {
-            await refreshTokens.RevokeAllForUserAsync(rotation.UserId);
+            // Ohne Konto gibt es nichts mehr zu widerrufen, die Zeilen sind
+            // Altlast (z. B. nach einer Löschung, die mittendrin abbrach).
+            if (user is null)
+                await refreshTokens.DeleteAllForUserAsync(rotation.UserId);
+            else
+                await refreshTokens.RevokeAllForUserAsync(rotation.UserId);
             return Unauthorized(new { errors = new[] { "Sitzung abgelaufen. Bitte neu anmelden." } });
         }
 

@@ -168,7 +168,8 @@ public class ProfileController(
         if (!deleted.Succeeded)
             return BadRequest(new { errors = deleted.Errors.Select(e => e.Description) });
 
-        await refreshTokens.RevokeAllForUserAsync(CurrentUserId, ct);
+        // Nach dem Konto, nicht davor (siehe AdminService.DeleteUserAsync).
+        await refreshTokens.DeleteAllForUserAsync(CurrentUserId, ct);
         kontoStatus.Vergessen(CurrentUserId);
         return NoContent();
     }

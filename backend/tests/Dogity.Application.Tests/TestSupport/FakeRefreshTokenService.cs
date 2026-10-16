@@ -10,6 +10,7 @@ namespace Dogity.Application.Tests.TestSupport;
 public class FakeRefreshTokenService : IRefreshTokenService
 {
     public List<Guid> RevokedAllForUsers { get; } = [];
+    public List<Guid> DeletedAllForUsers { get; } = [];
 
     public Task<string> IssueAsync(Guid userId, CancellationToken ct = default)
         => Task.FromResult($"fake-refresh-{userId}");
@@ -28,4 +29,13 @@ public class FakeRefreshTokenService : IRefreshTokenService
 
     public Task RevokeAllExceptAsync(Guid userId, string? keepRawToken, CancellationToken ct = default)
         => RevokeAllForUserAsync(userId, ct);
+
+    public Task DeleteAllForUserAsync(Guid userId, CancellationToken ct = default)
+    {
+        DeletedAllForUsers.Add(userId);
+        return Task.CompletedTask;
+    }
+
+    public Task<int> DeleteOrphanedAsync(CancellationToken ct = default)
+        => Task.FromResult(0);
 }

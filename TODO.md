@@ -157,7 +157,7 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
 Im Rahmen eines vollständigen Performance-Audits identifiziert, aber bewusst zurückgestellt, da der Nutzen beim aktuellen Datenvolumen (Demo-Daten, einstellige bis niedrige zweistellige Nutzerzahl) den Implementierungsaufwand noch nicht rechtfertigt - sobald die Nutzerzahl wächst, hier zuerst ansetzen:
 
 - [x] `GET /api/admin/users` liefert alle Nutzer ohne Paging zurück - erledigt: Endpoint hat inzwischen `page`/`pageSize`-Parameter (`AdminUserPageDto`, Default 50/Seite).
-- [ ] `global-exercises-section.tsx`/`club-exercises-section.tsx` laden alle für den Nutzer sichtbaren Übungen und filtern client-seitig auf `clubId === null` bzw. den gewählten Verein - ein Query-Parameter am bestehenden `/api/sports/{sportId}/exercises`-Endpoint würde das vermeiden, spart aber nur wenige KB pro Aufruf in der Admin/Trainer-Verwaltung (kein Endnutzer-Pfad auf dem Hundeplatz).
+- [x] (erledigt 2026-10-16: `GET /api/sports/{sportId}/exercises?katalog=global` bzw. `?katalog=verein&clubId=...` filtert serverseitig, ein fremder Verein ergibt eine leere Liste, ohne Parameter unverändert; `catalog-section.tsx` filtert nicht mehr selbst) `global-exercises-section.tsx`/`club-exercises-section.tsx` luden alle für den Nutzer sichtbaren Übungen und filterten client-seitig auf `clubId === null` bzw. den gewählten Verein - ein Query-Parameter am bestehenden `/api/sports/{sportId}/exercises`-Endpoint würde das vermeiden, spart aber nur wenige KB pro Aufruf in der Admin/Trainer-Verwaltung (kein Endnutzer-Pfad auf dem Hundeplatz).
 
 - [x] Vier Trainingsplan/-tagebuch-Wünsche umgesetzt: **(1)** Abgebrochene/erreichte Ziele lassen sich jetzt löschen ("Ziel löschen"-Button, `window.confirm`-Bestätigung, ruft den schon vorhandenen DELETE-Endpoint). **(2)** Plan-Items lassen sich jetzt direkt bearbeiten statt nur entfernen+neu anlegen (neuer `PUT /api/goals/{id}/plan-items/{itemId}`-Endpoint, `UpdatePlanItemAsync`) - Woche und Zielwert änderbar, die Übung selbst bewusst nicht (sonst würden bereits verknüpfte Tagebucheinträge plötzlich zu einer anderen Übung gehören). **(3)** `TrainingPlanGenerator` plant jetzt mindestens 4 Übungen/Woche (Richtwert: 2 Einheiten x 2 Übungen) statt nur so viele wie nötig, um den Pflichtkatalog einmal abzudecken - skaliert nur darüber hinaus (bis max. 6), wenn ein großer Pflichtkatalog sonst nicht rechtzeitig vor dem Zieldatum vollständig untergebracht werden könnte. **(4)** Trainingstagebuch-Einträge können jetzt als Freitext statt als Katalog-Übung erfasst werden (für spontane Spaß-/Sonstige Übungen, die nicht Teil einer Prüfungsordnung sind) - `TrainingExercise.ExerciseId` ist jetzt nullable, neues `FreeTextLabel`-Feld (Migration `AddFreeTextExercises`), Frontend bekommt einen Umschalt-Button pro Übungszeile zwischen Katalog-Auswahl und Freitext-Eingabe. Dabei zwei echte Bugs gefunden und behoben: (a) die alten, beim IBGH/IGP-Korrekturdurchlauf ersetzten `RegulationSeed`-Blöcke ("Fußarbeit" etc.) referenzierten Übungen, die nicht mehr deklariert waren - mit der seit dem letzten Mal scharf geschalteten Fehlerprüfung crashte der Server beim Neustart; die toten Code-Blöcke wurden komplett entfernt (nicht nur ihre DB-Daten). (b) Ohne gewählte Prüfungsordnung zog der Generator versehentlich auch fremde, vereinsspezifische Übungen in den Plan (`Exercise.ClubId` wurde im Fallback-Pool nicht gefiltert) - teils sogar doppelt, da zwei Vereine identisch benannte Übungen angelegt hatten. Backend-Tests erweitert (Mindestpensum-Test), Typecheck/Lint/Build grün, alle vier Features live per curl verifiziert.
 
@@ -186,13 +186,14 @@ dass die Ausnahmen ein Ablaufdatum haben.
   unterstützt - und mit ihm die `overrides` in `frontend/package.json`. Sie
   stillen die ERESOLVE-Warnungen von `eslint-plugin-react`, `-import` und
   `-jsx-a11y` beim Deploy, deren Peer-Angabe bei ESLint 9 endet.
-- [ ] **Swashbuckle 10.** Braucht eine Migration der Swagger-Konfiguration
+- [x] (erledigt 2026-10-16: Swashbuckle 10.x mit Microsoft.OpenApi v2, `Program.cs` migriert; das eingebaute `Microsoft.AspNetCore.OpenApi` bewusst nicht umgebaut) **Swashbuckle 10.** Braucht eine Migration der Swagger-Konfiguration
   in `Program.cs` auf Microsoft.OpenApi v2 (Namensraum und Referenzmodell
   geändert). Betrifft nur die Development-Oberfläche, Prod hat kein
   Swagger. Bei der Gelegenheit prüfen, ob das eingebaute
   `Microsoft.AspNetCore.OpenApi` seit .NET 9 Swashbuckle hier ganz ersetzt.
 - [ ] **TypeScript 7.** Wartet auf `typescript-eslint` mit Unterstützung für
   TS >= 7.1 (das Projekt steht auf 6, dem empfohlenen Zwischenschritt).
+  Geprüft 2026-10-16: typescript-eslint 8.71 erlaubt TypeScript < 6.1 - weiter warten.
 
 ## Roadmap: Technische Schulden × Features (Audit 2026-07-16)
 
@@ -242,7 +243,7 @@ Ausgelöst durch die Nutzerfrage "wie verhindern wir, dass Nutzer, die 3x/Woche 
 - Cookie-Auth + Refresh-Token-Rotation (JWT-Härtung Stufe 2): bricht `api.ts`, 401-Handling, Offline-Queue und Dev-CORS gleichzeitig - erst vor einer öffentlichen Beta mit Fremdnutzern angehen. CSP + SecurityStamp senken das Risiko bis dahin ausreichend.
 - Test-Env von `Development` auf eigenes `Staging`-Environment umstellen (Demo-Seeder an explizites `Seed:Demo`-Flag koppeln, CORS festnageln, Swagger schützen): erst nötig, wenn die Test-Domain öffentlich sichtbar beworben wird.
 - PDF-Export: Druckansicht `/dogs/[id]/print` + Browser-Print deckt den Bedarf.
-- Exercises-Endpoint-Query-Parameter (siehe Performance-Backlog oben): spart nur wenige KB in der Admin/Trainer-Verwaltung.
+- ~~Exercises-Endpoint-Query-Parameter~~ - erledigt 2026-10-16 (siehe Performance-Backlog oben).
 
 ---
 
@@ -411,12 +412,12 @@ Mal: Betriebswirklichkeit auf dem Server prüfen, nicht in den Entwürfen.
 - [x] (erledigt 2026-10-15: info@dogity.net über Cloudflare Email Routing) Optional: **kontakt@dogity.net** einrichten und in `BETREIBER.email`
       eintragen, damit die private Adresse nicht öffentlich im Impressum steht.
       Eine Zeile, sonst ändert sich nichts.
-- [ ] Aufräumen: `ClubService.PurgeUserAsync` hat seit der Kontolöschung über
+- [x] (erledigt 2026-10-16: Methode samt Interface-Member entfernt, Kommentarblock gehört nun allein zu `DetachFromClubAsync`) Aufräumen: `ClubService.PurgeUserAsync` hat seit der Kontolöschung über
       `AccountDataService` keinen Aufrufer mehr. Nicht mit entfernt, weil der
       Kommentarblock darüber erkennbar zur nächsten Methode
       (`DetachFromClubAsync`) gehört - das gehört in einem eigenen Schritt
       sauber getrennt.
-- [ ] Kleinigkeit: Nach einer Kontolöschung bleiben Zeilen in `refresh_tokens`
+- [x] (erledigt 2026-10-16: `IRefreshTokenService.DeleteAllForUserAsync` in beiden Löschwegen, Altbestand räumt `DeleteOrphanedAsync` beim Start weg) Kleinigkeit: Nach einer Kontolöschung bleiben Zeilen in `refresh_tokens`
       mit der UserId des gelöschten Kontos stehen (nur Hash und Zeitstempel,
       kein Personenbezug mehr). `IRefreshTokenService` ist in der
       Application-Schicht nicht über den DbContext erreichbar; aufräumen ließe

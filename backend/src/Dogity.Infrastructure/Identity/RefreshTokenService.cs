@@ -103,6 +103,39 @@ public class RefreshTokenService(ApplicationDbContext db, IOptions<JwtSettings> 
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task DeleteAllForUserAsync(Guid userId, CancellationToken ct = default)
+    {
+        var tokens = await db.RefreshTokens.Where(t => t.UserId == userId).ToListAsync(ct);
+        if (tokens.Count == 0) return;
+        db.RefreshTokens.RemoveRange(tokens);
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// So viele Tokens je Durchgang: Ein Konto bringt je Gerät eine Zeile mit,
+    /// der Altbestand ist überschaubar - Portionen halten die einzelne
+    /// Abfrage und den Speichervorgang trotzdem klein.
+    /// </summary>
+    private const int Portion = 500;
+
+    public async Task<int> DeleteOrphanedAsync(CancellationToken ct = default)
+    {
+        var gesamt = 0;
+        while (true)
+        {
+            var waisen = await db.RefreshTokens
+                .Where(t => !db.Users.Any(u => u.Id == t.UserId))
+                .OrderBy(t => t.CreatedAt)
+                .Take(Portion)
+                .ToListAsync(ct);
+            if (waisen.Count == 0) return gesamt;
+
+            db.RefreshTokens.RemoveRange(waisen);
+            await db.SaveChangesAsync(ct);
+            gesamt += waisen.Count;
+        }
+    }
+
     // 32 Byte Zufall, Base64Url-kodiert - genug Entropie, dass der Token nicht
     // erraten werden kann, und URL-/JSON-sicher ohne Sonderzeichen.
     private static string GenerateRawToken() =>

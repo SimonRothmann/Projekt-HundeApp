@@ -90,6 +90,31 @@ public class AdminServiceTests
     }
 
     [Fact]
+    public async Task DeleteUser_DeletesRefreshTokensForGood()
+    {
+        var service = MakeService(out var lookup, out var refreshTokens);
+        var userId = Guid.NewGuid();
+        lookup.Register(userId, "user@test.de");
+
+        await service.DeleteUserAsync(userId);
+
+        // Endgültig gelöscht statt nur widerrufen: Die Zeilen eines gelöschten
+        // Kontos haben keinen Zweck mehr.
+        Assert.Contains(userId, refreshTokens.DeletedAllForUsers);
+    }
+
+    [Fact]
+    public async Task DeleteUser_UserNotFound_LeavesRefreshTokensAlone()
+    {
+        var service = MakeService(out _, out var refreshTokens);
+
+        var result = await service.DeleteUserAsync(Guid.NewGuid());
+
+        Assert.False(result.Succeeded);
+        Assert.Empty(refreshTokens.DeletedAllForUsers);
+    }
+
+    [Fact]
     public async Task GetUsers_DefaultPage_Returns50PerPage()
     {
         var service = MakeService(out var lookup);
