@@ -61,6 +61,29 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.32",
+    datum: "2026-10-17",
+    titel: uebersetzbar("Prüfungsordnungen für Österreich"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Wer Österreich als Land gewählt hat, findet jetzt die Prüfungsordnungen des ÖKV: die Mensch-Hund-Team-Prüfung (BH/VT), Agility mit den Leistungsklassen 1 bis 3 und Jumping, Hoopers H1 bis H3 sowie den Breitensport mit Vierkampf, Läufen, CSC und Shorty."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Der Breitensport ist als eigene Sportart dazugekommen. Er erscheint nur, wenn Österreich gewählt ist."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Sportarten, die es nur in einem anderen Land gibt, werden dir nicht mehr angeboten – in der Sportartenliste, beim Eintragen und beim Anlegen eines Ziels. Bestehende Ziele und Trainings bleiben unverändert sichtbar."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Beim Anlegen eines Ziels werden nur noch die Prüfungsordnungen deines Landes und die international gültigen angeboten."),
+      },
+    ],
+  },
+  {
     version: "0.31",
     datum: "2026-10-16",
     titel: uebersetzbar("Internationale Prüfungsordnungen in allen Ländern"),

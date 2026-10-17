@@ -11,7 +11,9 @@ namespace Dogity.Application.Tests.Sports;
 /// <summary>
 /// Paket L1 im echten Katalog: Die FCI-Ordnungen gelten überall und tragen
 /// englische Namen, die nationalen VDH-Ordnungen (Turnierhundsport, Agility,
-/// Hoopers) bleiben Deutschland vorbehalten und deutsch.
+/// Hoopers) bleiben Deutschland vorbehalten und deutsch. Seit Paket L2 kommen
+/// die ÖKV-Ordnungen dazu (Land "AT", ebenfalls deutsch) - die Prüfungen hier
+/// betrachten deshalb jeweils die Ordnungen OHNE Österreich.
 /// </summary>
 public class FciKatalogTests
 {
@@ -35,7 +37,12 @@ public class FciKatalogTests
     {
         await using var db = await KatalogAsync();
 
-        var ordnungen = await db.Regulations.Select(r => new { r.Sport!.Code, r.CountryCode }).ToListAsync();
+        var alle = await db.Regulations.Select(r => new { r.Sport!.Code, r.Name, r.CountryCode }).ToListAsync();
+        // Die österreichischen Ordnungen (Paket L2) haben ihre eigenen Tests.
+        var oesterreich = alle.Where(o => o.CountryCode == "AT").ToList();
+        Assert.NotEmpty(oesterreich);
+        Assert.All(oesterreich, o => Assert.StartsWith("ÖKV", o.Name));
+        var ordnungen = alle.Except(oesterreich).ToList();
 
         Assert.All(ordnungen.Where(o => Vdh.Contains(o.Code)), o => Assert.Equal("DE", o.CountryCode));
         Assert.All(ordnungen.Where(o => !Vdh.Contains(o.Code)), o => Assert.Null(o.CountryCode));
@@ -50,12 +57,13 @@ public class FciKatalogTests
 
         var codes = await db.Sports.Where(s => s.ClubId == null).Select(s => s.Code).ToListAsync();
 
-        // Weder fehlt eine FCI-Sportart in der Liste, noch steht Nationales darin.
-        Assert.Equal(codes.Except(Vdh).Order(), FciKatalog.InternationaleSportarten.Order());
+        // Weder fehlt eine FCI-Sportart in der Liste, noch steht Nationales darin -
+        // auch nicht der österreichische Breitensport.
+        Assert.Equal(codes.Except(Vdh).Except([SportCatalogSeeder.BreitensportCode]).Order(), FciKatalog.InternationaleSportarten.Order());
     }
 
     [Fact]
-    public async Task Katalog_FuerOesterreich_LiefertFciAberWederHoopersNochAgilityNochThs()
+    public async Task Katalog_FuerOesterreich_LiefertFciUndOekvAberKeineVdhOrdnungen()
     {
         await using var db = await KatalogAsync();
         var dienst = new SportCatalogService(db);
@@ -64,16 +72,18 @@ public class FciKatalogTests
         {
             var inAt = (await dienst.GetRegulationsAsync(sport.Id, "AT")).Value!;
             var inDe = (await dienst.GetRegulationsAsync(sport.Id, "DE")).Value!;
-            var gesamt = await db.Regulations.CountAsync(r => r.SportId == sport.Id);
+            var ordnungen = await db.Regulations.Where(r => r.SportId == sport.Id).ToListAsync();
 
-            if (Vdh.Contains(sport.Code))
-                Assert.Empty(inAt);
-            else
-                Assert.Equal(gesamt, inAt.Count);
-
-            // Für Deutschland gilt alles.
-            Assert.Equal(gesamt, inDe.Count);
+            // International (null) plus das eigene Land - nie die des anderen.
+            Assert.Equal(ordnungen.Count(r => r.CountryCode is null or "AT"), inAt.Count);
+            Assert.Equal(ordnungen.Count(r => r.CountryCode is null or "DE"), inDe.Count);
+            Assert.DoesNotContain(inAt, r => r.CountryCode == "DE");
+            Assert.DoesNotContain(inDe, r => r.CountryCode == "AT");
         }
+
+        // Turnierhundsport ist rein deutsch (VDH): In Österreich bleibt er leer.
+        var ths = await db.Sports.SingleAsync(s => s.Code == "THS");
+        Assert.Empty((await dienst.GetRegulationsAsync(ths.Id, "AT")).Value!);
     }
 
     [Fact]
@@ -82,12 +92,15 @@ public class FciKatalogTests
         await using var db = await KatalogAsync();
         var fci = await db.Regulations.CountAsync(r => r.CountryCode == null);
         var vdh = await db.Regulations.CountAsync(r => r.CountryCode == "DE");
+        var oekv = await db.Regulations.CountAsync(r => r.CountryCode == "AT");
 
         var laender = (await new SportCatalogService(db).GetCountriesAsync()).Value!;
 
-        Assert.True(fci > 0 && vdh > 0);
+        Assert.True(fci > 0 && vdh > 0 && oekv > 0);
         Assert.Equal(fci + vdh, laender.Single(l => l.Code == "DE").RegulationCount);
-        Assert.Equal(fci, laender.Single(l => l.Code == "AT").RegulationCount);
+        Assert.Equal(fci + oekv, laender.Single(l => l.Code == "AT").RegulationCount);
+        // Ein Land ohne eigene Ordnungen hat trotzdem die internationalen.
+        Assert.Equal(fci, laender.Single(l => l.Code == "CH").RegulationCount);
     }
 
     [Fact]
@@ -100,11 +113,20 @@ public class FciKatalogTests
         Assert.Equal(codes.Count, sportarten.Count);
         Assert.All(sportarten, s => Assert.False(string.IsNullOrWhiteSpace(s.NameEn), $"Sportart {s.Code}"));
 
-        var ordnungen = await db.Regulations.Where(r => codes.Contains(r.Sport!.Code)).ToListAsync();
+        // Die FCI-Ordnungen, nicht die ÖKV-Ordnung unter der Sportart BH: Nationales bleibt deutsch.
+        var ordnungen = await db.Regulations.Where(r => codes.Contains(r.Sport!.Code) && r.CountryCode == null).ToListAsync();
         Assert.NotEmpty(ordnungen);
         Assert.All(ordnungen, r => Assert.False(string.IsNullOrWhiteSpace(r.NameEn), $"Ordnung {r.Name}"));
 
-        var uebungen = await db.Exercises.Where(e => e.Sport != null && codes.Contains(e.Sport.Code)).ToListAsync();
+        // Übungen, die nur in einer österreichischen Ordnung vorkommen, bleiben deutsch.
+        var nurOesterreich = await db.RegulationExercises
+            .GroupBy(re => re.ExerciseId)
+            .Where(g => g.All(re => re.RegulationVersion!.Regulation!.CountryCode == "AT"))
+            .Select(g => g.Key)
+            .ToListAsync();
+        var uebungen = await db.Exercises
+            .Where(e => e.Sport != null && codes.Contains(e.Sport.Code) && !nurOesterreich.Contains(e.Id))
+            .ToListAsync();
         Assert.NotEmpty(uebungen);
         Assert.All(uebungen, e => Assert.False(string.IsNullOrWhiteSpace(e.NameEn), $"Übung {e.Sport!.Code}/{e.Name}"));
     }

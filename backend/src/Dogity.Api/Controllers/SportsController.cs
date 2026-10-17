@@ -22,15 +22,18 @@ public class SportsController(ISportCatalogService catalogService, IRegulationMa
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<ActionResult<IReadOnlyList<SportDto>>> GetSports(CancellationToken ct)
+    public async Task<ActionResult<IReadOnlyList<SportDto>>> GetSports([FromQuery] bool alle, CancellationToken ct)
     {
         // Vereinsspezifische Sportarten (Sport.ClubId != null) sind nur für
         // eingeloggte Nutzer sichtbar, die im entsprechenden Verein Trainer
         // oder aktives Mitglied sind. Anonyme Aufrufer sehen nur globale.
+        // Angemeldete bekommen nur die Sportarten ihres Landes (siehe
+        // GetSportsAsync); "alle" hebt das auf, für die Katalogpflege. Das ist
+        // keine Zugriffsbeschränkung - Sportarten und Ordnungen sind öffentlich.
         Guid? userId = User.Identity?.IsAuthenticated == true
             ? Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!)
             : null;
-        var result = await catalogService.GetSportsAsync(userId, ct);
+        var result = await catalogService.GetSportsAsync(userId, alle, ct);
         return Ok(result.Value);
     }
 

@@ -37,6 +37,12 @@ describe("groupIntoFamilies", () => {
     expect(titles(["Hoopers 0 (H0)", "Hoopers 3 (H3)", "Agility 1 (A1)"])).toEqual(["Agility", "Hoopers"]);
   });
 
+  it("bündelt die österreichischen Ordnungen unter „Österreich – ÖKV“ statt unter „Weitere“", () => {
+    expect(titles(["ÖKV BH/VT (Mensch-Hund-Team-Prüfung)", "ÖKV Agility LK 1 (A 1)", "ÖKV Hoopers 1 (H1)", "ÖKV Slalomlauf"])).toEqual([
+      "Österreich – ÖKV",
+    ]);
+  });
+
   it("trennt die Fährten von den Einzelprüfungen", () => {
     // "FCI-FPr 1" enthält kein "Fährte" im Namen und gehört zu den
     // Einzelprüfungen - sonst stünde dieselbe Prüfung in zwei Familien.

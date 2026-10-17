@@ -17,6 +17,13 @@ namespace Dogity.Domain.Geography;
 /// </summary>
 public class Country : Entity
 {
+    /// <summary>
+    /// Geltungsbereich, solange eine Person keinen gewählt hat - dieselbe
+    /// Vorgabe wie im Frontend (<c>VORGABE_LAND</c>): Der Katalog ist
+    /// gewachsen, von Deutschland aus; ein leerer Bildschirm wäre keine Vorgabe.
+    /// </summary>
+    public const string Vorgabe = "DE";
+
     /// <summary>ISO 3166-1 alpha-2, immer groß ("DE").</summary>
     public string Code { get; set; } = string.Empty;
 

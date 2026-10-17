@@ -702,7 +702,7 @@ public static class DemoSzenarienSeeder
         // ---------------------------------------------------------------- h) Österreich und Vereinsantrag (Tom)
 
         /// <summary>
-        /// Tom ist "in Österreich": Der Katalog zeigt keine Ordnungen für AT, die Sachkunde ist ausgeblendet,
+        /// Tom ist "in Österreich": Der Katalog zeigt die FCI- und ÖKV-Ordnungen (seit Paket L2), keine des VDH, die Sachkunde ist ausgeblendet,
         /// Tagebuch und Fährte funktionieren. Nur wenn noch kein Land gespeichert ist.
         /// </summary>
         private async Task OesterreichAsync(CancellationToken ct)

@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Domain.Geography;
 using Dogity.Domain.Sports;
 using Microsoft.EntityFrameworkCore;
 
@@ -44,19 +45,47 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
         return Result<IReadOnlyList<ExerciseDto>>.Success(exercises);
     }
 
-    public async Task<Result<IReadOnlyList<SportDto>>> GetSportsAsync(Guid? userId = null, CancellationToken ct = default)
+    public async Task<Result<IReadOnlyList<SportDto>>> GetSportsAsync(Guid? userId = null, bool alle = false, CancellationToken ct = default)
     {
         IReadOnlyCollection<Guid> visibleClubIds = userId is { } uid
             ? await db.GetVisibleClubIdsAsync(uid, ct)
             : Array.Empty<Guid>();
 
-        var sports = await db.Sports
-            .Where(s => s.ClubId == null || visibleClubIds.Contains(s.ClubId.Value))
+        var query = db.Sports
+            .Where(s => s.ClubId == null || visibleClubIds.Contains(s.ClubId.Value));
+
+        // Eingrenzung nach Land nur für Personen: Wer nicht angemeldet ist,
+        // hat keins, und die öffentlichen Seiten zeigen bewusst alle Ordnungen.
+        if (userId is { } person && !alle)
+        {
+            var land = await GespeichertesLandAsync(person, ct);
+            // "Gar keine Ordnung" darf die Sportart nicht verschwinden lassen:
+            // Vereinssportarten und freie Sportarten haben meist keine, und
+            // sie gelten, wo ihr Verein ist.
+            query = query.Where(s => !s.Regulations.Any()
+                || s.Regulations.Any(r => r.CountryCode == null || r.CountryCode == land));
+        }
+
+        var sports = await query
             .OrderBy(s => s.Name)
             .Select(s => new SportDto(s.Id, s.Code, s.Name, s.Description, s.ClubId, s.NameEn))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<SportDto>>.Success(sports);
+    }
+
+    /// <summary>
+    /// Das gewählte Land einer Person, ohne Wahl die Vorgabe der App. Wie im
+    /// Frontend: Wer nie etwas eingestellt hat, hat keine Zeile - und
+    /// bekommt den deutschen Katalog, aus dem die App entstanden ist.
+    /// </summary>
+    private async Task<string> GespeichertesLandAsync(Guid userId, CancellationToken ct)
+    {
+        var gewaehlt = await db.UserPreferences
+            .Where(p => p.UserId == userId)
+            .Select(p => p.Country)
+            .FirstOrDefaultAsync(ct);
+        return Laendercode(gewaehlt) ?? Country.Vorgabe;
     }
 
     public async Task<Result<SportDto>> CreateSportAsync(Guid actingUserId, bool isAdmin, CreateSportRequest request, CancellationToken ct = default)

@@ -14,8 +14,17 @@ public interface ISportCatalogService
     /// Globale Sportarten plus vereinsspezifische Sportarten der Vereine,
     /// in denen der Nutzer Trainer oder aktives Mitglied ist. Für nicht
     /// eingeloggte Aufrufe (userId=null) nur globale Sportarten.
+    ///
+    /// Für eingeloggte Aufrufe zusätzlich nach Land eingegrenzt (das
+    /// gespeicherte der Person, ohne Angabe die Vorgabe "DE"): Eine Sportart
+    /// bleibt, wenn sie mindestens eine dort geltende Ordnung hat
+    /// (CountryCode null oder = Land) - oder gar keine Ordnung (freie
+    /// Sportart, Vereinssportart). Dieselbe Regel wie bei den Ordnungen.
+    /// Mit <paramref name="alle"/> entfällt die Eingrenzung - für die
+    /// Katalogpflege. Anonym (öffentliche Seiten) wird ebenfalls nicht
+    /// eingegrenzt: Dort gibt es kein Land.
     /// </summary>
-    Task<Result<IReadOnlyList<SportDto>>> GetSportsAsync(Guid? userId = null, CancellationToken ct = default);
+    Task<Result<IReadOnlyList<SportDto>>> GetSportsAsync(Guid? userId = null, bool alle = false, CancellationToken ct = default);
 
     /// <summary>
     /// Erstellt eine neue Sportart. Globaler Katalog nur für Admins;

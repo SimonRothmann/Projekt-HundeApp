@@ -33,6 +33,14 @@ public static class FciKatalog
     public const string Deutschland = "DE";
 
     /// <summary>
+    /// Länder-Code der österreichischen (ÖKV-)Ordnungen (Paket L2). Sie liegen
+    /// teils unter FCI-Sportarten (BH) und teils unter VDH-Sportarten
+    /// (Agility, Hoopers) und tragen den Code ausdrücklich - die Zuordnung
+    /// nach Sportart (<see cref="GeltungsbereichVon"/>) reicht dafür nicht.
+    /// </summary>
+    public const string Oesterreich = "AT";
+
+    /// <summary>
     /// Geltungsbereich der Ordnungen einer Sportart: null = gilt überall (FCI),
     /// sonst Deutschland (VDH).
     /// </summary>

@@ -16,7 +16,7 @@ export default function AdminKatalogPage() {
   useEffect(() => {
     // Die Sportarten brauchen der Import und die Quellenpflege - einmal abrufen.
     api
-      .get<Sport[]>("/api/sports")
+      .get<Sport[]>("/api/sports?alle=true")
       .then(setSports)
       .catch((err) => toast.error(err instanceof ApiError ? err.message : t("Sportarten konnten nicht geladen werden.")));
     // t bewusst nicht in der Liste: nur für den Fehlerfall, ein Sprachwechsel soll nicht neu laden.

@@ -31,6 +31,7 @@ import { usePreferences } from "@/lib/preferences-context";
 import { katalogName, uebungName } from "@/lib/katalog-name";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
+import { ordnungenPfad, sportartenPfad } from "@/lib/katalog-land";
 const textareaClass =
   "w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/85 dark:focus-visible:ring-ring/60 md:text-sm dark:bg-input/30";
 
@@ -75,7 +76,9 @@ export default function SportsPage() {
   const clubSports = useMemo(() => sports?.filter((s) => s.clubId) ?? [], [sports]);
 
   useEffect(() => {
-    getWithCache<Sport[]>("/api/sports")
+    // Admin sieht den ganzen Katalog (er pflegt ihn); alle anderen die
+    // Sportarten ihres Landes - der Server grenzt sie ein.
+    getWithCache<Sport[]>(sportartenPfad(isAdmin))
       .then(setSports)
       .catch((err) => toast.error(apiError(err, t("Sportarten konnten nicht geladen werden."))));
     getWithCache<Exercise[]>("/api/exercises/uncategorized")
@@ -88,12 +91,12 @@ export default function SportsPage() {
     // jedem Sprachwechsel erneut - Daten neu laden, weil ein Toast
     // anders heissen wuerde.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAdmin]);
 
   // ---- Reload-Helfer (nach Admin-Bearbeitungen) ----
   async function reloadSports() {
     try {
-      setSports(await api.get<Sport[]>("/api/sports"));
+      setSports(await api.get<Sport[]>(sportartenPfad(isAdmin)));
     } catch (err) {
       toast.error(apiError(err, t("Sportarten konnten nicht neu geladen werden.")));
     }
@@ -135,10 +138,9 @@ export default function SportsPage() {
       }
       if (!regulationsBySport[sportId]) {
         // Nur die Ordnungen des gewählten Geltungsbereichs plus die
-        // international gültigen - siehe SportCatalogService.
-        const regulations = await getWithCache<Regulation[]>(
-          `/api/sports/${sportId}/regulations?country=${encodeURIComponent(land)}`,
-        );
+        // international gültigen - siehe SportCatalogService. Der Admin pflegt
+        // den Katalog und sieht alle.
+        const regulations = await getWithCache<Regulation[]>(ordnungenPfad(sportId, isAdmin ? null : land));
         setRegulationsBySport((prev) => ({ ...prev, [sportId]: regulations }));
       }
     } catch (err) {
@@ -167,7 +169,7 @@ export default function SportsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("Sportarten")}</h1>
         <p className="text-sm text-muted-foreground">
-          {t("Informativer Katalog nach FCI- und VDH-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.")}
+          {t("Informativer Katalog nach FCI-, VDH- und ÖKV-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.")}
           {isAdmin
             ? t(" Als Admin kannst du globale Sportarten und ihre Prüfungsordnungen hier direkt bearbeiten.")
             : t(" Globale Sportarten pflegt der Admin; Vereine können eigene Übungen & Sportarten anlegen (Trainer-Bereich).")}

@@ -618,3 +618,40 @@ deutschen Verbandsordnungen richtig. Für die FCI-Ordnungen ist die Rechnung
 umgekehrt: Der englische Name ist der des Originals, und wer international
 startet, braucht ihn. Übungsbeschreibungen und Bewertungskriterien bleiben
 deutsch – das ist unsere eigene Beschreibung, keine Übersetzung der FCI-Ordnung.
+
+---
+
+## Paket L2 (2026-10-17, Fassung 0.32): Österreich und Sportarten nach Land
+
+*Sportarten nach Land*
+
+- Vorher grenzte nur `GetRegulationsAsync` nach Land ein. Jetzt auch die
+  Sportartenliste (`GET /api/sports`) - für angemeldete Personen, nach demselben
+  Satz wie bei den Ordnungen: Eine Sportart ist sichtbar, wenn mindestens eine
+  ihrer Ordnungen im Land gilt (`CountryCode` null oder = Land) **oder** sie gar
+  keine Ordnung hat (freie Sportart, Vereinssportart).
+- Land der Person: das gespeicherte; ohne Wahl „DE“ - wie im Frontend
+  (`VORGABE_LAND`), jetzt auch im Backend (`Country.Vorgabe`). Beim Aufruf ohne
+  Anmeldung (öffentliche Seiten) und mit `?alle=true` gibt es keine Eingrenzung.
+- `alle=true` benutzen Admin-Katalogpflege, Vereinskatalog-Pflege und die
+  Sportartenseite des Admins. Es ist keine Zugriffsbeschränkung: Sportarten und
+  Ordnungen sind öffentlich, die Eingrenzung ist eine Erleichterung.
+- Bestehendes bleibt benutzbar: Übungen, Ordnungen und Ordnungsdetails einer
+  nicht sichtbaren Sportart sind per Id weiter abrufbar, Ziele und Trainings
+  zeigen ihre Namen aus den eigenen Antworten. Nur neu wählbar ist die Sportart
+  nicht mehr. Eine bereits gespeicherte Sportartenwahl (Profil, Hund) bleibt
+  unverändert gespeichert, die Liste zeigt sie nur nicht.
+- Beim Anlegen eines Ziels werden die Ordnungen jetzt nach Land gefiltert (bisher
+  alle). Ein Kürzel von einer Prüfungsordnungs-Seite wird gegen den ganzen
+  Katalog aufgelöst (die Kürzel entstehen aus allen Ordnungen) und die
+  angesteuerte Ordnung bleibt in der Auswahl.
+
+*Österreich*
+
+- Neu im Katalog sind 16 Ordnungen mit `CountryCode` „AT“ - Einzelheiten und
+  Prüfprotokoll in [PO_VERIFIKATION.md](PO_VERIFIKATION.md), Abschnitt „Österreich“.
+  Wer Österreich wählt, sieht die FCI-Ordnungen und die des ÖKV, aber keine des
+  VDH; die Sportart Breitensport gibt es nur dort, Turnierhundsport nur in
+  Deutschland.
+- Keine Schemaänderung und keine Migration: Der Seeder legt die Daten beim Start
+  an (idempotent), bestehende Datenbanken bekommen sie beim nächsten Hochlauf.

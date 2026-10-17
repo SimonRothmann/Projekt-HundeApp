@@ -210,6 +210,16 @@ const FAMILIES: { key: string; title: string; description: string; matches: (nam
     description: "Parcours ohne Sprünge, aus dem Führbereich auf Distanz geführt – gewertet nur über Fehlerpunkte.",
     matches: (name) => name.startsWith("Hoopers "),
   },
+  {
+    // Die nationalen Ordnungen des Österreichischen Kynologenverbands tragen alle
+    // das Präfix "ÖKV" - sie gehören nach Land zusammen, nicht zu BH/Agility/Hoopers
+    // der deutschen und internationalen Ordnungen, deren Regeln sie nicht teilen.
+    key: "oekv",
+    title: "Österreich – ÖKV",
+    description:
+      "Nationale Ordnungen des Österreichischen Kynologenverbands: Begleithund, Agility, Hoopers und Breitensport.",
+    matches: (name) => name.startsWith("ÖKV"),
+  },
 ];
 
 /** Bündelt den Katalog in Familien. Alles ohne Treffer landet unter "Weitere". */

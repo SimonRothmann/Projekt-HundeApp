@@ -78,7 +78,7 @@ export function CatalogSection({
 
   async function loadSports() {
     try {
-      const data = await api.get<Sport[]>("/api/sports");
+      const data = await api.get<Sport[]>("/api/sports?alle=true");
       setAllSports(data);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Sportarten konnten nicht geladen werden."));

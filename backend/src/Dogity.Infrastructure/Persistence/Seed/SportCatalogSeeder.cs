@@ -75,17 +75,27 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// VDH-Ordnungen (THS, Agility, Hoopers) gelten in Deutschland und bleiben
 /// deutsch. Die Zuordnung steht in <see cref="FciKatalog"/>.
 ///
+/// Österreich (Paket L2, 2026-10-17): Die ÖKV-Ordnungen (BH/VT, Agility,
+/// Hoopers, Breitensport) stehen in SportCatalogSeeder.Oesterreich.cs und
+/// tragen CountryCode "AT".
+///
 /// Idempotent auf Ebene einzelner Übungen/Prüfungsordnungen (nicht nur
 /// pro Sportart), damit der Katalog auch nach dem ersten Start ergänzt
 /// werden kann, ohne Duplikate zu erzeugen.
 /// </summary>
-public static class SportCatalogSeeder
+public static partial class SportCatalogSeeder
 {
     private sealed record ExerciseSeed(string Name, ExerciseDifficulty Difficulty, string Category, string ScoringCriteria);
 
     private sealed record RegulationExerciseSeed(string ExerciseName, bool IsMandatory, int MaxPoints, string ScoringNotes);
 
-    private sealed record RegulationSeed(string Name, string VersionLabel, DateOnly ValidFrom, RegulationExerciseSeed[] Exercises, string? Description = null);
+    /// <param name="Land">
+    /// Geltungsbereich, wenn er von der Sportart abweicht (die österreichischen
+    /// Ordnungen: "AT"). Ohne Angabe gilt die Zuordnung nach Sportart,
+    /// siehe <see cref="FciKatalog.GeltungsbereichVon"/>.
+    /// </param>
+    /// <param name="SourceUrl">Offizielle Quelle; wird nur eingetragen, wo noch keine steht.</param>
+    private sealed record RegulationSeed(string Name, string VersionLabel, DateOnly ValidFrom, RegulationExerciseSeed[] Exercises, string? Description = null, string? Land = null, string? SourceUrl = null);
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -1541,6 +1551,11 @@ public static class SportCatalogSeeder
         // und "Fährtenaufnahme" zählen nicht mehr zur Prüfung, sind zum
         // Trainieren aber weiterhin sinnvoll - erfunden war die Punktzahl,
         // nicht die Übung.
+        // Die österreichischen Ordnungen vor dem Aufräumen: Ihre Übungen hängen
+        // an BH (Freilaufen, Ortsabhängige Begegnung) und wären sonst für einen
+        // Augenblick verwaist.
+        await SeedOesterreichAsync(db, bh, agility, hoopers);
+
         await RemoveOrphanedExercisesAsync(db, bh);
         await RemoveOrphanedExercisesAsync(db, ibgh1);
         await RemoveOrphanedExercisesAsync(db, ibgh2);
@@ -1707,7 +1722,8 @@ public static class SportCatalogSeeder
                 SportId = sport.Id,
                 Name = seed.Name,
                 Description = seed.Description,
-                CountryCode = FciKatalog.GeltungsbereichVon(sport.Code),
+                CountryCode = seed.Land ?? FciKatalog.GeltungsbereichVon(sport.Code),
+                SourceUrl = seed.SourceUrl,
             };
             db.Regulations.Add(regulation);
             await db.SaveChangesAsync();
@@ -1719,6 +1735,11 @@ public static class SportCatalogSeeder
             // (analog zur MaxPoints-Nachpflege unten).
             regulation.Description = seed.Description;
         }
+
+        // Die Quelle nur ergänzen, nie überschreiben: Ein Admin pflegt sie
+        // über die Quellenpflege und soll sie nicht bei jedem Start verlieren.
+        if (seed.SourceUrl is not null && regulation.SourceUrl is null)
+            regulation.SourceUrl = seed.SourceUrl;
 
         var version = await db.RegulationVersions.IgnoreQueryFilters()
             .FirstOrDefaultAsync(v => v.RegulationId == regulation.Id && v.VersionLabel == seed.VersionLabel);

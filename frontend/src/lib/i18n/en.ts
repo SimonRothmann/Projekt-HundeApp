@@ -410,7 +410,7 @@ export const EN: Record<string, string> = {
   "Individuellen Plan anlegen": "Create an individual plan",
   "Individueller Plan (ohne Prüfungsziel) – leere Wochen, Übungen manuell festlegen": "Individual plan (no exam goal) – empty weeks, exercises set by hand",
   "Individueller Plan angelegt - füge jetzt Wochenübungen hinzu.": "Individual plan created – now add exercises for the week.",
-  "Informativer Katalog nach FCI- und VDH-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.": "An informational catalogue following the FCI and VDH exam regulations. Exercise texts and scoring criteria are our own descriptions, not copies of the official regulations.",
+  "Informativer Katalog nach FCI-, VDH- und ÖKV-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.": "An informational catalogue following the FCI, VDH and ÖKV exam regulations. Exercise texts and scoring criteria are our own descriptions, not copies of the official regulations.",
   "Inhalt (Übungen in Reihenfolge)": "Content (exercises in order)",
   "Inhalt je Termin automatisch generieren (abwechslungsreicher Mix)": "Generate the content per date automatically (a varied mix)",
   "Junghunde": "Young dogs",
@@ -2090,4 +2090,13 @@ export const EN: Record<string, string> = {
     "Hoopers was visible for every country even though it is a VDH regulation. It now applies to Germany only.",
   "Englischer Name (optional)": "English name (optional)",
   "Der englische Name": "The English name",
+  "Prüfungsordnungen für Österreich": "Test regulations for Austria",
+  "Wer Österreich als Land gewählt hat, findet jetzt die Prüfungsordnungen des ÖKV: die Mensch-Hund-Team-Prüfung (BH/VT), Agility mit den Leistungsklassen 1 bis 3 und Jumping, Hoopers H1 bis H3 sowie den Breitensport mit Vierkampf, Läufen, CSC und Shorty.":
+    "If you have chosen Austria as your country, you will now find the ÖKV test regulations: the human-dog team test (BH/VT), agility with performance classes 1 to 3 and jumping, Hoopers H1 to H3, and Breitensport with the four-event competition, races, CSC and Shorty.",
+  "Der Breitensport ist als eigene Sportart dazugekommen. Er erscheint nur, wenn Österreich gewählt ist.":
+    "Breitensport has been added as a sport of its own. It only appears when Austria is chosen.",
+  "Sportarten, die es nur in einem anderen Land gibt, werden dir nicht mehr angeboten – in der Sportartenliste, beim Eintragen und beim Anlegen eines Ziels. Bestehende Ziele und Trainings bleiben unverändert sichtbar.":
+    "Sports that only exist in another country are no longer offered to you – in the sports list, when logging and when creating a goal. Existing goals and trainings stay visible as before.",
+  "Beim Anlegen eines Ziels werden nur noch die Prüfungsordnungen deines Landes und die international gültigen angeboten.":
+    "When creating a goal, only the test regulations of your country and the internationally valid ones are offered.",
 };

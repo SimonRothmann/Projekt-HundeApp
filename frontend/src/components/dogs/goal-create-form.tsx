@@ -10,6 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { findeStartPo, leseStartPo, loescheStartPo } from "@/lib/start-po";
+import { ordnungenImLand, ordnungenPfad, SPORTARTEN_ALLE } from "@/lib/katalog-land";
+import { usePreferences } from "@/lib/preferences-context";
+import { VORGABE_LAND } from "@/lib/i18n/laender";
 
 import { useSprache, useT } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
@@ -36,6 +39,8 @@ export function GoalCreateForm({
 }) {
   const t = useT();
   const sprache = useSprache();
+  const { preferences } = usePreferences();
+  const land = preferences.country ?? VORGABE_LAND;
   const [sportId, setSportId] = useState(vorauswahl?.sportId ?? "");
   const [regulations, setRegulations] = useState<Regulation[]>([]);
   const [regulationId, setRegulationId] = useState(vorauswahl?.regulationId ?? "");
@@ -69,11 +74,12 @@ export function GoalCreateForm({
     (async () => {
       try {
         // Der Abgleich läuft gegen den ganzen Katalog, nicht gegen die
-        // Sportarten des Hundes: Die Prüfung soll auch dann gefunden werden,
-        // wenn ihre Sportart hier (noch) nicht angeboten wird. Nur die
-        // globalen zählen - der öffentliche Katalog, der die Kürzel vergibt,
-        // kennt keine vereinseigenen.
-        const alle = await api.get<Sport[]>("/api/sports");
+        // Sportarten des Hundes und nicht gegen die des Landes: Die Prüfung
+        // soll auch dann gefunden werden, wenn ihre Sportart hier (noch) nicht
+        // angeboten wird - etwa weil jemand aus Österreich noch das
+        // Standardland trägt. Nur die globalen zählen - der öffentliche
+        // Katalog, der die Kürzel vergibt, kennt keine vereinseigenen.
+        const alle = await api.get<Sport[]>(SPORTARTEN_ALLE);
         const global = alle.filter((s) => s.clubId === null);
         // Liste leer: Es gibt nichts zu vergleichen, also auch nichts zu
         // verwerfen.
@@ -81,7 +87,9 @@ export function GoalCreateForm({
         const katalog = await Promise.all(
           global.map(async (sport) => ({
             sport,
-            regulations: await api.get<Regulation[]>(`/api/sports/${sport.id}/regulations`),
+            // Ohne Land: Die Kürzel entstehen aus allen Ordnungen, auch denen
+            // anderer Länder (siehe vergebeKuerzel).
+            regulations: await api.get<Regulation[]>(ordnungenPfad(sport.id, null)),
           })),
         );
         if (abgebrochen) return;
@@ -97,7 +105,8 @@ export function GoalCreateForm({
         const gefunden = katalog.find((k) => k.sport.id === treffer.sportId);
         setZusatzSport(gefunden?.sport ?? null);
         setSportId(treffer.sportId);
-        setRegulations(gefunden?.regulations ?? []);
+        // Angezeigt werden die Ordnungen des Landes - die angesteuerte bleibt.
+        setRegulations(ordnungenImLand(gefunden?.regulations ?? [], land, treffer.regulationId));
         setRegulationId(treffer.regulationId);
       } catch {
         // Kein Netz: Das Kürzel bleibt, beim nächsten Öffnen klappt es. Die
@@ -109,6 +118,8 @@ export function GoalCreateForm({
     };
     // Bewusst nur beim Öffnen: Die Elternseite reicht `sports` bei jedem
     // Rendern neu durch, ein Neustart würde die Abrufe ständig abbrechen.
+    // Gilt ebenso für das Land.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -120,11 +131,13 @@ export function GoalCreateForm({
     (async () => {
       try {
         const [pruefungen, alle] = await Promise.all([
-          api.get<Regulation[]>(`/api/sports/${vorauswahl.sportId}/regulations`),
-          sports.some((s) => s.id === vorauswahl.sportId) ? Promise.resolve(null) : api.get<Sport[]>("/api/sports"),
+          api.get<Regulation[]>(ordnungenPfad(vorauswahl.sportId, null)),
+          sports.some((s) => s.id === vorauswahl.sportId) ? Promise.resolve(null) : api.get<Sport[]>(SPORTARTEN_ALLE),
         ]);
         if (abgebrochen) return;
-        setRegulations(pruefungen);
+        // Die vorgewählte Prüfung bleibt auch dann in der Liste, wenn sie nicht
+        // zum Land gehört.
+        setRegulations(ordnungenImLand(pruefungen, land, vorauswahl.regulationId));
         if (alle) setZusatzSport(alle.find((s) => s.id === vorauswahl.sportId) ?? null);
       } catch {
         // Ohne Netz bleibt die Vorauswahl stehen, nur die Auswahlliste fehlt -
@@ -148,7 +161,7 @@ export function GoalCreateForm({
     setRegulations([]);
     if (!value) return;
     try {
-      const data = await api.get<Regulation[]>(`/api/sports/${value}/regulations`);
+      const data = await api.get<Regulation[]>(ordnungenPfad(value, land));
       setRegulations(data);
       // Nur eine Prüfung: Es gibt nichts zu wählen.
       if (data.length === 1) setRegulationId(data[0].id);

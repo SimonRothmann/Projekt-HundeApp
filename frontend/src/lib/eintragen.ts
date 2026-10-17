@@ -309,9 +309,14 @@ export function eigeneUebungAngebot(
   return { text, oben: treffer.length === 0 };
 }
 
-/** Die Sportarten, die dem Eintragen angeboten werden: die des Hundes; leere Auswahl heißt "keine Einschränkung". */
+/**
+ * Die Sportarten, die dem Eintragen angeboten werden: die des Hundes; leere Auswahl heißt "keine Einschränkung".
+ * Trifft die Auswahl keine der Sportarten mehr (etwa nach einem Länderwechsel, der sie ausblendet),
+ * gilt sie ebenfalls als nicht getroffen - sonst bliebe das Tagebuch ohne jede Sportart.
+ */
 export function angeboteneSportarten(sports: readonly Sport[], dogSportIds: readonly string[] | null | undefined): Sport[] {
-  return dogSportIds && dogSportIds.length > 0 ? sports.filter((sport) => dogSportIds.includes(sport.id)) : [...sports];
+  const gewaehlt = dogSportIds && dogSportIds.length > 0 ? sports.filter((sport) => dogSportIds.includes(sport.id)) : [];
+  return gewaehlt.length > 0 ? gewaehlt : [...sports];
 }
 
 // ---- Plan-Zuordnung und Bewertung je Zeile ----

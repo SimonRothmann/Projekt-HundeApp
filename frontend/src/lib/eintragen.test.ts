@@ -402,6 +402,11 @@ describe("Übungssuche", () => {
     expect(angeboteneSportarten(alle, []).map((s) => s.id)).toEqual(["bh", "igp"]);
     expect(angeboteneSportarten(alle, null).map((s) => s.id)).toEqual(["bh", "igp"]);
   });
+
+  it("fällt auf alle zurück, wenn die Auswahl nur Sportarten trifft, die im Land nicht angeboten werden", () => {
+    const alle = [sport("bh", "BH"), sport("igp", "IGP")];
+    expect(angeboteneSportarten(alle, ["ths"]).map((s) => s.id)).toEqual(["bh", "igp"]);
+  });
 });
 
 describe("loeseZeilenAuf", () => {

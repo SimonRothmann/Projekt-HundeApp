@@ -12,6 +12,10 @@ kleiner.
 | [FCI-Prüfungsordnung, englisch, gültig ab 01.01.2025](https://www.fci.be/medias/UTI-REG-IGP-en-2025-22401.pdf) (FCI-IGP 2025, beschlossen 03.09.2024, 82 Seiten) | **Originalfassung**: englische Namen der FCI-Sportarten, -Ordnungen und -Übungen (seit 2026-10-16) |
 | [VDH, Informationen zur Prüfungsordnung, Stand April 2026](https://www.vdh.de/fileadmin/media/hundesport/Gebrauchshundesport/2026/VDH_Info_PO_Stand_April_3-2026.pdf) | nationale Festlegungen (Mindestalter, Durchführung) |
 | [VDH, Begleithundeprüfung](https://www.vdh.de/hundesport/begleithundpruefung/) | BH-Rahmenbedingungen |
+| [ÖKV, Österreichische Prüfungsordnung (ÖPO), Ausgabe 2022](https://oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96PO_2024%20HP.pdf) (beschlossen 24.11.2021, in Kraft 01.01.2022) | Mensch-Hund-Team-Prüfung (BH/VT) des ÖKV (seit 2026-10-17) |
+| [ÖKV-Agilityreglement, Ausgabe 2026](https://www.oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96KV-Agilityreglement_2026_g%C3%BCltig%20ab%201.1.2026.pdf) (beschlossen 30.10.2025, gültig ab 01.01.2026) | Agility LK 1-3 und Jumping (ÖKV) |
+| [ÖKV Prüfungsordnung Hoopers, gültig ab 01.01.2024](https://www.oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96KV%20PO%20Hoopers%20Stand%2010-2023.pdf) | Hoopers H1-H3 (ÖKV) |
+| [ÖKV Prüfungsordnung Breitensport, gültig ab 01.01.2025](https://breitensport.oekv.at/media/upload/editor/files/Breitensport/Allgemeines/BSP_PO_2025.pdf) (beschlossen 29.02.2024) | Breitensport VK 1/VK 2, Läufe, CSC, Shorty (ÖKV) |
 | [VDH-Prüfungsordnung Hoopers, gültig ab 01.01.2027](https://www.vdh.de/fileadmin/media/hundesport/Hoopers-Agility/2026/VDH-PO-Hoopers_2027_V01.pdf) (beschlossen 25.09.2026, 18 Seiten; Übersicht auf [vdh.de/hundesport/hoopers](https://www.vdh.de/hundesport/hoopers/)) | Hoopers H0-H3 (seit 2026-10-15) |
 
 ## Ergebnis: das meiste stimmt
@@ -319,6 +323,7 @@ folgen zwei Entscheidungen des Betreibers (2026-10-16):
 | Geltungsbereich | Sportarten (Code) | Ordnungen |
 |---|---|---|
 | **international** (`CountryCode` null) | `BH`, `IBGH1`-`IBGH3`, `IGP1`-`IGP3`, `FAERTE`, `FPR`, `UPR`, `SPR`, `GPR`, `STOEPR`, `IAD` | BH, IBGH 1-3, FCI-IGP 1-3, FCI-IFH 1-3, FCI-IGP FH, FCI-FPr/UPr/SPr/GPr/StöPr 1-3, FCI-IAD (27 Ordnungen) |
+| **Österreich** (`AT`, ÖKV) | `BH`, `AGILITY`, `HOOPERS`, `BSP` | ÖKV BH/VT, ÖKV Agility LK 1-3 und Jumping, ÖKV Hoopers H1-H3, Breitensport (8) - siehe „Österreich“ unten (16 Ordnungen) |
 | **Deutschland** (`DE`, VDH) | `THS`, `AGILITY`, `HOOPERS` | VDH-Turnierhundsport (12), VDH-PO Agility inkl. A0 (5), VDH-PO Hoopers H0-H3 (4) |
 
 Die Liste steht im Code an einer Stelle (`FciKatalog.InternationaleSportarten`);
@@ -402,3 +407,68 @@ Bewertungshinweise, nationale Ordnungen, die öffentlichen Seiten
 Der Seeder trägt die Namen nur ein, wo `NameEn` noch leer ist – eine Eingabe aus
 dem Katalog-Editor bleibt stehen. Wer einen Namen bewusst leert, bekommt beim
 nächsten Start den der Ordnung zurück.
+
+## Österreich: ÖKV-Ordnungen (2026-10-17, Paket L2)
+
+Betreiberentscheidung (2026-10-16): nationale Ordnungen für Österreich, danach
+die Schweiz. Alle Ordnungen tragen `CountryCode` "AT", die Version den
+Gültigkeitsbeginn laut Dokument, die Quelle die Adresse oben in der Tabelle.
+Die Texte sind eigene Beschreibungen; jede Ordnung und jede Übung nennt die
+Seite des Dokuments (so, wie das PDF zählt). Nationale Ordnungen bleiben
+deutsch - kein `NameEn`. Der Seeder steht in `SportCatalogSeeder.Oesterreich.cs`.
+
+### Prüfprotokoll
+
+| Ordnung | Gegen welche Seiten geprüft | Ergebnis |
+|---|---|---|
+| **ÖKV BH/VT (Mensch-Hund-Team-Prüfung)**, unter Sportart BH | ÖPO S. 5, 7, 10-19 | 100 Punkte in sechs Übungen (20/10/10/20/20/20), bestanden ab 60 %, „Ausgezeichnet“ ab 90 % (S. 11); Mindestalter 12 Monate (S. 7, 10). Folgen ohne Leine und Freilaufen sind freiwillig (S. 14, 16). Verkehrsteil ohne Punkte (S. 17-19) |
+| **ÖKV Agility LK 1/2/3 und Jumping**, unter AGILITY | Agilityreglement S. 4-17, 19-32 | Fehlerpunkte 5 je Fehler/Verweigerung, 1 s = 1 Punkt; Mindestgeschwindigkeiten (S. 6), Aufstiegskriterien (S. 14 f.), Geräte (S. 20-26), Fehler (S. 26-30), Bewertung V/SG/G/B (S. 32). Doppelhürde erst ab LK 2 (S. 14, 22) |
+| **ÖKV Hoopers H1-H3**, unter HOOPERS | Hoopers-PO S. 8-31 | Klassen H1-H3, Maximalzeit 4 min, Werturteil A/V/SG/G/o.B. (S. 31), Parcoursvorgaben (S. 19), Aufstieg (S. 15), Fehler (S. 28-30) |
+| **ÖKV Breitensport** (neue Sportart BSP): VK 1, VK 2, Dreikampf, Slalomlauf, Hürdenlauf, Hindernislauf, CSC, Shorty | BSP-PO S. 5, 9, 12, 14, 16-34 | Unterordnung je 60 Punkte (VK 1: 15/20/10/15, VK 2: 25/10/15/10, S. 19); Läufe mit Ausgangspunkten 110/90/90 abzüglich Zeit und Fehler (S. 28-31) |
+
+### Entschieden
+
+- **Wiederverwendung statt Neuanlage.** BH: Fußarbeit (= „Folgen an der Leine“),
+  Freifolge, Sitzübung, Ablegen in Verbindung mit Herankommen, Ablegen unter
+  Ablenkung, Verhalten im Verkehr, Begegnung mit Personengruppe, Verhalten
+  gegenüber anderen Hunden und Zurücklassen des Hundes sind dieselben Übungen
+  wie in der FCI-BH und behalten ihre englischen Namen. Neu nur „Freilaufen mit
+  Heranrufen“ und „Ortsabhängige Begegnung“ (beide ohne `NameEn`). Agility und
+  Hoopers brauchen keine neuen Übungen: Die ÖKV erkennt dieselben Geräte an, was
+  anders ist (Maße, Fehler), steht in den Hinweisen je Ordnung.
+- **Verkehrsteil zusammengefasst** wie in der deutschen BH: Radfahrer, Autos,
+  Jogger/Inline-Skater und Kinderwagen unter „Verhalten im Verkehr“, Gehhilfen bei
+  der Personengruppe. Die zusätzlichen Überprüfungen nach Ort sind freiwillig.
+- **Jugend, Oldies, ParAgility** sind als Hinweis in der Beschreibung, nicht als
+  Ordnung. Das Reglement nennt sie zwar „Leistungsklasse“ (LK JUG/OL/ParA), sie
+  hängen aber an Alter des Hundeführers, Alter des Hundes bzw. Behinderung, haben
+  keinen eigenen Aufstieg und werden nach dem Schwierigkeitsgrad von LK 1 bzw.
+  LK 2 gerichtet (S. 13-17).
+- **Breitensport: nur VK 1 und VK 2 sind Prüfungen.** Einzelne Läufe, Dreikampf,
+  CSC und Shorty sind laut Ordnung Open-Bewerbe (S. 14, 16); sie stehen trotzdem
+  im Katalog, weil man sie trainiert. Wie im Turnierhundsport tragen die Läufe 0
+  Punkte, die Ausgangspunkte stehen in der Beschreibung. Die Übungen sind eigene
+  der Sportart BSP, nicht die des THS.
+
+### Offen / Unstimmigkeiten in den Quellen
+
+- **ÖPO S. 17:** kündigt „5 verpflichtende und 2 ortsabhängige Begegnungen“ an,
+  nennt dann aber sieben als „verpflichtend“ und eine Liste zusätzlicher
+  Überprüfungen, von denen „mindestens eine, höchstens zwei“ zu absolvieren sind.
+  Übernommen ist die Aufzählung des Textes.
+- **ÖPO S. 11:** „60 % der Gesamtpunkte“ - ob bei nicht gezeigten freiwilligen
+  Übungen (Folgen ohne Leine, Freilaufen) von 100 oder von den gezeigten Punkten
+  gerechnet wird, sagt der Text nicht.
+- **Agilityreglement S. 15:** Für den Aufstieg LK 2 nach LK 3 steht „Jumping-Lauf
+  (J1)“ - vermutlich J 2. Wörtlich übernommen, mit Hinweis.
+- **Hoopers-PO S. 13 und S. 30:** Absichtliches Training führt „ab dem 3. Gerät“
+  bzw. bei „mehr als 3 Geräten“ zu o.B. Übernommen ist S. 30.
+- **BSP-PO S. 29:** Der Hürdenlauf nennt keine Fehlerpunkte für die Hürden (nur
+  im CSC: 4 Fehlersekunden, S. 33). Die Ordnung verweist an einer Stelle auf eine
+  „PO 2024“ und falsche Kapitelnummern - die Seitenzählung folgt dem
+  Inhaltsverzeichnis.
+- **BSP-PO Shorty:** Welche Geräte in welcher Sektion stehen, zeigt nur der Plan
+  im Anhang (S. 38, Bild); im Text nicht enthalten, daher nur Hindernislauf und
+  Weitsprung genannt.
+- **Obedience** (ÖPO Beginner/Senior, FCI-Obedience) ist nicht Teil von Paket L2.
+  Es wäre eine neue Sportart, auch für Deutschland.

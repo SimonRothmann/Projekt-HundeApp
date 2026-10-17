@@ -39,11 +39,13 @@ public class HoopersKatalogTests
         await using var db = await KatalogAsync();
 
         var sport = await db.Sports.SingleAsync(s => s.Code == "HOOPERS");
-        var klassen = await db.Regulations.Where(r => r.SportId == sport.Id).Select(r => r.Name).OrderBy(n => n).ToListAsync();
+        // Die VDH-Fassung 2027; die ÖKV-Hoopers-Ordnungen (Land AT, Fassung 2024)
+        // prüft OesterreichKatalogTests.
+        var klassen = await db.Regulations.Where(r => r.SportId == sport.Id && r.CountryCode == "DE").Select(r => r.Name).OrderBy(n => n).ToListAsync();
         Assert.Equal(["Hoopers 0 (H0)", "Hoopers 1 (H1)", "Hoopers 2 (H2)", "Hoopers 3 (H3)"], klassen);
 
         var verknuepfungen = await db.RegulationExercises
-            .Where(re => re.RegulationVersion!.Regulation!.SportId == sport.Id)
+            .Where(re => re.RegulationVersion!.Regulation!.SportId == sport.Id && re.RegulationVersion.Regulation.CountryCode == "DE")
             .Select(re => new { re.RegulationVersion!.VersionLabel, re.RegulationVersion.ValidFrom, re.MaxPoints, re.IsMandatory })
             .ToListAsync();
         Assert.Equal(40, verknuepfungen.Count);

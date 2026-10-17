@@ -140,7 +140,9 @@ export function SportartenSection() {
     void speichern(() => api.put("/api/preferences/sports", { sportIds: ids }));
   }
 
-  const alleSportarten = preferences.sportIds.length === 0;
+  // Eine gespeicherte Auswahl, die keine der angebotenen Sportarten trifft (etwa nach
+  // einem Länderwechsel), wirkt wie keine Auswahl - das Tagebuch bietet dann alle an.
+  const alleSportarten = sports ? !sports.some((s) => preferences.sportIds.includes(s.id)) : preferences.sportIds.length === 0;
 
   return (
     <Card>

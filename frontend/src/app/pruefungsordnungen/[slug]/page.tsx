@@ -163,8 +163,8 @@ export default async function RegulationPage({ params }: Params) {
         {/* Rechtlich sauber UND ehrlich: die Angaben sind eine Zusammenfassung,
             verbindlich ist immer die offizielle Ordnung des Verbands. */}
         <p className="mt-10 rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
-          Zusammenfassung ohne Gewähr. Verbindlich ist ausschließlich die jeweils gültige Prüfungsordnung des VDH bzw.
-          der FCI.
+          Zusammenfassung ohne Gewähr. Verbindlich ist ausschließlich die jeweils gültige Prüfungsordnung des VDH, des ÖKV
+          bzw. der FCI.
           {detail?.currentVersion?.versionLabel && ` Hinterlegter Stand: ${detail.currentVersion.versionLabel}.`}
         </p>
 

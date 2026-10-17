@@ -109,7 +109,7 @@ export function useEintragenDaten(
         // Frisches gewinnt: Der Cache antwortet meist schneller, aber nicht immer.
         // Die Sportarten des Cache sind die ganze Liste, nicht die Auswahl des
         // Hundes: Sie kommen nur zum Zug, wenn der frische Abruf ausbleibt
-        // (siehe unten) - sonst liefe die Suche kurz über alle 17 Sportarten.
+        // (siehe unten) - sonst liefe die Suche kurz über die ganze, nicht auf den Hund eingegrenzte Liste.
         if (brauchtSports) setze({ cacheSports: seite.sports });
         if (brauchtGoals && !frisch.goals) setze({ goals: seite.goals });
         if (brauchtSessions && !frisch.sessions) setze({ sessions: seite.sessions });
