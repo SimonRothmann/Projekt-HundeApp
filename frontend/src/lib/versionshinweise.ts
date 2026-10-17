@@ -63,7 +63,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
     version: "0.32",
     datum: "2026-10-17",
-    titel: uebersetzbar("Prüfungsordnungen für Österreich"),
+    titel: uebersetzbar("Prüfungsordnungen für Österreich und die Schweiz"),
     aenderungen: [
       {
         art: "neu",
@@ -72,6 +72,14 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       {
         art: "neu",
         text: uebersetzbar("Der Breitensport ist als eigene Sportart dazugekommen. Er erscheint nur, wenn Österreich gewählt ist."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Wer die Schweiz als Land gewählt hat, findet jetzt die Prüfungsordnungen der SKG: den Begleithund 1 bis 3 mit Fährte, Revier, Unterordnung und Führigkeit sowie Agility mit den Arbeitsklassen 1 bis 3 und Jumping."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Der Schweizer Begleithund ist als eigene Sportart dazugekommen („Begleithund (SKG)“). Er erscheint nur, wenn die Schweiz gewählt ist."),
       },
       {
         art: "verbessert",

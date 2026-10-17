@@ -79,6 +79,10 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// Hoopers, Breitensport) stehen in SportCatalogSeeder.Oesterreich.cs und
 /// tragen CountryCode "AT".
 ///
+/// Schweiz (Paket L3, 2026-10-17): Die SKG-Ordnungen (Begleithund 1-3 als
+/// eigene Sportart BHCH, Agility-Arbeitsklassen 1-3 und Jumping) stehen in
+/// SportCatalogSeeder.Schweiz.cs und tragen CountryCode "CH".
+///
 /// Idempotent auf Ebene einzelner Übungen/Prüfungsordnungen (nicht nur
 /// pro Sportart), damit der Katalog auch nach dem ersten Start ergänzt
 /// werden kann, ohne Duplikate zu erzeugen.
@@ -1555,6 +1559,7 @@ public static partial class SportCatalogSeeder
         // an BH (Freilaufen, Ortsabhängige Begegnung) und wären sonst für einen
         // Augenblick verwaist.
         await SeedOesterreichAsync(db, bh, agility, hoopers);
+        await SeedSchweizAsync(db, agility);
 
         await RemoveOrphanedExercisesAsync(db, bh);
         await RemoveOrphanedExercisesAsync(db, ibgh1);

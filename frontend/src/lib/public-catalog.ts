@@ -220,6 +220,15 @@ const FAMILIES: { key: string; title: string; description: string; matches: (nam
       "Nationale Ordnungen des Österreichischen Kynologenverbands: Begleithund, Agility, Hoopers und Breitensport.",
     matches: (name) => name.startsWith("ÖKV"),
   },
+  {
+    // Die schweizerischen Ordnungen der SKG tragen alle das Präfix "SKG" - wie
+    // die österreichischen gehören sie nach Land zusammen und nicht zu den
+    // Agility-Ordnungen von VDH und ÖKV (deren Namen mit "Agility " beginnen).
+    key: "skg",
+    title: "Schweiz – SKG",
+    description: "Nationale Ordnungen der Schweizerischen Kynologischen Gesellschaft: Begleithund 1 bis 3 sowie Agility und Jumping.",
+    matches: (name) => name.startsWith("SKG"),
+  },
 ];
 
 /** Bündelt den Katalog in Familien. Alles ohne Treffer landet unter "Weitere". */

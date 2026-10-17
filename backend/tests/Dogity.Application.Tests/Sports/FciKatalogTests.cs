@@ -13,7 +13,8 @@ namespace Dogity.Application.Tests.Sports;
 /// englische Namen, die nationalen VDH-Ordnungen (Turnierhundsport, Agility,
 /// Hoopers) bleiben Deutschland vorbehalten und deutsch. Seit Paket L2 kommen
 /// die ÖKV-Ordnungen dazu (Land "AT", ebenfalls deutsch) - die Prüfungen hier
-/// betrachten deshalb jeweils die Ordnungen OHNE Österreich.
+/// betrachten deshalb jeweils die Ordnungen OHNE Österreich. Dasselbe gilt für
+/// die SKG-Ordnungen der Schweiz (Paket L3, Land "CH", ebenfalls deutsch).
 /// </summary>
 public class FciKatalogTests
 {
@@ -42,7 +43,11 @@ public class FciKatalogTests
         var oesterreich = alle.Where(o => o.CountryCode == "AT").ToList();
         Assert.NotEmpty(oesterreich);
         Assert.All(oesterreich, o => Assert.StartsWith("ÖKV", o.Name));
-        var ordnungen = alle.Except(oesterreich).ToList();
+        // Ebenso die schweizerischen (Paket L3).
+        var schweiz = alle.Where(o => o.CountryCode == "CH").ToList();
+        Assert.NotEmpty(schweiz);
+        Assert.All(schweiz, o => Assert.StartsWith("SKG", o.Name));
+        var ordnungen = alle.Except(oesterreich).Except(schweiz).ToList();
 
         Assert.All(ordnungen.Where(o => Vdh.Contains(o.Code)), o => Assert.Equal("DE", o.CountryCode));
         Assert.All(ordnungen.Where(o => !Vdh.Contains(o.Code)), o => Assert.Null(o.CountryCode));
@@ -58,8 +63,10 @@ public class FciKatalogTests
         var codes = await db.Sports.Where(s => s.ClubId == null).Select(s => s.Code).ToListAsync();
 
         // Weder fehlt eine FCI-Sportart in der Liste, noch steht Nationales darin -
-        // auch nicht der österreichische Breitensport.
-        Assert.Equal(codes.Except(Vdh).Except([SportCatalogSeeder.BreitensportCode]).Order(), FciKatalog.InternationaleSportarten.Order());
+        // auch nicht der österreichische Breitensport und der Schweizer Begleithund.
+        Assert.Equal(
+            codes.Except(Vdh).Except([SportCatalogSeeder.BreitensportCode, SportCatalogSeeder.BegleithundSkgCode]).Order(),
+            FciKatalog.InternationaleSportarten.Order());
     }
 
     [Fact]
@@ -93,14 +100,16 @@ public class FciKatalogTests
         var fci = await db.Regulations.CountAsync(r => r.CountryCode == null);
         var vdh = await db.Regulations.CountAsync(r => r.CountryCode == "DE");
         var oekv = await db.Regulations.CountAsync(r => r.CountryCode == "AT");
+        var skg = await db.Regulations.CountAsync(r => r.CountryCode == "CH");
 
         var laender = (await new SportCatalogService(db).GetCountriesAsync()).Value!;
 
-        Assert.True(fci > 0 && vdh > 0 && oekv > 0);
+        Assert.True(fci > 0 && vdh > 0 && oekv > 0 && skg > 0);
         Assert.Equal(fci + vdh, laender.Single(l => l.Code == "DE").RegulationCount);
         Assert.Equal(fci + oekv, laender.Single(l => l.Code == "AT").RegulationCount);
+        Assert.Equal(fci + skg, laender.Single(l => l.Code == "CH").RegulationCount);
         // Ein Land ohne eigene Ordnungen hat trotzdem die internationalen.
-        Assert.Equal(fci, laender.Single(l => l.Code == "CH").RegulationCount);
+        Assert.Equal(fci, laender.Single(l => l.Code == "IT").RegulationCount);
     }
 
     [Fact]

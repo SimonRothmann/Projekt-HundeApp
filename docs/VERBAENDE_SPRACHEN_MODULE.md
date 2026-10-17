@@ -655,3 +655,38 @@ deutsch – das ist unsere eigene Beschreibung, keine Übersetzung der FCI-Ordnu
   Deutschland.
 - Keine Schemaänderung und keine Migration: Der Seeder legt die Daten beim Start
   an (idempotent), bestehende Datenbanken bekommen sie beim nächsten Hochlauf.
+
+---
+
+## Paket L3 (2026-10-17, Fassung 0.32): Schweiz
+
+*Stand der Länder*
+
+| Land | Inhalt im Katalog |
+|---|---|
+| **Deutschland** (`DE`) | VDH: Turnierhundsport (12), Agility inkl. A0 (5), Hoopers H0-H3 (4), dazu die internationalen FCI-Ordnungen |
+| **Österreich** (`AT`) | ÖKV: BH/VT (1), Agility LK 1-3 und Jumping (4), Hoopers H1-H3 (3), Breitensport (8), dazu FCI |
+| **Schweiz** (`CH`) | SKG: Begleithund 1-3 (3, eigene Sportart `BHCH`), Agility Klasse 1-3 und Jumping (4), dazu FCI |
+| übrige Länder | nur die internationalen FCI-Ordnungen |
+
+*Schweiz*
+
+- Neu im Katalog sind 7 Ordnungen mit `CountryCode` „CH“ - Einzelheiten und
+  Prüfprotokoll in [PO_VERIFIKATION.md](PO_VERIFIKATION.md), Abschnitt „Schweiz“.
+  Der Seeder steht in `SportCatalogSeeder.Schweiz.cs`, nach dem Muster von
+  Österreich (partielle Klasse, idempotent, Land je Ordnung ausdrücklich gesetzt).
+- Der Begleithund der SKG ist eine **eigene Sportart** („Begleithund (SKG)“), keine
+  Ordnung unter der BH: Er hat drei Abteilungen zu je 100 Punkten (Fährte bzw.
+  Revier, Unterordnung, Führigkeit) und andere Übungen als die deutsche/FCI-BH.
+  Sie erscheint durch die Filterregel von Paket L2 von selbst nur bei Land
+  Schweiz (nur dort gilt eine ihrer Ordnungen); für Deutschland, Österreich und
+  übrige Länder bleibt sie unsichtbar, per Id und auf den öffentlichen Seiten
+  aber lesbar.
+- Agility läuft unter der bestehenden Sportart `AGILITY`; sie bleibt damit auch
+  in der Schweiz sichtbar. Hoopers gibt es für die Schweiz nicht (kein
+  SKG-Reglement gefunden) und ist dort nicht sichtbar.
+- Keine Schemaänderung und keine Migration: Der Seeder legt die Daten beim Start
+  an. Nationale Ordnungen bleiben deutsch (kein `NameEn`).
+- Öffentliche Prüfungsordnungs-Seiten: Die Familie „Schweiz – SKG“ bündelt alle
+  Ordnungen mit dem Präfix „SKG“ (`lib/public-catalog.ts`).
+

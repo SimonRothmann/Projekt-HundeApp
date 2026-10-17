@@ -169,7 +169,7 @@ export default function SportsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("Sportarten")}</h1>
         <p className="text-sm text-muted-foreground">
-          {t("Informativer Katalog nach FCI-, VDH- und ÖKV-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.")}
+          {t("Informativer Katalog nach FCI-, VDH-, ÖKV- und SKG-Prüfungsordnungen. Übungstexte und Bewertungskriterien sind eigene Beschreibungen, keine Kopie offizieller Prüfungsordnungen.")}
           {isAdmin
             ? t(" Als Admin kannst du globale Sportarten und ihre Prüfungsordnungen hier direkt bearbeiten.")
             : t(" Globale Sportarten pflegt der Admin; Vereine können eigene Übungen & Sportarten anlegen (Trainer-Bereich).")}

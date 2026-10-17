@@ -270,7 +270,8 @@ public class OesterreichKatalogTests
     public async Task Sportarten_AndereLaenderSehenNurDieInternationalen()
     {
         await using var db = await KatalogAsync();
-        var codes = await SichtbareAsync(db, await PersonAsync(db, "CH"));
+        // Italien hat (noch) keine nationalen Ordnungen.
+        var codes = await SichtbareAsync(db, await PersonAsync(db, "IT"));
 
         Assert.Equal(FciKatalog.InternationaleSportarten.Order(), codes.Order());
     }

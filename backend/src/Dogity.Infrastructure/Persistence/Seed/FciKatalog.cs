@@ -41,6 +41,13 @@ public static class FciKatalog
     public const string Oesterreich = "AT";
 
     /// <summary>
+    /// Länder-Code der schweizerischen (SKG-)Ordnungen (Paket L3): Begleithund
+    /// als eigene Sportart und Agility unter der Sportart AGILITY. Wie bei
+    /// Österreich tragen sie den Code ausdrücklich.
+    /// </summary>
+    public const string Schweiz = "CH";
+
+    /// <summary>
     /// Geltungsbereich der Ordnungen einer Sportart: null = gilt überall (FCI),
     /// sonst Deutschland (VDH).
     /// </summary>

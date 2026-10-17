@@ -43,6 +43,16 @@ describe("groupIntoFamilies", () => {
     ]);
   });
 
+  it("bündelt die schweizerischen Ordnungen unter „Schweiz – SKG“, auch die Agility-Ordnungen", () => {
+    expect(titles(["SKG BH 1", "SKG BH 3", "SKG Agility Klasse 2", "SKG Jumping (Klasse 1-3)"])).toEqual(["Schweiz – SKG"]);
+    // Dazwischen bleiben die Familien der anderen Länder getrennt.
+    expect(titles(["Agility 1 (A1)", "ÖKV Agility LK 1 (A 1)", "SKG Agility Klasse 1"])).toEqual([
+      "Agility",
+      "Österreich – ÖKV",
+      "Schweiz – SKG",
+    ]);
+  });
+
   it("trennt die Fährten von den Einzelprüfungen", () => {
     // "FCI-FPr 1" enthält kein "Fährte" im Namen und gehört zu den
     // Einzelprüfungen - sonst stünde dieselbe Prüfung in zwei Familien.

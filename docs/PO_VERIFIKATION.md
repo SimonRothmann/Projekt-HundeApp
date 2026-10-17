@@ -16,6 +16,8 @@ kleiner.
 | [ÖKV-Agilityreglement, Ausgabe 2026](https://www.oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96KV-Agilityreglement_2026_g%C3%BCltig%20ab%201.1.2026.pdf) (beschlossen 30.10.2025, gültig ab 01.01.2026) | Agility LK 1-3 und Jumping (ÖKV) |
 | [ÖKV Prüfungsordnung Hoopers, gültig ab 01.01.2024](https://www.oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96KV%20PO%20Hoopers%20Stand%2010-2023.pdf) | Hoopers H1-H3 (ÖKV) |
 | [ÖKV Prüfungsordnung Breitensport, gültig ab 01.01.2025](https://breitensport.oekv.at/media/upload/editor/files/Breitensport/Allgemeines/BSP_PO_2025.pdf) (beschlossen 29.02.2024) | Breitensport VK 1/VK 2, Läufe, CSC, Shorty (ÖKV) |
+| [SKG/TKGS, Nationale Prüfungsordnung Begleithund 1-3 (NPO-BH), 3. Ausgabe, gültig ab 1. März 2022](https://scog-schaffhausen.ch/documents/bh_npo_15_d_ausgabe_3-1/) (57 Seiten; die offizielle Seite [tkgs.ch/de/reglemente](https://www.tkgs.ch/de/reglemente) nennt diese Ausgabe, verlinkt das deutsche PDF aber nicht - der Text stammt aus dem Dokumentenbereich einer SKG-Sektion, scog-schaffhausen.ch) | Begleithund 1-3 (SKG), Sportart BHCH (seit 2026-10-17) |
+| [SKG Wettkampfordnung, Reglement Agility, gültig ab 01.01.2025](https://www.tkamo.ch/media/files/Agility_Reglement_2025_DE.pdf) (Reglemente 2025-2027, beschlossen DKAMO 28.03.2023, genehmigt vom Zentralvorstand der SKG 09.10.2024, 20 Seiten) | Agility Klasse 1-3 und Jumping (SKG) |
 | [VDH-Prüfungsordnung Hoopers, gültig ab 01.01.2027](https://www.vdh.de/fileadmin/media/hundesport/Hoopers-Agility/2026/VDH-PO-Hoopers_2027_V01.pdf) (beschlossen 25.09.2026, 18 Seiten; Übersicht auf [vdh.de/hundesport/hoopers](https://www.vdh.de/hundesport/hoopers/)) | Hoopers H0-H3 (seit 2026-10-15) |
 
 ## Ergebnis: das meiste stimmt
@@ -324,6 +326,7 @@ folgen zwei Entscheidungen des Betreibers (2026-10-16):
 |---|---|---|
 | **international** (`CountryCode` null) | `BH`, `IBGH1`-`IBGH3`, `IGP1`-`IGP3`, `FAERTE`, `FPR`, `UPR`, `SPR`, `GPR`, `STOEPR`, `IAD` | BH, IBGH 1-3, FCI-IGP 1-3, FCI-IFH 1-3, FCI-IGP FH, FCI-FPr/UPr/SPr/GPr/StöPr 1-3, FCI-IAD (27 Ordnungen) |
 | **Österreich** (`AT`, ÖKV) | `BH`, `AGILITY`, `HOOPERS`, `BSP` | ÖKV BH/VT, ÖKV Agility LK 1-3 und Jumping, ÖKV Hoopers H1-H3, Breitensport (8) - siehe „Österreich“ unten (16 Ordnungen) |
+| **Schweiz** (`CH`, SKG) | `BHCH`, `AGILITY` | SKG Begleithund 1-3 (3), SKG Agility Klasse 1-3 und Jumping (4) - siehe „Schweiz“ unten (7 Ordnungen) |
 | **Deutschland** (`DE`, VDH) | `THS`, `AGILITY`, `HOOPERS` | VDH-Turnierhundsport (12), VDH-PO Agility inkl. A0 (5), VDH-PO Hoopers H0-H3 (4) |
 
 Die Liste steht im Code an einer Stelle (`FciKatalog.InternationaleSportarten`);
@@ -472,3 +475,96 @@ deutsch - kein `NameEn`. Der Seeder steht in `SportCatalogSeeder.Oesterreich.cs`
   Weitsprung genannt.
 - **Obedience** (ÖPO Beginner/Senior, FCI-Obedience) ist nicht Teil von Paket L2.
   Es wäre eine neue Sportart, auch für Deutschland.
+
+## Schweiz: SKG-Ordnungen (2026-10-17, Paket L3)
+
+Betreiberentscheidung (2026-10-16): nationale Ordnungen für Österreich, danach die
+Schweiz. Alle Ordnungen tragen `CountryCode` "CH", die Version den
+Gültigkeitsbeginn laut Dokument, die Quelle die Adresse oben in der Tabelle. Die
+Texte sind eigene Beschreibungen; jede Ordnung und jede Übung nennt die Seite des
+Dokuments (so, wie sie im PDF gedruckt steht). Nationale Ordnungen bleiben
+deutsch - kein `NameEn`. Der Seeder steht in `SportCatalogSeeder.Schweiz.cs`.
+
+### Prüfprotokoll
+
+| Ordnung | Gegen welche Seiten geprüft | Ergebnis |
+|---|---|---|
+| **SKG BH 1**, Sportart `BHCH` | NPO-BH S. 3-14, 19-30 | 300 Punkte (S. 4): A Fährte 100 (Halten der Fährte 80, Gegenstand 20, Eigenfährte), B 5 x 20, C 5 x 20. Mindestalter 12 Monate (S. 8) |
+| **SKG BH 2**, Sportart `BHCH` | NPO-BH S. 5, 8-12, 31-42 | 300 Punkte (S. 5): A 1 Fremdfährte 50 (35 + 15 als 8/7), A 2 Revier 50 (35 + 15 als 5/5/5), B 5 x 20, C 20/10/20/10/20/20. Mindestalter 19 Monate |
+| **SKG BH 3**, Sportart `BHCH` | NPO-BH S. 6, 8-12, 43-56 | 300 Punkte (S. 6): A 1 Fremdfährte 50 (35 + 15 als 5/5/5), A 2 Revier 50 (35 + 15 als 5/5/5), B 5 x 20, C 20/10/20/10/20/20. Mindestalter 20 Monate |
+| **SKG Agility Klasse 1/2/3 und Jumping**, unter `AGILITY` | Reglement Agility S. 5-19 | Fehlerpunkte 5 je Abwurf/Fehler/Verweigerung, Zeitfehler 0,01 je Hundertstel (S. 11); Geräte (S. 8-10), Fehler (S. 11 f.), Disqualifikation (S. 12 f.), Klassierung (S. 14), Oldies (S. 15), Grössenkategorien (S. 16), Arbeitsklassen und Auf-/Abstieg (S. 17 f.), Doppelsprung erst ab Klasse 2 und Kontaktzonengeräte je Parcours (S. 18) |
+
+Bestehensgrenzen (S. 7): Eine Abteilung ist bestanden mit mindestens 70 von 100
+Punkten, die Prüfung nur, wenn A, B und C je mindestens 70 erreichen (Minimum
+210 von 300). Bewertungsstufen: V 100-96 %, SG 95-90 %, G 89-80 %, B 79-70 %, M
+69-0 %; im Gesamt V 300-286, SG 285-270, G 269-240, B 239-210, M 209-0. Alles steht
+in der Beschreibung jeder BH-Ordnung.
+
+Das Deckblatt der NPO-BH trägt noch durchgestrichene Angaben der Vorausgabe
+("32. Ausgabe", "1. Januar 2019"). Maßgeblich ist die 3. Ausgabe ab 1.3.2022. Im
+übrigen Text stecken weitere Änderungsmarkierungen nur in der Bezeichnung der
+Mitgliedskarte (Seite 8 und die Checkliste S. 57) - keine Zahlenwerte, die
+nebeneinander in alter und neuer Fassung stehen. Geprüft wurde jede Zahl der
+Tabellen S. 4-6 gegen die Kapitel der Klassen.
+
+### Entschieden
+
+- **Eigene Sportart `BHCH`.** Aufbau und Übungen unterscheiden sich grundlegend von
+  der deutschen/FCI-BH (Abteilungen Fährte/Revier, Unterordnung, Führigkeit zu je
+  100 Punkten; Fremdfährte und Revier ab BH 2). Die 23 Übungen sind eigene dieser
+  Sportart, damit die Kataloge getrennt bleiben; kein `NameEn`.
+- **Übungen über die Klassen zusammengefasst, wo die Tabelle denselben Namen
+  trägt.** Freifolge, Stellungen in der Fussposition, Apportieren, Hochsprung,
+  Sitz aus der Bewegung, Abrufen über die Hürde, Stellungen auf Distanz und die
+  Fährten-/Revier-Bestandteile gibt es in mehreren Klassen; Punkte und Ablauf
+  stehen je Klasse in den Hinweisen der Ordnung. „Stellungen in Frontposition“
+  (BH 1, Abteilung C, Hundeführer tritt vor den Hund) und „Stellungen in der
+  Frontposition“ (BH 2/3, Abteilung B, Hund wechselt in die Front) sind laut
+  Tabelle zwei verschiedene Übungen und bleiben getrennt.
+- **Namen nach der Tabelle „Prüfungsklassen mit Prüfungsfächern“**, nicht nach
+  den Kapitelüberschriften (Tabelle „Steh aus dem Normalschritt“, Kapitel „Stehen
+  aus dem Normalschritt“). Schreibweise mit „ss“ („Fussposition“) wie in der
+  schweizerischen Vorlage.
+- **Fährte und Revier als je zwei Prüfungsfächer** („Halten der Fährte“ und
+  „Gegenstände auf der Fährte“, „Revierarbeit“ und „Gegenstände im Revier“), wie
+  die Tabelle sie trennt; in BH 1 steht „Gegenstand“ im Singular, im Katalog
+  dieselbe Übung wie „Gegenstände“ in BH 2/3.
+- **Agility: Arbeitsklassen 1-3 und Jumping** wie die deutschen A0-A3 und die
+  österreichischen LK 1-3, mit den vorhandenen Geräten der Sportart `AGILITY`
+  (Klasse 1 ohne Doppelsprung, Jumping ohne Kontaktzonengeräte).
+- **Oldies, Grössenkategorien, Junioren und Senioren sind Hinweise in der
+  Beschreibung, keine Ordnungen.** Das Reglement gibt den Oldies „keine
+  Leistungsklassen“ und einen Parcours höchstens im Schwierigkeitsgrad der
+  Klasse 2 (S. 15); die Grössenkategorien gelten für alle drei Klassen (S. 16 f.).
+  Junioren und Senioren kommen nur als Qualifikationsläufe zu den FCI-Open
+  vor (S. 14), ein eigenes Regelwerk steht nicht im Dokument.
+- **Hoopers** fehlt für die Schweiz: Ein SKG-Reglement wurde nicht gefunden.
+
+### Offen / Unstimmigkeiten in den Quellen
+
+- **Aufstiegs- und Bestätigungskriterien (Agility):** Das Reglement nennt keine
+  Zahlen. Die TKAMO legt sie vor Ablauf des Kalenderjahres per Weisung für das
+  Folgejahr fest und veröffentlicht sie auf der Webseite (S. 17 f.). Im Katalog
+  steht nur, was im Reglement steht (24 Monate zwischen erstem und letztem
+  Resultat, freiwilliger Abstieg jederzeit); die Zahlen fehlen bewusst.
+- **Agility: Standardzeit der Klassen 2/3 und Aufrechnungsfaktor** stehen auch in
+  einer Weisung der TKAMO (S. 7). Ebenso die Maximalzeit der Klassen 2/3 in den
+  Richterrichtlinien (S. 8): Das Reglement verweist nur auf die FCI-
+  Geschwindigkeit (Beispiel FCI 2023: 2,5 m/s Agility, 3,0 m/s Jumping).
+- **Agility: Qualifikationsstufen** (Vorzüglich usw.) kennt das Reglement nicht,
+  daher stehen keine in der Beschreibung.
+- **Agility S. 6:** Die Angabe „15 bis 22 Hindernisse“ gilt „je nach Kategorie des
+  Wettbewerbes“; eine Aufteilung nach Klasse nennt das Dokument nicht.
+- **NPO-BH, Formulierung „Mangelhaft -10 Punkte“** (Hochsprung S. 26, 38, 51,
+  Abrufen über die Hürde S. 30, 42 u. a.): Ob die Wertung „Mangelhaft“ und
+  zusätzlich 10 Punkte Abzug gemeint sind oder ein Abzug innerhalb von
+  „Mangelhaft“, sagt der Text nicht. Wörtlich übernommen.
+- **NPO-BH, Zeitmessung im Revier:** S. 18 beginnt die Suchzeit „mit dem Einsetzen
+  des Hundes aus der Startgrundstellung“, S. 33/45 „mit der Freigabe durch den
+  Leistungsrichter“. Im Katalog steht nur die Ausarbeitungszeit von 10 Minuten.
+- **NPO-BH, Laufschemata und Anlagen** (Skizzen zu Freifolge, Hürde, Voran) sind im
+  Text nicht enthalten, nur die Beschreibung der Wendungen und Stellungen.
+- **Nicht Teil von Paket L3:** Hoopers (kein SKG-Reglement gefunden), die
+  weiteren NPO der TKGS (VPG, FH15, SanH, LawH, WAH, KH, AD, SH) sowie Obedience
+  und Mobility der SKG-Wettkampfordnung. Mögliche Erweiterung.
+
