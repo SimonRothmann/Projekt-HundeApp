@@ -46,6 +46,14 @@ public static class Textlaengen
     public const int OrdnungNameEn = 100;
     /// <summary>Exercise.NameEn: englischer Name, so lang wie <c>Exercise.Name</c>.</summary>
     public const int UebungNameEn = 150;
+    /// <summary>Exercise.DescriptionEn: englische Beschreibung; die Spalte ist wie die deutsche unbegrenzt, das Formular begrenzt beide auf 2000.</summary>
+    public const int UebungBeschreibungEn = 2000;
+    /// <summary>Exercise.ScoringCriteriaEn: englische Bewertungskriterien, so lang wie <c>Exercise.ScoringCriteria</c>.</summary>
+    public const int UebungBewertungEn = 1000;
+    /// <summary>Regulation.DescriptionEn: englische Beschreibung, so lang wie <c>Regulation.Description</c>.</summary>
+    public const int OrdnungBeschreibungEn = 2000;
+    /// <summary>RegulationExercise.ScoringNotesEn: englische Bewertungshinweise, so lang wie <c>RegulationExercise.ScoringNotes</c>.</summary>
+    public const int OrdnungsuebungHinweisEn = 1000;
     /// <summary>Suchbegriff der Admin-Nutzerliste (wird nicht gespeichert).</summary>
     public const int NutzerSuche = 100;
 

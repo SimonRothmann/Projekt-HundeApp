@@ -13,9 +13,9 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
         if (string.IsNullOrWhiteSpace(request.Name))
             return Result<ExerciseDto>.Failure("Name ist erforderlich.");
 
-        var nameEnFehler = Textlaengen.ZuLang(request.NameEn, Textlaengen.UebungNameEn, "Der englische Name");
-        if (nameEnFehler is not null)
-            return Result<ExerciseDto>.Failure(nameEnFehler);
+        var enFehler = PruefeEnglisch(request.NameEn, request.DescriptionEn, request.ScoringCriteriaEn);
+        if (enFehler is not null)
+            return Result<ExerciseDto>.Failure(enFehler);
 
         // SportId optional: sportartlose Übungen sind erlaubt (z.B. Grundlagen-
         // Training, das in mehreren Kontexten genutzt wird).
@@ -36,9 +36,11 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
             Name = request.Name.Trim(),
             NameEn = NullIfBlank(request.NameEn),
             Description = request.Description,
+            DescriptionEn = NullIfBlank(request.DescriptionEn),
             Difficulty = request.Difficulty,
             Category = request.Category,
             ScoringCriteria = request.ScoringCriteria,
+            ScoringCriteriaEn = NullIfBlank(request.ScoringCriteriaEn),
             ClubId = request.ClubId
         };
         db.Exercises.Add(exercise);
@@ -60,16 +62,18 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
         if (string.IsNullOrWhiteSpace(request.Name))
             return Result<ExerciseDto>.Failure("Name ist erforderlich.");
 
-        var nameEnFehler = Textlaengen.ZuLang(request.NameEn, Textlaengen.UebungNameEn, "Der englische Name");
-        if (nameEnFehler is not null)
-            return Result<ExerciseDto>.Failure(nameEnFehler);
+        var enFehler = PruefeEnglisch(request.NameEn, request.DescriptionEn, request.ScoringCriteriaEn);
+        if (enFehler is not null)
+            return Result<ExerciseDto>.Failure(enFehler);
 
         exercise.Name = request.Name.Trim();
         exercise.NameEn = NullIfBlank(request.NameEn);
         exercise.Description = request.Description;
+        exercise.DescriptionEn = NullIfBlank(request.DescriptionEn);
         exercise.Difficulty = request.Difficulty;
         exercise.Category = request.Category;
         exercise.ScoringCriteria = request.ScoringCriteria;
+        exercise.ScoringCriteriaEn = NullIfBlank(request.ScoringCriteriaEn);
         await db.SaveChangesAsync(ct);
 
         return Result<ExerciseDto>.Success(ToDto(exercise));
@@ -99,6 +103,12 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
         return isClubTrainer ? null : "Du bist für diesen Verein nicht als Trainer eingetragen.";
     }
 
+    /// <summary>Längenprüfung der englischen Felder (Paket E4).</summary>
+    private static string? PruefeEnglisch(string? nameEn, string? beschreibungEn, string? bewertungEn) =>
+        Textlaengen.ZuLang(nameEn, Textlaengen.UebungNameEn, "Der englische Name")
+        ?? Textlaengen.ZuLang(beschreibungEn, Textlaengen.UebungBeschreibungEn, "Die englische Beschreibung")
+        ?? Textlaengen.ZuLang(bewertungEn, Textlaengen.UebungBewertungEn, "Die englische Bewertung");
+
     private static ExerciseDto ToDto(Exercise e) =>
-        new(e.Id, e.SportId, e.Name, e.Description, e.Difficulty, e.Category, e.ScoringCriteria, e.ClubId, e.NameEn);
+        new(e.Id, e.SportId, e.Name, e.Description, e.Difficulty, e.Category, e.ScoringCriteria, e.ClubId, e.NameEn, e.DescriptionEn, e.ScoringCriteriaEn);
 }

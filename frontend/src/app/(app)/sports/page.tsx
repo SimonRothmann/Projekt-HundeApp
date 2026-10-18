@@ -28,7 +28,7 @@ import { difficultyLabel } from "@/lib/constants";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 import { usePreferences } from "@/lib/preferences-context";
-import { katalogName, uebungName } from "@/lib/katalog-name";
+import { katalogKategorie, katalogName, katalogText, uebungName } from "@/lib/katalog-name";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
 import { ordnungenPfad, sportartenPfad } from "@/lib/katalog-land";
@@ -466,6 +466,7 @@ function RegulationBlock({
   const [name, setName] = useState(regulation.name);
   const [nameEn, setNameEn] = useState(regulation.nameEn ?? "");
   const [description, setDescription] = useState(regulation.description ?? "");
+  const [descriptionEn, setDescriptionEn] = useState(regulation.descriptionEn ?? "");
   const [sourceUrl, setSourceUrl] = useState(regulation.sourceUrl ?? "");
   const [savingMeta, setSavingMeta] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -481,6 +482,7 @@ function RegulationBlock({
         name: name.trim(),
         nameEn: nameEn.trim() || null,
         description: description.trim() || null,
+        descriptionEn: descriptionEn.trim() || null,
         sourceUrl: sourceUrl.trim() || null,
         // Der Geltungsbereich gehört nicht zu diesem Formular, muss aber
         // mitgeschickt werden: Das Backend liest "leer" als "gilt überall",
@@ -536,6 +538,7 @@ function RegulationBlock({
                       setName(regulation.name);
                       setNameEn(regulation.nameEn ?? "");
                       setDescription(regulation.description ?? "");
+                      setDescriptionEn(regulation.descriptionEn ?? "");
                       setSourceUrl(regulation.sourceUrl ?? "");
                       setEditingMeta(true);
                     }}
@@ -561,6 +564,10 @@ function RegulationBlock({
                     <textarea id={`reg-desc-${regulation.id}`} className={textareaClass} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={4000} />
                   </div>
                   <div className="flex flex-col gap-1.5">
+                    <Label htmlFor={`reg-desc-en-${regulation.id}`}>{t("Englische Rahmenbedingungen (optional)")}</Label>
+                    <textarea id={`reg-desc-en-${regulation.id}`} className={textareaClass} rows={4} value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} maxLength={TEXTLAENGE.ordnungBeschreibungEn} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
                     <Label htmlFor={`reg-url-${regulation.id}`}>{t("Quelle (URL, optional)")}</Label>
                     <Input id={`reg-url-${regulation.id}`} value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} maxLength={500} />
                   </div>
@@ -574,10 +581,10 @@ function RegulationBlock({
                   </div>
                 </div>
               ) : (
-                detail.regulation.description && (
+                katalogText(detail.regulation.description, detail.regulation.descriptionEn, sprache) && (
                   <div className="mb-3 rounded-md bg-primary/5 px-3 py-2.5">
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary-text">{t("Rahmenbedingungen")}</p>
-                    <p className="whitespace-pre-line text-sm leading-relaxed">{detail.regulation.description}</p>
+                    <p className="whitespace-pre-line text-sm leading-relaxed [overflow-wrap:anywhere]">{katalogText(detail.regulation.description, detail.regulation.descriptionEn, sprache)}</p>
                   </div>
                 )
               )}
@@ -646,6 +653,7 @@ function RegExerciseRow({
   const [mandatory, setMandatory] = useState(re.isMandatory);
   const [points, setPoints] = useState(String(re.maxPoints));
   const [notes, setNotes] = useState(re.scoringNotes ?? "");
+  const [notesEn, setNotesEn] = useState(re.scoringNotesEn ?? "");
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -655,6 +663,7 @@ function RegExerciseRow({
         isMandatory: mandatory,
         maxPoints: Number(points) || 0,
         scoringNotes: notes.trim() || null,
+        scoringNotesEn: notesEn.trim() || null,
       });
       toast.success(t("Gespeichert."));
       setEditing(false);
@@ -695,6 +704,10 @@ function RegExerciseRow({
           <Label className="text-xs">{t("Bewertungshinweise (optional)")}</Label>
           <textarea className={textareaClass} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
         </div>
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs">{t("Englische Bewertungshinweise (optional)")}</Label>
+          <textarea className={textareaClass} rows={2} value={notesEn} onChange={(e) => setNotesEn(e.target.value)} maxLength={TEXTLAENGE.ordnungsuebungHinweisEn} />
+        </div>
         <div className="flex gap-2">
           <Button type="button" size="sm" disabled={saving} onClick={save}>
             {saving ? t("Speichert…") : t("Speichern")}
@@ -718,7 +731,7 @@ function RegExerciseRow({
           {re.maxPoints > 0 && <Badge variant="outline">{t("{n} Punkte", { n: re.maxPoints })}</Badge>}
           {canEdit && (
             <>
-              <Button type="button" size="icon-sm" variant="ghost" aria-label={t("Bearbeiten")} onClick={() => { setMandatory(re.isMandatory); setPoints(String(re.maxPoints)); setNotes(re.scoringNotes ?? ""); setEditing(true); }}>
+              <Button type="button" size="icon-sm" variant="ghost" aria-label={t("Bearbeiten")} onClick={() => { setMandatory(re.isMandatory); setPoints(String(re.maxPoints)); setNotes(re.scoringNotes ?? ""); setNotesEn(re.scoringNotesEn ?? ""); setEditing(true); }}>
                 <Pencil className="size-3.5" />
               </Button>
               <Button type="button" size="icon-sm" variant="ghost" aria-label={t("Entfernen")} onClick={remove}>
@@ -728,7 +741,9 @@ function RegExerciseRow({
           )}
         </div>
       </div>
-      {re.scoringNotes && <p className="text-muted-foreground [overflow-wrap:anywhere]">{re.scoringNotes}</p>}
+      {katalogText(re.scoringNotes, re.scoringNotesEn, sprache) && (
+        <p className="text-muted-foreground [overflow-wrap:anywhere]">{katalogText(re.scoringNotes, re.scoringNotesEn, sprache)}</p>
+      )}
     </li>
   );
 }
@@ -750,6 +765,7 @@ function AddRegExerciseForm({
   const [mandatory, setMandatory] = useState(true);
   const [points, setPoints] = useState("0");
   const [notes, setNotes] = useState("");
+  const [notesEn, setNotesEn] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function submit() {
@@ -764,6 +780,7 @@ function AddRegExerciseForm({
         isMandatory: mandatory,
         maxPoints: Number(points) || 0,
         scoringNotes: notes.trim() || null,
+        scoringNotesEn: notesEn.trim() || null,
       });
       toast.success(t("Übung hinzugefügt."));
       onDone();
@@ -805,6 +822,10 @@ function AddRegExerciseForm({
         <Label className="text-xs">{t("Bewertungshinweise (optional)")}</Label>
         <textarea className={textareaClass} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
       </div>
+      <div className="flex flex-col gap-1">
+        <Label className="text-xs">{t("Englische Bewertungshinweise (optional)")}</Label>
+        <textarea className={textareaClass} rows={2} value={notesEn} onChange={(e) => setNotesEn(e.target.value)} maxLength={TEXTLAENGE.ordnungsuebungHinweisEn} />
+      </div>
       <div className="flex gap-2">
         <Button type="button" size="sm" disabled={saving} onClick={submit}>
           {saving ? t("Fügt hinzu…") : t("Hinzufügen")}
@@ -832,9 +853,11 @@ function ExerciseRow({
   const [name, setName] = useState(exercise.name);
   const [nameEn, setNameEn] = useState(exercise.nameEn ?? "");
   const [description, setDescription] = useState(exercise.description ?? "");
+  const [descriptionEn, setDescriptionEn] = useState(exercise.descriptionEn ?? "");
   const [difficulty, setDifficulty] = useState<ExerciseDifficulty>(exercise.difficulty);
   const [category, setCategory] = useState(exercise.category ?? "");
   const [scoring, setScoring] = useState(exercise.scoringCriteria ?? "");
+  const [scoringEn, setScoringEn] = useState(exercise.scoringCriteriaEn ?? "");
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -848,9 +871,11 @@ function ExerciseRow({
         name: name.trim(),
         nameEn: nameEn.trim() || null,
         description: description.trim() || null,
+        descriptionEn: descriptionEn.trim() || null,
         difficulty,
         category: category.trim() || null,
         scoringCriteria: scoring.trim() || null,
+        scoringCriteriaEn: scoringEn.trim() || null,
       });
       toast.success(t("Übung aktualisiert."));
       setEditing(false);
@@ -899,8 +924,16 @@ function ExerciseRow({
           <textarea className={textareaClass} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
         </div>
         <div className="flex flex-col gap-1.5">
+          <Label className="text-xs">{t("Englische Beschreibung (optional)")}</Label>
+          <textarea className={textareaClass} rows={2} value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} maxLength={TEXTLAENGE.uebungBeschreibungEn} />
+        </div>
+        <div className="flex flex-col gap-1.5">
           <Label className="text-xs">{t("Bewertungskriterien (optional)")}</Label>
           <textarea className={textareaClass} rows={2} value={scoring} onChange={(e) => setScoring(e.target.value)} maxLength={2000} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs">{t("Englische Bewertungskriterien (optional)")}</Label>
+          <textarea className={textareaClass} rows={2} value={scoringEn} onChange={(e) => setScoringEn(e.target.value)} maxLength={TEXTLAENGE.uebungBewertungEn} />
         </div>
         <div className="flex gap-2">
           <Button type="button" size="sm" disabled={saving} onClick={save}>
@@ -936,9 +969,11 @@ function ExerciseRow({
                 setName(exercise.name);
                 setNameEn(exercise.nameEn ?? "");
                 setDescription(exercise.description ?? "");
+                setDescriptionEn(exercise.descriptionEn ?? "");
                 setDifficulty(exercise.difficulty);
                 setCategory(exercise.category ?? "");
                 setScoring(exercise.scoringCriteria ?? "");
+                setScoringEn(exercise.scoringCriteriaEn ?? "");
                 setEditing(true);
               }}
             >
@@ -947,8 +982,10 @@ function ExerciseRow({
           )}
         </div>
       </div>
-      {exercise.category && <p className="mt-0.5 text-xs text-muted-foreground">{exercise.category}</p>}
-      {exercise.scoringCriteria && <p className="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{exercise.scoringCriteria}</p>}
+      {katalogKategorie(exercise, sprache) && <p className="mt-0.5 text-xs text-muted-foreground">{katalogKategorie(exercise, sprache)}</p>}
+      {katalogText(exercise.scoringCriteria, exercise.scoringCriteriaEn, sprache) && (
+        <p className="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{katalogText(exercise.scoringCriteria, exercise.scoringCriteriaEn, sprache)}</p>
+      )}
     </li>
   );
 }

@@ -318,7 +318,8 @@ folgen zwei Entscheidungen des Betreibers (2026-10-16):
 1. **Die FCI-Ordnungen gelten in allen Ländern** (`Regulation.CountryCode` null).
 2. **Die FCI-Ordnungen zeigen auf Englisch die offiziellen englischen Namen**
    (`NameEn` an Sportart, Ordnung und Übung). Beschreibungen, Bewertungskriterien
-   und Hinweise bleiben deutsch.
+   und Hinweise blieben zunächst deutsch - seit Paket E4 (2026-10-18) gibt es sie
+   auch auf Englisch, siehe „Englische Texte der FCI-Ordnungen“ unten.
 
 ### Geltungsbereich je Ordnung
 
@@ -403,13 +404,62 @@ Terminologie des Textes gewählt):
 - StöPr-Bewertungsmerkmale: im Text ganze Sätze mit Punkten; für die
   Übungsliste gekürzt, die Kernbegriffe stehen wörtlich darin.
 
-**Nicht übersetzt:** Übungsbeschreibungen, Bewertungskriterien und
-Bewertungshinweise, nationale Ordnungen, die öffentlichen Seiten
-`/pruefungsordnungen/**`.
+**Nicht übersetzt:** nationale Ordnungen, die öffentlichen Seiten
+`/pruefungsordnungen/**`. (Übungsbeschreibungen, Bewertungskriterien und
+Bewertungshinweise: seit Paket E4 übersetzt, siehe unten.)
 
 Der Seeder trägt die Namen nur ein, wo `NameEn` noch leer ist – eine Eingabe aus
 dem Katalog-Editor bleibt stehen. Wer einen Namen bewusst leert, bekommt beim
 nächsten Start den der Ordnung zurück.
+
+## Englische Texte der FCI-Ordnungen (2026-10-18, Paket E4)
+
+Betreiberentscheidung 2026-10-18: Beschreibungen, Bewertungskriterien und Hinweise
+der FCI-Ordnungen gibt es auch auf Englisch (Spalten `DescriptionEn`,
+`ScoringCriteriaEn`, `ScoringNotesEn`; Umsetzung und Gründe in
+[VERBAENDE_SPRACHEN_MODULE.md](VERBAENDE_SPRACHEN_MODULE.md), Paket E4). Die
+englische Fassung überträgt unsere deutschen Texte in die Terminologie der
+englischen FCI-IGP 2025; sie ist keine Kopie der offiziellen Ordnung.
+
+### Prüfprotokoll (lokal, Datenbank `dogity_dev`, nach dem Start im Development-Modus)
+
+| Tabelle / Feld | deutsche Texte (FCI) | davon englisch |
+|---|---|---|
+| `exercises.ScoringCriteriaEn` | 131 | 129 |
+| `exercises.DescriptionEn` | 0 (Beschreibung ist bei FCI leer) | 0 |
+| `regulations.DescriptionEn` | 27 | 27 |
+| `regulation_exercises.ScoringNotesEn` | 204 | 204 |
+
+Ohne Englisch bleiben die zwei ÖKV-eigenen BH-Übungen („Freilaufen mit Heranrufen“,
+„Ortsabhängige Begegnung“); die ÖKV-BH-Ordnung und ihre Hinweise ebenso. Keine
+nationale Ordnung (VDH, ÖKV, SKG) hat einen englischen Text; der Test
+`KatalogTexteEnTests` prüft das.
+
+### Befund: zwei Fassungen des deutschen Bewertungstextes
+
+Der Seeder überschreibt die Bewertung bestehender Übungen nie, sondern setzt sie
+nur, wo sie leer ist. Die lokale Datenbank trägt deshalb bei 12 FCI-Übungen eine
+ältere Fassung als eine frische (BH Fußarbeit, Freifolge, Ablegen unter Ablenkung,
+Zurücklassen; IBGH 1/2 Freifolge, IBGH 1 Fußarbeit, IBGH 2 Fußarbeit; IGP 3 Ablegen
+mit Herankommen, Sitz aus der Bewegung; UPr und GPr Klettersprung). Beide Fassungen
+sind übersetzt, und der Seeder setzt Englisch nur zum passenden Text. Wie der
+Bestand auf Prod aussieht, wurde nicht geprüft (kein Zugriff in diesem Lauf) -
+weicht er von beiden ab, bleibt der deutsche Text ohne Englisch, bis er angeglichen
+oder im Katalog-Editor ergänzt wird. **Zu klären:** ob die deutschen Texte der 12
+Übungen in den Datenbanken auf die Seed-Fassung gezogen werden sollen (Betreiber).
+
+### Terminologie und Zahlen
+
+Begriffe aus der englischen FCI-IGP 2025: heeling (on leash / free), basic position,
+verbal command, build-up, sit/down/stand out of motion, recall, send out, retrieve,
+dumbbell, hurdle, scaling wall, blind, helper, hold and bark, prevention of attempted
+escape, defence, guarding phase, back transport, side transport; bei der Fährte
+own/strange track, legs, corners, articles, cross-tracks, track age, working time.
+Zahlen, Punkte, Distanzen, Zeiten und Gewichte sind aus dem
+Deutschen übernommen; der Test prüft, dass jede Ziffernfolge des deutschen Textes
+im englischen vorkommt (keine Ausnahmen nötig). Datumsangabe im Format der
+englischen App (01/01/2025). Seitenangabe: „S. 36“ → „p. 36“ (dieselbe Seite der
+englischen PDF).
 
 ## Österreich: ÖKV-Ordnungen (2026-10-17, Paket L2)
 

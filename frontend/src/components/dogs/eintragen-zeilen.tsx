@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Abschnittsname } from "@/components/dogs/eintragen-chip";
 import { BEWERTUNGEN, type AufgeloesteZeile, type Bewertung, type EintragZeile, type Werte } from "@/lib/eintragen";
 import { useSprache, useT } from "@/lib/i18n";
-import { katalogName } from "@/lib/katalog-name";
+import { katalogName, katalogText } from "@/lib/katalog-name";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import type { Exercise } from "@/lib/types";
@@ -99,7 +99,8 @@ export function EintragenZeilen({
       <ul className="flex flex-col gap-2">
         {zeilen.map(({ zeile, rating, success, plan }) => {
           const aufgeklappt = offen.has(zeile.schluessel);
-          const kriterien = zeile.exerciseId ? uebungen.get(zeile.exerciseId)?.scoringCriteria : null;
+          const uebung = zeile.exerciseId ? uebungen.get(zeile.exerciseId) : undefined;
+          const kriterien = katalogText(uebung?.scoringCriteria, uebung?.scoringCriteriaEn, sprache);
           const name = katalogName(zeile, sprache).trim() || t("Eigene Übung");
           return (
             <li key={zeile.schluessel} className="min-w-0 rounded-lg border border-surface-border bg-surface">

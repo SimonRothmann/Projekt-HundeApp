@@ -48,9 +48,12 @@ export type Exercise = {
   name: string;
   nameEn?: string | null;
   description: string | null;
+  // Englische Fassungen (nur FCI-Übungen), siehe lib/katalog-name.ts.
+  descriptionEn?: string | null;
   difficulty: ExerciseDifficulty;
   category: string | null;
   scoringCriteria: string | null;
+  scoringCriteriaEn?: string | null;
   clubId: string | null;
 };
 
@@ -71,6 +74,8 @@ export type Regulation = {
   // Mehrzeilige Kurzbeschreibung der Prüfungs-Rahmenbedingungen (Schrittzahl,
   // Winkel, Fährtenalter, Voraussetzungen, Bestehensgrenze, ...).
   description: string | null;
+  // Englische Fassung der Rahmenbedingungen (nur FCI-Ordnungen).
+  descriptionEn?: string | null;
   // Prüfungsordnungen, die auf diese folgen (Ausbildungsweg im Backend).
   nextStageNames?: string[];
 };
@@ -88,6 +93,8 @@ export type RegulationExerciseInfo = {
   isMandatory: boolean;
   maxPoints: number;
   scoringNotes: string | null;
+  // Englische Fassung des Bewertungshinweises (nur FCI-Ordnungen).
+  scoringNotesEn?: string | null;
 };
 
 export type RegulationDetail = {

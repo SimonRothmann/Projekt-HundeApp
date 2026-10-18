@@ -2108,4 +2108,23 @@ export const EN: Record<string, string> = {
     "Saving a track, a run or a training with place and time now happens without waiting. Dogity fetches the weather afterwards in the background and adds it – it appears by itself after a few seconds, you do not need to reload the page.",
   "In den Stunden nach Mitternacht (bis etwa 1 bzw. 2 Uhr) rechnete Dogity noch mit dem Vortag. Das betraf die Startseite mit den heutigen Fährten, die Fristen bei Zielen, die Statistik und den Beginn einer Betreuung. Jetzt zählt der Tag, an dem du dich gerade befindest.":
     "In the hours after midnight (until about 1 or 2 a.m.) Dogity still counted with the previous day. This affected the home page with today’s tracks, the deadlines of goals, the statistics and the start of a supervision. Now the day you are in counts.",
+  "Englische Rahmenbedingungen (optional)": "English general conditions (optional)",
+  "Englische Beschreibung (optional)": "English description (optional)",
+  "Englische Bewertungskriterien (optional)": "English scoring criteria (optional)",
+  "Englische Bewertungshinweise (optional)": "English scoring notes (optional)",
+  "Die englische Beschreibung": "The English description",
+  "Die englische Bewertung": "The English scoring criteria",
+  "Der englische Bewertungshinweis": "The English scoring note",
+  "Abteilung A": "Phase A",
+  "Abteilung B": "Phase B",
+  "Abteilung C": "Phase C",
+  "Unterordnung": "Obedience",
+  "Verhalten": "Behaviour",
+  "Stöbern": "Article search",
+  "Ausdauer": "Endurance",
+  "Übungsbeschreibungen auf Englisch": "Exercise descriptions in English",
+  "Wenn du Dogity auf Englisch nutzt, zeigen die FCI-Prüfungsordnungen jetzt auch ihre Texte auf Englisch: die Rahmenbedingungen einer Prüfung, die Bewertungskriterien der Übungen und die Hinweise zu den einzelnen Übungen. Du findest sie im Katalog, beim Anlegen eines Ziels und beim Eintragen eines Trainings. Die Texte sind unsere eigenen Formulierungen in der Fachsprache der englischen FCI-Ordnung, keine Kopie der offiziellen Ordnung.":
+    "If you use Dogity in English, the FCI test regulations now show their texts in English as well: the general conditions of a test, the scoring criteria of the exercises and the notes on the individual exercises. You will find them in the catalogue, when creating a goal and when logging a training. The texts are our own wording in the technical language of the English FCI regulations, not a copy of the official regulations.",
+  "Die Bereiche der FCI-Übungen, zum Beispiel „Abteilung B“ oder „Unterordnung“, erscheinen auf Englisch als „Phase B“ und „Obedience“. Die nationalen Ordnungen (VDH, ÖKV, SKG) bleiben deutsch.":
+    "The areas of the FCI exercises, for example “Abteilung B” or “Unterordnung”, now appear in English as “Phase B” and “Obedience”. The national regulations (VDH, ÖKV, SKG) stay German.",
 };

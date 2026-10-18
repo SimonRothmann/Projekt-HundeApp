@@ -42,6 +42,14 @@ public class Regulation : Entity
     public string? Description { get; set; }
 
     /// <summary>
+    /// Englische Fassung von <see cref="Description"/> (null = keine, die App
+    /// zeigt dann den deutschen Text). Nur für die FCI-Ordnungen gepflegt
+    /// (Paket E4), eigene Formulierung wie das Deutsche - keine Kopie der
+    /// offiziellen Ordnung.
+    /// </summary>
+    public string? DescriptionEn { get; set; }
+
+    /// <summary>
     /// Geltungsbereich als ISO-3166-1-alpha-2-Kürzel ("DE", "AT"), null =
     /// gilt überall.
     ///

@@ -15,7 +15,9 @@ public record ExerciseDto(
     string? Category,
     string? ScoringCriteria,
     Guid? ClubId,
-    string? NameEn = null);
+    string? NameEn = null,
+    string? DescriptionEn = null,
+    string? ScoringCriteriaEn = null);
 
 /// <summary>
 /// Optionale Einschränkung der Übungsliste auf genau einen Katalog: den
@@ -37,7 +39,9 @@ public record CreateExerciseRequest(
     string? Category,
     string? ScoringCriteria,
     Guid? ClubId,
-    string? NameEn = null);
+    string? NameEn = null,
+    string? DescriptionEn = null,
+    string? ScoringCriteriaEn = null);
 
 public record UpdateExerciseRequest(
     string Name,
@@ -45,7 +49,9 @@ public record UpdateExerciseRequest(
     ExerciseDifficulty Difficulty,
     string? Category,
     string? ScoringCriteria,
-    string? NameEn = null);
+    string? NameEn = null,
+    string? DescriptionEn = null,
+    string? ScoringCriteriaEn = null);
 
 public record UpdateSportRequest(string Name, string? Description, string? NameEn = null);
 
@@ -65,7 +71,8 @@ public record RegulationDto(
     string? Description,
     string? CountryCode,
     DateOnly? CurrentVersionValidFrom,
-    string? NameEn = null)
+    string? NameEn = null,
+    string? DescriptionEn = null)
 {
     /// <summary>
     /// Namen der Prüfungsordnungen, die auf diese folgen (Ausbildungsweg) - für
@@ -75,11 +82,11 @@ public record RegulationDto(
     public IReadOnlyList<string> NextStageNames => Planning.Ausbildungsweg.FolgestufenVon(Name);
 }
 
-public record UpdateRegulationRequest(string Name, string? Description, string? SourceUrl, string? CountryCode, string? NameEn = null);
+public record UpdateRegulationRequest(string Name, string? Description, string? SourceUrl, string? CountryCode, string? NameEn = null, string? DescriptionEn = null);
 
-public record AddRegulationExerciseRequest(Guid ExerciseId, bool IsMandatory, int MaxPoints, string? ScoringNotes);
+public record AddRegulationExerciseRequest(Guid ExerciseId, bool IsMandatory, int MaxPoints, string? ScoringNotes, string? ScoringNotesEn = null);
 
-public record UpdateRegulationExerciseRequest(bool IsMandatory, int MaxPoints, string? ScoringNotes);
+public record UpdateRegulationExerciseRequest(bool IsMandatory, int MaxPoints, string? ScoringNotes, string? ScoringNotesEn = null);
 
 public record RegulationVersionDto(Guid Id, string VersionLabel, DateOnly ValidFrom);
 
@@ -89,7 +96,8 @@ public record RegulationExerciseDto(
     bool IsMandatory,
     int MaxPoints,
     string? ScoringNotes,
-    string? ExerciseNameEn = null);
+    string? ExerciseNameEn = null,
+    string? ScoringNotesEn = null);
 
 public record RegulationDetailDto(
     RegulationDto Regulation,

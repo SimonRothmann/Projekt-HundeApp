@@ -35,4 +35,7 @@ public class RegulationExercise : Entity
     /// die Anzahl Winkel/Gegenstände dieser konkreten Prüfungsstufe.
     /// </summary>
     public string? ScoringNotes { get; set; }
+
+    /// <summary>Englische Fassung von <see cref="ScoringNotes"/> (null = keine, die App zeigt dann den deutschen Text).</summary>
+    public string? ScoringNotesEn { get; set; }
 }

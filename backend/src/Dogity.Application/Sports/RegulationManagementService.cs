@@ -38,9 +38,10 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         if (string.IsNullOrWhiteSpace(request.Name))
             return Result<RegulationDto>.Failure("Name ist erforderlich.");
 
-        var nameEnFehler = Textlaengen.ZuLang(request.NameEn, Textlaengen.OrdnungNameEn, "Der englische Name");
-        if (nameEnFehler is not null)
-            return Result<RegulationDto>.Failure(nameEnFehler);
+        var enFehler = Textlaengen.ZuLang(request.NameEn, Textlaengen.OrdnungNameEn, "Der englische Name")
+            ?? Textlaengen.ZuLang(request.DescriptionEn, Textlaengen.OrdnungBeschreibungEn, "Die englische Beschreibung");
+        if (enFehler is not null)
+            return Result<RegulationDto>.Failure(enFehler);
 
         var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.Id == regulationId, ct);
         if (regulation is null)
@@ -53,6 +54,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         regulation.Name = request.Name.Trim();
         regulation.NameEn = NullIfBlank(request.NameEn);
         regulation.Description = NullIfBlank(request.Description);
+        regulation.DescriptionEn = NullIfBlank(request.DescriptionEn);
         regulation.SourceUrl = NullIfBlank(request.SourceUrl);
 
         // Leer heißt hier ausdrücklich "gilt überall" und nicht "unverändert" -
@@ -76,13 +78,17 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
             .FirstOrDefaultAsync(ct);
 
         return Result<RegulationDto>.Success(new RegulationDto(
-            regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, gueltigAb, regulation.NameEn));
+            regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, gueltigAb, regulation.NameEn, regulation.DescriptionEn));
     }
 
     public async Task<Result<RegulationExerciseDto>> AddRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, AddRegulationExerciseRequest request, CancellationToken ct = default)
     {
         if (request.MaxPoints < 0)
             return Result<RegulationExerciseDto>.Failure("Punkte dürfen nicht negativ sein.");
+
+        var hinweisEnFehler = Textlaengen.ZuLang(request.ScoringNotesEn, Textlaengen.OrdnungsuebungHinweisEn, "Der englische Bewertungshinweis");
+        if (hinweisEnFehler is not null)
+            return Result<RegulationExerciseDto>.Failure(hinweisEnFehler);
 
         var (version, authError) = await GetEditableVersionAsync(actingUserId, isAdmin, regulationId, ct);
         if (authError is not null)
@@ -130,16 +136,21 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         link.IsMandatory = request.IsMandatory;
         link.MaxPoints = request.MaxPoints;
         link.ScoringNotes = NullIfBlank(request.ScoringNotes);
+        link.ScoringNotesEn = NullIfBlank(request.ScoringNotesEn);
         await db.SaveChangesAsync(ct);
 
         return Result<RegulationExerciseDto>.Success(new RegulationExerciseDto(
-            exercise.Id, exercise.Name, link.IsMandatory, link.MaxPoints, link.ScoringNotes, exercise.NameEn));
+            exercise.Id, exercise.Name, link.IsMandatory, link.MaxPoints, link.ScoringNotes, exercise.NameEn, link.ScoringNotesEn));
     }
 
     public async Task<Result> UpdateRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, Guid exerciseId, UpdateRegulationExerciseRequest request, CancellationToken ct = default)
     {
         if (request.MaxPoints < 0)
             return Result.Failure("Punkte dürfen nicht negativ sein.");
+
+        var hinweisEnFehler = Textlaengen.ZuLang(request.ScoringNotesEn, Textlaengen.OrdnungsuebungHinweisEn, "Der englische Bewertungshinweis");
+        if (hinweisEnFehler is not null)
+            return Result.Failure(hinweisEnFehler);
 
         var (version, authError) = await GetEditableVersionAsync(actingUserId, isAdmin, regulationId, ct);
         if (authError is not null)
@@ -157,6 +168,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         link.IsMandatory = request.IsMandatory;
         link.MaxPoints = request.MaxPoints;
         link.ScoringNotes = NullIfBlank(request.ScoringNotes);
+        link.ScoringNotesEn = NullIfBlank(request.ScoringNotesEn);
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }

@@ -44,6 +44,14 @@ export const TEXTLAENGE = {
   ordnungNameEn: 100,
   /** Exercise.NameEn (Katalog-Editor, Englischer Name) */
   uebungNameEn: 150,
+  /** Exercise.DescriptionEn (Katalog-Editor, Englische Beschreibung) */
+  uebungBeschreibungEn: 2000,
+  /** Exercise.ScoringCriteriaEn (Katalog-Editor, Englische Bewertungskriterien) */
+  uebungBewertungEn: 1000,
+  /** Regulation.DescriptionEn (Katalog-Editor, Englische Rahmenbedingungen) */
+  ordnungBeschreibungEn: 2000,
+  /** RegulationExercise.ScoringNotesEn (Katalog-Editor, Englische Bewertungshinweise) */
+  ordnungsuebungHinweisEn: 1000,
   /** Suchbegriff der Admin-Nutzerliste (Textlaengen.NutzerSuche, wird nicht gespeichert) */
   nutzerSuche: 100,
 } as const;

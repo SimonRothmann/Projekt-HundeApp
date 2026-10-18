@@ -61,6 +61,21 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.34",
+    datum: "2026-10-18",
+    titel: uebersetzbar("Übungsbeschreibungen auf Englisch"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Wenn du Dogity auf Englisch nutzt, zeigen die FCI-Prüfungsordnungen jetzt auch ihre Texte auf Englisch: die Rahmenbedingungen einer Prüfung, die Bewertungskriterien der Übungen und die Hinweise zu den einzelnen Übungen. Du findest sie im Katalog, beim Anlegen eines Ziels und beim Eintragen eines Trainings. Die Texte sind unsere eigenen Formulierungen in der Fachsprache der englischen FCI-Ordnung, keine Kopie der offiziellen Ordnung."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Bereiche der FCI-Übungen, zum Beispiel „Abteilung B“ oder „Unterordnung“, erscheinen auf Englisch als „Phase B“ und „Obedience“. Die nationalen Ordnungen (VDH, ÖKV, SKG) bleiben deutsch."),
+      },
+    ],
+  },
+  {
     version: "0.33",
     datum: "2026-10-18",
     titel: uebersetzbar("Schneller speichern, richtiges Datum nach Mitternacht"),

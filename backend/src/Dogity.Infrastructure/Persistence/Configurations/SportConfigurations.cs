@@ -30,6 +30,7 @@ public class RegulationConfiguration : IEntityTypeConfiguration<Regulation>
         builder.Property(r => r.SourceUrl).HasMaxLength(500);
         builder.Property(r => r.LatestKnownVersionLabel).HasMaxLength(50);
         builder.Property(r => r.Description).HasMaxLength(2000);
+        builder.Property(r => r.DescriptionEn).HasMaxLength(Textlaengen.OrdnungBeschreibungEn);
         builder.Property(r => r.CountryCode).HasMaxLength(2);
 
         builder.HasOne(r => r.Sport)
@@ -63,6 +64,7 @@ public class ExerciseConfiguration : IEntityTypeConfiguration<Exercise>
         builder.Property(e => e.Difficulty).HasConversion<string>().HasMaxLength(20);
         builder.Property(e => e.Category).HasMaxLength(100);
         builder.Property(e => e.ScoringCriteria).HasMaxLength(1000);
+        builder.Property(e => e.ScoringCriteriaEn).HasMaxLength(Textlaengen.UebungBewertungEn);
 
         // SportId ist optional (siehe Exercise.SportId-Kommentar). SetNull statt
         // Cascade: eine gelöschte Sportart lässt bestehende Übungen unangetastet
@@ -86,6 +88,7 @@ public class RegulationExerciseConfiguration : IEntityTypeConfiguration<Regulati
     {
         builder.ToTable("regulation_exercises");
         builder.Property(re => re.ScoringNotes).HasMaxLength(1000);
+        builder.Property(re => re.ScoringNotesEn).HasMaxLength(Textlaengen.OrdnungsuebungHinweisEn);
 
         builder.HasOne(re => re.RegulationVersion)
             .WithMany(v => v.RegulationExercises)

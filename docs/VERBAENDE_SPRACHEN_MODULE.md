@@ -619,6 +619,10 @@ umgekehrt: Der englische Name ist der des Originals, und wer international
 startet, braucht ihn. Übungsbeschreibungen und Bewertungskriterien bleiben
 deutsch – das ist unsere eigene Beschreibung, keine Übersetzung der FCI-Ordnung.
 
+> **Überholt seit 2026-10-18 (Paket E4, Fassung 0.34, siehe unten):** Auch die
+> Beschreibungen und Bewertungstexte der FCI-Ordnungen gibt es jetzt auf
+> Englisch. Es bleiben unsere eigenen Texte, keine Kopie der FCI-Ordnung.
+
 ---
 
 ## Paket L2 (2026-10-17, Fassung 0.32): Österreich und Sportarten nach Land
@@ -690,3 +694,96 @@ deutsch – das ist unsere eigene Beschreibung, keine Übersetzung der FCI-Ordnu
 - Öffentliche Prüfungsordnungs-Seiten: Die Familie „Schweiz – SKG“ bündelt alle
   Ordnungen mit dem Präfix „SKG“ (`lib/public-catalog.ts`).
 
+---
+
+## Paket E4 (2026-10-18, Fassung 0.34): englische Texte für die FCI-Ordnungen
+
+Entscheidung des Betreibers (2026-10-18): Die FCI-Ordnungen zeigen auf Englisch
+nicht nur ihre Namen (Paket L1), sondern auch ihre Beschreibungen und
+Bewertungstexte. Nationale Ordnungen (VDH, ÖKV, SKG) bleiben deutsch. Die
+Texte sind weiterhin „eigene Beschreibungen, keine Kopie offizieller
+Prüfungsordnungen“ (Hinweis auf der Sportartenseite): übertragen wurden unsere
+deutschen Texte, in der Terminologie der englischen FCI-IGP 2025 (heeling, basic
+position, verbal command, build-up, blind, helper, hold and bark, back transport
+usw.). Britisches Englisch, geschlechtsneutral („the handler“).
+
+*Datenmodell* (Migration `AddCatalogEnglishTexts`, nur Spalten, alle optional)
+
+| Spalte | Länge | Gegenstück |
+|---|---|---|
+| `Exercise.ScoringCriteriaEn` | 1000 | `ScoringCriteria` |
+| `Exercise.DescriptionEn` | unbegrenzt | `Description` (hat auch keine Grenze) |
+| `Regulation.DescriptionEn` | 2000 | `Description` |
+| `RegulationExercise.ScoringNotesEn` | 1000 | `ScoringNotes` |
+
+Grenzen in `Textlaengen.cs` und `textlaengen.ts`, `maxLength` an den Feldern,
+Prüfung in den Services („Die englische Beschreibung ist zu lang …“). Die
+Antworten (`ExerciseDto`, `RegulationDto`, `RegulationExerciseDto`) liefern die
+englischen Felder mit – Katalog, Ordnungsdetail, Übungslisten (Eintragen, Plan).
+`Exercise.Description` ist die Ausnahme von der Regel: Sie wird heute nirgends
+angezeigt (der Katalog zeigt Kategorie und Bewertung), das englische Gegenstück
+ist vorbereitet und im Editor pflegbar. Beim FCI-Katalog ist sie leer.
+
+*Kategorie ohne Spalte:* `Exercise.Category` ist bei den FCI-Übungen eine kleine
+feste Menge (Abteilung A/B/C, Unterordnung, Verhalten, Fährte, Stöbern,
+Ausdauer) und wird nur in der Übungsliste des Katalogs angezeigt. Sie wird im
+Frontend über `en.ts` übersetzt (`katalogKategorie`, „Phase B“, „Obedience“ …;
+„Fährte“ nutzt das vorhandene „Track“) – eine Spalte samt Editor-Feld lohnt für
+acht Wörter nicht. Übersetzt wird nur bei Übungen mit englischem Namen und einem
+dieser Werte; die Kategorie nationaler Übungen und frei vergebene Kategorien
+bleiben deutsch.
+
+*Inhalt und Seeder*
+
+- Die Texte liegen in `Persistence/Seed/Data/fci-texte-en.json` (eingebettete
+  Ressource, geladen von `FciTexteEn`, Muster: `sachkunde-swhv.json`): 141
+  Bewertungstexte von Übungen, 27 Ordnungsbeschreibungen, 204 Hinweise von
+  Ordnungs-Übungen. Schlüssel: Sportart-Code + deutscher Übungs-/Ordnungsname
+  (+ Übung bei den Hinweisen).
+- `SportCatalogSeeder.SetzeEnglischeNamenAsync` trägt sie ein, **nur wo das
+  englische Feld leer ist** (Admin-Eingabe bleibt, zweiter Lauf ändert nichts).
+  Ein Eintrag, der fehlt, lässt das Feld leer – das Frontend fällt auf Deutsch
+  zurück.
+- **Bewertungskriterien: Schlüssel auch der deutsche Text.** Der Seeder legt die
+  Bewertung einer Übung nur an, überschreibt sie aber nie. Lokal und vermutlich
+  auch auf Prod tragen deshalb 12 FCI-Übungen noch eine ältere deutsche Fassung
+  als eine frische Datenbank (z. B. BH „Fußarbeit“, IBGH „Freifolge“, UPr/GPr
+  „Klettersprung“). Die Datei hat zu jeder dieser Übungen beide Fassungen als
+  eigene Einträge, und der Seeder setzt das Englisch nur, wenn der deutsche Text
+  der Übung genau dem Eintrag entspricht. Ein vom Admin geänderter Text bekommt
+  kein Englisch, das nicht dazu passt. (Beschreibungen und Hinweise der Ordnungen
+  schreibt der Seeder bei jedem Start selbst – dort gibt es nur eine Fassung.)
+- **Altübungen** ohne aktuelle Ordnung (BH „Ablegen mit Abrufen“, „Sitz aus der
+  Bewegung“) sind ebenfalls übersetzt. Die zwei ÖKV-eigenen BH-Übungen („Freilaufen
+  mit Heranrufen“, „Ortsabhängige Begegnung“) und die ÖKV-BH-Ordnung samt deren
+  Hinweisen bleiben deutsch.
+- **Seitenangaben:** Der einzige Verweis in den FCI-Texten („FCI-PO 2025, S. 36“,
+  Gegenstände verweisen) steht auf der englischen PDF auf derselben Seite 36 („Page
+  36 von 82“, Abschnitt „Indicating of the articles“) und ist als „p. 36“ übernommen.
+- Wird ein deutscher Seed-Text geändert, gehört der englische Text in der Datei
+  nachgezogen. Das ist abgesichert: Jeder Eintrag der Datei trägt den deutschen
+  Quelltext (`description` bzw. `scoringNotes`; bei Übungen `scoringCriteria`),
+  der Seeder trägt Englisch nur zu genau diesem Text ein und leert bei
+  Ordnungsbeschreibung und Hinweis das englische Feld, sobald er den deutschen
+  Text neu schreibt. Eine veraltete englische Zahl bleibt also auch auf Prod
+  nicht stehen - es erscheint Deutsch, bis die Datei nachgezogen ist, und
+  `KatalogTexteEnTests` (Quelltext = aktueller Seed-Text, jede Zeile hat ein
+  Englisch) schlägt bei der Änderung fehl. Von Hand eingetragenes Englisch bleibt
+  stehen, solange sich der deutsche Text nicht ändert.
+
+*Frontend*
+
+- `katalogText(de, en, sprache)` (`lib/katalog-name.ts`): Englisch → englischer
+  Text, sonst oder bei leerem Feld der deutsche. Eingesetzt bei den
+  Rahmenbedingungen (Sportartenseite, Ziel anlegen), den Bewertungshinweisen
+  einer Ordnungs-Übung, den Bewertungskriterien der Übung (Sportartenseite und
+  Eintragen). Lange Texte brechen mit `[overflow-wrap:anywhere]` um.
+- Katalog-Editor (Sportartenseite und „Neue Übung“): optionale englische Felder
+  für Rahmenbedingungen, Beschreibung, Bewertungskriterien und Bewertungshinweise;
+  beim Anlegen einer Übung nur im globalen Katalog, wie beim englischen Namen.
+- Die öffentlichen Seiten `/pruefungsordnungen/**` bleiben deutsch.
+
+*Prüfung:* `KatalogTexteEnTests` (Vollständigkeit je FCI-Text, nichts Englisches
+bei nationalen Ordnungen, Zahlen des deutschen Textes im englischen, Spaltenlängen,
+Idempotenz, Admin-Eingaben, ältere deutsche Fassungen, Antworten, Editor-Rechte)
+und `katalog-name.test.ts`.

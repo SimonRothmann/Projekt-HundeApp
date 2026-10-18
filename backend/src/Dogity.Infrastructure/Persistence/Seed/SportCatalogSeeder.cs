@@ -1597,12 +1597,19 @@ public static partial class SportCatalogSeeder
 
     /// <summary>
     /// Trägt die englischen Namen der FCI-Sportarten, -Ordnungen und -Übungen
-    /// ein (Quelle: <see cref="FciKatalog"/>).
+    /// ein (Quelle: <see cref="FciKatalog"/>) und seit Paket E4 auch die
+    /// englischen Texte (Quelle: <see cref="FciTexteEn"/>).
     ///
-    /// Gesetzt wird nur, wo <c>NameEn</c> noch leer ist: Eine Eingabe aus dem
-    /// Katalog-Editor bleibt stehen, und ein zweiter Lauf ändert nichts. Der
-    /// Preis: Wer einen englischen Namen bewusst wieder leert, bekommt beim
-    /// nächsten Start den der Ordnung zurück.
+    /// Gesetzt wird nur, wo das englische Feld noch leer ist: Eine Eingabe aus
+    /// dem Katalog-Editor bleibt stehen, und ein zweiter Lauf ändert nichts. Der
+    /// Preis: Wer einen englischen Text bewusst wieder leert, bekommt beim
+    /// nächsten Start den der Ordnung zurück. Dafür ist das Englisch an den
+    /// deutschen Text gebunden: Ordnungsbeschreibungen und Hinweise schreibt der
+    /// Seeder selbst, und ändert sich dabei der deutsche Text, wird das englische
+    /// Feld geleert (beim Nachpflegen in SeedRegulationAsync), und
+    /// eingetragen wird nur zu genau dem deutschen Text, aus dem die Fassung in
+    /// <see cref="FciTexteEn"/> entstand. Eine veraltete englische Zahl bleibt so
+    /// nirgends stehen.
     /// </summary>
     private static async Task SetzeEnglischeNamenAsync(ApplicationDbContext db)
     {
@@ -1628,6 +1635,72 @@ public static partial class SportCatalogSeeder
         foreach (var uebung in uebungen)
             if (uebung.NameEn is null && FciKatalog.Uebungen.TryGetValue((codeNachId[uebung.SportId!.Value], uebung.Name), out var uebungEn))
                 uebung.NameEn = uebungEn;
+
+        // Paket E4: die Texte dazu, ebenfalls nur in leere Felder.
+        SetzeEnglischeBewertungen(uebungen, codeNachId);
+        SetzeEnglischeBeschreibungen(ordnungen, codeNachId);
+        await SetzeEnglischeHinweiseAsync(db, ordnungen, uebungen, codeNachId);
+    }
+
+    /// <summary>
+    /// Bewertungskriterien (und Beschreibung) der FCI-Übungen auf Englisch, aus
+    /// <see cref="FciTexteEn"/>. Nur wo das englische Feld leer ist - und nur,
+    /// wenn der deutsche Text der Übung genau der ist, aus dem die englische
+    /// Fassung entstand.
+    /// </summary>
+    private static void SetzeEnglischeBewertungen(List<Exercise> uebungen, Dictionary<Guid, string> codeNachId)
+    {
+        foreach (var uebung in uebungen)
+            foreach (var texte in FciTexteEn.Uebungen[(codeNachId[uebung.SportId!.Value], uebung.Name)])
+            {
+                // Nur zum passenden deutschen Text (siehe FciTexteEn): Eine ältere Fassung
+                // oder ein vom Admin geänderter Text bekommt kein Englisch, das nicht dazu passt.
+                if (uebung.ScoringCriteriaEn is null && uebung.ScoringCriteria is not null && uebung.ScoringCriteria == texte.ScoringCriteria)
+                    uebung.ScoringCriteriaEn = texte.ScoringCriteriaEn;
+                if (uebung.DescriptionEn is null && uebung.Description is not null && uebung.Description == texte.Description)
+                    uebung.DescriptionEn = texte.DescriptionEn;
+            }
+    }
+
+    /// <summary>Beschreibungen der FCI-Ordnungen auf Englisch (Regeln wie bei <see cref="SetzeEnglischeBewertungen"/>).</summary>
+    private static void SetzeEnglischeBeschreibungen(List<Regulation> ordnungen, Dictionary<Guid, string> codeNachId)
+    {
+        foreach (var ordnung in ordnungen)
+            if (ordnung.DescriptionEn is null && ordnung.Description is not null
+                && FciTexteEn.Ordnungen.TryGetValue((codeNachId[ordnung.SportId], ordnung.Name), out var texte)
+                && ordnung.Description == texte.Description)
+                ordnung.DescriptionEn = texte.DescriptionEn;
+    }
+
+    /// <summary>
+    /// Bewertungshinweise der Ordnungs-Übungen auf Englisch. Gesetzt wird an jeder
+    /// Fassung der Ordnung, die die Übung führt (der Hinweis steht je Verknüpfung,
+    /// der Schlüssel kennt nur Sportart, Ordnung und Übung) - auch an entfernten
+    /// Verknüpfungen, damit eine wiederbelebte nicht ohne Englisch zurückkommt.
+    /// </summary>
+    private static async Task SetzeEnglischeHinweiseAsync(
+        ApplicationDbContext db, List<Regulation> ordnungen, List<Exercise> uebungen, Dictionary<Guid, string> codeNachId)
+    {
+        var ordnungNachId = ordnungen.ToDictionary(r => r.Id);
+        var uebungNachId = uebungen.ToDictionary(e => e.Id);
+        var ordnungIds = ordnungNachId.Keys.ToList();
+
+        var versionen = await db.RegulationVersions.IgnoreQueryFilters()
+            .Where(v => ordnungIds.Contains(v.RegulationId))
+            .ToDictionaryAsync(v => v.Id, v => v.RegulationId);
+        var versionIds = versionen.Keys.ToList();
+        var verknuepfungen = await db.RegulationExercises.IgnoreQueryFilters()
+            .Where(re => versionIds.Contains(re.RegulationVersionId) && re.ScoringNotesEn == null && re.ScoringNotes != null)
+            .ToListAsync();
+
+        foreach (var verknuepfung in verknuepfungen)
+        {
+            if (!uebungNachId.TryGetValue(verknuepfung.ExerciseId, out var uebung)) continue;
+            var ordnung = ordnungNachId[versionen[verknuepfung.RegulationVersionId]];
+            if (FciTexteEn.Ordnungsuebungen.TryGetValue((codeNachId[ordnung.SportId], ordnung.Name, uebung.Name), out var texte)
+                && verknuepfung.ScoringNotes == texte.ScoringNotes)
+                verknuepfung.ScoringNotesEn = texte.ScoringNotesEn;
+        }
     }
 
     /// <summary>
@@ -1739,6 +1812,9 @@ public static partial class SportCatalogSeeder
             // Seed ist für den globalen Katalog die Quelle der Wahrheit
             // (analog zur MaxPoints-Nachpflege unten).
             regulation.Description = seed.Description;
+            // Das Englisch gehörte zum alten deutschen Text (Paket E4); es wird
+            // am Ende aus FciTexteEn neu gesetzt, wenn es zum neuen passt.
+            regulation.DescriptionEn = null;
         }
 
         // Die Quelle nur ergänzen, nie überschreiben: Ein Admin pflegt sie
@@ -1839,6 +1915,8 @@ public static partial class SportCatalogSeeder
                 regulationExercise.DeletedAt = null;
                 regulationExercise.IsMandatory = exerciseSeed.IsMandatory;
                 regulationExercise.MaxPoints = exerciseSeed.MaxPoints;
+                if (regulationExercise.ScoringNotes != exerciseSeed.ScoringNotes)
+                    regulationExercise.ScoringNotesEn = null; // gehörte zum alten Text (Paket E4)
                 regulationExercise.ScoringNotes = exerciseSeed.ScoringNotes;
                 regulationExercise.SortOrder = index;
             }

@@ -43,6 +43,9 @@
          der Ressourcenname nicht vom Pfadtrenner der Bauplattform abhängt. -->
     <EmbeddedResource Include="Persistence/Seed/Data/sachkunde-swhv.json"
                       LogicalName="Dogity.Infrastructure.Persistence.Seed.Data.sachkunde-swhv.json" />
+    <!-- Englische Texte der FCI-Ordnungen (Paket E4), gelesen von FciTexteEn. -->
+    <EmbeddedResource Include="Persistence/Seed/Data/fci-texte-en.json"
+                      LogicalName="Dogity.Infrastructure.Persistence.Seed.Data.fci-texte-en.json" />
   </ItemGroup>
 
 </Project>

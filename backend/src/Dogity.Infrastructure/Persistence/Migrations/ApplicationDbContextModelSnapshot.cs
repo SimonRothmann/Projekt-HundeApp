@@ -1645,6 +1645,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<string>("DescriptionEn")
+                        .HasColumnType("text");
+
                     b.Property<string>("Difficulty")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1660,6 +1663,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(150)");
 
                     b.Property<string>("ScoringCriteria")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ScoringCriteriaEn")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
@@ -1695,6 +1702,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("DescriptionEn")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
@@ -1756,6 +1767,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("ScoringNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ScoringNotesEn")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 

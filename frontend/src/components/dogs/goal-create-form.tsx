@@ -15,7 +15,7 @@ import { usePreferences } from "@/lib/preferences-context";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
 
 import { useSprache, useT } from "@/lib/i18n";
-import { katalogName } from "@/lib/katalog-name";
+import { katalogName, katalogText } from "@/lib/katalog-name";
 /**
  * Formular zum Anlegen eines neuen Ziels (mit oder ohne Prüfungsbezug).
  * Eigenständig mit eigenem State - die Ziel-Anlage ist unabhängig von der
@@ -268,10 +268,10 @@ export function GoalCreateForm({
               <p className="text-xs text-muted-foreground">
 {t("Der Plan enthält genau die Übungen dieser Prüfung. Ohne Prüfung trainieren: oben „Individueller Plan“ wählen.")}
               </p>
-              {selectedRegulation?.description && (
+              {selectedRegulation && katalogText(selectedRegulation.description, selectedRegulation.descriptionEn, sprache) && (
                 <div className="rounded-md bg-primary/5 px-3 py-2.5">
                   <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary-text">{t("Rahmenbedingungen")}</p>
-                  <p className="whitespace-pre-line text-sm leading-relaxed">{selectedRegulation.description}</p>
+                  <p className="whitespace-pre-line text-sm leading-relaxed [overflow-wrap:anywhere]">{katalogText(selectedRegulation.description, selectedRegulation.descriptionEn, sprache)}</p>
                 </div>
               )}
             </div>

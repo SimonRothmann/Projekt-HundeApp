@@ -36,6 +36,14 @@ public class Exercise : Entity
     /// </summary>
     public string? NameEn { get; set; }
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Englische Fassung von <see cref="Description"/> (null = keine, die App
+    /// zeigt dann den deutschen Text). Wie <see cref="NameEn"/> nur für die
+    /// internationalen FCI-Ordnungen gepflegt (Paket E4); nationale Ordnungen
+    /// und Vereinsübungen haben sie nicht.
+    /// </summary>
+    public string? DescriptionEn { get; set; }
     public ExerciseDifficulty Difficulty { get; set; } = ExerciseDifficulty.Beginner;
     public string? Category { get; set; }
 
@@ -46,6 +54,9 @@ public class Exercise : Entity
     /// stehen in <see cref="RegulationExercise.ScoringNotes"/>.
     /// </summary>
     public string? ScoringCriteria { get; set; }
+
+    /// <summary>Englische Fassung von <see cref="ScoringCriteria"/> (null = keine, siehe <see cref="DescriptionEn"/>).</summary>
+    public string? ScoringCriteriaEn { get; set; }
 
     /// <summary>
     /// Null = globale Übung, von einem Admin gepflegt und für alle

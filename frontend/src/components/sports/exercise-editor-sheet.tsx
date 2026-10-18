@@ -55,9 +55,11 @@ export function ExerciseEditorSheet({
   const [name, setName] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionEn, setDescriptionEn] = useState("");
   const [difficulty, setDifficulty] = useState<ExerciseDifficulty>(0);
   const [category, setCategory] = useState("");
   const [scoringCriteria, setScoringCriteria] = useState("");
+  const [scoringCriteriaEn, setScoringCriteriaEn] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -67,9 +69,11 @@ export function ExerciseEditorSheet({
       setName("");
       setNameEn("");
       setDescription("");
+      setDescriptionEn("");
       setDifficulty(0);
       setCategory("");
       setScoringCriteria("");
+      setScoringCriteriaEn("");
       /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [open, presetSportId]);
@@ -84,9 +88,11 @@ export function ExerciseEditorSheet({
         name: name.trim(),
         nameEn: nameEn.trim() || null,
         description: description.trim() || null,
+        descriptionEn: descriptionEn.trim() || null,
         difficulty,
         category: category.trim() || null,
         scoringCriteria: scoringCriteria.trim() || null,
+        scoringCriteriaEn: scoringCriteriaEn.trim() || null,
         clubId: scope.kind === "club" ? scope.clubId : null,
       });
       toast.success(t("Übung angelegt."));
@@ -197,6 +203,18 @@ export function ExerciseEditorSheet({
             />
           </div>
 
+          {scope.kind === "global" && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ex-description-en">{t("Englische Beschreibung (optional)")}</Label>
+              <Input
+                id="ex-description-en"
+                value={descriptionEn}
+                onChange={(e) => setDescriptionEn(e.target.value)}
+                maxLength={TEXTLAENGE.uebungBeschreibungEn}
+              />
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="ex-scoring">{t("Bewertungskriterien (optional)")}</Label>
             <Input
@@ -206,6 +224,18 @@ export function ExerciseEditorSheet({
               placeholder={t("Tempo, Position, Sauberkeit, ...")}
             />
           </div>
+
+          {scope.kind === "global" && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ex-scoring-en">{t("Englische Bewertungskriterien (optional)")}</Label>
+              <Input
+                id="ex-scoring-en"
+                value={scoringCriteriaEn}
+                onChange={(e) => setScoringCriteriaEn(e.target.value)}
+                maxLength={TEXTLAENGE.uebungBewertungEn}
+              />
+            </div>
+          )}
         </form>
 
         <SheetFooter className="flex-row justify-end gap-2">
