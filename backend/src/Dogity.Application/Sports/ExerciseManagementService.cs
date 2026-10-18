@@ -2,6 +2,7 @@ using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Domain.Sports;
 using Microsoft.EntityFrameworkCore;
+using static Dogity.Application.Common.Texte;
 
 namespace Dogity.Application.Sports;
 
@@ -100,6 +101,4 @@ public class ExerciseManagementService(IApplicationDbContext db) : IExerciseMana
 
     private static ExerciseDto ToDto(Exercise e) =>
         new(e.Id, e.SportId, e.Name, e.Description, e.Difficulty, e.Category, e.ScoringCriteria, e.ClubId, e.NameEn);
-
-    private static string? NullIfBlank(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 }

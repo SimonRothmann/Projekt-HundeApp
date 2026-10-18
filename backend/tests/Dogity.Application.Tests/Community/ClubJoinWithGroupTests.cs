@@ -32,7 +32,7 @@ public class ClubJoinWithGroupTests
         var lookup = new FakeUserLookupService();
         var notifications = new FakeNotificationService();
         var vereine = new ClubService(db, lookup, notifications, new TrainerRoleService(db, lookup));
-        var gruppen = new GroupService(db, lookup, new TrainerRoleService(db, lookup), notifications);
+        var gruppen = new GroupService(db, lookup, new TrainerRoleService(db, lookup), notifications, TimeProvider.System);
 
         var trainer = Guid.NewGuid();
         var anfragender = Guid.NewGuid();

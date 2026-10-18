@@ -2103,4 +2103,9 @@ export const EN: Record<string, string> = {
     "Sports that only exist in another country are no longer offered to you – in the sports list, when logging and when creating a goal. Existing goals and trainings stay visible as before.",
   "Beim Anlegen eines Ziels werden nur noch die Prüfungsordnungen deines Landes und die international gültigen angeboten.":
     "When creating a goal, only the test regulations of your country and the internationally valid ones are offered.",
+  "Schneller speichern, richtiges Datum nach Mitternacht": "Faster saving, the right date after midnight",
+  "Eine Fährte, einen Ablauf oder ein Training mit Ort und Uhrzeit zu speichern geht jetzt ohne Warten. Das Wetter holt Dogity erst danach im Hintergrund und trägt es nach – es erscheint nach wenigen Sekunden von selbst, du musst die Seite nicht neu laden.":
+    "Saving a track, a run or a training with place and time now happens without waiting. Dogity fetches the weather afterwards in the background and adds it – it appears by itself after a few seconds, you do not need to reload the page.",
+  "In den Stunden nach Mitternacht (bis etwa 1 bzw. 2 Uhr) rechnete Dogity noch mit dem Vortag. Das betraf die Startseite mit den heutigen Fährten, die Fristen bei Zielen, die Statistik und den Beginn einer Betreuung. Jetzt zählt der Tag, an dem du dich gerade befindest.":
+    "In the hours after midnight (until about 1 or 2 a.m.) Dogity still counted with the previous day. This affected the home page with today’s tracks, the deadlines of goals, the statistics and the start of a supervision. Now the day you are in counts.",
 };

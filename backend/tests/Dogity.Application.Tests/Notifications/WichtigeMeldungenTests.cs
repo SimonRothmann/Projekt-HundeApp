@@ -112,7 +112,7 @@ public class WichtigeMeldungenTests
         var db = InMemoryDbContext.Create();
         var nutzer = new FakeUserLookupService();
         var meldungen = new FakeNotificationService();
-        var dienst = new GroupService(db, nutzer, new TrainerRoleService(db, nutzer), meldungen);
+        var dienst = new GroupService(db, nutzer, new TrainerRoleService(db, nutzer), meldungen, TimeProvider.System);
         var trainerin = Guid.NewGuid();
         var person = Guid.NewGuid();
         nutzer.Register(trainerin, "tina@example.org", "Tina", "Trainer");

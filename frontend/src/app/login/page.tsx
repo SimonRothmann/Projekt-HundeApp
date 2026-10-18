@@ -21,7 +21,7 @@ import { RechtlicheLinks } from "@/components/rechtliche-links";
 // NODE_ENV ist im produktiven Next.js-Build immer "production" (auch für die
 // Test-Umgebung), reicht als Diskriminator also nicht aus.
 // Die Klammer nennt die Besonderheit des Kontos (siehe docs/DEMO_DATEN.md) - kurz
-// halten, die Knöpfe stehen zu zweit in einer Reihe.
+// halten, die Knöpfe stehen zu zweit in einer Reihe (ein einzelner letzter füllt sie).
 const DEMO_ACCOUNTS = [
   { label: "Admin", email: "admin@dogity.test" },
   { label: "Trainer", email: "trainer@dogity.test" },
@@ -29,6 +29,7 @@ const DEMO_ACCOUNTS = [
   { label: "Mitglied 2 (EN)", email: "mitglied2@dogity.test" },
   { label: "Interessent (AT)", email: "interessent@dogity.test" },
   { label: "Neuling (Hoopers)", email: "neuling@dogity.test" },
+  { label: "Mitglied (CH)", email: "schweiz@dogity.test" },
 ] as const;
 const DEMO_PASSWORD = "Demo1234!";
 
@@ -129,7 +130,8 @@ function LoginForm() {
           <p className="mb-2 text-center text-xs text-muted-foreground">
             {t("Demo-Login (nur Test-Umgebung)")}
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          {/* Bei ungerader Zahl füllt der letzte Knopf die ganze Reihe, statt allein links zu stehen. */}
+          <div className="grid grid-cols-2 gap-2 [&>:last-child:nth-child(odd)]:col-span-2">
             {DEMO_ACCOUNTS.map((account) => (
               <Button
                 key={account.email}

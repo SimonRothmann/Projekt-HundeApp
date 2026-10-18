@@ -103,7 +103,7 @@ public class VereinsgrenzenTests
         return new Welt(
             db, nutzer, meldungen, vereine,
             new ClubInviteService(db, vereine),
-            new GroupService(db, nutzer, rollen, meldungen),
+            new GroupService(db, nutzer, rollen, meldungen, TimeProvider.System),
             new GroupTrainingScheduleService(db, nutzer, meldungen),
             new GroupTrainingService(db),
             new GroupRegistrationService(db),

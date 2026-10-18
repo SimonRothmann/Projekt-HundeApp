@@ -206,7 +206,7 @@ public class KatalogNamenEnTests
         db.TrainingExercises.Add(new TrainingExercise { TrainingSessionId = einheit.Id, FreeTextLabel = "Kopfarbeit", Rating = 5, Success = true });
         await db.SaveChangesAsync();
 
-        var stat = (await new StatsService(db).GetDogExerciseStatsAsync(halter, hund.Id)).Value!;
+        var stat = (await new StatsService(db, TimeProvider.System).GetDogExerciseStatsAsync(halter, hund.Id)).Value!;
 
         Assert.Equal("Free heeling", stat.Single(s => s.ExerciseName == "Freifolge").ExerciseNameEn);
         Assert.Null(stat.Single(s => s.ExerciseName == "Kopfarbeit").ExerciseNameEn);

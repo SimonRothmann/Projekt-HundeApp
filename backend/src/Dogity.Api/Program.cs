@@ -75,6 +75,10 @@ builder.Services.AddHostedService<RegistrationRetentionBackgroundService>();
 builder.Services.AddHostedService<MailVersandBackgroundService>();
 builder.Services.AddHostedService<PushVersandBackgroundService>();
 
+// Wetter von Fährten und Trainings nach dem Speichern nachtragen (Warteschlange
+// in Dogity.Infrastructure): Speichern wartet nie auf Open-Meteo.
+builder.Services.AddHostedService<WetterNachtragBackgroundService>();
+
 // Hinter Caddy (Reverse Proxy im Docker-Netzwerk) sieht Kestrel als
 // RemoteIpAddress nur die Proxy-IP. Für IP-basiertes Rate-Limiting und
 // korrekte Logs die X-Forwarded-*-Header übernehmen. KnownIPNetworks/-Proxies

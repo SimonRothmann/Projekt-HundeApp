@@ -17,7 +17,7 @@ public class StatsServiceTests
     private static StatsService MakeService(out Dogity.Infrastructure.Persistence.ApplicationDbContext db)
     {
         db = InMemoryDbContext.Create();
-        return new StatsService(db);
+        return new StatsService(db, TimeProvider.System);
     }
 
     [Fact]

@@ -13,6 +13,8 @@ import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 import { feedbackKennung, istNeuesFeedback, markiereGesehen } from "@/lib/feedback-gesehen";
 import { nachTagen, tagPasstZuFilter, type TagesFilter } from "@/lib/tagebuch";
+import { useWetterNachladen } from "@/lib/use-wetter-nachladen";
+import { trainingWetterOffen } from "@/lib/wetter-nachladen";
 
 // Monatsschlüssel im Format "2026-07" für die Gruppierung; toLocaleDateString
 // mit month:"long" liefert die Anzeige-Version ("Juli 2026").
@@ -101,6 +103,9 @@ export function SessionHistory({
   // Erst nach Monat, darin nach Tag gruppieren. Sessions kommen nach Datum
   // absteigend vom Backend, die Gruppen erben diese Reihenfolge.
   const liste = sessions ?? [];
+  // Frisch gespeichert und das Wetter fehlt noch: einmal nachladen, der Server
+  // trägt es nach dem Speichern im Hintergrund nach.
+  useWetterNachladen(liste.filter(trainingWetterOffen).map((s) => s.id).join(",") || null, onChanged);
   const fokusSession = fokusEintrag ? (liste.find((s) => s.id === fokusEintrag) ?? null) : null;
   const monthGroups = new Map<string, Map<string, TrainingSession[]>>();
   for (const [date, daySessions] of nachTagen(liste)) {

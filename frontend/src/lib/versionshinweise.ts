@@ -61,6 +61,21 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.33",
+    datum: "2026-10-18",
+    titel: uebersetzbar("Schneller speichern, richtiges Datum nach Mitternacht"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Eine Fährte, einen Ablauf oder ein Training mit Ort und Uhrzeit zu speichern geht jetzt ohne Warten. Das Wetter holt Dogity erst danach im Hintergrund und trägt es nach – es erscheint nach wenigen Sekunden von selbst, du musst die Seite nicht neu laden."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("In den Stunden nach Mitternacht (bis etwa 1 bzw. 2 Uhr) rechnete Dogity noch mit dem Vortag. Das betraf die Startseite mit den heutigen Fährten, die Fristen bei Zielen, die Statistik und den Beginn einer Betreuung. Jetzt zählt der Tag, an dem du dich gerade befindest."),
+      },
+    ],
+  },
+  {
     version: "0.32",
     datum: "2026-10-17",
     titel: uebersetzbar("Prüfungsordnungen für Österreich und die Schweiz"),

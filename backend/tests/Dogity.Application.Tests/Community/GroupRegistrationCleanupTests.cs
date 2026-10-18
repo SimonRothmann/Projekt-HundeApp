@@ -135,7 +135,7 @@ public class GroupRegistrationCleanupTests
     {
         var a = await AnmeldeAufbau.ErzeugeAsync();
         var lookup = new FakeUserLookupService();
-        var gruppenDienst = new GroupService(a.Db, lookup, new TrainerRoleService(a.Db, lookup), new FakeNotificationService());
+        var gruppenDienst = new GroupService(a.Db, lookup, new TrainerRoleService(a.Db, lookup), new FakeNotificationService(), TimeProvider.System);
         var zeile = await a.AnmeldungAsync();
         await a.Dienst.SetAttendanceAsync(a.Leitung, a.Gruppe.Id, zeile.Id, Vereinszeit.Heute(), true);
         var andere = new Group { ClubId = a.Verein.Id, TrainerId = a.Leitung, Name = "Junghunde" };
@@ -161,7 +161,7 @@ public class GroupRegistrationCleanupTests
     {
         var a = await AnmeldeAufbau.ErzeugeAsync();
         var lookup = new FakeUserLookupService();
-        var gruppenDienst = new GroupService(a.Db, lookup, new TrainerRoleService(a.Db, lookup), new FakeNotificationService());
+        var gruppenDienst = new GroupService(a.Db, lookup, new TrainerRoleService(a.Db, lookup), new FakeNotificationService(), TimeProvider.System);
         await a.AnmeldungAsync();
 
         var ergebnis = await gruppenDienst.DeleteGroupAsync(a.Fremde, a.Gruppe.Id);

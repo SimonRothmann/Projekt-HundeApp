@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Notifications;
+using Dogity.Application.Weather;
 using Dogity.Infrastructure.Email;
 using Dogity.Infrastructure.Geocoding;
 using Dogity.Infrastructure.Identity;
@@ -67,6 +68,11 @@ public static class DependencyInjection
             client.Timeout = TimeSpan.FromSeconds(6);
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Dogity/1.0 (Hundesport-Trainingstagebuch)");
         });
+
+        // Das Wetter wird nach dem Speichern im Hintergrund nachgetragen
+        // (WetterNachtragBackgroundService), nicht im Request.
+        services.AddSingleton<WetterQueue>();
+        services.AddSingleton<IWetterQueue>(sp => sp.GetRequiredService<WetterQueue>());
 
         // Ortssuche über Photon (OpenStreetMap) - getrennt vom Wetter, weil es
         // ein anderer Dienst ist und Hundeplätze nur in OSM zu finden sind.

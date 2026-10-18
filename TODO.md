@@ -84,11 +84,12 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
       Bewertung (Fehler/Zeit statt Punkte?) - davon hängt ab, ob das
       Katalogmodell (Übungen mit Höchstpunkten) passt.
 
-- [ ] **"Heute" im Backend aus UTC** (gefunden 2026-10-16 bei Paket F1): DashboardService
-      und GoalService bilden "heute" aus `DateTime.UtcNow` - Zielstatus und Fristen
-      hängen zwischen 0 und 1 bzw. 2 Uhr Ortszeit einen Tag nach; ebenso das
-      `StartDate` einer Betreuung (seit F1 unter "Trainer:innen mit Einblick"
-      sichtbar). Über die Ortszeit bilden (vgl. `Vereinszeit.cs`). Kleiner Effekt.
+- [x] **"Heute" im Backend aus UTC** (gefunden 2026-10-16 bei Paket F1, erledigt 2026-10-18): DashboardService,
+      GoalService (samt Wochenanker aus `CreatedAt`), StatsService (Stichtage, Wochenübersicht) und
+      das `StartDate` einer Betreuung bilden den Kalendertag jetzt über `Vereinszeit` (über den
+      injizierten `TimeProvider`, testbar); die Demo-Seeder ebenso. Reine Zeitstempel bleiben UTC.
+      Offen bleibt nur: Wer außerhalb von DE/AT/CH wohnt (GB, USA), hat eine andere Ortszeit - eine
+      Zeitzone je Person ist nicht Teil davon.
 
 - [x] **E-Mail: Opt-in/Opt-out ausbauen** (Wunsch des Betreibers, 2026-10-15; umgesetzt 2026-10-16) —
       NÄCHSTER Entwicklungsschritt. Stand heute: Willkommens- und
@@ -148,7 +149,7 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
 - [x] Fährte erneut ablaufen können umgesetzt (Entscheidung mit Auftraggeber: zweite Aufzeichnung am selben `GpsTrack`, nicht zwei verknüpfte Tracks). Domain: neue Entities `GpsWalkRun`/`GpsWalkPoint` (1..n Ablauf-Versuche pro `GpsTrack`, eigene Tabellen `gps_walk_runs`/`gps_walk_points`, Migration `AddGpsWalkRuns` angewendet). Backend: `POST /api/gps-tracks/{id}/walk-runs`, `GpsTrackDto` liefert `walkRuns` mit. Frontend: neue Komponente `walk-run-recorder.tsx` ("Fährte erneut ablaufen"-Button je Track in `gps-track-section.tsx`), `track-map.tsx` zeichnet jeden Ablauf-Versuch als gestrichelte Linie in eigener Farbe zum Vergleich mit der gelegten Fährte (durchgezogen). Backend-Tests, Frontend-Build (alle Routen) und End-to-End-Test per curl (Track + Ablauf-Versuch anlegen, beide über `GET /api/gps-tracks` mit `walkRuns` zurückbekommen) erfolgreich.
 - [x] Geprüft: mehr als eine Fährte pro Training ist bereits möglich - `GpsTrackSection` erlaubt jederzeit eine neue Aufnahme für dieselbe `trainingSessionId`, das Backend hat keine Eindeutigkeitsbeschränkung. End-to-end per curl verifiziert (zwei `GpsTrack`s für dieselbe Trainingssession angelegt, beide werden über `GET /api/gps-tracks?trainingSessionId=...` zurückgegeben). War vermutlich aus einer früheren Projektphase als offen vermerkt und nie erneut geprüft worden.
 
-- [ ] **Fährte über Mitternacht** (zurückgestellt 2026-09-10, „nachts legt niemand Fährten"). Zwei zusammenhängende Randfälle:
+- [x] **Fährte über Mitternacht** (zurückgestellt 2026-09-10, erledigt 2026-10-16 mit Paket F1, Commit d3f13d8: Datum der Aufnahme in Ortszeit, „Erneut ablaufen“ bis 24 Stunden nach dem Legen). Die zwei Randfälle waren:
       1. Das Datum einer Aufnahme wird clientseitig als UTC-Datum gebildet (`new Date().toISOString().slice(0, 10)` in `fahrte-recorder.tsx`, genauso im Trainingsformular). Wer im Sommer zwischen 0 und 2 Uhr Ortszeit legt, bekommt den Vortag - und weil `isCompletedDay` diesen Tag als vergangen wertet, verschwindet „Fährte erneut ablaufen" sofort.
       2. „Erneut ablaufen" hängt am Kalendertag (`readOnly={completed}` in `session-history.tsx`). Abends gelegt und nach Mitternacht gesucht geht deshalb nicht. Besser wäre eine Frist ab Ende des Legens (z.B. 12 Stunden).
 
@@ -164,7 +165,7 @@ Im Rahmen eines vollständigen Performance-Audits identifiziert, aber bewusst zu
 
 - [x] (erledigt 2026-10-16) Lasttest mit bis zu 1.000 gleichzeitigen Sitzungen: 0 Fehler, Startseite p95 unter 30 ms. Behoben: SQL-Abfragen nicht mehr im Prod-Protokoll, Verbindungsvorrat Prod 50 / Test 20. Ergebnisse in `docs/BETRIEB.md` ("Belastbarkeit"). Daraus offen:
 - [x] (erledigt 2026-10-16, Betreiber: "2-4 GB") Postgres-Speicher: `shared_buffers` 2 GB, `effective_cache_size` 6 GB, `work_mem` 16 MB, `maintenance_work_mem` 256 MB, `shm_size` 512 MB in `docker-compose.yml`. Greift erst nach Neustart der Datenbank, danach Backends neu starten (Befehl in `docs/BETRIEB.md`, "Speicher der Datenbank"). Datenbanken waren zu dem Zeitpunkt 12 bzw. 14 MB groß - Wirkung erst bei wachsenden Daten.
-- [ ] Fährte speichern wartet auf das Wetter (Open-Meteo, bis zu 6 s Zeitlimit, Fehler werden abgefangen). Hängt Open-Meteo, dauert das Speichern so lange. Das Wetter ließe sich danach im Hintergrund nachtragen.
+- [x] Fährte speichern wartet auf das Wetter (erledigt 2026-10-18): Speichern von Fährte, Ablauf und Training reiht nur einen Auftrag ein (`IWetterQueue`, wie Mail und Push), `WetterNachtragBackgroundService` fragt Open-Meteo und trägt in dieselben Felder nach; Gegenprobe vor dem Eintragen (Datensatz gelöscht, Ort oder Zeit geändert, Feld schon gefüllt: verworfen). Das Frontend lädt einmal nach, solange das Wetter fehlt. Kein Nachholer beim Start (Begründung im Kommentar von `WetterQueue`).
 - [ ] Anmelde-Drossel 10 Versuche/Minute je IP: Melden sich bei einer Vereinsveranstaltung viele über dasselbe WLAN an, teilen sie sich eine IP. Beobachten; ggf. Grenze für Anmeldungen anheben oder zusätzlich je E-Mail-Adresse drosseln.
 - [x] `GET /api/admin/users` liefert alle Nutzer ohne Paging zurück - erledigt: Endpoint hat inzwischen `page`/`pageSize`-Parameter (`AdminUserPageDto`, Default 50/Seite).
 - [x] (erledigt 2026-10-16: `GET /api/sports/{sportId}/exercises?katalog=global` bzw. `?katalog=verein&clubId=...` filtert serverseitig, ein fremder Verein ergibt eine leere Liste, ohne Parameter unverändert; `catalog-section.tsx` filtert nicht mehr selbst) `global-exercises-section.tsx`/`club-exercises-section.tsx` luden alle für den Nutzer sichtbaren Übungen und filterten client-seitig auf `clubId === null` bzw. den gewählten Verein - ein Query-Parameter am bestehenden `/api/sports/{sportId}/exercises`-Endpoint würde das vermeiden, spart aber nur wenige KB pro Aufruf in der Admin/Trainer-Verwaltung (kein Endnutzer-Pfad auf dem Hundeplatz).

@@ -3,6 +3,7 @@ using Dogity.Application.Common;
 using Dogity.Domain.Geography;
 using Dogity.Domain.Sports;
 using Microsoft.EntityFrameworkCore;
+using static Dogity.Application.Common.Texte;
 
 namespace Dogity.Application.Sports;
 
@@ -176,8 +177,6 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
                 (jeLand.FirstOrDefault(l => l.Code == code)?.Anzahl ?? 0) + international))
             .ToList());
     }
-
-    private static string? NullIfBlank(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 
     /// <summary>
     /// Normalisiert eine Landesangabe aus dem Aufruf: Groß, getrimmt,

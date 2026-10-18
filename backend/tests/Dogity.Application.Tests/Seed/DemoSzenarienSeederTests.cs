@@ -28,7 +28,7 @@ namespace Dogity.Application.Tests.Seed;
 /// </summary>
 public class DemoSzenarienSeederTests
 {
-    private static ServiceProvider BaueDienste()
+    private static ServiceProvider BaueDienste(Action<IServiceCollection>? anpassen = null)
     {
         var datenbank = Guid.NewGuid().ToString();
         var services = new ServiceCollection();
@@ -56,6 +56,7 @@ public class DemoSzenarienSeederTests
         services.AddSingleton<IEmailAbmeldeToken>(TestAbmeldeToken.Neu());
         services.AddSingleton<IMailQueue, FakeMailQueue>();
         services.AddSingleton<IPushQueue, FakePushQueue>();
+        anpassen?.Invoke(services);
         return services.BuildServiceProvider();
     }
 
@@ -311,6 +312,104 @@ public class DemoSzenarienSeederTests
         Assert.Empty(nacht.WalkRuns);
         Assert.Equal(GesternUm(22), nacht.Points.Min(p => p.Timestamp));
         Assert.Equal(Vereinszeit.Heute().AddDays(-1), (await db.TrainingSessions.SingleAsync(s => s.Id == nacht.TrainingSessionId)).Date);
+    }
+
+    [Fact]
+    public async Task Schweiz_LegtKontoLandHundUndZielAn()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var sp = scope.ServiceProvider;
+        var db = sp.GetRequiredService<ApplicationDbContext>();
+        var sandroId = await IdAsync(sp, DemoSzenarienSeeder.SchweizEmail);
+
+        Assert.Equal("CH", (await db.UserPreferences.SingleAsync(p => p.UserId == sandroId)).Country);
+        var hund = await db.Dogs.SingleAsync(d => d.Name == "Bläss");
+        Assert.True(await db.DogOwners.AnyAsync(o => o.DogId == hund.Id && o.UserId == sandroId));
+        var ziel = await db.Goals.Include(g => g.TrainingPlan).SingleAsync(g => g.Notes == DemoSzenarienSeeder.NotizSkgBhZiel);
+        Assert.Equal(hund.Id, ziel.DogId);
+        Assert.Equal(GoalStatus.Active, ziel.Status);
+        Assert.Equal("SKG BH 1", (await db.Regulations.SingleAsync(r => r.Id == ziel.RegulationId)).Name);
+        Assert.Equal("BHCH", (await db.Sports.SingleAsync(s => s.Id == ziel.SportId)).Code);
+        Assert.NotEmpty(await db.TrainingPlanItems.Where(i => i.TrainingPlanId == ziel.TrainingPlan!.Id).ToListAsync());
+    }
+
+    [Fact]
+    public async Task Schweiz_LandUndGeloeschtesZielBleibenWieDerTesterSieLiess()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var sandroId = await IdAsync(scope.ServiceProvider, DemoSzenarienSeeder.SchweizEmail);
+            // Wie ein Tester: Land umstellen, Ziel samt Hund löschen.
+            (await db.UserPreferences.SingleAsync(p => p.UserId == sandroId)).Country = "AT";
+            var ziel = await db.Goals.SingleAsync(g => g.Notes == DemoSzenarienSeeder.NotizSkgBhZiel);
+            ziel.DeletedAt = DateTimeOffset.UtcNow;
+            (await db.Dogs.SingleAsync(d => d.Id == ziel.DogId)).DeletedAt = DateTimeOffset.UtcNow;
+            (await db.DogOwners.SingleAsync(o => o.DogId == ziel.DogId)).DeletedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        var davor = await ZaehleAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        Assert.Equal(davor, await ZaehleAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var id = await IdAsync(pruefen.ServiceProvider, DemoSzenarienSeeder.SchweizEmail);
+        Assert.Equal("AT", (await pruefDb.UserPreferences.SingleAsync(p => p.UserId == id)).Country);
+        Assert.Single(await pruefDb.Dogs.IgnoreQueryFilters().Where(d => d.Name == "Bläss").ToListAsync());
+    }
+
+    [Fact]
+    public async Task Seeder_FragtKeinWetterAnUndReihtKeinesEin()
+    {
+        var wetterdienst = new ZaehlenderWetterdienst();
+        var queue = new LeereWetterQueue();
+        // Die ECHTE Anreicherung statt des Fakes: So fiele auf, wenn der Seeder irgendwo einreiht.
+        await using var provider = BaueDienste(services =>
+        {
+            services.AddScoped<IWeatherEnrichmentService, WeatherEnrichmentService>();
+            services.AddSingleton<IWeatherProvider>(wetterdienst);
+            services.AddSingleton<IWetterQueue>(queue);
+        });
+        await MitDemoKontenAsync(provider);
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        Assert.NotEmpty(await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().GpsTracks.ToListAsync());
+        Assert.Equal(0, wetterdienst.Aufrufe);
+        Assert.Equal(0, queue.Eingereiht);
+    }
+
+    private sealed class ZaehlenderWetterdienst : IWeatherProvider
+    {
+        public int Aufrufe { get; private set; }
+
+        public Task<WeatherReading?> GetAtAsync(double latitude, double longitude, DateTimeOffset instant, CancellationToken ct = default)
+        {
+            Aufrufe++;
+            return Task.FromResult<WeatherReading?>(null);
+        }
+    }
+
+    private sealed class LeereWetterQueue : IWetterQueue
+    {
+        public int Eingereiht { get; private set; }
+
+        public bool Enqueue(WetterAuftrag auftrag)
+        {
+            Eingereiht++;
+            return true;
+        }
     }
 
     [Fact]

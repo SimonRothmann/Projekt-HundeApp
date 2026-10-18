@@ -39,9 +39,9 @@ public class DashboardService(
         if (!meineHunde.Succeeded)
             return Result<DashboardDto>.Failure([.. meineHunde.Errors]);
 
-        // UTC-Datum wie beim Fährtenrecorder, der die Einheit so datiert
-        // (siehe TODO.md: Fährte über Mitternacht).
-        var heute = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        // Der Kalendertag der Vereinszeit, wie ihn auch der Fährtenrecorder für
+        // die Einheit nimmt - zwischen 0 und 2 Uhr ist es in UTC noch gestern.
+        var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
         var eintraege = new List<DashboardDogDto>();
 
         foreach (var hund in meineHunde.Value!.Where(h => h.ArchivedAt is null))

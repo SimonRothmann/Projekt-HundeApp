@@ -12,6 +12,7 @@ namespace Dogity.Application.Tests.TestSupport;
 /// </summary>
 public class FakeWeatherEnrichmentService : IWeatherEnrichmentService
 {
+    public Task EnqueueTrackAsync(GpsTrack track, CancellationToken ct = default) => Task.CompletedTask;
+    public void EnqueueSession(TrainingSession session) { }
     public Task EnrichTrackAsync(GpsTrack track, CancellationToken ct = default) => Task.CompletedTask;
-    public Task EnrichSessionAsync(TrainingSession session, CancellationToken ct = default) => Task.CompletedTask;
 }

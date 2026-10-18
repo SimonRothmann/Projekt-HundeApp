@@ -15,6 +15,8 @@ import { WalkRunEvaluation } from "@/components/tracking/walk-run-evaluation";
 import { FaehrteTeilen } from "@/components/tracking/faehrte-teilen";
 import { CloudSun, Route, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useWetterNachladen } from "@/lib/use-wetter-nachladen";
+import { faehrteWetterOffen } from "@/lib/wetter-nachladen";
 import { formatDelta, formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
 
 import { useSprache, useT } from "@/lib/i18n";
@@ -131,6 +133,18 @@ export function GpsTrackSection({
     loadTracks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [einheitenSchluessel]);
+
+  // Frisch gespeichert und das Wetter fehlt noch: einmal nachladen, der Server
+  // trägt es nach dem Speichern im Hintergrund nach. Im Schlüssel steht auch,
+  // WELCHES Wetter fehlt: Kommt erst das vom Legen und dann das vom Suchen, ist
+  // das ein neuer Anlass.
+  useWetterNachladen(
+    tracks
+      ?.filter(faehrteWetterOffen)
+      .map((track) => `${track.id}:${track.laidTemperatureC == null ? "legen" : "suchen"}`)
+      .join(",") || null,
+    loadTracks,
+  );
 
   // Ohne Fährte nichts anzeigen: aufgenommen wird hier nicht mehr (siehe
   // Klassenkommentar), ein leerer Block hätte also keinen Zweck.

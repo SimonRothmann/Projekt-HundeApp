@@ -34,7 +34,7 @@ public class DogBetreuungTests
         var lookup = new FakeUserLookupService();
         var notifications = new FakeNotificationService();
         var dogs = new DogService(db, lookup, notifications);
-        var groups = new GroupService(db, lookup, new TrainerRoleService(db, lookup), notifications);
+        var groups = new GroupService(db, lookup, new TrainerRoleService(db, lookup), notifications, TimeProvider.System);
 
         var ownerId = Guid.NewGuid();
         var coOwnerId = Guid.NewGuid();

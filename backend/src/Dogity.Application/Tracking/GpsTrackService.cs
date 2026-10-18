@@ -222,9 +222,9 @@ public class GpsTrackService(
         await db.SaveChangesAsync(ct);
 
         // Wetter zum Legezeitpunkt automatisch ermitteln (Ort + Zeit stecken
-        // in den Punkten). Schlägt der Abruf fehl, bleibt es einfach leer.
-        await weather.EnrichTrackAsync(track, ct);
-        await db.SaveChangesAsync(ct);
+        // in den Punkten) - im Hintergrund, nach dem Speichern: Das Speichern
+        // wartet nicht auf den Wetterdienst. Schlägt der Abruf fehl, bleibt es leer.
+        await weather.EnqueueTrackAsync(track, ct);
 
         return Result<GpsTrackDto>.Success(ToDto(track));
     }
@@ -269,10 +269,11 @@ public class GpsTrackService(
         // Auswertung direkt nach dem Speichern - die gelegten Punkte liegen
         // dafür ohnehin schon in der Datenbank.
         await EvaluateAndPersistAsync(walkRun, ct);
-        // Erst mit dem ersten Ablauf gibt es einen Suchzeitpunkt - jetzt lässt
-        // sich die Temperaturänderung Legen -> Suchen bestimmen.
-        await weather.EnrichTrackAsync(track, ct);
         await db.SaveChangesAsync(ct);
+
+        // Erst mit dem ersten Ablauf gibt es einen Suchzeitpunkt - jetzt lässt
+        // sich die Temperaturänderung Legen -> Suchen bestimmen (im Hintergrund).
+        await weather.EnqueueTrackAsync(track, ct);
 
         return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
     }

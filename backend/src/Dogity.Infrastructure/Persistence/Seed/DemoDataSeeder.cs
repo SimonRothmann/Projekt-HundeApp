@@ -1,3 +1,4 @@
+using Dogity.Application.Community;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Planning;
@@ -107,7 +108,7 @@ public static class DemoDataSeeder
         {
             UserId = member1.Id,
             DogId = bello.Id,
-            Date = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-3),
+            Date = Vereinszeit.Heute().AddDays(-3),
             DurationMinutes = 40,
             Notes = "Gutes Training auf dem Übungsplatz.",
             TrainerFeedback = "Sehr schöne Fortschritte bei der Leinenführigkeit, weiter so!",
@@ -124,7 +125,7 @@ public static class DemoDataSeeder
         {
             UserId = member1.Id,
             DogId = bello.Id,
-            Date = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-2),
+            Date = Vereinszeit.Heute().AddDays(-2),
             DurationMinutes = 30,
             Notes = "Training ohne Trainer."
         };
@@ -135,7 +136,7 @@ public static class DemoDataSeeder
         {
             UserId = member1.Id,
             DogId = bello.Id,
-            Date = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-5),
+            Date = Vereinszeit.Heute().AddDays(-5),
             DurationMinutes = 25,
             Notes = "Fährtenaufnahme"
         };
@@ -163,7 +164,7 @@ public static class DemoDataSeeder
             DogId = bello.Id,
             SportId = bh.Id,
             RegulationId = bhRegulation?.Id,
-            TargetDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(2),
+            TargetDate = Vereinszeit.Heute().AddMonths(2),
             Status = GoalStatus.Active,
             Notes = "BH-Prüfung im Hundesportverein."
         };
@@ -173,7 +174,7 @@ public static class DemoDataSeeder
         // Zeilen ohne Namen (die Navigation zur Übung blendet der Filter aus).
         var bhExercises = await db.Exercises.IgnoreQueryFilters().Where(e => e.SportId == bh.Id && e.ClubId == null && e.DeletedAt == null).ToListAsync();
         var bhCandidates = bhExercises.Select(e => new PlanExerciseCandidate(e.Id, e.Name, e.Difficulty, true)).ToList();
-        var planItems = TrainingPlanGenerator.Generate(DateOnly.FromDateTime(DateTime.UtcNow), goal.TargetDate, bhCandidates);
+        var planItems = TrainingPlanGenerator.Generate(Vereinszeit.Heute(), goal.TargetDate, bhCandidates);
         var plan = new TrainingPlan { GoalId = goal.Id };
         foreach (var item in planItems)
             plan.Items.Add(item);

@@ -32,7 +32,7 @@ public class GroupInvitationTests
         var db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService();
         var notifications = new FakeNotificationService();
-        var service = new GroupService(db, lookup, new TrainerRoleService(db, lookup), notifications);
+        var service = new GroupService(db, lookup, new TrainerRoleService(db, lookup), notifications, TimeProvider.System);
         return new Umgebung(db, lookup, notifications, service);
     }
 

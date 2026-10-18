@@ -923,12 +923,13 @@ public class TrainingServiceTests
     {
         public List<(Guid SessionId, double? Lat, TimeOnly? Zeit)> Aufrufe { get; } = [];
 
+        public Task EnqueueTrackAsync(Dogity.Domain.Tracking.GpsTrack track, CancellationToken ct = default) => Task.CompletedTask;
+
         public Task EnrichTrackAsync(Dogity.Domain.Tracking.GpsTrack track, CancellationToken ct = default) => Task.CompletedTask;
 
-        public Task EnrichSessionAsync(Dogity.Domain.Training.TrainingSession session, CancellationToken ct = default)
+        public void EnqueueSession(Dogity.Domain.Training.TrainingSession session)
         {
             Aufrufe.Add((session.Id, session.Latitude, session.StartTime));
-            return Task.CompletedTask;
         }
     }
 

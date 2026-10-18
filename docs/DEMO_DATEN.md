@@ -1,7 +1,7 @@
 # Demo-Daten und Demo-Szenarien
 
 Status: **umgesetzt** (2026-09-30, ergänzt 2026-10-16: Englisch, Mitbesitz, Österreich,
-Vereinsantrag, Hoopers, Nachtfährte). Gilt nur für Development (lokal und die
+Vereinsantrag, Hoopers, Nachtfährte; 2026-10-18: Schweiz). Gilt nur für Development (lokal und die
 Test-Umgebung); Produktion bekommt nichts davon.
 
 ## Zwei Seeder, zwei Aufgaben
@@ -45,8 +45,10 @@ Der Szenarien-Seeder:
   andere Einheit, wird sie nicht verschoben.
   Gedacht zum Testen am Tag nach einem Neustart: „Erneut ablaufen“ gilt bis 24 Stunden
   nach dem Ende des Legens, nach 22 Uhr am Folgetag ist die Grenze überschritten.
-- ruft für die Fährten keinen Wetterdienst auf; die Temperaturen stehen in denselben
-  Feldern wie beim Wetter-Feature.
+- ruft für die Fährten keinen Wetterdienst auf und reiht keinen Wetterauftrag ein (der Test
+  `Seeder_FragtKeinWetterAnUndReihtKeinesEin` prüft das mit der echten Anreicherung); die
+  Temperaturen stehen in denselben Feldern wie beim Wetter-Feature.
+- rechnet „heute“ in der Vereinszeit (Europe/Berlin), nicht in UTC.
 - darf keine Kennzahl verfälschen: Dem Admin-Konto legt er nichts an.
 
 Ein fehlgeschlagenes Szenario wird protokolliert und stoppt weder die anderen noch
@@ -55,7 +57,7 @@ den Start des Servers.
 ## Welches Demo-Konto zeigt welche Funktion
 
 Passwort für alle Konten: `Demo1234!` (Knöpfe auf der Login-Seite der Test-Umgebung; die
-Beschriftung nennt die Besonderheit, z. B. „Mitglied 2 (EN)“ und „Interessent (AT)“).
+Beschriftung nennt die Besonderheit, z. B. „Mitglied 2 (EN)“, „Interessent (AT)“ und „Mitglied (CH)“).
 
 | Konto | Was dort zu sehen ist |
 | --- | --- |
@@ -64,6 +66,7 @@ Beschriftung nennt die Besonderheit, z. B. „Mitglied 2 (EN)“ und „Interess
 | **Mitglied 1** (`mitglied1@dogity.test`, Max) | **Bello:** eine **Nachtfährte** ohne Ablauf, gestern 22 Uhr gelegt („Erneut ablaufen“ über Mitternacht, rollend; siehe oben), dazu vier Winkelfährten mit je einem ausgewerteten Ablauf (drei Gegenstände, Abweichung sinkt von Fährte zu Fährte, Temperaturen beim Legen und Suchen), frisches Trainer-Feedback ohne Reaktion (Benachrichtigung führt auf den Eintrag), Feedback mit „Verstanden" und Rückfrage. **Emma** (zweiter Hund): zwei erreichte Prüfungen (BH ohne Punkte, FCI-UPr 1 mit 86 Punkten) als Leistungen, ein aktives Ziel FCI-UPr 2 in rund fünf Wochen mit Plan und angefangener Woche (Zielkarte auf der Startseite). **Wauwau:** ein Ziel FCI-FPr 1 mit Prüfungsdatum gestern (Zustand „Ergebnis eintragen") - bewusst nicht bei Emma, weil die Startseite je Hund nur das nächste Ziel zeigt und ein überfälliges Vorrang hat. Beim nächsten Gruppentermin zugesagt. Emma ist außerdem der Hund der **Mitbesitz-Einladung an Lisa** (Max ist der Einladende). |
 | **Mitglied 2** (`mitglied2@dogity.test`, Lisa) | **Englische Oberfläche** bei Land Deutschland: Glocke, Push und Mails auf Englisch, Prüfungsordnungen weiter deutsch. Dazu die **Mitbesitz-Einladung** von Max für Emma (Einladungskarte, Benachrichtigung auf Englisch; Mitbesitz erst nach ihrer Zusage). Hund (Luna) ohne Prüfungsziel; beim nächsten Gruppentermin abgesagt. |
 | **Interessent** (`interessent@dogity.test`, Tom) | Land **Österreich** (AT): Katalog mit den FCI- und den ÖKV-Ordnungen (BH/VT, Agility, Hoopers, Breitensport), ohne VDH-Ordnungen und ohne Turnierhundsport, Sachkunde ausgeblendet, Tagebuch und Fährte funktionieren. Stellt einen **Vereinsantrag** „Hundefreunde Wien“, den der Admin unter Vereine freigibt oder ablehnt. Kein Verein, offene Beitrittsanfrage; Dashboard-Hinweis „Tritt einem Verein bei". |
+| **Mitglied (CH)** (`schweiz@dogity.test`, Sandro Schweizer) | Land **Schweiz** (CH, nur gesetzt, solange noch keins gewählt ist): Katalog mit den FCI- und den SKG-Ordnungen, ohne VDH-Ordnungen. Hund „Bläss“ (Appenzeller Sennenhund; hat Sandro schon einen Hund, bekommt der das Ziel) mit Ziel **SKG BH 1** (Sportart BHCH, Begleithund der SKG) und Plan, Prüfung in rund zwei Monaten. Keine Vereinszugehörigkeit. Das Konto entsteht nur, wenn es fehlt. |
 | **Neuling** (`neuling@dogity.test`, Nina) | **Hoopers:** Hund „Flitzer“ (Mischling, gut ein Jahr; hat Nina schon einen Hund, bekommt der das Ziel) mit Ziel H0 und Plan; die Prüfung liegt nach dem 1.1.2027, dem Beginn der Ordnung. Ebenfalls offene Beitrittsanfrage, aber über den Einladungslink (Quelle „Einladungslink"). Zeigt die Wartesicht nach einem Beitritt per Link. |
 
 Der Link selbst: als Trainer unter dem Verein, Vorschau anonym unter `/v/<code>`;
@@ -73,7 +76,8 @@ das Anmeldeformular der Welpengruppe unter `/anmeldung/<code>`.
 
 - Tests: `DemoSzenarienSeederTests` (zweimal ausführen = keine Duplikate, ohne
   Demo-Konten passiert nichts, alle Szenarien sind da, gespeicherte Sprache und
-  gespeichertes Land bleiben, Entschiedenes kommt nicht zurück, die Nachtfährte
+  gespeichertes Land bleiben, Entschiedenes kommt nicht zurück, das Schweizer Konto
+  mit Land, Hund und Ziel SKG BH 1 (ein umgestelltes Land und ein gelöschtes Ziel bleiben so), die Nachtfährte
   rückt auf gestern und bleibt bei Ablauf oder fremden Einträgen liegen, bei einem
   schon vorhandenen Training gestern entsteht sie nicht, ein anderer offener
   Vereinsantrag von Tom wird still übergangen).

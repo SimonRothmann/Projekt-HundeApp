@@ -25,7 +25,7 @@ public class GroupServiceTests
         lookup = new FakeUserLookupService();
         // Echter TrainerRoleService gegen den Fake-Lookup: so lässt sich in den
         // Tests prüfen, ob das TRAINER-Kennzeichen tatsächlich mitwandert.
-        return new GroupService(db, lookup, new TrainerRoleService(db, lookup), new FakeNotificationService());
+        return new GroupService(db, lookup, new TrainerRoleService(db, lookup), new FakeNotificationService(), TimeProvider.System);
     }
 
     private static async Task<(Guid TrainerId, Guid GroupId, GroupService Service)> SetupGroupAsync(

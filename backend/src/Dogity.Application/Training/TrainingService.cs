@@ -201,9 +201,12 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                 // prüft selbst, ob beides vorliegt). Ohne Übernahme
                 // bleibt ein vorhandenes Wetter des Tages unangetastet.
                 if (wetterNeu)
-                    await RefreshWeatherAsync(daySession, ct);
+                    ClearWeather(daySession);
 
                 await db.SaveChangesAsync(ct);
+
+                if (wetterNeu)
+                    weather.EnqueueSession(daySession);
 
                 var merged = await GetOwnedSessionAsync(userId, daySession.Id, ct, track: false);
                 return Result<TrainingSessionDto>.Success(ToDto(merged!, await HasGpsTrackAsync(daySession.Id, ct)));
@@ -249,9 +252,9 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         db.TrainingSessions.Add(session);
         await db.SaveChangesAsync(ct);
 
-        // Wetter automatisch nachziehen, sofern Ort UND Uhrzeit vorliegen.
-        await weather.EnrichSessionAsync(session, ct);
-        await db.SaveChangesAsync(ct);
+        // Wetter automatisch nachziehen, sofern Ort UND Uhrzeit vorliegen - im
+        // Hintergrund, damit das Speichern nicht auf den Wetterdienst wartet.
+        weather.EnqueueSession(session);
 
         var created = await GetOwnedSessionAsync(userId, session.Id, ct, track: false);
         // Frisch angelegtes Training kann noch keine Fährte haben.
@@ -360,8 +363,9 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         session.LocationName = string.IsNullOrEmpty(name) ? null : name;
         session.Condition = request.Condition;
 
-        await RefreshWeatherAsync(session, ct);
+        ClearWeather(session);
         await db.SaveChangesAsync(ct);
+        weather.EnqueueSession(session);
 
         var updated = await GetOwnedSessionAsync(userId, sessionId, ct, track: false);
         return Result<TrainingSessionDto>.Success(ToDto(updated!, await HasGpsTrackAsync(sessionId, ct)));
@@ -381,8 +385,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             // Alle Einheiten dieses Hundes am selben Tag mitnehmen (siehe
             // ITrainingService) - der Zugriff auf den Hund ist über die
             // gefundene Einheit bereits geprüft. Gemeinsames SaveChanges, damit
-            // der Trainingstag nicht auf halbem Weg zerfällt, falls eine der
-            // Wetterabfragen scheitert.
+            // der Trainingstag nicht auf halbem Weg zerfällt; das Wetter folgt
+            // danach im Hintergrund.
             var oldDate = session.Date;
             var daySessions = await db.TrainingSessions
                 .Where(s => s.DogId == session.DogId && s.Date == oldDate)
@@ -391,7 +395,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             foreach (var moved in daySessions)
             {
                 moved.Date = date;
-                await RefreshWeatherAsync(moved, ct);
+                ClearWeather(moved);
             }
 
             // Landet der Tag auf einem Datum, an dem schon trainiert wurde,
@@ -400,6 +404,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             // echtes Verschmelzen würde Übungen umhängen und Dauern addieren -
             // nicht mehr rückgängig zu machen, wenn sich jemand vertippt hat.
             await db.SaveChangesAsync(ct);
+            foreach (var moved in daySessions)
+                weather.EnqueueSession(moved);
 
             // LastTrainedAt und DueAt hängen am Datum: ohne Neuberechnung
             // stünde die Wiedervorlage weiter auf dem alten Tag, und der
@@ -770,22 +776,20 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     }
 
     /// <summary>
-    /// Gespeicherten Wetterstand verwerfen und neu ermitteln. Nötig nach jeder
-    /// Änderung an Datum, Uhrzeit oder Ort: die Werte gehörten zum vorherigen
-    /// Zeitpunkt und wären danach die Temperatur eines anderen Tages oder Orts.
-    /// Erst das Leeren, dann der Abruf - schlägt er fehl (Ort ohne Koordinaten,
-    /// Wetterdienst nicht erreichbar), steht lieber gar kein Wert da als ein
-    /// falscher.
+    /// Gespeicherten Wetterstand verwerfen. Nötig nach jeder Änderung an Datum,
+    /// Uhrzeit oder Ort: die Werte gehörten zum vorherigen Zeitpunkt und wären
+    /// danach die Temperatur eines anderen Tages oder Orts. Erst das Leeren und
+    /// Speichern, dann <see cref="IWeatherEnrichmentService.EnqueueSession"/> -
+    /// schlägt der Abruf fehl (Ort ohne Koordinaten, Wetterdienst nicht
+    /// erreichbar), steht lieber gar kein Wert da als ein falscher.
     /// </summary>
-    private async Task RefreshWeatherAsync(TrainingSession session, CancellationToken ct)
+    private static void ClearWeather(TrainingSession session)
     {
         session.TemperatureC = null;
         session.RelativeHumidity = null;
         session.WindSpeedKmh = null;
         session.WeatherCode = null;
         session.WeatherFetchedAt = null;
-
-        await weather.EnrichSessionAsync(session, ct);
     }
 
     // track: false fuer reine Lesezugriffe (kein SaveChangesAsync im selben

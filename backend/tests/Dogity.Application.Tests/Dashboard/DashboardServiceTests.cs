@@ -24,17 +24,17 @@ public class DashboardServiceTests
     private static readonly DateTimeOffset Jetzt = new(2026, 9, 10, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateOnly Heute = DateOnly.FromDateTime(Jetzt.UtcDateTime);
 
-    private sealed class FesteUhr : TimeProvider
+    private sealed class FesteUhr(DateTimeOffset? jetzt = null) : TimeProvider
     {
-        public override DateTimeOffset GetUtcNow() => Jetzt;
+        public override DateTimeOffset GetUtcNow() => jetzt ?? Jetzt;
     }
 
     private static (DashboardService Dienst, ApplicationDbContext Db) Erstelle() => Erstelle(new FakeUserLookupService());
 
-    private static (DashboardService Dienst, ApplicationDbContext Db) Erstelle(FakeUserLookupService nutzer)
+    private static (DashboardService Dienst, ApplicationDbContext Db) Erstelle(FakeUserLookupService nutzer, TimeProvider? uhr = null)
     {
         var db = InMemoryDbContext.Create();
-        var uhr = new FesteUhr();
+        uhr ??= new FesteUhr();
         var mastery = new ExerciseMasteryService(db);
         var dienst = new DashboardService(
             new DogService(db, nutzer, new FakeNotificationService()),
@@ -42,7 +42,7 @@ public class DashboardServiceTests
             new GoalService(db, uhr, new FakeNotificationService(), mastery),
             new TrainingService(db, new FakeNotificationService(), nutzer, mastery, new FakeWeatherEnrichmentService()),
             new GpsTrackService(db, new FakeWeatherEnrichmentService()),
-            new GroupService(db, nutzer, new TrainerRoleService(db, nutzer), new FakeNotificationService()),
+            new GroupService(db, nutzer, new TrainerRoleService(db, nutzer), new FakeNotificationService(), TimeProvider.System),
             new ClubService(db, nutzer, new FakeNotificationService(), new TrainerRoleService(db, nutzer)),
             uhr);
         return (dienst, db);
@@ -115,6 +115,24 @@ public class DashboardServiceTests
         Faehrte(db, ich, hund, Heute.AddDays(-1));
         // Eine Einheit ohne Fährte am selben Tag bringt keinen Eintrag.
         db.TrainingSessions.Add(new TrainingSession { UserId = ich, DogId = hund, Date = Heute, DurationMinutes = 30 });
+        await db.SaveChangesAsync();
+
+        var stand = (await dienst.GetAsync(ich)).Value!;
+
+        Assert.Equal(vonHeute, Assert.Single(Assert.Single(stand.Dogs).TracksToday).Id);
+    }
+
+    [Fact]
+    public async Task HeuteIstDerOrtszeitTag_AuchNachMitternachtInUtcNochNicht()
+    {
+        // 23:30 UTC im Sommer = 01:30 Uhr am Folgetag deutscher Zeit: Die Fährte,
+        // die der Recorder jetzt auf diesen Tag datiert, gehört zu "heute".
+        var nachts = new DateTimeOffset(2026, 7, 14, 23, 30, 0, TimeSpan.Zero);
+        var (dienst, db) = Erstelle(new FakeUserLookupService(), new FesteUhr(nachts));
+        var ich = Guid.NewGuid();
+        var hund = Hund(db, ich, "Bello");
+        var vonHeute = Faehrte(db, ich, hund, new DateOnly(2026, 7, 15));
+        Faehrte(db, ich, hund, new DateOnly(2026, 7, 14));
         await db.SaveChangesAsync();
 
         var stand = (await dienst.GetAsync(ich)).Value!;

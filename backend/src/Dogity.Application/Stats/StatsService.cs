@@ -3,12 +3,13 @@ using Dogity.Application.Abstractions;
 using Dogity.Domain.Tracking;
 using Dogity.Domain.Training;
 using Dogity.Application.Common;
+using Dogity.Application.Community;
 using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Stats;
 
-public class StatsService(IApplicationDbContext db) : IStatsService
+public class StatsService(IApplicationDbContext db, TimeProvider timeProvider) : IStatsService
 {
     public async Task<Result<DashboardStatsDto>> GetDashboardAsync(Guid userId, CancellationToken ct = default)
     {
@@ -17,18 +18,22 @@ public class StatsService(IApplicationDbContext db) : IStatsService
             .Select(o => o.DogId)
             .ToListAsync(ct);
 
-        if (dogIds.Count == 0)
-            return Result<DashboardStatsDto>.Success(new DashboardStatsDto(BuildEmptyWeeks(), []));
+        // Stichtage nach der Vereinszeit: Die Tage der Einheiten sind Kalendertage
+        // der Person, nicht UTC-Tage.
+        var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
 
-        var cutoff12w = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-84));
-        var cutoff30d = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        if (dogIds.Count == 0)
+            return Result<DashboardStatsDto>.Success(new DashboardStatsDto(BuildEmptyWeeks(heute), []));
+
+        var cutoff12w = heute.AddDays(-84);
+        var cutoff30d = heute.AddDays(-30);
 
         var recentDates = await db.TrainingSessions
             .Where(s => dogIds.Contains(s.DogId) && s.Date >= cutoff12w)
             .Select(s => s.Date)
             .ToListAsync(ct);
 
-        var weeklyActivity = BuildWeeklyActivity(recentDates);
+        var weeklyActivity = BuildWeeklyActivity(recentDates, heute);
 
         var dogs = await db.Dogs
             .Where(d => dogIds.Contains(d.Id))
@@ -212,7 +217,7 @@ public class StatsService(IApplicationDbContext db) : IStatsService
 
     private record ExerciseRow(string Name, string? NameEn, int Rating, bool Success, DateOnly Date);
 
-    private static IReadOnlyList<WeeklyActivityDto> BuildWeeklyActivity(List<DateOnly> dates)
+    private static IReadOnlyList<WeeklyActivityDto> BuildWeeklyActivity(List<DateOnly> dates, DateOnly heute)
     {
         var grouped = dates
             .GroupBy(d => (
@@ -223,7 +228,7 @@ public class StatsService(IApplicationDbContext db) : IStatsService
         var weeks = new List<WeeklyActivityDto>();
         for (int i = 11; i >= 0; i--)
         {
-            var weekDate = DateTime.UtcNow.AddDays(-7 * i);
+            var weekDate = heute.AddDays(-7 * i).ToDateTime(TimeOnly.MinValue);
             var year = ISOWeek.GetYear(weekDate);
             var week = ISOWeek.GetWeekOfYear(weekDate);
             grouped.TryGetValue((year, week), out var count);
@@ -232,12 +237,12 @@ public class StatsService(IApplicationDbContext db) : IStatsService
         return weeks;
     }
 
-    private static IReadOnlyList<WeeklyActivityDto> BuildEmptyWeeks()
+    private static IReadOnlyList<WeeklyActivityDto> BuildEmptyWeeks(DateOnly heute)
     {
         var weeks = new List<WeeklyActivityDto>();
         for (int i = 11; i >= 0; i--)
         {
-            var weekDate = DateTime.UtcNow.AddDays(-7 * i);
+            var weekDate = heute.AddDays(-7 * i).ToDateTime(TimeOnly.MinValue);
             var year = ISOWeek.GetYear(weekDate);
             var week = ISOWeek.GetWeekOfYear(weekDate);
             weeks.Add(new WeeklyActivityDto($"{year}-KW{week:D2}", 0));

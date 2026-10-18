@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IGpsTrackEvaluationBackfill, GpsTrackEvaluationBackfill>();
         services.AddScoped<IGpsTrackOrphanCleanup, GpsTrackOrphanCleanup>();
         services.AddScoped<IWeatherEnrichmentService, WeatherEnrichmentService>();
+        services.AddScoped<WetterNachtrag>();
         services.AddScoped<IRegulationImportService, RegulationImportService>();
         services.AddScoped<ITrainingService, TrainingService>();
         services.AddScoped<IExerciseMasteryService, ExerciseMasteryService>();

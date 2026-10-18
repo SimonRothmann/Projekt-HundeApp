@@ -2,6 +2,7 @@ using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Domain.Sports;
 using Microsoft.EntityFrameworkCore;
+using static Dogity.Application.Common.Texte;
 
 namespace Dogity.Application.Sports;
 
@@ -216,7 +217,4 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         var isClubTrainer = await db.IsClubTrainerAsync(actingUserId, clubId.Value, ct);
         return isClubTrainer ? null : "Du bist für diesen Verein nicht als Trainer eingetragen.";
     }
-
-    private static string? NullIfBlank(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

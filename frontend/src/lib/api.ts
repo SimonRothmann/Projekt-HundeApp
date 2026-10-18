@@ -1,5 +1,6 @@
 import { uebersetzeAktuell, uebersetzeMeldung } from "@/lib/i18n";
 import { aktuelleSprache } from "@/lib/i18n/aktuelle-sprache";
+import { schreibzugriffMelden } from "@/lib/wetter-nachladen";
 
 // Kestrel-Ports aus backend/src/Dogity.Api/Properties/launchSettings.json.
 // HTTPS ist nötig, um die App von einem iPhone aus testen zu können -
@@ -238,6 +239,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new ApiError(res.status, errors);
   }
+
+  schreibzugriffMelden(init?.method, path);
 
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

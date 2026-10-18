@@ -42,7 +42,7 @@ public class DogConditionStatsTests
                 });
         }
 
-        return (new StatsService(db), nutzer, hund.Id, Trainiere, () => db.SaveChangesAsync());
+        return (new StatsService(db, TimeProvider.System), nutzer, hund.Id, Trainiere, () => db.SaveChangesAsync());
     }
 
     [Fact]

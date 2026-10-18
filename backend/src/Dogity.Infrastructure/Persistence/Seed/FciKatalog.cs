@@ -171,6 +171,15 @@ public static class FciKatalog
         alle[("BH", "Begegnung mit Personengruppe")] = "Encounter with group of persons";
         alle[("BH", "Verhalten gegenüber anderen Hunden")] = "Encounter with other dogs";
         alle[("BH", "Zurücklassen des Hundes")] = "Behaviour of the dog leashed and left alone in traffic";
+        // Zwei Übungen aus einer älteren Fassung des Katalogs ("Sitzübung" bzw. "Ablegen in
+        // Verbindung mit Herankommen" heißen sie heute): Die Ordnung führt sie nicht mehr, wo
+        // Einträge daran hängen, bleiben sie aber auswählbar. Englisch nach der Terminologie der
+        // FCI-IGP 2025. "Down with recall" ist in der BH schon vergeben - zwei Übungen mit
+        // gleichem Namen wären in der Auswahl nicht zu unterscheiden -, deshalb hier die
+        // ausführliche Fassung, wie sie die IGP für dieselbe Übung nennt. Die ÖKV-eigenen
+        // Übungen bleiben bewusst ohne englischen Namen (national).
+        alle[("BH", "Sitz aus der Bewegung")] = "Sit in motion";
+        alle[("BH", "Ablegen mit Abrufen")] = "Down out of motion with recall";
 
         // Internationale Begleithundeprüfungen: die Übungen stehen in der
         // Verteilungstabelle "Distribution and values of the exercises".

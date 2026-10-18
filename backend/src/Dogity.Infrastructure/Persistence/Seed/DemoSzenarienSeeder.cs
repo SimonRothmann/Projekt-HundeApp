@@ -26,8 +26,8 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// Trend, Trainer-Feedback, Gruppentermine mit Zu- und Absagen, Anmeldungen
 /// zur Welpengruppe mit Anwesenheit. Seit 2026-10-16 außerdem, was danach
 /// dazukam: Englisch (Lisa), Mitbesitz-Einladung (Lisa), Österreich und
-/// Vereinsantrag (Tom), Hoopers (Nina) und eine Nachtfährte, die "erneut
-/// ablaufen" über Mitternacht zeigt (Bello).
+/// Vereinsantrag (Tom), Hoopers (Nina), eine Nachtfährte, die "erneut
+/// ablaufen" über Mitternacht zeigt (Bello), und die Schweiz (Sandro, SKG BH 1).
 ///
 /// Warum ein eigener Seeder und nicht noch mehr im DemoDataSeeder: Der bricht
 /// ab, sobald das Trainer-Konto existiert - auf der Test-Umgebung gibt es die
@@ -48,6 +48,7 @@ public static class DemoSzenarienSeeder
 {
     public const string NeulingEmail = "neuling@dogity.test";
     public const string InteressentEmail = "interessent@dogity.test";
+    public const string SchweizEmail = "schweiz@dogity.test";
 
     private const string VereinsName = "Hundesportverein Musterstadt e.V.";
     private const string GruppenName = "Welpengruppe Dienstag";
@@ -61,6 +62,7 @@ public static class DemoSzenarienSeeder
     public const string NotizFeedbackMitRueckfrage = "Verkehrstraining in der Innenstadt: Radfahrer, Kinderwagen, Straßenbahn.";
 
     public const string NotizHoopersZiel = "Einstieg ins Hoopers: erste Prüfung in H0.";
+    public const string NotizSkgBhZiel = "Begleithund 1 der SKG in der Sektion Zürich.";
     public const string KommentarNachtfaehrte = "Abends gelegt, über Nacht liegen gelassen - morgen früh ablaufen.";
 
     /// <summary>Der Antrag, den Tom stellt - der Name ist zugleich das Erkennungszeichen.</summary>
@@ -150,6 +152,7 @@ public static class DemoSzenarienSeeder
                 ("Anmeldungen", AnmeldungenAsync),
                 ("Österreich", OesterreichAsync),
                 ("Vereinsantrag", VereinsantragAsync),
+                ("Schweiz", SchweizAsync),
             })
             {
                 try
@@ -200,7 +203,7 @@ public static class DemoSzenarienSeeder
             var hunde = await HundeVonAsync(max, ct);
             var emma = await EmmaAsync(hunde, ct);
 
-            var heute = DateOnly.FromDateTime(DateTime.UtcNow);
+            var heute = Vereinszeit.Heute();
 
             // Zwei bestandene Prüfungen: BH ohne Punkte (nur bestanden/nicht bestanden) und
             // UPr 1 mit Punkten unter dem Höchstwert. Daraus ergeben sich "Leistungen",
@@ -299,7 +302,7 @@ public static class DemoSzenarienSeeder
             var (sport, regulation) = await KatalogAsync(sportCode, ordnung, ct);
             if (sport is null || regulation is null) return (null, false);
 
-            var heute = DateOnly.FromDateTime(DateTime.UtcNow);
+            var heute = Vereinszeit.Heute();
             var ergebnis = await services.GetRequiredService<IGoalService>().CreateAsync(
                 besitzer.Id, new CreateGoalRequest(hund.Id, sport.Id, regulation.Id, heute.AddDays(tageBisZiel), notiz), ct);
             if (!ergebnis.Succeeded)
@@ -337,7 +340,7 @@ public static class DemoSzenarienSeeder
             if (await db.TrainingExercises.AnyAsync(e => e.TrainingPlanItemId != null && ids.Contains(e.TrainingPlanItemId.Value), ct)) return;
 
             var training = services.GetRequiredService<ITrainingService>();
-            var heute = DateOnly.FromDateTime(DateTime.UtcNow);
+            var heute = Vereinszeit.Heute();
             var ersterTag = woche[0].DayIndex;
 
             var ganz = woche.Where(i => i.DayIndex == ersterTag).ToList();
@@ -389,7 +392,7 @@ public static class DemoSzenarienSeeder
             // Netz nach Wetter von vor Wochen. Die Temperaturen setzen wir selbst (unten), in
             // denselben Feldern, die das Wetter-Feature füllt.
             var service = new GpsTrackService(db, new OhneWetter());
-            var heute = DateOnly.FromDateTime(DateTime.UtcNow);
+            var heute = Vereinszeit.Heute();
 
             var tage = new[] { -26, -19, -12, -6 };
             var abweichung = new[] { 4.4, 3.0, 1.8, 0.9 };
@@ -445,8 +448,9 @@ public static class DemoSzenarienSeeder
 
         private sealed class OhneWetter : IWeatherEnrichmentService
         {
+            public Task EnqueueTrackAsync(GpsTrack track, CancellationToken ct = default) => Task.CompletedTask;
+            public void EnqueueSession(TrainingSession session) { }
             public Task EnrichTrackAsync(GpsTrack track, CancellationToken ct = default) => Task.CompletedTask;
-            public Task EnrichSessionAsync(TrainingSession session, CancellationToken ct = default) => Task.CompletedTask;
         }
 
         // ---------------------------------------------------------------- d) Feedback
@@ -464,7 +468,7 @@ public static class DemoSzenarienSeeder
             if (fussarbeit is null || verkehr is null) return;
 
             var training = services.GetRequiredService<ITrainingService>();
-            var heute = DateOnly.FromDateTime(DateTime.UtcNow);
+            var heute = Vereinszeit.Heute();
 
             // Frisches Feedback, noch keine Reaktion: Die Benachrichtigung führt auf ?eintrag=.
             var erste = await TrainingAnlegenAsync(training, bello, heute.AddDays(-9), NotizFeedbackOhneReaktion, 40,
@@ -765,15 +769,49 @@ public static class DemoSzenarienSeeder
             // samt Ziel gelöscht hat, fängt die Prüfung oben ab - ein anderer, früher gelöschter Hund nicht.
             var hunde = await HundeVonAsync(nina, ct);
             var hund = hunde.FirstOrDefault()
-                ?? await HundAsync(nina, hunde, "Flitzer", "Mischling", DogGender.Female, DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-14), ct);
+                ?? await HundAsync(nina, hunde, "Flitzer", "Mischling", DogGender.Female, Vereinszeit.Heute().AddMonths(-14), ct);
 
             var (_, regulation) = await KatalogAsync("HOOPERS", "Hoopers 0 (H0)", ct);
             if (regulation is null) return;
             var gueltigAb = await db.RegulationVersions.Where(v => v.RegulationId == regulation.Id)
                 .Select(v => (DateOnly?)v.ValidFrom).MaxAsync(ct) ?? new DateOnly(2027, 1, 1);
-            var tageBisZiel = Math.Max(150, gueltigAb.AddDays(14).DayNumber - DateOnly.FromDateTime(DateTime.UtcNow).DayNumber);
+            var tageBisZiel = Math.Max(150, gueltigAb.AddDays(14).DayNumber - Vereinszeit.Heute().DayNumber);
 
             await ZielMitPlanAsync(nina, hund, "HOOPERS", "Hoopers 0 (H0)", tageBisZiel, NotizHoopersZiel, ct);
+        }
+
+        // ---------------------------------------------------------------- k) Schweiz (Sandro)
+
+        /// <summary>
+        /// Sandro ist "in der Schweiz": Land CH (nur wenn noch keins gewählt ist), der Katalog zeigt die FCI- und die
+        /// SKG-Ordnungen, dazu ein Hund (falls er noch keinen hat) und ein Ziel SKG BH 1 mit Plan. Das Konto
+        /// entsteht nur, wenn es fehlt - wie Nina, der Seeder nimmt kein Konto zurück.
+        /// </summary>
+        private async Task SchweizAsync(CancellationToken ct)
+        {
+            var sandro = await userManager.FindByEmailAsync(SchweizEmail)
+                ?? await DemoDataSeeder.CreateUserAsync(userManager, SchweizEmail, "Sandro", "Schweizer", [Roles.User]);
+
+            var einstellungen = services.GetRequiredService<IPreferenceService>();
+            var aktuell = await einstellungen.GetAsync(sandro.Id, ct);
+            if (aktuell.Value?.Country is null)
+            {
+                var land = await einstellungen.UpdateCountryAsync(sandro.Id, new UpdateCountryRequest("CH"), ct);
+                if (!land.Succeeded)
+                    logger.LogWarning("Demo-Land für Sandro konnte nicht gesetzt werden: {Fehler}", string.Join("; ", land.Errors));
+            }
+
+            // Auch gelöschte Ziele zählen - Sandros Hunde bestimmen, wem es gehört.
+            if (await db.Goals.IgnoreQueryFilters().AnyAsync(g => g.Notes == NotizSkgBhZiel
+                    && db.DogOwners.IgnoreQueryFilters().Any(o => o.DogId == g.DogId && o.UserId == sandro.Id), ct))
+                return;
+
+            // Wie bei Nina: Ein vorhandener Hund bekommt das Ziel, sonst kommt Bläss.
+            var hunde = await HundeVonAsync(sandro, ct);
+            var hund = hunde.FirstOrDefault()
+                ?? await HundAsync(sandro, hunde, "Bläss", "Appenzeller Sennenhund", DogGender.Male, new DateOnly(2022, 8, 1), ct);
+
+            await ZielMitPlanAsync(sandro, hund, SportCatalogSeeder.BegleithundSkgCode, "SKG BH 1", 60, NotizSkgBhZiel, ct);
         }
 
         // ---------------------------------------------------------------- j) Nachtfährte (Bello)

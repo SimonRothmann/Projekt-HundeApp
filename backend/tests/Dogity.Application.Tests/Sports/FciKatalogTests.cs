@@ -1,6 +1,7 @@
 using Dogity.Application.Sports;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Domain.Sports;
+using Dogity.Domain.Training;
 using Dogity.Infrastructure.Persistence;
 using Dogity.Infrastructure.Persistence.Seed;
 using Microsoft.EntityFrameworkCore;
@@ -138,6 +139,33 @@ public class FciKatalogTests
             .ToListAsync();
         Assert.NotEmpty(uebungen);
         Assert.All(uebungen, e => Assert.False(string.IsNullOrWhiteSpace(e.NameEn), $"Übung {e.Sport!.Code}/{e.Name}"));
+    }
+
+    [Fact]
+    public async Task EnglischeNamen_AltuebungenDerBhBekommenEinenUndKollidierenNicht()
+    {
+        await using var db = await KatalogAsync();
+        var bh = await db.Sports.SingleAsync(s => s.Code == "BH");
+        // Wie in Beständen, die den früheren Katalog noch tragen: ohne englischen Namen, aber auswählbar.
+        var sitz = new Exercise { SportId = bh.Id, Name = "Sitz aus der Bewegung" };
+        var ablegen = new Exercise { SportId = bh.Id, Name = "Ablegen mit Abrufen" };
+        db.Exercises.AddRange(sitz, ablegen);
+        // Nur was Einträge trägt, bleibt nach dem Aufräumen des Seeders stehen.
+        var einheit = new TrainingSession { UserId = Guid.NewGuid(), DogId = Guid.NewGuid(), Date = new DateOnly(2025, 3, 1), DurationMinutes = 20 };
+        db.TrainingSessions.Add(einheit);
+        db.TrainingExercises.AddRange(
+            new TrainingExercise { TrainingSessionId = einheit.Id, ExerciseId = sitz.Id, Rating = 3, Difficulty = ExerciseDifficulty.Beginner, Success = true },
+            new TrainingExercise { TrainingSessionId = einheit.Id, ExerciseId = ablegen.Id, Rating = 3, Difficulty = ExerciseDifficulty.Beginner, Success = true });
+        await db.SaveChangesAsync();
+
+        await SportCatalogSeeder.SeedAsync(Dienste(db));
+        db.ChangeTracker.Clear();
+
+        Assert.Equal("Sit in motion", (await db.Exercises.SingleAsync(e => e.Id == sitz.Id)).NameEn);
+        Assert.Equal("Down out of motion with recall", (await db.Exercises.SingleAsync(e => e.Id == ablegen.Id)).NameEn);
+        // Neben den heutigen BH-Übungen, die ihren eigenen Namen tragen.
+        var namen = await db.Exercises.Where(e => e.SportId == bh.Id && e.NameEn != null).Select(e => e.NameEn).ToListAsync();
+        Assert.Equal(namen.Count, namen.Distinct().Count());
     }
 
     [Fact]

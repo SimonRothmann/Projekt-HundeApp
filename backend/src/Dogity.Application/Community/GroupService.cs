@@ -13,7 +13,7 @@ namespace Dogity.Application.Community;
 /// eines Mitglieds eintragen - das gewährt anschließend Zugriff auf
 /// Training/Ziele dieses Hundes (siehe <see cref="DogAccessQueries"/>).
 /// </summary>
-public class GroupService(IApplicationDbContext db, IUserLookupService userLookup, ITrainerRoleService trainerRoles, INotificationService notifications) : IGroupService
+public class GroupService(IApplicationDbContext db, IUserLookupService userLookup, ITrainerRoleService trainerRoles, INotificationService notifications, TimeProvider timeProvider) : IGroupService
 {
     public async Task<Result<IReadOnlyList<GroupDto>>> GetMyGroupsAsync(Guid trainerId, CancellationToken ct = default)
     {
@@ -622,7 +622,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         {
             existing.DeletedAt = null;
             existing.MemberId = request.MemberId;
-            existing.StartDate = DateOnly.FromDateTime(DateTime.UtcNow);
+            existing.StartDate = Vereinszeit.Tag(timeProvider.GetUtcNow());
         }
         else
         {
@@ -631,7 +631,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
                 TrainerId = trainerId,
                 MemberId = request.MemberId,
                 DogId = request.DogId,
-                StartDate = DateOnly.FromDateTime(DateTime.UtcNow)
+                StartDate = Vereinszeit.Tag(timeProvider.GetUtcNow())
             });
         }
 

@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Community;
 using Dogity.Application.Notifications;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Planning;
@@ -42,7 +43,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
     public async Task<Result<GoalDto>> CreateAsync(Guid userId, CreateGoalRequest request, CancellationToken ct = default)
     {
-        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
         if (request.TargetDate <= today)
             return Result<GoalDto>.Failure("Zieldatum muss in der Zukunft liegen.");
 
@@ -130,7 +131,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         if (goal.Status != GoalStatus.Active)
             return Result<GoalDto>.Failure("Nur ein aktives Ziel lässt sich abschließen.");
 
-        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
 
         if (!request.Passed)
         {
@@ -163,7 +164,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         if (goal.Status != GoalStatus.Achieved)
             return Result<GoalDto>.Failure("Ein Ergebnis gibt es nur für erreichte Ziele.");
 
-        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
         var maxPoints = await GetMaxPointsAsync(goal, ct);
         var note = request.Note?.Trim();
         if (ValidateExamResult(request.ExamDate, request.Score, note, maxPoints, today) is { } error)
@@ -218,7 +219,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         }
 
         // Wochenanker wie RegenerateDuePlansAsync: volle Wochen seit Goal.CreatedAt.
-        var created = DateOnly.FromDateTime(goal.CreatedAt.UtcDateTime);
+        var created = Vereinszeit.Tag(goal.CreatedAt);
         var currentWeek = Math.Max(0, (today.DayNumber - created.DayNumber) / 7) + 1;
         var targetWeek = Math.Max(0, (newTargetDate.DayNumber - created.DayNumber) / 7) + 1;
         var lastPlannedWeek = goal.TrainingPlan.Items.Count == 0 ? 0 : goal.TrainingPlan.Items.Max(i => i.WeekNumber);
@@ -505,8 +506,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         if (goal.TrainingPlan is not { } plan || plan.Items.Count == 0)
             return [];
 
-        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
-        var created = DateOnly.FromDateTime(goal.CreatedAt.UtcDateTime);
+        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var created = Vereinszeit.Tag(goal.CreatedAt);
         var maxWeek = plan.Items.Max(i => i.WeekNumber);
         var currentWeek = Math.Clamp(Math.Max(0, (today.DayNumber - created.DayNumber) / 7) + 1, 1, Math.Max(1, maxWeek));
 
@@ -547,7 +548,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         // (LastPlanGeneratedAt steuert die Frequenz, der Aufruf-Takt selbst darf
         // öfter sein).
         var cutoff = now.AddDays(-6);
-        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var today = Vereinszeit.Tag(now);
 
         var goals = await LoadGoalsQuery()
             .Where(g => g.Status == GoalStatus.Active && !g.IsCustom && g.TrainingPlan != null)
@@ -562,7 +563,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             // Zeitanker Goal.CreatedAt: aktuelle Woche = vergangene volle Wochen
             // seit Erstellung + 1. Nur die KOMMENDE Woche adaptiv frisch halten,
             // damit die laufende Woche nicht mitten im Training umgebaut wird.
-            var created = DateOnly.FromDateTime(goal.CreatedAt.UtcDateTime);
+            var created = Vereinszeit.Tag(goal.CreatedAt);
             var currentWeek = Math.Max(0, (today.DayNumber - created.DayNumber) / 7) + 1;
             var targetWeek = currentWeek + 1;
 
@@ -639,7 +640,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         var preservedExerciseIds = preserved.Where(i => i.ExerciseId is not null).Select(i => i.ExerciseId!.Value).ToHashSet();
         var candidates = await BuildAdaptiveCandidatesAsync(goal, preservedExerciseIds, ct);
 
-        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
         var remainingSlots = Math.Max(0, goal.WeeklyExerciseCount - preserved.Count);
         if (remainingSlots > 0 && candidates.Count > 0)
         {
