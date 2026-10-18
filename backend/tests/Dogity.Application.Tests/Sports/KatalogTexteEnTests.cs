@@ -132,10 +132,16 @@ public partial class KatalogTexteEnTests
     /// <summary>
     /// Übungen, die ein frischer Katalog nicht mehr anlegt, die ältere Datenbanken aber noch führen
     /// (die Ordnung kennt sie nicht mehr, Trainingseinträge können daran hängen) - ihre deutschen
-    /// Texte haben ebenfalls eine englische Fassung (Paket E4, "Altübungen").
+    /// Texte haben ebenfalls eine englische Fassung (Paket E4, "Altübungen"). Die vier
+    /// Fährten-Übungen fielen erst auf Prod auf: "Eigenfährte vertiefen" hängt dort an
+    /// sieben Trainings und blieb deshalb stehen (2026-10-18).
     /// </summary>
     private static readonly (string Sport, string Name)[] Altuebungen =
-        [("BH", "Ablegen mit Abrufen"), ("BH", "Sitz aus der Bewegung")];
+    [
+        ("BH", "Ablegen mit Abrufen"), ("BH", "Sitz aus der Bewegung"),
+        ("FAERTE", "Fährtenaufnahme"), ("FAERTE", "Winkelarbeit"),
+        ("FAERTE", "Eigenfährte vertiefen"), ("FAERTE", "Fremde Fährte folgen"),
+    ];
 
     [Fact]
     public async Task Textdatei_HatKeineVerwaisteSchluessel()
