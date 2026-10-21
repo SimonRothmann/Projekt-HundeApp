@@ -61,7 +61,8 @@ export function katalogText(
 /**
  * Die Kategorien der FCI-Übungen. Der Server liefert sie deutsch, und sie sind
  * eine kleine feste Menge - deshalb übersetzt die Oberfläche sie (en.ts), statt
- * eine weitere Spalte zu führen. "Fährte" gibt es schon als "Track".
+ * eine weitere Spalte zu führen. "Fährte" gibt es schon als "Track". Die Obedience-
+ * Übungen haben ihre eigenen fünf Kategorien (ab "Gruppenübung").
  */
 const FCI_KATEGORIEN = [
   uebersetzbar("Abteilung A"),
@@ -72,6 +73,12 @@ const FCI_KATEGORIEN = [
   uebersetzbar("Stöbern"),
   uebersetzbar("Ausdauer"),
   uebersetzbar("Fährte"),
+  // Obedience (Paket O1)
+  uebersetzbar("Gruppenübung"),
+  uebersetzbar("Freifolge und Positionen"),
+  uebersetzbar("Distanzarbeit"),
+  uebersetzbar("Apportieren und Suchen"),
+  uebersetzbar("Gesamteindruck"),
 ];
 
 /**

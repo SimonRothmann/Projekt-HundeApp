@@ -76,6 +76,20 @@ describe("katalogKategorie", () => {
     expect(katalogKategorie({ category: "Stöbern", nameEn: "Tenacity" }, "en")).toBe("Article search");
   });
 
+  it("übersetzt die Kategorien der Obedience-Übungen", () => {
+    expect(katalogKategorie({ category: "Gruppenübung", nameEn: "Lying in a group" }, "en")).toBe("Group exercise");
+    expect(katalogKategorie({ category: "Freifolge und Positionen", nameEn: "Heelwork" }, "en")).toBe("Heelwork and positions");
+    expect(katalogKategorie({ category: "Distanzarbeit", nameEn: "Distance control" }, "en")).toBe("Distance work");
+    expect(katalogKategorie({ category: "Apportieren und Suchen", nameEn: "Directed retrieve" }, "en")).toBe("Retrieve and search");
+    expect(katalogKategorie({ category: "Gesamteindruck", nameEn: "General impression" }, "en")).toBe("General impression");
+  });
+
+  it("lässt die Kategorie der nur nationalen Obedience-Übungen deutsch", () => {
+    // Ohne englischen Namen (kein FCI-Gegenstück), wie bei allen nationalen Übungen.
+    expect(katalogKategorie({ category: "Gruppenübung", nameEn: null }, "en")).toBe("Gruppenübung");
+    expect(katalogKategorie({ category: "Apportieren und Suchen" }, "en")).toBe("Apportieren und Suchen");
+  });
+
   it("lässt die Kategorie auf Deutsch, wie sie ist", () => {
     expect(katalogKategorie({ category: "Abteilung B", nameEn: "Free heeling" }, "de")).toBe("Abteilung B");
   });

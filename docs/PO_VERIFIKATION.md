@@ -19,6 +19,12 @@ kleiner.
 | [SKG/TKGS, Nationale Prüfungsordnung Begleithund 1-3 (NPO-BH), 3. Ausgabe, gültig ab 1. März 2022](https://scog-schaffhausen.ch/documents/bh_npo_15_d_ausgabe_3-1/) (57 Seiten; die offizielle Seite [tkgs.ch/de/reglemente](https://www.tkgs.ch/de/reglemente) nennt diese Ausgabe, verlinkt das deutsche PDF aber nicht - der Text stammt aus dem Dokumentenbereich einer SKG-Sektion, scog-schaffhausen.ch) | Begleithund 1-3 (SKG), Sportart BHCH (seit 2026-10-17) |
 | [SKG Wettkampfordnung, Reglement Agility, gültig ab 01.01.2025](https://www.tkamo.ch/media/files/Agility_Reglement_2025_DE.pdf) (Reglemente 2025-2027, beschlossen DKAMO 28.03.2023, genehmigt vom Zentralvorstand der SKG 09.10.2024, 20 Seiten) | Agility Klasse 1-3 und Jumping (SKG) |
 | [VDH-Prüfungsordnung Hoopers, gültig ab 01.01.2027](https://www.vdh.de/fileadmin/media/hundesport/Hoopers-Agility/2026/VDH-PO-Hoopers_2027_V01.pdf) (beschlossen 25.09.2026, 18 Seiten; Übersicht auf [vdh.de/hundesport/hoopers](https://www.vdh.de/hundesport/hoopers/)) | Hoopers H0-H3 (seit 2026-10-15) |
+| [FCI, Rules and Guidelines for Obedience Trials for Classes 1, 2 and 3, gültig ab 01.01.2025](https://www.fci.be/medias/OBE-REG-COB-123-20250101-en-19742.pdf) (OBE-REG-COB-123, 96 Seiten, **englisch = Originalsprache**; dieselbe Datei liegt auf tkamo.ch) | FCI-Obedience 1-3: Übungen, Koeffizienten, Noten, Aufstieg; englische Namen und Texte (seit 2026-10-21, Paket O1) |
+| [TKAMO, FCI-Obedience-Reglement, deutsche Übersetzung 2025 (V2)](https://www.tkamo.ch/media/files/FCI_Obedience_TKAMO_Deutsch_2025_V2.pdf) | nur Verständnishilfe, nichts daraus übernommen |
+| [VDH, Prüfungsordnung (PO) Obedience, gültig ab 01.01.2025](https://www.vdh.de/fileadmin/media/hundesport/obedience/2025/VDH_Pruefungsordnung_Obedience_deutsch_1-1-2025.pdf) (124 Seiten; Übersicht auf [vdh.de/hundesport/obedience](https://www.vdh.de/hundesport/obedience/)) | VDH Obedience Beginner (O-B) und Senioren (O-S); deutsche Übungsnamen der FCI-Klassen (seit 2026-10-21) |
+| [ÖKV, Österreichische Prüfungsordnung (ÖPO), Ausgabe 2022 - Datei „ÖPO_2022 HP.pdf“](https://web.archive.org/web/20240618224143/https://www.oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96PO_2022%20HP.pdf) (Webarchiv-Abzug vom 18.06.2024, weil oekv.at am 21.10.2026 nicht erreichbar war; dieselbe Ausgabe wie die BH-Quelle oben) | ÖKV Obedience Beginner (S. 28-32) und Senior (S. 33-37), allgemeine Bestimmungen S. 20-27 (seit 2026-10-21) |
+| [SKG Wettkampfordnung, Reglement Obedience, gültig ab 01.01.2025](https://www.tkamo.ch/media/files/Obedience_Reglement_2025_DE.pdf) (24 Seiten; Übersicht auf [tkamo.ch/de/obedience/reglemente](https://www.tkamo.ch/de/obedience/reglemente.html)) | SKG Obedience Beginners (Kapitel 6, S. 14-23), Mindestalter (3.3), Qualifikation (4.4) (seit 2026-10-21) |
+| [TKAMO, Weisung „FCI-Prüfungsordnung Obedience“, gültig ab 01.01.2026](https://www.tkamo.ch/media/files/Obedience_Weisung_PO_2026_DE.pdf) (4 Seiten) | nur Hinweis (Schweizer Präzisierungen zu den FCI-Klassen), nicht abgebildet |
 
 ## Ergebnis: das meiste stimmt
 
@@ -525,6 +531,7 @@ deutsch - kein `NameEn`. Der Seeder steht in `SportCatalogSeeder.Oesterreich.cs`
   Weitsprung genannt.
 - **Obedience** (ÖPO Beginner/Senior, FCI-Obedience) ist nicht Teil von Paket L2.
   Es wäre eine neue Sportart, auch für Deutschland.
+  Seit 2026-10-21 umgesetzt: siehe Abschnitt „Obedience“ (Paket O1).
 
 ## Schweiz: SKG-Ordnungen (2026-10-17, Paket L3)
 
@@ -616,5 +623,158 @@ Tabellen S. 4-6 gegen die Kapitel der Klassen.
   Text nicht enthalten, nur die Beschreibung der Wendungen und Stellungen.
 - **Nicht Teil von Paket L3:** Hoopers (kein SKG-Reglement gefunden), die
   weiteren NPO der TKGS (VPG, FH15, SanH, LawH, WAH, KH, AD, SH) sowie Obedience
-  und Mobility der SKG-Wettkampfordnung. Mögliche Erweiterung.
+  und Mobility der SKG-Wettkampfordnung. Obedience ist inzwischen umgesetzt
+  (siehe Abschnitt „Obedience“, Paket O1); Mobility bleibt eine mögliche
+  Erweiterung.
 
+## Obedience (2026-10-21, Paket O1)
+
+Auftrag des Betreibers (2026-10-18): Obedience - FCI-Obedience international und
+die nationalen Einsteigerklassen von VDH, ÖKV und SKG, Quellen wie bei L2/L3. Eine
+Sportart `OBEDIENCE` (Name „Obedience“, `NameEn` „Obedience“) mit acht Ordnungen:
+
+| Ordnung | `CountryCode` | Quelle |
+|---|---|---|
+| FCI-Obedience 1, 2, 3 (`NameEn` „FCI Obedience Class 1/2/3“) | null (überall) | FCI-Reglement 2025 |
+| VDH Obedience Beginner (O-B), VDH Obedience Senioren (O-S) | DE | VDH-PO Obedience 2025 |
+| ÖKV Obedience Beginner, ÖKV Obedience Senior | AT | ÖPO 2022 |
+| SKG Obedience Beginners | CH | SKG-Reglement Obedience 2025 |
+
+22 Übungen, 78 Verknüpfungen. Der Seeder steht in `SportCatalogSeeder.Obedience.cs`;
+jede Ordnung und jede Übung nennt die Seite des Dokuments. Die Texte sind eigene
+Beschreibungen, keine Kopie der Ordnungen. Keine Schemaänderung, keine Migration.
+
+### Prüfprotokoll
+
+Seitenzählung: Bei der FCI-Ordnung steht die Seitenzahl im Fuß („N / 96“), der Inhalt
+davor gehört zur Seite N; gedruckte Seite = PDF-Seite. Beim VDH-Text steht die Marke
+„=== Seite N/124 ===“ am **Ende** der Seite N (gegen die Kopfzeilen „Seite N von 124“
+des Volltextes im selben Dokument geprüft); ÖPO und SKG-Reglement tragen die Seitenzahl
+im Fuß, gedruckte Seite = PDF-Seite.
+
+| Ordnung | Gegen welche Seiten geprüft | Ergebnis |
+|---|---|---|
+| **FCI-Obedience 1** | FCI S. 4 f., 14, 16-18, 34-45 | 9 Übungen, Koeffizienten 3/4/3/4/4/4/4/4/2 = 32, 320 Punkte (S. 14). Jede Übung gegen ihr Kapitel (1.1-1.9) |
+| **FCI-Obedience 2** | S. 14, 16-18, 46-64 | 10 Übungen, 3/4/3/3/4/3/3/4/3/2 = 32, 320 Punkte (S. 14) |
+| **FCI-Obedience 3** | S. 4, 15-19, 65-91 | 10 Übungen, 2/2/4/3/3/4/3/4/3/4 = 32, 320 Punkte (S. 15); kein Gesamteindruck; gelbe und rote Karten (S. 16 f.); Mindestalter 15 Monate (S. 5) |
+| **VDH Obedience Beginner (O-B)** | VDH S. 6-9, 19, 23 f., 43-51; Rundschreiben „Beginner-Änderungen 2025“ | 11 Übungen, 4/3/3/2/3/3/3/3/3/3/2 = 32 (Tabelle S. 19). Jede Zahl gegen die Kapitel O-B.1-O-B.11 („Koeffizient: … Maximale Punktzahl: …“) und gegen das Rundschreiben geprüft: stimmen; das Rundschreiben weicht nur im Wortlaut ab |
+| **VDH Obedience Senioren (O-S)** | VDH S. 8 f., 20, 23, 52-62 | 10 Übungen, 4/3/3/3/4/3/2/4/4/2 = 32 (Tabelle S. 20), gegen O-S.1-O-S.10 geprüft; bestanden ab 192 Punkten (S. 62) |
+| **ÖKV Obedience Beginner** | ÖPO S. 20-32 | 9 Übungen, 4/3/4/3/4/4/4/4/2 = 32 (S. 28); Mindestalter 12 Monate (S. 21); Noten (S. 22) |
+| **ÖKV Obedience Senior** | ÖPO S. 20-27, 33-37 | 9 Übungen, 3/4/3/4/4/4/4/4/2 = 32 (S. 33); Mindestalter 8 Jahre (S. 21) |
+| **SKG Obedience Beginners** | SKG-Reglement S. 4-23 | 10 Übungen, 3/4/3/3/3/4/3/4/3/2 = 32 aus den Übungskapiteln 6.1-6.10; Mindestalter 9 Monate (S. 8, 3.3); Qualifikation (S. 12, 4.4) |
+
+Die Noten der FCI-Ordnung (Vorzüglich 256-320, Sehr gut 224 bis unter 256, Gut 192 bis
+unter 224, darunter nicht bestanden) stehen auf **S. 16** (der Auftrag nannte S. 15);
+sie stehen in jeder Ordnungsbeschreibung. Alle acht Ordnungen kommen auf 320 Punkte,
+jede Übung hat Punkte = Koeffizient x 10.
+
+*Lokaler Lauf* (Datenbank `dogity_dev`, Backend im Development-Modus, danach beendet):
+Sportarten 19 → 20, Ordnungen 71 → 79, Fassungen 71 → 79, Übungen 209 → 231,
+Verknüpfungen 523 → 601. Je Land: FCI (null) 3 Ordnungen mit 29 Verknüpfungen, DE 2 mit 21,
+AT 2 mit 18, CH 1 mit 10, jeweils 320 Punkte je Ordnung. Englisch gefüllt: Sportart,
+3 Ordnungsnamen und -beschreibungen, 19 Übungsnamen, 19 Bewertungstexte, 29 Hinweise;
+bei den fünf nationalen Ordnungen und den drei nationalen Übungen nichts. Ein zweiter Start
+änderte nichts (gleiche Zählung), und eine Prüfsumme über alle übrigen Zeilen von Sportarten,
+Übungen, Ordnungen und Verknüpfungen blieb vor und nach dem Lauf gleich.
+
+### Entschieden
+
+- **Eine Sportart für alle acht Ordnungen, mit gemeinsamen Übungen.** „Freifolge“ ist eine
+  Übung der Sportart und hängt an allen acht Ordnungen; Dauer, Distanz, Hörzeichen,
+  Positionen und Abzüge je Klasse stehen in den Hinweisen der Ordnungs-Übung, mit Seite.
+  Nur drei Übungen gibt es in keiner FCI-Klasse und sind national ohne englischen Namen:
+  „Verhalten gegenüber anderen Hunden“ (VDH O-B, ÖKV Beginner), „Sprung über eine Hürde“
+  (VDH O-B, SKG) und „Bringen auf ebener Erde“ (VDH O-B „Apport auf ebener Erde“, ÖKV, SKG
+  „Bringen eines Gegenstandes“). Deutsche Namen nach der VDH-Übersetzung (Tabellen S. 19-22),
+  englische nach der FCI-Tabelle (S. 14 f.) bzw., wo eine Übung in mehreren Klassen steht,
+  nach den Kapitelüberschriften („Sitting in a group“, „Positions under march“).
+- **Das Quadrat der Klasse 2 ist eine eigene Übung** („In ein Quadrat schicken mit Platz und
+  Abrufen“, englisch nach der Kapitelüberschrift 2.5 „Send away to a square, down and
+  recall“) und nicht dieselbe wie in Klasse 3 („… mit Richtungsanweisung, Platz und
+  Abrufen“, „Send away with directing, down and recall“). Die englische Tabelle nennt für
+  beide denselben Namen, aber Klasse 2 hat keinen Kreis und keine Richtungsanweisung (nur
+  Quadrat in 23 m), Klasse 3 zuerst einen Kreis und dann das Quadrat; die VDH-Tabellen
+  trennen sie ebenfalls. Gemeinsam bleibt das Quadrat der Klasse 1 und der nationalen
+  Klassen („In ein Quadrat schicken mit Platz“). Der SKG-Beginners-Text verlangt im Viereck
+  allerdings kein Platz (die Übung endet, sobald alle vier Pfoten drin sind, S. 19); der
+  Hinweis der Ordnung sagt es ausdrücklich.
+- **„Abrufen“ auch für die VDH-Beginner-Klasse:** Die Tabelle S. 19 nennt Übung 6 „Abrufen aus
+  dem Quadrat“, das Kapitel S. 48 und das Rundschreiben „Abrufen“; der Ablauf (aus dem Platz
+  20-25 m) ist der des „Abrufens“ von O-S, ÖKV und SKG.
+- **Die Sportart steht in `FciKatalog.InternationaleSportarten`** (wie die BH, unter der auch
+  eine ÖKV-Ordnung liegt): Sie ist durch die FCI-Ordnungen in jedem Land sichtbar, und die
+  Länder-Tests („andere Länder sehen nur die internationalen“) gelten unverändert. Das Land
+  steht an jeder Ordnung ausdrücklich: die FCI-Ordnungen über `RegulationSeed.Ueberall`
+  (null, auch wenn die Sportart in einem Bestand unter anderem Code läuft), die übrigen
+  über `Land`. Englische Namen und Texte gibt es nur für die Einträge in `FciKatalog` und
+  `fci-texte-en.json` (FCI-Ordnungen und ihre Übungen); die Wächter-Tests urteilen dort
+  nach der Ordnung (Land) statt nach der Sportart.
+- **Nationale Zulassungsalter für die FCI-Klassen stehen in den nationalen Beschreibungen,
+  nicht in der FCI-Beschreibung** (die FCI-Ordnungen sind länderlos): DE 15/16/17 Monate für
+  Klasse 1/2/3 (VDH S. 8), AT 15 Monate (ÖPO S. 21), CH 12/14/15 Monate (SKG S. 8). In der
+  FCI-Beschreibung steht nur, was die FCI sagt: Klasse 1 legen die Länder fest (Untergrenze
+  10 Monate, S. 5), Klasse 3 mindestens 15 Monate.
+- **Kategorien:** „Gruppenübung“, „Freifolge und Positionen“, „Distanzarbeit“, „Apportieren
+  und Suchen“, „Gesamteindruck“. Das Frontend übersetzt sie wie die der FCI-Übungen (nur bei
+  Übungen mit englischem Namen); die der drei nationalen Übungen bleiben deutsch.
+- **Bestand und Kollisionen** (der Prod-Katalog konnte am 21.10. nicht gelesen werden,
+  SSH-Agent): `SeedSportAsync` suchte die Sportart bisher nur über den Code - eine
+  Vereinssportart mit dem Code `OBEDIENCE` (der Code ist nur je Verein eindeutig, der Index
+  `(Code, ClubId)`) wäre als Ziel des Seeds gefunden und mit den Ordnungen gefüllt worden. Jetzt
+  sucht er die **globale** Sportart (`ClubId` null). Gibt es keine mit Code `OBEDIENCE`, aber eine
+  globale „Obedience“ unter anderem Code, wird diese mitgenutzt statt eine zweite anzulegen
+  (englische Namen laufen dann über den Schlüssel `OBEDIENCE`, nicht über ihren Code). Eine
+  Vereinssportart gleichen Namens bleibt unberührt, die globale entsteht daneben. Vorhandene
+  Übungen werden wie überall nur ergänzt (Bewertung nur, wenn leer), nie überschrieben und nie
+  umgehängt; Vereinsübungen in anderen Sportarten (auch gleichen Namens) werden nicht angefasst.
+  Bekannte Grenze, wie bei allen Sportarten: Eine Vereinsübung gleichen Namens **in** der
+  globalen Sportart würde über den Namen gefunden - das kann erst nach einer Adoption
+  vorkommen. Abgedeckt in `ObedienceKatalogTests` (gleichnamige Sportart, Vereinssportart,
+  Idempotenz, bestehende Auswahl).
+- **Sportartenwahl:** Der Seeder legt keine `UserSportSelection` an; wer eine Auswahl gespeichert
+  hat, bekommt Obedience nicht automatisch (Test).
+- **Datenschutz:** keine neue Verarbeitung personenbezogener Daten; `STAND` und
+  Datenschutzerklärung bleiben unverändert.
+
+### Offen / Unstimmigkeiten in den Quellen
+
+- **oekv.at war am 21.10.2026 nicht erreichbar.** Der ÖPO-Text stammt aus dem Webarchiv-Abzug
+  vom 18.06.2024 der Datei „ÖPO_2022 HP.pdf“. Die Datei „ÖPO_2024 HP.pdf“ trägt laut Suchergebnis
+  denselben Text (Ausgabe 2022); `SourceUrl` der ÖKV-Ordnungen ist deshalb dieselbe Adresse wie
+  bei der ÖKV-BH. Nach Erreichbarkeit gegen das Original prüfen.
+- **Die ÖPO 2022 verweist für FCI OB 1-3 noch auf die „FCI PO Obedience 2022“** (S. 20);
+  inzwischen gilt die FCI-Ordnung 2025. Österreichische Anpassungen für die FCI-Klassen (z. B.
+  Mindestalter 15 Monate, S. 21) stehen deshalb nur in den ÖKV-Beschreibungen; ob die ÖPO bei
+  Erscheinen einer neuen Ausgabe weitere ändert, ist offen. Die Entfernung des Vierecks nennt
+  der Beginner-Text (S. 30) nicht (Senior: ca. 15 m).
+- **VDH-Tabelle S. 19:** Die Überschrift der Beginner-Tabelle trägt das Artefakt „(FCI O-2)“
+  und Übung 6 heißt „Abrufen aus dem Quadrat“ (Kapitel und Rundschreiben: „Abrufen“); Übung 7
+  heißt in der Tabelle „Sprung über die Hürde“, im Kapitel „Sprung über eine Hürde“. Im Katalog
+  steht jeweils der Kapitelname.
+- **VDH O-S:** Die Zeitempfehlung für die Freifolge steht als „1,30 Minuten“ (S. 54); ob
+  1:30 Minuten gemeint sind, sagt der Text nicht. Bei der Distanzkontrolle (S. 62) heißt es
+  zugleich, ein weiteres Zusatzkommando führe zum Verlust der Position, und dass das erste
+  Zusatzkommando 2, jedes weitere 1 Note kostet; im Hinweis steht die Notenregel. Die Abstände
+  im Richtungsapportieren (Start ca. 10 m, Markierung 5 m davor, S. 57) weichen von der
+  FCI-Klasse 2 (15 m / 10 m) ab.
+- **VDH: Anhang „Senioren 2019“** im Dokument ist laut Betreiber veraltet und nicht verwendet
+  (die PO 2025 ersetzt ihn, S. 52-62); „Info 09/2026“ (läufige Hündinnen, „nähere Umgebung“) betrifft
+  keine Katalogdaten. Die VDH-Zulassungsalter 15/16/17 Monate für die FCI-Klassen (S. 8) sind
+  strenger als die FCI (Klasse 3: 15 Monate) - beides steht in den Beschreibungen.
+- **FCI-Reglement:** Für die Klassen 2 und 3 nennt die Tabelle (S. 14 f.) „Send away with directing,
+  down and recall“, das Kapitel 2.5 „Send away to a square, down and recall“ (siehe Entschieden).
+  Klasse 3, Übung 3.4 heißt in der Tabelle „Stand, sit and down under march“, im Kapitel
+  „Positions under march and recall“ und enthält den Abruf. Die Datei gibt als Freigabe den
+  27.04.2021 und die Änderungen vom 03.09.2024 an (S. 91); das Deckblatt nennt den 01.01.2025.
+- **SKG:** Die TKAMO-Weisung 2026 (Präzisierungen zu den FCI-Klassen in der Schweiz: Dauer der
+  Freifolge, Sprunghöhe 60 cm ab 55 cm Widerristhöhe, Kegelhöhe 40-50 cm, Ableinen, Chien blanc)
+  ist nicht abgebildet: Die FCI-Ordnungen sind länderlos, und die Weisung bezieht sich
+  ausdrücklich auf die FCI-Ordnung „ab 1.1.2022“. Die provisorische Seniorenklasse der TKAMO
+  (Versuch 2025, kein offizieller Wettkampf) ist bewusst nicht aufgenommen. Im Beginners-
+  Reglement endet die Hürdenübung „nach dem Rücksprung“ (S. 18), ohne dass der Ablauf
+  beschrieben wäre.
+- **Der Prod-Bestand wurde nicht gelesen.** Der Seeder ist defensiv (siehe Entschieden); nach dem
+  Deploy sollten Sportart, Ordnungen (8) und Übungen (22) stimmen und `Name = 'Obedience'` nur
+  einmal global vorkommen.
+- **Nicht im Paket:** Rally Obedience, Turnierformen (DM, WM-Qualifikation), CACIOB- und
+  Champion-Titel (nur ein Satz in der Beschreibung von Klasse 3).

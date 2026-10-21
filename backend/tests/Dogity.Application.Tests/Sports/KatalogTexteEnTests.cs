@@ -63,9 +63,13 @@ public partial class KatalogTexteEnTests
         // Alle, die einen englischen Namen tragen (= FCI-Übungen), haben auch den Text ...
         Assert.All(mitText.Where(e => e.NameEn is not null),
             e => Assert.False(string.IsNullOrWhiteSpace(e.ScoringCriteriaEn), $"{e.Sport!.Code}/{e.Name}"));
-        // ... und was keinen englischen Namen hat, ist national (die zwei ÖKV-Übungen der BH) und bleibt deutsch.
+        // ... und was keinen englischen Namen hat, ist national (die zwei ÖKV-Übungen der BH, die drei Übungen
+        // der Einsteigerklassen unter Obedience) und bleibt deutsch.
         Assert.Equal(
-            ["BH/Freilaufen mit Heranrufen", "BH/Ortsabhängige Begegnung"],
+            [
+                "BH/Freilaufen mit Heranrufen", "BH/Ortsabhängige Begegnung",
+                "OBEDIENCE/Bringen auf ebener Erde", "OBEDIENCE/Sprung über eine Hürde", "OBEDIENCE/Verhalten gegenüber anderen Hunden",
+            ],
             mitText.Where(e => e.NameEn is null).Select(e => $"{e.Sport!.Code}/{e.Name}").Order());
         Assert.All(mitText.Where(e => e.NameEn is null), e => Assert.Null(e.ScoringCriteriaEn));
     }
@@ -79,7 +83,7 @@ public partial class KatalogTexteEnTests
             .Where(r => r.CountryCode == null && r.Description != null)
             .ToListAsync();
 
-        Assert.Equal(27, fci.Count);
+        Assert.Equal(30, fci.Count);
         Assert.All(fci, r => Assert.False(string.IsNullOrWhiteSpace(r.DescriptionEn), $"{r.Sport!.Code}/{r.Name}"));
     }
 
@@ -92,7 +96,7 @@ public partial class KatalogTexteEnTests
             .Where(re => re.RegulationVersion!.Regulation!.CountryCode == null && !string.IsNullOrWhiteSpace(re.ScoringNotes))
             .ToList();
 
-        Assert.Equal(204, fci.Count);
+        Assert.Equal(233, fci.Count);
         Assert.All(fci, re => Assert.False(
             string.IsNullOrWhiteSpace(re.ScoringNotesEn),
             $"{re.RegulationVersion!.Regulation!.Name}/{re.Exercise!.Name}"));
@@ -316,9 +320,9 @@ public partial class KatalogTexteEnTests
 
         await SportCatalogSeeder.SeedAsync(Dienste(db));
 
-        Assert.Equal(127, await db.Exercises.CountAsync(e => e.ScoringCriteriaEn != null));
-        Assert.Equal(27, await db.Regulations.CountAsync(r => r.DescriptionEn != null));
-        Assert.Equal(204, await db.RegulationExercises.CountAsync(re => re.ScoringNotesEn != null));
+        Assert.Equal(146, await db.Exercises.CountAsync(e => e.ScoringCriteriaEn != null));
+        Assert.Equal(30, await db.Regulations.CountAsync(r => r.DescriptionEn != null));
+        Assert.Equal(233, await db.RegulationExercises.CountAsync(re => re.ScoringNotesEn != null));
         Assert.Null((await db.Exercises.FindAsync(fremd.Id))!.ScoringCriteriaEn);
     }
 

@@ -23,6 +23,7 @@ public class OesterreichKatalogTests
         "ÖKV Hoopers 1 (H1)", "ÖKV Hoopers 2 (H2)", "ÖKV Hoopers 3 (H3)",
         "ÖKV Breitensport VK 1", "ÖKV Breitensport VK 2", "ÖKV Breitensport Dreikampf",
         "ÖKV Slalomlauf", "ÖKV Hürdenlauf", "ÖKV Hindernislauf", "ÖKV CSC", "ÖKV Shorty",
+        "ÖKV Obedience Beginner", "ÖKV Obedience Senior",
     ];
 
     private static IServiceProvider Dienste(ApplicationDbContext db) =>
@@ -77,6 +78,8 @@ public class OesterreichKatalogTests
         Assert.Equal(4, sportarten["AGILITY"]);
         Assert.Equal(3, sportarten["HOOPERS"]);
         Assert.Equal(8, sportarten["BSP"]);
+        // Obedience (Paket O1): Beginner und Senior der ÖPO 2022 unter der Sportart OBEDIENCE.
+        Assert.Equal(2, sportarten["OBEDIENCE"]);
         // Gültigkeitsbeginn laut Dokument.
         Assert.Equal(new DateOnly(2022, 1, 1), ordnungen.Single(o => o.Name.StartsWith("ÖKV BH")).Versions.Single().ValidFrom);
         Assert.Equal(new DateOnly(2026, 1, 1), ordnungen.Single(o => o.Name == "ÖKV Agility LK 1 (A 1)").Versions.Single().ValidFrom);
@@ -108,8 +111,11 @@ public class OesterreichKatalogTests
         Assert.Equal(new[] { 25, 10, 15, 10 }, vk2.Where(u => u.Punkte > 0).Select(u => u.Punkte).ToArray());
         Assert.DoesNotContain(vk2, u => u.Uebung == "Leinenführigkeit");
 
+        // Obedience hat wie alle Obedience-Klassen 320 Punkte (Paket O1, eigene Tests).
+        Assert.All(ordnungen.Where(o => o.Sport == "OBEDIENCE"), o => Assert.Equal(320, o.Summe));
+
         // Alle übrigen werden über Fehler und Zeit gewertet: keine Übungspunkte.
-        var uebrige = ordnungen.Where(o => o.Sport != "BH" && !o.Name.StartsWith("ÖKV Breitensport VK"));
+        var uebrige = ordnungen.Where(o => o.Sport != "BH" && o.Sport != "OBEDIENCE" && !o.Name.StartsWith("ÖKV Breitensport VK"));
         Assert.All(uebrige, o => Assert.Equal(0, o.Summe));
     }
 

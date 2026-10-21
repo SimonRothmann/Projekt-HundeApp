@@ -787,3 +787,61 @@ bleiben deutsch.
 bei nationalen Ordnungen, Zahlen des deutschen Textes im englischen, Spaltenlängen,
 Idempotenz, Admin-Eingaben, ältere deutsche Fassungen, Antworten, Editor-Rechte)
 und `katalog-name.test.ts`.
+
+---
+
+## Paket O1 (2026-10-21, Fassung 0.35): Obedience
+
+Auftrag des Betreibers (2026-10-18): Obedience mit den FCI-Klassen 1 bis 3 und den
+nationalen Einsteigerklassen von VDH, ÖKV und SKG. Quellen, Prüfprotokoll,
+Entscheidungen und offene Punkte: [PO_VERIFIKATION.md](PO_VERIFIKATION.md), Abschnitt
+„Obedience“.
+
+*Stand der Länder*
+
+| Land | Inhalt im Katalog |
+|---|---|
+| **Deutschland** (`DE`) | VDH: Turnierhundsport (12), Agility inkl. A0 (5), Hoopers H0-H3 (4), **Obedience Beginner und Senioren (2)**, dazu die internationalen FCI-Ordnungen |
+| **Österreich** (`AT`) | ÖKV: BH/VT (1), Agility LK 1-3 und Jumping (4), Hoopers H1-H3 (3), Breitensport (8), **Obedience Beginner und Senior (2)**, dazu FCI |
+| **Schweiz** (`CH`) | SKG: Begleithund 1-3 (3, eigene Sportart `BHCH`), Agility Klasse 1-3 und Jumping (4), **Obedience Beginners (1)**, dazu FCI |
+| übrige Länder | nur die internationalen FCI-Ordnungen, jetzt 30 statt 27 (**FCI-Obedience 1-3**) |
+
+*Aufbau*
+
+- Eine neue Sportart `OBEDIENCE` für alle acht Ordnungen (FCI-Obedience 1-3 mit
+  `CountryCode` null und englischen Namen/Texten; VDH „DE“, ÖKV „AT“, SKG „CH“, deutsch).
+  22 Übungen, 78 Verknüpfungen; „Freifolge“ & Co. sind je eine Übung der Sportart und
+  hängen an allen Ordnungen, die sie führen - was je Klasse abweicht, steht in den Hinweisen
+  der Ordnungs-Übung (Seitenangabe). Nur „Verhalten gegenüber anderen Hunden“, „Sprung über
+  eine Hürde“ und „Bringen auf ebener Erde“ sind rein national und haben keinen englischen
+  Namen.
+- Die Sportart steht in `FciKatalog.InternationaleSportarten` (wie die BH mit ihrer
+  ÖKV-Ordnung): Sie ist in jedem Land sichtbar, das Land steht an der Ordnung. Dafür
+  bekam `RegulationSeed` das Feld `Ueberall` (FCI-Ordnung = überall, unabhängig vom Code der
+  Sportart). `SeedSportAsync` sucht nur noch die **globale** Sportart (`ClubId` null): Eine
+  Vereinssportart mit demselben Code wird nicht mehr zum Ziel des Seeds. Gibt es in einem
+  Bestand schon eine globale „Obedience“ unter anderem Code, wird sie mitgenutzt statt doppelt
+  angelegt.
+- Englisch: nur die FCI-Ordnungen („FCI Obedience Class 1-3“), ihre Beschreibungen und Hinweise
+  sowie die 19 Übungen, die sie führen (Name und Bewertung); die gemeinsamen Übungen zeigen
+  den englischen Namen und die englische Bewertung auch unter den nationalen Ordnungen, deren
+  Hinweise bleiben deutsch (wie bei der ÖKV-BH in E4). `fci-texte-en.json` wuchs um 19
+  Bewertungstexte, 3 Beschreibungen und 29 Hinweise (die Datei hat jetzt 164 Einträge für
+  Übungen, 30 für Ordnungen und 233 für Hinweise; bei den Übungen zählen die älteren
+  Fassungen mit).
+- Kategorien der Übungen: „Gruppenübung“, „Freifolge und Positionen“, „Distanzarbeit“,
+  „Apportieren und Suchen“, „Gesamteindruck“ (Übersetzung wie die der FCI-Kategorien, `en.ts`).
+- Keine Schemaänderung und keine Migration: Der Seeder legt die Daten beim Start an. Eine
+  vorhandene Sportartenwahl eines Nutzers bekommt Obedience nicht automatisch dazu
+  (`UserSportSelection` ist eine Positivliste, der Seeder legt keine Zeilen an).
+- Öffentliche Prüfungsordnungs-Seiten: Neue Familie „Obedience“ für FCI-Obedience und die
+  VDH-Klassen (`lib/public-catalog.ts`); die Klassen von ÖKV und SKG stehen in deren
+  Länder-Familien.
+
+*Prüfung:* `ObedienceKatalogTests` (je Ordnung Übungen, Punkte aus den Tabellen der Quellen,
+Summe 320, Land, Quelle, Version, Seitenangaben; gemeinsame Übungen; Länderfilter; Englisch nur
+für FCI; Zahlen im englischen Text; Idempotenz; Bestand, Vereinssportart, Sportartenwahl),
+`public-catalog.test.ts` und `katalog-name.test.ts`. Die bestehenden Tests zu Ländern und
+Englisch wurden erweitert (Obedience-Ordnungen in den Erwartungslisten, nationale Übungen
+nach der Ordnung statt nach der Sportart), nicht abgeschwächt.
+

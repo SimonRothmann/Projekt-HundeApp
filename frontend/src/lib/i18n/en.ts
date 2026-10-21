@@ -2127,4 +2127,16 @@ export const EN: Record<string, string> = {
     "If you use Dogity in English, the FCI test regulations now show their texts in English as well: the general conditions of a test, the scoring criteria of the exercises and the notes on the individual exercises. You will find them in the catalogue, when creating a goal and when logging a training. The texts are our own wording in the technical language of the English FCI regulations, not a copy of the official regulations.",
   "Die Bereiche der FCI-Übungen, zum Beispiel „Abteilung B“ oder „Unterordnung“, erscheinen auf Englisch als „Phase B“ und „Obedience“. Die nationalen Ordnungen (VDH, ÖKV, SKG) bleiben deutsch.":
     "The areas of the FCI exercises, for example “Abteilung B” or “Unterordnung”, now appear in English as “Phase B” and “Obedience”. The national regulations (VDH, ÖKV, SKG) stay German.",
+  "Obedience": "Obedience",
+  "Obedience ist als neue Sportart dazugekommen, zuerst mit den FCI-Klassen 1 bis 3. Sie gelten in jedem Land und stehen mit allen Übungen und Bewertungshinweisen im Katalog, beim Anlegen eines Ziels und beim Eintragen eines Trainings. Auf Englisch erscheinen sie wie die übrigen FCI-Ordnungen in englischer Sprache.":
+    "Obedience is a new sport, starting with the FCI classes 1 to 3. They apply in every country and are in the catalogue with all exercises and scoring notes, when creating a goal and when logging a training. In English they appear in English like the other FCI regulations.",
+  "Dazu kommen je nach Land die Einsteigerklassen: für Deutschland Beginner und Senioren (VDH), für Österreich Beginner und Senior (ÖKV) und für die Schweiz Beginners (SKG). Sie erscheinen nur, wenn das jeweilige Land gewählt ist. Übungen, die in mehreren Klassen vorkommen, zum Beispiel die Freifolge, gibt es nur einmal; was je Klasse anders ist, steht bei der jeweiligen Ordnung.":
+    "Depending on the country there are also the beginner classes: for Germany Beginner and Senioren (VDH), for Austria Beginner and Senior (ÖKV) and for Switzerland Beginners (SKG). They only appear when that country is selected. Exercises that occur in several classes, for example heelwork, exist only once; what differs between the classes is stated with the respective regulations.",
+  "Wenn du in den Einstellungen bestimmte Sportarten gewählt hast, bleibt diese Auswahl unverändert. Obedience ergänzt du dort selbst.":
+    "If you have selected particular sports in your settings, that selection stays unchanged. You add Obedience there yourself.",
+  "Gruppenübung": "Group exercise",
+  "Freifolge und Positionen": "Heelwork and positions",
+  "Distanzarbeit": "Distance work",
+  "Apportieren und Suchen": "Retrieve and search",
+  "Gesamteindruck": "General impression",
 };

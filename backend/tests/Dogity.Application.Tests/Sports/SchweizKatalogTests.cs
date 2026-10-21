@@ -18,6 +18,7 @@ public class SchweizKatalogTests
     [
         "SKG BH 1", "SKG BH 2", "SKG BH 3",
         "SKG Agility Klasse 1", "SKG Agility Klasse 2", "SKG Agility Klasse 3", "SKG Jumping (Klasse 1-3)",
+        "SKG Obedience Beginners",
     ];
 
     private static IServiceProvider Dienste(ApplicationDbContext db) =>
@@ -71,6 +72,8 @@ public class SchweizKatalogTests
         var sportarten = ordnungen.GroupBy(o => o.Sport!.Code).ToDictionary(g => g.Key, g => g.Count());
         Assert.Equal(3, sportarten["BHCH"]);
         Assert.Equal(4, sportarten["AGILITY"]);
+        // Obedience (Paket O1): die Klasse Beginners unter der Sportart OBEDIENCE.
+        Assert.Equal(1, sportarten["OBEDIENCE"]);
         // Gültigkeitsbeginn laut Dokument.
         Assert.All(ordnungen.Where(o => o.Sport!.Code == "BHCH"), o =>
             Assert.Equal(new DateOnly(2022, 3, 1), o.Versions.Single().ValidFrom));
@@ -289,7 +292,7 @@ public class SchweizKatalogTests
             .GroupBy(r => r.Code)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        Assert.Equal(new Dictionary<string, int> { ["BHCH"] = 3, ["AGILITY"] = 4 }, verteilung);
+        Assert.Equal(new Dictionary<string, int> { ["BHCH"] = 3, ["AGILITY"] = 4, ["OBEDIENCE"] = 1 }, verteilung);
     }
 
     // ---- Sportarten und Ordnungen nach Land ----

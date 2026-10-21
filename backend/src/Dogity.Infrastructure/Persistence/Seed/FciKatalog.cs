@@ -22,11 +22,25 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// </summary>
 public static class FciKatalog
 {
-    /// <summary>Sportarten-Codes der FCI-Ordnung - alles, was nicht darin steht, ist national.</summary>
+    /// <summary>
+    /// Sportart-Code von Obedience (Paket O1): die FCI-Klassen 1 bis 3 und die
+    /// nationalen Einsteigerklassen von VDH, ÖKV und SKG teilen sich eine Sportart.
+    /// </summary>
+    public const string ObedienceCode = "OBEDIENCE";
+
+    /// <summary>
+    /// Sportarten-Codes, die FCI-Ordnungen führen - alles, was nicht darin steht,
+    /// ist national. Die Sportart gilt als international, auch wenn sie daneben
+    /// nationale Ordnungen führt (die ÖKV-BH unter "BH", die nationalen
+    /// Einsteigerklassen unter Obedience): Deren Land steht dann an der Ordnung
+    /// selbst, und englische Namen und Texte gibt es nur, wo
+    /// <see cref="Ordnungen"/> und <see cref="Uebungen"/> einen Eintrag haben.
+    /// </summary>
     public static readonly IReadOnlySet<string> InternationaleSportarten = new HashSet<string>
     {
         "BH", "IBGH1", "IBGH2", "IBGH3", "IGP1", "IGP2", "IGP3",
         "FAERTE", "FPR", "UPR", "SPR", "GPR", "STOEPR", "IAD",
+        ObedienceCode,
     };
 
     /// <summary>Länder-Code der nationalen (VDH-)Ordnungen.</summary>
@@ -71,6 +85,7 @@ public static class FciKatalog
         ["GPR"] = "Working Dog Test (FCI-GPr)",
         ["STOEPR"] = "Article Search (FCI-StöPr)",
         ["IAD"] = "Endurance Trial (FCI-IAD)",
+        [ObedienceCode] = "Obedience",
     };
 
     /// <summary>
@@ -108,6 +123,10 @@ public static class FciKatalog
             [("STOEPR", "FCI-StöPr 2")] = "FCI-StöPr 2 – Article Search",
             [("STOEPR", "FCI-StöPr 3")] = "FCI-StöPr 3 – Article Search",
             [("IAD", "FCI-IAD")] = "FCI-IAD – Endurance Trial",
+            // Obedience (Paket O1): der englische Titel der Ordnung heißt "Obedience Trials for Classes 1, 2 and 3".
+            [(ObedienceCode, "FCI-Obedience 1")] = "FCI Obedience Class 1",
+            [(ObedienceCode, "FCI-Obedience 2")] = "FCI Obedience Class 2",
+            [(ObedienceCode, "FCI-Obedience 3")] = "FCI Obedience Class 3",
         };
 
     /// <summary>
@@ -143,6 +162,36 @@ public static class FciKatalog
         ["Abwehr eines Angriffs aus der Bewachungsphase (Schlussphase)"] = "Defense against an attack from the guarding phase (with completion of phase C)",
     };
 
+    /// <summary>
+    /// Die Übungen der FCI-Klassen 1 bis 3 im Obedience (FCI-Obedience 2025, Tabelle S. 14 f.).
+    /// Englisch ist die Originalsprache; die Namen stammen aus der Übungstabelle bzw. - wo eine
+    /// Übung in mehreren Klassen vorkommt - aus den Überschriften der Kapitel ("Positions under
+    /// march"). Dieselben Übungen führen die nationalen Einsteigerklassen; die drei Übungen,
+    /// die keine FCI-Klasse kennt, haben keinen englischen Namen.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> Obedienceuebungen = new Dictionary<string, string>
+    {
+        ["Sitzen in der Gruppe"] = "Sitting in a group",
+        ["Liegen in der Gruppe"] = "Lying in a group",
+        ["Liegen in der Gruppe mit Abrufen"] = "Lying in a group for 1 minute, and recall",
+        ["Freifolge"] = "Heelwork",
+        ["Positionen aus der Bewegung"] = "Positions under march",
+        ["Abrufen"] = "Recall",
+        ["Abrufen mit Steh"] = "Recall with stand",
+        ["Abrufen mit Steh/Sitz/Platz"] = "Recall with stand / sit / down",
+        ["In ein Quadrat schicken mit Platz"] = "Send away into a square and lying down",
+        ["In ein Quadrat schicken mit Platz und Abrufen"] = "Send away to a square, down and recall",
+        ["In ein Quadrat schicken mit Richtungsanweisung, Platz und Abrufen"] = "Send away with directing, down and recall",
+        ["Distanzkontrolle"] = "Distance control",
+        ["Apportieren und Sprung über eine Hürde"] = "Retrieve and jumping over a hurdle",
+        ["Apportieren mit Richtungsanweisung"] = "Directed retrieve",
+        ["Geruchsidentifizierung"] = "Scent discrimination and retrieve",
+        ["Um eine Pylonengruppe/Tonne herumschicken"] = "Send round a group of cones/barrel and return",
+        ["Um eine Pylonengruppe/Tonne herumschicken, Steh/Platz und springen"] = "Send round a group of cones/barrel, stop and jump",
+        ["Um eine Pylonengruppe/Tonne herumschicken, Steh/Sitz/Platz, apportieren und springen"] = "Send round a group of cones, stop (stand/sit/down), retrieve and jump",
+        ["Gesamteindruck"] = "General impression",
+    };
+
     private static readonly string[] Gebrauchshundesportarten = ["IGP1", "IGP2", "IGP3", "FPR", "UPR", "SPR", "GPR"];
 
     /// <summary>
@@ -159,6 +208,9 @@ public static class FciKatalog
         foreach (var sport in Gebrauchshundesportarten)
             foreach (var (name, en) in Gebrauchshundeuebungen)
                 alle[(sport, name)] = en;
+
+        foreach (var (name, en) in Obedienceuebungen)
+            alle[(ObedienceCode, name)] = en;
 
         // Begleithundeprüfung mit Verhaltens- und Verkehrsteil (FCI-BH/VT).
         // Die Verkehrsteile heißen im englischen Text "Examination in traffic".

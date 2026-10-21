@@ -61,6 +61,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.35",
+    datum: "2026-10-21",
+    titel: uebersetzbar("Obedience"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Obedience ist als neue Sportart dazugekommen, zuerst mit den FCI-Klassen 1 bis 3. Sie gelten in jedem Land und stehen mit allen Übungen und Bewertungshinweisen im Katalog, beim Anlegen eines Ziels und beim Eintragen eines Trainings. Auf Englisch erscheinen sie wie die übrigen FCI-Ordnungen in englischer Sprache."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Dazu kommen je nach Land die Einsteigerklassen: für Deutschland Beginner und Senioren (VDH), für Österreich Beginner und Senior (ÖKV) und für die Schweiz Beginners (SKG). Sie erscheinen nur, wenn das jeweilige Land gewählt ist. Übungen, die in mehreren Klassen vorkommen, zum Beispiel die Freifolge, gibt es nur einmal; was je Klasse anders ist, steht bei der jeweiligen Ordnung."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Wenn du in den Einstellungen bestimmte Sportarten gewählt hast, bleibt diese Auswahl unverändert. Obedience ergänzt du dort selbst."),
+      },
+    ],
+  },
+  {
     version: "0.34",
     datum: "2026-10-18",
     titel: uebersetzbar("Übungsbeschreibungen auf Englisch"),

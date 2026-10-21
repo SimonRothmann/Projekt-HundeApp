@@ -53,6 +53,26 @@ describe("groupIntoFamilies", () => {
     ]);
   });
 
+  it("bündelt Obedience: FCI-Klassen und VDH-Einsteigerklassen zusammen, die von ÖKV und SKG bei ihrem Land", () => {
+    expect(titles(["FCI-Obedience 1", "FCI-Obedience 3", "VDH Obedience Beginner (O-B)", "VDH Obedience Senioren (O-S)"])).toEqual([
+      "Obedience",
+    ]);
+    expect(titles(["ÖKV Obedience Beginner", "ÖKV Obedience Senior"])).toEqual(["Österreich – ÖKV"]);
+    expect(titles(["SKG Obedience Beginners"])).toEqual(["Schweiz – SKG"]);
+    // Nicht verwechseln mit der Unterordnung der IGP (FCI-UPr) und dem Turnierhundsport (VDH-...).
+    expect(titles(["FCI-UPr 1", "VDH-VK1", "FCI-Obedience 2"])).toEqual(["Einzelprüfungen", "Obedience", "Turnierhundsport"]);
+  });
+
+  it("sortiert die Stufen der Obedience-Familie aufsteigend", () => {
+    const families = groupIntoFamilies(["VDH Obedience Senioren (O-S)", "FCI-Obedience 2", "FCI-Obedience 1"].map((n) => entry(n)));
+
+    expect(families[0].entries.map((e) => e.regulation.name)).toEqual([
+      "FCI-Obedience 1",
+      "FCI-Obedience 2",
+      "VDH Obedience Senioren (O-S)",
+    ]);
+  });
+
   it("trennt die Fährten von den Einzelprüfungen", () => {
     // "FCI-FPr 1" enthält kein "Fährte" im Namen und gehört zu den
     // Einzelprüfungen - sonst stünde dieselbe Prüfung in zwei Familien.

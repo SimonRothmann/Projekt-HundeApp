@@ -48,7 +48,12 @@ public class FciKatalogTests
         var schweiz = alle.Where(o => o.CountryCode == "CH").ToList();
         Assert.NotEmpty(schweiz);
         Assert.All(schweiz, o => Assert.StartsWith("SKG", o.Name));
-        var ordnungen = alle.Except(oesterreich).Except(schweiz).ToList();
+        // Ebenso die VDH-Einsteigerklassen unter Obedience (Paket O1): Deutschland, obwohl die Sportart
+        // sonst FCI-Ordnungen führt - dort steht das Land an der Ordnung selbst.
+        var deutschland = alle.Where(o => o.CountryCode == "DE" && o.Code == FciKatalog.ObedienceCode).ToList();
+        Assert.Equal(2, deutschland.Count);
+        Assert.All(deutschland, o => Assert.StartsWith("VDH", o.Name));
+        var ordnungen = alle.Except(oesterreich).Except(schweiz).Except(deutschland).ToList();
 
         Assert.All(ordnungen.Where(o => Vdh.Contains(o.Code)), o => Assert.Equal("DE", o.CountryCode));
         Assert.All(ordnungen.Where(o => !Vdh.Contains(o.Code)), o => Assert.Null(o.CountryCode));
@@ -128,14 +133,18 @@ public class FciKatalogTests
         Assert.NotEmpty(ordnungen);
         Assert.All(ordnungen, r => Assert.False(string.IsNullOrWhiteSpace(r.NameEn), $"Ordnung {r.Name}"));
 
-        // Übungen, die nur in einer österreichischen Ordnung vorkommen, bleiben deutsch.
-        var nurOesterreich = await db.RegulationExercises
+        // Übungen, die nur in nationalen Ordnungen vorkommen (zwei der ÖKV-BH, drei der Einsteigerklassen
+        // unter Obedience), bleiben deutsch. Die Ausnahme ist bewusst eng: österreichische Ordnungen und
+        // die nationalen Obedience-Klassen - eine neue nationale Übung anderswo fällt hier auf.
+        var nurNational = await db.RegulationExercises
             .GroupBy(re => re.ExerciseId)
-            .Where(g => g.All(re => re.RegulationVersion!.Regulation!.CountryCode == "AT"))
+            .Where(g => g.All(re => re.RegulationVersion!.Regulation!.CountryCode == "AT"
+                || (re.RegulationVersion!.Regulation!.CountryCode != null
+                    && re.RegulationVersion!.Regulation!.Sport!.Code == FciKatalog.ObedienceCode)))
             .Select(g => g.Key)
             .ToListAsync();
         var uebungen = await db.Exercises
-            .Where(e => e.Sport != null && codes.Contains(e.Sport.Code) && !nurOesterreich.Contains(e.Id))
+            .Where(e => e.Sport != null && codes.Contains(e.Sport.Code) && !nurNational.Contains(e.Id))
             .ToListAsync();
         Assert.NotEmpty(uebungen);
         Assert.All(uebungen, e => Assert.False(string.IsNullOrWhiteSpace(e.NameEn), $"Übung {e.Sport!.Code}/{e.Name}"));

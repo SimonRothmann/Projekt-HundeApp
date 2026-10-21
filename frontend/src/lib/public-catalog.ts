@@ -193,6 +193,17 @@ const FAMILIES: { key: string; title: string; description: string; matches: (nam
     matches: (name) => name.startsWith("FCI-IAD"),
   },
   {
+    // Die FCI-Klassen 1 bis 3 und die Einsteigerklassen des VDH gehören zusammen: dieselbe
+    // Sportart, dieselben Übungen. "FCI-Obedience" trägt kein "UPr" und gehört damit nicht zu
+    // den Einzelprüfungen (der Unterordnung der IGP); die Namen von ÖKV und SKG beginnen mit
+    // ihrem Präfix und stehen bei ihrem Land.
+    key: "obedience",
+    title: "Obedience",
+    description:
+      "Gehorsamssport für Hund und Mensch: die FCI-Klassen 1 bis 3 sowie die Einsteigerklassen des VDH – gewertet über Noten je Übung.",
+    matches: (name) => /^FCI-Obedience [123]$/.test(name) || name.startsWith("VDH Obedience "),
+  },
+  {
     key: "ths",
     title: "Turnierhundsport",
     description: "Leichtathletik mit Hund – gewertet wird über die Zeit, nicht über Übungspunkte.",
@@ -217,7 +228,7 @@ const FAMILIES: { key: string; title: string; description: string; matches: (nam
     key: "oekv",
     title: "Österreich – ÖKV",
     description:
-      "Nationale Ordnungen des Österreichischen Kynologenverbands: Begleithund, Agility, Hoopers und Breitensport.",
+      "Nationale Ordnungen des Österreichischen Kynologenverbands: Begleithund, Agility, Hoopers, Obedience und Breitensport.",
     matches: (name) => name.startsWith("ÖKV"),
   },
   {
@@ -226,7 +237,7 @@ const FAMILIES: { key: string; title: string; description: string; matches: (nam
     // Agility-Ordnungen von VDH und ÖKV (deren Namen mit "Agility " beginnen).
     key: "skg",
     title: "Schweiz – SKG",
-    description: "Nationale Ordnungen der Schweizerischen Kynologischen Gesellschaft: Begleithund 1 bis 3 sowie Agility und Jumping.",
+    description: "Nationale Ordnungen der Schweizerischen Kynologischen Gesellschaft: Begleithund 1 bis 3, Agility, Jumping und Obedience.",
     matches: (name) => name.startsWith("SKG"),
   },
 ];

@@ -83,6 +83,10 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// eigene Sportart BHCH, Agility-Arbeitsklassen 1-3 und Jumping) stehen in
 /// SportCatalogSeeder.Schweiz.cs und tragen CountryCode "CH".
 ///
+/// Obedience (Paket O1, 2026-10-21): die FCI-Klassen 1 bis 3 und die
+/// Einsteigerklassen von VDH, ÖKV und SKG teilen sich die Sportart OBEDIENCE
+/// und stehen in SportCatalogSeeder.Obedience.cs.
+///
 /// Idempotent auf Ebene einzelner Übungen/Prüfungsordnungen (nicht nur
 /// pro Sportart), damit der Katalog auch nach dem ersten Start ergänzt
 /// werden kann, ohne Duplikate zu erzeugen.
@@ -99,7 +103,11 @@ public static partial class SportCatalogSeeder
     /// siehe <see cref="FciKatalog.GeltungsbereichVon"/>.
     /// </param>
     /// <param name="SourceUrl">Offizielle Quelle; wird nur eingetragen, wo noch keine steht.</param>
-    private sealed record RegulationSeed(string Name, string VersionLabel, DateOnly ValidFrom, RegulationExerciseSeed[] Exercises, string? Description = null, string? Land = null, string? SourceUrl = null);
+    /// <param name="Ueberall">
+    /// Die Ordnung gilt in jedem Land (<c>CountryCode</c> null), unabhängig vom Code der
+    /// Sportart - für die FCI-Ordnungen einer Sportart, die auch nationale führt (Obedience).
+    /// </param>
+    private sealed record RegulationSeed(string Name, string VersionLabel, DateOnly ValidFrom, RegulationExerciseSeed[] Exercises, string? Description = null, string? Land = null, string? SourceUrl = null, bool Ueberall = false);
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -1560,6 +1568,7 @@ public static partial class SportCatalogSeeder
         // Augenblick verwaist.
         await SeedOesterreichAsync(db, bh, agility, hoopers);
         await SeedSchweizAsync(db, agility);
+        var obedience = await SeedObedienceAsync(db);
 
         await RemoveOrphanedExercisesAsync(db, bh);
         await RemoveOrphanedExercisesAsync(db, ibgh1);
@@ -1590,7 +1599,7 @@ public static partial class SportCatalogSeeder
         await RemoveOrphanedExercisesAsync(db, ths);
 
         // Zuletzt, wenn feststeht, welche Übungen und Ordnungen es noch gibt.
-        await SetzeEnglischeNamenAsync(db);
+        await SetzeEnglischeNamenAsync(db, obedience.Id);
 
         await db.SaveChangesAsync();
     }
@@ -1611,17 +1620,19 @@ public static partial class SportCatalogSeeder
     /// <see cref="FciTexteEn"/> entstand. Eine veraltete englische Zahl bleibt so
     /// nirgends stehen.
     /// </summary>
-    private static async Task SetzeEnglischeNamenAsync(ApplicationDbContext db)
+    private static async Task SetzeEnglischeNamenAsync(ApplicationDbContext db, Guid obedienceId)
     {
         var codes = FciKatalog.InternationaleSportarten;
         var sportarten = await db.Sports
-            .Where(s => s.ClubId == null && codes.Contains(s.Code))
+            .Where(s => s.ClubId == null && (codes.Contains(s.Code) || s.Id == obedienceId))
             .ToListAsync();
-        var codeNachId = sportarten.ToDictionary(s => s.Id, s => s.Code);
+        // Obedience heißt in FciKatalog OBEDIENCE, auch in einem Bestand, der die Sportart
+        // schon unter einem anderen Code führt (siehe ObedienceSportCodeAsync).
+        var codeNachId = sportarten.ToDictionary(s => s.Id, s => s.Id == obedienceId ? FciKatalog.ObedienceCode : s.Code);
         var ids = codeNachId.Keys.ToList();
 
         foreach (var sport in sportarten)
-            if (sport.NameEn is null && FciKatalog.Sportarten.TryGetValue(sport.Code, out var sportEn))
+            if (sport.NameEn is null && FciKatalog.Sportarten.TryGetValue(codeNachId[sport.Id], out var sportEn))
                 sport.NameEn = sportEn;
 
         var ordnungen = await db.Regulations.Where(r => ids.Contains(r.SportId)).ToListAsync();
@@ -1737,7 +1748,10 @@ public static partial class SportCatalogSeeder
 
     private static async Task<Sport> SeedSportAsync(ApplicationDbContext db, string code, string name, ExerciseSeed[] exercises)
     {
-        var sport = await db.Sports.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Code == code);
+        // Nur die globale Sportart: Der Code ist nur je Verein eindeutig, eine Vereinssportart
+        // mit demselben Code (z. B. "OBEDIENCE") darf weder Ziel des Seeds sein noch von ihm
+        // verändert werden.
+        var sport = await db.Sports.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Code == code && s.ClubId == null);
         if (sport is null)
         {
             sport = new Sport { Code = code, Name = name };
@@ -1800,7 +1814,7 @@ public static partial class SportCatalogSeeder
                 SportId = sport.Id,
                 Name = seed.Name,
                 Description = seed.Description,
-                CountryCode = seed.Land ?? FciKatalog.GeltungsbereichVon(sport.Code),
+                CountryCode = seed.Ueberall ? null : seed.Land ?? FciKatalog.GeltungsbereichVon(sport.Code),
                 SourceUrl = seed.SourceUrl,
             };
             db.Regulations.Add(regulation);
