@@ -1,6 +1,7 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Application.Community;
+using Dogity.Application.Dogs;
 using Dogity.Application.Notifications;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Planning;
@@ -176,6 +177,22 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         return await GetByIdAsync(userId, goalId, ct);
     }
 
+    public async Task<Result<GoalDto>> UpdateTargetDateAsync(Guid userId, Guid goalId, DateOnly newTargetDate, CancellationToken ct = default)
+    {
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct);
+        if (goal is null)
+            return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
+        if (goal.Status != GoalStatus.Active)
+            return Result<GoalDto>.Failure("Nur bei einem aktiven Ziel lässt sich das Zieldatum verschieben.");
+
+        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        if (newTargetDate <= today)
+            return Result<GoalDto>.Failure("Zieldatum muss in der Zukunft liegen.");
+
+        await MoveTargetDateAsync(goal, newTargetDate, today, ct);
+        return await GetByIdAsync(userId, goalId, ct);
+    }
+
     private void ApplyExamResult(Goal goal, DateOnly examDate, int? score, string? note)
     {
         goal.ExamDate = examDate;
@@ -218,10 +235,12 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             return;
         }
 
-        // Wochenanker wie RegenerateDuePlansAsync: volle Wochen seit Goal.CreatedAt.
+        // Wochenanker wie RegenerateDuePlansAsync: Wochen seit Goal.CreatedAt,
+        // ohne die Tage, an denen der Hund pausiert (siehe Trainingspausen).
         var created = Vereinszeit.Tag(goal.CreatedAt);
-        var currentWeek = Math.Max(0, (today.DayNumber - created.DayNumber) / 7) + 1;
-        var targetWeek = Math.Max(0, (newTargetDate.DayNumber - created.DayNumber) / 7) + 1;
+        var pausen = await PausenAsync(goal.DogId, ct);
+        var currentWeek = Trainingspausen.Planwoche(created, today, pausen);
+        var targetWeek = Trainingspausen.Planwoche(created, newTargetDate, Trainingspausen.Bekannte(pausen, today));
         var lastPlannedWeek = goal.TrainingPlan.Items.Count == 0 ? 0 : goal.TrainingPlan.Items.Max(i => i.WeekNumber);
 
         var firstNewWeek = Math.Max(lastPlannedWeek + 1, currentWeek);
@@ -459,7 +478,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .AsNoTracking()
             .ToDictionaryAsync(m => m.ExerciseId, ct);
 
-        var plannedThisWeek = PlannedThisWeekExerciseIds(goal);
+        var plannedThisWeek = PlannedThisWeekExerciseIds(goal, await PausenAsync(goal.DogId, ct));
 
         var list = pool
             .Select(c =>
@@ -501,7 +520,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
     // Übungen der laufenden Planwoche (gleicher Wochen-Anker wie
     // RegenerateDuePlansAsync: volle Wochen seit Goal.CreatedAt).
-    private HashSet<Guid> PlannedThisWeekExerciseIds(Goal goal)
+    private HashSet<Guid> PlannedThisWeekExerciseIds(Goal goal, IReadOnlyCollection<PausenZeitraum> pausen)
     {
         if (goal.TrainingPlan is not { } plan || plan.Items.Count == 0)
             return [];
@@ -509,7 +528,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
         var created = Vereinszeit.Tag(goal.CreatedAt);
         var maxWeek = plan.Items.Max(i => i.WeekNumber);
-        var currentWeek = Math.Clamp(Math.Max(0, (today.DayNumber - created.DayNumber) / 7) + 1, 1, Math.Max(1, maxWeek));
+        var currentWeek = Math.Clamp(Trainingspausen.Planwoche(created, today, pausen), 1, Math.Max(1, maxWeek));
 
         return plan.Items
             .Where(i => i.WeekNumber == currentWeek && !i.IsRestWeek && i.ExerciseId is not null)
@@ -557,14 +576,25 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .Where(g => g.LastPlanGeneratedAt == null || g.LastPlanGeneratedAt < cutoff)
             .ToListAsync(ct);
 
+        var pausenJeHund = await db.PauseZeitraeumeAsync(goals.Select(g => g.DogId).Distinct().ToList(), ct);
+
         var count = 0;
         foreach (var goal in goals)
         {
+            var pausen = pausenJeHund.GetValueOrDefault(goal.DogId) ?? [];
+
+            // Pausiert der Hund heute, steht der Plan still: Keine Anpassung,
+            // die aus einem Rückstand folgte - es läuft ja keine Planzeit. Die
+            // Woche wird gebaut, wenn es weitergeht.
+            if (Trainingspausen.Pausiert(pausen, today))
+                continue;
+
             // Zeitanker Goal.CreatedAt: aktuelle Woche = vergangene volle Wochen
-            // seit Erstellung + 1. Nur die KOMMENDE Woche adaptiv frisch halten,
-            // damit die laufende Woche nicht mitten im Training umgebaut wird.
+            // seit Erstellung + 1, ohne Pausentage. Nur die KOMMENDE Woche
+            // adaptiv frisch halten, damit die laufende Woche nicht mitten im
+            // Training umgebaut wird.
             var created = Vereinszeit.Tag(goal.CreatedAt);
-            var currentWeek = Math.Max(0, (today.DayNumber - created.DayNumber) / 7) + 1;
+            var currentWeek = Trainingspausen.Planwoche(created, today, pausen);
             var targetWeek = currentWeek + 1;
 
             var maxWeek = goal.TrainingPlan!.Items.Count == 0 ? 0 : goal.TrainingPlan.Items.Max(i => i.WeekNumber);
@@ -689,6 +719,15 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .Where(m => m.DogId == goal.DogId && exerciseIds.Contains(m.ExerciseId))
             .ToDictionaryAsync(m => m.ExerciseId, ct);
 
+        // Wiedervorlage und Pause: Die Fälligkeit rückt um die Pausentage seither
+        // nach hinten. Sonst wäre nach drei Wochen Verletzung jede Übung "drei
+        // Wochen überfällig", und der Generator hielte den Hund für heillos im
+        // Rückstand - obwohl in der Zeit keine Planzeit verging.
+        var pausen = await PausenAsync(goal.DogId, ct);
+        var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        DateOnly? Faelligkeit(DateTimeOffset? faellig) =>
+            faellig is { } f ? Trainingspausen.FaelligkeitNachPausen(DateOnly.FromDateTime(f.UtcDateTime), heute, pausen) : null;
+
         return mandatory
             .Where(c => !excludeExerciseIds.Contains(c.ExerciseId))
             .Select(c =>
@@ -700,11 +739,15 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
                     c.Difficulty,
                     m?.SessionCount ?? 0,
                     m?.RecentAvgRating ?? 0,
-                    m?.DueAt is { } due ? DateOnly.FromDateTime(due.UtcDateTime) : null,
+                    Faelligkeit(m?.DueAt),
                     m?.ManualPriority ?? 0);
             })
             .ToList();
     }
+
+    // Alle Pausenzeiträume des Hundes (ohne Grund und Notiz) für die Planrechnung.
+    private async Task<List<PausenZeitraum>> PausenAsync(Guid dogId, CancellationToken ct) =>
+        (await db.PauseZeitraeumeAsync([dogId], ct)).GetValueOrDefault(dogId) ?? [];
 
     private IQueryable<Goal> LoadGoalsQuery() =>
         db.Goals
@@ -813,7 +856,10 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         var maxPoints = await GetMaxPointsAsync(goals, ct);
         var nextStages = await GetNextStagesAsync(goals, regulationNames, ct);
         var exerciseNames = await GetDeletedExerciseNamesAsync(goals, ct);
-        return goals.Select(g => ToDto(g, sportNames, regulationNames, logsByPlanItem, maxPoints, nextStages, exerciseNames)).ToList();
+        var pausen = await db.PauseZeitraeumeAsync(goals.Select(g => g.DogId).Distinct().ToList(), ct);
+        var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        return goals.Select(g => ToDto(g, sportNames, regulationNames, logsByPlanItem, maxPoints, nextStages, exerciseNames,
+            pausen.GetValueOrDefault(g.DogId) ?? [], heute)).ToList();
     }
 
     // Namen von Katalog-Übungen, die inzwischen weich gelöscht sind: Der
@@ -961,7 +1007,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         IReadOnlyDictionary<Guid, IReadOnlyList<TrainingPlanItemLogDto>> logsByPlanItem,
         IReadOnlyDictionary<Guid, int> maxPoints,
         IReadOnlyDictionary<Guid, IReadOnlyList<NextStageDto>> nextStages,
-        IReadOnlyDictionary<Guid, Katalogname> deletedExerciseNames)
+        IReadOnlyDictionary<Guid, Katalogname> deletedExerciseNames,
+        IReadOnlyList<PausenZeitraum> pausen,
+        DateOnly heute)
     {
         var sportName = sportNames.GetValueOrDefault(g.SportId);
         var regulationName = g.RegulationId is { } regId ? regulationNames.GetValueOrDefault(regId) : null;
@@ -1005,7 +1053,24 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .Select(w => new WeekConfigDto(w.WeekNumber, w.TrainingDaysPerWeek))
             .ToList() ?? new List<WeekConfigDto>();
 
-        return new GoalDto(g.Id, g.DogId, g.SportId, sportName?.Name ?? string.Empty, g.RegulationId, regulationName?.Name, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, weekConfigs, planDto, g.PlanManagedByTrainerId is not null, g.ExamDate, g.ExamScore, g.ExamNote, maxPoints.TryGetValue(g.Id, out var hoechstens) ? hoechstens : null, nextStages.GetValueOrDefault(g.Id), sportName?.NameEn, regulationName?.NameEn);
+        // Die Pausen, die den Plan betreffen (Beginn vor dem Zieldatum, Ende nicht
+        // vor dem Planbeginn) - nur Zeiträume, ohne Grund und Notiz. Das
+        // Frontend rechnet damit dieselbe Planwoche wie der Server.
+        var planBeginn = Vereinszeit.Tag(g.CreatedAt);
+        var planPausen = pausen
+            .Where(p => p.Start <= g.TargetDate && (p.Ende is null || p.Ende >= planBeginn))
+            .OrderBy(p => p.Start)
+            .Select(p => new PausenZeitraumDto(p.Start, p.Ende))
+            .ToList();
+
+        // Der Hinweis "Zieldatum verschieben?" nur für laufende Pläne, die der
+        // Generator aufbaut: Bei individuellen Zielen legt die Person die Wochen
+        // selbst an, eine Verschiebung änderte dort nichts am Plan.
+        var zieldatumZuKnapp = g.Status == GoalStatus.Active && !g.IsCustom && g.TrainingPlan is { Items.Count: > 0 } plan
+            && g.TargetDate >= heute
+            && Trainingspausen.ZieldatumZuKnapp(planBeginn, heute, g.TargetDate, plan.Items.Max(i => i.WeekNumber), pausen);
+
+        return new GoalDto(g.Id, g.DogId, g.SportId, sportName?.Name ?? string.Empty, g.RegulationId, regulationName?.Name, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, weekConfigs, planDto, g.PlanManagedByTrainerId is not null, g.ExamDate, g.ExamScore, g.ExamNote, maxPoints.TryGetValue(g.Id, out var hoechstens) ? hoechstens : null, nextStages.GetValueOrDefault(g.Id), sportName?.NameEn, regulationName?.NameEn, planPausen, zieldatumZuKnapp);
     }
 
     /// <summary>Deutscher und (falls gepflegt) englischer Katalogname, gemeinsam nachgeschlagen.</summary>

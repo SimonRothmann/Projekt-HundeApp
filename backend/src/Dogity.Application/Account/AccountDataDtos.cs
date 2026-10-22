@@ -23,7 +23,8 @@ public record AccountExportDto(
     IReadOnlyList<SachkundeExportDto> Sachkunde,
     IReadOnlyList<BenachrichtigungExportDto> Benachrichtigungen,
     IReadOnlyList<TerminzusageExportDto> Terminzusagen,
-    IReadOnlyList<PushGeraetExportDto> PushGeraete);
+    IReadOnlyList<PushGeraetExportDto> PushGeraete,
+    IReadOnlyList<TrainingspauseExportDto> Trainingspausen);
 
 public record KontoExportDto(
     Guid Id,
@@ -59,6 +60,19 @@ public record HundExportDto(
     bool HatHochgeladenesBild,
     DateTimeOffset? ArchiviertAm,
     string MeineRolle,
+    DateTimeOffset AngelegtAm);
+
+/// <summary>
+/// Eine Trainingspause eines meiner Hunde (auch der geteilten). Grund und
+/// Notiz stehen drin: Für Besitzer:innen sind sie sichtbar, und es sind ihre
+/// eigenen Angaben zum Hund.
+/// </summary>
+public record TrainingspauseExportDto(
+    Guid HundId,
+    string Grund,
+    DateOnly Von,
+    DateOnly? Bis,
+    string? Notiz,
     DateTimeOffset AngelegtAm);
 
 public record TrainingExportDto(

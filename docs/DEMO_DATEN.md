@@ -1,7 +1,7 @@
 # Demo-Daten und Demo-Szenarien
 
 Status: **umgesetzt** (2026-09-30, ergänzt 2026-10-16: Englisch, Mitbesitz, Österreich,
-Vereinsantrag, Hoopers, Nachtfährte; 2026-10-18: Schweiz). Gilt nur für Development (lokal und die
+Vereinsantrag, Hoopers, Nachtfährte; 2026-10-18: Schweiz; 2026-10-22: Trainingspausen). Gilt nur für Development (lokal und die
 Test-Umgebung); Produktion bekommt nichts davon.
 
 ## Zwei Seeder, zwei Aufgaben
@@ -45,6 +45,14 @@ Der Szenarien-Seeder:
   andere Einheit, wird sie nicht verschoben.
   Gedacht zum Testen am Tag nach einem Neustart: „Erneut ablaufen“ gilt bis 24 Stunden
   nach dem Ende des Legens, nach 22 Uhr am Folgetag ist die Grenze überschritten.
+- hält die **Läufigkeit von Ninas Hündin rollend**: Sie beginnt vor fünf Tagen und endet
+  21 Tage nach ihrem Beginn (erkannt an der festen Notiz). Rollend, weil sie sonst nach gut zwei Wochen vorbei
+  wäre und auf der Test-Umgebung nirgends mehr eine laufende Pause zu sehen wäre. Ist sie
+  genau bis zu ihrem Ende durchgelaufen, beginnt beim nächsten Start eine neue. Eine gelöschte,
+  vorzeitig beendete oder geänderte Pause gilt als Entscheidung des Testers und kommt nicht
+  zurück; ebenso weicht der Seeder einer eigenen Pause im selben Zeitraum. Läufig kann nur eine
+  Hündin sein: hat Nina nur einen Rüden, entfällt das Szenario. Die Verletzungspause bei Bello
+  entsteht einmal (wie die Ziele) und liegt in der Vergangenheit.
 - ruft für die Fährten keinen Wetterdienst auf und reiht keinen Wetterauftrag ein (der Test
   `Seeder_FragtKeinWetterAnUndReihtKeinesEin` prüft das mit der echten Anreicherung); die
   Temperaturen stehen in denselben Feldern wie beim Wetter-Feature.
@@ -63,11 +71,11 @@ Beschriftung nennt die Besonderheit, z. B. „Mitglied 2 (EN)“, „Interessent
 | --- | --- |
 | **Admin** (`admin@dogity.test`) | Nutzerverwaltung, Kennzahlen (`/api/admin/stats`), verwaiste Daten. Hat bewusst keine eigenen Demo-Daten. |
 | **Trainer** (`trainer@dogity.test`) | Einladungslink des Vereins; offene Beitrittsanfragen von Tom Neuling (von Hand) und Nina Neuling (über den Link, mit Benachrichtigung); Welpengruppe mit Anmeldeformular-Link und sieben Anmeldungen (Formular, Import, von Hand; Wurftage 8 bis 20 Wochen; eine mit Notiz; vier bezahlt; Anwesenheit 0 bis 3 Mal; die jüngste von heute, mit Benachrichtigung); Gruppentermine (zwei künftige, einer davon an anderem Treffpunkt, ein abgesagter, drei vergangene); Absage von Lisa mit Benachrichtigung; Feedback zu Bellos Trainings und die Rückfrage von Max mit Benachrichtigung. |
-| **Mitglied 1** (`mitglied1@dogity.test`, Max) | **Bello:** eine **Nachtfährte** ohne Ablauf, gestern 22 Uhr gelegt („Erneut ablaufen“ über Mitternacht, rollend; siehe oben), dazu vier Winkelfährten mit je einem ausgewerteten Ablauf (drei Gegenstände, Abweichung sinkt von Fährte zu Fährte, Temperaturen beim Legen und Suchen), frisches Trainer-Feedback ohne Reaktion (Benachrichtigung führt auf den Eintrag), Feedback mit „Verstanden" und Rückfrage. **Emma** (zweiter Hund): zwei erreichte Prüfungen (BH ohne Punkte, FCI-UPr 1 mit 86 Punkten) als Leistungen, ein aktives Ziel FCI-UPr 2 in rund fünf Wochen mit Plan und angefangener Woche (Zielkarte auf der Startseite). **Wauwau:** ein Ziel FCI-FPr 1 mit Prüfungsdatum gestern (Zustand „Ergebnis eintragen") - bewusst nicht bei Emma, weil die Startseite je Hund nur das nächste Ziel zeigt und ein überfälliges Vorrang hat. Beim nächsten Gruppentermin zugesagt. Emma ist außerdem der Hund der **Mitbesitz-Einladung an Lisa** (Max ist der Einladende). |
+| **Mitglied 1** (`mitglied1@dogity.test`, Max) | **Bello:** eine **Nachtfährte** ohne Ablauf, gestern 22 Uhr gelegt („Erneut ablaufen“ über Mitternacht, rollend; siehe oben), dazu vier Winkelfährten mit je einem ausgewerteten Ablauf (drei Gegenstände, Abweichung sinkt von Fährte zu Fährte, Temperaturen beim Legen und Suchen), frisches Trainer-Feedback ohne Reaktion (Benachrichtigung führt auf den Eintrag), Feedback mit „Verstanden" und Rückfrage. **Emma** (zweiter Hund): zwei erreichte Prüfungen (BH ohne Punkte, FCI-UPr 1 mit 86 Punkten) als Leistungen, ein aktives Ziel FCI-UPr 2 in rund fünf Wochen mit Plan und angefangener Woche (Zielkarte auf der Startseite). **Wauwau:** ein Ziel FCI-FPr 1 mit Prüfungsdatum gestern (Zustand „Ergebnis eintragen") - bewusst nicht bei Emma, weil die Startseite je Hund nur das nächste Ziel zeigt und ein überfälliges Vorrang hat. Beim nächsten Gruppentermin zugesagt. Emma ist außerdem der Hund der **Mitbesitz-Einladung an Lisa** (Max ist der Einladende). **Bello** hat außerdem eine überstandene **Verletzungspause** (vor rund zehn Wochen, 14 Tage) im Verlauf unter „Verwalten → Trainingspause“. |
 | **Mitglied 2** (`mitglied2@dogity.test`, Lisa) | **Englische Oberfläche** bei Land Deutschland: Glocke, Push und Mails auf Englisch, Prüfungsordnungen weiter deutsch. Dazu die **Mitbesitz-Einladung** von Max für Emma (Einladungskarte, Benachrichtigung auf Englisch; Mitbesitz erst nach ihrer Zusage). Hund (Luna) ohne Prüfungsziel; beim nächsten Gruppentermin abgesagt. |
 | **Interessent** (`interessent@dogity.test`, Tom) | Land **Österreich** (AT): Katalog mit den FCI- und den ÖKV-Ordnungen (BH/VT, Agility, Hoopers, Breitensport), ohne VDH-Ordnungen und ohne Turnierhundsport, Sachkunde ausgeblendet, Tagebuch und Fährte funktionieren. Stellt einen **Vereinsantrag** „Hundefreunde Wien“, den der Admin unter Vereine freigibt oder ablehnt. Kein Verein, offene Beitrittsanfrage; Dashboard-Hinweis „Tritt einem Verein bei". |
 | **Mitglied (CH)** (`schweiz@dogity.test`, Sandro Schweizer) | Land **Schweiz** (CH, nur gesetzt, solange noch keins gewählt ist): Katalog mit den FCI- und den SKG-Ordnungen, ohne VDH-Ordnungen. Hund „Bläss“ (Appenzeller Sennenhund; hat Sandro schon einen Hund, bekommt der das Ziel) mit Ziel **SKG BH 1** (Sportart BHCH, Begleithund der SKG) und Plan, Prüfung in rund zwei Monaten. Keine Vereinszugehörigkeit. Das Konto entsteht nur, wenn es fehlt. |
-| **Neuling** (`neuling@dogity.test`, Nina) | **Hoopers:** Hund „Flitzer“ (Mischling, gut ein Jahr; hat Nina schon einen Hund, bekommt der das Ziel) mit Ziel H0 und Plan; die Prüfung liegt nach dem 1.1.2027, dem Beginn der Ordnung. Ebenfalls offene Beitrittsanfrage, aber über den Einladungslink (Quelle „Einladungslink"). Zeigt die Wartesicht nach einem Beitritt per Link. |
+| **Neuling** (`neuling@dogity.test`, Nina) | **Hoopers:** Hund „Flitzer“ (Mischling, gut ein Jahr; hat Nina schon einen Hund, bekommt der das Ziel) mit Ziel H0 und Plan; die Prüfung liegt nach dem 1.1.2027, dem Beginn der Ordnung. Ebenfalls offene Beitrittsanfrage, aber über den Einladungslink (Quelle „Einladungslink"). Zeigt die Wartesicht nach einem Beitritt per Link. **Flitzer ist läufig** (seit fünf Tagen, Ende 21 Tage nach dem Beginn; Band auf der Hundeseite, Pause statt Wochenfortschritt auf der Zielkarte, Plan steht still). Die Trainer:in sieht Flitzer nur, wenn sie ihn betreut - dann „Pause bis …“ ohne Grund. |
 
 Der Link selbst: als Trainer unter dem Verein, Vorschau anonym unter `/v/<code>`;
 das Anmeldeformular der Welpengruppe unter `/anmeldung/<code>`.
@@ -81,6 +89,9 @@ das Anmeldeformular der Welpengruppe unter `/anmeldung/<code>`.
   rückt auf gestern und bleibt bei Ablauf oder fremden Einträgen liegen, bei einem
   schon vorhandenen Training gestern entsteht sie nicht, ein anderer offener
   Vereinsantrag von Tom wird still übergangen).
+- Trainingspausen: `DemoSzenarienSeederTests.Trainingspausen_*` (Flitzer läufig und Bello verletzt,
+  rollend nach dem natürlichen Ende, vorzeitig Beendetes und Gelöschtes kommt nicht zurück, eigene
+  Pause des Testers geht vor, bei einem Rüden keine Läufigkeit).
 - Lokal: Backend zweimal starten und die Zeilenzahlen vergleichen; über die API
   sichtbar sind die Daten z. B. unter `/api/dashboard` (als Mitglied 1) und
   `/api/notifications` (als Trainer).

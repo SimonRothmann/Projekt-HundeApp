@@ -76,6 +76,11 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
 
 ## Nächste Features (Briefs in docs/)
 
+- [x] **Trainingspause des Hundes** (Wunsch des Betreibers, 2026-10-22; umgesetzt 2026-10-22, Fassung 0.36): verletzt, krank, läufig (nur Hündin), Zeitraum und Notiz; betreuende Trainer:innen sehen nur "Pause bis"; der Plan pausiert mit, Hinweis "Zieldatum verschieben?"; Läufigkeit ohne Automatik bei Gruppenterminen (Absage manuell).
+- [ ] **Push-Erinnerungen** (Wunsch des Betreibers, 2026-10-22): z. B. am Vortag "Morgen 18:00 Welpengruppe - du hast zugesagt", Erinnerung an den Fährten-Ablauf, Trainer:innen an offene Bewertungen; einzeln abschaltbar.
+- [ ] **Rally Obedience als Sportart** (Wunsch des Betreibers, 2026-10-22): VDH- und ÖKV-Ordnung (ÖKV RO PO 2023), Schweiz prüfen; Vorgehen wie Obedience (Paket O1).
+- [ ] **Sachkunde: Prüfungssimulation** (2026-10-22 auf die Liste): nur mit der Durchführungsbestimmung des swhv (Punkte je Antwort, Abzüge, Bestehensgrenze) - die stehen in keinem der vier swhv-PDFs (siehe docs/SACHKUNDE.md "Offen"); Betreiber müsste sie beschaffen.
+
 - [x] **Hoopers als Sportart** (Wunsch des zweiten Vereins, 2026-10-15; umgesetzt 2026-10-15 nach der VDH-PO Hoopers ab 01.01.2027, Klassen H0-H3, siehe docs/PO_VERIFIKATION.md) —
       als NÄCHSTER Entwicklungsschritt, sobald E-Mail (eigener Versandserver)
       und Push auf Prod laufen (Zweig `mail-push`). Vorher klären: Welche

@@ -24,14 +24,14 @@ import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
 import { laeuftFaehrte, nichtAbgelaufeneFaehrten } from "@/lib/faehrte";
 import { merkeGelesenImErststart } from "@/lib/neuerungen-gelesen";
-import { zeigeSachkundeZeile, zielAufteilung } from "@/lib/startseite";
+import { pausenOhneKarte, zeigeSachkundeZeile, zielAufteilung } from "@/lib/startseite";
 import { ErfassenKarte } from "@/components/dashboard/erfassen-karte";
 import { PushHinweisKarte } from "@/components/dashboard/push-hinweis-karte";
 import { EinladungenKarte } from "@/components/dashboard/einladungen-karte";
 import { FeedbackKarte } from "@/components/dashboard/feedback-karte";
 import { TerminKarte } from "@/components/dashboard/termin-karte";
 import { ZuErledigenZeile } from "@/components/dashboard/zu-erledigen-zeile";
-import { AbgelaufeneZiele, OhneZielZeilen, ZielKarten } from "@/components/dashboard/ziel-karten";
+import { AbgelaufeneZiele, OhneZielZeilen, PausenZeilen, ZielKarten } from "@/components/dashboard/ziel-karten";
 import { HeuteGelegtSection, type FaehrteMitHund } from "@/components/dashboard/heute-gelegt-section";
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
 import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
@@ -335,7 +335,7 @@ export default function DashboardPage() {
           {einladungen}
 
           {/* Der Erststart behält seine Reihenfolge: Ziele, Karte, Termine, Erfassen. */}
-          <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} />
+          <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} onChanged={neuLaden} />
 
           {erststartKarte === "hund" ? (
             <ErsterHundKarte onAngelegt={ersterHundAngelegt} onDismissed={erststartWegklicken} />
@@ -371,7 +371,8 @@ export default function DashboardPage() {
               Dort geht es erst einmal um den ersten Hund. */}
           <PushHinweisKarte />
 
-          <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} />
+          <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} onChanged={neuLaden} />
+          <PausenZeilen eintraege={pausenOhneKarte(daten.hunde, daten.ziele.karten)} />
           <AbgelaufeneZiele eintraege={daten.ziele.abgelaufen} onChanged={neuLaden} />
           <OhneZielZeilen hunde={daten.ziele.ohneZiel} />
 

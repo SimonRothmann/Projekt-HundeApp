@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, History, Plus, X } from "lucide-react";
+import { ChevronDown, CirclePause, History, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { enqueueRequest } from "@/lib/offline-queue";
@@ -47,6 +47,7 @@ import {
 import { istPlanZielFehler, ohnePlanVerknuepfung } from "@/lib/trainingsplan";
 import { REITER_PARAMETER } from "@/lib/hundeseite";
 import { heuteIso } from "@/lib/pruefung";
+import { aktuellePause } from "@/lib/pausen";
 import { useSprache, useT } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
@@ -516,6 +517,16 @@ function EintragenInhalt({
             </div>
           )}
         </div>
+
+        {/* Kein Sperren: In einer Pause ist leichtes Training oder Physio üblich. Nur ein Hinweis. */}
+        {hund && aktuellePause(hund) && (
+          <p role="status" className="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+            <CirclePause className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span className="min-w-0 [overflow-wrap:anywhere]">
+              {t("{hund} pausiert gerade. Du kannst trotzdem etwas eintragen, zum Beispiel leichtes Training oder Physio.", { hund: hund.name })}
+            </span>
+          </p>
+        )}
 
         {daten.offline && <p className="text-sm text-muted-foreground">{t("Offline - nur freie Eingabe")}</p>}
 

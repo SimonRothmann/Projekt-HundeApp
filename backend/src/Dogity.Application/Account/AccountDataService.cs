@@ -45,6 +45,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             .AsNoTracking()
             .ToListAsync(ct);
 
+        var pausen = await db.DogPauses.Where(p => hundeIds.Contains(p.DogId)).AsNoTracking().ToListAsync(ct);
+
         var ziele = await db.Goals.Where(g => hundeIds.Contains(g.DogId)).AsNoTracking().ToListAsync(ct);
         var zielIds = ziele.Select(z => z.Id).ToList();
         var plaene = await db.TrainingPlans.Where(p => zielIds.Contains(p.GoalId)).AsNoTracking().ToListAsync(ct);
@@ -285,7 +287,17 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     z.IsAttending,
                     z.RespondedAt))
                 .ToList(),
-            pushGeraete);
+            pushGeraete,
+            pausen
+                .OrderByDescending(p => p.StartDate)
+                .Select(p => new TrainingspauseExportDto(
+                    p.DogId,
+                    p.Reason switch { DogPauseReason.Injured => "verletzt", DogPauseReason.Sick => "krank", _ => "läufig" },
+                    p.StartDate,
+                    p.EndDate,
+                    p.Note,
+                    p.CreatedAt))
+                .ToList());
 
         return Result<AccountExportDto>.Success(export);
     }
@@ -366,6 +378,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         var planWochen = await db.TrainingPlanWeekConfigs.IgnoreQueryFilters()
             .Where(w => planIds.Contains(w.TrainingPlanId)).ToListAsync(ct);
 
+        var pausen = await db.DogPauses.IgnoreQueryFilters()
+            .Where(p => alleinMeineHunde.Contains(p.DogId)).ToListAsync(ct);
         var bilder = await db.DogImages.IgnoreQueryFilters()
             .Where(i => alleinMeineHunde.Contains(i.DogId)).ToListAsync(ct);
         var hundesportarten = await db.DogSportSelections.IgnoreQueryFilters()
@@ -453,6 +467,11 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         foreach (var o in await db.DogOwners.IgnoreQueryFilters()
                      .Where(o => o.InvitedByUserId == userId).ToListAsync(ct))
             o.InvitedByUserId = null;
+        // Eine Pause an einem geteilten Hund bleibt bei den übrigen
+        // Besitzer:innen - nur der Verweis auf die Person, die sie eingetragen hat, geht.
+        foreach (var p in await db.DogPauses.IgnoreQueryFilters()
+                     .Where(p => p.CreatedByUserId == userId).ToListAsync(ct))
+            p.CreatedByUserId = null;
         // Die Anmeldungen zu Gruppen gehören dem Verein und bleiben - die
         // Kursteilnehmenden sind nicht diese Person. Nur der Verweis auf sie als
         // "hat bezahlt gesetzt" bzw. "hat abgehakt" geht.
@@ -478,6 +497,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         db.Goals.RemoveRange(ziele);
         db.ExerciseMasteries.RemoveRange(koennen);
         db.DogSportSelections.RemoveRange(hundesportarten);
+        db.DogPauses.RemoveRange(pausen);
         db.DogImages.RemoveRange(bilder);
         db.DogOwners.RemoveRange(besitzzeilen);
         db.Dogs.RemoveRange(hunde);

@@ -7,6 +7,7 @@ import { computeCurrentWeek, groupByWeek, istPausenwoche } from "@/lib/trainings
 import { pruefungsName, restzeitText, tageBisPruefung } from "@/lib/pruefung";
 import { GoalManageSheet } from "@/components/dogs/goal-manage-sheet";
 import { PlanWeekList } from "@/components/dogs/plan-week-list";
+import { ZieldatumHinweis } from "@/components/dogs/zieldatum-hinweis";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +61,7 @@ export function GoalPlanCard({
   // Plan-Erstellung (generatedAt), danach zählt jede angebrochene 7-Tage-Woche
   // hoch. Nur die aktuelle Woche ist standardmäßig aufgeklappt (nicht immer
   // Woche 1). Auf die tatsächlich vorhandenen Wochennummern begrenzt.
-  const currentWeek = computeCurrentWeek(weeks, goal.trainingPlan?.generatedAt);
+  const currentWeek = computeCurrentWeek(weeks, goal.trainingPlan?.generatedAt, undefined, goal.planPausen);
   // Geplante Übungen der laufenden Woche; null in einer Pausenwoche oder ohne Plan.
   const wocheItems = weeks.find(([nummer]) => nummer === currentWeek)?.[1] ?? [];
   const geplanteUebungen = wocheItems.length > 0 && !istPausenwoche(wocheItems) ? wocheItems.length : null;
@@ -100,6 +101,9 @@ export function GoalPlanCard({
       </CardHeader>
       <CardContent className="flex min-w-0 flex-col gap-3">
         {goal.notes && <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{goal.notes}</p>}
+
+        {/* Nur mit einer Pause, die die Zeit bis zur Prüfung zu knapp macht. */}
+        <ZieldatumHinweis goal={goal} onChanged={onChanged} />
 
         {goal.planManagedByTrainer && (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-muted px-3 py-2 text-xs">

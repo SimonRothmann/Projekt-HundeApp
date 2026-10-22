@@ -94,7 +94,22 @@ public record GoalDto(
     IReadOnlyList<NextStageDto>? NextStages = null,
     // Englische Katalognamen (nur FCI-Sportarten/-Ordnungen), sonst null.
     string? SportNameEn = null,
-    string? RegulationNameEn = null);
+    string? RegulationNameEn = null,
+    /// <summary>
+    /// Die Trainingspausen des Hundes, die diesen Plan betreffen - nur
+    /// Zeiträume, nie Grund oder Notiz. Mit ihnen rechnet die Oberfläche
+    /// dieselbe Planwoche wie der Server (Trainingspausen.Planwoche).
+    /// </summary>
+    IReadOnlyList<PausenZeitraumDto>? PlanPausen = null,
+    /// <summary>
+    /// Wegen der Pausen reicht die Zeit bis zum Zieldatum für den Rest des Plans
+    /// nicht mehr: Die Oberfläche fragt, ob das Zieldatum verschoben werden soll.
+    /// Verschoben wird nie von selbst.
+    /// </summary>
+    bool ZieldatumZuKnapp = false);
+
+/// <summary>Ein Pausenzeitraum, beide Grenzen einschließlich; ohne Ende = bis auf Weiteres.</summary>
+public record PausenZeitraumDto(DateOnly Start, DateOnly? End);
 
 /// <summary>Eine Prüfungsordnung, die als nächstes Ziel in Frage kommt.</summary>
 public record NextStageDto(Guid RegulationId, Guid SportId, string Name, string? NameEn = null);
@@ -156,6 +171,9 @@ public record RegenerateWeekRequest(int WeekNumber);
 /// adaptive Generator plant.
 /// </summary>
 public record UpdateGoalConfigRequest(int WeeklyExerciseCount, int TrainingDaysPerWeek);
+
+/// <summary>Das Zieldatum eines aktiven Ziels verschieben (z. B. nach einer Trainingspause).</summary>
+public record UpdateGoalTargetDateRequest(DateOnly TargetDate);
 
 /// <summary>
 /// Setzt die Trainingstage für EINE Woche abweichend vom Plan-Default (siehe

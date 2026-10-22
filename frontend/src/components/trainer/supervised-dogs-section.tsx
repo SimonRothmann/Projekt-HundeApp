@@ -8,10 +8,11 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
-import { ChevronDown, ChevronRight, ChevronUp, PawPrint } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, CirclePause, PawPrint } from "lucide-react";
 import { toast } from "sonner";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { aktuellePause, pausenZeile } from "@/lib/pausen";
 /**
  * Die betreuten Hunde als flache Liste, direkt auf der Trainer-Übersicht.
  *
@@ -30,6 +31,7 @@ import { useT } from "@/lib/i18n";
  */
 export function SupervisedDogsSection({ vorschau }: { vorschau?: number } = {}) {
   const t = useT();
+  const sprache = useSprache();
   const [dogs, setDogs] = useState<SupervisedDog[] | null>(null);
   const [alleZeigen, setAlleZeigen] = useState(false);
 
@@ -82,7 +84,9 @@ export function SupervisedDogsSection({ vorschau }: { vorschau?: number } = {}) 
           <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : (
           <ul className="flex flex-col gap-1.5">
-            {sichtbar?.map((dog) => (
+            {sichtbar?.map((dog) => {
+              const pause = aktuellePause(dog);
+              return (
               <li key={dog.id}>
                 <Link
                   // scroll={false}: Next scrollt sonst selbst - und zwar nach
@@ -105,6 +109,13 @@ export function SupervisedDogsSection({ vorschau }: { vorschau?: number } = {}) 
                     <span className="truncate text-xs text-muted-foreground">
                       {[dog.handlerName, dog.breed].filter(Boolean).join(" · ")}
                     </span>
+                    {/* Nur der Zeitraum: Den Grund einer Pause bekommt die Trainer:in nie. */}
+                    {pause && (
+                      <span className="flex items-center gap-1 text-xs font-medium text-amber-800 dark:text-amber-300">
+                        <CirclePause className="size-3 shrink-0" aria-hidden />
+                        <span className="min-w-0 truncate">{pausenZeile(t, pause, sprache)}</span>
+                      </span>
+                    )}
                   </span>
                   {/* Ohne aktives Ziel gibt es noch keinen Plan - das ist die
                       eine Information, die vor dem Antippen zählt. */}
@@ -116,7 +127,8 @@ export function SupervisedDogsSection({ vorschau }: { vorschau?: number } = {}) 
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                 </Link>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
         {kuerzbar && (

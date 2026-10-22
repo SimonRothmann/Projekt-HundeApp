@@ -16,7 +16,12 @@ public record DogDto(
     /// eigenen Aufruf (siehe DogsController.GetImage) - in einer Hundeliste
     /// hinge sonst an jedem Eintrag das vollständige Bild.
     /// </summary>
-    bool HasImage);
+    bool HasImage,
+    /// <summary>
+    /// Die Trainingspause, die heute gilt; null ohne. Für Besitzer:innen mit
+    /// Grund und Notiz, für betreuende Trainer:innen nur mit Zeitraum.
+    /// </summary>
+    DogPauseDto? Pause = null);
 
 /// <summary>
 /// Ein von mir betreuter Hund - für die Trainerübersicht. Enthält bewusst den
@@ -31,7 +36,9 @@ public record SupervisedDogDto(
     bool HasImage,
     string HandlerName,
     /// <summary>Anzahl aktiver Trainingsziele - 0 heißt: hier ist noch kein Plan.</summary>
-    int ActiveGoalCount);
+    int ActiveGoalCount,
+    /// <summary>Die Pause, die heute gilt - nur Zeitraum, nie Grund oder Notiz.</summary>
+    DogPauseDto? Pause = null);
 
 /// <summary>
 /// Ein Bild als Data-URI ("data:image/jpeg;base64,..."), in beide Richtungen.

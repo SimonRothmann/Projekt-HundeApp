@@ -24,6 +24,14 @@ public interface IGoalService
     Task<Result<GoalDto>> UpdateExamResultAsync(Guid userId, Guid goalId, UpdateExamResultRequest request, CancellationToken ct = default);
 
     /// <summary>
+    /// Verschiebt das Zieldatum eines aktiven Ziels, ohne dass eine Prüfung
+    /// stattgefunden hätte (anders als "nicht bestanden" in CompleteAsync). Der
+    /// Plan wird dabei wie dort um die fehlenden Wochen verlängert. Nötig, wenn
+    /// eine Trainingspause die Zeit bis zur Prüfung knapp macht.
+    /// </summary>
+    Task<Result<GoalDto>> UpdateTargetDateAsync(Guid userId, Guid goalId, DateOnly newTargetDate, CancellationToken ct = default);
+
+    /// <summary>
     /// Setzt die Plan-Konfiguration eines Ziels (Übungen/Woche, Trainingstage/
     /// Woche) für den adaptiven Generator.
     /// </summary>

@@ -520,4 +520,93 @@ public class AccountDataServiceTests
 
         Assert.NotNull(training.VonTrainerAbgehaktAm);
     }
+
+    // --- Trainingspausen ---------------------------------------------------------
+
+    [Fact]
+    public async Task Export_EnthaeltDiePausenMeinerHundeMitGrundUndNotiz_NichtDieFremder()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        var andere = Guid.NewGuid();
+        lookup.Register(ich, "ich@dogity.test", "Ich", "Selbst");
+        var meinHund = new Dog { Name = "Flitzer", Gender = DogGender.Female };
+        var fremderHund = new Dog { Name = "Fremder" };
+        db.Dogs.AddRange(meinHund, fremderHund);
+        db.DogOwners.Add(new DogOwner { DogId = meinHund.Id, UserId = ich });
+        db.DogOwners.Add(new DogOwner { DogId = fremderHund.Id, UserId = andere });
+        db.DogPauses.Add(new DogPause
+        {
+            DogId = meinHund.Id, Reason = DogPauseReason.InHeat, StartDate = new DateOnly(2026, 10, 1),
+            EndDate = new DateOnly(2026, 10, 22), Note = "Tag 3", CreatedByUserId = ich,
+        });
+        db.DogPauses.Add(new DogPause { DogId = fremderHund.Id, Reason = DogPauseReason.Sick, StartDate = new DateOnly(2026, 10, 1) });
+        await db.SaveChangesAsync();
+
+        var export = (await dienst.ExportAsync(ich)).Value!;
+
+        var pause = Assert.Single(export.Trainingspausen);
+        Assert.Equal(meinHund.Id, pause.HundId);
+        Assert.Equal("läufig", pause.Grund);
+        Assert.Equal(new DateOnly(2026, 10, 22), pause.Bis);
+        Assert.Equal("Tag 3", pause.Notiz);
+    }
+
+    [Fact]
+    public async Task Export_PauseEinesGeteiltenHundes_AuchWennDieMitbesitzerinSieEintrug()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        var mitbesitzerin = Guid.NewGuid();
+        lookup.Register(ich, "ich@dogity.test", "Ich", "Selbst");
+        var hund = new Dog { Name = "Bello" };
+        db.Dogs.Add(hund);
+        db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = ich });
+        db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = mitbesitzerin });
+        db.DogPauses.Add(new DogPause
+        {
+            DogId = hund.Id, Reason = DogPauseReason.Injured, StartDate = new DateOnly(2026, 10, 1), CreatedByUserId = mitbesitzerin,
+        });
+        await db.SaveChangesAsync();
+
+        Assert.Single((await dienst.ExportAsync(ich)).Value!.Trainingspausen);
+    }
+
+    [Fact]
+    public async Task Purge_EntferntDiePausenEigenerHundeWirklich_AuchWeichGeloeschte()
+    {
+        var (dienst, db, _) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        var hundId = HundMitAllem(db, ich, "Bello");
+        db.DogPauses.Add(new DogPause { DogId = hundId, Reason = DogPauseReason.Injured, StartDate = new DateOnly(2026, 10, 1), Note = "Privat" });
+        db.DogPauses.Add(new DogPause
+        {
+            DogId = hundId, Reason = DogPauseReason.Sick, StartDate = new DateOnly(2026, 8, 1),
+            EndDate = new DateOnly(2026, 8, 5), Note = "Alt", DeletedAt = DateTimeOffset.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        await dienst.PurgeAsync(ich);
+
+        Assert.Empty(db.DogPauses.IgnoreQueryFilters());
+        Assert.Empty(db.Dogs.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task Purge_PauseEinesGeteiltenHundes_BleibtBeiDenAnderen_NurDerVerweisAufMichGeht()
+    {
+        var (dienst, db, _) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        var mitbesitzer = Guid.NewGuid();
+        var hundId = HundMitAllem(db, ich, "Bello");
+        db.DogOwners.Add(new DogOwner { DogId = hundId, UserId = mitbesitzer });
+        db.DogPauses.Add(new DogPause { DogId = hundId, Reason = DogPauseReason.Injured, StartDate = new DateOnly(2026, 10, 1), CreatedByUserId = ich });
+        await db.SaveChangesAsync();
+
+        await dienst.PurgeAsync(ich);
+
+        var pause = Assert.Single(db.DogPauses.IgnoreQueryFilters());
+        Assert.Equal(hundId, pause.DogId);
+        Assert.Null(pause.CreatedByUserId);
+    }
 }

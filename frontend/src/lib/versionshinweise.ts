@@ -61,6 +61,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.36",
+    datum: "2026-10-22",
+    titel: uebersetzbar("Trainingspausen: verletzt, krank, läufig"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Ist dein Hund verletzt, krank oder – bei Hündinnen – läufig, kannst du jetzt eine Trainingspause eintragen: beim Hund unter „Verwalten“ → „Trainingspause“. Du wählst den Grund, den Beginn und, wenn du es schon weißt, das Ende; bei einer Läufigkeit schlägt Dogity drei Wochen vor. Auf der Hundeseite und der Startseite steht dann zum Beispiel „Pause: verletzt · bis 03.11.“, und mit „Pause beenden“ ist dein Hund mit einem Tipp wieder dabei. Vergangene Pausen bleiben im Verlauf, du kannst sie ändern oder löschen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Der Trainingsplan pausiert mit: Wochen in der Pause gelten nicht als versäumt, und danach geht es dort weiter, wo der Plan stand. Reicht die Zeit bis zur Prüfung dadurch nicht mehr, fragt Dogity, ob du das Zieldatum verschieben möchtest. Von selbst ändert sich das Datum nie."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Training eintragen geht auch während einer Pause, zum Beispiel für leichtes Training oder Physio – Dogity weist nur kurz darauf hin. Trainer:innen, die deinen Hund betreuen, sehen nur, dass er pausiert und bis wann, nicht den Grund und nicht deine Notiz."),
+      },
+    ],
+  },
+  {
     version: "0.35",
     datum: "2026-10-21",
     titel: uebersetzbar("Obedience"),

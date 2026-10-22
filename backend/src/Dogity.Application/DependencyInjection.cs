@@ -24,6 +24,7 @@ public static class DependencyInjection
     {
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IDogService, DogService>();
+        services.AddScoped<IDogPauseService, DogPauseService>();
         services.AddScoped<ISportCatalogService, SportCatalogService>();
         services.AddScoped<IExerciseManagementService, ExerciseManagementService>();
         services.AddScoped<IRegulationManagementService, RegulationManagementService>();

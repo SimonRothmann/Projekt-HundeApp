@@ -51,6 +51,13 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
         return FromResult(result);
     }
 
+    [HttpPut("{id:guid}/target-date")]
+    public async Task<ActionResult<GoalDto>> UpdateTargetDate(Guid id, UpdateGoalTargetDateRequest request, CancellationToken ct)
+    {
+        var result = await goalService.UpdateTargetDateAsync(CurrentUserId, id, request.TargetDate, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("{id:guid}/config")]
     public async Task<ActionResult<GoalDto>> UpdateConfig(Guid id, UpdateGoalConfigRequest request, CancellationToken ct)
     {

@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Community;
 using Dogity.Application.Notifications;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
@@ -13,8 +14,16 @@ namespace Dogity.Application.Dogs;
 /// Zugriff ist immer auf Hunde beschränkt, die dem aufrufenden Benutzer
 /// über <see cref="DogOwner"/> zugeordnet sind.
 /// </summary>
-public class DogService(IApplicationDbContext db, IUserLookupService userLookup, INotificationService notifications) : IDogService
+public class DogService(
+    IApplicationDbContext db,
+    IUserLookupService userLookup,
+    INotificationService notifications,
+    TimeProvider? timeProvider = null) : IDogService
 {
+    private readonly TimeProvider zeit = timeProvider ?? TimeProvider.System;
+
+    private DateOnly Heute() => Vereinszeit.Tag(zeit.GetUtcNow());
+
     public async Task<Result<IReadOnlyList<DogDto>>> GetMyDogsAsync(Guid userId, CancellationToken ct = default)
     {
         var dogs = await db.DogOwners
@@ -30,8 +39,11 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
             .Select(i => i.DogId)
             .ToListAsync(ct);
 
+        // Meine Hunde: Ich bin Besitzer:in (oder Mitbesitzer:in) und sehe die
+        // Pause mit Grund und Notiz.
+        var pausen = await db.ActivePausesAsync(dogIds, Heute(), ct);
         return Result<IReadOnlyList<DogDto>>.Success(
-            dogs.Select(d => ToDto(d, withImage.Contains(d.Id))).ToList());
+            dogs.Select(d => ToDto(d, withImage.Contains(d.Id), pausen.GetValueOrDefault(d.Id), zeigeDetails: true)).ToList());
     }
 
     /// <summary>
@@ -63,8 +75,12 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
         string HandlerName(Guid id) =>
             handlers.TryGetValue(id, out var info) ? $"{info.FirstName} {info.LastName}".Trim() : "(unbekannt)";
 
+        // Als Trainer:in nur der Zeitraum: Grund und Notiz gehören der Familie.
+        var pausen = await db.ActivePausesAsync(visible.Select(r => r.Dog!.Id).Distinct().ToList(), Heute(), ct);
         var dtos = visible
-            .Select(r => new SupervisedDogDto(r.Dog!.Id, r.Dog.Name, r.Dog.Breed, r.HasImage, HandlerName(r.MemberId), r.ActiveGoalCount))
+            .Select(r => new SupervisedDogDto(
+                r.Dog!.Id, r.Dog.Name, r.Dog.Breed, r.HasImage, HandlerName(r.MemberId), r.ActiveGoalCount,
+                pausen.TryGetValue(r.Dog.Id, out var pause) ? DogPauseQueries.ToDto(pause, zeigeDetails: false) : null))
             .OrderBy(d => d.Name)
             .ToList();
 
@@ -79,7 +95,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
         var dog = await db.Dogs.AsNoTracking().FirstOrDefaultAsync(d => d.Id == dogId, ct);
         if (dog is null) return Result<DogDto>.NotFound("Hund nicht gefunden.");
 
-        return Result<DogDto>.Success(ToDto(dog, await HasImageAsync(dogId, ct)));
+        return Result<DogDto>.Success(await ToDtoAsync(dog, userId, ct));
     }
 
     public async Task<Result<DogDto>> CreateAsync(Guid userId, CreateDogRequest request, CancellationToken ct = default)
@@ -102,7 +118,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
         db.Dogs.Add(dog);
         await db.SaveChangesAsync(ct);
 
-        return Result<DogDto>.Success(ToDto(dog, await HasImageAsync(dog.Id, ct)));
+        return Result<DogDto>.Success(await ToDtoAsync(dog, userId, ct));
     }
 
     public async Task<Result<DogDto>> UpdateAsync(Guid userId, Guid dogId, UpdateDogRequest request, CancellationToken ct = default)
@@ -124,7 +140,7 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
         dog.UpdatedAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync(ct);
-        return Result<DogDto>.Success(ToDto(dog, await HasImageAsync(dog.Id, ct)));
+        return Result<DogDto>.Success(await ToDtoAsync(dog, userId, ct));
     }
 
     public async Task<Result> SetArchivedAsync(Guid userId, Guid dogId, bool archived, CancellationToken ct = default)
@@ -621,6 +637,18 @@ public class DogService(IApplicationDbContext db, IUserLookupService userLookup,
     private Task<bool> HasImageAsync(Guid dogId, CancellationToken ct) =>
         db.DogImages.AnyAsync(i => i.DogId == dogId, ct);
 
-    private static DogDto ToDto(Dog d, bool hasImage) =>
-        new(d.Id, d.Name, d.Breed, d.Birthday, d.Gender, d.ImageUrl, d.Notes, d.ArchivedAt, hasImage);
+    /// <summary>
+    /// Der Hund für genau diese Person: Eine Besitzer:in sieht die Pause mit
+    /// Grund und Notiz, eine betreuende Trainer:in nur den Zeitraum.
+    /// </summary>
+    private async Task<DogDto> ToDtoAsync(Dog dog, Guid userId, CancellationToken ct)
+    {
+        var istBesitzer = await db.DogOwners.AnyAsync(o => o.DogId == dog.Id && o.UserId == userId, ct);
+        var pausen = await db.ActivePausesAsync([dog.Id], Heute(), ct);
+        return ToDto(dog, await HasImageAsync(dog.Id, ct), pausen.GetValueOrDefault(dog.Id), istBesitzer);
+    }
+
+    private static DogDto ToDto(Dog d, bool hasImage, DogPause? pause, bool zeigeDetails) =>
+        new(d.Id, d.Name, d.Breed, d.Birthday, d.Gender, d.ImageUrl, d.Notes, d.ArchivedAt, hasImage,
+            pause is null ? null : DogPauseQueries.ToDto(pause, zeigeDetails));
 }

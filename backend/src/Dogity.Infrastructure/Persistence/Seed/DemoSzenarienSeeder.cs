@@ -27,7 +27,8 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// zur Welpengruppe mit Anwesenheit. Seit 2026-10-16 außerdem, was danach
 /// dazukam: Englisch (Lisa), Mitbesitz-Einladung (Lisa), Österreich und
 /// Vereinsantrag (Tom), Hoopers (Nina), eine Nachtfährte, die "erneut
-/// ablaufen" über Mitternacht zeigt (Bello), und die Schweiz (Sandro, SKG BH 1).
+/// ablaufen" über Mitternacht zeigt (Bello), die Schweiz (Sandro, SKG BH 1) und
+/// Trainingspausen (Ninas Hündin läufig, rollend; eine überstandene Verletzung bei Bello).
 ///
 /// Warum ein eigener Seeder und nicht noch mehr im DemoDataSeeder: Der bricht
 /// ab, sobald das Trainer-Konto existiert - auf der Test-Umgebung gibt es die
@@ -63,6 +64,10 @@ public static class DemoSzenarienSeeder
 
     public const string NotizHoopersZiel = "Einstieg ins Hoopers: erste Prüfung in H0.";
     public const string NotizSkgBhZiel = "Begleithund 1 der SKG in der Sektion Zürich.";
+    public const string NotizPauseLaeufig = "Seit fünf Tagen läufig: nur ruhige Spaziergänge, kein Training auf dem Platz.";
+    public const string NotizPauseVerletzung = "Ballen eingerissen, inzwischen verheilt - zwei Wochen Schonung.";
+    /// <summary>Die Demo-Läufigkeit endet 21 Tage nach ihrem Beginn - derselbe Vorschlag wie in der Oberfläche (lib/pausen.ts).</summary>
+    private const int LaeufigkeitTage = 21;
     public const string KommentarNachtfaehrte = "Abends gelegt, über Nacht liegen gelassen - morgen früh ablaufen.";
 
     /// <summary>Der Antrag, den Tom stellt - der Name ist zugleich das Erkennungszeichen.</summary>
@@ -145,6 +150,8 @@ public static class DemoSzenarienSeeder
                 // Nach den Zielen (dort entsteht Emma) und nach "Englisch".
                 ("Mitbesitz", MitbesitzAsync),
                 ("Hoopers", HoopersAsync),
+                // Nach dem Hoopers-Szenario: Dort entsteht Ninas Flitzer.
+                ("Trainingspausen", TrainingspausenAsync),
                 ("Fährten", FaehrtenAsync),
                 ("Nachtfährte", NachtfaehrteAsync),
                 ("Feedback", FeedbackAsync),
@@ -778,6 +785,65 @@ public static class DemoSzenarienSeeder
             var tageBisZiel = Math.Max(150, gueltigAb.AddDays(14).DayNumber - Vereinszeit.Heute().DayNumber);
 
             await ZielMitPlanAsync(nina, hund, "HOOPERS", "Hoopers 0 (H0)", tageBisZiel, NotizHoopersZiel, ct);
+        }
+
+        // ---------------------------------------------------------------- l) Trainingspausen
+
+        /// <summary>
+        /// Zwei Pausen, damit die Funktion auf der Test-Umgebung sichtbar ist: Ninas Hündin ist gerade läufig
+        /// (Band auf der Hundeseite, Pause auf der Zielkarte, "Pause bis ..." in der Trainerübersicht), und
+        /// Bello hat eine abgeschlossene Verletzungspause im Verlauf.
+        ///
+        /// Die Läufigkeit ist ROLLEND: Sie beginnt vor fünf Tagen und endet 21 Tage nach ihrem Beginn. Ohne das wäre sie nach
+        /// gut zwei Wochen vorbei, und auf der Test-Umgebung gäbe es nirgends mehr eine laufende Pause zu
+        /// sehen. Ist sie bis zu ihrem Ende durchgelaufen, beginnt beim nächsten Start eine neue. Alles andere
+        /// ist eine Entscheidung der Tester und bleibt: eine gelöschte Pause, eine vorzeitig beendete (ihr Ende
+        /// liegt vor dem ursprünglichen), eine, die sich mit einer eigenen überschneidet. Die Verletzung bei
+        /// Bello entsteht einmal, wie die Ziele.
+        /// </summary>
+        private async Task TrainingspausenAsync(CancellationToken ct)
+        {
+            var pausen = services.GetRequiredService<IDogPauseService>();
+            var heute = Vereinszeit.Heute();
+
+            var bello = (await HundeVonAsync(max, ct)).FirstOrDefault(h => h.Name == "Bello");
+            if (bello is not null && !await db.DogPauses.IgnoreQueryFilters().AnyAsync(p => p.DogId == bello.Id && p.Note == NotizPauseVerletzung, ct))
+            {
+                var verletzung = await pausen.CreateAsync(max.Id, bello.Id,
+                    new SaveDogPauseRequest(DogPauseReason.Injured, heute.AddDays(-70), heute.AddDays(-57), NotizPauseVerletzung), ct);
+                if (!verletzung.Succeeded)
+                    logger.LogWarning("Demo-Pause für Bello konnte nicht angelegt werden: {Fehler}", string.Join("; ", verletzung.Errors));
+            }
+
+            var nina = await userManager.FindByEmailAsync(NeulingEmail);
+            if (nina is null) return;
+            // Läufig kann nur eine Hündin sein: Hat Nina nur einen Rüden (eigener Hund statt Flitzer), entfällt es.
+            var huendin = (await HundeVonAsync(nina, ct)).FirstOrDefault(h => h.Gender == DogGender.Female);
+            if (huendin is null) return;
+
+            var bisherige = await db.DogPauses.IgnoreQueryFilters()
+                .Where(p => p.DogId == huendin.Id && p.Note == NotizPauseLaeufig)
+                .OrderByDescending(p => p.StartDate)
+                .ToListAsync(ct);
+            if (bisherige.Count > 0)
+            {
+                // Gelöscht, noch laufend oder bevorstehend: nichts zu tun bzw. entschieden.
+                if (bisherige.Any(p => p.DeletedAt is not null || p.EndDate is null || p.EndDate >= heute)) return;
+                // Vorzeitig beendet oder verändert: Ein Tester hat es so gewollt. Nur eine, die genau
+                // ihre 21 Tage gedauert hat, läuft von selbst weiter.
+                var letzte = bisherige[0];
+                if (letzte.EndDate != letzte.StartDate.AddDays(LaeufigkeitTage)) return;
+            }
+
+            var beginn = heute.AddDays(-5);
+            var ende = beginn.AddDays(LaeufigkeitTage);
+            // Eine eigene Pause des Testers im selben Zeitraum geht vor.
+            if (await db.DogPauses.AnyAsync(p => p.DogId == huendin.Id && p.StartDate <= ende && (p.EndDate == null || p.EndDate >= beginn), ct)) return;
+
+            var laeufig = await pausen.CreateAsync(nina.Id, huendin.Id,
+                new SaveDogPauseRequest(DogPauseReason.InHeat, beginn, ende, NotizPauseLaeufig), ct);
+            if (!laeufig.Succeeded)
+                logger.LogWarning("Demo-Läufigkeit für {Hund} konnte nicht angelegt werden: {Fehler}", huendin.Name, string.Join("; ", laeufig.Errors));
         }
 
         // ---------------------------------------------------------------- k) Schweiz (Sandro)

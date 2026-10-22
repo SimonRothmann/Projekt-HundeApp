@@ -11,6 +11,7 @@ import { DogEditForm } from "@/components/dogs/dog-edit-form";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { LeistungenCard } from "@/components/dogs/leistungen-card";
 import { DogHeader } from "@/components/dogs/dog-header";
+import { PauseBand } from "@/components/dogs/pause-band";
 import { DogActionBar } from "@/components/dogs/dog-action-bar";
 import { DogStatusLine } from "@/components/dogs/dog-status-line";
 import { DogTabs, reiterPanelId, reiterTabId } from "@/components/dogs/dog-tabs";
@@ -22,6 +23,7 @@ import { useAuth } from "@/lib/auth-context";
 import { eintragIdAus, leseGesehen } from "@/lib/feedback-gesehen";
 import { adresseMit, aktiveHunde, geltenderReiter, REITER_PARAMETER, ungeseheneRueckmeldungen, waehleReiter, zeigeHundeChips, zielStatus, type HundeReiter } from "@/lib/hundeseite";
 import { tageAnzahl } from "@/lib/tagebuch";
+import { aktuellePause } from "@/lib/pausen";
 import { angeboteneSportarten } from "@/lib/eintragen";
 import { usePreferences } from "@/lib/preferences-context";
 import { useDogAnker } from "@/lib/use-dog-anker";
@@ -141,6 +143,8 @@ function DogPage({ id }: { id: string }) {
     );
   if (!dog) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
 
+  // Die Pause, die der Hund heute hat (für Trainer:innen ohne Grund - der Server liefert ihn nicht).
+  const pause = aktuellePause(dog);
   const neueRueckmeldungen = ungeseheneRueckmeldungen(sessions, new Set([...gesehenBeiStart, ...jetztGesehen]), isOwner);
   const wechseln = (neu: HundeReiter) => aendereAdresse({ [REITER_PARAMETER]: neu });
   // Zwischen diesen Hunden wechselt das Eintragen-Fenster: meine aktiven, wenn dies
@@ -150,6 +154,8 @@ function DogPage({ id }: { id: string }) {
   return (
     <div className="flex flex-col gap-4">
       <DogHeader dog={dog} meineHunde={myDogs} gehoertMir={isOwner} onVerwalten={() => setMenuOffen(true)} />
+
+      {pause && <PauseBand dogId={id} pause={pause} darfBeenden={isOwner} onChanged={loadAll} />}
 
       {editing && <DogEditForm dog={dog} onSaved={loadAll} onCancel={() => setEditing(false)} />}
 

@@ -52,6 +52,8 @@ export const TEXTLAENGE = {
   ordnungBeschreibungEn: 2000,
   /** RegulationExercise.ScoringNotesEn (Katalog-Editor, Englische Bewertungshinweise) */
   ordnungsuebungHinweisEn: 1000,
+  /** DogPause.Note: Notiz zur Trainingspause eines Hundes */
+  pausenNotiz: 500,
   /** Suchbegriff der Admin-Nutzerliste (Textlaengen.NutzerSuche, wird nicht gespeichert) */
   nutzerSuche: 100,
 } as const;

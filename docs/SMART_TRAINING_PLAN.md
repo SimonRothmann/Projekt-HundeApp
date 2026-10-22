@@ -83,3 +83,40 @@ Statt reinem Score-Ranking ein festes Budget je Woche (N = `WeeklyExerciseCount`
 ## 11. Tests (Generator v2 als pure Funktion)
 Input: Katalog (Regulations-Übungen + Schwierigkeit) + Mastery/Historie + `today` + Ziel-Konfig → deterministisch.
 Fälle: schwache Übung nächste Woche wieder · gemeisterte Übung nach Intervall wieder · Sortierung nach Schwierigkeit je Tag · genau N/Woche über Tage verteilt · Trainer/manuell bevorzugt & geschützt · „nicht alles Schwere sofort" · idempotent (kein Überschreiben geloggter/vergangener Wochen).
+
+## 12. Pausen (Trainingspause des Hundes: verletzt, krank, läufig)
+
+Eingeführt mit Paket P1 (2026-10-22, Version 0.36). Entscheidung des Betreibers: **Der Plan pausiert mit.**
+Wochen in der Pause zählen nicht als „nicht geschafft“; danach läuft der Plan dort weiter, wo er stand. Reicht
+die Zeit bis zur Prüfung dadurch nicht mehr, erscheint ein Hinweis, das Zieldatum zu verschieben - verschoben
+wird nie von selbst.
+
+**Die Regel** (reine Funktionen in `Trainingspausen.cs`, Frontend gespiegelt in `lib/trainingsplan.ts`):
+
+- Die Planwoche zählt nur Tage OHNE Pause: `Planwoche = 1 + (Tage seit Planbeginn - Pausentage) / 7`, ganze Tage,
+  abgerundet. Planbeginn ist `Goal.CreatedAt` (Vereinszeit), im Frontend der Zeitpunkt der Plan-Erstellung.
+- Teilwochen werden nicht gerundet, sondern tagegenau gezählt: Beginnt die Pause am dritten Tag der Woche 4,
+  steht der Plan währenddessen am dritten Tag der Woche 4 und macht danach mit dem vierten weiter. Eine Rundung
+  auf ganze Pausenwochen ließe bei neun Tagen Pause entweder zwei Tage Plan verfallen oder erfände zwei hinzu.
+- Pausen vor dem Planbeginn und nach dem betrachteten Tag haben keine Wirkung. Eine Pause „bis auf Weiteres“
+  gilt bis heute.
+- `GoalDto.PlanPausen` liefert dem Frontend die Zeiträume (ohne Grund und Notiz), damit es dieselbe Woche rechnet
+  wie der Server - auch für Trainer:innen, die den Plan sehen.
+
+**Wirkung im Server:**
+
+- `RegenerateDuePlansAsync` (täglicher Scheduler) lässt Ziele aus, deren Hund heute pausiert: keine Anpassung,
+  die aus einem Rückstand folgte, keine Benachrichtigung. Die „kommende Woche“ wird mit der pausierten Planwoche
+  berechnet.
+- Wiedervorlage: Die Fälligkeit einer Übung (`ExerciseMastery.DueAt`) rückt um die Pausentage seither nach hinten
+  (`FaelligkeitNachPausen`). Sonst wäre nach drei Wochen Verletzung jede Übung „drei Wochen überfällig“.
+- Zieldatum verschieben: `PUT /api/goals/{id}/target-date` (nur aktive Ziele, Datum in der Zukunft); der Plan wird
+  wie bei „nicht bestanden“ um die fehlenden Wochen verlängert (`MoveTargetDateAsync`, höchstens 12).
+- **Hinweis „Zieldatum verschieben?“** (`GoalDto.ZieldatumZuKnapp`): Am Zieldatum hätte der Plan seine letzte
+  Woche noch nicht erreicht (`Planwoche(Zieldatum) < letzte Planwoche`). Nur mit wirksamer Pause, nur bei Plänen,
+  die der Generator aufbaut (nicht bei individuellen Zielen). Eine offene Pause zählt nur bis heute, ihr weiteres
+  Ende ist unbekannt.
+
+Training eintragen bleibt während einer Pause möglich (leichtes Training, Physio); die Oberfläche weist nur
+dezent darauf hin.
+

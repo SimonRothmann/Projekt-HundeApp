@@ -13,6 +13,36 @@ export type AuthResponse = {
 
 export type DogGender = 0 | 1; // 0 = Male, 1 = Female (siehe Domain.Dogs.DogGender)
 
+// Grund einer Trainingspause. Zahlen, keine Namen - die API überträgt Enums
+// numerisch (siehe Domain.Dogs.DogPauseReason). Die Beschriftungen stehen in
+// lib/pausen.ts.
+export const PAUSE_GRUND = {
+  Verletzt: 0,
+  Krank: 1,
+  Laeufig: 2,
+} as const;
+
+export type PauseGrund = (typeof PAUSE_GRUND)[keyof typeof PAUSE_GRUND];
+
+// Eine Trainingspause des Hundes (Backend: DogPauseDto). Grund und Notiz
+// bekommen nur Besitzer:innen und Mitbesitzer:innen; für betreuende
+// Trainer:innen sind beide null - der Server liefert sie gar nicht erst aus.
+export type DogPause = {
+  id: string;
+  /** Erster Pausentag (YYYY-MM-DD). */
+  startDate: string;
+  /** Letzter Pausentag einschließlich; null = bis auf Weiteres. */
+  endDate: string | null;
+  reason: PauseGrund | null;
+  note: string | null;
+};
+
+// Ein Pausenzeitraum, wie ihn die Planrechnung braucht (Backend: PausenZeitraumDto).
+export type PauseZeitraum = {
+  start: string;
+  end: string | null;
+};
+
 export type Dog = {
   id: string;
   name: string;
@@ -28,6 +58,9 @@ export type Dog = {
   // Aufruf (/api/dogs/{id}/image), damit an Listen nicht das Bildmaterial
   // aller Hunde hängt - siehe DogAvatar.
   hasImage: boolean;
+  // Die Trainingspause, die heute gilt; null ohne. Optional, weil der
+  // Lesecache noch Hunde ohne dieses Feld liefern kann.
+  pause?: DogPause | null;
 };
 
 export type Sport = {
@@ -268,6 +301,12 @@ export type Goal = {
   maxPoints?: number | null;
   // Folgestufen - nur bei erreichten Zielen gefüllt.
   nextStages?: NextStage[] | null;
+  // Die Trainingspausen des Hundes, die diesen Plan betreffen (nur Zeiträume).
+  // Mit ihnen rechnet computeCurrentWeek dieselbe Planwoche wie der Server.
+  planPausen?: PauseZeitraum[];
+  // Wegen der Pausen reicht die Zeit bis zum Zieldatum nicht mehr für den Plan:
+  // Die Oberfläche fragt, ob das Zieldatum verschoben werden soll.
+  zieldatumZuKnapp?: boolean;
 };
 
 // Ein von mir betreuter Hund (TrainerAssignment) - für die Trainerübersicht.
@@ -278,6 +317,8 @@ export type SupervisedDog = {
   hasImage: boolean;
   handlerName: string;
   activeGoalCount: number;
+  // Pause, die heute gilt - für Trainer:innen nur der Zeitraum.
+  pause?: DogPause | null;
 };
 
 export type GroupMemberRole = 0 | 1; // 0 = Member, 1 = Trainer
@@ -486,6 +527,8 @@ export type MemberDog = {
   name: string;
   breed: string | null;
   isTrainerAssigned: boolean;
+  // Pause, die heute gilt - nur bei betreuten Hunden, nur der Zeitraum.
+  pause?: DogPause | null;
 };
 
 export type AdminStats = {

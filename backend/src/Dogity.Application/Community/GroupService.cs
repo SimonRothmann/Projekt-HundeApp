@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Dogs;
 using Dogity.Application.Notifications;
 using Dogity.Domain.Community;
 using Microsoft.EntityFrameworkCore;
@@ -591,14 +592,28 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         var dogs = await db.DogOwners
             .Where(o => o.UserId == memberId)
             .Select(o => o.Dog!)
+            .Select(d => new
+            {
+                d.Id,
+                d.Name,
+                d.Breed,
+                IsTrainerAssigned = db.TrainerAssignments.Any(t => t.TrainerId == trainerId && t.DogId == d.Id),
+            })
+            .ToListAsync(ct);
+
+        // Die Pause (nur der Zeitraum) sieht nur, wer den Hund betreut - das
+        // ist der Einblick, den die Familie dieser Trainer:in gewährt hat.
+        var betreute = dogs.Where(d => d.IsTrainerAssigned).Select(d => d.Id).ToList();
+        var pausen = await db.ActivePausesAsync(betreute, Vereinszeit.Tag(timeProvider.GetUtcNow()), ct);
+
+        return Result<IReadOnlyList<MemberDogDto>>.Success(dogs
             .Select(d => new MemberDogDto(
                 d.Id,
                 d.Name,
                 d.Breed,
-                db.TrainerAssignments.Any(t => t.TrainerId == trainerId && t.DogId == d.Id)))
-            .ToListAsync(ct);
-
-        return Result<IReadOnlyList<MemberDogDto>>.Success(dogs);
+                d.IsTrainerAssigned,
+                d.IsTrainerAssigned && pausen.TryGetValue(d.Id, out var pause) ? DogPauseQueries.ToDto(pause, zeigeDetails: false) : null))
+            .ToList());
     }
 
     public async Task<Result> AssignTrainerToDogAsync(Guid trainerId, Guid groupId, AssignTrainerRequest request, CancellationToken ct = default)

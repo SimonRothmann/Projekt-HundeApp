@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CircleCheck, Dog as DogIcon, Plus } from "lucide-react";
+import { CircleCheck, CirclePause, Dog as DogIcon, Plus } from "lucide-react";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { HundEinladungen } from "@/components/dogs/hund-einladungen";
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
@@ -20,10 +20,11 @@ import { pruefeErstenHund } from "@/lib/erststart";
 import { direktZumHund, HUNDELISTE_IMMER } from "@/lib/hundeliste";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { formatDogAge } from "@/lib/dog-age";
+import { aktuellePause, pausenZeile } from "@/lib/pausen";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
 export default function DogsPage() {
   const [dogs, setDogs] = useState<Dog[] | null>(null);
   // null = automatisch: offen, solange die geladene Liste leer ist (wer noch
@@ -53,6 +54,7 @@ export default function DogsPage() {
   const entschieden = useRef(false);
   const router = useRouter();
   const t = useT();
+  const sprache = useSprache();
 
   // Bei genau einem aktiven Hund führt der Reiter "Hunde" gleich auf dessen
   // Seite (siehe direktZumHund). Entschieden wird einmal je Besuch, sobald
@@ -134,6 +136,7 @@ export default function DogsPage() {
   const nameFehlt = versucht && name.trim() === "";
 
   function dogCard(dog: Dog, archived = false) {
+    const pause = aktuellePause(dog);
     return (
       <Link key={dog.id} href={`/dogs/${dog.id}`}>
         <Card className={`transition-colors hover:bg-accent/10 ${archived ? "opacity-70" : ""}`}>
@@ -147,6 +150,12 @@ export default function DogsPage() {
               <p className="text-sm text-muted-foreground">
                 {[dog.breed ?? t("Unbekannte Rasse"), formatDogAge(dog.birthday, new Date(), t)].filter(Boolean).join(" · ")}
               </p>
+              {pause && (
+                <p className="mt-0.5 flex items-start gap-1.5 text-sm font-medium text-amber-800 dark:text-amber-300">
+                  <CirclePause className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                  <span className="min-w-0 [overflow-wrap:anywhere]">{pausenZeile(t, pause, sprache)}</span>
+                </p>
+              )}
             </div>
           </CardHeader>
         </Card>

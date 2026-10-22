@@ -1,3 +1,4 @@
+using Dogity.Application.Dogs;
 using Dogity.Domain.Community;
 
 namespace Dogity.Application.Community;
@@ -43,7 +44,12 @@ public record GroupTrainerDto(Guid UserId, string Email, string FirstName, strin
 
 public record GroupJoinRequestDto(Guid MemberId, string Email, string FirstName, string LastName, DateTimeOffset RequestedAt);
 
-public record MemberDogDto(Guid Id, string Name, string? Breed, bool IsTrainerAssigned);
+/// <summary>
+/// Pause: nur bei betreuten Hunden (IsTrainerAssigned) und nur der Zeitraum -
+/// ohne Betreuung gibt es keinen Einblick, und Grund und Notiz gibt es für
+/// Trainer:innen nie.
+/// </summary>
+public record MemberDogDto(Guid Id, string Name, string? Breed, bool IsTrainerAssigned, DogPauseDto? Pause = null);
 
 /// <param name="Invitations">
 /// Offene Einladungen - nur für Personen gefüllt, die die Gruppe verwalten.

@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ChevronRight, GraduationCap, Plus, Target } from "lucide-react";
-import type { Dog, TrainingPlanItem } from "@/lib/types";
+import { Check, ChevronRight, CirclePause, GraduationCap, Plus, Target } from "lucide-react";
+import type { Dog, DogPause, TrainingPlanItem } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { ZielAbschliessen } from "@/components/dogs/ziel-abschliessen";
+import { ZieldatumHinweis } from "@/components/dogs/zieldatum-hinweis";
 import { pruefungsName } from "@/lib/pruefung";
+import { pausenZeile } from "@/lib/pausen";
 import type { AbgelaufenesZiel, ZielKartenEintrag } from "@/lib/startseite";
 import { cn } from "@/lib/utils";
 import { useSprache, useT } from "@/lib/i18n";
@@ -39,17 +41,20 @@ export function ZielKarten({
   eintraege,
   sachkundeAn,
   onEintragen,
+  onChanged,
 }: {
   eintraege: ZielKartenEintrag[];
   sachkundeAn: boolean;
   onEintragen: (dogId: string, item: TrainingPlanItem) => void;
+  /** Nach dem Verschieben des Zieldatums (Hinweis nach einer Pause): Startseite neu laden. */
+  onChanged: () => Promise<void>;
 }) {
   if (eintraege.length === 0) return null;
 
   return (
     <section className="flex flex-col gap-3">
       {eintraege.map((eintrag) => (
-        <ZielKarte key={eintrag.goal.id} eintrag={eintrag} sachkundeAn={sachkundeAn} onEintragen={onEintragen} />
+        <ZielKarte key={eintrag.goal.id} eintrag={eintrag} sachkundeAn={sachkundeAn} onEintragen={onEintragen} onChanged={onChanged} />
       ))}
     </section>
   );
@@ -59,15 +64,22 @@ function ZielKarte({
   eintrag,
   sachkundeAn,
   onEintragen,
+  onChanged,
 }: {
   eintrag: ZielKartenEintrag;
   sachkundeAn: boolean;
   onEintragen: (dogId: string, item: TrainingPlanItem) => void;
+  onChanged: () => Promise<void>;
 }) {
   const t = useT();
   const sprache = useSprache();
   const [alleZeigen, setAlleZeigen] = useState(false);
-  const { hund, goal, tage, fortschritt, offen, bh, weitereZiele } = eintrag;
+  const { hund, goal, tage, fortschritt: wochenstand, bh, weitereZiele, pause } = eintrag;
+  // In einer Pause steht der Plan still: statt des Wochenstands die Pause, und
+  // keine offenen Wochenübungen, die gerade niemand erledigen soll. Eintragen
+  // geht trotzdem (Erfassen-Karte, "Ganzer Plan").
+  const fortschritt = pause ? null : wochenstand;
+  const offen = pause ? [] : eintrag.offen;
   // Höchstens drei Übungen, je eine Zeile: Mit fünf zweizeiligen Kästen pro
   // Hund war die Startseite schon bei einem Ziel wieder zwei Bildschirme lang.
   const sichtbar = alleZeigen ? offen : offen.slice(0, MAX_UEBUNGEN);
@@ -86,6 +98,8 @@ function ZielKarte({
             </span>
           </span>
         </p>
+
+        {pause && <PausenZeile pause={pause} />}
 
         {fortschritt && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -107,6 +121,8 @@ function ZielKarte({
             </span>
           </div>
         )}
+
+        <ZieldatumHinweis goal={goal} onChanged={onChanged} />
 
         {sichtbar.map((item) => (
           <button
@@ -151,6 +167,44 @@ function ZielKarte({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/** Die Pause des Hundes als Zeile: "Pause: verletzt · bis 03.11." - mit dem Grund, den nur die Familie sieht. */
+function PausenZeile({ pause }: { pause: DogPause }) {
+  const t = useT();
+  const sprache = useSprache();
+  return (
+    <p className="flex items-start gap-2 text-sm font-medium text-amber-800 dark:text-amber-300">
+      <CirclePause className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <span className="min-w-0 [overflow-wrap:anywhere]">{pausenZeile(t, pause, sprache)}</span>
+    </p>
+  );
+}
+
+/**
+ * Hunde in einer Trainingspause ohne Zielkarte: je eine schmale Zeile "Flitzer ·
+ * Pause: läufig · bis 03.11.", die zur Hundeseite führt. Hunde mit Karte zeigen
+ * die Pause dort.
+ */
+export function PausenZeilen({ eintraege }: { eintraege: { hund: Dog; pause: DogPause }[] }) {
+  const t = useT();
+  const sprache = useSprache();
+  if (eintraege.length === 0) return null;
+
+  return (
+    <section className="flex flex-col gap-2">
+      {eintraege.map(({ hund, pause }) => (
+        <Link key={hund.id} href={`/dogs/${hund.id}`} className={ZEILE}>
+          <CirclePause className="size-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
+          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+            <span className="font-medium">{hund.name}</span>{" "}
+            <span className="text-muted-foreground">· {pausenZeile(t, pause, sprache)}</span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </Link>
+      ))}
+    </section>
   );
 }
 

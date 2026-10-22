@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dogity.Api.Controllers;
 
 [Route("api/dogs")]
-public class DogsController(IDogService dogService) : ApiControllerBase
+public class DogsController(IDogService dogService, IDogPauseService pauseService) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<DogDto>>> GetMyDogs(CancellationToken ct)
@@ -154,4 +154,26 @@ public class DogsController(IDogService dogService) : ApiControllerBase
         var result = await dogService.EndSupervisionAsync(CurrentUserId, id, trainerId, ct);
         return FromResult(result);
     }
+
+    /// <summary>Der Verlauf der Trainingspausen: Besitzer:innen mit Grund und Notiz, betreuende Trainer:innen nur mit Zeitraum.</summary>
+    [HttpGet("{id:guid}/pausen")]
+    public async Task<ActionResult<IReadOnlyList<DogPauseDto>>> GetPauses(Guid id, CancellationToken ct) =>
+        FromResult(await pauseService.GetAsync(CurrentUserId, id, ct));
+
+    [HttpPost("{id:guid}/pausen")]
+    public async Task<ActionResult<DogPauseDto>> CreatePause(Guid id, SaveDogPauseRequest request, CancellationToken ct) =>
+        FromResult(await pauseService.CreateAsync(CurrentUserId, id, request, ct));
+
+    [HttpPut("{id:guid}/pausen/{pauseId:guid}")]
+    public async Task<ActionResult<DogPauseDto>> UpdatePause(Guid id, Guid pauseId, SaveDogPauseRequest request, CancellationToken ct) =>
+        FromResult(await pauseService.UpdateAsync(CurrentUserId, id, pauseId, request, ct));
+
+    /// <summary>Beendet eine laufende Pause vorzeitig: Der Hund trainiert ab heute wieder.</summary>
+    [HttpPut("{id:guid}/pausen/{pauseId:guid}/beenden")]
+    public async Task<IActionResult> EndPause(Guid id, Guid pauseId, CancellationToken ct) =>
+        FromResult(await pauseService.EndAsync(CurrentUserId, id, pauseId, ct));
+
+    [HttpDelete("{id:guid}/pausen/{pauseId:guid}")]
+    public async Task<IActionResult> DeletePause(Guid id, Guid pauseId, CancellationToken ct) =>
+        FromResult(await pauseService.DeleteAsync(CurrentUserId, id, pauseId, ct));
 }

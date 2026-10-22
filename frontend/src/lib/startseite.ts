@@ -1,5 +1,6 @@
-import type { Dog, Goal, GroupTrainingSession, OffenesFeedback, TrainingPlanItem } from "@/lib/types";
-import { tageBisPruefung } from "@/lib/pruefung";
+import type { Dog, DogPause, Goal, GroupTrainingSession, OffenesFeedback, TrainingPlanItem } from "@/lib/types";
+import { heuteIso, tageBisPruefung } from "@/lib/pruefung";
+import { aktuellePause } from "@/lib/pausen";
 import { offeneWochenziele, wochenFortschritt } from "@/lib/trainingsplan";
 
 /**
@@ -88,6 +89,12 @@ export type ZielKartenEintrag = {
   weitereZiele: number;
   /** Ob es eine Begleithundeprüfung ist - dann gehört "Sachkunde üben" in die Karte. */
   bh: boolean;
+  /**
+   * Die Trainingspause, die der Hund heute hat. Dann steht sie auf der Karte
+   * statt des Wochenfortschritts: Der Plan steht still, und offene
+   * Wochenübungen zu zeigen, die niemand jetzt erledigen soll, mahnte zu Unrecht.
+   */
+  pause: DogPause | null;
 };
 
 export type AbgelaufenesZiel = { hund: Dog; goal: Goal };
@@ -134,6 +141,7 @@ export function zielAufteilung(
         offen: offeneWochenziele(naechstes, jetzt)?.items ?? [],
         weitereZiele: laufende.length - 1,
         bh: bhSportIds.has(naechstes.sportId),
+        pause: aktuellePause(dog, heuteIso(jetzt)),
       });
     }
 
@@ -146,6 +154,24 @@ export function zielAufteilung(
   }
 
   return { karten, abgelaufen, ohneZiel };
+}
+
+/**
+ * Hunde in einer Trainingspause, die keine Zielkarte haben - dort stünde die
+ * Pause sonst nirgends auf der Startseite. Hunde mit Karte zeigen sie dort.
+ */
+export function pausenOhneKarte(
+  hunde: readonly Dog[],
+  karten: readonly Pick<ZielKartenEintrag, "hund">[],
+  jetzt: number = Date.now(),
+): { hund: Dog; pause: DogPause }[] {
+  const mitKarte = new Set(karten.map((k) => k.hund.id));
+  return hunde
+    .filter((hund) => !hund.archivedAt && !mitKarte.has(hund.id))
+    .flatMap((hund) => {
+      const pause = aktuellePause(hund, heuteIso(jetzt));
+      return pause ? [{ hund, pause }] : [];
+    });
 }
 
 /**

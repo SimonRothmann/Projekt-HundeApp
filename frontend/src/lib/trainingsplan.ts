@@ -1,4 +1,4 @@
-import type { Goal, TrainingPlanItem } from "@/lib/types";
+import type { Goal, PauseZeitraum, TrainingPlanItem } from "@/lib/types";
 import type { Sprache } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
 import { heuteIso, tageBisPruefung } from "@/lib/pruefung";
@@ -61,6 +61,36 @@ export function groupByWeek(items: TrainingPlanItem[]): [number, TrainingPlanIte
   return [...byWeek.entries()];
 }
 
+/**
+ * Wie viele Millisekunden von `von` bis `bis` auf Pausentage fallen.
+ *
+ * Eine Pause beginnt mit dem Kalendertag um 0 Uhr (Ortszeit des Geräts) und
+ * reicht bis zum Ende ihres letzten Tages; ohne Ende gilt sie unbegrenzt. Die
+ * Tage werden vereinigt gezählt - eine Überschneidung (gibt es im Betrieb
+ * nicht, der Server lehnt sie ab) zählte sonst doppelt.
+ */
+export function pausierteMillisekunden(pausen: readonly PauseZeitraum[] | undefined, von: number, bis: number): number {
+  if (!pausen || pausen.length === 0 || bis <= von) return 0;
+  // 0 Uhr Ortszeit des Kalendertags; mit `plus` der Tag danach (Sommerzeit-fest, anders als + 24 h).
+  const mitternacht = (iso: string, plus = 0) => {
+    const [jahr, monat, tag] = iso.slice(0, 10).split("-").map(Number);
+    return new Date(jahr, monat - 1, tag + plus).getTime();
+  };
+  const stuecke = pausen
+    .map((p) => [Math.max(mitternacht(p.start), von), Math.min(p.end ? mitternacht(p.end, 1) : Infinity, bis)] as const)
+    .filter(([anfang, ende]) => anfang < ende)
+    .sort((a, b) => a[0] - b[0]);
+
+  let summe = 0;
+  let bisher = -Infinity;
+  for (const [anfang, ende] of stuecke) {
+    const ab = Math.max(anfang, bisher);
+    if (ab < ende) summe += ende - ab;
+    bisher = Math.max(bisher, ende);
+  }
+  return summe;
+}
+
 // Bestimmt die aktuelle Trainingswoche kalendarisch: Woche 1 startet mit der
 // Plan-Erstellung (generatedAt), jede weitere angebrochene 7-Tage-Woche zählt
 // eins hoch. Ergebnis wird auf die tatsächlich vorhandenen Wochennummern
@@ -68,10 +98,16 @@ export function groupByWeek(items: TrainingPlanItem[]): [number, TrainingPlanIte
 // Fällt auf die erste Woche zurück, wenn kein/ungültiges Startdatum vorliegt.
 // Aus GoalPlanCard hierher gezogen, weil die Startseite ("Diese Woche")
 // dieselbe Woche meinen muss wie der Plan auf der Hundeseite.
+//
+// Trainingspausen halten den Plan an: Die Tage, an denen der Hund pausiert,
+// zählen nicht mit (dieselbe Regel wie im Server, Trainingspausen.Planwoche;
+// siehe docs/SMART_TRAINING_PLAN.md, "Pausen"). Während einer Pause steht die
+// Woche still, danach geht es dort weiter, wo der Plan stand.
 export function computeCurrentWeek(
   weeks: [number, TrainingPlanItem[]][],
   generatedAt: string | undefined,
   jetzt: number = Date.now(),
+  pausen?: readonly PauseZeitraum[],
 ): number | undefined {
   if (weeks.length === 0) return undefined;
   const weekNumbers = weeks.map(([n]) => n);
@@ -82,7 +118,8 @@ export function computeCurrentWeek(
   if (Number.isNaN(start)) return weekNumbers[0];
 
   const weekMs = 7 * 24 * 60 * 60 * 1000;
-  const byDate = Math.floor((jetzt - start) / weekMs) + 1;
+  const aktiv = jetzt - start - pausierteMillisekunden(pausen, start, jetzt);
+  const byDate = Math.floor(aktiv / weekMs) + 1;
   const clamped = Math.min(Math.max(byDate, minWeek), maxWeek);
   // Bei (seltenen) Lücken die nächste vorhandene Wochennummer wählen.
   return weekNumbers.includes(clamped)
@@ -110,7 +147,7 @@ function uebungenDerLaufendenWoche(
   // Kalendertag des Geräts, wie überall bei Prüfungsdaten.
   if (tageBisPruefung(goal.targetDate, jetzt) < 0) return null;
   const wochen = groupByWeek(goal.trainingPlan.items);
-  const woche = computeCurrentWeek(wochen, goal.trainingPlan.generatedAt, jetzt);
+  const woche = computeCurrentWeek(wochen, goal.trainingPlan.generatedAt, jetzt, goal.planPausen);
   if (woche == null) return null;
   const uebungen = (wochen.find(([nummer]) => nummer === woche)?.[1] ?? []).filter((item) => !item.isRestWeek);
   return { woche, wochen, uebungen };
@@ -149,7 +186,7 @@ function zeitpunktInLaufenderWoche(
   const generatedAt = goal.trainingPlan?.generatedAt;
   const start = generatedAt ? new Date(generatedAt).getTime() : NaN;
   if (!Number.isNaN(start) && zeitpunkt < start) return false;
-  return computeCurrentWeek(laufend.wochen, generatedAt, zeitpunkt) === laufend.woche;
+  return computeCurrentWeek(laufend.wochen, generatedAt, zeitpunkt, goal.planPausen) === laufend.woche;
 }
 
 /** Die Antwort des Servers, wenn ein Plan-Ziel nicht (mehr) existiert (TrainingService). */

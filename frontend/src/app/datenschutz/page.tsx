@@ -74,7 +74,12 @@ function DatenschutzDe() {
           ]}
         />
         <p className="font-medium text-foreground">Hunde</p>
-        <Liste punkte={["Name, Rasse, Geburtstag, Geschlecht, Notizen und – wenn du eines hochlädst – ein Foto"]} />
+        <Liste
+          punkte={[
+            "Name, Rasse, Geburtstag, Geschlecht, Notizen und – wenn du eines hochlädst – ein Foto",
+            "Trainingspausen des Hundes, wenn du sie einträgst: der Grund (verletzt, krank oder – bei Hündinnen – läufig), Beginn und Ende oder „bis auf Weiteres“, eine kurze Notiz und wer die Pause eingetragen hat",
+          ]}
+        />
         <p className="font-medium text-foreground">Training</p>
         <Liste
           punkte={[
@@ -308,6 +313,7 @@ function DatenschutzDe() {
             "Mitbesitzer:innen eines Hundes sehen dessen Tagebuch vollständig. Mitbesitzer:in wird nur, wer eine Einladung annimmt. Bis dahin sieht die einladende Person nur die E-Mail-Adresse, die sie selbst eingegeben hat, und die eingeladene Person nur den Namen des Hundes und wer einlädt. Den eigenen Mitbesitz kannst du jederzeit beenden.",
             "Trainer:innen einer Gruppe, der du selbst beigetreten bist oder deren Einladung du angenommen hast, können deine Hunde betreuen. Sie sehen dann deren Trainings, Ziele und Fährten und können Rückmeldung geben. Du wirst benachrichtigt, sobald jemand einen deiner Hunde betreut; verlässt du die Gruppe, endet die Betreuung. Du kannst sie auch jederzeit selbst beenden: Unter „Verwalten“ beim Hund siehst du, welche Trainer:innen Einblick haben, und beendest die Betreuung dort mit einem Tipp. Die Trainer:in wird benachrichtigt und sieht den Hund danach nicht mehr.",
             "Zusagen zu Gruppenterminen: Die Trainer:innen des Vereins und des Termins sehen mit Namen, wer zu- oder abgesagt hat. Die anderen Mitglieder deiner Gruppe sehen nur Zahlen, etwa „5 Zusagen“. Sagst du ab, bekommen die Trainer:innen des Termins eine Benachrichtigung mit deinem Vornamen.",
+            "Trainingspausen deines Hundes sehen du und die Mitbesitzer:innen mit Grund, Zeitraum und Notiz. Trainer:innen, die den Hund betreuen, sehen nur, dass er pausiert und bis wann – nicht den Grund und nicht die Notiz. Der Trainingsplan, den sie sehen, hält in dieser Zeit an; deshalb sehen sie darin auch die Zeiträume früherer Pausen, die in den Plan fallen, aber nie den Verlauf mit Gründen. Alle anderen sehen nichts davon. Das stellt der Server sicher, nicht nur die Anzeige.",
             "Deine Antwort auf das Feedback einer Trainer:in (Danke, Verstanden, Rückfrage) sehen die Trainer:in, die es gegeben hat, und die Besitzer:innen des Hundes; sie löst bei der Trainer:in eine Benachrichtigung aus. Schreibt die Trainer:in neues Feedback, wird deine Antwort zurückgesetzt.",
             "Die Vereinsverwaltung sieht Mitgliedschaften, Gruppenzugehörigkeit und Namen ihrer Mitglieder – nicht deren Trainingstagebuch. Bei einer Beitrittsanfrage sieht sie auch, ob sie über den Einladungslink des Vereins kam.",
             "Der Betreiber sieht in der Verwaltung zusammengezählte Kennzahlen, etwa wie viele der Konten der letzten 30 Tage einen Hund angelegt haben. Das sind Zahlen, keine Personen; dafür wird nichts im Browser gemessen.",
@@ -380,7 +386,7 @@ function DatenschutzDe() {
         <Liste
           punkte={[
             "Kontodaten und alles, was daran hängt: bis du das Konto löschst.",
-            "Einzelne Einträge – Trainings, Fährten, Hunde: bis du sie löschst.",
+            "Einzelne Einträge – Trainings, Fährten, Hunde, Trainingspausen: bis du sie löschst.",
             "Anmeldungen zu einer Gruppe ohne Konto (Abschnitt 9): bis die Trainer:innen sie löschen, spätestens zwölf Monate nach der letzten Anwesenheit, Änderung oder Anmeldung.",
             "Anmelde-Token auf dem Server: der kurzlebige nach einer Stunde, der Erneuerungs-Token spätestens nach 60 Tagen.",
             "Geräte für Push-Benachrichtigungen: bis du Push dort ausschaltest, dich abmeldest oder dein Konto löschst; ein Gerät, das der Push-Dienst nicht mehr kennt, wird beim nächsten Versand entfernt.",

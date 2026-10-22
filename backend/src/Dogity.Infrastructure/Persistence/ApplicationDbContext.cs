@@ -28,6 +28,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Dog> Dogs => Set<Dog>();
     public DbSet<DogOwner> DogOwners => Set<DogOwner>();
     public DbSet<DogImage> DogImages => Set<DogImage>();
+    public DbSet<DogPause> DogPauses => Set<DogPause>();
 
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<Sport> Sports => Set<Sport>();
@@ -112,6 +113,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // Hund, und ohne diesen Zusatz warnt EF zu Recht, dass die Beziehung ins
         // Leere zeigen kann, sobald der Hund weggefiltert ist.
         builder.Entity<DogImage>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
+        // Wie beim Bild: Der Hund ist die Pflichtseite, sein Filter wird mitgezogen.
+        builder.Entity<DogPause>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
         // Wie beim Bild: Der Filter muss den des Hundes mittragen. Sonst
         // meldet EF zu Recht, dass die Auswahl eines weichgelöschten Hundes
         // sichtbar bliebe, obwohl der Hund es nicht ist.

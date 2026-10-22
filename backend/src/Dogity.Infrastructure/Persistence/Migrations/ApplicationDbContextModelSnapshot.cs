@@ -895,6 +895,49 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.ToTable("dog_owners", (string)null);
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Dogs.DogPause", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DogId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DogId", "StartDate");
+
+                    b.ToTable("dog_pauses", (string)null);
+                });
+
             modelBuilder.Entity("Dogity.Domain.Geography.Country", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2718,6 +2761,17 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                 {
                     b.HasOne("Dogity.Domain.Dogs.Dog", "Dog")
                         .WithMany("Owners")
+                        .HasForeignKey("DogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dog");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Dogs.DogPause", b =>
+                {
+                    b.HasOne("Dogity.Domain.Dogs.Dog", "Dog")
+                        .WithMany()
                         .HasForeignKey("DogId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

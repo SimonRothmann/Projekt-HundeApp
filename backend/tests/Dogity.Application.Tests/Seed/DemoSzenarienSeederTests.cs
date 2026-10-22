@@ -100,6 +100,7 @@ public class DemoSzenarienSeederTests
             await db.DogOwners.IgnoreQueryFilters().CountAsync(),
             await db.ClubRegistrations.IgnoreQueryFilters().CountAsync(),
             await db.GpsPoints.IgnoreQueryFilters().CountAsync(),
+            await db.DogPauses.IgnoreQueryFilters().CountAsync(),
         ];
     }
 
@@ -503,6 +504,150 @@ public class DemoSzenarienSeederTests
         var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         Assert.DoesNotContain(await pruefDb.Dogs.IgnoreQueryFilters().ToListAsync(), d => d.Name == "Flitzer");
         Assert.Equal(hundId, (await pruefDb.Goals.SingleAsync(g => g.Notes == DemoSzenarienSeeder.NotizHoopersZiel)).DogId);
+    }
+
+    // --- Trainingspausen ----------------------------------------------------------
+
+    private static async Task<Guid> HundIdAsync(IServiceProvider provider, string name)
+    {
+        using var scope = provider.CreateScope();
+        return (await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Dogs.SingleAsync(d => d.Name == name)).Id;
+    }
+
+    [Fact]
+    public async Task Trainingspausen_NinasHuendinIstLaeufig_BelloHatEineAbgeschlosseneVerletzung()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var heute = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin")).DateTime);
+        var ninaId = (await users.FindByEmailAsync(DemoSzenarienSeeder.NeulingEmail))!.Id;
+
+        var flitzer = await db.Dogs.SingleAsync(d => d.Name == "Flitzer");
+        var laeufig = await db.DogPauses.SingleAsync(p => p.DogId == flitzer.Id);
+        Assert.Equal(DogPauseReason.InHeat, laeufig.Reason);
+        Assert.Equal(DemoSzenarienSeeder.NotizPauseLaeufig, laeufig.Note);
+        Assert.Equal(heute.AddDays(-5), laeufig.StartDate);
+        Assert.Equal(heute.AddDays(16), laeufig.EndDate);
+        Assert.Equal(ninaId, laeufig.CreatedByUserId);
+
+        var bello = await db.Dogs.SingleAsync(d => d.Name == "Bello");
+        var verletzung = await db.DogPauses.SingleAsync(p => p.DogId == bello.Id);
+        Assert.Equal(DogPauseReason.Injured, verletzung.Reason);
+        Assert.True(verletzung.EndDate < heute);
+    }
+
+    [Fact]
+    public async Task Trainingspausen_LaeufigkeitLaeuftRollend_NachIhremNatuerlichenEnde()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var flitzerId = await HundIdAsync(provider, "Flitzer");
+
+        // Um 25 Tage zurückgeschoben: Das Ende (Beginn + 21 Tage) lag nach dem Verschieben neun Tage zurück.
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var pause = await db.DogPauses.SingleAsync(p => p.DogId == flitzerId);
+            const int verschiebung = 25;
+            pause.StartDate = pause.StartDate.AddDays(-verschiebung);
+            pause.EndDate = pause.EndDate!.Value.AddDays(-verschiebung);
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pausen = await pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>().DogPauses
+            .Where(p => p.DogId == flitzerId).OrderBy(p => p.StartDate).ToListAsync();
+        Assert.Equal(2, pausen.Count);
+        Assert.True(pausen[0].EndDate < pausen[1].StartDate);
+        Assert.True(pausen[1].EndDate > pausen[1].StartDate.AddDays(10));
+    }
+
+    [Fact]
+    public async Task Trainingspausen_WasEinTesterBeendetOderGeloeschtHat_KommtNichtZurueck()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var flitzerId = await HundIdAsync(provider, "Flitzer");
+
+        // Vorzeitig beendet (gestern war der letzte Tag), nicht die vollen 21 Tage.
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var pause = await db.DogPauses.SingleAsync(p => p.DogId == flitzerId);
+            pause.EndDate = pause.StartDate.AddDays(3);
+            await db.SaveChangesAsync();
+        }
+        Assert.Empty(await SzenarienAsync(provider));
+
+        // Und gelöscht.
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.DogPauses.SingleAsync(p => p.DogId == flitzerId)).DeletedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+        }
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Equal(1, await pruefDb.DogPauses.IgnoreQueryFilters().CountAsync(p => p.DogId == flitzerId));
+    }
+
+    [Fact]
+    public async Task Trainingspausen_EigenePauseDesTestersImSelbenZeitraum_GehtVor()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        // Der Tester ersetzt die Demo-Pause durch eine eigene, die bis auf Weiteres gilt.
+        Assert.Empty(await SzenarienAsync(provider));
+        var flitzerId = await HundIdAsync(provider, "Flitzer");
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var demo = await db.DogPauses.SingleAsync(p => p.DogId == flitzerId);
+            demo.DeletedAt = DateTimeOffset.UtcNow;
+            db.DogPauses.Add(new DogPause { DogId = flitzerId, Reason = DogPauseReason.Sick, StartDate = demo.StartDate, EndDate = null });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pausen = await pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>().DogPauses.Where(p => p.DogId == flitzerId).ToListAsync();
+        Assert.Equal(DogPauseReason.Sick, Assert.Single(pausen).Reason);
+    }
+
+    [Fact]
+    public async Task Trainingspausen_NurEinRuedeBeiNina_KeineLaeufigkeit()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        using (var scope = provider.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var nina = new ApplicationUser { UserName = DemoSzenarienSeeder.NeulingEmail, Email = DemoSzenarienSeeder.NeulingEmail, EmailConfirmed = true, FirstName = "Nina", LastName = "Neuling" };
+            Assert.True((await users.CreateAsync(nina, "Demo1234!")).Succeeded);
+            var hund = new Dog { Name = "Rex", Breed = "Beagle", Gender = DogGender.Male };
+            db.Dogs.Add(hund);
+            db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = nina.Id });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.DoesNotContain(await pruefDb.DogPauses.ToListAsync(), p => p.Reason == DogPauseReason.InHeat);
     }
 
     [Fact]

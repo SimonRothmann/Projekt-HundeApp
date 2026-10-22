@@ -108,7 +108,7 @@ export const SICHERUNG_AUFBEWAHRUNG = {
 } as const;
 
 /** Letzte inhaltliche Änderung an Impressum oder Datenschutzerklärung. */
-export const STAND = "2026-10-16";
+export const STAND = "2026-10-22";
 
 /**
  * Stand der englischen Datenschutzerklärung (app/datenschutz/datenschutz-en.tsx).
@@ -118,7 +118,7 @@ export const STAND = "2026-10-16";
  * deutsche Fassung ändert und STAND anhebt, bekommt so lange einen roten
  * Test, bis die englische nachgezogen und dieses Datum angehoben ist.
  */
-export const STAND_EN = "2026-10-16";
+export const STAND_EN = "2026-10-22";
 
 /** "Hauptstr. 20/2, 76307 Karlsbad" - für Fließtext und strukturierte Daten. */
 export const ANSCHRIFT_EINZEILIG = `${BETREIBER.strasse}, ${BETREIBER.plz} ${BETREIBER.ort}`;

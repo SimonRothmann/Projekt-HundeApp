@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Dog as DogIcon, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, CirclePause, Dog as DogIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { aktuellePause, pausenZeile } from "@/lib/pausen";
 import type { GroupMember, MemberDog } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ export function GroupMemberCard({
   onRemove: (member: GroupMember) => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const { user } = useAuth();
   const [offen, setOffen] = useState(false);
   const [dogs, setDogs] = useState<MemberDog[] | null>(null);
@@ -122,10 +124,17 @@ export function GroupMemberCard({
             <ul className="flex flex-col gap-2">
               {dogs.map((dog) => (
                 <li key={dog.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2">
-                  <div className="flex min-w-0 items-center gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
                     <DogIcon className="size-4 shrink-0 text-primary-text" />
                     <span className="font-medium [overflow-wrap:anywhere]">{dog.name}</span>
                     {dog.breed && <span className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{dog.breed}</span>}
+                    {/* Nur bei betreuten Hunden und nur der Zeitraum (der Server liefert nicht mehr). */}
+                    {aktuellePause(dog) && (
+                      <span className="flex items-center gap-1 text-sm font-medium text-amber-800 dark:text-amber-300">
+                        <CirclePause className="size-3.5 shrink-0" aria-hidden />
+                        <span className="min-w-0 [overflow-wrap:anywhere]">{pausenZeile(t, aktuellePause(dog)!, sprache)}</span>
+                      </span>
+                    )}
                   </div>
                   {dog.isTrainerAssigned ? (
                     <div className="flex flex-wrap items-center gap-2">

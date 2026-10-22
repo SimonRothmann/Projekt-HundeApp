@@ -70,7 +70,12 @@ export function DatenschutzEn() {
           ]}
         />
         <p className="font-medium text-foreground">Dogs</p>
-        <Liste punkte={["Name, breed, date of birth, sex, notes and – if you upload one – a photo"]} />
+        <Liste
+          punkte={[
+            "Name, breed, date of birth, sex, notes and – if you upload one – a photo",
+            "Training breaks of the dog, if you enter them: the reason (injured, sick or – for bitches – in heat), start and end or “until further notice”, a short note and who entered the break",
+          ]}
+        />
         <p className="font-medium text-foreground">Training</p>
         <Liste
           punkte={[
@@ -295,6 +300,7 @@ export function DatenschutzEn() {
             "Co-owners of a dog see its diary in full. Someone only becomes a co-owner by accepting an invitation. Until then the inviting person sees only the email address they entered themselves, and the invited person sees only the dog’s name and who is inviting. You can end your own co-ownership at any time.",
             "Trainers of a group that you have joined yourself or whose invitation you have accepted can look after your dogs. They then see their training sessions, goals and tracks and can give feedback. You are notified as soon as someone looks after one of your dogs; if you leave the group, the supervision ends. You can also end it yourself at any time: Under “Manage” on the dog you see which trainers have insight, and you end the supervision there with a tap. The trainer is notified and no longer sees the dog afterwards.",
             "Acceptances of group sessions: The trainers of the club and of the session see by name who accepted or declined. The other members of your group only see numbers, such as “5 acceptances”. If you decline, the trainers of the session receive a notification with your first name.",
+            "Training breaks of your dog are seen by you and the co-owners with reason, period and note. Trainers who look after the dog see only that it is on a break and until when – not the reason and not the note. The training plan they see stands still during that time; for that reason they also see the periods of earlier breaks that fall within the plan, but never the history with reasons. Nobody else sees any of this. The server ensures this, not just the display.",
             "Your reply to a trainer’s feedback (“Thanks”, “Understood”, “Question”) is seen by the trainer who gave it and by the owners of the dog; it triggers a notification for the trainer. If the trainer writes new feedback, your reply is reset.",
             "The club administration sees memberships, group membership and names of its members – not their training diary. For a join request it also sees whether it came through the club’s invitation link.",
             "In the administration, the operator sees aggregated key figures, such as how many of the accounts of the last 30 days have created a dog. These are numbers, not persons; nothing is measured in the browser for this.",
@@ -366,7 +372,7 @@ export function DatenschutzEn() {
         <Liste
           punkte={[
             "Account data and everything attached to it: until you delete the account.",
-            "Individual entries – training sessions, tracks, dogs: until you delete them.",
+            "Individual entries – training sessions, tracks, dogs, training breaks: until you delete them.",
             "Sign-ups to a group without an account (section 9): until the trainers delete them, at the latest twelve months after the last attendance, change or sign-up.",
             "Login tokens on the server: the short-lived one after one hour, the renewal token after 60 days at the latest.",
             "Devices for push notifications: until you switch off push there, log out or delete your account; a device that the push service no longer knows is removed on the next send.",

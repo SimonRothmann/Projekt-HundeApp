@@ -35,6 +35,25 @@ public class DogImageConfiguration : IEntityTypeConfiguration<DogImage>
     }
 }
 
+public class DogPauseConfiguration : IEntityTypeConfiguration<DogPause>
+{
+    public void Configure(EntityTypeBuilder<DogPause> builder)
+    {
+        builder.ToTable("dog_pauses");
+        // Wie Dog.Gender: als Text gespeichert, damit die Spalte lesbar bleibt.
+        builder.Property(p => p.Reason).HasConversion<string>().HasMaxLength(20);
+        builder.Property(p => p.Note).HasMaxLength(Textlaengen.PausenNotiz);
+
+        builder.HasOne(p => p.Dog)
+            .WithMany()
+            .HasForeignKey(p => p.DogId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Der Verlauf eines Hundes, neueste zuerst.
+        builder.HasIndex(p => new { p.DogId, p.StartDate });
+    }
+}
+
 public class DogOwnerConfiguration : IEntityTypeConfiguration<DogOwner>
 {
     public void Configure(EntityTypeBuilder<DogOwner> builder)

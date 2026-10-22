@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Archive, ArchiveRestore, ChevronDown, Eye, Pencil, Printer, Trash2, Users } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronDown, CirclePause, Eye, Pencil, Printer, Trash2, Users } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { Dog, DogBetreuung, DogOwner } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BetreuungenSection } from "@/components/dogs/betreuungen-section";
 import { CoOwnersSection } from "@/components/dogs/co-owners-section";
+import { PausenSection } from "@/components/dogs/pausen-section";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +21,7 @@ const ZEILE =
 /**
  * Das Menü "Verwalten" der Hundeseite als Sheet: alles, was den Hund selbst
  * betrifft und nicht sein Training - Bearbeiten, Drucken/Exportieren,
- * Mitbesitzer, Trainer:innen mit Einblick, Archivieren, Endgültig löschen. Früher standen die letzten drei
+ * Trainingspause, Mitbesitzer, Trainer:innen mit Einblick, Archivieren, Endgültig löschen. Früher standen die letzten drei
  * als Karten am Seitenende, hinter dem ganzen Tagebuch.
  *
  * Gezeigt wird, was die Person darf: Besitzer:innen (auch Mitbesitzer:innen)
@@ -50,6 +51,7 @@ export function DogActionsSheet({
   const t = useT();
   const router = useRouter();
   const [mitbesitzerOffen, setMitbesitzerOffen] = useState(false);
+  const [pauseOffen, setPauseOffen] = useState(false);
   const [betreuungOffen, setBetreuungOffen] = useState(false);
   // Wer den Hund betreut. Geladen wird erst beim Öffnen des Sheets: Die Liste
   // gehört den Besitzer:innen und wird auf der Hundeseite sonst nirgends gebraucht.
@@ -133,6 +135,14 @@ export function DogActionsSheet({
 
           {isOwner && (
             <>
+              {/* Trainingspause: verletzt, krank, läufig - hält den Plan an. */}
+              <button type="button" className={ZEILE} aria-expanded={pauseOffen} onClick={() => setPauseOffen((v) => !v)}>
+                <CirclePause className="size-4 shrink-0" />
+                <span className="min-w-0 flex-1">{t("Trainingspause")}</span>
+                <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", pauseOffen && "rotate-180")} />
+              </button>
+              {pauseOffen && <PausenSection dog={dog} onChanged={onChanged} />}
+
               <button
                 type="button"
                 className={ZEILE}
@@ -182,7 +192,7 @@ export function DogActionsSheet({
                   <p className="text-sm text-muted-foreground">
                     {dog.archivedAt
                       ? t("Ausgeblendet aus deiner aktiven Liste – alle Daten bleiben erhalten. Du kannst die Archivierung jederzeit aufheben.")
-                      : t("Blendet den Hund aus deiner Liste aus – Trainings, Fährten und Ziele bleiben vollständig erhalten. Ideal, wenn dein Hund verstorben ist oder pausiert.")}
+                      : t("Blendet den Hund aus deiner Liste aus – Trainings, Fährten und Ziele bleiben vollständig erhalten. Ideal, wenn dein Hund verstorben ist. Für eine Verletzung, Krankheit oder Läufigkeit gibt es die Trainingspause.")}
                   </p>
                 </div>
                 <Button variant="outline" className="w-full" onClick={() => setArchived(!dog.archivedAt)}>

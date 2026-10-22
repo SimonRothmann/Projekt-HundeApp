@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-10-16 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-10-22 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -46,12 +46,13 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 |---|---|
 | Zweck | Führen des Trainingstagebuchs, Auswertung des Verlaufs, Prüfungsvorbereitung |
 | Betroffene | Registrierte Nutzer:innen (Hundedaten sind über den Halter personenbeziehbar) |
-| Datenkategorien | Hundename, Rasse, Geburtstag, Geschlecht, Notizen, Foto; Trainingsdatum/-zeit/-dauer, Ortsname und Koordinaten, Wetter, Übungen mit Bewertung und Notizen, Trainer-Rückmeldungen samt Antwort der Besitzer:in (Danke/Verstanden, kurze Rückfrage mit Zeitpunkt); Ziele und Trainingspläne; Prüfungsergebnisse (Datum, Punkte, Notiz) |
+| Datenkategorien | Hundename, Rasse, Geburtstag, Geschlecht, Notizen, Foto; Trainingsdatum/-zeit/-dauer, Ortsname und Koordinaten, Wetter, Übungen mit Bewertung und Notizen, Trainer-Rückmeldungen samt Antwort der Besitzer:in (Danke/Verstanden, kurze Rückfrage mit Zeitpunkt); Ziele und Trainingspläne; Prüfungsergebnisse (Datum, Punkte, Notiz); Trainingspausen des Hundes (Grund: verletzt, krank oder läufig, Beginn, Ende oder „bis auf Weiteres“, optionale Notiz, wer die Pause eingetragen hat) |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. b |
-| Empfänger | Mitbesitzer:innen und zugeordnete Trainer:innen (innerhalb der App); Hosting-Dienstleister |
+| Empfänger | Mitbesitzer:innen und zugeordnete Trainer:innen (innerhalb der App); Hosting-Dienstleister. Trainingspausen: Mitbesitzer:innen sehen alles; zugeordnete (betreuende) Trainer:innen sehen nur, DASS und BIS WANN der Hund pausiert - Grund und Notiz bekommen sie vom Server nie geliefert (eigenes DTO, `DogPauseQueries.ToDto`); alle anderen sehen nichts. Die Pausenliste (`GET /api/dogs/{id}/pausen`) liefert Trainer:innen nur laufende und kommende Pausen. Der Trainingsplan, den auch Trainer:innen sehen, rechnet mit den Pausenzeiträumen, die in das Planfenster fallen (auch vergangene; nur Daten, ohne Grund und Notiz). |
 | Drittland | nein |
-| Löschfrist | bis zur Löschung des Eintrags bzw. des Kontos |
-| Tabellen | `dogs`, `dog_owners`, `dog_images`, `training_sessions`, `training_exercises`, `goals`, `training_plans`, `training_plan_items`, `exercise_masteries` |
+| Besonderheit | Die Gesundheitsangaben der Trainingspause betreffen das Tier, nicht eine Person (keine Daten nach Art. 9 DSGVO); sie bleiben wegen des Bezugs zum Halter trotzdem auf die Besitzer:innen beschränkt. Eine Pause lässt sich bearbeiten, vorzeitig beenden und löschen (Löschen blendet aus wie bei allen Einträgen). Nicht Teil von Benachrichtigungen, Mails oder Push. |
+| Löschfrist | bis zur Löschung des Eintrags bzw. des Kontos; die Pausen eigener Hunde gehen bei der Kontolöschung endgültig mit (`AccountDataService.PurgeAsync`, auch weich gelöschte), die eines geteilten Hundes bleiben bei den übrigen Besitzer:innen. Der Datenexport enthält sie (Auskunft nach Art. 15/20). |
+| Tabellen | `dogs`, `dog_owners`, `dog_images`, `dog_pauses`, `training_sessions`, `training_exercises`, `goals`, `training_plans`, `training_plan_items`, `exercise_masteries` |
 
 ### 2.3 Fährtenaufzeichnung (Standortdaten)
 
