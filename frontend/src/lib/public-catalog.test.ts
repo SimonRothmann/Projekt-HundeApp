@@ -73,6 +73,19 @@ describe("groupIntoFamilies", () => {
     ]);
   });
 
+  it("bündelt Rally Obedience: FCI-Klasse und VDH-Klassen zusammen, die des ÖKV bei Österreich", () => {
+    expect(
+      titles(["FCI-Rally Obedience International", "VDH Rally Obedience Beginner (RO B)", "VDH Rally Obedience 2 (RO 2)"]),
+    ).toEqual(["Rally Obedience"]);
+    expect(titles(["ÖKV Rally Obedience 1 (RO 1)", "ÖKV Rally Obedience Senior (RO S)"])).toEqual(["Österreich – ÖKV"]);
+    // Nicht verwechseln mit Obedience (FCI-Obedience, VDH Obedience ...) und Turnierhundsport (VDH-...).
+    expect(titles(["FCI-Obedience 1", "VDH Obedience Beginner (O-B)", "FCI-Rally Obedience International", "VDH-VK1"])).toEqual([
+      "Obedience",
+      "Rally Obedience",
+      "Turnierhundsport",
+    ]);
+  });
+
   it("trennt die Fährten von den Einzelprüfungen", () => {
     // "FCI-FPr 1" enthält kein "Fährte" im Namen und gehört zu den
     // Einzelprüfungen - sonst stünde dieselbe Prüfung in zwei Familien.

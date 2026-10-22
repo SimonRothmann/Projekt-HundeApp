@@ -29,6 +29,12 @@ public static class FciKatalog
     public const string ObedienceCode = "OBEDIENCE";
 
     /// <summary>
+    /// Sportart-Code von Rally Obedience (Paket RO1): die FCI International Class
+    /// und die nationalen Klassen von VDH und ÖKV teilen sich eine Sportart.
+    /// </summary>
+    public const string RallyObedienceCode = "RALLYO";
+
+    /// <summary>
     /// Sportarten-Codes, die FCI-Ordnungen führen - alles, was nicht darin steht,
     /// ist national. Die Sportart gilt als international, auch wenn sie daneben
     /// nationale Ordnungen führt (die ÖKV-BH unter "BH", die nationalen
@@ -40,7 +46,7 @@ public static class FciKatalog
     {
         "BH", "IBGH1", "IBGH2", "IBGH3", "IGP1", "IGP2", "IGP3",
         "FAERTE", "FPR", "UPR", "SPR", "GPR", "STOEPR", "IAD",
-        ObedienceCode,
+        ObedienceCode, RallyObedienceCode,
     };
 
     /// <summary>Länder-Code der nationalen (VDH-)Ordnungen.</summary>
@@ -86,6 +92,7 @@ public static class FciKatalog
         ["STOEPR"] = "Article Search (FCI-StöPr)",
         ["IAD"] = "Endurance Trial (FCI-IAD)",
         [ObedienceCode] = "Obedience",
+        [RallyObedienceCode] = "Rally Obedience",
     };
 
     /// <summary>
@@ -127,6 +134,8 @@ public static class FciKatalog
             [(ObedienceCode, "FCI-Obedience 1")] = "FCI Obedience Class 1",
             [(ObedienceCode, "FCI-Obedience 2")] = "FCI Obedience Class 2",
             [(ObedienceCode, "FCI-Obedience 3")] = "FCI Obedience Class 3",
+            // Rally Obedience (Paket RO1): die Ordnung heißt im Original "International Class".
+            [(RallyObedienceCode, "FCI-Rally Obedience International")] = "FCI Rally Obedience International Class",
         };
 
     /// <summary>
@@ -192,6 +201,40 @@ public static class FciKatalog
         ["Gesamteindruck"] = "General impression",
     };
 
+    /// <summary>
+    /// Die Schildgruppen der FCI International Class im Rally Obedience (FCI-Reglement 2025, Kapitel 5).
+    /// Die Gruppen sind unsere eigene Zusammenfassung der 89 Schilder zu trainierbaren Aufgaben
+    /// (siehe SportCatalogSeeder.RallyObedience.cs); die englischen Namen sind deshalb eigene
+    /// Bezeichnungen in der Terminologie des Reglements ("Turn around dog behind", "Side step",
+    /// "Send over jump"), keine Namen aus einer Tabelle. "Bogen und Zickzack" und "Mehrschildübung"
+    /// kennen nur VDH und ÖKV und haben keinen englischen Namen.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> RallyObedienceuebungen = new Dictionary<string, string>
+    {
+        ["Halt, Sitz und Platz"] = "Stop, sit and down",
+        ["Steh und Positionswechsel"] = "Stand and position changes",
+        ["Rückwärtsgehen"] = "Backward steps",
+        ["Um den Hund herumgehen"] = "Walking around the dog",
+        ["Position aus der Bewegung"] = "Positions from motion",
+        ["Wendungen im Gehen"] = "Turns in motion",
+        ["Wendungen aus dem Halt"] = "Turns from a stop",
+        ["270°-Wendung, Loop und 360°-Kreis"] = "270° turns, loops and 360° circles",
+        ["Kehrtwendung mit gegenläufigem Hund"] = "Turn around with the dog behind",
+        ["Tempowechsel"] = "Pace changes",
+        ["Spirale"] = "Spiral",
+        ["Slalom"] = "Slalom",
+        ["Achter und Ablenkung"] = "Figure eight and distractions",
+        ["Seitwärtsschritte"] = "Side steps",
+        ["Seitenwechsel der Führseite"] = "Changing the heeling side",
+        ["Vorsitz und Rückkehr an die Seite"] = "Front position and return to heel",
+        ["Hund umrundet den Führer"] = "Dog circles or spins around the handler",
+        ["Bleib und Abruf"] = "Stay and recall",
+        ["Positionen aus der Distanz und Voraussenden"] = "Positions at a distance and sending away",
+        ["Hund über die Hürde senden"] = "Sending the dog over the jump",
+        ["Abruf über die Hürde"] = "Recall over the jump",
+        ["Fußarbeit zwischen den Schildern"] = "Heelwork between signs",
+    };
+
     private static readonly string[] Gebrauchshundesportarten = ["IGP1", "IGP2", "IGP3", "FPR", "UPR", "SPR", "GPR"];
 
     /// <summary>
@@ -211,6 +254,9 @@ public static class FciKatalog
 
         foreach (var (name, en) in Obedienceuebungen)
             alle[(ObedienceCode, name)] = en;
+
+        foreach (var (name, en) in RallyObedienceuebungen)
+            alle[(RallyObedienceCode, name)] = en;
 
         // Begleithundeprüfung mit Verhaltens- und Verkehrsteil (FCI-BH/VT).
         // Die Verkehrsteile heißen im englischen Text "Examination in traffic".

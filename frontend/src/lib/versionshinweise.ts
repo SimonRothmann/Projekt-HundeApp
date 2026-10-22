@@ -61,6 +61,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.38",
+    datum: "2026-10-22",
+    titel: uebersetzbar("Rally Obedience"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Rally Obedience ist als neue Sportart dazugekommen: ein Parcours aus Schildern, an denen Hund und Mensch gemeinsam Aufgaben zeigen – gewertet wird über Abzüge von 100 Punkten. Die internationale FCI-Klasse gilt in jedem Land und steht mit allen Übungen und Bewertungshinweisen im Katalog, beim Anlegen eines Ziels und beim Eintragen eines Trainings; auf Englisch auch mit englischen Texten und den Schildern in ihren Originalbezeichnungen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Dazu kommen je nach Land die Klassen Beginner, 1, 2, 3 und Senioren: für Deutschland die des VDH (Regelwerk ab 01.01.2027), für Österreich die des ÖKV. Sie erscheinen nur, wenn das jeweilige Land gewählt ist. Statt jedes einzelnen Schildes gibt es trainierbare Gruppen wie Wendungen, Slalom oder Abruf über die Hürde; welche Schilder zu einer Klasse gehören, steht in den Hinweisen der Ordnung."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Wenn du in den Einstellungen bestimmte Sportarten gewählt hast, bleibt diese Auswahl unverändert. Rally Obedience ergänzt du dort selbst."),
+      },
+    ],
+  },
+  {
     version: "0.37",
     datum: "2026-10-22",
     titel: uebersetzbar("Erinnerungen als Meldung und Push"),

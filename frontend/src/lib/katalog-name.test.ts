@@ -84,6 +84,22 @@ describe("katalogKategorie", () => {
     expect(katalogKategorie({ category: "Gesamteindruck", nameEn: "General impression" }, "en")).toBe("General impression");
   });
 
+  it("übersetzt die Kategorien der Rally-Obedience-Gruppen", () => {
+    expect(katalogKategorie({ category: "Positionen", nameEn: "Stop, sit and down" }, "en")).toBe("Positions");
+    expect(katalogKategorie({ category: "Wendungen und Tempo", nameEn: "Pace changes" }, "en")).toBe("Turns and pace");
+    expect(katalogKategorie({ category: "Figuren", nameEn: "Slalom" }, "en")).toBe("Figures");
+    expect(katalogKategorie({ category: "Schritte und Seitenwechsel", nameEn: "Side steps" }, "en")).toBe("Steps and side changes");
+    expect(katalogKategorie({ category: "Hürde", nameEn: "Recall over the jump" }, "en")).toBe("Jump");
+    expect(katalogKategorie({ category: "Parcours", nameEn: "Heelwork between signs" }, "en")).toBe("Course");
+    // "Distanzarbeit" teilt sich das Rally Obedience mit dem Obedience.
+    expect(katalogKategorie({ category: "Distanzarbeit", nameEn: "Stay and recall" }, "en")).toBe("Distance work");
+  });
+
+  it("lässt die Kategorie der nur nationalen Rally-Obedience-Gruppen deutsch", () => {
+    expect(katalogKategorie({ category: "Figuren", nameEn: null }, "en")).toBe("Figuren");
+    expect(katalogKategorie({ category: "Parcours" }, "en")).toBe("Parcours");
+  });
+
   it("lässt die Kategorie der nur nationalen Obedience-Übungen deutsch", () => {
     // Ohne englischen Namen (kein FCI-Gegenstück), wie bei allen nationalen Übungen.
     expect(katalogKategorie({ category: "Gruppenübung", nameEn: null }, "en")).toBe("Gruppenübung");

@@ -845,3 +845,51 @@ für FCI; Zahlen im englischen Text; Idempotenz; Bestand, Vereinssportart, Sport
 Englisch wurden erweitert (Obedience-Ordnungen in den Erwartungslisten, nationale Übungen
 nach der Ordnung statt nach der Sportart), nicht abgeschwächt.
 
+---
+
+## Paket RO1 (2026-10-22, Fassung 0.38): Rally Obedience
+
+Auftrag des Betreibers (2026-10-22): Rally Obedience als Sportart - FCI International Class,
+VDH und ÖKV, Vorgehen wie bei Obedience. Quellen, Prüfprotokoll, Gruppierung, Entscheidungen und
+offene Punkte: [PO_VERIFIKATION.md](PO_VERIFIKATION.md), Abschnitt „Rally Obedience“.
+
+*Stand der Länder*
+
+| Land | Inhalt im Katalog |
+|---|---|
+| **Deutschland** (`DE`) | VDH: Turnierhundsport (12), Agility inkl. A0 (5), Hoopers H0-H3 (4), Obedience Beginner und Senioren (2), **Rally Obedience RO B, 1, 2, 3, S (5)**, dazu die internationalen FCI-Ordnungen |
+| **Österreich** (`AT`) | ÖKV: BH/VT (1), Agility LK 1-3 und Jumping (4), Hoopers H1-H3 (3), Breitensport (8), Obedience Beginner und Senior (2), **Rally Obedience RO B, 1, 2, 3, S (5)**, dazu FCI |
+| **Schweiz** (`CH`) | unverändert; kein SKG-Reglement für Rally Obedience gefunden, es gilt die FCI-Klasse |
+| übrige Länder | nur die internationalen FCI-Ordnungen, jetzt 31 statt 30 (**FCI-Rally Obedience International**) |
+
+*Aufbau*
+
+- Eine neue Sportart `RALLYO` für alle elf Ordnungen (die FCI-Ordnung mit `CountryCode` null und
+  englischen Namen/Texten; VDH „DE“, ÖKV „AT“, deutsch). 24 Übungen, 221 Verknüpfungen. Die
+  Übungen sind **Schildgruppen** (89 FCI-, 132 VDH-, 105 ÖKV-Schilder auf 24 Gruppen verteilt); je
+  Ordnung nennt der Hinweis der Ordnungs-Übung die Schilder der Klasse mit Nummer, Bezeichnung und
+  Seite. Gewertet wird über Abzüge vom Startwert 100: Die Übungen tragen 0 Punkte.
+- Englisch: nur die FCI-Ordnung („FCI Rally Obedience International Class“), ihre Beschreibung und
+  22 Hinweise sowie die 22 Gruppen, die sie führt (Name und Bewertung). Die Schilder stehen mit ihren
+  englischen Originalbezeichnungen auch im deutschen Text. „Bogen und Zickzack“ und „Mehrschildübung“
+  kennen nur VDH und ÖKV und bleiben deutsch. `fci-texte-en.json` wuchs um 22 Bewertungstexte,
+  1 Beschreibung und 22 Hinweise (jetzt 186 Einträge für Übungen, 31 für Ordnungen und 255 für
+  Hinweise).
+- Wiederverwendet statt neu gebaut: `RegulationSeed.Ueberall`, die Suche nach der globalen Sportart
+  und die Mitnutzung einer gleichnamigen globalen Sportart aus Paket O1 (jetzt als
+  `GlobaleSportCodeAsync` für beide Sportarten), die Englisch-Bindung an den deutschen Text
+  (`FciTexteEn`) und die Länder-Tests.
+- Kategorien: „Positionen“, „Wendungen und Tempo“, „Figuren“, „Schritte und Seitenwechsel“, „Hürde“,
+  „Parcours“ und „Distanzarbeit“ (aus dem Obedience); Übersetzung wie die der FCI-Kategorien (`en.ts`).
+- Keine Schemaänderung und keine Migration; eine vorhandene Sportartenwahl bekommt Rally Obedience
+  nicht automatisch dazu.
+- Öffentliche Prüfungsordnungs-Seiten: Neue Familie „Rally Obedience“ für die FCI-Ordnung und die
+  VDH-Klassen (`lib/public-catalog.ts`); die ÖKV-Klassen stehen bei „Österreich – ÖKV“.
+
+*Prüfung:* `RallyObedienceKatalogTests` (Ordnungen mit Land, Quelle, Version und Seiten; Parcours-,
+Alters- und Notenangaben je Klasse; Gruppen je Ordnung; alle Schilder je Quelle genau einmal; Punkte 0;
+Englisch nur für FCI; Zahlen und englische Schildnummern; Länderfilter; Idempotenz; Bestand,
+Vereinssportart, Sportartenwahl, Abgrenzung zu Obedience), `public-catalog.test.ts` und
+`katalog-name.test.ts`. Die bestehenden Tests zu Ländern und Englisch wurden erweitert (Rally-
+Ordnungen in den Erwartungslisten, Zählungen), nicht abgeschwächt.
+

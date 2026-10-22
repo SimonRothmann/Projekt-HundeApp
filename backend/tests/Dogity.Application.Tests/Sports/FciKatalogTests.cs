@@ -48,10 +48,12 @@ public class FciKatalogTests
         var schweiz = alle.Where(o => o.CountryCode == "CH").ToList();
         Assert.NotEmpty(schweiz);
         Assert.All(schweiz, o => Assert.StartsWith("SKG", o.Name));
-        // Ebenso die VDH-Einsteigerklassen unter Obedience (Paket O1): Deutschland, obwohl die Sportart
-        // sonst FCI-Ordnungen führt - dort steht das Land an der Ordnung selbst.
-        var deutschland = alle.Where(o => o.CountryCode == "DE" && o.Code == FciKatalog.ObedienceCode).ToList();
-        Assert.Equal(2, deutschland.Count);
+        // Ebenso die VDH-Ordnungen unter Obedience (Paket O1, zwei Einsteigerklassen) und Rally Obedience
+        // (Paket RO1, fünf Klassen): Deutschland, obwohl die Sportart sonst eine FCI-Ordnung führt - dort
+        // steht das Land an der Ordnung selbst.
+        var deutschland = alle.Where(o => o.CountryCode == "DE"
+            && (o.Code == FciKatalog.ObedienceCode || o.Code == FciKatalog.RallyObedienceCode)).ToList();
+        Assert.Equal(2 + 5, deutschland.Count);
         Assert.All(deutschland, o => Assert.StartsWith("VDH", o.Name));
         var ordnungen = alle.Except(oesterreich).Except(schweiz).Except(deutschland).ToList();
 
@@ -134,13 +136,15 @@ public class FciKatalogTests
         Assert.All(ordnungen, r => Assert.False(string.IsNullOrWhiteSpace(r.NameEn), $"Ordnung {r.Name}"));
 
         // Übungen, die nur in nationalen Ordnungen vorkommen (zwei der ÖKV-BH, drei der Einsteigerklassen
-        // unter Obedience), bleiben deutsch. Die Ausnahme ist bewusst eng: österreichische Ordnungen und
-        // die nationalen Obedience-Klassen - eine neue nationale Übung anderswo fällt hier auf.
+        // unter Obedience, zwei Schildgruppen des Rally Obedience), bleiben deutsch. Die Ausnahme ist bewusst
+        // eng: österreichische Ordnungen und die nationalen Obedience- und Rally-Obedience-Klassen - eine neue
+        // nationale Übung anderswo fällt hier auf.
         var nurNational = await db.RegulationExercises
             .GroupBy(re => re.ExerciseId)
             .Where(g => g.All(re => re.RegulationVersion!.Regulation!.CountryCode == "AT"
                 || (re.RegulationVersion!.Regulation!.CountryCode != null
-                    && re.RegulationVersion!.Regulation!.Sport!.Code == FciKatalog.ObedienceCode)))
+                    && (re.RegulationVersion!.Regulation!.Sport!.Code == FciKatalog.ObedienceCode
+                        || re.RegulationVersion!.Regulation!.Sport!.Code == FciKatalog.RallyObedienceCode))))
             .Select(g => g.Key)
             .ToListAsync();
         var uebungen = await db.Exercises

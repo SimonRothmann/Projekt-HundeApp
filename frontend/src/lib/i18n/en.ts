@@ -2230,4 +2230,17 @@ export const EN: Record<string, string> = {
   "Sonntag": "Sunday",
   "Wähle mindestens einen Wochentag.": "Choose at least one weekday.",
   "Die Uhrzeit muss zwischen 8 und 21 Uhr liegen.": "The time must be between 8 am and 9 pm.",
+  "Rally Obedience": "Rally Obedience",
+  "Rally Obedience ist als neue Sportart dazugekommen: ein Parcours aus Schildern, an denen Hund und Mensch gemeinsam Aufgaben zeigen – gewertet wird über Abzüge von 100 Punkten. Die internationale FCI-Klasse gilt in jedem Land und steht mit allen Übungen und Bewertungshinweisen im Katalog, beim Anlegen eines Ziels und beim Eintragen eines Trainings; auf Englisch auch mit englischen Texten und den Schildern in ihren Originalbezeichnungen.":
+    "Rally Obedience is a new sport: a course of signs at which dog and handler show tasks together, scored by deductions from 100 points. The international FCI class applies in every country and is in the catalogue with all exercises and scoring notes, when creating a goal and when logging a training; in English also with English texts and the signs under their original names.",
+  "Dazu kommen je nach Land die Klassen Beginner, 1, 2, 3 und Senioren: für Deutschland die des VDH (Regelwerk ab 01.01.2027), für Österreich die des ÖKV. Sie erscheinen nur, wenn das jeweilige Land gewählt ist. Statt jedes einzelnen Schildes gibt es trainierbare Gruppen wie Wendungen, Slalom oder Abruf über die Hürde; welche Schilder zu einer Klasse gehören, steht in den Hinweisen der Ordnung.":
+    "Depending on the country there are also the classes Beginner, 1, 2, 3 and Senior: for Germany those of the VDH (regulations from 01.01.2027), for Austria those of the ÖKV. They only appear when that country is selected. Instead of every single sign there are trainable groups such as turns, slalom or recall over the jump; which signs belong to a class is stated in the notes of the regulations.",
+  "Wenn du in den Einstellungen bestimmte Sportarten gewählt hast, bleibt diese Auswahl unverändert. Rally Obedience ergänzt du dort selbst.":
+    "If you have selected particular sports in your settings, that selection stays unchanged. You add Rally Obedience there yourself.",
+  "Positionen": "Positions",
+  "Wendungen und Tempo": "Turns and pace",
+  "Figuren": "Figures",
+  "Schritte und Seitenwechsel": "Steps and side changes",
+  "Hürde": "Jump",
+  "Parcours": "Course",
 };

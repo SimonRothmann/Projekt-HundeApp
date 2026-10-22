@@ -87,6 +87,10 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// Einsteigerklassen von VDH, ÖKV und SKG teilen sich die Sportart OBEDIENCE
 /// und stehen in SportCatalogSeeder.Obedience.cs.
 ///
+/// Rally Obedience (Paket RO1, 2026-10-22): die FCI International Class und die
+/// Klassen RO B bis RO 3 und RO S von VDH und ÖKV teilen sich die Sportart
+/// RALLYO und stehen in SportCatalogSeeder.RallyObedience.cs.
+///
 /// Idempotent auf Ebene einzelner Übungen/Prüfungsordnungen (nicht nur
 /// pro Sportart), damit der Katalog auch nach dem ersten Start ergänzt
 /// werden kann, ohne Duplikate zu erzeugen.
@@ -1569,6 +1573,7 @@ public static partial class SportCatalogSeeder
         await SeedOesterreichAsync(db, bh, agility, hoopers);
         await SeedSchweizAsync(db, agility);
         var obedience = await SeedObedienceAsync(db);
+        var rally = await SeedRallyObedienceAsync(db);
 
         await RemoveOrphanedExercisesAsync(db, bh);
         await RemoveOrphanedExercisesAsync(db, ibgh1);
@@ -1599,7 +1604,11 @@ public static partial class SportCatalogSeeder
         await RemoveOrphanedExercisesAsync(db, ths);
 
         // Zuletzt, wenn feststeht, welche Übungen und Ordnungen es noch gibt.
-        await SetzeEnglischeNamenAsync(db, obedience.Id);
+        await SetzeEnglischeNamenAsync(db, new Dictionary<Guid, string>
+        {
+            [obedience.Id] = FciKatalog.ObedienceCode,
+            [rally.Id] = FciKatalog.RallyObedienceCode,
+        });
 
         await db.SaveChangesAsync();
     }
@@ -1620,15 +1629,16 @@ public static partial class SportCatalogSeeder
     /// <see cref="FciTexteEn"/> entstand. Eine veraltete englische Zahl bleibt so
     /// nirgends stehen.
     /// </summary>
-    private static async Task SetzeEnglischeNamenAsync(ApplicationDbContext db, Guid obedienceId)
+    private static async Task SetzeEnglischeNamenAsync(ApplicationDbContext db, IReadOnlyDictionary<Guid, string> fciCodeNachId)
     {
         var codes = FciKatalog.InternationaleSportarten;
+        var sonderIds = fciCodeNachId.Keys.ToList();
         var sportarten = await db.Sports
-            .Where(s => s.ClubId == null && (codes.Contains(s.Code) || s.Id == obedienceId))
+            .Where(s => s.ClubId == null && (codes.Contains(s.Code) || sonderIds.Contains(s.Id)))
             .ToListAsync();
-        // Obedience heißt in FciKatalog OBEDIENCE, auch in einem Bestand, der die Sportart
-        // schon unter einem anderen Code führt (siehe ObedienceSportCodeAsync).
-        var codeNachId = sportarten.ToDictionary(s => s.Id, s => s.Id == obedienceId ? FciKatalog.ObedienceCode : s.Code);
+        // Obedience und Rally Obedience heißen in FciKatalog OBEDIENCE und RALLYO, auch in einem
+        // Bestand, der die Sportart schon unter einem anderen Code führt (siehe GlobaleSportCodeAsync).
+        var codeNachId = sportarten.ToDictionary(s => s.Id, s => fciCodeNachId.TryGetValue(s.Id, out var fciCode) ? fciCode : s.Code);
         var ids = codeNachId.Keys.ToList();
 
         foreach (var sport in sportarten)

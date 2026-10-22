@@ -47,26 +47,28 @@ public static partial class SportCatalogSeeder
     private const string QuelleSkgObedience = "https://www.tkamo.ch/media/files/Obedience_Reglement_2025_DE.pdf";
 
     /// <summary>
-    /// Der Code der Sportart, in die Obedience gehört: <c>OBEDIENCE</c>, bei
-    /// einem Bestand ohne diese Sportart aber der Code einer gleichnamigen
-    /// globalen Sportart. So entsteht keine zweite Sportart "Obedience".
+    /// Der Code der Sportart, in die ein Katalog gehört: <paramref name="code"/>, bei
+    /// einem Bestand ohne diese Sportart aber der Code einer gleichnamigen globalen
+    /// Sportart. So entsteht keine zweite Sportart "Obedience" (und, seit Paket RO1,
+    /// keine zweite "Rally Obedience").
     /// </summary>
-    private static async Task<string> ObedienceSportCodeAsync(ApplicationDbContext db)
+    private static async Task<string> GlobaleSportCodeAsync(ApplicationDbContext db, string code, string name)
     {
-        if (await db.Sports.IgnoreQueryFilters().AnyAsync(s => s.Code == FciKatalog.ObedienceCode && s.ClubId == null))
-            return FciKatalog.ObedienceCode;
+        if (await db.Sports.IgnoreQueryFilters().AnyAsync(s => s.Code == code && s.ClubId == null))
+            return code;
 
+        var klein = name.ToLower();
         var gleichnamig = await db.Sports
-            .Where(s => s.ClubId == null && s.Name.ToLower() == "obedience")
+            .Where(s => s.ClubId == null && s.Name.ToLower() == klein)
             .OrderBy(s => s.Code)
             .Select(s => s.Code)
             .FirstOrDefaultAsync();
-        return gleichnamig ?? FciKatalog.ObedienceCode;
+        return gleichnamig ?? code;
     }
 
     private static async Task<Sport> SeedObedienceAsync(ApplicationDbContext db)
     {
-        var obedience = await SeedSportAsync(db, await ObedienceSportCodeAsync(db), "Obedience",
+        var obedience = await SeedSportAsync(db, await GlobaleSportCodeAsync(db, FciKatalog.ObedienceCode, "Obedience"), "Obedience",
         [
             new("Sitzen in der Gruppe", ExerciseDifficulty.Beginner, "Gruppenübung",
                 "Gruppenübung: Der Hund sitzt ruhig in einer Reihe mit 3 bis 6 Hunden (Klasse 3: 3 bis 4), während sich die Hundeführer entfernen - in Klasse 1 in Sicht (1 Minute), in Klasse 3 außer Sicht (2 Minuten). Er bleibt sitzen, ohne aufzustehen, sich abzulegen oder mehr als eine Körperlänge zu laufen (sonst 0), und lässt sich von Geräuschen und anderen Hunden nicht aus der Ruhe bringen. Abzüge für Unruhe, Gewichtsverlagerung, Bellen oder Winseln (überwiegend Bellen: 0). Steht ein Hund auf und geht zu einem anderen, wird er disqualifiziert. FCI S. 34 f., 65 ff."),

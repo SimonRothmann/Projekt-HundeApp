@@ -204,6 +204,16 @@ const FAMILIES: { key: string; title: string; description: string; matches: (nam
     matches: (name) => /^FCI-Obedience [123]$/.test(name) || name.startsWith("VDH Obedience "),
   },
   {
+    // Rally Obedience (Paket RO1): die FCI International Class und die Klassen des VDH. Weder "FCI-Rally"
+    // noch "VDH Rally" treffen die Obedience-Regeln darüber (die suchen "FCI-Obedience" und "VDH Obedience ")
+    // oder den Turnierhundsport ("VDH-" mit Bindestrich); die Namen des ÖKV stehen bei Österreich.
+    key: "rally-obedience",
+    title: "Rally Obedience",
+    description:
+      "Parcours aus Schildern, an denen Hund und Mensch gemeinsam Aufgaben zeigen: die internationale FCI-Klasse sowie die Klassen des VDH – gewertet über Abzüge von 100 Punkten.",
+    matches: (name) => name.startsWith("FCI-Rally Obedience") || name.startsWith("VDH Rally Obedience "),
+  },
+  {
     key: "ths",
     title: "Turnierhundsport",
     description: "Leichtathletik mit Hund – gewertet wird über die Zeit, nicht über Übungspunkte.",
@@ -228,7 +238,7 @@ const FAMILIES: { key: string; title: string; description: string; matches: (nam
     key: "oekv",
     title: "Österreich – ÖKV",
     description:
-      "Nationale Ordnungen des Österreichischen Kynologenverbands: Begleithund, Agility, Hoopers, Obedience und Breitensport.",
+      "Nationale Ordnungen des Österreichischen Kynologenverbands: Begleithund, Agility, Hoopers, Obedience, Rally Obedience und Breitensport.",
     matches: (name) => name.startsWith("ÖKV"),
   },
   {

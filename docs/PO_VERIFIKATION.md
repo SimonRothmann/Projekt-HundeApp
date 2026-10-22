@@ -25,6 +25,9 @@ kleiner.
 | [ÖKV, Österreichische Prüfungsordnung (ÖPO), Ausgabe 2022 - Datei „ÖPO_2022 HP.pdf“](https://web.archive.org/web/20240618224143/https://www.oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96PO_2022%20HP.pdf) (Webarchiv-Abzug vom 18.06.2024, weil oekv.at am 21.10.2026 nicht erreichbar war; dieselbe Ausgabe wie die BH-Quelle oben) | ÖKV Obedience Beginner (S. 28-32) und Senior (S. 33-37), allgemeine Bestimmungen S. 20-27 (seit 2026-10-21) |
 | [SKG Wettkampfordnung, Reglement Obedience, gültig ab 01.01.2025](https://www.tkamo.ch/media/files/Obedience_Reglement_2025_DE.pdf) (24 Seiten; Übersicht auf [tkamo.ch/de/obedience/reglemente](https://www.tkamo.ch/de/obedience/reglemente.html)) | SKG Obedience Beginners (Kapitel 6, S. 14-23), Mindestalter (3.3), Qualifikation (4.4) (seit 2026-10-21) |
 | [TKAMO, Weisung „FCI-Prüfungsordnung Obedience“, gültig ab 01.01.2026](https://www.tkamo.ch/media/files/Obedience_Weisung_PO_2026_DE.pdf) (4 Seiten) | nur Hinweis (Schweizer Präzisierungen zu den FCI-Klassen), nicht abgebildet |
+| [FCI, Regulations and Rules for International FCI Rally Obedience Trials, 01.02.2025](https://fci.be/medias/FCI-ROB-REG-2025-en-19918.pdf) (FCI-ROB-REG-2025, 36 Seiten, **englisch = Originalsprache**; zuletzt geändert am 08.01.2025) | FCI Rally Obedience International Class: Schilder 101-422 (Kapitel 5), Bewertung und Abzüge (Kapitel 6) |
+| [VDH, Regelwerk Rally Obedience, gültig ab 01.01.2027](https://www.schaeferhunde.de/fileadmin/Secure/Satzungen_Ordnungen/02-VDH_RO_RW_2027.pdf) (Beschluss 25.09.2026, 81 Seiten; Kopie beim SV, die Datei liegt nicht auf vdh.de) | VDH RO B, RO 1, RO 2, RO 3, RO S (Seiten 12-15 Klassen, 30-63 Schilder, 64-68 Senioren-Auswahl, 69-71 Bewertung); bis 31.12.2026 gilt noch die Fassung von 2017 |
+| [ÖKV, Prüfungsordnung Rally Obedience, genehmigt 31.08.2022, gültig ab 01.01.2023](https://rally-obedience.oekv.at/media/upload/editor/files/Rally-Obedience/Endfassung_RO_PO_2023_20012023.pdf) (75 Seiten; **oekv.at war am 22.10.2026 nicht erreichbar, der Text stammt aus einer Webarchiv-Kopie desselben Dokuments**) | ÖKV RO B, RO 1, RO 2, RO 3, RO S (Seiten 16-18 Klassen, 29-63 Schilder, 69-71 Parcoursanforderungen und Senioren, 73-75 Abzüge) |
 
 ## Ergebnis: das meiste stimmt
 
@@ -776,5 +779,200 @@ bei den fünf nationalen Ordnungen und den drei nationalen Übungen nichts. Ein 
 - **Der Prod-Bestand wurde nicht gelesen.** Der Seeder ist defensiv (siehe Entschieden); nach dem
   Deploy sollten Sportart, Ordnungen (8) und Übungen (22) stimmen und `Name = 'Obedience'` nur
   einmal global vorkommen.
-- **Nicht im Paket:** Rally Obedience, Turnierformen (DM, WM-Qualifikation), CACIOB- und
-  Champion-Titel (nur ein Satz in der Beschreibung von Klasse 3).
+- **Nicht im Paket:** Turnierformen (DM, WM-Qualifikation), CACIOB- und Champion-Titel (nur ein
+  Satz in der Beschreibung von Klasse 3). Rally Obedience ist inzwischen umgesetzt (Abschnitt
+  „Rally Obedience“, Paket RO1).
+
+## Rally Obedience (2026-10-22, Paket RO1)
+
+Auftrag des Betreibers (2026-10-22): Rally Obedience als Sportart, Vorgehen wie bei Obedience
+(Paket O1). Eine Sportart `RALLYO` (Name „Rally Obedience“, `NameEn` „Rally Obedience“) mit
+elf Ordnungen:
+
+| Ordnung | `CountryCode` | Quelle |
+|---|---|---|
+| FCI-Rally Obedience International (`NameEn` „FCI Rally Obedience International Class“) | null (überall) | FCI-Reglement vom 01.02.2025 |
+| VDH Rally Obedience Beginner (RO B), 1 (RO 1), 2 (RO 2), 3 (RO 3), Senioren (RO S) | DE | VDH-Regelwerk, gültig ab 01.01.2027 |
+| ÖKV Rally Obedience Beginner (RO B), 1 (RO 1), 2 (RO 2), 3 (RO 3), Senior (RO S) | AT | ÖKV-Prüfungsordnung 2023 |
+
+24 Übungen, 221 Verknüpfungen (FCI 22, VDH 103, ÖKV 96). Der Seeder steht in
+`SportCatalogSeeder.RallyObedience.cs`. Keine Schemaänderung, keine Migration.
+
+### Übungen sind Schildgruppen, nicht Schilder
+
+Die Kataloge zählen 89 (FCI), 132 (VDH) und 105 (ÖKV) Schilder. Als Übungen im Tagebuch wären
+das über hundert Einträge je Verband, und „Spirale rechts“ und „Spirale links“ trainiert man als
+dieselbe Aufgabe. Deshalb gibt es 24 trainierbare Gruppen, die in allen drei Ordnungen gleich
+verstanden werden; je Ordnung steht im Hinweis, **welche Schilder der Klasse zur Gruppe gehören**
+(mit Nummer und Bezeichnung der jeweiligen Ordnung) und die Seite. Gruppen, die es in der Klasse
+nicht gibt, hängen nicht an der Ordnung (VDH RO B hat 15 Gruppen, FCI 22, VDH RO 3 24).
+
+| Gruppe | Englisch (FCI) | Kategorie | FCI | VDH | ÖKV |
+|---|---|---|---|---|---|
+| Halt, Sitz und Platz | Stop, sit and down | Positionen | 3 | 4 | 4 |
+| Steh und Positionswechsel | Stand and position changes | Positionen | 4 | 10 | 5 |
+| Rückwärtsgehen | Backward steps | Schritte und Seitenwechsel | 4 | 6 | 6 |
+| Um den Hund herumgehen | Walking around the dog | Positionen | 3 | 3 | 3 |
+| Position aus der Bewegung | Positions from motion | Positionen | 3 | 6 | 3 |
+| Wendungen im Gehen | Turns in motion | Wendungen und Tempo | 4 | 8 | 8 |
+| Wendungen aus dem Halt | Turns from a stop | Wendungen und Tempo | 14 | 22 | 16 |
+| 270°-Wendung, Loop und 360°-Kreis | 270° turns, loops and 360° circles | Wendungen und Tempo | 6 | 6 | 6 |
+| Kehrtwendung mit gegenläufigem Hund | Turn around with the dog behind | Wendungen und Tempo | 2 | 2 | 2 |
+| Tempowechsel | Pace changes | Wendungen und Tempo | 3 | 4 | 4 |
+| Spirale | Spiral | Figuren | 2 | 4 | 2 |
+| Slalom | Slalom | Figuren | 2 | 2 | 2 |
+| Achter und Ablenkung | Figure eight and distractions | Figuren | 1 | 4 | 3 |
+| Seitwärtsschritte | Side steps | Schritte und Seitenwechsel | 8 | 4 | 3 |
+| Seitenwechsel der Führseite | Changing the heeling side | Schritte und Seitenwechsel | 9 | 9 | 7 |
+| Vorsitz und Rückkehr an die Seite | Front position and return to heel | Positionen | 3 | 4 | 5 |
+| Hund umrundet den Führer | Dog circles or spins around the handler | Schritte und Seitenwechsel | 3 | 5 | 5 |
+| Bleib und Abruf | Stay and recall | Distanzarbeit | 6 | 13 | 11 |
+| Positionen aus der Distanz und Voraussenden | Positions at a distance and sending away | Distanzarbeit | 5 | 7 | 3 |
+| Hund über die Hürde senden | Sending the dog over the jump | Hürde | 2 | 3 | 2 |
+| Abruf über die Hürde | Recall over the jump | Hürde | 2 | 2 | 5 |
+| Bogen und Zickzack | - | Figuren | - | 4 | - |
+| Mehrschildübung | - | Parcours | - | - | - |
+| Fußarbeit zwischen den Schildern | Heelwork between signs | Parcours | - | - | - |
+
+Zahlen = Anzahl der Schilder der Gruppe im Katalog der Quelle (FCI 89, VDH 132, ÖKV 105).
+
+*Regel der Zuordnung:* Jedes Schild gehört zu genau einer Gruppe, nach seiner Hauptaufgabe;
+verbindet es mehrere, entscheidet die anspruchsvollste in der Reihenfolge Hürde, Distanz, Abruf,
+Position aus der Bewegung, Seitenwechsel, Rückwärtsgehen, Vorsitz, Wendung, Position am Halt.
+Beispiele: „Vorsitz – 1 Schritt rückwärts“ zählt als Rückwärtsgehen, „Umdrehen – Abruf in Platz“
+(Platz auf dem Weg) als Position aus der Distanz, „Halt – 90°-Drehung – 1 Schritt – Halt – Nachruf“
+(das Bleiben während des Weggehens) als Bleib und Abruf. Start, Ziel und die Zusatzschilder sind
+keine eigene Gruppe: Die Zusatzschilder (Z-0a bis Z-0e) gehören zu „Vorsitz und Rückkehr an die
+Seite“, Start und Ziel sind nicht trainingsrelevant. Dafür gibt es „Fußarbeit zwischen den
+Schildern“, weil jede der drei Ordnungen auch das Gehen zwischen den Schildern bewertet (FCI S. 32,
+VDH S. 14, ÖKV S. 16). „Bogen und Zickzack“ (VDH B-030/B-031/B-033/B-034) und „Mehrschildübung“
+(VDH, ÖKV; die FCI-Klasse kennt keine Mehrschildübungen) gibt es nur national und ohne englischen
+Namen und Text.
+
+### Bewertung: Punkte je Übung 0
+
+Rally Obedience wird nicht über Übungspunkte gewertet: Jedes Team startet mit 100 Punkten, der
+Richter zieht je Fehler ab (FCI 1, 3, 5 oder 10 Punkte, S. 32 und 34-36; VDH ganze Punkte, je
+Übung höchstens 10, Anhang 4 S. 69-71; ÖKV ganze Punkte, je Übung höchstens 10, Anhang 5
+S. 73-75). Wie beim Agility und Hoopers tragen die Übungen deshalb **0 Punkte**
+(`RegulationExercise.MaxPoints`); Startwert, Abzüge, Noten, Parcoursgröße, Mindestalter und
+Auf-/Abstieg stehen in der Ordnungsbeschreibung, die Abzüge je Gruppe im Hinweis und in der
+Übungsbeschreibung. Die Quellen kennen keine Punkte je Schild. `IsMandatory` ist wahr für alle
+Gruppen, weil der Trainingsplan jede Pflichtübung berücksichtigt und jede Gruppe in der Klasse
+vorkommen kann; ausgenommen ist die Mehrschildübung beim VDH (kein Mindestmaß) und beim ÖKV RO B
+(0 bis 2 je Parcours).
+
+### Prüfprotokoll
+
+Seitenzählung: Bei der FCI-Ordnung steht die Seitenzahl im Fuß („N / 36“), der Inhalt davor
+gehört zur Seite N. Beim VDH steht „Seite N“ ebenfalls im Fuß am **Ende** der Seite (gegen das
+Inhaltsverzeichnis geprüft: Klassen S. 12, Bewertung S. 14, RO B S. 30, RO 1 S. 39, RO 2 S. 46,
+RO 3 S. 55). Beim ÖKV steht die Seitenzahl in der **Kopfzeile** („N ÖKV-Prüfungsordnung ...“),
+der Inhalt danach gehört zur Seite N (gegen das Inhaltsverzeichnis geprüft: Kapitel 8.1 S. 27,
+8.2 S. 29, 8.3 S. 37, 8.4 S. 44, 8.5 S. 53). Die Seitenangaben der Schilder wurden aus dem
+Volltext abgeleitet (Seite des ersten Auftretens der Schildnummer).
+
+| Ordnung | Gegen welche Seiten geprüft | Ergebnis |
+|---|---|---|
+| **FCI International Class** | FCI S. 4 f., 8, 10-18, 19-32 (Kapitel 5), 32-36 | 89 Schilder (101-122, 201-222, 301-323, 401-422), 22 Gruppen; Parcours 18 bis 20 Schilder, mindestens 7 Vier-Punkte- und 5 Drei-Punkte-Schilder (S. 12); Noten Excellent 90-100, Very good 80-89,99, Good 70-79,99 (S. 8); Mindestalter 18 Monate (S. 5) |
+| **VDH RO B** | VDH S. 5, 8-15, 30-38, 69-71 | 36 Schilder (B-001 bis B-036), 15 bis 18 Schilder je Parcours, keine Mehrschildübung (S. 12) |
+| **VDH RO 1** | S. 12 f., 39-45 | 30 Schilder (1-101 bis 1-130), 18 bis 20 je Parcours, Auswahl aus RO B und RO 1 |
+| **VDH RO 2** | S. 13, 46-54 | 34 Schilder (2-201 bis 2-234), 20 bis 22, immer ohne Leine |
+| **VDH RO 3** | S. 13, 55-63 | 32 Schilder (3-301 bis 3-332), 22 bis 24, mindestens 3 und höchstens 1/3 rechtsgeführt |
+| **VDH RO S** | S. 5, 13, 64-68 | 12 bis 14 Schilder aus Anhang 3 (Bilder, 76 Schilder abgelesen, siehe Offen); Hunde ab 8 Jahren (ab 6 Jahren bei 55 cm und mehr) |
+| **ÖKV RO B** | ÖKV S. 6, 16-19, 29-37, 69 | 28 Schilder (B-001 bis B-028), 15 bis 18 je Parcours, Zeitlimit 4 Minuten, Mindestalter 12 Monate |
+| **ÖKV RO 1** | S. 16, 37-44, 69 | 23 Schilder (1-101 bis 1-123), 18 bis 20, Mindestalter 15 Monate |
+| **ÖKV RO 2** | S. 16, 44-53, 69 | 28 Schilder (2-201 bis 2-228), 20 bis 22, ohne Leine, Mindestalter 18 Monate |
+| **ÖKV RO 3** | S. 16, 53-63, 69 | 26 Schilder (3-301 bis 3-326), 22 bis 24, Mindestalter 18 Monate |
+| **ÖKV RO S** | S. 16, 70 f. | 15 bis 18 Schilder mit „Senior“ (43 Schilder), kein Zeitlimit, Hunde ab 8 Jahren |
+
+Zu jeder Ordnung nennt der Test (`RallyObedienceKatalogTests`), dass die Hinweise alle Schilder der
+Klasse nennen: 89 FCI, 132 VDH (36 + 30 + 34 + 32 in den Klassen RO B bis RO 3), 105 ÖKV, jedes genau
+einmal, dazu die Auswahlen der Seniorenklassen (VDH 76, ÖKV 43).
+
+*Lokaler Lauf* (Datenbank `dogity_dev`, Backend im Development-Modus auf Port 5080, danach
+beendet): Sportarten 20 → 21, Ordnungen 79 → 90, Fassungen 79 → 90, Übungen 231 → 255,
+Verknüpfungen 601 → 822. Sportart `RALLYO` je Land: FCI (null) 1 Ordnung mit 22 Verknüpfungen,
+DE 5 mit 103, AT 5 mit 96, jeweils 0 Punkte; die Länderfilter liefern für DE 6 Ordnungen (FCI + 5
+VDH), AT 6 (FCI + 5 ÖKV), CH und IT je 1 (FCI). Englisch gefüllt: Sportart, 1 Ordnungsname und
+-beschreibung, 22 Übungsnamen, 22 Bewertungstexte, 22 Hinweise; bei den zehn nationalen Ordnungen und
+den zwei nationalen Gruppen nichts. Ein zweiter Start änderte nichts (21 / 90 / 90 / 255 / 822),
+„Obedience“ und „Rally Obedience“ kommen je einmal vor. Die öffentliche Seite
+`/pruefungsordnungen` zeigt die neue Familie „Rally Obedience“, die Seiten der FCI- und der
+VDH-Ordnung laufen bei 375 px ohne horizontalen Scroll.
+
+### Entschieden
+
+- **Eine Sportart für alle elf Ordnungen, mit gemeinsamen Schildgruppen** (siehe oben). Hinweise
+  nennen je Klasse nur die **neuen** Schilder („Neu in RO 2 (dazu wählbar: Schilder aus RO B und
+  RO 1)“), weil VDH und ÖKV die Klassen aufeinander aufbauen lassen (RO 2 wählt aus B, 1 und 2);
+  bei den Seniorenklassen steht die ganze Auswahl. Sätze der Hinweise, die an bestimmte Schilder
+  gebunden sind, erscheinen nur, wenn das Schild in der Auswahl der Ordnung vorkommt.
+- **FCI-Schilder mit englischen Originalbezeichnungen im deutschen Text** („101 „DOWN“; 102 „STOP,
+  DOWN“ ...“), weil die FCI für internationale Prüfungen die englischen Schilder vorschreibt
+  (S. 10). Die englische Fassung (`fci-texte-en.json`, an den deutschen Text gebunden) enthält
+  dieselben Nummern und Bezeichnungen. Die englischen Namen der Gruppen sind eigene Bezeichnungen
+  in der Terminologie des Reglements (die FCI hat keine Gruppen); nur die FCI-Ordnung und die
+  Gruppen, die sie führt, haben sie. „OeKV“ steht in den englischen Texten für „ÖKV“ (Umlaut, wie
+  „OePO“ bei Obedience).
+- **Die künftige VDH-Fassung (ab 01.01.2027) ist hinterlegt**, wie beim Hoopers. Die bisherige
+  Fassung (2017, vdh.de) gilt bis 31.12.2026 und ist in jeder VDH-Beschreibung erwähnt, aber nicht
+  abgebildet. `SourceUrl` ist die Kopie beim SV, die der Auftrag nennt.
+- **FCI-Gültigkeit:** `ValidFrom` ist der 01.02.2025 (Datum des Dokuments); die Regeln gelten
+  international schon seit 01.01.2024 (S. 4), die Änderungen vom 08.01.2025 sind eingearbeitet.
+- **Keine eigenen Jugend-Ordnungen:** VDH (Sparte J, S. 14) und ÖKV (RO J1 und RO J2, S. 16) lassen
+  Kinder und Jugendliche in denselben Klassen mit eigener Platzierung starten; es sind keine
+  Klassen mit eigenen Schildern oder Regeln.
+- **Schweiz:** Kein eigenes SKG-Reglement gefunden. Dort gilt die FCI-Klasse (Länderfilter CH liefert
+  nur sie), siehe Offen.
+- **Kategorien:** „Positionen“, „Wendungen und Tempo“, „Figuren“, „Schritte und Seitenwechsel“,
+  „Hürde“, „Parcours“ und die vom Obedience bekannte „Distanzarbeit“. Das Frontend übersetzt sie
+  wie die der FCI-Übungen (nur bei Übungen mit englischem Namen); die der zwei nationalen Gruppen
+  bleiben deutsch.
+- **Seeder:** `ObedienceSportCodeAsync` wurde zu `GlobaleSportCodeAsync(db, code, name)`
+  verallgemeinert, `SetzeEnglischeNamenAsync` nimmt statt der Obedience-Id eine Zuordnung
+  Sportart-Id → FCI-Code (Obedience und Rally Obedience). Dieselben Regeln wie bei Obedience: nur
+  die globale Sportart, eine globale „Rally Obedience“ unter anderem Code wird mitgenutzt, eine
+  Vereinssportart gleichen Namens bleibt unberührt, Vorhandenes wird nur ergänzt. Die Sportart steht
+  in `FciKatalog.InternationaleSportarten`.
+- **Bestehende Tests:** Erwartungslisten und Zählungen erweitert (FCI-Ordnungen 30 → 31,
+  englische Hinweise 233 → 255, englische Übungstexte 146 → 168, ÖKV-Ordnungen, VDH-Ordnungen unter
+  Obedience und Rally Obedience, nationale Übungen ohne englischen Namen), nichts abgeschwächt.
+- **Öffentliche Seiten:** Neue Familie „Rally Obedience“ für die FCI-Ordnung und die VDH-Klassen
+  (`lib/public-catalog.ts`); die ÖKV-Klassen stehen bei „Österreich – ÖKV“ (Beschreibung ergänzt).
+  Der Haftungshinweis auf der Einzelseite („Zusammenfassung ohne Gewähr ... des VDH, des ÖKV, der
+  SKG bzw. der FCI“) passt unverändert. Innerhalb der Familie sortiert die Seite nach Namen (1, 2, 3,
+  Beginner, Senioren hinter den Ziffern); eine eigene Reihenfolge wurde nicht gebaut.
+- **Datenschutz:** keine personenbezogenen Daten, `STAND` und Datenschutzerklärung unverändert.
+- **Sportartenwahl:** Der Seeder legt keine `UserSportSelection` an; wer eine Auswahl gespeichert hat,
+  bekommt Rally Obedience nicht automatisch (Test).
+
+### Offen / Unstimmigkeiten in den Quellen
+
+- **oekv.at war am 22.10.2026 nicht erreichbar.** Der ÖKV-Text stammt aus einer Webarchiv-Kopie
+  des Dokuments „Endfassung_RO_PO_2023_20012023.pdf“; `SourceUrl` ist die Adresse des Originals.
+  Nach Erreichbarkeit gegen das Original und gegen eine eventuell neuere Fassung prüfen.
+- **VDH Anhang 1 (Schilderblätter, S. 20-27) und Anhang 3 (Senioren-Auswahl, S. 64-68) sind nur
+  Bilder.** Die Zahl der Schilder stützt sich auf die Beschreibungen in Anhang 2 (S. 30-63); die
+  Senioren-Auswahl (76 Schilder) wurde von den Seiten 64-68 abgelesen und ist nicht gegen eine
+  Textliste geprüft. Auf den Bildern trägt der 210°-Loop rechts die Nummer B-027, im Text heißt B-027
+  „Kreisspirale – links“ und der Loop rechts B-028; im Katalog steht die Nummer des Textes.
+- **VDH-Text:** Kapitel 6.2 verweist für die Abzüge auf „Anhang 3 – Tabelle Bewertung der
+  Übungen“, die Tabelle steht in Anhang 4 (S. 69-71); mehrere Schildnummern sind uneinheitlich
+  geschrieben („2- 222“, „2 – 224“, „2- 233“). Die Zählung der Klassen RO 2 (34) und RO 3 (32)
+  ergibt sich aus den Nummern 2-201 bis 2-234 und 3-301 bis 3-332, die Überschriften des Anhangs
+  nennen dieselben Bereiche.
+- **Der VDH-Auszug nennt für RO S nur „12 bis 14 Übungsschilder“** und die Zusatzschilder Z-a, Z-c
+  und Z-e; ob Mehrschildübungen dort vorgesehen sind, sagt der Text nicht (der Katalog führt die
+  Gruppe als nicht vorgeschrieben).
+- **FCI-Reglement:** Das Deckblatt trägt den 01.02.2025, die Änderungen sind „in bold and italic“
+  vom 08.01.2025 (S. 36); die Regeln gelten für internationale Prüfungen seit 01.01.2024. Die
+  Anlage 1 (Schildersatz als eigenes Dokument) wurde nicht gelesen, die Schilder stammen aus Kapitel 5.
+- **Schweiz:** Kein SKG-Reglement für Rally Obedience gefunden (die TKAMO führt unter
+  tkamo.ch Agility, Mobility und Obedience); dort gilt die FCI-Klasse. Nachsehen, falls die SKG eines
+  veröffentlicht.
+- **Nicht abgebildet:** Titel (nationale Champion-Titel, CACIROB), Meisterschafts- und Turnierformen,
+  Stechen, Nachteilsausgleiche (Anhang 5 des VDH, Anhang 4 des ÖKV), Leistungskarten.
+- **Der Prod-Bestand wurde nicht gelesen.** Nach dem Deploy sollten Sportart `RALLYO` (einmal
+  global, `Name = 'Rally Obedience'` nur einmal), 11 Ordnungen und 24 Übungen stimmen; die
+  Verknüpfungen sollten 221 betragen.
