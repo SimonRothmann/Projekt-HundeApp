@@ -7,6 +7,7 @@ using Dogity.Application.Learning;
 using Dogity.Application.Notifications;
 using Dogity.Application.Onboarding;
 using Dogity.Application.Planning;
+using Dogity.Application.Reminders;
 using Dogity.Application.Sports;
 using Dogity.Application.Stats;
 using Dogity.Application.Tracking;
@@ -59,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IPushDispatcher, PushDispatcher>();
         services.AddScoped<IStatsService, StatsService>();
         services.AddScoped<IPreferenceService, PreferenceService>();
+        services.AddScoped<IErinnerungService, ErinnerungService>();
         services.AddScoped<IClubRoleBackfill, ClubRoleBackfill>();
         services.AddScoped<IClubRegistrationService, ClubRegistrationService>();
         services.AddScoped<IOnboardingService, OnboardingService>();

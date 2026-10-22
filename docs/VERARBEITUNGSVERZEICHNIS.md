@@ -147,6 +147,20 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Löschfrist | bis zum Ausschalten, Abmelden oder zur Kontolöschung; unbekannte Geräte beim nächsten Versand; bei Kontolöschung endgültig (`AccountDataService.PurgeAsync`), nicht nur ausgeblendet |
 | Tabellen | `push_subscriptions` |
 
+### 2.5c2 Automatische Erinnerungen (Termin, Fährte, Rückmeldungen)
+
+| | |
+|---|---|
+| Zweck | Drei Erinnerungen, die der Server von sich aus als Meldung in der Glocke und – wo Push eingeschaltet ist (2.5c) – als Push schickt: (a) am Vortag ab 18 Uhr an einen Gruppentermin (Mitglieder der Gruppe; mit Zusage „du hast zugesagt“, ohne Antwort „kommst du?“, nach Absage nichts); (b) etwa drei Stunden nach dem Legen an eine Fährte ohne gespeicherten Ablauf, solange die 24-Stunden-Frist läuft und der Hund nicht in einer Trainingspause ist (an die Person, die das Training eingetragen hat, sofern sie den Hund noch sehen darf); (c) an Trainer:innen mit betreuten Hunden eine Zusammenfassung, wie viele Trainings auf eine Rückmeldung warten (nur wenn mindestens eins wartet; Rhythmus wählen sie selbst). Nie per E-Mail. Versand nur zwischen 8 und 22 Uhr deutscher Zeit. Der Text entsteht in der Sprache der Empfänger:in. |
+| Betroffene | Registrierte Nutzer:innen (Gruppenmitglieder, Hundehalter:innen, Trainer:innen) |
+| Datenkategorien | Einstellungen in `user_preferences`: drei Schalter (Termine, Fährten, Rückmeldungen), bei Trainer:innen Wochentage (Bitmaske) und Uhrzeit (volle Stunde). Merkzettel `sent_reminders`: Person, Art, Id des Termins bzw. der Fährte (bei der Zusammenfassung leer) und bei der Zusammenfassung der Tag, dazu der Zeitpunkt – kein Text. Der Text selbst steht als gewöhnliche Benachrichtigung in der Glocke (2.5) und enthält Gruppenname, Hundename, Uhrzeit bzw. Frist oder die Anzahl. |
+| Rechtsgrundlage | Art. 6 Abs. 1 lit. b (Teil der Funktionen Gruppentermine, Fährte, Trainerübersicht); jede Art ist einzeln unter Profil → Funktionen abschaltbar, Vorgabe an. Als Push zusätzlich die Einwilligung nach 2.5c. |
+| Empfänger | wie Benachrichtigungen und Push (2.5, 2.5c); keine zusätzlichen Empfänger |
+| Drittland | wie 2.5c, nur wenn Push eingeschaltet ist |
+| Besonderheit | Hintergrunddienst `ErinnerungBackgroundService` prüft alle 10 Minuten; was fällig ist, bestimmen reine Regeln (`Erinnerungsregeln`), die Abfragen holen nur Termine des Folgetags, Fährten der letzten 30 Stunden und Trainer:innen mit Betreuungen. Der eindeutige Index auf `sent_reminders` (Person, Art, Bezug, Tag) verhindert Doppelversand bei Neustart und mehreren Instanzen: Der Eintrag wird vor dem Versand gespeichert („höchstens einmal“). Die Zusammenfassung zählt wie die Zahl auf der Trainer-Übersicht. Die Gesundheitsangabe der Trainingspause fließt nur als „pausiert: ja/nein“ in die Entscheidung, nie in einen Text. |
+| Löschfrist | Merkzettel nach 60 Tagen (Aufräumen bei jedem Lauf, endgültig gelöscht); bei Kontolöschung sofort und endgültig (`AccountDataService.PurgeAsync`, auch weich gelöschte). Die Einstellungen gehen mit der Zeile in `user_preferences`. Der Datenexport enthält Einstellungen und Merkzettel (Auskunft nach Art. 15/20). |
+| Tabellen | `sent_reminders`; Einstellungen in `user_preferences` (`ReminderSessions`, `ReminderTracks`, `ReminderTrainerSummary`, `TrainerSummaryDays`, `TrainerSummaryHour`) |
+
 ### 2.5d Kontakt per E-Mail (info@dogity.net)
 
 | | |
@@ -263,7 +277,7 @@ Auswahl.
 
 | Recht | Umsetzung |
 |---|---|
-| Auskunft und Übertragbarkeit (Art. 15, 20) | `GET /api/profile/export`, in der App unter Profil → „Daten & Konto“ → „Meine Daten herunterladen“; enthält auch die Geräte mit Push (Bezeichnung und Zeitpunkte, ohne Adresse und Schlüssel) und die Einstellung zu E-Mails |
+| Auskunft und Übertragbarkeit (Art. 15, 20) | `GET /api/profile/export`, in der App unter Profil → „Daten & Konto“ → „Meine Daten herunterladen“; enthält auch die Geräte mit Push (Bezeichnung und Zeitpunkte, ohne Adresse und Schlüssel), die Einstellung zu E-Mails, die Einstellungen der Erinnerungen und die versendeten Erinnerungen (Art, Bezug, Zeitpunkt) |
 | Löschung (Art. 17) | `DELETE /api/profile` mit Passwortbestätigung, in der App unter Profil → „Daten & Konto“ → „Konto löschen“; entfernt die Fachdaten und anschließend das Konto |
 | Berichtigung (Art. 16) | Profil, Hunde- und Trainingsbearbeitung in der App |
 | Angemeldete ohne Konto (2.4a) | Auskunft, Berichtigung, Löschung formlos beim Verein oder per E-Mail an den Betreiber; die Trainer:innen bearbeiten und löschen Anmeldungen in der App (Trainer-Seite der Gruppe). Es gibt keinen Selbstbedienungs-Zugang, weil es kein Konto gibt. |

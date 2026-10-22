@@ -1288,6 +1288,45 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.ToTable("push_subscriptions", (string)null);
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Notifications.SentReminder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("DayKey")
+                        .HasColumnType("date");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId", "Type", "ReferenceId", "DayKey")
+                        .IsUnique();
+
+                    b.ToTable("sent_reminders", (string)null);
+                });
+
             modelBuilder.Entity("Dogity.Domain.Planning.ExerciseMastery", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1622,6 +1661,26 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<string>("Locale")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<bool>("ReminderSessions")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("ReminderTracks")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("ReminderTrainerSummary")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("TrainerSummaryDays")
+                        .HasColumnType("integer")
+                        .HasDefaultValue(64);
+
+                    b.Property<int>("TrainerSummaryHour")
+                        .HasColumnType("integer")
+                        .HasDefaultValue(18);
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

@@ -2,6 +2,7 @@ using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
+using Dogity.Domain.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Account;
@@ -13,6 +14,12 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         "Auskunft nach Art. 15 und 20 DSGVO. Diese Datei enthält alles, was Dogity zu deinem Konto " +
         "gespeichert hat. Sie ist für dich bestimmt - wer sie hat, kennt deine Trainingsorte und " +
         "deine aufgezeichneten Wege.";
+
+    private static readonly string[] WochentagNamen = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+
+    /// <summary>Die Wochentage der Bitmaske als Namen - die Auskunft soll ohne Wörterbuch lesbar sein.</summary>
+    private static List<string> Wochentage(int maske) =>
+        WochentagNamen.Where((_, i) => (maske & (1 << i)) != 0).ToList();
 
     public async Task<Result<AccountExportDto>> ExportAsync(Guid userId, CancellationToken ct = default)
     {
@@ -115,6 +122,11 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             .AsNoTracking()
             .ToListAsync(ct);
 
+        var erinnerungen = await db.SentReminders
+            .Where(r => r.UserId == userId)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
         var einstellung = await db.UserPreferences
             .Where(p => p.UserId == userId)
             .Include(p => p.DisabledModules)
@@ -139,7 +151,12 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     einstellung.FontScale,
                     einstellung.DisabledModules.Select(m => m.ModuleKey).ToList(),
                     einstellung.Sports.Select(s => s.SportId).ToList(),
-                    einstellung.EmailNotifications),
+                    einstellung.EmailNotifications,
+                    einstellung.ReminderSessions,
+                    einstellung.ReminderTracks,
+                    einstellung.ReminderTrainerSummary,
+                    Wochentage(einstellung.TrainerSummaryDays),
+                    einstellung.TrainerSummaryHour),
             hunde.Select(hund =>
             {
                 var rolle = besitz.First(b => b.DogId == hund.Id);
@@ -297,6 +314,19 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     p.EndDate,
                     p.Note,
                     p.CreatedAt))
+                .ToList(),
+            erinnerungen
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => new ErinnerungExportDto(
+                    r.Type switch
+                    {
+                        ReminderType.SessionDayBefore => "Termin am Vortag",
+                        ReminderType.TrackNotWalked => "Fährte nicht abgelaufen",
+                        _ => "Offene Rückmeldungen"
+                    },
+                    r.ReferenceId == Guid.Empty ? null : r.ReferenceId,
+                    r.DayKey == SentReminder.KeinTag ? null : r.DayKey,
+                    r.CreatedAt))
                 .ToList());
 
         return Result<AccountExportDto>.Success(export);
@@ -400,6 +430,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         var lernstand = await db.QuizMasteries.IgnoreQueryFilters().Where(m => m.UserId == userId).ToListAsync(ct);
         var benachrichtigungen = await db.Notifications.IgnoreQueryFilters().Where(n => n.UserId == userId).ToListAsync(ct);
         var pushGeraete = await db.PushSubscriptions.IgnoreQueryFilters().Where(s => s.UserId == userId).ToListAsync(ct);
+        var erinnerungen = await db.SentReminders.IgnoreQueryFilters().Where(r => r.UserId == userId).ToListAsync(ct);
 
         var mitgliedschaften = await db.ClubMemberships.IgnoreQueryFilters().Where(m => m.UserId == userId).ToListAsync(ct);
         var vereinstrainer = await db.ClubTrainers.IgnoreQueryFilters().Where(t => t.UserId == userId).ToListAsync(ct);
@@ -507,6 +538,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         db.QuizMasteries.RemoveRange(lernstand);
         db.Notifications.RemoveRange(benachrichtigungen);
         db.PushSubscriptions.RemoveRange(pushGeraete);
+        db.SentReminders.RemoveRange(erinnerungen);
         db.TrainerAssignments.RemoveRange(zuweisungen);
         db.GroupTrainingSessionTrainers.RemoveRange(termintrainer);
         db.GroupTrainingSessionResponses.RemoveRange(terminzusagen);

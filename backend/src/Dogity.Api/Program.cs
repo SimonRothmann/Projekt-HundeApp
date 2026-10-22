@@ -66,6 +66,10 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // Adaptive Trainingsplan-Regenerierung im Hintergrund (P4b).
 builder.Services.AddHostedService<PlanRegenerationBackgroundService>();
 
+// Automatische Erinnerungen (Termin am Vortag, Fährte, offene Rückmeldungen) als
+// Glocke + Push, alle zehn Minuten geprüft.
+builder.Services.AddHostedService<ErinnerungBackgroundService>();
+
 // Aufbewahrungsfrist der Gruppen-Anmeldungen (12 Monate ohne Aktivität).
 builder.Services.AddHostedService<RegistrationRetentionBackgroundService>();
 

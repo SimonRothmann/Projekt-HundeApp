@@ -1199,6 +1199,14 @@ export type UserPreferences = {
   sportIds: string[];
   /** Ob wichtige Benachrichtigungen (Einladungen, Entscheidungen) auch per E-Mail kommen. Vorgabe: ja. */
   emailNotifications: boolean;
+  /** Erinnerungen (Glocke + Push): Termin am Vortag, noch nicht abgelaufene Fährte, offene Rückmeldungen. Vorgabe: alle an. */
+  reminderSessions: boolean;
+  reminderTracks: boolean;
+  reminderTrainerSummary: boolean;
+  /** Wochentage der Zusammenfassung für Trainer:innen als Bitmaske (Mo = 1 ... So = 64, lib/erinnerungen.ts). Vorgabe: Sonntag. */
+  trainerSummaryDays: number;
+  /** Uhrzeit der Zusammenfassung, volle Stunde 8 bis 21 (Vereinszeit). Vorgabe: 18. */
+  trainerSummaryHour: number;
 };
 
 /** Ein wählbarer Geltungsbereich - Spiegel von Application/Sports/CountryDto. */

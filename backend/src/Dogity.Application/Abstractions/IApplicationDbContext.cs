@@ -77,6 +77,7 @@ public interface IApplicationDbContext
 
     DbSet<Notification> Notifications { get; }
     DbSet<PushSubscription> PushSubscriptions { get; }
+    DbSet<SentReminder> SentReminders { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

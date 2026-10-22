@@ -62,6 +62,29 @@ public class UserPreference : Entity
     /// </summary>
     public bool EmailNotifications { get; set; } = true;
 
+    // ---- Erinnerungen (Glocke + Push, nie per Mail; siehe Dogity.Application.Reminders) ----
+    // Alle drei Vorgaben "an": Wer vorher nichts eingestellt hat, hat auch
+    // nichts abgelehnt - bestehende Zeilen bekamen mit der Migration dieselben Werte.
+
+    /// <summary>Erinnerung am Vortag an Gruppentermine. Standard: ja.</summary>
+    public bool ReminderSessions { get; set; } = true;
+
+    /// <summary>Erinnerung an Fährten, die noch nicht abgelaufen wurden. Standard: ja.</summary>
+    public bool ReminderTracks { get; set; } = true;
+
+    /// <summary>Zusammenfassung offener Rückmeldungen (nur für Trainer:innen relevant). Standard: ja.</summary>
+    public bool ReminderTrainerSummary { get; set; } = true;
+
+    /// <summary>
+    /// Wochentage der Zusammenfassung als Bitmaske: Montag = 1, Dienstag = 2, ...
+    /// Sonntag = 64 (Bit = Abstand zum Montag). Gültig sind 1 bis 127, mindestens
+    /// ein Tag. Standard: Sonntag.
+    /// </summary>
+    public int TrainerSummaryDays { get; set; } = 64;
+
+    /// <summary>Uhrzeit der Zusammenfassung in Vereinszeit, volle Stunde von 8 bis 21. Standard: 18.</summary>
+    public int TrainerSummaryHour { get; set; } = 18;
+
     public ICollection<UserDisabledModule> DisabledModules { get; set; } = new List<UserDisabledModule>();
     public ICollection<UserSportSelection> Sports { get; set; } = new List<UserSportSelection>();
 }

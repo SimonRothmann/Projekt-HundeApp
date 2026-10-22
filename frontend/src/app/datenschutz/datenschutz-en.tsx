@@ -116,7 +116,8 @@ export function DatenschutzEn() {
           punkte={[
             "your learning progress in the theory-test question trainer (Sachkunde)",
             "Notifications within the app",
-            "your settings: language, country, font size, hidden areas, chosen sports and whether important notifications are also sent by email",
+            "your settings: language, country, font size, hidden areas, chosen sports, whether important notifications are also sent by email and which reminders you receive (for trainers, with the weekdays and time they chose)",
+            "which reminders have already been sent to you (kind, session or track or day, time) – only as a note so that a reminder does not arrive twice; described in detail in section 7",
             "Devices on which you have switched on push notifications: the device’s address at its manufacturer’s push service, the device’s keys for encryption, a short label such as “iPhone (Safari)” as well as the time of registration and of the last delivery – described in detail in section 7",
           ]}
         />
@@ -150,6 +151,7 @@ export function DatenschutzEn() {
             "Sign-up to a group through a sign-up form (without an account): Art. 6(1)(b) GDPR – see section 9.",
             "Emails (welcome, password reset, invitations and decisions on join requests): Art. 6(1)(b) GDPR – they belong to the account and club functions. Whether you receive the emails about invitations and decisions, you choose at registration (preselected); you can unsubscribe at any time via the link in the email, without signing in, or under Profile → Features.",
             "Push notifications: Art. 6(1)(a) GDPR and Section 25(1) TDDDG (the German Telecommunications Digital Services Data Protection Act) – they only begin once you have switched them on yourself on a device and the browser or operating system has asked you for permission. You can switch them off in the app at any time or withdraw the permission in the device.",
+            "Reminders (session the day before, track not yet walked, open feedback): Art. 6(1)(b) GDPR – they belong to the functions you use; you can switch off each one individually under Profile → Features. If they arrive as push, your consent to push from above applies in addition.",
             "Protection against abuse, troubleshooting and operational security: Art. 6(1)(f) GDPR. My legitimate interest is that the service stays available and accounts are not taken over.",
             "You expressly allow your browser to read your location and can withdraw this permission at any time.",
           ]}
@@ -275,6 +277,19 @@ export function DatenschutzEn() {
           reply to you (Art. 6(1)(f) GDPR; if it concerns your account, Art. 6(1)(b) GDPR), and delete them when the matter is dealt
           with and no retention obligation exists.
         </p>
+        <p className="font-medium text-foreground">Reminders (from the server)</p>
+        <p>
+          Dogity sends three kinds of reminders on its own, as a message in the bell and – where you have switched on
+          push – as a push message: the day before, for a group session (if you are a member of the group and have not
+          declined), for a laid track that has not been walked yet (about three hours after laying, as long as walking
+          it is still possible and your dog is not on a training break), and – for trainers only – a summary of how many
+          training sessions are waiting for feedback. You switch off each of them individually under Profile → Features;
+          for the summary, trainers also choose the weekdays and the time. Reminders only come between 8 am and 10 pm
+          German time and never by email. So that a reminder does not arrive twice, the server remembers which ones it
+          has already sent you: kind, session or track or day, and time, without the text. These notes are deleted
+          after 60 days, at the latest with your account. Nobody else learns anything from this, apart from the push
+          service, which applies to push anyway (see below).
+        </p>
         <p className="font-medium text-foreground">Push services of the device manufacturers (from the server)</p>
         <p>
           If you switch on push notifications, the server sends the message to the push service that your browser or
@@ -376,6 +391,7 @@ export function DatenschutzEn() {
             "Sign-ups to a group without an account (section 9): until the trainers delete them, at the latest twelve months after the last attendance, change or sign-up.",
             "Login tokens on the server: the short-lived one after one hour, the renewal token after 60 days at the latest.",
             "Devices for push notifications: until you switch off push there, log out or delete your account; a device that the push service no longer knows is removed on the next send.",
+            "The note “reminder sent”: 60 days, at the latest until you delete your account.",
             "Emails from Dogity: The mail server keeps them only until your email provider has accepted them, at most two days; its log (recipient, time, delivery) is limited in size and continuously overwritten (section 7).",
             `Emails to ${BETREIBER.email}: until the matter is dealt with, unless a retention obligation exists.`,
             `Database backups: ${SICHERUNG_AUFBEWAHRUNG.lokal} days on the server; off-site ${SICHERUNG_AUFBEWAHRUNG.taeglich} days (daily versions), ${SICHERUNG_AUFBEWAHRUNG.woechentlich} days (weekly) and ${SICHERUNG_AUFBEWAHRUNG.monatlich} days (monthly).`,
@@ -383,7 +399,7 @@ export function DatenschutzEn() {
         />
         <p>
           If you delete your account, your access, your dogs, training sessions, tracks, goals, settings, your learning
-          progress, your acceptances of group sessions, the devices for push notifications and your club and group
+          progress, your acceptances of group sessions, the devices for push notifications, the notes on reminders sent and your club and group
           memberships are removed. Dogs that you share with someone remain with the other person – only your link to
           them disappears. Where you, as a trainer, have created content for a club, this content remains with the
           club, but the indication of your authorship is removed. Sign-ups to groups that you managed as a trainer

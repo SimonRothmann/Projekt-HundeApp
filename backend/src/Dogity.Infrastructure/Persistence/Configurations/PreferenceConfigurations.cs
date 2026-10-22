@@ -19,6 +19,15 @@ public class UserPreferenceConfiguration : IEntityTypeConfiguration<UserPreferen
         // weglässt - und die Datenbank daraus wieder true machte.
         builder.Property(p => p.EmailNotifications).HasDefaultValue(true).ValueGeneratedNever();
 
+        // Erinnerungen: dieselbe Überlegung (und derselbe Kniff mit ValueGeneratedNever)
+        // wie oben. Die Vorgaben stehen zusätzlich in der Datenbank, damit bestehende
+        // Zeilen bei der Migration gültige Werte bekommen: alles an, Sonntag, 18 Uhr.
+        builder.Property(p => p.ReminderSessions).HasDefaultValue(true).ValueGeneratedNever();
+        builder.Property(p => p.ReminderTracks).HasDefaultValue(true).ValueGeneratedNever();
+        builder.Property(p => p.ReminderTrainerSummary).HasDefaultValue(true).ValueGeneratedNever();
+        builder.Property(p => p.TrainerSummaryDays).HasDefaultValue(64).ValueGeneratedNever();
+        builder.Property(p => p.TrainerSummaryHour).HasDefaultValue(18).ValueGeneratedNever();
+
         // Eine Einstellungszeile je Nutzer. Ohne den eindeutigen Index
         // entstünde beim gleichzeitigen Speichern aus zwei Geräten eine
         // zweite Zeile, und ab da läse man je nach Zufall die eine oder die

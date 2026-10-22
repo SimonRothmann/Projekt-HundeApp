@@ -93,6 +93,13 @@ public static partial class Uebersetzung
         ["Der Trainingsplan für {hund} wurde für Woche {woche} automatisch angepasst."] = "The training plan for {hund} was adjusted automatically for week {woche}.",
         ["Der Trainingsplan für deinen Hund wurde für Woche {woche} automatisch angepasst."] = "The training plan for your dog was adjusted automatically for week {woche}.",
 
+        // Erinnerungen (ErinnerungService, Regeln in Erinnerungsregeln)
+        ["Morgen {zeit}: {gruppe} - du hast zugesagt."] = "Tomorrow {zeit}: {gruppe} - you have confirmed.",
+        ["Morgen {zeit}: {gruppe} - kommst du?"] = "Tomorrow {zeit}: {gruppe} - are you coming?",
+        ["Die Fährte von {hund} ist noch nicht abgelaufen. Du kannst sie noch bis {datum}, {zeit} Uhr ablaufen."] = "The track for {hund} has not been walked yet. You can still walk it until {zeit} on {datum}.",
+        ["Ein Training wartet auf deine Rückmeldung."] = "One training session is waiting for your feedback.",
+        ["{n} Trainings warten auf deine Rückmeldung."] = "{n} training sessions are waiting for your feedback.",
+
         // Konto (AccountMailService, PushTestService) - gehen an Admins
         ["{name} ({email}) möchte das Passwort zurücksetzen."] = "{name} ({email}) wants to reset their password.",
         ["Test-Push aus dem Adminbereich: Kommt diese Mitteilung an, funktioniert Push auf deinen Geräten."] = "Test push from the admin area: if this message arrives, push works on your devices.",

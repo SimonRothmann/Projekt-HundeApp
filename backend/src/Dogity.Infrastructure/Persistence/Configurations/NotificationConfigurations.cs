@@ -34,3 +34,20 @@ public class PushSubscriptionConfiguration : IEntityTypeConfiguration<PushSubscr
         builder.HasIndex(s => s.UserId);
     }
 }
+
+public class SentReminderConfiguration : IEntityTypeConfiguration<SentReminder>
+{
+    public void Configure(EntityTypeBuilder<SentReminder> builder)
+    {
+        builder.ToTable("sent_reminders");
+        // Wie bei Dog.Gender und DogPause.Reason: als Text, damit die Spalte lesbar bleibt.
+        builder.Property(r => r.Type).HasConversion<string>().HasMaxLength(30);
+
+        // Die Sperre gegen Doppelversand: eine Erinnerung je Person, Art, Bezug
+        // und (bei der Zusammenfassung) Tag. Wer gleichzeitig einfügt, scheitert hier.
+        builder.HasIndex(r => new { r.UserId, r.Type, r.ReferenceId, r.DayKey }).IsUnique();
+
+        // Fürs Aufräumen alter Einträge.
+        builder.HasIndex(r => r.CreatedAt);
+    }
+}

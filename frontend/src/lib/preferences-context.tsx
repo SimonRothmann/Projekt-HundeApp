@@ -6,6 +6,7 @@ import { MODULE, type UserPreferences } from "@/lib/types";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
 import { bestimmeSchriftgroesse, wendeSchriftgroesseAn } from "@/lib/schriftgroesse";
 import { useAuth } from "@/lib/auth-context";
+import { VORGABE_STUNDE, VORGABE_TAGE } from "@/lib/erinnerungen";
 
 /**
  * Die persönlichen Einstellungen an einer Stelle, damit nicht jede
@@ -31,6 +32,11 @@ const VORGABE: UserPreferences = {
   disabledModules: [],
   sportIds: [],
   emailNotifications: true,
+  reminderSessions: true,
+  reminderTracks: true,
+  reminderTrainerSummary: true,
+  trainerSummaryDays: VORGABE_TAGE,
+  trainerSummaryHour: VORGABE_STUNDE,
 };
 
 const PreferencesContext = createContext<PreferencesValue | undefined>(undefined);
@@ -41,7 +47,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async () => {
     try {
-      setPreferences(await api.get<UserPreferences>("/api/preferences"));
+      // Über die Vorgabe gelegt: Fehlt dem Stand vom Server ein Feld (Wechsel zwischen zwei
+      // Fassungen), gilt dort die Vorgabe statt "undefined".
+      setPreferences({ ...VORGABE, ...(await api.get<UserPreferences>("/api/preferences")) });
     } catch {
       // Einstellungen sind Beiwerk: Fällt der Abruf aus (offline, Serverfehler),
       // bleibt es bei "alles an" statt bei einer halben App.

@@ -37,6 +37,13 @@ public interface IPreferenceService
     Task<Result> UpdateEmailNotificationsAsync(Guid userId, UpdateEmailNotificationsRequest request, CancellationToken ct = default);
 
     /// <summary>
+    /// Speichert, welche Erinnerungen (Glocke + Push) kommen und - für Trainer:innen - an welchen
+    /// Wochentagen und um wie viel Uhr die Zusammenfassung offener Rückmeldungen. Prüft Maske
+    /// (1 bis 127) und Stunde (8 bis 21).
+    /// </summary>
+    Task<Result> UpdateRemindersAsync(Guid userId, UpdateRemindersRequest request, CancellationToken ct = default);
+
+    /// <summary>
     /// Die Sportarten, die für diesen Hund tatsächlich gelten - Auswahl des
     /// Hundes, sonst die des Menschen, sonst alle.
     /// </summary>

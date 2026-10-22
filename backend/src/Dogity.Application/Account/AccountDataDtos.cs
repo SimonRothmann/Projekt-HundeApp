@@ -24,7 +24,8 @@ public record AccountExportDto(
     IReadOnlyList<BenachrichtigungExportDto> Benachrichtigungen,
     IReadOnlyList<TerminzusageExportDto> Terminzusagen,
     IReadOnlyList<PushGeraetExportDto> PushGeraete,
-    IReadOnlyList<TrainingspauseExportDto> Trainingspausen);
+    IReadOnlyList<TrainingspauseExportDto> Trainingspausen,
+    IReadOnlyList<ErinnerungExportDto> ErinnerungenVersendet);
 
 public record KontoExportDto(
     Guid Id,
@@ -39,7 +40,21 @@ public record EinstellungenExportDto(
     string? Schriftgroesse,
     IReadOnlyList<string> AusgeblendeteModule,
     IReadOnlyList<Guid> GewaehlteSportarten,
-    bool WichtigesPerEMail = true);
+    bool WichtigesPerEMail = true,
+    bool ErinnerungTermine = true,
+    bool ErinnerungFaehrten = true,
+    bool ErinnerungRueckmeldungen = true,
+    IReadOnlyList<string>? RueckmeldungenWochentage = null,
+    int RueckmeldungenUhrzeit = 18);
+
+/// <summary>
+/// Eine versendete Erinnerung - der Merkzettel gegen Doppelversand. Der Text steht
+/// unter Benachrichtigungen; hier nur, wofür und wann.
+/// </summary>
+/// <param name="Art">"Termin am Vortag", "Fährte nicht abgelaufen" oder "Offene Rückmeldungen".</param>
+/// <param name="Bezug">Id des Termins bzw. der Fährte; bei den offenen Rückmeldungen leer.</param>
+/// <param name="Tag">Nur bei den offenen Rückmeldungen: der Tag, für den sie versendet wurde.</param>
+public record ErinnerungExportDto(string Art, Guid? Bezug, DateOnly? Tag, DateTimeOffset VersendetAm);
 
 /// <summary>
 /// Ein Gerät, das Push-Benachrichtigungen bekommt. Bewusst nur Bezeichnung und

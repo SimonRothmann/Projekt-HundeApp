@@ -9,13 +9,23 @@ namespace Dogity.Application.Preferences;
 /// <param name="SportIds">Betriebene Sportarten. Leer = keine Einschränkung.</param>
 /// <param name="FontScale">Schriftgröße der Oberfläche, null = Vorgabe ("normal").</param>
 /// <param name="EmailNotifications">Ob wichtige Benachrichtigungen auch per E-Mail kommen. Vorgabe: ja.</param>
+/// <param name="ReminderSessions">Erinnerung am Vortag an Gruppentermine. Vorgabe: ja.</param>
+/// <param name="ReminderTracks">Erinnerung an noch nicht abgelaufene Fährten. Vorgabe: ja.</param>
+/// <param name="ReminderTrainerSummary">Zusammenfassung offener Rückmeldungen (Trainer:innen). Vorgabe: ja.</param>
+/// <param name="TrainerSummaryDays">Wochentage der Zusammenfassung als Bitmaske (Mo = 1 ... So = 64). Vorgabe: Sonntag.</param>
+/// <param name="TrainerSummaryHour">Uhrzeit der Zusammenfassung, volle Stunde 8 bis 21 (Vereinszeit). Vorgabe: 18.</param>
 public record UserPreferenceDto(
     string? Locale,
     string? Country,
     IReadOnlyList<string> DisabledModules,
     IReadOnlyList<Guid> SportIds,
     string? FontScale,
-    bool EmailNotifications = true);
+    bool EmailNotifications = true,
+    bool ReminderSessions = true,
+    bool ReminderTracks = true,
+    bool ReminderTrainerSummary = true,
+    int TrainerSummaryDays = 64,
+    int TrainerSummaryHour = 18);
 
 public record UpdateModulesRequest(IReadOnlyList<string> DisabledModules);
 public record UpdateSportsRequest(IReadOnlyList<Guid> SportIds);
@@ -23,6 +33,13 @@ public record UpdateLocaleRequest(string? Locale);
 public record UpdateCountryRequest(string? Country);
 public record UpdateFontScaleRequest(string? FontScale);
 public record UpdateEmailNotificationsRequest(bool Enabled);
+
+/// <summary>
+/// Alle Einstellungen der Erinnerungen auf einmal - sie gehören zusammen und werden
+/// zusammen angezeigt. <paramref name="TrainerSummaryDays"/> 1 bis 127, <paramref name="TrainerSummaryHour"/> 8 bis 21.
+/// </summary>
+public record UpdateRemindersRequest(
+    bool Sessions, bool Tracks, bool TrainerSummary, int TrainerSummaryDays, int TrainerSummaryHour);
 
 /// <summary>
 /// Die wählbaren Schriftgrößen. Steht hier und nicht im Service, weil auch der

@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Reminders;
 using Dogity.Domain.Preferences;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,7 +28,12 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
                 eintrag.DisabledModules.Select(m => m.ModuleKey).ToList(),
                 eintrag.Sports.Select(s => s.SportId).ToList(),
                 eintrag.FontScale,
-                eintrag.EmailNotifications));
+                eintrag.EmailNotifications,
+                eintrag.ReminderSessions,
+                eintrag.ReminderTracks,
+                eintrag.ReminderTrainerSummary,
+                eintrag.TrainerSummaryDays,
+                eintrag.TrainerSummaryHour));
     }
 
     public async Task<Result> UpdateModulesAsync(Guid userId, UpdateModulesRequest request, CancellationToken ct = default)
@@ -141,6 +147,26 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
     {
         var eintrag = await LadenOderAnlegenAsync(userId, ct);
         eintrag.EmailNotifications = request.Enabled;
+        eintrag.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> UpdateRemindersAsync(Guid userId, UpdateRemindersRequest request, CancellationToken ct = default)
+    {
+        // Abgelehnt statt zurechtgebogen: Eine Maske ohne Tag hieße "nie", und das ist der Schalter.
+        // Die Stunde außerhalb von 8 bis 21 läge in der Ruhezeit - dort wird nichts versendet.
+        if (!Reminders.Erinnerungsregeln.GueltigeTage(request.TrainerSummaryDays))
+            return Result.Failure("Wähle mindestens einen Wochentag.");
+        if (!Reminders.Erinnerungsregeln.GueltigeStunde(request.TrainerSummaryHour))
+            return Result.Failure("Die Uhrzeit muss zwischen 8 und 21 Uhr liegen.");
+
+        var eintrag = await LadenOderAnlegenAsync(userId, ct);
+        eintrag.ReminderSessions = request.Sessions;
+        eintrag.ReminderTracks = request.Tracks;
+        eintrag.ReminderTrainerSummary = request.TrainerSummary;
+        eintrag.TrainerSummaryDays = request.TrainerSummaryDays;
+        eintrag.TrainerSummaryHour = request.TrainerSummaryHour;
         eintrag.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Result.Success();

@@ -55,6 +55,14 @@ public class PreferencesController(IPreferenceService preferences) : ApiControll
         FromResult(await preferences.UpdateEmailNotificationsAsync(CurrentUserId, request, ct));
 
     /// <summary>
+    /// Erinnerungen (Termin am Vortag, Fährte, offene Rückmeldungen) und der Rhythmus der
+    /// Zusammenfassung für Trainer:innen. Gilt immer für die angemeldete Person.
+    /// </summary>
+    [HttpPut("reminders")]
+    public async Task<IActionResult> UpdateReminders(UpdateRemindersRequest request, CancellationToken ct) =>
+        FromResult(await preferences.UpdateRemindersAsync(CurrentUserId, request, ct));
+
+    /// <summary>
     /// Die Sportarten, die für diesen Hund gelten - eigene Auswahl, sonst die
     /// des Menschen, sonst alle (leere Liste = keine Einschränkung).
     /// </summary>

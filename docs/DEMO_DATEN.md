@@ -80,6 +80,16 @@ Beschriftung nennt die Besonderheit, z. B. „Mitglied 2 (EN)“, „Interessent
 Der Link selbst: als Trainer unter dem Verein, Vorschau anonym unter `/v/<code>`;
 das Anmeldeformular der Welpengruppe unter `/anmeldung/<code>`.
 
+## Erinnerungen (seit Fassung 0.37)
+
+Die automatischen Erinnerungen (Termin am Vortag, Fährte ohne Ablauf, offene Rückmeldungen für
+Trainer:innen) entstehen auch für Demo-Konten - sie brauchen keine eigenen Demo-Daten. Beispiele: Die
+Nachtfährte von Mitglied 1 (gestern 22 Uhr gelegt, ohne Ablauf) löst am nächsten Morgen ab 8 Uhr
+die Erinnerung aus, solange die 24 Stunden laufen; die Gruppenmitglieder bekommen am Vorabend ab 18 Uhr
+„Morgen …: Welpengruppe“ zum nächsten Gruppentermin (Lisa hat abgesagt: nichts); der Trainer bekommt sonntags
+um 18 Uhr die Zusammenfassung der Trainings, die auf Rückmeldung warten. Wer das Verhalten ausprobiert,
+findet die Meldungen in der Glocke; Push nur, wenn auf dem Gerät eingeschaltet.
+
 ## Prüfen
 
 - Tests: `DemoSzenarienSeederTests` (zweimal ausführen = keine Duplikate, ohne

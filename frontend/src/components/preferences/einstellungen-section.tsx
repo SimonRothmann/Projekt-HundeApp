@@ -17,6 +17,7 @@ import { useSprache, useT } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
 import { sichtbareModule } from "@/lib/profil";
 import { BenachrichtigungenSection } from "@/components/preferences/benachrichtigungen-section";
+import { ErinnerungenSection } from "@/components/preferences/erinnerungen-section";
 
 /**
  * Module und Sportarten ein- und ausblenden.
@@ -115,6 +116,7 @@ export function FunktionenSection() {
         ))}
       </ListenGruppe>
       <BenachrichtigungenSection />
+      <ErinnerungenSection />
     </div>
   );
 }

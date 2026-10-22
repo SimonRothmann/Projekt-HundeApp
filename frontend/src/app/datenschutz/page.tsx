@@ -120,7 +120,8 @@ function DatenschutzDe() {
           punkte={[
             "dein Lernfortschritt im Sachkunde-Fragentrainer",
             "Benachrichtigungen innerhalb der App",
-            "deine Einstellungen: Sprache, Land, Schriftgröße, ausgeblendete Bereiche, gewählte Sportarten und ob wichtige Benachrichtigungen auch per E-Mail kommen",
+            "deine Einstellungen: Sprache, Land, Schriftgröße, ausgeblendete Bereiche, gewählte Sportarten, ob wichtige Benachrichtigungen auch per E-Mail kommen und welche Erinnerungen du bekommst (bei Trainer:innen mit gewählten Wochentagen und Uhrzeit)",
+            "welche Erinnerungen dir schon geschickt wurden (Art, Termin bzw. Fährte oder Tag, Zeitpunkt) – nur als Merkzettel, damit eine Erinnerung nicht zweimal kommt; ausführlich in Abschnitt 7",
             "Geräte, auf denen du Push-Benachrichtigungen eingeschaltet hast: die Adresse des Geräts beim Push-Dienst seines Herstellers, die Schlüssel des Geräts zur Verschlüsselung, eine Kurzbezeichnung wie „iPhone (Safari)“ sowie Zeitpunkt der Anmeldung und der letzten Zustellung – ausführlich in Abschnitt 7",
           ]}
         />
@@ -154,6 +155,7 @@ function DatenschutzDe() {
             "Anmeldung zu einer Gruppe über ein Anmeldeformular (ohne Konto): Art. 6 Abs. 1 lit. b DSGVO – siehe Abschnitt 9.",
             "E-Mails (Willkommen, Passwort zurücksetzen, Einladungen und Entscheidungen über Beitrittsanfragen): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu Konto und Vereinsfunktionen. Ob du die Mails zu Einladungen und Entscheidungen bekommst, wählst du schon bei der Registrierung (vorausgewählt); abbestellen kannst du sie jederzeit über den Link in der Mail, ohne Anmeldung, oder unter Profil → Funktionen.",
             "Push-Benachrichtigungen: Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TDDDG – sie beginnen erst, wenn du sie auf einem Gerät selbst einschaltest und der Browser oder das Betriebssystem dich um Erlaubnis gefragt hat. Du kannst sie jederzeit in der App ausschalten oder die Erlaubnis im Gerät zurücknehmen.",
+            "Erinnerungen (Termin am Vortag, Fährte noch nicht abgelaufen, offene Rückmeldungen): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu den Funktionen, die du nutzt; du kannst jede einzeln unter Profil → Funktionen abschalten. Kommen sie als Push, gilt zusätzlich die Einwilligung zu Push von oben.",
             "Schutz vor Missbrauch, Fehlersuche und Sicherheit des Betriebs: Art. 6 Abs. 1 lit. f DSGVO. Mein berechtigtes Interesse ist, dass der Dienst erreichbar bleibt und Konten nicht übernommen werden.",
             "Das Auslesen deines Standorts erlaubst du im Browser ausdrücklich und kannst die Erlaubnis jederzeit zurücknehmen.",
           ]}
@@ -286,6 +288,20 @@ function DatenschutzDe() {
           Nachricht und deine Adresse nutze ich nur, um dir zu antworten (Art. 6 Abs. 1 lit. f DSGVO, geht es um
           dein Konto, lit. b), und lösche sie, wenn die Sache erledigt ist und keine Aufbewahrungspflicht besteht.
         </p>
+        <p className="font-medium text-foreground">Erinnerungen (vom Server)</p>
+        <p>
+          Dogity schickt drei Arten von Erinnerungen von sich aus, als Meldung in der Glocke und – wo du Push
+          eingeschaltet hast – als Push: am Vortag an einen Gruppentermin (wenn du Mitglied der Gruppe bist und nicht
+          abgesagt hast), an eine gelegte Fährte, die noch nicht abgelaufen wurde (etwa drei Stunden nach dem Legen,
+          solange der Ablauf noch möglich ist und dein Hund nicht in einer Trainingspause ist), und – nur bei
+          Trainer:innen – eine Zusammenfassung, wie viele Trainings auf eine Rückmeldung warten. Jede davon schaltest du
+          einzeln unter Profil → Funktionen ab; bei der Zusammenfassung wählen Trainer:innen außerdem Wochentage und
+          Uhrzeit. Erinnerungen kommen nur zwischen 8 und 22 Uhr deutscher Zeit und nie per E-Mail. Damit eine
+          Erinnerung nicht doppelt kommt, merkt sich der Server, welche er dir schon geschickt hat: Art, Termin bzw.
+          Fährte oder Tag und Zeitpunkt, ohne den Text. Diese Merkzettel werden nach 60 Tagen gelöscht, spätestens mit
+          deinem Konto. Ein Dritter erfährt dabei nichts, außer dem Push-Dienst, was für Push ohnehin gilt (siehe
+          unten).
+        </p>
         <p className="font-medium text-foreground">Push-Dienste der Gerätehersteller (vom Server)</p>
         <p>
           Schaltest du Push-Benachrichtigungen ein, schickt der Server die Nachricht an den Push-Dienst, den dein
@@ -390,6 +406,7 @@ function DatenschutzDe() {
             "Anmeldungen zu einer Gruppe ohne Konto (Abschnitt 9): bis die Trainer:innen sie löschen, spätestens zwölf Monate nach der letzten Anwesenheit, Änderung oder Anmeldung.",
             "Anmelde-Token auf dem Server: der kurzlebige nach einer Stunde, der Erneuerungs-Token spätestens nach 60 Tagen.",
             "Geräte für Push-Benachrichtigungen: bis du Push dort ausschaltest, dich abmeldest oder dein Konto löschst; ein Gerät, das der Push-Dienst nicht mehr kennt, wird beim nächsten Versand entfernt.",
+            "Merkzettel „Erinnerung versendet“: 60 Tage, spätestens bis du dein Konto löschst.",
             "Mails von Dogity: Der Mailserver behält sie nur, bis dein E-Mail-Anbieter sie angenommen hat, höchstens zwei Tage; sein Protokoll (Empfänger, Zeitpunkt, Zustellung) ist in der Größe begrenzt und wird laufend überschrieben (Abschnitt 7).",
             `Mails an ${BETREIBER.email}: bis die Sache erledigt ist, sofern keine Aufbewahrungspflicht besteht.`,
             `Sicherungen der Datenbank: ${SICHERUNG_AUFBEWAHRUNG.lokal} Tage auf dem Server; ausgelagert ${SICHERUNG_AUFBEWAHRUNG.taeglich} Tage (tägliche Stände), ${SICHERUNG_AUFBEWAHRUNG.woechentlich} Tage (wöchentliche) und ${SICHERUNG_AUFBEWAHRUNG.monatlich} Tage (monatliche).`,
@@ -397,7 +414,7 @@ function DatenschutzDe() {
         />
         <p>
           Löschst du dein Konto, werden dein Zugang, deine Hunde, Trainings, Fährten, Ziele, Einstellungen, dein
-          Lernfortschritt, deine Zusagen zu Gruppenterminen, die Geräte für Push-Benachrichtigungen und deine Vereins- und Gruppenzugehörigkeiten entfernt. Hunde, die du dir mit jemandem
+          Lernfortschritt, deine Zusagen zu Gruppenterminen, die Geräte für Push-Benachrichtigungen, die Merkzettel zu versendeten Erinnerungen und deine Vereins- und Gruppenzugehörigkeiten entfernt. Hunde, die du dir mit jemandem
           teilst, bleiben bei der anderen Person – nur deine Verknüpfung damit verschwindet. Wo du als Trainer:in
           Inhalte für einen Verein angelegt hast, bleiben diese Inhalte dem Verein erhalten, die Angabe deiner
           Urheberschaft wird aber entfernt. Anmeldungen zu Gruppen, die du als Trainer:in verwaltet hast, gehören dem

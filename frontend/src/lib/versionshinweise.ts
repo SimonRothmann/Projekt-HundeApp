@@ -61,6 +61,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.37",
+    datum: "2026-10-22",
+    titel: uebersetzbar("Erinnerungen als Meldung und Push"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Dogity erinnert dich jetzt von selbst, in der Glocke und als Push, wenn du Push eingeschaltet hast: am Abend vorher an Gruppentermine („Morgen 18:00: Welpengruppe – du hast zugesagt“ oder „kommst du?“; wer abgesagt hat, hört nichts) und gut drei Stunden nach dem Legen daran, dass eine Fährte noch nicht abgelaufen ist, solange das noch geht. Ist dein Hund gerade in einer Trainingspause, kommt keine Fährten-Erinnerung."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Trainer:innen bekommen auf Wunsch eine Zusammenfassung, wie viele Trainings auf ihre Rückmeldung warten – nur, wenn es welche gibt. Wochentage und Uhrzeit wählst du selbst; Vorgabe ist Sonntag um 18 Uhr. Rückmeldungen bleiben freiwillig."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Jede Erinnerung lässt sich unter „Profil“ → „Funktionen“ → „Erinnerungen“ einzeln ausschalten. Zwischen 22 und 8 Uhr schickt Dogity keine Erinnerungen, und es kommt nie eine Mail dazu."),
+      },
+    ],
+  },
+  {
     version: "0.36",
     datum: "2026-10-22",
     titel: uebersetzbar("Trainingspausen: verletzt, krank, läufig"),
