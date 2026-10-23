@@ -1,5 +1,6 @@
 using Dogity.Application.Community;
 using Dogity.Application.Dogs;
+using Dogity.Application.Learning;
 using Dogity.Application.Planning;
 using Dogity.Application.Preferences;
 using Dogity.Application.Tracking;
@@ -7,6 +8,7 @@ using Dogity.Application.Training;
 using Dogity.Application.Weather;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
+using Dogity.Domain.Learning;
 using Dogity.Domain.Planning;
 using Dogity.Domain.Sports;
 using Dogity.Domain.Tracking;
@@ -28,7 +30,8 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// dazukam: Englisch (Lisa), Mitbesitz-Einladung (Lisa), Österreich und
 /// Vereinsantrag (Tom), Hoopers (Nina), eine Nachtfährte, die "erneut
 /// ablaufen" über Mitternacht zeigt (Bello), die Schweiz (Sandro, SKG BH 1) und
-/// Trainingspausen (Ninas Hündin läufig, rollend; eine überstandene Verletzung bei Bello).
+/// Trainingspausen (Ninas Hündin läufig, rollend; eine überstandene Verletzung bei Bello) und
+/// die Sachkunde-Übungsprüfung (zwei vergangene Ergebnisse bei Max).
 ///
 /// Warum ein eigener Seeder und nicht noch mehr im DemoDataSeeder: Der bricht
 /// ab, sobald das Trainer-Konto existiert - auf der Test-Umgebung gibt es die
@@ -50,6 +53,9 @@ public static class DemoSzenarienSeeder
     public const string NeulingEmail = "neuling@dogity.test";
     public const string InteressentEmail = "interessent@dogity.test";
     public const string SchweizEmail = "schweiz@dogity.test";
+
+    /// <summary>Der Erwachsenenkatalog, bei dem Max seine Übungsprüfungen hat.</summary>
+    public const string SachkundeKatalogCode = "SWHV-BHVT-ERW";
 
     private const string VereinsName = "Hundesportverein Musterstadt e.V.";
     private const string GruppenName = "Welpengruppe Dienstag";
@@ -152,6 +158,7 @@ public static class DemoSzenarienSeeder
                 ("Hoopers", HoopersAsync),
                 // Nach dem Hoopers-Szenario: Dort entsteht Ninas Flitzer.
                 ("Trainingspausen", TrainingspausenAsync),
+                ("Sachkunde", SachkundeAsync),
                 ("Fährten", FaehrtenAsync),
                 ("Nachtfährte", NachtfaehrteAsync),
                 ("Feedback", FeedbackAsync),
@@ -844,6 +851,89 @@ public static class DemoSzenarienSeeder
                 new SaveDogPauseRequest(DogPauseReason.InHeat, beginn, ende, NotizPauseLaeufig), ct);
             if (!laeufig.Succeeded)
                 logger.LogWarning("Demo-Läufigkeit für {Hund} konnte nicht angelegt werden: {Fehler}", huendin.Name, string.Join("; ", laeufig.Errors));
+        }
+
+        // ---------------------------------------------------------------- m) Sachkunde-Übungsprüfung
+
+        /// <summary>
+        /// Max hat zwei Übungsprüfungen zum Erwachsenenkatalog hinter sich: vor zehn Tagen eine nicht bestandene (15 von 25
+        /// Fragen richtig), vor drei Tagen eine bestandene (20 von 25). So zeigt die Katalogseite das letzte
+        /// Ergebnis und den Verlauf, und die falsch beantworteten Fragen liegen im Fehlerspeicher (Modus "Fehler").
+        ///
+        /// Entsteht über denselben Dienst wie in der App (ziehen, abgeben), nicht über selbst gesetzte Zeilen; nur der
+        /// Zeitpunkt wird zurückdatiert. Erkannt wird das Szenario an irgendeinem Ergebnis von Max in diesem
+        /// Katalog (auch einem weich entfernten): Wer in der Demo selbst Prüfungen macht, bekommt nichts dazu.
+        ///
+        /// Die Punkte (30 und 40) stehen nur fest, solange jede Auswahlfrage genau eine richtige Antwort hat (so ist der
+        /// Katalog; die Verwaltung lässt es nicht anders zu): "die ersten n Fragen richtig" kreuzt je Frage genau eine an.
+        /// Bricht ein Lauf nach dem ersten Ergebnis ab, bleibt es bei diesem einen - bewusst, weil eine Ergänzung
+        /// nicht von Ergebnissen zu unterscheiden wäre, die jemand in der Demo selbst erzeugt hat.
+        /// </summary>
+        private async Task SachkundeAsync(CancellationToken ct)
+        {
+            var katalog = await db.QuizCatalogs.FirstOrDefaultAsync(
+                c => c.Code == SachkundeKatalogCode && c.ExamQuestionCount != null, ct);
+            // Die Kataloge kommen vom SachkundeSeeder; ohne sie (oder ohne Übungsprüfung) entfällt das Szenario.
+            if (katalog is null) return;
+
+            if (await db.QuizExamAttempts.IgnoreQueryFilters().AnyAsync(a => a.UserId == max.Id && a.CatalogId == katalog.Id, ct))
+                return;
+
+            var sachkunde = services.GetRequiredService<ISachkundeService>();
+            var jetzt = DateTimeOffset.UtcNow;
+
+            // Zuerst die schwächere, danach die bessere: der Verlauf zeigt eine Steigerung.
+            foreach (var (richtigVon, vorTagen) in new[] { (15, 10), (20, 3) })
+            {
+                var pruefung = await sachkunde.StartExamAsync(katalog.Code, ct);
+                if (!pruefung.Succeeded)
+                {
+                    logger.LogWarning("Demo-Übungsprüfung konnte nicht gezogen werden: {Fehler}", string.Join("; ", pruefung.Errors));
+                    return;
+                }
+
+                var frageIds = pruefung.Value!.Questions.Select(q => q.Id).ToList();
+                var zeilen = await db.QuizOptions
+                    .Where(o => frageIds.Contains(o.QuestionId))
+                    .ToListAsync(ct);
+
+                var antworten = pruefung.Value.Questions.Select((frage, i) =>
+                {
+                    var optionen = zeilen.Where(o => o.QuestionId == frage.Id).ToList();
+                    var richtig = i < richtigVon;
+
+                    if (frage.Kind == nameof(QuizQuestionKind.Assignment))
+                        return new QuizExamAnswerDto(
+                            frage.Id, null,
+                            richtig
+                                ? optionen.Where(o => o.Kind == QuizOptionKind.Term).ToDictionary(o => o.Id, o => o.MatchKey ?? string.Empty)
+                                : null);
+
+                    var gewaehlt = optionen
+                        .Where(o => o.Kind == QuizOptionKind.Answer && o.IsCorrect == richtig)
+                        .OrderBy(o => o.SortOrder)
+                        .Select(o => o.Id)
+                        .Take(1)
+                        .ToList();
+                    return new QuizExamAnswerDto(frage.Id, gewaehlt, null);
+                }).ToList();
+
+                var abgabe = await sachkunde.SubmitExamAsync(max.Id, katalog.Code, antworten, ct);
+                if (!abgabe.Succeeded)
+                {
+                    logger.LogWarning("Demo-Übungsprüfung konnte nicht abgegeben werden: {Fehler}", string.Join("; ", abgabe.Errors));
+                    return;
+                }
+
+                // Das eben gespeicherte Ergebnis in die Vergangenheit legen.
+                var gespeichert = await db.QuizExamAttempts
+                    .Where(a => a.UserId == max.Id && a.CatalogId == katalog.Id)
+                    .OrderByDescending(a => a.SubmittedAt)
+                    .FirstAsync(ct);
+                gespeichert.SubmittedAt = jetzt.AddDays(-vorTagen);
+                gespeichert.CreatedAt = gespeichert.SubmittedAt;
+                await db.SaveChangesAsync(ct);
+            }
         }
 
         // ---------------------------------------------------------------- k) Schweiz (Sandro)

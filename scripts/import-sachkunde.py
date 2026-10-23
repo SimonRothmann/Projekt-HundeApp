@@ -42,6 +42,14 @@ HERAUSGEBER = "Südwestdeutscher Hundesportverband e.V. (swhv)"
 QUELLE = "https://swhv.de/fileadmin/swhv.de/Dokumente/Formulare_und_Texte/Basis/"
 STAND = "2024-03"
 
+# Größe der Übungsprüfung je Katalog - Festlegung des Betreibers (2026-10-23),
+# nicht Teil der PDFs. Steht in der JSON, damit sie sich ohne Codeänderung
+# anpassen lässt, und MUSS hier stehen bleiben: das Skript erzeugt die Datei
+# jedes Mal neu, ein nur in der JSON gepflegter Wert ginge beim nächsten Import
+# verloren. Jugend: 15 Fragen (zufällig aus den 40), wie es die Katalogbeschreibung nennt.
+UEBUNGSPRUEFUNG_ERW = {"fragen": 25}
+UEBUNGSPRUEFUNG_JGD = {"fragen": 15}
+
 # Themenkomplexe des Erwachsenenkatalogs. Die Überschriften im PDF nennen nur
 # den Buchstaben; die Bezeichnungen sind aus den Fragen des jeweiligen Komplexes
 # abgeleitet und dienen der Navigation, nicht der Prüfung.
@@ -426,11 +434,13 @@ def main() -> None:
              "zielgruppe": "Adults",
              "beschreibung": "Fragenkatalog des swhv zur Sachkundeprüfung im Rahmen der "
                              "Begleithundeprüfung mit Verkehrsteil, Fassung für Erwachsene.",
+             "uebungspruefung": UEBUNGSPRUEFUNG_ERW,
              "fragen": erwachsene},
             {"code": "SWHV-BHVT-JGD", "name": "Sachkunde BH/VT – Jugend",
              "zielgruppe": "Youth",
              "beschreibung": "Fassung für Kinder und Jugendliche unter 15 Jahren. In der Prüfung "
                              "werden 15 Fragen gestellt, je Frage ist genau eine Antwort richtig.",
+             "uebungspruefung": UEBUNGSPRUEFUNG_JGD,
              "fragen": jugend},
         ],
     }

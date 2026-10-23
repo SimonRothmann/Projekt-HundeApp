@@ -31,6 +31,12 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
             .Select(c => new
             {
                 c.Id, c.Code, c.Name, c.Description, c.Publisher, c.SourceUrl, c.Edition, c.Audience,
+                c.ExamQuestionCount,
+                // Nur nach Fragenart gezählt (billig, eine Abfrage). Die Prüfung selbst
+                // entscheidet mit SachkundePruefung.IstWertbar, das zusätzlich eine
+                // richtige Antwort bzw. Begriffe verlangt; die Verwaltung lässt
+                // Fragen ohne beides nicht zu, die Zahlen stimmen also überein.
+                Auswertbar = c.Questions.Count(q => q.Kind != QuizQuestionKind.FreeText),
                 Sections = c.Questions
                     .GroupBy(q => new { q.Section, q.SectionName })
                     .Select(g => new { g.Key.Section, g.Key.SectionName, Count = g.Count() })
@@ -47,7 +53,8 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
                 c.Sections
                     .OrderBy(s => s.Section, StringComparer.Ordinal)
                     .Select(s => new QuizSectionDto(s.Section, s.SectionName, s.Count))
-                    .ToList()))
+                    .ToList(),
+                PruefungsInfo(c.ExamQuestionCount, c.Auswertbar)))
             .ToList();
 
         return Result<IReadOnlyList<QuizCatalogDto>>.Success(dtos);
@@ -286,6 +293,247 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
         m.UpdatedAt = now;
     }
 
+    // ---------- Übungsprüfung ----------
+
+    public async Task<Result<QuizExamDto>> StartExamAsync(string catalogCode, CancellationToken ct = default)
+    {
+        var katalog = await PruefungsKatalogAsync(catalogCode, ct);
+        if (katalog.Fehler is not null)
+            return Result<QuizExamDto>.NotFound(katalog.Fehler);
+
+        var fragen = await FragenAbfrage(katalog.Id, section: null).ToListAsync(ct);
+        var auswahl = SachkundePruefung.WaehleFragen(fragen, katalog.Anzahl, Random.Shared);
+        if (auswahl.Count == 0)
+            return Result<QuizExamDto>.NotFound("Für diesen Fragenkatalog gibt es keine Übungsprüfung.");
+
+        var hoechst = auswahl.Sum(SachkundePruefung.HoechstPunkte);
+
+        return Result<QuizExamDto>.Success(new QuizExamDto(
+            katalog.Code,
+            auswahl.Count,
+            hoechst,
+            SachkundePruefung.Bestehensgrenze(hoechst),
+            SachkundePruefung.BestehensProzent,
+            auswahl.Select(ZuPruefungsDto).ToList()));
+    }
+
+    public async Task<Result<QuizExamResultDto>> SubmitExamAsync(
+        Guid? userId, string catalogCode, IReadOnlyList<QuizExamAnswerDto> answers, CancellationToken ct = default)
+    {
+        var katalog = await PruefungsKatalogAsync(catalogCode, ct);
+        if (katalog.Fehler is not null)
+            return Result<QuizExamResultDto>.NotFound(katalog.Fehler);
+
+        // Der Server merkt sich die gezogene Prüfung nicht (kein Zustand, der
+        // bei anonymer Nutzung aufräumt werden müsste). Er prüft stattdessen,
+        // dass die Abgabe die Form einer Prüfung hat: richtige Anzahl, nur
+        // Fragen dieses Katalogs, keine doppelt, nichts Unwertbares.
+        //
+        // Was sich ohne den Katalog entscheiden lässt, kommt VOR dem Laden: Die
+        // Endpunkte sind anonym, und eine leere, überlange oder doppelte Abgabe
+        // soll keine Katalogabfrage kosten. Die Prüfungsgröße ist die Obergrenze
+        // (weniger wertbare Fragen als verlangt senken sie nur).
+        var abgegeben = answers?.Count ?? 0;
+        var hoechstens = katalog.Anzahl;
+        if (answers is null || abgegeben == 0 || abgegeben > hoechstens)
+            return Result<QuizExamResultDto>.Failure(
+                $"Die Übungsprüfung hat höchstens {hoechstens} Fragen – es wurden {abgegeben} Antworten abgegeben.");
+
+        if (answers.Select(a => a.QuestionId).Distinct().Count() != answers.Count)
+            return Result<QuizExamResultDto>.Failure("Eine Frage wurde doppelt abgegeben.");
+
+        var wertbar = (await FragenAbfrage(katalog.Id, section: null).ToListAsync(ct))
+            .Where(SachkundePruefung.IstWertbar)
+            .ToDictionary(q => q.Id);
+
+        var erwartet = Math.Min(katalog.Anzahl, wertbar.Count);
+        if (abgegeben != erwartet)
+            return Result<QuizExamResultDto>.Failure(
+                $"Die Übungsprüfung hat {erwartet} Fragen – es wurden {abgegeben} Antworten abgegeben.");
+
+        if (answers.Any(a => !wertbar.ContainsKey(a.QuestionId)))
+            return Result<QuizExamResultDto>.Failure("Eine Frage gehört nicht zu dieser Übungsprüfung.");
+
+        var fragenErgebnisse = new List<(QuizQuestion Frage, QuizExamQuestionResultDto Ergebnis)>();
+        foreach (var antwort in answers)
+        {
+            var frage = wertbar[antwort.QuestionId];
+            var bewertet = Bewerten(frage, antwort);
+            if (bewertet.Fehler is not null)
+                return Result<QuizExamResultDto>.Failure(bewertet.Fehler);
+            fragenErgebnisse.Add((frage, bewertet.Ergebnis!));
+        }
+
+        var punkte = fragenErgebnisse.Sum(f => f.Ergebnis.Points);
+        var hoechst = fragenErgebnisse.Sum(f => f.Ergebnis.MaxPoints);
+        var richtig = fragenErgebnisse.Count(f => f.Ergebnis.Correct);
+        var bestanden = SachkundePruefung.Bestanden(punkte, hoechst);
+
+        var abschnitte = fragenErgebnisse
+            .GroupBy(f => new { f.Frage.Section, f.Frage.SectionName })
+            .OrderBy(g => g.Key.Section, StringComparer.Ordinal)
+            .Select(g => new QuizExamSectionResultDto(
+                g.Key.Section, g.Key.SectionName, g.Sum(f => f.Ergebnis.Points), g.Sum(f => f.Ergebnis.MaxPoints)))
+            .ToList();
+
+        var gespeichert = false;
+        if (userId is { } nutzer)
+        {
+            var jetzt = clock.GetUtcNow();
+
+            db.QuizExamAttempts.Add(new QuizExamAttempt
+            {
+                UserId = nutzer,
+                CatalogId = katalog.Id,
+                SubmittedAt = jetzt,
+                Points = punkte,
+                MaxPoints = hoechst,
+                Passed = bestanden,
+                QuestionCount = fragenErgebnisse.Count,
+                CorrectCount = richtig,
+                SectionResultsJson = SachkundePruefung.SchreibeAbschnitte(abschnitte)
+            });
+
+            // Fehlerspeicher: was nicht voll richtig war (auch Unbeantwortetes -
+            // gelernt werden muss es ja trotzdem), wirkt wie eine falsche Antwort
+            // im Lernmodus: Fach 1, sofort wieder fällig. Richtig Beantwortetes
+            // ändert den Lernstand bewusst NICHT - eine Prüfung soll nicht
+            // nebenbei Fächer hochstufen.
+            var falscheIds = fragenErgebnisse.Where(f => !f.Ergebnis.Correct).Select(f => f.Frage.Id).ToList();
+            var stand = await db.QuizMasteries
+                .Where(m => m.UserId == nutzer && falscheIds.Contains(m.QuestionId))
+                .ToDictionaryAsync(m => m.QuestionId, ct);
+
+            foreach (var id in falscheIds)
+            {
+                if (!stand.TryGetValue(id, out var mastery))
+                {
+                    mastery = new QuizMastery { UserId = nutzer, QuestionId = id };
+                    db.QuizMasteries.Add(mastery);
+                }
+                ApplyOutcome(mastery, correct: false, jetzt);
+            }
+
+            await db.SaveChangesAsync(ct);
+            gespeichert = true;
+        }
+
+        return Result<QuizExamResultDto>.Success(new QuizExamResultDto(
+            punkte,
+            hoechst,
+            SachkundePruefung.Bestehensgrenze(hoechst),
+            SachkundePruefung.BestehensProzent,
+            SachkundePruefung.Prozent(punkte, hoechst),
+            bestanden,
+            fragenErgebnisse.Count,
+            richtig,
+            gespeichert,
+            abschnitte,
+            fragenErgebnisse.Select(f => f.Ergebnis).ToList()));
+    }
+
+    public async Task<Result<QuizExamHistoryDto>> GetExamHistoryAsync(
+        Guid userId, string catalogCode, CancellationToken ct = default)
+    {
+        var katalogId = await KatalogIdAsync(catalogCode, ct);
+        if (katalogId is null)
+            return Result<QuizExamHistoryDto>.NotFound("Fragenkatalog nicht gefunden.");
+
+        var versuche = await db.QuizExamAttempts
+            .Where(a => a.UserId == userId && a.CatalogId == katalogId.Value)
+            .OrderByDescending(a => a.SubmittedAt)
+            .Take(SachkundePruefung.VerlaufLaenge)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var letzte = versuche.Take(SachkundePruefung.BilanzLaenge).ToList();
+
+        return Result<QuizExamHistoryDto>.Success(new QuizExamHistoryDto(
+            catalogCode,
+            versuche.Select(a => new QuizExamAttemptDto(
+                a.Id, a.SubmittedAt, a.Points, a.MaxPoints, SachkundePruefung.Prozent(a.Points, a.MaxPoints),
+                a.Passed, a.QuestionCount, a.CorrectCount, SachkundePruefung.LeseAbschnitte(a.SectionResultsJson))).ToList(),
+            letzte.Count(a => a.Passed),
+            letzte.Count));
+    }
+
+    /// <summary>Die Prüfungsgröße des Katalogs, oder warum es keine Übungsprüfung gibt.</summary>
+    private async Task<(Guid Id, string Code, int Anzahl, string? Fehler)> PruefungsKatalogAsync(
+        string code, CancellationToken ct)
+    {
+        var normalisiert = (code ?? string.Empty).Trim().ToUpperInvariant();
+        var katalog = await db.QuizCatalogs
+            .Where(c => c.Code.ToUpper() == normalisiert)
+            .Select(c => new { c.Id, c.Code, c.ExamQuestionCount })
+            .FirstOrDefaultAsync(ct);
+
+        if (katalog is null)
+            return (Guid.Empty, string.Empty, 0, "Fragenkatalog nicht gefunden.");
+        if (katalog.ExamQuestionCount is not > 0)
+            return (katalog.Id, katalog.Code, 0, "Für diesen Fragenkatalog gibt es keine Übungsprüfung.");
+
+        return (katalog.Id, katalog.Code, katalog.ExamQuestionCount.Value, null);
+    }
+
+    /// <summary>Wertet eine einzelne Frage der Übungsprüfung; Fehler nur bei unpassenden Ids.</summary>
+    private static (QuizExamQuestionResultDto? Ergebnis, string? Fehler) Bewerten(
+        QuizQuestion frage, QuizExamAnswerDto antwort)
+    {
+        var hoechst = SachkundePruefung.HoechstPunkte(frage);
+
+        if (frage.Kind == QuizQuestionKind.Assignment)
+        {
+            var begriffe = frage.Options.Where(o => o.Kind == QuizOptionKind.Term).OrderBy(o => o.SortOrder).ToList();
+            var zuordnung = antwort.Assignments;
+            if (zuordnung is not null && zuordnung.Keys.Any(id => begriffe.All(b => b.Id != id)))
+                return (null, "Ein zugeordneter Begriff gehört nicht zu dieser Frage.");
+
+            var punkteZuordnung = SachkundePruefung.PunkteZuordnung(begriffe, zuordnung);
+            return (new QuizExamQuestionResultDto(
+                frage.Id, punkteZuordnung == hoechst, punkteZuordnung, hoechst,
+                [], begriffe.ToDictionary(b => b.Id, b => b.MatchKey ?? string.Empty)), null);
+        }
+
+        var richtige = SachkundePruefung.RichtigeAntworten(frage);
+        var angekreuzt = (antwort.SelectedOptionIds ?? []).Distinct().ToList();
+        if (angekreuzt.Any(id => frage.Options.All(o => o.Id != id || o.Kind != QuizOptionKind.Answer)))
+            return (null, "Eine gewählte Antwort gehört nicht zu dieser Frage.");
+
+        var punkte = SachkundePruefung.PunkteAuswahl(richtige, angekreuzt);
+        return (new QuizExamQuestionResultDto(
+            frage.Id, punkte == hoechst, punkte, hoechst, richtige, new Dictionary<Guid, string>()), null);
+    }
+
+    /// <summary>Die Frage ohne jeden Hinweis auf die Lösung.</summary>
+    private static QuizExamQuestionDto ZuPruefungsDto(QuizQuestion frage)
+    {
+        var zeilen = frage.Options.OrderBy(o => o.SortOrder).ToList();
+
+        return new QuizExamQuestionDto(
+            frage.Id,
+            frage.Number,
+            frage.Section,
+            frage.SectionName,
+            frage.Kind.ToString(),
+            frage.Text,
+            frage.ImageName,
+            // Reihenfolge der Antworten bleibt die des Katalogs (a/b/c).
+            zeilen.Where(o => o.Kind == QuizOptionKind.Answer)
+                  .Select(o => new QuizExamOptionDto(o.Id, o.Text, o.ImageName)).ToList(),
+            zeilen.Where(o => o.Kind == QuizOptionKind.Term).Select(o => new QuizExamTermDto(o.Id, o.Text)).ToList(),
+            Schluessel(zeilen));
+    }
+
+    private static QuizExamInfoDto? PruefungsInfo(int? gewuenscht, int auswertbar)
+    {
+        var anzahl = Math.Min(gewuenscht ?? 0, auswertbar);
+        if (anzahl <= 0) return null;
+
+        var hoechst = anzahl * SachkundePruefung.PunkteJeAntwort;
+        return new QuizExamInfoDto(
+            anzahl, hoechst, SachkundePruefung.Bestehensgrenze(hoechst), SachkundePruefung.BestehensProzent);
+    }
+
     // ---------- Hilfen ----------
 
     /// <summary>
@@ -375,6 +623,31 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
             abschnitte);
     }
 
+    /// <summary>
+    /// Die wählbaren Schlüssel einer Zuordnung. Ohne Beschriftungen stehen sie in
+    /// der Abbildung (A2: die Ziffern 1-5). Dann werden sie aus den Begriffen
+    /// abgeleitet - das verrät nichts, weil die Zuordnung eineindeutig ist:
+    /// jeder Schlüssel kommt genau einmal vor, gesucht ist die Reihenfolge.
+    /// </summary>
+    private static List<QuizKeyDto> Schluessel(List<QuizOption> zeilen)
+    {
+        var beschriftungen = zeilen
+            .Where(o => o.Kind == QuizOptionKind.Label && o.MatchKey is not null)
+            .Select(o => new QuizKeyDto(o.MatchKey!, o.Text))
+            .ToList();
+
+        return beschriftungen.Count > 0
+            ? beschriftungen
+            : zeilen
+                .Where(o => o.Kind == QuizOptionKind.Term)
+                .Select(o => o.MatchKey ?? string.Empty)
+                .Where(k => !string.IsNullOrEmpty(k))
+                .Distinct()
+                .OrderBy(k => k, StringComparer.Ordinal)
+                .Select(k => new QuizKeyDto(k, null))
+                .ToList();
+    }
+
     private static QuizQuestionDto ZuDto(QuizQuestion frage, QuizMastery? stand)
     {
         var zeilen = frage.Options.OrderBy(o => o.SortOrder).ToList();
@@ -384,24 +657,7 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
             .Select(o => new QuizTermDto(o.Id, o.Text, o.MatchKey ?? string.Empty))
             .ToList();
 
-        var beschriftungen = zeilen
-            .Where(o => o.Kind == QuizOptionKind.Label && o.MatchKey is not null)
-            .Select(o => new QuizKeyDto(o.MatchKey!, o.Text))
-            .ToList();
-
-        // Ohne Beschriftungen stehen die Schlüssel in der Abbildung (A2: die
-        // Ziffern 1-5). Dann werden sie aus den Begriffen abgeleitet - das
-        // verrät nichts, weil die Zuordnung eineindeutig ist: jeder Schlüssel
-        // kommt genau einmal vor, gesucht ist die Reihenfolge.
-        var schluessel = beschriftungen.Count > 0
-            ? beschriftungen
-            : begriffe
-                .Select(b => b.SolutionKey)
-                .Where(k => !string.IsNullOrEmpty(k))
-                .Distinct()
-                .OrderBy(k => k, StringComparer.Ordinal)
-                .Select(k => new QuizKeyDto(k, null))
-                .ToList();
+        var schluessel = Schluessel(zeilen);
 
         return new QuizQuestionDto(
             frage.Id,

@@ -97,3 +97,21 @@ public class QuizMasteryConfiguration : IEntityTypeConfiguration<QuizMastery>
         builder.HasIndex(m => new { m.UserId, m.DueAt });
     }
 }
+
+public class QuizExamAttemptConfiguration : IEntityTypeConfiguration<QuizExamAttempt>
+{
+    public void Configure(EntityTypeBuilder<QuizExamAttempt> builder)
+    {
+        builder.ToTable("quiz_exam_attempts");
+
+        builder.Property(a => a.SectionResultsJson).IsRequired();
+
+        builder.HasOne(a => a.Catalog)
+            .WithMany()
+            .HasForeignKey(a => a.CatalogId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Trägt "meine letzten Ergebnisse in diesem Katalog".
+        builder.HasIndex(a => new { a.UserId, a.CatalogId, a.SubmittedAt });
+    }
+}

@@ -79,6 +79,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<QuizQuestion> QuizQuestions => Set<QuizQuestion>();
     public DbSet<QuizOption> QuizOptions => Set<QuizOption>();
     public DbSet<QuizMastery> QuizMasteries => Set<QuizMastery>();
+    public DbSet<QuizExamAttempt> QuizExamAttempts => Set<QuizExamAttempt>();
 
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
@@ -171,6 +172,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<QuizQuestion>().HasQueryFilter(e => e.DeletedAt == null && e.Catalog!.DeletedAt == null);
         builder.Entity<QuizOption>().HasQueryFilter(e => e.DeletedAt == null && e.Question!.DeletedAt == null);
         builder.Entity<QuizMastery>().HasQueryFilter(e => e.DeletedAt == null && e.Question!.DeletedAt == null);
+        builder.Entity<QuizExamAttempt>().HasQueryFilter(e => e.DeletedAt == null && e.Catalog!.DeletedAt == null);
         builder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<PushSubscription>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<SentReminder>().HasQueryFilter(e => e.DeletedAt == null);

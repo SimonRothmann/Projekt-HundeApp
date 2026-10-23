@@ -164,6 +164,20 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
             }));
 
+    // Übungsprüfung der Sachkunde (ziehen und abgeben, ohne Anmeldung). Beide
+    // laden den ganzen Katalog (72 Fragen mit Antworten) aus der Datenbank -
+    // schwerer als die übrigen anonymen Lesezugriffe. Eine echte Prüfung braucht
+    // zwei Aufrufe in mehreren Minuten; 30 je Minute lassen auch eine Klasse
+    // hinter einer IP üben, bremsen aber jede Schleife.
+    options.AddPolicy("pruefung", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+            }));
+
     // Abmelden von den Mails über den Link in der Mail (ohne Anmeldung). Das Token
     // lässt sich nicht erraten; das Limit begrenzt nur die Last. Großzügiger als
     // "anmeldung": Mailprogramme und Link-Scanner rufen gern mehrfach auf, und

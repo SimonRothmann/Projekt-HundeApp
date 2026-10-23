@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getQuizCatalog, getQuizCatalogs, getQuizQuestions } from "@/lib/public-sachkunde";
-import { QuizTrainer } from "@/components/sachkunde/quiz-trainer";
+import { KatalogBereich } from "@/components/sachkunde/katalog-bereich";
 import { FragenUebersicht } from "@/components/sachkunde/fragen-uebersicht";
 import { KatalogDaten } from "@/components/sachkunde/katalog-liste";
 
@@ -30,7 +30,7 @@ export default async function LernenKatalogPage({ params }: Props) {
       <KatalogDaten catalog={catalog} />
 
       <div className="mt-6">
-        <QuizTrainer catalog={catalog} />
+        <KatalogBereich catalog={catalog} />
       </div>
 
       <FragenUebersicht fragen={fragen} />

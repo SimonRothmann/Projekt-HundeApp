@@ -11,7 +11,17 @@ public record QuizCatalogDto(
     string? Edition,
     string Audience,
     int QuestionCount,
-    IReadOnlyList<QuizSectionDto> Sections);
+    IReadOnlyList<QuizSectionDto> Sections,
+    QuizExamInfoDto? Exam = null);
+
+/// <summary>
+/// Was die Übungsprüfung eines Katalogs ausmacht - für die Kurzinfo vor dem
+/// Start ("25 Fragen · bestanden ab 35 von 50 Punkten"). Null, wenn der
+/// Katalog keine hat. <see cref="MaxPoints"/> setzt voraus, dass jede Frage
+/// genau eine richtige Antwort hat (so ist der Katalog); die Prüfung selbst
+/// trägt die tatsächlichen Höchstpunkte ihrer Zusammenstellung.
+/// </summary>
+public record QuizExamInfoDto(int QuestionCount, int MaxPoints, int PassPoints, int PassPercent);
 
 /// <summary>Ein Themenkomplex innerhalb eines Katalogs.</summary>
 public record QuizSectionDto(string Key, string Name, int QuestionCount);
@@ -99,3 +109,99 @@ public record QuizSessionDto(
     IReadOnlyList<QuizQuestionDto> Questions,
     QuizProgressDto Progress,
     bool RoundComplete);
+
+
+// ---------- Übungsprüfung ----------
+
+/// <summary>
+/// Eine gezogene Übungsprüfung - OHNE Lösungen: keine Kennzeichnung der
+/// richtigen Antworten, keine Musterlösung, bei Zuordnungen nur die wählbaren
+/// Schlüssel. Wer mehr als einen Blick braucht, sieht sie sich auf der
+/// Katalogseite an; die Prüfung selbst soll nichts verraten.
+/// </summary>
+public record QuizExamDto(
+    string CatalogCode,
+    int QuestionCount,
+    int MaxPoints,
+    int PassPoints,
+    int PassPercent,
+    IReadOnlyList<QuizExamQuestionDto> Questions);
+
+public record QuizExamQuestionDto(
+    Guid Id,
+    string Number,
+    string Section,
+    string SectionName,
+    string Kind,
+    string Text,
+    string? ImageName,
+    IReadOnlyList<QuizExamOptionDto> Options,
+    IReadOnlyList<QuizExamTermDto> Terms,
+    IReadOnlyList<QuizKeyDto> Keys);
+
+public record QuizExamOptionDto(Guid Id, string Text, string? ImageName);
+
+public record QuizExamTermDto(Guid Id, string Text);
+
+/// <summary>Die Antwort auf eine Frage der Übungsprüfung; leer = unbeantwortet.</summary>
+/// <param name="SelectedOptionIds">Angekreuzte Antworten bei Auswahlfragen.</param>
+/// <param name="Assignments">Bei Zuordnungen: Begriffs-Id → gewählter Schlüssel.</param>
+public record QuizExamAnswerDto(
+    Guid QuestionId,
+    IReadOnlyList<Guid>? SelectedOptionIds,
+    IReadOnlyDictionary<Guid, string>? Assignments);
+
+/// <summary>Auswertung einer abgegebenen Übungsprüfung.</summary>
+/// <param name="Percent">Ganzer Prozentwert, abgerundet.</param>
+/// <param name="Saved">Ob das Ergebnis gespeichert wurde (nur angemeldet).</param>
+public record QuizExamResultDto(
+    int Points,
+    int MaxPoints,
+    int PassPoints,
+    int PassPercent,
+    int Percent,
+    bool Passed,
+    int QuestionCount,
+    int CorrectCount,
+    bool Saved,
+    IReadOnlyList<QuizExamSectionResultDto> Sections,
+    IReadOnlyList<QuizExamQuestionResultDto> Questions);
+
+public record QuizExamSectionResultDto(string Key, string Name, int Points, int MaxPoints);
+
+/// <summary>
+/// Das Ergebnis einer Frage samt richtiger Lösung (jetzt, nach der Abgabe, darf
+/// sie verraten werden). Fragetext und Antworten kennt die Oberfläche aus der
+/// Prüfung selbst.
+/// </summary>
+/// <param name="CorrectAssignments">Bei Zuordnungen: Begriffs-Id → richtiger Schlüssel.</param>
+public record QuizExamQuestionResultDto(
+    Guid QuestionId,
+    bool Correct,
+    int Points,
+    int MaxPoints,
+    IReadOnlyList<Guid> CorrectOptionIds,
+    IReadOnlyDictionary<Guid, string> CorrectAssignments);
+
+/// <summary>Ein gespeichertes Ergebnis im Verlauf.</summary>
+public record QuizExamAttemptDto(
+    Guid Id,
+    DateTimeOffset SubmittedAt,
+    int Points,
+    int MaxPoints,
+    int Percent,
+    bool Passed,
+    int QuestionCount,
+    int CorrectCount,
+    IReadOnlyList<QuizExamSectionResultDto> Sections);
+
+/// <summary>
+/// Die letzten Ergebnisse eines Nutzers in einem Katalog, neueste zuerst.
+/// <see cref="PassedOfLastFive"/> von <see cref="LastFiveCount"/> ist die
+/// Kurzbilanz, auf die später die Prüfungsreife aufsetzen kann.
+/// </summary>
+public record QuizExamHistoryDto(
+    string CatalogCode,
+    IReadOnlyList<QuizExamAttemptDto> Attempts,
+    int PassedOfLastFive,
+    int LastFiveCount);

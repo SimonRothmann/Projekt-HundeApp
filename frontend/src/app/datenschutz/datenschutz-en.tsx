@@ -114,7 +114,7 @@ export function DatenschutzEn() {
         <p className="font-medium text-foreground">Other</p>
         <Liste
           punkte={[
-            "your learning progress in the theory-test question trainer (Sachkunde)",
+            "your learning progress in the theory-test question trainer (Sachkunde) and the results of your practice exams",
             "Notifications within the app",
             "your settings: language, country, font size, hidden areas, chosen sports, whether important notifications are also sent by email and which reminders you receive (for trainers, with the weekdays and time they chose)",
             "which reminders have already been sent to you (kind, session or track or day, time) – only as a note so that a reminder does not arrive twice; described in detail in section 7",
@@ -173,6 +173,7 @@ export function DatenschutzEn() {
             "entries not yet sent, while you are offline – they go to the server as soon as there is a connection again, and only with your own login; if you log out beforehand, they stay on the device until your next login",
             "the abbreviation of an examination regulation, if you registered via its public page – only until you have created your first goal; it preselects the exam there, nothing more",
             "an ongoing GPS recording including locations, so that it survives a reload or crash of the app – it is deleted as soon as it has been saved or discarded",
+            "a theory practice exam in progress (the questions drawn and your answers so far) in the memory of the browser tab, so that it survives a reload – it is deleted as soon as you hand in or cancel, and disappears at the latest when you close the tab",
           ]}
         />
         <p>
@@ -399,7 +400,7 @@ export function DatenschutzEn() {
         />
         <p>
           If you delete your account, your access, your dogs, training sessions, tracks, goals, settings, your learning
-          progress, your acceptances of group sessions, the devices for push notifications, the notes on reminders sent and your club and group
+          progress including the results of practice exams, your acceptances of group sessions, the devices for push notifications, the notes on reminders sent and your club and group
           memberships are removed. Dogs that you share with someone remain with the other person – only your link to
           them disappears. Where you, as a trainer, have created content for a club, this content remains with the
           club, but the indication of your authorship is removed. Sign-ups to groups that you managed as a trainer

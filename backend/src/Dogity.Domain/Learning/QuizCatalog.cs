@@ -41,5 +41,14 @@ public class QuizCatalog : Entity
 
     public int SortOrder { get; set; }
 
+    /// <summary>
+    /// Wie viele Fragen eine Übungsprüfung stellt; null = dieser Katalog hat
+    /// keine. Steht als Daten am Katalog (und kommt aus der Katalogdatei), weil
+    /// die Zahl eine Festlegung des Betreibers ist und sich ohne Codeänderung
+    /// anpassen lassen soll. Hat der Katalog weniger auswertbare Fragen, werden
+    /// einfach alle gestellt.
+    /// </summary>
+    public int? ExamQuestionCount { get; set; }
+
     public ICollection<QuizQuestion> Questions { get; set; } = new List<QuizQuestion>();
 }

@@ -1,7 +1,8 @@
 # Sachkunde-Fragentrainer
 
 Status: **umgesetzt** (2026-09-01). Lernen, Fehlerspeicher und Neustart stehen;
-die Prüfungssimulation ist bewusst zurückgestellt (siehe „Offen").
+die **Übungsprüfung** (Prüfungssimulation) kam am 2026-10-23 dazu (Fassung 0.39,
+siehe „Übungsprüfung").
 
 ## Warum
 
@@ -31,7 +32,7 @@ genannt.
 | Katalog | Code | Fragen | Aufbau |
 |---|---|---|---|
 | Erwachsene | `SWHV-BHVT-ERW` | 72 | Komplex A 23 · B 19 · C 10 · D 13 · E 7 |
-| Jugend | `SWHV-BHVT-JGD` | 40 | ein Block; unter 15 Jahren, 15 Fragen in der Prüfung |
+| Jugend | `SWHV-BHVT-JGD` | 40 | ein Block; unter 15 Jahren, 15 Fragen in der Prüfung (Übungsprüfung: 15 zufällig aus den 40, siehe dort) |
 
 Komplexe: **A** Verhalten und Umgang · **B** Zucht, Aufzucht und Gesundheit ·
 **C** Recht · **D** Kynologie, Verbände und Ausbildung · **E** Prüfungswesen.
@@ -46,7 +47,10 @@ und `frontend/public/sachkunde/a2.jpg`. Braucht `poppler` (`pdftotext`,
 `pdfimages`).
 
 Erscheint eine neue Fassung: Skript erneut laufen lassen, `STAND` hochsetzen,
-deployen. Der `SachkundeSeeder` gleicht anhand der Fragennummer ab — er ändert
+deployen. Die Größe der Übungsprüfung (`uebungspruefung.fragen` je Katalog) ist
+keine Angabe aus den PDFs, sondern eine Festlegung des Betreibers - sie steht
+deshalb als Konstante im Skript (`UEBUNGSPRUEFUNG_ERW/_JGD`) und geht beim
+Neuerzeugen der JSON nicht verloren. Der `SachkundeSeeder` gleicht anhand der Fragennummer ab — er ändert
 vorhandene Zeilen, statt sie zu ersetzen, damit der Lernstand der Nutzer
 erhalten bleibt.
 
@@ -166,8 +170,13 @@ Die Seiten sind serverseitig gerendert und stehen in der Sitemap — dieselbe
 | `GET /api/sachkunde/catalogs/{code}/session?mode=&limit=` | die nächsten Fragen |
 | `GET /api/sachkunde/catalogs/{code}/progress` | Lernstand, auch je Komplex |
 | `POST /api/sachkunde/questions/{id}/answer` | Antwort abgeben |
-| `POST /api/sachkunde/catalogs/{code}/reset` | von vorne anfangen |
+| `POST /api/sachkunde/catalogs/{code}/reset` | von vorne anfangen (lässt die Prüfungsergebnisse stehen) |
+| `POST /api/sachkunde/catalogs/{code}/exam` | Übungsprüfung ziehen, ohne Lösungen (anonym) |
+| `POST /api/sachkunde/catalogs/{code}/exam/submit` | Übungsprüfung abgeben und werten (anonym; angemeldet wird gespeichert) |
+| `GET /api/sachkunde/catalogs/{code}/exams` | die letzten 10 Ergebnisse samt Kurzbilanz „x von den letzten 5 bestanden“ (angemeldet) |
 
+`GET /api/sachkunde/catalogs` trägt je Katalog `exam` (Fragenzahl, mögliche Punkte,
+Bestehensgrenze) oder `null`.
 Über richtig/falsch entscheidet der **Server**, wo er es kann: bei
 Auswahlfragen muss die Auswahl die richtigen Antworten genau treffen (eine
 zusätzlich angekreuzte falsche ist ein Fehler, nicht „fast richtig"), bei
@@ -205,19 +214,149 @@ eine) richtige, Zuordnungen mindestens zwei Begriffe mit eindeutigen Schlüsseln
 Freitextfragen eine Musterlösung. Genau daran hatte es beim ersten Anlauf der
 Zuordnungen gefehlt.
 
+## Übungsprüfung
+
+Seit 2026-10-23 (Fassung 0.39). Eine Prüfungssimulation nach dem Muster der
+Führerschein-Apps: Fragen zum Ankreuzen am Stück, **keine Auflösung zwischendurch**,
+Auswertung erst bei der Abgabe.
+
+### Warum jetzt, und warum „Übung“
+
+Bisher fehlte sie bewusst: Die Wertungsregel („2 Punkte je richtige Antwort, 2 Punkte
+Abzug je falsch angekreuzte, bestanden ab 70 %“) steht auf Vereinsseiten, **nicht in einem
+der vier PDFs des swhv** - ohne die Durchführungsbestimmung rechnete die Simulation
+womöglich falsch. Der Betreiber hat am 2026-10-23 entschieden, die verbreitete Regel
+zu nehmen, wenn es **deutlich als Übung** gekennzeichnet ist. Daher:
+
+- Vor dem Start und auf dem Ergebnis steht: „Übungsprüfung – keine offizielle Prüfung.
+  Gewertet nach der verbreiteten Regel: 2 Punkte je richtige Antwort, 2 Punkte Abzug je
+  falsch angekreuzte, bestanden ab 70 %. Dein Verband oder Verein kann anders werten.“
+- Das Ergebnis heißt **„Übung bestanden“ / „Übung nicht bestanden“**, nie nur „Bestanden“.
+
+### Regeln (Betreiber-Entscheidungen 2026-10-23)
+
+| | |
+|---|---|
+| Umfang | Erwachsene **25** Fragen, Jugend **15** (zufällig aus den 40) |
+| Bestanden | ab **70 %** der möglichen Punkte, ganzzahlig gerechnet (`punkte * 100 >= max * 70`): Erwachsene 35 von 50, Jugend 21 von 30 |
+| Punkte | **2 je richtig angekreuzter Antwort, 2 Abzug je falsch angekreuzter** |
+| Mindestwert | eine Frage bringt **nie weniger als 0** (kein Minus je Frage) |
+| Höchstwert | 2 je richtiger Antwort der Frage - heute immer 2, weil jede Frage genau eine hat; die Rechnung ist allgemein, falls künftig eine Frage mehrere hat |
+| Zuordnung | zählt wie eine Frage: 2 Punkte, wenn **alle** Begriffe stimmen, sonst 0 (wie im Lernmodus „nur ganz“) |
+| Freitext | D5, D6, D8 kommen **nicht** vor - sie lassen sich nicht automatisch werten |
+| Zeit | keine Begrenzung (es gibt keine Quelle dafür); die Oberfläche zeigt die vergangene Zeit dezent |
+
+**Annahmen und was sie tragen.** Die Punktregel ist die von Vereinsseiten, nicht aus den
+swhv-PDFs. Die 15 Fragen der Jugendprüfung folgen der Katalogbeschreibung des Herausgebers
+(15 Fragen für unter 15-Jährige, zufällig aus den 40; der Betreiber hat „alle 40“ verworfen);
+die Beschreibung bleibt unverändert. Die Zahl steht deshalb als **Daten** am Katalog
+(`quiz_catalogs.ExamQuestionCount`, aus `sachkunde-swhv.json` → `uebungspruefung.fragen`,
+vom Seeder bei jedem Start gesetzt) und lässt sich ohne Codeänderung anpassen. Der
+Mindestwert 0 je Frage ist ebenfalls eine Festlegung: Ohne ihn könnte eine einzelne
+Fehlentscheidung mehr kosten, als die Frage wert war. Das Datenmodell kennt
+`MultipleChoice`; sollte eine Frage mehrere richtige Antworten bekommen, rechnet die
+Wertung ohne Änderung weiter.
+
+### Welche Fragen drankommen
+
+Reine Funktion `SachkundePruefung.WaehleFragen` (Zufall als Parameter):
+
+1. nur wertbare Fragen (SingleChoice, MultipleChoice, Assignment; nicht gelöscht);
+2. verlangt der Katalog mehr, als wertbar sind (Testfall mit konstruierten Daten), kommen alle dran;
+3. sonst **anteilig nach Komplex** (Verfahren der größten Reste; Jugend: ein Block, also 15 zufällig aus 40, Gleichstand zugunsten des
+   früheren Komplexes - die Verteilung hängt nicht vom Zufall ab), innerhalb des Komplexes
+   zufällig. Erwachsene: wertbar A 23 · B 19 · C 10 · D 10 · E 7 → **A 8 · B 7 · C 4 · D 4 · E 2**
+   (als Test festgehalten, auch gegen die echten Katalogdaten);
+4. die Reihenfolge in der Prüfung ist gemischt, die der Antworten bleibt die des Katalogs (a/b/c).
+
+### Ablauf und Server
+
+- `POST …/exam` zieht die Prüfung und liefert sie **ohne Lösungen**: keine `isCorrect`-Kennzeichen,
+  keine Musterlösung, bei Zuordnungen nur die wählbaren Schlüssel. Dazu Fragenzahl, mögliche
+  Punkte, Bestehensgrenze. Katalog ohne Übungsprüfung: 404.
+- `POST …/exam/submit` nimmt je Frage `questionId` + `selectedOptionIds` bzw. `assignments`
+  (leere Auswahl = unbeantwortet, 0 Punkte), wertet **serverseitig** und liefert Punkte, Höchstpunkte,
+  bestanden, Punkte je Komplex und je Frage richtig/falsch samt richtiger Lösung.
+- Der Server **merkt sich die gezogene Prüfung nicht** (kein Zustand, der bei anonymer Nutzung
+  aufzuräumen wäre). Er prüft stattdessen die Form der Abgabe: richtige Anzahl (Prüfungsgröße, bzw.
+  alle wertbaren, falls weniger), nur Fragen dieses Katalogs, keine doppelt, nichts Unwertbares,
+  Antworten gehören zur jeweiligen Frage - sonst 400 mit verständlicher Meldung. Wer sich die
+  leichtesten Fragen aussucht, betrügt nur sich selbst; die Zusammenstellung (Komplexverteilung) wird
+  deshalb nicht erzwungen.
+- **Anonym**: wird gewertet, nichts gespeichert. **Angemeldet**: das Ergebnis wird gespeichert
+  (`quiz_exam_attempts`), und **jede nicht voll richtig beantwortete Frage** (auch eine
+  unbeantwortete) kommt in den **Fehlerspeicher** - gleiche Wirkung wie eine falsche Antwort im
+  Lernmodus (Fach 1, sofort wieder fällig). **Richtig beantwortete ändern den Lernstand nicht**: Eine
+  Prüfung soll nicht nebenbei Fächer hochstufen, und nach einer Prüfung ohne Wiederholung hätte
+  „richtig“ nichts bewiesen.
+- Die beiden anonymen Endpunkte sind **gedrosselt** (Richtlinie `pruefung`, 30 je Minute und IP, im
+  Muster von `invite`): anders als die anonymen Lesezugriffe laden sie bei jedem Aufruf den ganzen
+  Katalog (72 bzw. 40 Fragen mit Antworten). Was sich ohne Katalog entscheiden lässt (leere,
+  überlange oder doppelte Abgabe), wird **vor** dem Laden abgewiesen.
+- Der Verlauf: **eigener Endpunkt** `GET …/exams` statt eines Feldes im Lernstand. Der Lernstand wird
+  bei jeder einzelnen Antwort neu berechnet und mitgeschickt; ein Prüfungsfeld dort kostete bei jeder
+  Antwort eine zusätzliche Abfrage für etwas, das sich nur nach einer Prüfung ändert. Der Endpunkt
+  liefert die letzten 10 Ergebnisse (neueste zuerst) und die Kurzbilanz „x von den letzten 5
+  bestanden“ (`passedOfLastFive`/`lastFiveCount`) - die Grundlage für das spätere Paket
+  „Prüfungsreife“.
+
+**Bekanntes Risiko: keine Idempotenz der Abgabe.** Wird derselbe POST wiederholt (Netzfehler mit
+Wiederholung, Doppeltipp vor dem Sperren des Knopfes), entstehen zwei identische Ergebnisse mit
+verschiedenen Zeitpunkten und verfälschen Verlauf und Kurzbilanz „x von 5 bestanden“. Parallele
+Abgaben, die dieselbe Frage neu in den Fehlerspeicher legen, können am eindeutigen Index
+(Nutzer, Frage) scheitern (gleiches Muster wie im Lernmodus). **Vor dem Paket „Prüfungsreife“**, das
+die Bilanz verwendet, klären: Abgabe-Kennung aus dem Start oder zeitliches Zusammenfassen gleicher
+Ergebnisse.
+
+### Gespeicherte Daten
+
+Neue Entität `QuizExamAttempt` (`quiz_exam_attempts`): Nutzer, Katalog, Zeitpunkt, Punkte, mögliche
+Punkte, bestanden, Zahl der Fragen und der voll richtigen, Punkte je Komplex als JSON-Spalte
+(begründet im Code und in `DATABASE.md`). **Die einzelnen Antworten werden nicht gespeichert.** Weicher
+Löschfilter wie überall; Datenexport („Uebungspruefungen“) und Kontolöschung (endgültig) sind in
+`AccountDataService` berücksichtigt, Datenschutzerklärung (deutsch und englisch) und
+`VERARBEITUNGSVERZEICHNIS.md` nachgezogen.
+
+**„Lernstand zurücksetzen“ (`…/reset`) löscht die Prüfungsergebnisse nicht.** Begründung: Das
+Zurücksetzen gehört zum Lernen („ich fange die Karten von vorne an“) - die Ergebnisse sind ein Verlauf
+(„wie lief es zuletzt?“), und wer von vorne lernt, will gerade sehen, ob er besser wird. Sie gehen mit
+der Kontolöschung.
+
+### Oberfläche
+
+Auf der Katalogseite (`/sachkunde/[code]` öffentlich, `/lernen/[code]` in der App) steht über dem
+Trainer eine Karte „Übungsprüfung“ mit der Kurzinfo („25 Fragen · bestanden ab 35 von 50 Punkten“),
+angemeldet mit dem letzten Ergebnis. Danach: Startseite mit Hinweis → eine Frage je Bildschirm
+(Erwachsene: Mehrfachauswahl wie auf dem Papierbogen, **ohne Hinweis, wie viele richtig sind**; Jugend:
+genau eine, weil der Katalog das selbst sagt; Zuordnungen mit `quiz-assignment.tsx` im Prüfmodus ohne
+Sofortprüfung; Bildfragen mit Bild) → Vor/Zurück, Fragenleiste (umbrechend, beantwortet/offen
+markiert), „Abgeben“ mit Rückfrage bei offenen Fragen → Ergebnis mit großem „Übung bestanden“ /
+„Übung nicht bestanden“, Punkten, Balken je Komplex, den falschen Fragen mit eigener und richtiger
+Antwort, „Falsche Fragen üben“ (angemeldet: Modus Fehler; anonym: Hinweis auf die Anmeldung) und
+„Neue Übungsprüfung“; angemeldet der Verlauf.
+
+Eine **laufende Prüfung übersteht ein Neuladen** (`sessionStorage`, nur Fragen und bisherige
+Antworten, nichts im URL; mit `try/catch` gegen gesperrten Speicher). Nach der Abgabe wird der Stand
+gelöscht, damit ein Neuladen die Prüfung nicht zum zweiten Mal öffnet - das Ergebnis steht dann (nur
+angemeldet) im Verlauf. Weil die öffentliche Katalogseite statisch gebaut und 24 Stunden
+zwischengespeichert wird (`lib/public-sachkunde.ts`), kann ihre Katalogantwort aus der Zeit
+vor dem Ausrollen stammen und das Feld `exam` gar nicht kennen (fehlt es, anders als `null` = „keine
+Übungsprüfung“): dann fragt `KatalogBereich` die Kataloge selbst nach. Die Reihenfolge
+Backend/Frontend beim Ausrollen ist damit egal; nur das Backend muss die Übungsprüfung kennen,
+damit der Einstieg erscheint.
+
 ## Offen
 
-- **Prüfungssimulation.** Fehlt bewusst. Die Bewertungsregel („2 Punkte je
-  richtige Antwort, 2 Punkte Abzug je falsch angekreuzte, bestanden ab 70 %")
-  steht auf Vereinsseiten, **nicht in einem der vier PDFs des swhv**. Der
-  Jugendkatalog nennt seine Regeln selbst (15 Fragen, genau eine richtige
-  Antwort), der Erwachsenenbogen nicht. Ohne die Durchführungsbestimmung würde
-  die Simulation falsch rechnen — das ist schlimmer als keine Simulation.
-- **Ein Detail dazu:** Im Netz heißt es, beim Erwachsenenbogen könnten mehrere
-  Antworten richtig sein. In der vorliegenden Fassung hat **jede** Frage genau
-  eine markierte Lösung. Entweder ist die Aussage veraltet, oder der
-  Lösungsbogen bildet es nicht ab. Das Datenmodell kann beides
-  (`MultipleChoice`), die Oberfläche auch.
+- **Offizielle Wertung.** Die Übungsprüfung rechnet nach der auf Vereinsseiten verbreiteten Regel
+  (siehe „Übungsprüfung“), nicht nach einer Durchführungsbestimmung des swhv. Liegt sie vor, ist es
+  eine Änderung der Konstanten in `SachkundePruefung` (Punkte, Prozent) und der Texte - dann kann das
+  „Übung“ aus dem Ergebnis verschwinden.
+- **Ein Detail dazu:** Im Netz heißt es, beim Erwachsenenbogen könnten mehrere Antworten richtig sein.
+  In der vorliegenden Fassung hat **jede** Frage genau eine markierte Lösung. Entweder ist die Aussage
+  veraltet, oder der Lösungsbogen bildet es nicht ab. Das Datenmodell kann beides (`MultipleChoice`),
+  die Oberfläche und die Wertung der Übungsprüfung auch.
+- **Prüfungsreife.** Auf dem Verlauf (`GET …/exams`, Kurzbilanz der letzten 5) lässt sich eine Aussage
+  „bereit für die Prüfung?“ aufbauen; sie ist noch nicht gebaut.
 - **Anbindung ans Ziel.** Naheliegender nächster Schritt: Wer ein Ziel „BH/VT"
   anlegt, sieht den Lernstand am Ziel („Sachkunde 62 % · 14 Fragen im
   Fehlerspeicher"). Setzt voraus, dass die Zulassungsvoraussetzungen strukturiert

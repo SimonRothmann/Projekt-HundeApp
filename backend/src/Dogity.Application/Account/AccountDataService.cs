@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Learning;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Notifications;
@@ -98,7 +99,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             .Where(q => frageIds.Contains(q.Id))
             .Select(q => new { q.Id, q.CatalogId })
             .ToListAsync(ct);
-        var katalogIds = frageZuKatalog.Select(f => f.CatalogId).Distinct().ToList();
+        var pruefungen = await db.QuizExamAttempts.Where(a => a.UserId == userId).AsNoTracking().ToListAsync(ct);
+        var katalogIds = frageZuKatalog.Select(f => f.CatalogId).Concat(pruefungen.Select(a => a.CatalogId)).Distinct().ToList();
         var katalognamen = await db.QuizCatalogs
             .Where(c => katalogIds.Contains(c.Id))
             .ToDictionaryAsync(c => c.Id, c => c.Name, ct);
@@ -291,6 +293,20 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                 m.CorrectCount,
                 m.WrongCount,
                 m.LastAnsweredAt)).ToList(),
+            pruefungen
+                .OrderByDescending(a => a.SubmittedAt)
+                .Select(a => new UebungspruefungExportDto(
+                    katalognamen.GetValueOrDefault(a.CatalogId, "(unbekannt)"),
+                    a.SubmittedAt,
+                    a.Points,
+                    a.MaxPoints,
+                    a.Passed,
+                    a.QuestionCount,
+                    a.CorrectCount,
+                    SachkundePruefung.LeseAbschnitte(a.SectionResultsJson)
+                        .Select(k => new UebungspruefungKomplexExportDto(k.Name, k.Points, k.MaxPoints))
+                        .ToList()))
+                .ToList(),
             benachrichtigungen
                 .OrderByDescending(n => n.CreatedAt)
                 .Select(n => new BenachrichtigungExportDto(n.CreatedAt, n.Message, n.IsRead))
@@ -428,6 +444,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             .Where(s => einstellungIds.Contains(s.UserPreferenceId)).ToListAsync(ct);
 
         var lernstand = await db.QuizMasteries.IgnoreQueryFilters().Where(m => m.UserId == userId).ToListAsync(ct);
+        var pruefungen = await db.QuizExamAttempts.IgnoreQueryFilters().Where(a => a.UserId == userId).ToListAsync(ct);
         var benachrichtigungen = await db.Notifications.IgnoreQueryFilters().Where(n => n.UserId == userId).ToListAsync(ct);
         var pushGeraete = await db.PushSubscriptions.IgnoreQueryFilters().Where(s => s.UserId == userId).ToListAsync(ct);
         var erinnerungen = await db.SentReminders.IgnoreQueryFilters().Where(r => r.UserId == userId).ToListAsync(ct);
@@ -536,6 +553,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         db.UserSportSelections.RemoveRange(sportarten);
         db.UserPreferences.RemoveRange(einstellungen);
         db.QuizMasteries.RemoveRange(lernstand);
+        db.QuizExamAttempts.RemoveRange(pruefungen);
         db.Notifications.RemoveRange(benachrichtigungen);
         db.PushSubscriptions.RemoveRange(pushGeraete);
         db.SentReminders.RemoveRange(erinnerungen);

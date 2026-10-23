@@ -74,6 +74,7 @@ public interface IApplicationDbContext
     DbSet<QuizQuestion> QuizQuestions { get; }
     DbSet<QuizOption> QuizOptions { get; }
     DbSet<QuizMastery> QuizMasteries { get; }
+    DbSet<QuizExamAttempt> QuizExamAttempts { get; }
 
     DbSet<Notification> Notifications { get; }
     DbSet<PushSubscription> PushSubscriptions { get; }

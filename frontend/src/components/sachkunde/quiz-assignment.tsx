@@ -1,6 +1,6 @@
 "use client";
 
-import type { QuizKey, QuizTerm } from "@/lib/types";
+import type { QuizKey } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,10 @@ import { useT } from "@/lib/i18n";
  *
  * Bewusst Knöpfe statt Ziehen-und-Ablegen: auf dem Telefon ist Antippen
  * treffsicher, Ziehen nicht.
+ *
+ * Prüfmodus (Übungsprüfung): ohne `onPruefen` gibt es keinen Prüfen-Knopf und
+ * die Begriffe tragen keinen Lösungsschlüssel - die Zuordnung wird erst mit
+ * der Abgabe der ganzen Prüfung gewertet, nicht pro Frage.
  */
 export function QuizAssignment({
   terms,
@@ -32,7 +36,7 @@ export function QuizAssignment({
   onWaehlen,
   onPruefen,
 }: {
-  terms: QuizTerm[];
+  terms: { id: string; text: string; solutionKey?: string }[];
   keys: QuizKey[];
   belegung: Record<string, string>;
   /** Nach dem Prüfen: je Begriffs-Id, ob die Zuordnung stimmte. */
@@ -40,7 +44,8 @@ export function QuizAssignment({
   aufgeloest: boolean;
   beschaeftigt: boolean;
   onWaehlen: (termId: string, key: string) => void;
-  onPruefen: () => void;
+  /** Fehlt im Prüfmodus der Übungsprüfung (keine Sofortprüfung). */
+  onPruefen?: () => void;
 }) {
   const t = useT();
   const vollstaendig = terms.every((term) => belegung[term.id]);
@@ -68,7 +73,7 @@ export function QuizAssignment({
               <span className="flex flex-wrap items-baseline gap-x-2 text-sm">
                 <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{term.text}</span>
                 {aufgeloest && ergebnis === false && (
-                  <span className="text-xs text-muted-foreground">{t("richtig: {antwort}", { antwort: term.solutionKey })}</span>
+                  <span className="text-xs text-muted-foreground">{t("richtig: {antwort}", { antwort: term.solutionKey ?? "" })}</span>
                 )}
               </span>
 
@@ -99,7 +104,7 @@ export function QuizAssignment({
         })}
       </ul>
 
-      {!aufgeloest && (
+      {!aufgeloest && onPruefen && (
         <Button size="sm" className="self-start" disabled={!vollstaendig || beschaeftigt} onClick={onPruefen}>
 {t("Prüfen")}
         </Button>

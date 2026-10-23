@@ -6,6 +6,7 @@ using Dogity.Application.Community;
 using Dogity.Application.Weather;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
+using Dogity.Domain.Learning;
 using Dogity.Domain.Planning;
 using Dogity.Domain.Preferences;
 using Dogity.Domain.Tracking;
@@ -504,6 +505,94 @@ public class DemoSzenarienSeederTests
         var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         Assert.DoesNotContain(await pruefDb.Dogs.IgnoreQueryFilters().ToListAsync(), d => d.Name == "Flitzer");
         Assert.Equal(hundId, (await pruefDb.Goals.SingleAsync(g => g.Notes == DemoSzenarienSeeder.NotizHoopersZiel)).DogId);
+    }
+
+    // --- Sachkunde-Übungsprüfung ---------------------------------------------------
+
+    private static async Task MitSachkundeAsync(IServiceProvider provider)
+    {
+        using var scope = provider.CreateScope();
+        await SachkundeSeeder.SeedAsync(scope.ServiceProvider);
+    }
+
+    [Fact]
+    public async Task Sachkunde_MaxHatZweiUebungspruefungen_EineDurchEineBestanden()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        await MitSachkundeAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var max = (await users.FindByEmailAsync("mitglied1@dogity.test"))!;
+
+        var versuche = await db.QuizExamAttempts.Where(a => a.UserId == max.Id).OrderBy(a => a.SubmittedAt).ToListAsync();
+        Assert.Equal(2, versuche.Count);
+        Assert.False(versuche[0].Passed);
+        Assert.Equal(30, versuche[0].Points);
+        Assert.True(versuche[1].Passed);
+        Assert.Equal(40, versuche[1].Points);
+        Assert.All(versuche, a => Assert.Equal(50, a.MaxPoints));
+        // Vergangen, in der richtigen Reihenfolge.
+        Assert.True(versuche[0].SubmittedAt < DateTimeOffset.UtcNow.AddDays(-9));
+        Assert.True(versuche[1].SubmittedAt < DateTimeOffset.UtcNow.AddDays(-2));
+        // Die falsch beantworteten Fragen liegen im Fehlerspeicher.
+        Assert.True(await db.QuizMasteries.AnyAsync(m => m.UserId == max.Id && !m.LastWasCorrect));
+        // Und nur Max hat etwas bekommen.
+        Assert.Equal(2, await db.QuizExamAttempts.CountAsync());
+    }
+
+    [Fact]
+    public async Task Sachkunde_ZweimaligesAusfuehren_ErzeugtKeineDuplikate()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        await MitSachkundeAsync(provider);
+
+        Assert.Empty(await SzenarienAsync(provider));
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Equal(2, await db.QuizExamAttempts.IgnoreQueryFilters().CountAsync());
+    }
+
+    [Fact]
+    public async Task Sachkunde_OhneKataloge_EntfaelltDasSzenario()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Empty(db.QuizExamAttempts.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task Sachkunde_WasEinTesterEntferntHat_KommtNichtZurueck()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        await MitSachkundeAsync(provider);
+        await SzenarienAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            foreach (var a in await db.QuizExamAttempts.ToListAsync()) a.DeletedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruef = provider.CreateScope();
+        var pruefDb = pruef.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Empty(pruefDb.QuizExamAttempts);   // weiter ausgeblendet, nicht neu angelegt
+        Assert.Equal(2, await pruefDb.QuizExamAttempts.IgnoreQueryFilters().CountAsync());
     }
 
     // --- Trainingspausen ----------------------------------------------------------

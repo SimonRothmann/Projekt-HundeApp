@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-10-22 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-10-23 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -100,12 +100,13 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 | | |
 |---|---|
-| Zweck | Lernfortschritt im Fragentrainer, Hinweise innerhalb der App |
+| Zweck | Lernfortschritt im Fragentrainer, Ergebnisse der Übungsprüfung (Verlauf „wie ist es zuletzt gelaufen?“), Hinweise innerhalb der App |
 | Betroffene | Registrierte Nutzer:innen |
-| Datenkategorien | je Frage: Lernfach, richtige/falsche Antworten, Zeitpunkte; Benachrichtigungstexte mit Zeitpunkt und Lesestatus |
+| Datenkategorien | je Frage: Lernfach, richtige/falsche Antworten, Zeitpunkte; je abgegebener Übungsprüfung (seit Fassung 0.39): Katalog, Zeitpunkt, erreichte und mögliche Punkte, bestanden ja/nein, Zahl der Fragen und der voll richtigen, Punkte je Themenkomplex. Die einzelnen Antworten werden **nicht** gespeichert; falsch beantwortete Fragen wirken wie eine falsche Antwort im Lernmodus (Fehlerspeicher in `quiz_masteries`). Benachrichtigungstexte mit Zeitpunkt und Lesestatus |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. b |
-| Löschfrist | bis zur Kontolöschung |
-| Tabellen | `quiz_masteries`, `notifications` |
+| Besonderheit | Ohne Anmeldung ist die Übungsprüfung nutzbar, das Ergebnis wird dann nur angezeigt und nicht gespeichert (der Server hält keine Prüfung vor, die Abgabe wird bei Eingang gewertet). Die laufende Prüfung eines Browsers liegt nur im `sessionStorage` des Geräts und verlässt es nicht. „Lernstand zurücksetzen“ löscht die Prüfungsergebnisse **nicht**: Sie sind ein Verlauf, kein Lernstand; sie gehen mit der Kontolöschung. |
+| Löschfrist | bis zur Kontolöschung (endgültig, auch weich Gelöschtes); Teil des Datenexports („Sachkunde“ und „Uebungspruefungen“) |
+| Tabellen | `quiz_masteries`, `quiz_exam_attempts`, `notifications` |
 
 ### 2.5a Kennzahlen der Plattform (nur Admin)
 

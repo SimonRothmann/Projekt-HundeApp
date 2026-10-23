@@ -21,6 +21,7 @@ public record AccountExportDto(
     IReadOnlyList<VereinExportDto> Vereine,
     IReadOnlyList<GruppeExportDto> Gruppen,
     IReadOnlyList<SachkundeExportDto> Sachkunde,
+    IReadOnlyList<UebungspruefungExportDto> Uebungspruefungen,
     IReadOnlyList<BenachrichtigungExportDto> Benachrichtigungen,
     IReadOnlyList<TerminzusageExportDto> Terminzusagen,
     IReadOnlyList<PushGeraetExportDto> PushGeraete,
@@ -196,6 +197,19 @@ public record SachkundeExportDto(
     int Richtig,
     int Falsch,
     DateTimeOffset? ZuletztBeantwortet);
+
+/// <summary>Ein gespeichertes Ergebnis einer Sachkunde-Übungsprüfung.</summary>
+public record UebungspruefungExportDto(
+    string Fragenkatalog,
+    DateTimeOffset AbgegebenAm,
+    int Punkte,
+    int HoechstePunkte,
+    bool Bestanden,
+    int Fragen,
+    int Richtig,
+    IReadOnlyList<UebungspruefungKomplexExportDto> Komplexe);
+
+public record UebungspruefungKomplexExportDto(string Komplex, int Punkte, int HoechstePunkte);
 
 public record BenachrichtigungExportDto(
     DateTimeOffset Zeitpunkt,

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getQuizCatalog, getQuizCatalogs, getQuizQuestions } from "@/lib/public-sachkunde";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-chrome";
-import { QuizTrainer } from "@/components/sachkunde/quiz-trainer";
+import { KatalogBereich } from "@/components/sachkunde/katalog-bereich";
 import { FragenUebersicht } from "@/components/sachkunde/fragen-uebersicht";
 import { KatalogDaten } from "@/components/sachkunde/katalog-liste";
 import { SachkundeAppWeiterleitung } from "@/components/sachkunde/app-weiterleitung";
@@ -74,7 +74,7 @@ export default async function SachkundeCatalogPage({ params }: Props) {
         <KatalogDaten catalog={catalog} />
 
         <div className="mt-6">
-          <QuizTrainer catalog={catalog} />
+          <KatalogBereich catalog={catalog} />
         </div>
 
         <FragenUebersicht fragen={fragen} />

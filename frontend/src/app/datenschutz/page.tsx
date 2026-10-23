@@ -118,7 +118,7 @@ function DatenschutzDe() {
         <p className="font-medium text-foreground">Sonstiges</p>
         <Liste
           punkte={[
-            "dein Lernfortschritt im Sachkunde-Fragentrainer",
+            "dein Lernfortschritt im Sachkunde-Fragentrainer und die Ergebnisse deiner Übungsprüfungen",
             "Benachrichtigungen innerhalb der App",
             "deine Einstellungen: Sprache, Land, Schriftgröße, ausgeblendete Bereiche, gewählte Sportarten, ob wichtige Benachrichtigungen auch per E-Mail kommen und welche Erinnerungen du bekommst (bei Trainer:innen mit gewählten Wochentagen und Uhrzeit)",
             "welche Erinnerungen dir schon geschickt wurden (Art, Termin bzw. Fährte oder Tag, Zeitpunkt) – nur als Merkzettel, damit eine Erinnerung nicht zweimal kommt; ausführlich in Abschnitt 7",
@@ -178,6 +178,7 @@ function DatenschutzDe() {
             "noch nicht abgeschickte Einträge, solange du offline bist – sie gehen an den Server, sobald wieder Verbindung besteht, und zwar nur mit deiner eigenen Anmeldung; meldest du dich vorher ab, bleiben sie bis zu deiner nächsten Anmeldung auf dem Gerät",
             "das Kürzel einer Prüfungsordnung, wenn du dich über deren öffentliche Seite registriert hast – nur bis du dein erstes Ziel angelegt hast; es wählt dort die Prüfung vor, mehr nicht",
             "eine laufende GPS-Aufzeichnung samt Standorten, damit sie ein Neuladen oder Absturz der App übersteht – sie wird gelöscht, sobald sie gespeichert oder verworfen ist",
+            "eine laufende Sachkunde-Übungsprüfung (die gezogenen Fragen und deine bisherigen Antworten) im Speicher des Browser-Tabs, damit sie ein Neuladen übersteht – sie wird gelöscht, sobald du abgegeben oder abgebrochen hast, und verschwindet spätestens mit dem Schließen des Tabs",
           ]}
         />
         <p>
@@ -414,7 +415,7 @@ function DatenschutzDe() {
         />
         <p>
           Löschst du dein Konto, werden dein Zugang, deine Hunde, Trainings, Fährten, Ziele, Einstellungen, dein
-          Lernfortschritt, deine Zusagen zu Gruppenterminen, die Geräte für Push-Benachrichtigungen, die Merkzettel zu versendeten Erinnerungen und deine Vereins- und Gruppenzugehörigkeiten entfernt. Hunde, die du dir mit jemandem
+          Lernfortschritt samt Ergebnissen der Übungsprüfungen, deine Zusagen zu Gruppenterminen, die Geräte für Push-Benachrichtigungen, die Merkzettel zu versendeten Erinnerungen und deine Vereins- und Gruppenzugehörigkeiten entfernt. Hunde, die du dir mit jemandem
           teilst, bleiben bei der anderen Person – nur deine Verknüpfung damit verschwindet. Wo du als Trainer:in
           Inhalte für einen Verein angelegt hast, bleiben diese Inhalte dem Verein erhalten, die Angabe deiner
           Urheberschaft wird aber entfernt. Anmeldungen zu Gruppen, die du als Trainer:in verwaltet hast, gehören dem

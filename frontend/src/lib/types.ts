@@ -972,6 +972,16 @@ export type QuizCatalog = {
   audience: "Adults" | "Youth";
   questionCount: number;
   sections: QuizSection[];
+  // Kurzinfo zur Übungsprüfung; null = dieser Katalog hat keine. Fehlt das Feld
+  // (ältere, noch zwischengespeicherte Antwort), gilt es wie null.
+  exam?: QuizExamInfo | null;
+};
+
+export type QuizExamInfo = {
+  questionCount: number;
+  maxPoints: number;
+  passPoints: number;
+  passPercent: number;
 };
 
 export type QuizOption = {
@@ -1071,6 +1081,88 @@ export type QuizAnswerResult = {
   termResults: Record<string, boolean>;
   // Der Lernstand NACH dieser Antwort - damit der Balken sich sofort bewegt.
   progress: QuizProgress | null;
+};
+
+// ---- Sachkunde-Übungsprüfung ----
+
+// Die gezogene Prüfung: Fragen OHNE Lösungen.
+export type QuizExam = {
+  catalogCode: string;
+  questionCount: number;
+  maxPoints: number;
+  passPoints: number;
+  passPercent: number;
+  questions: QuizExamQuestion[];
+};
+
+export type QuizExamQuestion = {
+  id: string;
+  number: string;
+  section: string;
+  sectionName: string;
+  kind: QuizQuestionKind;
+  text: string;
+  imageName: string | null;
+  options: { id: string; text: string; imageName: string | null }[];
+  terms: { id: string; text: string }[];
+  keys: QuizKey[];
+};
+
+// Antwort auf eine Frage der Prüfung; leer = unbeantwortet.
+export type QuizExamAnswer = {
+  questionId: string;
+  selectedOptionIds: string[];
+  assignments: Record<string, string>;
+};
+
+export type QuizExamSectionResult = {
+  key: string;
+  name: string;
+  points: number;
+  maxPoints: number;
+};
+
+export type QuizExamQuestionResult = {
+  questionId: string;
+  correct: boolean;
+  points: number;
+  maxPoints: number;
+  correctOptionIds: string[];
+  // Bei Zuordnungen: Begriffs-Id -> richtiger Schlüssel.
+  correctAssignments: Record<string, string>;
+};
+
+export type QuizExamResult = {
+  points: number;
+  maxPoints: number;
+  passPoints: number;
+  passPercent: number;
+  percent: number;
+  passed: boolean;
+  questionCount: number;
+  correctCount: number;
+  saved: boolean;
+  sections: QuizExamSectionResult[];
+  questions: QuizExamQuestionResult[];
+};
+
+export type QuizExamAttempt = {
+  id: string;
+  submittedAt: string;
+  points: number;
+  maxPoints: number;
+  percent: number;
+  passed: boolean;
+  questionCount: number;
+  correctCount: number;
+  sections: QuizExamSectionResult[];
+};
+
+export type QuizExamHistory = {
+  catalogCode: string;
+  attempts: QuizExamAttempt[];
+  passedOfLastFive: number;
+  lastFiveCount: number;
 };
 
 // ---- Sachkunde-Verwaltung (nur Admin) ----

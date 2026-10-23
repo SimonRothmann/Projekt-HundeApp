@@ -684,6 +684,8 @@ audience (Adults/Youth)
 
 sort_order
 
+exam_question_count (optional; Anzahl Fragen der Übungsprüfung, leer = keine)
+
 
 Herausgeber, Quelle und Stand stehen bewusst an der Zeile: die Verbände geben
 neue Fassungen heraus, und beim Nachziehen muss nachvollziehbar sein, welche
@@ -826,12 +828,57 @@ weil die Sachkunde in Wochen gelernt und nicht über Monate aufgebaut wird.
 
 Eine falsche Antwort setzt `box` auf 1 und `due_at` auf jetzt, nicht nur eine
 Stufe herunter: eine Übung, die heute schlechter lief, ist nicht verlernt -
-eine falsch beantwortete Frage war schlicht nicht gewusst.
+eine falsch beantwortete Frage war schlicht nicht gewusst. Dasselbe tut eine in
+der Übungsprüfung falsch (oder gar nicht) beantwortete Frage.
 
 
 "Von vorne anfangen" setzt die Werte dieser Zeilen zurück und LÖSCHT sie
 nicht. Weich gelöschte Zeilen stünden dem eindeutigen Index im Weg, sobald
 dieselbe Frage wieder beantwortet wird.
+
+
+---
+
+
+## quiz_exam_attempts
+
+
+Das Ergebnis einer abgegebenen Übungsprüfung - nur für angemeldete Nutzer, je
+NUTZER und Katalog.
+
+
+Felder:
+
+
+
+user_id
+
+catalog_id
+
+submitted_at
+
+points
+
+max_points
+
+passed
+
+question_count
+
+correct_count (Fragen mit voller Punktzahl)
+
+section_results_json (Punkte je Komplex: Schlüssel, Name, erreicht, möglich)
+
+
+Die einzelnen Antworten werden nicht gespeichert: Verlauf und die spätere
+Prüfungsreife brauchen Punkte und Komplexe, nicht den Bogen. Die Komplexergebnisse
+stehen bewusst in einer Textspalte statt in einer Kindtabelle - sie werden nur
+zusammen mit dem Ergebnis gelesen, und eine Tabelle bräuchte für fünf Zahlenpaare
+eigenen Soft Delete, Filter, Export und Löschlauf.
+
+
+"Von vorne anfangen" (Lernstand zurücksetzen) lässt diese Zeilen stehen: sie sind
+ein Verlauf, kein Lernstand. Mit der Kontolöschung werden sie endgültig entfernt.
 
 
 ---

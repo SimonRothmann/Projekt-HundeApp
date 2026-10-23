@@ -61,6 +61,29 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.39",
+    datum: "2026-10-23",
+    titel: uebersetzbar("Sachkunde: Übungsprüfung"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Bei der Sachkunde gibt es jetzt eine Übungsprüfung: eine Frage nach der anderen zum Ankreuzen, ohne Auflösung zwischendurch – erst nach dem Abgeben siehst du Punkte, Ergebnis je Themenkomplex und deine falschen Fragen mit der richtigen Antwort. Für Erwachsene sind es 25 Fragen, im Jugendkatalog 15 aus 40 Fragen. Du findest sie auf der Seite des Fragenkatalogs, auch ohne Anmeldung."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Gewertet wird nach der verbreiteten Regel: 2 Punkte für jede richtige Antwort, 2 Punkte Abzug für jede falsch angekreuzte, bestanden ab 70 %. Das ist eine Übung und keine offizielle Prüfung – dein Verband oder Verein kann anders werten. Deshalb heißt das Ergebnis „Übung bestanden“ oder „Übung nicht bestanden“."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Wenn du angemeldet bist, speichert Dogity das Ergebnis und zeigt dir deine letzten Übungsprüfungen. Die Fragen, die du falsch hattest, kommen in den Fehlerspeicher und beim Üben wieder; „Falsche Fragen üben“ führt dich direkt dorthin. Richtig beantwortete Fragen ändern deinen Lernstand nicht."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Eine laufende Übungsprüfung geht nicht verloren, wenn du die Seite neu lädst."),
+      },
+    ],
+  },
+  {
     version: "0.38",
     datum: "2026-10-22",
     titel: uebersetzbar("Rally Obedience"),

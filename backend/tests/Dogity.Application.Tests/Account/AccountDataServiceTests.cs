@@ -212,6 +212,74 @@ public class AccountDataServiceTests
         Assert.Empty(db.QuizMasteries.IgnoreQueryFilters());
     }
 
+    // ---- Sachkunde-Übungsprüfungen ----
+
+    private static QuizCatalog PruefungsKatalog(ApplicationDbContext db)
+    {
+        var katalog = new QuizCatalog { Code = "SWHV-BHVT-ERW", Name = "Sachkunde BH/VT – Erwachsene", Publisher = "swhv", ExamQuestionCount = 25 };
+        db.QuizCatalogs.Add(katalog);
+        return katalog;
+    }
+
+    private static QuizExamAttempt Versuch(Guid nutzer, QuizCatalog katalog, int punkte, bool bestanden, DateTimeOffset am) => new()
+    {
+        UserId = nutzer, CatalogId = katalog.Id, SubmittedAt = am, Points = punkte, MaxPoints = 50, Passed = bestanden,
+        QuestionCount = 25, CorrectCount = punkte / 2,
+        SectionResultsJson = "[{\"Key\":\"A\",\"Name\":\"Verhalten\",\"Points\":10,\"MaxPoints\":16}]",
+    };
+
+    [Fact]
+    public async Task Export_EnthaeltMeineUebungspruefungen_NichtDieAnderer()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        var andere = Guid.NewGuid();
+        lookup.Register(ich, "ich@test.de", "Max", "Muster");
+        var katalog = PruefungsKatalog(db);
+        db.QuizExamAttempts.AddRange(
+            Versuch(ich, katalog, 30, false, new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero)),
+            Versuch(ich, katalog, 40, true, new DateTimeOffset(2026, 10, 10, 12, 0, 0, TimeSpan.Zero)),
+            Versuch(andere, katalog, 50, true, new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero)));
+        await db.SaveChangesAsync();
+
+        var export = (await dienst.ExportAsync(ich)).Value!;
+
+        Assert.Equal(2, export.Uebungspruefungen.Count);
+        var neueste = export.Uebungspruefungen[0];
+        Assert.Equal("Sachkunde BH/VT – Erwachsene", neueste.Fragenkatalog);
+        Assert.Equal(40, neueste.Punkte);
+        Assert.Equal(50, neueste.HoechstePunkte);
+        Assert.True(neueste.Bestanden);
+        Assert.Equal(25, neueste.Fragen);
+        var komplex = Assert.Single(neueste.Komplexe);
+        Assert.Equal(("Verhalten", 10, 16), (komplex.Komplex, komplex.Punkte, komplex.HoechstePunkte));
+        Assert.False(export.Uebungspruefungen[1].Bestanden);
+    }
+
+    [Fact]
+    public async Task Purge_EntferntDiePruefungsergebnisseWirklich_AuchWeichGeloeschte()
+    {
+        var (dienst, db, _) = Aufsetzen();
+        var ich = Guid.NewGuid();
+        var andere = Guid.NewGuid();
+        var katalog = PruefungsKatalog(db);
+        var weich = Versuch(ich, katalog, 20, false, DateTimeOffset.UtcNow);
+        weich.DeletedAt = DateTimeOffset.UtcNow;
+        db.QuizExamAttempts.AddRange(
+            Versuch(ich, katalog, 40, true, DateTimeOffset.UtcNow), weich,
+            Versuch(andere, katalog, 44, true, DateTimeOffset.UtcNow));
+        await db.SaveChangesAsync();
+
+        var ergebnis = await dienst.PurgeAsync(ich);
+
+        Assert.True(ergebnis.Succeeded);
+        // IgnoreQueryFilters: ein Soft-Delete ließe die Punkte in der Tabelle stehen.
+        var rest = await db.QuizExamAttempts.IgnoreQueryFilters().ToListAsync();
+        Assert.Equal(andere, Assert.Single(rest).UserId);
+        // Der Katalog gehört niemandem und bleibt.
+        Assert.Single(db.QuizCatalogs);
+    }
+
     [Fact]
     public async Task Purge_NimmtAuchWeichGeloeschteZeilenMit()
     {

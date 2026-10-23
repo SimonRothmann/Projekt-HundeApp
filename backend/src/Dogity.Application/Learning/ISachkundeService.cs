@@ -50,4 +50,22 @@ public interface ISachkundeService
     /// auf Anfang zurück.
     /// </summary>
     Task<Result> ResetAsync(Guid userId, string catalogCode, CancellationToken ct = default);
+
+    /// <summary>
+    /// Zieht eine Übungsprüfung: Fragen anteilig nach Komplex, ohne Lösungen.
+    /// Ohne Anmeldung nutzbar. Katalog ohne Übungsprüfung: nicht gefunden.
+    /// </summary>
+    Task<Result<QuizExamDto>> StartExamAsync(string catalogCode, CancellationToken ct = default);
+
+    /// <summary>
+    /// Wertet eine Übungsprüfung aus. Angemeldet (<paramref name="userId"/>
+    /// gesetzt) wird das Ergebnis gespeichert, und falsch beantwortete Fragen
+    /// kommen in den Fehlerspeicher; richtig beantwortete ändern den Lernstand
+    /// nicht. Anonym wird nur gewertet.
+    /// </summary>
+    Task<Result<QuizExamResultDto>> SubmitExamAsync(
+        Guid? userId, string catalogCode, IReadOnlyList<QuizExamAnswerDto> answers, CancellationToken ct = default);
+
+    /// <summary>Die letzten Ergebnisse des Nutzers in diesem Katalog.</summary>
+    Task<Result<QuizExamHistoryDto>> GetExamHistoryAsync(Guid userId, string catalogCode, CancellationToken ct = default);
 }

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Dogity.Application.Learning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dogity.Api.Controllers;
 
@@ -49,6 +50,32 @@ public class SachkundeController(ISachkundeService sachkunde) : ApiControllerBas
             CurrentUserId, questionId, request.SelectedOptionIds, request.SelfAssessedCorrect,
             request.Assignments, ct));
 
+    /// <summary>
+    /// Zieht eine Übungsprüfung - ohne Lösungen. Anonym erlaubt, wie der Rest der
+    /// Katalog-Endpunkte, aber gedrosselt: Jeder Aufruf lädt den ganzen Katalog.
+    /// </summary>
+    [HttpPost("catalogs/{code}/exam")]
+    [AllowAnonymous]
+    [EnableRateLimiting("pruefung")]
+    public async Task<ActionResult<QuizExamDto>> StartExam(string code, CancellationToken ct) =>
+        FromResult(await sachkunde.StartExamAsync(code, ct));
+
+    /// <summary>
+    /// Wertet die Übungsprüfung aus. Angemeldet wird das Ergebnis gespeichert,
+    /// anonym nur gewertet.
+    /// </summary>
+    [HttpPost("catalogs/{code}/exam/submit")]
+    [AllowAnonymous]
+    [EnableRateLimiting("pruefung")]
+    public async Task<ActionResult<QuizExamResultDto>> SubmitExam(
+        string code, SubmitExamRequest request, CancellationToken ct) =>
+        FromResult(await sachkunde.SubmitExamAsync(OptionalUserId, code, request.Answers ?? [], ct));
+
+    /// <summary>Die letzten Ergebnisse der Übungsprüfung des angemeldeten Nutzers.</summary>
+    [HttpGet("catalogs/{code}/exams")]
+    public async Task<ActionResult<QuizExamHistoryDto>> GetExams(string code, CancellationToken ct) =>
+        FromResult(await sachkunde.GetExamHistoryAsync(CurrentUserId, code, ct));
+
     /// <summary>Von vorne anfangen.</summary>
     [HttpPost("catalogs/{code}/reset")]
     public async Task<ActionResult> Reset(string code, CancellationToken ct) =>
@@ -66,3 +93,6 @@ public record AnswerQuestionRequest(
     IReadOnlyList<Guid>? SelectedOptionIds,
     bool? SelfAssessedCorrect,
     IReadOnlyDictionary<Guid, string>? Assignments);
+
+/// <param name="Answers">Eine Antwort je Frage der Prüfung; leere Auswahl = unbeantwortet.</param>
+public record SubmitExamRequest(IReadOnlyList<QuizExamAnswerDto>? Answers);

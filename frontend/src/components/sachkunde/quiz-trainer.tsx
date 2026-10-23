@@ -52,12 +52,13 @@ const MODI: { key: QuizMode; label: string }[] = [
 
 type Auswertung = { correct: boolean; correctOptionIds: string[]; termResults: Record<string, boolean> };
 
-export function QuizTrainer({ catalog }: { catalog: QuizCatalog }) {
+export function QuizTrainer({ catalog, anfangsModus = "learn" }: { catalog: QuizCatalog; anfangsModus?: QuizMode }) {
   const t = useT();
   const { user } = useAuth();
   const angemeldet = user !== null;
 
-  const [mode, setMode] = useState<QuizMode>("learn");
+  // anfangsModus: "Falsche Fragen üben" aus der Übungsprüfung öffnet gleich den Fehlerspeicher.
+  const [mode, setMode] = useState<QuizMode>(anfangsModus);
   const [queue, setQueue] = useState<QuizQuestion[] | null>(null);
   const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState<QuizProgress | null>(null);

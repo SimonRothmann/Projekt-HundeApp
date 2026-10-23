@@ -85,6 +85,8 @@ public static class SachkundeSeeder
         katalog.Edition = datei.Stand;
         katalog.Audience = Enum.Parse<QuizAudience>(daten.Zielgruppe);
         katalog.SortOrder = index + 1;
+        // Fehlt der Block in der Datei, hat der Katalog keine Übungsprüfung.
+        katalog.ExamQuestionCount = daten.Uebungspruefung?.Fragen;
         if (vorhanden is not null) ZeitstempelWennGeaendert(db, katalog);
 
         // Die Frage-Zuordnung unten braucht die Katalog-Id.
@@ -244,7 +246,11 @@ public static class SachkundeSeeder
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("zielgruppe")] string Zielgruppe,
         [property: JsonPropertyName("beschreibung")] string Beschreibung,
+        [property: JsonPropertyName("uebungspruefung")] SeedUebungspruefung? Uebungspruefung,
         [property: JsonPropertyName("fragen")] List<SeedFrage> Fragen);
+
+    private sealed record SeedUebungspruefung(
+        [property: JsonPropertyName("fragen")] int Fragen);
 
     private sealed record SeedFrage(
         [property: JsonPropertyName("nummer")] string Nummer,

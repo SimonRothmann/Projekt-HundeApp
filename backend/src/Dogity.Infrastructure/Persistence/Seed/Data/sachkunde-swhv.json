@@ -16,6 +16,9 @@
    "name": "Sachkunde BH/VT – Erwachsene",
    "zielgruppe": "Adults",
    "beschreibung": "Fragenkatalog des swhv zur Sachkundeprüfung im Rahmen der Begleithundeprüfung mit Verkehrsteil, Fassung für Erwachsene.",
+   "uebungspruefung": {
+    "fragen": 25
+   },
    "fragen": [
     {
      "nummer": "A1",
@@ -2737,6 +2740,9 @@
    "name": "Sachkunde BH/VT – Jugend",
    "zielgruppe": "Youth",
    "beschreibung": "Fassung für Kinder und Jugendliche unter 15 Jahren. In der Prüfung werden 15 Fragen gestellt, je Frage ist genau eine Antwort richtig.",
+   "uebungspruefung": {
+    "fragen": 15
+   },
    "fragen": [
     {
      "nummer": "1",
