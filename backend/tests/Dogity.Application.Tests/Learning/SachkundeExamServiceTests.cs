@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Text.Json;
 using Dogity.Application.Learning;
 using Dogity.Application.Tests.TestSupport;
@@ -23,9 +24,11 @@ public class SachkundeExamServiceTests
     /// Ein Katalog aus Abschnitten, je Frage "richtig" und drei falsche Antworten.
     /// <paramref name="pruefungsgroesse"/> null = keine Übungsprüfung.
     /// </summary>
-    private static Aufbau Katalog(int? pruefungsgroesse, params (string Abschnitt, int Anzahl)[] abschnitte)
+    private static Aufbau Katalog(int? pruefungsgroesse, params (string Abschnitt, int Anzahl)[] abschnitte) =>
+        Katalog(InMemoryDbContext.Create(), pruefungsgroesse, abschnitte);
+
+    private static Aufbau Katalog(ApplicationDbContext db, int? pruefungsgroesse, params (string Abschnitt, int Anzahl)[] abschnitte)
     {
-        var db = InMemoryDbContext.Create();
         var katalog = new QuizCatalog { Code = Code, Name = "Test", Publisher = "Test", ExamQuestionCount = pruefungsgroesse };
         db.QuizCatalogs.Add(katalog);
 
@@ -666,6 +669,238 @@ public class SachkundeExamServiceTests
 
         Assert.Equal(0, (await a.Dienst.GetProgressAsync(andere, Code)).Value!.InMistakes);
         Assert.Empty(a.Db.QuizExamAttempts.Where(x => x.UserId == andere));
+    }
+
+    // ---- Doppelabgabe: dieselbe Kennung legt kein zweites Ergebnis an ----
+
+    [Fact]
+    public async Task Start_VergibtJedesMalEineNeueAbgabeKennung()
+    {
+        var a = Katalog(5, ("A", 10));
+
+        var erste = await ZiehenAsync(a);
+        var zweite = await ZiehenAsync(a);
+
+        Assert.NotEqual(Guid.Empty, erste.SubmissionId);
+        Assert.NotEqual(erste.SubmissionId, zweite.SubmissionId);
+        // Die Kennung wird nicht gespeichert, nur mit dem Ergebnis abgegeben.
+        Assert.Empty(a.Db.QuizExamAttempts.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task Angemeldet_MitKennung_SpeichertDieKennungAmErgebnis()
+    {
+        var a = Katalog(5, ("A", 10));
+        var nutzer = Guid.NewGuid();
+        var pruefung = await ZiehenAsync(a);
+
+        await a.Dienst.SubmitExamAsync(nutzer, Code, Antworten(a, pruefung, 3), pruefung.SubmissionId);
+
+        Assert.Equal(pruefung.SubmissionId, (await a.Db.QuizExamAttempts.SingleAsync()).SubmissionId);
+    }
+
+    [Fact]
+    public async Task Doppelabgabe_DieselbeKennung_EinErgebnis_GleicheAntwort()
+    {
+        var a = Katalog(6, ("A", 10));
+        var nutzer = Guid.NewGuid();
+        var pruefung = await ZiehenAsync(a);
+        var antworten = Antworten(a, pruefung, 4);
+
+        var erste = (await a.Dienst.SubmitExamAsync(nutzer, Code, antworten, pruefung.SubmissionId)).Value!;
+        var zweite = (await a.Dienst.SubmitExamAsync(nutzer, Code, antworten, pruefung.SubmissionId)).Value!;
+
+        Assert.Single(a.Db.QuizExamAttempts);
+        Assert.Equal(
+            (erste.Points, erste.MaxPoints, erste.Passed, erste.CorrectCount, erste.QuestionCount, erste.Saved),
+            (zweite.Points, zweite.MaxPoints, zweite.Passed, zweite.CorrectCount, zweite.QuestionCount, zweite.Saved));
+        Assert.Equal(erste.Sections.Select(x => (x.Key, x.Points)), zweite.Sections.Select(x => (x.Key, x.Points)));
+        Assert.Equal(erste.Questions.Select(x => (x.QuestionId, x.Correct)), zweite.Questions.Select(x => (x.QuestionId, x.Correct)));
+        Assert.True(zweite.Saved);
+    }
+
+    [Fact]
+    public async Task Doppelabgabe_FasstDenFehlerspeicherNichtErneutAn()
+    {
+        var a = Katalog(6, ("A", 10));
+        var nutzer = Guid.NewGuid();
+        var pruefung = await ZiehenAsync(a);
+        var antworten = Antworten(a, pruefung, 4);
+        await a.Dienst.SubmitExamAsync(nutzer, Code, antworten, pruefung.SubmissionId);
+
+        // Zwischen den Abgaben hat die Person eine der Fragen im Lernmodus richtig gelernt (Fach 3).
+        var gelernt = await a.Db.QuizMasteries.FirstAsync();
+        gelernt.Box = 3;
+        gelernt.LastWasCorrect = true;
+        gelernt.WrongCount = 1;
+        await a.Db.SaveChangesAsync();
+
+        await a.Dienst.SubmitExamAsync(nutzer, Code, antworten, pruefung.SubmissionId);
+
+        var nachher = await a.Db.QuizMasteries.SingleAsync(m => m.Id == gelernt.Id);
+        Assert.Equal(3, nachher.Box);
+        Assert.True(nachher.LastWasCorrect);
+        Assert.Equal(1, nachher.WrongCount);
+        Assert.Equal(2, await a.Db.QuizMasteries.CountAsync());
+    }
+
+    [Fact]
+    public async Task Doppelabgabe_GespeichertesErgebnisGilt_AuchWennDieWiederholungAndereAntwortenTraegt()
+    {
+        var a = Katalog(6, ("A", 10));
+        var nutzer = Guid.NewGuid();
+        var pruefung = await ZiehenAsync(a);
+        var erste = (await a.Dienst.SubmitExamAsync(nutzer, Code, Antworten(a, pruefung, 6), pruefung.SubmissionId)).Value!;
+
+        var zweite = (await a.Dienst.SubmitExamAsync(nutzer, Code, Antworten(a, pruefung, 0), pruefung.SubmissionId)).Value!;
+
+        Assert.Equal(12, erste.Points);
+        Assert.Equal(12, zweite.Points);
+        Assert.True(zweite.Passed);
+        Assert.Single(a.Db.QuizExamAttempts);
+    }
+
+    [Fact]
+    public async Task Doppelabgabe_VerschiedeneKennungen_ZweiErgebnisse()
+    {
+        var a = Katalog(5, ("A", 10));
+        var nutzer = Guid.NewGuid();
+        var erste = await ZiehenAsync(a);
+        var zweite = await ZiehenAsync(a);
+
+        await a.Dienst.SubmitExamAsync(nutzer, Code, Antworten(a, erste, 2), erste.SubmissionId);
+        await a.Dienst.SubmitExamAsync(nutzer, Code, Antworten(a, zweite, 2), zweite.SubmissionId);
+
+        Assert.Equal(2, await a.Db.QuizExamAttempts.CountAsync());
+    }
+
+    [Fact]
+    public async Task Doppelabgabe_KennungEinesAnderenNutzers_StoertNicht()
+    {
+        var a = Katalog(5, ("A", 10));
+        var pruefung = await ZiehenAsync(a);
+        var antworten = Antworten(a, pruefung, 2);
+
+        await a.Dienst.SubmitExamAsync(Guid.NewGuid(), Code, antworten, pruefung.SubmissionId);
+        var ergebnis = await a.Dienst.SubmitExamAsync(Guid.NewGuid(), Code, antworten, pruefung.SubmissionId);
+
+        Assert.True(ergebnis.Succeeded);
+        Assert.Equal(2, await a.Db.QuizExamAttempts.CountAsync());
+    }
+
+    [Fact]
+    public async Task Doppelabgabe_OhneKennung_WieBisher_JedeAbgabeEinErgebnis()
+    {
+        var a = Katalog(5, ("A", 10));
+        var nutzer = Guid.NewGuid();
+        var pruefung = await ZiehenAsync(a);
+        var antworten = Antworten(a, pruefung, 2);
+
+        await a.Dienst.SubmitExamAsync(nutzer, Code, antworten);
+        await a.Dienst.SubmitExamAsync(nutzer, Code, antworten);
+
+        Assert.Equal(2, await a.Db.QuizExamAttempts.CountAsync());
+        Assert.All(a.Db.QuizExamAttempts, x => Assert.Null(x.SubmissionId));
+    }
+
+    [Fact]
+    public async Task Doppelabgabe_Anonym_UnveraendertGewertetNichtGespeichert()
+    {
+        var a = Katalog(5, ("A", 10));
+        var pruefung = await ZiehenAsync(a);
+        var antworten = Antworten(a, pruefung, 2);
+
+        var erste = (await a.Dienst.SubmitExamAsync(null, Code, antworten, pruefung.SubmissionId)).Value!;
+        var zweite = (await a.Dienst.SubmitExamAsync(null, Code, antworten, pruefung.SubmissionId)).Value!;
+
+        Assert.False(erste.Saved);
+        Assert.False(zweite.Saved);
+        Assert.Equal(erste.Points, zweite.Points);
+        Assert.Empty(a.Db.QuizExamAttempts.IgnoreQueryFilters());
+    }
+
+    // ---- Rennen zweier gleichzeitiger Abgaben (Unique-Verletzung, SqlState 23505) ----
+
+    /// <summary>Eine Datenbankausnahme wie die von Postgres bei einem doppelten Schlüssel.</summary>
+    private sealed class EindeutigerIndexVerletzt(string sqlState = "23505") : DbException("Doppelter Schlüssel.")
+    {
+        public override string? SqlState => sqlState;
+    }
+
+    /// <summary>
+    /// Ein Context, dessen erstes Speichern an einer schnelleren Abgabe scheitert:
+    /// Erst legt "die andere Abgabe" ihr Ergebnis an, dann kommt die Unique-Verletzung -
+    /// so, wie es Postgres bei zwei gleichzeitigen Abgaben derselben Kennung täte (der
+    /// InMemory-Anbieter prüft keine Indizes). Danach speichert er wie gewohnt.
+    /// </summary>
+    private sealed class VerlierendesRennenContext(
+        DbContextOptions<ApplicationDbContext> options, Func<Task> andereWarSchneller, string sqlState = "23505")
+        : ApplicationDbContext(options)
+    {
+        private bool _ausgeloest;
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            if (_ausgeloest) return await base.SaveChangesAsync(cancellationToken);
+            _ausgeloest = true;
+            await andereWarSchneller();
+            throw new DbUpdateException("Speichern fehlgeschlagen.", new EindeutigerIndexVerletzt(sqlState));
+        }
+    }
+
+    [Fact]
+    public async Task Doppelabgabe_Rennen_UniqueVerletzung_LiefertDasErgebnisDerSchnelleren_KeinFehler()
+    {
+        var optionen = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        var nutzer = Guid.NewGuid();
+        var kennung = Guid.NewGuid();
+        await using var andere = new ApplicationDbContext(optionen);
+        Aufbau a = null!;
+        a = Katalog(
+            new VerlierendesRennenContext(optionen, async () =>
+            {
+                andere.QuizExamAttempts.Add(new QuizExamAttempt
+                {
+                    UserId = nutzer, CatalogId = a.Katalog.Id, SubmissionId = kennung, SubmittedAt = DateTimeOffset.UtcNow,
+                    Points = 8, MaxPoints = 10, Passed = true, QuestionCount = 5, CorrectCount = 4,
+                });
+                await andere.SaveChangesAsync();
+            }),
+            5, ("A", 10));
+        var pruefung = await ZiehenAsync(a);
+
+        // Die Antworten dieser Abgabe wären schlechter ausgefallen: Es gilt das Gespeicherte.
+        var ergebnis = await a.Dienst.SubmitExamAsync(nutzer, Code, Antworten(a, pruefung, 0), kennung);
+
+        Assert.True(ergebnis.Succeeded);
+        Assert.Equal(8, ergebnis.Value!.Points);
+        Assert.True(ergebnis.Value.Passed);
+        Assert.True(ergebnis.Value.Saved);
+        Assert.Single(await andere.QuizExamAttempts.ToListAsync());
+        // Die Transaktion der Verliererin ist nicht durchgekommen: kein Fehlerspeicher.
+        Assert.Empty(await andere.QuizMasteries.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Doppelabgabe_Rennen_UniqueVerletzungOhneVorhandenesErgebnis_WirdNichtVerschluckt()
+    {
+        var optionen = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        var a = Katalog(new VerlierendesRennenContext(optionen, () => Task.CompletedTask), 5, ("A", 10));
+        var pruefung = await ZiehenAsync(a);
+
+        await Assert.ThrowsAsync<DbUpdateException>(() =>
+            a.Dienst.SubmitExamAsync(Guid.NewGuid(), Code, Antworten(a, pruefung, 2), pruefung.SubmissionId));
+    }
+
+    [Fact]
+    public async Task Doppelabgabe_Rennen_AndererDatenbankfehler_WirdNichtAlsDoppelabgabeGedeutet()
+    {
+        var optionen = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        var a = Katalog(new VerlierendesRennenContext(optionen, () => Task.CompletedTask, sqlState: "40001"), 5, ("A", 10));
+        var pruefung = await ZiehenAsync(a);
+
+        await Assert.ThrowsAsync<DbUpdateException>(() =>
+            a.Dienst.SubmitExamAsync(Guid.NewGuid(), Code, Antworten(a, pruefung, 2), pruefung.SubmissionId));
     }
 
     // ---- Verlauf ----

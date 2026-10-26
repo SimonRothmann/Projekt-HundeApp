@@ -114,6 +114,17 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
         return FromResult(result);
     }
 
+    /// <summary>
+    /// Prüfungsreife des Ziels: Ampel, Zustand je Übung, Zeit bis zur Prüfung. Rechte wie beim Plan
+    /// (Besitzer:innen und betreuende Trainer:innen, sonst 404); die Theoriezeile bekommen nur Besitzer:innen.
+    /// </summary>
+    [HttpGet("{id:guid}/readiness")]
+    public async Task<ActionResult<PruefungsreifeDto>> GetReadiness(Guid id, CancellationToken ct)
+    {
+        var result = await goalService.GetPruefungsreifeAsync(CurrentUserId, id, ct);
+        return FromResult(result);
+    }
+
     [HttpGet("{id:guid}/weightable-exercises")]
     public async Task<ActionResult<IReadOnlyList<WeightableExerciseDto>>> GetWeightableExercises(Guid id, CancellationToken ct)
     {

@@ -19,15 +19,28 @@ import { useSprache, useT } from "@/lib/i18n";
  * mehr ganz hineinpasst (Goal.zieldatumZuKnapp, vom Server berechnet). Der
  * Knopf öffnet ein kleines Fenster mit dem neuen Datum; verschoben wird nie von
  * selbst, und der Plan wird danach um die fehlenden Wochen verlängert.
+ *
+ * Mit `anlass="pruefungsreife"` erscheint er auch ohne Pause: wenn die
+ * Prüfungsreife rot steht und nur noch wenige Wochen bleiben (der Server sagt
+ * das in Goal.pruefungsreife.zieldatumVerschieben). Derselbe Hinweis und dasselbe
+ * Fenster, nur ein anderer Satz.
  */
-export function ZieldatumHinweis({ goal, onChanged }: { goal: Goal; onChanged: () => Promise<void> }) {
+export function ZieldatumHinweis({
+  goal,
+  onChanged,
+  anlass = "pause",
+}: {
+  goal: Goal;
+  onChanged: () => Promise<void>;
+  anlass?: "pause" | "pruefungsreife";
+}) {
   const t = useT();
   const sprache = useSprache();
   const [offen, setOffen] = useState(false);
   const [datum, setDatum] = useState("");
   const [speichert, setSpeichert] = useState(false);
 
-  if (goal.status !== 0 || !goal.zieldatumZuKnapp) return null;
+  if (goal.status !== 0 || (anlass === "pause" && !goal.zieldatumZuKnapp)) return null;
 
   function oeffnen() {
     // Um die Tage verschoben, die dem Plan fehlen - ein Vorschlag, den man ändert.
@@ -58,7 +71,9 @@ export function ZieldatumHinweis({ goal, onChanged }: { goal: Goal; onChanged: (
         <p className="flex min-w-0 items-start gap-2 text-amber-800 dark:text-amber-300">
           <CalendarClock className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span className="min-w-0 [overflow-wrap:anywhere]">
-            {t("Durch die Pause reicht die Zeit bis zur Prüfung nicht mehr für den ganzen Plan. Zieldatum verschieben?")}
+            {anlass === "pause"
+              ? t("Durch die Pause reicht die Zeit bis zur Prüfung nicht mehr für den ganzen Plan. Zieldatum verschieben?")
+              : t("Bis zur Prüfung bleibt nicht mehr viel Zeit, und noch fehlt einiges. Zieldatum verschieben?")}
           </span>
         </p>
         <Button type="button" size="sm" variant="outline" className="self-start coarse:min-h-11" aria-haspopup="dialog" onClick={oeffnen}>

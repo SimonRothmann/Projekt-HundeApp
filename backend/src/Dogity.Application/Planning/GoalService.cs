@@ -30,7 +30,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .AsNoTracking()
             .ToListAsync(ct);
 
-        return Result<IReadOnlyList<GoalDto>>.Success(await ToDtosAsync(goals, ct));
+        return Result<IReadOnlyList<GoalDto>>.Success(await ToDtosAsync(goals, userId, ct));
     }
 
     public async Task<Result<GoalDto>> GetByIdAsync(Guid userId, Guid goalId, CancellationToken ct = default)
@@ -39,7 +39,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         if (goal is null)
             return Result<GoalDto>.NotFound("Ziel nicht gefunden.");
 
-        return Result<GoalDto>.Success(await ToDtoAsync(goal, ct));
+        return Result<GoalDto>.Success(await ToDtoAsync(goal, userId, ct));
     }
 
     public async Task<Result<GoalDto>> CreateAsync(Guid userId, CreateGoalRequest request, CancellationToken ct = default)
@@ -104,7 +104,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         await db.SaveChangesAsync(ct);
 
         var created = await GetOwnedGoalAsync(userId, goal.Id, ct, track: false);
-        return Result<GoalDto>.Success(await ToDtoAsync(created!, ct));
+        return Result<GoalDto>.Success(await ToDtoAsync(created!, userId, ct));
     }
 
     public async Task<Result<GoalDto>> UpdateStatusAsync(Guid userId, Guid goalId, GoalStatus status, CancellationToken ct = default)
@@ -117,7 +117,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         goal.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        return Result<GoalDto>.Success(await ToDtoAsync(goal, ct));
+        return Result<GoalDto>.Success(await ToDtoAsync(goal, userId, ct));
     }
 
     // Die Prüfung ist gelaufen. Rechte wie UpdateStatusAsync (GetOwnedGoalAsync):
@@ -456,6 +456,21 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         await RegenerateWeekCoreAsync(goal, weekNumber, ct);
         return await GetByIdAsync(userId, goalId, ct);
+    }
+
+    public async Task<Result<PruefungsreifeDto>> GetPruefungsreifeAsync(Guid userId, Guid goalId, CancellationToken ct = default)
+    {
+        var goal = await GetOwnedGoalAsync(userId, goalId, ct, track: false);
+        if (goal is null)
+            return Result<PruefungsreifeDto>.NotFound("Ziel nicht gefunden.");
+
+        var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var pausen = await db.PauseZeitraeumeAsync([goal.DogId], ct);
+        var reife = await PruefungsreifeLader.LadeAsync(db, [goal], heute, pausen, userId, ct);
+
+        return reife.TryGetValue(goal.Id, out var dto)
+            ? Result<PruefungsreifeDto>.Success(dto)
+            : Result<PruefungsreifeDto>.NotFound("Für dieses Ziel gibt es keine Prüfungsreife.");
     }
 
     public async Task<Result<IReadOnlyList<WeightableExerciseDto>>> GetWeightableExercisesAsync(Guid userId, Guid goalId, CancellationToken ct = default)
@@ -845,10 +860,10 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .ToListAsync(ct);
     }
 
-    private async Task<GoalDto> ToDtoAsync(Goal goal, CancellationToken ct) =>
-        (await ToDtosAsync([goal], ct))[0];
+    private async Task<GoalDto> ToDtoAsync(Goal goal, Guid betrachter, CancellationToken ct) =>
+        (await ToDtosAsync([goal], betrachter, ct))[0];
 
-    private async Task<List<GoalDto>> ToDtosAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
+    private async Task<List<GoalDto>> ToDtosAsync(IReadOnlyList<Goal> goals, Guid betrachter, CancellationToken ct)
     {
         var sportNames = await GetSportNamesAsync(goals, ct);
         var regulationNames = await GetRegulationNamesAsync(goals, ct);
@@ -858,8 +873,10 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         var exerciseNames = await GetDeletedExerciseNamesAsync(goals, ct);
         var pausen = await db.PauseZeitraeumeAsync(goals.Select(g => g.DogId).Distinct().ToList(), ct);
         var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        // Für alle Ziele zusammen geladen (kein N+1); die Theorie bekommt nur, wer den Hund besitzt.
+        var reife = await PruefungsreifeLader.LadeAsync(db, goals, heute, pausen, betrachter, ct);
         return goals.Select(g => ToDto(g, sportNames, regulationNames, logsByPlanItem, maxPoints, nextStages, exerciseNames,
-            pausen.GetValueOrDefault(g.DogId) ?? [], heute)).ToList();
+            pausen.GetValueOrDefault(g.DogId) ?? [], heute, reife.GetValueOrDefault(g.Id))).ToList();
     }
 
     // Namen von Katalog-Übungen, die inzwischen weich gelöscht sind: Der
@@ -1009,7 +1026,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         IReadOnlyDictionary<Guid, IReadOnlyList<NextStageDto>> nextStages,
         IReadOnlyDictionary<Guid, Katalogname> deletedExerciseNames,
         IReadOnlyList<PausenZeitraum> pausen,
-        DateOnly heute)
+        DateOnly heute,
+        PruefungsreifeDto? reife)
     {
         var sportName = sportNames.GetValueOrDefault(g.SportId);
         var regulationName = g.RegulationId is { } regId ? regulationNames.GetValueOrDefault(regId) : null;
@@ -1070,7 +1088,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             && g.TargetDate >= heute
             && Trainingspausen.ZieldatumZuKnapp(planBeginn, heute, g.TargetDate, plan.Items.Max(i => i.WeekNumber), pausen);
 
-        return new GoalDto(g.Id, g.DogId, g.SportId, sportName?.Name ?? string.Empty, g.RegulationId, regulationName?.Name, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, weekConfigs, planDto, g.PlanManagedByTrainerId is not null, g.ExamDate, g.ExamScore, g.ExamNote, maxPoints.TryGetValue(g.Id, out var hoechstens) ? hoechstens : null, nextStages.GetValueOrDefault(g.Id), sportName?.NameEn, regulationName?.NameEn, planPausen, zieldatumZuKnapp);
+        return new GoalDto(g.Id, g.DogId, g.SportId, sportName?.Name ?? string.Empty, g.RegulationId, regulationName?.Name, g.TargetDate, g.Status, g.Notes, g.IsCustom, g.WeeklyExerciseCount, g.TrainingDaysPerWeek, weekConfigs, planDto, g.PlanManagedByTrainerId is not null, g.ExamDate, g.ExamScore, g.ExamNote, maxPoints.TryGetValue(g.Id, out var hoechstens) ? hoechstens : null, nextStages.GetValueOrDefault(g.Id), sportName?.NameEn, regulationName?.NameEn, planPausen, zieldatumZuKnapp,
+            reife is null ? null : Pruefungsreife.Kurz(reife));
     }
 
     /// <summary>Deutscher und (falls gepflegt) englischer Katalogname, gemeinsam nachgeschlagen.</summary>

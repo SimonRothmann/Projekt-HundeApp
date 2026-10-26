@@ -167,6 +167,8 @@ public static class DemoSzenarienSeeder
                 ("Österreich", OesterreichAsync),
                 ("Vereinsantrag", VereinsantragAsync),
                 ("Schweiz", SchweizAsync),
+                // Zuletzt: Es braucht die Ziele aus "Prüfungsziele" (Bello) und "Schweiz" (Sandro).
+                ("Prüfungsreife", PruefungsreifeAsync),
             })
             {
                 try
@@ -918,7 +920,7 @@ public static class DemoSzenarienSeeder
                     return new QuizExamAnswerDto(frage.Id, gewaehlt, null);
                 }).ToList();
 
-                var abgabe = await sachkunde.SubmitExamAsync(max.Id, katalog.Code, antworten, ct);
+                var abgabe = await sachkunde.SubmitExamAsync(max.Id, katalog.Code, antworten, pruefung.Value.SubmissionId, ct);
                 if (!abgabe.Succeeded)
                 {
                     logger.LogWarning("Demo-Übungsprüfung konnte nicht abgegeben werden: {Fehler}", string.Join("; ", abgabe.Errors));
@@ -968,6 +970,158 @@ public static class DemoSzenarienSeeder
                 ?? await HundAsync(sandro, hunde, "Bläss", "Appenzeller Sennenhund", DogGender.Male, new DateOnly(2022, 8, 1), ct);
 
             await ZielMitPlanAsync(sandro, hund, SportCatalogSeeder.BegleithundSkgCode, "SKG BH 1", 60, NotizSkgBhZiel, ct);
+        }
+
+        // ---------------------------------------------------------------- n) Prüfungsreife
+
+        /// <summary>
+        /// Damit auf der Test-Umgebung die Ampeln der Prüfungsreife zu sehen sind: Bellos BH-Ziel steht auf GELB
+        /// (und zeigt Max dazu die Theoriezeile, "wackelig" aus seinen beiden Übungsprüfungen), Sandros Ziel SKG BH 1
+        /// auf GRÜN. ROT ergibt sich von selbst - Emma (FCI-UPr 2), Ninas Flitzer (mit Pause) und alles, was noch
+        /// nicht trainiert ist, hat offene Pflichtübungen.
+        ///
+        /// Dafür bekommen die Übungen der Ordnung einen Stand (<see cref="ReifeHerstellenAsync"/>), soweit sie keinen
+        /// haben - ohne Trainingseinträge, nur als Beherrschungs-Stand, denn die Prüfungsreife wird aus ihm gerechnet.
+        /// Wer eine Übung selbst trainiert hat, behält seinen Stand: Der Seeder fasst nur Zeilen an, die noch seine
+        /// Merkmale tragen (eine Übung, die er selbst gesetzt hat). Rollend: Ist das letzte Training eines
+        /// Seeder-Standes älter als zehn Tage, rückt er wieder nach vorn - sonst wäre "sicher" nach vier Wochen weg.
+        ///
+        /// Bellos Ziel hängt an der FCI-BH ("BH"): Eine Ordnung lässt sich an einem Ziel nicht ändern, der Seeder
+        /// hat sie früher ohne Namen gesucht und damit gelegentlich die ÖKV-Ordnung derselben Sportart erwischt.
+        /// Ein solches Ziel wird nur dann auf die FCI-BH umgestellt, wenn es noch keinen Plan hat; sonst bleibt es
+        /// unangetastet und ohne diese Szene.
+        /// </summary>
+        private async Task PruefungsreifeAsync(CancellationToken ct)
+        {
+            var hunde = await HundeVonAsync(max, ct);
+            var bello = hunde.FirstOrDefault(h => h.Name == "Bello");
+            var belloZiel = bello is null ? null : await db.Goals.FirstOrDefaultAsync(
+                g => g.DogId == bello.Id && g.Notes == DemoDataSeeder.NotizBelloBh && g.Status == GoalStatus.Active, ct);
+            if (belloZiel is not null)
+            {
+                var (bhSport, fciBh) = await KatalogAsync("BH", "BH", ct);
+                var passt = true;
+                if (bhSport is not null && fciBh is not null && belloZiel.RegulationId != fciBh.Id)
+                {
+                    // Die Ordnung nur tauschen, solange sich damit nichts verschiebt: Ein Ziel mit Plan hat seine
+                    // Planeinträge an den Übungen der alten Ordnung - sie bliebe dort stehen, während Prüfungsreife
+                    // und Theoriezeile die der neuen auswerteten. Dann bleibt das Ziel, wie es ist (und ohne Szene).
+                    passt = !await db.TrainingPlans.AnyAsync(p => p.GoalId == belloZiel.Id, ct);
+                    if (passt)
+                    {
+                        belloZiel.RegulationId = fciBh.Id;
+                        await db.SaveChangesAsync(ct);
+                    }
+                }
+                // Gelb: höchstens drei Viertel des Gewichts sicher, nichts offen.
+                if (passt) await ReifeHerstellenAsync(belloZiel, hoechstensSicherProzent: 75, ct);
+            }
+
+            var sandro = await userManager.FindByEmailAsync(SchweizEmail);
+            var sandroZiel = sandro is null ? null : await db.Goals.FirstOrDefaultAsync(
+                g => g.Notes == NotizSkgBhZiel && g.Status == GoalStatus.Active
+                    && db.DogOwners.Any(o => o.DogId == g.DogId && o.UserId == sandro.Id), ct);
+            // Grün: alles sicher (soweit nicht selbst anders trainiert).
+            if (sandroZiel is not null)
+                await ReifeHerstellenAsync(sandroZiel, hoechstensSicherProzent: null, ct);
+        }
+
+        // Die Merkmale eines Standes, den der Seeder gesetzt hat. Sie sind so gewählt, dass echtes Training
+        // sie verlässt: jeder Eintrag zählt die Sitzungen hoch, und Bewertungsschnitte aus dem Tagebuch landen
+        // nicht auf diesen glatten Werten.
+        private const int SicherBox = 4, SicherSitzungen = 3, WackeligBox = 2, WackeligSitzungen = 2;
+        private const double SicherBewertung = 4.6, WackeligBewertung = 3.0;
+
+        private static bool IstSeederStand(ExerciseMastery m) =>
+            (m.SessionCount == SicherSitzungen && m.Box == SicherBox && m.RecentAvgRating == SicherBewertung)
+            || (m.SessionCount == WackeligSitzungen && m.Box == WackeligBox && m.RecentAvgRating == WackeligBewertung);
+
+        /// <summary>
+        /// Gibt den Übungen der Ordnung des Ziels einen Stand, soweit der Hund keinen eigenen hat: "sicher", bis
+        /// <paramref name="hoechstensSicherProzent"/> des Gewichts erreicht ist (null = alles), den Rest "wackelig" -
+        /// nie "offen", das wäre rot. Das Gewicht rechnet wie die Ampel (<see cref="Pruefungsreife.Gewichte"/>); was
+        /// der Hund selbst trainiert hat, zählt mit seinem echten Zustand in die Rechnung ein.
+        /// </summary>
+        private async Task ReifeHerstellenAsync(Goal ziel, int? hoechstensSicherProzent, CancellationToken ct)
+        {
+            if (ziel.RegulationId is not { } ordnungId) return;
+
+            var fassung = await db.RegulationVersions.Where(v => v.RegulationId == ordnungId)
+                .OrderByDescending(v => v.ValidFrom).FirstOrDefaultAsync(ct);
+            if (fassung is null) return;
+
+            var zeilen = await db.RegulationExercises.Where(re => re.RegulationVersionId == fassung.Id)
+                .OrderBy(re => re.SortOrder).ToListAsync(ct);
+            if (zeilen.Count == 0) return;
+
+            var ids = zeilen.Select(z => z.ExerciseId).ToList();
+            var staende = await db.ExerciseMasteries
+                .Where(m => m.DogId == ziel.DogId && ids.Contains(m.ExerciseId))
+                .ToDictionaryAsync(m => m.ExerciseId, ct);
+
+            var heute = Vereinszeit.Heute();
+            var eingabe = zeilen.Select(z =>
+            {
+                staende.TryGetValue(z.ExerciseId, out var m);
+                return new ReifeUebung(z.ExerciseId, string.Empty, null, z.IsMandatory, z.MaxPoints,
+                    m?.SessionCount ?? 0, m?.Box ?? 1, m?.RecentAvgRating ?? 0,
+                    m?.LastTrainedAt is { } zuletzt ? DateOnly.FromDateTime(zuletzt.UtcDateTime) : null);
+            }).ToList();
+            var gewichte = Pruefungsreife.Gewichte(eingabe);
+            long gesamt = gewichte.Sum(g => (long)g);
+
+            // Eigene Stände des Hundes (nicht die des Seeders) zählen wie sie sind.
+            long sicher = 0;
+            var offeneStellen = new List<int>();
+            for (var i = 0; i < zeilen.Count; i++)
+            {
+                staende.TryGetValue(zeilen[i].ExerciseId, out var m);
+                // Eine Zeile ohne Sitzung (z. B. nur eine Gewichtung von Hand) ist kein Training: nichts zu schützen.
+                if (m is null || m.SessionCount == 0 || IstSeederStand(m))
+                    offeneStellen.Add(i);
+                else if (Pruefungsreife.Bewerte(eingabe[i], heute, []).Zustand == ReifeZustand.Sicher)
+                    sicher += gewichte[i];
+            }
+
+            // Das Schwerste zuerst sicher, solange die Grenze hält; was darüber hinausginge, bleibt wackelig.
+            var jetzt = DateTimeOffset.UtcNow;
+            foreach (var i in offeneStellen.OrderByDescending(i => gewichte[i]).ThenBy(i => i))
+            {
+                var sicherSetzen = hoechstensSicherProzent is not { } grenze || (sicher + gewichte[i]) * 100 <= grenze * gesamt;
+                if (sicherSetzen) sicher += gewichte[i];
+
+                if (!staende.TryGetValue(zeilen[i].ExerciseId, out var stand))
+                {
+                    stand = new ExerciseMastery { DogId = ziel.DogId, ExerciseId = zeilen[i].ExerciseId };
+                    db.ExerciseMasteries.Add(stand);
+                }
+                StandSetzen(stand, sicherSetzen, heute, jetzt);
+            }
+
+            await db.SaveChangesAsync(ct);
+        }
+
+        /// <summary>
+        /// Setzt den Stand des Seeders. Das Datum rückt nur nach, wenn der Stand fehlt, sich ändert oder mehr als
+        /// zehn Tage alt ist - so bleibt eine ruhige Zeile ruhig und schreibt nicht bei jedem Start.
+        /// </summary>
+        private static void StandSetzen(ExerciseMastery stand, bool sicher, DateOnly heute, DateTimeOffset jetzt)
+        {
+            var box = sicher ? SicherBox : WackeligBox;
+            var sitzungen = sicher ? SicherSitzungen : WackeligSitzungen;
+            var bewertung = sicher ? SicherBewertung : WackeligBewertung;
+
+            var unveraendert = stand.SessionCount == sitzungen && stand.Box == box && stand.RecentAvgRating == bewertung
+                && stand.LastTrainedAt is { } zuletzt && DateOnly.FromDateTime(zuletzt.UtcDateTime) >= heute.AddDays(-10);
+            if (unveraendert) return;
+
+            stand.Box = box;
+            stand.SessionCount = sitzungen;
+            stand.RecentAvgRating = bewertung;
+            stand.LastTrainedAt = new DateTimeOffset(heute.AddDays(sicher ? -3 : -5).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            // Wiedervorlage wie im Leitner-Modell: Box 4 nach 14 Tagen, Box 2 nach 4 (siehe ExerciseMasteryService).
+            stand.DueAt = stand.LastTrainedAt.Value.AddDays(sicher ? 14 : 4);
+            stand.UpdatedAt = jetzt;
         }
 
         // ---------------------------------------------------------------- j) Nachtfährte (Bello)

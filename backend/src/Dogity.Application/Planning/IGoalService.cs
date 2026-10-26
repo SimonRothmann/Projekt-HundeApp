@@ -65,6 +65,15 @@ public interface IGoalService
     Task<Result<GoalDto>> RegenerateWeekAsync(Guid userId, Guid goalId, int weekNumber, CancellationToken ct = default);
 
     /// <summary>
+    /// Die Prüfungsreife des Ziels (siehe <see cref="Pruefungsreife"/>). Rechte wie beim
+    /// Plan: Besitzer:innen und betreuende Trainer:innen, sonst "nicht gefunden". Die
+    /// Theoriezeile enthält nur, wer den Hund besitzt - nie die Trainer:in. Gibt es für das
+    /// Ziel keine Prüfungsreife (eigenes, erreichtes oder beendetes Ziel, keine
+    /// Prüfungsordnung), ist es ebenfalls "nicht gefunden".
+    /// </summary>
+    Task<Result<PruefungsreifeDto>> GetPruefungsreifeAsync(Guid userId, Guid goalId, CancellationToken ct = default);
+
+    /// <summary>
     /// Alle gewichtbaren Übungen eines Ziels (PO- bzw. Sport-Katalog) mit ihrer
     /// aktuellen manuellen Gewichtung, Beherrschungs-Status und "diese Woche
     /// geplant?". Leer bei individuellen Zielen (kein adaptiver Plan).

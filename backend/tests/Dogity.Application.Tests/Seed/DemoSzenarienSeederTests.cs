@@ -3,6 +3,7 @@ using Dogity.Application.Abstractions;
 using Dogity.Application.Notifications;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Application.Community;
+using Dogity.Application.Planning;
 using Dogity.Application.Weather;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
@@ -921,6 +922,265 @@ public class DemoSzenarienSeederTests
         var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         Assert.DoesNotContain(await pruefDb.ClubRegistrations.ToListAsync(), r => r.Name == DemoSzenarienSeeder.VereinsAntragName);
         Assert.Empty(warnungen.Zeilen);
+    }
+
+    // --- Prüfungsreife ----------------------------------------------------------------
+
+    private sealed record ReifeAnsicht(Guid BelloId, Guid BelloZiel, Guid EmmaZiel, Guid SandroZiel, Guid MaxId, Guid SandroId, Guid TrainerId);
+
+    private static async Task<ReifeAnsicht> AnsichtAsync(IServiceProvider provider)
+    {
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var bello = await db.Dogs.SingleAsync(d => d.Name == "Bello");
+        return new ReifeAnsicht(
+            bello.Id,
+            (await db.Goals.SingleAsync(g => g.Notes == DemoDataSeeder.NotizBelloBh)).Id,
+            (await db.Goals.SingleAsync(g => g.Notes == DemoSzenarienSeeder.NotizUprZiel)).Id,
+            (await db.Goals.SingleAsync(g => g.Notes == DemoSzenarienSeeder.NotizSkgBhZiel)).Id,
+            (await users.FindByEmailAsync("mitglied1@dogity.test"))!.Id,
+            (await users.FindByEmailAsync(DemoSzenarienSeeder.SchweizEmail))!.Id,
+            (await users.FindByEmailAsync("trainer@dogity.test"))!.Id);
+    }
+
+    private static async Task<PruefungsreifeDto> ReifeAsync(IServiceProvider provider, Guid nutzer, Guid ziel)
+    {
+        using var scope = provider.CreateScope();
+        return (await scope.ServiceProvider.GetRequiredService<IGoalService>().GetPruefungsreifeAsync(nutzer, ziel)).Value!;
+    }
+
+    [Fact]
+    public async Task Pruefungsreife_AlleDreiAmpelfarbenSindZuSehen()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        await MitSachkundeAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var a = await AnsichtAsync(provider);
+
+        var bello = await ReifeAsync(provider, a.MaxId, a.BelloZiel);
+        var emma = await ReifeAsync(provider, a.MaxId, a.EmmaZiel);
+        var sandro = await ReifeAsync(provider, a.SandroId, a.SandroZiel);
+
+        Assert.Equal(Reifeampel.Gelb, bello.Ampel);
+        Assert.Equal(Reifeampel.Rot, emma.Ampel);
+        Assert.Equal(Reifeampel.Gruen, sandro.Ampel);
+        // Gelb heißt: nichts offen, ein Teil sicher, ein Teil wackelig.
+        Assert.Equal(0, bello.Offen);
+        Assert.True(bello.Sicher > 0 && bello.Wackelig > 0);
+        Assert.Equal(0, sandro.Wackelig + sandro.Offen);
+    }
+
+    [Fact]
+    public async Task Pruefungsreife_BellosBhZielHatDieFciBhUndMaxSiehtDieTheoriezeile_DieTrainerinNicht()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        await MitSachkundeAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var a = await AnsichtAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var ordnung = await db.Regulations.SingleAsync(r => db.Goals.Any(g => g.Id == a.BelloZiel && g.RegulationId == r.Id));
+            Assert.Equal("BH", ordnung.Name);
+            Assert.Null(ordnung.CountryCode);
+        }
+
+        // Max: eine nicht bestandene, danach eine bestandene Übungsprüfung - wackelig.
+        var max = await ReifeAsync(provider, a.MaxId, a.BelloZiel);
+        Assert.NotNull(max.Theorie);
+        Assert.Equal(ReifeZustand.Wackelig, max.Theorie!.Zustand);
+        Assert.Equal((2, 1), (max.Theorie.Gewertet, max.Theorie.Bestanden));
+
+        // Die betreuende Trainerin sieht die Übungen, aber keine Theorie.
+        var trainerin = await ReifeAsync(provider, a.TrainerId, a.BelloZiel);
+        Assert.Null(trainerin.Theorie);
+        Assert.Equal(max.Uebungen.Count, trainerin.Uebungen.Count);
+    }
+
+    /// <summary>Stellt Bellos Ziel auf eine andere Ordnung derselben Sportart (wie auf einer älteren Testumgebung) und gibt die FCI-BH zurück.</summary>
+    private static async Task<Guid> BelloZielAufAndereOrdnungAsync(IServiceProvider provider, Guid zielId, bool mitPlan)
+    {
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var ziel = await db.Goals.SingleAsync(g => g.Id == zielId);
+        var fciBh = ziel.RegulationId!.Value;
+        ziel.RegulationId = await db.Regulations.Where(r => r.SportId == ziel.SportId && r.Id != fciBh).Select(r => r.Id).FirstAsync();
+
+        db.TrainingPlans.RemoveRange(await db.TrainingPlans.Where(p => p.GoalId == zielId).ToListAsync());
+        if (mitPlan) db.TrainingPlans.Add(new TrainingPlan { GoalId = zielId });
+        await db.SaveChangesAsync();
+        return fciBh;
+    }
+
+    [Fact]
+    public async Task Pruefungsreife_BellosZielAufAndererOrdnungMitPlan_BleibtUnangetastet()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var a = await AnsichtAsync(provider);
+        await BelloZielAufAndereOrdnungAsync(provider, a.BelloZiel, mitPlan: true);
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruef = provider.CreateScope();
+        var pruefDb = pruef.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var ziel = await pruefDb.Goals.SingleAsync(g => g.Id == a.BelloZiel);
+        // Die Planeinträge hängen an den Übungen dieser Ordnung: Sie darf nicht unter dem Plan getauscht werden.
+        Assert.NotEqual("BH", (await pruefDb.Regulations.SingleAsync(r => r.Id == ziel.RegulationId)).Name);
+    }
+
+    [Fact]
+    public async Task Pruefungsreife_BellosZielAufAndererOrdnungOhnePlan_BekommtDieFciBh()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var a = await AnsichtAsync(provider);
+        var fciBh = await BelloZielAufAndereOrdnungAsync(provider, a.BelloZiel, mitPlan: false);
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruef = provider.CreateScope();
+        var pruefDb = pruef.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Equal(fciBh, (await pruefDb.Goals.SingleAsync(g => g.Id == a.BelloZiel)).RegulationId);
+    }
+
+    [Fact]
+    public async Task Pruefungsreife_ZweimaligesAusfuehren_LegtNichtsNeuAnUndAendertNichts()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        async Task<List<(Guid Hund, Guid Uebung, int Box, int Sitzungen, DateTimeOffset? Zuletzt, DateTimeOffset? Aktualisiert)>> StaendeAsync()
+        {
+            using var scope = provider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            return (await db.ExerciseMasteries.OrderBy(m => m.DogId).ThenBy(m => m.ExerciseId).ToListAsync())
+                .Select(m => (m.DogId, m.ExerciseId, m.Box, m.SessionCount, m.LastTrainedAt, m.UpdatedAt)).ToList();
+        }
+        var vorher = await StaendeAsync();
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        Assert.NotEmpty(vorher);
+        Assert.Equal(vorher, await StaendeAsync());
+    }
+
+    [Fact]
+    public async Task Pruefungsreife_EigenesTrainingEinerUebung_BleibtUnangetastet()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var a = await AnsichtAsync(provider);
+
+        Guid uebungId;
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            // Der Tester hat die Übung selbst trainiert: Der Stand trägt nicht mehr die Merkmale des Seeders.
+            var stand = await db.ExerciseMasteries.FirstAsync(m => m.DogId == a.BelloId && m.SessionCount == 3);
+            uebungId = stand.ExerciseId;
+            stand.SessionCount = 9;
+            stand.Box = 3;
+            stand.RecentAvgRating = 3.7;
+            stand.LastTrainedAt = DateTimeOffset.UtcNow.AddDays(-40);
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruef = provider.CreateScope();
+        var pruefDb = pruef.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var nachher = await pruefDb.ExerciseMasteries.SingleAsync(m => m.DogId == a.BelloId && m.ExerciseId == uebungId);
+        Assert.Equal((9, 3, 3.7), (nachher.SessionCount, nachher.Box, nachher.RecentAvgRating));
+        Assert.True(nachher.LastTrainedAt < DateTimeOffset.UtcNow.AddDays(-39));
+    }
+
+    [Fact]
+    public async Task Pruefungsreife_ZeileOhneSitzung_ZaehltNichtAlsEigenesTraining_UndBekommtDenStand()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var a = await AnsichtAsync(provider);
+
+        Guid uebungId;
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            // Nur eine Gewichtung von Hand, nie trainiert: Die Zeile hat keine Sitzung.
+            var stand = await db.ExerciseMasteries.FirstAsync(m => m.DogId == a.BelloId && m.SessionCount == 3);
+            uebungId = stand.ExerciseId;
+            stand.SessionCount = 0;
+            stand.Box = 1;
+            stand.RecentAvgRating = 0;
+            stand.LastTrainedAt = null;
+            stand.ManualPriority = 2;
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruef = provider.CreateScope();
+        var pruefDb = pruef.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var nachher = await pruefDb.ExerciseMasteries.SingleAsync(m => m.DogId == a.BelloId && m.ExerciseId == uebungId);
+        Assert.True(nachher.SessionCount > 0);
+        Assert.Equal(2, nachher.ManualPriority);
+    }
+
+    [Fact]
+    public async Task Pruefungsreife_Rollend_AlterSeederStandRueckenNachVorn_SandroBleibtGruen()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var a = await AnsichtAsync(provider);
+
+        // Sechs Wochen später: Alles ist über die 28 Tage hinaus und nicht mehr "sicher".
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            foreach (var m in await db.ExerciseMasteries.Where(m => m.SessionCount == 3 || m.SessionCount == 2).ToListAsync())
+                m.LastTrainedAt = DateTimeOffset.UtcNow.AddDays(-45);
+            await db.SaveChangesAsync();
+        }
+        Assert.NotEqual(Reifeampel.Gruen, (await ReifeAsync(provider, a.SandroId, a.SandroZiel)).Ampel);
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        Assert.Equal(Reifeampel.Gruen, (await ReifeAsync(provider, a.SandroId, a.SandroZiel)).Ampel);
+        Assert.Equal(Reifeampel.Gelb, (await ReifeAsync(provider, a.MaxId, a.BelloZiel)).Ampel);
+    }
+
+    [Fact]
+    public async Task Pruefungsreife_GeloeschtesZiel_BekommtKeinenStand()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        using (var scope = provider.CreateScope())
+        {
+            // Vor dem Szenario: Der Tester hat Bellos BH-Ziel gelöscht.
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var ziel = await db.Goals.SingleAsync(g => g.Notes == DemoDataSeeder.NotizBelloBh);
+            ziel.DeletedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruef = provider.CreateScope();
+        var pruefDb = pruef.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var bello = await pruefDb.Dogs.SingleAsync(d => d.Name == "Bello");
+        // Bello hat höchstens den Stand aus echten Trainings - der Seeder (3 bzw. 2 Sitzungen) legt hier nichts an.
+        Assert.DoesNotContain(await pruefDb.ExerciseMasteries.Where(m => m.DogId == bello.Id).ToListAsync(),
+            m => m.SessionCount is 3 or 2 && (m.RecentAvgRating == 4.6 || m.RecentAvgRating == 3.0));
     }
 
     /// <summary>Hält Warnungen des Seeders fest - ein still übergangenes Szenario darf keine auslösen.</summary>

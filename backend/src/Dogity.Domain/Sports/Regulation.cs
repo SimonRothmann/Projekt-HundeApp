@@ -61,5 +61,22 @@ public class Regulation : Entity
     /// </summary>
     public string? CountryCode { get; set; }
 
+    /// <summary>
+    /// Code des Sachkunde-Fragenkatalogs (<c>QuizCatalog.Code</c>, die
+    /// Erwachsenenfassung), dessen Theorie zum Ablauf dieser Prüfung gehört -
+    /// null = die Prüfung hat keinen Theorieteil. Er speist die Theoriezeile in
+    /// der Prüfungsreife (siehe docs/SMART_TRAINING_PLAN.md). Die
+    /// Jugendfassung desselben Katalogs (gleicher Code bis auf die Endung) zählt
+    /// mit.
+    ///
+    /// Gesetzt nur, wo der Ablauf der Prüfung den Sachkundenachweis selbst
+    /// enthält (die BH/VT nach FCI-Ordnung, deren Katalog der des swhv ist).
+    /// NICHT gesetzt bei Ordnungen, die eine bestandene BH/VT bloß als Zulassung
+    /// verlangen, und nicht bei der österreichischen und der Schweizer BH: Dort
+    /// richtet sich der Nachweis nach Landesrecht bzw. eigener Ordnung, und
+    /// unser Katalog ist der des swhv.
+    /// </summary>
+    public string? TheoryCatalogCode { get; set; }
+
     public ICollection<RegulationVersion> Versions { get; set; } = new List<RegulationVersion>();
 }

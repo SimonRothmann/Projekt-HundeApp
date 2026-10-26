@@ -7,6 +7,7 @@ import { Check, ChevronRight, CirclePause, GraduationCap, Plus, Target } from "l
 import type { Dog, DogPause, TrainingPlanItem } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { ZielAbschliessen } from "@/components/dogs/ziel-abschliessen";
+import { PruefungsreifeKarte } from "@/components/dogs/pruefungsreife-karte";
 import { ZieldatumHinweis } from "@/components/dogs/zieldatum-hinweis";
 import { pruefungsName } from "@/lib/pruefung";
 import { pausenZeile } from "@/lib/pausen";
@@ -123,6 +124,8 @@ function ZielKarte({
         )}
 
         <ZieldatumHinweis goal={goal} onChanged={onChanged} />
+
+        <PruefungsreifeKarte goal={goal} onChanged={onChanged} />
 
         {sichtbar.map((item) => (
           <button

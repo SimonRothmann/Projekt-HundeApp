@@ -307,6 +307,80 @@ export type Goal = {
   // Wegen der Pausen reicht die Zeit bis zum Zieldatum nicht mehr für den Plan:
   // Die Oberfläche fragt, ob das Zieldatum verschoben werden soll.
   zieldatumZuKnapp?: boolean;
+  // Prüfungsreife in Kurzform (Ampel und Zahlen) - nur bei laufenden Zielen mit
+  // Prüfungsordnung. Optional, weil der Lesecache noch Ziele ohne das Feld liefern kann.
+  pruefungsreife?: PruefungsreifeKurz | null;
+};
+
+// ---- Prüfungsreife ----
+
+// Zahlen, keine Namen - die API überträgt Enums numerisch (siehe
+// Application.Planning.Reifeampel). Die Beschriftungen stehen in lib/pruefungsreife.ts.
+export const REIFE_AMPEL = { Gruen: 0, Gelb: 1, Rot: 2 } as const;
+export type ReifeAmpel = (typeof REIFE_AMPEL)[keyof typeof REIFE_AMPEL];
+
+export const REIFE_ZUSTAND = { Offen: 0, Wackelig: 1, Sicher: 2 } as const;
+export type ReifeZustand = (typeof REIFE_ZUSTAND)[keyof typeof REIFE_ZUSTAND];
+
+export const REIFE_GRUND = { SeltenTrainiert: 0, SchwacheBewertung: 1, LangeHer: 2 } as const;
+export type ReifeGrund = (typeof REIFE_GRUND)[keyof typeof REIFE_GRUND];
+
+// Backend: PruefungsreifeKurzDto.
+export type PruefungsreifeKurz = {
+  ampel: ReifeAmpel;
+  offen: number;
+  wackelig: number;
+  sicher: number;
+  zieldatumVerschieben: boolean;
+};
+
+// Eine Übung in der Auswertung (Backend: PruefungsreifeUebungDto).
+export type PruefungsreifeUebung = {
+  exerciseId: string;
+  name: string;
+  nameEn?: string | null;
+  isMandatory: boolean;
+  maxPoints: number;
+  zustand: ReifeZustand;
+  /** Nur bei "wackelig". */
+  grund: ReifeGrund | null;
+  /** Kalendertage seit dem letzten Training; null, wenn nie trainiert. */
+  tageSeit: number | null;
+  /** Davon Pausentage (zählen für "sicher" nicht mit). */
+  pausenTage: number;
+  /** Durchschnittsbewertung 1-5; null, wenn nie trainiert. */
+  bewertung: number | null;
+};
+
+// Die Theoriezeile (Sachkunde) - nur für Besitzer:innen, nie für Trainer:innen
+// (Backend: TheorieZeileDto; der Server liefert sie dann gar nicht aus).
+export type PruefungsreifeTheorie = {
+  zustand: ReifeZustand;
+  /** Katalog, zu dem der Link führt. */
+  catalogCode: string;
+  gewertet: number;
+  bestanden: number;
+  inFehlerspeicher: number;
+};
+
+// Die ausführliche Auswertung (Backend: PruefungsreifeDto). Die Übungen stehen
+// sortiert: erst alles, was noch fehlt, nach Gewicht absteigend, dann das Sichere.
+export type Pruefungsreife = {
+  ampel: ReifeAmpel;
+  sicher: number;
+  wackelig: number;
+  offen: number;
+  /** Trainingswochen bis zum Zieldatum (aufgerundet, ohne Pausentage). */
+  wochen: number;
+  /** Kalendertage bis zum Zieldatum. */
+  tage: number;
+  /** Pausentage zwischen heute und dem Zieldatum. */
+  pausenTage: number;
+  zieldatumVerschieben: boolean;
+  /** Der Hund pausiert heute. */
+  pausiert: boolean;
+  uebungen: PruefungsreifeUebung[];
+  theorie: PruefungsreifeTheorie | null;
 };
 
 // Ein von mir betreuter Hund (TrainerAssignment) - für die Trainerübersicht.
@@ -1088,6 +1162,9 @@ export type QuizAnswerResult = {
 // Die gezogene Prüfung: Fragen OHNE Lösungen.
 export type QuizExam = {
   catalogCode: string;
+  // Zufällige Abgabe-Kennung vom Server: schließt die Doppelabgabe. Optional,
+  // weil eine vor dem Ausrollen gezogene Prüfung (sessionStorage) sie noch nicht trägt.
+  submissionId?: string;
   questionCount: number;
   maxPoints: number;
   passPoints: number;

@@ -113,5 +113,13 @@ public class QuizExamAttemptConfiguration : IEntityTypeConfiguration<QuizExamAtt
 
         // Trägt "meine letzten Ergebnisse in diesem Katalog".
         builder.HasIndex(a => new { a.UserId, a.CatalogId, a.SubmittedAt });
+
+        // Eine Abgabe-Kennung gilt je Nutzer nur einmal (Doppelabgabe, siehe
+        // QuizExamAttempt.SubmissionId). Der Filter lässt Zeilen ohne Kennung
+        // (Altbestand, alte Clients) und weich gelöschte außen vor - ein
+        // gelöschtes Ergebnis soll die Kennung nicht blockieren.
+        builder.HasIndex(a => new { a.UserId, a.SubmissionId })
+            .IsUnique()
+            .HasFilter("\"SubmissionId\" IS NOT NULL AND \"DeletedAt\" IS NULL");
     }
 }

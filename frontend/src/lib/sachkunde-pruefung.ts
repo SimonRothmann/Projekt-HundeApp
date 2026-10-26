@@ -83,9 +83,19 @@ export function zuordnungUmschalten(antwort: QuizExamAnswer, begriffId: string, 
 /**
  * Der Rumpf der Abgabe: eine Antwort je Frage in Reihenfolge der Prüfung,
  * unbeantwortete mit leerer Auswahl (der Server wertet sie mit 0 Punkten).
+ *
+ * Mit der Abgabe-Kennung aus dem Ziehen: Ein zweiter Versuch mit derselben
+ * Kennung (Doppeltipp, Wiederholung nach verlorener Antwort) legt kein zweites
+ * Ergebnis an. Sie steht im Stand (sessionStorage) und überlebt ein Neuladen; eine
+ * vor dem Ausrollen gezogene Prüfung hat keine - dann fehlt das Feld, und der
+ * Server nimmt die Abgabe wie bisher an.
  */
-export function alsAbgabe(exam: QuizExam, antworten: Antworten): { answers: QuizExamAnswer[] } {
+export function alsAbgabe(
+  exam: QuizExam,
+  antworten: Antworten,
+): { answers: QuizExamAnswer[]; submissionId?: string } {
   return {
+    ...(exam.submissionId ? { submissionId: exam.submissionId } : {}),
     answers: exam.questions.map((frage) => {
       const antwort = antworten[frage.id] ?? leereAntwort(frage.id);
       return {

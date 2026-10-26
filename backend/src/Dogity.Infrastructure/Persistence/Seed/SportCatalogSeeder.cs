@@ -111,7 +111,7 @@ public static partial class SportCatalogSeeder
     /// Die Ordnung gilt in jedem Land (<c>CountryCode</c> null), unabhängig vom Code der
     /// Sportart - für die FCI-Ordnungen einer Sportart, die auch nationale führt (Obedience).
     /// </param>
-    private sealed record RegulationSeed(string Name, string VersionLabel, DateOnly ValidFrom, RegulationExerciseSeed[] Exercises, string? Description = null, string? Land = null, string? SourceUrl = null, bool Ueberall = false);
+    private sealed record RegulationSeed(string Name, string VersionLabel, DateOnly ValidFrom, RegulationExerciseSeed[] Exercises, string? Description = null, string? Land = null, string? SourceUrl = null, bool Ueberall = false, string? TheoryCatalogCode = null);
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -267,7 +267,9 @@ public static partial class SportCatalogSeeder
             "Nach der Fußarbeit wird abgeleint: Sitz und Ablegen mit Herankommen werden in Freifolge gezeigt, danach wird der Hund für die Ablage unter Ablenkung wieder angeleint. Eigene Punkte gibt die Prüfungsordnung für die Freifolge nicht - sie steht hier als trainierbare Übung ohne Punktwertung.\n" +
             "Teil B (öffentlicher Verkehrsraum): keine Einzelpunkte, der Leistungsrichter beurteilt den Gesamteindruck.\n" +
             "Voraussetzungen: Mindestalter des Hundes 15 Monate, Sachkundenachweis des Hundeführers, Identitätsnachweis (Chip/Tätowierung).\n" +
-            "Teil B wird nur geprüft, wenn Teil A bestanden wurde."));
+            "Teil B wird nur geprüft, wenn Teil A bestanden wurde.",
+        // Der Sachkundenachweis gehört zum Ablauf dieser Prüfung (Katalog des swhv).
+        TheoryCatalogCode: SachkundeSeeder.ErwachsenenKatalogCode));
 
         // Echte FCI-IBGH-Pflichtübungsliste (UTI-REG-IGP-de-2025, S. 26). Die
         // ursprüngliche, frei erfundene "2024"-Version (Übungen wie
@@ -1845,6 +1847,12 @@ public static partial class SportCatalogSeeder
         // über die Quellenpflege und soll sie nicht bei jedem Start verlieren.
         if (seed.SourceUrl is not null && regulation.SourceUrl is null)
             regulation.SourceUrl = seed.SourceUrl;
+
+        // Der Theorie-Katalog ist eine Festlegung des Seeds (siehe
+        // Regulation.TheoryCatalogCode), kein Feld der Admin-Pflege: Er wird
+        // gesetzt und nachgezogen, aber nur dort, wo der Seed einen nennt.
+        if (seed.TheoryCatalogCode is not null && regulation.TheoryCatalogCode != seed.TheoryCatalogCode)
+            regulation.TheoryCatalogCode = seed.TheoryCatalogCode;
 
         var version = await db.RegulationVersions.IgnoreQueryFilters()
             .FirstOrDefaultAsync(v => v.RegulationId == regulation.Id && v.VersionLabel == seed.VersionLabel);

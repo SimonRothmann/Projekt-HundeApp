@@ -62,9 +62,16 @@ public interface ISachkundeService
     /// gesetzt) wird das Ergebnis gespeichert, und falsch beantwortete Fragen
     /// kommen in den Fehlerspeicher; richtig beantwortete ändern den Lernstand
     /// nicht. Anonym wird nur gewertet.
+    ///
+    /// <paramref name="submissionId"/> ist die Abgabe-Kennung aus
+    /// <see cref="StartExamAsync"/>. Kommt sie für denselben Nutzer ein zweites
+    /// Mal, bleibt es bei dem einen gespeicherten Ergebnis und es wird dieses
+    /// zurückgegeben; der Fehlerspeicher bleibt unberührt. Ohne Kennung (alte
+    /// Clients) wird wie bisher angenommen.
     /// </summary>
     Task<Result<QuizExamResultDto>> SubmitExamAsync(
-        Guid? userId, string catalogCode, IReadOnlyList<QuizExamAnswerDto> answers, CancellationToken ct = default);
+        Guid? userId, string catalogCode, IReadOnlyList<QuizExamAnswerDto> answers,
+        Guid? submissionId = null, CancellationToken ct = default);
 
     /// <summary>Die letzten Ergebnisse des Nutzers in diesem Katalog.</summary>
     Task<Result<QuizExamHistoryDto>> GetExamHistoryAsync(Guid userId, string catalogCode, CancellationToken ct = default);

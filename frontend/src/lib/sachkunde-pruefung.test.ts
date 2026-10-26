@@ -131,6 +131,11 @@ describe("alsAbgabe", () => {
     expect(abgabe.answers[1]).toEqual({ questionId: "f2", selectedOptionIds: [], assignments: {} });
     expect(abgabe.answers[2].assignments).toEqual({ t1: "E" });
   });
+
+  it("schickt die Abgabe-Kennung der Prüfung mit; ohne Kennung (alte Prüfung) fehlt das Feld", () => {
+    expect(alsAbgabe({ ...EXAM, submissionId: "k-1" }, {}).submissionId).toBe("k-1");
+    expect("submissionId" in alsAbgabe({ ...EXAM, submissionId: undefined }, {})).toBe(false);
+  });
 });
 
 describe("dauerText", () => {

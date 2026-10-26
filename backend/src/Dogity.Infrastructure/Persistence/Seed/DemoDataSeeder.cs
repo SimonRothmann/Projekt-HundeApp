@@ -31,6 +31,9 @@ public static class DemoDataSeeder
 {
     internal const string DemoPassword = "Demo1234!";
 
+    /// <summary>Die Notiz von Bellos BH-Ziel - zugleich das Erkennungszeichen für das Szenario "Prüfungsreife" (DemoSzenarienSeeder).</summary>
+    public const string NotizBelloBh = "BH-Prüfung im Hundesportverein.";
+
     public static async Task SeedAsync(IServiceProvider services)
     {
         var db = services.GetRequiredService<ApplicationDbContext>();
@@ -157,7 +160,9 @@ public static class DemoDataSeeder
         }
         db.GpsTracks.Add(track);
 
-        var bhRegulation = await db.Regulations.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.SportId == bh.Id);
+        // Die FCI-BH/VT "BH" (nicht die ÖKV-Ordnung derselben Sportart): ohne Namen entschied die
+        // Reihenfolge der Datenbank, welche Ordnung Bello bekam.
+        var bhRegulation = await db.Regulations.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.SportId == bh.Id && r.Name == "BH");
 
         var goal = new Goal
         {
@@ -166,7 +171,7 @@ public static class DemoDataSeeder
             RegulationId = bhRegulation?.Id,
             TargetDate = Vereinszeit.Heute().AddMonths(2),
             Status = GoalStatus.Active,
-            Notes = "BH-Prüfung im Hundesportverein."
+            Notes = NotizBelloBh
         };
         db.Goals.Add(goal);
 

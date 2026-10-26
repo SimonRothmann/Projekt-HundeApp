@@ -6,6 +6,7 @@ import type { Goal, NextStage, TrainingPlanItem } from "@/lib/types";
 import { computeCurrentWeek, groupByWeek, istPausenwoche } from "@/lib/trainingsplan";
 import { pruefungsName, restzeitText, tageBisPruefung } from "@/lib/pruefung";
 import { GoalManageSheet } from "@/components/dogs/goal-manage-sheet";
+import { PruefungsreifeKarte } from "@/components/dogs/pruefungsreife-karte";
 import { PlanWeekList } from "@/components/dogs/plan-week-list";
 import { ZieldatumHinweis } from "@/components/dogs/zieldatum-hinweis";
 import { Button } from "@/components/ui/button";
@@ -104,6 +105,9 @@ export function GoalPlanCard({
 
         {/* Nur mit einer Pause, die die Zeit bis zur Prüfung zu knapp macht. */}
         <ZieldatumHinweis goal={goal} onChanged={onChanged} />
+
+        {/* Ampel und Übungsstand; Trainer:innen sehen sie ohne Theoriezeile (der Server liefert sie nicht aus). */}
+        <PruefungsreifeKarte goal={goal} onChanged={onChanged} />
 
         {goal.planManagedByTrainer && (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-muted px-3 py-2 text-xs">

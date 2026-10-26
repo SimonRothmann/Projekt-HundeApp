@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Domain.Learning;
@@ -15,6 +16,9 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
     /// nächsten Tag wieder, Fach 5 nach drei Wochen.
     /// </summary>
     private static readonly int[] IntervalDaysByBox = [1, 2, 4, 9, 21];
+
+    /// <summary>SQLSTATE "unique_violation" (Postgres).</summary>
+    private const string EindeutigerIndexVerletzt = "23505";
 
     /// <summary>Ab diesem Fach gilt eine Frage als gekonnt.</summary>
     private const int MasteredBox = 4;
@@ -310,6 +314,7 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
 
         return Result<QuizExamDto>.Success(new QuizExamDto(
             katalog.Code,
+            Guid.NewGuid(),
             auswahl.Count,
             hoechst,
             SachkundePruefung.Bestehensgrenze(hoechst),
@@ -318,7 +323,8 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
     }
 
     public async Task<Result<QuizExamResultDto>> SubmitExamAsync(
-        Guid? userId, string catalogCode, IReadOnlyList<QuizExamAnswerDto> answers, CancellationToken ct = default)
+        Guid? userId, string catalogCode, IReadOnlyList<QuizExamAnswerDto> answers,
+        Guid? submissionId = null, CancellationToken ct = default)
     {
         var katalog = await PruefungsKatalogAsync(catalogCode, ct);
         if (katalog.Fehler is not null)
@@ -379,12 +385,22 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
         var gespeichert = false;
         if (userId is { } nutzer)
         {
+            // Doppelabgabe (Doppeltipp, Wiederholung nach verlorener Antwort):
+            // Dieselbe Kennung ist schon gespeichert - dann bleibt es bei diesem
+            // Ergebnis, und der Fehlerspeicher wird nicht ein zweites Mal
+            // angefasst. Die Fragen werden trotzdem gewertet, weil die Antwort die
+            // Lösung je Frage braucht, die das gespeicherte Ergebnis nicht trägt.
+            if (submissionId is { } kennung
+                && await BereitsAbgegebenAsync(nutzer, kennung, ct) is { } vorhanden)
+                return Result<QuizExamResultDto>.Success(ErgebnisDto(vorhanden, fragenErgebnisse.Select(f => f.Ergebnis).ToList()));
+
             var jetzt = clock.GetUtcNow();
 
-            db.QuizExamAttempts.Add(new QuizExamAttempt
+            var versuch = new QuizExamAttempt
             {
                 UserId = nutzer,
                 CatalogId = katalog.Id,
+                SubmissionId = submissionId,
                 SubmittedAt = jetzt,
                 Points = punkte,
                 MaxPoints = hoechst,
@@ -392,7 +408,8 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
                 QuestionCount = fragenErgebnisse.Count,
                 CorrectCount = richtig,
                 SectionResultsJson = SachkundePruefung.SchreibeAbschnitte(abschnitte)
-            });
+            };
+            db.QuizExamAttempts.Add(versuch);
 
             // Fehlerspeicher: was nicht voll richtig war (auch Unbeantwortetes -
             // gelernt werden muss es ja trotzdem), wirkt wie eine falsche Antwort
@@ -414,7 +431,21 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
                 ApplyOutcome(mastery, correct: false, jetzt);
             }
 
-            await db.SaveChangesAsync(ct);
+            try
+            {
+                await db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException ex) when (submissionId is not null
+                && ex.InnerException is DbException { SqlState: EindeutigerIndexVerletzt })
+            {
+                // Zwei Abgaben mit derselben Kennung gleichzeitig: Die andere war
+                // schneller. Das war eine Transaktion - von dieser ist nichts
+                // (auch kein Fehlerspeicher) gespeichert. Kein Fehler: das Ergebnis
+                // der anderen ist das eine gültige.
+                var schnellere = await BereitsAbgegebenAsync(nutzer, submissionId.Value, ct);
+                if (schnellere is null) throw;
+                return Result<QuizExamResultDto>.Success(ErgebnisDto(schnellere, fragenErgebnisse.Select(f => f.Ergebnis).ToList()));
+            }
             gespeichert = true;
         }
 
@@ -431,6 +462,32 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
             abschnitte,
             fragenErgebnisse.Select(f => f.Ergebnis).ToList()));
     }
+
+    /// <summary>Das schon gespeicherte Ergebnis zu dieser Abgabe-Kennung, falls es eines gibt.</summary>
+    private Task<QuizExamAttempt?> BereitsAbgegebenAsync(Guid nutzer, Guid kennung, CancellationToken ct) =>
+        db.QuizExamAttempts
+            .Where(a => a.UserId == nutzer && a.SubmissionId == kennung)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ct);
+
+    /// <summary>
+    /// Die Antwort für ein schon gespeichertes Ergebnis: Punkte, Bestehen und
+    /// Komplexe aus der Speicherung (die gilt, auch wenn die Wiederholung
+    /// abweichende Antworten trug), die Lösung je Frage aus der erneuten Wertung.
+    /// </summary>
+    private static QuizExamResultDto ErgebnisDto(QuizExamAttempt gespeichert, IReadOnlyList<QuizExamQuestionResultDto> fragen) =>
+        new(
+            gespeichert.Points,
+            gespeichert.MaxPoints,
+            SachkundePruefung.Bestehensgrenze(gespeichert.MaxPoints),
+            SachkundePruefung.BestehensProzent,
+            SachkundePruefung.Prozent(gespeichert.Points, gespeichert.MaxPoints),
+            gespeichert.Passed,
+            gespeichert.QuestionCount,
+            gespeichert.CorrectCount,
+            true,
+            SachkundePruefung.LeseAbschnitte(gespeichert.SectionResultsJson),
+            fragen);
 
     public async Task<Result<QuizExamHistoryDto>> GetExamHistoryAsync(
         Guid userId, string catalogCode, CancellationToken ct = default)

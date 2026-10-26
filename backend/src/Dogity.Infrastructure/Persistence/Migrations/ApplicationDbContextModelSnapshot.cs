@@ -1064,6 +1064,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("SubmissionId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset>("SubmittedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1076,6 +1079,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CatalogId");
+
+                    b.HasIndex("UserId", "SubmissionId")
+                        .IsUnique()
+                        .HasFilter("\"SubmissionId\" IS NOT NULL AND \"DeletedAt\" IS NULL");
 
                     b.HasIndex("UserId", "CatalogId", "SubmittedAt");
 
@@ -1888,6 +1895,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("SportId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("TheoryCatalogCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

@@ -69,7 +69,7 @@ public class SachkundeController(ISachkundeService sachkunde) : ApiControllerBas
     [EnableRateLimiting("pruefung")]
     public async Task<ActionResult<QuizExamResultDto>> SubmitExam(
         string code, SubmitExamRequest request, CancellationToken ct) =>
-        FromResult(await sachkunde.SubmitExamAsync(OptionalUserId, code, request.Answers ?? [], ct));
+        FromResult(await sachkunde.SubmitExamAsync(OptionalUserId, code, request.Answers ?? [], request.SubmissionId, ct));
 
     /// <summary>Die letzten Ergebnisse der Übungsprüfung des angemeldeten Nutzers.</summary>
     [HttpGet("catalogs/{code}/exams")]
@@ -95,4 +95,5 @@ public record AnswerQuestionRequest(
     IReadOnlyDictionary<Guid, string>? Assignments);
 
 /// <param name="Answers">Eine Antwort je Frage der Prüfung; leere Auswahl = unbeantwortet.</param>
-public record SubmitExamRequest(IReadOnlyList<QuizExamAnswerDto>? Answers);
+/// <param name="SubmissionId">Die Abgabe-Kennung aus dem Ziehen; fehlt bei alten Clients (dann wie bisher).</param>
+public record SubmitExamRequest(IReadOnlyList<QuizExamAnswerDto>? Answers, Guid? SubmissionId = null);

@@ -106,7 +106,13 @@ public record GoalDto(
     /// nicht mehr: Die Oberfläche fragt, ob das Zieldatum verschoben werden soll.
     /// Verschoben wird nie von selbst.
     /// </summary>
-    bool ZieldatumZuKnapp = false);
+    bool ZieldatumZuKnapp = false,
+    /// <summary>
+    /// Prüfungsreife in Kurzform (Ampel und Zahlen) für die Zielkarten - null bei
+    /// Zielen ohne Prüfungsordnung, individuellen und nicht mehr laufenden Zielen.
+    /// Die Einzelheiten liefert GET /api/goals/{id}/readiness.
+    /// </summary>
+    PruefungsreifeKurzDto? Pruefungsreife = null);
 
 /// <summary>Ein Pausenzeitraum, beide Grenzen einschließlich; ohne Ende = bis auf Weiteres.</summary>
 public record PausenZeitraumDto(DateOnly Start, DateOnly? End);

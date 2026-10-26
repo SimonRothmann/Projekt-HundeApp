@@ -33,6 +33,9 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// </summary>
 public static class SachkundeSeeder
 {
+    /// <summary>Code der Erwachsenenfassung - darauf verweist die BH/VT-Ordnung (<c>Regulation.TheoryCatalogCode</c>).</summary>
+    public const string ErwachsenenKatalogCode = "SWHV-BHVT-ERW";
+
     private const string ResourceName = "Dogity.Infrastructure.Persistence.Seed.Data.sachkunde-swhv.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()

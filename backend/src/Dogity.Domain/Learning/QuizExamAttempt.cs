@@ -22,6 +22,17 @@ public class QuizExamAttempt : Entity
 
     public DateTimeOffset SubmittedAt { get; set; }
 
+    /// <summary>
+    /// Die Abgabe-Kennung, die der Server beim Ziehen der Prüfung vergibt
+    /// (Guid, zufällig). Sie schließt die Doppelabgabe: kommt dieselbe Kennung
+    /// desselben Nutzers noch einmal (Doppeltipp, Wiederholung nach einer
+    /// verlorenen Antwort), liefert der Server dieses Ergebnis zurück, statt ein
+    /// zweites anzulegen. Ein rein technisches Merkmal ohne Personenbezug für
+    /// sich - null bei Ergebnissen vor dieser Spalte und bei Abgaben alter
+    /// Clients, die keine Kennung mitschicken.
+    /// </summary>
+    public Guid? SubmissionId { get; set; }
+
     public int Points { get; set; }
 
     /// <summary>Was bei dieser Zusammenstellung höchstens zu erreichen war.</summary>

@@ -300,13 +300,17 @@ Reine Funktion `SachkundePruefung.WaehleFragen` (Zufall als Parameter):
   bestanden“ (`passedOfLastFive`/`lastFiveCount`) - die Grundlage für das spätere Paket
   „Prüfungsreife“.
 
-**Bekanntes Risiko: keine Idempotenz der Abgabe.** Wird derselbe POST wiederholt (Netzfehler mit
-Wiederholung, Doppeltipp vor dem Sperren des Knopfes), entstehen zwei identische Ergebnisse mit
-verschiedenen Zeitpunkten und verfälschen Verlauf und Kurzbilanz „x von 5 bestanden“. Parallele
-Abgaben, die dieselbe Frage neu in den Fehlerspeicher legen, können am eindeutigen Index
-(Nutzer, Frage) scheitern (gleiches Muster wie im Lernmodus). **Vor dem Paket „Prüfungsreife“**, das
-die Bilanz verwendet, klären: Abgabe-Kennung aus dem Start oder zeitliches Zusammenfassen gleicher
-Ergebnisse.
+**Doppelabgabe geschlossen (Fassung 0.40, Paket PR1).** Das Ziehen (`POST …/exam`) liefert zusätzlich eine
+zufällige **Abgabe-Kennung** (`submissionId`, Guid, vom Server erzeugt, nicht gespeichert); die Abgabe schickt sie
+mit (im Browser mit dem Stand der laufenden Prüfung im `sessionStorage`, sie überlebt also ein Neuladen).
+Angemeldet wird sie am Ergebnis gespeichert (`quiz_exam_attempts.SubmissionId`, eindeutiger Index
+`(UserId, SubmissionId)` mit Filter „Kennung gesetzt und nicht weich gelöscht"). Kommt dieselbe Kennung desselben
+Nutzers noch einmal, liefert der Server das **gespeicherte** Ergebnis (Punkte, Bestehen, Komplexe aus der Speicherung;
+die Lösung je Frage aus der erneuten Wertung) und fasst den Fehlerspeicher nicht erneut an. Zwei gleichzeitige
+Abgaben: Die Unique-Verletzung (SQLSTATE 23505) wird abgefangen, die Transaktion der langsameren hat nichts
+gespeichert, sie liefert das Ergebnis der schnelleren - kein 500. Fehlt die Kennung (alte Clients während des
+Ausrollens, vor dem Ausrollen gezogene Prüfung), wird wie bisher angenommen. Anonym ändert sich nichts. Die Kennung
+ist ein technisches Merkmal am vorhandenen Ergebnis, keine neue Datenart (siehe `docs/VERARBEITUNGSVERZEICHNIS.md`).
 
 ### Gespeicherte Daten
 
@@ -355,12 +359,13 @@ damit der Einstieg erscheint.
   In der vorliegenden Fassung hat **jede** Frage genau eine markierte Lösung. Entweder ist die Aussage
   veraltet, oder der Lösungsbogen bildet es nicht ab. Das Datenmodell kann beides (`MultipleChoice`),
   die Oberfläche und die Wertung der Übungsprüfung auch.
-- **Prüfungsreife.** Auf dem Verlauf (`GET …/exams`, Kurzbilanz der letzten 5) lässt sich eine Aussage
-  „bereit für die Prüfung?“ aufbauen; sie ist noch nicht gebaut.
-- **Anbindung ans Ziel.** Naheliegender nächster Schritt: Wer ein Ziel „BH/VT"
-  anlegt, sieht den Lernstand am Ziel („Sachkunde 62 % · 14 Fragen im
-  Fehlerspeicher"). Setzt voraus, dass die Zulassungsvoraussetzungen strukturiert
-  am Katalog stehen statt als Fließtext.
+- ~~**Prüfungsreife** / **Anbindung ans Ziel**~~ erledigt (Fassung 0.40, Paket PR1, siehe
+  `docs/SMART_TRAINING_PLAN.md` „Prüfungsreife"): Die Prüfungsordnung trägt das Feld
+  `Regulation.TheoryCatalogCode` (gesetzt nur für die FCI-BH/VT, deren Ablauf den Sachkundenachweis enthält; nicht für
+  Ordnungen, die eine bestandene BH/VT nur als Zulassung verlangen, und nicht für die österreichische und die
+  Schweizer BH - dort richtet sich der Nachweis nach Landesrecht bzw. eigener Ordnung, und unser Katalog ist der des
+  swhv). Am Ziel erscheint eine Theoriezeile (sicher = letzte 2 Übungsprüfungen bestanden, wackelig = abgelegt, aber
+  nicht beide bestanden, offen = keine), nur für die ansehende Person selbst, und nur, wenn sie die Sachkunde nutzen kann (Land Deutschland, Modul nicht abgeschaltet).
 - **Lernstand für Trainer.** Vor einem Prüfungstermin ist „wer ist theoretisch
   so weit?" die Frage, die tatsächlich gestellt wird. Nur mit Freigabe durch die
   Mitglieder.

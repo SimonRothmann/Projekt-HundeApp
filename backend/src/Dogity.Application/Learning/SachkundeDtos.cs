@@ -119,8 +119,14 @@ public record QuizSessionDto(
 /// Schlüssel. Wer mehr als einen Blick braucht, sieht sie sich auf der
 /// Katalogseite an; die Prüfung selbst soll nichts verraten.
 /// </summary>
+/// <param name="SubmissionId">
+/// Zufällige Abgabe-Kennung, vom Server erzeugt und nicht gespeichert. Die
+/// Abgabe schickt sie mit; angemeldet schließt sie die Doppelabgabe (dieselbe
+/// Kennung noch einmal liefert das schon gespeicherte Ergebnis).
+/// </param>
 public record QuizExamDto(
     string CatalogCode,
+    Guid SubmissionId,
     int QuestionCount,
     int MaxPoints,
     int PassPoints,

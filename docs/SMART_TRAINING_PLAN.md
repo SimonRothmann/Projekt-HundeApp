@@ -120,3 +120,61 @@ wird nie von selbst.
 Training eintragen bleibt während einer Pause möglich (leichtes Training, Physio); die Oberfläche weist nur
 dezent darauf hin.
 
+## 13. Prüfungsreife (je Ziel)
+
+Eingeführt mit Paket PR1 (2026-10-26, Fassung 0.40). Auftrag des Betreibers (2026-10-23): „pro Ziel aus vorhandenen
+Daten ableiten - je Übung sicher/wackelig/offen, Gesamtampel, was bis zum Prüfungstermin noch fehlt.“ Es ist eine
+**Faustregel aus dem Tagebuch, kein Urteil der Richter:in** - die Oberfläche sagt das (aufklappbares „Wie wird das
+berechnet?“). Die Prüfungsreife wird **berechnet, nicht gespeichert** (keine Tabelle): reine Regel in
+`Application/Planning/Pruefungsreife.cs`, Laden in `PruefungsreifeLader.cs`.
+
+**Je Übung der Prüfungsordnung** (neueste Fassung der Ordnung) aus der Mastery des Hundes (siehe Abschnitt 5):
+
+| Zustand | Bedingung |
+| --- | --- |
+| offen | nie trainiert (keine Mastery-Zeile oder `SessionCount` 0) |
+| sicher | Box ≥ 4 **und** gewichteter Bewertungsschnitt ≥ 4,0 **und** zuletzt vor höchstens 28 Tagen trainiert - Pausentage zählen nicht mit |
+| wackelig | alles dazwischen; Grund als Kennung: `SchwacheBewertung`, `SeltenTrainiert` (Box zu niedrig), `LangeHer` (früher sicher, eingerostet) |
+
+Schwellen und Begründung (Konstanten in `Pruefungsreife`): Box 4 heißt netto drei Stufen (jeder
+Start liegt in Box 1, die Box steigt bei Erfolg und Bewertung 4/5 um eins und sinkt bei Misserfolg oder Bewertung ≤ 2
+um eins; Box 4 sind also drei gute Einheiten mehr als schwache, nicht drei am Stück) - ein guter Tag macht nichts sicher. 4,0 ist
+im Bewertungsschema „gut“; die Box allein würde eine mittelmäßig laufende Übung noch sicher nennen. 28 Tage ist das
+längste Wiedervorlage-Intervall des Planers (Box 5): Wer eine Übung länger ruhen lässt, als der Plan sie je ruhen
+lässt, hat sie nicht mehr sicher. Pausentage werden abgezogen (wie bei der Planwoche, Abschnitt 12): Wer verletzt war,
+verliert seine sicheren Übungen nicht. Der Schnitt wird auf eine Stelle **abgerundet** angezeigt (3,96 steht nie als
+4,0 neben „wackelig“).
+
+**Gewicht:** Höchstpunkte der Übung; Ordnungen ganz ohne Punkte (Agility, Hoopers, Rally Obedience) zählen jede Übung
+gleich; eine Übung ohne Punkte in einer Ordnung mit Punkten (BH Teil B, Freifolge) bekommt das Gewicht der kleinsten
+bewerteten, damit sie nicht unsichtbar wird. **Wahlübungen** (`IsMandatory = false`) zählen mit halbem Gewicht: Im
+Katalog heißt das „freiwillig“ bzw. „kann im Parcours vorkommen“ (ÖKV-Freifolge, Mehrschildübung) - man sollte sie
+können, die Prüfung hängt nicht an ihnen; ganz weglassen wäre falsch, sie sollen unter „was noch fehlt“ stehen. Sie
+lösen nie „rot“ durch Offenheit aus.
+
+**Gesamtampel:** grün = keine Pflichtübung offen und ≥ 80 % des Gewichts sicher (und, falls die Ordnung Theorie
+hat und die Person sie sieht, die Theorie sicher); rot = eine Pflichtübung offen **oder** < 50 % sicher; sonst gelb.
+Verglichen wird mit ganzen Zahlen (79/80 %, 49/50 % exakt an der Kante). Ordnungen ohne Übungen, eigene Ziele
+(`IsCustom`), Ziele ohne Ordnung und erreichte oder beendete Ziele haben keine Prüfungsreife (`null`/404).
+
+**Zeit:** Trainingswochen bis zum Zieldatum (aufgerundet, ohne bekannte Pausentage; eine offene Pause gilt bis
+heute). Rot und höchstens 3 Wochen (`VerschiebenBisWochen`), Prüfungstag noch nicht erreicht: der vorhandene Hinweis
+„Zieldatum verschieben?“ aus Abschnitt 12 (`ZieldatumHinweis` mit `anlass="pruefungsreife"`, dasselbe Fenster). Bei
+aktiver Pause zeigt die Ampel trotzdem, dazu ein Satz zur Pause.
+
+**Theorie** (nur BH/VT, `Regulation.TheoryCatalogCode`, siehe docs/SACHKUNDE.md): sicher = die letzten 2
+Übungsprüfungen bestanden, wackelig = mindestens eine abgelegt, aber nicht beide letzten bestanden, offen = keine.
+Aus Erwachsenen- und Jugendkatalog (gleicher Code bis auf die Endung). Die Theorie sind Lerndaten der **Person**: Der
+Server liefert sie nur, wer den Hund besitzt oder mitbesitzt (und dann die **eigenen** Ergebnisse); betreuende
+Trainer:innen bekommen weder die Zeile noch eine Ampel, die von ihr abhängt.
+Auch wer die Sachkunde nicht nutzen kann (Geltungsbereich nicht Deutschland, Modul abgeschaltet), bekommt keine Zeile
+und keine Theorieforderung: Er könnte nie eine Übungsprüfung ablegen, seine Ampel bliebe sonst dauerhaft höchstens gelb
+(dieselbe Regel wie `moduleEnabled` im Frontend).
+
+**API:** `GoalDto.Pruefungsreife` (Ampel, Zahlen, `ZieldatumVerschieben`) für die Zielkarten - alle Ziele eines
+Aufrufs werden gesammelt geladen (Ordnungsfassungen, Übungen, Mastery aller Hunde, Theorie je Katalog), kein N+1.
+`GET /api/goals/{id}/readiness` liefert die Einzelheiten mit den Rechten des Ziels (Besitzer:innen, Mitbesitzer:innen,
+betreuende Trainer:innen; Fremde 404). Oberfläche: Chip „Prüfungsreife: gelb · 2 offen, 3 wackelig“ auf der Zielkarte
+der Startseite und im Plan der Hundeseite (dort sehen sie auch Trainer:innen); Tipp öffnet das Fenster
+(`PruefungsreifeKarte`).
+

@@ -61,6 +61,33 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.40",
+    datum: "2026-10-26",
+    titel: uebersetzbar("Prüfungsreife: Wie weit seid ihr?"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Zu jedem Prüfungsziel zeigt Dogity jetzt die Prüfungsreife: eine Ampel (grün, gelb, rot) und für jede Übung der Prüfungsordnung, ob sie sicher sitzt, noch wackelt oder noch offen ist. Sie steht als kleine Zeile auf der Startseite in der Zielkarte und im Trainingsplan des Hundes; ein Tipp darauf zeigt dir, was bis zur Prüfung noch fehlt, mit dem Grund je Übung, etwa „zuletzt vor 35 Tagen“ oder „noch nie trainiert“."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Gerechnet wird aus eurem Trainingstagebuch: Eine Übung gilt als sicher, wenn sie wiederholt gut gelaufen ist, ohne zwischendurch abzurutschen, im Schnitt gut bewertet wurde und noch nicht länger als vier Wochen her ist. Tage, an denen dein Hund pausiert hat, zählen dabei nicht mit. Das ist eine Faustregel und kein Urteil der Richter:in – unter „Wie wird das berechnet?“ steht, wie genau."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Bei der Begleithundeprüfung (BH/VT) gehört die Theorie zur Ampel: Sie ist sicher, wenn du die letzten beiden Übungsprüfungen der Sachkunde bestanden hast. Diese Zeile siehst nur du – deine Trainer:in sieht sie nicht."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Wer Hunde betreut, sieht die Ampel und die Übungsliste auch bei den betreuten Hunden. Steht die Ampel auf rot und bleiben nur noch wenige Wochen, fragt Dogity, ob das Zieldatum verschoben werden soll – verschoben wird nie von selbst."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Wird eine Übungsprüfung der Sachkunde zweimal abgeschickt, etwa durch einen Doppeltipp oder eine verlorene Antwort bei schlechtem Empfang, wird sie nur noch einmal gespeichert."),
+      },
+    ],
+  },
+  {
     version: "0.39",
     datum: "2026-10-23",
     titel: uebersetzbar("Sachkunde: Übungsprüfung"),
