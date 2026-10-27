@@ -78,6 +78,7 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
 
 Stand master nach diesem Eintrag. Prod = 0.40 (51979f9, verifiziert). Test = 0.40; **0.41 Gesundheit (09da3dd) ist fertig, aber noch nicht auf Test deployt.**
 
+- **Notizen des KI-Assistenten:** `docs/claude-notizen/` (Arbeitsgedächtnis, Stand 2026-10-27; README dort erklärt das Wiedereinspielen).
 - **Arbeitsweise:** `CLAUDE.md` (vier Grundsätze) + `AI_RULES.md`. Der Betreiber deployt selbst (Test, dann Prod), danach wird lesend geprüft (`ssh dogity`, Postgres im Container, `https://api-test.dogity.net` / `https://api.dogity.net`). Auf Test nur über die Demo-Knöpfe anmelden, nichts eintippen; Testdaten wieder entfernen. Mobile 375 px ohne horizontalen Scroll, zusätzlich iOS-Simulator-Safari. Entwicklung nur außerhalb der Claude-Stoßzeit (werktags 05-11 Uhr Pazifikzeit), außer der Betreiber sagt ausdrücklich anders.
 - **Umsetzen per Sub-Worker:** Workflow-Skript liegt jetzt im Repo unter `scripts/claude/dogity-paket-umsetzen.js` (args: `{paket, spec}` - Spezifikation als Datei schreiben und den Pfad übergeben; Sonnet setzt um, unabhängige Prüfung, Nachbesserung, kein Commit). Prüflauf nach den Grundsätzen: `scripts/claude/dogity-grundsaetze-pruefung.js`. Sub-Worker immer mit `model: 'sonnet'` (sonst erben sie Opus). Danach selbst prüfen (Pflicht-Prüfbefehle), committen, pushen.
 - **Nach dem Test-Deploy von 0.41 prüfen:** Migration AddDogHealth; Bello (Demo "Mitglied 1"): Reiter Gesundheit mit Tollwut bald fällig, Entwurmung überfällig, Tierarzttermin übermorgen; Hinweis auf der Startseite; Bellos BH-Ziel wieder da mit gelber Prüfungsreife und Theoriezeile; Trainer-Konto sieht keine Gesundheitsdaten (404); Formular (2 Datums- + 1 Zeitfeld) im iOS-Simulator-Safari bei 375 px.
@@ -93,13 +94,13 @@ Stand master nach diesem Eintrag. Prod = 0.40 (51979f9, verifiziert). Test = 0.4
 
 Bericht mit Belegen, Gegenprüfung, Vorschlag und Risiko je Befund: [docs/PRUEFUNG_GRUNDSAETZE.md](docs/PRUEFUNG_GRUNDSAETZE.md). Befunde von Sonnet-Prüfern, vor dem Beheben einzeln nachprüfen (nur der Open-Redirect ist vom Chef-Entwickler bestätigt). Empfohlene Pakete in dieser Reihenfolge:
 
-1. **Sicherheit sofort:** Open-Redirect im Zurück-Knopf (klein).
+1. ~~**Sicherheit sofort:** Open-Redirect im Zurück-Knopf~~ - erledigt 2026-10-27.
 2. **Rechte:** Betreiber entscheidet, ob betreuende Trainer:innen Trainings der Besitzer:innen löschen/Bewertungen ändern dürfen; Hunde-Zugriffsregel zentralisieren; Tests für Auth/Sperre/Profil/Admin; ClubRoleBackfill + "letzte Verwaltung" bei Kontolöschung.
 3. **Doppelte Regeln bündeln** (Gültige Fassung, Trainer-der-Gruppe, Fährten-Ampel, gespiegelte Server-Regeln im Frontend), Datumsanzeige (new Date("yyyy-MM-dd")) reparieren.
 4. **Doku und Aufräumen** (DEPLOYMENT/DATABASE/ARCHITECTURE.md, toter Code, veraltete Kommentare).
 
 - [ ] **[hoch]** Zugangs- und Schutzregeln in AuthController, KontoStatus, ProfileController und AdminController haben keinen Test - Zielgerichtet, Aufwand mittel, Bereich . Ort: `backend/src/Dogity.Api/Controllers/AuthController.cs:106-182,209-225`
-- [ ] **[hoch]** Schutzregel gegen Open-Redirect (?from=) steht ungetestet in einer Komponente und lässt sich mit Tab/Zeilenumbruch umgehen - Zielgerichtet, Aufwand klein, Bereich . Ort: `frontend/src/components/nav/subpage-back-button.tsx:40-43,56`
+- [x] **[hoch]** (behoben 2026-10-27: `frontend/src/lib/interner-pfad.ts` löst den Wert wie der Browser auf und prüft die Herkunft, mit Test) Schutzregel gegen Open-Redirect (?from=) steht ungetestet in einer Komponente und lässt sich mit Tab/Zeilenumbruch umgehen - Zielgerichtet, Aufwand klein, Bereich . Ort: `frontend/src/components/nav/subpage-back-button.tsx:40-43,56`
 - [ ] **[mittel]** Zugriffsregel auf Hunde steht an über zehn Stellen einzeln, zwei Fassungen weichen schon ab - Einfachheit, Aufwand mittel, Bereich . Ort: `Dogity.Application/Abstractions/DogAccessQueries.cs:15-21`
 - [ ] **[mittel]** Regel 'ein Tag, eine Trainingseinheit' zweimal geschrieben, mit unterschiedlicher Auswahl bei mehreren Einheiten - Einfachheit, Aufwand klein, Bereich . Ort: `Dogity.Application/Training/TrainingService.cs:126-127 (Mehrfachfall :129-138)`
 - [ ] **[mittel]** 'Gültige Fassung einer Prüfungsordnung' ist sechsmal einzeln formuliert, ohne Zukunfts- und Gleichstandsregel - Einfachheit, Aufwand mittel, Bereich . Ort: `Planning/PruefungsreifeLader.cs:47-56`
