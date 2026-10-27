@@ -104,7 +104,7 @@ export function standardTitel(art: GesundheitsArt): string {
 /** Eine Schnellwahl für "gültig bis" bzw. "nächste fällig": ein fester Abstand zum Datum des Eintrags. */
 export type Schnellwahl = { label: string; jahre?: number; monate?: number };
 
-/** Impfung: +1 oder +3 Jahre; Entwurmung und Parasitenschutz: +3 Monate. Bei den übrigen Arten gibt es keine. */
+/** Impfung: +1 oder +3 Jahre; Entwurmung und Parasitenschutz: +1 bis +6 Monate (Präparate wirken unterschiedlich lange). Bei den übrigen Arten gibt es keine. */
 export function schnellwahlen(art: GesundheitsArt): Schnellwahl[] {
   if (art === GESUNDHEIT_ART.Impfung) {
     return [
@@ -113,7 +113,14 @@ export function schnellwahlen(art: GesundheitsArt): Schnellwahl[] {
     ];
   }
   if (art === GESUNDHEIT_ART.Entwurmung || art === GESUNDHEIT_ART.Parasitenschutz) {
-    return [{ label: uebersetzbar("+3 Monate"), monate: 3 }];
+    return [
+      { label: uebersetzbar("+1 Monat"), monate: 1 },
+      { label: uebersetzbar("+2 Monate"), monate: 2 },
+      { label: uebersetzbar("+3 Monate"), monate: 3 },
+      { label: uebersetzbar("+4 Monate"), monate: 4 },
+      { label: uebersetzbar("+5 Monate"), monate: 5 },
+      { label: uebersetzbar("+6 Monate"), monate: 6 },
+    ];
   }
   return [];
 }

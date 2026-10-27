@@ -67,7 +67,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
     aenderungen: [
       {
         art: "neu",
-        text: uebersetzbar("Jeder Hund hat jetzt den Bereich „Gesundheit“ (neben Plan und Tagebuch): Impfungen wie Tollwut, Entwurmung, Parasitenschutz und Tierarzttermine mit Datum, Uhrzeit und Notiz. Du trägst selbst ein, bis wann eine Impfung gilt oder wann die nächste Entwurmung fällig ist – so, wie es der Tierarzt im Impfpass vermerkt hat. Dogity rechnet nichts aus; die Schnellwahl (+1 Jahr, +3 Jahre, +3 Monate) füllt das Datum nur vor."),
+        text: uebersetzbar("Jeder Hund hat jetzt den Bereich „Gesundheit“ (neben Plan und Tagebuch): Impfungen wie Tollwut, Entwurmung, Parasitenschutz und Tierarzttermine mit Datum, Uhrzeit und Notiz. Du trägst selbst ein, bis wann eine Impfung gilt oder wann die nächste Entwurmung fällig ist – so, wie es der Tierarzt im Impfpass vermerkt hat. Dogity rechnet nichts aus; die Schnellwahl (+1 oder +3 Jahre, +1 bis +6 Monate) füllt das Datum nur vor."),
       },
       {
         art: "neu",

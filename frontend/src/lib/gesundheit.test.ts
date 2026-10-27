@@ -66,10 +66,10 @@ describe("zustand", () => {
 });
 
 describe("Schnellwahl", () => {
-  it("Impfung: +1 Jahr und +3 Jahre; Entwurmung und Parasitenschutz: +3 Monate; sonst keine", () => {
+  it("Impfung: +1 Jahr und +3 Jahre; Entwurmung und Parasitenschutz: +1 bis +6 Monate; sonst keine", () => {
     expect(schnellwahlen(GESUNDHEIT_ART.Impfung).map((w) => [w.jahre, w.monate])).toEqual([[1, undefined], [3, undefined]]);
-    expect(schnellwahlen(GESUNDHEIT_ART.Entwurmung).map((w) => w.monate)).toEqual([3]);
-    expect(schnellwahlen(GESUNDHEIT_ART.Parasitenschutz).map((w) => w.monate)).toEqual([3]);
+    expect(schnellwahlen(GESUNDHEIT_ART.Entwurmung).map((w) => w.monate)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(schnellwahlen(GESUNDHEIT_ART.Parasitenschutz).map((w) => w.monate)).toEqual([1, 2, 3, 4, 5, 6]);
     expect(schnellwahlen(GESUNDHEIT_ART.Tierarzttermin)).toEqual([]);
     expect(schnellwahlen(GESUNDHEIT_ART.Sonstiges)).toEqual([]);
   });
@@ -78,7 +78,7 @@ describe("Schnellwahl", () => {
     const [einJahr, dreiJahre] = schnellwahlen(GESUNDHEIT_ART.Impfung);
     expect(faelligNach("2026-11-04", einJahr)).toBe("2027-11-04");
     expect(faelligNach("2026-11-04", dreiJahre)).toBe("2029-11-04");
-    expect(faelligNach("2026-11-04", schnellwahlen(GESUNDHEIT_ART.Entwurmung)[0])).toBe("2027-02-04");
+    expect(faelligNach("2026-11-04", schnellwahlen(GESUNDHEIT_ART.Entwurmung)[2])).toBe("2027-02-04");
   });
 
   it("der 29.2. im Schaltjahr fällt im Folgejahr auf den 28.2.", () => {
