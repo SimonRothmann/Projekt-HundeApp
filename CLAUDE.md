@@ -11,6 +11,8 @@ KI-Assistenten beim Programmieren), übersetzt und an Dogity angepasst. Die
 englische Originalfassung liegt als Skill unter
 `.claude/skills/karpathy-guidelines/`.
 
+**Das Repo ist öffentlich.** Sicherheitslücken erst beheben, dann beschreiben - keine Angriffswege in Doku, TODO oder Commit-Nachrichten, solange die Lücke offen ist. Keine Geheimnisse, Zugangsdaten oder `.env`-Inhalte einchecken.
+
 **Abwägung:** Die Grundsätze bremsen zugunsten von Sorgfalt. Bei trivialen
 Aufgaben mit Augenmaß anwenden.
 
