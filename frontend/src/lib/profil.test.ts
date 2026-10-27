@@ -53,16 +53,16 @@ describe("vorschauSportarten", () => {
 describe("vorschauFunktionen", () => {
   it("zählt nur die Module, die die Person sieht", () => {
     expect(sichtbareModule(false).some((m) => m.key === MODULE.gruppentraining)).toBe(false);
-    expect(vorschauFunktionen([], false, de)).toBe("4 von 4 an");
-    expect(vorschauFunktionen([], true, de)).toBe("5 von 5 an");
+    expect(vorschauFunktionen([], false, de)).toBe("5 von 5 an");
+    expect(vorschauFunktionen([], true, de)).toBe("6 von 6 an");
   });
 
   it("zieht abgewählte Module ab", () => {
-    expect(vorschauFunktionen([MODULE.wetter], true, de)).toBe("4 von 5 an");
+    expect(vorschauFunktionen([MODULE.wetter], true, de)).toBe("5 von 6 an");
   });
 
   it("ignoriert abgewählte Module, die die Person gar nicht sieht", () => {
-    expect(vorschauFunktionen([MODULE.gruppentraining], false, de)).toBe("4 von 4 an");
+    expect(vorschauFunktionen([MODULE.gruppentraining], false, de)).toBe("5 von 5 an");
   });
 });
 

@@ -814,6 +814,59 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.ToTable("dogs", (string)null);
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Dogs.DogHealthRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DogId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<TimeOnly?>("Time")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DueDate");
+
+                    b.HasIndex("DogId", "Date");
+
+                    b.ToTable("dog_health_records", (string)null);
+                });
+
             modelBuilder.Entity("Dogity.Domain.Dogs.DogImage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1723,6 +1776,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<string>("Locale")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<bool>("ReminderHealth")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("ReminderSessions")
                         .HasColumnType("boolean")
@@ -2869,6 +2926,17 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Navigation("Exercise");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Dogs.DogHealthRecord", b =>
+                {
+                    b.HasOne("Dogity.Domain.Dogs.Dog", "Dog")
+                        .WithMany()
+                        .HasForeignKey("DogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dog");
                 });
 
             modelBuilder.Entity("Dogity.Domain.Dogs.DogImage", b =>

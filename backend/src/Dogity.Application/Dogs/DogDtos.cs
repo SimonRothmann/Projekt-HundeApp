@@ -21,7 +21,13 @@ public record DogDto(
     /// Die Trainingspause, die heute gilt; null ohne. Für Besitzer:innen mit
     /// Grund und Notiz, für betreuende Trainer:innen nur mit Zeitraum.
     /// </summary>
-    DogPauseDto? Pause = null);
+    DogPauseDto? Pause = null,
+    /// <summary>
+    /// Fälligkeitsstand der Gesundheit (Impfungen, Entwurmung, Tierarzttermin). Nur für Besitzer:innen
+    /// und Mitbesitzer:innen gefüllt, für betreuende Trainer:innen immer null; null auch, wenn nichts
+    /// Datiertes eingetragen ist.
+    /// </summary>
+    DogHealthSummaryDto? Gesundheit = null);
 
 /// <summary>
 /// Ein von mir betreuter Hund - für die Trainerübersicht. Enthält bewusst den

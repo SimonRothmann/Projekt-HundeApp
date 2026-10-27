@@ -16,12 +16,13 @@ import { DogActionBar } from "@/components/dogs/dog-action-bar";
 import { DogStatusLine } from "@/components/dogs/dog-status-line";
 import { DogTabs, reiterPanelId, reiterTabId } from "@/components/dogs/dog-tabs";
 import { DiaryTab } from "@/components/dogs/diary-tab";
+import { GesundheitTab } from "@/components/dogs/gesundheit-tab";
 import { DogActionsSheet } from "@/components/dogs/dog-actions-sheet";
 import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
 import { useAuth } from "@/lib/auth-context";
 import { eintragIdAus, leseGesehen } from "@/lib/feedback-gesehen";
-import { adresseMit, aktiveHunde, geltenderReiter, REITER_PARAMETER, ungeseheneRueckmeldungen, waehleReiter, zeigeHundeChips, zielStatus, type HundeReiter } from "@/lib/hundeseite";
+import { adresseMit, aktiveHunde, geltenderReiter, REITER_PARAMETER, ungeseheneRueckmeldungen, verfuegbarerReiter, waehleReiter, zeigeHundeChips, zielStatus, type HundeReiter } from "@/lib/hundeseite";
 import { tageAnzahl } from "@/lib/tagebuch";
 import { aktuellePause } from "@/lib/pausen";
 import { angeboteneSportarten } from "@/lib/eintragen";
@@ -32,7 +33,8 @@ import { useSprache, useT } from "@/lib/i18n";
 
 /**
  * Hundeseite: Kopf, zwei Aktionen, Statuszeile und zwei Reiter - "Plan" (Ziele)
- * und "Tagebuch" (Fährten-Verlauf, kompakte Tageszeilen). Training eintragen,
+ * und "Tagebuch" (Fährten-Verlauf, kompakte Tageszeilen) - dazu für Besitzer:innen
+ * "Gesundheit" (Impfungen, Entwurmung, Tierarzttermine) als dritter Reiter. Training eintragen,
  * Verwalten (Bearbeiten, Drucken, Mitbesitzer, Archivieren, Löschen) und
  * "Fährte legen" öffnen als Sheets. Die Logik lebt in den Bausteinen unter
  * components/dogs und in lib/use-dog-page.ts.
@@ -101,7 +103,15 @@ function DogPage({ id }: { id: string }) {
   if (frischGeladen && standardReiter === null) {
     setStandardReiter(waehleReiter(null, goals, { eintrag: eintragId !== null }));
   }
-  const reiter = geltenderReiter(suchparameter.get(REITER_PARAMETER), standardReiter, goals, { eintrag: eintragId !== null });
+  // Gesundheit gehört Besitzer:innen und nur bei eingeschaltetem Modul; ein Link darauf (Erinnerung,
+  // Startseite) führt sonst zum Standard-Reiter. Der Server liefert die Einträge ohnehin nur ihnen.
+  const zeigtGesundheit = isOwner && moduleEnabled(MODULE.gesundheit);
+  const reiter = verfuegbarerReiter(
+    geltenderReiter(suchparameter.get(REITER_PARAMETER), standardReiter, goals, { eintrag: eintragId !== null }),
+    zeigtGesundheit,
+    goals,
+    { eintrag: eintragId !== null },
+  );
 
   function aendereAdresse(aenderungen: Record<string, string | null>) {
     router.replace(adresseMit(pathname, suchparameter.toString(), aenderungen), { scroll: false });
@@ -172,7 +182,7 @@ function DogPage({ id }: { id: string }) {
         onFeedback={() => aendereAdresse({ [REITER_PARAMETER]: "tagebuch", eintrag: neueRueckmeldungen[0].id })}
       />
 
-      <DogTabs reiter={reiter} tage={tageAnzahl(sessions)} onChange={wechseln} />
+      <DogTabs reiter={reiter} tage={tageAnzahl(sessions)} zeigtGesundheit={zeigtGesundheit} onChange={wechseln} />
 
       {/* Beide Reiter bleiben im Baum, der andere ist nur versteckt: Ein offenes
           Ziel-Formular geht beim Hin- und Herschalten nicht verloren. Das display liegt auf dem
@@ -200,6 +210,12 @@ function DogPage({ id }: { id: string }) {
           onGesehen={onGesehen}
         />
       </div>
+
+      {zeigtGesundheit && (
+        <div role="tabpanel" id={reiterPanelId("gesundheit")} aria-labelledby={reiterTabId("gesundheit")} hidden={reiter !== "gesundheit"}>
+          <GesundheitTab dog={dog} aktiv={reiter === "gesundheit"} onChanged={loadAll} />
+        </div>
+      )}
 
       <EintragenSheet
         open={eintragenOffen}

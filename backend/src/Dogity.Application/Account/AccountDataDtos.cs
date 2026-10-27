@@ -26,7 +26,9 @@ public record AccountExportDto(
     IReadOnlyList<TerminzusageExportDto> Terminzusagen,
     IReadOnlyList<PushGeraetExportDto> PushGeraete,
     IReadOnlyList<TrainingspauseExportDto> Trainingspausen,
-    IReadOnlyList<ErinnerungExportDto> ErinnerungenVersendet);
+    IReadOnlyList<ErinnerungExportDto> ErinnerungenVersendet,
+    // Am Ende mit Vorgabe, wie die übrigen später hinzugekommenen Teile: bestehende Aufrufer bleiben gültig.
+    IReadOnlyList<GesundheitseintragExportDto>? Gesundheit = null);
 
 public record KontoExportDto(
     Guid Id,
@@ -46,13 +48,14 @@ public record EinstellungenExportDto(
     bool ErinnerungFaehrten = true,
     bool ErinnerungRueckmeldungen = true,
     IReadOnlyList<string>? RueckmeldungenWochentage = null,
-    int RueckmeldungenUhrzeit = 18);
+    int RueckmeldungenUhrzeit = 18,
+    bool ErinnerungGesundheit = true);
 
 /// <summary>
 /// Eine versendete Erinnerung - der Merkzettel gegen Doppelversand. Der Text steht
 /// unter Benachrichtigungen; hier nur, wofür und wann.
 /// </summary>
-/// <param name="Art">"Termin am Vortag", "Fährte nicht abgelaufen" oder "Offene Rückmeldungen".</param>
+/// <param name="Art">"Termin am Vortag", "Fährte nicht abgelaufen", "Offene Rückmeldungen", "Gesundheit: Frist in 14 Tagen", "Gesundheit: Frist heute" oder "Tierarzttermin morgen".</param>
 /// <param name="Bezug">Id des Termins bzw. der Fährte; bei den offenen Rückmeldungen leer.</param>
 /// <param name="Tag">Nur bei den offenen Rückmeldungen: der Tag, für den sie versendet wurde.</param>
 public record ErinnerungExportDto(string Art, Guid? Bezug, DateOnly? Tag, DateTimeOffset VersendetAm);
@@ -88,6 +91,24 @@ public record TrainingspauseExportDto(
     string Grund,
     DateOnly Von,
     DateOnly? Bis,
+    string? Notiz,
+    DateTimeOffset AngelegtAm);
+
+/// <summary>
+/// Ein Gesundheitseintrag eines meiner Hunde (auch der geteilten): Impfung, Entwurmung,
+/// Parasitenschutz, Tierarzttermin oder Sonstiges. Daten über das Tier, die Besitzer:innen
+/// selbst eingetragen haben.
+/// </summary>
+/// <param name="Art">"Impfung", "Entwurmung", "Parasitenschutz", "Tierarzttermin" oder "Sonstiges".</param>
+/// <param name="Datum">Gegeben am bzw. Tag des Termins.</param>
+/// <param name="GueltigBis">Gültig bis bzw. nächste fällig; beim Tierarzttermin leer.</param>
+public record GesundheitseintragExportDto(
+    Guid HundId,
+    string Art,
+    string Titel,
+    DateOnly Datum,
+    TimeOnly? Uhrzeit,
+    DateOnly? GueltigBis,
     string? Notiz,
     DateTimeOffset AngelegtAm);
 

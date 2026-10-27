@@ -54,6 +54,28 @@ public class DogPauseConfiguration : IEntityTypeConfiguration<DogPause>
     }
 }
 
+public class DogHealthRecordConfiguration : IEntityTypeConfiguration<DogHealthRecord>
+{
+    public void Configure(EntityTypeBuilder<DogHealthRecord> builder)
+    {
+        builder.ToTable("dog_health_records");
+        // Wie Dog.Gender und DogPause.Reason: als Text gespeichert, damit die Spalte lesbar bleibt.
+        builder.Property(r => r.Kind).HasConversion<string>().HasMaxLength(20);
+        builder.Property(r => r.Title).HasMaxLength(Textlaengen.GesundheitTitel).IsRequired();
+        builder.Property(r => r.Note).HasMaxLength(Textlaengen.GesundheitNotiz);
+
+        builder.HasOne(r => r.Dog)
+            .WithMany()
+            .HasForeignKey(r => r.DogId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Der Verlauf eines Hundes, neueste zuerst.
+        builder.HasIndex(r => new { r.DogId, r.Date });
+        // Für den Erinnerungsdienst: Welche Fristen laufen demnächst ab?
+        builder.HasIndex(r => r.DueDate);
+    }
+}
+
 public class DogOwnerConfiguration : IEntityTypeConfiguration<DogOwner>
 {
     public void Configure(EntityTypeBuilder<DogOwner> builder)

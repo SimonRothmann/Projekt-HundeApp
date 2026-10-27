@@ -14,6 +14,7 @@ namespace Dogity.Application.Preferences;
 /// <param name="ReminderTrainerSummary">Zusammenfassung offener Rückmeldungen (Trainer:innen). Vorgabe: ja.</param>
 /// <param name="TrainerSummaryDays">Wochentage der Zusammenfassung als Bitmaske (Mo = 1 ... So = 64). Vorgabe: Sonntag.</param>
 /// <param name="TrainerSummaryHour">Uhrzeit der Zusammenfassung, volle Stunde 8 bis 21 (Vereinszeit). Vorgabe: 18.</param>
+/// <param name="ReminderHealth">Erinnerung an ablaufende Impfungen, fällige Entwurmung und Tierarzttermine. Vorgabe: ja.</param>
 public record UserPreferenceDto(
     string? Locale,
     string? Country,
@@ -25,7 +26,8 @@ public record UserPreferenceDto(
     bool ReminderTracks = true,
     bool ReminderTrainerSummary = true,
     int TrainerSummaryDays = 64,
-    int TrainerSummaryHour = 18);
+    int TrainerSummaryHour = 18,
+    bool ReminderHealth = true);
 
 public record UpdateModulesRequest(IReadOnlyList<string> DisabledModules);
 public record UpdateSportsRequest(IReadOnlyList<Guid> SportIds);
@@ -37,9 +39,10 @@ public record UpdateEmailNotificationsRequest(bool Enabled);
 /// <summary>
 /// Alle Einstellungen der Erinnerungen auf einmal - sie gehören zusammen und werden
 /// zusammen angezeigt. <paramref name="TrainerSummaryDays"/> 1 bis 127, <paramref name="TrainerSummaryHour"/> 8 bis 21.
+/// <paramref name="Health"/> fehlt bei Geräten, die noch eine ältere Fassung der App zeigen: null lässt den Schalter, wie er ist.
 /// </summary>
 public record UpdateRemindersRequest(
-    bool Sessions, bool Tracks, bool TrainerSummary, int TrainerSummaryDays, int TrainerSummaryHour);
+    bool Sessions, bool Tracks, bool TrainerSummary, int TrainerSummaryDays, int TrainerSummaryHour, bool? Health = null);
 
 /// <summary>
 /// Die wählbaren Schriftgrößen. Steht hier und nicht im Service, weil auch der

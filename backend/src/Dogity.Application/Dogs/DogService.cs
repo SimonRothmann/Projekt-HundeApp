@@ -42,8 +42,9 @@ public class DogService(
         // Meine Hunde: Ich bin Besitzer:in (oder Mitbesitzer:in) und sehe die
         // Pause mit Grund und Notiz.
         var pausen = await db.ActivePausesAsync(dogIds, Heute(), ct);
+        var gesundheit = await db.HealthSummariesAsync(dogIds, Heute(), ct);
         return Result<IReadOnlyList<DogDto>>.Success(
-            dogs.Select(d => ToDto(d, withImage.Contains(d.Id), pausen.GetValueOrDefault(d.Id), zeigeDetails: true)).ToList());
+            dogs.Select(d => ToDto(d, withImage.Contains(d.Id), pausen.GetValueOrDefault(d.Id), zeigeDetails: true, gesundheit.GetValueOrDefault(d.Id))).ToList());
     }
 
     /// <summary>
@@ -639,16 +640,18 @@ public class DogService(
 
     /// <summary>
     /// Der Hund für genau diese Person: Eine Besitzer:in sieht die Pause mit
-    /// Grund und Notiz, eine betreuende Trainer:in nur den Zeitraum.
+    /// Grund und Notiz und den Gesundheitsstand, eine betreuende Trainer:in nur den
+    /// Zeitraum der Pause und nichts zur Gesundheit.
     /// </summary>
     private async Task<DogDto> ToDtoAsync(Dog dog, Guid userId, CancellationToken ct)
     {
         var istBesitzer = await db.DogOwners.AnyAsync(o => o.DogId == dog.Id && o.UserId == userId, ct);
         var pausen = await db.ActivePausesAsync([dog.Id], Heute(), ct);
-        return ToDto(dog, await HasImageAsync(dog.Id, ct), pausen.GetValueOrDefault(dog.Id), istBesitzer);
+        var gesundheit = istBesitzer ? (await db.HealthSummariesAsync([dog.Id], Heute(), ct)).GetValueOrDefault(dog.Id) : null;
+        return ToDto(dog, await HasImageAsync(dog.Id, ct), pausen.GetValueOrDefault(dog.Id), istBesitzer, gesundheit);
     }
 
-    private static DogDto ToDto(Dog d, bool hasImage, DogPause? pause, bool zeigeDetails) =>
+    private static DogDto ToDto(Dog d, bool hasImage, DogPause? pause, bool zeigeDetails, DogHealthSummaryDto? gesundheit) =>
         new(d.Id, d.Name, d.Breed, d.Birthday, d.Gender, d.ImageUrl, d.Notes, d.ArchivedAt, hasImage,
-            pause is null ? null : DogPauseQueries.ToDto(pause, zeigeDetails));
+            pause is null ? null : DogPauseQueries.ToDto(pause, zeigeDetails), gesundheit);
 }

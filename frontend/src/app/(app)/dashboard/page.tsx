@@ -33,6 +33,7 @@ import { TerminKarte } from "@/components/dashboard/termin-karte";
 import { ZuErledigenZeile } from "@/components/dashboard/zu-erledigen-zeile";
 import { AbgelaufeneZiele, OhneZielZeilen, PausenZeilen, ZielKarten } from "@/components/dashboard/ziel-karten";
 import { HeuteGelegtSection, type FaehrteMitHund } from "@/components/dashboard/heute-gelegt-section";
+import { GesundheitsHinweise } from "@/components/dashboard/gesundheit-hinweise";
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
 import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { useT } from "@/lib/i18n";
@@ -228,6 +229,7 @@ export default function DashboardPage() {
 
   const faehrteAn = moduleEnabled(MODULE.faehrte);
   const sachkundeAn = moduleEnabled(MODULE.sachkunde);
+  const gesundheitAn = moduleEnabled(MODULE.gesundheit);
   const trainerZeileAn = isTrainer === true && moduleEnabled(MODULE.gruppentraining);
 
   // "Zu erledigen" der Trainer:innen: dieselben Zahlen wie auf der Trainer-
@@ -373,6 +375,7 @@ export default function DashboardPage() {
 
           <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} onChanged={neuLaden} />
           <PausenZeilen eintraege={pausenOhneKarte(daten.hunde, daten.ziele.karten)} />
+          {gesundheitAn && <GesundheitsHinweise hunde={daten.hunde} />}
           <AbgelaufeneZiele eintraege={daten.ziele.abgelaufen} onChanged={neuLaden} />
           <OhneZielZeilen hunde={daten.ziele.ohneZiel} />
 

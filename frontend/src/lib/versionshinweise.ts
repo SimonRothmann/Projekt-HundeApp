@@ -61,6 +61,29 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.41",
+    datum: "2026-10-27",
+    titel: uebersetzbar("Gesundheit: Impfungen, Entwurmung, Tierarzt"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Jeder Hund hat jetzt den Bereich „Gesundheit“ (neben Plan und Tagebuch): Impfungen wie Tollwut, Entwurmung, Parasitenschutz und Tierarzttermine mit Datum, Uhrzeit und Notiz. Du trägst selbst ein, bis wann eine Impfung gilt oder wann die nächste Entwurmung fällig ist – so, wie es der Tierarzt im Impfpass vermerkt hat. Dogity rechnet nichts aus; die Schnellwahl (+1 Jahr, +3 Jahre, +3 Monate) füllt das Datum nur vor."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Oben steht „Als Nächstes“: Abgelaufenes in Rot, bald Fälliges in Gelb und der nächste Tierarzttermin. Wenn du eine Impfung erneuerst, trägst du sie einfach neu ein – die alte bleibt im Verlauf. Auf der Startseite erscheint ein kleiner Hinweis, wenn etwas abgelaufen oder in zwei Wochen fällig ist oder ein Tierarzttermin in den nächsten zwei Tagen ansteht."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Erinnerungen: Dogity meldet sich 14 Tage vor Ablauf und am Tag selbst, bei Tierarztterminen am Vortag ab 18 Uhr – als Meldung in der Glocke und als Push, nie per E-Mail. Unter Profil → Funktionen lässt sich die Erinnerung abschalten, und dort kannst du den Bereich „Gesundheit“ auch ganz ausblenden; deine Einträge bleiben dabei erhalten."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Die Gesundheitsangaben sehen nur du und die Mitbesitzer:innen des Hundes – deine Trainer:in sieht sie nicht. Ein Foto vom Impfpass gibt es bewusst nicht: Dogity speichert keine Dateien."),
+      },
+    ],
+  },
+  {
     version: "0.40",
     datum: "2026-10-26",
     titel: uebersetzbar("Prüfungsreife: Wie weit seid ihr?"),

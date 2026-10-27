@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dogity.Api.Controllers;
 
 [Route("api/dogs")]
-public class DogsController(IDogService dogService, IDogPauseService pauseService) : ApiControllerBase
+public class DogsController(IDogService dogService, IDogPauseService pauseService, IDogHealthService healthService) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<DogDto>>> GetMyDogs(CancellationToken ct)
@@ -176,4 +176,21 @@ public class DogsController(IDogService dogService, IDogPauseService pauseServic
     [HttpDelete("{id:guid}/pausen/{pauseId:guid}")]
     public async Task<IActionResult> DeletePause(Guid id, Guid pauseId, CancellationToken ct) =>
         FromResult(await pauseService.DeleteAsync(CurrentUserId, id, pauseId, ct));
+
+    /// <summary>Gesundheitseinträge (Impfungen, Entwurmung, Tierarzt): nur Besitzer:innen - alle anderen bekommen 404.</summary>
+    [HttpGet("{id:guid}/gesundheit")]
+    public async Task<ActionResult<IReadOnlyList<DogHealthRecordDto>>> GetHealth(Guid id, CancellationToken ct) =>
+        FromResult(await healthService.GetAsync(CurrentUserId, id, ct));
+
+    [HttpPost("{id:guid}/gesundheit")]
+    public async Task<ActionResult<DogHealthRecordDto>> CreateHealthRecord(Guid id, SaveDogHealthRecordRequest request, CancellationToken ct) =>
+        FromResult(await healthService.CreateAsync(CurrentUserId, id, request, ct));
+
+    [HttpPut("{id:guid}/gesundheit/{eintragId:guid}")]
+    public async Task<ActionResult<DogHealthRecordDto>> UpdateHealthRecord(Guid id, Guid eintragId, SaveDogHealthRecordRequest request, CancellationToken ct) =>
+        FromResult(await healthService.UpdateAsync(CurrentUserId, id, eintragId, request, ct));
+
+    [HttpDelete("{id:guid}/gesundheit/{eintragId:guid}")]
+    public async Task<IActionResult> DeleteHealthRecord(Guid id, Guid eintragId, CancellationToken ct) =>
+        FromResult(await healthService.DeleteAsync(CurrentUserId, id, eintragId, ct));
 }

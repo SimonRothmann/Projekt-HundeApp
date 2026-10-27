@@ -29,6 +29,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<DogOwner> DogOwners => Set<DogOwner>();
     public DbSet<DogImage> DogImages => Set<DogImage>();
     public DbSet<DogPause> DogPauses => Set<DogPause>();
+    public DbSet<DogHealthRecord> DogHealthRecords => Set<DogHealthRecord>();
 
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<Sport> Sports => Set<Sport>();
@@ -117,6 +118,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<DogImage>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
         // Wie beim Bild: Der Hund ist die Pflichtseite, sein Filter wird mitgezogen.
         builder.Entity<DogPause>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
+        builder.Entity<DogHealthRecord>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
         // Wie beim Bild: Der Filter muss den des Hundes mittragen. Sonst
         // meldet EF zu Recht, dass die Auswahl eines weichgelöschten Hundes
         // sichtbar bliebe, obwohl der Hund es nicht ist.

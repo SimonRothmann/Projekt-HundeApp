@@ -14,14 +14,28 @@ import { istNeuesFeedback } from "@/lib/feedback-gesehen";
  * Startseite, ein Hund ohne Ziel. Nach dem Muster von gruppen-ansicht.ts.
  */
 
-export type HundeReiter = "plan" | "tagebuch";
+export type HundeReiter = "plan" | "tagebuch" | "gesundheit";
 
 /** Name des Parameters in der Adresse: /dogs/{id}?tab=tagebuch. */
 export const REITER_PARAMETER = "tab";
 
-/** Nur die zwei bekannten Werte; alles andere (leer, falsch geschrieben, fremd) ist "keine Angabe". */
+/** Nur die bekannten Werte; alles andere (leer, falsch geschrieben, fremd) ist "keine Angabe". */
 export function reiterAusParameter(wert: string | null | undefined): HundeReiter | null {
-  return wert === "plan" || wert === "tagebuch" ? wert : null;
+  return wert === "plan" || wert === "tagebuch" || wert === "gesundheit" ? wert : null;
+}
+
+/**
+ * Der Reiter "Gesundheit" gehört nur Besitzer:innen, und nur solange das Modul an ist. Zeigt ein Link
+ * (?tab=gesundheit, etwa aus einer Erinnerung) auf einen Reiter, den es für diese Person nicht gibt,
+ * gilt stattdessen der Standard (Plan bzw. Tagebuch) - statt einer Seite ohne sichtbaren Inhalt.
+ */
+export function verfuegbarerReiter(
+  reiter: HundeReiter,
+  gesundheitDa: boolean,
+  goals: readonly Goal[] | null | undefined,
+  optionen: { eintrag?: boolean; jetzt?: number } = {},
+): HundeReiter {
+  return reiter === "gesundheit" && !gesundheitDa ? waehleReiter(null, goals, optionen) : reiter;
 }
 
 /**

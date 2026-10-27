@@ -30,8 +30,9 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// dazukam: Englisch (Lisa), Mitbesitz-Einladung (Lisa), Österreich und
 /// Vereinsantrag (Tom), Hoopers (Nina), eine Nachtfährte, die "erneut
 /// ablaufen" über Mitternacht zeigt (Bello), die Schweiz (Sandro, SKG BH 1) und
-/// Trainingspausen (Ninas Hündin läufig, rollend; eine überstandene Verletzung bei Bello) und
-/// die Sachkunde-Übungsprüfung (zwei vergangene Ergebnisse bei Max).
+/// Trainingspausen (Ninas Hündin läufig, rollend; eine überstandene Verletzung bei Bello),
+/// die Sachkunde-Übungsprüfung (zwei vergangene Ergebnisse bei Max) und die Gesundheitseinträge
+/// (Impfungen, Entwurmung, Tierarzttermin bei Bello und Emma).
 ///
 /// Warum ein eigener Seeder und nicht noch mehr im DemoDataSeeder: Der bricht
 /// ab, sobald das Trainer-Konto existiert - auf der Test-Umgebung gibt es die
@@ -74,6 +75,12 @@ public static class DemoSzenarienSeeder
     public const string NotizPauseVerletzung = "Ballen eingerissen, inzwischen verheilt - zwei Wochen Schonung.";
     /// <summary>Die Demo-Läufigkeit endet 21 Tage nach ihrem Beginn - derselbe Vorschlag wie in der Oberfläche (lib/pausen.ts).</summary>
     private const int LaeufigkeitTage = 21;
+    // Die Gesundheitseinträge der Demo erkennt der Seeder an ihrer Notiz (siehe docs/DEMO_DATEN.md).
+    public const string NotizGesundheitTollwut = "Tollwut laut Impfpass; die Auffrischung steht bald an.";
+    public const string NotizGesundheitShppi = "SHPPi laut Impfpass, Grundimmunisierung abgeschlossen.";
+    public const string NotizGesundheitEntwurmung = "Entwurmung mit Tablette; die nächste wäre vor ein paar Tagen dran gewesen.";
+    public const string NotizGesundheitTermin = "Kontrolle und Impfberatung in der Praxis Musterstadt.";
+    public const string NotizGesundheitEmma = "Tollwut laut Impfpass, alles in Ordnung.";
     public const string KommentarNachtfaehrte = "Abends gelegt, über Nacht liegen gelassen - morgen früh ablaufen.";
 
     /// <summary>Der Antrag, den Tom stellt - der Name ist zugleich das Erkennungszeichen.</summary>
@@ -158,6 +165,8 @@ public static class DemoSzenarienSeeder
                 ("Hoopers", HoopersAsync),
                 // Nach dem Hoopers-Szenario: Dort entsteht Ninas Flitzer.
                 ("Trainingspausen", TrainingspausenAsync),
+                // Nach den Zielen: Emma entsteht in "Prüfungsziele".
+                ("Gesundheit", GesundheitAsync),
                 ("Sachkunde", SachkundeAsync),
                 ("Fährten", FaehrtenAsync),
                 ("Nachtfährte", NachtfaehrteAsync),
@@ -855,6 +864,79 @@ public static class DemoSzenarienSeeder
                 logger.LogWarning("Demo-Läufigkeit für {Hund} konnte nicht angelegt werden: {Fehler}", huendin.Name, string.Join("; ", laeufig.Errors));
         }
 
+        // ---------------------------------------------------------------- l2) Gesundheit
+
+        /// <summary>
+        /// Gesundheitseinträge, damit Hundeseite, Hinweis auf der Startseite und Erinnerungen auf der Test-Umgebung
+        /// zu sehen sind. Bello: Tollwut gilt noch zehn Tage (gelber Hinweis, die 14-Tage-Erinnerung kommt), SHPPi gilt
+        /// noch gut zwei Jahre, die Entwurmung von vor drei Monaten war vor zwei Tagen wieder fällig (überfällig) und
+        /// übermorgen um 10:30 Uhr ist ein Tierarzttermin. Emma: nur eine Tollwut-Impfung, in Ordnung.
+        ///
+        /// ROLLEND bei dem, was sonst verschwände: Läuft die Tollwut-Impfung in weniger als drei Tagen ab, gilt sie
+        /// wieder zehn Tage; liegt der Termin in der Vergangenheit, steht er wieder übermorgen. Das tut der Seeder
+        /// nur an Einträgen, die noch ganz seine sind (nie geändert, UpdatedAt leer) - und höchstens alle paar Tage,
+        /// damit die Erinnerung nicht täglich neu käme (ihr Merkzettel hängt am Datum der Frist). Alles andere ist
+        /// Sache der Tester und bleibt: ein gelöschter Eintrag kommt nicht zurück, ein geänderter wird nicht angefasst.
+        ///
+        /// Entsteht über denselben Dienst wie in der App (Rechte, Prüfung), erkannt an der festen Notiz.
+        /// </summary>
+        private async Task GesundheitAsync(CancellationToken ct)
+        {
+            var gesundheit = services.GetRequiredService<IDogHealthService>();
+            var heute = Vereinszeit.Heute();
+            var hunde = await HundeVonAsync(max, ct);
+            var bello = hunde.FirstOrDefault(h => h.Name == "Bello");
+            var emma = hunde.FirstOrDefault(h => h.Name == "Emma");
+
+            async Task<DogHealthRecord?> EintragAsync(Dog hund, SaveDogHealthRecordRequest anlage)
+            {
+                var vorhanden = await db.DogHealthRecords.IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(r => r.DogId == hund.Id && r.Note == anlage.Note, ct);
+                // Gelöscht ist entschieden; ein vorhandener Eintrag wird unten höchstens gerollt.
+                if (vorhanden is not null) return vorhanden.DeletedAt is null ? vorhanden : null;
+
+                var ergebnis = await gesundheit.CreateAsync(max.Id, hund.Id, anlage, ct);
+                if (!ergebnis.Succeeded)
+                {
+                    logger.LogWarning("Demo-Gesundheitseintrag für {Hund} konnte nicht angelegt werden: {Fehler}", hund.Name, string.Join("; ", ergebnis.Errors));
+                    return null;
+                }
+                return await db.DogHealthRecords.FirstAsync(r => r.Id == ergebnis.Value!.Id, ct);
+            }
+
+            if (bello is not null)
+            {
+                var tollwut = heute.AddDays(10);
+                var impfung = await EintragAsync(bello, new SaveDogHealthRecordRequest(
+                    DogHealthKind.Vaccination, "Tollwut", tollwut.AddYears(-1), null, tollwut, NotizGesundheitTollwut));
+                if (impfung is { UpdatedAt: null } && impfung.DueDate < heute.AddDays(3))
+                {
+                    impfung.DueDate = tollwut;
+                    impfung.Date = tollwut.AddYears(-1);
+                    await db.SaveChangesAsync(ct);
+                }
+
+                await EintragAsync(bello, new SaveDogHealthRecordRequest(
+                    DogHealthKind.Vaccination, "SHPPi", heute.AddMonths(-3), null, heute.AddYears(2), NotizGesundheitShppi));
+                await EintragAsync(bello, new SaveDogHealthRecordRequest(
+                    DogHealthKind.Deworming, "Entwurmung", heute.AddMonths(-3), null, heute.AddDays(-2), NotizGesundheitEntwurmung));
+
+                var termin = await EintragAsync(bello, new SaveDogHealthRecordRequest(
+                    DogHealthKind.VetAppointment, "Kontrolle", heute.AddDays(2), new TimeOnly(10, 30), null, NotizGesundheitTermin));
+                if (termin is { UpdatedAt: null } && termin.Date < heute)
+                {
+                    termin.Date = heute.AddDays(2);
+                    await db.SaveChangesAsync(ct);
+                }
+            }
+
+            if (emma is not null)
+            {
+                await EintragAsync(emma, new SaveDogHealthRecordRequest(
+                    DogHealthKind.Vaccination, "Tollwut", heute.AddMonths(-6), null, heute.AddMonths(30), NotizGesundheitEmma));
+            }
+        }
+
         // ---------------------------------------------------------------- m) Sachkunde-Übungsprüfung
 
         /// <summary>
@@ -995,6 +1077,24 @@ public static class DemoSzenarienSeeder
         {
             var hunde = await HundeVonAsync(max, ct);
             var bello = hunde.FirstOrDefault(h => h.Name == "Bello");
+
+            // Ein Tester hat Bellos Ziel abgebrochen oder gelöscht (auf Test ist das geschehen), und mit ihm
+            // fehlte die gelbe Szene samt Theoriezeile: Ohne aktives Ziel legt der Seeder ein neues BH-Ziel an
+            // (FCI-BH, wie das ursprüngliche Demo-Ziel, mit generiertem Plan). Hat Bello ein aktives Ziel -
+            // auch ein selbst angelegtes -, bleibt es unangetastet. Ein abgebrochenes oder gelöschtes Ziel
+            // wird nicht wiederbelebt: Es entsteht ein neues.
+            if (bello is not null && !await db.Goals.AnyAsync(g => g.DogId == bello.Id && g.Status == GoalStatus.Active, ct))
+            {
+                var (bhSport, fciBh) = await KatalogAsync("BH", "BH", ct);
+                if (bhSport is not null && fciBh is not null)
+                {
+                    var neu = await services.GetRequiredService<IGoalService>().CreateAsync(
+                        max.Id, new CreateGoalRequest(bello.Id, bhSport.Id, fciBh.Id, Vereinszeit.Heute().AddDays(PruefungsreifeZielTage), DemoDataSeeder.NotizBelloBh), ct);
+                    if (!neu.Succeeded)
+                        logger.LogWarning("Demo-BH-Ziel für Bello konnte nicht angelegt werden: {Fehler}", string.Join("; ", neu.Errors));
+                }
+            }
+
             var belloZiel = bello is null ? null : await db.Goals.FirstOrDefaultAsync(
                 g => g.DogId == bello.Id && g.Notes == DemoDataSeeder.NotizBelloBh && g.Status == GoalStatus.Active, ct);
             if (belloZiel is not null)
@@ -1025,6 +1125,9 @@ public static class DemoSzenarienSeeder
             if (sandroZiel is not null)
                 await ReifeHerstellenAsync(sandroZiel, hoechstensSicherProzent: null, ct);
         }
+
+        /// <summary>Wie weit voraus das neu angelegte BH-Ziel von Bello liegt: zehn Wochen.</summary>
+        private const int PruefungsreifeZielTage = 70;
 
         // Die Merkmale eines Standes, den der Seeder gesetzt hat. Sie sind so gewählt, dass echtes Training
         // sie verlässt: jeder Eintrag zählt die Sitzungen hoch, und Bewertungsschnitte aus dem Tagebuch landen

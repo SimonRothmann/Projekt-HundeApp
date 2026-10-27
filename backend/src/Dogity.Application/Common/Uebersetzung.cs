@@ -99,6 +99,12 @@ public static partial class Uebersetzung
         ["Die Fährte von {hund} ist noch nicht abgelaufen. Du kannst sie noch bis {datum}, {zeit} Uhr ablaufen."] = "The track for {hund} has not been walked yet. You can still walk it until {zeit} on {datum}.",
         ["Ein Training wartet auf deine Rückmeldung."] = "One training session is waiting for your feedback.",
         ["{n} Trainings warten auf deine Rückmeldung."] = "{n} training sessions are waiting for your feedback.",
+        ["{hund}: Die Impfung {titel} ist bis {datum} gültig."] = "{hund}: The {titel} vaccination is valid until {datum}.",
+        ["{hund}: Die Impfung {titel} läuft heute ab."] = "{hund}: The {titel} vaccination expires today.",
+        ["{hund}: {titel} ist am {datum} fällig."] = "{hund}: {titel} is due on {datum}.",
+        ["{hund}: {titel} ist heute fällig."] = "{hund}: {titel} is due today.",
+        ["Morgen {zeit}: Tierarzt mit {hund} ({titel})."] = "Tomorrow {zeit}: vet appointment with {hund} ({titel}).",
+        ["Morgen: Tierarzt mit {hund} ({titel})."] = "Tomorrow: vet appointment with {hund} ({titel}).",
 
         // Konto (AccountMailService, PushTestService) - gehen an Admins
         ["{name} ({email}) möchte das Passwort zurücksetzen."] = "{name} ({email}) wants to reset their password.",

@@ -26,6 +26,10 @@ export const TEXTLAENGE = {
   pruefungsNotiz: 500,
   /** TrainingSession.OwnerReply (Rückfrage zum Trainer-Feedback) */
   feedbackRueckfrage: 500,
+  /** DogHealthRecord.Title: Titel eines Gesundheitseintrags */
+  gesundheitTitel: 100,
+  /** DogHealthRecord.Note: Notiz zu einem Gesundheitseintrag */
+  gesundheitNotiz: 500,
   /** GroupRegistration: Vor-/Nachname und Rufname des Hundes */
   anmeldeName: 100,
   /** Dog.Name: Rufname des Hundes */

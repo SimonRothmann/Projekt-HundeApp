@@ -5,6 +5,7 @@ using Dogity.Application.Dogs;
 using Dogity.Application.Notifications;
 using Dogity.Application.Preferences;
 using Dogity.Domain.Community;
+using Dogity.Domain.Dogs;
 using Dogity.Domain.Notifications;
 using Dogity.Domain.Tracking;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +25,7 @@ namespace Dogity.Application.Reminders;
 /// bei einer Erinnerung besser als eine doppelte.
 ///
 /// Abgefragt wird nur, was gerade in Frage kommt (Termine des Folgetags, Fährten der letzten
-/// Stunden, Trainer:innen mit heute fälligem Rhythmus) - außerhalb des Versandfensters (08-22 Uhr)
+/// Stunden, Fristen der nächsten 14 Tage, Trainer:innen mit heute fälligem Rhythmus) - außerhalb des Versandfensters (08-22 Uhr)
 /// wird gar nichts geladen.
 /// </summary>
 public class ErinnerungService(
@@ -58,6 +59,7 @@ public class ErinnerungService(
         gesendet += await Abschnitt("Termine", () => TermineAsync(jetzt, ct));
         gesendet += await Abschnitt("Fährten", () => FaehrtenAsync(jetzt, ct));
         gesendet += await Abschnitt("Rückmeldungen", () => RueckmeldungenAsync(jetzt, ct));
+        gesendet += await Abschnitt("Gesundheit", () => GesundheitAsync(jetzt, ct));
         return gesendet;
     }
 
@@ -324,6 +326,83 @@ public class ErinnerungService(
         return await VersendeAsync(erinnerungen, ct);
     }
 
+    // ---- d) Gesundheit: Fristen und Tierarzttermine der eigenen Hunde ----
+
+    private async Task<int> GesundheitAsync(DateTimeOffset jetzt, CancellationToken ct)
+    {
+        var heute = Vereinszeit.Tag(jetzt);
+        var folgetag = heute.AddDays(1);
+        var vorlaufEnde = heute.AddDays(Erinnerungsregeln.GesundheitVorlaufTage);
+        // Der Vortags-Termin kommt erst ab 18 Uhr; vorher muss er nicht einmal geladen werden.
+        var terminFaellig = Vereinszeit.Lokal(jetzt).Hour >= Erinnerungsregeln.TerminAbStunde;
+
+        var kandidaten = await db.DogHealthRecords
+            .Where(r => (r.Kind == DogHealthKind.VetAppointment && terminFaellig && r.Date == folgetag)
+                || (r.Kind != DogHealthKind.VetAppointment && r.DueDate >= heute && r.DueDate <= vorlaufEnde))
+            .Select(r => new { r.Id, r.DogId, r.Kind, r.Title, r.Date, r.Time, r.DueDate })
+            .AsNoTracking()
+            .ToListAsync(ct);
+        if (kandidaten.Count == 0) return 0;
+
+        // Archivierte Hunde (etwa verstorbene) erinnern nicht mehr; gelöschte blendet der Filter aus.
+        var hundeIds = kandidaten.Select(k => k.DogId).Distinct().ToList();
+        var hunde = await db.Dogs
+            .Where(d => hundeIds.Contains(d.Id) && d.ArchivedAt == null)
+            .Select(d => new { d.Id, d.Name })
+            .AsNoTracking()
+            .ToDictionaryAsync(d => d.Id, d => d.Name, ct);
+        if (hunde.Count == 0) return 0;
+
+        // "Aktuell" heißt: der jüngste Eintrag je Hund, Art und Titel - das lässt sich nur im Blick auf
+        // alle Einträge dieser Hunde sagen (eine erneuerte Impfung liegt außerhalb der Fristen-Abfrage).
+        var fristKandidaten = kandidaten.Where(k => k.Kind != DogHealthKind.VetAppointment).Select(k => k.DogId).Distinct().ToList();
+        var aktuell = Gesundheitsstand.Aktuelle(await db.DogHealthRecords
+                .Where(r => fristKandidaten.Contains(r.DogId) && r.Kind != DogHealthKind.VetAppointment)
+                .Select(r => new DogHealthRecord { Id = r.Id, DogId = r.DogId, Kind = r.Kind, Title = r.Title, Date = r.Date, CreatedAt = r.CreatedAt })
+                .AsNoTracking()
+                .ToListAsync(ct))
+            .Select(r => r.Id)
+            .ToHashSet();
+
+        var aktiveHundeIds = hunde.Keys.ToList();
+        var besitzer = await db.DogOwners
+            .Where(o => aktiveHundeIds.Contains(o.DogId))
+            .Select(o => new { o.DogId, o.UserId })
+            .AsNoTracking()
+            .ToListAsync(ct);
+        var nutzerIds = besitzer.Select(b => b.UserId).Distinct().ToList();
+        var erlaubt = await ErlaubtAsync(nutzerIds, ReminderType.HealthDueAhead, ct);
+        // Das Modul abgeschaltet: Bereich und Hinweis sind weg, also auch die Erinnerung.
+        var moduleAus = (await db.UserDisabledModules
+                .Where(m => m.ModuleKey == Modules.Gesundheit && nutzerIds.Contains(m.UserPreference!.UserId))
+                .Select(m => m.UserPreference!.UserId)
+                .ToListAsync(ct))
+            .ToHashSet();
+
+        var adressaten = new List<GesundheitsAdressat>();
+        foreach (var k in kandidaten)
+        {
+            if (!hunde.TryGetValue(k.DogId, out var hundName)) continue;
+            foreach (var b in besitzer.Where(b => b.DogId == k.DogId))
+            {
+                adressaten.Add(new GesundheitsAdressat(
+                    k.Id, k.DogId, hundName, k.Kind, k.Title, k.Date, k.Time, k.DueDate, aktuell.Contains(k.Id), b.UserId,
+                    Erlaubt: erlaubt.Contains(b.UserId) && !moduleAus.Contains(b.UserId)));
+            }
+        }
+
+        // Alle drei Arten auf einmal: Die Kennung enthält den Tag der Frist, ein Treffer am falschen Tag stört nicht.
+        var bezugIds = kandidaten.Select(k => k.Id).ToList();
+        var gesendet = (await db.SentReminders
+                .Where(r => (r.Type == ReminderType.HealthDueAhead || r.Type == ReminderType.HealthDueToday || r.Type == ReminderType.HealthVetDayBefore)
+                    && bezugIds.Contains(r.ReferenceId))
+                .Select(r => new ErinnerungsSchluessel(r.Type, r.UserId, r.ReferenceId, r.DayKey))
+                .ToListAsync(ct))
+            .ToHashSet();
+
+        return await VersendeAsync(Erinnerungsregeln.GesundheitsErinnerungen(jetzt, adressaten, gesendet), ct);
+    }
+
     // ---- gemeinsam ----
 
     /// <summary>
@@ -334,11 +413,16 @@ public class ErinnerungService(
     {
         var zeilen = await db.UserPreferences
             .Where(p => nutzerIds.Contains(p.UserId))
-            .Select(p => new { p.UserId, p.ReminderSessions, p.ReminderTracks })
+            .Select(p => new { p.UserId, p.ReminderSessions, p.ReminderTracks, p.ReminderHealth })
             .AsNoTracking()
             .ToListAsync(ct);
         var ausgeschaltet = zeilen
-            .Where(z => !(typ == ReminderType.SessionDayBefore ? z.ReminderSessions : z.ReminderTracks))
+            .Where(z => !(typ switch
+            {
+                ReminderType.SessionDayBefore => z.ReminderSessions,
+                ReminderType.TrackNotWalked => z.ReminderTracks,
+                _ => z.ReminderHealth
+            }))
             .Select(z => z.UserId)
             .ToHashSet();
         return nutzerIds.Where(id => !ausgeschaltet.Contains(id)).ToHashSet();

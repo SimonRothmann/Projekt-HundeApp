@@ -3,6 +3,7 @@ using Dogity.Application.Abstractions;
 using Dogity.Application.Notifications;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Application.Community;
+using Dogity.Application.Dogs;
 using Dogity.Application.Planning;
 using Dogity.Application.Weather;
 using Dogity.Domain.Community;
@@ -103,6 +104,7 @@ public class DemoSzenarienSeederTests
             await db.ClubRegistrations.IgnoreQueryFilters().CountAsync(),
             await db.GpsPoints.IgnoreQueryFilters().CountAsync(),
             await db.DogPauses.IgnoreQueryFilters().CountAsync(),
+            await db.DogHealthRecords.IgnoreQueryFilters().CountAsync(),
         ];
     }
 
@@ -1160,15 +1162,18 @@ public class DemoSzenarienSeederTests
     }
 
     [Fact]
-    public async Task Pruefungsreife_GeloeschtesZiel_BekommtKeinenStand()
+    public async Task Pruefungsreife_GeloeschtesZiel_WirdNichtWiederbelebt_BelloBekommtEinNeuesBhZiel()
     {
         await using var provider = BaueDienste();
         await MitDemoKontenAsync(provider);
+        await MitSachkundeAsync(provider);
+        Guid altesZiel;
         using (var scope = provider.CreateScope())
         {
-            // Vor dem Szenario: Der Tester hat Bellos BH-Ziel gelöscht.
+            // Vor dem Szenario: Der Tester hat Bellos BH-Ziel gelöscht (auf der Test-Umgebung ist das geschehen).
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var ziel = await db.Goals.SingleAsync(g => g.Notes == DemoDataSeeder.NotizBelloBh);
+            altesZiel = ziel.Id;
             ziel.DeletedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync();
         }
@@ -1178,9 +1183,214 @@ public class DemoSzenarienSeederTests
         using var pruef = provider.CreateScope();
         var pruefDb = pruef.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var bello = await pruefDb.Dogs.SingleAsync(d => d.Name == "Bello");
-        // Bello hat höchstens den Stand aus echten Trainings - der Seeder (3 bzw. 2 Sitzungen) legt hier nichts an.
-        Assert.DoesNotContain(await pruefDb.ExerciseMasteries.Where(m => m.DogId == bello.Id).ToListAsync(),
-            m => m.SessionCount is 3 or 2 && (m.RecentAvgRating == 4.6 || m.RecentAvgRating == 3.0));
+        // Das gelöschte bleibt gelöscht; daneben steht ein neues, aktives BH-Ziel nach der FCI-BH mit Plan.
+        Assert.NotNull((await pruefDb.Goals.IgnoreQueryFilters().SingleAsync(g => g.Id == altesZiel)).DeletedAt);
+        var neu = await pruefDb.Goals.Include(g => g.TrainingPlan).SingleAsync(g => g.DogId == bello.Id && g.Notes == DemoDataSeeder.NotizBelloBh);
+        Assert.NotEqual(altesZiel, neu.Id);
+        Assert.Equal(GoalStatus.Active, neu.Status);
+        var ordnung = await pruefDb.Regulations.SingleAsync(r => r.Id == neu.RegulationId);
+        Assert.Equal("BH", ordnung.Name);
+        Assert.Null(ordnung.CountryCode);
+        var heute = Vereinszeit.Heute();
+        Assert.InRange(neu.TargetDate.DayNumber - heute.DayNumber, 63, 77);
+        Assert.NotNull(neu.TrainingPlan);
+        Assert.NotEmpty(await pruefDb.TrainingPlanItems.Where(i => i.TrainingPlanId == neu.TrainingPlan!.Id).ToListAsync());
+
+        // Und die gelbe Szene samt Theoriezeile ist wieder da.
+        var maxId = (await pruef.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync("mitglied1@dogity.test"))!.Id;
+        var reife = await ReifeAsync(provider, maxId, neu.Id);
+        Assert.Equal(Reifeampel.Gelb, reife.Ampel);
+        Assert.NotNull(reife.Theorie);
+    }
+
+    [Fact]
+    public async Task Pruefungsreife_AbgebrochenesZiel_BelloBekommtEinNeues_UndEinSpaeteresAusfuehrenLegtKeinDrittesAn()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.Goals.SingleAsync(g => g.Notes == DemoDataSeeder.NotizBelloBh)).Status = GoalStatus.Cancelled;
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruef = provider.CreateScope();
+        var pruefDb = pruef.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var ziele = await pruefDb.Goals.Where(g => g.Notes == DemoDataSeeder.NotizBelloBh).ToListAsync();
+        Assert.Equal(2, ziele.Count);
+        Assert.Equal(1, ziele.Count(g => g.Status == GoalStatus.Active));
+    }
+
+    [Fact]
+    public async Task Pruefungsreife_BelloMitEigenemAktivenZiel_BekommtKeinZweitesDemoZiel()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Guid belloId;
+        using (var scope = provider.CreateScope())
+        {
+            // Ein Tester hat Bellos Demo-Ziel durch ein eigenes ersetzt (andere Sportart, eigene Notiz).
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var demo = await db.Goals.SingleAsync(g => g.Notes == DemoDataSeeder.NotizBelloBh);
+            belloId = demo.DogId;
+            demo.Status = GoalStatus.Cancelled;
+            db.Goals.Add(new Goal
+            {
+                DogId = belloId, SportId = demo.SportId, TargetDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(30),
+                Status = GoalStatus.Active, Notes = "Mein eigenes Ziel",
+            });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruef = provider.CreateScope();
+        var pruefDb = pruef.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var ziele = await pruefDb.Goals.Where(g => g.DogId == belloId).ToListAsync();
+        Assert.Equal(2, ziele.Count);
+        Assert.Equal("Mein eigenes Ziel", Assert.Single(ziele, g => g.Status == GoalStatus.Active).Notes);
+    }
+
+    // --- Gesundheit ---------------------------------------------------------------------
+
+    private static async Task<(Dog Bello, Dog Emma)> HundeFuerGesundheitAsync(ApplicationDbContext db) =>
+        (await db.Dogs.SingleAsync(d => d.Name == "Bello"), await db.Dogs.SingleAsync(d => d.Name == "Emma"));
+
+    [Fact]
+    public async Task Gesundheit_LegtDieEintraegeFuerBelloUndEmmaAn()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var heute = Vereinszeit.Heute();
+        var (bello, emma) = await HundeFuerGesundheitAsync(db);
+
+        var belloEintraege = await db.DogHealthRecords.Where(r => r.DogId == bello.Id).ToListAsync();
+        Assert.Equal(4, belloEintraege.Count);
+        var tollwut = belloEintraege.Single(r => r.Title == "Tollwut");
+        Assert.Equal(DogHealthKind.Vaccination, tollwut.Kind);
+        Assert.Equal(heute.AddDays(10), tollwut.DueDate);
+        Assert.Equal(DemoSzenarienSeeder.NotizGesundheitTollwut, tollwut.Note);
+        Assert.InRange(belloEintraege.Single(r => r.Title == "SHPPi").DueDate!.Value.DayNumber - heute.DayNumber, 700, 735);
+        var entwurmung = belloEintraege.Single(r => r.Kind == DogHealthKind.Deworming);
+        Assert.Equal(heute.AddDays(-2), entwurmung.DueDate);
+        Assert.InRange(heute.DayNumber - entwurmung.Date.DayNumber, 85, 95);
+        var termin = belloEintraege.Single(r => r.Kind == DogHealthKind.VetAppointment);
+        Assert.Equal((heute.AddDays(2), new TimeOnly(10, 30), (DateOnly?)null), (termin.Date, termin.Time, termin.DueDate));
+
+        // Emma: nur eine Tollwut-Impfung, die in Ordnung ist.
+        var emmaEintrag = await db.DogHealthRecords.SingleAsync(r => r.DogId == emma.Id);
+        Assert.Equal("Tollwut", emmaEintrag.Title);
+
+        // Was die Oberfläche daraus macht: Bello überfällig (Entwurmung) und bald fällig (Tollwut), Emma nichts.
+        var staende = await db.HealthSummariesAsync([bello.Id, emma.Id], heute);
+        Assert.Equal((1, 1), (staende[bello.Id].Overdue, staende[bello.Id].DueSoon));
+        Assert.Equal(heute.AddDays(2), staende[bello.Id].NextAppointment!.Date);
+        Assert.Equal((0, 0), (staende[emma.Id].Overdue, staende[emma.Id].DueSoon));
+    }
+
+    [Fact]
+    public async Task Gesundheit_DieDemoEintraegeSindNurFuerDieBesitzerSichtbar()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var maxId = (await users.FindByEmailAsync("mitglied1@dogity.test"))!.Id;
+        var trainerId = (await users.FindByEmailAsync("trainer@dogity.test"))!.Id;
+        var bello = await db.Dogs.SingleAsync(d => d.Name == "Bello");
+        var gesundheit = scope.ServiceProvider.GetRequiredService<IDogHealthService>();
+
+        Assert.Equal(4, (await gesundheit.GetAsync(maxId, bello.Id)).Value!.Count);
+        // Auch die Demo-Trainerin, die Bello betreut, sieht nichts davon.
+        Assert.True((await gesundheit.GetAsync(trainerId, bello.Id)).IsNotFound);
+    }
+
+    [Fact]
+    public async Task Gesundheit_Rollend_BaldAbgelaufeneTollwutUndVergangenerTerminRuckenNachVorn()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var heute = Vereinszeit.Heute();
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.DogHealthRecords.SingleAsync(r => r.Note == DemoSzenarienSeeder.NotizGesundheitTollwut && r.Title == "Tollwut")).DueDate = heute.AddDays(1);
+            (await db.DogHealthRecords.SingleAsync(r => r.Note == DemoSzenarienSeeder.NotizGesundheitTermin)).Date = heute.AddDays(-4);
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruef = provider.CreateScope();
+        var pruefDb = pruef.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Equal(heute.AddDays(10), (await pruefDb.DogHealthRecords.SingleAsync(r => r.Note == DemoSzenarienSeeder.NotizGesundheitTollwut)).DueDate);
+        Assert.Equal(heute.AddDays(2), (await pruefDb.DogHealthRecords.SingleAsync(r => r.Note == DemoSzenarienSeeder.NotizGesundheitTermin)).Date);
+        // Nichts Neues: dieselbe Anzahl wie vorher.
+        Assert.Equal(5, await pruefDb.DogHealthRecords.IgnoreQueryFilters().CountAsync());
+    }
+
+    [Fact]
+    public async Task Gesundheit_RuhigeEintraegeBleibenRuhig_DerSeederSchreibtNichtBeiJedemStart()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        async Task<List<(Guid, DateOnly, DateOnly?, DateTimeOffset?)>> StandAsync()
+        {
+            using var scope = provider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            return (await db.DogHealthRecords.IgnoreQueryFilters().OrderBy(r => r.Note).ThenBy(r => r.Title).ToListAsync())
+                .Select(r => (r.Id, r.Date, r.DueDate, r.UpdatedAt)).ToList();
+        }
+
+        var davor = await StandAsync();
+        Assert.Empty(await SzenarienAsync(provider));
+        Assert.Equal(davor, await StandAsync());
+    }
+
+    [Fact]
+    public async Task Gesundheit_VonTesternGeaendertesBleibt_GeloeschtesKommtNichtZurueck()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var heute = Vereinszeit.Heute();
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            // Ein Tester ändert die Tollwut-Impfung (läuft morgen ab) und den Termin (vorbei) - und löscht die Entwurmung.
+            var tollwut = await db.DogHealthRecords.SingleAsync(r => r.Note == DemoSzenarienSeeder.NotizGesundheitTollwut);
+            tollwut.DueDate = heute.AddDays(1);
+            tollwut.UpdatedAt = DateTimeOffset.UtcNow;
+            var termin = await db.DogHealthRecords.SingleAsync(r => r.Note == DemoSzenarienSeeder.NotizGesundheitTermin);
+            termin.Date = heute.AddDays(-4);
+            termin.UpdatedAt = DateTimeOffset.UtcNow;
+            (await db.DogHealthRecords.SingleAsync(r => r.Note == DemoSzenarienSeeder.NotizGesundheitEntwurmung)).DeletedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        var davor = await ZaehleAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        Assert.Equal(davor, await ZaehleAsync(provider));
+
+        using var pruef = provider.CreateScope();
+        var pruefDb = pruef.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Equal(heute.AddDays(1), (await pruefDb.DogHealthRecords.SingleAsync(r => r.Note == DemoSzenarienSeeder.NotizGesundheitTollwut)).DueDate);
+        Assert.Equal(heute.AddDays(-4), (await pruefDb.DogHealthRecords.SingleAsync(r => r.Note == DemoSzenarienSeeder.NotizGesundheitTermin)).Date);
+        Assert.DoesNotContain(await pruefDb.DogHealthRecords.ToListAsync(), r => r.Note == DemoSzenarienSeeder.NotizGesundheitEntwurmung);
     }
 
     /// <summary>Hält Warnungen des Seeders fest - ein still übergangenes Szenario darf keine auslösen.</summary>

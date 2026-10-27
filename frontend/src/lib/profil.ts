@@ -41,6 +41,11 @@ export const MODUL_TEXTE: { key: string; titel: string; beschreibung: string; nu
   },
   { key: MODULE.wetter, titel: uebersetzbar("Wetter"), beschreibung: uebersetzbar("Temperatur und Wetter zum Training.") },
   { key: MODULE.statistik, titel: uebersetzbar("Statistik"), beschreibung: uebersetzbar("Auswertungen über Trainings und Verfassung.") },
+  {
+    key: MODULE.gesundheit,
+    titel: uebersetzbar("Gesundheit"),
+    beschreibung: uebersetzbar("Impfungen, Entwurmung und Tierarzttermine deiner Hunde, mit Erinnerung."),
+  },
 ];
 
 /** Die Module, die diese Person überhaupt zu sehen bekommt. */

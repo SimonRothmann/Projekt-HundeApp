@@ -228,6 +228,30 @@ kann deshalb nichts aufsperren.
 
 ---
 
+## dog_health_records
+
+
+Gesundheitseinträge eines Hundes (Impfung, Entwurmung, Parasitenschutz,
+Tierarzttermin, Sonstiges). Details in docs/GESUNDHEIT.md.
+
+
+| Feld | Typ |
+|-|-|
+| id | UUID |
+| dog_id | UUID (Hund, Cascade) |
+| kind | varchar(20), als Text |
+| title | varchar(100) |
+| date | date (gegeben am / Termin am) |
+| time | time, nur Tierarzttermin |
+| due_date | date, gültig bis / nächste fällig, einschließlich |
+| note | varchar(500) |
+| created_by_user_id | UUID, ohne Fremdschlüssel |
+
+Index auf (DogId, Date) und auf DueDate; Soft Delete wie überall.
+
+
+---
+
 ## dog_owners
 
 

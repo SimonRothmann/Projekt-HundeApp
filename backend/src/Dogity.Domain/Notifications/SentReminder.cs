@@ -12,7 +12,16 @@ public enum ReminderType
     TrackNotWalked,
 
     /// <summary>Zusammenfassung offener Rückmeldungen, an Trainer:innen.</summary>
-    TrainerFeedbackSummary
+    TrainerFeedbackSummary,
+
+    /// <summary>Die Frist eines Gesundheitseintrags (Impfung, Entwurmung ...) läuft in höchstens 14 Tagen ab; an die Besitzer:innen des Hundes.</summary>
+    HealthDueAhead,
+
+    /// <summary>Die Frist eines Gesundheitseintrags ist heute.</summary>
+    HealthDueToday,
+
+    /// <summary>Tierarzttermin am Folgetag, an die Besitzer:innen des Hundes.</summary>
+    HealthVetDayBefore
 }
 
 /// <summary>
@@ -33,15 +42,17 @@ public class SentReminder : Entity
     public ReminderType Type { get; set; }
 
     /// <summary>
-    /// Worauf sich die Erinnerung bezieht: die Id des Termins bzw. der Fährte;
-    /// bei der Zusammenfassung (kein einzelner Bezug) <see cref="Guid.Empty"/>.
+    /// Worauf sich die Erinnerung bezieht: die Id des Termins bzw. der Fährte bzw.
+    /// des Gesundheitseintrags; bei der Zusammenfassung (kein einzelner Bezug) <see cref="Guid.Empty"/>.
     /// </summary>
     public Guid ReferenceId { get; set; }
 
     /// <summary>
     /// Der Kalendertag in Vereinszeit bei Erinnerungen, die täglich neu fällig
     /// werden können (Zusammenfassung), beim Termin der Termintag (ein verschobener
-    /// Termin wird erneut erinnert); sonst <see cref="KeinTag"/>. Der Schlüssel
+    /// Termin wird erneut erinnert), bei den Gesundheitserinnerungen der Tag der Frist bzw.
+    /// des Tierarzttermins (wer das Datum eines Eintrags nachträglich ändert, wird zum neuen
+    /// Datum erneut erinnert); sonst <see cref="KeinTag"/>. Der Schlüssel
     /// ist der Tag und nicht die Stunde: Ändert jemand die Uhrzeit nach dem
     /// Versand, kommt am selben Tag keine zweite.
     /// </summary>

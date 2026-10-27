@@ -55,7 +55,9 @@ mit `isAdmin`).
 | Mitglied | die eigenen Hunde, Gruppen und Vereine, offene Einladungen an sich selbst (mit Namen des Vereins) | andere Mitglieder |
 | Eingeladene Person | nur den Vereins-/Gruppen-/Hundenamen und wer einlädt | - |
 | Besitzer:in / Mitbesitzer:in eines Hundes | Trainingspausen mit Grund (verletzt, krank, läufig), Zeitraum und Notiz; trägt sie ein, ändert und löscht sie | - |
+| Besitzer:in / Mitbesitzer:in eines Hundes | Gesundheitseinträge (Impfungen, Entwurmung, Parasitenschutz, Tierarzttermine) und den Gesundheitsstand am Hund; trägt sie ein, ändert und löscht sie; bekommt die Erinnerungen dazu | - |
 | Betreuende Trainer:in (`TrainerAssignment`) | Trainingspausen nur als Zeitraum („pausiert bis …“); die Pausenliste nur mit laufenden und kommenden Pausen, im Plan zusätzlich die Zeiträume vergangener Pausen im Planfenster | Grund und Notiz (Gesundheitsangaben gehören der Familie); kann keine Pause eintragen. Der Server baut dafür ein eigenes DTO ohne diese Felder (`DogPauseQueries.ToDto`). |
+| Betreuende Trainer:in, zu Gesundheitseinträgen | nichts: 404 auf `/api/dogs/{id}/gesundheit`, am Hund kein Gesundheitsstand (docs/GESUNDHEIT.md) | alles |
 | Trainer:in ohne Betreuung, Fremde | nichts (404) | alles |
 
 ## Wo die Prüfungen liegen

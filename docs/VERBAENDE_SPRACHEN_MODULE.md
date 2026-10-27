@@ -471,7 +471,7 @@ mitbringen kann, ohne dass Code geändert wird.
    *Beschreibung* für internationale Sparten später möglich.
 
 4. **Abschaltbare Module** (Startpunkt): Fährte/GPS, Sachkunde,
-   Gruppentraining, Wetter, Statistik.
+   Gruppentraining, Wetter, Statistik (seit 0.41 auch Gesundheit).
 
 **Schritt 3 umgesetzt (2026-09-03), ausgeliefert als Version 0.10:** Geltungsbereich und Sprache.
 

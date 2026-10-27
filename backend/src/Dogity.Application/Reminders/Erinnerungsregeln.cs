@@ -1,6 +1,7 @@
 using System.Globalization;
 using Dogity.Application.Common;
 using Dogity.Application.Community;
+using Dogity.Domain.Dogs;
 using Dogity.Domain.Notifications;
 
 namespace Dogity.Application.Reminders;
@@ -38,6 +39,14 @@ public sealed record FaehrteKandidat(
 public sealed record TrainerKandidat(Guid UserId, bool Erlaubt, int Tage, int Stunde);
 
 /// <summary>
+/// Ein Gesundheitseintrag und eine Besitzer:in seines Hundes - eine Zeile je Person.
+/// <paramref name="Aktuell"/>: der jüngste Eintrag je Hund, Art und Titel (nur der erinnert).
+/// </summary>
+public sealed record GesundheitsAdressat(
+    Guid EintragId, Guid HundId, string Hund, DogHealthKind Art, string Titel, DateOnly Datum, TimeOnly? Uhrzeit,
+    DateOnly? Faellig, bool Aktuell, Guid UserId, bool Erlaubt);
+
+/// <summary>
 /// Wann welche Erinnerung fällig ist - als reine Funktionen: Zeitpunkt und Daten
 /// hinein, Liste fälliger Erinnerungen heraus, kein Datenbankzugriff. So lassen
 /// sich Mitternacht, Ruhezeit und Zeitumstellung ohne Datenbank prüfen; der
@@ -57,6 +66,9 @@ public static class Erinnerungsregeln
 
     /// <summary>Ab dieser Stunde am Vortag kommt die Terminerinnerung.</summary>
     public const int TerminAbStunde = 18;
+
+    /// <summary>So viele Tage vor Ablauf einer Frist (Impfung, Entwurmung ...) kommt die Vorab-Erinnerung.</summary>
+    public const int GesundheitVorlaufTage = 14;
 
     /// <summary>So lange nach dem Ende des Legens kommt die Fährten-Erinnerung frühestens.</summary>
     public static readonly TimeSpan FaehrteNach = TimeSpan.FromHours(3);
@@ -126,6 +138,73 @@ public static class Erinnerungsregeln
                 : Meldung.Von("Morgen {zeit}: {gruppe} - kommst du?", ("zeit", zeit), ("gruppe", a.Gruppe));
             // Auf der Startseite stehen die Termine mit den Knöpfen zum Zu- und Absagen.
             ergebnis.Add(new FaelligeErinnerung(schluessel, meldung, "/dashboard"));
+        }
+        return ergebnis;
+    }
+
+    /// <summary>
+    /// Gesundheitseinträge der eigenen Hunde, je Besitzer:in. Zwei Stufen für eine Frist (Impfung
+    /// gültig bis, Entwurmung nächste fällig): in den letzten <see cref="GesundheitVorlaufTage"/> Tagen
+    /// davor und am Tag selbst, je einmal. "In den letzten 14 Tagen" und nicht "genau 14 Tage vorher":
+    /// Wer einen Eintrag erst zehn Tage vor Ablauf anlegt, soll trotzdem noch erinnert werden - und
+    /// ein Neustart des Dienstes an genau dem Tag verschluckt die Erinnerung nicht. Am Tag selbst
+    /// kommt nur die zweite Stufe. Nach Ablauf kommt nichts mehr: Das Überfällige zeigt die App selbst.
+    /// Es erinnert nur der jüngste Eintrag je Hund, Art und Titel: Eine erneuerte Impfung beendet
+    /// die Erinnerung der alten.
+    ///
+    /// Ein Tierarzttermin wird am Vortag ab 18 Uhr gemeldet, wie ein Gruppentermin.
+    ///
+    /// Der Merkzettel gilt je Person, Eintrag, Stufe und Tag der Frist bzw. des Termins: Wird das
+    /// Datum nachträglich geändert, kommt vor dem neuen Datum erneut eine Erinnerung.
+    /// </summary>
+    public static IReadOnlyList<FaelligeErinnerung> GesundheitsErinnerungen(
+        DateTimeOffset jetzt, IEnumerable<GesundheitsAdressat> adressaten, IReadOnlySet<ErinnerungsSchluessel> gesendet)
+    {
+        if (!ImVersandfenster(jetzt)) return [];
+
+        var heute = Vereinszeit.Tag(jetzt);
+        var vortagAb = Vereinszeit.Lokal(jetzt).Hour >= TerminAbStunde;
+        var ergebnis = new List<FaelligeErinnerung>();
+        var schonDabei = new HashSet<ErinnerungsSchluessel>();
+
+        foreach (var a in adressaten)
+        {
+            if (!a.Erlaubt) continue;
+            var link = $"/dogs/{a.HundId}?tab=gesundheit";
+
+            if (a.Art == DogHealthKind.VetAppointment)
+            {
+                if (!vortagAb || a.Datum != heute.AddDays(1)) continue;
+
+                var terminSchluessel = new ErinnerungsSchluessel(ReminderType.HealthVetDayBefore, a.UserId, a.EintragId, a.Datum);
+                if (gesendet.Contains(terminSchluessel) || !schonDabei.Add(terminSchluessel)) continue;
+
+                var meldung = a.Uhrzeit is { } uhrzeit
+                    ? Meldung.Von("Morgen {zeit}: Tierarzt mit {hund} ({titel}).",
+                        ("zeit", uhrzeit.ToString("HH:mm", CultureInfo.InvariantCulture)), ("hund", a.Hund), ("titel", a.Titel))
+                    : Meldung.Von("Morgen: Tierarzt mit {hund} ({titel}).", ("hund", a.Hund), ("titel", a.Titel));
+                ergebnis.Add(new FaelligeErinnerung(terminSchluessel, meldung, link));
+                continue;
+            }
+
+            if (!a.Aktuell || a.Faellig is not { } faellig) continue;
+            var rest = faellig.DayNumber - heute.DayNumber;
+            if (rest < 0 || rest > GesundheitVorlaufTage) continue;
+
+            var heuteFaellig = rest == 0;
+            var schluessel = new ErinnerungsSchluessel(
+                heuteFaellig ? ReminderType.HealthDueToday : ReminderType.HealthDueAhead, a.UserId, a.EintragId, faellig);
+            if (gesendet.Contains(schluessel) || !schonDabei.Add(schluessel)) continue;
+
+            // Ganze Sätze je Fall: Eine Impfung ist "gültig bis", alles andere "fällig".
+            var text = a.Art == DogHealthKind.Vaccination
+                ? heuteFaellig
+                    ? Meldung.Von("{hund}: Die Impfung {titel} läuft heute ab.", ("hund", a.Hund), ("titel", a.Titel))
+                    : Meldung.Von("{hund}: Die Impfung {titel} ist bis {datum} gültig.", ("hund", a.Hund), ("titel", a.Titel), ("datum", faellig))
+                : heuteFaellig
+                    ? Meldung.Von("{hund}: {titel} ist heute fällig.", ("hund", a.Hund), ("titel", a.Titel))
+                    : Meldung.Von("{hund}: {titel} ist am {datum} fällig.", ("hund", a.Hund), ("titel", a.Titel), ("datum", faellig));
+            ergebnis.Add(new FaelligeErinnerung(schluessel, text, link));
         }
         return ergebnis;
     }

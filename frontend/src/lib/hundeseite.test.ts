@@ -8,6 +8,7 @@ import {
   laufendesZiel,
   reiterAusParameter,
   ungeseheneRueckmeldungen,
+  verfuegbarerReiter,
   waehleReiter,
   zeigeHundeChips,
   zielStatus,
@@ -91,6 +92,28 @@ describe("geltenderReiter", () => {
     expect(geltenderReiter(null, null, [ziel()], { jetzt: JETZT })).toBe("plan");
     expect(geltenderReiter(null, null, [], { jetzt: JETZT })).toBe("tagebuch");
     expect(geltenderReiter(null, null, [ziel()], { eintrag: true, jetzt: JETZT })).toBe("tagebuch");
+  });
+});
+
+describe("Reiter Gesundheit", () => {
+  it("ist ein gültiger Wert in der Adresse", () => {
+    expect(reiterAusParameter("gesundheit")).toBe("gesundheit");
+    expect(reiterAusParameter("Gesundheit")).toBeNull();
+  });
+
+  it("bleibt, wenn es ihn für die Person gibt", () => {
+    expect(verfuegbarerReiter("gesundheit", true, [ziel()], { jetzt: JETZT })).toBe("gesundheit");
+  });
+
+  it("fällt ohne ihn (Trainer:in, Modul aus) auf den Standard zurück statt auf eine leere Seite", () => {
+    expect(verfuegbarerReiter("gesundheit", false, [ziel()], { jetzt: JETZT })).toBe("plan");
+    expect(verfuegbarerReiter("gesundheit", false, [], { jetzt: JETZT })).toBe("tagebuch");
+    expect(verfuegbarerReiter("gesundheit", false, [ziel()], { eintrag: true, jetzt: JETZT })).toBe("tagebuch");
+  });
+
+  it("lässt die anderen Reiter unberührt", () => {
+    expect(verfuegbarerReiter("plan", false, [], { jetzt: JETZT })).toBe("plan");
+    expect(verfuegbarerReiter("tagebuch", false, [ziel()], { jetzt: JETZT })).toBe("tagebuch");
   });
 });
 

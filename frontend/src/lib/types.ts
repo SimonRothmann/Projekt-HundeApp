@@ -37,6 +37,53 @@ export type DogPause = {
   note: string | null;
 };
 
+// Art eines Gesundheitseintrags - NUMERISCH (siehe Domain.Dogs.DogHealthKind). Die
+// Beschriftungen stehen in lib/gesundheit.ts.
+export const GESUNDHEIT_ART = {
+  Impfung: 0,
+  Entwurmung: 1,
+  Parasitenschutz: 2,
+  Tierarzttermin: 3,
+  Sonstiges: 4,
+} as const;
+
+export type GesundheitsArt = (typeof GESUNDHEIT_ART)[keyof typeof GESUNDHEIT_ART];
+
+// Wie es um eine Frist steht - NUMERISCH (siehe Application.Dogs.HealthState).
+export const GESUNDHEIT_ZUSTAND = {
+  Ok: 0,
+  Bald: 1,
+  Ueberfaellig: 2,
+} as const;
+
+export type GesundheitsZustand = (typeof GESUNDHEIT_ZUSTAND)[keyof typeof GESUNDHEIT_ZUSTAND];
+
+// Ein Gesundheitseintrag des Hundes (Backend: DogHealthRecordDto). Nur Besitzer:innen
+// und Mitbesitzer:innen bekommen ihn - der Server liefert ihn niemandem sonst.
+export type DogHealthRecord = {
+  id: string;
+  kind: GesundheitsArt;
+  title: string;
+  /** Gegeben am bzw. Tag des Tierarzttermins (YYYY-MM-DD). */
+  date: string;
+  /** Uhrzeit des Termins ("10:30:00"); nur beim Tierarzttermin. */
+  time: string | null;
+  /** Gültig bis bzw. nächste fällig (YYYY-MM-DD, einschließlich); beim Tierarzttermin null. */
+  dueDate: string | null;
+  note: string | null;
+  /** Gehört zu "Aktuell" (der jüngste je Art und Titel, bei Terminen: heute oder später); sonst Verlauf. */
+  isCurrent: boolean;
+};
+
+// Der Fälligkeitsstand am Hund (Backend: DogHealthSummaryDto) - nur für Besitzer:innen,
+// null bei Trainer:innen und wenn nichts Datiertes eingetragen ist.
+export type DogGesundheitStand = {
+  overdue: number;
+  dueSoon: number;
+  nextDue: { id: string; kind: GesundheitsArt; title: string; dueDate: string; state: GesundheitsZustand } | null;
+  nextAppointment: { id: string; title: string; date: string; time: string | null } | null;
+};
+
 // Ein Pausenzeitraum, wie ihn die Planrechnung braucht (Backend: PausenZeitraumDto).
 export type PauseZeitraum = {
   start: string;
@@ -61,6 +108,8 @@ export type Dog = {
   // Die Trainingspause, die heute gilt; null ohne. Optional, weil der
   // Lesecache noch Hunde ohne dieses Feld liefern kann.
   pause?: DogPause | null;
+  // Fälligkeitsstand der Gesundheit; nur für Besitzer:innen, sonst fehlt er bzw. ist null.
+  gesundheit?: DogGesundheitStand | null;
 };
 
 export type Sport = {
@@ -1376,6 +1425,8 @@ export type UserPreferences = {
   trainerSummaryDays: number;
   /** Uhrzeit der Zusammenfassung, volle Stunde 8 bis 21 (Vereinszeit). Vorgabe: 18. */
   trainerSummaryHour: number;
+  /** Erinnerung an ablaufende Impfungen, fällige Entwurmung und Tierarzttermine. Vorgabe: ja. */
+  reminderHealth: boolean;
 };
 
 /** Ein wählbarer Geltungsbereich - Spiegel von Application/Sports/CountryDto. */
@@ -1391,6 +1442,7 @@ export const MODULE = {
   gruppentraining: "gruppentraining",
   wetter: "wetter",
   statistik: "statistik",
+  gesundheit: "gesundheit",
 } as const;
 
 /**

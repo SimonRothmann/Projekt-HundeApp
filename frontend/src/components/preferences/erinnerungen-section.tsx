@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { usePreferences } from "@/lib/preferences-context";
+import { MODULE } from "@/lib/types";
 import {
   STUNDEN,
   WOCHENTAGE,
@@ -21,8 +22,8 @@ import { useT } from "@/lib/i18n";
 
 /**
  * Die Erinnerungen, die Dogity von sich aus schickt: Termin am Vortag, Fährte
- * noch nicht abgelaufen und - nur für Trainer:innen - die Zusammenfassung offener
- * Rückmeldungen. Jede lässt sich einzeln abschalten; die Zusammenfassung hat
+ * noch nicht abgelaufen, Gesundheit (Impfungen, Entwurmung, Tierarzt) und - nur
+ * für Trainer:innen - die Zusammenfassung offener Rückmeldungen. Jede lässt sich einzeln abschalten; die Zusammenfassung hat
  * einen eigenen Rhythmus (Wochentage und Uhrzeit), den die Trainer:in selbst wählt.
  *
  * Erinnerungen erscheinen in der Glocke und, wo Push eingeschaltet ist, als
@@ -33,12 +34,13 @@ import { useT } from "@/lib/i18n";
 export function ErinnerungenSection() {
   const t = useT();
   const { isTrainer } = useAuth();
-  const { preferences, reload } = usePreferences();
+  const { preferences, reload, moduleEnabled } = usePreferences();
   const [speichert, setSpeichert] = useState(false);
 
   const werte = {
     sessions: preferences.reminderSessions,
     tracks: preferences.reminderTracks,
+    health: preferences.reminderHealth,
     trainerSummary: preferences.reminderTrainerSummary,
     trainerSummaryDays: preferences.trainerSummaryDays,
     trainerSummaryHour: gueltigeStunde(preferences.trainerSummaryHour),
@@ -84,6 +86,16 @@ export function ErinnerungenSection() {
           titel={t("Erinnerung an noch nicht abgelaufene Fährten")}
           beschreibung={t("Etwa drei Stunden nach dem Legen, solange der Ablauf noch möglich ist")}
         />
+        {/* Ohne das Modul gibt es weder den Bereich noch die Erinnerung - dann auch keinen Schalter. */}
+        {moduleEnabled(MODULE.gesundheit) && (
+          <SchalterZeile
+            an={werte.health}
+            disabled={speichert}
+            onChange={(an) => void speichern({ health: an })}
+            titel={t("Gesundheit: Impfungen, Entwurmung, Tierarzt")}
+            beschreibung={t("14 Tage vor Ablauf und am Tag selbst, Tierarzttermine am Vortag ab 18 Uhr")}
+          />
+        )}
         {isTrainer && (
           <SchalterZeile
             an={werte.trainerSummary}

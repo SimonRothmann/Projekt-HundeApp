@@ -54,6 +54,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             .ToListAsync(ct);
 
         var pausen = await db.DogPauses.Where(p => hundeIds.Contains(p.DogId)).AsNoTracking().ToListAsync(ct);
+        var gesundheit = await db.DogHealthRecords.Where(r => hundeIds.Contains(r.DogId)).AsNoTracking().ToListAsync(ct);
 
         var ziele = await db.Goals.Where(g => hundeIds.Contains(g.DogId)).AsNoTracking().ToListAsync(ct);
         var zielIds = ziele.Select(z => z.Id).ToList();
@@ -158,7 +159,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     einstellung.ReminderTracks,
                     einstellung.ReminderTrainerSummary,
                     Wochentage(einstellung.TrainerSummaryDays),
-                    einstellung.TrainerSummaryHour),
+                    einstellung.TrainerSummaryHour,
+                    einstellung.ReminderHealth),
             hunde.Select(hund =>
             {
                 var rolle = besitz.First(b => b.DogId == hund.Id);
@@ -338,10 +340,33 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     {
                         ReminderType.SessionDayBefore => "Termin am Vortag",
                         ReminderType.TrackNotWalked => "Fährte nicht abgelaufen",
+                        ReminderType.HealthDueAhead => "Gesundheit: Frist in 14 Tagen",
+                        ReminderType.HealthDueToday => "Gesundheit: Frist heute",
+                        ReminderType.HealthVetDayBefore => "Tierarzttermin morgen",
                         _ => "Offene Rückmeldungen"
                     },
                     r.ReferenceId == Guid.Empty ? null : r.ReferenceId,
                     r.DayKey == SentReminder.KeinTag ? null : r.DayKey,
+                    r.CreatedAt))
+                .ToList(),
+            gesundheit
+                .OrderByDescending(r => r.Date)
+                .ThenByDescending(r => r.CreatedAt)
+                .Select(r => new GesundheitseintragExportDto(
+                    r.DogId,
+                    r.Kind switch
+                    {
+                        DogHealthKind.Vaccination => "Impfung",
+                        DogHealthKind.Deworming => "Entwurmung",
+                        DogHealthKind.ParasiteProtection => "Parasitenschutz",
+                        DogHealthKind.VetAppointment => "Tierarzttermin",
+                        _ => "Sonstiges"
+                    },
+                    r.Title,
+                    r.Date,
+                    r.Time,
+                    r.DueDate,
+                    r.Note,
                     r.CreatedAt))
                 .ToList());
 
@@ -426,6 +451,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
 
         var pausen = await db.DogPauses.IgnoreQueryFilters()
             .Where(p => alleinMeineHunde.Contains(p.DogId)).ToListAsync(ct);
+        var gesundheit = await db.DogHealthRecords.IgnoreQueryFilters()
+            .Where(r => alleinMeineHunde.Contains(r.DogId)).ToListAsync(ct);
         var bilder = await db.DogImages.IgnoreQueryFilters()
             .Where(i => alleinMeineHunde.Contains(i.DogId)).ToListAsync(ct);
         var hundesportarten = await db.DogSportSelections.IgnoreQueryFilters()
@@ -520,6 +547,10 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         foreach (var p in await db.DogPauses.IgnoreQueryFilters()
                      .Where(p => p.CreatedByUserId == userId).ToListAsync(ct))
             p.CreatedByUserId = null;
+        // Ebenso ein Gesundheitseintrag an einem geteilten Hund.
+        foreach (var r in await db.DogHealthRecords.IgnoreQueryFilters()
+                     .Where(r => r.CreatedByUserId == userId).ToListAsync(ct))
+            r.CreatedByUserId = null;
         // Die Anmeldungen zu Gruppen gehören dem Verein und bleiben - die
         // Kursteilnehmenden sind nicht diese Person. Nur der Verweis auf sie als
         // "hat bezahlt gesetzt" bzw. "hat abgehakt" geht.
@@ -546,6 +577,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         db.ExerciseMasteries.RemoveRange(koennen);
         db.DogSportSelections.RemoveRange(hundesportarten);
         db.DogPauses.RemoveRange(pausen);
+        db.DogHealthRecords.RemoveRange(gesundheit);
         db.DogImages.RemoveRange(bilder);
         db.DogOwners.RemoveRange(besitzzeilen);
         db.Dogs.RemoveRange(hunde);

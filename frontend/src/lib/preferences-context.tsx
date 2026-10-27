@@ -35,6 +35,7 @@ const VORGABE: UserPreferences = {
   reminderSessions: true,
   reminderTracks: true,
   reminderTrainerSummary: true,
+  reminderHealth: true,
   trainerSummaryDays: VORGABE_TAGE,
   trainerSummaryHour: VORGABE_STUNDE,
 };

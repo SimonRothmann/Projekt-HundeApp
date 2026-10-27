@@ -23,6 +23,7 @@ public interface IApplicationDbContext
     DbSet<DogOwner> DogOwners { get; }
     DbSet<DogImage> DogImages { get; }
     DbSet<DogPause> DogPauses { get; }
+    DbSet<DogHealthRecord> DogHealthRecords { get; }
 
     DbSet<Country> Countries { get; }
 

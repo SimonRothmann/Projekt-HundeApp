@@ -63,7 +63,7 @@ public class UserPreference : Entity
     public bool EmailNotifications { get; set; } = true;
 
     // ---- Erinnerungen (Glocke + Push, nie per Mail; siehe Dogity.Application.Reminders) ----
-    // Alle drei Vorgaben "an": Wer vorher nichts eingestellt hat, hat auch
+    // Alle Vorgaben "an": Wer vorher nichts eingestellt hat, hat auch
     // nichts abgelehnt - bestehende Zeilen bekamen mit der Migration dieselben Werte.
 
     /// <summary>Erinnerung am Vortag an Gruppentermine. Standard: ja.</summary>
@@ -71,6 +71,12 @@ public class UserPreference : Entity
 
     /// <summary>Erinnerung an Fährten, die noch nicht abgelaufen wurden. Standard: ja.</summary>
     public bool ReminderTracks { get; set; } = true;
+
+    /// <summary>
+    /// Erinnerung an ablaufende Impfungen, fällige Entwurmung und Tierarzttermine der eigenen
+    /// Hunde. Standard: ja; wird das Modul "gesundheit" abgeschaltet, kommt sie ohnehin nicht.
+    /// </summary>
+    public bool ReminderHealth { get; set; } = true;
 
     /// <summary>Zusammenfassung offener Rückmeldungen (nur für Trainer:innen relevant). Standard: ja.</summary>
     public bool ReminderTrainerSummary { get; set; } = true;

@@ -28,7 +28,8 @@ const MAX_DAUER_JAHRE = 2;
 
 const TAG_MS = 24 * 60 * 60 * 1000;
 
-function tagesnummer(iso: string): number {
+/** Nummer des Kalendertags (Tage seit 1970) - Datumsrechnung ohne Zeitzonen. */
+export function tagesnummer(iso: string): number {
   const [jahr, monat, tag] = iso.slice(0, 10).split("-").map(Number);
   return Math.round(Date.UTC(jahr, monat - 1, tag) / TAG_MS);
 }
@@ -39,7 +40,7 @@ export function plusTage(iso: string, tage: number): string {
 }
 
 /** Der Kalendertag n Jahre später (am 29.2. des Schaltjahres: der 28.). */
-function plusJahre(iso: string, jahre: number): string {
+export function plusJahre(iso: string, jahre: number): string {
   const [jahr, monat, tag] = iso.slice(0, 10).split("-").map(Number);
   const ziel = new Date(Date.UTC(jahr + jahre, monat - 1, tag));
   // Ein Überlauf (29.2. -> 1.3.) fiele in den nächsten Monat: zurück auf den letzten Tag.

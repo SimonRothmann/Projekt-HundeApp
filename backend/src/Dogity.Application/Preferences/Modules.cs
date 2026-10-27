@@ -17,7 +17,8 @@ public static class Modules
     public const string Gruppentraining = "gruppentraining";
     public const string Wetter = "wetter";
     public const string Statistik = "statistik";
+    public const string Gesundheit = "gesundheit";
 
     public static readonly IReadOnlyList<string> Bekannt =
-        [Faehrte, Sachkunde, Gruppentraining, Wetter, Statistik];
+        [Faehrte, Sachkunde, Gruppentraining, Wetter, Statistik, Gesundheit];
 }
