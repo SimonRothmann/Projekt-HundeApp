@@ -27,6 +27,18 @@ Keine Änderung ohne Analyse.
 
 ---
 
+# Arbeitsweise
+
+Es gelten die vier Grundsätze aus [CLAUDE.md](CLAUDE.md):
+erst denken, dann programmieren · Einfachheit zuerst ·
+chirurgische Änderungen · zielgerichtet arbeiten.
+
+Auch für Sub-Worker: Wer niemanden fragen kann,
+entscheidet begründet und nennt die Entscheidung im Bericht.
+
+
+---
+
 # Vorgehen
 
 
