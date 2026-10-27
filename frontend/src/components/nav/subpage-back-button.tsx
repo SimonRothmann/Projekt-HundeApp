@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { useT } from "@/lib/i18n";
+import { internerPfad } from "@/lib/interner-pfad";
 // Top-Level-Routen (über die Navigation direkt erreichbar) - hier gibt es
 // bewusst KEINEN Zurück-Button.
 const ROOT_PATHS = new Set([
@@ -32,17 +33,6 @@ const ROOT_PATHS = new Set([
  * statt zurück in der Gruppe.
  */
 
-/**
- * Nur echte, seiteninterne Pfade zulassen. "//host" wäre für den Browser eine
- * fremde Adresse - ein ?from= aus einem geteilten Link dürfte sonst von der
- * eigenen Seite fortführen.
- */
-function safeInternalPath(value: string | null): string | null {
-  // Auch ein Backslash nach dem ersten Schrägstrich: Browser lesen ihn als "/", aus "/\\host" würde "//host" - eine fremde Seite.
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return null;
-  return value;
-}
-
 export function SubpageBackButton() {
   const t = useT();
   const pathname = usePathname();
@@ -53,7 +43,8 @@ export function SubpageBackButton() {
   if (normalized === "/" || ROOT_PATHS.has(normalized) || normalized.endsWith("/print")) return null;
 
   const parent = normalized.slice(0, normalized.lastIndexOf("/")) || "/dashboard";
-  const target = safeInternalPath(searchParams?.get("from") ?? null) ?? parent;
+  // Nur seiteninterne Ziele: ein ?from= aus einem geteilten Link darf nicht von der Seite fortführen.
+  const target = internerPfad(searchParams?.get("from")) ?? parent;
 
   return (
     <Link
