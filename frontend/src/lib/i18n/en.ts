@@ -2456,4 +2456,6 @@ export const EN: Record<string, string> = {
   "Speichern auch während eines Updates": "Saving even during an update",
   "Wird Dogity gerade aktualisiert und ist kurz nicht erreichbar, landen Trainings, Fährten und Abläufe in der Warteschlange und werden kurz darauf automatisch nachgeschickt, statt eine Fehlermeldung zu zeigen.": "If Dogity is being updated and is briefly unavailable, sessions, tracks and runs are put in the queue and sent automatically a moment later instead of showing an error.",
   "Server gerade nicht erreichbar – gespeichert, wird gleich automatisch nachgeschickt.": "Server currently unavailable – saved, will be sent automatically in a moment.",
+  "Vereine bleiben verwaltet": "Clubs stay managed",
+  "Löscht die letzte Person, die einen Verein verwaltet, ihr Konto, übernimmt die dienstälteste Trainer:in des Vereins die Verwaltung und wird benachrichtigt. So bleibt der Verein handlungsfähig und muss nicht erst vom Betreiber neu besetzt werden.": "If the last person managing a club deletes their account, the club's longest-serving trainer takes over the management and is notified. This keeps the club able to act without the operator having to appoint someone first.",
 };

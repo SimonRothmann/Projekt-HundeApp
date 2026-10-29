@@ -134,8 +134,11 @@ public class AdminService(
         return Result<AdminUserPageDto>.Success(new AdminUserPageDto(dtos, total, totalPages, page, pageSize));
     }
 
-    public async Task<Result> LockUserAsync(Guid userId, CancellationToken ct = default)
+    public async Task<Result> LockUserAsync(Guid userId, Guid callerId, CancellationToken ct = default)
     {
+        if (userId == callerId)
+            return Result.Failure("Eigenes Konto kann nicht gesperrt werden.");
+
         var ok = await userLookup.LockUserAsync(userId, ct);
         if (!ok) return Result.NotFound("Benutzer nicht gefunden.");
         // Refresh-Tokens widerrufen, damit die Sperre sofort greift - sonst
@@ -151,8 +154,11 @@ public class AdminService(
         return ok ? Result.Success() : Result.NotFound("Benutzer nicht gefunden.");
     }
 
-    public async Task<Result> DeleteUserAsync(Guid userId, CancellationToken ct = default)
+    public async Task<Result> DeleteUserAsync(Guid userId, Guid callerId, CancellationToken ct = default)
     {
+        if (userId == callerId)
+            return Result.Failure("Eigenes Konto kann nicht gelöscht werden.");
+
         // Erst die Fachdaten, dann das Konto. In dieser Reihenfolge, weil die
         // Zeilen sonst verwaisen: Sie verweisen nur über die UserId auf das
         // Konto, ohne Fremdschlüssel. Übrig blieb dann etwa eine

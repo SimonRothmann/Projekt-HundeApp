@@ -18,6 +18,9 @@ public class FakeRefreshTokenService : IRefreshTokenService
     public Task<RefreshRotationResult> RotateAsync(string rawToken, CancellationToken ct = default)
         => Task.FromResult(new RefreshRotationResult(false));
 
+    public Task<RefreshRotationResult> RefreshAsync(string rawToken, CancellationToken ct = default)
+        => Task.FromResult(new RefreshRotationResult(false));
+
     public Task RevokeAsync(string rawToken, CancellationToken ct = default)
         => Task.CompletedTask;
 

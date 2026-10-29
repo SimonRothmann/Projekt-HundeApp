@@ -198,7 +198,7 @@ public class GroupRegistrationCleanupTests
         foreach (var id in new[] { a.Leitung, a.CoTrainerin, a.VereinsTrainerin })
             lookup.Register(id, $"{id}@example.com");
 
-        var entfernt = await new CommunityOrphanCleanup(a.Db, lookup).CleanupAsync();
+        var entfernt = await new CommunityOrphanCleanup(a.Db, lookup, new FakeNotificationService()).CleanupAsync();
 
         Assert.Equal(2, entfernt);
         Assert.Equal(bleibt.Id, Assert.Single(await a.Db.GroupRegistrations.IgnoreQueryFilters().ToListAsync()).Id);
@@ -207,7 +207,7 @@ public class GroupRegistrationCleanupTests
 
     // ---- Kontolöschung einer Trainer:in ----
 
-    private static AccountDataService Konto(AnmeldeAufbau a) => new(a.Db, new FakeUserLookupService());
+    private static AccountDataService Konto(AnmeldeAufbau a) => new(a.Db, new FakeUserLookupService(), new FakeNotificationService());
 
     [Fact]
     public async Task Kontoloeschung_SetztVerweiseAufNull_DieAnmeldungenBleiben()
@@ -251,7 +251,7 @@ public class GroupRegistrationCleanupTests
         db.GroupRegistrationAttendances.Add(new GroupRegistrationAttendance { RegistrationId = zeile.Id, Date = Vereinszeit.Heute(), MarkedByUserId = ich });
         await db.SaveChangesAsync();
 
-        await new AccountDataService(db, new FakeUserLookupService()).PurgeAsync(ich);
+        await new AccountDataService(db, new FakeUserLookupService(), new FakeNotificationService()).PurgeAsync(ich);
 
         Assert.Empty(db.GroupRegistrations.IgnoreQueryFilters());
         Assert.Empty(db.GroupRegistrationAttendances.IgnoreQueryFilters());
@@ -277,7 +277,7 @@ public class GroupRegistrationCleanupTests
         var lookup = new FakeUserLookupService();
         lookup.Register(a.Leitung, "leitung@example.com", "Lena", "Leitung");
         await a.AnmeldungAsync("Geheimhund", "0160 424242");
-        var export = (await new AccountDataService(a.Db, lookup).ExportAsync(a.Leitung)).Value!;
+        var export = (await new AccountDataService(a.Db, lookup, new FakeNotificationService()).ExportAsync(a.Leitung)).Value!;
 
         var json = System.Text.Json.JsonSerializer.Serialize(export);
 

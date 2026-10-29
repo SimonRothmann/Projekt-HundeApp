@@ -27,7 +27,7 @@ public class AccountDataServiceTests
     {
         var db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService();
-        return (new AccountDataService(db, lookup), db, lookup);
+        return (new AccountDataService(db, lookup, new FakeNotificationService()), db, lookup);
     }
 
     /// <summary>Hund mit Training, Fährte und einem GPS-Punkt - der typische Datenbestand.</summary>

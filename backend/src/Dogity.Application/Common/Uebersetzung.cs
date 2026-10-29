@@ -54,6 +54,7 @@ public static partial class Uebersetzung
         ["Dein Beitritt zu \"{verein}\" wurde angenommen. Du bist jetzt Mitglied der Gruppe \"{gruppe}\"."] = "Your request to join \"{verein}\" was accepted. You are now a member of the group \"{gruppe}\".",
         ["Dein Beitritt zu \"{verein}\" wurde angenommen. Du bist in die Gruppe \"{gruppe}\" eingeladen - einmal tippen zum Annehmen."] = "Your request to join \"{verein}\" was accepted. You are invited to the group \"{gruppe}\" - tap once to accept.",
         ["Du bist jetzt Trainer bei \"{verein}\"."] = "You are now a trainer at \"{verein}\".",
+        ["Du verwaltest jetzt den Verein \"{verein}\"."] = "You now manage the club \"{verein}\".",
 
         // Gruppe (GroupService, GroupRegistrationFormService, GroupTrainingScheduleService)
         ["{name} lädt dich ein, Trainer:in der Gruppe \"{gruppe}\" zu werden."] = "{name} invites you to become a trainer of the group \"{gruppe}\".",

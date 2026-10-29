@@ -17,7 +17,7 @@ public class AccountDataErinnerungenTests
     {
         var db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService();
-        return (new AccountDataService(db, lookup), db, lookup);
+        return (new AccountDataService(db, lookup, new FakeNotificationService()), db, lookup);
     }
 
     private static SentReminder Erinnerung(Guid nutzer, ReminderType art, Guid? bezug = null, DateOnly? tag = null) => new()

@@ -23,7 +23,7 @@ public class AccountDataPushTests
     {
         var db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService();
-        return (new AccountDataService(db, lookup), db, lookup);
+        return (new AccountDataService(db, lookup, new FakeNotificationService()), db, lookup);
     }
 
     private static PushSubscription Geraet(Guid nutzer, string bezeichnung = "iPhone (Safari)") => new()
@@ -105,7 +105,7 @@ public class AccountDataPushTests
         var weg = Guid.NewGuid();
         db.PushSubscriptions.Add(Geraet(weg));
         await db.SaveChangesAsync();
-        var dienst = new AdminService(db, lookup, new FakeRefreshTokenService(), new AccountDataService(db, lookup));
+        var dienst = new AdminService(db, lookup, new FakeRefreshTokenService(), new AccountDataService(db, lookup, new FakeNotificationService()));
 
         var ergebnis = await dienst.PurgeOrphanedDataAsync(admin);
 

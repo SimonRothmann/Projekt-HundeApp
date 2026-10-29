@@ -1,6 +1,8 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Community;
 using Dogity.Application.Learning;
+using Dogity.Application.Notifications;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Notifications;
@@ -9,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Dogity.Application.Account;
 
 /// <inheritdoc />
-public class AccountDataService(IApplicationDbContext db, IUserLookupService userLookup) : IAccountDataService
+public class AccountDataService(IApplicationDbContext db, IUserLookupService userLookup, INotificationService notifications) : IAccountDataService
 {
     private const string ExportHinweis =
         "Auskunft nach Art. 15 und 20 DSGVO. Diese Datei enthält alles, was Dogity zu deinem Konto " +
@@ -512,6 +514,10 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             }
         }
 
+        // Vereine, deren letzte Verwaltung diese Person ist: Die dienstälteste
+        // Trainer:in rückt nach (die Zeilen dieser Person gehen unten weg).
+        var befoerderungen = await ClubNachfolge.BefoerdernAsync(db, [userId], ct);
+
         // Was anderen gehört, bleibt - nur der Verweis auf diese Person geht.
         // Eine Trainer-Rückmeldung etwa ist Teil des Tagebuchs des Mitglieds;
         // gelöscht würde ihm etwas weggenommen, worauf er sich verlässt.
@@ -599,6 +605,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         db.ClubRegistrations.RemoveRange(vereinsanfragen);
 
         await db.SaveChangesAsync(ct);
+        await ClubNachfolge.MeldenAsync(notifications, befoerderungen, ct);
         return Result.Success();
     }
 }

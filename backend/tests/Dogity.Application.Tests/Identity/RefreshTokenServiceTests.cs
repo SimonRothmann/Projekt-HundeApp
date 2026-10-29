@@ -169,4 +169,95 @@ public class RefreshTokenServiceTests
         // Idempotent: Ein zweiter Lauf findet nichts mehr.
         Assert.Equal(0, await service.DeleteOrphanedAsync());
     }
+
+    // --- RefreshAsync: Rotation plus Kontoprüfung ---
+
+    private static async Task<Guid> LegeKontoAnAsync(ApplicationDbContext db, DateTimeOffset? sperreBis = null)
+    {
+        var konto = new ApplicationUser { UserName = "a@dogity.test", Email = "a@dogity.test", LockoutEnd = sperreBis };
+        db.Users.Add(konto);
+        await db.SaveChangesAsync();
+        return konto.Id;
+    }
+
+    [Fact]
+    public async Task Refresh_AktivesKonto_StelltNeuenTokenAus()
+    {
+        var service = MakeService(out var db);
+        var userId = await LegeKontoAnAsync(db);
+        var token = await service.IssueAsync(userId);
+
+        var ergebnis = await service.RefreshAsync(token);
+
+        Assert.True(ergebnis.Succeeded);
+        Assert.Equal(userId, ergebnis.UserId);
+        Assert.NotNull(ergebnis.NewRawToken);
+        // Der neue Token arbeitet weiter.
+        Assert.True((await service.RefreshAsync(ergebnis.NewRawToken!)).Succeeded);
+    }
+
+    [Fact]
+    public async Task Refresh_UnbekannterToken_Scheitert()
+    {
+        var service = MakeService();
+
+        Assert.False((await service.RefreshAsync("nie-ausgestellt")).Succeeded);
+    }
+
+    [Fact]
+    public async Task Refresh_DauerhaftGesperrt_Verweigert_UndWiderruftAlleTokens()
+    {
+        var service = MakeService(out var db);
+        var userId = await LegeKontoAnAsync(db, DateTimeOffset.MaxValue);
+        var handy = await service.IssueAsync(userId);
+        var laptop = await service.IssueAsync(userId);
+
+        var ergebnis = await service.RefreshAsync(handy);
+
+        Assert.False(ergebnis.Succeeded);
+        // Auch das zweite Gerät ist raus, und der gerade rotierte Nachfolger
+        // ebenfalls: Es bleibt kein aktiver Token übrig.
+        Assert.False((await service.RotateAsync(laptop)).Succeeded);
+        Assert.DoesNotContain(db.RefreshTokens, t => t.UserId == userId && t.RevokedAt == null);
+    }
+
+    [Fact]
+    public async Task Refresh_KontoGeloescht_Verweigert_UndRaeumtDieTokensAuf()
+    {
+        var service = MakeService(out var db);
+        var userId = Guid.NewGuid();
+        var token = await service.IssueAsync(userId);
+        await service.IssueAsync(userId);
+
+        var ergebnis = await service.RefreshAsync(token);
+
+        Assert.False(ergebnis.Succeeded);
+        Assert.Empty(db.RefreshTokens.Where(t => t.UserId == userId));
+    }
+
+    [Fact]
+    public async Task Refresh_VoruebergehendGesperrt_GehtWeiter()
+    {
+        var service = MakeService(out var db);
+        // Sperre nach Fehlversuchen: ein paar Minuten, kein Grund, laufende
+        // Sitzungen zu beenden (sonst sperrte jede:r mit der E-Mail-Adresse
+        // andere aus).
+        var userId = await LegeKontoAnAsync(db, DateTimeOffset.UtcNow.AddMinutes(5));
+        var token = await service.IssueAsync(userId);
+
+        var ergebnis = await service.RefreshAsync(token);
+
+        Assert.True(ergebnis.Succeeded);
+        Assert.Equal(userId, ergebnis.UserId);
+    }
+
+    [Fact]
+    public async Task Refresh_AbgelaufeneSperre_GehtWeiter()
+    {
+        var service = MakeService(out var db);
+        var userId = await LegeKontoAnAsync(db, DateTimeOffset.UtcNow.AddMinutes(-1));
+        var token = await service.IssueAsync(userId);
+
+        Assert.True((await service.RefreshAsync(token)).Succeeded);
+    }
 }

@@ -11,6 +11,9 @@ namespace Dogity.Application.Tests.Admin;
 /// </summary>
 public class AdminServiceTests
 {
+    /// <summary>Die aufrufende Admin-Person - nie dasselbe Konto wie das Ziel.</summary>
+    private static readonly Guid Admin = Guid.NewGuid();
+
     private static AdminService MakeService(out FakeUserLookupService lookup) => MakeService(out lookup, out _);
 
     private static AdminService MakeService(out FakeUserLookupService lookup, out FakeRefreshTokenService refreshTokens)
@@ -20,7 +23,7 @@ public class AdminServiceTests
         refreshTokens = new FakeRefreshTokenService();
         // Echter AccountDataService: Das Löschen eines Kontos muss dessen
         // Daten mitnehmen - bleibt das aus, verwaisen die Zeilen.
-        return new AdminService(db, lookup, refreshTokens, new AccountDataService(db, lookup));
+        return new AdminService(db, lookup, refreshTokens, new AccountDataService(db, lookup, new FakeNotificationService()));
     }
 
     [Fact]
@@ -30,7 +33,7 @@ public class AdminServiceTests
         var userId = Guid.NewGuid();
         lookup.Register(userId, "user@test.de");
 
-        var result = await service.LockUserAsync(userId);
+        var result = await service.LockUserAsync(userId, Admin);
 
         Assert.True(result.Succeeded);
     }
@@ -42,11 +45,42 @@ public class AdminServiceTests
         var userId = Guid.NewGuid();
         lookup.Register(userId, "user@test.de");
 
-        await service.LockUserAsync(userId);
+        await service.LockUserAsync(userId, Admin);
 
         // Sperre muss die Sitzungen sofort beenden - sonst könnte der Nutzer
         // bis zum Access-Token-Ablauf weiter neue Tokens nachladen.
         Assert.Contains(userId, refreshTokens.RevokedAllForUsers);
+    }
+
+    [Fact]
+    public async Task LockUser_EigenesKonto_WirdAbgelehntUndNichtGesperrt()
+    {
+        var service = MakeService(out var lookup, out var refreshTokens);
+        lookup.Register(Admin, "admin@test.de");
+
+        var result = await service.LockUserAsync(Admin, Admin);
+
+        Assert.False(result.Succeeded);
+        Assert.False(result.IsNotFound);
+        Assert.Equal(["Eigenes Konto kann nicht gesperrt werden."], result.Errors);
+        // Nichts davon darf passiert sein: weder gesperrt noch abgemeldet.
+        Assert.Empty(refreshTokens.RevokedAllForUsers);
+    }
+
+    [Fact]
+    public async Task DeleteUser_EigenesKonto_WirdAbgelehntUndBleibtBestehen()
+    {
+        var service = MakeService(out var lookup, out var refreshTokens);
+        lookup.Register(Admin, "admin@test.de");
+
+        var result = await service.DeleteUserAsync(Admin, Admin);
+
+        Assert.False(result.Succeeded);
+        Assert.False(result.IsNotFound);
+        Assert.Equal(["Eigenes Konto kann nicht gelöscht werden."], result.Errors);
+        Assert.Empty(refreshTokens.DeletedAllForUsers);
+        var seite = await service.GetUsersAsync();
+        Assert.Contains(seite.Value!.Users, u => u.Id == Admin);
     }
 
     [Fact]
@@ -69,7 +103,7 @@ public class AdminServiceTests
     {
         var service = MakeService(out _);
 
-        var result = await service.LockUserAsync(Guid.NewGuid());
+        var result = await service.LockUserAsync(Guid.NewGuid(), Admin);
 
         Assert.False(result.Succeeded);
     }
@@ -81,7 +115,7 @@ public class AdminServiceTests
         var userId = Guid.NewGuid();
         lookup.Register(userId, "user@test.de");
 
-        var result = await service.DeleteUserAsync(userId);
+        var result = await service.DeleteUserAsync(userId, Admin);
 
         Assert.True(result.Succeeded);
         // Anschließend sollte der User im Fake nicht mehr vorhanden sein
@@ -96,7 +130,7 @@ public class AdminServiceTests
         var userId = Guid.NewGuid();
         lookup.Register(userId, "user@test.de");
 
-        await service.DeleteUserAsync(userId);
+        await service.DeleteUserAsync(userId, Admin);
 
         // Endgültig gelöscht statt nur widerrufen: Die Zeilen eines gelöschten
         // Kontos haben keinen Zweck mehr.
@@ -108,7 +142,7 @@ public class AdminServiceTests
     {
         var service = MakeService(out _, out var refreshTokens);
 
-        var result = await service.DeleteUserAsync(Guid.NewGuid());
+        var result = await service.DeleteUserAsync(Guid.NewGuid(), Admin);
 
         Assert.False(result.Succeeded);
         Assert.Empty(refreshTokens.DeletedAllForUsers);
@@ -237,7 +271,7 @@ public class AdminServiceTests
     {
         var db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService();
-        var service = new AdminService(db, lookup, new FakeRefreshTokenService(), new AccountDataService(db, lookup));
+        var service = new AdminService(db, lookup, new FakeRefreshTokenService(), new AccountDataService(db, lookup, new FakeNotificationService()));
 
         var userId = Guid.NewGuid();
         lookup.Register(userId, "weg@test.de");
@@ -247,7 +281,7 @@ public class AdminServiceTests
         aufbau.Gruppenmitglied(userId, Domain.Community.GroupMemberStatus.Active);
         await aufbau.Speichern();
 
-        var ergebnis = await service.DeleteUserAsync(userId);
+        var ergebnis = await service.DeleteUserAsync(userId, Admin);
 
         Assert.True(ergebnis.Succeeded);
         // Sonst stünde die offene Anfrage für immer als "(unbekannt)" in der

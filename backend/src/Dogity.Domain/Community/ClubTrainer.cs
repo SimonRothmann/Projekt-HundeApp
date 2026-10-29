@@ -40,9 +40,9 @@ public class ClubTrainer : Entity
     public Guid UserId { get; set; }
 
     /// <summary>
-    /// Beim Backfill bekommen alle bestehenden Zuweisungen
-    /// <see cref="ClubRole.Verwaltung"/> - niemand soll durch die Einführung
-    /// Rechte verlieren, die er vorher hatte.
+    /// Fällt die letzte <see cref="ClubRole.Verwaltung"/> eines Vereins durch
+    /// Kontolöschung weg, rückt die dienstälteste Trainer:in nach (siehe
+    /// <c>ClubNachfolge</c>).
     /// </summary>
     public ClubRole Role { get; set; } = ClubRole.Training;
 }

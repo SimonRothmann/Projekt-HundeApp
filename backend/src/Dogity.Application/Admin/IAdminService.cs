@@ -8,9 +8,14 @@ public interface IAdminService
     Task<Result<AdminUserPageDto>> GetUsersAsync(int page = 1, int pageSize = 50, string? suche = null, CancellationToken ct = default);
     Task<Result> UpdateRegulationSourceAsync(Guid regulationId, UpdateRegulationSourceRequest request, CancellationToken ct = default);
 
-    Task<Result> LockUserAsync(Guid userId, CancellationToken ct = default);
+    /// <summary>
+    /// Sperrt bzw. löscht ein Konto. <paramref name="callerId"/> ist die
+    /// aufrufende Admin-Person: Das eigene Konto sperrt oder löscht niemand
+    /// versehentlich selbst (sonst gäbe es womöglich keinen Admin mehr).
+    /// </summary>
+    Task<Result> LockUserAsync(Guid userId, Guid callerId, CancellationToken ct = default);
     Task<Result> UnlockUserAsync(Guid userId, CancellationToken ct = default);
-    Task<Result> DeleteUserAsync(Guid userId, CancellationToken ct = default);
+    Task<Result> DeleteUserAsync(Guid userId, Guid callerId, CancellationToken ct = default);
 
     /// <summary>
     /// Zählt die Daten von Konten, die es nicht mehr gibt (Altlast aus der Zeit

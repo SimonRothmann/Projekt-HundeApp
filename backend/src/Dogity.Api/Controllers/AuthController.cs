@@ -143,28 +143,12 @@ public class AuthController(
     {
         // Rotation: der vorgelegte Refresh-Token wird entwertet und ein neuer
         // ausgestellt. Bei Wiedervorlage eines bereits verbrauchten Tokens
-        // widerruft der Service alle Tokens des Nutzers (Reuse-Erkennung).
-        var rotation = await refreshTokens.RotateAsync(request.RefreshToken);
-        if (!rotation.Succeeded)
+        // widerruft der Service alle Tokens des Nutzers (Reuse-Erkennung); bei
+        // gelöschtem oder gesperrtem Konto verweigert er die Erneuerung.
+        var rotation = await refreshTokens.RefreshAsync(request.RefreshToken);
+        var user = rotation.Succeeded ? await userManager.FindByIdAsync(rotation.UserId.ToString()) : null;
+        if (user is null)
             return Unauthorized(new { errors = new[] { "Sitzung abgelaufen. Bitte neu anmelden." } });
-
-        var user = await userManager.FindByIdAsync(rotation.UserId.ToString());
-        // Nutzer inzwischen vom Admin gesperrt oder gelöscht: kein neuer
-        // Access-Token, alle Sitzungen enden. Die kurze Sperre nach falschen
-        // Passwörtern zählt hier NICHT - die kann jede:r mit der E-Mail-Adresse
-        // auslösen, und der Refresh-Token belegt eine frühere erfolgreiche
-        // Anmeldung (siehe Sperren).
-        if (user is null || Sperren.Bestimme(user.LockoutEnd, timeProvider.GetUtcNow()) == Sperrart.Dauerhaft)
-        {
-            // Ohne Konto gibt es nichts mehr zu widerrufen, die Zeilen sind
-            // Altlast (z. B. nach einer Löschung, die mittendrin abbrach).
-            if (user is null)
-                await refreshTokens.DeleteAllForUserAsync(rotation.UserId);
-            else
-                await refreshTokens.RevokeAllForUserAsync(rotation.UserId);
-            return Unauthorized(new { errors = new[] { "Sitzung abgelaufen. Bitte neu anmelden." } });
-        }
-
         var roles = await userManager.GetRolesAsync(user);
         var accessToken = jwtTokenGenerator.GenerateToken(user.Id, user.Email!, roles.ToArray());
         return Ok(new AuthResponse(accessToken, rotation.NewRawToken!, user.Id, user.Email!, user.FirstName, user.LastName, roles.ToArray()));

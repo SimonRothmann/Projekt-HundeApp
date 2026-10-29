@@ -21,6 +21,15 @@ public interface IRefreshTokenService
     /// </summary>
     Task<RefreshRotationResult> RotateAsync(string rawToken, CancellationToken ct = default);
 
+    /// <summary>
+    /// Die Token-Erneuerung der Anmeldung: <see cref="RotateAsync"/> plus
+    /// Prüfung des Kontos. Ist es inzwischen gelöscht oder vom Admin dauerhaft
+    /// gesperrt, gibt es keinen neuen Token, und alle Sitzungen des Nutzers
+    /// enden. Die kurze Sperre nach falschen Passwörtern zählt hier NICHT (siehe
+    /// <see cref="Sperren"/>).
+    /// </summary>
+    Task<RefreshRotationResult> RefreshAsync(string rawToken, CancellationToken ct = default);
+
     /// <summary>Widerruft einen einzelnen Roh-Token (Logout auf diesem Gerät). Idempotent.</summary>
     Task RevokeAsync(string rawToken, CancellationToken ct = default);
 

@@ -61,6 +61,17 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.44",
+    datum: "2026-10-29",
+    titel: uebersetzbar("Vereine bleiben verwaltet"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Löscht die letzte Person, die einen Verein verwaltet, ihr Konto, übernimmt die dienstälteste Trainer:in des Vereins die Verwaltung und wird benachrichtigt. So bleibt der Verein handlungsfähig und muss nicht erst vom Betreiber neu besetzt werden."),
+      },
+    ],
+  },
+  {
     version: "0.43",
     datum: "2026-10-29",
     titel: uebersetzbar("Speichern auch während eines Updates"),

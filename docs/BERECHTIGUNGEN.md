@@ -33,6 +33,13 @@ mit `isAdmin`).
     berufen und abberufen, Mitglieder zur Trainer:in machen.
   - *Training* (`ClubRole.Training`): Mitglieder und Anfragen sehen, einladen,
     Anfragen entscheiden, Gruppen verwalten, Termine planen.
+  - *Nachfolge:* Fällt die letzte Verwaltung eines Vereins durch Kontolöschung
+    (`AccountDataService.PurgeAsync`) oder Aufräumen verwaister Daten
+    (`CommunityOrphanCleanup`) weg, wird die dienstälteste verbleibende
+    Trainer:in (früheste Zuweisung, bei Gleichstand nach Id) zur Verwaltung und
+    benachrichtigt (`ClubNachfolge`). Bleibt eine zweite Verwaltung, rückt
+    niemand nach; gibt es keine Trainer:in mehr, bleibt der Verein ohne
+    Verwaltung, bis ein Admin jemanden einsetzt.
   - Beide sehen alle Gruppen ihres Vereins. Trainer:in wird nur, wer
     **freigegebenes Mitglied dieses Vereins** ist.
 - **Gruppentrainer:in**: leitet eine Gruppe (`Group.TrainerId`) oder betreut sie

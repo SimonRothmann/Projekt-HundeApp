@@ -62,7 +62,6 @@ public static class DependencyInjection
         services.AddScoped<IStatsService, StatsService>();
         services.AddScoped<IPreferenceService, PreferenceService>();
         services.AddScoped<IErinnerungService, ErinnerungService>();
-        services.AddScoped<IClubRoleBackfill, ClubRoleBackfill>();
         services.AddScoped<IClubRegistrationService, ClubRegistrationService>();
         services.AddScoped<IOnboardingService, OnboardingService>();
         services.AddScoped<ISachkundeService, SachkundeService>();

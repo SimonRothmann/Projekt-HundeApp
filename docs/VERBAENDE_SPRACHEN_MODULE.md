@@ -311,10 +311,10 @@ hängen Sprache und Module am selben Ort, und die Regel "englische Oberfläche
 **Schritt 2 umgesetzt (2026-09-03):** Vereins-Selbstverwaltung, Teil A.
 
 - `ClubTrainer.Role` mit den Stufen `Training` und `Verwaltung`. Ein
-  einmaliger Backfill gibt allen bestehenden Zuweisungen `Verwaltung` -
-  niemand verliert Rechte, die er vorher hatte. Er greift nur bei Vereinen
-  ganz ohne verwaltende Person, damit er spätere bewusste Herabstufungen
-  nicht wieder aufhebt.
+  einmaliger Backfill gab allen bestehenden Zuweisungen `Verwaltung` -
+  niemand verlor Rechte, die er vorher hatte. Er ist seit 0.44 entfernt (auf
+  Produktion hatten alle Vereine eine Verwaltung); an seine Stelle trat die
+  Nachfolge-Regel in `ClubNachfolge` (siehe docs/BERECHTIGUNGEN.md).
 - Neu für Vereine selbst: umbenennen (`PUT /api/clubs/{id}` - ging bisher
   für niemanden, auch nicht für Admins), Trainer:innen berufen und
   abberufen, Rolle ändern.

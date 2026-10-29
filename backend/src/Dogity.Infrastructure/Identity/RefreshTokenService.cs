@@ -75,6 +75,33 @@ public class RefreshTokenService(ApplicationDbContext db, IOptions<JwtSettings> 
         return new RefreshRotationResult(true, existing.UserId, newRaw);
     }
 
+    public async Task<RefreshRotationResult> RefreshAsync(string rawToken, CancellationToken ct = default)
+    {
+        var rotation = await RotateAsync(rawToken, ct);
+        if (!rotation.Succeeded) return rotation;
+
+        // Nutzer inzwischen vom Admin gesperrt oder gelöscht: kein neuer
+        // Access-Token, alle Sitzungen enden. Die kurze Sperre nach falschen
+        // Passwörtern zählt hier NICHT - die kann jede:r mit der E-Mail-Adresse
+        // auslösen, und der Refresh-Token belegt eine frühere erfolgreiche
+        // Anmeldung (siehe Sperren).
+        var konto = await db.Users
+            .Where(u => u.Id == rotation.UserId)
+            .Select(u => new { u.LockoutEnd })
+            .FirstOrDefaultAsync(ct);
+        if (konto is not null
+            && Sperren.Bestimme(konto.LockoutEnd, DateTimeOffset.UtcNow) != Sperrart.Dauerhaft)
+            return rotation;
+
+        // Ohne Konto gibt es nichts mehr zu widerrufen, die Zeilen sind
+        // Altlast (z. B. nach einer Löschung, die mittendrin abbrach).
+        if (konto is null)
+            await DeleteAllForUserAsync(rotation.UserId, ct);
+        else
+            await RevokeAllForUserAsync(rotation.UserId, ct);
+        return new RefreshRotationResult(false);
+    }
+
     public async Task RevokeAsync(string rawToken, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(rawToken)) return;

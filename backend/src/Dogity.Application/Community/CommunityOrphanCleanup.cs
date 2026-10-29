@@ -1,4 +1,5 @@
 using Dogity.Application.Abstractions;
+using Dogity.Application.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Community;
@@ -23,7 +24,7 @@ public interface ICommunityOrphanCleanup
 }
 
 /// <inheritdoc />
-public class CommunityOrphanCleanup(IApplicationDbContext db, IUserLookupService users) : ICommunityOrphanCleanup
+public class CommunityOrphanCleanup(IApplicationDbContext db, IUserLookupService users, INotificationService notifications) : ICommunityOrphanCleanup
 {
     public async Task<int> CleanupAsync(CancellationToken ct = default)
     {
@@ -63,6 +64,10 @@ public class CommunityOrphanCleanup(IApplicationDbContext db, IUserLookupService
         var verwaist = betroffene.Where(id => !vorhanden.ContainsKey(id)).ToHashSet();
         if (verwaist.Count == 0) return anmeldungen;
 
+        // Fiel damit die letzte Verwaltung eines Vereins weg, rückt die
+        // dienstälteste Trainer:in nach (siehe ClubNachfolge).
+        var befoerderungen = await ClubNachfolge.BefoerdernAsync(db, verwaist, ct);
+
         var jetzt = DateTimeOffset.UtcNow;
         var entfernt = 0;
 
@@ -82,6 +87,7 @@ public class CommunityOrphanCleanup(IApplicationDbContext db, IUserLookupService
         Weg(zuweisungen.Where(a => verwaist.Contains(a.TrainerId) || verwaist.Contains(a.MemberId)));
 
         if (entfernt > 0) await db.SaveChangesAsync(ct);
+        await ClubNachfolge.MeldenAsync(notifications, befoerderungen, ct);
         return entfernt + anmeldungen;
     }
 }

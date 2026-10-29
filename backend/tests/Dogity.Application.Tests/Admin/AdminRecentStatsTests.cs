@@ -25,7 +25,7 @@ public class AdminRecentStatsTests
     {
         var db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService();
-        return (new AdminService(db, lookup, new FakeRefreshTokenService(), new AccountDataService(db, lookup)), db, lookup);
+        return (new AdminService(db, lookup, new FakeRefreshTokenService(), new AccountDataService(db, lookup, new FakeNotificationService())), db, lookup);
     }
 
     private static Guid NeuesKonto(FakeUserLookupService lookup, DateTimeOffset angelegt)

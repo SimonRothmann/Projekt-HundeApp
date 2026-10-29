@@ -31,7 +31,7 @@ public class OrphanedDataTests
         var lookup = new FakeUserLookupService();
         var admin = Guid.NewGuid();
         lookup.Register(admin, "admin@test.de");
-        return (new AdminService(db, lookup, new FakeRefreshTokenService(), new AccountDataService(db, lookup)), db, lookup, admin);
+        return (new AdminService(db, lookup, new FakeRefreshTokenService(), new AccountDataService(db, lookup, new FakeNotificationService())), db, lookup, admin);
     }
 
     /// <summary>Hund mit einem Besitzer, einem Training, einem Ziel und einer Benachrichtigung.</summary>
@@ -210,8 +210,8 @@ public class OrphanedDataTests
 
         using var db1 = NeuerKontext();
         using var db2 = NeuerKontext();
-        var dienst1 = new AdminService(db1, lookup, new FakeRefreshTokenService(), new AccountDataService(db1, lookup));
-        var dienst2 = new AdminService(db2, lookup, new FakeRefreshTokenService(), new AccountDataService(db2, lookup));
+        var dienst1 = new AdminService(db1, lookup, new FakeRefreshTokenService(), new AccountDataService(db1, lookup, new FakeNotificationService()));
+        var dienst2 = new AdminService(db2, lookup, new FakeRefreshTokenService(), new AccountDataService(db2, lookup, new FakeNotificationService()));
 
         var ergebnisse = await Task.WhenAll(dienst1.PurgeOrphanedDataAsync(admin), dienst2.PurgeOrphanedDataAsync(admin));
 
@@ -228,7 +228,7 @@ public class OrphanedDataTests
     {
         var db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService(); // kein einziges Konto
-        var dienst = new AdminService(db, lookup, new FakeRefreshTokenService(), new AccountDataService(db, lookup));
+        var dienst = new AdminService(db, lookup, new FakeRefreshTokenService(), new AccountDataService(db, lookup, new FakeNotificationService()));
         HundMitAllem(db, Guid.NewGuid());
         await db.SaveChangesAsync();
 
