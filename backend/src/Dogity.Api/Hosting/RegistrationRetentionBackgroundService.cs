@@ -32,7 +32,7 @@ public class RegistrationRetentionBackgroundService(
                 if (count > 0)
                     logger.LogInformation("Aufbewahrungsfrist: {Count} Gruppen-Anmeldungen gelöscht.", count);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 break; // App fährt herunter - sauber beenden.
             }

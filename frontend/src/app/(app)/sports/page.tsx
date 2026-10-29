@@ -112,8 +112,8 @@ export default function SportsPage() {
   async function reloadUncategorized() {
     try {
       setUncategorized(await api.get<Exercise[]>("/api/exercises/uncategorized"));
-    } catch {
-      /* still */
+    } catch (err) {
+      toast.error(apiError(err, t("Übungen ohne Kategorie konnten nicht neu geladen werden.")));
     }
   }
   async function reloadRegulation(regulationId: string) {

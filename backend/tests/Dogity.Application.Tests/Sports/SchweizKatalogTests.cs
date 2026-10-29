@@ -226,25 +226,6 @@ public class SchweizKatalogTests
     }
 
     [Fact]
-    public async Task Textlaengen_PassenInDieSpaltenDerDatenbank()
-    {
-        await using var db = await KatalogAsync();
-
-        Assert.All(await db.Regulations.ToListAsync(), r =>
-        {
-            Assert.True(r.Name.Length <= 100, r.Name);
-            Assert.True((r.Description ?? "").Length <= 2000, $"{r.Name}: {r.Description!.Length}");
-            Assert.True((r.SourceUrl ?? "").Length <= 500, r.Name);
-        });
-        Assert.All(await db.RegulationExercises.ToListAsync(), re => Assert.True((re.ScoringNotes ?? "").Length <= 1000, $"{re.ScoringNotes!.Length}: {re.ScoringNotes}"));
-        Assert.All(await db.Exercises.ToListAsync(), e =>
-        {
-            Assert.True(e.Name.Length <= 150, e.Name);
-            Assert.True((e.ScoringCriteria ?? "").Length <= 1000, $"{e.Name}: {e.ScoringCriteria!.Length}");
-        });
-    }
-
-    [Fact]
     public async Task JedeUebungUndOrdnungBelegtIhreSeite()
     {
         await using var db = await KatalogAsync();

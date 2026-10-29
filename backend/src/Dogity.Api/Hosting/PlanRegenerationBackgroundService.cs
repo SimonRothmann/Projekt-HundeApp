@@ -29,7 +29,7 @@ public class PlanRegenerationBackgroundService(
                 if (count > 0)
                     logger.LogInformation("Adaptive Trainingsplan-Regenerierung: {Count} Ziele aktualisiert.", count);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 break; // App fährt herunter - sauber beenden.
             }

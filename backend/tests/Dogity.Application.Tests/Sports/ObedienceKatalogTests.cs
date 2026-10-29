@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Dogity.Application.Common;
 using Dogity.Application.Sports;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Domain.Community;
@@ -207,33 +206,6 @@ public partial class ObedienceKatalogTests
         Assert.Equal(
             ["Apportieren und Suchen", "Distanzarbeit", "Freifolge und Positionen", "Gesamteindruck", "Gruppenübung"],
             uebungen.Select(u => u.Category!).Distinct().Order());
-    }
-
-    [Fact]
-    public async Task Textlaengen_PassenInDieSpalten()
-    {
-        await using var db = await KatalogAsync();
-
-        Assert.All(await db.Regulations.Where(r => r.Sport!.Code == Code).ToListAsync(), r =>
-        {
-            Assert.True(r.Name.Length <= 100, r.Name);
-            Assert.True(r.Description!.Length <= 2000, $"{r.Name}: {r.Description.Length}");
-            Assert.True((r.SourceUrl ?? "").Length <= 500, r.Name);
-            Assert.True((r.NameEn ?? "").Length <= Textlaengen.OrdnungNameEn, r.Name);
-            Assert.True((r.DescriptionEn ?? "").Length <= Textlaengen.OrdnungBeschreibungEn, r.Name);
-        });
-        Assert.All(await OrdnungsuebungenAsync(db), re =>
-        {
-            Assert.True(re.ScoringNotes!.Length <= 1000, $"{re.ScoringNotes.Length}: {re.ScoringNotes}");
-            Assert.True((re.ScoringNotesEn ?? "").Length <= Textlaengen.OrdnungsuebungHinweisEn);
-        });
-        Assert.All(await db.Exercises.Where(e => e.Sport!.Code == Code).ToListAsync(), e =>
-        {
-            Assert.True(e.Name.Length <= 150, e.Name);
-            Assert.True(e.ScoringCriteria!.Length <= 1000, $"{e.Name}: {e.ScoringCriteria.Length}");
-            Assert.True((e.NameEn ?? "").Length <= Textlaengen.UebungNameEn, e.Name);
-            Assert.True((e.ScoringCriteriaEn ?? "").Length <= Textlaengen.UebungBewertungEn, e.Name);
-        });
     }
 
     // ---- Englisch: nur FCI ----

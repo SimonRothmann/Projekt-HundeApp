@@ -148,7 +148,13 @@ export default function SchedulePage() {
     if (!clubId) return;
     api.get<Group[]>(`/api/clubs/${clubId}/groups`).then(setGroups).catch(() => setGroups([]));
     api.get<GroupTrainingLibrary>(`/api/group-training/clubs/${clubId}/library`).then(setLibrary).catch(() => setLibrary(null));
-    api.get<SessionTrainer[]>(`/api/group-training/schedule/clubs/${clubId}/trainers`).then(setClubTrainers).catch(() => setClubTrainers([]));
+    api.get<SessionTrainer[]>(`/api/group-training/schedule/clubs/${clubId}/trainers`).then(setClubTrainers).catch((err) => {
+      // Die Auswahl bleibt leer, aber die Ursache wird gemeldet.
+      setClubTrainers([]);
+      toast.error(err instanceof ApiError ? err.message : t("Trainer:innen konnten nicht geladen werden."));
+    });
+    // t bewusst nicht in den Abhängigkeiten: ein Sprachwechsel lädt nichts neu.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubId]);
 
   useEffect(() => {

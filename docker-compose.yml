@@ -131,10 +131,11 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      # Bewusst "Development" statt "Production": nur dann laufen
-      # Migrationen + Seeder (Sportarten-/Übungskatalog, Demo-Account)
-      # automatisch beim Start (siehe Program.cs) - für eine Testumgebung
-      # mit Demo-Daten genau das gewünschte Verhalten. CORS ist dadurch in
+      # Bewusst "Development" statt "Production": nur dann läuft der
+      # Demo-Teil der Seeder (erfundene Accounts/Daten, Swagger-UI). Migration
+      # und Katalog-Seeder laufen in jeder Umgebung bei jedem Start (siehe
+      # Program.cs) - für eine Testumgebung mit Demo-Daten genau das
+      # gewünschte Verhalten. CORS ist dadurch in
       # Test permissiv (jede Origin erlaubt) statt auf Cors:AllowedOrigins
       # beschränkt - für eine nicht öffentlich beworbene Testumgebung
       # akzeptabel, für Prod bewusst NICHT verwendet.

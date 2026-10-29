@@ -1909,8 +1909,10 @@ public static partial class SportCatalogSeeder
                 // vergessene Ergänzung im zugehörigen SeedSportAsync-Aufruf),
                 // führte sonst dazu, dass eine ganze Pflichtübung einfach
                 // unbemerkt fehlte - genau die Art von Lücke, die zum
-                // Nutzer-Feedback "Bausteine fehlen" geführt hat. Läuft nur in
-                // Development (siehe Program.cs), bricht also nie Production.
+                // Nutzer-Feedback "Bausteine fehlen" geführt hat. Der Seeder
+                // läuft bei jedem Start, auch in Production (siehe Program.cs):
+                // der Fehler verhindert den Start - der Deploy fällt auf, statt
+                // dass eine Pflichtübung still fehlt.
                 throw new InvalidOperationException(
                     $"Seed-Fehler: Übung \"{exerciseSeed.ExerciseName}\" für Prüfungsordnung \"{seed.Name}\" ({seed.VersionLabel}) " +
                     $"ist nicht in der Exercise-Liste der Sportart \"{sport.Code}\" deklariert (SeedSportAsync-Aufruf prüfen - " +

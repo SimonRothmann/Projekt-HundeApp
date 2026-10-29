@@ -30,7 +30,7 @@ public class ErinnerungBackgroundService(
                 if (gesendet > 0)
                     logger.LogInformation("Erinnerungen: {Count} versendet.", gesendet);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 break; // App fährt herunter - sauber beenden.
             }

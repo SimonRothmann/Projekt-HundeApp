@@ -77,16 +77,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     let cancelled = false;
-    api
-      .get<{ isTrainer: boolean }>("/api/groups/my-trainer-status")
-      .then((res) => {
-        if (!cancelled) setIsTrainer(res.isTrainer);
-      })
-      .catch(() => {
-        if (!cancelled) setIsTrainer(false);
-      });
+    let wiederholung: ReturnType<typeof setTimeout> | undefined;
+    function ermittle(nochmal: boolean) {
+      api
+        .get<{ isTrainer: boolean }>("/api/groups/my-trainer-status")
+        .then((res) => {
+          if (!cancelled) setIsTrainer(res.isTrainer);
+        })
+        .catch(() => {
+          // Ein Fehler heißt "unbekannt" (null), nicht "kein Trainer": Sonst
+          // verlöre eine Trainer:in bei einem Netzfehler das Trainer-Menü bis
+          // zum Neuladen. Einmal nach kurzer Pause nachfragen, dann null lassen.
+          if (!cancelled && nochmal) wiederholung = setTimeout(() => ermittle(false), 5_000);
+        });
+    }
+    ermittle(true);
     return () => {
       cancelled = true;
+      clearTimeout(wiederholung);
     };
   }, [user]);
 
