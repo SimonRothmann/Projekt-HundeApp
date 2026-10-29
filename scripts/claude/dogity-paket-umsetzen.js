@@ -8,18 +8,21 @@ export const meta = {
   ],
 }
 
-const REPO = '/Users/Simon.Rothmann/Documents/Workspace/Privat/Projekt-HundeApp'
+const REPO = '/Users/simon/Workspace/Privat/Projekt-HundeApp'
 
 const REGELN = `Repo: ${REPO} (Branch master). Dogity = Hundesport-App: frontend/ (Next.js App Router, React, Tailwind, vitest), backend/ (.NET 10, EF Core 10, Postgres; Schichten Domain/Application/Infrastructure/Api; Tests in backend/tests).
 
+Werkzeuge: vor jedem Befehl `export PATH=/opt/homebrew/bin:$PATH DOTNET_ROOT=/opt/homebrew/opt/dotnet/libexec DOTNET_CLI_TELEMETRY_OPTOUT=1` (node, npm, dotnet kommen aus Homebrew).
+
 Verbindliche Regeln:
+- Das Repo ist öffentlich: keine Angriffswege in Doku, TODO oder Kommentaren beschreiben, solange eine Lücke offen ist; keine Geheimnisse.
 - Lies zuerst CLAUDE.md (vier Grundsätze der Arbeitsweise), AI_RULES.md und CODING_GUIDELINES.md (kurz). Schreib Code wie der umgebende Code: Benennung, Idiom, Kommentardichte. Kommentare erklären das Warum, auf Deutsch wie im Rest.
 - Backend: Result-Muster und dünne Controller wie vorhanden. EF-Konfigurationen in Infrastructure/Persistence/Configurations. Soft Delete (DeletedAt) + globale Query-Filter in ApplicationDbContext - neue Entitäten brauchen beides. Migration mit dotnet ef (Befehl/Pfade aus vorhandenen Migrationen ableiten); Defaults so, dass bestehende Zeilen gültig bleiben. Enum-Speicherung wie beim Nachbar-Enum derselben Entität.
-- Personenbezogene Daten: Neue Daten müssen in AccountDataService (Datenexport UND Kontolöschung/Purge) berücksichtigt sein; bei neuer Verarbeitung docs/VERARBEITUNGSVERZEICHNIS.md und frontend/src/app/datenschutz/page.tsx nachziehen (und das STAND-Datum in frontend/src/lib/rechtliches.ts auf 2026-09-30).
+- Personenbezogene Daten: Neue Daten müssen in AccountDataService (Datenexport UND Kontolöschung/Purge) berücksichtigt sein; bei neuer Verarbeitung docs/VERARBEITUNGSVERZEICHNIS.md und frontend/src/app/datenschutz/page.tsx nachziehen (und das STAND-Datum in frontend/src/lib/rechtliches.ts auf den Tag der Umsetzung) - nur dann, sonst Rechtstexte nicht anfassen.
 - Freitextfelder: Längengrenze in backend Textlaengen.cs UND frontend/src/lib/textlaengen.ts, maxLength am Eingabefeld, Prüfung im Service.
 - Frontend: api-Helfer aus lib/api.ts, UI-Bausteine aus components/ui. JEDER sichtbare Text über useT()/t() bzw. uebersetzbar() mit dem deutschen Satz als Schlüssel UND englischer Übersetzung in frontend/src/lib/i18n/en.ts (i18n.test.ts erzwingt das; keine doppelten Schlüssel). Kein dangerouslySetInnerHTML/innerHTML (html-senken.test.ts wacht). localStorage/sessionStorage nur mit try/catch.
 - Mobile-App-first: muss bei 375 px Breite ohne horizontalen Scroll funktionieren, Touch-Ziele ausreichend groß, lange Texte umbrechen (min-w-0, break-words).
-- Versionshinweis: In frontend/src/lib/versionshinweise.ts oben die Fassung "0.20" (datum "2026-09-30") anlegen, falls sie fehlt (titel = eine Zeile zum Kern), sonst Einträge anhängen. Nutzersprache wie bei 0.19, kein Technikjargon, Admin-Only-Änderungen nicht erwähnen. Texte über uebersetzbar() + en.ts.
+- Versionshinweis: In frontend/src/lib/versionshinweise.ts oben die Fassung anlegen, die die Spezifikation nennt (datum = Tag der Umsetzung; fehlt sie dort, keine anlegen), Format und Ton wie der oberste vorhandene Eintrag, kein Technikjargon, Admin-Only-Änderungen nicht erwähnen. Texte über uebersetzbar() + en.ts.
 - Keine neuen Abhängigkeiten, außer die Spezifikation erlaubt ausdrücklich eine.
 - Tests: Backend-Tests (xunit, Muster der vorhandenen Tests in backend/tests/Dogity.Application.Tests) für neue Service-Logik inklusive Rechteprüfungen; vitest für reine Frontend-Logik (lib/*.test.ts). Bestehende Tests niemals abschwächen oder löschen.
 - Pflicht vor dem Abschluss, alles grün: (cd backend && dotnet build && dotnet test) und (cd frontend && npx tsc --noEmit && npm run lint && npx vitest run && npx next build).
