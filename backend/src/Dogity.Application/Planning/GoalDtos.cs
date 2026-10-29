@@ -18,7 +18,10 @@ public record TrainingPlanItemLogDto(
     DateOnly Date,
     int Rating,
     bool Success,
-    string? Notes);
+    string? Notes,
+    // Ob die ansehende Person die Notiz ändern darf - dieselbe Regel wie im
+    // Tagebuch (TrainingsRechte): Trainer:innen nur bei eigenen Einträgen.
+    bool DarfBearbeiten = true);
 
 public record TrainingPlanItemDto(
     Guid Id,

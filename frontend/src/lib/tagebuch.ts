@@ -134,6 +134,28 @@ export function tagesKurzbild(
   return ort ?? t("Training");
 }
 
+// ---- Bearbeiten ----
+
+/**
+ * Ob die Einheit geändert oder gelöscht werden darf. Der Server sagt es mit
+ * darfBearbeiten (Trainer:innen nur bei selbst eingetragenen Einträgen);
+ * fehlt das Feld (älterer Lesecache), gilt, ob die Person zur Familie gehört -
+ * so zeigte die Hundeseite es vorher, und Trainer:innen sähen sonst kurz
+ * Knöpfe, die der Server ablehnt.
+ */
+export function darfBearbeiten(s: TrainingSession, istBesitzer: boolean): boolean {
+  return s.darfBearbeiten ?? istBesitzer;
+}
+
+/**
+ * Ob alle Einheiten des Tages bearbeitbar sind. Datum verschieben, Tag
+ * löschen und der Tages-Kommentar wirken auf den ganzen Tag - ist eine
+ * Einheit davon fremd, gibt es sie nicht.
+ */
+export function ganzerTagBearbeitbar(tag: readonly TrainingSession[], istBesitzer: boolean): boolean {
+  return tag.every((s) => darfBearbeiten(s, istBesitzer));
+}
+
 // ---- Filter ----
 
 export type TagesFilter = "alle" | "faehrten" | "feedback";

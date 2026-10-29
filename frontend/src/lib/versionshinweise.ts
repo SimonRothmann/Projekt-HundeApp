@@ -61,6 +61,21 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.42",
+    datum: "2026-10-29",
+    titel: uebersetzbar("Trainer:innen ändern nur eigene Einträge"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Betreuende Trainer:innen können Trainings, Bewertungen, Notizen und Fährten, die du oder die Mitbesitzer:innen eingetragen haben, nicht mehr ändern oder löschen. Ihr Feedback und ihre Trainer-Bewertung bleiben wie gewohnt möglich; eigene Einträge ändern sie weiter selbst."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Trägt eine Trainer:in selbst etwas ein, bekommt sie dafür eine eigene Einheit am Tag – die Einträge der Familie bleiben unberührt. Im Tagebuch erscheint beides weiterhin zusammen auf einer Tageskarte."),
+      },
+    ],
+  },
+  {
     version: "0.41",
     datum: "2026-10-27",
     titel: uebersetzbar("Gesundheit: Impfungen, Entwurmung, Tierarzt"),

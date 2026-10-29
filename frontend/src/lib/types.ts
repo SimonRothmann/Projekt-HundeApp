@@ -242,6 +242,11 @@ export type TrainingSession = {
   // Wann die Trainer:in das Training als erledigt abgehakt hat ("Fertig" /
   // "Passt so"). Optional aus demselben Grund wie ownerReaction.
   trainerReviewedAt?: string | null;
+  // Ob die angemeldete Person die Einheit ändern oder löschen darf: Besitzer:in
+  // immer, betreuende Trainer:innen nur bei selbst eingetragenen Einheiten.
+  // Fehlt bei älteren Lesecache-Ständen - gilt dann als ja (der Server prüft
+  // ohnehin).
+  darfBearbeiten?: boolean;
 };
 
 // Schnelle Reaktion auf Trainer-Feedback. Numerisch wie alle Enums der API.
@@ -263,6 +268,9 @@ export type TrainingPlanItemLog = {
   rating: number;
   success: boolean;
   notes: string | null;
+  // Ob die angemeldete Person die Notiz ändern darf (siehe
+  // TrainingSession.darfBearbeiten). Fehlt im älteren Lesecache - gilt als ja.
+  darfBearbeiten?: boolean;
 };
 
 // Grund, warum der adaptive Generator eine Übung geplant hat (siehe

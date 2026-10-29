@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  darfBearbeiten,
+  ganzerTagBearbeitbar,
   geltenderFilter,
   laufAmTag,
   nachTagen,
@@ -189,5 +191,23 @@ describe("Filter", () => {
     expect(geltenderFilter("faehrten", ["alle", "faehrten"])).toBe("faehrten");
     expect(geltenderFilter("faehrten", ["alle", "feedback"])).toBe("alle");
     expect(geltenderFilter("feedback", [])).toBe("alle");
+  });
+});
+
+describe("darfBearbeiten / ganzerTagBearbeitbar", () => {
+  it("fällt ohne Angabe (älterer Lesecache) auf die Familienzugehörigkeit zurück", () => {
+    expect(darfBearbeiten(einheit(), true)).toBe(true);
+    expect(darfBearbeiten(einheit(), false)).toBe(false);
+  });
+
+  it("folgt der Angabe des Servers", () => {
+    expect(darfBearbeiten(einheit({ darfBearbeiten: true }), false)).toBe(true);
+    expect(darfBearbeiten(einheit({ darfBearbeiten: false }), true)).toBe(false);
+  });
+
+  it("ist für den Tag nur ja, wenn jede Einheit bearbeitbar ist", () => {
+    expect(ganzerTagBearbeitbar([einheit({ darfBearbeiten: true }), einheit()], true)).toBe(true);
+    expect(ganzerTagBearbeitbar([einheit({ darfBearbeiten: true }), einheit()], false)).toBe(false);
+    expect(ganzerTagBearbeitbar([einheit({ darfBearbeiten: true }), einheit({ darfBearbeiten: false })], true)).toBe(false);
   });
 });

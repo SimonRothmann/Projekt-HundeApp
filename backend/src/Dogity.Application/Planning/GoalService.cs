@@ -3,6 +3,7 @@ using Dogity.Application.Common;
 using Dogity.Application.Community;
 using Dogity.Application.Dogs;
 using Dogity.Application.Notifications;
+using Dogity.Application.Training;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
@@ -867,7 +868,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     {
         var sportNames = await GetSportNamesAsync(goals, ct);
         var regulationNames = await GetRegulationNamesAsync(goals, ct);
-        var logsByPlanItem = await GetLogsByPlanItemAsync(goals, ct);
+        var logsByPlanItem = await GetLogsByPlanItemAsync(goals, betrachter, ct);
         var maxPoints = await GetMaxPointsAsync(goals, ct);
         var nextStages = await GetNextStagesAsync(goals, regulationNames, ct);
         var exerciseNames = await GetDeletedExerciseNamesAsync(goals, ct);
@@ -985,7 +986,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     // Tagebucheinträgen (TrainingExercise.TrainingPlanItemId) statt aus
     // einem separaten "erledigt"-Flag im Plan selbst - siehe TrainingPlanItem.
     private async Task<Dictionary<Guid, IReadOnlyList<TrainingPlanItemLogDto>>> GetLogsByPlanItemAsync(
-        IReadOnlyList<Goal> goals, CancellationToken ct)
+        IReadOnlyList<Goal> goals, Guid betrachter, CancellationToken ct)
     {
         var planItemIds = goals
             .Where(g => g.TrainingPlan is not null)
@@ -1001,11 +1002,19 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
                 TrainingExerciseId = e.Id,
                 e.TrainingSessionId,
                 Date = e.TrainingSession!.Date,
+                EingetragenVon = e.TrainingSession.UserId,
+                e.TrainingSession.DogId,
                 e.Rating,
                 e.Success,
                 e.Notes
             })
             .ToListAsync(ct);
+
+        var dogIds = logs.Select(l => l.DogId).Distinct().ToList();
+        var eigeneHunde = (await db.DogOwners
+            .Where(o => o.UserId == betrachter && dogIds.Contains(o.DogId))
+            .Select(o => o.DogId)
+            .ToListAsync(ct)).ToHashSet();
 
         return logs
             .GroupBy(l => l.PlanItemId)
@@ -1013,7 +1022,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
                 g => g.Key,
                 g => (IReadOnlyList<TrainingPlanItemLogDto>)g
                     .OrderByDescending(l => l.Date)
-                    .Select(l => new TrainingPlanItemLogDto(l.TrainingSessionId, l.TrainingExerciseId, l.Date, l.Rating, l.Success, l.Notes))
+                    .Select(l => new TrainingPlanItemLogDto(l.TrainingSessionId, l.TrainingExerciseId, l.Date, l.Rating, l.Success, l.Notes,
+                        TrainingsRechte.DarfBearbeiten(l.EingetragenVon, betrachter, eigeneHunde.Contains(l.DogId))))
                     .ToList());
     }
 

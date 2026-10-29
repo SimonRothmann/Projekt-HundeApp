@@ -127,7 +127,13 @@ function PlanUebung({
                 {new Date(log.date).toLocaleDateString(ort)} · {"★".repeat(log.rating)}
                 {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}
               </span>{" "}
-              <ExerciseNotes exerciseId={log.trainingExerciseId} notes={log.notes} onSaved={onChanged} compact />
+              <ExerciseNotes
+                exerciseId={log.trainingExerciseId}
+                notes={log.notes}
+                onSaved={onChanged}
+                compact
+                darfBearbeiten={log.darfBearbeiten !== false}
+              />
             </li>
           ))}
         </ul>

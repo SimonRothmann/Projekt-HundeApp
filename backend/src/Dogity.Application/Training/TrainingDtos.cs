@@ -80,7 +80,13 @@ public record TrainingSessionDto(
     /// </summary>
     double? TrackLengthMeters = null,
     /// <summary>Untergrund derselben Fährte (kommagetrennte Auswahl); wie TrackLengthMeters nur in der Liste.</summary>
-    string? TrackSurface = null);
+    string? TrackSurface = null,
+    /// <summary>
+    /// Ob die ansehende Person dieses Training ändern und löschen darf (siehe
+    /// TrainingsRechte): Besitzer:innen immer, Trainer:innen nur selbst
+    /// eingetragene. Die Hundeseite blendet danach die Bearbeiten-Knöpfe aus.
+    /// </summary>
+    bool DarfBearbeiten = true);
 
 public record SetFeedbackRequest(string Feedback);
 

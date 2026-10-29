@@ -61,18 +61,21 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             .GroupBy(t => t.TrainingSessionId)
             .ToDictionary(g => g.Key, g => g.First());
 
+        var istBesitzer = await db.IstBesitzerAsync(userId, dogId, ct);
         return Result<IReadOnlyList<TrainingSessionDto>>.Success(
             sessions.Select(s => firstTrackBySession.TryGetValue(s.Id, out var track)
-                ? ToDto(s, hasGpsTrack: true, track.LengthMeters, track.Surface)
-                : ToDto(s, hasGpsTrack: false)).ToList());
+                ? ToDto(s, hasGpsTrack: true, track.LengthMeters, track.Surface, TrainingsRechte.DarfBearbeiten(s.UserId, userId, istBesitzer))
+                : ToDto(s, hasGpsTrack: false, darfBearbeiten: TrainingsRechte.DarfBearbeiten(s.UserId, userId, istBesitzer))).ToList());
     }
 
     public async Task<Result<TrainingSessionDto>> GetByIdAsync(Guid userId, Guid sessionId, CancellationToken ct = default)
     {
         var session = await GetOwnedSessionAsync(userId, sessionId, ct, track: false);
-        return session is null
-            ? Result<TrainingSessionDto>.NotFound("Training nicht gefunden.")
-            : Result<TrainingSessionDto>.Success(ToDto(session, await HasGpsTrackAsync(session.Id, ct)));
+        if (session is null)
+            return Result<TrainingSessionDto>.NotFound("Training nicht gefunden.");
+
+        var darfBearbeiten = TrainingsRechte.DarfBearbeiten(session.UserId, userId, await db.IstBesitzerAsync(userId, session.DogId, ct));
+        return Result<TrainingSessionDto>.Success(ToDto(session, await HasGpsTrackAsync(session.Id, ct), darfBearbeiten: darfBearbeiten));
     }
 
     private Task<bool> HasGpsTrackAsync(Guid sessionId, CancellationToken ct)
@@ -123,8 +126,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         // Tages-Karte.
         if (request.Id is null)
         {
-            var daySession = await db.TrainingSessions
-                .FirstOrDefaultAsync(s => s.DogId == request.DogId && s.Date == request.Date, ct);
+            var daySession = await db.EinheitDesTagesAsync(userId, request.DogId, request.Date, ct);
 
             // Die Notiz wird an die des Tages angehängt. Passt beides zusammen
             // nicht mehr in die Spalte, bekommt der Eintrag stattdessen eine
@@ -347,7 +349,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
     public async Task<Result<TrainingSessionDto>> SetSessionContextAsync(Guid userId, Guid sessionId, UpdateSessionContextRequest request, CancellationToken ct = default)
     {
-        var session = await GetOwnedSessionAsync(userId, sessionId, ct);
+        var session = await GetEditableSessionAsync(userId, sessionId, ct);
         if (session is null)
             return Result<TrainingSessionDto>.NotFound("Training nicht gefunden.");
 
@@ -373,7 +375,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
     public async Task<Result<TrainingSessionDto>> MoveTrainingDayAsync(Guid userId, Guid sessionId, DateOnly date, CancellationToken ct = default)
     {
-        var session = await GetOwnedSessionAsync(userId, sessionId, ct);
+        var session = await GetEditableSessionAsync(userId, sessionId, ct);
         if (session is null)
             return Result<TrainingSessionDto>.NotFound("Training nicht gefunden.");
 
@@ -383,13 +385,15 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         if (session.Date != date)
         {
             // Alle Einheiten dieses Hundes am selben Tag mitnehmen (siehe
-            // ITrainingService) - der Zugriff auf den Hund ist über die
-            // gefundene Einheit bereits geprüft. Gemeinsames SaveChanges, damit
+            // ITrainingService), die die Person bearbeiten darf - eine
+            // Trainer:in verschiebt nur ihre eigenen, nie die der Familie
+            // (TrainingsRechte). Gemeinsames SaveChanges, damit
             // der Trainingstag nicht auf halbem Weg zerfällt; das Wetter folgt
             // danach im Hintergrund.
             var oldDate = session.Date;
             var daySessions = await db.TrainingSessions
                 .Where(s => s.DogId == session.DogId && s.Date == oldDate)
+                .DarfBearbeiten(db, userId)
                 .ToListAsync(ct);
 
             foreach (var moved in daySessions)
@@ -427,7 +431,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
     public async Task<Result> DeleteAsync(Guid userId, Guid sessionId, CancellationToken ct = default)
     {
-        var session = await GetOwnedSessionAsync(userId, sessionId, ct);
+        var session = await GetEditableSessionAsync(userId, sessionId, ct);
         if (session is null)
             return Result.NotFound("Training nicht gefunden.");
 
@@ -466,7 +470,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         if (Textlaengen.ZuLang(notes, Textlaengen.TrainingsNotiz, "Der Kommentar zum Trainingstag") is { } zuLang)
             return Result.Failure(zuLang);
 
-        var session = await GetOwnedSessionAsync(userId, sessionId, ct);
+        var session = await GetEditableSessionAsync(userId, sessionId, ct);
         if (session is null)
             return Result.NotFound("Training nicht gefunden.");
 
@@ -485,7 +489,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         var exercise = await db.TrainingExercises
             .Include(e => e.TrainingSession)
             .FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
-        if (exercise?.TrainingSession is null || !await db.HasDogAccessAsync(userId, exercise.TrainingSession.DogId, ct))
+        if (exercise?.TrainingSession is null || !await db.TrainingSessions.Where(s => s.Id == exercise.TrainingSessionId).DarfBearbeiten(db, userId).AnyAsync(ct))
             return Result.NotFound("Übung nicht gefunden.");
 
         var trimmed = notes?.Trim();
@@ -504,7 +508,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         var exercise = await db.TrainingExercises
             .Include(e => e.TrainingSession)
             .FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
-        if (exercise?.TrainingSession is null || !await db.HasDogAccessAsync(userId, exercise.TrainingSession.DogId, ct))
+        if (exercise?.TrainingSession is null || !await db.TrainingSessions.Where(s => s.Id == exercise.TrainingSessionId).DarfBearbeiten(db, userId).AnyAsync(ct))
             return Result<TrainingSessionDto>.NotFound("Übung nicht gefunden.");
 
         var ratingChanged = exercise.Rating != request.Rating || exercise.Success != request.Success;
@@ -810,6 +814,16 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return await query.FirstOrDefaultAsync(ct);
     }
 
+    // Für Ändern und Löschen: Trainer:innen nur selbst eingetragene Trainings
+    // (siehe TrainingsRechte). Verweigert wird verdeckt wie beim Lesen (404).
+    private Task<TrainingSession?> GetEditableSessionAsync(Guid userId, Guid sessionId, CancellationToken ct) =>
+        db.TrainingSessions
+            .Where(s => s.Id == sessionId)
+            .DarfBearbeiten(db, userId)
+            .Include(s => s.Exercises)
+            .ThenInclude(e => e.Exercise)
+            .FirstOrDefaultAsync(ct);
+
     // Stellt sicher, dass ein referenziertes Plan-Ziel (1) tatsächlich
     // existiert, (2) zum selben Hund gehört (sonst könnte ein Tagebucheintrag
     // fälschlich den Fortschritt eines fremden Hundes erhöhen) und (3) zur
@@ -884,7 +898,9 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return null;
     }
 
-    private static TrainingSessionDto ToDto(TrainingSession s, bool hasGpsTrack, double? trackLengthMeters = null, string? trackSurface = null) => new(
+    // darfBearbeiten: Wer ein Training gerade geändert oder angelegt hat, darf es
+    // bearbeiten - nur die Lesepfade (GetByDog, GetById) müssen es ausrechnen.
+    private static TrainingSessionDto ToDto(TrainingSession s, bool hasGpsTrack, double? trackLengthMeters = null, string? trackSurface = null, bool darfBearbeiten = true) => new(
         s.Id,
         s.DogId,
         s.Date,
@@ -919,5 +935,6 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         s.OwnerReplyAt,
         s.TrainerReviewedAt,
         trackLengthMeters,
-        trackSurface);
+        trackSurface,
+        darfBearbeiten);
 }

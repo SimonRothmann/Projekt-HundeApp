@@ -18,13 +18,18 @@ import { useSprache, useT } from "@/lib/i18n";
  * benutzt das Formular "Neues Training". Hier drumherum liegen nur die
  * eingeklappte Zusammenfassung (mit dem ermittelten Wetter) und das
  * Speichern.
+ *
+ * `darfBearbeiten` = false (fremder Eintrag aus Sicht einer betreuenden
+ * Trainer:in): nur die Zusammenfassung, ohne Knopf zum Ändern.
  */
 export function SessionContextEditor({
   session,
   onSaved,
+  darfBearbeiten = true,
 }: {
   session: TrainingSession;
   onSaved: () => Promise<void> | void;
+  darfBearbeiten?: boolean;
 }) {
   const t = useT();
   const sprache = useSprache();
@@ -90,6 +95,10 @@ export function SessionContextEditor({
   }
 
   if (!open) {
+    // Ohne Recht zum Ändern und ohne Angaben gibt es nichts zu zeigen.
+    if (!darfBearbeiten && !weather && !session.startTime && !session.locationName && conditionLabel(session.condition) == null) {
+      return null;
+    }
     return (
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         {weather && <span className="font-medium text-foreground">{weather}</span>}
@@ -114,12 +123,14 @@ export function SessionContextEditor({
         {/* Als umrandeter Knopf statt als Geist: ohne Rahmen und ohne Symbol
             sah "Ort, Zeit & Verfassung" wie eine weitere graue Textzeile aus
             und nicht wie etwas, das man antippen kann. */}
-        <Button type="button" size="sm" variant="outline" className="h-6 gap-1 px-2 text-xs" onClick={openEditor}>
-          <MapPin className="size-3" />
-          {/* Ausdrücklich gegen null geprüft: "motiviert" ist die 0, und die
-              wäre in einer Wahrheitsprüfung falsch. */}
-          {weather || session.condition != null ? t("Ändern") : t("Ort, Zeit & Verfassung")}
-        </Button>
+        {darfBearbeiten && (
+          <Button type="button" size="sm" variant="outline" className="h-6 gap-1 px-2 text-xs" onClick={openEditor}>
+            <MapPin className="size-3" />
+            {/* Ausdrücklich gegen null geprüft: "motiviert" ist die 0, und die
+                wäre in einer Wahrheitsprüfung falsch. */}
+            {weather || session.condition != null ? t("Ändern") : t("Ort, Zeit & Verfassung")}
+          </Button>
+        )}
       </div>
     );
   }

@@ -19,6 +19,7 @@ import { useSprache, useT } from "@/lib/i18n";
 import { uebungName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
 import { istNeuesFeedback } from "@/lib/feedback-gesehen";
+import { darfBearbeiten, ganzerTagBearbeitbar } from "@/lib/tagebuch";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { cn } from "@/lib/utils";
 
@@ -38,8 +39,19 @@ function hatKontext(s: TrainingSession): boolean {
  * EINEN Text und speichert Änderungen als Tages-Kommentar (auf der ersten
  * Einheit; Notizen weiterer Alt-Einheiten desselben Tages werden dabei
  * konsolidiert, damit es künftig nur noch einen Text pro Tag gibt).
+ *
+ * `darfBearbeiten`: die Änderung schreibt in mehrere Einheiten, deshalb nur,
+ * wenn alle des Tages bearbeitbar sind - sonst wird der Text nur angezeigt.
  */
-function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChanged: () => Promise<void> }) {
+function DayNotes({
+  sessions,
+  onChanged,
+  darfBearbeiten,
+}: {
+  sessions: TrainingSession[];
+  onChanged: () => Promise<void>;
+  darfBearbeiten: boolean;
+}) {
   const t = useT();
   // Gleiche Notizen nur einmal: Jede Fährtenaufnahme älterer Stände legte
   // eine eigene Einheit mit der Notiz "Fährtenaufnahme" an - zwei Fährten an
@@ -127,6 +139,7 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
   }
 
   if (!joined) {
+    if (!darfBearbeiten) return null;
     return (
       <Button
         size="sm"
@@ -149,18 +162,20 @@ function DayNotes({ sessions, onChanged }: { sessions: TrainingSession[]; onChan
   return (
     <div className="flex items-start gap-1 rounded-lg border border-l-2 border-surface-border border-l-primary/70 bg-surface px-2.5 py-2">
       <p className="min-w-0 flex-1 text-sm whitespace-pre-line [overflow-wrap:anywhere]">{anzeige}</p>
-      <Button
-        size="icon"
-        variant="ghost"
-        className="size-6 shrink-0"
-        onClick={() => {
-          setValue(joined);
-          setEditing(true);
-        }}
-        title={t("Tages-Kommentar bearbeiten")}
-      >
-        <Pencil className="size-3" />
-      </Button>
+      {darfBearbeiten && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-6 shrink-0"
+          onClick={() => {
+            setValue(joined);
+            setEditing(true);
+          }}
+          title={t("Tages-Kommentar bearbeiten")}
+        >
+          <Pencil className="size-3" />
+        </Button>
+      )}
     </div>
   );
 }
@@ -287,7 +302,10 @@ export function SessionDayCard({
 }) {
   const t = useT();
   const sprache = useSprache();
-  const exercises = tag.flatMap((s) => s.exercises);
+  // Jede Übung mit dem Recht ihrer Einheit: an einem Tag können Einheiten der
+  // Familie und der Trainer:in liegen.
+  const exercises = tag.flatMap((s) => s.exercises.map((ex) => ({ ex, bearbeitbar: darfBearbeiten(s, isOwner) })));
+  const tagBearbeitbar = ganzerTagBearbeitbar(tag, isOwner);
   const gpsSessions = tag.filter((s) => s.hasGpsTrack);
   const feedbackSessions = tag.filter((s) => s.trainerFeedback);
   const kontextEinheit = tag.find(hatKontext) ?? tag[0];
@@ -310,10 +328,11 @@ export function SessionDayCard({
       {/* Datum ändern und löschen gibt es nur im aufgeklappten Tag: in der
           Zeile wären es zwei winzige Knöpfe neben einer Fläche, die man
           zum Aufklappen antippt. */}
-      {/* Nur für Besitzer:innen: Datum ändern und löschen prüft der Server
-          über die Besitzerschaft, Trainer:innen eines betreuten Hundes
-          bekämen nur eine Fehlermeldung. */}
-      {isOwner && (
+      {/* Nur, wenn alle Einheiten des Tages bearbeitbar sind: Datum und
+          Löschen wirken auf den ganzen Tag. Trainer:innen eines betreuten
+          Hundes dürfen nur ihre eigenen Einträge ändern (TrainingsRechte),
+          bei Einträgen der Familie bekämen sie nur eine Fehlermeldung. */}
+      {tagBearbeitbar && (
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <DayDate sessions={tag} onChanged={onChanged} />
           <Button
@@ -330,13 +349,18 @@ export function SessionDayCard({
       {/* Ort, Zeit, Wetter, Verfassung sind Angaben ZUM Tag -
           deshalb direkt unter der Leiste und nicht zwischen den
           inhaltlichen Blöcken. */}
-      <SessionContextEditor key={`ctx-${kontextEinheit.id}`} session={kontextEinheit} onSaved={onChanged} />
-      <DayNotes sessions={tag} onChanged={onChanged} />
+      <SessionContextEditor
+        key={`ctx-${kontextEinheit.id}`}
+        session={kontextEinheit}
+        onSaved={onChanged}
+        darfBearbeiten={darfBearbeiten(kontextEinheit, isOwner)}
+      />
+      <DayNotes sessions={tag} onChanged={onChanged} darfBearbeiten={tagBearbeitbar} />
       {exercises.length > 0 && (
         <section className="flex flex-col gap-1.5">
           <BlockLabel icon={ListChecks}>{t("Übungen")}</BlockLabel>
           <ul className="flex flex-col gap-1.5">
-            {exercises.map((ex) => (
+            {exercises.map(({ ex, bearbeitbar }) => (
               <li
                 key={ex.id}
                 className="flex flex-col gap-1 rounded-lg border border-surface-border bg-surface px-2.5 py-2"
@@ -349,9 +373,10 @@ export function SessionDayCard({
                     success={ex.success}
                     notes={ex.notes}
                     onSaved={onChanged}
+                    darfBearbeiten={bearbeitbar}
                   />
                 </div>
-                <ExerciseNotes exerciseId={ex.id} notes={ex.notes} onSaved={onChanged} />
+                <ExerciseNotes exerciseId={ex.id} notes={ex.notes} onSaved={onChanged} darfBearbeiten={bearbeitbar} />
                 <ExerciseTrainerRating
                   exerciseId={ex.id}
                   rating={ex.trainerRating}
@@ -373,7 +398,7 @@ export function SessionDayCard({
           trainingSessionIds={gpsSessions.map((s) => s.id)}
           hundeName={dogName}
           onChanged={onChanged}
-          darfLoeschen={isOwner}
+          darfLoeschen={ganzerTagBearbeitbar(gpsSessions, isOwner)}
         />
       )}
       {(feedbackSessions.length > 0 ? feedbackSessions : [tag[0]]).map((s) => (

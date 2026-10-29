@@ -14,17 +14,22 @@ import { TEXTLAENGE } from "@/lib/textlaengen";
  * Trainingstagebuch (SessionHistory) und Trainingsplan-Log (GoalPlanCard),
  * damit dieselbe Notiz an beiden Stellen sichtbar UND editierbar ist
  * (siehe Wunsch 2). `compact` verkleinert die Darstellung fürs Plan-Log.
+ * `darfBearbeiten` = false (fremder Eintrag einer betreuenden Trainer:in-
+ * Sicht): nur anzeigen, ohne Notiz-Knopf und Stift. Das Backend prüft
+ * ohnehin (TrainingsRechte).
  */
 export function ExerciseNotes({
   exerciseId,
   notes,
   onSaved,
   compact = false,
+  darfBearbeiten = true,
 }: {
   exerciseId: string;
   notes: string | null;
   onSaved: () => Promise<void>;
   compact?: boolean;
+  darfBearbeiten?: boolean;
 }) {
   const t = useT();
   const [editing, setEditing] = useState(false);
@@ -98,8 +103,10 @@ export function ExerciseNotes({
     );
   }
 
-  // Ohne Notiz: unaufdringlicher "Notiz hinzufügen"-Knopf.
+  // Ohne Notiz: unaufdringlicher "Notiz hinzufügen"-Knopf - und ohne Recht
+  // dazu gibt es nichts zu zeigen.
   if (!notes) {
+    if (!darfBearbeiten) return null;
     return (
       <Button
         size="sm"
@@ -124,18 +131,20 @@ export function ExerciseNotes({
     return (
       <>
         <span className="italic">„{notes}“</span>{" "}
-        <Button
-          size="icon"
-          variant="ghost"
-          className="inline-flex size-5 shrink-0 align-middle"
-          onClick={() => {
-            setValue(notes ?? "");
-            setEditing(true);
-          }}
-          title={t("Notiz bearbeiten")}
-        >
-          <Pencil className="size-3" />
-        </Button>
+        {darfBearbeiten && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="inline-flex size-5 shrink-0 align-middle"
+            onClick={() => {
+              setValue(notes ?? "");
+              setEditing(true);
+            }}
+            title={t("Notiz bearbeiten")}
+          >
+            <Pencil className="size-3" />
+          </Button>
+        )}
       </>
     );
   }
@@ -147,18 +156,20 @@ export function ExerciseNotes({
   return (
     <span className="flex max-w-full items-start gap-1 text-xs text-muted-foreground">
       <span className="min-w-0 flex-1 break-words italic">„{notes}“</span>
-      <Button
-        size="icon"
-        variant="ghost"
-        className="size-5 shrink-0"
-        onClick={() => {
-          setValue(notes ?? "");
-          setEditing(true);
-        }}
-        title={t("Notiz bearbeiten")}
-      >
-        <Pencil className="size-3" />
-      </Button>
+      {darfBearbeiten && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-5 shrink-0"
+          onClick={() => {
+            setValue(notes ?? "");
+            setEditing(true);
+          }}
+          title={t("Notiz bearbeiten")}
+        >
+          <Pencil className="size-3" />
+        </Button>
+      )}
     </span>
   );
 }

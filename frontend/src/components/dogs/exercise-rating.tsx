@@ -11,8 +11,9 @@ import { useT } from "@/lib/i18n";
  * Bewertung und Erfolg einer bereits erfassten Übung - anzeigen und
  * nachträglich korrigieren. Auch für vergangene Tage: das Korrigieren eines
  * Vertippers ist ja gerade dann nötig, wenn das Training schon eine Weile her
- * ist. Wer bearbeiten darf, entscheidet das Backend (HasDogAccessAsync) -
- * genau wie bei der Notiz.
+ * ist. Wer bearbeiten darf, entscheidet das Backend (TrainingsRechte:
+ * Besitzer:innen immer, Trainer:innen nur bei eigenen Einträgen) - genau wie
+ * bei der Notiz. `darfBearbeiten` blendet nur den Stift aus.
  *
  * Bis hierher stand hier nur Text: wer sich beim Eintragen vertippt hatte,
  * musste den ganzen Trainingstag löschen und neu erfassen. Nur die Notiz war
@@ -28,12 +29,14 @@ export function ExerciseRating({
   success,
   notes,
   onSaved,
+  darfBearbeiten = true,
 }: {
   exerciseId: string;
   rating: number;
   success: boolean;
   notes: string | null;
   onSaved: () => Promise<void>;
+  darfBearbeiten?: boolean;
 }) {
   const t = useT();
   const [editing, setEditing] = useState(false);
@@ -76,20 +79,22 @@ export function ExerciseRating({
         >
           {success ? "✓" : "✗"}
         </span>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="size-6"
-          title={t("Bewertung ändern")}
-          onClick={() => {
-            setValue(rating);
-            setOk(success);
-            setEditing(true);
-          }}
-        >
-          <Pencil className="size-3" />
-        </Button>
+        {darfBearbeiten && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="size-6"
+            title={t("Bewertung ändern")}
+            onClick={() => {
+              setValue(rating);
+              setOk(success);
+              setEditing(true);
+            }}
+          >
+            <Pencil className="size-3" />
+          </Button>
+        )}
       </span>
     );
   }

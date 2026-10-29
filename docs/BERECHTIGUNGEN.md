@@ -57,6 +57,8 @@ mit `isAdmin`).
 | Besitzer:in / Mitbesitzer:in eines Hundes | Trainingspausen mit Grund (verletzt, krank, läufig), Zeitraum und Notiz; trägt sie ein, ändert und löscht sie | - |
 | Besitzer:in / Mitbesitzer:in eines Hundes | Gesundheitseinträge (Impfungen, Entwurmung, Parasitenschutz, Tierarzttermine) und den Gesundheitsstand am Hund; trägt sie ein, ändert und löscht sie; bekommt die Erinnerungen dazu | - |
 | Betreuende Trainer:in (`TrainerAssignment`) | Trainingspausen nur als Zeitraum („pausiert bis …“); die Pausenliste nur mit laufenden und kommenden Pausen, im Plan zusätzlich die Zeiträume vergangener Pausen im Planfenster | Grund und Notiz (Gesundheitsangaben gehören der Familie); kann keine Pause eintragen. Der Server baut dafür ein eigenes DTO ohne diese Felder (`DogPauseQueries.ToDto`). |
+| Besitzer:in / Mitbesitzer:in eines Hundes | Trainings, Bewertungen, Notizen und Fährten des Hundes: ändert und löscht alles, auch Einträge der Betreuenden | - |
+| Betreuende Trainer:in (`TrainerAssignment`), zu Trainings | alle Trainings, Bewertungen, Notizen und Fährten des betreuten Hundes; gibt auf allen Feedback und Trainer-Bewertung | ändert und löscht nur Einträge, die sie selbst eingetragen hat (Training löschen, Datum, Tagesnotiz, Ort/Zeit/Verfassung, Übungsbewertung und -notiz, Fährte löschen); bei Einträgen der Familie antwortet der Server mit 404. Abläufe auf Fährten sind davon bewusst ausgenommen. |
 | Betreuende Trainer:in, zu Gesundheitseinträgen | nichts: 404 auf `/api/dogs/{id}/gesundheit`, am Hund kein Gesundheitsstand (docs/GESUNDHEIT.md) | alles |
 | Trainer:in ohne Betreuung, Fremde | nichts (404) | alles |
 
@@ -77,7 +79,19 @@ beim Hinzufügen der zweiten verloren.
     Zugehörigkeit (Erststart, Perspektive)
 - `DogAccessQueries.HasDogAccessAsync`: Zugriff auf einen Hund hat, wer Besitzer:in
   ist (`DogOwners`) oder ihn über eine `TrainerAssignment` betreut. Training, Ziele
-  und Fährten fragen darüber.
+  und Fährten fragen darüber - das gilt für das **Lesen**.
+- `TrainingsRechte` (`Dogity.Application/Training`): **Ändern und Löschen** von
+  Trainings samt Übungen, Bewertungen, Notizen, Ort/Zeit und Fährten. Besitzer:innen
+  dürfen alles am Hund, betreuende Trainer:innen nur Einträge, die sie selbst
+  eingetragen haben (`TrainingSession.UserId`); Feedback und Trainer-Bewertung
+  auf Einträgen der Familie bleiben ihnen. Der Server liefert die Auskunft als
+  `darfBearbeiten` an Trainings und Protokolleinträgen der Plan-Ziele, die
+  Oberfläche blendet danach die Bearbeiten-Knöpfe aus. Die Tageseinheit wird
+  getrennt geführt (`EinheitDesTagesAsync`): ein Eintrag der Trainer:in landet
+  nie in der Einheit der Familie, sondern in einer eigenen am selben Tag; bei
+  mehreren Einheiten gilt die älteste zuerst. Das Tagebuch zeigt beide
+  weiterhin auf einer Tageskarte. Abläufe auf Fährten (walk runs) sind bewusst
+  nicht eingeschränkt. `TrainerRechteTests` prüft die Regel.
 - Verweigert wird verdeckt: "nicht gefunden" (404) statt "darfst du nicht", damit
   niemand erfährt, dass es einen Verein, eine Gruppe oder einen Hund gibt. Das
   gilt für die Vereins-, Hunde-, Training- und Zieldienste. Ausnahme sind ältere

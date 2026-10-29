@@ -2450,4 +2450,7 @@ export const EN: Record<string, string> = {
   "Ein Tierarzttermin hat kein Ablaufdatum.": "A vet appointment has no expiry date.",
   "Eine Uhrzeit gibt es nur beim Tierarzttermin.": "A time only applies to vet appointments.",
   "Eintrag nicht gefunden.": "Entry not found.",
+  "Trainer:innen ändern nur eigene Einträge": "Trainers only change their own entries",
+  "Betreuende Trainer:innen können Trainings, Bewertungen, Notizen und Fährten, die du oder die Mitbesitzer:innen eingetragen haben, nicht mehr ändern oder löschen. Ihr Feedback und ihre Trainer-Bewertung bleiben wie gewohnt möglich; eigene Einträge ändern sie weiter selbst.": "Supervising trainers can no longer change or delete sessions, ratings, notes and tracks that you or the co-owners have logged. Their feedback and trainer rating still work as before; they still edit their own entries themselves.",
+  "Trägt eine Trainer:in selbst etwas ein, bekommt sie dafür eine eigene Einheit am Tag – die Einträge der Familie bleiben unberührt. Im Tagebuch erscheint beides weiterhin zusammen auf einer Tageskarte.": "When a trainer logs something themselves, it goes into a separate session for that day – the family's entries stay untouched. In the diary, both still appear together on one day card.",
 };

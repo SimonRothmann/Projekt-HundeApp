@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Training;
 using Dogity.Application.Weather;
 using Dogity.Domain.Tracking;
 using Dogity.Domain.Training;
@@ -127,7 +128,8 @@ public class GpsTrackService(
 
         if (request.TrainingSessionId is { } angegebeneEinheit)
         {
-            if (!await HasSessionAccessAsync(userId, angegebeneEinheit, ct))
+            // Eine Fährte ändert das Training, an dem sie hängt (TrainingsRechte).
+            if (!await DarfEinheitBearbeitenAsync(userId, angegebeneEinheit, ct))
                 return Result<GpsTrackDto>.NotFound("Training nicht gefunden.");
             sessionId = angegebeneEinheit;
         }
@@ -136,14 +138,10 @@ public class GpsTrackService(
             if (!await db.HasDogAccessAsync(userId, dogId, ct))
                 return Result<GpsTrackDto>.NotFound("Hund nicht gefunden.");
 
-            // Dieselbe Regel wie beim Eintragen eines Trainings (siehe
-            // TrainingService.CreateAsync "Tages-Zusammenfassung"): ein Tag,
+            // Dieselbe Regel wie beim Eintragen eines Trainings: ein Tag,
             // eine Einheit. Eine zweite oder dritte Fährte derselben
             // Übungsstunde gehört dazu und bekommt keine eigene.
-            einheitDesTages = await db.TrainingSessions
-                .Where(s => s.DogId == dogId && s.Date == date)
-                .OrderBy(s => s.CreatedAt)
-                .FirstOrDefaultAsync(ct);
+            einheitDesTages = await db.EinheitDesTagesAsync(userId, dogId, date, ct);
 
             if (einheitDesTages is null)
             {
@@ -407,7 +405,7 @@ public class GpsTrackService(
     public async Task<Result> DeleteAsync(Guid userId, Guid trackId, CancellationToken ct = default)
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
-        if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
+        if (track is null || !await DarfEinheitBearbeitenAsync(userId, track.TrainingSessionId, ct))
             return Result.NotFound("Fährte nicht gefunden.");
 
         // Mit Punkten, Abläufen und Stockungen - sonst blieben sie als Rückstand
@@ -426,6 +424,9 @@ public class GpsTrackService(
 
         return dogId != Guid.Empty && await db.HasDogAccessAsync(userId, dogId, ct);
     }
+
+    private Task<bool> DarfEinheitBearbeitenAsync(Guid userId, Guid trainingSessionId, CancellationToken ct) =>
+        db.TrainingSessions.Where(s => s.Id == trainingSessionId).DarfBearbeiten(db, userId).AnyAsync(ct);
 
     private static GpsTrackDto ToDto(GpsTrack t, bool simplify = false)
     {
