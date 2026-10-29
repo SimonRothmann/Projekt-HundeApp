@@ -17,7 +17,7 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
 
     public async Task<Result<IReadOnlyList<DogHealthRecordDto>>> GetAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
-        if (!await IstBesitzerAsync(userId, dogId, ct))
+        if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result<IReadOnlyList<DogHealthRecordDto>>.NotFound("Hund nicht gefunden.");
 
         var heute = Heute();
@@ -36,7 +36,7 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
 
     public async Task<Result<DogHealthRecordDto>> CreateAsync(Guid userId, Guid dogId, SaveDogHealthRecordRequest request, CancellationToken ct = default)
     {
-        if (!await IstBesitzerAsync(userId, dogId, ct))
+        if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result<DogHealthRecordDto>.NotFound("Hund nicht gefunden.");
 
         var fehler = Pruefe(request);
@@ -52,7 +52,7 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
 
     public async Task<Result<DogHealthRecordDto>> UpdateAsync(Guid userId, Guid dogId, Guid recordId, SaveDogHealthRecordRequest request, CancellationToken ct = default)
     {
-        if (!await IstBesitzerAsync(userId, dogId, ct))
+        if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result<DogHealthRecordDto>.NotFound("Hund nicht gefunden.");
 
         var eintrag = await db.DogHealthRecords.FirstOrDefaultAsync(r => r.Id == recordId && r.DogId == dogId, ct);
@@ -71,7 +71,7 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
 
     public async Task<Result> DeleteAsync(Guid userId, Guid dogId, Guid recordId, CancellationToken ct = default)
     {
-        if (!await IstBesitzerAsync(userId, dogId, ct))
+        if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result.NotFound("Hund nicht gefunden.");
 
         var eintrag = await db.DogHealthRecords.FirstOrDefaultAsync(r => r.Id == recordId && r.DogId == dogId, ct);
@@ -84,12 +84,6 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
     }
 
     private DateOnly Heute() => Vereinszeit.Tag(timeProvider.GetUtcNow());
-
-    // Besitzer:in oder Mitbesitzer:in: jede aktive Zeile in DogOwners (offene
-    // Einladungen blendet der globale Filter aus) - wie bei den Pausen. Zusätzlich muss der Hund
-    // noch da sein: Zu einem gelöschten Hund gibt es auch keine leere Liste mehr, sondern "nicht gefunden".
-    private Task<bool> IstBesitzerAsync(Guid userId, Guid dogId, CancellationToken ct) =>
-        db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId && db.Dogs.Any(d => d.Id == dogId), ct);
 
     private static void Uebernehme(DogHealthRecord eintrag, SaveDogHealthRecordRequest request)
     {

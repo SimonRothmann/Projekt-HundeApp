@@ -200,15 +200,14 @@ public class ErinnerungService(
             .ToDictionaryAsync(d => d.Id, ct);
         var pausen = await db.ActivePausesAsync(hundeIds, Vereinszeit.Tag(jetzt), ct);
 
-        // Wer den Hund (noch) sehen darf: Besitzer:in oder betreuende Trainer:in - wie HasDogAccessAsync.
-        // Sonst führte der Link ins Leere, etwa nach dem Austritt als Mitbesitzer:in.
-        var zugang = new HashSet<(Guid UserId, Guid DogId)>();
-        foreach (var o in await db.DogOwners.Where(o => hundeIds.Contains(o.DogId)).Select(o => new { o.UserId, o.DogId }).AsNoTracking().ToListAsync(ct))
-            zugang.Add((o.UserId, o.DogId));
-        foreach (var a in await db.TrainerAssignments.Where(a => hundeIds.Contains(a.DogId)).Select(a => new { a.TrainerId, a.DogId }).AsNoTracking().ToListAsync(ct))
-            zugang.Add((a.TrainerId, a.DogId));
-
         var legerinnen = trainings.Values.Select(s => s.UserId).Distinct().ToList();
+        // Wer den Hund (noch) sehen darf (DogAccessQueries) - sonst führte der Link ins Leere,
+        // etwa nach dem Austritt als Mitbesitzer:in.
+        var zugang = new HashSet<(Guid UserId, Guid DogId)>();
+        foreach (var leger in legerinnen)
+            foreach (var hundId in await db.ZugaenglicheHundeIds(leger).Where(id => hundeIds.Contains(id)).ToListAsync(ct))
+                zugang.Add((leger, hundId));
+
         var erlaubt = await ErlaubtAsync(legerinnen, ReminderType.TrackNotWalked, ct);
         var faehrteAngeboten = await FaehrteAngebotenAsync(legerinnen, hunde.Where(h => h.Value.UsesOwnSports).Select(h => h.Key).ToList(), ct);
 

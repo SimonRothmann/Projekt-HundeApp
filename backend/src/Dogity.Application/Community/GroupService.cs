@@ -622,7 +622,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (!isMember)
             return Result.Failure("Mitglied nicht in dieser Gruppe gefunden.");
 
-        var ownsDog = await db.DogOwners.AnyAsync(o => o.DogId == request.DogId && o.UserId == request.MemberId, ct);
+        var ownsDog = await db.IstBesitzerAsync(request.MemberId, request.DogId, ct);
         if (!ownsDog)
             return Result.Failure("Hund gehört nicht zu diesem Mitglied.");
 

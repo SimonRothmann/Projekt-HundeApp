@@ -131,6 +131,25 @@ public class DogPauseServiceTests
     }
 
     [Fact]
+    public async Task GeloeschterHund_KeinZugriff()
+    {
+        var a = await AufbauAsync();
+        var pause = (await a.Pausen.CreateAsync(a.OwnerId, a.DogId, Verletzt(Heute.AddDays(-3)))).Value!;
+        (await a.Db.Dogs.SingleAsync(d => d.Id == a.DogId)).DeletedAt = DateTimeOffset.UtcNow;
+        await a.Db.SaveChangesAsync();
+
+        // Weder eine leere Liste (Besitzerin) noch eine Pause für den gelöschten Hund
+        // - und auch die betreuende Trainerin sieht nichts mehr.
+        Assert.True((await a.Pausen.GetAsync(a.OwnerId, a.DogId)).IsNotFound);
+        Assert.True((await a.Pausen.GetAsync(a.TrainerId, a.DogId)).IsNotFound);
+        Assert.True((await a.Pausen.CreateAsync(a.OwnerId, a.DogId, Verletzt(Heute))).IsNotFound);
+        Assert.True((await a.Pausen.UpdateAsync(a.OwnerId, a.DogId, pause.Id, Verletzt(Heute))).IsNotFound);
+        Assert.True((await a.Pausen.EndAsync(a.OwnerId, a.DogId, pause.Id)).IsNotFound);
+        Assert.True((await a.Pausen.DeleteAsync(a.OwnerId, a.DogId, pause.Id)).IsNotFound);
+        Assert.Single(await a.Db.DogPauses.IgnoreQueryFilters().ToListAsync());
+    }
+
+    [Fact]
     public async Task Pause_EinesAnderenHundes_LaesstSichUeberDieseUrlNichtAendern()
     {
         var a = await AufbauAsync();

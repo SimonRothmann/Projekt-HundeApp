@@ -18,12 +18,12 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
 
     public async Task<Result<IReadOnlyList<DogPauseDto>>> GetAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
-        var istBesitzer = await IstBesitzerAsync(userId, dogId, ct);
+        var istBesitzer = await db.IstBesitzerAsync(userId, dogId, ct);
         // Wer den Hund nur betreut, sieht nur laufende und kommende Pausen - ohne
         // Grund und Notiz. Den Verlauf vergangener Pausen braucht die Trainer:in
         // nicht (er ist Sache der Familie); der Plan trägt die für ihn nötigen
         // Zeiträume selbst (GoalDto.PlanPausen).
-        if (!istBesitzer && !await db.TrainerAssignments.AnyAsync(t => t.DogId == dogId && t.TrainerId == userId, ct))
+        if (!istBesitzer && !await db.HasDogAccessAsync(userId, dogId, ct))
             return Result<IReadOnlyList<DogPauseDto>>.NotFound("Hund nicht gefunden.");
 
         var heute = Heute();
@@ -39,7 +39,7 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
 
     public async Task<Result<DogPauseDto>> CreateAsync(Guid userId, Guid dogId, SaveDogPauseRequest request, CancellationToken ct = default)
     {
-        if (!await IstBesitzerAsync(userId, dogId, ct))
+        if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result<DogPauseDto>.NotFound("Hund nicht gefunden.");
 
         var fehler = await PruefeAsync(dogId, request, ignoriereId: null, ct);
@@ -62,7 +62,7 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
 
     public async Task<Result<DogPauseDto>> UpdateAsync(Guid userId, Guid dogId, Guid pauseId, SaveDogPauseRequest request, CancellationToken ct = default)
     {
-        if (!await IstBesitzerAsync(userId, dogId, ct))
+        if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result<DogPauseDto>.NotFound("Hund nicht gefunden.");
 
         var pause = await db.DogPauses.FirstOrDefaultAsync(p => p.Id == pauseId && p.DogId == dogId, ct);
@@ -84,7 +84,7 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
 
     public async Task<Result> EndAsync(Guid userId, Guid dogId, Guid pauseId, CancellationToken ct = default)
     {
-        if (!await IstBesitzerAsync(userId, dogId, ct))
+        if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result.NotFound("Hund nicht gefunden.");
 
         var pause = await db.DogPauses.FirstOrDefaultAsync(p => p.Id == pauseId && p.DogId == dogId, ct);
@@ -114,7 +114,7 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
 
     public async Task<Result> DeleteAsync(Guid userId, Guid dogId, Guid pauseId, CancellationToken ct = default)
     {
-        if (!await IstBesitzerAsync(userId, dogId, ct))
+        if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result.NotFound("Hund nicht gefunden.");
 
         var pause = await db.DogPauses.FirstOrDefaultAsync(p => p.Id == pauseId && p.DogId == dogId, ct);
@@ -127,11 +127,6 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
     }
 
     private DateOnly Heute() => Vereinszeit.Tag(timeProvider.GetUtcNow());
-
-    // Besitzer:in oder Mitbesitzer:in: jede aktive Zeile in DogOwners (offene
-    // Einladungen blendet der globale Filter aus) - wie bei GetSupervisionsAsync.
-    private Task<bool> IstBesitzerAsync(Guid userId, Guid dogId, CancellationToken ct) =>
-        db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId, ct);
 
     private static string? NotizOderNull(string? notiz) =>
         string.IsNullOrWhiteSpace(notiz) ? null : notiz.Trim();

@@ -19,8 +19,8 @@ public static class TrainingsRechte
 {
     public static IQueryable<TrainingSession> DarfBearbeiten(this IQueryable<TrainingSession> sessions, IApplicationDbContext db, Guid userId) =>
         sessions.Where(s =>
-            db.DogOwners.Any(o => o.DogId == s.DogId && o.UserId == userId) ||
-            (s.UserId == userId && db.TrainerAssignments.Any(t => t.DogId == s.DogId && t.TrainerId == userId)));
+            db.EigeneHundeIds(userId).Contains(s.DogId) ||
+            (s.UserId == userId && db.ZugaenglicheHundeIds(userId).Contains(s.DogId)));
 
     /// <summary>
     /// Dieselbe Regel für ein bereits geladenes Training, das die Person sehen
@@ -29,9 +29,6 @@ public static class TrainingsRechte
     /// </summary>
     public static bool DarfBearbeiten(Guid eingetragenVon, Guid userId, bool istBesitzer) =>
         istBesitzer || eingetragenVon == userId;
-
-    public static Task<bool> IstBesitzerAsync(this IApplicationDbContext db, Guid userId, Guid dogId, CancellationToken ct) =>
-        db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId, ct);
 
     /// <summary>
     /// Ein Tag, eine Einheit: die Einheit, an die ein neuer Eintrag von
@@ -44,7 +41,7 @@ public static class TrainingsRechte
     {
         var amTag = db.TrainingSessions.Where(s => s.DogId == dogId && s.Date == date);
         amTag = await db.IstBesitzerAsync(userId, dogId, ct)
-            ? amTag.Where(s => db.DogOwners.Any(o => o.DogId == dogId && o.UserId == s.UserId))
+            ? amTag.Where(s => db.BesitzerIds(dogId).Contains(s.UserId))
             : amTag.Where(s => s.UserId == userId);
         return await amTag.OrderBy(s => s.CreatedAt).FirstOrDefaultAsync(ct);
     }

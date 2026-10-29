@@ -279,7 +279,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             .Where(s => dogIds.Contains(s.DogId)
                         && s.TrainerFeedback != null && s.TrainerFeedback != ""
                         && s.OwnerReaction == null && s.OwnerReply == null
-                        && db.DogOwners.Any(o => o.DogId == s.DogId && o.UserId == userId))
+                        && db.EigeneHundeIds(userId).Contains(s.DogId))
             .OrderByDescending(s => s.FeedbackAt)
             .ThenByDescending(s => s.Date)
             .Take(MaxOpenFeedback)
@@ -317,9 +317,6 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     /// </summary>
     public async Task<Result<IReadOnlyList<RecentLocationDto>>> GetRecentLocationsAsync(Guid userId, CancellationToken ct = default)
     {
-        var dogIds = db.DogOwners.Where(o => o.UserId == userId).Select(o => o.DogId)
-            .Union(db.TrainerAssignments.Where(t => t.TrainerId == userId).Select(t => t.DogId));
-
         // Erst die jüngsten Trainings holen, dann im Speicher entdoppeln: den
         // "neuesten Datensatz je Gruppe" kann EF nicht sauber übersetzen, und
         // bei dieser Datenmenge lohnt keine Fensterfunktion. Das Limit deckelt
@@ -327,7 +324,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         // trainiert hat, sieht ältere Orte nicht mehr; das ist hinnehmbar,
         // weil genau dieser eine Ort dann der gesuchte ist.
         var recent = await db.TrainingSessions
-            .Where(s => dogIds.Contains(s.DogId)
+            .Where(s => db.ZugaenglicheHundeIds(userId).Contains(s.DogId)
                         && s.LocationName != null
                         && s.Latitude != null
                         && s.Longitude != null)
@@ -596,7 +593,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         // erfährt nicht einmal, dass es den Eintrag gibt.
         var session = await db.TrainingSessions
             .Where(s => s.Id == sessionId)
-            .Where(s => db.DogOwners.Any(o => o.DogId == s.DogId && o.UserId == userId))
+            .Where(s => db.EigeneHundeIds(userId).Contains(s.DogId))
             .FirstOrDefaultAsync(ct);
         if (session is null)
             return Result.NotFound("Training nicht gefunden.");
@@ -803,9 +800,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     {
         IQueryable<TrainingSession> query = db.TrainingSessions
             .Where(s => s.Id == sessionId)
-            .Where(s =>
-                db.DogOwners.Any(o => o.DogId == s.DogId && o.UserId == userId) ||
-                db.TrainerAssignments.Any(t => t.DogId == s.DogId && t.TrainerId == userId))
+            .Where(s => db.ZugaenglicheHundeIds(userId).Contains(s.DogId))
             .Include(s => s.Exercises)
             .ThenInclude(e => e.Exercise);
 

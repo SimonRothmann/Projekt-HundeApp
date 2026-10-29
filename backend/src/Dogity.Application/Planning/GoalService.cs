@@ -794,7 +794,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     /// </summary>
     private async Task<bool> ActsAsTrainerAsync(Guid userId, Guid dogId, CancellationToken ct)
     {
-        if (await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId, ct))
+        if (await db.IstBesitzerAsync(userId, dogId, ct))
             return false;
         return await db.TrainerAssignments.AnyAsync(t => t.DogId == dogId && t.TrainerId == userId, ct);
     }
@@ -820,9 +820,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         return await query
             .Where(g => g.Id == goalId)
-            .Where(g =>
-                db.DogOwners.Any(o => o.DogId == g.DogId && o.UserId == userId) ||
-                db.TrainerAssignments.Any(t => t.DogId == g.DogId && t.TrainerId == userId))
+            .Where(g => db.ZugaenglicheHundeIds(userId).Contains(g.DogId))
             .FirstOrDefaultAsync(ct);
     }
 

@@ -211,7 +211,7 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
     {
         // Ändern darf nur, wer den Hund besitzt - ein zugewiesener Trainer
         // sieht ihn zwar, verwaltet ihn aber nicht (wie bei DogService).
-        var istBesitzer = await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId, ct);
+        var istBesitzer = await db.IstBesitzerAsync(userId, dogId, ct);
         if (!istBesitzer) return Result.NotFound("Hund nicht gefunden.");
 
         var hund = await db.Dogs.FirstOrDefaultAsync(d => d.Id == dogId, ct);

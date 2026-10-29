@@ -177,7 +177,7 @@ public class DogService(
         // Offene Einladungen sehen nur die Besitzer:innen - sie verwalten sie.
         // Eine betreuende Trainer:in geht nichts an, wen die Familie gerade
         // einlädt.
-        var istBesitzer = await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId, ct);
+        var istBesitzer = await db.IstBesitzerAsync(userId, dogId, ct);
         var ownerRows = await db.DogOwners
             .IgnoreQueryFilters()
             .Where(o => o.DogId == dogId && o.DeletedAt == null)
@@ -397,7 +397,7 @@ public class DogService(
     {
         // Wer den Hund nur betreut, bekommt dieselbe Antwort wie jede fremde
         // Person: Die Liste gehört der Familie (siehe GetOwnersAsync).
-        if (!await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId, ct))
+        if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result<IReadOnlyList<DogBetreuungDto>>.NotFound("Hund nicht gefunden.");
 
         var betreuungen = await db.TrainerAssignments
@@ -432,7 +432,7 @@ public class DogService(
 
     public async Task<Result> EndSupervisionAsync(Guid userId, Guid dogId, Guid trainerId, CancellationToken ct = default)
     {
-        if (!await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId, ct))
+        if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result.NotFound("Hund nicht gefunden.");
 
         // Eine schon beendete Betreuung fällt am Query-Filter heraus: wie bei
@@ -626,7 +626,7 @@ public class DogService(
     private async Task<Dog?> GetOwnedDogAsync(Guid userId, Guid dogId, CancellationToken ct) =>
         await db.Dogs
             .Where(d => d.Id == dogId)
-            .Where(d => d.Owners.Any(o => o.UserId == userId))
+            .Where(d => db.EigeneHundeIds(userId).Contains(d.Id))
             .FirstOrDefaultAsync(ct);
 
     private static string? Validate(string name, string? breed) =>
@@ -645,7 +645,7 @@ public class DogService(
     /// </summary>
     private async Task<DogDto> ToDtoAsync(Dog dog, Guid userId, CancellationToken ct)
     {
-        var istBesitzer = await db.DogOwners.AnyAsync(o => o.DogId == dog.Id && o.UserId == userId, ct);
+        var istBesitzer = await db.IstBesitzerAsync(userId, dog.Id, ct);
         var pausen = await db.ActivePausesAsync([dog.Id], Heute(), ct);
         var gesundheit = istBesitzer ? (await db.HealthSummariesAsync([dog.Id], Heute(), ct)).GetValueOrDefault(dog.Id) : null;
         return ToDto(dog, await HasImageAsync(dog.Id, ct), pausen.GetValueOrDefault(dog.Id), istBesitzer, gesundheit);

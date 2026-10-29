@@ -77,9 +77,21 @@ beim Hinzufügen der zweiten verloren.
     und **aktive** Gruppenmitglieder)
   - `BelongsToAnyClubAsync`, `BelongsToAnyGroupAsync`, `IsAnyTrainerAsync` -
     Zugehörigkeit (Erststart, Perspektive)
-- `DogAccessQueries.HasDogAccessAsync`: Zugriff auf einen Hund hat, wer Besitzer:in
-  ist (`DogOwners`) oder ihn über eine `TrainerAssignment` betreut. Training, Ziele
-  und Fährten fragen darüber - das gilt für das **Lesen**.
+- `DogAccessQueries`: die einzige Stelle der Hundezugriffsregel. Zwei Stufen,
+  beide nur für Hunde, die es noch gibt (zu einem weich gelöschten Hund hat
+  niemand Zugriff, es gibt 404 statt einer leeren Liste):
+  - **Besitzer:in** - aktive Zeile in `DogOwners`, auch Mitbesitzer:innen
+    (`IstBesitzerAsync`, einbettbar `EigeneHundeIds`; `BesitzerIds` fragt
+    umgekehrt nach den Besitzer:innen eines Hundes).
+  - **Zugriff** - Besitzer:in ODER betreuende Trainer:in über eine
+    `TrainerAssignment` (`HasDogAccessAsync`, einbettbar `ZugaenglicheHundeIds`).
+    Training, Ziele und Fährten fragen darüber - das gilt für das **Lesen**.
+  Wer einen Hund in einer Abfrage über viele Zeilen prüft, bettet die
+  `...Ids`-Abfrage ein (`.Where(s => db.ZugaenglicheHundeIds(userId).Contains(s.DogId))`)
+  und schreibt für die Prüfung keinen eigenen Ausdruck auf `DogOwners`/`TrainerAssignments`.
+  Bewusst anders und deshalb nicht darüber: "Hauptbesitzer:in" (`Role == Owner`,
+  Mitbesitzer:innen einladen/entfernen) und die Frage "ist diese Person die
+  zugewiesene Trainer:in" (Feedback, Bewertung, Trainerübersicht).
 - `TrainingsRechte` (`Dogity.Application/Training`): **Ändern und Löschen** von
   Trainings samt Übungen, Bewertungen, Notizen, Ort/Zeit und Fährten. Besitzer:innen
   dürfen alles am Hund, betreuende Trainer:innen nur Einträge, die sie selbst
