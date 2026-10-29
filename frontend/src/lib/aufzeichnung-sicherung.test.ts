@@ -234,11 +234,29 @@ describe("Speichern einer Sicherung", () => {
     vi.mocked(api.post).mockRejectedValue(new TypeError("Failed to fetch"));
     sicherungSchreiben(ablauf());
     const ergebnis = await sicherungSpeichern(ablauf(), "Ablauf-Versuch");
-    expect(ergebnis).toEqual({ ausgang: "offline" });
+    expect(ergebnis).toEqual({ ausgang: "offline", grund: "netz" });
     expect(enqueueRequest).toHaveBeenCalledWith(
       expect.objectContaining({ path: "/api/gps-tracks/fährte-1/walk-runs", method: "POST", label: "Ablauf-Versuch" }),
     );
     expect(sicherungenAuflisten("nutzer-a")).toEqual([]);
+  });
+
+  it.each([502, 503])("legt sie bei %i in die Warteschlange - der Server startet nur neu", async (status) => {
+    vi.mocked(api.post).mockRejectedValue(new ApiError(status, []));
+    sicherungSchreiben(faehrte());
+    const ergebnis = await sicherungSpeichern(faehrte(), "Fährte");
+    expect(ergebnis).toEqual({ ausgang: "offline", grund: "server" });
+    expect(enqueueRequest).toHaveBeenCalledWith(expect.objectContaining({ path: "/api/gps-tracks", method: "POST" }));
+    expect(sicherungenAuflisten("nutzer-a")).toEqual([]);
+  });
+
+  it.each([500, 504])("behält sie bei %i - der Server kann sie schon haben", async (status) => {
+    vi.mocked(api.post).mockRejectedValue(new ApiError(status, ["Fehler."]));
+    sicherungSchreiben(faehrte());
+    const ergebnis = await sicherungSpeichern(faehrte(), "Fährte");
+    expect(ergebnis).toEqual({ ausgang: "fehler", meldung: "Fehler." });
+    expect(enqueueRequest).not.toHaveBeenCalled();
+    expect(sicherungenAuflisten("nutzer-a")).toHaveLength(1);
   });
 
   it("behält sie, wenn nicht einmal die Warteschlange geht", async () => {

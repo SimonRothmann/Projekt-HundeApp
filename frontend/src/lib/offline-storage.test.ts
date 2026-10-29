@@ -8,6 +8,7 @@ import {
   enqueueRequest,
   listOwnQueuedRequests,
   listQueuedRequests,
+  nichtGleichzeitig,
   removeQueuedRequestsOf,
   syncQueuedRequests,
 } from "@/lib/offline-queue";
@@ -256,5 +257,54 @@ describe("offline-queue: nur mit der eigenen Anmeldung", () => {
     await removeQueuedRequestsOf("anna");
 
     expect((await listQueuedRequests()).map((i) => i.userId)).toEqual(["ben"]);
+  });
+});
+
+describe("nichtGleichzeitig", () => {
+  it("lässt einen Auslöser verfallen, solange der Lauf noch geht", async () => {
+    let fertig!: () => void;
+    const lauf = vi.fn(() => new Promise<void>((resolve) => (fertig = resolve)));
+    const gesperrt = nichtGleichzeitig(lauf);
+
+    const erster = gesperrt();
+    await gesperrt();
+    expect(lauf).toHaveBeenCalledTimes(1);
+
+    fertig();
+    await erster;
+  });
+
+  it("gibt die Sperre nach dem Lauf wieder frei - auch nach einem Fehler", async () => {
+    const lauf = vi.fn().mockRejectedValueOnce(new Error("kaputt")).mockResolvedValue(undefined);
+    const gesperrt = nichtGleichzeitig(lauf);
+
+    await expect(gesperrt()).rejects.toThrow("kaputt");
+    await gesperrt();
+    expect(lauf).toHaveBeenCalledTimes(2);
+  });
+
+  it("verfällt, wenn ein anderer Tab die Sperre hält", async () => {
+    const request = vi.fn(async (_name: string, _opt: unknown, cb: (sperre: unknown) => Promise<void>) => cb(null));
+    vi.stubGlobal("navigator", { locks: { request } });
+    try {
+      const lauf = vi.fn().mockResolvedValue(undefined);
+      await nichtGleichzeitig(lauf)();
+      expect(request).toHaveBeenCalledWith("dogity-offline-sync", { ifAvailable: true }, expect.any(Function));
+      expect(lauf).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("läuft, wenn die Sperre frei ist", async () => {
+    const request = vi.fn(async (_name: string, _opt: unknown, cb: (sperre: unknown) => Promise<void>) => cb({}));
+    vi.stubGlobal("navigator", { locks: { request } });
+    try {
+      const lauf = vi.fn().mockResolvedValue(undefined);
+      await nichtGleichzeitig(lauf)();
+      expect(lauf).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

@@ -12,7 +12,7 @@ const REPO = '/Users/simon/Workspace/Privat/Projekt-HundeApp'
 
 const REGELN = `Repo: ${REPO} (Branch master). Dogity = Hundesport-App: frontend/ (Next.js App Router, React, Tailwind, vitest), backend/ (.NET 10, EF Core 10, Postgres; Schichten Domain/Application/Infrastructure/Api; Tests in backend/tests).
 
-Werkzeuge: vor jedem Befehl `export PATH=/opt/homebrew/bin:$PATH DOTNET_ROOT=/opt/homebrew/opt/dotnet/libexec DOTNET_CLI_TELEMETRY_OPTOUT=1` (node, npm, dotnet kommen aus Homebrew).
+Werkzeuge: vor jedem Befehl 'export PATH=/opt/homebrew/bin:\$PATH DOTNET_ROOT=/opt/homebrew/opt/dotnet/libexec DOTNET_CLI_TELEMETRY_OPTOUT=1' ausführen (node, npm, dotnet kommen aus Homebrew).
 
 Verbindliche Regeln:
 - Das Repo ist öffentlich: keine Angriffswege in Doku, TODO oder Kommentaren beschreiben, solange eine Lücke offen ist; keine Geheimnisse.

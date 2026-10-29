@@ -1,4 +1,4 @@
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, istVoruebergehendUnerreichbar } from "@/lib/api";
 import { estimateLengthMeters } from "@/lib/geo";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { heuteIso } from "@/lib/pruefung";
@@ -274,13 +274,15 @@ function istAblauf(antwort: unknown): antwort is GpsWalkRun {
 export type SpeicherErgebnis =
   /** ablauf: die ausgewertete Antwort des Servers bei einem Ablauf - Grundlage des Ergebnis-Fensters. */
   | { ausgang: "gespeichert"; faehrte: GpsTrack | null; ablauf?: GpsWalkRun | null }
-  | { ausgang: "offline" }
+  /** grund: "netz" = kein Internet; "server" = Server kurz nicht erreichbar (502/503, etwa bei einem Update). */
+  | { ausgang: "offline"; grund: "netz" | "server" }
   /** meldung: die Begründung des Servers; null, wenn nicht einmal die Warteschlange ging. */
   | { ausgang: "fehler"; meldung: string | null };
 
 /**
- * Schickt eine Sicherung an den Server - oder, ohne Netz, in die
- * Offline-Warteschlange. In beiden Fällen ist sie danach gelöscht.
+ * Schickt eine Sicherung an den Server - oder, ohne Netz oder bei kurz
+ * nicht erreichbarem Server (502/503), in die Offline-Warteschlange. In
+ * beiden Fällen ist sie danach gelöscht.
  *
  * Lehnt der Server ab, bleibt sie stehen. Vorher war die Aufzeichnung in
  * diesem Fall verloren: Die Punkte wurden nach der Fehlermeldung verworfen.
@@ -297,13 +299,13 @@ export async function sicherungSpeichern(
       ? { ausgang: "gespeichert", faehrte: antwort as GpsTrack }
       : { ausgang: "gespeichert", faehrte: null, ablauf: istAblauf(antwort) ? antwort : null };
   } catch (err) {
-    if (err instanceof ApiError) return { ausgang: "fehler", meldung: err.message };
+    if (err instanceof ApiError && !istVoruebergehendUnerreichbar(err)) return { ausgang: "fehler", meldung: err.message };
     try {
       await enqueueRequest({ path, method: "POST", body, label: warteschlangenLabel });
     } catch {
       return { ausgang: "fehler", meldung: null };
     }
     sicherungLoeschen(schluesselVon(sicherung));
-    return { ausgang: "offline" };
+    return { ausgang: "offline", grund: err instanceof ApiError ? "server" : "netz" };
   }
 }

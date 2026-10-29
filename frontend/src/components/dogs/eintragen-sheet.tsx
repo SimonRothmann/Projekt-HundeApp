@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, CirclePause, History, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, istVoruebergehendUnerreichbar } from "@/lib/api";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -348,12 +348,13 @@ function EintragenInhalt({
       onClose();
       await onSaved(false);
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (err instanceof ApiError && !istVoruebergehendUnerreichbar(err)) {
         toast.error(err.message);
         return;
       }
-      // Kein HTTP-Fehler vom Server, sondern ein Netzwerkfehler (offline) -
-      // siehe PRODUCT_REQUIREMENTS.md "Offline": Training ohne Internet erfassen.
+      // Kein HTTP-Fehler vom Server, sondern ein Netzwerkfehler (offline) oder
+      // ein Server, der gerade neu startet (502/503) - siehe
+      // PRODUCT_REQUIREMENTS.md "Offline": Training ohne Internet erfassen.
       try {
         await enqueueRequest({ path: "/api/trainings", method: "POST", body: nutzlast, label: t("Training") });
       } catch {
@@ -362,7 +363,11 @@ function EintragenInhalt({
         toast.error(t("Training konnte nicht gespeichert werden."));
         return;
       }
-      toast.success(t("Offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."));
+      toast.success(
+        err instanceof ApiError
+          ? t("Server gerade nicht erreichbar – gespeichert, wird gleich automatisch nachgeschickt.")
+          : t("Offline gespeichert. Wird synchronisiert, sobald wieder Internet verfügbar ist."),
+      );
       onClose();
       await onSaved(true);
     } finally {

@@ -123,6 +123,8 @@ export function speicherErgebnisMelden(
   const faehrte = art === "faehrte";
   if (ergebnis.ausgang === "gespeichert") {
     toast.success(faehrte ? t("Fährte gespeichert.") : t("Ablauf-Versuch gespeichert."));
+  } else if (ergebnis.ausgang === "offline" && ergebnis.grund === "server") {
+    toast.success(t("Server gerade nicht erreichbar – gespeichert, wird gleich automatisch nachgeschickt."));
   } else if (ergebnis.ausgang === "offline") {
     toast.success(
       faehrte

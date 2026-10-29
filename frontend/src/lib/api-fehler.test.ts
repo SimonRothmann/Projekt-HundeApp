@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { ApiError, fehlerAusAntwort } from "@/lib/api";
+import { ApiError, fehlerAusAntwort, istVoruebergehendUnerreichbar } from "@/lib/api";
 import { setzeAktuelleSprache } from "@/lib/i18n/aktuelle-sprache";
 import { istPlanZielFehler } from "@/lib/trainingsplan";
 
@@ -62,5 +62,19 @@ describe("ApiError in der Oberflächensprache", () => {
     const fehler = new ApiError(400, ["Ein oder mehrere Plan-Ziele wurden nicht gefunden."]);
     expect(fehler.message).toBe("One or more plan goals were not found.");
     expect(istPlanZielFehler(fehler)).toBe(true);
+  });
+});
+
+describe("Vorübergehend unerreichbar", () => {
+  it("ja bei Netzwerkfehlern", () => {
+    expect(istVoruebergehendUnerreichbar(new TypeError("Failed to fetch"))).toBe(true);
+  });
+
+  it.each([502, 503])("ja bei %i - der Proxy antwortet, solange das Backend neu startet", (status) => {
+    expect(istVoruebergehendUnerreichbar(new ApiError(status, []))).toBe(true);
+  });
+
+  it.each([500, 504, 400, 401, 404])("nein bei %i - der Server kann es verarbeitet haben oder lehnt ab", (status) => {
+    expect(istVoruebergehendUnerreichbar(new ApiError(status, []))).toBe(false);
   });
 });

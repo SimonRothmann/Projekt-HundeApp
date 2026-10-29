@@ -54,6 +54,23 @@ export class ApiError extends Error {
 }
 
 /**
+ * Ob eine Anfrage nur gerade nicht ankam und sich gefahrlos nachschicken lässt:
+ * Netzwerkfehler (alles, was kein ApiError ist) und 502/503 - so antwortet der
+ * Proxy, solange das Backend bei einem Update neu startet.
+ *
+ * Bewusst NICHT 500 und NICHT 504: Dort kann der Server die Anfrage schon
+ * verarbeitet haben. Ein Training hat keine Id vom Gerät, das Nachschicken
+ * ergäbe eine Dublette.
+ *
+ * Restrisiko: Auch ein 502/503 kann entstehen, wenn der Server beim Stopp eine
+ * schon angenommene Anfrage abbricht - dann wäre das Nachschicken eine
+ * Dublette. Vermeiden ließe es nur eine Client-Id fürs Training (Backend).
+ */
+export function istVoruebergehendUnerreichbar(err: unknown): boolean {
+  return !(err instanceof ApiError) || err.status === 502 || err.status === 503;
+}
+
+/**
  * Macht aus dem Rumpf einer Fehlerantwort eine Liste lesbarer Meldungen.
  *
  * Die App antwortet mit `{ errors: ["..."] }`. ASP.NET selbst liefert bei

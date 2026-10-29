@@ -1,15 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { syncQueuedRequests } from "@/lib/offline-queue";
+import { listOwnQueuedRequests, nichtGleichzeitig, syncQueuedRequests } from "@/lib/offline-queue";
 import { WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { uebersetzeAktuell, useT } from "@/lib/i18n";
+
+const ABGLEICH_ABSTAND_MS = 30_000;
+
 /**
  * Synchronisiert die IndexedDB-Warteschlange (Training/GPS offline erfasst),
  * sobald die Verbindung wieder verfügbar ist, und zeigt den Online/Offline-
  * Status an (siehe PRODUCT_REQUIREMENTS.md "Offline": später synchronisieren).
+ *
+ * Eingereiht wird auch bei 502/503, wenn der Server bei einem Update kurz
+ * neu startet - dann bleibt die Verbindung bestehen und es kommt kein
+ * "online"-Ereignis. Darum zusätzlich alle 30 Sekunden und beim Zurückkehren
+ * in die App, solange etwas in der Warteschlange liegt.
  */
 export function OfflineSyncListener() {
   // Die Meldungen im Effekt gehen über uebersetzeAktuell(): Der Effekt läuft
@@ -19,7 +27,7 @@ export function OfflineSyncListener() {
   const t = useT();
 
   useEffect(() => {
-    async function trySync() {
+    const trySync = nichtGleichzeitig(async () => {
       const count = await syncQueuedRequests(undefined, (item, error) => {
         // Dauerhaft aussichtsloser Eintrag (z.B. 404 auf ein inzwischen
         // gelöschtes Training) wurde aus der Queue verworfen - dem Nutzer
@@ -35,6 +43,21 @@ export function OfflineSyncListener() {
             : uebersetzeAktuell("{n} offline gespeicherte Eintragungen synchronisiert.", { n: count }),
         );
       }
+    });
+
+    // Der billige Blick in die Warteschlange; nur wenn etwas darin liegt,
+    // lohnt der Abgleich (und damit eine Anfrage an den Server).
+    async function nachschickenFallsOffen() {
+      if (!navigator.onLine) return;
+      try {
+        if ((await listOwnQueuedRequests()).length > 0) await trySync();
+      } catch {
+        // Fehler beim Lesen oder Abgleichen: beim nächsten Auslöser erneut.
+      }
+    }
+
+    function handleVisibility() {
+      if (document.visibilityState === "visible") void nachschickenFallsOffen();
     }
 
     function handleOnline() {
@@ -50,9 +73,13 @@ export function OfflineSyncListener() {
     setIsOffline(!navigator.onLine);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+    document.addEventListener("visibilitychange", handleVisibility);
+    const intervall = window.setInterval(() => void nachschickenFallsOffen(), ABGLEICH_ABSTAND_MS);
     void trySync();
 
     return () => {
+      window.clearInterval(intervall);
+      document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };

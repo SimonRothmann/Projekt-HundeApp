@@ -61,6 +61,17 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.43",
+    datum: "2026-10-29",
+    titel: uebersetzbar("Speichern auch während eines Updates"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Wird Dogity gerade aktualisiert und ist kurz nicht erreichbar, landen Trainings, Fährten und Abläufe in der Warteschlange und werden kurz darauf automatisch nachgeschickt, statt eine Fehlermeldung zu zeigen."),
+      },
+    ],
+  },
+  {
     version: "0.42",
     datum: "2026-10-29",
     titel: uebersetzbar("Trainer:innen ändern nur eigene Einträge"),

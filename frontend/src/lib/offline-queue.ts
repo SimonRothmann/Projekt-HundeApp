@@ -86,6 +86,39 @@ function nextQueueId(): string {
   return `${Date.now()}-${(enqueueSeq++).toString().padStart(6, "0")}-${crypto.randomUUID()}`;
 }
 
+// Name der Web-Lock-Sperre: Die Warteschlange liegt in IndexedDB und gehört
+// allen offenen Tabs und der installierten App zugleich.
+const ABGLEICH_SPERRE = "dogity-offline-sync";
+
+/**
+ * Lässt einen Lauf nie doppelt starten: Wer ihn anstößt, während er läuft,
+ * verfällt. Sonst gingen bei zwei gleichzeitigen Abgleichen Einträge doppelt
+ * hinaus oder die Reihenfolge (Training vor Fährte) geriete durcheinander.
+ *
+ * Das gilt auch über Tabs hinweg (Web Locks): Jeder offene Tab stößt den
+ * Abgleich an und liest dieselbe Warteschlange. Wo es die API nicht gibt,
+ * schützt nur die Sperre je Seite.
+ */
+export function nichtGleichzeitig(lauf: () => Promise<void>): () => Promise<void> {
+  let laeuft = false;
+  return async () => {
+    if (laeuft) return;
+    laeuft = true;
+    try {
+      const sperren = typeof navigator === "undefined" ? undefined : navigator.locks;
+      if (!sperren) {
+        await lauf();
+        return;
+      }
+      await sperren.request(ABGLEICH_SPERRE, { ifAvailable: true }, async (sperre) => {
+        if (sperre) await lauf();
+      });
+    } finally {
+      laeuft = false;
+    }
+  };
+}
+
 export async function listQueuedRequests(): Promise<QueuedRequest[]> {
   const db = await openDb();
   return new Promise((resolve, reject) => {

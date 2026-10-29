@@ -280,7 +280,11 @@ unabhängige Bausteine:
   (`offline-sync-listener.tsx`). Das ist aktuell **nur für zwei Funktionen
   verdrahtet**: Trainingstagebuch-Einträge (`POST /api/trainings`,
   `dogs/[id]/page.tsx`) und GPS-Aufzeichnungen (Fährte/Spaziergang/Lauf,
-  `components/tracking/*`).
+  `components/tracking/*`). Eingereiht wird auch bei 502/503 (Server startet
+  bei einem Update kurz neu, `istVoruebergehendUnerreichbar` in `lib/api.ts`);
+  der Listener gleicht dann alle 30 Sekunden und beim Zurückkehren in die App
+  ab, solange etwas in der Warteschlange liegt. 500 und 504 gehören bewusst
+  nicht dazu - dort kann der Server den Eintrag schon verarbeitet haben.
 
 **Nicht offline-fähig** sind alle anderen Schreibvorgänge - sie schlagen
 ohne Verbindung mit einer Fehlermeldung fehl, statt zu queuen: Ziele/
