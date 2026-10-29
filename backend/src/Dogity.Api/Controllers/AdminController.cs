@@ -11,7 +11,7 @@ namespace Dogity.Api.Controllers;
 
 [Authorize(Roles = Roles.Admin)]
 [Route("api/admin")]
-public class AdminController(IAdminService adminService, IClubService clubService, IRegulationImportService importService, IClubRegistrationService registrations, IMailTestService mailTest, IPushTestService pushTest, ILogger<AdminController> logger) : ApiControllerBase
+public class AdminController(IAdminService adminService, IAdminUsageService usageService, IClubService clubService, IRegulationImportService importService, IClubRegistrationService registrations, IMailTestService mailTest, IPushTestService pushTest, ILogger<AdminController> logger) : ApiControllerBase
 {
     [HttpGet("clubs")]
     public async Task<ActionResult<IReadOnlyList<ClubDto>>> GetClubs(CancellationToken ct)
@@ -88,6 +88,11 @@ public class AdminController(IAdminService adminService, IClubService clubServic
         var result = await adminService.GetStatsAsync(ct);
         return FromResult(result);
     }
+
+    /// <summary>Wie und was genutzt wird - nur Zählungen aus vorhandenen Daten, keine Personen.</summary>
+    [HttpGet("stats/usage")]
+    public async Task<ActionResult<AdminUsageDto>> GetUsageStats(CancellationToken ct) =>
+        FromResult(await usageService.GetAsync(ct));
 
     /// <summary>Zählung der Daten gelöschter Konten - ohne Ids, ohne Namen.</summary>
     [HttpGet("orphaned-data")]

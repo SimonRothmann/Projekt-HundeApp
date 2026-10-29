@@ -58,4 +58,15 @@ public interface IRefreshTokenService
     /// </summary>
     /// <returns>Wie viele Tokens entfernt wurden.</returns>
     Task<int> DeleteOrphanedAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Wie viele verschiedene Konten (die es noch gibt) seit <paramref name="since"/>
+    /// einen Token bekamen - bei Anmeldung und bei jeder Erneuerung der Sitzung,
+    /// also wenn die App mit abgelaufenem Zugangstoken geöffnet wurde. Nur eine
+    /// Zahl, keine Personen. Die Zeilen bleiben bis zur nächsten Anmeldung des
+    /// Kontos stehen (auch widerrufene und abgelaufene), das Zählen verlängert
+    /// ihre Aufbewahrung nicht. Untertreibt, wo innerhalb der Gültigkeit des
+    /// Zugangstokens kein neuer entsteht (siehe AdminUsageActivityDto).
+    /// </summary>
+    Task<int> CountAccountsWithTokenSinceAsync(DateTimeOffset since, CancellationToken ct = default);
 }

@@ -51,6 +51,7 @@ public static class DependencyInjection
         services.AddScoped<IGroupRegistrationRetention, GroupRegistrationRetention>();
         services.AddScoped<ICommunityOrphanCleanup, CommunityOrphanCleanup>();
         services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<IAdminUsageService, AdminUsageService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<MailDrossel>();
         services.AddScoped<IAccountMailService, AccountMailService>();

@@ -138,6 +138,13 @@ public class RefreshTokenService(ApplicationDbContext db, IOptions<JwtSettings> 
         await db.SaveChangesAsync(ct);
     }
 
+    public Task<int> CountAccountsWithTokenSinceAsync(DateTimeOffset since, CancellationToken ct = default) =>
+        db.RefreshTokens
+            .Where(t => t.CreatedAt >= since && db.Users.Any(u => u.Id == t.UserId))
+            .Select(t => t.UserId)
+            .Distinct()
+            .CountAsync(ct);
+
     /// <summary>
     /// So viele Tokens je Durchgang: Ein Konto bringt je Gerät eine Zeile mit,
     /// der Altbestand ist überschaubar - Portionen halten die einzelne

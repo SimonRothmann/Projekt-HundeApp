@@ -6,6 +6,7 @@ import { useT } from "@/lib/i18n";
 import type { AdminStats } from "@/lib/types";
 import { KennzahlenKarte } from "@/components/admin/kennzahlen-karte";
 import { Letzte30TageSection } from "@/components/admin/letzte-30-tage-section";
+import { NutzungBereich } from "@/components/admin/nutzung-bereich";
 import { Button } from "@/components/ui/button";
 
 export default function AdminStatistikPage() {
@@ -55,6 +56,7 @@ export default function AdminStatistikPage() {
           <Letzte30TageSection stats={stats} />
         </>
       )}
+      <NutzungBereich />
     </div>
   );
 }

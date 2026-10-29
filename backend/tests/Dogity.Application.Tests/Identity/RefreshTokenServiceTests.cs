@@ -170,6 +170,29 @@ public class RefreshTokenServiceTests
         Assert.Equal(0, await service.DeleteOrphanedAsync());
     }
 
+    [Fact]
+    public async Task CountAccountsWithTokenSince_ZaehltVerschiedeneBestehendeKontenImZeitraum()
+    {
+        var service = MakeService(out var db);
+        var oft = await LegeKontoAnAsync(db);
+        var einmal = await LegeKontoAnAsync(db);
+        var vorLangem = await LegeKontoAnAsync(db);
+        var geloeschtesKonto = Guid.NewGuid();
+        await service.IssueAsync(oft);
+        var weiter = await service.IssueAsync(oft);
+        await service.RotateAsync(weiter); // jede Erneuerung ist ein weiterer Token desselben Kontos
+        await service.IssueAsync(einmal);
+        await service.IssueAsync(geloeschtesKonto);
+        await service.IssueAsync(vorLangem);
+        foreach (var token in db.RefreshTokens.Where(t => t.UserId == vorLangem))
+            token.CreatedAt = DateTimeOffset.UtcNow.AddDays(-40);
+        await db.SaveChangesAsync();
+
+        Assert.Equal(2, await service.CountAccountsWithTokenSinceAsync(DateTimeOffset.UtcNow.AddDays(-30)));
+        Assert.Equal(3, await service.CountAccountsWithTokenSinceAsync(DateTimeOffset.UtcNow.AddDays(-60)));
+        Assert.Equal(0, await service.CountAccountsWithTokenSinceAsync(DateTimeOffset.UtcNow.AddDays(1)));
+    }
+
     // --- RefreshAsync: Rotation plus Kontoprüfung ---
 
     private static async Task<Guid> LegeKontoAnAsync(ApplicationDbContext db, DateTimeOffset? sperreBis = null)

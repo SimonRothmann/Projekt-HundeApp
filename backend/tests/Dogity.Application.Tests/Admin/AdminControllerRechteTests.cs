@@ -25,6 +25,7 @@ public class AdminControllerRechteTests
     [Theory]
     [InlineData(nameof(AdminController.GetOrphanedData))]
     [InlineData(nameof(AdminController.PurgeOrphanedData))]
+    [InlineData(nameof(AdminController.GetUsageStats))]
     public void DatenGeloeschterKonten_Endpunkte_LockernDieBeschraenkungNicht(string methode)
     {
         var m = typeof(AdminController).GetMethod(methode)!;

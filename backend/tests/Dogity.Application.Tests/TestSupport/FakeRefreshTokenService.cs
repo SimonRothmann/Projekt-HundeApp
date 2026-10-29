@@ -41,4 +41,10 @@ public class FakeRefreshTokenService : IRefreshTokenService
 
     public Task<int> DeleteOrphanedAsync(CancellationToken ct = default)
         => Task.FromResult(0);
+
+    /// <summary>Wer wann einen Token bekam - Grundlage für CountAccountsWithTokenSinceAsync.</summary>
+    public List<(Guid UserId, DateTimeOffset At)> Ausgestellt { get; } = [];
+
+    public Task<int> CountAccountsWithTokenSinceAsync(DateTimeOffset since, CancellationToken ct = default)
+        => Task.FromResult(Ausgestellt.Where(t => t.At >= since).Select(t => t.UserId).Distinct().Count());
 }

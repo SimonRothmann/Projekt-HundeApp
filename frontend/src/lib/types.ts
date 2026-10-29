@@ -683,6 +683,73 @@ export type AdminRecentStats = {
   activeAccounts: number;
 };
 
+/**
+ * Wie und was genutzt wird - nur Zählungen aus vorhandenen Daten, keine
+ * Personen (siehe AdminUsageDto). Tage sind ISO-Daten ("2026-10-26").
+ */
+export type AdminUsage = {
+  activity: AdminUsageActivity;
+  features: AdminFeatureUsage[];
+  disabledModules: AdminDisabledModule[];
+  retention: AdminRetention;
+  timing: AdminUsageTiming;
+  sports: AdminSportUsage[];
+};
+
+export type AdminUsageActivity = {
+  totalAccounts: number;
+  /** Richtwert aus den Anmelde-Tokens - untertreibt (siehe AdminUsageActivityDto). */
+  openedLast7Days: number;
+  openedLast30Days: number;
+  /** Konten, die im Zeitraum etwas angelegt haben. */
+  activeLast7Days: number;
+  activeLast30Days: number;
+  activeLast90Days: number;
+  /** Die letzten 12 Kalenderwochen, die älteste zuerst. */
+  weeks: AdminUsageWeek[];
+};
+
+export type AdminUsageWeek = {
+  /** Der Montag der Woche. */
+  weekStart: string;
+  activeAccounts: number;
+  entries: number;
+};
+
+export type AdminFeatureUsage = {
+  /** Stabiler Schlüssel (kebab, englisch); die Namen stehen in lib/nutzung.ts. */
+  key: string;
+  accountsLast30Days: number;
+  /** null, wo ein Eintrag nichts aussagt (Push). */
+  entriesLast30Days: number | null;
+  accountsEver: number;
+  /** Tag des letzten Eintrags, null = nie genutzt. */
+  lastUsed: string | null;
+};
+
+export type AdminDisabledModule = { key: string; accounts: number };
+
+export type AdminRetention = {
+  accountsOlderThan30Days: number;
+  olderActiveLast30Days: number;
+  neverCreatedWithoutDog: number;
+  neverCreatedWithDog: number;
+};
+
+export type AdminUsageTiming = {
+  /** Montag bis Sonntag. */
+  byWeekday: number[];
+  /** Stunde 0 bis 23. */
+  byHour: number[];
+};
+
+export type AdminSportUsage = {
+  name: string;
+  nameEn: string | null;
+  trainings: number;
+  dogs: number;
+};
+
 /** Daten von Konten, die es nicht mehr gibt - nur Zählungen (siehe OrphanedDataDto). */
 export type AdminOrphanedData = {
   konten: number;
