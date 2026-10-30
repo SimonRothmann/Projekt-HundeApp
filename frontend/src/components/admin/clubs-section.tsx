@@ -22,6 +22,10 @@ export function ClubsSection() {
   const [expandedClubId, setExpandedClubId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ClubDetail | null>(null);
   const [memberEmail, setMemberEmail] = useState("");
+  // Zählt hoch, wenn sich unten in der Mitgliederliste etwas ändert: Dann lädt
+  // die Rollenkarte neu. Ihre eigenen Änderungen lädt sie selbst nach - ein
+  // Neuaufbau schlösse dabei den offenen Rollen-Editor.
+  const [rollenStand, setRollenStand] = useState(0);
 
   async function ladeDetail(clubId: string) {
     setDetail(await api.get<ClubDetail>(`/api/admin/clubs/${clubId}`));
@@ -47,6 +51,7 @@ export function ClubsSection() {
       await aktion();
       toast.success(erfolg);
       await ladeDetail(clubId);
+      setRollenStand((n) => n + 1);
       if (auchListe) await loadClubs();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : fehler);
@@ -182,7 +187,7 @@ export function ClubsSection() {
                         Personen ohne Mitgliedschaft berufen (der erste Eintrag eines neuen Vereins). Die Karte
                         lädt sich neu, sobald sich unten etwas ändert (key). */}
                     <ClubRolesSection
-                      key={detail.trainers.map((r) => `${r.userId}:${r.roles}`).join(",")}
+                      key={`rollen-${club.id}-${rollenStand}`}
                       clubId={club.id}
                       istAdmin
                       onGeaendert={() => Promise.all([ladeDetail(club.id), loadClubs()]).then(() => undefined)}

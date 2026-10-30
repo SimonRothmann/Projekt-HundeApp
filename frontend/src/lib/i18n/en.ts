@@ -379,6 +379,7 @@ export const EN: Record<string, string> = {
   "Gruppe aufgelöst.": "Group disbanded.",
   "Gruppe konnte nicht angelegt werden.": "The group could not be created.",
   "Gruppe konnte nicht geladen werden.": "The group could not be loaded.",
+  "Diese Gruppe kannst du nicht öffnen: Es gibt sie nicht mehr, oder sie gehört nicht zu deinen Gruppen.": "You can't open this group: it no longer exists, or it isn't one of your groups.",
   "Gruppe konnte nicht gelöscht werden.": "The group could not be deleted.",
   "Gruppe konnte nicht gespeichert werden.": "The group could not be saved.",
   "Gruppe wählen.": "Choose a group.",

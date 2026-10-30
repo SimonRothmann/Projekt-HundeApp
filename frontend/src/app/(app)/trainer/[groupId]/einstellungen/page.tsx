@@ -19,10 +19,14 @@ import { GroupTrainersSection } from "@/components/trainer/group-trainers-sectio
 export default function TrainerGruppeEinstellungenPage() {
   const t = useT();
   const { groupId } = useParams<{ groupId: string }>();
-  const { detail, laden } = useGroupDetail(groupId);
+  const { detail, laden, fehlgeschlagen } = useGroupDetail(groupId);
 
   if (detail === null) {
-    return <p className="text-muted-foreground">{t("Lädt…")}</p>;
+    return (
+      <p className="break-words text-muted-foreground">
+        {fehlgeschlagen ? t("Diese Gruppe kannst du nicht öffnen: Es gibt sie nicht mehr, oder sie gehört nicht zu deinen Gruppen.") : t("Lädt…")}
+      </p>
+    );
   }
 
   return (
