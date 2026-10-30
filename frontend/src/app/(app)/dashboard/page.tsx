@@ -25,6 +25,7 @@ import { MODULE } from "@/lib/types";
 import { laeuftFaehrte, nichtAbgelaufeneFaehrten } from "@/lib/faehrte";
 import { merkeGelesenImErststart } from "@/lib/neuerungen-gelesen";
 import { pausenOhneKarte, zeigeSachkundeZeile, zielAufteilung } from "@/lib/startseite";
+import { fuerStartseite } from "@/lib/trainer-offen";
 import { ErfassenKarte } from "@/components/dashboard/erfassen-karte";
 import { PushHinweisKarte } from "@/components/dashboard/push-hinweis-karte";
 import { EinladungenKarte } from "@/components/dashboard/einladungen-karte";
@@ -141,7 +142,7 @@ async function ladeStartdaten(): Promise<Startdaten> {
 }
 
 export default function DashboardPage() {
-  const { user, isTrainer } = useAuth();
+  const { user, isTrainer, managesMembers } = useAuth();
   const { moduleEnabled } = usePreferences();
   const t = useT();
   const nutzerId = user?.userId ?? null;
@@ -231,13 +232,15 @@ export default function DashboardPage() {
   const sachkundeAn = moduleEnabled(MODULE.sachkunde);
   const gesundheitAn = moduleEnabled(MODULE.gesundheit);
   const trainerZeileAn = isTrainer === true && moduleEnabled(MODULE.gruppentraining);
+  // Die Beitrittsanfragen des Vereins hängen weder an der Trainer-Rolle noch am Modul Gruppentraining.
+  const zeileAn = trainerZeileAn || managesMembers === true;
 
-  // "Zu erledigen" der Trainer:innen: dieselben Zahlen wie auf der Trainer-
-  // Übersicht. Eigener Abruf statt Teil der Startseiten-Daten, weil die Rolle
-  // erst nach dem Anmelden feststeht und Nicht-Trainer:innen ihn nie brauchen.
-  // Schlägt er fehl, fehlt nur die Zeile.
+  // "Zu erledigen" der Trainer:innen und der Mitgliederverwaltung: dieselben
+  // Zahlen wie auf der Trainer-Übersicht. Eigener Abruf statt Teil der
+  // Startseiten-Daten, weil die Rolle erst nach dem Anmelden feststeht und
+  // alle anderen ihn nie brauchen. Schlägt er fehl, fehlt nur die Zeile.
   useEffect(() => {
-    if (!trainerZeileAn) return;
+    if (!zeileAn) return;
     let abgebrochen = false;
     api
       .get<TrainerOpenCounts>("/api/groups/open-counts")
@@ -248,7 +251,7 @@ export default function DashboardPage() {
     return () => {
       abgebrochen = true;
     };
-  }, [trainerZeileAn]);
+  }, [zeileAn]);
 
   // Vereinszugehörigkeit kommt aus dem Erststart-Status statt aus einer
   // eigenen Abfrage auf /api/clubs/my-memberships. Die kannte nur
@@ -352,7 +355,7 @@ export default function DashboardPage() {
 
           <FeedbackKarte eintraege={daten.feedback} onChanged={neuLaden} />
           <AbgelaufeneZiele eintraege={daten.ziele.abgelaufen} onChanged={neuLaden} />
-          <ZuErledigenZeile zahlen={trainerZahlen} />
+          <ZuErledigenZeile zahlen={fuerStartseite(trainerZahlen, trainerZeileAn)} />
         </>
       ) : (
         <>
@@ -379,7 +382,7 @@ export default function DashboardPage() {
           <AbgelaufeneZiele eintraege={daten.ziele.abgelaufen} onChanged={neuLaden} />
           <OhneZielZeilen hunde={daten.ziele.ohneZiel} />
 
-          <ZuErledigenZeile zahlen={trainerZahlen} />
+          <ZuErledigenZeile zahlen={fuerStartseite(trainerZahlen, trainerZeileAn)} />
 
           {/* Der Vereinsbeitritt als schmale Zeile, erst nach den Hunde- und
               Zielkarten. Solange der Erststart läuft, spricht er ihn selbst an. */}

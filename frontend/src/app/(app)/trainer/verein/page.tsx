@@ -8,6 +8,7 @@ import type { Club } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { CatalogSection } from "@/components/sports/catalog-section";
+import { ClubAnfragenKarte } from "@/components/trainer/club-anfragen-karte";
 import { ClubInviteSection } from "@/components/trainer/club-invite-section";
 import { ClubMembersSection } from "@/components/trainer/club-members-section";
 import { ClubOverviewSection } from "@/components/trainer/club-overview-section";
@@ -17,8 +18,8 @@ import { ClubStammdatenSection } from "@/components/trainer/club-stammdaten-sect
 /**
  * Alles, was zum Verein gehört - je nach Rolle: Vereinsübersicht (Vorstand,
  * Verwaltung), Stammdaten (Verwaltung), Rollen im Verein (Ausbildungswart:in,
- * Verwaltung), Einladungslink und Mitglieder (Mitgliederverwaltung,
- * Verwaltung) und der vereinseigene Katalog (Trainer:innen). Das lag früher als Block ganz unten auf der
+ * Verwaltung), Beitrittsanfragen, Einladungslink und Mitglieder
+ * (Mitgliederverwaltung, Verwaltung) und der vereinseigene Katalog (Trainer:innen). Das lag früher als Block ganz unten auf der
  * Trainer-Übersicht, mit je einer Karte pro Verein untereinander.
  *
  * Bei mehreren Vereinen wählt man oben EINEN aus - die Seite zeigt dann nur
@@ -127,6 +128,7 @@ export default function TrainerVereinPage() {
           }}
         />
       )}
+      {club.canManageMembers && <ClubAnfragenKarte key={`anfragen-${club.id}`} club={club} />}
       {club.canManageMembers && <ClubInviteSection key={`einladung-${club.id}`} clubs={[club]} />}
       {club.canManageMembers && <ClubMembersSection
           key={`mitglieder-${club.id}-${mitgliederStand}`}

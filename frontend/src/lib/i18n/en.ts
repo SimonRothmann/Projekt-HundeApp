@@ -2573,4 +2573,9 @@ export const EN: Record<string, string> = {
   "Name oder Gruppe suchen": "Search name or group",
   "Keine Treffer.": "No matches.",
   "Mitglied seit {datum}": "Member since {datum}",
+  "Keine offenen Beitrittsanfragen. Neue erscheinen hier und auf der Startseite unter „Zu erledigen“.": "No open join requests. New ones appear here and on the home page under “To do”.",
+  "Beitrittsanfragen öffnen": "Open join requests",
+  "1 offene Beitrittsanfrage ansehen": "View 1 open join request",
+  "{n} offene Beitrittsanfragen ansehen": "View {n} open join requests",
+  "Termine planst du für Gruppen, die du leitest oder betreust. In diesem Verein hast du noch keine - lege auf der Trainer-Übersicht eine an.": "You plan sessions for groups you lead or support. You have none in this club yet - create one on the trainer overview.",
 };

@@ -34,6 +34,17 @@ export function zuErledigen(counts: TrainerOpenCounts | null): ZuErledigen[] {
   return liste.filter((z) => z.anzahl > 0);
 }
 
+/**
+ * Die Zahlen für "Zu erledigen" auf der Startseite. Gruppenanfragen und
+ * Trainings zu bewerten gehören zum Trainer-Bereich (Modul Gruppentraining,
+ * `trainerBereichAn`); die Beitrittsanfragen des Vereins nicht: Wer Mitglieder
+ * verwaltet, sieht sie auch ohne Trainer-Rolle und bei abgeschaltetem Modul.
+ */
+export function fuerStartseite(counts: TrainerOpenCounts | null, trainerBereichAn: boolean): TrainerOpenCounts | null {
+  if (!counts || trainerBereichAn) return counts;
+  return { ...counts, groupJoinRequests: 0, sessionsToRate: 0, groups: [] };
+}
+
 /** Offene Beitrittsanfragen je Gruppe, zum Nachschlagen in der Gruppenliste. */
 export function anfragenJeGruppe(counts: TrainerOpenCounts | null): Record<string, number> {
   const nachGruppe: Record<string, number> = {};

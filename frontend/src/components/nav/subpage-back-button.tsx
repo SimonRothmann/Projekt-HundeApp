@@ -5,7 +5,8 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { useT } from "@/lib/i18n";
-import { internerPfad } from "@/lib/interner-pfad";
+import { useAuth } from "@/lib/auth-context";
+import { zurueckZiel } from "@/lib/zurueck";
 // Top-Level-Routen (über die Navigation direkt erreichbar) - hier gibt es
 // bewusst KEINEN Zurück-Button.
 const ROOT_PATHS = new Set([
@@ -25,7 +26,8 @@ const ROOT_PATHS = new Set([
  * Top-Level-Seiten (und Druckansichten) selbst aus - so gibt es überall
  * konsistent oben eine Möglichkeit zurückzukehren, ohne dass jede Seite es
  * einzeln pflegen muss. Ziel ist jeweils die übergeordnete Route
- * (z.B. /trainer/group-training -> /trainer, /dogs/123 -> /dogs).
+ * (z.B. /trainer/group-training -> /trainer, /dogs/123 -> /dogs); wer keine
+ * Trainer:in ist, kommt von /trainer-Seiten zu den Vereinen (siehe zurueckZiel).
  *
  * Ausnahme: ein ?from=-Parameter gewinnt. Der Pfad allein weiß nämlich nicht,
  * WOHER man kam - eine Trainer:in, die aus ihrer Gruppe den Hund eines
@@ -37,14 +39,14 @@ export function SubpageBackButton() {
   const t = useT();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { isTrainer } = useAuth();
   if (!pathname) return null;
 
   const normalized = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
   if (normalized === "/" || ROOT_PATHS.has(normalized) || normalized.endsWith("/print")) return null;
 
-  const parent = normalized.slice(0, normalized.lastIndexOf("/")) || "/dashboard";
   // Nur seiteninterne Ziele: ein ?from= aus einem geteilten Link darf nicht von der Seite fortführen.
-  const target = internerPfad(searchParams?.get("from")) ?? parent;
+  const target = zurueckZiel(normalized, searchParams?.get("from"), isTrainer);
 
   return (
     <Link

@@ -76,6 +76,14 @@ public static class ClubAccessQueries
     public static Task<bool> CanManageMembersAsync(this IApplicationDbContext db, Guid userId, Guid clubId, CancellationToken ct = default) =>
         HatRolleAsync(db, userId, clubId, ClubRollen.Mitglieder, ct);
 
+    /// <summary>
+    /// Ob jemand in irgendeinem Verein Mitglieder verwalten darf - ohne Trainer-Rolle
+    /// und ohne Gruppentraining. Daran hängt, ob die Startseite "Zu erledigen" für
+    /// die Beitrittsanfragen des Vereins zeigt.
+    /// </summary>
+    public static Task<bool> CanManageMembersAnywhereAsync(this IApplicationDbContext db, Guid userId, CancellationToken ct = default) =>
+        db.ClubTrainers.Where(t => t.UserId == userId).MitRolle(ClubRollen.Mitglieder).AnyAsync(ct);
+
     /// <summary>Ob jemand Trainer:innen (Rolle Training) berufen und abberufen darf (Ausbildungswart:in, Verwaltung).</summary>
     public static Task<bool> CanAppointTrainersAsync(this IApplicationDbContext db, Guid userId, Guid clubId, CancellationToken ct = default) =>
         HatRolleAsync(db, userId, clubId, ClubRollen.TrainerBerufen, ct);

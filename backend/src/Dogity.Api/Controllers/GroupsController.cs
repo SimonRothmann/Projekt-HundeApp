@@ -17,7 +17,9 @@ public class GroupsController(IGroupService groupService, IClubService clubServi
     public async Task<ActionResult<object>> GetMyTrainerStatus(CancellationToken ct)
     {
         var isTrainer = await groupService.IsTrainerAsync(CurrentUserId, ct);
-        return Ok(new { isTrainer });
+        // Auch ohne Trainer-Rolle gibt es Offenes: die Beitrittsanfragen der Mitgliederverwaltung.
+        var managesMembers = await clubService.ManagesMembersAsync(CurrentUserId, ct);
+        return Ok(new { isTrainer, managesMembers });
     }
 
     /// <summary>Zahlen für "Zu erledigen" auf der Trainer-Übersicht (siehe TrainerOpenCountsService).</summary>

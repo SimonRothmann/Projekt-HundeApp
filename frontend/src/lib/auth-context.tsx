@@ -20,6 +20,9 @@ type AuthContextValue = {
   // geleitete Gruppe oder Vereins-Trainer-Zuweisung, siehe TODO.md
   // "Rollenswitch") statt über eine eigene Identity-Rolle abgebildet.
   isTrainer: boolean | null;
+  // Ob die Person in einem Verein Mitglieder verwaltet (Mitgliederverwaltung,
+  // Verwaltung) - auch ohne Trainer-Rolle. null = noch nicht ermittelt.
+  managesMembers: boolean | null;
   unreadNotificationCount: number;
   refreshUnreadNotificationCount: () => void;
   login: (email: string, password: string) => Promise<void>;
@@ -52,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTrainer, setIsTrainer] = useState<boolean | null>(null);
+  const [managesMembers, setManagesMembers] = useState<boolean | null>(null);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   // Ob der Zähler schon einmal vom Server kam. Bis dahin ist die 0 nur der
   // Startwert - sie am App-Symbol anzuzeigen hieße, eine per Push gesetzte
@@ -80,9 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let wiederholung: ReturnType<typeof setTimeout> | undefined;
     function ermittle(nochmal: boolean) {
       api
-        .get<{ isTrainer: boolean }>("/api/groups/my-trainer-status")
+        .get<{ isTrainer: boolean; managesMembers: boolean }>("/api/groups/my-trainer-status")
         .then((res) => {
-          if (!cancelled) setIsTrainer(res.isTrainer);
+          if (cancelled) return;
+          setIsTrainer(res.isTrainer);
+          setManagesMembers(res.managesMembers);
         })
         .catch(() => {
           // Ein Fehler heißt "unbekannt" (null), nicht "kein Trainer": Sonst
@@ -249,6 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void leseCacheLeeren();
     setUser(null);
     setIsTrainer(null);
+    setManagesMembers(null);
     setUnreadNotificationCount(0);
     setZaehlerBekannt(false);
   }
@@ -259,6 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         isTrainer,
+        managesMembers,
         unreadNotificationCount,
         refreshUnreadNotificationCount,
         login,

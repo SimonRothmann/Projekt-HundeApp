@@ -33,6 +33,7 @@ const DEMO_ACCOUNTS = [
   { label: "Ausbildungswart", email: "ausbildungswart@dogity.test" },
   { label: "Mitglieder-verwaltung", email: "mitgliederverwaltung@dogity.test" },
   { label: "Vorstand", email: "vorstand@dogity.test" },
+  { label: "Training", email: "training@dogity.test" },
 ] as const;
 const DEMO_PASSWORD = "Demo1234!";
 

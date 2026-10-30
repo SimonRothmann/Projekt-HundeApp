@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TrainerOpenCounts } from "@/lib/types";
-import { anfragenJeGruppe, offeneAnfragen, zaehlerBeschriftung, zuErledigen } from "./trainer-offen";
+import { anfragenJeGruppe, fuerStartseite, offeneAnfragen, zaehlerBeschriftung, zuErledigen } from "./trainer-offen";
 
 const zahlen = (teil: Partial<TrainerOpenCounts> = {}): TrainerOpenCounts => ({
   groupJoinRequests: 0,
@@ -72,5 +72,25 @@ describe("zaehlerBeschriftung", () => {
     expect(zaehlerBeschriftung(t, { art: "anfragen", href: "", anzahl: 2 })).toBe("Beitrittsanfragen");
     expect(zaehlerBeschriftung(t, { art: "bewerten", href: "", anzahl: 1 })).toBe("Training bewerten");
     expect(zaehlerBeschriftung(t, { art: "bewerten", href: "", anzahl: 5 })).toBe("Trainings bewerten");
+  });
+});
+
+describe("fuerStartseite", () => {
+  it("lässt die Zahlen im Trainer-Bereich unverändert", () => {
+    const z = zahlen({ groupJoinRequests: 1, clubJoinRequests: 2, sessionsToRate: 3 });
+    expect(fuerStartseite(z, true)).toBe(z);
+  });
+
+  it("behält ohne Trainer-Bereich nur die Vereinsanfragen - die Mitgliederverwaltung sieht sie trotzdem", () => {
+    const liste = zuErledigen(fuerStartseite(zahlen({ groupJoinRequests: 1, clubJoinRequests: 2, sessionsToRate: 3 }), false));
+    expect(liste).toStrictEqual([{ art: "anfragen", href: "/trainer/anfragen", anzahl: 2 }]);
+  });
+
+  it("zeigt ohne Trainer-Bereich nichts, wenn keine Vereinsanfrage offen ist", () => {
+    expect(zuErledigen(fuerStartseite(zahlen({ groupJoinRequests: 4, sessionsToRate: 3 }), false))).toStrictEqual([]);
+  });
+
+  it("bleibt null, solange nichts geladen ist", () => {
+    expect(fuerStartseite(null, false)).toBeNull();
   });
 });

@@ -25,6 +25,9 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     public async Task<Result<IReadOnlyList<ClubDto>>> GetMyClubRolesAsync(Guid userId, CancellationToken ct = default) =>
         Result<IReadOnlyList<ClubDto>>.Success(await MeineVereineAsync(userId, ClubRollen.Alle, ct));
 
+    public Task<bool> ManagesMembersAsync(Guid userId, CancellationToken ct = default) =>
+        db.CanManageMembersAnywhereAsync(userId, ct);
+
     private async Task<IReadOnlyList<ClubDto>> MeineVereineAsync(Guid userId, ClubRole mitRolle, CancellationToken ct)
     {
         // Die eigene Rollenmenge kommt gleich mit der Abfrage; die Rechte daraus

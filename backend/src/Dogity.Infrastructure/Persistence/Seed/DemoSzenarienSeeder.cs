@@ -55,6 +55,7 @@ public static class DemoSzenarienSeeder
     public const string AusbildungswartEmail = "ausbildungswart@dogity.test";
     public const string MitgliederverwaltungEmail = "mitgliederverwaltung@dogity.test";
     public const string VorstandEmail = "vorstand@dogity.test";
+    public const string TrainingEmail = "training@dogity.test";
     public const string InteressentEmail = "interessent@dogity.test";
     public const string SchweizEmail = "schweiz@dogity.test";
 
@@ -63,6 +64,8 @@ public static class DemoSzenarienSeeder
 
     private const string VereinsName = "Hundesportverein Musterstadt e.V.";
     private const string GruppenName = "Welpengruppe Dienstag";
+    /// <summary>Tinas Gruppe: Die Demo-Trainerin leitet sie nicht - so wie in einem Verein, in dem die Verwaltung nicht jede Gruppe selbst leitet.</summary>
+    public const string JunghundeGruppenName = "Junghunde Donnerstag";
 
     // Feste Texte als Erkennungszeichen - an ihnen sieht jedes Szenario, ob es schon gelaufen ist.
     public const string NotizBhErreicht = "Begleithundeprüfung beim Verein Musterstadt.";
@@ -162,6 +165,8 @@ public static class DemoSzenarienSeeder
                 // Zuerst: Die Demo-Trainerin braucht die Verwaltung, bevor die Szenarien ihre Rechte nutzen.
                 ("Vereinsrollen", VereinsrollenAsync),
                 ("Verein", VereinAsync),
+                // Nach "Vereinsrollen": Dort entsteht Tina.
+                ("Junghunde", JunghundeAsync),
                 // Vor allem, was Lisa benachrichtigt: Die Meldung entsteht in ihrer Sprache.
                 ("Englisch", EnglischAsync),
                 ("Prüfungsziele", ZieleAsync),
@@ -203,7 +208,7 @@ public static class DemoSzenarienSeeder
         // ---------------------------------------------------------------- a0) Vereinsrollen
 
         /// <summary>
-        /// Je eine Person pro Vereinsrolle (Ausbildungswart:in, Mitgliederverwaltung, Vorstand), als
+        /// Je eine Person pro Vereinsrolle (Ausbildungswart:in, Mitgliederverwaltung, Vorstand, Training), als
         /// freigegebene Mitglieder - und die Demo-Trainerin mit der Verwaltung. Ältere Demo-Datenbanken
         /// kennen sie als reine Trainerin; ohne Verwaltung sähe sie weder Anfragen noch Mitglieder.
         /// Wer in der Demo eine Rolle entzieht, bekommt sie nicht zurück: Angelegt wird nur, was fehlt.
@@ -223,6 +228,8 @@ public static class DemoSzenarienSeeder
                 (AusbildungswartEmail, "Willi", "Wart", ClubRole.Ausbildungswart),
                 (MitgliederverwaltungEmail, "Mara", "Mitglieder", ClubRole.Mitgliederverwaltung),
                 (VorstandEmail, "Viktor", "Vorstand", ClubRole.Vorstand),
+                // Nur Training: sieht allein die eigenen Gruppen, keine Anfragen, keine Mitgliederliste.
+                (TrainingEmail, "Tina", "Training", ClubRole.Training),
             })
             {
                 var nutzer = await userManager.FindByEmailAsync(email);
@@ -235,7 +242,7 @@ public static class DemoSzenarienSeeder
                 });
                 db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = nutzer.Id, Role = rolle });
                 await db.SaveChangesAsync(ct);
-                // Das Trainer-Kennzeichen (Identity-Rolle) für die, die trainieren: hier die Ausbildungswart:in.
+                // Das Trainer-Kennzeichen (Identity-Rolle) für die, die trainieren: Ausbildungswart:in und Tina.
                 await services.GetRequiredService<ITrainerRoleService>().SyncAsync(nutzer.Id, ct);
             }
         }
@@ -264,6 +271,54 @@ public static class DemoSzenarienSeeder
                 .AnyAsync(m => m.ClubId == club.Id && m.UserId == neuling.Id, ct);
             if (!hatteSchonAnfrage)
                 await einladung.JoinAsync(neuling.Id, code, ct);
+        }
+
+        // ---------------------------------------------------------------- a1) Junghunde (Tina)
+
+        /// <summary>
+        /// Tina Training leitet "Junghunde Donnerstag" - mit Lisa als Mitglied und einem kommenden Termin.
+        /// Damit sieht "nur Training" genau eine Gruppe, die Verwaltung (Anna) und die Ausbildungswart:in
+        /// beide, und Anna leitet die neue Gruppe nicht. Die Gruppe entsteht über denselben Dienst wie in der
+        /// App, der Termin über die Terminplanung - mit Tinas Rechten. Was ein Tester löscht, kommt nicht zurück
+        /// (die Gruppe und Lisas Zeile werden auch gelöscht gefunden); der Termin ist rollend.
+        /// </summary>
+        private async Task JunghundeAsync(CancellationToken ct)
+        {
+            var tina = await userManager.FindByEmailAsync(TrainingEmail);
+            if (tina is null) return;
+
+            var vorhanden = await db.Groups.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(g => g.ClubId == club.Id && g.Name == JunghundeGruppenName, ct);
+            if (vorhanden is null)
+            {
+                var neu = await services.GetRequiredService<IGroupService>().CreateAsync(
+                    tina.Id, new CreateGroupRequest(JunghundeGruppenName, "Demo-Gruppe von Tina Training.", club.Id), ct);
+                if (!neu.Succeeded)
+                {
+                    logger.LogWarning("Demo-Gruppe {Gruppe} konnte nicht angelegt werden: {Fehler}", JunghundeGruppenName, string.Join("; ", neu.Errors));
+                    return;
+                }
+                vorhanden = await db.Groups.FirstAsync(g => g.Id == neu.Value!.Id, ct);
+            }
+            if (vorhanden.DeletedAt is not null) return;
+
+            if (!await db.GroupMembers.IgnoreQueryFilters().AnyAsync(m => m.GroupId == vorhanden.Id && m.UserId == lisa.Id, ct))
+            {
+                db.GroupMembers.Add(new GroupMember { GroupId = vorhanden.Id, UserId = lisa.Id });
+                await db.SaveChangesAsync(ct);
+            }
+
+            // Rollend: Ist der letzte Termin vorbei, kommt beim nächsten Start ein neuer.
+            var jetzt = DateTimeOffset.UtcNow;
+            if (await db.GroupTrainingSessions.AnyAsync(s => s.GroupId == vorhanden.Id && s.StartsAt > jetzt && s.Status == GroupTrainingSessionStatus.Planned, ct)) return;
+            var donnerstag = Vereinszeit.Heute().AddDays(1);
+            while (donnerstag.DayOfWeek != DayOfWeek.Thursday) donnerstag = donnerstag.AddDays(1);
+            var termin = await services.GetRequiredService<IGroupTrainingScheduleService>().CreateSessionAsync(tina.Id, club.Id, new CreateSessionRequest(
+                vorhanden.Id, GroupTrainingCategory.YoungDog, LokalZuUtc(donnerstag, new TimeOnly(18, 30)), 60,
+                null, null, [tina.Id],
+                [new SessionContentInput(FreeText: "Leinenführigkeit mit Ablenkung"), new SessionContentInput(FreeText: "Rückruf auf der Wiese")]), ct);
+            if (!termin.Succeeded)
+                logger.LogWarning("Demo-Termin der Junghunde am {Tag} konnte nicht angelegt werden: {Fehler}", donnerstag, string.Join("; ", termin.Errors));
         }
 
         // ---------------------------------------------------------------- b) Prüfungsziele

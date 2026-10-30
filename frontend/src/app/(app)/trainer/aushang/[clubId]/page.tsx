@@ -45,9 +45,9 @@ export default function AushangPage() {
           setStand({ art: "keinLink" });
           return;
         }
-        // Der Name kommt aus den eigenen Vereinen; wer den Code lesen darf, ist
-        // dort Trainer:in und findet den Verein auch in dieser Liste.
-        const vereine = await api.get<Club[]>("/api/groups/my-clubs");
+        // Der Name kommt aus den Vereinen mit eigener Rolle: Wer den Code lesen darf,
+        // hat dort Mitgliederverwaltung oder Verwaltung - nicht unbedingt eine Trainer-Rolle.
+        const vereine = await api.get<Club[]>("/api/clubs/mine");
         if (abgebrochen) return;
         const verein = vereine.find((v) => v.id === clubId);
         if (!verein) {

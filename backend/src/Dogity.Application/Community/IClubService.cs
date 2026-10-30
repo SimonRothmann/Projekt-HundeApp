@@ -15,6 +15,9 @@ public interface IClubService
     /// <summary>Vereine, in denen der Nutzer Trainer:in ist (eine Trainer-Rolle hat, siehe ClubTrainer).</summary>
     Task<Result<IReadOnlyList<ClubDto>>> GetMyClubsAsync(Guid userId, CancellationToken ct = default);
 
+    /// <summary>Ob die Person in irgendeinem Verein Mitglieder verwalten darf (Mitgliederverwaltung, Verwaltung) - auch ohne Trainer-Rolle.</summary>
+    Task<bool> ManagesMembersAsync(Guid userId, CancellationToken ct = default);
+
     /// <summary>Alle Vereine, in denen der Nutzer irgendeine Rolle hat - samt seinen Rollen und Rechten.</summary>
     Task<Result<IReadOnlyList<ClubDto>>> GetMyClubRolesAsync(Guid userId, CancellationToken ct = default);
     Task<Result<ClubDetailDto>> GetDetailAsync(Guid clubId, CancellationToken ct = default);

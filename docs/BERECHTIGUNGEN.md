@@ -108,6 +108,23 @@ mit `isAdmin`).
 | Betreuende Trainer:in, zu Gesundheitseinträgen | nichts: 404 auf `/api/dogs/{id}/gesundheit`, am Hund kein Gesundheitsstand (docs/GESUNDHEIT.md) | alles |
 | Trainer:in ohne Betreuung, Fremde | nichts (404) | alles |
 
+## Wo man als Vereinsrolle hinkommt
+
+Jedes Recht braucht einen Einstieg in der Oberfläche; die Seiten blenden aus, was der Server der Rolle
+verweigern würde, statt einen Fehler zu zeigen. Ohne Trainer-Rolle gibt es kein Trainer-Menü: Dann führen
+„Mein Verein“ (Profil) und die Zeile „Zu erledigen“ auf der Startseite weiter, und „Zurück“ von den
+Seiten unter `/trainer` geht zu den Vereinen (`lib/zurueck.ts`).
+
+| Recht | Einstieg | Rolle |
+|---|---|---|
+| Beitrittsanfragen entscheiden | Startseite „Zu erledigen“ (nach Recht gezählt, unabhängig vom Modul Gruppentraining); Abschnitt „Beitrittsanfragen“ auf `/trainer/verein` (mit Hinweis bei 0); Benachrichtigung | Mitgliederverwaltung, Verwaltung |
+| Einladungslink, Aushang, Einladungen, Mitgliederliste | `/trainer/verein` (Abschnitte); Aushang über den Link-Abschnitt | Mitgliederverwaltung, Verwaltung |
+| Rollen im Verein, Trainer:innen berufen | `/trainer/verein`, Abschnitt „Rollen im Verein“ | Ausbildungswart:in (nur Training), Verwaltung (alle) |
+| Stammdaten | `/trainer/verein`, Abschnitt „Stammdaten“ | Verwaltung |
+| Vereinsübersicht | `/trainer/verein` über „Vereinsübersicht“ bei den Vereinen | Vorstand, Verwaltung |
+| Eigene Gruppen, Termine, Katalog | Trainer-Menü; „Terminplanung“ bietet „Neuer Termin“ nur, wenn man eine Gruppe leitet oder betreut | Training |
+| Alle Gruppen und Termine des Vereins | Trainer-Menü („Meine Gruppen“, „Terminplanung“) | Ausbildungswart:in, Verwaltung |
+
 ## Wo die Prüfungen liegen
 
 Die Entscheidung steht **im Service**, nie nur am Controller: Dieselbe Aktion

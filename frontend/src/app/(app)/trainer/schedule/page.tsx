@@ -94,6 +94,8 @@ export default function SchedulePage() {
   const [clubs, setClubs] = useState<Club[] | null>(null);
   const [clubId, setClubId] = useState("");
   const [groups, setGroups] = useState<Group[]>([]);
+  // Für welchen Verein die Gruppen geladen sind ("" = noch nicht oder gescheitert): Eine leere Liste heißt nur dann "keine Gruppe", wenn sie auch da ist.
+  const [gruppenVon, setGruppenVon] = useState("");
   const [library, setLibrary] = useState<GroupTrainingLibrary | null>(null);
   const [clubTrainers, setClubTrainers] = useState<SessionTrainer[]>([]);
   const [sessions, setSessions] = useState<GroupTrainingSession[] | null>(null);
@@ -149,7 +151,16 @@ export default function SchedulePage() {
     if (!clubId) return;
     // Nur die Gruppen, die man verwaltet (myRelation 3 = Trainer:in): Mit der Rolle Training
     // sind das die eigenen, als Ausbildungswart:in/Verwaltung alle - für fremde gäbe es keine Termine.
-    api.get<Group[]>(`/api/clubs/${clubId}/groups`).then((liste) => setGroups(einladbareGruppen(liste))).catch(() => setGroups([]));
+    api
+      .get<Group[]>(`/api/clubs/${clubId}/groups`)
+      .then((liste) => {
+        setGroups(einladbareGruppen(liste));
+        setGruppenVon(clubId);
+      })
+      .catch(() => {
+        setGroups([]);
+        setGruppenVon("");
+      });
     api.get<GroupTrainingLibrary>(`/api/group-training/clubs/${clubId}/library`).then(setLibrary).catch(() => setLibrary(null));
     api.get<SessionTrainer[]>(`/api/group-training/schedule/clubs/${clubId}/trainers`).then(setClubTrainers).catch((err) => {
       // Die Auswahl bleibt leer, aber die Ursache wird gemeldet.
@@ -164,6 +175,9 @@ export default function SchedulePage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSchedule();
   }, [loadSchedule]);
+
+  // Wer im Verein nur Training hat und keine Gruppe leitet oder betreut, kann keinen Termin planen - "Neuer Termin" liefe ins Leere.
+  const ohneGruppe = gruppenVon === clubId && groups.length === 0;
 
   function openCreate() {
     const f = emptyForm();
@@ -338,7 +352,7 @@ export default function SchedulePage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <h1 className="min-w-0 text-2xl font-semibold tracking-tight">{t("Terminplanung")}</h1>
-        {clubs !== null && clubs.length > 0 && !form && (
+        {clubs !== null && clubs.length > 0 && !form && !ohneGruppe && (
           <Button className="shrink-0" onClick={openCreate}><Plus className="size-4" />{t("Neuer Termin")}</Button>
         )}
       </div>
@@ -515,6 +529,10 @@ export default function SchedulePage() {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {ohneGruppe && (
+            <Card><CardContent className="py-4 text-sm text-muted-foreground">{t("Termine planst du für Gruppen, die du leitest oder betreust. In diesem Verein hast du noch keine - lege auf der Trainer-Übersicht eine an.")}</CardContent></Card>
           )}
 
           {/* Filter: erst ab zwei Gruppen - mit einer gäbe es nichts auszuwählen. */}

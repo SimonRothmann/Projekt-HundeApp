@@ -105,6 +105,9 @@ public class DemoSzenarienSeederTests
             await db.GpsPoints.IgnoreQueryFilters().CountAsync(),
             await db.DogPauses.IgnoreQueryFilters().CountAsync(),
             await db.DogHealthRecords.IgnoreQueryFilters().CountAsync(),
+            await db.Groups.IgnoreQueryFilters().CountAsync(),
+            await db.GroupMembers.IgnoreQueryFilters().CountAsync(),
+            await db.ClubTrainers.IgnoreQueryFilters().CountAsync(),
         ];
     }
 
@@ -227,7 +230,9 @@ public class DemoSzenarienSeederTests
         Assert.Contains(await db.Notifications.Where(n => n.UserId == trainerId).ToListAsync(), n => n.LinkPath == $"/dogs/{mit.DogId}?eintrag={mit.Id}");
 
         // e) Termine: mindestens zwei künftige geplante, ein abgesagter, vergangene; Zu- und Absage beim nächsten
-        var termine = await db.GroupTrainingSessions.Include(s => s.Trainers).ToListAsync();
+        // (die der Welpengruppe - die Junghunde von Tina Training haben ihren eigenen Termin, siehe Junghunde_...)
+        var termine = await db.GroupTrainingSessions.Include(s => s.Trainers)
+            .Where(s => s.Group!.Name != DemoSzenarienSeeder.JunghundeGruppenName).ToListAsync();
         var kuenftig = termine.Where(s => s.Status == GroupTrainingSessionStatus.Planned && s.StartsAt > jetzt && s.StartsAt <= jetzt.AddDays(14)).OrderBy(s => s.StartsAt).ToList();
         Assert.True(kuenftig.Count >= 2);
         Assert.All(kuenftig, s => Assert.Contains(s.Trainers, t => t.UserId == trainerId));
@@ -239,7 +244,7 @@ public class DemoSzenarienSeederTests
         Assert.Contains(await db.Notifications.Where(n => n.UserId == trainerId).ToListAsync(), n => n.Message.Contains("abgesagt"));
 
         // f) Anmeldungen: sieben, vier bezahlt, gemischte Quellen, eine mit Notiz, Anwesenheit unterschiedlich oft
-        var gruppe = await db.Groups.SingleAsync();
+        var gruppe = await db.Groups.SingleAsync(g => g.Name != DemoSzenarienSeeder.JunghundeGruppenName);
         Assert.False(string.IsNullOrEmpty(gruppe.RegistrationCode));
         var anmeldungen = await db.GroupRegistrations.Include(r => r.Attendances).ToListAsync();
         Assert.Equal(7, anmeldungen.Count);
@@ -248,6 +253,120 @@ public class DemoSzenarienSeederTests
         Assert.Single(anmeldungen, r => r.Notes is not null);
         Assert.True(anmeldungen.Select(r => r.Attendances.Count).Distinct().Count() >= 3);
         Assert.Contains(await db.Notifications.Where(n => n.UserId == trainerId).ToListAsync(), n => n.Message.StartsWith("Neue Anmeldung"));
+    }
+
+    // ---------------------------------------------------------------- Vereinsrollen: Tina Training (V3)
+
+    [Fact]
+    public async Task Junghunde_TinaHatNurTrainingUndLeitetEineGruppe_DieAnnaNichtLeitet()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var gruppen = scope.ServiceProvider.GetRequiredService<IGroupService>();
+        var tinaId = await IdAsync(scope.ServiceProvider, DemoSzenarienSeeder.TrainingEmail);
+        var annaId = await IdAsync(scope.ServiceProvider, "trainer@dogity.test");
+        var lisaId = await IdAsync(scope.ServiceProvider, "mitglied2@dogity.test");
+        var williId = await IdAsync(scope.ServiceProvider, DemoSzenarienSeeder.AusbildungswartEmail);
+        var verein = await db.Clubs.SingleAsync();
+
+        // Nur Training, und als freigegebenes Mitglied im Demo-Verein.
+        Assert.Equal(ClubRole.Training, await db.GetClubRolesAsync(tinaId, verein.Id));
+        Assert.True(await db.ClubMemberships.AnyAsync(m => m.UserId == tinaId && m.ClubId == verein.Id && m.Status == ClubMembershipStatus.Approved));
+
+        // Die Gruppe: von Tina geleitet, Lisa ist Mitglied, ein künftiger Termin mit Tina als Trainerin.
+        var junghunde = await db.Groups.SingleAsync(g => g.Name == DemoSzenarienSeeder.JunghundeGruppenName);
+        Assert.Equal(tinaId, junghunde.TrainerId);
+        Assert.Equal(verein.Id, junghunde.ClubId);
+        Assert.Single(await db.GroupMembers.Where(m => m.GroupId == junghunde.Id).ToListAsync(), m => m.UserId == lisaId && m.Status == GroupMemberStatus.Active);
+        var termin = await db.GroupTrainingSessions.Include(s => s.Trainers).SingleAsync(s => s.GroupId == junghunde.Id);
+        Assert.True(termin.StartsAt > DateTimeOffset.UtcNow);
+        Assert.Contains(termin.Trainers, t => t.UserId == tinaId);
+
+        // Was jede Rolle sieht: Training nur die eigene Gruppe, Verwaltung und Ausbildungswart:in beide.
+        Assert.Equal([DemoSzenarienSeeder.JunghundeGruppenName], (await gruppen.GetMyGroupsAsync(tinaId)).Value!.Select(g => g.Name).ToArray());
+        Assert.Equal(2, (await gruppen.GetMyGroupsAsync(annaId)).Value!.Count);
+        Assert.Equal(2, (await gruppen.GetMyGroupsAsync(williId)).Value!.Count);
+        // Anna verwaltet die Gruppe, ohne sie zu leiten.
+        Assert.NotEqual(annaId, junghunde.TrainerId);
+        Assert.True(await db.CanManageAllGroupsAsync(annaId, verein.Id));
+        Assert.False(await db.CanManageAllGroupsAsync(tinaId, verein.Id));
+    }
+
+    [Fact]
+    public async Task Junghunde_ZweimaligesAusfuehren_LegtNichtsDoppeltAn()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var junghunde = await db.Groups.SingleAsync(g => g.Name == DemoSzenarienSeeder.JunghundeGruppenName);
+        Assert.Single(await db.GroupMembers.Where(m => m.GroupId == junghunde.Id).ToListAsync());
+        Assert.Single(await db.GroupTrainingSessions.Where(s => s.GroupId == junghunde.Id).ToListAsync());
+        Assert.Single(await db.ClubTrainers.Where(t => t.UserId == (db.Users.Single(u => u.Email == DemoSzenarienSeeder.TrainingEmail).Id)).ToListAsync());
+    }
+
+    [Fact]
+    public async Task Junghunde_WasEinTesterGeloeschtHat_KommtNichtZurueck()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var junghunde = await db.Groups.SingleAsync(g => g.Name == DemoSzenarienSeeder.JunghundeGruppenName);
+            junghunde.DeletedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var alle = await pruefDb.Groups.IgnoreQueryFilters().Where(g => g.Name == DemoSzenarienSeeder.JunghundeGruppenName).ToListAsync();
+        Assert.Single(alle);
+        Assert.NotNull(alle[0].DeletedAt);
+    }
+
+    [Fact]
+    public async Task Junghunde_AufEinerDatenbankOhneTina_ZiehtSieNach()
+    {
+        // Die bestehende Test-Datenbank kennt die Rollen-Konten aus dem ersten Vereinsrollen-Stand, aber nicht Tina.
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var tina = (await users.FindByEmailAsync(DemoSzenarienSeeder.TrainingEmail))!;
+            var junghunde = await db.Groups.SingleAsync(g => g.Name == DemoSzenarienSeeder.JunghundeGruppenName);
+            db.GroupTrainingSessions.RemoveRange(await db.GroupTrainingSessions.Where(s => s.GroupId == junghunde.Id).ToListAsync());
+            db.GroupMembers.RemoveRange(await db.GroupMembers.Where(m => m.GroupId == junghunde.Id).ToListAsync());
+            db.Groups.Remove(junghunde);
+            db.ClubTrainers.RemoveRange(await db.ClubTrainers.IgnoreQueryFilters().Where(t => t.UserId == tina.Id).ToListAsync());
+            db.ClubMemberships.RemoveRange(await db.ClubMemberships.IgnoreQueryFilters().Where(m => m.UserId == tina.Id).ToListAsync());
+            db.Notifications.RemoveRange(await db.Notifications.IgnoreQueryFilters().Where(n => n.UserId == tina.Id).ToListAsync());
+            await db.SaveChangesAsync();
+            Assert.True((await users.DeleteAsync(tina)).Succeeded);
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var pruefen = provider.CreateScope();
+        var pruefDb = pruefen.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var neueTina = await IdAsync(pruefen.ServiceProvider, DemoSzenarienSeeder.TrainingEmail);
+        var gruppe = await pruefDb.Groups.SingleAsync(g => g.Name == DemoSzenarienSeeder.JunghundeGruppenName);
+        Assert.Equal(neueTina, gruppe.TrainerId);
+        Assert.Single(await pruefDb.GroupTrainingSessions.Where(s => s.GroupId == gruppe.Id).ToListAsync());
     }
 
     // ---------------------------------------------------------------- Szenarien seit 2026-10-16
