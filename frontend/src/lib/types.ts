@@ -160,6 +160,10 @@ export type Regulation = {
   descriptionEn?: string | null;
   // Prüfungsordnungen, die auf diese folgen (Ausbildungsweg im Backend).
   nextStageNames?: string[];
+  // Zeitpunkt der letzten Handänderung im Katalog-Editor; null = Katalogfassung.
+  editedAt?: string | null;
+  // Stabile Katalogkennung (Ausbildungsweg); null bei Vereinsordnungen.
+  seedKey?: string | null;
 };
 
 export type RegulationVersionInfo = {
@@ -177,6 +181,8 @@ export type RegulationExerciseInfo = {
   scoringNotes: string | null;
   // Englische Fassung des Bewertungshinweises (nur FCI-Ordnungen).
   scoringNotesEn?: string | null;
+  // Zeitpunkt der letzten Handänderung im Katalog-Editor; null = Katalogfassung.
+  editedAt?: string | null;
 };
 
 export type RegulationDetail = {

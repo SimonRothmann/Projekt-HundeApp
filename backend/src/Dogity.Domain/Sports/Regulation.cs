@@ -78,5 +78,26 @@ public class Regulation : Entity
     /// </summary>
     public string? TheoryCatalogCode { get; set; }
 
+    /// <summary>
+    /// Stabiler Schlüssel einer vom Seeder gepflegten (globalen) Ordnung: der
+    /// Name, unter dem der SportCatalogSeeder sie anlegt. null bei Ordnungen,
+    /// die der Seeder nicht kennt (Vereinsordnungen, von Hand angelegte).
+    ///
+    /// Der Seeder findet die Ordnung darüber und nicht über <see cref="Name"/>:
+    /// Wer im Katalog-Editor umbenennt, erzeugt sonst beim nächsten Start ein
+    /// Duplikat, und die Ziele hängen an der alten Zeile. Auch der
+    /// Ausbildungsweg führt seine Folgestufen über diesen Schlüssel.
+    /// </summary>
+    public string? SeedKey { get; set; }
+
+    /// <summary>
+    /// Gesetzt, sobald ein Admin Name, Beschreibung oder die englischen Texte
+    /// im Katalog-Editor tatsächlich geändert hat. Der Seeder lässt diese
+    /// Felder dann in Ruhe - wie bei <c>QuizQuestion.EditedAt</c>: Wer von
+    /// Hand speichert, behält das Sagen. Zurücknehmen setzt es auf null, dann
+    /// kommt beim nächsten Start die Katalogfassung zurück.
+    /// </summary>
+    public DateTimeOffset? EditedAt { get; set; }
+
     public ICollection<RegulationVersion> Versions { get; set; } = new List<RegulationVersion>();
 }

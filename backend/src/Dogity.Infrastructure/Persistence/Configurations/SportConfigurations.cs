@@ -33,6 +33,7 @@ public class RegulationConfiguration : IEntityTypeConfiguration<Regulation>
         builder.Property(r => r.DescriptionEn).HasMaxLength(Textlaengen.OrdnungBeschreibungEn);
         builder.Property(r => r.CountryCode).HasMaxLength(2);
         builder.Property(r => r.TheoryCatalogCode).HasMaxLength(50);
+        builder.Property(r => r.SeedKey).HasMaxLength(100);
 
         builder.HasOne(r => r.Sport)
             .WithMany(s => s.Regulations)

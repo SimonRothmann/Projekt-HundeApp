@@ -1930,6 +1930,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<DateTimeOffset?>("EditedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset?>("LastSyncedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1943,6 +1946,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("NameEn")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SeedKey")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
@@ -1977,6 +1984,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("EditedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("ExerciseId")

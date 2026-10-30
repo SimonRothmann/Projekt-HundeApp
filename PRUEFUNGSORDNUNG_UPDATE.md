@@ -126,6 +126,13 @@ Stolperfallen aus dem letzten Durchlauf, auf die explizit achten:
   Übungen mit gesetzter `ClubId` sind davon immer ausgenommen). Beide
   sind idempotent - auf einer bereits bereinigten Datenbank passiert
   beim nächsten Lauf einfach nichts.
+- **Ausnahme Handänderungen (Paket K1):** Ordnungen und Zuordnungen mit
+  `EditedAt` (im Katalog-Editor von Hand gespeichert) fasst der Seeder nicht an;
+  der Editor kann sie mit „Katalogfassung zurückholen“ freigeben. Eine Korrektur
+  aus dem Code kommt also nur dort an, wo niemand von Hand geändert hat - auf
+  Produktion nach dem Deploy im Editor prüfen, ob die Ordnung als „von Hand
+  geändert“ markiert ist. Gefunden wird eine Ordnung über `Regulation.SeedKey`
+  (= Name im Seed), nicht über den heutigen Namen.
 - Bestehende `RegulationExercise`-Zeilen werden bei jedem Seed-Lauf
   automatisch aktualisiert (siehe `SeedRegulationAsync`s
   Upsert-Logik) - eine Punktkorrektur an einer bereits existierenden

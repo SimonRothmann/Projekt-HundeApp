@@ -162,7 +162,7 @@ public static class DemoDataSeeder
 
         // Die FCI-BH/VT "BH" (nicht die ÖKV-Ordnung derselben Sportart): ohne Namen entschied die
         // Reihenfolge der Datenbank, welche Ordnung Bello bekam.
-        var bhRegulation = await db.Regulations.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.SportId == bh.Id && r.Name == "BH");
+        var bhRegulation = await db.Regulations.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.SportId == bh.Id && (r.SeedKey ?? r.Name) == "BH");
 
         var goal = new Goal
         {

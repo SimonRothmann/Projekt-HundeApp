@@ -62,6 +62,14 @@ public record UpdateSportRequest(string Name, string? Description, string? NameE
 /// braucht für jede der rund fünfzig öffentlichen Seiten ein ehrliches
 /// lastmod-Datum, und fünfzig Detail-Abrufe dafür wären Unfug.
 /// </param>
+/// <param name="EditedAt">
+/// Zeitpunkt der letzten Handänderung einer globalen Ordnung im Katalog-Editor;
+/// null = Katalogfassung (siehe <c>Regulation.EditedAt</c>).
+/// </param>
+/// <param name="SeedKey">
+/// Stabile Kennung der Ordnung im Katalog (<c>Regulation.SeedKey</c>); null bei
+/// Vereinsordnungen. Der Ausbildungsweg führt über sie, nicht über den Namen.
+/// </param>
 public record RegulationDto(
     Guid Id,
     string Name,
@@ -72,14 +80,16 @@ public record RegulationDto(
     string? CountryCode,
     DateOnly? CurrentVersionValidFrom,
     string? NameEn = null,
-    string? DescriptionEn = null)
+    string? DescriptionEn = null,
+    DateTimeOffset? EditedAt = null,
+    string? SeedKey = null)
 {
     /// <summary>
     /// Namen der Prüfungsordnungen, die auf diese folgen (Ausbildungsweg) - für
     /// "Nächste Stufe" auf der öffentlichen Seite. Berechnet statt gespeichert:
     /// Die Reihenfolge steht nur in <see cref="Planning.Ausbildungsweg"/>.
     /// </summary>
-    public IReadOnlyList<string> NextStageNames => Planning.Ausbildungsweg.FolgestufenVon(Name);
+    public IReadOnlyList<string> NextStageNames => Planning.Ausbildungsweg.FolgestufenVon(SeedKey ?? Name);
 }
 
 public record UpdateRegulationRequest(string Name, string? Description, string? SourceUrl, string? CountryCode, string? NameEn = null, string? DescriptionEn = null);
@@ -97,7 +107,8 @@ public record RegulationExerciseDto(
     int MaxPoints,
     string? ScoringNotes,
     string? ExerciseNameEn = null,
-    string? ScoringNotesEn = null);
+    string? ScoringNotesEn = null,
+    DateTimeOffset? EditedAt = null);
 
 public record RegulationDetailDto(
     RegulationDto Regulation,

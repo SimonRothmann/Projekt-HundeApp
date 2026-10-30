@@ -475,4 +475,22 @@ public class GoalServiceExamTests
 
         Assert.True(dto.NextStages is null or { Count: 0 });
     }
+
+    [Fact]
+    public async Task NextStages_UmbenannteOrdnungBehaeltFolgestufen_UndIstAlsFolgestufeAuffindbar()
+    {
+        var service = MakeService(out var db);
+        // Im Editor umbenannt: der Name ist ein anderer, der Katalogschlüssel bleibt.
+        var s = await SetupAsync(db, regulationName: "Begleithund (meine Fassung)");
+        (await db.Regulations.SingleAsync()).SeedKey = "BH";
+        var igp1 = new Regulation { SportId = s.SportId, Name = "IGP Stufe 1", SeedKey = "FCI-IGP 1" };
+        db.Regulations.Add(igp1);
+        await db.SaveChangesAsync();
+
+        var dto = (await service.CompleteAsync(s.OwnerId, s.GoalId, Bestanden())).Value!;
+
+        var stufe = Assert.Single(dto.NextStages!);
+        Assert.Equal(igp1.Id, stufe.RegulationId);
+        Assert.Equal("IGP Stufe 1", stufe.Name);
+    }
 }

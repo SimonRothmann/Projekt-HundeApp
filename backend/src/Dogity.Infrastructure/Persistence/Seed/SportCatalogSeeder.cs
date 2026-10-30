@@ -91,6 +91,14 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// Klassen RO B bis RO 3 und RO S von VDH und ÖKV teilen sich die Sportart
 /// RALLYO und stehen in SportCatalogSeeder.RallyObedience.cs.
 ///
+/// Handänderungen (Paket K1, 2026-10-30): Der Katalog ist die Vorlage, nicht das
+/// letzte Wort. Was ein Admin im Katalog-Editor speichert, trägt EditedAt
+/// (Regulation, RegulationExercise) - der Seeder lässt es dann in Ruhe und
+/// belebt oder entfernt solche Zuordnungen nicht. Wiedergefunden werden die
+/// Ordnungen über Regulation.SeedKey, damit eine Umbenennung kein Duplikat
+/// erzeugt. Wo niemand von Hand geändert hat, kommen Korrekturen aus dem Code
+/// weiter an. Zurücknehmen (EditedAt = null) stellt die Katalogfassung wieder her.
+///
 /// Idempotent auf Ebene einzelner Übungen/Prüfungsordnungen (nicht nur
 /// pro Sportart), damit der Katalog auch nach dem ersten Start ergänzt
 /// werden kann, ohne Duplikate zu erzeugen.
@@ -1621,8 +1629,10 @@ public static partial class SportCatalogSeeder
     /// englischen Texte (Quelle: <see cref="FciTexteEn"/>).
     ///
     /// Gesetzt wird nur, wo das englische Feld noch leer ist: Eine Eingabe aus
-    /// dem Katalog-Editor bleibt stehen, und ein zweiter Lauf ändert nichts. Der
-    /// Preis: Wer einen englischen Text bewusst wieder leert, bekommt beim
+    /// dem Katalog-Editor bleibt stehen, und ein zweiter Lauf ändert nichts. Bei
+    /// Ordnungen und Ordnungs-Übungen, die von Hand gespeichert wurden
+    /// (EditedAt), bleibt auch ein geleertes Feld leer. Der Preis: Wer einen
+    /// englischen Text einer Übung bewusst wieder leert, bekommt beim
     /// nächsten Start den der Ordnung zurück. Dafür ist das Englisch an den
     /// deutschen Text gebunden: Ordnungsbeschreibungen und Hinweise schreibt der
     /// Seeder selbst, und ändert sich dabei der deutsche Text, wird das englische
@@ -1649,7 +1659,7 @@ public static partial class SportCatalogSeeder
 
         var ordnungen = await db.Regulations.Where(r => ids.Contains(r.SportId)).ToListAsync();
         foreach (var ordnung in ordnungen)
-            if (ordnung.NameEn is null && FciKatalog.Ordnungen.TryGetValue((codeNachId[ordnung.SportId], ordnung.Name), out var ordnungEn))
+            if (ordnung.NameEn is null && ordnung.EditedAt is null && FciKatalog.Ordnungen.TryGetValue((codeNachId[ordnung.SportId], ordnung.SeedKey ?? ordnung.Name), out var ordnungEn))
                 ordnung.NameEn = ordnungEn;
 
         var uebungen = await db.Exercises
@@ -1689,8 +1699,8 @@ public static partial class SportCatalogSeeder
     private static void SetzeEnglischeBeschreibungen(List<Regulation> ordnungen, Dictionary<Guid, string> codeNachId)
     {
         foreach (var ordnung in ordnungen)
-            if (ordnung.DescriptionEn is null && ordnung.Description is not null
-                && FciTexteEn.Ordnungen.TryGetValue((codeNachId[ordnung.SportId], ordnung.Name), out var texte)
+            if (ordnung.DescriptionEn is null && ordnung.EditedAt is null && ordnung.Description is not null
+                && FciTexteEn.Ordnungen.TryGetValue((codeNachId[ordnung.SportId], ordnung.SeedKey ?? ordnung.Name), out var texte)
                 && ordnung.Description == texte.Description)
                 ordnung.DescriptionEn = texte.DescriptionEn;
     }
@@ -1713,14 +1723,14 @@ public static partial class SportCatalogSeeder
             .ToDictionaryAsync(v => v.Id, v => v.RegulationId);
         var versionIds = versionen.Keys.ToList();
         var verknuepfungen = await db.RegulationExercises.IgnoreQueryFilters()
-            .Where(re => versionIds.Contains(re.RegulationVersionId) && re.ScoringNotesEn == null && re.ScoringNotes != null)
+            .Where(re => versionIds.Contains(re.RegulationVersionId) && re.ScoringNotesEn == null && re.ScoringNotes != null && re.EditedAt == null)
             .ToListAsync();
 
         foreach (var verknuepfung in verknuepfungen)
         {
             if (!uebungNachId.TryGetValue(verknuepfung.ExerciseId, out var uebung)) continue;
             var ordnung = ordnungNachId[versionen[verknuepfung.RegulationVersionId]];
-            if (FciTexteEn.Ordnungsuebungen.TryGetValue((codeNachId[ordnung.SportId], ordnung.Name, uebung.Name), out var texte)
+            if (FciTexteEn.Ordnungsuebungen.TryGetValue((codeNachId[ordnung.SportId], ordnung.SeedKey ?? ordnung.Name, uebung.Name), out var texte)
                 && verknuepfung.ScoringNotes == texte.ScoringNotes)
                 verknuepfung.ScoringNotesEn = texte.ScoringNotesEn;
         }
@@ -1814,7 +1824,12 @@ public static partial class SportCatalogSeeder
 
     private static async Task SeedRegulationAsync(ApplicationDbContext db, Sport sport, RegulationSeed seed)
     {
-        var regulation = await db.Regulations.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.SportId == sport.Id && r.Name == seed.Name);
+        // Über den Schlüssel statt über den Namen: Eine im Katalog-Editor
+        // umbenannte Ordnung bleibt so dieselbe Zeile (sonst entstünde bei jeder
+        // Umbenennung ein Duplikat, und die Ziele hingen an der alten). Wo der
+        // Schlüssel noch fehlt, hilft der Name - und der Schlüssel wird gesetzt.
+        var regulation = await db.Regulations.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.SportId == sport.Id && r.SeedKey == seed.Name)
+            ?? await db.Regulations.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.SportId == sport.Id && r.SeedKey == null && r.Name == seed.Name);
         if (regulation is null)
         {
             // Geltungsbereich gleich beim Anlegen: FCI-Ordnungen gelten überall
@@ -1825,6 +1840,7 @@ public static partial class SportCatalogSeeder
             {
                 SportId = sport.Id,
                 Name = seed.Name,
+                SeedKey = seed.Name,
                 Description = seed.Description,
                 CountryCode = seed.Ueberall ? null : seed.Land ?? FciKatalog.GeltungsbereichVon(sport.Code),
                 SourceUrl = seed.SourceUrl,
@@ -1832,15 +1848,27 @@ public static partial class SportCatalogSeeder
             db.Regulations.Add(regulation);
             await db.SaveChangesAsync();
         }
-        else if (seed.Description is not null && regulation.Description != seed.Description)
+        else
         {
-            // Beschreibung aus späteren Seed-Durchläufen nachpflegen - der
-            // Seed ist für den globalen Katalog die Quelle der Wahrheit
-            // (analog zur MaxPoints-Nachpflege unten).
-            regulation.Description = seed.Description;
-            // Das Englisch gehörte zum alten deutschen Text (Paket E4); es wird
-            // am Ende aus FciTexteEn neu gesetzt, wenn es zum neuen passt.
-            regulation.DescriptionEn = null;
+            regulation.SeedKey ??= seed.Name;
+
+            // Name und Beschreibung nachpflegen - der Seed ist für den globalen
+            // Katalog die Vorlage, aber nur dort, wo niemand von Hand
+            // gespeichert hat (EditedAt): Wer im Editor speichert, hat ab dann
+            // das Sagen, wie bei den Sachkunde-Fragen. Nach dem Zurücknehmen
+            // greift der Seed wieder, auch beim Namen.
+            if (regulation.EditedAt is null)
+            {
+                regulation.Name = seed.Name;
+                if (seed.Description is not null && regulation.Description != seed.Description)
+                {
+                    // (analog zur MaxPoints-Nachpflege unten)
+                    regulation.Description = seed.Description;
+                    // Das Englisch gehörte zum alten deutschen Text (Paket E4); es wird
+                    // am Ende aus FciTexteEn neu gesetzt, wenn es zum neuen passt.
+                    regulation.DescriptionEn = null;
+                }
+            }
         }
 
         // Die Quelle nur ergänzen, nie überschreiben: Ein Admin pflegt sie
@@ -1936,16 +1964,18 @@ public static partial class SportCatalogSeeder
                     SortOrder = index
                 });
             }
-            else
+            else if (regulationExercise.EditedAt is null)
             {
+                // Von Hand angelegte, geänderte oder entfernte Zeilen (EditedAt)
+                // bleiben, wie sie sind - weder überschrieben noch wiederbelebt.
                 // Werte aus späteren Seed-Durchläufen nachpflegen (z.B.
                 // korrigierte Punktzahlen) - vorher wurden bestehende
                 // Zeilen nie aktualisiert, nur fehlende neu angelegt, eine
                 // Korrektur landete dadurch nie in bereits gestarteten
                 // lokalen Entwicklungsdatenbanken.
-                // Wiederbeleben, falls die Zeile von Hand entfernt wurde: der
-                // Seed ist für den globalen Katalog die Quelle der Wahrheit,
-                // und die Übung steht ja wieder darin.
+                // Wiederbeleben, falls die Zeile vor der Handpflege (EditedAt)
+                // entfernt wurde oder nach dem Zurücknehmen: die Übung steht ja
+                // wieder im Seed.
                 regulationExercise.DeletedAt = null;
                 regulationExercise.IsMandatory = exerciseSeed.IsMandatory;
                 regulationExercise.MaxPoints = exerciseSeed.MaxPoints;
@@ -1958,7 +1988,8 @@ public static partial class SportCatalogSeeder
 
         await db.SaveChangesAsync();
 
-        // Übungen entfernen, die NICHT MEHR im Seed stehen. Ohne das bliebe eine
+        // Übungen entfernen, die NICHT MEHR im Seed stehen (nicht die von Hand
+        // ergänzten: EditedAt). Ohne das bliebe eine
         // gestrichene Übung für immer an der Prüfungsordnung hängen: Der Seed
         // legte bisher nur an und pflegte nach, räumte aber nie auf - eine
         // Korrektur wie "die BH hat keine eigenständig bewertete Freifolge"
@@ -1971,7 +2002,7 @@ public static partial class SportCatalogSeeder
         // trainierbar - sie zählt nur nicht mehr zur Prüfung.
         var seededExerciseNames = seed.Exercises.Select(e => e.ExerciseName).ToList();
         var obsolete = await db.RegulationExercises
-            .Where(re => re.RegulationVersionId == version.Id)
+            .Where(re => re.RegulationVersionId == version.Id && re.EditedAt == null)
             .Include(re => re.Exercise)
             .Where(re => !seededExerciseNames.Contains(re.Exercise!.Name))
             .ToListAsync();
@@ -1997,6 +2028,10 @@ public static partial class SportCatalogSeeder
     /// Abgebrochen wird, sobald ein Trainingsziel darauf verweist: ein
     /// stillschweigend gelöschtes Ziel wäre für den Nutzer schlimmer als ein
     /// überzähliger Katalogeintrag.
+    ///
+    /// Sucht bewusst über den Namen, nicht über den SeedKey: Es sind Altbereinigungen
+    /// für feste, früher fehlerhaft angelegte Namen - eine im Editor umbenannte
+    /// Ordnung soll davon nicht erfasst werden.
     /// </summary>
     private static async Task RemoveRegulationAsync(ApplicationDbContext db, Sport sport, string regulationName)
     {
@@ -2021,6 +2056,7 @@ public static partial class SportCatalogSeeder
         await db.SaveChangesAsync();
     }
 
+    // Sucht wie RemoveRegulationAsync bewusst über den Namen (Altbereinigung).
     private static async Task RemoveSupersededVersionAsync(ApplicationDbContext db, Sport sport, string regulationName, string oldVersionLabel)
     {
         var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.SportId == sport.Id && r.Name == regulationName);

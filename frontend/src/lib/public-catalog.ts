@@ -33,6 +33,8 @@ export type Regulation = {
   currentVersionValidFrom: string | null;
   /** Namen der Prüfungsordnungen, die auf diese folgen (Ausbildungsweg im Backend). */
   nextStageNames?: string[];
+  /** Stabile Katalogkennung; die Folgestufen nennen Ordnungen über sie. */
+  seedKey?: string | null;
 };
 
 export type RegulationExercise = {

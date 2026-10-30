@@ -47,14 +47,26 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         if (regulation is null)
             return Result<RegulationDto>.NotFound("Prüfungsordnung nicht gefunden.");
 
-        var authError = await AuthorizeForSportAsync(actingUserId, isAdmin, regulation.SportId, ct);
+        var (global, authError) = await AuthorizeForSportAsync(actingUserId, isAdmin, regulation.SportId, ct);
         if (authError is not null)
             return Result<RegulationDto>.Failure(authError);
 
-        regulation.Name = request.Name.Trim();
-        regulation.NameEn = NullIfBlank(request.NameEn);
-        regulation.Description = NullIfBlank(request.Description);
-        regulation.DescriptionEn = NullIfBlank(request.DescriptionEn);
+        var name = request.Name.Trim();
+        var nameEn = NullIfBlank(request.NameEn);
+        var beschreibung = NullIfBlank(request.Description);
+        var beschreibungEn = NullIfBlank(request.DescriptionEn);
+
+        // Ab einer echten Änderung der vom Katalog gepflegten Felder hat die
+        // Handfassung Vorrang: Der Seeder lässt die Ordnung dann in Ruhe (nur
+        // bei globalen - Vereinsordnungen kennt der Seeder nicht).
+        if (global && (regulation.Name != name || regulation.NameEn != nameEn
+            || regulation.Description != beschreibung || regulation.DescriptionEn != beschreibungEn))
+            regulation.EditedAt = DateTimeOffset.UtcNow;
+
+        regulation.Name = name;
+        regulation.NameEn = nameEn;
+        regulation.Description = beschreibung;
+        regulation.DescriptionEn = beschreibungEn;
         regulation.SourceUrl = NullIfBlank(request.SourceUrl);
 
         // Leer heißt hier ausdrücklich "gilt überall" und nicht "unverändert" -
@@ -78,7 +90,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
             .FirstOrDefaultAsync(ct);
 
         return Result<RegulationDto>.Success(new RegulationDto(
-            regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, gueltigAb, regulation.NameEn, regulation.DescriptionEn));
+            regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, gueltigAb, regulation.NameEn, regulation.DescriptionEn, regulation.EditedAt, regulation.SeedKey));
     }
 
     public async Task<Result<RegulationExerciseDto>> AddRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, AddRegulationExerciseRequest request, CancellationToken ct = default)
@@ -90,7 +102,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         if (hinweisEnFehler is not null)
             return Result<RegulationExerciseDto>.Failure(hinweisEnFehler);
 
-        var (version, authError) = await GetEditableVersionAsync(actingUserId, isAdmin, regulationId, ct);
+        var (version, global, authError) = await GetEditableVersionAsync(actingUserId, isAdmin, regulationId, ct);
         if (authError is not null)
             return Result<RegulationExerciseDto>.Failure(authError);
         if (version is null)
@@ -137,10 +149,14 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         link.MaxPoints = request.MaxPoints;
         link.ScoringNotes = NullIfBlank(request.ScoringNotes);
         link.ScoringNotesEn = NullIfBlank(request.ScoringNotesEn);
+        // Eine von Hand ergänzte oder wieder hinzugefügte Zeile belebt der Seeder
+        // nicht um und räumt sie auch nicht als "nicht mehr im Seed" weg.
+        if (global)
+            link.EditedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
 
         return Result<RegulationExerciseDto>.Success(new RegulationExerciseDto(
-            exercise.Id, exercise.Name, link.IsMandatory, link.MaxPoints, link.ScoringNotes, exercise.NameEn, link.ScoringNotesEn));
+            exercise.Id, exercise.Name, link.IsMandatory, link.MaxPoints, link.ScoringNotes, exercise.NameEn, link.ScoringNotesEn, link.EditedAt));
     }
 
     public async Task<Result> UpdateRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, Guid exerciseId, UpdateRegulationExerciseRequest request, CancellationToken ct = default)
@@ -152,7 +168,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         if (hinweisEnFehler is not null)
             return Result.Failure(hinweisEnFehler);
 
-        var (version, authError) = await GetEditableVersionAsync(actingUserId, isAdmin, regulationId, ct);
+        var (version, global, authError) = await GetEditableVersionAsync(actingUserId, isAdmin, regulationId, ct);
         if (authError is not null)
             return Result.Failure(authError);
         if (version is null)
@@ -163,19 +179,26 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         if (link is null)
             return Result.Failure("Übung ist nicht Teil dieser Prüfungsordnung.");
 
+        var hinweis = NullIfBlank(request.ScoringNotes);
+        var hinweisEn = NullIfBlank(request.ScoringNotesEn);
+        // Nur eine echte Änderung zählt als Handpflege (siehe UpdateRegulationAsync).
+        if (global && (link.IsMandatory != request.IsMandatory || link.MaxPoints != request.MaxPoints
+            || link.ScoringNotes != hinweis || link.ScoringNotesEn != hinweisEn))
+            link.EditedAt = DateTimeOffset.UtcNow;
+
         // SortOrder bleibt bewusst unberührt: Punkte oder Pflicht-Kennzeichen zu
         // ändern darf die Reihenfolge der Prüfungsordnung nicht verwerfen.
         link.IsMandatory = request.IsMandatory;
         link.MaxPoints = request.MaxPoints;
-        link.ScoringNotes = NullIfBlank(request.ScoringNotes);
-        link.ScoringNotesEn = NullIfBlank(request.ScoringNotesEn);
+        link.ScoringNotes = hinweis;
+        link.ScoringNotesEn = hinweisEn;
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
 
     public async Task<Result> RemoveRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, Guid exerciseId, CancellationToken ct = default)
     {
-        var (version, authError) = await GetEditableVersionAsync(actingUserId, isAdmin, regulationId, ct);
+        var (version, global, authError) = await GetEditableVersionAsync(actingUserId, isAdmin, regulationId, ct);
         if (authError is not null)
             return Result.Failure(authError);
         if (version is null)
@@ -188,37 +211,87 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
 
         // Soft-Delete (RegulationExercise hat einen DeletedAt-QueryFilter) - die
         // Übung selbst bleibt im Katalog, nur die Zuordnung zur PO wird entfernt.
+        // EditedAt dazu, damit der Seeder die Zeile nicht wiederbelebt.
         link.DeletedAt = DateTimeOffset.UtcNow;
+        if (global)
+            link.EditedAt = link.DeletedAt;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> RevertRegulationAsync(Guid actingUserId, bool isAdmin, Guid regulationId, CancellationToken ct = default)
+    {
+        var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.Id == regulationId, ct);
+        if (regulation is null)
+            return Result.NotFound("Prüfungsordnung nicht gefunden.");
+
+        var (global, authError) = await AuthorizeForSportAsync(actingUserId, isAdmin, regulation.SportId, ct);
+        if (authError is not null)
+            return Result.Failure(authError);
+        if (!global)
+            return Result.Failure("Nur globale Prüfungsordnungen werden aus dem Katalog gepflegt.");
+        if (regulation.EditedAt is null)
+            return Result.Failure("Diese Prüfungsordnung wurde nicht von Hand geändert.");
+
+        // Die englischen Texte gehören zur Handfassung: Leer, füllt der Seeder sie
+        // beim nächsten Start wieder aus dem Katalog (er setzt nur leere Felder).
+        regulation.EditedAt = null;
+        regulation.NameEn = null;
+        regulation.DescriptionEn = null;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> RevertRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, Guid exerciseId, CancellationToken ct = default)
+    {
+        var (version, global, authError) = await GetEditableVersionAsync(actingUserId, isAdmin, regulationId, ct);
+        if (authError is not null)
+            return Result.Failure(authError);
+        if (version is null)
+            return Result.Failure("Keine gültige Version für diese Prüfungsordnung gefunden.");
+        if (!global)
+            return Result.Failure("Nur globale Prüfungsordnungen werden aus dem Katalog gepflegt.");
+
+        // Auch eine von Hand entfernte Zeile: Sie soll sich zurücknehmen lassen.
+        var link = await db.FindLinkIncludingRemovedAsync(version.Id, exerciseId, ct);
+        if (link is null)
+            return Result.Failure("Übung ist nicht Teil dieser Prüfungsordnung.");
+        if (link.EditedAt is null)
+            return Result.Failure("Diese Zuordnung wurde nicht von Hand geändert.");
+
+        link.EditedAt = null;
+        link.ScoringNotesEn = null; // der Seeder setzt es mit dem Katalogtext neu
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
 
     // ----- Helpers -----
 
-    private async Task<(RegulationVersion? Version, string? Error)> GetEditableVersionAsync(Guid actingUserId, bool isAdmin, Guid regulationId, CancellationToken ct)
+    private async Task<(RegulationVersion? Version, bool Global, string? Error)> GetEditableVersionAsync(Guid actingUserId, bool isAdmin, Guid regulationId, CancellationToken ct)
     {
         var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.Id == regulationId, ct);
         if (regulation is null)
-            return (null, "Prüfungsordnung nicht gefunden.");
+            return (null, false, "Prüfungsordnung nicht gefunden.");
 
-        var authError = await AuthorizeForSportAsync(actingUserId, isAdmin, regulation.SportId, ct);
+        var (global, authError) = await AuthorizeForSportAsync(actingUserId, isAdmin, regulation.SportId, ct);
         if (authError is not null)
-            return (null, authError);
+            return (null, global, authError);
 
         // Aktuelle Version = neueste nach ValidFrom (wie GetRegulationDetailAsync).
         var version = await db.RegulationVersions
             .Where(v => v.RegulationId == regulationId)
             .OrderByDescending(v => v.ValidFrom)
             .FirstOrDefaultAsync(ct);
-        return (version, null);
+        return (version, global, null);
     }
 
-    private async Task<string?> AuthorizeForSportAsync(Guid actingUserId, bool isAdmin, Guid sportId, CancellationToken ct)
+    // Global: Die Sportart gehört keinem Verein, ihre Ordnungen pflegt der Seeder mit.
+    private async Task<(bool Global, string? Error)> AuthorizeForSportAsync(Guid actingUserId, bool isAdmin, Guid sportId, CancellationToken ct)
     {
         var sport = await db.Sports.FirstOrDefaultAsync(s => s.Id == sportId, ct);
         if (sport is null)
-            return "Sportart nicht gefunden.";
-        return await AuthorizeAsync(actingUserId, isAdmin, sport.ClubId, ct);
+            return (false, "Sportart nicht gefunden.");
+        return (sport.ClubId is null, await AuthorizeAsync(actingUserId, isAdmin, sport.ClubId, ct));
     }
 
     private async Task<string?> AuthorizeAsync(Guid actingUserId, bool isAdmin, Guid? clubId, CancellationToken ct)

@@ -6,9 +6,10 @@ namespace Dogity.Application.Planning;
 /// <see cref="GoalDto.NextStages"/> und <see cref="Sports.RegulationDto.NextStageNames"/>
 /// und kennt die Reihenfolge selbst nicht.
 ///
-/// Geführt wird über die NAMEN der Prüfungsordnungen, so wie
-/// SportCatalogSeeder sie anlegt - eine Prüfungsordnung hat keine andere
-/// stabile Kennung (Ids entstehen erst beim Seeden). Ein Test
+/// Geführt wird über die Namen, unter denen SportCatalogSeeder die Ordnungen
+/// anlegt - gelesen wird dafür <c>Regulation.SeedKey</c> (bei Ordnungen ohne
+/// Schlüssel der Name), nicht der heutige Name: Wer eine Ordnung im Katalog-Editor
+/// umbenennt, verliert so keine Folgestufe. Ein Test
 /// (AusbildungswegTests) prüft, dass jeder Name hier im Seeder existiert;
 /// wird dort eine Prüfungsordnung umbenannt, schlägt er an, statt dass die
 /// Folgestufe stillschweigend verschwindet.
@@ -59,7 +60,7 @@ public static class Ausbildungsweg
     public static IEnumerable<string> AlleNamen =>
         FolgestufenJeName.Keys.Concat(FolgestufenJeName.Values.SelectMany(n => n)).Distinct(StringComparer.Ordinal);
 
-    /// <summary>Namen der Prüfungsordnungen, die nach <paramref name="name"/> kommen - leer, wenn es keine gibt.</summary>
+    /// <summary>Namen (Schlüssel) der Prüfungsordnungen, die nach <paramref name="name"/> kommen - leer, wenn es keine gibt.</summary>
     public static IReadOnlyList<string> FolgestufenVon(string? name) =>
         name is not null && FolgestufenJeName.TryGetValue(name, out var folgen) ? folgen : [];
 }

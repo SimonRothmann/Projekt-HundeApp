@@ -22,4 +22,16 @@ public interface IRegulationManagementService
     Task<Result> UpdateRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, Guid exerciseId, UpdateRegulationExerciseRequest request, CancellationToken ct = default);
 
     Task<Result> RemoveRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, Guid exerciseId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Nimmt die Handänderung einer globalen Prüfungsordnung zurück (EditedAt =
+    /// null): Die Katalogfassung kommt beim nächsten Start der Anwendung wieder.
+    /// </summary>
+    Task<Result> RevertRegulationAsync(Guid actingUserId, bool isAdmin, Guid regulationId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Wie <see cref="RevertRegulationAsync"/> für eine Übungszuordnung. Eine von
+    /// Hand hinzugefügte, die der Katalog nicht kennt, räumt der nächste Start dann weg.
+    /// </summary>
+    Task<Result> RevertRegulationExerciseAsync(Guid actingUserId, bool isAdmin, Guid regulationId, Guid exerciseId, CancellationToken ct = default);
 }

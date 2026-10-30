@@ -313,6 +313,24 @@ Zeilen (`MaxPoints`, `ScoringNotes`, `IsMandatory`). Eine Korrektur im Code ist
 nach dem nächsten Deploy also überall wirksam — ein Eingriff von Hand über die
 Admin-Oberfläche ist dafür nicht nötig.
 
+**Ausnahme: Handänderungen (Paket K1, 2026-10-30).** Der Seeder ist die Vorlage,
+nicht das letzte Wort. Was der Admin im Katalog-Editor tatsächlich ändert, trägt
+`EditedAt` (`Regulation`: Name, Beschreibung, englische Texte;
+`RegulationExercise`: Punkte, Pflicht, Hinweise, Hinzufügen und Entfernen). Solche
+Ordnungen und Zuordnungen überschreibt, belebt und entfernt der Seeder nicht mehr
+— wie bei den Sachkunde-Fragen (`QuizQuestion.EditedAt`): wer speichert, hat ab
+dann das Sagen. Wo niemand von Hand geändert hat, kommen Korrekturen aus dem Code
+weiter an. „Katalogfassung zurückholen“ im Editor setzt `EditedAt` auf null; die
+Katalogfassung kommt dann beim nächsten Start zurück (eine von Hand entfernte
+Zuordnung, die der Seed kennt, wird wiederbelebt, eine von Hand hinzugefügte, die
+er nicht kennt, entfernt). `Regulation.SeedKey` (der Name, unter dem der Seeder die
+Ordnung anlegt) ist die stabile Kennung: Der Seeder findet die Ordnung darüber,
+und der Ausbildungsweg führt über ihn — eine Umbenennung im Editor erzeugt kein
+Duplikat und kostet keine Folgestufe. Für die Pflege des Seeds heißt das: Wer
+eine Ordnung im Seed umbenennen will, ändert den Namen in `RegulationSeed` und
+hat damit einen neuen Schlüssel (= neue Ordnung); eine Umbenennung bestehender
+Zeilen braucht eine Migration (siehe `RenameExerciseAsync` für Übungen).
+
 ## Geltungsbereich und englische Namen (2026-10-16, Paket L1)
 
 ### Warum die englische Fassung maßgeblich ist
@@ -419,7 +437,8 @@ Bewertungshinweise: seit Paket E4 übersetzt, siehe unten.)
 
 Der Seeder trägt die Namen nur ein, wo `NameEn` noch leer ist – eine Eingabe aus
 dem Katalog-Editor bleibt stehen. Wer einen Namen bewusst leert, bekommt beim
-nächsten Start den der Ordnung zurück.
+nächsten Start den der Ordnung zurück (nicht bei Ordnungen mit `EditedAt`, siehe
+„Wie Korrekturen ankommen“).
 
 ## Englische Texte der FCI-Ordnungen (2026-10-18, Paket E4)
 

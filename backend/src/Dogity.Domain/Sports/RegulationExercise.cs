@@ -38,4 +38,11 @@ public class RegulationExercise : Entity
 
     /// <summary>Englische Fassung von <see cref="ScoringNotes"/> (null = keine, die App zeigt dann den deutschen Text).</summary>
     public string? ScoringNotesEn { get; set; }
+
+    /// <summary>
+    /// Gesetzt, sobald ein Admin diese Zuordnung von Hand angelegt, geändert
+    /// oder entfernt hat. Der Seeder überschreibt, belebt und entfernt solche
+    /// Zeilen dann nicht mehr (siehe <see cref="Regulation.EditedAt"/>).
+    /// </summary>
+    public DateTimeOffset? EditedAt { get; set; }
 }

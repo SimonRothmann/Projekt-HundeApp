@@ -168,4 +168,31 @@ public class SportsController(ISportCatalogService catalogService, IRegulationMa
         if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
         return NoContent();
     }
+
+    // ---- Handänderung zurücknehmen (nur Admin; Vereinsordnungen kennt der Katalog nicht) ----
+
+    /// <summary>
+    /// Nimmt die Handänderung einer globalen Prüfungsordnung zurück. Die
+    /// Katalogfassung kommt beim nächsten Start der Anwendung wieder.
+    /// </summary>
+    [HttpPost("regulations/{regulationId:guid}/revert")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> RevertRegulation(Guid regulationId, CancellationToken ct)
+    {
+        var (userId, isAdmin) = CurrentUser();
+        var result = await regulationManagement.RevertRegulationAsync(userId, isAdmin, regulationId, ct);
+        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
+        return NoContent();
+    }
+
+    /// <summary>Wie <see cref="RevertRegulation"/> für eine Übungszuordnung der Prüfungsordnung.</summary>
+    [HttpPost("regulations/{regulationId:guid}/exercises/{exerciseId:guid}/revert")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> RevertRegulationExercise(Guid regulationId, Guid exerciseId, CancellationToken ct)
+    {
+        var (userId, isAdmin) = CurrentUser();
+        var result = await regulationManagement.RevertRegulationExerciseAsync(userId, isAdmin, regulationId, exerciseId, ct);
+        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
+        return NoContent();
+    }
 }

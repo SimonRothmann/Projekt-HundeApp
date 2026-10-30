@@ -16,6 +16,11 @@ public class RegulationImportService(IApplicationDbContext db, IRegulationPdfPar
         if (regulation is null)
             return Result.NotFound("Prüfungsordnung nicht gefunden.");
 
+        // Globale Sportarten pflegt der Seeder mit: Was der Import dort von Hand
+        // ergänzt oder ändert, muss er wie die Katalog-Pflege als Handänderung
+        // kennzeichnen (EditedAt), sonst räumt der nächste Start es wieder ab.
+        var global = await db.Sports.AnyAsync(s => s.Id == regulation.SportId && s.ClubId == null, ct);
+
         var currentVersion = await db.RegulationVersions
             .Where(v => v.RegulationId == regulation.Id)
             .OrderByDescending(v => v.ValidFrom)
@@ -64,13 +69,16 @@ public class RegulationImportService(IApplicationDbContext db, IRegulationPdfPar
                     ExerciseId = exercise.Id,
                     MaxPoints = candidate.MaxPoints,
                     IsMandatory = true,
-                    SortOrder = nextSortOrder++
+                    SortOrder = nextSortOrder++,
+                    EditedAt = global ? DateTimeOffset.UtcNow : null
                 });
             }
             else
             {
                 // Wiederbeleben: die Übung steht wieder in der importierten
                 // Liste, also gehört sie wieder zur Prüfungsordnung.
+                if (global && (regulationExercise.DeletedAt is not null || regulationExercise.MaxPoints != candidate.MaxPoints))
+                    regulationExercise.EditedAt = DateTimeOffset.UtcNow;
                 regulationExercise.DeletedAt = null;
                 regulationExercise.MaxPoints = candidate.MaxPoints;
             }

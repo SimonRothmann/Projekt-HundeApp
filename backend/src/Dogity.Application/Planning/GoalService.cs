@@ -906,18 +906,25 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     private async Task<Dictionary<Guid, IReadOnlyList<NextStageDto>>> GetNextStagesAsync(
         IReadOnlyList<Goal> goals, IReadOnlyDictionary<Guid, Katalogname> regulationNames, CancellationToken ct)
     {
+        // Der Ausbildungsweg führt über den Schlüssel der Ordnung (SeedKey, ohne
+        // Schlüssel der Name): Eine im Editor umbenannte Ordnung behält ihre
+        // Folgestufen und bleibt als Folgestufe auffindbar.
         var namesByGoal = goals
             .Where(g => g.Status == GoalStatus.Achieved && g.RegulationId is not null)
-            .ToDictionary(g => g.Id, g => Ausbildungsweg.FolgestufenVon(regulationNames.GetValueOrDefault(g.RegulationId!.Value)?.Name));
+            .ToDictionary(g => g.Id, g =>
+            {
+                var ordnung = regulationNames.GetValueOrDefault(g.RegulationId!.Value);
+                return Ausbildungsweg.FolgestufenVon(ordnung?.SeedKey ?? ordnung?.Name);
+            });
         var names = namesByGoal.Values.SelectMany(n => n).Distinct().ToList();
         if (names.Count == 0) return new Dictionary<Guid, IReadOnlyList<NextStageDto>>();
 
         var known = (await db.Regulations
-                .Where(r => names.Contains(r.Name))
-                .Select(r => new NextStageDto(r.Id, r.SportId, r.Name, r.NameEn))
+                .Where(r => names.Contains(r.SeedKey ?? r.Name))
+                .Select(r => new { Key = r.SeedKey ?? r.Name, Stufe = new NextStageDto(r.Id, r.SportId, r.Name, r.NameEn) })
                 .ToListAsync(ct))
-            .GroupBy(r => r.Name)
-            .ToDictionary(g => g.Key, g => g.First());
+            .GroupBy(r => r.Key)
+            .ToDictionary(g => g.Key, g => g.First().Stufe);
 
         return namesByGoal.ToDictionary(
             kv => kv.Key,
@@ -977,7 +984,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         return await db.Regulations
             .Where(r => regulationIds.Contains(r.Id))
-            .ToDictionaryAsync(r => r.Id, r => new Katalogname(r.Name, r.NameEn), ct);
+            .ToDictionaryAsync(r => r.Id, r => new Katalogname(r.Name, r.NameEn, r.SeedKey), ct);
     }
 
     // Fortschritt eines Plan-Ziels ergibt sich aus echten, damit verknüpften
@@ -1101,5 +1108,5 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     }
 
     /// <summary>Deutscher und (falls gepflegt) englischer Katalogname, gemeinsam nachgeschlagen.</summary>
-    private sealed record Katalogname(string Name, string? NameEn);
+    private sealed record Katalogname(string Name, string? NameEn, string? SeedKey = null);
 }

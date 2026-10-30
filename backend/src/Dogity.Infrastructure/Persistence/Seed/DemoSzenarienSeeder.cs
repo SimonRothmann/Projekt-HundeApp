@@ -402,7 +402,7 @@ public static class DemoSzenarienSeeder
         {
             var sport = await db.Sports.FirstOrDefaultAsync(s => s.Code == sportCode, ct);
             if (sport is null) return (null, null);
-            var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.SportId == sport.Id && r.Name == ordnung, ct);
+            var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.SportId == sport.Id && (r.SeedKey ?? r.Name) == ordnung, ct);
             return (sport, regulation);
         }
 

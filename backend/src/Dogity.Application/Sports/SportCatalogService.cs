@@ -145,7 +145,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
             .Select(r => new RegulationDto(
                 r.Id, r.Name, r.SourceUrl, r.LastSyncedAt, r.LatestKnownVersionLabel, r.Description, r.CountryCode,
                 r.Versions.OrderByDescending(v => v.ValidFrom).Select(v => (DateOnly?)v.ValidFrom).FirstOrDefault(),
-                r.NameEn, r.DescriptionEn))
+                r.NameEn, r.DescriptionEn, r.EditedAt, r.SeedKey))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<RegulationDto>>.Success(regulations);
@@ -214,11 +214,11 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
             .Where(re => re.RegulationVersionId == currentVersion.Id)
             .OrderBy(re => re.SortOrder)
             .ThenBy(re => re.Exercise!.Name)
-            .Select(re => new RegulationExerciseDto(re.ExerciseId, re.Exercise!.Name, re.IsMandatory, re.MaxPoints, re.ScoringNotes, re.Exercise!.NameEn, re.ScoringNotesEn))
+            .Select(re => new RegulationExerciseDto(re.ExerciseId, re.Exercise!.Name, re.IsMandatory, re.MaxPoints, re.ScoringNotes, re.Exercise!.NameEn, re.ScoringNotesEn, re.EditedAt))
             .ToListAsync(ct);
 
         var detail = new RegulationDetailDto(
-            new RegulationDto(regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, currentVersion.ValidFrom, regulation.NameEn, regulation.DescriptionEn),
+            new RegulationDto(regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, currentVersion.ValidFrom, regulation.NameEn, regulation.DescriptionEn, regulation.EditedAt, regulation.SeedKey),
             new RegulationVersionDto(currentVersion.Id, currentVersion.VersionLabel, currentVersion.ValidFrom),
             exercises);
 

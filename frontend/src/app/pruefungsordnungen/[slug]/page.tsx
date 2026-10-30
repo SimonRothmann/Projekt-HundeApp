@@ -54,7 +54,8 @@ export default async function RegulationPage({ params }: Params) {
   // fällt weg.
   const katalog = await getCatalog();
   const naechsteStufen = (entry.regulation.nextStageNames ?? []).flatMap((name) => {
-    const treffer = katalog.find((eintrag) => eintrag.regulation.name === name);
+    // Über die Katalogkennung: Eine im Editor umbenannte Ordnung bleibt auffindbar.
+    const treffer = katalog.find((eintrag) => (eintrag.regulation.seedKey ?? eintrag.regulation.name) === name);
     return treffer ? [treffer] : [];
   });
 

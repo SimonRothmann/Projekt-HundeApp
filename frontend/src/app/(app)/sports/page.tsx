@@ -21,6 +21,7 @@ import {
   Pencil,
   Plus,
   Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { difficultyLabel } from "@/lib/constants";
@@ -470,6 +471,20 @@ function RegulationBlock({
   const [sourceUrl, setSourceUrl] = useState(regulation.sourceUrl ?? "");
   const [savingMeta, setSavingMeta] = useState(false);
   const [adding, setAdding] = useState(false);
+  // Der Stand aus dem frisch geladenen Detail zählt, die Liste darüber ist nach
+  // dem Speichern noch alt. Markiert wird nur für den Admin (canEdit): Nur
+  // globale Ordnungen pflegt der Katalog-Abgleich mit.
+  const vonHand = canEdit && !!(detail?.regulation ?? regulation).editedAt;
+
+  async function zuruecknehmen() {
+    try {
+      await api.post(`/api/sports/regulations/${regulation.id}/revert`);
+      toast.success(t("Zurückgenommen – die Katalogfassung kommt beim nächsten Start der App zurück."));
+      onChanged();
+    } catch (err) {
+      toast.error(apiError(err, t("Zurücknehmen fehlgeschlagen.")));
+    }
+  }
 
   async function saveMeta() {
     if (!name.trim()) {
@@ -513,6 +528,11 @@ function RegulationBlock({
         <span className="flex min-w-0 items-center gap-2 font-medium">
           <ScrollText className="size-4 shrink-0" />
           <span className="[overflow-wrap:anywhere]">{katalogName(regulation, sprache)}</span>
+          {vonHand && (
+            <Badge variant="secondary" className="text-xs">
+              {t("von Hand geändert")}
+            </Badge>
+          )}
         </span>
         {isOpen ? <ChevronDown className="size-4 shrink-0" /> : <ChevronRight className="size-4 shrink-0" />}
       </button>
@@ -548,6 +568,20 @@ function RegulationBlock({
                   </Button>
                 )}
               </div>
+
+              {canEdit && (
+                <div className="mb-3 flex flex-col items-start gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {t("Wer hier speichert, hat ab dann das Sagen: Der Katalog überschreibt diese Angaben beim nächsten Start der App nicht mehr. „Katalogfassung zurückholen“ stellt sie beim nächsten Start wieder her – eine von Hand hinzugefügte Übung, die der Katalog nicht kennt, fällt dann weg.")}
+                  </p>
+                  {vonHand && (
+                    <Button type="button" size="sm" variant="outline" onClick={zuruecknehmen}>
+                      <RotateCcw className="size-3.5" />
+                      {t("Katalogfassung zurückholen")}
+                    </Button>
+                  )}
+                </div>
+              )}
 
               {canEdit && editingMeta ? (
                 <div className="mb-3 flex flex-col gap-3 rounded-md border p-3">
@@ -675,6 +709,16 @@ function RegExerciseRow({
     }
   }
 
+  async function zuruecknehmen() {
+    try {
+      await api.post(`/api/sports/regulations/${regulationId}/exercises/${re.exerciseId}/revert`);
+      toast.success(t("Zurückgenommen – die Katalogfassung kommt beim nächsten Start der App zurück."));
+      onChanged();
+    } catch (err) {
+      toast.error(apiError(err, t("Zurücknehmen fehlgeschlagen.")));
+    }
+  }
+
   async function remove() {
     if (!window.confirm(t("„{name}“ aus dieser Prüfungsordnung entfernen?", { name: uebungName(re, sprache) }))) return;
     try {
@@ -726,11 +770,21 @@ function RegExerciseRow({
         <span className="min-w-0 font-medium [overflow-wrap:anywhere]">
           {uebungName(re, sprache)}
           {!re.isMandatory && <span className="ml-1.5 text-xs font-normal text-muted-foreground">{t("(optional)")}</span>}
+          {canEdit && re.editedAt && (
+            <Badge variant="secondary" className="ml-1.5 align-middle text-xs">
+              {t("von Hand geändert")}
+            </Badge>
+          )}
         </span>
         <div className="flex shrink-0 items-center gap-1">
           {re.maxPoints > 0 && <Badge variant="outline">{t("{n} Punkte", { n: re.maxPoints })}</Badge>}
           {canEdit && (
             <>
+              {re.editedAt && (
+                <Button type="button" size="icon-sm" variant="ghost" aria-label={t("Katalogfassung zurückholen")} title={t("Katalogfassung zurückholen")} onClick={zuruecknehmen}>
+                  <RotateCcw className="size-3.5 text-muted-foreground" />
+                </Button>
+              )}
               <Button type="button" size="icon-sm" variant="ghost" aria-label={t("Bearbeiten")} onClick={() => { setMandatory(re.isMandatory); setPoints(String(re.maxPoints)); setNotes(re.scoringNotes ?? ""); setNotesEn(re.scoringNotesEn ?? ""); setEditing(true); }}>
                 <Pencil className="size-3.5" />
               </Button>
