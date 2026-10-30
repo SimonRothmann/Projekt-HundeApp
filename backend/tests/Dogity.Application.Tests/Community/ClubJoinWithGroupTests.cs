@@ -40,7 +40,8 @@ public class ClubJoinWithGroupTests
 
         var verein = new Club { Name = "Testverein" };
         db.Clubs.Add(verein);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = verein.Id, UserId = trainer, Role = ClubRole.Training });
+        // Entscheidet Anfragen (Mitgliederverwaltung) UND leitet die Gruppe, in die sie einlädt (Training).
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = verein.Id, UserId = trainer, Role = ClubRole.Training | ClubRole.Mitgliederverwaltung });
         var gruppe = new Group { ClubId = verein.Id, TrainerId = trainer, Name = "Dienstagsgruppe" };
         db.Groups.Add(gruppe);
         await db.SaveChangesAsync();

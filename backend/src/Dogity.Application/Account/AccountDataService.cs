@@ -88,8 +88,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         var ablaufpunkte = await db.GpsWalkPoints.Where(p => ablaufIds.Contains(p.WalkRunId)).AsNoTracking().ToListAsync(ct);
 
         var mitgliedschaften = await db.ClubMemberships.Where(m => m.UserId == userId).AsNoTracking().ToListAsync(ct);
-        var vereinstrainer = await db.ClubTrainers.Where(t => t.UserId == userId).Select(t => t.ClubId).ToListAsync(ct);
-        var vereinIds = mitgliedschaften.Select(m => m.ClubId).Concat(vereinstrainer).Distinct().ToList();
+        var vereinsrollen = await db.ClubTrainers.Where(t => t.UserId == userId).ToDictionaryAsync(t => t.ClubId, t => t.Role, ct);
+        var vereinIds = mitgliedschaften.Select(m => m.ClubId).Concat(vereinsrollen.Keys).Distinct().ToList();
         var vereinsnamen = await db.Clubs.Where(c => vereinIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id, c => c.Name, ct);
 
         var gruppenmitglied = await db.GroupMembers.Where(m => m.UserId == userId).AsNoTracking().ToListAsync(ct);
@@ -279,7 +279,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     mitgliedschaft?.Status.ToString() ?? "-",
                     mitgliedschaft?.RequestedAt ?? default,
                     mitgliedschaft?.DecidedAt,
-                    vereinstrainer.Contains(vereinId),
+                    vereinsrollen.TryGetValue(vereinId, out var rollen) ? rollen.ToString() : "-",
                     mitgliedschaft?.Source.ToString() ?? "-");
             }).ToList(),
             gruppenmitglied.Select(m => new GruppeExportDto(

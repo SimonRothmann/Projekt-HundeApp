@@ -12,8 +12,11 @@ public interface IClubService
 {
     Task<Result<IReadOnlyList<ClubDto>>> GetClubsAsync(CancellationToken ct = default);
 
-    /// <summary>Vereine, für die der Nutzer als Trainer eingetragen ist (siehe ClubTrainer).</summary>
+    /// <summary>Vereine, in denen der Nutzer Trainer:in ist (eine Trainer-Rolle hat, siehe ClubTrainer).</summary>
     Task<Result<IReadOnlyList<ClubDto>>> GetMyClubsAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>Alle Vereine, in denen der Nutzer irgendeine Rolle hat - samt seinen Rollen und Rechten.</summary>
+    Task<Result<IReadOnlyList<ClubDto>>> GetMyClubRolesAsync(Guid userId, CancellationToken ct = default);
     Task<Result<ClubDetailDto>> GetDetailAsync(Guid clubId, CancellationToken ct = default);
     Task<Result<ClubDto>> CreateAsync(CreateClubRequest request, CancellationToken ct = default);
     Task<Result> AssignTrainerAsync(Guid callerId, bool isAdmin, Guid clubId, AssignClubTrainerRequest request, CancellationToken ct = default);
@@ -21,20 +24,23 @@ public interface IClubService
     Task<Result> UpdateTrainerRoleAsync(Guid callerId, bool isAdmin, Guid clubId, Guid userId, ClubRole role, CancellationToken ct = default);
     Task<Result> RemoveTrainerAsync(Guid callerId, bool isAdmin, Guid clubId, Guid userId, CancellationToken ct = default);
 
+    /// <summary>Personen mit Rolle samt Rollen - für die Rollenverwaltung (Ausbildungswart:in, Verwaltung, Admin).</summary>
+    Task<Result<IReadOnlyList<ClubTrainerDto>>> GetRoleHoldersAsync(Guid callerId, bool isAdmin, Guid clubId, CancellationToken ct = default);
+
     /// <summary>
     /// Holt jemanden per E-Mail-Adresse in den Verein.
     ///
-    /// Der Betreiber (Admin) nimmt direkt auf. Trainer:innen DIESES Vereins
-    /// laden ein - Mitglied wird die Person erst mit ihrer Zusage
+    /// Der Betreiber (Admin) nimmt direkt auf. Die Mitgliederverwaltung DIESES Vereins
+    /// lädt ein - Mitglied wird die Person erst mit ihrer Zusage
     /// (<see cref="RespondToInvitationAsync"/>); hatte sie selbst schon
     /// angefragt, wird die Anfrage gleich freigegeben.
     /// </summary>
     Task<Result<AddClubMemberResultDto>> AddMemberAsync(Guid callerId, bool isAdmin, Guid clubId, AssignClubMemberRequest request, CancellationToken ct = default);
 
-    /// <summary>Offene Einladungen eines Vereins (nur eingegebene Adresse, kein Name) - nur für Trainer dieses Vereins.</summary>
+    /// <summary>Offene Einladungen eines Vereins (nur eingegebene Adresse, kein Name) - nur für die Mitgliederverwaltung dieses Vereins.</summary>
     Task<Result<IReadOnlyList<ClubInvitationDto>>> GetInvitationsAsync(Guid callerId, Guid clubId, CancellationToken ct = default);
 
-    /// <summary>Eine offene Einladung zurückziehen - nur für Trainer dieses Vereins.</summary>
+    /// <summary>Eine offene Einladung zurückziehen - nur für die Mitgliederverwaltung dieses Vereins.</summary>
     Task<Result> WithdrawInvitationAsync(Guid callerId, Guid clubId, Guid membershipId, CancellationToken ct = default);
 
     /// <summary>Die eigene Einladung in einen Verein annehmen (Mitglied) oder ablehnen.</summary>
@@ -45,6 +51,9 @@ public interface IClubService
 
     /// <summary>Admin-Weg zum Entfernen eines aktiven Mitglieds aus einem Verein.</summary>
     Task<Result> RemoveMemberAsync(Guid clubId, Guid userId, CancellationToken ct = default);
+
+    /// <summary>Ein Mitglied entfernen - für die Mitgliederverwaltung; Personen mit Rolle bleiben, bis ihnen die Rollen genommen sind.</summary>
+    Task<Result> RemoveClubMemberAsync(Guid callerId, Guid clubId, Guid userId, CancellationToken ct = default);
 
     /// <summary>Browsbare Liste aller Vereine für jeden eingeloggten User (nur Stammdaten, keine Trainer-/Mitgliederdetails).</summary>
     Task<Result<IReadOnlyList<ClubSummaryDto>>> GetBrowsableClubsAsync(Guid userId, CancellationToken ct = default);
@@ -58,11 +67,11 @@ public interface IClubService
     /// </summary>
     Task<Result<ClubMembershipDto>> RequestJoinAsync(Guid userId, Guid clubId, ClubMembershipSource source = ClubMembershipSource.Directory, CancellationToken ct = default);
 
-    /// <summary>Offene Beitrittsanfragen eines Vereins - nur für Trainer dieses Vereins.</summary>
+    /// <summary>Offene Beitrittsanfragen eines Vereins - nur für die Mitgliederverwaltung dieses Vereins.</summary>
     Task<Result<IReadOnlyList<ClubMemberDto>>> GetJoinRequestsAsync(Guid callerId, Guid clubId, CancellationToken ct = default);
 
     /// <summary>
-    /// Beitrittsanfrage annehmen oder ablehnen - nur für Trainer des Vereins.
+    /// Beitrittsanfrage annehmen oder ablehnen - nur für die Mitgliederverwaltung des Vereins.
     /// Mit <paramref name="groupId"/> (nur beim Annehmen) wird die Person
     /// zugleich in diese Gruppe EINGELADEN - nie aufgenommen, denn die
     /// Vereinsanfrage ist keine Zustimmung zur Gruppe. Scheitert die Gruppe,
@@ -70,10 +79,10 @@ public interface IClubService
     /// </summary>
     Task<Result> DecideJoinRequestAsync(Guid callerId, Guid clubId, Guid membershipId, bool approve, Guid? groupId = null, CancellationToken ct = default);
 
-    /// <summary>Aktive Mitglieder eines Vereins - nur für Trainer dieses Vereins (kein Zugriff auf fremde Vereine).</summary>
+    /// <summary>Aktive Mitglieder eines Vereins - nur für die Mitgliederverwaltung dieses Vereins (kein Zugriff auf fremde Vereine).</summary>
     Task<Result<IReadOnlyList<ClubMemberDto>>> GetMembersAsync(Guid callerId, Guid clubId, CancellationToken ct = default);
 
-    /// <summary>Ein bereits genehmigtes Mitglied des eigenen Vereins zum Trainer befördern.</summary>
+    /// <summary>Ein bereits genehmigtes Mitglied des eigenen Vereins zum Trainer befördern (Rolle Training) - Ausbildungswart:in oder Verwaltung.</summary>
     Task<Result> PromoteMemberToTrainerAsync(Guid callerId, Guid clubId, Guid targetUserId, CancellationToken ct = default);
 
     /// <summary>Eigene aktive Mitgliedschaft beenden (Selbstbedienung). Löst über DetachFromClubAsync auch Gruppen- und Betreuungszuordnungen in diesem Verein.</summary>

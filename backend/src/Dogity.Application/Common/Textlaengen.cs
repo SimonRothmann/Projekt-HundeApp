@@ -60,6 +60,10 @@ public static class Textlaengen
     public const int OrdnungBeschreibungEn = 2000;
     /// <summary>RegulationExercise.ScoringNotesEn: englische Bewertungshinweise, so lang wie <c>RegulationExercise.ScoringNotes</c>.</summary>
     public const int OrdnungsuebungHinweisEn = 1000;
+    /// <summary>Club.Name: Name des Vereins.</summary>
+    public const int VereinsName = 150;
+    /// <summary>Club.Description: Beschreibung des Vereins; die Spalte ist unbegrenzt, die Verwaltung des Vereins begrenzt sie auf 500.</summary>
+    public const int VereinsBeschreibung = 500;
     /// <summary>Suchbegriff der Admin-Nutzerliste (wird nicht gespeichert).</summary>
     public const int NutzerSuche = 100;
 

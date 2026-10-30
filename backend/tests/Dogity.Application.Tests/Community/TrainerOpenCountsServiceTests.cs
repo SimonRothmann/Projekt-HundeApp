@@ -41,7 +41,7 @@ public class TrainerOpenCountsServiceTests
         var trainer = Guid.NewGuid();
         var club = new Club { Name = "Testverein" };
         db.Clubs.Add(club);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainer, Role = ClubRole.Training });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainer, Role = ClubRole.Ausbildungswart });
         var eigene = new Group { TrainerId = trainer, Name = "Eigene" };
         var vereinsgruppe = new Group { TrainerId = Guid.NewGuid(), ClubId = club.Id, Name = "Vereinsgruppe" };
         var fremde = new Group { TrainerId = Guid.NewGuid(), Name = "Fremde" };
@@ -70,7 +70,7 @@ public class TrainerOpenCountsServiceTests
         var eigener = new Club { Name = "Eigener Verein" };
         var anderer = new Club { Name = "Anderer Verein" };
         db.Clubs.AddRange(eigener, anderer);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = eigener.Id, UserId = trainer, Role = ClubRole.Training });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = eigener.Id, UserId = trainer, Role = ClubRole.Mitgliederverwaltung });
         db.ClubMemberships.AddRange(
             new ClubMembership { ClubId = eigener.Id, UserId = Guid.NewGuid(), Status = ClubMembershipStatus.Pending },
             new ClubMembership { ClubId = eigener.Id, UserId = Guid.NewGuid(), Status = ClubMembershipStatus.Pending },
@@ -81,6 +81,30 @@ public class TrainerOpenCountsServiceTests
         var result = await new TrainerOpenCountsService(db).GetAsync(trainer);
 
         Assert.Equal(2, result.Value!.ClubJoinRequests);
+    }
+
+    [Fact]
+    public async Task Training_Zaehlt_Nur_Eigene_Gruppen_Und_Keine_Vereinsanfragen()
+    {
+        var db = InMemoryDbContext.Create();
+        var trainer = Guid.NewGuid();
+        var club = new Club { Name = "Testverein" };
+        db.Clubs.Add(club);
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainer, Role = ClubRole.Training });
+        var eigene = new Group { TrainerId = trainer, ClubId = club.Id, Name = "Eigene" };
+        var vereinsgruppe = new Group { TrainerId = Guid.NewGuid(), ClubId = club.Id, Name = "Vereinsgruppe" };
+        db.Groups.AddRange(eigene, vereinsgruppe);
+        db.GroupMembers.AddRange(
+            new GroupMember { GroupId = eigene.Id, UserId = Guid.NewGuid(), Status = GroupMemberStatus.Pending },
+            new GroupMember { GroupId = vereinsgruppe.Id, UserId = Guid.NewGuid(), Status = GroupMemberStatus.Pending });
+        db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = Guid.NewGuid(), Status = ClubMembershipStatus.Pending });
+        await db.SaveChangesAsync();
+
+        var result = await new TrainerOpenCountsService(db).GetAsync(trainer);
+
+        Assert.Equal(1, result.Value!.GroupJoinRequests);
+        Assert.Equal(eigene.Id, Assert.Single(result.Value.Groups).GroupId);
+        Assert.Equal(0, result.Value.ClubJoinRequests);
     }
 
     [Fact]

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -10,35 +10,48 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CatalogSection } from "@/components/sports/catalog-section";
 import { ClubInviteSection } from "@/components/trainer/club-invite-section";
 import { ClubMembersSection } from "@/components/trainer/club-members-section";
+import { ClubRolesSection } from "@/components/trainer/club-roles-section";
+import { ClubStammdatenSection } from "@/components/trainer/club-stammdaten-section";
 
 /**
- * Alles, was zum Verein gehört: Einladungslink mit QR-Code, Mitglieder und der
- * vereinseigene Katalog. Das lag früher als Block ganz unten auf der
+ * Alles, was zum Verein gehört - je nach Rolle: Stammdaten (Verwaltung),
+ * Rollen im Verein (Ausbildungswart:in, Verwaltung), Einladungslink und
+ * Mitglieder (Mitgliederverwaltung, Verwaltung) und der vereinseigene Katalog
+ * (Trainer:innen). Das lag früher als Block ganz unten auf der
  * Trainer-Übersicht, mit je einer Karte pro Verein untereinander.
  *
  * Bei mehreren Vereinen wählt man oben EINEN aus - die Seite zeigt dann nur
- * dessen Bereiche statt aller Vereine hintereinander.
+ * dessen Bereiche statt aller Vereine hintereinander. Der Server entscheidet
+ * über die Rechte und liefert sie mit den Vereinen mit; die Seite blendet nur
+ * aus. Sie ist auch für Personen ohne Trainer-Rolle da (Mitgliederverwaltung):
+ * Sie erreichen sie über die Vereinsseite, nicht über die Trainer-Navigation.
  */
 export default function TrainerVereinPage() {
   const t = useT();
   const [clubs, setClubs] = useState<Club[] | null>(null);
   const [gewaehlt, setGewaehlt] = useState("");
+  // Zählen hoch, wenn die jeweils andere Liste veraltet ist (Rolle vergeben -> Mitgliederliste; Mitglied befördert -> Rollenliste).
+  const [mitgliederStand, setMitgliederStand] = useState(0);
+  const [rollenStand, setRollenStand] = useState(0);
 
-  useEffect(() => {
-    // Initialer Datenabruf bei Mount (externe Quelle: REST API).
-    api
-      .get<Club[]>("/api/groups/my-clubs")
-      .then((liste) => {
-        setClubs(liste);
-        setGewaehlt(liste[0]?.id ?? "");
-      })
-      .catch((err) => {
-        setClubs([]);
-        toast.error(err instanceof ApiError ? err.message : t("Vereine konnten nicht geladen werden."));
-      });
+  const laden = useCallback(async () => {
+    try {
+      setClubs(await api.get<Club[]>("/api/clubs/mine"));
+    } catch (err) {
+      setClubs((alt) => alt ?? []);
+      toast.error(err instanceof ApiError ? err.message : t("Vereine konnten nicht geladen werden."));
+    }
     // t bewusst nicht in der Liste: nur für die Fehlermeldung, ein Sprachwechsel soll nicht neu laden.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // Initialer Datenabruf bei Mount (externe Quelle: REST API).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    laden();
+    // Der Link von der Vereinsseite nennt den Verein (?verein=...); ein unbekannter fällt auf den ersten zurück.
+    setGewaehlt(new URLSearchParams(window.location.search).get("verein") ?? "");
+  }, [laden]);
 
   if (clubs === null) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
 
@@ -48,7 +61,7 @@ export default function TrainerVereinPage() {
         <h1 className="text-2xl font-semibold tracking-tight">{t("Verein")}</h1>
         <Card>
           <CardContent className="py-6 text-center text-muted-foreground">
-            {t("Du bist bei keinem Verein als Trainer:in eingetragen. Einladungslink, Mitglieder und Katalog findest du hier, sobald ein Verein dich als Trainer:in aufgenommen hat.")}
+            {t("Du hast in keinem Verein eine Rolle. Einladungslink, Mitglieder und Katalog findest du hier, sobald ein Verein dir eine Rolle gegeben hat.")}
           </CardContent>
         </Card>
       </div>
@@ -56,6 +69,8 @@ export default function TrainerVereinPage() {
   }
 
   const club = clubs.find((c) => c.id === gewaehlt) ?? clubs[0];
+  // Eine Rolle ohne eigene Funktion (Vorstand): die Seite sagt es, statt leer zu bleiben.
+  const hatAbschnitte = club.canManage || club.canAppointTrainers || club.canManageMembers || club.isTrainer;
 
   return (
     <div className="flex flex-col gap-6">
@@ -86,16 +101,44 @@ export default function TrainerVereinPage() {
         </div>
       )}
 
+      {!hatAbschnitte && (
+        <Card>
+          <CardContent className="py-6 text-center text-muted-foreground">
+            {t("Mit deiner Rolle gibt es hier noch nichts zu tun.")}
+          </CardContent>
+        </Card>
+      )}
+
       {/* key: Jeder Verein bekommt frische Abschnitte - die Mitgliederliste
           merkt sich sonst den zuerst gewählten Verein. */}
-      <ClubInviteSection key={`einladung-${club.id}`} clubs={[club]} />
-      <ClubMembersSection key={`mitglieder-${club.id}`} clubs={[club]} />
-      <CatalogSection
-        key={`katalog-${club.id}`}
-        scope={{ kind: "club", clubId: club.id, clubName: club.name }}
-        title={t("Vereinseigener Katalog · {name}", { name: club.name })}
-        description={t("Eigene Sportarten und Übungen dieses Vereins - nur für Mitglieder und Trainer sichtbar.")}
-      />
+      {club.canManage && <ClubStammdatenSection key={`stammdaten-${club.id}`} club={club} onGespeichert={laden} />}
+      {club.canAppointTrainers && (
+        <ClubRolesSection
+          key={`rollen-${club.id}-${rollenStand}`}
+          clubId={club.id}
+          canManage={club.canManage}
+          canAppointTrainers={club.canAppointTrainers}
+          mitgliederLesbar={club.canManageMembers}
+          onGeaendert={async () => {
+            setMitgliederStand((n) => n + 1);
+            await laden();
+          }}
+        />
+      )}
+      {club.canManageMembers && <ClubInviteSection key={`einladung-${club.id}`} clubs={[club]} />}
+      {club.canManageMembers && <ClubMembersSection
+          key={`mitglieder-${club.id}-${mitgliederStand}`}
+          clubs={[club]}
+          onBefoerdert={() => setRollenStand((n) => n + 1)}
+        />}
+      {club.isTrainer && (
+        <CatalogSection
+          key={`katalog-${club.id}`}
+          scope={{ kind: "club", clubId: club.id, clubName: club.name }}
+          title={t("Vereinseigener Katalog · {name}", { name: club.name })}
+          description={t("Eigene Sportarten und Übungen dieses Vereins - nur für Mitglieder und Trainer sichtbar.")}
+        />
+      )}
     </div>
   );
 }

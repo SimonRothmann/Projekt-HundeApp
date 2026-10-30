@@ -10,7 +10,7 @@ public class ClubConfiguration : IEntityTypeConfiguration<Club>
     public void Configure(EntityTypeBuilder<Club> builder)
     {
         builder.ToTable("clubs");
-        builder.Property(c => c.Name).HasMaxLength(150).IsRequired();
+        builder.Property(c => c.Name).HasMaxLength(Textlaengen.VereinsName).IsRequired();
 
         // Nur über gesetzte Codes eindeutig: Vereine ohne Link haben null (oder
         // leer) und dürfen sich darin beliebig oft gleichen.
@@ -136,10 +136,10 @@ public class ClubTrainerConfiguration : IEntityTypeConfiguration<ClubTrainer>
     {
         builder.ToTable("club_trainers");
 
-        // Als Text, nicht als Zahl: In der Datenbank soll "Verwaltung" stehen
-        // und nicht "1" - das Projekt hält es bei allen Aufzählungen so
-        // (siehe DogGender, ClubMembershipStatus).
-        builder.Property(t => t.Role).HasConversion<string>().HasMaxLength(20);
+        // Als Zahl (Bitmenge), anders als die übrigen Aufzählungen: Die Rollen
+        // sind kombinierbar, und die Rechteprüfungen fragen in der Datenbank
+        // nach einzelnen Bits - in einem Text ließe sich das nicht abfragen.
+        builder.Property(t => t.Role);
 
         builder.HasOne(t => t.Club)
             .WithMany(c => c.Trainers)

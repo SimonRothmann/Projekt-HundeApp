@@ -61,6 +61,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.45",
+    datum: "2026-10-30",
+    titel: uebersetzbar("Rollen im Verein"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Vereine haben jetzt mehrere Rollen, die sich beliebig kombinieren lassen: Ausbildungswart:in (verwaltet alle Gruppen und beruft Trainer:innen), Mitgliederverwaltung (Beitrittsanfragen, Einladungen, Einladungslink und Mitgliederliste, ohne Trainerrechte) und Vorstand (darf nur lesen; die Vereinsübersicht dafür folgt). Dazu kommen Training und Verwaltung wie bisher."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Die Verwaltung eines Vereins ändert Name und Beschreibung jetzt selbst und vergibt die Rollen unter „Verein“ → „Rollen im Verein“. Ausbildungswart:innen berufen Trainer:innen (Rolle Training) und rufen sie wieder ab."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Trainer:innen sehen nur noch ihre eigenen Gruppen und deren Termine. Alle Gruppen des Vereins sehen Ausbildungswart:in und Verwaltung. Beitrittsanfragen an den Verein, Einladungen und die Mitgliederliste gehören zur Mitgliederverwaltung und zur Verwaltung."),
+      },
+    ],
+  },
+  {
     version: "0.44",
     datum: "2026-10-29",
     titel: uebersetzbar("Vereine bleiben verwaltet"),

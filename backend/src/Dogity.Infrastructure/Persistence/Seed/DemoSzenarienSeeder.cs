@@ -52,6 +52,9 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 public static class DemoSzenarienSeeder
 {
     public const string NeulingEmail = "neuling@dogity.test";
+    public const string AusbildungswartEmail = "ausbildungswart@dogity.test";
+    public const string MitgliederverwaltungEmail = "mitgliederverwaltung@dogity.test";
+    public const string VorstandEmail = "vorstand@dogity.test";
     public const string InteressentEmail = "interessent@dogity.test";
     public const string SchweizEmail = "schweiz@dogity.test";
 
@@ -156,6 +159,8 @@ public static class DemoSzenarienSeeder
             // Reihenfolge zählt: Die Anmeldungen hängen ihre Anwesenheit an die Termine.
             foreach (var (name, szenario) in new (string, Func<CancellationToken, Task>)[]
             {
+                // Zuerst: Die Demo-Trainerin braucht die Verwaltung, bevor die Szenarien ihre Rechte nutzen.
+                ("Vereinsrollen", VereinsrollenAsync),
                 ("Verein", VereinAsync),
                 // Vor allem, was Lisa benachrichtigt: Die Meldung entsteht in ihrer Sprache.
                 ("Englisch", EnglischAsync),
@@ -193,6 +198,46 @@ public static class DemoSzenarienSeeder
                 }
             }
             return fehlgeschlagen;
+        }
+
+        // ---------------------------------------------------------------- a0) Vereinsrollen
+
+        /// <summary>
+        /// Je eine Person pro Vereinsrolle (Ausbildungswart:in, Mitgliederverwaltung, Vorstand), als
+        /// freigegebene Mitglieder - und die Demo-Trainerin mit der Verwaltung. Ältere Demo-Datenbanken
+        /// kennen sie als reine Trainerin; ohne Verwaltung sähe sie weder Anfragen noch Mitglieder.
+        /// Wer in der Demo eine Rolle entzieht, bekommt sie nicht zurück: Angelegt wird nur, was fehlt.
+        /// </summary>
+        private async Task VereinsrollenAsync(CancellationToken ct)
+        {
+            var anna = await db.ClubTrainers.FirstOrDefaultAsync(t => t.ClubId == club.Id && t.UserId == trainer.Id, ct);
+            if (anna is not null && !anna.Role.HasFlag(ClubRole.Verwaltung)
+                && !await db.ClubTrainers.AnyAsync(t => t.ClubId == club.Id && t.UserId != trainer.Id && (t.Role & ClubRole.Verwaltung) != 0, ct))
+            {
+                anna.Role |= ClubRole.Verwaltung;
+                await db.SaveChangesAsync(ct);
+            }
+
+            foreach (var (email, vorname, nachname, rolle) in new[]
+            {
+                (AusbildungswartEmail, "Willi", "Wart", ClubRole.Ausbildungswart),
+                (MitgliederverwaltungEmail, "Mara", "Mitglieder", ClubRole.Mitgliederverwaltung),
+                (VorstandEmail, "Viktor", "Vorstand", ClubRole.Vorstand),
+            })
+            {
+                var nutzer = await userManager.FindByEmailAsync(email);
+                if (nutzer is not null) continue;
+                nutzer = await DemoDataSeeder.CreateUserAsync(userManager, email, vorname, nachname, [Roles.User]);
+                db.ClubMemberships.Add(new ClubMembership
+                {
+                    ClubId = club.Id, UserId = nutzer.Id, Status = ClubMembershipStatus.Approved,
+                    RequestedAt = DateTimeOffset.UtcNow.AddDays(-40), DecidedAt = DateTimeOffset.UtcNow.AddDays(-39), DecidedByUserId = trainer.Id,
+                });
+                db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = nutzer.Id, Role = rolle });
+                await db.SaveChangesAsync(ct);
+                // Das Trainer-Kennzeichen (Identity-Rolle) für die, die trainieren: hier die Ausbildungswart:in.
+                await services.GetRequiredService<ITrainerRoleService>().SyncAsync(nutzer.Id, ct);
+            }
         }
 
         // ---------------------------------------------------------------- a) Verein

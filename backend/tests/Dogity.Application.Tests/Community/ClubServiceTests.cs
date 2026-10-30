@@ -57,7 +57,7 @@ public class ClubServiceTests
         var memberId = Guid.NewGuid();
         var club = new Club { Name = "Testverein" };
         db.Clubs.Add(club);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Training });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Mitgliederverwaltung });
         await db.SaveChangesAsync();
 
         await service.RequestJoinAsync(memberId, club.Id);
@@ -65,6 +65,23 @@ public class ClubServiceTests
         var hinweis = Assert.Single(notifications.Created);
         Assert.Equal(trainerId, hinweis.UserId);
         Assert.Equal("/trainer/anfragen", hinweis.LinkPath);
+    }
+
+    [Fact]
+    public async Task RequestJoin_NotifiesOnlyThoseWhoMayDecide()
+    {
+        var service = MakeService(out var db, out var notifications);
+        var club = new Club { Name = "Testverein" };
+        db.Clubs.Add(club);
+        var verwaltung = Guid.NewGuid();
+        foreach (var rolle in new[] { ClubRole.Training, ClubRole.Ausbildungswart, ClubRole.Vorstand })
+            db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = Guid.NewGuid(), Role = rolle });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = verwaltung, Role = ClubRole.Verwaltung });
+        await db.SaveChangesAsync();
+
+        await service.RequestJoinAsync(Guid.NewGuid(), club.Id);
+
+        Assert.Equal(verwaltung, Assert.Single(notifications.Created).UserId);
     }
 
     [Fact]
@@ -281,7 +298,7 @@ public class ClubServiceTests
         var trainerId = Guid.NewGuid();
         var club = new Club { Name = "Verein" };
         db.Clubs.Add(club);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Verwaltung });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainerId, Role = ClubRole.Training });
         db.ClubMemberships.Add(new ClubMembership { ClubId = club.Id, UserId = trainerId, Status = ClubMembershipStatus.Approved });
         await db.SaveChangesAsync();
 

@@ -12,9 +12,10 @@ public record Befoerderung(Guid UserId, string VereinName);
 /// <summary>
 /// Nachfolge, wenn die letzte verwaltende Person eines Vereins wegfällt
 /// (Kontolöschung in <c>AccountDataService.PurgeAsync</c>, Aufräumen in
-/// <c>CommunityOrphanCleanup</c>): Die dienstälteste verbleibende Trainer:in
-/// des Vereins wird zur Verwaltung. Ohne Nachfolge bliebe ein Verein zurück,
-/// den niemand mehr verwalten kann - nur ein globaler Admin käme heran.
+/// <c>CommunityOrphanCleanup</c>): Die dienstälteste verbleibende Person mit
+/// einer Trainer-Rolle wird zur Verwaltung (Mitgliederverwaltung und Vorstand
+/// behält sie). Ohne Nachfolge bliebe ein Verein zurück, den niemand mehr
+/// verwalten kann - nur ein globaler Admin käme heran.
 ///
 /// Dienstalter ist das Anlagedatum der Trainer-Zuweisung; bei Gleichstand
 /// entscheidet die Id, damit das Ergebnis nicht vom Zufall abhängt. Gibt es
@@ -43,7 +44,8 @@ public static class ClubNachfolge
         var befoerderungen = new List<Befoerderung>();
 
         var vereine = await db.ClubTrainers
-            .Where(t => weg.Contains(t.UserId) && t.Role == ClubRole.Verwaltung)
+            .Where(t => weg.Contains(t.UserId))
+            .MitRolle(ClubRole.Verwaltung)
             .Select(t => t.ClubId)
             .Distinct()
             .ToListAsync(ct);
@@ -56,12 +58,17 @@ public static class ClubNachfolge
             var uebrige = await db.ClubTrainers
                 .Where(t => t.ClubId == vereinId && !weg.Contains(t.UserId))
                 .ToListAsync(ct);
-            if (uebrige.Any(t => t.Role == ClubRole.Verwaltung)) continue;
+            if (uebrige.Any(t => t.Role.HasFlag(ClubRole.Verwaltung))) continue;
 
-            var nachfolge = uebrige.OrderBy(t => t.CreatedAt).ThenBy(t => t.Id).FirstOrDefault();
+            // Nur wer Trainer:in ist: Mitgliederverwaltung und Vorstand sind
+            // keine Nachfolge für die Leitung eines Vereins.
+            var nachfolge = uebrige.Where(t => (t.Role & ClubRollen.Trainer) != 0).OrderBy(t => t.CreatedAt).ThenBy(t => t.Id).FirstOrDefault();
             if (nachfolge is null) continue;
 
-            nachfolge.Role = ClubRole.Verwaltung;
+            // Verwaltung schließt die Trainer-Rollen ein - sie ersetzen sich, wie bisher
+            // Training durch Verwaltung ersetzt wurde. Mitgliederverwaltung und Vorstand
+            // bleiben, sie sind nicht eingeschlossen.
+            nachfolge.Role = (nachfolge.Role & ~ClubRollen.Trainer) | ClubRole.Verwaltung;
             nachfolge.UpdatedAt = DateTimeOffset.UtcNow;
             befoerderungen.Add(new Befoerderung(nachfolge.UserId, verein));
         }

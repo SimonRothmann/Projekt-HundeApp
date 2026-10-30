@@ -12,11 +12,11 @@ public class ClubInviteService(IApplicationDbContext db, IClubService clubs) : I
     private const string CodeUngueltig = "Dieser Einladungslink gilt nicht mehr.";
 
     // Verwalten darf, wer auch Beitrittsanfragen entscheiden darf
-    // (ClubService.DecideJoinRequestAsync): Trainer:innen des Vereins. Ein
-    // globaler Admin wird dort nicht anders behandelt, hier ebenso wenig.
+    // (ClubService.DecideJoinRequestAsync): die Mitgliederverwaltung des
+    // Vereins. Ein globaler Admin wird dort nicht anders behandelt, hier ebenso wenig.
     public async Task<Result<ClubInviteLinkDto?>> GetAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
     {
-        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+        if (!await db.CanManageMembersAsync(callerId, clubId, ct))
             return Result<ClubInviteLinkDto?>.NotFound("Verein nicht gefunden.");
 
         var code = await db.Clubs.Where(c => c.Id == clubId).Select(c => c.InviteCode).FirstOrDefaultAsync(ct);
@@ -25,7 +25,7 @@ public class ClubInviteService(IApplicationDbContext db, IClubService clubs) : I
 
     public async Task<Result<ClubInviteLinkDto>> RegenerateAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
     {
-        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+        if (!await db.CanManageMembersAsync(callerId, clubId, ct))
             return Result<ClubInviteLinkDto>.NotFound("Verein nicht gefunden.");
 
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
@@ -40,7 +40,7 @@ public class ClubInviteService(IApplicationDbContext db, IClubService clubs) : I
 
     public async Task<Result> DisableAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
     {
-        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+        if (!await db.CanManageMembersAsync(callerId, clubId, ct))
             return Result.NotFound("Verein nicht gefunden.");
 
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
@@ -79,12 +79,12 @@ public class ClubInviteService(IApplicationDbContext db, IClubService clubs) : I
             return Result<ClubMembershipDto>.Success(
                 new ClubMembershipDto(existing.Id, club.Id, club.Name, existing.Status, existing.RequestedAt, existing.DecidedAt));
 
-        // Erst nach dem Stand von oben: Wer Trainer:in UND Mitglied ist, bekommt
-        // wie jede:r andere den bestehenden Stand zurück. Eine neue Anfrage
+        // Erst nach dem Stand von oben: Wer eine Rolle hat UND Mitglied ist,
+        // bekommt wie jede:r andere den bestehenden Stand zurück. Eine neue Anfrage
         // legt sich die Leitung mit dem eigenen QR-Code aber nicht selbst an
         // und gibt sie sich dann selbst frei.
-        if (await db.IsClubTrainerAsync(userId, club.Id, ct))
-            return Result<ClubMembershipDto>.Failure("Du bist Trainer:in dieses Vereins.");
+        if (await db.GetClubRolesAsync(userId, club.Id, ct) != 0)
+            return Result<ClubMembershipDto>.Failure("Du hast in diesem Verein schon eine Rolle.");
 
         // Frühere abgelehnte oder verlassene Mitgliedschaften behandelt
         // RequestJoinAsync wie beim Weg über die Liste - eine Stelle dafür.

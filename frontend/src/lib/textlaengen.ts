@@ -58,6 +58,10 @@ export const TEXTLAENGE = {
   ordnungsuebungHinweisEn: 1000,
   /** DogPause.Note: Notiz zur Trainingspause eines Hundes */
   pausenNotiz: 500,
+  /** Club.Name: Name des Vereins */
+  vereinsName: 150,
+  /** Club.Description: Beschreibung des Vereins */
+  vereinsBeschreibung: 500,
   /** Suchbegriff der Admin-Nutzerliste (Textlaengen.NutzerSuche, wird nicht gespeichert) */
   nutzerSuche: 100,
 } as const;

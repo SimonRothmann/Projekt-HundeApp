@@ -7,18 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, ShieldPlus, ShieldCheck, UserPlus } from "lucide-react";
+import { Users, ShieldPlus, ShieldCheck, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 
-export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
+export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onBefoerdert?: () => void }) {
   const t = useT();
   const ort = ortsformat(useSprache());
   const [selectedClubId, setSelectedClubId] = useState(clubs[0]?.id ?? "");
   const [members, setMembers] = useState<ClubMemberRequest[] | null>(null);
   const [promotingUserId, setPromotingUserId] = useState<string | null>(null);
+  const [entferneUserId, setEntferneUserId] = useState<string | null>(null);
   const [neueMail, setNeueMail] = useState("");
   const [ladtEin, setLadtEin] = useState(false);
   // Ein Fehlschlag beim Laden lässt sie leer - die Mitgliederliste darunter ist
@@ -104,9 +105,9 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
     }
   }
 
-  // Der Server entscheidet (Rolle Verwaltung) und liefert es mit dem Verein mit; wer nur
-  // trainiert, bekäme beim Antippen ohnehin "Verein nicht gefunden". Fehlt die Angabe, gilt: nein.
-  const darfBefoerdern = clubs.find((c) => c.id === selectedClubId)?.canManage === true;
+  // Der Server entscheidet (Ausbildungswart:in, Verwaltung) und liefert es mit dem Verein mit; wer
+  // nur Mitglieder verwaltet, bekäme beim Antippen ohnehin "Verein nicht gefunden". Fehlt die Angabe, gilt: nein.
+  const darfBefoerdern = clubs.find((c) => c.id === selectedClubId)?.canAppointTrainers === true;
 
   async function handlePromote(m: ClubMemberRequest) {
     // Die Rolle lässt sich hier nicht wieder entziehen - deshalb vorher fragen.
@@ -120,10 +121,26 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
       // Neu laden, sonst bietet die Zeile weiter "Zum Trainer machen" an,
       // obwohl die Person es gerade geworden ist.
       await loadMembers(selectedClubId);
+      onBefoerdert?.();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Beförderung fehlgeschlagen."));
     } finally {
       setPromotingUserId(null);
+    }
+  }
+
+  async function entfernen(m: ClubMemberRequest) {
+    const name = `${m.firstName} ${m.lastName}`.trim() || m.email;
+    if (!window.confirm(t("{name} aus dem Verein entfernen?", { name }))) return;
+    setEntferneUserId(m.userId);
+    try {
+      await api.delete(`/api/clubs/${selectedClubId}/members/${m.userId}`);
+      toast.success(t("Mitglied entfernt."));
+      await loadMembers(selectedClubId);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Entfernen fehlgeschlagen."));
+    } finally {
+      setEntferneUserId(null);
     }
   }
 
@@ -245,6 +262,19 @@ export function ClubMembersSection({ clubs }: { clubs: Club[] }) {
 {t("Zum Trainer machen")}
                     </Button>
                   )
+                )}
+                {/* Wer eine Rolle hat, bleibt, bis ihm die Rollen genommen sind (der Server weist anderes ab). */}
+                {!m.hatRolle && (
+                  <Button
+                    className="shrink-0"
+                    size="sm"
+                    variant="ghost"
+                    disabled={entferneUserId === m.userId}
+                    onClick={() => entfernen(m)}
+                  >
+                    <UserMinus className="size-4" />
+                    {t("Entfernen")}
+                  </Button>
                 )}
               </li>
             ))}

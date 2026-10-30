@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import { rollenVon } from "@/lib/vereinsrollen";
 import { VereinsantragSection } from "@/components/clubs/vereinsantrag-section";
 import { MeineGruppenSection } from "@/components/clubs/meine-gruppen-section";
-import type { ClubSummary, ClubMembership, Group } from "@/lib/types";
+import type { Club, ClubSummary, ClubMembership, Group } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -25,6 +27,8 @@ export default function ClubsPage() {
   const [clubs, setClubs] = useState<ClubSummary[] | null>(null);
   const [memberships, setMemberships] = useState<ClubMembership[]>([]);
   const [groupsByClub, setGroupsByClub] = useState<Record<string, Group[]>>({});
+  // Die Vereine, in denen ich eine Rolle habe - samt Rechten (für den Link "Verein verwalten").
+  const [meineVereine, setMeineVereine] = useState<Club[]>([]);
   const [joiningClubId, setJoiningClubId] = useState<string | null>(null);
   const [leavingClubId, setLeavingClubId] = useState<string | null>(null);
   const [antwortClubId, setAntwortClubId] = useState<string | null>(null);
@@ -54,11 +58,12 @@ export default function ClubsPage() {
       setClubs(clubsData);
       setMemberships(membershipsData);
 
-      // Gruppen auch für Vereine laden, in denen man Trainer:in ist, ohne
+      // Gruppen auch für Vereine laden, in denen man eine Rolle hat, ohne
       // Mitglied zu sein - die sahen ihre eigenen Gruppen hier sonst gar nicht.
-      const trainerClubIds = (await api.get<ClubSummary[]>("/api/groups/my-clubs").catch(() => [])).map((c) => c.id);
+      const meine = await api.get<Club[]>("/api/clubs/mine").catch(() => [] as Club[]);
+      setMeineVereine(meine);
       const visibleIds = Array.from(
-        new Set([...membershipsData.filter((m) => m.status === 1).map((m) => m.clubId), ...trainerClubIds]),
+        new Set([...membershipsData.filter((m) => m.status === 1).map((m) => m.clubId), ...meine.map((c) => c.id)]),
       );
       if (visibleIds.length > 0) await loadGroups(visibleIds);
     } catch (err) {
@@ -141,7 +146,7 @@ export default function ClubsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("Vereine")}</h1>
         <p className="text-muted-foreground">
-{t("Tritt einem Verein bei - ein Trainer des Vereins gibt deine Anfrage frei.")}
+{t("Tritt einem Verein bei - der Verein gibt deine Anfrage frei.")}
         </p>
       </div>
 
@@ -157,6 +162,10 @@ export default function ClubsPage() {
             const membership = membershipFor(memberships, club.id);
             const isApproved = membership?.status === 1;
             const groups = groupsByClub[club.id] ?? [];
+            const rollen = rollenVon(club.roles ?? 0);
+            // Gibt es in diesem Verein für meine Rollen etwas zu tun (Vorstand allein hat noch nichts)?
+            const meiner = meineVereine.find((m) => m.id === club.id);
+            const kannVerwalten = !!meiner && (meiner.canManage || meiner.canManageMembers || meiner.canAppointTrainers || meiner.isTrainer);
             return (
               <Card key={club.id}>
                 <CardHeader className="flex flex-row items-center gap-3 space-y-0">
@@ -167,6 +176,23 @@ export default function ClubsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
+                  {rollen.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {rollen.map((r) => (
+                        <Badge key={r.bit} variant="secondary">
+                          {t(r.name)}
+                        </Badge>
+                      ))}
+                      {kannVerwalten && (
+                        <Link
+                          href={`/trainer/verein?verein=${club.id}&from=${encodeURIComponent("/clubs")}`}
+                          className={buttonVariants({ size: "sm", variant: "outline" })}
+                        >
+                          {t("Verein verwalten")}
+                        </Link>
+                      )}
+                    </div>
+                  )}
                   {isApproved ? (
                     <div className="flex items-center gap-2">
                       <Badge>{t("Mitglied")}</Badge>
@@ -180,11 +206,9 @@ export default function ClubsPage() {
                       </Button>
                     </div>
                   ) : club.isTrainer ? (
-                    // Vereinstrainer:innen haben keine Mitgliedschaftszeile und
-                    // gehören trotzdem dazu - "Beitreten" wäre hier falsch.
-                    <div>
-                      <Badge variant="secondary">{t("Trainer:in")}</Badge>
-                    </div>
+                    // Wer eine Rolle hat, hat keine Mitgliedschaftszeile und gehört
+                    // trotzdem dazu - "Beitreten" wäre hier falsch; die Rollen stehen oben.
+                    null
                   ) : membership?.status === 0 ? (
                     <Badge variant="secondary">{t("Anfrage ausstehend")}</Badge>
                   ) : membership?.status === 3 ? (

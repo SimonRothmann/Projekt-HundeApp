@@ -163,7 +163,7 @@ public class GroupServiceTests
         Assert.Equal(pendingUserId, result.Value![0].MemberId);
     }
 
-    // ---- Bearbeiten / Trainer:in zuweisen (jede:r Vereinstrainer:in) ----
+    // ---- Bearbeiten / Trainer:in zuweisen (Ausbildungswart:in und Verwaltung des Vereins) ----
 
     private static async Task<(Guid ClubId, Guid OwnerTrainerId, Guid ColleagueTrainerId, Guid GroupId)> SetupClubGroupAsync(
         Dogity.Infrastructure.Persistence.ApplicationDbContext db)
@@ -173,7 +173,8 @@ public class GroupServiceTests
         var owner = Guid.NewGuid();
         var colleague = Guid.NewGuid();
         db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = owner });
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = colleague });
+        // Die Kollegin verwaltet alle Gruppen des Vereins (Ausbildungswart:in); wer nur trainiert, kommt an fremde nicht heran.
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = colleague, Role = ClubRole.Ausbildungswart });
         var group = new Group { TrainerId = owner, Name = "Dienstagsgruppe", ClubId = club.Id };
         db.Groups.Add(group);
         await db.SaveChangesAsync();

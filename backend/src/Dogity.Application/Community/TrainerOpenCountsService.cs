@@ -20,12 +20,15 @@ public class TrainerOpenCountsService(IApplicationDbContext db) : ITrainerOpenCo
     {
         // Dieselbe Reichweite wie GroupService.GetMyGroupsAsync und
         // GetManageableGroupAsync: eigene Gruppen, mit-betreute und alle
-        // Gruppen der Vereine, in denen man Trainer:in ist. Nur dort darf man
-        // Anfragen entscheiden.
-        var clubIds = await db.ClubTrainers
+        // Gruppen der Vereine, in denen man alle Gruppen verwaltet. Nur dort
+        // darf man Gruppenanfragen entscheiden. Vereinsanfragen entscheidet,
+        // wer Mitglieder verwaltet - ein eigener Kreis.
+        var meineRollen = await db.ClubTrainers
             .Where(t => t.UserId == userId)
-            .Select(t => t.ClubId)
+            .Select(t => new { t.ClubId, t.Role })
             .ToListAsync(ct);
+        var clubIds = meineRollen.Where(r => (r.Role & ClubRollen.AlleGruppen) != 0).Select(r => r.ClubId).ToList();
+        var mitgliederClubIds = meineRollen.Where(r => (r.Role & ClubRollen.Mitglieder) != 0).Select(r => r.ClubId).ToList();
 
         var gruppenAnfragen = await db.GroupMembers
             .Where(m => m.Status == GroupMemberStatus.Pending
@@ -37,9 +40,9 @@ public class TrainerOpenCountsService(IApplicationDbContext db) : ITrainerOpenCo
             .AsNoTracking()
             .ToListAsync(ct);
 
-        var vereinsAnfragen = clubIds.Count == 0
+        var vereinsAnfragen = mitgliederClubIds.Count == 0
             ? 0
-            : await db.ClubMemberships.CountAsync(m => clubIds.Contains(m.ClubId) && m.Status == ClubMembershipStatus.Pending, ct);
+            : await db.ClubMemberships.CountAsync(m => mitgliederClubIds.Contains(m.ClubId) && m.Status == ClubMembershipStatus.Pending, ct);
 
         var betreuteHunde = await db.TrainerAssignments
             .Where(t => t.TrainerId == userId)

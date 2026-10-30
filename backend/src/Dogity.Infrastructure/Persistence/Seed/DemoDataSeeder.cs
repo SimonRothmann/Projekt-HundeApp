@@ -54,7 +54,9 @@ public static class DemoDataSeeder
 
         var club = new Club { Name = "Hundesportverein Musterstadt e.V.", Description = "Demo-Verein für Testzwecke." };
         db.Clubs.Add(club);
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainer.Id });
+        // Die Demo-Trainerin leitet den Verein: Training UND Verwaltung, damit sie Anfragen,
+        // Mitglieder und Rollen sieht. Die übrigen Rollen: Szenario "Vereinsrollen".
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = trainer.Id, Role = ClubRole.Training | ClubRole.Verwaltung });
 
         var group = new Group
         {

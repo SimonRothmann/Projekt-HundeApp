@@ -28,20 +28,49 @@ mit `isAdmin`).
 
 - **Betreiber (Admin)**: betreibt die App, sieht Kennzahlen, legt Vereine an.
   Kleine Kompromisse bei den Rechten sind hier okay, weil es nur eine Person ist.
-- **Vereinstrainer:in** (`ClubTrainer`) mit zwei Rollen:
-  - *Verwaltung* (`ClubRole.Verwaltung`): Stammdaten ändern, Trainer:innen
-    berufen und abberufen, Mitglieder zur Trainer:in machen.
-  - *Training* (`ClubRole.Training`): Mitglieder und Anfragen sehen, einladen,
-    Anfragen entscheiden, Gruppen verwalten, Termine planen.
+- **Rollen im Verein** (`ClubTrainer`, eine Zeile je Verein und Person mit einer
+  *Menge* von Rollen, `ClubRole` als Bitmenge): Die Rollen sind frei
+  kombinierbar (etwa Training + Vorstand), die Rechte addieren sich, Verwaltung
+  schließt alles ein. Die Tabelle heißt weiter `club_trainers`, auch wenn
+  Mitgliederverwaltung und Vorstand keine Trainer:innen sind.
+  - *Training* (1): leitet Gruppen, plant deren Termine, pflegt den
+    Vereinskatalog - **nur die eigenen Gruppen** (Leitung oder Mit-Betreuung).
+  - *Verwaltung* (2): alles - Stammdaten ändern, alle Rollen vergeben und
+    entziehen, dazu die Rechte aller anderen Rollen.
+  - *Ausbildungswart:in* (4): übergeordnete:r Trainer:in - alle Gruppen und
+    Termine des Vereins, Vereinskatalog, Trainer:innen (nur die Rolle Training)
+    berufen und abberufen und ihnen Gruppen zuordnen. Vergibt **keine** anderen
+    Rollen.
+  - *Mitgliederverwaltung* (8): Beitrittsanfragen, Einladungen, Einladungslink,
+    Mitglieder hinzufügen und entfernen, Mitgliederliste - **ohne** Trainerrechte
+    (keine Gruppen, kein Katalog, keine Termine) und **keine Trainer:in**
+    (`IsAnyTrainerAsync` bleibt `false`, keine Identity-Rolle TRAINER).
+  - *Vorstand* (16): nur lesen (Zahlen und Mitgliederliste mit Namen und
+    Gruppenzuordnung). Die Vereinsübersicht dafür kommt mit Paket V2; bis dahin
+    gibt die Rolle noch keine Rechte.
+  - *Wer Rollen vergibt:* Verwaltung und Admin alle. Eine Ausbildungswart:in darf
+    nur das Bit Training setzen und löschen - eine Änderung, die sich in einem
+    anderen Bit unterscheidet, wird abgewiesen (also auch kein Abberufen
+    einer Person, die zusätzlich z. B. Vorstand ist). Die letzte Verwaltung
+    kann sich weder entziehen noch abberufen werden (auch nicht durch den Admin).
+    Eine leere Rollenmenge entfernt die Zeile. Rollen bekommt nur, wer
+    **freigegebenes Mitglied dieses Vereins** ist (der Admin darf davon abweichen).
   - *Nachfolge:* Fällt die letzte Verwaltung eines Vereins durch Kontolöschung
     (`AccountDataService.PurgeAsync`) oder Aufräumen verwaister Daten
-    (`CommunityOrphanCleanup`) weg, wird die dienstälteste verbleibende
-    Trainer:in (früheste Zuweisung, bei Gleichstand nach Id) zur Verwaltung und
-    benachrichtigt (`ClubNachfolge`). Bleibt eine zweite Verwaltung, rückt
-    niemand nach; gibt es keine Trainer:in mehr, bleibt der Verein ohne
-    Verwaltung, bis ein Admin jemanden einsetzt.
-  - Beide sehen alle Gruppen ihres Vereins. Trainer:in wird nur, wer
-    **freigegebenes Mitglied dieses Vereins** ist.
+    (`CommunityOrphanCleanup`) weg, wird die dienstälteste verbleibende Person
+    **mit einer Trainer-Rolle** (früheste Zuweisung, bei Gleichstand nach Id) zur
+    Verwaltung und benachrichtigt (`ClubNachfolge`); Mitgliederverwaltung und
+    Vorstand behält sie. Bleibt eine zweite Verwaltung, rückt niemand nach; gibt
+    es keine Person mit Trainer-Rolle mehr, bleibt der Verein ohne Verwaltung,
+    bis ein Admin jemanden einsetzt.
+  - *Neue Rolle:* Die Person bekommt eine Benachrichtigung (Training und
+    Ausbildungswart:in: „Du bist jetzt Trainer bei ...“, sonst „Du hast im Verein
+    ... eine neue Rolle bekommen.“); wer sich selbst Rollen gibt, bekommt keine.
+  - *Letzte Verwaltung:* Sie kann weder gehen noch sich herabstufen noch den
+    Verein verlassen oder entfernt werden (auch nicht durch den Admin).
+  - *Migration der Altwerte:* Die Umrechnung der alten Textwerte in Bitmengen
+    (`Training` -> 1, `Verwaltung` -> 2) ist gegen echtes Postgres von Hand
+    geprüft; die Tests laufen ohne Postgres und prüfen nur die festen Bitwerte.
 - **Gruppentrainer:in**: leitet eine Gruppe (`Group.TrainerId`) oder betreut sie
   mit (`GroupTrainer`, erst nach Annehmen).
 - **Mitglied**: freigegebenes Vereinsmitglied (`ClubMembershipStatus.Approved`)
@@ -57,7 +86,10 @@ mit `isAdmin`).
 
 | | Sieht | Sieht nicht |
 |---|---|---|
-| Vereinstrainer:in | Mitglieder (Name, E-Mail), offene Anfragen, offene Einladungen (nur die eingegebene Adresse), Gruppen und Termine **des eigenen Vereins** | alles von anderen Vereinen; Tagebuch der Mitglieder (nur über eine Betreuung) |
+| Mitgliederverwaltung, Verwaltung | Mitglieder (Name, E-Mail), offene Anfragen, offene Einladungen (nur die eingegebene Adresse) **des eigenen Vereins**, den Einladungslink | alles von anderen Vereinen; Tagebuch der Mitglieder (nur über eine Betreuung) |
+| Ausbildungswart:in, Verwaltung | alle Gruppen und Termine **des eigenen Vereins** (mit Mitgliedern, Anmeldungen), die Liste der Rollen im Verein | die Mitgliederliste und Anfragen des Vereins (nur mit Mitgliederverwaltung bzw. Verwaltung); alles von anderen Vereinen |
+| Training | die eigenen Gruppen (Leitung, Mit-Betreuung), deren Termine, Anfragen und Anmeldungen, den Vereinskatalog; die Gruppen des Vereins in der Vereinsliste (wie jedes Mitglied) | fremde Gruppen und deren Termine, Mitgliederliste, Vereinsanfragen |
+| Vorstand | Gruppen des Vereins in der Vereinsliste (wie jedes Mitglied) | noch nichts darüber hinaus (Paket V2) |
 | Gruppentrainer:in | die eigene Gruppe, deren aktive Mitglieder, die Hunde, die sie betreut | andere Gruppen, offene Einladungen mit Namen |
 | Mitglied | die eigenen Hunde, Gruppen und Vereine, offene Einladungen an sich selbst (mit Namen des Vereins) | andere Mitglieder |
 | Eingeladene Person | nur den Vereins-/Gruppen-/Hundenamen und wer einlädt | - |
@@ -76,12 +108,19 @@ hängt oft an mehreren Routen (Verein, Admin), und eine Regel an der Route geht
 beim Hinzufügen der zweiten verloren.
 
 - `ClubAccessQueries` (`Dogity.Application/Abstractions`):
-  - `IsClubTrainerAsync` - Trainer:in dieses Vereins (beide Rollen)
-  - `CanManageClubAsync` - Rolle Verwaltung
+  - Eine Definition je Recht, aus Rollenmengen (`ClubRollen`):
+    `IsClubTrainerAsync` (Training, Ausbildungswart:in, Verwaltung: Katalog,
+    Gruppen anlegen, Bibliothek), `CanManageAllGroupsAsync` (Ausbildungswart:in,
+    Verwaltung), `CanManageMembersAsync` (Mitgliederverwaltung, Verwaltung),
+    `CanAppointTrainersAsync` (Ausbildungswart:in, Verwaltung),
+    `CanViewClubOverviewAsync` (Vorstand, Verwaltung - erst mit V2 genutzt),
+    `CanManageClubAsync` (Verwaltung). `MitRolle` filtert Abfragen über viele
+    Zeilen nach derselben Menge. Services vergleichen keine Rollen selbst.
   - `GetManageableGroupAsync` - die Gruppe, wenn man sie verwalten darf
-    (Leitung, Mit-Betreuung, Vereinstrainer:in des Vereins der Gruppe)
-  - `GetVisibleClubIdsAsync` - Sichtbarkeit von Vereinsübungen (nur Trainer:innen
-    und **aktive** Gruppenmitglieder)
+    (Leitung, Mit-Betreuung, oder alle Gruppen des Vereins der Gruppe)
+  - `GetVisibleClubIdsAsync` - Sichtbarkeit von Vereinsübungen (nur Personen mit
+    Trainer-Rolle und **aktive** Gruppenmitglieder; Mitgliederverwaltung und
+    Vorstand allein sehen den Katalog des Vereins nicht)
   - `BelongsToAnyClubAsync`, `BelongsToAnyGroupAsync`, `IsAnyTrainerAsync` -
     Zugehörigkeit (Erststart, Perspektive)
 - `DogAccessQueries`: die einzige Stelle der Hundezugriffsregel. Zwei Stufen,
@@ -132,6 +171,8 @@ wäre eine Frist pro Verein und Person der nächste Schritt.
 zwei Vereine mit je einer Verwaltung auf und prüft, dass die Verwaltung von
 Verein B von Verein A, dessen Gruppe, Mitgliedern, Hunden und Tagebüchern
 nichts sieht und nichts ändert - und niemanden ohne Zustimmung in Verein B holt.
+`VereinsrollenTests.cs` prüft je Rolle, was sie darf (Matrix Rolle x Recht), die
+Kombinationen, die Grenzen der Ausbildungswart:in und die letzte Verwaltung.
 `ClubEinladungTests.cs` deckt den Einladungsablauf ab. Wer eine neue Abfrage oder
 Aktion rund um Vereine, Gruppen oder Hunde einführt, ergänzt sie dort.
 

@@ -8,7 +8,9 @@ namespace Dogity.Application.Community;
 /// <summary>
 /// Vereins-Trainingsbibliothek (siehe docs/GROUP_TRAINING_LIBRARY.md).
 /// Alles ist verein-weit geteilt und von jeder/jedem Vereinstrainer:in
-/// (ClubTrainer) voll pflegbar. Bausteine (<see cref="GroupTrainingExercise"/>)
+/// (jede Trainer-Rolle, siehe ClubAccessQueries.IsClubTrainerAsync) voll
+/// pflegbar - die Bausteine gehören keiner Gruppe, also auch nicht nur den
+/// Trainer:innen mit Rolle Training für eigene Gruppen. Bausteine (<see cref="GroupTrainingExercise"/>)
 /// sind wiederverwendbare Übungen; Einheiten (<see cref="GroupTrainingUnit"/>)
 /// sind geordnete Zusammenstellungen daraus.
 /// </summary>
@@ -291,7 +293,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
     }
 
     private Task<bool> IsClubTrainerAsync(Guid userId, Guid clubId, CancellationToken ct) =>
-        db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
+        db.IsClubTrainerAsync(userId, clubId, ct);
 
     private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 

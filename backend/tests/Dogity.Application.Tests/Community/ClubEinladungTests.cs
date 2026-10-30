@@ -25,7 +25,7 @@ public class ClubEinladungTests
         Club Verein,
         Club Anderer,
         Guid Verwaltung,
-        Guid Training,
+        Guid Mitgliederverwaltung,
         Guid FremdeTrainerin,
         Guid Person,
         Guid Dritte);
@@ -39,22 +39,22 @@ public class ClubEinladungTests
         var verein = new Club { Name = "Hundesportverein Nord" };
         var anderer = new Club { Name = "Hundesportverein Süd" };
         var verwaltung = Guid.NewGuid();
-        var training = Guid.NewGuid();
+        var mitgliederverwaltung = Guid.NewGuid();
         var fremde = Guid.NewGuid();
         var person = Guid.NewGuid();
         var dritte = Guid.NewGuid();
         nutzer.Register(verwaltung, "verwaltung@example.org", "Vera", "Walter");
-        nutzer.Register(training, "training@example.org", "Theo", "Trainer");
+        nutzer.Register(mitgliederverwaltung, "mitgliederverwaltung@example.org", "Mara", "Mitglieder");
         nutzer.Register(fremde, "fremde@example.org", "Frieda", "Fremd");
         nutzer.Register(person, MailPerson, "Paula", "Person");
         nutzer.Register(dritte, "dritte@example.org", "Dora", "Dritte");
         db.Clubs.AddRange(verein, anderer);
         db.ClubTrainers.AddRange(
             new ClubTrainer { ClubId = verein.Id, UserId = verwaltung, Role = ClubRole.Verwaltung },
-            new ClubTrainer { ClubId = verein.Id, UserId = training, Role = ClubRole.Training },
+            new ClubTrainer { ClubId = verein.Id, UserId = mitgliederverwaltung, Role = ClubRole.Mitgliederverwaltung },
             new ClubTrainer { ClubId = anderer.Id, UserId = fremde, Role = ClubRole.Verwaltung });
         await db.SaveChangesAsync();
-        return new Aufbau(db, dienst, new ClubInviteService(db, dienst), meldungen, verein, anderer, verwaltung, training, fremde, person, dritte);
+        return new Aufbau(db, dienst, new ClubInviteService(db, dienst), meldungen, verein, anderer, verwaltung, mitgliederverwaltung, fremde, person, dritte);
     }
 
     private static Task<ClubMembership> ZeileAsync(Aufbau a, Guid nutzer) =>
@@ -72,7 +72,7 @@ public class ClubEinladungTests
     {
         var a = await AufsetzenAsync();
 
-        var ergebnis = await EinladenAsync(a, verwaltung ? a.Verwaltung : a.Training);
+        var ergebnis = await EinladenAsync(a, verwaltung ? a.Verwaltung : a.Mitgliederverwaltung);
 
         Assert.True(ergebnis.Succeeded);
         // Die Oberfläche meldet daran "eingeladen" statt "aufgenommen".
@@ -116,7 +116,7 @@ public class ClubEinladungTests
         var a = await AufsetzenAsync();
         await EinladenAsync(a, a.Verwaltung);
 
-        var zweites = await EinladenAsync(a, a.Training);
+        var zweites = await EinladenAsync(a, a.Mitgliederverwaltung);
 
         Assert.False(zweites.Succeeded);
         Assert.Equal("Diese Person ist bereits eingeladen.", Assert.Single(zweites.Errors));
@@ -143,14 +143,14 @@ public class ClubEinladungTests
         var a = await AufsetzenAsync();
         await a.Dienst.RequestJoinAsync(a.Person, a.Verein.Id);
 
-        var ergebnis = await EinladenAsync(a, a.Training);
+        var ergebnis = await EinladenAsync(a, a.Mitgliederverwaltung);
 
         Assert.True(ergebnis.Succeeded);
         Assert.True(ergebnis.Value!.Joined);
         var zeile = await ZeileAsync(a, a.Person);
         Assert.Equal(ClubMembershipStatus.Approved, zeile.Status);
         Assert.NotNull(zeile.DecidedAt);
-        Assert.Equal(a.Training, zeile.DecidedByUserId);
+        Assert.Equal(a.Mitgliederverwaltung, zeile.DecidedByUserId);
         Assert.Null(zeile.InvitedEmail);
     }
 
@@ -246,7 +246,7 @@ public class ClubEinladungTests
         var a = await AufsetzenAsync();
         await EinladenAsync(a, a.Verwaltung);
 
-        var liste = (await a.Dienst.GetInvitationsAsync(a.Training, a.Verein.Id)).Value!;
+        var liste = (await a.Dienst.GetInvitationsAsync(a.Mitgliederverwaltung, a.Verein.Id)).Value!;
 
         var einladung = Assert.Single(liste);
         Assert.Equal(MailPerson, einladung.InvitedEmail);
@@ -466,9 +466,9 @@ public class ClubEinladungTests
     {
         var a = await AufsetzenAsync();
         await EinladenAsync(a, a.Verwaltung);
-        var id = Assert.Single((await a.Dienst.GetInvitationsAsync(a.Training, a.Verein.Id)).Value!).MembershipId;
+        var id = Assert.Single((await a.Dienst.GetInvitationsAsync(a.Mitgliederverwaltung, a.Verein.Id)).Value!).MembershipId;
 
-        var ergebnis = await a.Dienst.WithdrawInvitationAsync(a.Training, a.Verein.Id, id);
+        var ergebnis = await a.Dienst.WithdrawInvitationAsync(a.Mitgliederverwaltung, a.Verein.Id, id);
 
         Assert.True(ergebnis.Succeeded);
         Assert.Empty((await a.Dienst.GetInvitationsAsync(a.Verwaltung, a.Verein.Id)).Value!);
@@ -586,7 +586,7 @@ public class ClubEinladungTests
     {
         var a = await AufsetzenAsync();
 
-        var ergebnis = await a.Dienst.AssignTrainerAsync(a.Verwaltung, isAdmin: false, a.Verein.Id, new AssignClubTrainerRequest("training@example.org"));
+        var ergebnis = await a.Dienst.AssignTrainerAsync(a.Verwaltung, isAdmin: false, a.Verein.Id, new AssignClubTrainerRequest("verwaltung@example.org"));
 
         Assert.Equal("Dieser Benutzer ist bereits Trainer dieses Vereins.", Assert.Single(ergebnis.Errors));
     }

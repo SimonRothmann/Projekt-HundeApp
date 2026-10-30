@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SessionCounts } from "@/components/schedule/session-counts";
 
+import { einladbareGruppen } from "@/lib/beitrittsfreigabe";
 import { useSprache, useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { ortsformat } from "@/lib/ortsformat";
@@ -146,7 +147,9 @@ export default function SchedulePage() {
 
   useEffect(() => {
     if (!clubId) return;
-    api.get<Group[]>(`/api/clubs/${clubId}/groups`).then(setGroups).catch(() => setGroups([]));
+    // Nur die Gruppen, die man verwaltet (myRelation 3 = Trainer:in): Mit der Rolle Training
+    // sind das die eigenen, als Ausbildungswart:in/Verwaltung alle - für fremde gäbe es keine Termine.
+    api.get<Group[]>(`/api/clubs/${clubId}/groups`).then((liste) => setGroups(einladbareGruppen(liste))).catch(() => setGroups([]));
     api.get<GroupTrainingLibrary>(`/api/group-training/clubs/${clubId}/library`).then(setLibrary).catch(() => setLibrary(null));
     api.get<SessionTrainer[]>(`/api/group-training/schedule/clubs/${clubId}/trainers`).then(setClubTrainers).catch((err) => {
       // Die Auswahl bleibt leer, aber die Ursache wird gemeldet.

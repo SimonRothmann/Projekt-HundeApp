@@ -10,9 +10,10 @@ import { ClubJoinRequestsSection } from "@/components/trainer/club-join-requests
 import { GroupJoinRequestsSection } from "@/components/trainer/group-join-requests-section";
 
 /**
- * Offene Beitrittsanfragen an Gruppen und Vereine der Trainer:in. Die
- * Übersicht zeigt dazu nur noch den Zähler; die Benachrichtigung bei einer
- * neuen Vereinsanfrage führt hierher.
+ * Offene Beitrittsanfragen an Gruppen (die man verwaltet) und Vereine (deren
+ * Mitglieder man verwaltet). Die Übersicht zeigt dazu nur noch den Zähler; die
+ * Benachrichtigung bei einer neuen Vereinsanfrage führt hierher - auch für die
+ * Mitgliederverwaltung, die keine Trainer:in ist und deshalb keine Gruppen hat.
  *
  * Beide Abschnitte verstecken sich ohne Anfragen. Ob die Seite leer ist,
  * erfährt sie über deren Zahl (onAnzahl) - sie ändert sich, sobald die letzte
@@ -43,7 +44,9 @@ export default function TrainerAnfragenPage() {
         toast.error(err instanceof ApiError ? err.message : t("Gruppen konnten nicht geladen werden."));
       });
     api
-      .get<Club[]>("/api/groups/my-clubs")
+      .get<Club[]>("/api/clubs/mine")
+      // Vereinsanfragen entscheidet nur, wer Mitglieder verwaltet (der Server prüft es ohnehin).
+      .then((alle) => alle.filter((c) => c.canManageMembers))
       .then((liste) => {
         setClubs(liste);
         if (liste.length === 0) setVereinsAnzahl(0);

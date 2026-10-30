@@ -12,6 +12,7 @@ import { Plus, UserPlus, Trash2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
+import { ClubRolesSection } from "@/components/trainer/club-roles-section";
 export function ClubsSection() {
   const t = useT();
   const [clubs, setClubs] = useState<Club[] | null>(null);
@@ -20,7 +21,6 @@ export function ClubsSection() {
   const [submitting, setSubmitting] = useState(false);
   const [expandedClubId, setExpandedClubId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ClubDetail | null>(null);
-  const [trainerEmail, setTrainerEmail] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
 
   async function ladeDetail(clubId: string) {
@@ -96,30 +96,6 @@ export function ClubsSection() {
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Verein konnte nicht geladen werden."));
     }
-  }
-
-  async function handleAssignTrainer(clubId: string, e: React.FormEvent) {
-    e.preventDefault();
-    if (!trainerEmail.trim()) return;
-    await mitDetailAktualisierung(
-      async () => {
-        await api.post(`/api/admin/clubs/${clubId}/trainers`, { email: trainerEmail });
-        setTrainerEmail("");
-      },
-      t("Trainer zugewiesen."),
-      "Zuweisung fehlgeschlagen.",
-      clubId,
-    );
-  }
-
-  async function handleRemoveTrainer(clubId: string, userId: string) {
-    await mitDetailAktualisierung(
-      () => api.delete(`/api/admin/clubs/${clubId}/trainers/${userId}`),
-      t("Trainer entfernt."),
-      t("Entfernen fehlgeschlagen."),
-      clubId,
-      true,
-    );
   }
 
   async function handleAddMember(clubId: string, e: React.FormEvent) {
@@ -202,51 +178,15 @@ export function ClubsSection() {
                 </button>
                 {isOpen && detail && (
                   <div className="flex flex-col gap-4 border-t px-4 py-3">
-                    <div className="flex flex-col gap-2">
-                      <p className="font-medium">{t("Trainer:innen")}</p>
-                      {detail.trainers.length === 0 ? (
-                        <p className="text-muted-foreground">{t("Noch keine Trainer zugewiesen.")}</p>
-                      ) : (
-                        <ul className="flex flex-col gap-1">
-                          {/* Der Laufparameter hiess t und verdeckte damit den
-                              Uebersetzer - umbenannt statt umgangen. */}
-                          {detail.trainers.map((trainer) => (
-                            <li key={trainer.userId} className="flex items-center gap-2">
-                              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                                {trainer.firstName} {trainer.lastName}{" "}
-                                <span className="text-muted-foreground">({trainer.email})</span>
-                              </span>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="shrink-0"
-                                onClick={() => handleRemoveTrainer(club.id, trainer.userId)}
-                                title={t("Trainer-Rolle entfernen")}
-                                aria-label={t("Trainer-Rolle entfernen")}
-                              >
-                                <Trash2 className="size-4" />
-                              </Button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <form onSubmit={(e) => handleAssignTrainer(club.id, e)} className="flex flex-col gap-2 sm:flex-row">
-                        <Input
-                          type="email"
-                          placeholder="trainer@example.com"
-                          aria-label={t("E-Mail der Trainer:in")}
-                          className="h-11 sm:flex-1"
-                          value={trainerEmail}
-                          onChange={(e) => setTrainerEmail(e.target.value)}
-                          required
-                        />
-                        <Button type="submit" variant="outline" className="h-11">
-                          <UserPlus className="size-4" />
-                          {t("Trainer zuweisen")}
-                        </Button>
-                      </form>
-                    </div>
+                    {/* Rollen vergeben und entziehen wie die Verwaltung des Vereins - der Admin darf zusätzlich
+                        Personen ohne Mitgliedschaft berufen (der erste Eintrag eines neuen Vereins). Die Karte
+                        lädt sich neu, sobald sich unten etwas ändert (key). */}
+                    <ClubRolesSection
+                      key={detail.trainers.map((r) => `${r.userId}:${r.roles}`).join(",")}
+                      clubId={club.id}
+                      istAdmin
+                      onGeaendert={() => Promise.all([ladeDetail(club.id), loadClubs()]).then(() => undefined)}
+                    />
 
                     <div className="flex flex-col gap-2 border-t pt-3">
                       <p className="font-medium">{t("Mitglieder")}</p>

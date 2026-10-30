@@ -39,7 +39,8 @@ public record AnmeldeAufbau(
         db.Clubs.Add(verein);
         db.Groups.Add(gruppe);
         db.GroupTrainers.Add(new GroupTrainer { GroupId = gruppe.Id, UserId = co, Status = GroupTrainerStatus.Active });
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = verein.Id, UserId = vereinsTrainerin, Role = ClubRole.Training });
+        // Verwaltet alle Gruppen des Vereins - mit der Rolle Training allein käme sie an fremde Gruppen nicht heran.
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = verein.Id, UserId = vereinsTrainerin, Role = ClubRole.Ausbildungswart });
         await db.SaveChangesAsync();
         return new AnmeldeAufbau(
             db, new GroupRegistrationService(db), new GroupRegistrationFormService(db, meldungen), meldungen,

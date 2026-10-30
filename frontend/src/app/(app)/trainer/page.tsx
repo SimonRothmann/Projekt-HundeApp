@@ -107,7 +107,7 @@ export default function TrainerPage() {
             <ul className="divide-y">
               <Werkzeug href="/trainer/group-training" icon={ClipboardList} titel={t("Gruppentraining")} zeile={t("Einheiten und Bausteine")} />
               <Werkzeug href="/trainer/schedule" icon={CalendarDays} titel={t("Terminplanung")} zeile={t("Termine und Serien")} />
-              <Werkzeug href="/trainer/verein" icon={Building2} titel={t("Verein")} zeile={t("Einladung, Mitglieder, eigene Sportarten")} />
+              <Werkzeug href="/trainer/verein" icon={Building2} titel={t("Verein")} zeile={t("Verein, Mitglieder, eigene Sportarten")} />
             </ul>
           </Card>
         </section>

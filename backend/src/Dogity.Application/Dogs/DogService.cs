@@ -420,7 +420,7 @@ public class DogService(
                 .Where(g => g.Members.Any(m => m.UserId == b.MemberId && m.Status == GroupMemberStatus.Active))
                 .Where(g => g.TrainerId == b.TrainerId
                     || g.Trainers.Any(t => t.UserId == b.TrainerId)
-                    || (g.ClubId != null && db.ClubTrainers.Any(t => t.ClubId == g.ClubId && t.UserId == b.TrainerId)))
+                    || (g.ClubId != null && db.ClubTrainers.Any(t => t.ClubId == g.ClubId && t.UserId == b.TrainerId && (t.Role & ClubRollen.AlleGruppen) != 0)))
                 .OrderBy(g => g.Name)
                 .Select(g => g.Name)
                 .FirstOrDefaultAsync(ct);

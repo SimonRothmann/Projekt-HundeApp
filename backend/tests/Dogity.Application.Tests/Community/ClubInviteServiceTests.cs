@@ -18,7 +18,7 @@ public class ClubInviteServiceTests
         ApplicationDbContext Db,
         Club Verein,
         Guid Verwaltung,
-        Guid Training);
+        Guid Mitgliederverwaltung);
 
     private static async Task<Aufbau> AufsetzenAsync()
     {
@@ -27,12 +27,12 @@ public class ClubInviteServiceTests
         var vereine = new ClubService(db, lookup, new FakeNotificationService(), new TrainerRoleService(db, lookup));
         var verein = new Club { Name = "Hundesportverein Nord" };
         var verwaltung = Guid.NewGuid();
-        var training = Guid.NewGuid();
+        var mitgliederverwaltung = Guid.NewGuid();
         db.Clubs.Add(verein);
         db.ClubTrainers.Add(new ClubTrainer { ClubId = verein.Id, UserId = verwaltung, Role = ClubRole.Verwaltung });
-        db.ClubTrainers.Add(new ClubTrainer { ClubId = verein.Id, UserId = training, Role = ClubRole.Training });
+        db.ClubTrainers.Add(new ClubTrainer { ClubId = verein.Id, UserId = mitgliederverwaltung, Role = ClubRole.Mitgliederverwaltung });
         await db.SaveChangesAsync();
-        return new Aufbau(new ClubInviteService(db, vereine), vereine, db, verein, verwaltung, training);
+        return new Aufbau(new ClubInviteService(db, vereine), vereine, db, verein, verwaltung, mitgliederverwaltung);
     }
 
     [Fact]
@@ -76,9 +76,9 @@ public class ClubInviteServiceTests
     {
         var a = await AufsetzenAsync();
 
-        // Auch Trainer:innen mit der Rolle Training - wie bei den Anfragen.
-        var erzeugt = await a.Dienst.RegenerateAsync(a.Training, a.Verein.Id);
-        var gelesen = await a.Dienst.GetAsync(a.Training, a.Verein.Id);
+        // Auch die Mitgliederverwaltung - wie bei den Anfragen.
+        var erzeugt = await a.Dienst.RegenerateAsync(a.Mitgliederverwaltung, a.Verein.Id);
+        var gelesen = await a.Dienst.GetAsync(a.Mitgliederverwaltung, a.Verein.Id);
 
         Assert.True(erzeugt.Succeeded);
         Assert.Equal(erzeugt.Value!.Code, gelesen.Value!.Code);
@@ -198,7 +198,7 @@ public class ClubInviteServiceTests
         await a.Dienst.JoinAsync(Guid.NewGuid(), code);
         await a.Vereine.RequestJoinAsync(Guid.NewGuid(), a.Verein.Id);
 
-        var liste = (await a.Vereine.GetJoinRequestsAsync(a.Training, a.Verein.Id)).Value!;
+        var liste = (await a.Vereine.GetJoinRequestsAsync(a.Mitgliederverwaltung, a.Verein.Id)).Value!;
 
         Assert.Equal(2, liste.Count);
         Assert.Single(liste, m => m.Source == ClubMembershipSource.InviteLink);
@@ -296,15 +296,15 @@ public class ClubInviteServiceTests
         var code = (await a.Dienst.RegenerateAsync(a.Verwaltung, a.Verein.Id)).Value!.Code;
         a.Db.ClubMemberships.Add(new ClubMembership
         {
-            ClubId = a.Verein.Id, UserId = a.Training, Status = ClubMembershipStatus.Approved,
+            ClubId = a.Verein.Id, UserId = a.Mitgliederverwaltung, Status = ClubMembershipStatus.Approved,
         });
         await a.Db.SaveChangesAsync();
 
-        var ergebnis = await a.Dienst.JoinAsync(a.Training, code);
+        var ergebnis = await a.Dienst.JoinAsync(a.Mitgliederverwaltung, code);
 
         Assert.True(ergebnis.Succeeded);
         Assert.Equal(ClubMembershipStatus.Approved, ergebnis.Value!.Status);
-        Assert.Equal(1, await a.Db.ClubMemberships.CountAsync(m => m.UserId == a.Training));
+        Assert.Equal(1, await a.Db.ClubMemberships.CountAsync(m => m.UserId == a.Mitgliederverwaltung));
     }
 
     [Fact]

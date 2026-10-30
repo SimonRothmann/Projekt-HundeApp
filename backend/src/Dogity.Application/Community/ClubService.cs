@@ -11,23 +11,38 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     public async Task<Result<IReadOnlyList<ClubDto>>> GetClubsAsync(CancellationToken ct = default)
     {
         var clubs = await db.Clubs
-            .Select(c => new ClubDto(c.Id, c.Name, c.Description, c.Trainers.Count, c.Groups.Count))
+            .Select(c => new ClubDto(c.Id, c.Name, c.Description, c.Trainers.Count(t => (t.Role & ClubRollen.Trainer) != 0), c.Groups.Count))
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<ClubDto>>.Success(clubs);
     }
 
-    public async Task<Result<IReadOnlyList<ClubDto>>> GetMyClubsAsync(Guid userId, CancellationToken ct = default)
+    /// <summary>Vereine, in denen die Person Trainer:in ist - die Trainer-Seiten rechnen mit genau diesen.</summary>
+    public async Task<Result<IReadOnlyList<ClubDto>>> GetMyClubsAsync(Guid userId, CancellationToken ct = default) =>
+        Result<IReadOnlyList<ClubDto>>.Success(await MeineVereineAsync(userId, ClubRollen.Trainer, ct));
+
+    /// <summary>Alle Vereine, in denen die Person irgendeine Rolle hat - für die Seite "Verein".</summary>
+    public async Task<Result<IReadOnlyList<ClubDto>>> GetMyClubRolesAsync(Guid userId, CancellationToken ct = default) =>
+        Result<IReadOnlyList<ClubDto>>.Success(await MeineVereineAsync(userId, ClubRollen.Alle, ct));
+
+    private async Task<IReadOnlyList<ClubDto>> MeineVereineAsync(Guid userId, ClubRole mitRolle, CancellationToken ct)
     {
-        var clubs = await db.Clubs
-            .Where(c => c.Trainers.Any(t => t.UserId == userId))
-            // Dieselbe Definition wie CanManageClubAsync (Rolle Verwaltung), hier
-            // als Teil der Abfrage statt einer weiteren je Verein.
-            .Select(c => new ClubDto(c.Id, c.Name, c.Description, c.Trainers.Count, c.Groups.Count,
-                c.Trainers.Any(t => t.UserId == userId && t.Role == ClubRole.Verwaltung)))
+        // Die eigene Rollenmenge kommt gleich mit der Abfrage; die Rechte daraus
+        // leitet ClubDto.Fuer an EINER Stelle ab (dieselben Mengen wie ClubAccessQueries).
+        var zeilen = await db.Clubs
+            .Where(c => c.Trainers.Any(t => t.UserId == userId && (t.Role & mitRolle) != 0))
+            .Select(c => new
+            {
+                c.Id,
+                c.Name,
+                c.Description,
+                TrainerCount = c.Trainers.Count(t => (t.Role & ClubRollen.Trainer) != 0),
+                GroupCount = c.Groups.Count,
+                Roles = c.Trainers.Where(t => t.UserId == userId).Select(t => t.Role).First(),
+            })
             .ToListAsync(ct);
 
-        return Result<IReadOnlyList<ClubDto>>.Success(clubs);
+        return zeilen.Select(z => ClubDto.Fuer(z.Id, z.Name, z.Description, z.TrainerCount, z.GroupCount, z.Roles)).ToList();
     }
 
     public async Task<Result<ClubDetailDto>> GetDetailAsync(Guid clubId, CancellationToken ct = default)
@@ -52,19 +67,16 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             .ToList();
         var lookup = await userLookup.FindByIdsAsync(userIds, ct);
 
-        var trainers = club.Trainers
-            .Select(t => lookup.TryGetValue(t.UserId, out var info)
-                ? new ClubTrainerDto(t.UserId, info.Email, info.FirstName, info.LastName, t.CreatedAt)
-                : new ClubTrainerDto(t.UserId, "(unbekannt)", "", "", t.CreatedAt))
-            .ToList();
+        var trainers = club.Trainers.Select(t => ZuRolleninhaber(t, lookup)).ToList();
 
-        // Ohne zusätzliche Abfrage: die Trainer:innen sind hier schon geladen.
-        var trainerIds = club.Trainers.Select(t => t.UserId).ToHashSet();
+        // Ohne zusätzliche Abfrage: die Rollen sind hier schon geladen.
+        var trainerCount = club.Trainers.Count(t => (t.Role & ClubRollen.Trainer) != 0);
+        var rollen = club.Trainers.ToDictionary(t => t.UserId, t => t.Role);
         var members = approvedMemberships
-            .Select(m => ZuMitglied(m, lookup, trainerIds))
+            .Select(m => ZuMitglied(m, lookup, rollen))
             .ToList();
 
-        var dto = new ClubDetailDto(new ClubDto(club.Id, club.Name, club.Description, trainers.Count, club.Groups.Count), trainers, members);
+        var dto = new ClubDetailDto(new ClubDto(club.Id, club.Name, club.Description, trainerCount, club.Groups.Count), trainers, members);
         return Result<ClubDetailDto>.Success(dto);
     }
 
@@ -81,19 +93,28 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     }
 
     /// <summary>
-    /// Trainer:in berufen. Die Berechtigungsprüfung liegt HIER und nicht am
-    /// Controller: Der Aufruf hängt an zwei Routen (Verein und Admin), und
-    /// eine Regel, die an der Route klebt, geht beim Hinzufügen der zweiten
-    /// verloren.
+    /// Jemanden mit Rollen in den Verein aufnehmen (neue Zeile). Die
+    /// Berechtigungsprüfung liegt HIER und nicht am Controller: Der Aufruf
+    /// hängt an zwei Routen (Verein und Admin), und eine Regel, die an der
+    /// Route klebt, geht beim Hinzufügen der zweiten verloren.
+    ///
+    /// Wer schon eine Rolle hat, bekommt weitere über
+    /// <see cref="UpdateTrainerRoleAsync"/>.
     /// </summary>
     public async Task<Result> AssignTrainerAsync(Guid callerId, bool isAdmin, Guid clubId, AssignClubTrainerRequest request, CancellationToken ct = default)
     {
-        if (!isAdmin && !await db.CanManageClubAsync(callerId, clubId, ct))
+        if (!isAdmin && !await db.CanAppointTrainersAsync(callerId, clubId, ct))
             return Result.NotFound("Verein nicht gefunden.");
 
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
         if (club is null)
             return Result.NotFound("Verein nicht gefunden.");
+
+        if (!GueltigeRollen(request.Role))
+            return Result.Failure("Ungültige Rolle.");
+
+        var darf = await PruefeRollenwechselAsync(callerId, isAdmin, clubId, 0, request.Role, ct);
+        if (!darf.Succeeded) return darf;
 
         var user = await userLookup.FindByEmailAsync(request.Email, ct);
         if (user is null)
@@ -103,16 +124,22 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         var (existing, isActive) = await db.ClubTrainers
             .FindIncludingRemovedAsync(t => t.ClubId == clubId && t.UserId == user.UserId, ct);
         if (isActive)
-            return Result.Failure("Dieser Benutzer ist bereits Trainer dieses Vereins.");
+            return Result.Failure((existing!.Role & ClubRollen.Trainer) != 0
+                ? "Dieser Benutzer ist bereits Trainer dieses Vereins."
+                : "Diese Person hat in diesem Verein schon eine Rolle. Ändere ihre Rollen in der Liste.");
 
         // Eine Vereinsverwaltung beruft nur aus den eigenen Mitgliedern. Sonst
         // genügte die E-Mail-Adresse irgendeiner registrierten Person, um sie
         // ohne ihr Zutun zur Trainer:in zu machen - mit Einblick in alle
         // Mitglieder und, über die Betreuung, in deren Hunde. Wer noch nicht
         // dazugehört, wird zuerst eingeladen und muss zusagen. Nur der Betreiber
-        // (Admin) legt den ersten Trainer eines neuen Vereins ohne Mitglieder an.
+        // (Admin) legt die erste Rolle eines neuen Vereins ohne Mitglieder an.
+        // Das gilt für jede Rolle: auch Vorstand und Mitgliederverwaltung öffnen
+        // Einblick in Mitgliederdaten.
         if (!isAdmin && !await IstFreigegebenesMitgliedAsync(clubId, user.UserId, ct))
-            return Result.Failure("Nur Mitglieder dieses Vereins können Trainer:in werden. Lade die Person zuerst in den Verein ein.");
+            return Result.Failure((request.Role & ClubRollen.Trainer) != 0
+                ? "Nur Mitglieder dieses Vereins können Trainer:in werden. Lade die Person zuerst in den Verein ein."
+                : "Nur Mitglieder dieses Vereins können eine Rolle bekommen. Lade die Person zuerst in den Verein ein.");
 
         if (existing is not null)
         {
@@ -126,7 +153,78 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
         await db.SaveChangesAsync(ct);
         await trainerRoles.SyncAsync(user.UserId, ct);
+        await RollenMeldenAsync(club.Name, user.UserId, callerId, request.Role, ct);
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Jede Rolle muss eine bekannte sein, und mindestens eine - die leere
+    /// Menge heißt "Zeile entfernen" und ist kein Wert zum Speichern.
+    /// </summary>
+    private static bool GueltigeRollen(ClubRole rollen) =>
+        rollen != 0 && (rollen & ~ClubRollen.Alle) == 0;
+
+    /// <summary>
+    /// Darf die aufrufende Person die Rollen einer Person von
+    /// <paramref name="alt"/> auf <paramref name="neu"/> bringen (leer = die
+    /// Person verliert alle)? Und bleibt dabei mindestens eine Verwaltung?
+    ///
+    /// Verwaltung und Admin: jede Änderung. Eine Ausbildungswart:in (hat
+    /// ausschließlich das Recht, Trainer:innen zu berufen): nur, wenn sich die
+    /// Mengen allein im Bit Training unterscheiden - sie kann Training geben
+    /// und nehmen, ohne die übrigen Rollen einer Person je zu berühren. Das ist
+    /// die einfachste Regel, die sicher ist: Sie verhindert, dass sich jemand
+    /// selbst oder andere zur Verwaltung macht oder einer Verwaltung die
+    /// Rolle nimmt.
+    /// </summary>
+    private async Task<Result> PruefeRollenwechselAsync(Guid callerId, bool isAdmin, Guid clubId, ClubRole alt, ClubRole neu, CancellationToken ct, Guid? betroffen = null)
+    {
+        var verwaltet = isAdmin || await db.CanManageClubAsync(callerId, clubId, ct);
+        if (!verwaltet && ((alt ^ neu) & ~ClubRole.Training) != 0)
+            return Result.Failure("Du darfst nur die Rolle Training vergeben und entziehen.");
+
+        // Die letzte verwaltende Person darf nicht gehen und sich nicht herabstufen.
+        if (betroffen is { } userId && alt.HasFlag(ClubRole.Verwaltung) && !neu.HasFlag(ClubRole.Verwaltung))
+            return await PruefeLetzteVerwaltungAsync(clubId, userId, ct);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Scheitert, wenn <paramref name="userId"/> die letzte verwaltende Person des
+    /// Vereins ist. Sonst bliebe ein Verein zurück, den niemand mehr verwalten kann -
+    /// weder Rollen vergeben noch Stammdaten ändern -, und nur ein globaler Admin käme
+    /// wieder heran. Genau diese Sackgasse soll die Selbstverwaltung vermeiden; deshalb
+    /// gilt die Prüfung bei Rollenwechsel, Austritt und Entfernen gleichermaßen.
+    /// </summary>
+    private async Task<Result> PruefeLetzteVerwaltungAsync(Guid clubId, Guid userId, CancellationToken ct)
+    {
+        var verwaltet = await db.ClubTrainers
+            .AnyAsync(t => t.ClubId == clubId && t.UserId == userId && (t.Role & ClubRole.Verwaltung) != 0, ct);
+        if (!verwaltet) return Result.Success();
+
+        var weitere = await db.ClubTrainers
+            .Where(t => t.ClubId == clubId && t.UserId != userId)
+            .MitRolle(ClubRole.Verwaltung)
+            .CountAsync(ct);
+        return weitere == 0
+            ? Result.Failure("Das ist die letzte verwaltende Person des Vereins. Bestimme zuerst jemand anderen.")
+            : Result.Success();
+    }
+
+    /// <summary>
+    /// Sagt jemandem Bescheid, der neue Rollen bekommen hat. Die vorhandene
+    /// Meldung "Du bist jetzt Trainer bei ..." für alle, die damit trainieren;
+    /// sonst eine knappe allgemeine. Wer sich selbst Rollen gibt, braucht keine.
+    /// </summary>
+    private async Task RollenMeldenAsync(string vereinsName, Guid userId, Guid callerId, ClubRole hinzu, CancellationToken ct)
+    {
+        if (hinzu == 0 || userId == callerId) return;
+        var trainiert = (hinzu & (ClubRole.Training | ClubRole.Ausbildungswart)) != 0;
+        var text = trainiert
+            ? Meldung.Von("Du bist jetzt Trainer bei \"{verein}\".", ("verein", vereinsName))
+            : Meldung.Von("Du hast im Verein \"{verein}\" eine neue Rolle bekommen.", ("verein", vereinsName));
+        await notifications.CreateAsync(userId, text, trainiert ? "/trainer" : "/clubs", ct);
     }
 
     /// <summary>
@@ -144,6 +242,9 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         var name = request.Name?.Trim();
         if (string.IsNullOrWhiteSpace(name))
             return Result.Failure("Name ist erforderlich.");
+        var zuLang = Textlaengen.ZuLang(name, Textlaengen.VereinsName, "Der Name")
+            ?? Textlaengen.ZuLang(request.Description, Textlaengen.VereinsBeschreibung, "Die Beschreibung");
+        if (zuLang is not null) return Result.Failure(zuLang);
 
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
         if (club is null) return Result.NotFound("Verein nicht gefunden.");
@@ -156,55 +257,47 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     }
 
     /// <summary>
-    /// Rolle einer Trainerin oder eines Trainers innerhalb des Vereins
-    /// ändern. Derselbe Schutz wie beim Entfernen: Die letzte verwaltende
-    /// Person kann sich nicht selbst herabstufen.
+    /// Die Rollen einer Person im Verein ersetzen (die vollständige neue Menge).
+    /// Eine leere Menge entfernt die Person - wie <see cref="RemoveTrainerAsync"/>.
+    /// Wer darf was, regelt <see cref="PruefeRollenwechselAsync"/>.
     /// </summary>
     public async Task<Result> UpdateTrainerRoleAsync(Guid callerId, bool isAdmin, Guid clubId, Guid userId, ClubRole role, CancellationToken ct = default)
     {
-        if (!isAdmin && !await db.CanManageClubAsync(callerId, clubId, ct))
+        if (role == 0) return await RemoveTrainerAsync(callerId, isAdmin, clubId, userId, ct);
+        if (!isAdmin && !await db.CanAppointTrainersAsync(callerId, clubId, ct))
             return Result.NotFound("Verein nicht gefunden.");
+        if (!GueltigeRollen(role)) return Result.Failure("Ungültige Rolle.");
 
         var entry = await db.ClubTrainers.FirstOrDefaultAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
         if (entry is null) return Result.NotFound("Trainer-Zuweisung nicht gefunden.");
         if (entry.Role == role) return Result.Success();
 
-        if (entry.Role == ClubRole.Verwaltung)
-        {
-            var weitere = await db.ClubTrainers
-                .CountAsync(t => t.ClubId == clubId && t.Role == ClubRole.Verwaltung && t.UserId != userId, ct);
-            if (weitere == 0)
-                return Result.Failure("Das ist die letzte verwaltende Person des Vereins. Bestimme zuerst jemand anderen.");
-        }
+        var darf = await PruefeRollenwechselAsync(callerId, isAdmin, clubId, entry.Role, role, ct, userId);
+        if (!darf.Succeeded) return darf;
 
+        var hinzu = role & ~entry.Role;
         entry.Role = role;
         entry.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
+        // Training kann dazugekommen oder weggefallen sein: das Trainer-Kennzeichen nachziehen.
+        await trainerRoles.SyncAsync(userId, ct);
+        var verein = await db.Clubs.AsNoTracking().FirstAsync(c => c.Id == clubId, ct);
+        await RollenMeldenAsync(verein.Name, userId, callerId, hinzu, ct);
         return Result.Success();
     }
 
-    /// <summary>Trainer:in abberufen - Berechtigung wie bei AssignTrainerAsync.</summary>
+    /// <summary>Alle Rollen einer Person entziehen (sie verlässt die Liste) - Berechtigung wie bei AssignTrainerAsync.</summary>
     public async Task<Result> RemoveTrainerAsync(Guid callerId, bool isAdmin, Guid clubId, Guid userId, CancellationToken ct = default)
     {
-        if (!isAdmin && !await db.CanManageClubAsync(callerId, clubId, ct))
+        if (!isAdmin && !await db.CanAppointTrainersAsync(callerId, clubId, ct))
             return Result.NotFound("Verein nicht gefunden.");
 
         var entry = await db.ClubTrainers.FirstOrDefaultAsync(t => t.ClubId == clubId && t.UserId == userId, ct);
         if (entry is null)
             return Result.NotFound("Trainer-Zuweisung nicht gefunden.");
 
-        // Die letzte verwaltende Person darf nicht gehen. Sonst bliebe ein
-        // Verein zurück, den niemand mehr verwalten kann - weder Trainer
-        // berufen noch Stammdaten ändern -, und nur ein globaler Admin käme
-        // wieder heran. Genau diese Sackgasse soll die Selbstverwaltung
-        // vermeiden.
-        if (entry.Role == ClubRole.Verwaltung)
-        {
-            var weitere = await db.ClubTrainers
-                .CountAsync(t => t.ClubId == clubId && t.Role == ClubRole.Verwaltung && t.UserId != userId, ct);
-            if (weitere == 0)
-                return Result.Failure("Das ist die letzte verwaltende Person des Vereins. Bestimme zuerst jemand anderen.");
-        }
+        var darf = await PruefeRollenwechselAsync(callerId, isAdmin, clubId, entry.Role, 0, ct, userId);
+        if (!darf.Succeeded) return darf;
 
         entry.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -213,6 +306,30 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         await trainerRoles.SyncAsync(userId, ct);
         return Result.Success();
     }
+
+    /// <summary>
+    /// Alle Personen mit einer Rolle im Verein samt ihren Rollen - für die
+    /// Rollenverwaltung. Nur für die, die Trainer:innen berufen dürfen (und den
+    /// Admin).
+    /// </summary>
+    public async Task<Result<IReadOnlyList<ClubTrainerDto>>> GetRoleHoldersAsync(Guid callerId, bool isAdmin, Guid clubId, CancellationToken ct = default)
+    {
+        if (!isAdmin && !await db.CanAppointTrainersAsync(callerId, clubId, ct))
+            return Result<IReadOnlyList<ClubTrainerDto>>.NotFound("Verein nicht gefunden.");
+
+        var zeilen = await db.ClubTrainers.Where(t => t.ClubId == clubId).AsNoTracking().ToListAsync(ct);
+        var lookup = await userLookup.FindByIdsAsync(zeilen.Select(t => t.UserId).ToList(), ct);
+        var liste = zeilen
+            .Select(t => ZuRolleninhaber(t, lookup))
+            .OrderBy(t => t.LastName).ThenBy(t => t.FirstName)
+            .ToList();
+        return Result<IReadOnlyList<ClubTrainerDto>>.Success(liste);
+    }
+
+    private static ClubTrainerDto ZuRolleninhaber(ClubTrainer t, IReadOnlyDictionary<Guid, UserLookupResult> lookup) =>
+        lookup.TryGetValue(t.UserId, out var info)
+            ? new ClubTrainerDto(t.UserId, info.Email, info.FirstName, info.LastName, t.CreatedAt, t.Role)
+            : new ClubTrainerDto(t.UserId, "(unbekannt)", "", "", t.CreatedAt, t.Role);
 
     /// <summary>
     /// Jemanden per E-Mail-Adresse in den Verein holen.
@@ -240,7 +357,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         // Die Prüfung gehört hierher und nicht in den Controller: Der Aufruf
         // hängt jetzt an zwei Routen (Admin und Verein), und eine Regel, die
         // an der Route klebt, geht beim Hinzufügen der zweiten verloren.
-        if (!isAdmin && !await db.IsClubTrainerAsync(callerId, clubId, ct))
+        if (!isAdmin && !await db.CanManageMembersAsync(callerId, clubId, ct))
             return Result<AddClubMemberResultDto>.NotFound("Verein nicht gefunden.");
 
         var user = await userLookup.FindByEmailAsync(request.Email, ct);
@@ -323,14 +440,14 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     }
 
     /// <summary>
-    /// Die offenen Einladungen eines Vereins - für dessen Trainer:innen.
+    /// Die offenen Einladungen eines Vereins - für die Mitgliederverwaltung (und die Verwaltung).
     /// Bewusst nur Adresse und Zeitpunkt: Vor der Zusage gehört der Name der
     /// eingeladenen Person ihr (eigenes DTO statt <see cref="ClubMemberDto"/>,
     /// damit ein Name hier gar nicht erst mitgeliefert werden kann).
     /// </summary>
     public async Task<Result<IReadOnlyList<ClubInvitationDto>>> GetInvitationsAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
     {
-        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+        if (!await db.CanManageMembersAsync(callerId, clubId, ct))
             return Result<IReadOnlyList<ClubInvitationDto>>.NotFound("Verein nicht gefunden.");
 
         var einladungen = await db.ClubMemberships
@@ -343,10 +460,10 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         return Result<IReadOnlyList<ClubInvitationDto>>.Success(einladungen);
     }
 
-    /// <summary>Eine offene Einladung zurückziehen - nur durch Trainer:innen dieses Vereins.</summary>
+    /// <summary>Eine offene Einladung zurückziehen - nur durch die Mitgliederverwaltung dieses Vereins.</summary>
     public async Task<Result> WithdrawInvitationAsync(Guid callerId, Guid clubId, Guid membershipId, CancellationToken ct = default)
     {
-        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+        if (!await db.CanManageMembersAsync(callerId, clubId, ct))
             return Result.NotFound("Verein nicht gefunden.");
 
         // Nur Einladungen: Eine Mitgliedschaft oder Anfrage zieht niemand über
@@ -414,6 +531,9 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         if (membership is null)
             return Result.NotFound("Mitgliedschaft nicht gefunden.");
 
+        var letzte = await PruefeLetzteVerwaltungAsync(clubId, userId, ct);
+        if (!letzte.Succeeded) return letzte;
+
         membership.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         await DetachFromClubAsync(clubId, userId, ct);
@@ -422,13 +542,22 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
     public async Task<Result<IReadOnlyList<ClubSummaryDto>>> GetBrowsableClubsAsync(Guid userId, CancellationToken ct = default)
     {
-        var clubs = await db.Clubs
-            // Vereinstrainer:innen haben keine ClubMembership (siehe
-            // ClubAccessQueries.BelongsToAnyClubAsync) - ohne dieses Kennzeichen
-            // bot die Liste ihnen bei ihrem eigenen Verein "Beitreten" an.
-            .Select(c => new ClubSummaryDto(c.Id, c.Name, c.Description, c.Trainers.Any(t => t.UserId == userId)))
+        var zeilen = await db.Clubs
+            .Select(c => new
+            {
+                c.Id,
+                c.Name,
+                c.Description,
+                // Wer eine Rolle im Verein hat (auch Vorstand), hat keine ClubMembership
+                // (siehe ClubAccessQueries.BelongsToAnyClubAsync) - ohne dieses Kennzeichen
+                // bot die Liste ihm bei seinem eigenen Verein "Beitreten" an.
+                Roles = c.Trainers.Where(t => t.UserId == userId).Select(t => (ClubRole?)t.Role).FirstOrDefault(),
+            })
             .ToListAsync(ct);
 
+        var clubs = zeilen
+            .Select(z => new ClubSummaryDto(z.Id, z.Name, z.Description, z.Roles is not null, z.Roles ?? 0))
+            .ToList();
         return Result<IReadOnlyList<ClubSummaryDto>>.Success(clubs);
     }
 
@@ -476,8 +605,10 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         // Ohne Hinweis bliebe eine Anfrage liegen, bis zufällig jemand die
         // Trainer-Seite öffnet - und über den Aushang am Vereinsheim kommen
         // Anfragen gerade dann, wenn niemand danach schaut.
+        // Nur an die, die sie entscheiden dürfen.
         var trainerIds = await db.ClubTrainers
             .Where(t => t.ClubId == clubId && t.UserId != userId)
+            .MitRolle(ClubRollen.Mitglieder)
             .Select(t => t.UserId)
             .ToListAsync(ct);
         if (trainerIds.Count > 0)
@@ -499,17 +630,17 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
     public async Task<Result<IReadOnlyList<ClubMemberDto>>> GetJoinRequestsAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
     {
-        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+        if (!await db.CanManageMembersAsync(callerId, clubId, ct))
             return Result<IReadOnlyList<ClubMemberDto>>.NotFound("Verein nicht gefunden.");
 
         var pending = await db.ClubMemberships
             .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Pending)
             .ToListAsync(ct);
 
-        var trainerIds = await TrainerIdsAsync(clubId, ct);
+        var rollen = await RollenAsync(clubId, ct);
         var lookup = await userLookup.FindByIdsAsync(pending.Select(m => m.UserId).ToList(), ct);
         var dtos = pending
-            .Select(m => ZuMitglied(m, lookup, trainerIds))
+            .Select(m => ZuMitglied(m, lookup, rollen))
             .ToList();
 
         return Result<IReadOnlyList<ClubMemberDto>>.Success(dtos);
@@ -517,7 +648,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
     public async Task<Result> DecideJoinRequestAsync(Guid callerId, Guid clubId, Guid membershipId, bool approve, Guid? groupId = null, CancellationToken ct = default)
     {
-        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+        if (!await db.CanManageMembersAsync(callerId, clubId, ct))
             return Result.NotFound("Verein nicht gefunden.");
 
         var membership = await db.ClubMemberships.FirstOrDefaultAsync(m => m.Id == membershipId && m.ClubId == clubId, ct);
@@ -647,23 +778,25 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         if (membership is null)
             return Result.Failure("Keine aktive Mitgliedschaft gefunden.");
 
+        var letzte = await PruefeLetzteVerwaltungAsync(clubId, userId, ct);
+        if (!letzte.Succeeded) return letzte;
+
         membership.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         await DetachFromClubAsync(clubId, userId, ct);
         return Result.Success();
     }
 
-    /// <summary>Die Nutzer-Ids aller Trainer:innen eines Vereins.</summary>
-    private async Task<IReadOnlySet<Guid>> TrainerIdsAsync(Guid clubId, CancellationToken ct) =>
-        (await db.ClubTrainers
+    /// <summary>Die Rollen aller Personen mit einer Rolle im Verein (je Person eine Zeile).</summary>
+    private async Task<IReadOnlyDictionary<Guid, ClubRole>> RollenAsync(Guid clubId, CancellationToken ct) =>
+        await db.ClubTrainers
             .Where(t => t.ClubId == clubId)
-            .Select(t => t.UserId)
-            .ToListAsync(ct))
-        .ToHashSet();
+            .ToDictionaryAsync(t => t.UserId, t => t.Role, ct);
 
     /// <summary>
-    /// Baut die Mitgliederzeile - inklusive der Frage, ob die Person zugleich
-    /// Trainer:in des Vereins ist.
+    /// Baut die Mitgliederzeile - inklusive der Fragen, ob die Person zugleich
+    /// Trainer:in des Vereins ist und ob sie überhaupt eine Rolle hat (dann
+    /// kann sie nicht einfach entfernt werden).
     ///
     /// Eine Stelle, weil es vorher dreimal wortgleich dastand (Vereinsdetail,
     /// Beitrittsanfragen, Mitgliederliste) und ein neues Feld sonst an zwei
@@ -672,27 +805,29 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     private static ClubMemberDto ZuMitglied(
         ClubMembership m,
         IReadOnlyDictionary<Guid, UserLookupResult> lookup,
-        IReadOnlySet<Guid> trainerIds)
+        IReadOnlyDictionary<Guid, ClubRole> rollen)
     {
-        var istTrainer = trainerIds.Contains(m.UserId);
+        rollen.TryGetValue(m.UserId, out var rolle);
+        var istTrainer = (rolle & ClubRollen.Trainer) != 0;
+        var hatRolle = rolle != 0;
         return lookup.TryGetValue(m.UserId, out var info)
-            ? new ClubMemberDto(m.Id, m.UserId, info.Email, info.FirstName, info.LastName, m.RequestedAt, m.DecidedAt, istTrainer, m.Source)
-            : new ClubMemberDto(m.Id, m.UserId, "(unbekannt)", "", "", m.RequestedAt, m.DecidedAt, istTrainer, m.Source);
+            ? new ClubMemberDto(m.Id, m.UserId, info.Email, info.FirstName, info.LastName, m.RequestedAt, m.DecidedAt, istTrainer, m.Source, hatRolle)
+            : new ClubMemberDto(m.Id, m.UserId, "(unbekannt)", "", "", m.RequestedAt, m.DecidedAt, istTrainer, m.Source, hatRolle);
     }
 
     public async Task<Result<IReadOnlyList<ClubMemberDto>>> GetMembersAsync(Guid callerId, Guid clubId, CancellationToken ct = default)
     {
-        if (!await db.IsClubTrainerAsync(callerId, clubId, ct))
+        if (!await db.CanManageMembersAsync(callerId, clubId, ct))
             return Result<IReadOnlyList<ClubMemberDto>>.NotFound("Verein nicht gefunden.");
 
         var members = await db.ClubMemberships
             .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Approved)
             .ToListAsync(ct);
 
-        var trainerIds = await TrainerIdsAsync(clubId, ct);
+        var rollen = await RollenAsync(clubId, ct);
         var lookup = await userLookup.FindByIdsAsync(members.Select(m => m.UserId).ToList(), ct);
         var dtos = members
-            .Select(m => ZuMitglied(m, lookup, trainerIds))
+            .Select(m => ZuMitglied(m, lookup, rollen))
             .ToList();
 
         return Result<IReadOnlyList<ClubMemberDto>>.Success(dtos);
@@ -700,12 +835,10 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
     public async Task<Result> PromoteMemberToTrainerAsync(Guid callerId, Guid clubId, Guid targetUserId, CancellationToken ct = default)
     {
-        // Trainer:innen zu berufen ist eine verwaltende Handlung - egal ob
-        // über die E-Mail-Zuweisung oder über die Beförderung eines
-        // Mitglieds. Vorher genügte hier "ist Trainer", während der andere
-        // Weg strenger war; damit wäre dieselbe Befugnis je nach Weg
-        // unterschiedlich streng gewesen.
-        if (!await db.CanManageClubAsync(callerId, clubId, ct))
+        // Trainer:innen zu berufen ist Sache der Ausbildungswart:in und der
+        // Verwaltung - egal ob über die E-Mail-Zuweisung oder über die
+        // Beförderung eines Mitglieds. Beide Wege fragen dasselbe Recht.
+        if (!await db.CanAppointTrainersAsync(callerId, clubId, ct))
             return Result.NotFound("Verein nicht gefunden.");
 
         var isApprovedMember = await db.ClubMemberships
@@ -715,18 +848,40 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
         var (existingTrainer, isActiveTrainer) = await db.ClubTrainers
             .FindIncludingRemovedAsync(t => t.ClubId == clubId && t.UserId == targetUserId, ct);
-        if (isActiveTrainer)
+        if (isActiveTrainer && (existingTrainer!.Role & ClubRollen.Trainer) != 0)
             return Result.Failure("Dieser Benutzer ist bereits Trainer dieses Vereins.");
 
-        if (existingTrainer is not null) existingTrainer.DeletedAt = null;
-        else db.ClubTrainers.Add(new ClubTrainer { ClubId = clubId, UserId = targetUserId });
+        // Hat die Person schon eine andere Rolle (etwa Vorstand), kommt Training dazu.
+        if (existingTrainer is not null)
+        {
+            existingTrainer.DeletedAt = null;
+            existingTrainer.Role = isActiveTrainer ? existingTrainer.Role | ClubRole.Training : ClubRole.Training;
+        }
+        else db.ClubTrainers.Add(new ClubTrainer { ClubId = clubId, UserId = targetUserId, Role = ClubRole.Training });
 
         await db.SaveChangesAsync(ct);
         await trainerRoles.SyncAsync(targetUserId, ct);
 
         var club = await db.Clubs.AsNoTracking().FirstAsync(c => c.Id == clubId, ct);
-        await notifications.CreateAsync(targetUserId, Meldung.Von("Du bist jetzt Trainer bei \"{verein}\".", ("verein", club.Name)), "/trainer", ct);
+        await RollenMeldenAsync(club.Name, targetUserId, callerId, ClubRole.Training, ct);
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Ein Mitglied aus dem Verein nehmen - für die Mitgliederverwaltung. Wer
+    /// eine Rolle im Verein hat, bleibt: Sonst könnte die Mitgliederverwaltung
+    /// über diesen Weg Rollen entziehen (auch die letzte Verwaltung), die sie
+    /// nicht vergeben darf. Erst die Rollen nehmen, dann die Person.
+    /// </summary>
+    public async Task<Result> RemoveClubMemberAsync(Guid callerId, Guid clubId, Guid userId, CancellationToken ct = default)
+    {
+        if (!await db.CanManageMembersAsync(callerId, clubId, ct))
+            return Result.NotFound("Verein nicht gefunden.");
+
+        if (await db.ClubTrainers.AnyAsync(t => t.ClubId == clubId && t.UserId == userId, ct))
+            return Result.Failure("Diese Person hat eine Rolle im Verein. Nimm ihr zuerst die Rollen, dann kannst du sie entfernen.");
+
+        return await RemoveMemberAsync(clubId, userId, ct);
     }
 }

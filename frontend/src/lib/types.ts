@@ -502,6 +502,14 @@ export type Club = {
   groupCount: number;
   // Ob die Person den Verein verwalten darf (Rolle Verwaltung) - nur in "meine Vereine" gesetzt.
   canManage?: boolean;
+  /** Die eigenen Rollen als Bitmenge (siehe lib/vereinsrollen.ts); wie die folgenden Rechte nur in "meine Vereine". */
+  roles?: number;
+  /** Beitrittsanfragen, Einladungen, Einladungslink und Mitgliederliste (Mitgliederverwaltung, Verwaltung). */
+  canManageMembers?: boolean;
+  /** Trainer:innen berufen und abberufen (Ausbildungswart:in, Verwaltung). */
+  canAppointTrainers?: boolean;
+  /** Hat eine Trainer-Rolle (Training, Ausbildungswart:in, Verwaltung): Katalog, Gruppen. */
+  isTrainer?: boolean;
 };
 
 // Vereins-Trainingsbibliothek (siehe docs/GROUP_TRAINING_LIBRARY.md).
@@ -596,6 +604,8 @@ export type ClubTrainerInfo = {
   firstName: string;
   lastName: string;
   assignedAt: string;
+  /** Die Rollen der Person im Verein als Bitmenge (siehe lib/vereinsrollen.ts). */
+  roles: number;
 };
 
 export type ClubMemberInfo = {
@@ -608,6 +618,8 @@ export type ClubMemberInfo = {
   decidedAt: string | null;
   /** Ob die Person zugleich Trainer:in dieses Vereins ist (siehe ClubMemberRequest). */
   isTrainer: boolean;
+  /** Ob die Person irgendeine Rolle im Verein hat; dann lässt sie sich nicht entfernen. */
+  hatRolle: boolean;
   source: ClubMembershipSource;
 };
 
@@ -789,8 +801,10 @@ export type ClubSummary = {
   id: string;
   name: string;
   description: string | null;
-  /** Die angemeldete Person ist Trainer:in dieses Vereins (hat dann keine Mitgliedschaftszeile). */
+  /** Die angemeldete Person hat eine Rolle in diesem Verein, gleich welche (hat dann keine Mitgliedschaftszeile). */
   isTrainer?: boolean;
+  /** Die Rollen der Person als Bitmenge (siehe lib/vereinsrollen.ts). */
+  roles?: number;
 };
 
 /**
@@ -885,6 +899,8 @@ export type ClubMemberRequest = {
    * Mitgliedschaften, das lässt sich hier nicht herleiten.
    */
   isTrainer: boolean;
+  /** Ob die Person irgendeine Rolle im Verein hat; dann lässt sie sich nicht entfernen. */
+  hatRolle: boolean;
   /** Wie die Anfrage entstanden ist - der Einladungslink bekommt eine Kennzeichnung. */
   source: ClubMembershipSource;
 };

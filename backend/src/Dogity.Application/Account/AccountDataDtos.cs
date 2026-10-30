@@ -201,7 +201,7 @@ public record VereinExportDto(
     string Status,
     DateTimeOffset BeantragtAm,
     DateTimeOffset? EntschiedenAm,
-    bool IstTrainer,
+    string Vereinsrollen,
     string Herkunft);
 
 public record GruppeExportDto(
