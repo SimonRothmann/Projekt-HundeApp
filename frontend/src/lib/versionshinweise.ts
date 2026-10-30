@@ -67,7 +67,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
     aenderungen: [
       {
         art: "neu",
-        text: uebersetzbar("Vereine haben jetzt mehrere Rollen, die sich beliebig kombinieren lassen: Ausbildungswart:in (verwaltet alle Gruppen und beruft Trainer:innen), Mitgliederverwaltung (Beitrittsanfragen, Einladungen, Einladungslink und Mitgliederliste, ohne Trainerrechte) und Vorstand (darf nur lesen; die Vereinsübersicht dafür folgt). Dazu kommen Training und Verwaltung wie bisher."),
+        text: uebersetzbar("Vereine haben jetzt mehrere Rollen, die sich beliebig kombinieren lassen: Ausbildungswart:in (verwaltet alle Gruppen und beruft Trainer:innen), Mitgliederverwaltung (Beitrittsanfragen, Einladungen, Einladungslink und Mitgliederliste, ohne Trainerrechte) und Vorstand (darf nur lesen und sieht eine Vereinsübersicht mit Zahlen und der Mitgliederliste mit Namen und Gruppen). Dazu kommen Training und Verwaltung wie bisher."),
       },
       {
         art: "neu",

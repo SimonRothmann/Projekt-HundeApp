@@ -153,7 +153,7 @@ export function GroupTrainersSection({ groupId, detail, onGeaendert }: { groupId
               <SelectContent>
                 {trainers.map((option) => (
                   <SelectItem key={option.userId} value={option.userId}>
-                    {`${option.firstName} ${option.lastName}`.trim() || option.email}
+                    {`${option.firstName} ${option.lastName}`.trim() || option.email || t("(unbekannt)")}
                     {option.userId === detail.group.trainerId ? ` ${t("(aktuell)")}` : ""}
                   </SelectItem>
                 ))}

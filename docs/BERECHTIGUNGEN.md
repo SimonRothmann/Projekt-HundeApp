@@ -45,9 +45,16 @@ mit `isAdmin`).
     Mitglieder hinzufügen und entfernen, Mitgliederliste - **ohne** Trainerrechte
     (keine Gruppen, kein Katalog, keine Termine) und **keine Trainer:in**
     (`IsAnyTrainerAsync` bleibt `false`, keine Identity-Rolle TRAINER).
-  - *Vorstand* (16): nur lesen (Zahlen und Mitgliederliste mit Namen und
-    Gruppenzuordnung). Die Vereinsübersicht dafür kommt mit Paket V2; bis dahin
-    gibt die Rolle noch keine Rechte.
+  - *Vorstand* (16): nur lesen - die **Vereinsübersicht** (`GET
+    /api/clubs/{id}/overview` und `/overview/members`, `CanViewClubOverviewAsync`:
+    Vorstand, Verwaltung, Admin): Zahlen des Vereins (Mitglieder, offene
+    Anfragen und Einladungen, Personen je Rolle, je Gruppe Mitglieder und
+    Trainer:innen, Gruppentermine und Zusagen als Summen je Monat der letzten 6
+    Monate) und die Mitgliederliste mit Name, Mitglied-seit-Datum, Gruppen und
+    Rollen. Nur Vereinsdaten: **keine** E-Mail-Adresse, keine Hunde, keine
+    Trainingstagebücher, keine Zusagen einzelner Personen, keine App-Nutzungszeiten.
+    Der Vorstand ändert nichts und ist keine Trainer:in (`ClubOverviewTests`
+    prüft jede schreibende Vereinsaktion mit reinem Vorstand: abgelehnt).
   - *Wer Rollen vergibt:* Verwaltung und Admin alle. Eine Ausbildungswart:in darf
     nur das Bit Training setzen und löschen - eine Änderung, die sich in einem
     anderen Bit unterscheidet, wird abgewiesen (also auch kein Abberufen
@@ -87,9 +94,9 @@ mit `isAdmin`).
 | | Sieht | Sieht nicht |
 |---|---|---|
 | Mitgliederverwaltung, Verwaltung | Mitglieder (Name, E-Mail), offene Anfragen, offene Einladungen (nur die eingegebene Adresse) **des eigenen Vereins**, den Einladungslink | alles von anderen Vereinen; Tagebuch der Mitglieder (nur über eine Betreuung) |
-| Ausbildungswart:in, Verwaltung | alle Gruppen und Termine **des eigenen Vereins** (mit Mitgliedern, Anmeldungen), die Liste der Rollen im Verein | die Mitgliederliste und Anfragen des Vereins (nur mit Mitgliederverwaltung bzw. Verwaltung); alles von anderen Vereinen |
+| Ausbildungswart:in, Verwaltung | alle Gruppen und Termine **des eigenen Vereins** (mit Mitgliedern, Anmeldungen), die Liste der Rollen im Verein - mit Name und Rollen; die **E-Mail-Adresse** der Rolleninhaber:innen (und der Trainer:innen in der Auswahl für die Gruppenleitung) nur mit Mitgliederverwaltung/Verwaltung bzw. als Admin (`GetRoleHoldersAsync`, `GetAssignableTrainersAsync`) | die Mitgliederliste und Anfragen des Vereins (nur mit Mitgliederverwaltung bzw. Verwaltung); alles von anderen Vereinen |
 | Training | die eigenen Gruppen (Leitung, Mit-Betreuung), deren Termine, Anfragen und Anmeldungen, den Vereinskatalog; die Gruppen des Vereins in der Vereinsliste (wie jedes Mitglied) | fremde Gruppen und deren Termine, Mitgliederliste, Vereinsanfragen |
-| Vorstand | Gruppen des Vereins in der Vereinsliste (wie jedes Mitglied) | noch nichts darüber hinaus (Paket V2) |
+| Vorstand (die Verwaltung sieht dieselbe Übersicht, dazu alles aus den Zeilen oben) | die Vereinsübersicht: Zahlen des Vereins (Mitglieder, Anfragen, Einladungen, Rollen, Gruppen, Termine und Zusagen als Summen) und die Mitgliederliste mit Name, Gruppen und Rollen; dazu die Gruppen des Vereins in der Vereinsliste (wie jedes Mitglied) | E-Mail-Adressen, Hunde, Trainingstagebücher, Zusagen einzelner Personen, Anfragen und Einladungen einzeln; alles von anderen Vereinen |
 | Gruppentrainer:in | die eigene Gruppe, deren aktive Mitglieder, die Hunde, die sie betreut | andere Gruppen, offene Einladungen mit Namen |
 | Mitglied | die eigenen Hunde, Gruppen und Vereine, offene Einladungen an sich selbst (mit Namen des Vereins) | andere Mitglieder |
 | Eingeladene Person | nur den Vereins-/Gruppen-/Hundenamen und wer einlädt | - |
@@ -113,7 +120,7 @@ beim Hinzufügen der zweiten verloren.
     Gruppen anlegen, Bibliothek), `CanManageAllGroupsAsync` (Ausbildungswart:in,
     Verwaltung), `CanManageMembersAsync` (Mitgliederverwaltung, Verwaltung),
     `CanAppointTrainersAsync` (Ausbildungswart:in, Verwaltung),
-    `CanViewClubOverviewAsync` (Vorstand, Verwaltung - erst mit V2 genutzt),
+    `CanViewClubOverviewAsync` (Vorstand, Verwaltung; `ClubOverviewService`),
     `CanManageClubAsync` (Verwaltung). `MitRolle` filtert Abfragen über viele
     Zeilen nach derselben Menge. Services vergleichen keine Rollen selbst.
   - `GetManageableGroupAsync` - die Gruppe, wenn man sie verwalten darf

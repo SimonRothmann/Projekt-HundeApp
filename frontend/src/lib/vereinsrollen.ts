@@ -47,7 +47,7 @@ export const ROLLEN: readonly RollenInfo[] = [
   {
     bit: ROLLE.vorstand,
     name: uebersetzbar("Vorstand"),
-    erklaerung: uebersetzbar("Darf lesen, ändert nichts. Die Vereinsübersicht für den Vorstand folgt."),
+    erklaerung: uebersetzbar("Darf lesen, ändert nichts: sieht die Vereinsübersicht mit Zahlen und die Mitgliederliste mit Namen und Gruppen."),
   },
   {
     bit: ROLLE.verwaltung,

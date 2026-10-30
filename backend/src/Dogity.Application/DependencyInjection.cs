@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<IGroupTrainingScheduleService, GroupTrainingScheduleService>();
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IClubInviteService, ClubInviteService>();
+        services.AddScoped<IClubOverviewService, ClubOverviewService>();
         services.AddScoped<IGroupRegistrationService, GroupRegistrationService>();
         services.AddScoped<IGroupRegistrationFormService, GroupRegistrationFormService>();
         services.AddScoped<IGroupRegistrationRetention, GroupRegistrationRetention>();

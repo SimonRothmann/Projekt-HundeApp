@@ -491,7 +491,33 @@ export type GroupTrainerOption = {
   userId: string;
   firstName: string;
   lastName: string;
-  email: string;
+  /** Nur für die, die Mitglieder verwalten dürfen; sonst null. */
+  email: string | null;
+};
+
+// Vereinsübersicht für Vorstand und Verwaltung (siehe ClubOverviewService): nur Zählwerte und Namen, keine E-Mail.
+export type ClubOverviewRole = { role: number; count: number };
+export type ClubOverviewGroup = { id: string; name: string; memberCount: number; trainerCount: number };
+export type ClubOverviewMonth = { year: number; month: number; planned: number; cancelled: number; attendances: number };
+export type ClubOverview = {
+  memberCount: number;
+  newMembersLast30Days: number;
+  pendingRequests: number;
+  openInvitations: number;
+  roles: ClubOverviewRole[];
+  groups: ClubOverviewGroup[];
+  membersWithoutGroup: number;
+  months: ClubOverviewMonth[];
+};
+export type ClubOverviewMember = {
+  membershipId: string;
+  /** Beide leer, wenn das Konto nicht mehr existiert. */
+  firstName: string;
+  lastName: string;
+  memberSince: string;
+  groups: string[];
+  /** Rollen im Verein als Bitmenge (siehe lib/vereinsrollen.ts); 0 = keine. */
+  roles: number;
 };
 
 export type Club = {
@@ -510,6 +536,8 @@ export type Club = {
   canAppointTrainers?: boolean;
   /** Hat eine Trainer-Rolle (Training, Ausbildungswart:in, Verwaltung): Katalog, Gruppen. */
   isTrainer?: boolean;
+  /** Darf die Vereinsübersicht lesen (Vorstand, Verwaltung). */
+  canViewOverview?: boolean;
 };
 
 // Vereins-Trainingsbibliothek (siehe docs/GROUP_TRAINING_LIBRARY.md).
@@ -600,7 +628,8 @@ export type GroupTrainingSession = {
 
 export type ClubTrainerInfo = {
   userId: string;
-  email: string;
+  /** Nur für Mitgliederverwaltung, Verwaltung und Admin; sonst null (Namen und Rollen genügen). */
+  email: string | null;
   firstName: string;
   lastName: string;
   assignedAt: string;

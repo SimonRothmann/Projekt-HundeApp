@@ -19,7 +19,8 @@ public class ClubsController(
     IClubService clubService,
     IGroupService groupService,
     IClubRegistrationService registrations,
-    IClubInviteService invites) : ApiControllerBase
+    IClubInviteService invites,
+    IClubOverviewService overview) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ClubSummaryDto>>> GetClubs(CancellationToken ct)
@@ -208,6 +209,16 @@ public class ClubsController(
     [EnableRateLimiting("invite")]
     public async Task<ActionResult<ClubMembershipDto>> JoinViaInvite(string code, CancellationToken ct) =>
         FromResult(await invites.JoinAsync(CurrentUserId, code, ct));
+
+    /// <summary>Zahlen des Vereins für Vorstand und Verwaltung - nur Vereinsdaten, nichts je Person.</summary>
+    [HttpGet("{id:guid}/overview")]
+    public async Task<ActionResult<ClubOverviewDto>> GetOverview(Guid id, CancellationToken ct) =>
+        FromResult(await overview.GetOverviewAsync(CurrentUserId, IsAdmin, id, ct));
+
+    /// <summary>Die Mitglieder mit Namen, Gruppen und Rollen für die Vereinsübersicht - ohne E-Mail-Adresse.</summary>
+    [HttpGet("{id:guid}/overview/members")]
+    public async Task<ActionResult<IReadOnlyList<ClubOverviewMemberDto>>> GetOverviewMembers(Guid id, CancellationToken ct) =>
+        FromResult(await overview.GetMembersAsync(CurrentUserId, IsAdmin, id, ct));
 
     [HttpGet("{id:guid}/groups")]
     public async Task<ActionResult<IReadOnlyList<GroupDto>>> GetClubGroups(Guid id, CancellationToken ct)

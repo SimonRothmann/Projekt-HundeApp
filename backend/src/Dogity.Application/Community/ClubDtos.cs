@@ -22,7 +22,8 @@ public record ClubDto(
     ClubRole Roles = 0,
     bool CanManageMembers = false,
     bool CanAppointTrainers = false,
-    bool IsTrainer = false)
+    bool IsTrainer = false,
+    bool CanViewOverview = false)
 {
     /// <summary>Der Verein aus Sicht einer Person mit diesen Rollen.</summary>
     public static ClubDto Fuer(Guid id, string name, string? description, int trainerCount, int groupCount, ClubRole roles) =>
@@ -31,11 +32,13 @@ public record ClubDto(
             Roles: roles,
             CanManageMembers: (roles & ClubRollen.Mitglieder) != 0,
             CanAppointTrainers: (roles & ClubRollen.TrainerBerufen) != 0,
-            IsTrainer: (roles & ClubRollen.Trainer) != 0);
+            IsTrainer: (roles & ClubRollen.Trainer) != 0,
+            CanViewOverview: (roles & ClubRollen.Uebersicht) != 0);
 }
 
+/// <param name="Email">Nur für die, die Mitglieder verwalten dürfen (und den Admin); sonst null - Namen und Rollen genügen, um Rollen zu verteilen.</param>
 /// <param name="Roles">Die Rollen der Person im Verein (<see cref="ClubRole"/>, numerisch).</param>
-public record ClubTrainerDto(Guid UserId, string Email, string FirstName, string LastName, DateTimeOffset AssignedAt, ClubRole Roles = 0);
+public record ClubTrainerDto(Guid UserId, string? Email, string FirstName, string LastName, DateTimeOffset AssignedAt, ClubRole Roles = 0);
 
 public record ClubDetailDto(ClubDto Club, IReadOnlyList<ClubTrainerDto> Trainers, IReadOnlyList<ClubMemberDto> Members);
 
@@ -110,3 +113,49 @@ public record ClubInvitePreviewDto(string ClubName);
 /// Meldung - vorher hieß es "eingeladen", auch wenn die Person schon aufgenommen war.
 /// </summary>
 public record AddClubMemberResultDto(bool Joined);
+
+/// <summary>
+/// Die Vereinsübersicht für Vorstand und Verwaltung: nur Zählwerte aus
+/// Vereinsdaten (keine Trainingstagebücher, keine Anmelde- oder Nutzungszeiten
+/// einzelner Personen) und die Namen der Gruppen.
+/// </summary>
+/// <param name="MemberCount">Freigegebene Mitglieder.</param>
+/// <param name="NewMembersLast30Days">Davon in den letzten 30 Tagen freigegeben (Aufnahme, sonst Anfrage).</param>
+/// <param name="PendingRequests">Offene Beitrittsanfragen.</param>
+/// <param name="OpenInvitations">Eingeladen, aber noch nicht zugesagt.</param>
+/// <param name="Roles">Je Rolle die Zahl der Personen, die sie tragen - alle fünf, auch mit 0.</param>
+/// <param name="MembersWithoutGroup">Freigegebene Mitglieder, die in keiner Gruppe des Vereins sind (weder als Mitglied noch als Trainer:in).</param>
+/// <param name="Months">Die letzten 6 Monate bis einschließlich des laufenden, älteste zuerst.</param>
+public record ClubOverviewDto(
+    int MemberCount,
+    int NewMembersLast30Days,
+    int PendingRequests,
+    int OpenInvitations,
+    IReadOnlyList<ClubOverviewRoleDto> Roles,
+    IReadOnlyList<ClubOverviewGroupDto> Groups,
+    int MembersWithoutGroup,
+    IReadOnlyList<ClubOverviewMonthDto> Months);
+
+/// <param name="Role">Eine einzelne Rolle (<see cref="ClubRole"/>, numerisch).</param>
+public record ClubOverviewRoleDto(ClubRole Role, int Count);
+
+/// <param name="TrainerCount">Leitung und weitere Trainer:innen (angenommen).</param>
+public record ClubOverviewGroupDto(Guid Id, string Name, int MemberCount, int TrainerCount);
+
+/// <summary>
+/// Die Gruppentermine eines Kalendermonats (deutsche Zeit), über alle Gruppen
+/// des Vereins. <paramref name="Planned"/> sind die nicht abgesagten Termine
+/// (stattgefundene wie noch kommende - die Termine kennen nur "geplant" und
+/// "abgesagt"), <paramref name="Attendances"/> die Zusagen dazu: nur von
+/// aktuellen Gruppenmitgliedern, nur Summen, nichts je Person.
+/// </summary>
+public record ClubOverviewMonthDto(int Year, int Month, int Planned, int Cancelled, int Attendances);
+
+/// <summary>
+/// Ein Mitglied in der Vorstandsübersicht: Name, Mitglied seit, Gruppen und
+/// Rollen - bewusst ohne E-Mail-Adresse, Hunde, Trainings und Zusagen.
+/// Fehlt das Konto, bleiben die Namen leer (wie in der Mitgliederliste).
+/// </summary>
+/// <param name="Groups">Namen der Gruppen im Verein (Mitglied oder Trainer:in), alphabetisch.</param>
+/// <param name="Roles">Die Rollen im Verein (<see cref="ClubRole"/>, numerisch; 0 = keine).</param>
+public record ClubOverviewMemberDto(Guid MembershipId, string FirstName, string LastName, DateTimeOffset MemberSince, IReadOnlyList<string> Groups, ClubRole Roles);

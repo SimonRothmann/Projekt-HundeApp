@@ -237,11 +237,14 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             .Select(t => t.UserId)
             .ToListAsync(ct);
 
+        // Die Adresse sehen nur, die auch die Mitgliederliste lesen: Für die Auswahl
+        // (etwa der Ausbildungswart:in) genügt der Name.
+        var mitEmail = await db.CanManageMembersAsync(userId, clubId, ct);
         var lookup = await userLookup.FindByIdsAsync(trainerIds, ct);
         var dtos = trainerIds
             .Select(id => lookup.TryGetValue(id, out var info)
-                ? new GroupTrainerOptionDto(id, info.FirstName, info.LastName, info.Email)
-                : new GroupTrainerOptionDto(id, "", "", "(unbekannt)"))
+                ? new GroupTrainerOptionDto(id, info.FirstName, info.LastName, mitEmail ? info.Email : null)
+                : new GroupTrainerOptionDto(id, "", "", mitEmail ? "(unbekannt)" : null))
             .OrderBy(t => t.FirstName)
             .ThenBy(t => t.LastName)
             .ToList();

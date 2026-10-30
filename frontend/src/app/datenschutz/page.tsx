@@ -105,7 +105,7 @@ function DatenschutzDe() {
         <Liste
           punkte={[
             "Mitgliedschaften, Beitrittsanfragen und Einladungen in einen Verein samt Status und der Angabe, ob die Anfrage über den Einladungslink oder QR-Code des Vereins kam; bei einer offenen Einladung die E-Mail-Adresse, die der Verein dafür eingegeben hat",
-            "Trainerrollen, Gruppenzugehörigkeit und die Zuordnung zwischen Trainer:in und Hund",
+            "Rollen im Verein (Training, Ausbildungswart:in, Mitgliederverwaltung, Vorstand, Verwaltung), Gruppenzugehörigkeit und die Zuordnung zwischen Trainer:in und Hund",
             "geplante Gruppentrainings, an denen du teilnimmst oder die du leitest",
             "deine Zu- oder Absage zu einem Gruppentermin samt Zeitpunkt der Antwort",
           ]}
@@ -332,11 +332,11 @@ function DatenschutzDe() {
           punkte={[
             "Mitbesitzer:innen eines Hundes sehen dessen Tagebuch vollständig. Mitbesitzer:in wird nur, wer eine Einladung annimmt. Bis dahin sieht die einladende Person nur die E-Mail-Adresse, die sie selbst eingegeben hat, und die eingeladene Person nur den Namen des Hundes und wer einlädt. Den eigenen Mitbesitz kannst du jederzeit beenden.",
             "Trainer:innen einer Gruppe, der du selbst beigetreten bist oder deren Einladung du angenommen hast, können deine Hunde betreuen. Sie sehen dann deren Trainings, Ziele und Fährten und können Rückmeldung geben. Du wirst benachrichtigt, sobald jemand einen deiner Hunde betreut; verlässt du die Gruppe, endet die Betreuung. Du kannst sie auch jederzeit selbst beenden: Unter „Verwalten“ beim Hund siehst du, welche Trainer:innen Einblick haben, und beendest die Betreuung dort mit einem Tipp. Die Trainer:in wird benachrichtigt und sieht den Hund danach nicht mehr.",
-            "Zusagen zu Gruppenterminen: Die Trainer:innen des Vereins und des Termins sehen mit Namen, wer zu- oder abgesagt hat. Die anderen Mitglieder deiner Gruppe sehen nur Zahlen, etwa „5 Zusagen“. Sagst du ab, bekommen die Trainer:innen des Termins eine Benachrichtigung mit deinem Vornamen.",
+            "Zusagen zu Gruppenterminen: Die Trainer:innen der Gruppe, Ausbildungswart:in und Verwaltung des Vereins sowie die dem Termin zugeordneten Trainer:innen sehen mit Namen, wer zu- oder abgesagt hat. Die anderen Mitglieder deiner Gruppe sehen nur Zahlen, etwa „5 Zusagen“. Sagst du ab, bekommen die Trainer:innen des Termins eine Benachrichtigung mit deinem Vornamen.",
             "Trainingspausen deines Hundes sehen du und die Mitbesitzer:innen mit Grund, Zeitraum und Notiz. Trainer:innen, die den Hund betreuen, sehen nur, dass er pausiert und bis wann – nicht den Grund und nicht die Notiz. Der Trainingsplan, den sie sehen, hält in dieser Zeit an; deshalb sehen sie darin auch die Zeiträume früherer Pausen, die in den Plan fallen, aber nie den Verlauf mit Gründen. Alle anderen sehen nichts davon. Das stellt der Server sicher, nicht nur die Anzeige.",
             "Gesundheitseinträge deines Hundes (Impfungen, Entwurmung, Parasitenschutz, Tierarzttermine) sehen nur du und die Mitbesitzer:innen. Trainer:innen, die den Hund betreuen, sehen nichts davon – auch nicht, dass es solche Einträge gibt. Alle anderen sehen ebenfalls nichts. Das stellt der Server sicher, nicht nur die Anzeige.",
             "Deine Antwort auf das Feedback einer Trainer:in (Danke, Verstanden, Rückfrage) sehen die Trainer:in, die es gegeben hat, und die Besitzer:innen des Hundes; sie löst bei der Trainer:in eine Benachrichtigung aus. Schreibt die Trainer:in neues Feedback, wird deine Antwort zurückgesetzt.",
-            "Die Vereinsverwaltung sieht Mitgliedschaften, Gruppenzugehörigkeit und Namen ihrer Mitglieder – nicht deren Trainingstagebuch. Bei einer Beitrittsanfrage sieht sie auch, ob sie über den Einladungslink des Vereins kam.",
+            "Im Verein sehen die Rollen unterschiedlich viel, nie jedoch dein Trainingstagebuch: Trainer:innen sehen ihre Gruppen und deren Mitglieder. Ausbildungswart:in und Verwaltung sehen alle Gruppen des Vereins. Die Mitgliederverwaltung und die Verwaltung sehen die Mitgliederliste mit Name und E-Mail-Adresse, die Beitrittsanfragen – darunter, ob sie über den Einladungslink des Vereins kamen – und die Einladungen. Der Vorstand und die Verwaltung sehen Name, Gruppenzugehörigkeit, Rollen und Mitglied-seit-Datum der Mitglieder sowie zusammengefasste Zahlen des Vereins (Mitglieder, Gruppen, Termine und Zusagen als Summen) – keine Trainingstagebücher und keine E-Mail-Adressen.",
             "Der Betreiber sieht in der Verwaltung zusammengezählte Kennzahlen, etwa wie viele der Konten der letzten 30 Tage einen Hund angelegt haben. Das sind Zahlen, keine Personen; dafür wird nichts im Browser gemessen.",
             "Wer dich in einen Verein, in eine Gruppe, als Trainer:in einer Gruppe oder als Mitbesitzer:in eines Hundes einlädt, sieht bis zu deiner Zusage nur die E-Mail-Adresse, die dabei eingegeben wurde – nicht deinen Namen. Lehnst du ab, bleibt es dabei.",
             "Der Betreiber kann aus technischen Gründen auf die Datenbank zugreifen, tut das aber nur zur Fehlersuche und zum Betrieb.",
@@ -371,7 +371,7 @@ function DatenschutzDe() {
         </p>
         <p className="font-medium text-foreground">Wer sie sieht</p>
         <p>
-          Die Trainer:innen der Gruppe und die Trainer:innen des Vereins, zu dem die Gruppe gehört – sonst niemand.
+          Die Trainer:innen der Gruppe sowie Ausbildungswart:in und Verwaltung des Vereins, zu dem die Gruppe gehört – sonst niemand.
           Auch andere Mitglieder der Gruppe, andere Angemeldete und Besucher:innen der Seite sehen die Angaben nicht.
           Wer das Formular öffnet, sieht nur den Namen des Vereins und der Gruppe. Bei einer neuen Anmeldung erhalten
           die Trainer:innen der Gruppe eine Benachrichtigung in der App, in der Rufname und Rasse des Hundes stehen.

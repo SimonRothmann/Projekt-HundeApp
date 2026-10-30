@@ -30,8 +30,12 @@ public record GroupDto(
 
 public record GroupMemberDto(Guid UserId, string Email, string FirstName, string LastName, GroupMemberRole Role, DateTimeOffset JoinedAt);
 
-/// <summary>Ein möglicher Gruppen-Trainer (alle Trainer:innen des Vereins der Gruppe).</summary>
-public record GroupTrainerOptionDto(Guid UserId, string FirstName, string LastName, string Email);
+/// <summary>
+/// Ein möglicher Gruppen-Trainer (alle Trainer:innen des Vereins der Gruppe).
+/// <paramref name="Email"/> nur für die, die Mitglieder verwalten dürfen (Mitgliederverwaltung, Verwaltung); sonst null -
+/// für die Auswahl genügt der Name.
+/// </summary>
+public record GroupTrainerOptionDto(Guid UserId, string FirstName, string LastName, string? Email);
 
 /// <summary>
 /// Eine:r der Trainer:innen einer Gruppe. <paramref name="IsLead"/> markiert

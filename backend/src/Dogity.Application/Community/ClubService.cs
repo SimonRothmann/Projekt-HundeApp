@@ -67,7 +67,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             .ToList();
         var lookup = await userLookup.FindByIdsAsync(userIds, ct);
 
-        var trainers = club.Trainers.Select(t => ZuRolleninhaber(t, lookup)).ToList();
+        var trainers = club.Trainers.Select(t => ZuRolleninhaber(t, lookup, mitEmail: true)).ToList();
 
         // Ohne zusätzliche Abfrage: die Rollen sind hier schon geladen.
         var trainerCount = club.Trainers.Count(t => (t.Role & ClubRollen.Trainer) != 0);
@@ -310,26 +310,29 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     /// <summary>
     /// Alle Personen mit einer Rolle im Verein samt ihren Rollen - für die
     /// Rollenverwaltung. Nur für die, die Trainer:innen berufen dürfen (und den
-    /// Admin).
+    /// Admin). Die E-Mail-Adresse der Personen sehen davon nur die, die auch die
+    /// Mitgliederliste lesen (Mitgliederverwaltung, Verwaltung) und der Admin:
+    /// Eine Ausbildungswart:in braucht für Rollen nur Namen und Rollen.
     /// </summary>
     public async Task<Result<IReadOnlyList<ClubTrainerDto>>> GetRoleHoldersAsync(Guid callerId, bool isAdmin, Guid clubId, CancellationToken ct = default)
     {
         if (!isAdmin && !await db.CanAppointTrainersAsync(callerId, clubId, ct))
             return Result<IReadOnlyList<ClubTrainerDto>>.NotFound("Verein nicht gefunden.");
 
+        var mitEmail = isAdmin || await db.CanManageMembersAsync(callerId, clubId, ct);
         var zeilen = await db.ClubTrainers.Where(t => t.ClubId == clubId).AsNoTracking().ToListAsync(ct);
         var lookup = await userLookup.FindByIdsAsync(zeilen.Select(t => t.UserId).ToList(), ct);
         var liste = zeilen
-            .Select(t => ZuRolleninhaber(t, lookup))
+            .Select(t => ZuRolleninhaber(t, lookup, mitEmail))
             .OrderBy(t => t.LastName).ThenBy(t => t.FirstName)
             .ToList();
         return Result<IReadOnlyList<ClubTrainerDto>>.Success(liste);
     }
 
-    private static ClubTrainerDto ZuRolleninhaber(ClubTrainer t, IReadOnlyDictionary<Guid, UserLookupResult> lookup) =>
+    private static ClubTrainerDto ZuRolleninhaber(ClubTrainer t, IReadOnlyDictionary<Guid, UserLookupResult> lookup, bool mitEmail) =>
         lookup.TryGetValue(t.UserId, out var info)
-            ? new ClubTrainerDto(t.UserId, info.Email, info.FirstName, info.LastName, t.CreatedAt, t.Role)
-            : new ClubTrainerDto(t.UserId, "(unbekannt)", "", "", t.CreatedAt, t.Role);
+            ? new ClubTrainerDto(t.UserId, mitEmail ? info.Email : null, info.FirstName, info.LastName, t.CreatedAt, t.Role)
+            : new ClubTrainerDto(t.UserId, mitEmail ? "(unbekannt)" : null, "", "", t.CreatedAt, t.Role);
 
     /// <summary>
     /// Jemanden per E-Mail-Adresse in den Verein holen.

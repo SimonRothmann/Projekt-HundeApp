@@ -101,7 +101,7 @@ export function DatenschutzEn() {
         <Liste
           punkte={[
             "Memberships, join requests and invitations to a club including their status and the indication whether the request came through the club’s invitation link or QR code; for an open invitation, the email address the club entered for it",
-            "Trainer roles, group membership and the assignment between trainer and dog",
+            "Roles in the club (training, training officer, membership management, board, administration), group membership and the assignment between trainer and dog",
             "planned group sessions that you take part in or lead",
             "your acceptance or decline of a group session including the time of your reply",
           ]}
@@ -318,11 +318,11 @@ export function DatenschutzEn() {
           punkte={[
             "Co-owners of a dog see its diary in full. Someone only becomes a co-owner by accepting an invitation. Until then the inviting person sees only the email address they entered themselves, and the invited person sees only the dog’s name and who is inviting. You can end your own co-ownership at any time.",
             "Trainers of a group that you have joined yourself or whose invitation you have accepted can look after your dogs. They then see their training sessions, goals and tracks and can give feedback. You are notified as soon as someone looks after one of your dogs; if you leave the group, the supervision ends. You can also end it yourself at any time: Under “Manage” on the dog you see which trainers have insight, and you end the supervision there with a tap. The trainer is notified and no longer sees the dog afterwards.",
-            "Acceptances of group sessions: The trainers of the club and of the session see by name who accepted or declined. The other members of your group only see numbers, such as “5 acceptances”. If you decline, the trainers of the session receive a notification with your first name.",
+            "Acceptances of group sessions: The trainers of the group, the training officer and the administration of the club, and the trainers assigned to the session see by name who accepted or declined. The other members of your group only see numbers, such as “5 acceptances”. If you decline, the trainers of the session receive a notification with your first name.",
             "Training breaks of your dog are seen by you and the co-owners with reason, period and note. Trainers who look after the dog see only that it is on a break and until when – not the reason and not the note. The training plan they see stands still during that time; for that reason they also see the periods of earlier breaks that fall within the plan, but never the history with reasons. Nobody else sees any of this. The server ensures this, not just the display.",
             "Health entries of your dog (vaccinations, deworming, parasite protection, vet appointments) are seen only by you and the co-owners. Trainers who look after the dog see none of it – not even that such entries exist. Nobody else sees them either. The server ensures this, not just the display.",
             "Your reply to a trainer’s feedback (“Thanks”, “Understood”, “Question”) is seen by the trainer who gave it and by the owners of the dog; it triggers a notification for the trainer. If the trainer writes new feedback, your reply is reset.",
-            "The club administration sees memberships, group membership and names of its members – not their training diary. For a join request it also sees whether it came through the club’s invitation link.",
+            "Within a club the roles see different amounts, but never your training diary: Trainers see their groups and the members of those groups. The training officer and the administration see all groups of the club. Membership management and the administration see the member list with name and email address, the join requests – including whether they came through the club’s invitation link – and the invitations. The board and the administration see name, group membership, roles and member-since date of the members as well as aggregated figures for the club (members, groups, sessions and acceptances as totals) – no training diaries and no email addresses.",
             "In the administration, the operator sees aggregated key figures, such as how many of the accounts of the last 30 days have created a dog. These are numbers, not persons; nothing is measured in the browser for this.",
             "Anyone who invites you to a club, to a group, as a trainer of a group or as a co-owner of a dog sees, until you accept, only the email address entered for that – not your name. If you decline, it stays that way.",
             "For technical reasons the operator can access the database, but does so only for troubleshooting and operation.",
@@ -357,7 +357,7 @@ export function DatenschutzEn() {
         </p>
         <p className="font-medium text-foreground">Who sees them</p>
         <p>
-          The trainers of the group and the trainers of the club to which the group belongs – nobody else. Other members
+          The trainers of the group as well as the training officer and the administration of the club to which the group belongs – nobody else. Other members
           of the group, other people who signed up and visitors to the page also do not see the details. Anyone who
           opens the form sees only the name of the club and of the group. When there is a new sign-up, the trainers of
           the group receive a notification in the app that contains the dog’s call name and breed.

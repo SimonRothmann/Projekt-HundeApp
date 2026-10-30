@@ -10,20 +10,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CatalogSection } from "@/components/sports/catalog-section";
 import { ClubInviteSection } from "@/components/trainer/club-invite-section";
 import { ClubMembersSection } from "@/components/trainer/club-members-section";
+import { ClubOverviewSection } from "@/components/trainer/club-overview-section";
 import { ClubRolesSection } from "@/components/trainer/club-roles-section";
 import { ClubStammdatenSection } from "@/components/trainer/club-stammdaten-section";
 
 /**
- * Alles, was zum Verein gehört - je nach Rolle: Stammdaten (Verwaltung),
- * Rollen im Verein (Ausbildungswart:in, Verwaltung), Einladungslink und
- * Mitglieder (Mitgliederverwaltung, Verwaltung) und der vereinseigene Katalog
- * (Trainer:innen). Das lag früher als Block ganz unten auf der
+ * Alles, was zum Verein gehört - je nach Rolle: Vereinsübersicht (Vorstand,
+ * Verwaltung), Stammdaten (Verwaltung), Rollen im Verein (Ausbildungswart:in,
+ * Verwaltung), Einladungslink und Mitglieder (Mitgliederverwaltung,
+ * Verwaltung) und der vereinseigene Katalog (Trainer:innen). Das lag früher als Block ganz unten auf der
  * Trainer-Übersicht, mit je einer Karte pro Verein untereinander.
  *
  * Bei mehreren Vereinen wählt man oben EINEN aus - die Seite zeigt dann nur
  * dessen Bereiche statt aller Vereine hintereinander. Der Server entscheidet
  * über die Rechte und liefert sie mit den Vereinen mit; die Seite blendet nur
- * aus. Sie ist auch für Personen ohne Trainer-Rolle da (Mitgliederverwaltung):
+ * aus. Sie ist auch für Personen ohne Trainer-Rolle da (Mitgliederverwaltung, Vorstand):
  * Sie erreichen sie über die Vereinsseite, nicht über die Trainer-Navigation.
  */
 export default function TrainerVereinPage() {
@@ -69,8 +70,8 @@ export default function TrainerVereinPage() {
   }
 
   const club = clubs.find((c) => c.id === gewaehlt) ?? clubs[0];
-  // Eine Rolle ohne eigene Funktion (Vorstand): die Seite sagt es, statt leer zu bleiben.
-  const hatAbschnitte = club.canManage || club.canAppointTrainers || club.canManageMembers || club.isTrainer;
+  // Falls eine Rolle (noch) ohne eigene Funktion dazukommt: die Seite sagt es, statt leer zu bleiben.
+  const hatAbschnitte = club.canManage || club.canAppointTrainers || club.canManageMembers || club.isTrainer || club.canViewOverview;
 
   return (
     <div className="flex flex-col gap-6">
@@ -111,6 +112,7 @@ export default function TrainerVereinPage() {
 
       {/* key: Jeder Verein bekommt frische Abschnitte - die Mitgliederliste
           merkt sich sonst den zuerst gewählten Verein. */}
+      {club.canViewOverview && <ClubOverviewSection key={`uebersicht-${club.id}`} clubId={club.id} />}
       {club.canManage && <ClubStammdatenSection key={`stammdaten-${club.id}`} club={club} onGespeichert={laden} />}
       {club.canAppointTrainers && (
         <ClubRolesSection

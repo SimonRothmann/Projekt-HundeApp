@@ -163,9 +163,10 @@ export default function ClubsPage() {
             const isApproved = membership?.status === 1;
             const groups = groupsByClub[club.id] ?? [];
             const rollen = rollenVon(club.roles ?? 0);
-            // Gibt es in diesem Verein für meine Rollen etwas zu tun (Vorstand allein hat noch nichts)?
+            // Gibt es in diesem Verein für meine Rollen etwas zu tun? Der Vorstand allein hat nur die Übersicht - ohne Trainer-Navigation führt dieser Link dorthin.
             const meiner = meineVereine.find((m) => m.id === club.id);
             const kannVerwalten = !!meiner && (meiner.canManage || meiner.canManageMembers || meiner.canAppointTrainers || meiner.isTrainer);
+            const kannVerwaltenOderLesen = kannVerwalten || !!meiner?.canViewOverview;
             return (
               <Card key={club.id}>
                 <CardHeader className="flex flex-row items-center gap-3 space-y-0">
@@ -183,12 +184,12 @@ export default function ClubsPage() {
                           {t(r.name)}
                         </Badge>
                       ))}
-                      {kannVerwalten && (
+                      {kannVerwaltenOderLesen && (
                         <Link
                           href={`/trainer/verein?verein=${club.id}&from=${encodeURIComponent("/clubs")}`}
                           className={buttonVariants({ size: "sm", variant: "outline" })}
                         >
-                          {t("Verein verwalten")}
+                          {kannVerwalten ? t("Verein verwalten") : t("Vereinsübersicht")}
                         </Link>
                       )}
                     </div>

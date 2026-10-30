@@ -14,8 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Chip } from "@/components/dogs/eintragen-chip";
 
-function anzeigename(p: { firstName: string; lastName: string; email: string }) {
-  return `${p.firstName} ${p.lastName}`.trim() || p.email;
+function anzeigename(p: { firstName: string; lastName: string; email?: string | null }) {
+  return `${p.firstName} ${p.lastName}`.trim() || p.email || "";
 }
 
 /**
@@ -158,7 +158,7 @@ export function ClubRolesSection({
               <li key={p.userId} className="flex min-w-0 flex-col gap-2 rounded-md border px-3 py-2">
                 <div className="flex min-w-0 flex-col gap-1.5">
                   <span className="min-w-0 text-sm [overflow-wrap:anywhere]">
-                    {p.firstName} {p.lastName} ({p.email})
+                    {p.firstName} {p.lastName}{p.email ? ` (${p.email})` : ""}
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {rollenVon(p.roles).map((r) => (
