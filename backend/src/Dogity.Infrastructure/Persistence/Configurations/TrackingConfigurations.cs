@@ -14,6 +14,10 @@ public class GpsTrackConfiguration : IEntityTypeConfiguration<GpsTrack>
         builder.Property(t => t.Weather).HasMaxLength(Textlaengen.Kurzangabe);
         builder.Property(t => t.Wind).HasMaxLength(Textlaengen.Kurzangabe);
         builder.Property(t => t.Comment).HasMaxLength(Textlaengen.FaehrtenKommentar);
+        // Als String statt int: wie bei GpsWalkStop.Kind. Bestehende Zeilen sind
+        // Fährten (Vorgabe "Faehrte"); die beiden Schalter starten mit false.
+        builder.Property(t => t.Kind).HasConversion<string>().HasMaxLength(20).HasDefaultValue(GpsTrackKind.Faehrte);
+        builder.Property(t => t.ScentArticle).HasMaxLength(Textlaengen.Geruchsartikel);
         builder.HasIndex(t => t.TrainingSessionId);
     }
 }
@@ -41,6 +45,7 @@ public class GpsWalkRunConfiguration : IEntityTypeConfiguration<GpsWalkRun>
     {
         builder.ToTable("gps_walk_runs");
         builder.Property(r => r.Comment).HasMaxLength(Textlaengen.FaehrtenKommentar);
+        builder.Property(r => r.Indication).HasConversion<string>().HasMaxLength(20);
 
         builder.HasOne(r => r.Track)
             .WithMany(t => t.WalkRuns)

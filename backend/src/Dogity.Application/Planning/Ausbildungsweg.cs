@@ -47,6 +47,8 @@ public static class Ausbildungsweg
             new[] { "Agility 0 (A0)", "Agility 1 (A1)", "Agility 2 (A2)", "Agility 3 (A3)" },
             new[] { "Hoopers 0 (H0)", "Hoopers 1 (H1)", "Hoopers 2 (H2)", "Hoopers 3 (H3)" },
             new[] { "VDH-VK1", "VDH-VK2", "VDH-VK3" },
+            new[] { "DVG MT-I", "DVG MT-II", "DVG MT-III" },
+            new[] { "SV-MT 1", "SV-MT 2", "SV-MT 3" },
         })
         {
             for (var i = 0; i < reihe.Length - 1; i++)

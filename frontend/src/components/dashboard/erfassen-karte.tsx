@@ -21,16 +21,21 @@ import { useT } from "@/lib/i18n";
 export function ErfassenKarte({
   hunde,
   faehrtenHundeIds,
+  nurTrailHundeIds = [],
   onEintragen,
   onFaehrte,
 }: {
   hunde: Dog[];
   faehrtenHundeIds: string[];
+  /** Hunde, die trailen, aber keine Fährte laufen: "Trail legen" statt "Fährte legen". */
+  nurTrailHundeIds?: string[];
   onEintragen: (dogId: string) => void;
   onFaehrte: (dogId: string) => void;
 }) {
   const t = useT();
   const faehrtenHunde = hunde.filter((h) => faehrtenHundeIds.includes(h.id));
+  // Der Trail-Wortlaut nur, wenn alle Hunde der Zeile nur trailen - sonst steht die Fährte da, und der Trail liegt im Fenster.
+  const nurTrail = faehrtenHunde.length > 0 && faehrtenHunde.every((h) => nurTrailHundeIds.includes(h.id));
 
   return (
     <Card size="sm">
@@ -45,8 +50,14 @@ export function ErfassenKarte({
         {faehrtenHunde.length > 0 && (
           <Zeile
             icon={Route}
-            titel={t("Fährte legen")}
-            beschreibung={faehrtenHunde.length === 1 ? t("Fährte mit {name} legen", { name: faehrtenHunde[0].name }) : null}
+            titel={nurTrail ? t("Trail legen") : t("Fährte legen")}
+            beschreibung={
+              faehrtenHunde.length === 1
+                ? nurTrail
+                  ? t("Trail mit {name} legen", { name: faehrtenHunde[0].name })
+                  : t("Fährte mit {name} legen", { name: faehrtenHunde[0].name })
+                : null
+            }
             hunde={faehrtenHunde}
             onWaehle={onFaehrte}
           />

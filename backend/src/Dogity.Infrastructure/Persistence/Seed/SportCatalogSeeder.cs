@@ -1584,6 +1584,7 @@ public static partial class SportCatalogSeeder
         await SeedSchweizAsync(db, agility);
         var obedience = await SeedObedienceAsync(db);
         var rally = await SeedRallyObedienceAsync(db);
+        await SeedMantrailingAsync(db);
 
         await RemoveOrphanedExercisesAsync(db, bh);
         await RemoveOrphanedExercisesAsync(db, ibgh1);

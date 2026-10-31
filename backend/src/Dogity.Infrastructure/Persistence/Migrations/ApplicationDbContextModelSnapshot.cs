@@ -2167,6 +2167,16 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("DoubleBlind")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Faehrte");
+
                     b.Property<int?>("LaidRelativeHumidity")
                         .HasColumnType("integer");
 
@@ -2181,6 +2191,13 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
                     b.Property<double?>("LengthMeters")
                         .HasColumnType("double precision");
+
+                    b.Property<bool>("NegativeTrail")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ScentArticle")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int?>("SearchRelativeHumidity")
                         .HasColumnType("integer");
@@ -2290,6 +2307,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("EvaluatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Indication")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<double?>("LengthMeters")
                         .HasColumnType("double precision");
 
@@ -2298,6 +2319,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
                     b.Property<double?>("OnTrackPercent")
                         .HasColumnType("double precision");
+
+                    b.Property<bool?>("PersonFound")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("TrackId")
                         .HasColumnType("uuid");

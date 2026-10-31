@@ -22,15 +22,32 @@ export const UNTERGRUENDE: readonly string[] = [
 ];
 
 /**
+ * Untergründe beim Trail-Legen (Mantrailing): Der Trail führt meist durch
+ * Wohngebiet und über Straßen, Acker und Stoppelfeld sind dort selten.
+ */
+export const TRAIL_UNTERGRUENDE: readonly string[] = [
+  uebersetzbar("Wohngebiet"),
+  uebersetzbar("Straße"),
+  uebersetzbar("Park"),
+  uebersetzbar("Wald"),
+  uebersetzbar("Wiese"),
+  uebersetzbar("Feldweg"),
+];
+
+/**
  * Einen Untergrund an- oder abwählen.
  *
  * Mehrfachauswahl, weil eine Fährte über einen Untergrundwechsel führen kann.
  * Das Ergebnis folgt immer der Reihenfolge der Liste - sonst stünde derselbe
  * Wechsel mal als "Acker, Wiese" und mal als "Wiese, Acker" in den Daten.
  */
-export function untergrundUmschalten(auswahl: readonly string[], untergrund: string): string[] {
+export function untergrundUmschalten(
+  auswahl: readonly string[],
+  untergrund: string,
+  liste: readonly string[] = UNTERGRUENDE,
+): string[] {
   const neu = auswahl.includes(untergrund) ? auswahl.filter((u) => u !== untergrund) : [...auswahl, untergrund];
-  return UNTERGRUENDE.filter((u) => neu.includes(u));
+  return liste.filter((u) => neu.includes(u));
 }
 
 /** Für die Fährte: "Wiese, Acker" - oder null, wenn nichts gewählt ist. */

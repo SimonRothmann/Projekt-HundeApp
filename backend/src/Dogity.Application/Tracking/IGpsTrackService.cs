@@ -14,6 +14,12 @@ public interface IGpsTrackService
     Task<Result<GpsWalkRunDto>> EvaluateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, CancellationToken ct = default);
 
     Task<Result<GpsWalkRunDto>> UpdateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsWalkRunRequest request, CancellationToken ct = default);
+    /// <summary>Ändert die Trail-Angaben einer Mantrailing-Spur (Alter, Doppelblind, Negativ-Trail, Geruchsartikel).</summary>
+    Task<Result<GpsTrackDto>> UpdateTrailAsync(Guid userId, Guid trackId, UpdateGpsTrailRequest request, CancellationToken ct = default);
+
+    /// <summary>Trägt das Ergebnis eines Mantrailing-Laufs ein (Person gefunden, Anzeigeverhalten).</summary>
+    Task<Result<GpsWalkRunDto>> UpdateTrailRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsTrailRunRequest request, CancellationToken ct = default);
+
     /// <summary>
     /// Holt das Wetter zu Lege- und Suchzeitpunkt (neu). Für Bestandsfährten,
     /// die vor der Wetter-Anbindung aufgezeichnet wurden - Ort und Zeit stecken

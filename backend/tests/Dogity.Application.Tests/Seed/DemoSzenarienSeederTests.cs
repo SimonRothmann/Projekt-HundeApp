@@ -862,6 +862,45 @@ public class DemoSzenarienSeederTests
     }
 
     [Fact]
+    public async Task Mantrailing_EinHundMitZielTrailUndLauf_EntstehtEinmalMitDenWeitenGrenzen()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var ziel = await db.Goals.Include(g => g.Regulation).SingleAsync(g => g.Notes == DemoSzenarienSeeder.NotizMantrailingZiel);
+        Assert.Equal("SV-MT 1", ziel.Regulation!.Name);
+        var hund = await db.Dogs.SingleAsync(d => d.Id == ziel.DogId);
+        // Mantrailing steht in den Sportarten des Hundes - sonst böte die App den Trail nicht an.
+        Assert.True(hund.UsesOwnSports);
+        var mantrailing = await db.Sports.SingleAsync(s => s.Code == "MANTRAILING" && s.ClubId == null);
+        Assert.Contains(await db.DogSportSelections.Where(s => s.DogId == hund.Id).Select(s => s.SportId).ToListAsync(), id => id == mantrailing.Id);
+
+        var track = await db.GpsTracks.Include(t => t.WalkRuns).SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarMantrailing);
+        Assert.Equal(GpsTrackKind.Mantrailing, track.Kind);
+        Assert.True(track.DoubleBlind);
+        Assert.False(track.NegativeTrail);
+        Assert.Equal(90, track.AgeMinutes);
+        Assert.NotNull(track.ScentArticle);
+        Assert.Equal(300, track.LengthMeters);
+
+        // Der Hund arbeitet teils weit neben der Spur: bei der Fährte (3/6 m) wäre das rot, hier liegt es
+        // innerhalb der Grenzen für Mantrailing - und ein Teil der Punkte ist nicht mehr "auf der Spur".
+        var lauf = Assert.Single(track.WalkRuns);
+        Assert.NotNull(lauf.EvaluatedAt);
+        Assert.InRange(lauf.AvgDeviationMeters!.Value, 5, 25);
+        Assert.InRange(lauf.MaxDeviationMeters!.Value, 15, 25);
+        Assert.InRange(lauf.OnTrackPercent!.Value, 10, 90);
+        Assert.Equal(0, lauf.ArticlesTotal);
+        Assert.True(lauf.PersonFound);
+        Assert.Equal(TrailIndication.SittingInFront, lauf.Indication);
+    }
+
+    [Fact]
     public async Task Nachtfaehrte_RuecktAufGesternSolangeKeinAblaufExistiert()
     {
         await using var provider = BaueDienste();

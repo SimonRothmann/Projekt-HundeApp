@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { UNTERGRUENDE, untergrundAlsText, untergrundUmschalten } from "./untergrund";
+import { TRAIL_UNTERGRUENDE, UNTERGRUENDE, untergrundAlsText, untergrundUmschalten } from "./untergrund";
 
 describe("untergrundUmschalten", () => {
   it("wählt beim ersten Antippen an und beim zweiten wieder ab", () => {
@@ -28,5 +28,13 @@ describe("untergrundAlsText", () => {
 
   it("passt auch mit allen Untergründen in die Datenbankspalte (100 Zeichen)", () => {
     expect(untergrundAlsText(UNTERGRUENDE)!.length).toBeLessThanOrEqual(100);
+  });
+});
+
+describe("TRAIL_UNTERGRUENDE", () => {
+  it("ordnet beim Trail nach der Trail-Liste und passt ins Feld", () => {
+    const auswahl = untergrundUmschalten(untergrundUmschalten([], "Wiese", TRAIL_UNTERGRUENDE), "Wohngebiet", TRAIL_UNTERGRUENDE);
+    expect(auswahl).toEqual(["Wohngebiet", "Wiese"]);
+    expect(untergrundAlsText(TRAIL_UNTERGRUENDE)!.length).toBeLessThanOrEqual(100);
   });
 });

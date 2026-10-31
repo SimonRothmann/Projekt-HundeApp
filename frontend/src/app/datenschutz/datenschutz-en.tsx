@@ -89,12 +89,14 @@ export function DatenschutzEn() {
             "Exam results (date, points, note) when you complete a goal",
           ]}
         />
-        <p className="font-medium text-foreground">Tracks (location data)</p>
+        <p className="font-medium text-foreground">Tracks and mantrailing trails (location data)</p>
         <Liste
           punkte={[
             "the recorded track as a series of individual GPS points with timestamp and accuracy",
             "the dog’s path while running the track, likewise as a series of points",
             "evaluations calculated from this: deviation, articles found, hesitations",
+            "in mantrailing: the path of the person being searched for, recorded with the device they carry and stored in your account – that is, the location data of another person",
+            "in mantrailing also details about the trail (trail age, double blind, negative trail, scent article as a short text) and, for each search, whether the person was found and how the dog indicated them",
           ]}
         />
         <p className="font-medium text-foreground">Club and groups</p>
@@ -140,6 +142,14 @@ export function DatenschutzEn() {
           ]}
         />
         <p>
+          In mantrailing the same applies to the trail: the path of the person being searched for is recorded with the
+          device they carry and is stored in the account of the person who records – so it is the location data of
+          another person, who does not need an account. Agree with them beforehand that their path will be recorded.
+          The trace is visible to the same people as any track and disappears with it. The details about the trail
+          (age, double blind, negative trail, scent article, result and indication behaviour) describe the training and
+          are not specially protected data.
+        </p>
+        <p>
           When entering a training location, you can use your current position. This is a single point, not a recording
           – and voluntary; you can also type the place in by hand.
         </p>
@@ -149,6 +159,7 @@ export function DatenschutzEn() {
         <Liste
           punkte={[
             "Account, dogs, training sessions, tracks, club and settings: Art. 6(1)(b) GDPR – without this data the function you registered for does not exist.",
+            "Path of the person being searched for in mantrailing: Art. 6(1)(f) GDPR – there is no contract with that person. The legitimate interest is that the person who records can document their training; the intrusion is small because the person walks the path voluntarily and knows about it beforehand. They can object to the storage; the track is then deleted.",
             "Sign-up to a group through a sign-up form (without an account): Art. 6(1)(b) GDPR – see section 9.",
             "Emails (welcome, password reset, invitations and decisions on join requests): Art. 6(1)(b) GDPR – they belong to the account and club functions. Whether you receive the emails about invitations and decisions, you choose at registration (preselected); you can unsubscribe at any time via the link in the email, without signing in, or under Profile → Features.",
             "Push notifications: Art. 6(1)(a) GDPR and Section 25(1) TDDDG (the German Telecommunications Digital Services Data Protection Act) – they only begin once you have switched them on yourself on a device and the browser or operating system has asked you for permission. You can switch them off in the app at any time or withdraw the permission in the device.",

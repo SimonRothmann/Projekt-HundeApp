@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { GpsPoint, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
+import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
+import { istMantrailing } from "@/lib/mantrailing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Footprints } from "lucide-react";
@@ -59,6 +60,7 @@ export function WalkRunRecorder({
   onAufzeichnung,
   laidTrackPoints,
   label,
+  track,
 }: {
   trackId: string;
   onSaved: () => Promise<void>;
@@ -75,8 +77,17 @@ export function WalkRunRecorder({
   laidTrackPoints?: GpsPoint[];
   /** Beschriftung des Startknopfs - auf der Startseite "Jetzt ablaufen". */
   label?: string;
+  /**
+   * Die gelegte Spur selbst. Beim Mantrailing (kind) ändern sich Begriffe, Grenzen und das Ergebnis-Fenster;
+   * bei einem doppelblinden Trail sieht das Team die gelegte Linie während der Suche nicht und bekommt keine
+   * Vibration an Abbiegungen - beides verriete den Verlauf.
+   */
+  track?: GpsTrack;
 }) {
   const t = useT();
+  const trail = istMantrailing(track);
+  const verdeckt = trail && track?.doubleBlind === true;
+  const sichtbareLegung = verdeckt ? undefined : laidTrackPoints;
   const { isRecording, points, setPoints, currentAccuracy, start: startRecording, stop } = useGpsRecorder(toWalkPoint);
   // Optionaler Kommentar zu diesem Ablauf-Versuch (z.B. "bei Regen", "Hund
   // hat an Winkel 2 verloren") - wird beim Stoppen mitgespeichert.
@@ -137,7 +148,7 @@ export function WalkRunRecorder({
   // jeder erkannten Abbiegung der Legung. sessionKey = trackId+isRecording:
   // beim Neustart der Aufnahme wird die "schon-vibriert"-Menge zurückgesetzt.
   useWalkRunHaptics(
-    laidTrackPoints,
+    sichtbareLegung,
     isRecording && points.length > 0 ? points[points.length - 1] : null,
     `${trackId}:${isRecording ? "on" : "off"}`,
   );
@@ -212,7 +223,13 @@ export function WalkRunRecorder({
   // unterbrochene Aufzeichnung): Das Fenster erscheint, wenn die Aufnahme
   // gerade beendet wurde.
   const ergebnisFenster = ergebnis && (
-    <AblaufErgebnisSheet trackId={trackId} run={ergebnis} laidTrackPoints={laidTrackPoints} onClose={() => void ergebnisSchliessen()} />
+    <AblaufErgebnisSheet
+      trackId={trackId}
+      run={ergebnis}
+      laidTrackPoints={laidTrackPoints}
+      track={track}
+      onClose={() => void ergebnisSchliessen()}
+    />
   );
 
   if (!isRecording && unterbrochen) {
@@ -238,7 +255,7 @@ export function WalkRunRecorder({
       <>
         <Button size="sm" variant="outline" disabled={speichert} onClick={() => aufzeichnen()}>
           <Footprints className="size-4" />
-          {label ?? t("Fährte erneut ablaufen")}
+          {label ?? (trail ? t("Trail suchen") : t("Fährte erneut ablaufen"))}
         </Button>
         {ergebnisFenster}
       </>
@@ -250,7 +267,7 @@ export function WalkRunRecorder({
   // Fährte hat er als Prop, die entstehende Linie sind seine eigenen Punkte.
   return (
     <AufzeichnungVollbild
-      titel={t("Fährte ablaufen")}
+      titel={trail ? t("Trail suchen") : t("Fährte ablaufen")}
       status={
         <>
           {t("{punkte} Punkte", { punkte: points.length })}
@@ -287,7 +304,7 @@ export function WalkRunRecorder({
       onAbschluss={stopRecording}
       onAbbrechen={abbrechen}
     >
-      <TrackMap points={laidTrackPoints ?? KEINE_PUNKTE} liveWalkRunPoints={points} fill />
+      <TrackMap points={sichtbareLegung ?? KEINE_PUNKTE} liveWalkRunPoints={points} art={track} fill />
     </AufzeichnungVollbild>
   );
 }

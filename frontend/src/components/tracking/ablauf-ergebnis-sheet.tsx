@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { ApiError } from "@/lib/api";
-import type { GpsPoint, GpsWalkRun } from "@/lib/types";
+import { api, ApiError } from "@/lib/api";
+import type { GpsPoint, GpsTrack, GpsWalkRun } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,9 +10,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { TrackMap } from "@/components/tracking/track-map";
 import { WalkRunEvaluation } from "@/components/tracking/walk-run-evaluation";
 import { ablaufKommentarSpeichern } from "@/components/tracking/walk-run-comment";
+import { TrailErgebnisFormular } from "@/components/tracking/trail-angaben";
 import { istWischNachUnten, kommentarAenderung } from "@/lib/ablauf-ergebnis";
+import { liegezeitMinuten } from "@/lib/faehrten-bild";
+import { istMantrailing, stundenText, trailAenderungen } from "@/lib/mantrailing";
 import { toast } from "sonner";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 
 /**
@@ -29,23 +32,35 @@ import { TEXTLAENGE } from "@/lib/textlaengen";
  *
  * Der Kommentar wird beim Schließen mitgespeichert, nicht mit einem eigenen
  * Knopf: Wer ihn tippt und dann "Fertig" drückt, erwartet, dass er gespeichert
- * ist.
+ * ist. Ebenso beim Mantrailing das Ergebnis (Person gefunden, Anzeigeverhalten)
+ * und das Trailalter, das hier aus der Zeit zwischen Legen und Suchen
+ * vorgeschlagen wird - die Angaben stehen fest, solange der Hund noch neben
+ * einem steht.
  */
 export function AblaufErgebnisSheet({
   trackId,
   run,
   laidTrackPoints,
+  track,
   onClose,
 }: {
   trackId: string;
   run: GpsWalkRun;
+  /** Die Spur des Laufs; beim Mantrailing (kind) kommen Ergebnis und Trailalter dazu. */
+  track?: GpsTrack;
   /** Die gelegte Fährte für die Karte; ohne sie gibt es keine Karte. */
   laidTrackPoints?: GpsPoint[];
   onClose: () => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
   const [kommentar, setKommentar] = useState(run.comment ?? "");
   const [speichert, setSpeichert] = useState(false);
+  const trail = istMantrailing(track);
+  const [gefunden, setGefunden] = useState<boolean | null>(run.personFound ?? null);
+  const [anzeige, setAnzeige] = useState<number | null>(run.indication ?? null);
+  // Das Alter der Spur, sonst die Zeit vom Ende des Legens bis zum Start dieses Laufs.
+  const [alterText, setAlterText] = useState(() => (track ? stundenText(liegezeitMinuten(track, run), sprache) : ""));
   // Scheiterte das Speichern des Kommentars einmal, schließt der nächste
   // Versuch trotzdem - sonst säße man ohne Netz in einem Fenster fest.
   const aufgegeben = useRef(false);
@@ -59,10 +74,25 @@ export function AblaufErgebnisSheet({
   async function schliessen() {
     if (speichert) return;
     const aenderung = aufgegeben.current ? null : kommentarAenderung(run.comment, kommentar);
-    if (aenderung) {
+    const trailAenderung = aufgegeben.current || !trail || !track ? null : trailAenderungen(track, run, { gefunden, anzeige, alterText });
+    if (trailAenderung?.fehler) {
+      toast.error(t("Das Trailalter muss eine Zahl in Stunden sein, höchstens 168."));
+      return;
+    }
+    if (aenderung || trailAenderung?.ergebnis || trailAenderung?.trail) {
       setSpeichert(true);
       try {
-        await ablaufKommentarSpeichern(trackId, run.id, kommentar);
+        if (aenderung) await ablaufKommentarSpeichern(trackId, run.id, kommentar);
+        if (trailAenderung?.ergebnis) await api.put(`/api/gps-tracks/${trackId}/walk-runs/${run.id}/trail`, trailAenderung.ergebnis);
+        if (trailAenderung?.trail) {
+          try {
+            await api.put(`/api/gps-tracks/${trackId}/trail`, trailAenderung.trail);
+          } catch (err) {
+            // Das Alter am Trail ändert nur, wer das Training bearbeiten darf; eine betreuende Trainer:in
+            // trägt am Eintrag der Familie das Ergebnis ein (oben gespeichert), das Alter bleibt stehen.
+            if (!(err instanceof ApiError && err.status === 404)) throw err;
+          }
+        }
       } catch (err) {
         aufgegeben.current = true;
         setSpeichert(false);
@@ -110,17 +140,30 @@ export function AblaufErgebnisSheet({
           }}
         >
           <span aria-hidden className="mx-auto mb-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
-          <SheetTitle>{t("Fährte abgelaufen")}</SheetTitle>
+          <SheetTitle>{trail ? t("Trail gesucht") : t("Fährte abgelaufen")}</SheetTitle>
         </SheetHeader>
         <div className="flex min-w-0 flex-col gap-4 px-4">
           {ausgewertet ? (
-            <WalkRunEvaluation run={run} gross />
+            <WalkRunEvaluation run={run} gross art={track} />
           ) : (
             <p className="text-sm text-muted-foreground">{t("Dieser Ablauf konnte nicht ausgewertet werden.")}</p>
           )}
 
           {laidTrackPoints && laidTrackPoints.length > 0 && (
-            <TrackMap points={laidTrackPoints} walkRuns={laufListe} />
+            <TrackMap points={laidTrackPoints} walkRuns={laufListe} art={track} />
+          )}
+
+          {trail && (
+            <TrailErgebnisFormular
+              negativ={track?.negativeTrail === true}
+              gefunden={gefunden}
+              anzeige={anzeige}
+              alterText={alterText}
+              alterVorgeschlagen={track?.ageMinutes == null}
+              onGefunden={setGefunden}
+              onAnzeige={setAnzeige}
+              onAlter={setAlterText}
+            />
           )}
 
           <div className="flex flex-col gap-1.5">

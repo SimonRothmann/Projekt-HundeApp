@@ -20,6 +20,7 @@ public class GpsTrackEvaluationBackfill(IApplicationDbContext db) : IGpsTrackEva
         // Punkte je gelegter Fährte einmal laden und wiederverwenden - mehrere
         // Abläufe teilen sich dieselbe Legung.
         var laidCache = new Dictionary<Guid, List<GpsPoint>>();
+        var kindCache = new Dictionary<Guid, GpsTrackKind>();
         var count = 0;
 
         foreach (var walkRunId in pendingIds)
@@ -38,7 +39,13 @@ public class GpsTrackEvaluationBackfill(IApplicationDbContext db) : IGpsTrackEva
             // Zu groß für die Auswertung (siehe MaxAuswertungsAufwand): als
             // erledigt markieren, ohne Kennzahlen - wie beim Speichern. Sonst
             // käme derselbe Ablauf bei jedem Serverstart wieder hierher.
-            if (GpsTrackEvaluator.TryEvaluate(laidPoints, walkRun.Points.ToList()) is not { } evaluation)
+            if (!kindCache.TryGetValue(walkRun.TrackId, out var kind))
+            {
+                kind = await db.GpsTracks.Where(t => t.Id == walkRun.TrackId).Select(t => t.Kind).FirstOrDefaultAsync(ct);
+                kindCache[walkRun.TrackId] = kind;
+            }
+
+            if (GpsTrackEvaluator.TryEvaluate(laidPoints, walkRun.Points.ToList(), kind) is not { } evaluation)
             {
                 walkRun.EvaluatedAt = DateTimeOffset.UtcNow;
                 continue;

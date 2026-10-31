@@ -1,7 +1,8 @@
 import { estimateLengthMeters } from "@/lib/geo";
 import type { GpsPoint, GpsTrack, GpsWalkRun } from "@/lib/types";
 import { formatDelta, formatTemperature } from "@/lib/weather";
-import { AMBER_MAX_M, ampelLabel, GREEN_MAX_M } from "@/components/tracking/walk-run-evaluation";
+import { ampelLabel } from "@/components/tracking/walk-run-evaluation";
+import { FAEHRTE_GRENZEN, istMantrailing, spurGrenzen, type SpurGrenzen } from "@/lib/mantrailing";
 
 /**
  * Reine Geometrie und Kennzahlen für das Fährtenbild ("Als Bild teilen").
@@ -132,10 +133,10 @@ export function formatiereMassstab(meter: number): string {
 
 export type Ampel = "gruen" | "gelb" | "rot";
 
-/** Dieselben Schwellen wie die Auswertung im Tagebuch und die Kartenlinie. */
-export function ampelStufe(abweichungMeter: number): Ampel {
-  if (abweichungMeter <= GREEN_MAX_M) return "gruen";
-  if (abweichungMeter <= AMBER_MAX_M) return "gelb";
+/** Dieselben Schwellen wie die Auswertung im Tagebuch und die Kartenlinie - ohne Angabe die der Fährte. */
+export function ampelStufe(abweichungMeter: number, grenzen: SpurGrenzen = FAEHRTE_GRENZEN): Ampel {
+  if (abweichungMeter <= grenzen.gruenBis) return "gruen";
+  if (abweichungMeter <= grenzen.gelbBis) return "gelb";
   return "rot";
 }
 
@@ -158,12 +159,12 @@ export type Linienstueck = {
  * werden. Aufeinanderfolgende Stücke gleicher Farbe werden zu einer Linie
  * zusammengefasst; das gibt saubere Ecken statt einer Kette einzelner Striche.
  */
-export function faerbeSegmente(abweichungen: (number | null | undefined)[]): Linienstueck[] {
+export function faerbeSegmente(abweichungen: (number | null | undefined)[], grenzen: SpurGrenzen = FAEHRTE_GRENZEN): Linienstueck[] {
   const stuecke: Linienstueck[] = [];
   for (let i = 0; i < abweichungen.length - 1; i++) {
     const a = abweichungen[i];
     const b = abweichungen[i + 1];
-    const stufe = a == null && b == null ? null : ampelStufe(Math.max(a ?? 0, b ?? 0));
+    const stufe = a == null && b == null ? null : ampelStufe(Math.max(a ?? 0, b ?? 0), grenzen);
     const letztes = stuecke[stuecke.length - 1];
     if (letztes && letztes.stufe === stufe) letztes.bis = i + 1;
     else stuecke.push({ stufe, von: i, bis: i + 1 });
@@ -222,7 +223,7 @@ export function faehrtenKennzahlen(track: GpsTrack, ablauf: GpsWalkRun | null): 
   return {
     aufFaehrtePercent: ablauf?.onTrackPercent != null ? Math.round(ablauf.onTrackPercent) : null,
     mittlereAbweichungM: avg != null ? Math.round(avg) : null,
-    ampel: avg != null ? ampelStufe(avg) : null,
+    ampel: avg != null ? ampelStufe(avg, spurGrenzen(track)) : null,
     gefunden: ablauf?.articlesFound ?? 0,
     gesamt: ablauf?.articlesTotal ?? 0,
     liegezeitMin: liegezeitMinuten(track, ablauf ?? track.walkRuns[track.walkRuns.length - 1] ?? null),
@@ -310,18 +311,21 @@ export function baueBildTexte(
   const { track, ablauf, hundeName, sprache } = eingabe;
   const kz = faehrtenKennzahlen(track, ablauf);
   const tag = legedatum(track);
+  const trail = istMantrailing(track);
 
   let kopfzahl: string;
   let laengeInZeilen = true;
   if (kz.aufFaehrtePercent != null) {
-    kopfzahl = t("{prozent} % auf der Fährte", { prozent: kz.aufFaehrtePercent });
+    kopfzahl = trail
+      ? t("{prozent} % auf der Spur", { prozent: kz.aufFaehrtePercent })
+      : t("{prozent} % auf der Fährte", { prozent: kz.aufFaehrtePercent });
   } else if (kz.mittlereAbweichungM != null) {
     kopfzahl = t("Ø {meter} m Abweichung", { meter: kz.mittlereAbweichungM });
   } else if (kz.laengeM != null) {
     kopfzahl = t("Länge {meter} m", { meter: kz.laengeM });
     laengeInZeilen = false;
   } else {
-    kopfzahl = t("Gelegte Fährte");
+    kopfzahl = trail ? t("Gelegter Trail") : t("Gelegte Fährte");
   }
 
   const zeilen: string[] = [];
@@ -340,14 +344,20 @@ export function baueBildTexte(
   }
 
   return {
-    titel: hundeName ? t("{hund} · Fährte", { hund: hundeName }) : t("Fährte"),
+    titel: hundeName ? (trail ? t("{hund} · Trail", { hund: hundeName }) : t("{hund} · Fährte", { hund: hundeName })) : trail ? t("Trail") : t("Fährte"),
     datum: tag
       ? tag.toLocaleDateString(sprache === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long", year: "numeric" })
       : null,
     kopfzahl,
-    ampelWort: ablauf?.avgDeviationMeters != null ? t(ampelLabel(ablauf.avgDeviationMeters)) : null,
+    ampelWort: ablauf?.avgDeviationMeters != null ? t(ampelLabel(ablauf.avgDeviationMeters, track)) : null,
     zeilen,
-    legende: { start: t("Start"), gegenstand: t("Gegenstand"), gelegt: t("Gelegt"), abgelaufen: t("Abgelaufen") },
+    // Beim Mantrailing nennt die Legende die Grenze der Ampel: Die Farben bedeuten dort andere Meter als bei der Fährte.
+    legende: {
+      start: t("Start"),
+      gegenstand: t("Gegenstand"),
+      gelegt: t("Gelegt"),
+      abgelaufen: trail ? t("Abgelaufen, grün bis {meter} m", { meter: spurGrenzen(track).gruenBis }) : t("Abgelaufen"),
+    },
     marke: "Dogity",
   };
 }

@@ -38,9 +38,34 @@ public class GpsWalkRun : Entity
 
     public DateTimeOffset? EvaluatedAt { get; set; }
 
+    // ---- Nur Mantrailing (am Lauf, weil jeder Versuch anders ausgeht) ----
+
+    /// <summary>
+    /// Wurde die Person gefunden? Null = nicht angegeben. Bei einem Negativ-Trail
+    /// (<see cref="GpsTrack.NegativeTrail"/>) heißt true: Der Hund hat korrekt
+    /// angezeigt, dass niemand da ist - ein eigenes Feld dafür gäbe es nur doppelt.
+    /// </summary>
+    public bool? PersonFound { get; set; }
+
+    /// <summary>Anzeigeverhalten an der Person; bei einem Negativ-Trail ohne Bedeutung.</summary>
+    public TrailIndication? Indication { get; set; }
+
     public ICollection<GpsWalkPoint> Points { get; set; } = new List<GpsWalkPoint>();
 
     public ICollection<GpsWalkStop> Stops { get; set; } = new List<GpsWalkStop>();
+}
+
+/// <summary>
+/// Wie der Hund beim Mantrailing die gefundene Person anzeigt (Anzeigeverhalten).
+/// </summary>
+public enum TrailIndication
+{
+    Barking,
+    SittingInFront,
+    StandingInFront,
+    LyingInFront,
+    ReturnIndication,
+    Other
 }
 
 /// <summary>

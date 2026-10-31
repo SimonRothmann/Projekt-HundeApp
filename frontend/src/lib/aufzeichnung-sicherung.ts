@@ -1,6 +1,7 @@
 import { api, ApiError, istVoruebergehendUnerreichbar } from "@/lib/api";
 import { estimateLengthMeters } from "@/lib/geo";
 import { enqueueRequest } from "@/lib/offline-queue";
+import { ART_MANTRAILING, type TrailAngabenVorLegen } from "@/lib/mantrailing";
 import { heuteIso } from "@/lib/pruefung";
 import { untergrundAlsText } from "@/lib/untergrund";
 import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
@@ -46,6 +47,11 @@ export type FaehrtenSicherung = Gemeinsam & {
   dogId: string;
   untergrund: string[];
   points: GpsPoint[];
+  /**
+   * Nur beim Mantrailing: die vor dem Legen gewählten Angaben zum Trail. Ihr Vorhandensein heißt
+   * "dies ist ein Trail"; bei einer Fährte (und bei Sicherungen älterer Stände) fehlt es.
+   */
+  trail?: TrailAngabenVorLegen;
 };
 
 export type AblaufSicherung = Gemeinsam & {
@@ -261,6 +267,15 @@ export function anfrageAusSicherung(sicherung: AufzeichnungsSicherung): { path: 
       wind: null,
       comment: null,
       points: sicherung.points,
+      // Nur beim Trail: Die Fährte schickt nichts davon, ihre Anfrage bleibt, wie sie war.
+      ...(sicherung.trail
+        ? {
+            kind: ART_MANTRAILING,
+            doubleBlind: sicherung.trail.doubleBlind,
+            negativeTrail: sicherung.trail.negativeTrail,
+            scentArticle: sicherung.trail.scentArticle.trim() || null,
+          }
+        : {}),
     },
   };
 }

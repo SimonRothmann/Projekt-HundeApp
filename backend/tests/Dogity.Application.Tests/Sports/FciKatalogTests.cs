@@ -19,7 +19,7 @@ namespace Dogity.Application.Tests.Sports;
 /// </summary>
 public class FciKatalogTests
 {
-    private static readonly string[] Vdh = ["THS", "AGILITY", "HOOPERS"];
+    private static readonly string[] Vdh = ["THS", "AGILITY", "HOOPERS", "MANTRAILING"];
 
     private static IServiceProvider Dienste(ApplicationDbContext db) =>
         new ServiceCollection().AddSingleton(db).BuildServiceProvider();

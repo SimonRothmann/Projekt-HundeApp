@@ -24,6 +24,13 @@ public readonly record struct WalkRunEvaluation(
     IReadOnlyList<EvaluatedStop> Stops);
 
 /// <summary>
+/// Grenzen der Auswertung für eine Art der Aufzeichnung: bis <see cref="GreenMaxMeters"/>
+/// grün, bis <see cref="AmberMaxMeters"/> gelb, darüber rot; "auf der Spur" zählt ein
+/// Punkt bis <see cref="OnTrackMeters"/>.
+/// </summary>
+public readonly record struct SpurToleranz(double OnTrackMeters, double GreenMaxMeters, double AmberMaxMeters);
+
+/// <summary>
 /// Wertet einen Ablauf-Versuch gegen die gelegte Fährte aus - rein,
 /// deterministisch und ohne Datenbank, damit identisch für Live-Pfad,
 /// Backfill und Tests.
@@ -42,12 +49,22 @@ public readonly record struct WalkRunEvaluation(
 /// </summary>
 public static class GpsTrackEvaluator
 {
-    /// <summary>Bis hierher gilt ein Punkt als "auf der Fährte" (großzügig wegen 3-8 m GPS-Fehler).</summary>
-    public const double OnTrackThresholdMeters = 3.0;
+    /// <summary>
+    /// Fährte: bis 3 m "auf der Fährte" und grün, bis 6 m gelb - großzügig wegen
+    /// 3-8 m GPS-Fehler. Die einzige Stelle für diese Zahlen; das Gegenstück im
+    /// Frontend ist <c>spurGrenzen</c> in lib/mantrailing.ts (beim Ändern beide anfassen).
+    /// </summary>
+    public static readonly SpurToleranz FaehrteToleranz = new(3.0, 3.0, 6.0);
 
-    /// <summary>Ampel: bis hier grün, bis <see cref="AmberMaxMeters"/> gelb, darüber rot.</summary>
-    public const double GreenMaxMeters = 3.0;
-    public const double AmberMaxMeters = 6.0;
+    /// <summary>
+    /// Mantrailing: bis 10 m "auf der Spur" und grün, bis 25 m gelb. Der Hund arbeitet an
+    /// langer Leine und sucht den Geruch auch neben der Laufspur der Versteckperson
+    /// (Wind, Gelände); eng an der Linie wie bei der Fährte ist hier nicht das Ziel.
+    /// </summary>
+    public static readonly SpurToleranz MantrailingToleranz = new(10.0, 10.0, 25.0);
+
+    public static SpurToleranz ToleranzFuer(GpsTrackKind kind) =>
+        kind == GpsTrackKind.Mantrailing ? MantrailingToleranz : FaehrteToleranz;
 
     /// <summary>
     /// Radius, in dem ein Marker als erreicht bzw. ein Halt als erklärt gilt -
@@ -76,8 +93,9 @@ public static class GpsTrackEvaluator
 
     public static WalkRunEvaluation Evaluate(
         IReadOnlyList<GpsPoint> laidPoints,
-        IReadOnlyList<GpsWalkPoint> walkPoints) =>
-        TryEvaluate(laidPoints, walkPoints)
+        IReadOnlyList<GpsWalkPoint> walkPoints,
+        GpsTrackKind kind = GpsTrackKind.Faehrte) =>
+        TryEvaluate(laidPoints, walkPoints, kind)
         ?? throw new InvalidOperationException("Der Ablauf ist zu groß für die Auswertung.");
 
     /// <summary>
@@ -86,7 +104,8 @@ public static class GpsTrackEvaluator
     /// </summary>
     public static WalkRunEvaluation? TryEvaluate(
         IReadOnlyList<GpsPoint> laidPoints,
-        IReadOnlyList<GpsWalkPoint> walkPoints)
+        IReadOnlyList<GpsWalkPoint> walkPoints,
+        GpsTrackKind kind = GpsTrackKind.Faehrte)
     {
         // Die gelegte Linie besteht nur aus automatischen Punkten - manuelle
         // Marker liegen neben der Laufspur und würden die Linie verzerren
@@ -102,7 +121,8 @@ public static class GpsTrackEvaluator
         var markers = laidPoints.Where(p => p.PointType == GpsPointType.Manual).ToList();
         var walk = walkPoints.OrderBy(p => p.Timestamp).ToList();
 
-        var articlesTotal = markers.Count(m => m.MarkerType == GpsMarkerType.Article);
+        // Gegenstände gibt es nur bei der Fährte - beim Mantrailing wird nichts gezählt.
+        var articlesTotal = kind == GpsTrackKind.Faehrte ? markers.Count(m => m.MarkerType == GpsMarkerType.Article) : 0;
 
         if (line.Count == 0 || walk.Count == 0)
             return new WalkRunEvaluation(0, 0, 0, 0, articlesTotal, [], []);
@@ -131,11 +151,12 @@ public static class GpsTrackEvaluator
 
         var avg = deviations.Average();
         var max = deviations.Max();
-        var onTrack = deviations.Count(d => d <= OnTrackThresholdMeters) * 100.0 / deviations.Length;
+        var onTrackMeters = ToleranzFuer(kind).OnTrackMeters;
+        var onTrack = deviations.Count(d => d <= onTrackMeters) * 100.0 / deviations.Length;
 
         // ---- Gegenstände: kam der Hundeführer nah genug heran? ----
         var articlesFound = markers
-            .Where(m => m.MarkerType == GpsMarkerType.Article)
+            .Where(m => articlesTotal > 0 && m.MarkerType == GpsMarkerType.Article)
             .Count(m =>
             {
                 var mp = Project(m.Latitude, m.Longitude, originLat);

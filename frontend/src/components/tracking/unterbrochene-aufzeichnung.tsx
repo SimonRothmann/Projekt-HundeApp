@@ -63,7 +63,7 @@ export function UnterbrocheneAufzeichnungKarte({
     >
       <p className="flex items-center gap-2 font-medium">
         <History className="size-4 shrink-0 text-primary-text" />
-        {faehrte ? t("Unterbrochene Fährte") : t("Unterbrochener Ablauf")}
+        {faehrte ? (sicherung.trail ? t("Unterbrochener Trail") : t("Unterbrochene Fährte")) : t("Unterbrochener Ablauf")}
       </p>
       <p className="text-sm text-muted-foreground">
         {t("{von} bis {bis} · {punkte} Punkte", {

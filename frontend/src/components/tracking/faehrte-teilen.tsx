@@ -14,6 +14,7 @@ import {
   neuesterAusgewerteterAblauf,
 } from "@/lib/faehrten-bild";
 import { BILD_BREITE, BILD_HOEHE, zeichneFaehrtenbild } from "@/lib/faehrten-bild-zeichnen";
+import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
 import { useSprache, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -42,8 +43,12 @@ export function FaehrteTeilen({ track, hundeName }: { track: GpsTrack; hundeName
       <Sheet open={offen} onOpenChange={setOffen}>
         <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{t("Fährte als Bild teilen")}</SheetTitle>
-            <SheetDescription>{t("Ohne Karte und ohne Koordinaten: Niemand sieht, wo die Fährte lag.")}</SheetDescription>
+            <SheetTitle>{istMantrailing(track) ? t("Trail als Bild teilen") : t("Fährte als Bild teilen")}</SheetTitle>
+            <SheetDescription>
+              {istMantrailing(track)
+                ? t("Ohne Karte und ohne Koordinaten: Niemand sieht, wo der Trail lag.")
+                : t("Ohne Karte und ohne Koordinaten: Niemand sieht, wo die Fährte lag.")}
+            </SheetDescription>
           </SheetHeader>
           {/* Erst beim Öffnen eingehängt: Das Bild wird nur gezeichnet, wenn
               jemand es sehen will, und beim Schließen räumt die Komponente auf. */}
@@ -115,7 +120,8 @@ function BildVorschau({ track, hundeName }: { track: GpsTrack; hundeName?: strin
         if (!ctx) throw new Error("kein Canvas");
         zeichneFaehrtenbild(ctx, {
           geometrie,
-          ampel: ablauf?.avgDeviationMeters != null ? ampelStufe(ablauf.avgDeviationMeters) : null,
+          ampel: ablauf?.avgDeviationMeters != null ? ampelStufe(ablauf.avgDeviationMeters, spurGrenzen(track)) : null,
+          grenzen: spurGrenzen(track),
           texte,
           schrift,
         });
@@ -125,7 +131,7 @@ function BildVorschau({ track, hundeName }: { track: GpsTrack; hundeName?: strin
 
         // Der Dateiname nennt keinen Hundenamen: Wer ihn im Bild ausblendet,
         // will ihn auch nicht im Dateinamen der Nachricht wiederfinden.
-        const datei = new File([blob], `dogity-faehrte-${legedatumFuerDatei(track)}.png`, { type: "image/png" });
+        const datei = new File([blob], `dogity-${istMantrailing(track) ? "trail" : "faehrte"}-${legedatumFuerDatei(track)}.png`, { type: "image/png" });
         const url = URL.createObjectURL(blob);
         const alt = urlRef.current;
         urlRef.current = url;

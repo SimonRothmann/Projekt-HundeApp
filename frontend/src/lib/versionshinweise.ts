@@ -61,6 +61,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.46",
+    datum: "2026-10-31",
+    titel: uebersetzbar("Mantrailing"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Mantrailing ist dabei – mit den Prüfungsordnungen des DVG (MT-I bis MT-III) und des SV (SV-MT 1 bis 3). Wähle Mantrailing unter Profil → „Sportarten, die ich trainiere“, dann kannst du Trainings eintragen und ein Ziel mit Trainingsplan anlegen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Den Trail legst du mit dem Handy auf der Hundeseite oder der Startseite („Trail legen“) und suchst ihn später mit dem Hund. Die Auswertung rechnet mit weiteren Grenzen als bei der Fährte: Bis 10 m neben der Spur ist grün, bis 25 m gelb. Die Fährte bleibt, wie sie ist."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Zu jedem Trail trägst du ein, ob er doppelblind oder ein Negativ-Trail war und welchen Geruchsartikel du genommen hast. Nach der Suche kommen Trailalter in Stunden, ob die Person gefunden wurde und wie dein Hund sie angezeigt hat dazu."),
+      },
+    ],
+  },
+  {
     version: "0.45",
     datum: "2026-10-30",
     titel: uebersetzbar("Rollen im Verein"),

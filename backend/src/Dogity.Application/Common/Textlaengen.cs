@@ -22,6 +22,8 @@ public static class Textlaengen
     public const int MarkerBeschriftung = 200;
     /// <summary>Untergrund, Wetter, Wind einer Fährte.</summary>
     public const int Kurzangabe = 100;
+    /// <summary>GpsTrack.ScentArticle: Geruchsartikel eines Mantrailing-Trails.</summary>
+    public const int Geruchsartikel = 100;
     /// <summary>Goal.ExamNote: Anmerkung zum Prüfungsergebnis.</summary>
     public const int PruefungsNotiz = 500;
     /// <summary>GroupRegistration: Vor-/Nachname der Angemeldeten und Rufname des Hundes.</summary>

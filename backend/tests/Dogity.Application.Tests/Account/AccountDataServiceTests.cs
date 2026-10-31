@@ -90,6 +90,34 @@ public class AccountDataServiceTests
     }
 
     [Fact]
+    public async Task Export_EnthaeltDieMantrailingAngabenVonTrailUndLauf()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        lookup.Register(nutzer, "ich@test.de", "Max", "Muster");
+        HundMitAllem(db, nutzer, "Bello");
+        var faehrte = db.GpsTracks.Local.Single();
+        faehrte.Kind = GpsTrackKind.Mantrailing;
+        faehrte.AgeMinutes = 90;
+        faehrte.DoubleBlind = true;
+        faehrte.NegativeTrail = true;
+        faehrte.ScentArticle = "Mütze";
+        db.GpsWalkRuns.Add(new GpsWalkRun { TrackId = faehrte.Id, PersonFound = true, Indication = TrailIndication.SittingInFront });
+        await db.SaveChangesAsync();
+
+        var trail = Assert.Single((await dienst.ExportAsync(nutzer)).Value!.Faehrten);
+
+        Assert.Equal("Mantrailing", trail.Spurart);
+        Assert.Equal(90, trail.AlterMinuten);
+        Assert.True(trail.Doppelblind);
+        Assert.True(trail.NegativTrail);
+        Assert.Equal("Mütze", trail.Geruchsartikel);
+        var lauf = Assert.Single(trail.Ablaeufe);
+        Assert.True(lauf.PersonGefunden);
+        Assert.Equal("SittingInFront", lauf.Anzeigeverhalten);
+    }
+
+    [Fact]
     public async Task Export_EnthaeltDasPruefungsergebnisDesZiels()
     {
         var (dienst, db, lookup) = Aufsetzen();

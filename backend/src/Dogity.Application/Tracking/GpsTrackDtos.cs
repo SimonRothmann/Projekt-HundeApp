@@ -39,7 +39,10 @@ public record GpsWalkRunDto(
     int? ArticlesFound,
     int? ArticlesTotal,
     DateTimeOffset? EvaluatedAt,
-    IReadOnlyList<GpsWalkStopDto> Stops);
+    IReadOnlyList<GpsWalkStopDto> Stops,
+    // Nur Mantrailing (siehe GpsWalkRun): null, solange nicht angegeben.
+    bool? PersonFound,
+    TrailIndication? Indication);
 
 public record GpsTrackDto(
     Guid Id,
@@ -64,7 +67,12 @@ public record GpsTrackDto(
     double? SearchWindSpeedKmh,
     int? SearchWeatherCode,
     double? TemperatureDeltaC,
-    DateTimeOffset? WeatherFetchedAt);
+    DateTimeOffset? WeatherFetchedAt,
+    // Nur Mantrailing (Kind = Mantrailing); bei der Fährte false bzw. null.
+    GpsTrackKind Kind,
+    bool DoubleBlind,
+    bool NegativeTrail,
+    string? ScentArticle);
 
 public record CreateGpsPointRequest(
     double Latitude,
@@ -102,7 +110,12 @@ public record CreateGpsTrackRequest(
     Guid? Id = null,
     Guid? DogId = null,
     DateOnly? Date = null,
-    int? DurationMinutes = null);
+    int? DurationMinutes = null,
+    // Ältere Clients kennen die Felder nicht und legen ausschließlich Fährten an.
+    GpsTrackKind Kind = GpsTrackKind.Faehrte,
+    bool DoubleBlind = false,
+    bool NegativeTrail = false,
+    string? ScentArticle = null);
 
 public record CreateGpsWalkPointRequest(double Latitude, double Longitude, DateTimeOffset Timestamp, double? Accuracy);
 
@@ -112,3 +125,12 @@ public record CreateGpsWalkRunRequest(
     IReadOnlyList<CreateGpsWalkPointRequest> Points);
 
 public record UpdateGpsWalkRunRequest(string? Comment);
+
+/// <summary>
+/// Angaben zum Trail (Mantrailing), die sich nachträglich ändern lassen - etwa das
+/// Trailalter, das erst beim Suchen feststeht. Ersetzt alle vier Angaben.
+/// </summary>
+public record UpdateGpsTrailRequest(int? AgeMinutes, bool DoubleBlind, bool NegativeTrail, string? ScentArticle);
+
+/// <summary>Ergebnis eines Mantrailing-Laufs. Ersetzt beide Angaben (null = nicht angegeben).</summary>
+public record UpdateGpsTrailRunRequest(bool? PersonFound, TrailIndication? Indication);

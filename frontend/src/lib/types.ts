@@ -988,12 +988,19 @@ export type GpsWalkRun = {
   articlesTotal: number | null;
   evaluatedAt: string | null;
   stops: GpsWalkStop[];
+  // Nur Mantrailing: Ergebnis des Laufs. Optional, weil ältere Stände (Read-Cache,
+  // Backend vor Fassung 0.46) die Felder nicht kennen.
+  /** Person gefunden - bei einem Negativ-Trail: korrekt angezeigt, dass niemand da ist. */
+  personFound?: boolean | null;
+  /** Anzeigeverhalten (siehe ANZEIGEVERHALTEN in lib/mantrailing.ts); null = nicht angegeben. */
+  indication?: number | null;
 };
 
 export type GpsTrack = {
   id: string;
   trainingSessionId: string;
   lengthMeters: number | null;
+  /** Alter der Spur in Minuten; beim Mantrailing das Trailalter (die Oberfläche zeigt Stunden). */
   ageMinutes: number | null;
   surface: string | null;
   weather: string | null;
@@ -1001,6 +1008,12 @@ export type GpsTrack = {
   comment: string | null;
   points: GpsPoint[];
   walkRuns: GpsWalkRun[];
+  // Art der Aufzeichnung: 0 = Fährte, 1 = Mantrailing (ART_* in lib/mantrailing.ts). Wie die
+  // Angaben darunter optional - ältere Stände kennen sie nicht und gelten als Fährte.
+  kind?: number;
+  doubleBlind?: boolean;
+  negativeTrail?: boolean;
+  scentArticle?: string | null;
   // Automatisch ermitteltes Wetter beim Legen und beim Suchen. Fachlich am
   // wichtigsten ist temperatureDeltaC - die Änderung dazwischen bestimmt
   // maßgeblich, wie sich die Geruchsspur hält.

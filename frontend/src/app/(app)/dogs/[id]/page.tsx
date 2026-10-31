@@ -6,7 +6,7 @@ import Link from "next/link";
 import { MODULE, type TrainingPlanItem } from "@/lib/types";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { laeuftFaehrte } from "@/lib/faehrte";
+import { laeuftFaehrte, spurArten } from "@/lib/faehrte";
 import { DogEditForm } from "@/components/dogs/dog-edit-form";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { LeistungenCard } from "@/components/dogs/leistungen-card";
@@ -95,6 +95,8 @@ function DogPage({ id }: { id: string }) {
   // lässt er das Modul an und wählt die Sportart ab. Erkannt am Code der
   // Sportart, nicht am Namen - Namen ändern sich, Codes nicht.
   const zeigtFaehrte = moduleEnabled(MODULE.faehrte) && laeuftFaehrte(dogSportIds, sports);
+  // Fährte und/oder Trail (Mantrailing): ein Hund, der nur trailt, bekommt "Trail legen".
+  const arten = spurArten(dogSportIds, sports);
   // Der Standard-Reiter wird einmal festgelegt, sobald die frischen Daten da
   // sind, und bleibt dann stehen: Trägt jemand sein einziges laufendes Ziel als
   // erreicht ein, soll der Plan nicht unter den Händen verschwinden. (Zustand
@@ -171,6 +173,7 @@ function DogPage({ id }: { id: string }) {
 
       <DogActionBar
         zeigtFaehrte={zeigtFaehrte}
+        nurTrail={arten.mantrailing && !arten.faehrte}
         onTraining={() => oeffneEintragen(null)}
         onFaehrte={() => setFaehrteOffen(true)}
       />
@@ -240,7 +243,7 @@ function DogPage({ id }: { id: string }) {
         onChanged={loadAll}
       />
       {zeigtFaehrte && (
-        <DogFaehrteSheet dogId={id} open={faehrteOffen} onOpenChange={setFaehrteOffen} onSaved={faehrteGeaendert} />
+        <DogFaehrteSheet dogId={id} arten={arten} open={faehrteOffen} onOpenChange={setFaehrteOffen} onSaved={faehrteGeaendert} />
       )}
     </div>
   );

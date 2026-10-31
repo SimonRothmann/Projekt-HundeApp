@@ -41,6 +41,12 @@ public class GpsTrackService(
     /// </summary>
     public const int MaxPunkteJeTrainingstag = 200_000;
 
+    /// <summary>Längstes Trailalter, das sich eintragen lässt: eine Woche (in Minuten).</summary>
+    public const int MaxTrailAlterMinuten = 7 * 24 * 60;
+
+    private const string NurMantrailing = "Diese Angaben gibt es nur beim Mantrailing.";
+    private const string TrailalterBereich = "Das Trailalter muss zwischen 0 und 168 Stunden liegen.";
+
     private static readonly string ZuVielePunkte = ZuVielePunkteMeldung(MaxPunkteJeAufzeichnung);
 
     private string TagZuVoll => TagZuVollMeldung(punkteJeTrainingstag);
@@ -181,6 +187,18 @@ public class GpsTrackService(
         if (zuLang is not null)
             return Result<GpsTrackDto>.Failure(zuLang);
 
+        // Die Mantrailing-Angaben gehören nur an eine Mantrailing-Spur: An einer Fährte
+        // blieben sie ohne Bedeutung stehen und täuschten Auswertungen vor, die es nicht gibt.
+        if (!Enum.IsDefined(request.Kind))
+            return Result<GpsTrackDto>.Failure("Unbekannte Art der Aufzeichnung.");
+        if (request.Kind == GpsTrackKind.Faehrte
+            && (request.DoubleBlind || request.NegativeTrail || !string.IsNullOrWhiteSpace(request.ScentArticle)))
+            return Result<GpsTrackDto>.Failure(NurMantrailing);
+        if (request.Kind == GpsTrackKind.Mantrailing && request.AgeMinutes is < 0 or > MaxTrailAlterMinuten)
+            return Result<GpsTrackDto>.Failure(TrailalterBereich);
+        if (Textlaengen.ZuLang(request.ScentArticle, Textlaengen.Geruchsartikel, "Der Geruchsartikel") is { } artikelZuLang)
+            return Result<GpsTrackDto>.Failure(artikelZuLang);
+
         // Erst nach allen Prüfungen: Eine abgelehnte Anfrage soll weder eine
         // leere Einheit hinterlassen noch die Dauer einer bestehenden ändern.
         if (neueEinheit is not null)
@@ -196,7 +214,11 @@ public class GpsTrackService(
             Surface = request.Surface,
             Weather = request.Weather,
             Wind = request.Wind,
-            Comment = request.Comment
+            Comment = request.Comment,
+            Kind = request.Kind,
+            DoubleBlind = request.DoubleBlind,
+            NegativeTrail = request.NegativeTrail,
+            ScentArticle = NullWennLeer(request.ScentArticle)
         };
         if (request.Id is { } neueId)
             track.Id = neueId;
@@ -266,7 +288,7 @@ public class GpsTrackService(
 
         // Auswertung direkt nach dem Speichern - die gelegten Punkte liegen
         // dafür ohnehin schon in der Datenbank.
-        await EvaluateAndPersistAsync(walkRun, ct);
+        await EvaluateAndPersistAsync(walkRun, track.Kind, ct);
         await db.SaveChangesAsync(ct);
 
         // Erst mit dem ersten Ablauf gibt es einen Suchzeitpunkt - jetzt lässt
@@ -289,7 +311,7 @@ public class GpsTrackService(
         if (walkRun is null)
             return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
 
-        var ausgewertet = await EvaluateAndPersistAsync(walkRun, ct);
+        var ausgewertet = await EvaluateAndPersistAsync(walkRun, track.Kind, ct);
         await db.SaveChangesAsync(ct);
         if (!ausgewertet)
             return Result<GpsWalkRunDto>.Failure("Dieser Ablauf ist zu groß für die Auswertung.");
@@ -307,7 +329,7 @@ public class GpsTrackService(
     /// dann trotzdem als erledigt (EvaluatedAt gesetzt, ohne Kennzahlen) -
     /// sonst lüde ihn die Nachauswertung bei jedem Serverstart erneut.
     /// </summary>
-    private async Task<bool> EvaluateAndPersistAsync(GpsWalkRun walkRun, CancellationToken ct)
+    private async Task<bool> EvaluateAndPersistAsync(GpsWalkRun walkRun, GpsTrackKind kind, CancellationToken ct)
     {
         var laidPoints = await db.GpsPoints
             .Where(p => p.TrackId == walkRun.TrackId)
@@ -317,7 +339,7 @@ public class GpsTrackService(
             ? walkRun.Points.ToList()
             : await db.GpsWalkPoints.Where(p => p.WalkRunId == walkRun.Id).ToListAsync(ct);
 
-        if (GpsTrackEvaluator.TryEvaluate(laidPoints, walkPoints) is not { } evaluation)
+        if (GpsTrackEvaluator.TryEvaluate(laidPoints, walkPoints, kind) is not { } evaluation)
         {
             walkRun.EvaluatedAt = DateTimeOffset.UtcNow;
             return false;
@@ -384,6 +406,64 @@ public class GpsTrackService(
         await db.SaveChangesAsync(ct);
 
         return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
+    }
+
+    // Rechte der beiden Trail-Routen: Die Angaben zum Trail (Alter, Doppelblind, Negativ, Geruchsartikel)
+    // gehören zum Eintrag und ändert nur, wer das Training bearbeiten darf (TrainingsRechte); betreuende
+    // Trainer:innen sehen Einträge der Familie nur. Das Ergebnis eines Laufs (Fund, Anzeige) darf, wer den
+    // Hund sehen darf - wie der Kommentar eines Ablaufs (UpdateWalkRunAsync).
+    public async Task<Result<GpsTrackDto>> UpdateTrailAsync(Guid userId, Guid trackId, UpdateGpsTrailRequest request, CancellationToken ct = default)
+    {
+        var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
+        if (track is null || !await DarfEinheitBearbeitenAsync(userId, track.TrainingSessionId, ct))
+            return Result<GpsTrackDto>.NotFound("Fährte nicht gefunden.");
+        if (track.Kind != GpsTrackKind.Mantrailing)
+            return Result<GpsTrackDto>.Failure(NurMantrailing);
+        if (request.AgeMinutes is < 0 or > MaxTrailAlterMinuten)
+            return Result<GpsTrackDto>.Failure(TrailalterBereich);
+        if (Textlaengen.ZuLang(request.ScentArticle, Textlaengen.Geruchsartikel, "Der Geruchsartikel") is { } zuLang)
+            return Result<GpsTrackDto>.Failure(zuLang);
+
+        track.AgeMinutes = request.AgeMinutes;
+        track.DoubleBlind = request.DoubleBlind;
+        track.NegativeTrail = request.NegativeTrail;
+        track.ScentArticle = NullWennLeer(request.ScentArticle);
+        await db.SaveChangesAsync(ct);
+
+        var liste = await GetByTrainingSessionAsync(userId, track.TrainingSessionId, ct);
+        return Result<GpsTrackDto>.Success(liste.Value!.First(t => t.Id == trackId));
+    }
+
+    public async Task<Result<GpsWalkRunDto>> UpdateTrailRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsTrailRunRequest request, CancellationToken ct = default)
+    {
+        var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
+        if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
+            return Result<GpsWalkRunDto>.NotFound("Fährte nicht gefunden.");
+        if (track.Kind != GpsTrackKind.Mantrailing)
+            return Result<GpsWalkRunDto>.Failure(NurMantrailing);
+        if (request.Indication is { } anzeige && !Enum.IsDefined(anzeige))
+            return Result<GpsWalkRunDto>.Failure("Unbekanntes Anzeigeverhalten.");
+
+        var walkRun = await db.GpsWalkRuns
+            .Include(r => r.Points)
+            .Include(r => r.Stops)
+            .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
+        if (walkRun is null)
+            return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
+
+        walkRun.PersonFound = request.PersonFound;
+        // Ein Anzeigeverhalten gibt es nur, wo eine Person gefunden wurde - nicht beim
+        // Negativ-Trail und nicht ohne Fund. Sonst bliebe es nach einer Korrektur stehen.
+        walkRun.Indication = request.PersonFound == true && !track.NegativeTrail ? request.Indication : null;
+        await db.SaveChangesAsync(ct);
+
+        return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
+    }
+
+    private static string? NullWennLeer(string? text)
+    {
+        var getrimmt = text?.Trim();
+        return string.IsNullOrEmpty(getrimmt) ? null : getrimmt;
     }
 
     public async Task<Result<GpsTrackDto>> RefreshWeatherAsync(Guid userId, Guid trackId, CancellationToken ct = default)
@@ -461,7 +541,11 @@ public class GpsTrackService(
             t.SearchWindSpeedKmh,
             t.SearchWeatherCode,
             t.TemperatureDeltaC,
-            t.WeatherFetchedAt);
+            t.WeatherFetchedAt,
+            t.Kind,
+            t.DoubleBlind,
+            t.NegativeTrail,
+            t.ScentArticle);
     }
 
     private static GpsWalkRunDto ToWalkRunDto(GpsWalkRun r, bool simplify = false)
@@ -484,6 +568,8 @@ public class GpsTrackService(
             r.EvaluatedAt,
             r.Stops.OrderByDescending(s => s.DurationSeconds)
                 .Select(s => new GpsWalkStopDto(s.Latitude, s.Longitude, s.DurationSeconds, s.Kind, s.MarkerLabel))
-                .ToList());
+                .ToList(),
+            r.PersonFound,
+            r.Indication);
     }
 }

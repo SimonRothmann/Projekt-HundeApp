@@ -176,7 +176,9 @@ public class StatsService(IApplicationDbContext db, TimeProvider timeProvider) :
             from run in db.GpsWalkRuns
             join track in db.GpsTracks on run.TrackId equals track.Id
             join session in db.TrainingSessions on track.TrainingSessionId equals session.Id
-            where run.EvaluatedAt != null && session.DogId == dogId
+            // Nur Fährten: Ein Mantrailing-Lauf wird mit anderen Grenzen (10/25 m) bewertet, und
+            // ein Verlauf, der beides mischt, vergliche Abweichungen, die nicht vergleichbar sind.
+            where run.EvaluatedAt != null && session.DogId == dogId && track.Kind == GpsTrackKind.Faehrte
             orderby session.Date, run.CreatedAt
             select new DogTrackRunDto(
                 session.Date,

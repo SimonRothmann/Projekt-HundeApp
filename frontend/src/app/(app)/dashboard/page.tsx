@@ -22,7 +22,7 @@ import { ErsterHundKarte } from "@/components/onboarding/erster-hund-karte";
 import { erststartZustand } from "@/lib/erststart";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
-import { laeuftFaehrte, nichtAbgelaufeneFaehrten } from "@/lib/faehrte";
+import { laeuftFaehrte, nichtAbgelaufeneFaehrten, spurArten, type SpurArten } from "@/lib/faehrte";
 import { merkeGelesenImErststart } from "@/lib/neuerungen-gelesen";
 import { pausenOhneKarte, zeigeSachkundeZeile, zielAufteilung } from "@/lib/startseite";
 import { fuerStartseite } from "@/lib/trainer-offen";
@@ -66,6 +66,8 @@ type Startdaten = {
   faehrtenHundeIds: string[];
   /** Die Sportarten je Hund (leer = keine Einschränkung); fehlt bei Zwischenständen aus älteren Fassungen. */
   sportIdsJeHund?: Record<string, string[]>;
+  /** Was jeder Hund legen kann (Fährte, Trail); fehlt bei Zwischenständen aus älteren Fassungen. */
+  spurArtenJeHund?: Record<string, SpurArten>;
   // Aufgeteilt nach Zielen: Karten (laufend), Ergebnis fehlt (abgelaufen), ohne Ziel.
   ziele: ReturnType<typeof zielAufteilung>;
   faehrten: FaehrteMitHund[];
@@ -124,6 +126,7 @@ async function ladeStartdaten(): Promise<Startdaten> {
     // "Fährte legen" auf eine Hundeseite ohne Recorder.
     faehrtenHundeIds: eintraege.filter((e) => laeuftFaehrte(e.sportIds, sports)).map((e) => e.dog.id),
     sportIdsJeHund: Object.fromEntries(eintraege.map((e) => [e.dog.id, e.sportIds])),
+    spurArtenJeHund: Object.fromEntries(eintraege.map((e) => [e.dog.id, spurArten(e.sportIds, sports)])),
     ziele: zielAufteilung(
       eintraege.map((e) => ({ dog: e.dog, activeGoals: e.activeGoals })),
       bhSportIds,
@@ -293,7 +296,13 @@ export default function DashboardPage() {
 
   const erfassen =
     daten !== null && daten.hunde.length > 0 ? (
-      <ErfassenKarte hunde={daten.hunde} faehrtenHundeIds={faehrteAn ? daten.faehrtenHundeIds : []} onEintragen={oeffneEintragen} onFaehrte={oeffneFaehrte} />
+      <ErfassenKarte
+        hunde={daten.hunde}
+        faehrtenHundeIds={faehrteAn ? daten.faehrtenHundeIds : []}
+        nurTrailHundeIds={Object.entries(daten.spurArtenJeHund ?? {})
+          .filter(([, a]) => a.mantrailing && !a.faehrte)
+          .map(([id]) => id)}
+        onEintragen={oeffneEintragen} onFaehrte={oeffneFaehrte} />
     ) : null;
 
   return (
@@ -302,7 +311,7 @@ export default function DashboardPage() {
           Fenster darf nicht mit einem Neuladen im Hintergrund verschwinden. */}
       {faehrteHund && (
         // key: Ein anderer Hund bekommt einen frischen Recorder statt des Zustands des vorigen.
-        <DogFaehrteSheet key={faehrteHund} dogId={faehrteHund} open={faehrteOffen} onOpenChange={setFaehrteOffen} onSaved={neuLaden} />
+        <DogFaehrteSheet key={faehrteHund} dogId={faehrteHund} arten={daten?.spurArtenJeHund?.[faehrteHund]} open={faehrteOffen} onOpenChange={setFaehrteOffen} onSaved={neuLaden} />
       )}
       {eintragenZiel && (
         <EintragenSheet

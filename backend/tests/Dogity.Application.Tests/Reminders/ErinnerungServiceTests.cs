@@ -240,6 +240,18 @@ public class ErinnerungServiceTests
     }
 
     [Fact]
+    public async Task Faehrte_EinMantrailingTrail_BekommtKeineFaehrtenErinnerung()
+    {
+        // Ein Trail wird nach Stunden gesucht, nicht nach der Frist einer Fährte; die Meldung spräche von einer Fährte.
+        var s = Aufbauen(Utc(22, 10, 30));
+        var trail = await FaehrteAsync(s, Utc(22, 7));
+        (await s.Db.GpsTracks.FirstAsync(t => t.Id == trail.Faehrte)).Kind = GpsTrackKind.Mantrailing;
+        await s.Db.SaveChangesAsync();
+
+        Assert.Equal(0, await s.Dienst.VersendeFaelligeAsync());
+    }
+
+    [Fact]
     public async Task Faehrte_HundInTrainingspause_ArchiviertOderKeinZugang_KommtNichts()
     {
         var s = Aufbauen(Utc(22, 10, 30));

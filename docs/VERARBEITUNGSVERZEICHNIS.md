@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-10-27 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-10-31 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -54,15 +54,15 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Löschfrist | bis zur Löschung des Eintrags bzw. des Kontos; die Pausen und Gesundheitseinträge eigener Hunde gehen bei der Kontolöschung endgültig mit (`AccountDataService.PurgeAsync`, auch weich gelöschte), die eines geteilten Hundes bleiben bei den übrigen Besitzer:innen. Der Datenexport enthält sie (Auskunft nach Art. 15/20). |
 | Tabellen | `dogs`, `dog_owners`, `dog_images`, `dog_pauses`, `dog_health_records`, `training_sessions`, `training_exercises`, `goals`, `training_plans`, `training_plan_items`, `exercise_masteries` |
 
-### 2.3 Fährtenaufzeichnung (Standortdaten)
+### 2.3 Fährten- und Trailaufzeichnung (Standortdaten)
 
 | | |
 |---|---|
-| Zweck | Aufzeichnen der gelegten Fährte und des Ablaufs, Auswertung von Abweichung, Gegenständen und Stockungen |
-| Betroffene | Registrierte Nutzer:innen |
-| Datenkategorien | GPS-Punkte (Koordinaten, Zeitstempel, Genauigkeit), Markierungen, errechnete Auswertungen |
-| Besonderheit | Bewegungsprofil mit Metergenauigkeit – die eingriffsintensivste Verarbeitung der App. Start nur durch den Nutzer, zusätzlich durch die Browser-Standortfreigabe geschützt. Keine Hintergrundaufzeichnung. |
-| Rechtsgrundlage | Art. 6 Abs. 1 lit. b (Kernfunktion, vom Nutzer ausgelöst) |
+| Zweck | Aufzeichnen der gelegten Fährte bzw. des Mantrailing-Trails und des Ablaufs, Auswertung von Abweichung, Gegenständen und Stockungen |
+| Betroffene | Registrierte Nutzer:innen; beim Mantrailing zusätzlich die Versteckperson (weitere Person, die kein Konto haben muss) |
+| Datenkategorien | GPS-Punkte (Koordinaten, Zeitstempel, Genauigkeit), Markierungen, errechnete Auswertungen; beim Mantrailing: Art der Aufzeichnung, Trailalter (Minuten, am Trail), Doppelblind und Negativ-Trail (ja/nein), Geruchsartikel (Freitext, höchstens 100 Zeichen), je Lauf „Person gefunden“ (ja/nein) und Anzeigeverhalten |
+| Besonderheit | Bewegungsprofil mit Metergenauigkeit – die eingriffsintensivste Verarbeitung der App. Start nur durch den Nutzer, zusätzlich durch die Browser-Standortfreigabe geschützt. Keine Hintergrundaufzeichnung. Mantrailing (seit Fassung 0.46): Die Laufspur der Versteckperson wird mit dem Gerät aufgezeichnet, das sie trägt, und im Konto der aufzeichnenden Person gespeichert – Standortdaten einer weiteren Person; die Datenschutzerklärung weist darauf hin und rät, vorher mit ihr zu sprechen. Die Spur ist nur für dieselben Personen sichtbar wie jede Fährte (Besitzer:innen, Mitbesitzer:innen, zugeordnete Trainer:innen) und verschwindet mit ihr. Die Angaben zum Trail sind keine besonderen Kategorien (Art. 9) und keine Daten der Versteckperson, sie beschreiben das Training. |
+| Rechtsgrundlage | Art. 6 Abs. 1 lit. b (Kernfunktion, vom Nutzer ausgelöst). Für die Versteckperson beim Mantrailing besteht kein Vertrag: Art. 6 Abs. 1 lit. f – berechtigtes Interesse der aufzeichnenden Person, ihr Training zu dokumentieren; der Eingriff ist gering, weil die Versteckperson den Weg freiwillig mit einem Gerät geht und vorher davon weiß (die Datenschutzerklärung verlangt die Absprache), die Daten gehen nicht über das Konto hinaus und verschwinden mit der Spur; Widerspruch nach Art. 21 über die aufzeichnende Person oder den Betreiber, der die Spur löscht. **Vom Betreiber gegenzulesen** (Alternative: Einwilligung der Versteckperson, Art. 6 Abs. 1 lit. a). |
 | Empfänger | wie 2.2; **keine** Übermittlung an Kartendienste |
 | Drittland | nein |
 | Löschfrist | bis zur Löschung der Fährte bzw. des Kontos |

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { GpsPoint, GpsTrack, GpsWalkPoint } from "@/lib/types";
+import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { BlockLabel } from "@/components/ui/block-label";
 import { TrackMap, TrackLegend } from "@/components/tracking/track-map";
@@ -13,7 +13,10 @@ import { MODULE } from "@/lib/types";
 import { WalkRunComment } from "@/components/tracking/walk-run-comment";
 import { WalkRunEvaluation } from "@/components/tracking/walk-run-evaluation";
 import { FaehrteTeilen } from "@/components/tracking/faehrte-teilen";
-import { CloudSun, Route, Trash2 } from "lucide-react";
+import { TrailAngabenZeile, TrailErgebnisZeile } from "@/components/tracking/trail-angaben";
+import { AblaufErgebnisSheet } from "@/components/tracking/ablauf-ergebnis-sheet";
+import { istMantrailing } from "@/lib/mantrailing";
+import { CloudSun, Pencil, Route, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useWetterNachladen } from "@/lib/use-wetter-nachladen";
 import { faehrteWetterOffen } from "@/lib/wetter-nachladen";
@@ -91,6 +94,9 @@ export function GpsTrackSection({
   const t = useT();
   const ort = ortsformat(useSprache());
   const [tracks, setTracks] = useState<GpsTrack[] | null>(null);
+  // Das Ergebnis eines Trail-Laufs nachtragen oder ändern (z. B. nach einer Suche ohne Netz):
+  // dasselbe Fenster wie direkt nach dem Suchen.
+  const [ergebnisFuer, setErgebnisFuer] = useState<{ track: GpsTrack; run: GpsWalkRun } | null>(null);
   const { moduleEnabled } = usePreferences();
   // Live-Punkte des gerade laufenden Ablauf-Versuchs, pro Track-Id. Die
   // Karte des jeweiligen Tracks zeigt diese Punkte zusätzlich zur Legung -
@@ -154,7 +160,7 @@ export function GpsTrackSection({
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-surface-border bg-surface p-3">
-      <BlockLabel icon={Route}>{t("Fährte")}</BlockLabel>
+      <BlockLabel icon={Route}>{tracks.every((track) => istMantrailing(track)) ? t("Trail") : t("Fährte")}</BlockLabel>
 
       {/* Mehrere Fährten: durch eine Linie getrennt und nummeriert, damit
           Karte, Wetter und Abläufe erkennbar zur jeweils eigenen Fährte
@@ -165,7 +171,9 @@ export function GpsTrackSection({
           return (
             <div key={track.id} className="flex flex-col gap-2">
               {tracks.length > 1 && (
-                <h5 className="text-sm font-semibold">{t("Fährte {nummer}", { nummer: index + 1 })}</h5>
+                <h5 className="text-sm font-semibold">
+                  {istMantrailing(track) ? t("Trail {nummer}", { nummer: index + 1 }) : t("Fährte {nummer}", { nummer: index + 1 })}
+                </h5>
               )}
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                 {times && (
@@ -188,6 +196,7 @@ export function GpsTrackSection({
                 {track.surface && <span>{track.surface.split(", ").map((teil) => t(teil)).join(", ")}</span>}
                 {track.comment && <span>{track.comment}</span>}
               </div>
+              {istMantrailing(track) && <TrailAngabenZeile track={track} />}
               <TrackWeather track={track} onLoaded={loadTracks} />
               <div className="flex flex-wrap items-center gap-2">
                 {/* Der Einstieg ins Aufzeichnen hängt am Modul, die Anzeige
@@ -203,6 +212,7 @@ export function GpsTrackSection({
                     }}
                     onLivePointsChange={handleLivePoints}
                     laidTrackPoints={track.points}
+                    track={track}
                   />
                 )}
                 <FaehrteTeilen track={track} hundeName={hundeName} />
@@ -212,10 +222,10 @@ export function GpsTrackSection({
                   variant="ghost"
                   className="text-destructive hover:text-destructive"
                   onClick={async () => {
-                    if (!confirm(t("Fährte wirklich löschen?"))) return;
+                    if (!confirm(istMantrailing(track) ? t("Trail wirklich löschen?") : t("Fährte wirklich löschen?"))) return;
                     try {
                       await api.delete(`/api/gps-tracks/${track.id}`);
-                      toast.success(t("Fährte gelöscht."));
+                      toast.success(istMantrailing(track) ? t("Trail gelöscht.") : t("Fährte gelöscht."));
                       await loadTracks();
                       await onChanged?.();
                     } catch (err) {
@@ -232,8 +242,9 @@ export function GpsTrackSection({
                 points={track.points}
                 walkRuns={track.walkRuns}
                 liveWalkRunPoints={liveWalkPoints[track.id]}
+                art={track}
               />
-              <TrackLegend walkRuns={track.walkRuns} />
+              <TrackLegend walkRuns={track.walkRuns} art={track} />
               {track.walkRuns.length > 0 && (
                 <ul className="flex flex-col gap-1.5 text-xs text-muted-foreground">
                   {track.walkRuns.map((run, i) => {
@@ -250,7 +261,22 @@ export function GpsTrackSection({
                           {durMs !== null && ` · ${t("abgelaufen in {dauer}", { dauer: formatDuration(durMs) })}`}
                           {run.lengthMeters !== null && ` · ${Math.round(run.lengthMeters)} m`}
                         </span>
-                        <WalkRunEvaluation run={run} />
+                        <WalkRunEvaluation run={run} art={track} />
+                        {istMantrailing(track) && (
+                          <span className="flex flex-wrap items-center gap-1.5">
+                            <TrailErgebnisZeile negativ={track.negativeTrail === true} run={run} />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs coarse:min-h-11"
+                              onClick={() => setErgebnisFuer({ track, run })}
+                            >
+                              <Pencil className="size-3" />
+                              {run.personFound == null ? t("Ergebnis eintragen") : t("Ergebnis ändern")}
+                            </Button>
+                          </span>
+                        )}
                         <WalkRunComment trackId={track.id} run={run} onSaved={loadTracks} />
                       </li>
                     );
@@ -261,6 +287,19 @@ export function GpsTrackSection({
           );
         })}
       </div>
+      {ergebnisFuer && (
+        <AblaufErgebnisSheet
+          key={ergebnisFuer.run.id}
+          trackId={ergebnisFuer.track.id}
+          run={ergebnisFuer.run}
+          laidTrackPoints={ergebnisFuer.track.points}
+          track={ergebnisFuer.track}
+          onClose={() => {
+            setErgebnisFuer(null);
+            void loadTracks();
+          }}
+        />
+      )}
     </div>
   );
 }

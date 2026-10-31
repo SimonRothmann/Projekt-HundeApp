@@ -93,12 +93,14 @@ function DatenschutzDe() {
             "Prüfungsergebnisse (Datum, Punkte, Notiz), wenn du ein Ziel abschließt",
           ]}
         />
-        <p className="font-medium text-foreground">Fährten (Standortdaten)</p>
+        <p className="font-medium text-foreground">Fährten und Trails (Standortdaten)</p>
         <Liste
           punkte={[
             "die aufgezeichnete Fährte als Folge einzelner GPS-Punkte mit Zeitstempel und Genauigkeit",
             "der Weg des Hundes beim Ablaufen, ebenso als Punktfolge",
             "daraus errechnete Auswertungen: Abweichung, gefundene Gegenstände, Stockungen",
+            "beim Mantrailing: die Laufspur der Versteckperson, aufgezeichnet mit dem Gerät, das sie trägt, und in deinem Konto gespeichert – also die Standortdaten einer weiteren Person",
+            "beim Mantrailing außerdem Angaben zum Trail (Trailalter, doppelblind, Negativ-Trail, Geruchsartikel als kurzer Text) und je Suche, ob die Person gefunden wurde und wie der Hund sie angezeigt hat",
           ]}
         />
         <p className="font-medium text-foreground">Verein und Gruppen</p>
@@ -144,6 +146,14 @@ function DatenschutzDe() {
           ]}
         />
         <p>
+          Beim Mantrailing gilt dasselbe für den Trail: Die Laufspur der Versteckperson entsteht mit dem Gerät, das
+          sie trägt, und wird im Konto der Person gespeichert, die aufzeichnet – es sind also Standortdaten einer
+          weiteren Person, die kein Konto haben muss. Sprich vorher mit ihr ab, dass ihr Weg aufgezeichnet wird. Die
+          Spur ist für dieselben Personen sichtbar wie jede Fährte und verschwindet mit ihr. Die Angaben zum Trail
+          (Alter, doppelblind, Negativ-Trail, Geruchsartikel, Fund und Anzeigeverhalten) beschreiben das Training und
+          sind keine besonders geschützten Daten.
+        </p>
+        <p>
           Beim Eintragen eines Trainingsorts kannst du den aktuellen Standort übernehmen. Das ist ein einzelner Punkt,
           keine Aufzeichnung – und freiwillig, du kannst den Ort auch von Hand eintippen.
         </p>
@@ -153,6 +163,7 @@ function DatenschutzDe() {
         <Liste
           punkte={[
             "Konto, Hunde, Trainings, Fährten, Verein und Einstellungen: Art. 6 Abs. 1 lit. b DSGVO – ohne diese Daten gibt es die Funktion nicht, für die du dich angemeldet hast.",
+            "Laufspur der Versteckperson beim Mantrailing: Art. 6 Abs. 1 lit. f DSGVO – mit der Versteckperson besteht kein Vertrag. Das berechtigte Interesse ist, dass die Person, die aufzeichnet, ihr Training dokumentieren kann; der Eingriff ist gering, weil die Versteckperson den Weg freiwillig geht und vorher davon weiß. Sie kann der Speicherung widersprechen; die Spur wird dann gelöscht.",
             "Anmeldung zu einer Gruppe über ein Anmeldeformular (ohne Konto): Art. 6 Abs. 1 lit. b DSGVO – siehe Abschnitt 9.",
             "E-Mails (Willkommen, Passwort zurücksetzen, Einladungen und Entscheidungen über Beitrittsanfragen): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu Konto und Vereinsfunktionen. Ob du die Mails zu Einladungen und Entscheidungen bekommst, wählst du schon bei der Registrierung (vorausgewählt); abbestellen kannst du sie jederzeit über den Link in der Mail, ohne Anmeldung, oder unter Profil → Funktionen.",
             "Push-Benachrichtigungen: Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TDDDG – sie beginnen erst, wenn du sie auf einem Gerät selbst einschaltest und der Browser oder das Betriebssystem dich um Erlaubnis gefragt hat. Du kannst sie jederzeit in der App ausschalten oder die Erlaubnis im Gerät zurücknehmen.",

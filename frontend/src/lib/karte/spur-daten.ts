@@ -1,6 +1,6 @@
 import type { GpsWalkRun } from "@/lib/types";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
-import { AMBER_MAX_M, GREEN_MAX_M } from "@/components/tracking/walk-run-evaluation";
+import { FAEHRTE_GRENZEN, type SpurGrenzen } from "@/lib/mantrailing";
 
 /**
  * Die Fährte als GeoJSON für die Karte.
@@ -69,10 +69,10 @@ export const TRACK_CASING_COLOR = "#1e1b2e";
 // verschiedene Farben für denselben Ablauf zeigen.
 export const DEVIATION_COLORS = { green: "#16a34a", amber: "#d97706", red: "#dc2626" } as const;
 
-export function deviationColor(meters: number | null | undefined): string | null {
+export function deviationColor(meters: number | null | undefined, grenzen: SpurGrenzen = FAEHRTE_GRENZEN): string | null {
   if (meters == null) return null;
-  if (meters <= GREEN_MAX_M) return DEVIATION_COLORS.green;
-  if (meters <= AMBER_MAX_M) return DEVIATION_COLORS.amber;
+  if (meters <= grenzen.gruenBis) return DEVIATION_COLORS.green;
+  if (meters <= grenzen.gelbBis) return DEVIATION_COLORS.amber;
   return DEVIATION_COLORS.red;
 }
 
@@ -170,8 +170,8 @@ export type AblaufDaten = {
   halte: Merkmale<Punkt>;
 };
 
-/** Die abgelaufenen Versuche mit ihren Haltepunkten. */
-export function ablaufDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer): AblaufDaten {
+/** Die abgelaufenen Versuche mit ihren Haltepunkten; die Farben folgen den Grenzen der Art (Fährte oder Mantrailing). */
+export function ablaufDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen: SpurGrenzen = FAEHRTE_GRENZEN): AblaufDaten {
   const bewertet: Merkmal<Linie>[] = [];
   const unbewertet: Merkmal<Linie>[] = [];
   const halte: Merkmal<Punkt>[] = [];
@@ -188,7 +188,7 @@ export function ablaufDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer): AblaufD
         const schlechter = Math.max(run.points[i].deviationMeters ?? 0, run.points[i + 1].deviationMeters ?? 0);
         bewertet.push(
           linie([koordinaten[i], koordinaten[i + 1]], {
-            farbe: deviationColor(schlechter) ?? ausweichfarbe,
+            farbe: deviationColor(schlechter, grenzen) ?? ausweichfarbe,
             text: t("Ablauf {nr}: {meter} m Abweichung", { nr: index + 1, meter: Math.round(schlechter) }),
           }),
         );

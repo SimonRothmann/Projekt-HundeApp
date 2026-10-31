@@ -217,6 +217,10 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                 faehrte.AgeMinutes,
                 faehrte.Surface,
                 faehrte.Comment,
+                faehrte.Kind.ToString(),
+                faehrte.DoubleBlind,
+                faehrte.NegativeTrail,
+                faehrte.ScentArticle,
                 faehrtenpunkte
                     .Where(p => p.TrackId == faehrte.Id)
                     .OrderBy(p => p.Timestamp)
@@ -231,6 +235,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                         w.AvgDeviationMeters,
                         w.OnTrackPercent,
                         w.ArticlesFound,
+                        w.PersonFound,
+                        w.Indication?.ToString(),
                         // Ablaufpunkte kennen keine Art und keine Beschriftung -
                         // sie sind der reine Weg des Gespanns, aufgezeichnet im
                         // Sekundentakt. Markierungen gibt es nur an der

@@ -28,6 +28,8 @@ kleiner.
 | [FCI, Regulations and Rules for International FCI Rally Obedience Trials, 01.02.2025](https://fci.be/medias/FCI-ROB-REG-2025-en-19918.pdf) (FCI-ROB-REG-2025, 36 Seiten, **englisch = Originalsprache**; zuletzt geändert am 08.01.2025) | FCI Rally Obedience International Class: Schilder 101-422 (Kapitel 5), Bewertung und Abzüge (Kapitel 6) |
 | [VDH, Regelwerk Rally Obedience, gültig ab 01.01.2027](https://www.schaeferhunde.de/fileadmin/Secure/Satzungen_Ordnungen/02-VDH_RO_RW_2027.pdf) (Beschluss 25.09.2026, 81 Seiten; Kopie beim SV, die Datei liegt nicht auf vdh.de) | VDH RO B, RO 1, RO 2, RO 3, RO S (Seiten 12-15 Klassen, 30-63 Schilder, 64-68 Senioren-Auswahl, 69-71 Bewertung); bis 31.12.2026 gilt noch die Fassung von 2017 |
 | [ÖKV, Prüfungsordnung Rally Obedience, genehmigt 31.08.2022, gültig ab 01.01.2023](https://rally-obedience.oekv.at/media/upload/editor/files/Rally-Obedience/Endfassung_RO_PO_2023_20012023.pdf) (75 Seiten; **oekv.at war am 22.10.2026 nicht erreichbar, der Text stammt aus einer Webarchiv-Kopie desselben Dokuments**) | ÖKV RO B, RO 1, RO 2, RO 3, RO S (Seiten 16-18 Klassen, 29-63 Schilder, 69-71 Parcoursanforderungen und Senioren, 73-75 Abzüge) |
+| [DVG, Prüfungsordnung Mantrailing, gültig ab 06.05.2024](https://dvg-hundesport.de/file/aa81840850cc35dc0151686954f41767.de.0/dvg_po_mantrailing.pdf) (Stand 05.2024, 12 Seiten; **Veröffentlichung nur mit Genehmigung des DVG - im Katalog stehen nur Fakten, keine Textpassagen**) | DVG MT-I, MT-II, MT-III: Prüfungsstufen (S. 6), Bewertung und Punkte (S. 9), Werturteile (S. 10), Zulassung (S. 3) |
+| SV, Prüfungsordnung Personenspürhundesport Mantrailing (SV-PO-MT), Fassung 2026, [Dokument „SV-PO Mantrailing Fassung 2026“](https://www.schaeferhunde.de/index.php?eID=dumpFile&f=6342&t=f&token=7088031d8c791c82cd9357f5df9acb9c5a3c2868) (Download von schaeferhunde.de, geprüft 30.10.2026) | SV-MT 1, 2, 3: Prüfungsstufen (S. 3), Bewertungskriterien je Stufe, Führleine, Geruchsaufnahme |
 
 ## Ergebnis: das meiste stimmt
 
@@ -995,3 +997,62 @@ VDH-Ordnung laufen bei 375 px ohne horizontalen Scroll.
 - **Der Prod-Bestand wurde nicht gelesen.** Nach dem Deploy sollten Sportart `RALLYO` (einmal
   global, `Name = 'Rally Obedience'` nur einmal), 11 Ordnungen und 24 Übungen stimmen; die
   Verknüpfungen sollten 221 betragen.
+
+## Mantrailing (2026-10-30, Paket M1)
+
+Auftrag des Betreibers (2026-10-30): Mantrailing als Sportart, Prüfungsordnungen nur von **DVG und SV**
+(keine Hundeschul-Ordnungen). Eine Sportart `MANTRAILING` (Name „Mantrailing“) mit sechs Ordnungen,
+alle Land „DE“ (deutsche Verbände), Seeder `SportCatalogSeeder.Mantrailing.cs`:
+
+| Ordnung | Fassung (`VersionLabel`, gültig ab) | Quelle |
+|---|---|---|
+| DVG MT-I, DVG MT-II, DVG MT-III | `05/2024`, 06.05.2024 | DVG-Prüfungsordnung Mantrailing, gültig ab 06.05.2024 |
+| SV-MT 1, SV-MT 2, SV-MT 3 | `2026`, 01.01.2026 (das Dokument nennt nur „Fassung 2026“) | SV-PO Mantrailing, Fassung 2026 |
+
+13 Übungen (7 DVG, 6 SV; je Verband eigene Bewertungsbereiche), 39 Verknüpfungen. Die Übungen sind die
+Bewertungsbereiche, die Stufen eines Verbands tragen dieselben Bereiche mit denselben Punkten. Folgestufen:
+`DVG MT-I → II → III` und `SV-MT 1 → 2 → 3` im Ausbildungsweg (`Ausbildungsweg.cs`). Migration
+`AddMantrailing` (siehe docs/MANTRAILING.md).
+
+### Prüfprotokoll (Stand 30.10.2026)
+
+Gegen die extrahierten Texte der beiden PDF geprüft (Stufenfakten und Punkte stehen unabhängig vom
+Seeder in `MantrailingKatalogTests`).
+
+| Ordnung | Länge | Trailalter | Gelände | Richtungswechsel | Suchzeit | Zulassung |
+|---|---|---|---|---|---|---|
+| DVG MT-I | ca. 300 m | mind. 2 h | ruhiges Wohngebiet, Wald, Wiese | mind. 1 | 15 min | 15 Monate, VDH BH-VT |
+| DVG MT-II | ca. 600 m | mind. 4 h | belebtes Wohngebiet, Wald, Wiese, Kreuzungen | mind. 2 | 30 min | wie MT-I |
+| DVG MT-III | ca. 1000 m | mind. 15 h | wie MT-II, zusätzlich befahrener Straßenbereich | mind. 4 | 45 min | wie MT-I |
+| SV-MT 1 | ca. 300 m | Liegezeit mind. 1 h | ruhiges urbanes Wohngebiet oder Feld-, Wald-, Wiesenwege | mind. 2 | 25 min | 15 Monate, FCI BH/VT |
+| SV-MT 2 | ca. 600 m | mind. 3 h | aus belebtem Wohngebiet in Feld-, Wald-, Wiesenwege | mind. 4 | 35 min | 18 Monate, SV-MT 1 oder FCI RH MT V |
+| SV-MT 3 | ca. 1000 m | ca. 24 h | urbanes Wohngebiet mit Kreuzungsbereich in befahrbaren Straßen | mind. 6 (inkl. Straßenkreuzungen/Querungen, laut Auftrag) | 45 min | 24 Monate, SV-MT 2 oder FCI RH MT A |
+
+Punkte je Stufe: **DVG** 5 (Aufnahme vom Geruch) + 5 (Aufnahme der Geruchsspur) + 30 (Verfolgen und Halten)
++ 10 (Arbeitsbereitschaft) + 10 (Teamwork) + 30 (Auffinden der Versteckperson) + 10 (Anzeigeverhalten) = 100.
+**SV** 10 (Lageerfassung und Aufnahme der Geruchsspur) + 10 (Zusammenarbeit mit dem Hund, Lesen des Hundes)
++ 10 (Selbständigkeit, Kontrollierbarkeit, soziale Verträglichkeit) + 20 (Halten der Geruchsspur,
+Arbeitsbereitschaft, Suchmotivation) + 30 (Verfolgen der Geruchsspur, Umgang mit Schwierigkeiten) + 20 (Anzeige
+der Person) = 100. Werturteile **DVG**: Vorzüglich ab 96, Sehr gut 90-95, Gut 80-89, Befriedigend 70-79,
+Mangelhaft unter 70 (bestanden ab 70, laut Auftrag).
+
+### Entschieden
+
+- **SV: Keine Punktegrenze zum Bestehen und keine Prädikate im Dokument.** Die Ordnung sagt nur, die Stufe sei
+  bestanden, wenn der Hund vom Start weg kontinuierlich arbeitet, die Person findet und eindeutig anzeigt; wird die
+  Suchzeit überschritten, ist die Prüfung nicht bestanden. Der Katalog nennt deshalb keine Zahl (die
+  Beschreibung sagt ausdrücklich, dass es keine gibt) - eine erfundene „ab 70“ wäre falsch belegt.
+- **SV-Quelle:** Die Datei-Adresse ist nicht festgehalten; `SourceUrl` steht auf der Startseite des Verbands und
+  wird in der Quellenpflege nachgetragen. Seitenangaben je Übung gibt es hier nicht (anders als bei Rally
+  Obedience), weil der Auszug als Text ohne verlässliche Seitenzählung vorlag.
+- **Nur Fakten.** Der DVG erlaubt die Veröffentlichung seines Regelwerks nur mit Genehmigung: Beschreibungen und
+  Hinweise sind eigene Formulierungen. Die Liste des zulässigen Anzeigeverhaltens (verbellen, vorsitzen, vorstehen,
+  vorliegen, Rückverweisen) ist eine Aufzählung von Tatsachen und steht auch als Auswahl in der App.
+  Die DVG-Übungen tragen deshalb nur Bereich, Höchstpunkte und beim Auffinden die Suchzeit - keine Abzüge,
+  Abbruchbedingungen oder Leinenmaße; die Beschreibung der Ordnung nennt Stufenfakten, Punkte, Werturteile und Zulassung.
+- **Keine englischen Namen und Texte:** Name der Sportart und Kürzel der Ordnungen sind in beiden Sprachen gleich,
+  die Beschreibungen nationaler Ordnungen bleiben deutsch (wie Hoopers und die ÖKV-/SKG-Ordnungen).
+- **Nicht abgebildet:** Disqualifikations- und Abbruchgründe im Einzelnen, Richter- und Veranstaltungsrecht,
+  Ausbildungskennzeichen.
+- **Der Prod-Bestand wurde nicht gelesen.** Nach dem Deploy sollten die Sportart `MANTRAILING` (einmal global),
+  sechs Ordnungen und 13 Übungen stimmen.

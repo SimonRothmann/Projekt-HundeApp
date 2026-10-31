@@ -166,8 +166,10 @@ public class ErinnerungService(
         var fruehestesEnde = jetzt - Erinnerungsregeln.FaehrteFrist;
         var spaetestesEnde = jetzt - Erinnerungsregeln.FaehrteNach;
 
+        // Nur Fährten: Ein Trail wird nach Stunden gesucht, nicht nach der Frist von 3 bis 24 Stunden,
+        // und die Meldung spräche von einer Fährte.
         var faehrten = await db.GpsTracks
-            .Where(t => t.CreatedAt >= seit && !t.WalkRuns.Any())
+            .Where(t => t.CreatedAt >= seit && !t.WalkRuns.Any() && t.Kind == GpsTrackKind.Faehrte)
             .Select(t => new { t.Id, t.TrainingSessionId })
             .AsNoTracking()
             .ToListAsync(ct);

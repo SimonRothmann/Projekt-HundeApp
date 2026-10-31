@@ -156,6 +156,12 @@ public record FaehrteExportDto(
     int? AlterMinuten,
     string? Untergrund,
     string? Kommentar,
+    // Mantrailing: Spurart "Faehrte" oder "Mantrailing" und die Angaben zum Trail. Bei einem
+    // Mantrailing-Trail ist AlterMinuten das Trailalter.
+    string Spurart,
+    bool Doppelblind,
+    bool NegativTrail,
+    string? Geruchsartikel,
     IReadOnlyList<GpsPunktExportDto> Punkte,
     IReadOnlyList<AblaufExportDto> Ablaeufe);
 
@@ -173,6 +179,9 @@ public record AblaufExportDto(
     double? MittlereAbweichungMeter,
     double? AufDerFaehrteProzent,
     int? GegenstaendeGefunden,
+    // Mantrailing: Ergebnis des Laufs (bei einem Negativ-Trail: korrekt angezeigt).
+    bool? PersonGefunden,
+    string? Anzeigeverhalten,
     IReadOnlyList<GpsPunktExportDto> Punkte);
 
 public record ZielExportDto(

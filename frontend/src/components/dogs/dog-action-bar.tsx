@@ -13,10 +13,13 @@ import { cn } from "@/lib/utils";
  */
 export function DogActionBar({
   zeigtFaehrte,
+  nurTrail = false,
   onTraining,
   onFaehrte,
 }: {
   zeigtFaehrte: boolean;
+  /** Der Hund trailt (Mantrailing), läuft aber keine Fährte: Der Knopf heißt dann "Trail legen". */
+  nurTrail?: boolean;
   onTraining: () => void;
   onFaehrte: () => void;
 }) {
@@ -31,7 +34,7 @@ export function DogActionBar({
       {zeigtFaehrte && (
         <Button variant="outline" className="h-11 min-w-0 text-sm" onClick={onFaehrte}>
           <Route className="size-4" />
-          <span className="truncate">{t("Fährte legen")}</span>
+          <span className="truncate">{nurTrail ? t("Trail legen") : t("Fährte legen")}</span>
         </Button>
       )}
     </div>

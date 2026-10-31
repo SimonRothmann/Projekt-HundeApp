@@ -83,7 +83,7 @@ public static class Erinnerungsregeln
     /// Sportarten, bei denen eine Fährte gelegt wird - Codes wie FAEHRTEN_SPORTARTEN in
     /// frontend/src/lib/faehrte.ts (beim Ändern beide Stellen anfassen).
     /// </summary>
-    public static readonly IReadOnlyList<string> FaehrtenSportCodes = ["FAERTE", "FPR", "IGP1", "IGP2", "IGP3", "GPR", "STOEPR"];
+    public static readonly IReadOnlyList<string> FaehrtenSportCodes = ["FAERTE", "FPR", "IGP1", "IGP2", "IGP3", "GPR", "STOEPR", "MANTRAILING"];
 
     public const int AlleTage = 127;
     public const int VorgabeTage = 64; // Sonntag

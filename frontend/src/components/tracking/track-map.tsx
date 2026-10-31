@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EBENE_GEAENDERT, KARTEN_EBENEN, ebeneMerken, gespeicherteEbene, type KartenEbene } from "@/lib/karten-ebenen";
 import type { GpsWalkRun } from "@/lib/types";
 import { useT } from "@/lib/i18n";
-import { AMBER_MAX_M, GREEN_MAX_M } from "@/components/tracking/walk-run-evaluation";
+import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
 import { kartenTexte } from "@/lib/karte/kartentexte";
 import { glaettePeilung, naechsteAusrichtung, rohePeilung, zielPeilung, type Ausrichtung } from "@/lib/karte/peilung";
 import {
@@ -141,9 +141,12 @@ export function TrackMap({
   live = false,
   liveWalkRunPoints,
   fill = false,
+  art,
 }: {
   points: KartenPunkt[];
   walkRuns?: GpsWalkRun[];
+  /** Die Spur der Abläufe: beim Mantrailing färben die weiteren Grenzen (10/25 m) die Ablauflinie. */
+  art?: { kind?: number | null };
   live?: boolean;
   // Punkte eines aktuell laufenden Ablauf-Versuchs. Wenn gesetzt und nicht
   // leer, verhält sich die Karte wie im Live-Modus (folgt der Position,
@@ -157,6 +160,8 @@ export function TrackMap({
   fill?: boolean;
 }) {
   const t = useT();
+  // Der Wert statt des Objekts als Abhängigkeit: Ein neues { kind } je Rendern ließe die Daten neu setzen.
+  const artKind = art?.kind;
   // Live entweder weil eine neue Fährte gelegt wird (bisheriges Verhalten)
   // oder weil ein Ablauf-Versuch mitten in der Aufzeichnung ist.
   const hasLiveWalkRun = !!(liveWalkRunPoints && liveWalkRunPoints.length > 0);
@@ -453,11 +458,11 @@ export function TrackMap({
   }, [mapReady, points, live, t]);
 
   useEffect(() => {
-    const d = ablaufDaten(walkRuns, t);
+    const d = ablaufDaten(walkRuns, t, spurGrenzen({ kind: artKind }));
     const teil = { "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, halte: d.halte };
     Object.assign(datenRef.current, teil);
     datenAnwenden(mapRef.current, teil);
-  }, [mapReady, walkRuns, t]);
+  }, [mapReady, walkRuns, t, artKind]);
 
   useEffect(() => {
     const d = liveAblaufDaten(liveWalkRunPoints, walkRuns.length, t);
@@ -695,8 +700,9 @@ function Linienprobe({
  *
  * Zeigt nur, was auch wirklich auf der Karte liegt: ohne Ablauf keine Ampel.
  */
-export function TrackLegend({ walkRuns }: { walkRuns: GpsWalkRun[] }) {
+export function TrackLegend({ walkRuns, art }: { walkRuns: GpsWalkRun[]; art?: { kind?: number | null } }) {
   const t = useT();
+  const grenzen = spurGrenzen(art);
   const istBewertet = (run: GpsWalkRun) => run.points.some((p) => p.deviationMeters != null);
   const bewertete = walkRuns.filter(istBewertet);
   // Index aus der vollständigen Liste behalten: die Farbe eines noch nicht
@@ -709,7 +715,7 @@ export function TrackLegend({ walkRuns }: { walkRuns: GpsWalkRun[] }) {
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
         <Linienprobe farbe={TRACK_LINE_COLOR} fassung={TRACK_CASING_COLOR} />
-        <span className="font-medium text-foreground">{t("Gelegte Fährte")}</span>
+        <span className="font-medium text-foreground">{istMantrailing(art) ? t("Gelegter Trail") : t("Gelegte Fährte")}</span>
       </span>
       {unbewertete.map(({ index }) => (
         <span key={index} className="flex items-center gap-1.5">
@@ -722,11 +728,11 @@ export function TrackLegend({ walkRuns }: { walkRuns: GpsWalkRun[] }) {
           <span className="font-medium text-foreground">{t("Ablauf, Abweichung:")}</span>
           <span className="flex items-center gap-1.5">
             <Linienprobe farbe={DEVIATION_COLORS.green} />
-            {t("bis {meter} m", { meter: GREEN_MAX_M })}
+            {t("bis {meter} m", { meter: grenzen.gruenBis })}
           </span>
           <span className="flex items-center gap-1.5">
             <Linienprobe farbe={DEVIATION_COLORS.amber} />
-            {t("bis {meter} m", { meter: AMBER_MAX_M })}
+            {t("bis {meter} m", { meter: grenzen.gelbBis })}
           </span>
           <span className="flex items-center gap-1.5">
             <Linienprobe farbe={DEVIATION_COLORS.red} />

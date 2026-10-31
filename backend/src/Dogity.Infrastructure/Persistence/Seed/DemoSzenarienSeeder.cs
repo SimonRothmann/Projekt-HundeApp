@@ -87,6 +87,8 @@ public static class DemoSzenarienSeeder
     public const string NotizGesundheitEntwurmung = "Entwurmung mit Tablette; die nächste wäre vor ein paar Tagen dran gewesen.";
     public const string NotizGesundheitTermin = "Kontrolle und Impfberatung in der Praxis Musterstadt.";
     public const string NotizGesundheitEmma = "Tollwut laut Impfpass, alles in Ordnung.";
+    public const string NotizMantrailingZiel = "Erste Mantrailing-Prüfung: SV-MT 1.";
+    public const string KommentarMantrailing = "Trail durchs Wohngebiet, anderthalb Stunden gelegen, doppelblind.";
     public const string KommentarNachtfaehrte = "Abends gelegt, über Nacht liegen gelassen - morgen früh ablaufen.";
 
     /// <summary>Der Antrag, den Tom stellt - der Name ist zugleich das Erkennungszeichen.</summary>
@@ -180,6 +182,7 @@ public static class DemoSzenarienSeeder
                 ("Sachkunde", SachkundeAsync),
                 ("Fährten", FaehrtenAsync),
                 ("Nachtfährte", NachtfaehrteAsync),
+                ("Mantrailing", MantrailingAsync),
                 ("Feedback", FeedbackAsync),
                 ("Termine", TermineAsync),
                 ("Anmeldungen", AnmeldungenAsync),
@@ -1389,6 +1392,73 @@ public static class DemoSzenarienSeeder
                 punkt.Timestamp = (punkt.Timestamp + verschiebung).ToUniversalTime();
             einheit.Date = gestern;
             await db.SaveChangesAsync(ct);
+        }
+
+        // ---------------------------------------------------------------- Mantrailing
+
+        /// <summary>
+        /// Lisas Hund trailt: Mantrailing in seinen Sportarten, ein Ziel SV-MT 1 und ein Trail durchs Wohngebiet
+        /// (ca. 300 m, zwei Richtungswechsel, anderthalb Stunden gelegen, doppelblind) mit einem Lauf, bei dem der
+        /// Hund teils 5 bis 20 m neben der Spur arbeitet, die Person findet und vorsitzt. Der Lauf wird wie in der
+        /// App gespeichert und ausgewertet (Grenzen 10/25 m). Das Szenario entsteht einmal: Erkannt wird es am
+        /// Kommentar des Trails (auch gelöscht) und an der Notiz des Ziels. Hat Lisa schon eigene Sportarten
+        /// für den Hund gewählt, bleiben sie, wie sie sind - dann steht Mantrailing nur durch das Ziel da.
+        /// </summary>
+        private async Task MantrailingAsync(CancellationToken ct)
+        {
+            var hunde = await HundeVonAsync(lisa, ct);
+            var hund = hunde.FirstOrDefault() ?? await HundAsync(lisa, hunde, "Luna", "Border Collie", DogGender.Female, new DateOnly(2022, 6, 1), ct);
+            if (hund is null) return;
+
+            var (sport, regulation) = await KatalogAsync(SportCatalogSeeder.MantrailingCode, "SV-MT 1", ct);
+            if (sport is null || regulation is null) return;
+
+            if (!hund.UsesOwnSports)
+            {
+                var ergebnis = await services.GetRequiredService<IPreferenceService>()
+                    .UpdateDogSportsAsync(lisa.Id, hund.Id, new UpdateDogSportsRequest(true, [sport.Id]), ct);
+                if (!ergebnis.Succeeded)
+                    logger.LogWarning("Mantrailing konnte für den Demo-Hund nicht gewählt werden: {Fehler}", string.Join("; ", ergebnis.Errors));
+            }
+
+            await ZielMitPlanAsync(lisa, hund, SportCatalogSeeder.MantrailingCode, "SV-MT 1", 70, NotizMantrailingZiel, ct);
+
+            var vorhanden = await db.GpsTracks.IgnoreQueryFilters().AnyAsync(
+                t => t.Comment == KommentarMantrailing
+                    && db.TrainingSessions.IgnoreQueryFilters().Any(s => s.Id == t.TrainingSessionId && s.DogId == hund.Id), ct);
+            if (vorhanden) return;
+
+            var heute = Vereinszeit.Heute();
+            var tag = heute.AddDays(-3);
+            var gelegtUm = LokalZuUtc(tag, new TimeOnly(14, 0));
+            var liegezeit = TimeSpan.FromMinutes(90);
+            var (gelegt, abgelaufen) = DemoTrailGeometrie.Erzeuge(gelegtUm, liegezeit);
+
+            // Ohne Wetterabruf wie die anderen Demo-Fährten (siehe FaehrtenAsync).
+            var service = new GpsTrackService(db, new OhneWetter());
+            var track = await service.CreateAsync(lisa.Id, new CreateGpsTrackRequest(
+                TrainingSessionId: null, LengthMeters: DemoTrailGeometrie.LaengeMeter, AgeMinutes: (int)liegezeit.TotalMinutes,
+                Surface: null, Weather: null, Wind: null, Comment: KommentarMantrailing, Points: gelegt,
+                DogId: hund.Id, Date: tag, DurationMinutes: 45,
+                Kind: GpsTrackKind.Mantrailing, DoubleBlind: true, NegativeTrail: false, ScentArticle: "Kapuzenpulli der Versteckperson"), ct);
+            if (!track.Succeeded)
+            {
+                logger.LogWarning("Demo-Trail konnte nicht angelegt werden: {Fehler}", string.Join("; ", track.Errors));
+                return;
+            }
+
+            var lauf = await service.AddWalkRunAsync(lisa.Id, track.Value!.Id, new CreateGpsWalkRunRequest(
+                DemoTrailGeometrie.LaengeMeter, null, abgelaufen), ct);
+            if (!lauf.Succeeded)
+            {
+                logger.LogWarning("Demo-Trail-Lauf konnte nicht gespeichert werden: {Fehler}", string.Join("; ", lauf.Errors));
+                return;
+            }
+
+            var ergebnisLauf = await service.UpdateTrailRunAsync(lisa.Id, track.Value.Id, lauf.Value!.Id,
+                new UpdateGpsTrailRunRequest(true, TrailIndication.SittingInFront), ct);
+            if (!ergebnisLauf.Succeeded)
+                logger.LogWarning("Ergebnis des Demo-Trails konnte nicht eingetragen werden: {Fehler}", string.Join("; ", ergebnisLauf.Errors));
         }
     }
 }

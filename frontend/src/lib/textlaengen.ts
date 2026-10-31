@@ -18,6 +18,8 @@ export const TEXTLAENGE = {
   eigeneUebung: 150,
   /** GpsWalkRun.Comment */
   ablaufKommentar: 2000,
+  /** GpsTrack.ScentArticle: Geruchsartikel eines Mantrailing-Trails */
+  geruchsartikel: 100,
   /** QuizQuestion.Text */
   sachkundeFrage: 2000,
   /** QuizQuestion.SampleSolution */

@@ -8,6 +8,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 
 import { useSprache, useT } from "@/lib/i18n";
+import { istMantrailing } from "@/lib/mantrailing";
 import { ortsformat } from "@/lib/ortsformat";
 
 export type FaehrteMitHund = OffeneFaehrte & { hund: Dog };
@@ -52,7 +53,9 @@ export function HeuteGelegtSection({
                   {t("Gelegt bis {uhrzeit}", { uhrzeit })}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {t("Fährtenalter {minuten} Min.", { minuten: f.alterMinuten })}
+                  {istMantrailing(f.track)
+                    ? t("Trailalter {minuten} Min.", { minuten: f.alterMinuten })
+                    : t("Fährtenalter {minuten} Min.", { minuten: f.alterMinuten })}
                   {f.track.lengthMeters ? ` · ${Math.round(f.track.lengthMeters)} m` : ""}
                   {f.track.surface ? ` · ${f.track.surface.split(", ").map((teil) => t(teil)).join(", ")}` : ""}
                 </p>
@@ -60,7 +63,8 @@ export function HeuteGelegtSection({
               <WalkRunRecorder
                 trackId={f.track.id}
                 laidTrackPoints={f.track.points}
-                label={t("Jetzt ablaufen")}
+                track={f.track}
+                label={istMantrailing(f.track) ? t("Jetzt suchen") : t("Jetzt ablaufen")}
                 onSaved={onChanged}
               />
             </CardContent>

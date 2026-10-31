@@ -6,22 +6,30 @@ import { cn } from "@/lib/utils";
 
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
-// Schwellen identisch zum Backend (GpsTrackEvaluator) - bewusst großzügig,
-// weil der GPS-Fehler selbst 3-8 m beträgt. Exportiert, weil Kartenlinie und
-// Fährtenbild (lib/faehrten-bild.ts) dieselben Schwellen brauchen - eine Zahl,
-// ein Ort.
-export const GREEN_MAX_M = 3;
-export const AMBER_MAX_M = 6;
+import { FAEHRTE_GRENZEN, istMantrailing, spurGrenzen } from "@/lib/mantrailing";
+// Die Fährte-Schwellen stehen in lib/mantrailing.ts (zusammen mit denen für
+// Mantrailing, je Art eine Zahl, ein Ort) und sind identisch zum Backend
+// (GpsTrackEvaluator) - bewusst großzügig, weil der GPS-Fehler selbst 3-8 m
+// beträgt. Hier nur unter den alten Namen, die Kartenlinie und Fährtenbild
+// (lib/faehrten-bild.ts) für die Fährte weiter nutzen.
+export const GREEN_MAX_M = FAEHRTE_GRENZEN.gruenBis;
+export const AMBER_MAX_M = FAEHRTE_GRENZEN.gelbBis;
 
-function ampelClass(avgMeters: number): string {
-  if (avgMeters <= GREEN_MAX_M) return "text-emerald-600 dark:text-emerald-500";
-  if (avgMeters <= AMBER_MAX_M) return "text-amber-600 dark:text-amber-500";
+type Spur = { kind?: number | null };
+
+function ampelClass(avgMeters: number, art?: Spur): string {
+  const grenzen = spurGrenzen(art);
+  if (avgMeters <= grenzen.gruenBis) return "text-emerald-600 dark:text-emerald-500";
+  if (avgMeters <= grenzen.gelbBis) return "text-amber-600 dark:text-amber-500";
   return "text-destructive";
 }
 
-export function ampelLabel(avgMeters: number): string {
-  if (avgMeters <= GREEN_MAX_M) return uebersetzbar("eng an der Fährte");
-  if (avgMeters <= AMBER_MAX_M) return uebersetzbar("mittlere Abweichung");
+export function ampelLabel(avgMeters: number, art?: Spur): string {
+  const grenzen = spurGrenzen(art);
+  if (avgMeters <= grenzen.gruenBis) {
+    return istMantrailing(art) ? uebersetzbar("nah an der Spur") : uebersetzbar("eng an der Fährte");
+  }
+  if (avgMeters <= grenzen.gelbBis) return uebersetzbar("mittlere Abweichung");
   return uebersetzbar("deutlich abgekommen");
 }
 
@@ -44,8 +52,11 @@ const stopClass: Record<number, string> = {
  * gross: für das Ergebnis-Fenster direkt nach dem Ablaufen (ablauf-ergebnis-
  * sheet.tsx) - dieselben Werte, aber die Abweichung als Überschrift und die
  * übrigen Zahlen als Felder, die man im Stehen am Platz ohne Brille liest.
+ *
+ * art: die Spur des Laufs. Beim Mantrailing gelten andere Grenzen und Begriffe
+ * (siehe lib/mantrailing.ts); ohne Angabe gilt die Fährte.
  */
-export function WalkRunEvaluation({ run, gross = false }: { run: GpsWalkRun; gross?: boolean }) {
+export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun; gross?: boolean; art?: Spur }) {
   const t = useT();
   // Lose Prüfungen (== null statt === null, ?? []): aus einem älteren
   // Read-Cache oder von einem älteren Backend-Stand fehlen diese Felder ganz
@@ -59,6 +70,7 @@ export function WalkRunEvaluation({ run, gross = false }: { run: GpsWalkRun; gro
   const avg = run.avgDeviationMeters;
   const stops = run.stops ?? [];
   const unexplained = stops.filter((s) => s.kind === 0).length;
+  const trail = istMantrailing(art);
   const zahl = gross ? "rounded-md border border-input px-2.5 py-1.5 text-sm font-medium text-foreground" : "text-xs";
   const abweichung = t("Ø {meter} m", { meter: Math.round(avg) });
   const kennzahlen = (
@@ -67,7 +79,11 @@ export function WalkRunEvaluation({ run, gross = false }: { run: GpsWalkRun; gro
         <span className={zahl}>{t("max {meter} m", { meter: Math.round(run.maxDeviationMeters) })}</span>
       )}
       {run.onTrackPercent != null && (
-        <span className={zahl}>{t("{prozent} % auf Fährte", { prozent: Math.round(run.onTrackPercent) })}</span>
+        <span className={zahl}>
+          {trail
+            ? t("{prozent} % auf der Spur", { prozent: Math.round(run.onTrackPercent) })
+            : t("{prozent} % auf Fährte", { prozent: Math.round(run.onTrackPercent) })}
+        </span>
       )}
       {run.articlesTotal != null && run.articlesTotal > 0 && (
         <span className={zahl}>
@@ -84,15 +100,15 @@ export function WalkRunEvaluation({ run, gross = false }: { run: GpsWalkRun; gro
       {gross ? (
         <>
           <div className="flex flex-col gap-1">
-            <span className={cn("text-3xl font-semibold", ampelClass(avg))}>{abweichung}</span>
-            <span className={cn("text-sm", ampelClass(avg))}>{t(ampelLabel(avg))}</span>
+            <span className={cn("text-3xl font-semibold", ampelClass(avg, art))}>{abweichung}</span>
+            <span className={cn("text-sm", ampelClass(avg, art))}>{t(ampelLabel(avg, art))}</span>
           </div>
           <div className="flex flex-wrap gap-2">{kennzahlen}</div>
         </>
       ) : (
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className={cn("text-sm font-semibold", ampelClass(avg))}>{abweichung}</span>
-          <span className={cn("text-xs", ampelClass(avg))}>{t(ampelLabel(avg))}</span>
+          <span className={cn("text-sm font-semibold", ampelClass(avg, art))}>{abweichung}</span>
+          <span className={cn("text-xs", ampelClass(avg, art))}>{t(ampelLabel(avg, art))}</span>
           {kennzahlen}
         </div>
       )}
@@ -110,7 +126,12 @@ export function WalkRunEvaluation({ run, gross = false }: { run: GpsWalkRun; gro
       )}
 
       <p className="text-[0.7rem] leading-snug">
-        {t("Gemessen wird die Linie des Hundeführers – der Hund kann bis Leinenlänge abweichen, ohne dass es hier sichtbar wird.")}
+        {trail
+          ? t("Gemessen wird die Linie des Hundeführers. Beim Mantrailing arbeitet der Hund an langer Leine auch neben der Spur – deshalb gelten hier {gruen} m als nah und {gelb} m als mittlere Abweichung.", {
+              gruen: spurGrenzen(art).gruenBis,
+              gelb: spurGrenzen(art).gelbBis,
+            })
+          : t("Gemessen wird die Linie des Hundeführers – der Hund kann bis Leinenlänge abweichen, ohne dass es hier sichtbar wird.")}
         {unexplained > 0 &&
           ` ${unexplained === 1 ? t("1 unerklärte Stockung deutet auf Suchen hin.") : t("{n} unerklärte Stockungen deuten auf Suchen hin.", { n: unexplained })}`}
       </p>

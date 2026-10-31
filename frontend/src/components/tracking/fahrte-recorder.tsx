@@ -15,7 +15,9 @@ import {
   sicherungSpeichern,
   type FaehrtenSicherung,
 } from "@/lib/aufzeichnung-sicherung";
-import { UNTERGRUENDE, untergrundUmschalten } from "@/lib/untergrund";
+import { TRAIL_UNTERGRUENDE, UNTERGRUENDE, untergrundUmschalten } from "@/lib/untergrund";
+import { LEERE_TRAIL_ANGABEN, type TrailAngabenVorLegen } from "@/lib/mantrailing";
+import { TrailLegenFormular } from "@/components/tracking/trail-angaben";
 import { cn } from "@/lib/utils";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
 import { TrackMap } from "@/components/tracking/track-map";
@@ -47,6 +49,11 @@ const MARKER_TYPES = [
   { value: 3, label: uebersetzbar("Sonstiges"), icon: MapPinPlus },
 ] as const;
 
+// Beim Mantrailing gibt es keine Gegenstände, Leckerlipots und Verleitungen: Es bleibt ein
+// allgemeiner Marker (z. B. für einen Richtungswechsel). Er zählt wie "Sonstiges" und wirkt
+// weder auf Gegenstände noch auf erklärte Halte.
+const TRAIL_MARKER = [{ value: 3, label: uebersetzbar("Marker"), icon: MapPinPlus }] as const;
+
 /**
  * Direkter Einstiegspunkt für die GPS-Fährtenaufzeichnung, ohne vorher ein
  * vollständiges Trainingstagebuch-Training mit bewerteten Übungen anlegen
@@ -57,9 +64,16 @@ export function FahrteRecorder({
   dogId,
   onSaved,
   onAufzeichnung,
+  mantrailing = false,
 }: {
   dogId: string;
   onSaved: () => Promise<void>;
+  /**
+   * Ein Trail statt einer Fährte (Mantrailing): andere Begriffe, die Angaben zum Trail vor dem
+   * Legen, keine Gegenstände. Gilt für die Lebensdauer des Recorders - wer wechselt, hängt ihn
+   * mit einem anderen key neu ein (siehe DogFaehrteSheet).
+   */
+  mantrailing?: boolean;
   /**
    * Meldet, ob gerade aufgezeichnet wird. Der Recorder steht in einem Fenster
    * der Hundeseite, das sich währenddessen nicht schließen darf: Mit dem Fenster
@@ -85,6 +99,12 @@ export function FahrteRecorder({
     onAufzeichnung?.(isRecording || ablaufLaeuft);
   }, [isRecording, ablaufLaeuft, onAufzeichnung]);
   const [untergrund, setUntergrund] = useState<string[]>([]);
+  // Ob dies ein Trail ist: zunächst die Wahl des Aufrufers, beim Fortsetzen einer unterbrochenen
+  // Aufzeichnung aber das, was sie war.
+  const [trailModus, setTrailModus] = useState(mantrailing);
+  const [trailAngaben, setTrailAngaben] = useState<TrailAngabenVorLegen>(LEERE_TRAIL_ANGABEN);
+  const markerArten = trailModus ? TRAIL_MARKER : MARKER_TYPES;
+  const untergruende = trailModus ? TRAIL_UNTERGRUENDE : UNTERGRUENDE;
   const [isMarking, setIsMarking] = useState(false);
   // Die eben gelegte Fährte: bietet direkt danach das Ablaufen an, statt dass
   // man sie im Tagebuch wieder heraussuchen muss. Offline gespeichert gibt es
@@ -118,8 +138,16 @@ export function FahrteRecorder({
   useEffect(() => {
     const laufend = laufendRef.current;
     if (!isRecording || !laufend || !user) return;
-    sicherungSchreiben({ art: "faehrte", userId: user.userId, dogId, untergrund, points, ...laufend });
-  }, [isRecording, points, untergrund, user, dogId]);
+    sicherungSchreiben({
+      art: "faehrte",
+      userId: user.userId,
+      dogId,
+      untergrund,
+      points,
+      ...(trailModus ? { trail: trailAngaben } : {}),
+      ...laufend,
+    });
+  }, [isRecording, points, untergrund, user, dogId, trailModus, trailAngaben]);
 
   function startRecording() {
     laufendRef.current = { trackId: crypto.randomUUID(), begonnen: Date.now(), seite: window.location.pathname };
@@ -129,6 +157,8 @@ export function FahrteRecorder({
   function fortsetzen(gesichert: FaehrtenSicherung) {
     laufendRef.current = { trackId: gesichert.trackId, begonnen: gesichert.begonnen, seite: gesichert.seite };
     setUntergrund(gesichert.untergrund);
+    setTrailModus(gesichert.trail != null);
+    setTrailAngaben(gesichert.trail ?? LEERE_TRAIL_ANGABEN);
     setUnterbrochen(null);
     start(gesichert.points);
   }
@@ -147,7 +177,11 @@ export function FahrteRecorder({
       (point) => {
         setPoints((prev) => [...prev, { ...point, pointType: 1, label: null, markerType: typ }]);
         setIsMarking(false);
-        toast.success(t("{art} markiert.", { art: t(MARKER_TYPES.find((m) => m.value === typ)?.label ?? uebersetzbar("Marker")) }));
+        toast.success(
+          trailModus
+            ? t("Marker gesetzt.")
+            : t("{art} markiert.", { art: t(MARKER_TYPES.find((m) => m.value === typ)?.label ?? uebersetzbar("Marker")) }),
+        );
       },
       () => setIsMarking(false),
     );
@@ -161,7 +195,14 @@ export function FahrteRecorder({
    * der Verlust des ganzen Trainings.
    */
   function abbrechen() {
-    if (!confirm(t("Aufzeichnung verwerfen? Die bisher aufgezeichnete Fährte geht verloren."))) return;
+    if (
+      !confirm(
+        trailModus
+          ? t("Aufzeichnung verwerfen? Der bisher aufgezeichnete Trail geht verloren.")
+          : t("Aufzeichnung verwerfen? Die bisher aufgezeichnete Fährte geht verloren."),
+      )
+    )
+      return;
     stop();
     setPoints([]);
     laufendRef.current = null;
@@ -187,6 +228,7 @@ export function FahrteRecorder({
       dogId,
       untergrund,
       points,
+      ...(trailModus ? { trail: trailAngaben } : {}),
       trackId: laufend?.trackId ?? crypto.randomUUID(),
       begonnen: laufend?.begonnen ?? Date.now(),
       seite: laufend?.seite ?? window.location.pathname,
@@ -206,11 +248,12 @@ export function FahrteRecorder({
    */
   async function speichern(sicherung: FaehrtenSicherung) {
     setSpeichert(true);
-    const ergebnis = await sicherungSpeichern(sicherung, t("Fährte"));
+    const ergebnis = await sicherungSpeichern(sicherung, sicherung.trail ? t("Trail") : t("Fährte"));
     setSpeichert(false);
     speicherErgebnisMelden(ergebnis, t, "faehrte");
     setPoints([]);
     setUntergrund([]);
+    setTrailAngaben(LEERE_TRAIL_ANGABEN);
 
     if (ergebnis.ausgang === "fehler") {
       setUnterbrochen(user ? sicherung : null);
@@ -244,14 +287,17 @@ export function FahrteRecorder({
         {gelegt && (
           <div className="flex flex-col gap-2 rounded-lg border border-surface-border bg-surface p-3">
             <p className="text-sm">
-              <span className="font-medium">{t("Fährte gespeichert.")}</span>{" "}
-              {t("Ablaufen, sobald sie alt genug ist - die Startseite erinnert dich daran.")}
+              <span className="font-medium">{trailModus ? t("Trail gespeichert.") : t("Fährte gespeichert.")}</span>{" "}
+              {trailModus
+                ? t("Suchen, sobald die Liegezeit um ist - die Startseite zeigt ihn unter „Heute gelegt“.")
+                : t("Ablaufen, sobald sie alt genug ist - die Startseite erinnert dich daran.")}
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <WalkRunRecorder
                 trackId={gelegt.id}
                 laidTrackPoints={gelegt.points}
-                label={t("Jetzt ablaufen")}
+                track={gelegt}
+                label={trailModus ? t("Jetzt suchen") : t("Jetzt ablaufen")}
                 onAufzeichnung={setAblaufLaeuft}
                 onSaved={async () => {
                   setGelegt(null);
@@ -277,14 +323,14 @@ export function FahrteRecorder({
                 <span className="font-normal text-muted-foreground">· {t("mehrere möglich")}</span>
               </span>
               <div role="group" aria-labelledby="fahrte-untergrund" className="flex flex-wrap gap-1.5">
-                {UNTERGRUENDE.map((u) => {
+                {untergruende.map((u) => {
                   const aktiv = untergrund.includes(u);
                   return (
                     <button
                       key={u}
                       type="button"
                       aria-pressed={aktiv}
-                      onClick={() => setUntergrund((vorher) => untergrundUmschalten(vorher, u))}
+                      onClick={() => setUntergrund((vorher) => untergrundUmschalten(vorher, u, untergruende))}
                       className={cn(
                         "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11",
                         aktiv
@@ -298,6 +344,7 @@ export function FahrteRecorder({
                 })}
               </div>
             </div>
+            {trailModus && <TrailLegenFormular werte={trailAngaben} onChange={setTrailAngaben} />}
             <Button onClick={startRecording} disabled={speichert} className="w-full coarse:min-h-11">
               <MapPin className="size-4" />
               {t("Legen starten")}
@@ -310,7 +357,7 @@ export function FahrteRecorder({
 
   return (
     <AufzeichnungVollbild
-      titel={t("Fährte legen")}
+      titel={trailModus ? t("Trail legen") : t("Fährte legen")}
       status={
         <>
           {t("{punkte} Punkte · {marker} Marker", { punkte: autoPunkte, marker: markerPunkte })}
@@ -341,8 +388,8 @@ export function FahrteRecorder({
         // ohne Hinsehen zu treffen sein. Die Beschriftung bricht um statt
         // abgeschnitten zu werden ("Leckerlipot" muss man draußen ganz lesen
         // können); min-h-16 hält die Tippfläche bei jedem Umbruch >= 44 px.
-        <div className="grid grid-cols-4 gap-2">
-          {MARKER_TYPES.map((markerArt) => (
+        <div className={cn("grid gap-2", trailModus ? "grid-cols-1" : "grid-cols-4")}>
+          {markerArten.map((markerArt) => (
             <Button
               key={markerArt.value}
               type="button"
@@ -358,7 +405,7 @@ export function FahrteRecorder({
         </div>
       }
       abschlussLabel={t("Legen beenden")}
-      abschlussFrage={t("Legen beenden und die Fährte speichern?")}
+      abschlussFrage={trailModus ? t("Legen beenden und den Trail speichern?") : t("Legen beenden und die Fährte speichern?")}
       onAbschluss={stopRecording}
       onAbbrechen={abbrechen}
     >

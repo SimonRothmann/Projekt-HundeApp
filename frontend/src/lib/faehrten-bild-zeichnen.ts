@@ -9,6 +9,7 @@ import {
   type Einpassung,
   type FaehrtenGeometrie,
 } from "@/lib/faehrten-bild";
+import type { SpurGrenzen } from "@/lib/mantrailing";
 
 /**
  * Zeichnet das Fährtenbild auf eine Canvas-Fläche (Hochformat, 1080 x 1350).
@@ -40,6 +41,8 @@ const MAX_ZEILEN = 4;
 export type BildEingabe = {
   geometrie: FaehrtenGeometrie;
   ampel: Ampel | null;
+  /** Grenzen der Ampel für die Linie des Ablaufs (Fährte oder Mantrailing); ohne Angabe die der Fährte. */
+  grenzen?: SpurGrenzen;
   texte: BildTexte;
   /** CSS-Schriftfamilie - die der App, wenn verfügbar. */
   schrift: string;
@@ -118,7 +121,7 @@ function zeichneKarte(ctx: CanvasRenderingContext2D, eingabe: BildEingabe) {
   if (geometrie.ablauf) {
     ctx.lineWidth = 9;
     const { punkte, abweichungen } = geometrie.ablauf;
-    for (const stueck of faerbeSegmente(abweichungen)) {
+    for (const stueck of faerbeSegmente(abweichungen, eingabe.grenzen)) {
       ctx.strokeStyle = stueck.stufe ? AMPEL_FARBEN[stueck.stufe] : OHNE_ABWEICHUNG;
       linie(ctx, einpassung, punkte, stueck.von, stueck.bis);
     }
