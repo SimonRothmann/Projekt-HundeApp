@@ -52,8 +52,9 @@ public class ProfileController(
         var user = await userManager.FindByIdAsync(CurrentUserId.ToString());
         if (user is null) return NotFound();
 
-        if (string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName))
-            return BadRequest(new { errors = new[] { "Vor- und Nachname sind erforderlich." } });
+        var namensfehler = Personennamen.Pruefe(request.FirstName, request.LastName);
+        if (namensfehler is not null)
+            return BadRequest(new { errors = new[] { namensfehler } });
 
         // Die Adresse landet als Bildquelle im Browser anderer Seiten der App.
         // Nur https: kein unverschlüsseltes Nachladen (Mixed Content), kein
@@ -64,9 +65,6 @@ public class ProfileController(
                 || !Uri.TryCreate(avatarUrl, UriKind.Absolute, out var avatarUri)
                 || avatarUri.Scheme != Uri.UriSchemeHttps))
             return BadRequest(new { errors = new[] { "Die Bild-Adresse muss mit https:// beginnen." } });
-
-        if (request.FirstName.Trim().Length > 100 || request.LastName.Trim().Length > 100)
-            return BadRequest(new { errors = new[] { "Vor- und Nachname dürfen höchstens 100 Zeichen lang sein." } });
 
         user.FirstName = request.FirstName.Trim();
         user.LastName = request.LastName.Trim();

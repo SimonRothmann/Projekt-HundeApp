@@ -3,6 +3,7 @@ using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Domain.Learning;
 using Microsoft.EntityFrameworkCore;
+using static Dogity.Application.Common.SqlStates;
 
 namespace Dogity.Application.Learning;
 
@@ -16,9 +17,6 @@ public class SachkundeService(IApplicationDbContext db, TimeProvider clock) : IS
     /// nächsten Tag wieder, Fach 5 nach drei Wochen.
     /// </summary>
     private static readonly int[] IntervalDaysByBox = [1, 2, 4, 9, 21];
-
-    /// <summary>SQLSTATE "unique_violation" (Postgres).</summary>
-    private const string EindeutigerIndexVerletzt = "23505";
 
     /// <summary>Ab diesem Fach gilt eine Frage als gekonnt.</summary>
     private const int MasteredBox = 4;

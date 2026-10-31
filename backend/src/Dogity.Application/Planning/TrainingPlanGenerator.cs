@@ -32,7 +32,8 @@ public readonly record struct PlanExerciseCandidate(Guid ExerciseId, string Name
 /// </summary>
 public static class TrainingPlanGenerator
 {
-    private const int MaxWeeks = 12;
+    /// <summary>Längster Erstplan in Wochen - auch der Deckel, wenn ein verschobenes Zieldatum nachgeplant wird (GoalService).</summary>
+    internal const int MaxWeeks = 12;
 
     // Realistischer Trainingsrhythmus laut Nutzer-Feedback: im Schnitt 2
     // Einheiten pro Woche mit je 2 Übungen = 4 Übungen/Woche als Richtwert,
@@ -43,7 +44,8 @@ public static class TrainingPlanGenerator
     private const int MinItemsPerWeek = 4;
     private const int MaxItemsPerWeek = 6;
 
-    private static int RepetitionsFor(ExerciseDifficulty difficulty) => difficulty switch
+    /// <summary>Wiederholungen je Schwierigkeit - auch Ausgangswert des adaptiven Plans (AdaptivePlanGenerator).</summary>
+    internal static int RepetitionsFor(ExerciseDifficulty difficulty) => difficulty switch
     {
         ExerciseDifficulty.Beginner => 3,
         ExerciseDifficulty.Intermediate => 2,

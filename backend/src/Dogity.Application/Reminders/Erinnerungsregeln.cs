@@ -74,10 +74,10 @@ public static class Erinnerungsregeln
     public static readonly TimeSpan FaehrteNach = TimeSpan.FromHours(3);
 
     /// <summary>
-    /// Die Frist, in der eine Fährte noch abgelaufen werden kann - dieselbe wie
-    /// ABLAUF_FRIST_STUNDEN in frontend/src/lib/faehrte.ts; danach wäre die Erinnerung sinnlos.
+    /// Die Frist, in der eine Fährte noch abgelaufen werden kann (<see cref="Tracking.Ablauffristen.Faehrte"/>);
+    /// danach wäre die Erinnerung sinnlos.
     /// </summary>
-    public static readonly TimeSpan FaehrteFrist = TimeSpan.FromHours(24);
+    public static readonly TimeSpan FaehrteFrist = Tracking.Ablauffristen.Faehrte;
 
     /// <summary>
     /// Sportarten, bei denen eine Fährte gelegt wird - Codes wie FAEHRTEN_SPORTARTEN in

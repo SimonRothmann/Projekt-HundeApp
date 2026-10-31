@@ -3,6 +3,7 @@ using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Domain.Community;
 using Microsoft.EntityFrameworkCore;
+using static Dogity.Application.Common.SqlStates;
 
 namespace Dogity.Application.Community;
 
@@ -12,9 +13,6 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
     // Gruppe oder die Anmeldung existiert, geht Fremde nichts an.
     private const string GruppeNichtGefunden = "Gruppe nicht gefunden.";
     private const string AnmeldungNichtGefunden = "Anmeldung nicht gefunden.";
-
-    /// <summary>SQLSTATE "unique_violation" (Postgres).</summary>
-    private const string EindeutigerIndexVerletzt = "23505";
 
     /// <summary>Wie weit zurück die Tagesauswahl der Anwesenheit Termine anbietet.</summary>
     private const int TageZurueck = 28;
@@ -170,9 +168,8 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
             return Result<IReadOnlyList<AttendanceDayDto>>.NotFound(GruppeNichtGefunden);
 
         var heute = Vereinszeit.Heute();
-        // Großzügig in UTC geholt, danach exakt nach Vereinszeit gefiltert.
-        var von = AnfangVon(heute.AddDays(-TageZurueck).AddDays(-1));
-        var bis = AnfangVon(heute.AddDays(TageVoraus).AddDays(2));
+        var von = Vereinszeit.TagesBeginn(heute.AddDays(-TageZurueck));
+        var bis = Vereinszeit.TagesBeginn(heute.AddDays(TageVoraus + 1));
         var termine = await db.GroupTrainingSessions
             .Where(s => s.GroupId == groupId && s.Status == GroupTrainingSessionStatus.Planned
                 && s.StartsAt >= von && s.StartsAt < bis)
@@ -183,7 +180,6 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
 
         var tage = termine
             .Select(s => new AttendanceDayDto(Vereinszeit.Tag(s.StartsAt), s.Id, s.StartsAt))
-            .Where(t => t.Date >= heute.AddDays(-TageZurueck) && t.Date <= heute.AddDays(TageVoraus))
             // Mehrere Termine am selben Tag: ein Chip, der früheste.
             .GroupBy(t => t.Date)
             .Select(g => g.First())
@@ -352,19 +348,15 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
     /// <summary>Der Termin der Gruppe an diesem Tag (Vereinszeit), falls es einen gibt - der früheste, ohne abgesagte.</summary>
     private async Task<Guid?> FindeTerminAsync(Guid groupId, DateOnly date, CancellationToken ct)
     {
-        var von = AnfangVon(date.AddDays(-1));
-        var bis = AnfangVon(date.AddDays(2));
-        var termine = await db.GroupTrainingSessions
+        var von = Vereinszeit.TagesBeginn(date);
+        var bis = Vereinszeit.TagesBeginn(date.AddDays(1));
+        return await db.GroupTrainingSessions
             .Where(s => s.GroupId == groupId && s.Status == GroupTrainingSessionStatus.Planned
                 && s.StartsAt >= von && s.StartsAt < bis)
             .OrderBy(s => s.StartsAt)
-            .Select(s => new { s.Id, s.StartsAt })
-            .AsNoTracking()
-            .ToListAsync(ct);
-        return termine.FirstOrDefault(s => Vereinszeit.Tag(s.StartsAt) == date)?.Id;
+            .Select(s => (Guid?)s.Id)
+            .FirstOrDefaultAsync(ct);
     }
-
-    private static DateTimeOffset AnfangVon(DateOnly tag) => new(tag.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
 
     private Task<int> ZaehleAnwesenheitAsync(Guid registrationId, CancellationToken ct) =>
         db.GroupRegistrationAttendances.CountAsync(a => a.RegistrationId == registrationId, ct);

@@ -11,6 +11,4 @@ public abstract class Entity
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
-
-    public bool IsDeleted => DeletedAt is not null;
 }

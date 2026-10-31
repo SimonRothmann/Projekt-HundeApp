@@ -10,7 +10,9 @@ namespace Dogity.Application.Dashboard;
 //   leer heißt "keine Einschränkung". Das Frontend entscheidet damit, ob es
 //   "Fährte legen" anbietet (lib/faehrte.ts).
 // - ActiveGoals: aktive Ziele mit Trainingsplan - die Quelle für "Diese Woche".
-// - TracksToday: heute gelegte Fährten samt Abläufen - die Quelle für "Heute gelegt".
+// - TracksToday: die noch suchbaren Spuren samt Abläufen (Fährte bis 24, Trail bis 48 Stunden
+//   nach dem Ende des Legens, siehe Ablauffristen) - die Quelle für "Heute gelegt". Der Name
+//   stammt aus der Zeit, als es nur die von heute waren.
 public record DashboardDogDto(
     DogDto Dog,
     IReadOnlyList<Guid> SportIds,

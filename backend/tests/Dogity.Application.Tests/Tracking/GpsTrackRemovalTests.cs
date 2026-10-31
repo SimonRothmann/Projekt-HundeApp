@@ -20,7 +20,7 @@ public class GpsTrackRemovalTests
     private sealed record Faehrte(Guid TrackId, Guid RunId);
 
     private static TrainingService Dienst(ApplicationDbContext db) =>
-        new(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        new(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), TimeProvider.System);
 
     private static TrainingSession Training(ApplicationDbContext db, Guid nutzer, Guid? hund = null)
     {

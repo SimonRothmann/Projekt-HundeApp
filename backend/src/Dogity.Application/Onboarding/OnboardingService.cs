@@ -22,7 +22,7 @@ public class OnboardingService(IApplicationDbContext db, IUserLookupService user
         var hunde = await db.DogOwners
             .Where(o => o.UserId == userId)
             .OrderBy(o => o.CreatedAt)
-            .Select(o => new { o.DogId, o.Dog!.Name })
+            .Select(o => new { o.DogId })
             .ToListAsync(ct);
 
         var ersterHund = hunde.FirstOrDefault();
@@ -102,8 +102,6 @@ public class OnboardingService(IApplicationDbContext db, IUserLookupService user
         return Result<OnboardingStatusDto>.Success(new OnboardingStatusDto(
             ersterHund is not null,
             ersterHund?.DogId,
-            ersterHund?.Name,
-            hunde.Count,
             hatZiel,
             hatTraining,
             hatVerein,

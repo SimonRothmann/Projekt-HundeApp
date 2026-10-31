@@ -87,6 +87,8 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     {
         if (string.IsNullOrWhiteSpace(request.Name))
             return Result<ClubDto>.Failure("Name ist erforderlich.");
+        var zuLang = Textlaengen.ZuLang(request.Name, Textlaengen.VereinsName, "Der Name");
+        if (zuLang is not null) return Result<ClubDto>.Failure(zuLang);
 
         var club = new Club { Name = request.Name.Trim(), Description = request.Description };
         db.Clubs.Add(club);
@@ -253,7 +255,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         if (club is null) return Result.NotFound("Verein nicht gefunden.");
 
         club.Name = name;
-        club.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        club.Description = Texte.NullIfBlank(request.Description);
         club.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Result.Success();
@@ -279,9 +281,11 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         if (!darf.Succeeded) return darf;
 
         var hinzu = role & ~entry.Role;
+        var verliertAlleGruppen = (entry.Role & ClubRollen.AlleGruppen) != 0 && (role & ClubRollen.AlleGruppen) == 0;
         entry.Role = role;
         entry.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
+        if (verliertAlleGruppen) await BeendeBetreuungenOhneGruppeAsync(clubId, userId, ct);
         // Training kann dazugekommen oder weggefallen sein: das Trainer-Kennzeichen nachziehen.
         await trainerRoles.SyncAsync(userId, ct);
         var verein = await db.Clubs.AsNoTracking().FirstAsync(c => c.Id == clubId, ct);
@@ -304,10 +308,45 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
         entry.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
+        await BeendeBetreuungenOhneGruppeAsync(clubId, userId, ct);
         // Nach dem Speichern: wer sonst nirgends Trainer:in ist, verliert das
         // Kennzeichen wieder.
         await trainerRoles.SyncAsync(userId, ct);
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Beendet die Betreuungen, die eine Person über ihre Rolle im Verein hielt:
+    /// Hunde von Vereinsmitgliedern, die sie nicht über eine Gruppe betreut, die
+    /// sie leitet oder mit-betreut. Das Betreuen fremder Gruppen hängt an
+    /// <see cref="ClubRollen.AlleGruppen"/>; fällt die Rolle weg (Herabstufung,
+    /// Abberufung), dürfte die Person sonst weiter ins Tagebuch sehen - und die
+    /// Gruppenleitung hätte darauf keinen Zugriff mehr (siehe
+    /// <see cref="GroupService"/>). Läuft NACH dem Speichern der neuen Rolle,
+    /// damit die Beziehung zu den Gruppen schon ohne sie gilt - bewusst ein
+    /// zweites Speichern, denn die Abfrage liest den Stand aus der Datenbank
+    /// (eine gemeinsame Transaktion kennt <see cref="IApplicationDbContext"/> nicht).
+    /// Bleibt der zweite Schritt aus, kann die Gruppenleitung die Betreuung
+    /// beenden (siehe <see cref="GroupService"/>), und das Mitglied kann sie
+    /// selbst widerrufen.
+    /// </summary>
+    private async Task BeendeBetreuungenOhneGruppeAsync(Guid clubId, Guid userId, CancellationToken ct)
+    {
+        var vereinsGruppen = db.Groups.Where(g => g.ClubId == clubId).Select(g => g.Id);
+        var gruppenMitglieder = db.GroupMembers
+            .Where(m => m.Status == GroupMemberStatus.Active && vereinsGruppen.Contains(m.GroupId))
+            .Select(m => m.UserId);
+        var vereinsLeute = db.VereinsPersonenIds(clubId).Union(gruppenMitglieder);
+
+        var betreuungen = await db.TrainerAssignments
+            .Where(a => a.TrainerId == userId && vereinsLeute.Contains(a.MemberId))
+            .OhneGemeinsameGruppe(db)
+            .ToListAsync(ct);
+        if (betreuungen.Count == 0) return;
+
+        var jetzt = DateTimeOffset.UtcNow;
+        foreach (var b in betreuungen) b.DeletedAt = jetzt;
+        await db.SaveChangesAsync(ct);
     }
 
     /// <summary>
@@ -555,7 +594,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
                 c.Name,
                 c.Description,
                 // Wer eine Rolle im Verein hat (auch Vorstand), hat keine ClubMembership
-                // (siehe ClubAccessQueries.BelongsToAnyClubAsync) - ohne dieses Kennzeichen
+                // (siehe OnboardingService: jede Rolle zählt als zugehörig) - ohne dieses Kennzeichen
                 // bot die Liste ihm bei seinem eigenen Verein "Beitreten" an.
                 Roles = c.Trainers.Where(t => t.UserId == userId).Select(t => (ClubRole?)t.Role).FirstOrDefault(),
             })

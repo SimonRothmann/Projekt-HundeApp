@@ -39,4 +39,20 @@ public abstract class ApiControllerBase : ControllerBase
             : result.IsNotFound
                 ? NotFound(new { errors = result.Errors })
                 : BadRequest(new { errors = result.Errors });
+
+    /// <summary>
+    /// Wie <see cref="FromResult{T}(Result{T})"/>, aber jeder Fehlschlag ist 400 - auch ein
+    /// "nicht gefunden" (<see cref="Result.IsNotFound"/>). So antworten die Katalog-, Übungs- und
+    /// Aufzeichnungsaktionen seit jeher; das Frontend und die Offline-Warteschlange behandeln
+    /// 400 und 404 gleich (4xx), die Antwortform bleibt deshalb, wie sie war.
+    /// </summary>
+    protected ActionResult<T> FromResultAlsBadRequest<T>(Result<T> result) =>
+        result.Succeeded
+            ? Ok(result.Value)
+            : BadRequest(new { errors = result.Errors });
+
+    protected ActionResult FromResultAlsBadRequest(Result result) =>
+        result.Succeeded
+            ? NoContent()
+            : BadRequest(new { errors = result.Errors });
 }

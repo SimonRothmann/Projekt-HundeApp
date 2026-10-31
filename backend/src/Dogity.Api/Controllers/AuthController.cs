@@ -1,6 +1,7 @@
 using System.Net;
 using Dogity.Api.Contracts;
 using Dogity.Application.Abstractions;
+using Dogity.Application.Account;
 using Dogity.Application.Notifications;
 using Dogity.Application.Preferences;
 using Dogity.Infrastructure.Identity;
@@ -34,9 +35,10 @@ public class AuthController(
             return BadRequest(new { errors = new[] { "E-Mail und Passwort sind erforderlich." } });
 
         // Namen haben keine Längengrenze in der Datenbank - ohne diese Prüfung
-        // nähme die anonyme Registrierung Megabytes als "Vorname" an.
-        if (Laenge(request.FirstName) > 100 || Laenge(request.LastName) > 100)
-            return BadRequest(new { errors = new[] { "Vor- und Nachname dürfen höchstens 100 Zeichen lang sein." } });
+        // nähme die anonyme Registrierung Megabytes als "Vorname" an. Dieselbe Regel wie im Profil.
+        var namensfehler = Personennamen.Pruefe(request.FirstName, request.LastName);
+        if (namensfehler is not null)
+            return BadRequest(new { errors = new[] { namensfehler } });
 
         var existing = await userManager.FindByEmailAsync(request.Email);
         if (existing is not null)
@@ -46,8 +48,8 @@ public class AuthController(
         {
             UserName = request.Email,
             Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName
+            FirstName = request.FirstName.Trim(),
+            LastName = request.LastName.Trim()
         };
 
         var result = await userManager.CreateAsync(user, request.Password);
@@ -208,9 +210,6 @@ public class AuthController(
 
         return Ok(new { message = "Passwort wurde geändert." });
     }
-
-    // Fehlt ein Feld im JSON, ist es trotz Typangabe null.
-    private static int Laenge(string? wert) => wert?.Length ?? 0;
 
     private async Task<AuthResponse> BuildAuthResponseAsync(ApplicationUser user, IEnumerable<string> roles)
     {

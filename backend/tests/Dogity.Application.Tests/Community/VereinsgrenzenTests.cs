@@ -108,7 +108,7 @@ public class VereinsgrenzenTests
             new GroupTrainingService(db),
             new GroupRegistrationService(db),
             new DogService(db, nutzer, meldungen),
-            new TrainingService(db, meldungen, nutzer, mastery, new FakeWeatherEnrichmentService()),
+            new TrainingService(db, meldungen, nutzer, mastery, new FakeWeatherEnrichmentService(), TimeProvider.System),
             new GoalService(db, TimeProvider.System, meldungen, mastery),
             new GpsTrackService(db, new FakeWeatherEnrichmentService()),
             a, b, gruppe, ta, tb, ma, hund.Id, training.Id, interessent, anfrage.Id);
@@ -345,7 +345,7 @@ public class VereinsgrenzenTests
         Assert.True((await w.Vereine.AddMemberAsync(w.TB, isAdmin: false, w.B.Id, new AssignClubMemberRequest("neu@example.org"))).Succeeded);
 
         KeinZugriff(await w.Gruppen.GetGroupsByClubAsync(neu, w.B.Id));
-        Assert.False(await w.Db.BelongsToAnyClubAsync(neu));
+        Assert.False(await w.Db.ZaehltImErststartZumVereinAsync(neu));
         Assert.Empty(await w.Db.GetVisibleClubIdsAsync(neu));
         Assert.Empty((await w.Vereine.GetMembersAsync(w.TB, w.B.Id)).Value!);
         Assert.Empty((await w.Vereine.GetJoinRequestsAsync(w.TB, w.B.Id)).Value!);

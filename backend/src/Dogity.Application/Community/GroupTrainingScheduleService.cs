@@ -5,6 +5,7 @@ using Dogity.Application.Common;
 using Dogity.Application.Notifications;
 using Dogity.Domain.Community;
 using Microsoft.EntityFrameworkCore;
+using static Dogity.Application.Common.SqlStates;
 
 namespace Dogity.Application.Community;
 
@@ -22,22 +23,21 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
     public async Task<Result<IReadOnlyList<GroupTrainingSessionDto>>> GetClubScheduleAsync(
         Guid userId, Guid clubId, DateOnly from, DateOnly? to, Guid? groupId, GroupTrainingCategory? category, bool mineOnly, CancellationToken ct = default)
     {
-        if (!await IsClubTrainerAsync(userId, clubId, ct))
+        if (!await db.IsClubTrainerAsync(userId, clubId, ct))
             return Result<IReadOnlyList<GroupTrainingSessionDto>>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
 
-        var fromTs = new DateTimeOffset(from.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var fromTs = Vereinszeit.TagesBeginn(from);
         var query = LoadSessionsQuery().Where(s => s.ClubId == clubId && s.StartsAt >= fromTs);
         if (to is { } toDate)
         {
-            var toTs = new DateTimeOffset(toDate.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            var toTs = Vereinszeit.TagesBeginn(toDate.AddDays(1));
             query = query.Where(s => s.StartsAt < toTs);
         }
-        // Wer nicht alle Gruppen verwaltet, sieht nur die Termine der eigenen - und die,
-        // in die eine Ausbildungswart:in ihn als Termin-Trainer:in eingetragen hat.
-        if (!await db.CanManageAllGroupsAsync(userId, clubId, ct))
-            query = query.Where(s => s.Group!.TrainerId == userId
-                || s.Group.Trainers.Any(t => t.UserId == userId)
-                || s.Trainers.Any(t => t.UserId == userId));
+        // Gesehen werden die Termine der Gruppen, in denen man Trainer:in ist (wer alle Gruppen
+        // verwaltet, ist es in allen des Vereins) - und die, in die eine Ausbildungswart:in
+        // jemanden als Termin-Trainer:in eingetragen hat.
+        query = query.Where(s => db.GruppenIdsDerTrainerin(userId).Contains(s.GroupId)
+            || s.Trainers.Any(t => t.UserId == userId));
         if (groupId is { } gid) query = query.Where(s => s.GroupId == gid);
         if (category is { } cat) query = query.Where(s => s.Category == cat);
         if (mineOnly) query = query.Where(s => s.Trainers.Any(t => t.UserId == userId));
@@ -48,7 +48,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
 
     public async Task<Result<IReadOnlyList<GroupTrainingSessionDto>>> GetMemberScheduleAsync(Guid userId, DateOnly from, CancellationToken ct = default)
     {
-        var fromTs = new DateTimeOffset(from.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var fromTs = Vereinszeit.TagesBeginn(from);
         var groupIds = await db.GroupMembers
             .Where(m => m.UserId == userId && m.Status == GroupMemberStatus.Active)
             .Select(m => m.GroupId)
@@ -139,9 +139,6 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         return Result<GroupTrainingSessionDto>.Success(await LoadDtoAsync(sessionId, userId, ct));
     }
 
-    /// <summary>SQLSTATE "unique_violation" (Postgres).</summary>
-    private const string EindeutigerIndexVerletzt = "23505";
-
     private static void AktualisiereAntwort(GroupTrainingSessionResponse antwort, bool attending, DateTimeOffset jetzt)
     {
         antwort.DeletedAt = null;
@@ -170,7 +167,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         var namen = await userLookup.FindByIdsAsync([userId], ct);
         var vorname = namen.TryGetValue(userId, out var n) && !string.IsNullOrWhiteSpace(n.FirstName) ? n.FirstName : null;
         var gruppe = session.Group!.Name;
-        var datum = Datum(session.StartsAt);
+        var datum = Vereinszeit.Tag(session.StartsAt);
         var text = vorname is null
             ? Meldung.Von("Ein Mitglied hat für {gruppe} am {datum} abgesagt.", ("gruppe", gruppe), ("datum", datum))
             : Meldung.Von("{name} hat für {gruppe} am {datum} abgesagt.", ("name", vorname), ("gruppe", gruppe), ("datum", datum));
@@ -180,7 +177,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
 
     public async Task<Result<GroupTrainingSessionDto>> CreateSessionAsync(Guid userId, Guid clubId, CreateSessionRequest request, CancellationToken ct = default)
     {
-        if (!await IsClubTrainerAsync(userId, clubId, ct))
+        if (!await db.IsClubTrainerAsync(userId, clubId, ct))
             return Result<GroupTrainingSessionDto>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
         var error = await ValidateAsync(clubId, request.GroupId, request.TrainerUserIds, request.Items, ct);
         if (error is not null) return Result<GroupTrainingSessionDto>.Failure(error);
@@ -194,8 +191,8 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
             Category = request.Category,
             StartsAt = request.StartsAt,
             DurationMinutes = request.DurationMinutes < 1 ? 60 : request.DurationMinutes,
-            Location = Clean(request.Location),
-            Notes = Clean(request.Notes),
+            Location = Texte.NullIfBlank(request.Location),
+            Notes = Texte.NullIfBlank(request.Notes),
             Status = GroupTrainingSessionStatus.Planned,
             CreatedByUserId = userId
         };
@@ -219,8 +216,8 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         session.Category = request.Category;
         session.StartsAt = request.StartsAt;
         session.DurationMinutes = request.DurationMinutes < 1 ? 60 : request.DurationMinutes;
-        session.Location = Clean(request.Location);
-        session.Notes = Clean(request.Notes);
+        session.Location = Texte.NullIfBlank(request.Location);
+        session.Notes = Texte.NullIfBlank(request.Notes);
         session.UpdatedAt = DateTimeOffset.UtcNow;
 
         db.GroupTrainingSessionItems.RemoveRange(session.Items);
@@ -261,7 +258,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
                 .ToListAsync(ct);
             var text = Meldung.Von(
                 "Das Training {gruppe} am {datum} fällt aus.",
-                ("gruppe", session.Group?.Name ?? ""), ("datum", Datum(session.StartsAt)));
+                ("gruppe", session.Group?.Name ?? ""), ("datum", Vereinszeit.Tag(session.StartsAt)));
             foreach (var id in empfaenger.Where(id => id != userId))
                 await notifications.CreateAsync(id, text, "/", ct);
         }
@@ -285,7 +282,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
 
     public async Task<Result<IReadOnlyList<GroupTrainingSessionDto>>> GenerateSeriesAsync(Guid userId, Guid clubId, GenerateSeriesRequest request, CancellationToken ct = default)
     {
-        if (!await IsClubTrainerAsync(userId, clubId, ct))
+        if (!await db.IsClubTrainerAsync(userId, clubId, ct))
             return Result<IReadOnlyList<GroupTrainingSessionDto>>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
         if (request.Starts is null || request.Starts.Count == 0)
             return Result<IReadOnlyList<GroupTrainingSessionDto>>.Failure("Keine Termine im Zeitraum.");
@@ -310,7 +307,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
                 Category = request.Category,
                 StartsAt = start,
                 DurationMinutes = duration,
-                Location = Clean(request.Location),
+                Location = Texte.NullIfBlank(request.Location),
                 Status = GroupTrainingSessionStatus.Planned,
                 CreatedByUserId = userId
             };
@@ -333,7 +330,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
 
     public async Task<Result<IReadOnlyList<GroupTrainingExerciseDto>>> GenerateContentAsync(Guid userId, Guid clubId, GroupTrainingCategory category, CancellationToken ct = default)
     {
-        if (!await IsClubTrainerAsync(userId, clubId, ct))
+        if (!await db.IsClubTrainerAsync(userId, clubId, ct))
             return Result<IReadOnlyList<GroupTrainingExerciseDto>>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
 
         var pool = await db.GroupTrainingExercises
@@ -347,7 +344,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
 
     public async Task<Result<IReadOnlyList<SessionTrainerDto>>> GetClubTrainersAsync(Guid userId, Guid clubId, CancellationToken ct = default)
     {
-        if (!await IsClubTrainerAsync(userId, clubId, ct))
+        if (!await db.IsClubTrainerAsync(userId, clubId, ct))
             return Result<IReadOnlyList<SessionTrainerDto>>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
 
         var ids = await db.ClubTrainers.Where(t => t.ClubId == clubId).MitRolle(ClubRollen.Trainer).Select(t => t.UserId).ToListAsync(ct);
@@ -444,27 +441,14 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
 
         var sessionIds = sessions.Select(s => s.Id).ToList();
         var groupIds = sessions.Select(s => s.GroupId).Distinct().ToList();
-        var clubIds = sessions.Select(s => s.ClubId).Distinct().ToList();
 
-        // Wer die Gruppe verwalten darf - dieselbe Reichweite wie
-        // GetManageableGroupAsync (Leitung, aktive Mit-Trainer:in, Ausbildungs-
-        // wart:in/Verwaltung des Vereins). Zwei gruppierte Abfragen für alle
-        // Gruppen der Termine; wer nichts verwaltet, löst keine weitere aus.
-        var weitereGruppen = (await db.GroupTrainers
-            .Where(t => t.UserId == callerId && groupIds.Contains(t.GroupId))
-            .Select(t => t.GroupId)
-            .ToListAsync(ct)).ToHashSet();
-        var alleGruppenClubs = (await db.ClubTrainers
-            .Where(t => t.UserId == callerId && clubIds.Contains(t.ClubId))
-            .MitRolle(ClubRollen.AlleGruppen)
-            .Select(t => t.ClubId)
-            .ToListAsync(ct)).ToHashSet();
-        var verwaltbareGruppen = sessions
-            .Where(s => s.Group is { } g
-                && (g.TrainerId == callerId || weitereGruppen.Contains(g.Id) || (g.ClubId is { } cid && alleGruppenClubs.Contains(cid))))
-            .Select(s => s.GroupId)
-            .Distinct()
-            .ToList();
+        // Wer die Gruppe verwalten darf: wer in ihr Trainer:in ist
+        // (ClubAccessQueries.GruppenTrainerinnen, dieselbe Reichweite wie
+        // GetManageableGroupAsync). Eine gruppierte Abfrage für alle Gruppen
+        // der Termine.
+        var verwaltbareGruppen = await db.GruppenIdsDerTrainerin(callerId)
+            .Where(id => groupIds.Contains(id))
+            .ToListAsync(ct);
 
         // Namen sehen, die die Gruppe verwalten, und die Trainer:innen des
         // Termins - nicht die Mitglieder, die nur Zahlen bekommen. Auch nicht
@@ -562,9 +546,6 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
     private static GroupTrainingExerciseDto ToExerciseDto(GroupTrainingExercise e) =>
         new(e.Id, e.ClubId, e.Category, e.Title, e.Focus, e.DurationMinutes, e.Description, e.ExamTargets);
 
-    private Task<bool> IsClubTrainerAsync(Guid userId, Guid clubId, CancellationToken ct) =>
-        db.IsClubTrainerAsync(userId, clubId, ct);
-
     /// <summary>
     /// Ob jemand für diese Gruppe Termine planen darf: mit Trainer-Rolle im
     /// Verein UND die Gruppe leitet/mit-betreut sie (Training) oder verwaltet
@@ -576,11 +557,5 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         await db.GetManageableGroupAsync(userId, groupId, ct) is not null;
 
     private async Task<bool> KannTerminVerwaltenAsync(Guid userId, GroupTrainingSession session, CancellationToken ct) =>
-        await IsClubTrainerAsync(userId, session.ClubId, ct) && await KannGruppeTerminierenAsync(userId, session.GroupId, ct);
-
-    /// <summary>Der Kalendertag in der Vereinszeit - als Datum, das der NotificationService je Sprache schreibt.</summary>
-    private static DateOnly Datum(DateTimeOffset startsAt) =>
-        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(startsAt, Vereinszeit.Zone).DateTime);
-
-    private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+        await db.IsClubTrainerAsync(userId, session.ClubId, ct) && await KannGruppeTerminierenAsync(userId, session.GroupId, ct);
 }

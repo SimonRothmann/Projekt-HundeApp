@@ -26,8 +26,11 @@ public class ClubRegistrationService(
         var name = request.Name?.Trim();
         if (string.IsNullOrWhiteSpace(name))
             return Result<ClubRegistrationDto>.Failure("Name des Vereins ist erforderlich.");
-        if (name.Length > 200)
-            return Result<ClubRegistrationDto>.Failure("Der Name ist zu lang.");
+        // Dieselbe Grenze wie beim Verein selbst: Die Spalte des Antrags ist
+        // länger, aber ein Name über der Vereinsgrenze ließe sich nicht freigeben.
+        var zuLang = Textlaengen.ZuLang(name, Textlaengen.VereinsName, "Der Name");
+        if (zuLang is not null)
+            return Result<ClubRegistrationDto>.Failure(zuLang);
 
         // Gibt es den Verein schon, ist der Antrag sinnlos - dann will die
         // Person vermutlich beitreten, nicht gründen. Das gleich zu sagen
@@ -49,7 +52,7 @@ public class ClubRegistrationService(
         var eintrag = new ClubRegistration
         {
             Name = name,
-            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            Description = Texte.NullIfBlank(request.Description),
             RequestedByUserId = userId,
         };
         db.ClubRegistrations.Add(eintrag);
@@ -89,6 +92,11 @@ public class ClubRegistrationService(
         if (eintrag is null) return Result.NotFound("Antrag nicht gefunden.");
         if (eintrag.Status != ClubRegistrationStatus.Pending)
             return Result.Failure("Über diesen Antrag wurde bereits entschieden.");
+
+        // Anträge aus der Zeit, als der Name länger sein durfte, lassen sich nicht
+        // anlegen - die Spalte des Vereins ist kürzer. Das sagen wir, statt zu scheitern.
+        if (Textlaengen.ZuLang(eintrag.Name, Textlaengen.VereinsName, "Der Name") is not null)
+            return Result.Failure("Der Name im Antrag ist länger, als ein Vereinsname sein darf. Bitte den Antrag ablehnen.");
 
         // Zwischen Antrag und Freigabe kann jemand anderes denselben Verein
         // angelegt bekommen haben - dann darf hier kein Zwilling entstehen.
@@ -135,7 +143,7 @@ public class ClubRegistrationService(
         eintrag.Status = ClubRegistrationStatus.Rejected;
         eintrag.DecidedAt = DateTimeOffset.UtcNow;
         eintrag.DecidedByUserId = adminId;
-        eintrag.DecisionNote = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+        eintrag.DecisionNote = Texte.NullIfBlank(request.Note);
         eintrag.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
 

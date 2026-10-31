@@ -18,21 +18,13 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 {
     public async Task<Result<IReadOnlyList<GroupDto>>> GetMyGroupsAsync(Guid trainerId, CancellationToken ct = default)
     {
-        // Sichtbar sind eigene Gruppen, Gruppen, in denen man als weitere:r
-        // Trainer:in mit-betreut, UND alle Gruppen der Vereine, in denen man
+        // Sichtbar sind die Gruppen, in denen man Trainer:in ist: die eigenen,
+        // die mit-betreuten und alle Gruppen der Vereine, in denen man
         // Ausbildungswart:in oder Verwaltung ist - so können diese die Gruppen
         // des Vereins sehen, bearbeiten und einer/m Trainer:in zuweisen. Wer im
         // Verein nur Training hat, sieht allein die eigenen.
-        var clubIds = await db.ClubTrainers
-            .Where(t => t.UserId == trainerId)
-            .MitRolle(ClubRollen.AlleGruppen)
-            .Select(t => t.ClubId)
-            .ToListAsync(ct);
-
         var rows = await db.Groups
-            .Where(g => g.TrainerId == trainerId
-                || g.Trainers.Any(t => t.UserId == trainerId)
-                || (g.ClubId != null && clubIds.Contains(g.ClubId.Value)))
+            .Where(g => db.GruppenIdsDerTrainerin(trainerId).Contains(g.Id))
             .Select(g => new
             {
                 g.Id,
@@ -171,7 +163,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             return Result<GroupDto>.NotFound("Gruppe nicht gefunden.");
 
         group.Name = request.Name.Trim();
-        group.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        group.Description = Texte.NullIfBlank(request.Description);
         await db.SaveChangesAsync(ct);
 
         var memberCount = await db.GroupMembers.CountAsync(m => m.GroupId == groupId && m.Status == GroupMemberStatus.Active, ct);
@@ -552,8 +544,8 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 
     /// <summary>
     /// Beendet die Betreuungen der Hunde eines Mitglieds durch die
-    /// Trainer:innen dieser Gruppe, sobald das Mitglied die Gruppe verlässt
-    /// oder entfernt wird.
+    /// Trainer:innen dieser Gruppe und durch Personen ihres Vereins, sobald das
+    /// Mitglied die Gruppe verlässt oder entfernt wird.
     ///
     /// Vorher blieben sie stehen: Wer aus der Gruppe genommen wurde, hatte die
     /// Trainer:in weiter im Tagebuch - ohne jeden Weg, das zu ändern. Betreut
@@ -565,28 +557,19 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     /// </summary>
     private async Task EndSupervisionsViaGroupAsync(Group group, Guid memberId, CancellationToken ct)
     {
-        var trainerIds = await db.GroupTrainers
-            .Where(t => t.GroupId == group.Id)
-            .Select(t => t.UserId)
-            .ToListAsync(ct);
-        trainerIds.Add(group.TrainerId);
+        // Wer die Gruppe betreut, und - gehört sie zu einem Verein - alle, die
+        // zum Verein gehören: Deren Betreuung kann auch eine Altzeile sein, die
+        // über keine Gruppe mehr besteht (siehe GehoertZurGruppeAsync).
+        var trainerIds = db.GruppenTrainerinnen().Where(p => p.GroupId == group.Id).Select(p => p.UserId);
         if (group.ClubId is { } clubId)
-            trainerIds.AddRange(await db.ClubTrainers.Where(t => t.ClubId == clubId).MitRolle(ClubRollen.AlleGruppen).Select(t => t.UserId).ToListAsync(ct));
+            trainerIds = trainerIds.Union(db.VereinsPersonenIds(clubId));
 
         var assignments = await db.TrainerAssignments
             .Where(a => a.MemberId == memberId && trainerIds.Contains(a.TrainerId))
+            .OhneGemeinsameGruppe(db, ausser: group.Id)
             .ToListAsync(ct);
         var now = DateTimeOffset.UtcNow;
-        foreach (var a in assignments)
-        {
-            var weiterhinVerbunden = await db.Groups
-                .Where(g => g.Id != group.Id)
-                .Where(g => g.Members.Any(m => m.UserId == memberId && m.Status == GroupMemberStatus.Active))
-                .AnyAsync(g => g.TrainerId == a.TrainerId
-                    || g.Trainers.Any(t => t.UserId == a.TrainerId)
-                    || (g.ClubId != null && db.ClubTrainers.Any(t => t.ClubId == g.ClubId && t.UserId == a.TrainerId && (t.Role & ClubRollen.AlleGruppen) != 0)), ct);
-            if (!weiterhinVerbunden) a.DeletedAt = now;
-        }
+        foreach (var a in assignments) a.DeletedAt = now;
     }
 
     public async Task<Result<IReadOnlyList<MemberDogDto>>> GetMemberDogsAsync(Guid trainerId, Guid groupId, Guid memberId, CancellationToken ct = default)
@@ -712,7 +695,12 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     /// <summary>
     /// Ob eine Betreuung zu dieser Gruppe gehört: Das betreute Mitglied ist
     /// aktives Mitglied der Gruppe, und die betreuende Person ist hier
-    /// Trainer:in.
+    /// Trainer:in - oder gehört zum Verein der Gruppe. Das Zweite deckt
+    /// Betreuungen ab, die vor den Vereinsrollen über die damals für alle
+    /// Gruppen zuständige Trainer-Rolle entstanden sind und die heute über
+    /// keine Gruppe mehr bestehen; ohne sie ließen sie sich von der
+    /// Gruppenleitung nicht beenden. Wer keinem Verein angehört, bleibt davon
+    /// ausgenommen.
     ///
     /// Vorher genügte es, IRGENDEINE Gruppe zu verwalten - und eine Gruppe
     /// anlegen kann jede:r. Mit einer eigenen, leeren Gruppe ließ sich so jede
@@ -725,10 +713,9 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         var istMitglied = await db.GroupMembers.AnyAsync(
             m => m.GroupId == group.Id && m.UserId == assignment.MemberId && m.Status == GroupMemberStatus.Active, ct);
         if (!istMitglied) return false;
-        if (assignment.TrainerId == group.TrainerId) return true;
-        if (await db.GroupTrainers.AnyAsync(t => t.GroupId == group.Id && t.UserId == assignment.TrainerId, ct)) return true;
+        if (await db.GruppenTrainerinnen().AnyAsync(p => p.GroupId == group.Id && p.UserId == assignment.TrainerId, ct)) return true;
         return group.ClubId is { } clubId
-            && await db.CanManageAllGroupsAsync(assignment.TrainerId, clubId, ct);
+            && await db.GehoertZumVereinAsync(assignment.TrainerId, clubId, ct);
     }
 
     public async Task<Result<IReadOnlyList<GroupDto>>> GetGroupsByClubAsync(Guid userId, Guid clubId, CancellationToken ct = default)
@@ -740,7 +727,13 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 
         if (!isClubMember && clubRoles == 0)
             return Result<IReadOnlyList<GroupDto>>.NotFound("Keine Berechtigung für diesen Verein.");
-        var verwaltetAlle = (clubRoles & ClubRollen.AlleGruppen) != 0;
+
+        // Trainer:in einer Gruppe: die eine Definition (GruppenIdsDerTrainerin),
+        // hier auf die Gruppen dieses Vereins begrenzt.
+        var meineTrainerGruppen = (await db.Groups
+            .Where(g => g.ClubId == clubId && db.GruppenIdsDerTrainerin(userId).Contains(g.Id))
+            .Select(g => g.Id)
+            .ToListAsync(ct)).ToHashSet();
 
         var rows = await db.Groups
             .Where(g => g.ClubId == clubId)
@@ -754,7 +747,6 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
                 MemberCount = g.Members.Count(m => m.Status == GroupMemberStatus.Active),
                 // Verhältnis der aufrufenden Person - sonst bietet die
                 // Vereinsseite auch der Trainer:in einen Beitritt an.
-                IsCoTrainer = g.Trainers.Any(t => t.UserId == userId),
                 MyMembership = g.Members
                     .Where(m => m.UserId == userId)
                     .Select(m => (GroupMemberStatus?)m.Status)
@@ -768,7 +760,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             .Select(r => new GroupDto(
                 r.Id, r.Name, r.Description, r.TrainerId, r.ClubId, r.MemberCount,
                 TrainerDisplayName(trainerLookup, r.TrainerId),
-                r.TrainerId == userId || r.IsCoTrainer || verwaltetAlle
+                meineTrainerGruppen.Contains(r.Id)
                     ? GroupRelation.Trainer
                     : r.MyMembership switch
                     {
@@ -895,10 +887,8 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             .Include(g => g.Members.Where(m => m.Status == GroupMemberStatus.Active))
             .Include(g => g.Trainers)
             .Where(g => g.Id == groupId)
-            .Where(g => g.TrainerId == userId
-                || g.Trainers.Any(t => t.UserId == userId)
-                || g.Members.Any(m => m.UserId == userId && m.Status == GroupMemberStatus.Active)
-                || (g.ClubId != null && db.ClubTrainers.Any(t => t.ClubId == g.ClubId && t.UserId == userId && (t.Role & ClubRollen.AlleGruppen) != 0)))
+            .Where(g => db.GruppenIdsDerTrainerin(userId).Contains(g.Id)
+                || g.Members.Any(m => m.UserId == userId && m.Status == GroupMemberStatus.Active))
             .AsNoTracking()
             .FirstOrDefaultAsync(ct);
 

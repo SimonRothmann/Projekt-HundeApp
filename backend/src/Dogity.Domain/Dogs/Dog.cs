@@ -29,8 +29,6 @@ public class Dog : Entity
     /// </summary>
     public DateTimeOffset? ArchivedAt { get; set; }
 
-    public bool IsArchived => ArchivedAt is not null;
-
     /// <summary>
     /// Ob für diesen Hund eine EIGENE Sportartenauswahl gilt (siehe
     /// <see cref="Preferences.DogSportSelection"/>) statt der des Menschen.

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Dogity.Application.Sports;
 using Dogity.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
@@ -11,15 +10,12 @@ namespace Dogity.Api.Controllers;
 /// Stammdaten sind öffentlich (kein personenbezogener Bezug). Die
 /// Übungsliste benötigt dagegen einen authentifizierten Nutzer, da sie
 /// vereinsspezifische Übungen (Exercise.ClubId) nutzerabhängig einblendet
-/// (siehe ClubAccessQueries).
+/// (siehe ClubAccessQueries). Angemeldet ist die Voreinstellung (ApiControllerBase);
+/// die öffentlichen Lese-Aktionen sind einzeln mit AllowAnonymous gekennzeichnet.
 /// </summary>
-[ApiController]
 [Route("api/sports")]
-public class SportsController(ISportCatalogService catalogService, IRegulationManagementService regulationManagement) : ControllerBase
+public class SportsController(ISportCatalogService catalogService, IRegulationManagementService regulationManagement) : ApiControllerBase
 {
-    private (Guid UserId, bool IsAdmin) CurrentUser() =>
-        (Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), User.IsInRole(Roles.Admin));
-
     [HttpGet]
     [AllowAnonymous]
     public async Task<ActionResult<IReadOnlyList<SportDto>>> GetSports([FromQuery] bool alle, CancellationToken ct)
@@ -30,26 +26,19 @@ public class SportsController(ISportCatalogService catalogService, IRegulationMa
         // Angemeldete bekommen nur die Sportarten ihres Landes (siehe
         // GetSportsAsync); "alle" hebt das auf, für die Katalogpflege. Das ist
         // keine Zugriffsbeschränkung - Sportarten und Ordnungen sind öffentlich.
-        Guid? userId = User.Identity?.IsAuthenticated == true
-            ? Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!)
-            : null;
+        Guid? userId = User.Identity?.IsAuthenticated == true ? CurrentUserId : null;
         var result = await catalogService.GetSportsAsync(userId, alle, ct);
         return Ok(result.Value);
     }
 
     [HttpPost]
-    [Authorize]
     public async Task<ActionResult<SportDto>> CreateSport(CreateSportRequest request, CancellationToken ct)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var isAdmin = User.IsInRole(Roles.Admin);
-        var result = await catalogService.CreateSportAsync(userId, isAdmin, request, ct);
-        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
-        return Ok(result.Value);
+        var result = await catalogService.CreateSportAsync(CurrentUserId, IsAdmin, request, ct);
+        return FromResult(result);
     }
 
     [HttpGet("{sportId:guid}/exercises")]
-    [Authorize]
     public async Task<ActionResult<IReadOnlyList<ExerciseDto>>> GetExercises(
         Guid sportId, [FromQuery] string? katalog, [FromQuery] Guid? clubId, CancellationToken ct)
     {
@@ -71,12 +60,8 @@ public class SportsController(ISportCatalogService catalogService, IRegulationMa
                 return BadRequest(new { errors = new[] { "Ungültiger Katalog: erlaubt sind \"global\" oder \"verein\" mit clubId." } });
         }
 
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await catalogService.GetExercisesAsync(sportId, userId, scope, ct);
-        if (!result.Succeeded)
-            return NotFound(new { errors = result.Errors });
-
-        return Ok(result.Value);
+        var result = await catalogService.GetExercisesAsync(sportId, CurrentUserId, scope, ct);
+        return FromResult(result);
     }
 
     /// <summary>
@@ -100,10 +85,7 @@ public class SportsController(ISportCatalogService catalogService, IRegulationMa
     public async Task<ActionResult<IReadOnlyList<RegulationDto>>> GetRegulations(Guid sportId, [FromQuery] string? country, CancellationToken ct)
     {
         var result = await catalogService.GetRegulationsAsync(sportId, country, ct);
-        if (!result.Succeeded)
-            return NotFound(new { errors = result.Errors });
-
-        return Ok(result.Value);
+        return FromResult(result);
     }
 
     [HttpGet("regulations/{regulationId:guid}")]
@@ -111,6 +93,7 @@ public class SportsController(ISportCatalogService catalogService, IRegulationMa
     public async Task<ActionResult<RegulationDetailDto>> GetRegulationDetail(Guid regulationId, CancellationToken ct)
     {
         var result = await catalogService.GetRegulationDetailAsync(regulationId, ct);
+        // 404 bei jedem Fehlschlag, auch bei "Keine gültige Version" (ein Failure): so war die Antwort immer.
         if (!result.Succeeded)
             return NotFound(new { errors = result.Errors });
 
@@ -120,53 +103,38 @@ public class SportsController(ISportCatalogService catalogService, IRegulationMa
     // ---- Bearbeiten (Admin global, Vereinstrainer für Vereins-Sportarten) ----
 
     [HttpPut("{sportId:guid}")]
-    [Authorize]
     public async Task<ActionResult<SportDto>> UpdateSport(Guid sportId, UpdateSportRequest request, CancellationToken ct)
     {
-        var (userId, isAdmin) = CurrentUser();
-        var result = await regulationManagement.UpdateSportAsync(userId, isAdmin, sportId, request, ct);
-        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
-        return Ok(result.Value);
+        var result = await regulationManagement.UpdateSportAsync(CurrentUserId, IsAdmin, sportId, request, ct);
+        return FromResultAlsBadRequest(result);
     }
 
     [HttpPut("regulations/{regulationId:guid}")]
-    [Authorize]
     public async Task<ActionResult<RegulationDto>> UpdateRegulation(Guid regulationId, UpdateRegulationRequest request, CancellationToken ct)
     {
-        var (userId, isAdmin) = CurrentUser();
-        var result = await regulationManagement.UpdateRegulationAsync(userId, isAdmin, regulationId, request, ct);
-        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
-        return Ok(result.Value);
+        var result = await regulationManagement.UpdateRegulationAsync(CurrentUserId, IsAdmin, regulationId, request, ct);
+        return FromResultAlsBadRequest(result);
     }
 
     [HttpPost("regulations/{regulationId:guid}/exercises")]
-    [Authorize]
     public async Task<ActionResult<RegulationExerciseDto>> AddRegulationExercise(Guid regulationId, AddRegulationExerciseRequest request, CancellationToken ct)
     {
-        var (userId, isAdmin) = CurrentUser();
-        var result = await regulationManagement.AddRegulationExerciseAsync(userId, isAdmin, regulationId, request, ct);
-        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
-        return Ok(result.Value);
+        var result = await regulationManagement.AddRegulationExerciseAsync(CurrentUserId, IsAdmin, regulationId, request, ct);
+        return FromResultAlsBadRequest(result);
     }
 
     [HttpPut("regulations/{regulationId:guid}/exercises/{exerciseId:guid}")]
-    [Authorize]
     public async Task<IActionResult> UpdateRegulationExercise(Guid regulationId, Guid exerciseId, UpdateRegulationExerciseRequest request, CancellationToken ct)
     {
-        var (userId, isAdmin) = CurrentUser();
-        var result = await regulationManagement.UpdateRegulationExerciseAsync(userId, isAdmin, regulationId, exerciseId, request, ct);
-        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
-        return NoContent();
+        var result = await regulationManagement.UpdateRegulationExerciseAsync(CurrentUserId, IsAdmin, regulationId, exerciseId, request, ct);
+        return FromResultAlsBadRequest(result);
     }
 
     [HttpDelete("regulations/{regulationId:guid}/exercises/{exerciseId:guid}")]
-    [Authorize]
     public async Task<IActionResult> RemoveRegulationExercise(Guid regulationId, Guid exerciseId, CancellationToken ct)
     {
-        var (userId, isAdmin) = CurrentUser();
-        var result = await regulationManagement.RemoveRegulationExerciseAsync(userId, isAdmin, regulationId, exerciseId, ct);
-        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
-        return NoContent();
+        var result = await regulationManagement.RemoveRegulationExerciseAsync(CurrentUserId, IsAdmin, regulationId, exerciseId, ct);
+        return FromResultAlsBadRequest(result);
     }
 
     // ---- Handänderung zurücknehmen (nur Admin; Vereinsordnungen kennt der Katalog nicht) ----
@@ -179,10 +147,8 @@ public class SportsController(ISportCatalogService catalogService, IRegulationMa
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> RevertRegulation(Guid regulationId, CancellationToken ct)
     {
-        var (userId, isAdmin) = CurrentUser();
-        var result = await regulationManagement.RevertRegulationAsync(userId, isAdmin, regulationId, ct);
-        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
-        return NoContent();
+        var result = await regulationManagement.RevertRegulationAsync(CurrentUserId, IsAdmin, regulationId, ct);
+        return FromResultAlsBadRequest(result);
     }
 
     /// <summary>Wie <see cref="RevertRegulation"/> für eine Übungszuordnung der Prüfungsordnung.</summary>
@@ -190,9 +156,7 @@ public class SportsController(ISportCatalogService catalogService, IRegulationMa
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> RevertRegulationExercise(Guid regulationId, Guid exerciseId, CancellationToken ct)
     {
-        var (userId, isAdmin) = CurrentUser();
-        var result = await regulationManagement.RevertRegulationExerciseAsync(userId, isAdmin, regulationId, exerciseId, ct);
-        if (!result.Succeeded) return BadRequest(new { errors = result.Errors });
-        return NoContent();
+        var result = await regulationManagement.RevertRegulationExerciseAsync(CurrentUserId, IsAdmin, regulationId, exerciseId, ct);
+        return FromResultAlsBadRequest(result);
     }
 }

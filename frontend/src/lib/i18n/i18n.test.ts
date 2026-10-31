@@ -183,12 +183,19 @@ function csDateien(verzeichnis: string): string[] {
 }
 
 /** Schlüssel (Platzhalter bleiben als {name} stehen) und die Fehler, an denen sich der Test stößt. */
-function sammleServermeldungen(): { meldungen: Map<string, string[]>; unlesbar: string[] } {
+function sammleServermeldungen(): { meldungen: Map<string, string[]>; unlesbar: string[]; nurAdmin: Set<string> } {
   const meldungen = new Map<string, string[]>();
   const unlesbar: string[] = [];
+  // Sätze aus dem Adminbereich: Sie müssen nicht übersetzt sein (der Adminbereich bleibt deutsch),
+  // aber eine englische Fassung, die es dazu gibt, ist nicht "verwaist".
+  const nurAdmin = new Set<string>();
   for (const pfad of csDateien(BACKEND_QUELLE)) {
     const name = pfad.slice(BACKEND_QUELLE.length + 1).split("\\").join("/");
-    if (NUR_ADMIN.some((a) => name.startsWith(a) || name === a) || KEINE_MELDUNGEN.some((k) => name.includes(k))) continue;
+    if (KEINE_MELDUNGEN.some((k) => name.includes(k))) continue;
+    if (NUR_ADMIN.some((a) => name.startsWith(a) || name === a)) {
+      for (const lit of csMeldungen(name, readFileSync(pfad, "utf8"))) nurAdmin.add(lit.text);
+      continue;
+    }
     for (const lit of csMeldungen(name, readFileSync(pfad, "utf8"))) {
       if (!/\p{L}/u.test(lit.text.replace(/\{[^}]*\}/gu, ""))) continue;
       if (lit.interpoliert && /\{(?!\w+\})/.test(lit.text)) {
@@ -198,7 +205,7 @@ function sammleServermeldungen(): { meldungen: Map<string, string[]>; unlesbar: 
       meldungen.set(lit.text, [...(meldungen.get(lit.text) ?? []), name]);
     }
   }
-  return { meldungen, unlesbar };
+  return { meldungen, unlesbar, nurAdmin };
 }
 
 /**
@@ -252,7 +259,7 @@ describe("Englische Übersetzung", () => {
   it("führt keine Sätze, die es im Code nicht mehr gibt", () => {
     // Verwaiste Einträge sind kein Fehler, der etwas kaputt macht - aber sie
     // sammeln sich an und lassen die Liste größer aussehen als die Arbeit ist.
-    const verwaist = Object.keys(EN).filter((s) => !schluessel.has(s) && !server.meldungen.has(s)).sort();
+    const verwaist = Object.keys(EN).filter((s) => !schluessel.has(s) && !server.meldungen.has(s) && !server.nurAdmin.has(s)).sort();
     expect(verwaist, `Nicht mehr verwendet:\n${verwaist.join("\n")}`).toStrictEqual([]);
   });
 

@@ -48,8 +48,6 @@ const ZEILE =
 const OHNE_FORTSCHRITT: OnboardingStatus = {
   hasDog: false,
   firstDogId: null,
-  firstDogName: null,
-  dogCount: 0,
   hasGoal: false,
   hasTraining: false,
   hasClubMembership: false,
@@ -183,8 +181,6 @@ export default function DashboardPage() {
           ...(frisch.onboarding ?? OHNE_FORTSCHRITT),
           hasDog: true,
           firstDogId: hund.id,
-          firstDogName: hund.name,
-          dogCount: 1,
         },
       });
     }

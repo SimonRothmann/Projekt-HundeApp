@@ -15,7 +15,7 @@ public class RegulationManagementServiceTests
     private static RegulationManagementService MakeService(out Dogity.Infrastructure.Persistence.ApplicationDbContext db)
     {
         db = InMemoryDbContext.Create();
-        return new RegulationManagementService(db);
+        return new RegulationManagementService(db, TimeProvider.System);
     }
 
     private static async Task<(Guid SportId, Guid RegulationId, Guid FreeExerciseId, Guid LinkedExerciseId)> SeedGlobalRegulationAsync(

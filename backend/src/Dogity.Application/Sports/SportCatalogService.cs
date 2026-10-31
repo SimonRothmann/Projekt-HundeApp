@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Community;
 using Dogity.Domain.Geography;
 using Dogity.Domain.Sports;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,7 @@ using static Dogity.Application.Common.Texte;
 
 namespace Dogity.Application.Sports;
 
-public class SportCatalogService(IApplicationDbContext db) : ISportCatalogService
+public class SportCatalogService(IApplicationDbContext db, TimeProvider timeProvider) : ISportCatalogService
 {
     public async Task<Result<IReadOnlyList<ExerciseDto>>> GetExercisesAsync(Guid sportId, Guid userId, ExerciseScope? scope = null, CancellationToken ct = default)
     {
@@ -133,20 +134,25 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
 
         var land = Laendercode(country);
 
-        var regulations = await db.Regulations
+        var ordnungen = await db.Regulations
             .Where(r => r.SportId == sportId)
             // Ohne Land alles; mit Land die des Landes PLUS die
             // international gültigen. Letztere wegzulassen wäre der
             // naheliegende Fehler: null heißt "gilt überall", also auch hier.
             .Where(r => land == null || r.CountryCode == land || r.CountryCode == null)
             .OrderBy(r => r.Name)
-            // Dieselbe Auswahl wie im Detail (jüngste Fassung), damit Liste
-            // und Einzelseite nicht verschiedene Daten nennen.
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        // Dieselbe Auswahl wie im Detail (gültige Fassung), damit Liste
+        // und Einzelseite nicht verschiedene Daten nennen.
+        var fassungen = await db.AktuelleFassungenAsync(ordnungen.Select(r => r.Id).ToList(), Vereinszeit.Tag(timeProvider.GetUtcNow()), ct);
+        var regulations = ordnungen
             .Select(r => new RegulationDto(
                 r.Id, r.Name, r.SourceUrl, r.LastSyncedAt, r.LatestKnownVersionLabel, r.Description, r.CountryCode,
-                r.Versions.OrderByDescending(v => v.ValidFrom).Select(v => (DateOnly?)v.ValidFrom).FirstOrDefault(),
+                fassungen.TryGetValue(r.Id, out var fassung) ? fassung.ValidFrom : null,
                 r.NameEn, r.DescriptionEn, r.EditedAt, r.SeedKey))
-            .ToListAsync(ct);
+            .ToList();
 
         return Result<IReadOnlyList<RegulationDto>>.Success(regulations);
     }
@@ -195,11 +201,7 @@ public class SportCatalogService(IApplicationDbContext db) : ISportCatalogServic
         if (regulation is null)
             return Result<RegulationDetailDto>.NotFound("Prüfungsordnung nicht gefunden.");
 
-        var currentVersion = await db.RegulationVersions
-            .Where(v => v.RegulationId == regulationId)
-            .OrderByDescending(v => v.ValidFrom)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(ct);
+        var currentVersion = await db.AktuelleFassungAsync(regulationId, Vereinszeit.Tag(timeProvider.GetUtcNow()), ct);
         if (currentVersion is null)
             return Result<RegulationDetailDto>.Failure("Keine gültige Version für diese Prüfungsordnung gefunden.");
 

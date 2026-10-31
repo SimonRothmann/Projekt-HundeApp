@@ -81,7 +81,7 @@ public class FciKatalogTests
     public async Task Katalog_FuerOesterreich_LiefertFciUndOekvAberKeineVdhOrdnungen()
     {
         await using var db = await KatalogAsync();
-        var dienst = new SportCatalogService(db);
+        var dienst = new SportCatalogService(db, TimeProvider.System);
 
         foreach (var sport in await db.Sports.ToListAsync())
         {
@@ -110,7 +110,7 @@ public class FciKatalogTests
         var oekv = await db.Regulations.CountAsync(r => r.CountryCode == "AT");
         var skg = await db.Regulations.CountAsync(r => r.CountryCode == "CH");
 
-        var laender = (await new SportCatalogService(db).GetCountriesAsync()).Value!;
+        var laender = (await new SportCatalogService(db, TimeProvider.System).GetCountriesAsync()).Value!;
 
         Assert.True(fci > 0 && vdh > 0 && oekv > 0 && skg > 0);
         Assert.Equal(fci + vdh, laender.Single(l => l.Code == "DE").RegulationCount);

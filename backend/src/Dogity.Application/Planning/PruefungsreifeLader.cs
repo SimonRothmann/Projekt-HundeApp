@@ -44,16 +44,9 @@ public static class PruefungsreifeLader
         var ordnungIds = relevant.Select(z => z.RegulationId!.Value).Distinct().ToList();
         var hundIds = relevant.Select(z => z.DogId).Distinct().ToList();
 
-        // Die gültige Fassung je Ordnung: die neueste nach ValidFrom - dieselbe
-        // Regel wie GoalService.ResolvePlanCandidatesAsync und GetMaxPointsAsync.
-        var fassungen = await db.RegulationVersions
-            .Where(v => ordnungIds.Contains(v.RegulationId))
-            .Select(v => new { v.Id, v.RegulationId, v.ValidFrom })
-            .AsNoTracking()
-            .ToListAsync(ct);
-        var fassungJeOrdnung = fassungen
-            .GroupBy(v => v.RegulationId)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.ValidFrom).First().Id);
+        // Die gültige Fassung je Ordnung - dieselbe Regel wie beim Plan und bei den
+        // Höchstpunkten (RegulationVersionQueries).
+        var fassungJeOrdnung = (await db.AktuelleFassungenAsync(ordnungIds, heute, ct)).ToDictionary(kv => kv.Key, kv => kv.Value.Id);
 
         var fassungIds = fassungJeOrdnung.Values.ToList();
         var zeilen = await db.RegulationExercises

@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Community;
 using Dogity.Application.Notifications;
 using Dogity.Application.Planning;
 using Dogity.Application.Tracking;
@@ -14,8 +15,15 @@ namespace Dogity.Application.Training;
 /// Zugriff ist immer auf Trainingseinheiten beschränkt, deren Hund dem
 /// aufrufenden Benutzer über <see cref="Domain.Dogs.DogOwner"/> zugeordnet ist.
 /// </summary>
-public class TrainingService(IApplicationDbContext db, INotificationService notifications, IUserLookupService userLookup, IExerciseMasteryService mastery, IWeatherEnrichmentService weather) : ITrainingService
+public class TrainingService(IApplicationDbContext db, INotificationService notifications, IUserLookupService userLookup, IExerciseMasteryService mastery, IWeatherEnrichmentService weather, TimeProvider timeProvider) : ITrainingService
 {
+    /// <summary>
+    /// Längste Dauer einer einzelnen Eintragung in Minuten - dieselbe Grenze wie DAUER_MAX
+    /// in frontend/src/lib/eintragen.ts (beim Ändern beide Stellen anfassen). Ohne sie
+    /// ginge jede Zahl durch die Schnittstelle in Statistik und Wochenzählung.
+    /// </summary>
+    public const int MaxDauerMinuten = 600;
+
     /// <summary>So viele Orte werden als Schnellauswahl angeboten.</summary>
     private const int MaxRecentLocations = 5;
 
@@ -83,7 +91,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
     public async Task<Result<TrainingSessionDto>> CreateAsync(Guid userId, CreateTrainingSessionRequest request, CancellationToken ct = default)
     {
-        var validationError = Validate(request);
+        var validationError = Validate(request, Vereinszeit.Tag(timeProvider.GetUtcNow()));
         if (validationError is not null)
             return Result<TrainingSessionDto>.Failure(validationError);
 
@@ -378,6 +386,10 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
         if (date == default)
             return Result<TrainingSessionDto>.Failure("Datum ist erforderlich.");
+        // Dieselbe Grenze wie beim Anlegen (Validate): sonst ließe sich ein
+        // Training über das Verschieben doch in die Zukunft legen.
+        if (date > Vereinszeit.Tag(timeProvider.GetUtcNow()))
+            return Result<TrainingSessionDto>.Failure("Das Datum darf nicht in der Zukunft liegen.");
 
         if (session.Date != date)
         {
@@ -600,7 +612,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         if (string.IsNullOrWhiteSpace(session.TrainerFeedback))
             return Result.Failure("Zu diesem Training gibt es noch kein Feedback.");
 
-        var reply = string.IsNullOrWhiteSpace(request.Reply) ? null : request.Reply.Trim();
+        var reply = Texte.NullIfBlank(request.Reply);
         var reactionChanged = request.Reaction is not null && request.Reaction != session.OwnerReaction;
         var replyChanged = reply is not null && reply != session.OwnerReply;
 
@@ -861,12 +873,22 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return null;
     }
 
-    private static string? Validate(CreateTrainingSessionRequest request)
+    private static string? Validate(CreateTrainingSessionRequest request, DateOnly heute)
     {
         if (request.Date == default)
             return "Datum ist erforderlich.";
+        // Ein Training ist etwas Geschehenes (wie das Formular, istGueltigesDatum in
+        // eintragen.ts). Gezählt wird der Kalendertag der Vereinszeit; ein offline
+        // erfasster Eintrag trägt ohnehin ein Datum von gestern oder früher.
+        if (request.Date > heute)
+            return "Das Datum darf nicht in der Zukunft liegen.";
         if (request.DurationMinutes <= 0)
             return "Dauer muss größer als 0 sein.";
+        if (request.DurationMinutes > MaxDauerMinuten)
+        {
+            var hoechstens = MaxDauerMinuten;
+            return $"Die Dauer darf höchstens {hoechstens} Minuten betragen.";
+        }
         if (request.Exercises.Any(e => e.Rating < 1 || e.Rating > 5))
             return "Bewertung muss zwischen 1 und 5 liegen.";
 

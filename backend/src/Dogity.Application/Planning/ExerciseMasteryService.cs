@@ -125,7 +125,7 @@ public class ExerciseMasteryService(IApplicationDbContext db) : IExerciseMastery
         // Leitner-Box: gut gemeistert -> hoch (längeres Intervall), schwach ->
         // runter (kommt schneller wieder), mittel (rating 3, erfolgreich) bleibt.
         if (success && rating >= 4)
-            m.Box = Math.Min(5, m.Box + 1);
+            m.Box = Math.Min(IntervalDaysByBox.Length, m.Box + 1);
         else if (!success || rating <= 2)
             m.Box = Math.Max(1, m.Box - 1);
 

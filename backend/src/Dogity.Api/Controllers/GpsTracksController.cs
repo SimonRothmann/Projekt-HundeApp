@@ -17,50 +17,35 @@ public class GpsTracksController(IGpsTrackService gpsTrackService) : ApiControll
     public async Task<ActionResult<GpsTrackDto>> Create(CreateGpsTrackRequest request, CancellationToken ct)
     {
         var result = await gpsTrackService.CreateAsync(CurrentUserId, request, ct);
-        if (!result.Succeeded)
-            return BadRequest(new { errors = result.Errors });
-
-        return Ok(result.Value);
+        return FromResultAlsBadRequest(result);
     }
 
     [HttpPost("{id:guid}/walk-runs")]
     public async Task<ActionResult<GpsWalkRunDto>> AddWalkRun(Guid id, CreateGpsWalkRunRequest request, CancellationToken ct)
     {
         var result = await gpsTrackService.AddWalkRunAsync(CurrentUserId, id, request, ct);
-        if (!result.Succeeded)
-            return BadRequest(new { errors = result.Errors });
-
-        return Ok(result.Value);
+        return FromResultAlsBadRequest(result);
     }
 
     [HttpPut("{id:guid}/walk-runs/{runId:guid}")]
     public async Task<ActionResult<GpsWalkRunDto>> UpdateWalkRun(Guid id, Guid runId, UpdateGpsWalkRunRequest request, CancellationToken ct)
     {
         var result = await gpsTrackService.UpdateWalkRunAsync(CurrentUserId, id, runId, request, ct);
-        if (!result.Succeeded)
-            return BadRequest(new { errors = result.Errors });
-
-        return Ok(result.Value);
+        return FromResultAlsBadRequest(result);
     }
 
     [HttpPut("{id:guid}/trail")]
     public async Task<ActionResult<GpsTrackDto>> UpdateTrail(Guid id, UpdateGpsTrailRequest request, CancellationToken ct)
     {
         var result = await gpsTrackService.UpdateTrailAsync(CurrentUserId, id, request, ct);
-        if (!result.Succeeded)
-            return BadRequest(new { errors = result.Errors });
-
-        return Ok(result.Value);
+        return FromResultAlsBadRequest(result);
     }
 
     [HttpPut("{id:guid}/walk-runs/{runId:guid}/trail")]
     public async Task<ActionResult<GpsWalkRunDto>> UpdateTrailRun(Guid id, Guid runId, UpdateGpsTrailRunRequest request, CancellationToken ct)
     {
         var result = await gpsTrackService.UpdateTrailRunAsync(CurrentUserId, id, runId, request, ct);
-        if (!result.Succeeded)
-            return BadRequest(new { errors = result.Errors });
-
-        return Ok(result.Value);
+        return FromResultAlsBadRequest(result);
     }
 
     [HttpPost("{id:guid}/walk-runs/{runId:guid}/evaluate")]

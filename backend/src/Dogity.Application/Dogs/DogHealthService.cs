@@ -92,7 +92,7 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
         eintrag.Date = request.Date;
         eintrag.Time = request.Time;
         eintrag.DueDate = request.DueDate;
-        eintrag.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+        eintrag.Note = Texte.NullIfBlank(request.Note);
     }
 
     /// <summary>Der Eintrag mit der Kennzeichnung "aktuell", die erst der Blick auf die übrigen Einträge des Hundes ergibt.</summary>

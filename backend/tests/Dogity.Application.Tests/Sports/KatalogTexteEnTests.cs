@@ -405,7 +405,7 @@ public partial class KatalogTexteEnTests
     public async Task Katalog_LiefertEnglischeTexteMit()
     {
         await using var db = await KatalogAsync();
-        var dienst = new SportCatalogService(db);
+        var dienst = new SportCatalogService(db, TimeProvider.System);
         var sport = await db.Sports.FirstAsync(s => s.Code == "IGP1");
         var ordnung = await db.Regulations.FirstAsync(r => r.SportId == sport.Id && r.Name == "FCI-IGP 1");
 
@@ -426,7 +426,7 @@ public partial class KatalogTexteEnTests
     public async Task Katalog_NationaleOrdnung_LiefertKeineEnglischenTexte()
     {
         await using var db = await KatalogAsync();
-        var dienst = new SportCatalogService(db);
+        var dienst = new SportCatalogService(db, TimeProvider.System);
         var vdh = await db.Regulations.Include(r => r.Sport).FirstAsync(r => r.Sport!.Code == "AGILITY");
 
         var detail = (await dienst.GetRegulationDetailAsync(vdh.Id)).Value!;
@@ -489,7 +489,7 @@ public partial class KatalogTexteEnTests
         var ordnung = new Regulation { SportId = sport.Id, Name = "FCI-UPr 1", Description = "Beschreibung" };
         db.Regulations.Add(ordnung);
         await db.SaveChangesAsync();
-        var dienst = new RegulationManagementService(db);
+        var dienst = new RegulationManagementService(db, TimeProvider.System);
 
         var gesetzt = await dienst.UpdateRegulationAsync(Guid.NewGuid(), true, ordnung.Id,
             new UpdateRegulationRequest("FCI-UPr 1", "Beschreibung", null, null, null, " Description "));
@@ -520,7 +520,7 @@ public partial class KatalogTexteEnTests
         var uebung = new Exercise { SportId = sport.Id, Name = "Freifolge" };
         db.Exercises.Add(uebung);
         await db.SaveChangesAsync();
-        var dienst = new RegulationManagementService(db);
+        var dienst = new RegulationManagementService(db, TimeProvider.System);
         var admin = Guid.NewGuid();
 
         var hinzu = await dienst.AddRegulationExerciseAsync(admin, true, ordnung.Id,
@@ -541,7 +541,7 @@ public partial class KatalogTexteEnTests
         Assert.False(ohneRecht.Succeeded);
         Assert.Equal("Other note", (await db.RegulationExercises.SingleAsync()).ScoringNotesEn);
 
-        var detail = (await new SportCatalogService(db).GetRegulationDetailAsync(ordnung.Id)).Value!;
+        var detail = (await new SportCatalogService(db, TimeProvider.System).GetRegulationDetailAsync(ordnung.Id)).Value!;
         Assert.Equal("Other note", detail.Exercises.Single().ScoringNotesEn);
     }
 }

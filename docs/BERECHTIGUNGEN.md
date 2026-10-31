@@ -86,7 +86,14 @@ mit `isAdmin`).
 - **Betreuung eines Hundes** (`TrainerAssignment`): Eine Gruppentrainer:in trägt
   sich als Betreuer:in der Hunde eines aktiven Gruppenmitglieds ein und sieht
   dann Trainings, Ziele und Fährten dieser Hunde und darf Rückmeldung geben. Sie
-  endet mit dem Austritt aus Gruppe oder Verein.
+  endet mit dem Austritt aus Gruppe oder Verein, mit der Beendigung durch die
+  Besitzer:in oder die Trainer:in selbst - und mit dem Verlust der Rolle, auf der
+  sie beruht: Fällt `Ausbildungswart`/`Verwaltung` weg (Herabstufung,
+  Abberufung), endet jede Betreuung von Hunden dieses Vereins, die nicht über
+  eine Gruppe besteht, die die Person leitet oder mit-betreut. Die Leitung einer
+  Gruppe kann jede Betreuung eines Mitglieds ihrer Gruppe durch eine Person
+  desselben Vereins beenden; verlässt das Mitglied die Gruppe, enden auch diese
+  Betreuungen, sofern keine andere gemeinsame Gruppe sie trägt.
 - **Besitzer:in / Mitbesitzer:in** (`DogOwner`): sieht und ändert alles am Hund.
 
 ## Wer sieht was
@@ -140,13 +147,19 @@ beim Hinzufügen der zweiten verloren.
     `CanViewClubOverviewAsync` (Vorstand, Verwaltung; `ClubOverviewService`),
     `CanManageClubAsync` (Verwaltung). `MitRolle` filtert Abfragen über viele
     Zeilen nach derselben Menge. Services vergleichen keine Rollen selbst.
-  - `GetManageableGroupAsync` - die Gruppe, wenn man sie verwalten darf
-    (Leitung, Mit-Betreuung, oder alle Gruppen des Vereins der Gruppe)
+  - `GruppenTrainerinnen` / `GruppenIdsDerTrainerin` - die EINE Definition von
+    "Trainer:in dieser Gruppe" (Leitung, Mit-Betreuung, oder alle Gruppen des
+    Vereins der Gruppe), einbettbar in andere Abfragen; darauf beruhen
+    `GetManageableGroupAsync` (die Gruppe, wenn man sie verwalten darf),
+    Gruppenliste, Terminlisten und die Betreuungen
+  - `GehoertZumVereinAsync` / `VereinsPersonenIds` - Zugehörigkeit zu einem
+    Verein: mit irgendeiner Rolle oder als freigegebenes Mitglied
   - `GetVisibleClubIdsAsync` - Sichtbarkeit von Vereinsübungen (nur Personen mit
     Trainer-Rolle und **aktive** Gruppenmitglieder; Mitgliederverwaltung und
     Vorstand allein sehen den Katalog des Vereins nicht)
-  - `BelongsToAnyClubAsync`, `BelongsToAnyGroupAsync`, `IsAnyTrainerAsync` -
-    Zugehörigkeit (Erststart, Perspektive)
+  - `IsAnyTrainerAsync` - Trainer:in irgendwo (Perspektive). Die Zugehörigkeit des
+    Erststarts rechnet `OnboardingService` selbst (Mitglied oder Rolle im Verein,
+    Gruppenmitglied oder Trainer:in einer Gruppe), ohne Helfer in dieser Klasse.
 - `DogAccessQueries`: die einzige Stelle der Hundezugriffsregel. Zwei Stufen,
   beide nur für Hunde, die es noch gibt (zu einem weich gelöschten Hund hat
   niemand Zugriff, es gibt 404 statt einer leeren Liste):
@@ -182,12 +195,16 @@ beim Hinzufügen der zweiten verloren.
   ("Keine Trainer-Berechtigung ..."), geben dabei nichts heraus und ändern
   nichts. `VereinsgrenzenTests` prüft beide Formen.
 
-## Bewusst offen: erneutes Einladen
+## Erneutes Einladen nach einem Nein
 
-Nach einer Ablehnung darf der Verein dieselbe Adresse erneut einladen. Es gibt
-keine Sperrfrist: Die Person wird dadurch nie Mitglied (sie muss jedes Mal selbst
-zusagen), erhält aber jedes Mal eine Benachrichtigung. Wird das zum Lästigen,
-wäre eine Frist pro Verein und Person der nächste Schritt.
+Nach einer abgelehnten Einladung kann derselbe Verein dieselbe Adresse
+**30 Tage lang nicht erneut einladen** (`ClubService.EinladungsSperreNachNein`;
+der Betreiber ist ausgenommen). Selbst beitreten kann die Person jederzeit, per
+Anfrage oder über den Einladungslink. Die Sperre schützt davor, dass ein Verein -
+auch ein fremder, dem nur die Adresse bekannt ist - eine Person nach jedem Nein
+sofort wieder einlädt und sie mit Benachrichtigungen zuschüttet. Nach Ablauf der
+Frist darf der Verein wieder einladen: Die Person wird dadurch nie Mitglied (sie
+muss jedes Mal selbst zusagen), erhält aber eine Benachrichtigung.
 
 ## Wächter
 

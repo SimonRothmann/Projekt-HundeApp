@@ -174,7 +174,7 @@ public class MeldungSpracheTests
         var eintrag = new TrainingSession { UserId = besitzer, DogId = hund.Id, Date = new DateOnly(2026, 9, 12), DurationMinutes = 30 };
         u.Db.TrainingSessions.Add(eintrag);
         await u.Db.SaveChangesAsync();
-        var training = new TrainingService(u.Db, u.Service, u.Lookup, new ExerciseMasteryService(u.Db), new FakeWeatherEnrichmentService());
+        var training = new TrainingService(u.Db, u.Service, u.Lookup, new ExerciseMasteryService(u.Db), new FakeWeatherEnrichmentService(), TimeProvider.System);
         Assert.True((await training.SetFeedbackAsync(trainer, eintrag.Id, new SetFeedbackRequest("Schön gearbeitet."))).Succeeded);
         var davor = u.Db.Notifications.Count(n => n.UserId == trainer);
 
@@ -202,7 +202,7 @@ public class MeldungSpracheTests
         var eintrag = new TrainingSession { UserId = besitzer, DogId = hund.Id, Date = new DateOnly(2026, 9, 12), DurationMinutes = 30 };
         u.Db.TrainingSessions.Add(eintrag);
         await u.Db.SaveChangesAsync();
-        var training = new TrainingService(u.Db, u.Service, u.Lookup, new ExerciseMasteryService(u.Db), new FakeWeatherEnrichmentService());
+        var training = new TrainingService(u.Db, u.Service, u.Lookup, new ExerciseMasteryService(u.Db), new FakeWeatherEnrichmentService(), TimeProvider.System);
 
         await training.SetFeedbackAsync(trainer, eintrag.Id, new SetFeedbackRequest("Schön gearbeitet."));
 

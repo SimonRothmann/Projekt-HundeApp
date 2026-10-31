@@ -88,8 +88,11 @@ public static class DependencyInjection
         // Codewechsel zum Aktivieren. Versendet wird nie im Request, sondern vom
         // Hintergrunddienst hinter der Warteschlange (MailVersandBackgroundService).
         // Zum Aktivieren siehe docs/BETRIEB.md "E-Mail und Push aktivieren".
+        // Die Regel "Host gesetzt" steht in SmtpSettings.Aktiv - dieselbe, die der Oberfläche
+        // meldet, ob Mail aktiv ist.
+        var smtp = configuration.GetSection(SmtpSettings.SectionName).Get<SmtpSettings>() ?? new SmtpSettings();
         services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
-        if (!string.IsNullOrWhiteSpace(configuration[$"{SmtpSettings.SectionName}:Host"]))
+        if (smtp.Aktiv)
             services.AddTransient<IEmailSender, SmtpEmailSender>();
         else
             services.AddTransient<IEmailSender, LoggingEmailSender>();

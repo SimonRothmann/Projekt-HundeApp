@@ -36,7 +36,7 @@ public class TrainerRechteTests
     private static async Task<Aufbau> BaueAsync()
     {
         var db = InMemoryDbContext.Create();
-        var trainings = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var trainings = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), TimeProvider.System);
         var faehrten = new GpsTrackService(db, new FakeWeatherEnrichmentService());
 
         var besitzerin = Guid.NewGuid();

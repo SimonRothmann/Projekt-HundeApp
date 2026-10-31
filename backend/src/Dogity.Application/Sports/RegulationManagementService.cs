@@ -1,12 +1,13 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Community;
 using Dogity.Domain.Sports;
 using Microsoft.EntityFrameworkCore;
 using static Dogity.Application.Common.Texte;
 
 namespace Dogity.Application.Sports;
 
-public class RegulationManagementService(IApplicationDbContext db) : IRegulationManagementService
+public class RegulationManagementService(IApplicationDbContext db, TimeProvider timeProvider) : IRegulationManagementService
 {
     public async Task<Result<SportDto>> UpdateSportAsync(Guid actingUserId, bool isAdmin, Guid sportId, UpdateSportRequest request, CancellationToken ct = default)
     {
@@ -83,11 +84,7 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         // eigens nachzuschlagen kostet eine Abfrage auf einer Admin-Aktion und
         // hält dafür die Bedeutung von null überall gleich: "es gibt keine
         // Fassung" - und nicht "an dieser Stelle nicht geladen".
-        var gueltigAb = await db.RegulationVersions
-            .Where(v => v.RegulationId == regulationId)
-            .OrderByDescending(v => v.ValidFrom)
-            .Select(v => (DateOnly?)v.ValidFrom)
-            .FirstOrDefaultAsync(ct);
+        var gueltigAb = (await db.AktuelleFassungAsync(regulationId, Vereinszeit.Tag(timeProvider.GetUtcNow()), ct))?.ValidFrom;
 
         return Result<RegulationDto>.Success(new RegulationDto(
             regulation.Id, regulation.Name, regulation.SourceUrl, regulation.LastSyncedAt, regulation.LatestKnownVersionLabel, regulation.Description, regulation.CountryCode, gueltigAb, regulation.NameEn, regulation.DescriptionEn, regulation.EditedAt, regulation.SeedKey));
@@ -277,11 +274,8 @@ public class RegulationManagementService(IApplicationDbContext db) : IRegulation
         if (authError is not null)
             return (null, global, authError);
 
-        // Aktuelle Version = neueste nach ValidFrom (wie GetRegulationDetailAsync).
-        var version = await db.RegulationVersions
-            .Where(v => v.RegulationId == regulationId)
-            .OrderByDescending(v => v.ValidFrom)
-            .FirstOrDefaultAsync(ct);
+        // Aktuelle Version = die gültige Fassung (wie GetRegulationDetailAsync).
+        var version = await db.AktuelleFassungAsync(regulationId, Vereinszeit.Tag(timeProvider.GetUtcNow()), ct);
         return (version, global, null);
     }
 

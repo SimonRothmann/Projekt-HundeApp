@@ -59,7 +59,11 @@ Vibration an Abbiegungen - beides verriete den Verlauf. Nach dem Suchen zeigt da
 - **Anbieten:** Der Trail wird nur angeboten, wenn Mantrailing in den Sportarten des Hundes **ausdrücklich** gewählt
   ist (`spurArten`); bei leerer Auswahl bleibt es bei der Fährte. Wählt ein Hund beides, wechselt das Fenster
   „Fährte | Trail“ im Fenster zum Legen. Nur Trail: der Knopf heißt „Trail legen“.
-- **Frist zum Suchen:** Fährte 24 Stunden nach dem Ende des Legens, Trail 48 (SV-MT 3 liegt ca. 24 Stunden).
+- **Frist zum Suchen:** Fährte 24 Stunden nach dem Ende des Legens, Trail 48 (SV-MT 3 liegt ca. 24 Stunden). Die Zahlen stehen
+  im Backend in `Ablauffristen` (Frontend: `ABLAUF_FRIST_STUNDEN` und `ABLAUF_FRIST_STUNDEN_TRAIL` in `lib/faehrte.ts`).
+  Der Server prüft sie beim Anlegen eines Ablaufs gegen den **Beginn des Ablaufs** (nicht gegen den Zeitpunkt der Anfrage:
+  ein offline aufgezeichneter Ablauf kommt oft erst später an) und liefert der Startseite die noch suchbaren Spuren
+  (`DashboardDogDto.TracksToday`, der Name stammt aus der Zeit, als es nur die von heute waren).
 - **Erinnerung „Fährte noch nicht abgelaufen“:** gilt nur für Fährten; ein Trail wird nach Stunden gesucht, nicht nach
   der Frist von 3 bis 24 Stunden. `MANTRAILING` steht aber in der Liste der Sportarten mit Aufzeichnung
   (`FAEHRTEN_SPORTARTEN` und `Erinnerungsregeln.FaehrtenSportCodes`).

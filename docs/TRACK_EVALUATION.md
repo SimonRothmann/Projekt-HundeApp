@@ -14,7 +14,7 @@ Je Ablauf-Versuch (`GpsWalkRun`) gegen die gelegte Fährte (`GpsTrack`):
 | `GpsWalkStop[]` | erkannte Halte, klassifiziert (siehe unten) |
 | `GpsWalkPoint.DeviationMeters` | Abweichung je Punkt → Karte färbt die Linie abschnittsweise ein |
 
-Alle Werte sind **persistiert** (Migration `AddTrackEvaluation`), damit Trend-Auswertungen nicht sämtliche GPS-Punkte laden müssen. Berechnung beim Anlegen eines Ablaufs, per `POST /api/gps-tracks/{id}/walk-runs/{runId}/evaluate` neu anstoßbar; Altbestand wird beim Anwendungsstart einmalig nachgerechnet (`IGpsTrackEvaluationBackfill`, idempotent über `EvaluatedAt == null`).
+Alle Werte sind **persistiert** (Migration `AddTrackEvaluation`), damit Trend-Auswertungen nicht sämtliche GPS-Punkte laden müssen. Ein Ablauf lässt sich nur anlegen, solange die Frist zum Suchen läuft (Fährte 24, Trail 48 Stunden nach dem Ende des Legens, gemessen am Beginn des Ablaufs; `Ablauffristen`). Berechnung beim Anlegen eines Ablaufs, per `POST /api/gps-tracks/{id}/walk-runs/{runId}/evaluate` neu anstoßbar; Altbestand wird beim Anwendungsstart einmalig nachgerechnet (`IGpsTrackEvaluationBackfill`, idempotent über `EvaluatedAt == null`).
 
 ## Warum Punkt-zu-Segment statt Punkt-zu-Punkt
 

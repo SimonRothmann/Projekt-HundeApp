@@ -18,7 +18,7 @@ public class RefreshToken
 
     public Guid UserId { get; set; }
 
-    /// <summary>SHA-256-Hash (Base64) des Roh-Tokens - nie der Rohwert selbst.</summary>
+    /// <summary>SHA-256-Hash des Roh-Tokens als Hex-Text (64 Zeichen) - nie der Rohwert selbst.</summary>
     public string TokenHash { get; set; } = string.Empty;
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -29,6 +29,4 @@ public class RefreshToken
 
     /// <summary>Hash des Nachfolge-Tokens (nur bei Rotation gesetzt) - für die Reuse-Erkennung.</summary>
     public string? ReplacedByTokenHash { get; set; }
-
-    public bool IsActive => RevokedAt is null && ExpiresAt > DateTimeOffset.UtcNow;
 }

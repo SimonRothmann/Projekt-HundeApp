@@ -68,6 +68,8 @@ public static class Textlaengen
     public const int VereinsBeschreibung = 500;
     /// <summary>Suchbegriff der Admin-Nutzerliste (wird nicht gespeichert).</summary>
     public const int NutzerSuche = 100;
+    /// <summary>ApplicationUser.FirstName und LastName: Vor- und Nachname einer Person; die Spalten selbst sind unbegrenzt, diese Grenze prüfen Registrierung und Profil.</summary>
+    public const int PersonenName = 100;
 
     /// <summary>
     /// Meldung, wenn <paramref name="text"/> (ohne Rand-Leerzeichen, so wie er

@@ -9,8 +9,6 @@ function stand(teil: Partial<OnboardingStatus> = {}): OnboardingStatus {
   return {
     hasDog: true,
     firstDogId: "hund-1",
-    firstDogName: "Bella",
-    dogCount: 1,
     hasGoal: false,
     hasTraining: false,
     hasClubMembership: false,
@@ -33,7 +31,7 @@ describe("erststartZustand", () => {
   });
 
   it("fragt ohne Hund nach dem Hund", () => {
-    expect(erststartZustand(stand({ hasDog: false, firstDogId: null, firstDogName: null, dogCount: 0 }), JETZT)).toBe("hund");
+    expect(erststartZustand(stand({ hasDog: false, firstDogId: null }), JETZT)).toBe("hund");
   });
 
   it("lässt sich ohne Hund wegklicken", () => {

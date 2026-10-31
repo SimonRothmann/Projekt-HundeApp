@@ -75,7 +75,7 @@ public class WetterImHintergrundTests
 
             var anreicherung = new WeatherEnrichmentService(Db, Wetterdienst, Queue);
             Fahrten = new GpsTrackService(Db, anreicherung);
-            Trainings = new TrainingService(Db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(Db), anreicherung);
+            Trainings = new TrainingService(Db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(Db), anreicherung, TimeProvider.System);
             Nachtrag = new WetterNachtrag(Db, Wetterdienst, new FesteUhr(), NullLogger<WetterNachtrag>.Instance);
         }
 

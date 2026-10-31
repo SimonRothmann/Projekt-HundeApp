@@ -26,20 +26,14 @@ public class ExercisesController(
     public async Task<ActionResult<ExerciseDto>> Create(CreateExerciseRequest request, CancellationToken ct)
     {
         var result = await exerciseService.CreateAsync(CurrentUserId, IsAdmin, request, ct);
-        if (!result.Succeeded)
-            return BadRequest(new { errors = result.Errors });
-
-        return Ok(result.Value);
+        return FromResultAlsBadRequest(result);
     }
 
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ExerciseDto>> Update(Guid id, UpdateExerciseRequest request, CancellationToken ct)
     {
         var result = await exerciseService.UpdateAsync(CurrentUserId, IsAdmin, id, request, ct);
-        if (!result.Succeeded)
-            return BadRequest(new { errors = result.Errors });
-
-        return Ok(result.Value);
+        return FromResultAlsBadRequest(result);
     }
 
     [HttpDelete("{id:guid}")]

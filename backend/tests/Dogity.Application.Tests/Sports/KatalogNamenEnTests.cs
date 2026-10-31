@@ -32,7 +32,7 @@ public class KatalogNamenEnTests
         var sport = new Sport { Code = "IGP1", Name = "IGP 1" };
         db.Sports.Add(sport);
         await db.SaveChangesAsync();
-        var dienst = new RegulationManagementService(db);
+        var dienst = new RegulationManagementService(db, TimeProvider.System);
 
         var gesetzt = await dienst.UpdateSportAsync(Guid.NewGuid(), true, sport.Id, new UpdateSportRequest("IGP 1", null, "  Utility Dog 1 "));
         Assert.Equal("Utility Dog 1", gesetzt.Value!.NameEn);
@@ -50,7 +50,7 @@ public class KatalogNamenEnTests
         db.Sports.Add(sport);
         await db.SaveChangesAsync();
 
-        var ergebnis = await new RegulationManagementService(db).UpdateSportAsync(Guid.NewGuid(), true, sport.Id, new UpdateSportRequest("IGP 1", null, Zu101));
+        var ergebnis = await new RegulationManagementService(db, TimeProvider.System).UpdateSportAsync(Guid.NewGuid(), true, sport.Id, new UpdateSportRequest("IGP 1", null, Zu101));
 
         Assert.False(ergebnis.Succeeded);
         Assert.Equal("Alt", (await db.Sports.SingleAsync()).NameEn);
@@ -64,7 +64,7 @@ public class KatalogNamenEnTests
         db.Sports.Add(sport);
         await db.SaveChangesAsync();
 
-        var ergebnis = await new RegulationManagementService(db).UpdateSportAsync(Guid.NewGuid(), false, sport.Id, new UpdateSportRequest("IGP 1", null, "Neu"));
+        var ergebnis = await new RegulationManagementService(db, TimeProvider.System).UpdateSportAsync(Guid.NewGuid(), false, sport.Id, new UpdateSportRequest("IGP 1", null, "Neu"));
 
         Assert.False(ergebnis.Succeeded);
         Assert.Equal("Alt", (await db.Sports.SingleAsync()).NameEn);
@@ -79,7 +79,7 @@ public class KatalogNamenEnTests
         var ordnung = new Regulation { SportId = sport.Id, Name = "FCI-UPr 1" };
         db.Regulations.Add(ordnung);
         await db.SaveChangesAsync();
-        var dienst = new RegulationManagementService(db);
+        var dienst = new RegulationManagementService(db, TimeProvider.System);
 
         var gesetzt = await dienst.UpdateRegulationAsync(Guid.NewGuid(), true, ordnung.Id, new UpdateRegulationRequest("FCI-UPr 1", null, null, null, "FCI-UPr 1 – Obedience"));
         Assert.Equal("FCI-UPr 1 – Obedience", gesetzt.Value!.NameEn);
@@ -144,7 +144,7 @@ public class KatalogNamenEnTests
         db.RegulationVersions.Add(version);
         db.RegulationExercises.Add(new RegulationExercise { RegulationVersionId = version.Id, ExerciseId = mit.Id, MaxPoints = 15, SortOrder = 0 });
         await db.SaveChangesAsync();
-        var dienst = new SportCatalogService(db);
+        var dienst = new SportCatalogService(db, TimeProvider.System);
 
         Assert.Equal("Obedience", (await dienst.GetSportsAsync()).Value!.Single().NameEn);
         var uebungen = (await dienst.GetExercisesAsync(sport.Id, Guid.NewGuid())).Value!;
@@ -172,7 +172,7 @@ public class KatalogNamenEnTests
         db.Sports.Add(sport);
         db.Exercises.Add(uebung);
         await db.SaveChangesAsync();
-        var dienst = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var dienst = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), TimeProvider.System);
 
         var ergebnis = await dienst.CreateAsync(halter, new CreateTrainingSessionRequest(hund.Id, DateOnly.FromDateTime(DateTime.Today), 10, null,
         [

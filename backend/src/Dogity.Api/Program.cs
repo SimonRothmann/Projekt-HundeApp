@@ -9,7 +9,6 @@ using Dogity.Infrastructure.Identity;
 using Dogity.Infrastructure.Persistence;
 using Dogity.Infrastructure.Persistence.Seed;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;

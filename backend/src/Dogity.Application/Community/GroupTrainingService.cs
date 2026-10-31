@@ -18,7 +18,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
 {
     public async Task<Result<GroupTrainingLibraryDto>> GetLibraryAsync(Guid userId, Guid clubId, CancellationToken ct = default)
     {
-        if (!await IsClubTrainerAsync(userId, clubId, ct))
+        if (!await db.IsClubTrainerAsync(userId, clubId, ct))
             return Result<GroupTrainingLibraryDto>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
 
         var club = await db.Clubs.AsNoTracking().FirstOrDefaultAsync(c => c.Id == clubId, ct);
@@ -48,7 +48,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
 
     public async Task<Result<GroupTrainingLibraryDto>> ImportStarterCatalogAsync(Guid userId, Guid clubId, CancellationToken ct = default)
     {
-        if (!await IsClubTrainerAsync(userId, clubId, ct))
+        if (!await db.IsClubTrainerAsync(userId, clubId, ct))
             return Result<GroupTrainingLibraryDto>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
 
         // Bestehende Titel je Verein -> Idempotenz (kein Duplizieren bei erneutem
@@ -117,7 +117,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
 
     public async Task<Result<GroupTrainingExerciseDto>> CreateExerciseAsync(Guid userId, Guid clubId, UpsertExerciseRequest request, CancellationToken ct = default)
     {
-        if (!await IsClubTrainerAsync(userId, clubId, ct))
+        if (!await db.IsClubTrainerAsync(userId, clubId, ct))
             return Result<GroupTrainingExerciseDto>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
         if (string.IsNullOrWhiteSpace(request.Title))
             return Result<GroupTrainingExerciseDto>.Failure("Titel ist erforderlich.");
@@ -127,9 +127,9 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
             ClubId = clubId,
             Category = request.Category,
             Title = request.Title.Trim(),
-            Focus = Clean(request.Focus),
+            Focus = Texte.NullIfBlank(request.Focus),
             DurationMinutes = request.DurationMinutes,
-            Description = Clean(request.Description),
+            Description = Texte.NullIfBlank(request.Description),
             ExamTargets = request.ExamTargets,
             CreatedByUserId = userId
         };
@@ -144,14 +144,14 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
             return Result<GroupTrainingExerciseDto>.Failure("Titel ist erforderlich.");
 
         var exercise = await db.GroupTrainingExercises.FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
-        if (exercise is null || !await IsClubTrainerAsync(userId, exercise.ClubId, ct))
+        if (exercise is null || !await db.IsClubTrainerAsync(userId, exercise.ClubId, ct))
             return Result<GroupTrainingExerciseDto>.NotFound("Baustein nicht gefunden.");
 
         exercise.Category = request.Category;
         exercise.Title = request.Title.Trim();
-        exercise.Focus = Clean(request.Focus);
+        exercise.Focus = Texte.NullIfBlank(request.Focus);
         exercise.DurationMinutes = request.DurationMinutes;
-        exercise.Description = Clean(request.Description);
+        exercise.Description = Texte.NullIfBlank(request.Description);
         exercise.ExamTargets = request.ExamTargets;
         exercise.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -161,7 +161,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
     public async Task<Result> DeleteExerciseAsync(Guid userId, Guid exerciseId, CancellationToken ct = default)
     {
         var exercise = await db.GroupTrainingExercises.FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
-        if (exercise is null || !await IsClubTrainerAsync(userId, exercise.ClubId, ct))
+        if (exercise is null || !await db.IsClubTrainerAsync(userId, exercise.ClubId, ct))
             return Result.NotFound("Baustein nicht gefunden.");
 
         var now = DateTimeOffset.UtcNow;
@@ -179,7 +179,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
 
     public async Task<Result<GroupTrainingUnitDto>> CreateUnitAsync(Guid userId, Guid clubId, UpsertUnitRequest request, CancellationToken ct = default)
     {
-        if (!await IsClubTrainerAsync(userId, clubId, ct))
+        if (!await db.IsClubTrainerAsync(userId, clubId, ct))
             return Result<GroupTrainingUnitDto>.Failure("Keine Trainer-Berechtigung für diesen Verein.");
         var error = await ValidateUnitAsync(clubId, request, ct);
         if (error is not null)
@@ -190,7 +190,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
             ClubId = clubId,
             Category = request.Category,
             Title = request.Title.Trim(),
-            Description = Clean(request.Description),
+            Description = Texte.NullIfBlank(request.Description),
             CreatedByUserId = userId
         };
         db.GroupTrainingUnits.Add(unit);
@@ -202,7 +202,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
     public async Task<Result<GroupTrainingUnitDto>> UpdateUnitAsync(Guid userId, Guid unitId, UpsertUnitRequest request, CancellationToken ct = default)
     {
         var unit = await db.GroupTrainingUnits.Include(u => u.Items).FirstOrDefaultAsync(u => u.Id == unitId, ct);
-        if (unit is null || !await IsClubTrainerAsync(userId, unit.ClubId, ct))
+        if (unit is null || !await db.IsClubTrainerAsync(userId, unit.ClubId, ct))
             return Result<GroupTrainingUnitDto>.NotFound("Einheit nicht gefunden.");
         var error = await ValidateUnitAsync(unit.ClubId, request, ct);
         if (error is not null)
@@ -210,7 +210,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
 
         unit.Category = request.Category;
         unit.Title = request.Title.Trim();
-        unit.Description = Clean(request.Description);
+        unit.Description = Texte.NullIfBlank(request.Description);
         unit.UpdatedAt = DateTimeOffset.UtcNow;
 
         // Items komplett ersetzen; neue bewusst über das DbSet (nicht die
@@ -224,7 +224,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
     public async Task<Result> DeleteUnitAsync(Guid userId, Guid unitId, CancellationToken ct = default)
     {
         var unit = await db.GroupTrainingUnits.Include(u => u.Items).FirstOrDefaultAsync(u => u.Id == unitId, ct);
-        if (unit is null || !await IsClubTrainerAsync(userId, unit.ClubId, ct))
+        if (unit is null || !await db.IsClubTrainerAsync(userId, unit.ClubId, ct))
             return Result.NotFound("Einheit nicht gefunden.");
 
         var now = DateTimeOffset.UtcNow;
@@ -238,7 +238,7 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
     public async Task<Result<GroupTrainingUnitDto>> DuplicateUnitAsync(Guid userId, Guid unitId, CancellationToken ct = default)
     {
         var src = await db.GroupTrainingUnits.Include(u => u.Items).AsNoTracking().FirstOrDefaultAsync(u => u.Id == unitId, ct);
-        if (src is null || !await IsClubTrainerAsync(userId, src.ClubId, ct))
+        if (src is null || !await db.IsClubTrainerAsync(userId, src.ClubId, ct))
             return Result<GroupTrainingUnitDto>.NotFound("Einheit nicht gefunden.");
 
         var copy = new GroupTrainingUnit
@@ -291,11 +291,6 @@ public class GroupTrainingService(IApplicationDbContext db) : IGroupTrainingServ
             .FirstAsync(u => u.Id == unitId, ct);
         return ToDto(unit);
     }
-
-    private Task<bool> IsClubTrainerAsync(Guid userId, Guid clubId, CancellationToken ct) =>
-        db.IsClubTrainerAsync(userId, clubId, ct);
-
-    private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
     private static GroupTrainingExerciseDto ToDto(GroupTrainingExercise e) =>
         new(e.Id, e.ClubId, e.Category, e.Title, e.Focus, e.DurationMinutes, e.Description, e.ExamTargets);

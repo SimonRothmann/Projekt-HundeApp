@@ -42,7 +42,6 @@ public class OnboardingServiceTests
 
         Assert.True(stand.HasDog);
         Assert.Equal(ersterHund, stand.FirstDogId);
-        Assert.Equal("Bella", stand.FirstDogName);
         // Ein Hund allein reicht nicht - es fehlt noch einer der beiden Wege.
         Assert.False(stand.IsComplete);
     }

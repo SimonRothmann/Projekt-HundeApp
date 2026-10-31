@@ -1,11 +1,12 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
+using Dogity.Application.Community;
 using Dogity.Domain.Sports;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Sports;
 
-public class RegulationImportService(IApplicationDbContext db, IRegulationPdfParser parser) : IRegulationImportService
+public class RegulationImportService(IApplicationDbContext db, IRegulationPdfParser parser, TimeProvider timeProvider) : IRegulationImportService
 {
     public Task<Result<IReadOnlyList<ParsedExerciseCandidate>>> ScanAsync(CancellationToken ct = default) =>
         parser.ScanAsync(ct);
@@ -21,10 +22,7 @@ public class RegulationImportService(IApplicationDbContext db, IRegulationPdfPar
         // kennzeichnen (EditedAt), sonst räumt der nächste Start es wieder ab.
         var global = await db.Sports.AnyAsync(s => s.Id == regulation.SportId && s.ClubId == null, ct);
 
-        var currentVersion = await db.RegulationVersions
-            .Where(v => v.RegulationId == regulation.Id)
-            .OrderByDescending(v => v.ValidFrom)
-            .FirstOrDefaultAsync(ct);
+        var currentVersion = await db.AktuelleFassungAsync(regulation.Id, Vereinszeit.Tag(timeProvider.GetUtcNow()), ct);
         if (currentVersion is null)
             return Result.Failure("Keine gültige Version für diese Prüfungsordnung gefunden.");
 

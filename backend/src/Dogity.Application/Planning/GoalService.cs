@@ -203,8 +203,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     }
 
     // Gemeinsame Regeln für "bestanden" und "Ergebnis bearbeiten". Einen Tag
-    // Toleranz nach vorn, weil "heute" je nach Zeitzone des Geräts schon
-    // morgen sein kann (der Server rechnet in UTC).
+    // Toleranz nach vorn, weil "heute" auf einem Gerät in einer Zeitzone östlich
+    // der Vereinszeit (in der der Server rechnet) schon morgen sein kann.
     private static string? ValidateExamResult(DateOnly? examDate, int? score, string? note, int? maxPoints, DateOnly today)
     {
         if (examDate is not { } date)
@@ -253,9 +253,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     }
 
     // Wie viele Wochen ein verschobenes Zieldatum höchstens nachplant - derselbe
-    // Deckel wie beim Erstplan (TrainingPlanGenerator), damit ein Termin in
-    // weiter Ferne keinen Plan über ein Jahr aufbläht.
-    private const int MaxPlanExtensionWeeks = 12;
+    // Deckel wie beim Erstplan, damit ein Termin in weiter Ferne keinen Plan
+    // über ein Jahr aufbläht.
+    private const int MaxPlanExtensionWeeks = TrainingPlanGenerator.MaxWeeks;
 
     public async Task<Result<GoalDto>> UpdateConfigAsync(Guid userId, Guid goalId, int weeklyExerciseCount, int trainingDaysPerWeek, CancellationToken ct = default)
     {
@@ -556,9 +556,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     private static int MasteryStatusOf(ExerciseMastery? m)
     {
         if (m is null || m.SessionCount == 0) return 0; // nie trainiert
-        if (m.Box >= 4) return 3;                        // sitzt
-        if (m.Box == 3) return 2;                        // mittel
-        return 1;                                        // hängt (Box 1-2)
+        if (m.Box >= Pruefungsreife.SicherAbBox) return 3;     // sitzt
+        if (m.Box == Pruefungsreife.SicherAbBox - 1) return 2; // mittel
+        return 1;                                              // hängt (darunter)
     }
 
     public async Task<Result<GoalDto>> SetPlanAutoRegenerationAsync(Guid userId, Guid goalId, bool enabled, CancellationToken ct = default)
@@ -825,19 +825,15 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     }
 
     // Liefert die Kandidatenliste für den Generator: bei gewählter
-    // Prüfungsordnung die Pflicht-/Kür-Übungen ihrer aktuellsten Version
-    // (siehe SportCatalogService.GetRegulationDetailAsync - dieselbe
-    // "neueste Version per ValidFrom"-Logik), sonst alle Übungen der
+    // Prüfungsordnung die Pflicht-/Kür-Übungen ihrer gültigen Fassung
+    // (RegulationVersionQueries), sonst alle Übungen der
     // Sportart als Fallback (z.B. für Sportarten ohne hinterlegte
     // Prüfungsordnung), jeweils als Pflicht behandelt.
     private async Task<List<PlanExerciseCandidate>> ResolvePlanCandidatesAsync(Guid sportId, Guid? regulationId, CancellationToken ct)
     {
         if (regulationId is { } regId)
         {
-            var currentVersion = await db.RegulationVersions
-                .Where(v => v.RegulationId == regId)
-                .OrderByDescending(v => v.ValidFrom)
-                .FirstOrDefaultAsync(ct);
+            var currentVersion = await db.AktuelleFassungAsync(regId, Vereinszeit.Tag(timeProvider.GetUtcNow()), ct);
 
             if (currentVersion is not null)
             {
@@ -935,7 +931,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         (await GetMaxPointsAsync([goal], ct)).TryGetValue(goal.Id, out var hoechstens) ? hoechstens : null;
 
     // Höchstpunktzahl je Ziel: Summe der Übungspunkte der Fassung, die
-    // ResolvePlanCandidatesAsync als gültig ansieht (neueste nach ValidFrom).
+    // ResolvePlanCandidatesAsync als gültig ansieht (RegulationVersionQueries).
     // Fehlt bei Zielen ohne Prüfungsordnung und bei Ordnungen ohne Punktwertung
     // (Summe 0) - dann gibt es auch keine Obergrenze zu prüfen.
     private async Task<Dictionary<Guid, int>> GetMaxPointsAsync(IReadOnlyList<Goal> goals, CancellationToken ct)
@@ -943,13 +939,8 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         var regulationIds = goals.Where(g => g.RegulationId is not null).Select(g => g.RegulationId!.Value).Distinct().ToList();
         if (regulationIds.Count == 0) return new Dictionary<Guid, int>();
 
-        var versions = await db.RegulationVersions
-            .Where(v => regulationIds.Contains(v.RegulationId))
-            .Select(v => new { v.Id, v.RegulationId, v.ValidFrom })
-            .ToListAsync(ct);
-        var currentVersionByRegulation = versions
-            .GroupBy(v => v.RegulationId)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.ValidFrom).First().Id);
+        var currentVersionByRegulation = (await db.AktuelleFassungenAsync(regulationIds, Vereinszeit.Tag(timeProvider.GetUtcNow()), ct))
+            .ToDictionary(kv => kv.Key, kv => kv.Value.Id);
 
         var versionIds = currentVersionByRegulation.Values.ToList();
         var sumByVersion = (await db.RegulationExercises

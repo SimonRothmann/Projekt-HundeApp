@@ -10,6 +10,7 @@ using Dogity.Domain.Notifications;
 using Dogity.Domain.Tracking;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using static Dogity.Application.Common.SqlStates;
 
 namespace Dogity.Application.Reminders;
 
@@ -34,9 +35,6 @@ public class ErinnerungService(
     TimeProvider time,
     ILogger<ErinnerungService> logger) : IErinnerungService
 {
-    /// <summary>SQLSTATE "unique_violation" (Postgres).</summary>
-    private const string EindeutigerIndexVerletzt = "23505";
-
     /// <summary>Wie lange ein Eintrag in SentReminder gebraucht wird: länger als jede Erinnerung gültig ist.</summary>
     private static readonly TimeSpan Aufbewahrung = TimeSpan.FromDays(60);
 
@@ -235,9 +233,10 @@ public class ErinnerungService(
     /// <summary>
     /// Ob der Person Fährte bei diesem Hund angeboten wird - dieselbe Antwort wie auf der Hundeseite
     /// und der Startseite (moduleEnabled(faehrte) &amp;&amp; laeuftFaehrte): Modul nicht abgewählt und
-    /// eine Fährten-Sportart in den wirksamen Sportarten des Hundes (Vererbungsregel wie
-    /// <c>PreferenceService.GetEffectiveDogSportsAsync</c>; leere Auswahl heißt "alles"). Sonst
-    /// erinnerte die App an eine Fährte, die sie dort gar nicht mehr zeigt.
+    /// eine Fährten-Sportart in den wirksamen Sportarten des Hundes (Vererbungsregel aus
+    /// <c>Sportwahl</c>, wie bei <c>PreferenceService.GetEffectiveDogSportsAsync</c>; leere
+    /// Auswahl heißt "alles"). Sonst erinnerte die App an eine Fährte, die sie dort gar nicht
+    /// mehr zeigt.
     /// </summary>
     private async Task<Func<Guid, Guid, bool, bool>> FaehrteAngebotenAsync(
         IReadOnlyCollection<Guid> nutzerIds, IReadOnlyCollection<Guid> hundeMitEigenenSportarten, CancellationToken ct)
@@ -254,20 +253,11 @@ public class ErinnerungService(
                 .ToListAsync(ct))
             .ToHashSet();
 
-        var vomHund = (await db.DogSportSelections
-                .Where(s => hundeMitEigenenSportarten.Contains(s.DogId))
-                .Select(s => new { s.DogId, s.SportId })
-                .ToListAsync(ct))
-            .ToLookup(s => s.DogId, s => s.SportId);
-        var vomMenschen = (await db.UserSportSelections
-                .Where(s => nutzerIds.Contains(s.UserPreference!.UserId))
-                .Select(s => new { s.UserPreference!.UserId, s.SportId })
-                .ToListAsync(ct))
-            .ToLookup(s => s.UserId, s => s.SportId);
+        var wirksame = await Sportwahl.LadenAsync(db, nutzerIds, hundeMitEigenenSportarten, ct);
 
         return (userId, hundId, eigeneSportarten) =>
             !moduleAus.Contains(userId)
-            && Erinnerungsregeln.FaehrteAngeboten(eigeneSportarten ? vomHund[hundId].ToList() : vomMenschen[userId].ToList(), faehrtenSportarten);
+            && Erinnerungsregeln.FaehrteAngeboten(wirksame(userId, hundId, eigeneSportarten), faehrtenSportarten);
     }
 
     // ---- c) Offene Rückmeldungen der Trainer:innen ----

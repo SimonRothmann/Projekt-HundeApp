@@ -1,3 +1,4 @@
+using System.Reflection;
 using Dogity.Application.Community;
 using Dogity.Application.Dashboard;
 using Dogity.Application.Dogs;
@@ -17,7 +18,7 @@ namespace Dogity.Application.Tests.Dashboard;
 /// <summary>
 /// Testet die gebündelte Startseite. Sie ersetzt eine Reihe einzelner Abrufe
 /// und darf nicht mehr zeigen als diese: eigene aktive Hunde, aktive Ziele mit
-/// Plan, heute gelegte Fährten.
+/// Plan, noch suchbare Spuren (Fährte 24, Trail 48 Stunden nach dem Legen).
 /// </summary>
 public class DashboardServiceTests
 {
@@ -40,7 +41,7 @@ public class DashboardServiceTests
             new DogService(db, nutzer, new FakeNotificationService()),
             new PreferenceService(db),
             new GoalService(db, uhr, new FakeNotificationService(), mastery),
-            new TrainingService(db, new FakeNotificationService(), nutzer, mastery, new FakeWeatherEnrichmentService()),
+            new TrainingService(db, new FakeNotificationService(), nutzer, mastery, new FakeWeatherEnrichmentService(), TimeProvider.System),
             new GpsTrackService(db, new FakeWeatherEnrichmentService()),
             new GroupService(db, nutzer, new TrainerRoleService(db, nutzer), new FakeNotificationService(), TimeProvider.System),
             new ClubService(db, nutzer, new FakeNotificationService(), new TrainerRoleService(db, nutzer)),
@@ -65,12 +66,15 @@ public class DashboardServiceTests
         return ziel.Id;
     }
 
-    private static Guid Faehrte(ApplicationDbContext db, Guid nutzer, Guid hund, DateOnly datum)
+    /// <summary>Eine Spur mit einem automatischen Punkt zum Ende des Legens (ohne <paramref name="legeEnde"/>: ohne Punkt).</summary>
+    private static Guid Faehrte(ApplicationDbContext db, Guid nutzer, Guid hund, DateOnly datum, DateTimeOffset? legeEnde = null, GpsTrackKind art = GpsTrackKind.Faehrte)
     {
         var einheit = new TrainingSession { UserId = nutzer, DogId = hund, Date = datum, DurationMinutes = 10 };
-        var track = new GpsTrack { TrainingSessionId = einheit.Id };
+        var track = new GpsTrack { TrainingSessionId = einheit.Id, Kind = art };
         db.TrainingSessions.Add(einheit);
         db.GpsTracks.Add(track);
+        if (legeEnde is { } ende)
+            db.GpsPoints.Add(new GpsPoint { TrackId = track.Id, Latitude = 52, Longitude = 9, Timestamp = ende });
         return track.Id;
     }
 
@@ -106,20 +110,42 @@ public class DashboardServiceTests
     }
 
     [Fact]
-    public async Task NimmtNurHeuteGelegteFaehrten()
+    public async Task NimmtDieNochSuchbarenSpuren_AuchVonGesternUndVorgestern()
     {
         var (dienst, db) = Erstelle();
         var ich = Guid.NewGuid();
         var hund = Hund(db, ich, "Bello");
-        var vonHeute = Faehrte(db, ich, hund, Heute);
-        Faehrte(db, ich, hund, Heute.AddDays(-1));
+        // Fährte: 24 Stunden nach dem Legen. Abends gelegt (vor 15 Stunden) bleibt sie auch nach Mitternacht.
+        var gesternAbend = Faehrte(db, ich, hund, Heute.AddDays(-1), Jetzt.AddHours(-15));
+        var heute = Faehrte(db, ich, hund, Heute, Jetzt.AddHours(-1));
+        Faehrte(db, ich, hund, Heute.AddDays(-1), Jetzt.AddHours(-25));
+        // Trail: 48 Stunden.
+        var trail = Faehrte(db, ich, hund, Heute.AddDays(-1), Jetzt.AddHours(-30), GpsTrackKind.Mantrailing);
+        Faehrte(db, ich, hund, Heute.AddDays(-2), Jetzt.AddHours(-49), GpsTrackKind.Mantrailing);
+        // Ohne Zeitstempel lässt sich die Frist nicht prüfen.
+        Faehrte(db, ich, hund, Heute);
         // Eine Einheit ohne Fährte am selben Tag bringt keinen Eintrag.
         db.TrainingSessions.Add(new TrainingSession { UserId = ich, DogId = hund, Date = Heute, DurationMinutes = 30 });
         await db.SaveChangesAsync();
 
         var stand = (await dienst.GetAsync(ich)).Value!;
 
-        Assert.Equal(vonHeute, Assert.Single(Assert.Single(stand.Dogs).TracksToday).Id);
+        Assert.Equivalent(new[] { gesternAbend, heute, trail }, Assert.Single(stand.Dogs).TracksToday.Select(t => t.Id));
+    }
+
+    [Fact]
+    public async Task EineFaehrteGenauAnDerFristgrenze_IstNochSuchbar()
+    {
+        var (dienst, db) = Erstelle();
+        var ich = Guid.NewGuid();
+        var hund = Hund(db, ich, "Bello");
+        var genau = Faehrte(db, ich, hund, Heute.AddDays(-1), Jetzt - Ablauffristen.Faehrte);
+        Faehrte(db, ich, hund, Heute.AddDays(-1), Jetzt - Ablauffristen.Faehrte - TimeSpan.FromSeconds(1));
+        await db.SaveChangesAsync();
+
+        var stand = (await dienst.GetAsync(ich)).Value!;
+
+        Assert.Equal(genau, Assert.Single(Assert.Single(stand.Dogs).TracksToday).Id);
     }
 
     [Fact]
@@ -131,13 +157,86 @@ public class DashboardServiceTests
         var (dienst, db) = Erstelle(new FakeUserLookupService(), new FesteUhr(nachts));
         var ich = Guid.NewGuid();
         var hund = Hund(db, ich, "Bello");
-        var vonHeute = Faehrte(db, ich, hund, new DateOnly(2026, 7, 15));
-        Faehrte(db, ich, hund, new DateOnly(2026, 7, 14));
+        var vonHeute = Faehrte(db, ich, hund, new DateOnly(2026, 7, 15), nachts.AddMinutes(-20));
+        Faehrte(db, ich, hund, new DateOnly(2026, 7, 14), nachts.AddHours(-37));
         await db.SaveChangesAsync();
 
         var stand = (await dienst.GetAsync(ich)).Value!;
 
         Assert.Equal(vonHeute, Assert.Single(Assert.Single(stand.Dogs).TracksToday).Id);
+    }
+
+    // ------------------------------------------------- Fehler von Teilabfragen
+
+    /// <summary>
+    /// Leitet alle Aufrufe an <see cref="Ziel"/> weiter, außer <see cref="Methode"/>: Die
+    /// scheitert mit einem Fehlschlag - so lässt sich der Ausfall einer Teilabfrage nachstellen.
+    /// </summary>
+    private class AusfallProxy<T> : DispatchProxy where T : class
+    {
+        public T Ziel { get; set; } = null!;
+        public string Methode { get; set; } = "";
+
+        protected override object? Invoke(MethodInfo? methode, object?[]? argumente)
+        {
+            if (methode!.Name != Methode)
+            {
+                try { return methode.Invoke(Ziel, argumente); }
+                catch (TargetInvocationException e) { throw e.InnerException!; }
+            }
+            var ergebnisTyp = methode.ReturnType.GetGenericArguments()[0];
+            var fehlschlag = ergebnisTyp
+                .GetMethod("Failure", BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly, [typeof(string[])])!
+                .Invoke(null, [new[] { "Ausfall." }]);
+            return typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(ergebnisTyp).Invoke(null, [fehlschlag]);
+        }
+    }
+
+    private static T MitAusfall<T>(T echt, string methode) where T : class
+    {
+        var proxy = DispatchProxy.Create<T, AusfallProxy<T>>();
+        var ausfall = (AusfallProxy<T>)(object)proxy;
+        ausfall.Ziel = echt;
+        ausfall.Methode = methode;
+        return proxy;
+    }
+
+    [Theory]
+    [InlineData("preferences", "GetEffectiveDogSportsAsync")]
+    [InlineData("goals", "GetByDogAsync")]
+    [InlineData("trainings", "GetByDogAsync")]
+    [InlineData("tracks", "GetByTrainingSessionAsync")]
+    [InlineData("trainings", "GetOpenFeedbackAsync")]
+    public async Task EinFehlerEinerTeilabfrage_WirdWeitergereicht_StattAlsLeereListeZuErscheinen(string dienstName, string methode)
+    {
+        var db = InMemoryDbContext.Create();
+        var nutzer = new FakeUserLookupService();
+        var mastery = new ExerciseMasteryService(db);
+        IPreferenceService preferences = new PreferenceService(db);
+        IGoalService goals = new GoalService(db, new FesteUhr(), new FakeNotificationService(), mastery);
+        ITrainingService trainings = new TrainingService(db, new FakeNotificationService(), nutzer, mastery, new FakeWeatherEnrichmentService(), TimeProvider.System);
+        IGpsTrackService tracks = new GpsTrackService(db, new FakeWeatherEnrichmentService());
+        switch (dienstName)
+        {
+            case "preferences": preferences = MitAusfall(preferences, methode); break;
+            case "goals": goals = MitAusfall(goals, methode); break;
+            case "trainings": trainings = MitAusfall(trainings, methode); break;
+            default: tracks = MitAusfall(tracks, methode); break;
+        }
+        var dienst = new DashboardService(
+            new DogService(db, nutzer, new FakeNotificationService()), preferences, goals, trainings, tracks,
+            new GroupService(db, nutzer, new TrainerRoleService(db, nutzer), new FakeNotificationService(), TimeProvider.System),
+            new ClubService(db, nutzer, new FakeNotificationService(), new TrainerRoleService(db, nutzer)),
+            new FesteUhr());
+        var ich = Guid.NewGuid();
+        var hund = Hund(db, ich, "Bello");
+        Faehrte(db, ich, hund, Heute, Jetzt.AddHours(-1));
+        await db.SaveChangesAsync();
+
+        var ergebnis = await dienst.GetAsync(ich);
+
+        Assert.False(ergebnis.Succeeded);
+        Assert.Equal("Ausfall.", Assert.Single(ergebnis.Errors));
     }
 
     [Fact]

@@ -91,16 +91,9 @@ public static class GpsTrackEvaluator
     /// <summary>Punkte, die für die Halteerkennung mindestens so weit auseinanderliegen müssen.</summary>
     private static readonly TimeSpan StopMinPointSpacing = TimeSpan.FromMilliseconds(500);
 
-    public static WalkRunEvaluation Evaluate(
-        IReadOnlyList<GpsPoint> laidPoints,
-        IReadOnlyList<GpsWalkPoint> walkPoints,
-        GpsTrackKind kind = GpsTrackKind.Faehrte) =>
-        TryEvaluate(laidPoints, walkPoints, kind)
-        ?? throw new InvalidOperationException("Der Ablauf ist zu groß für die Auswertung.");
-
     /// <summary>
-    /// Wie <see cref="Evaluate"/>, aber <c>null</c> statt einer Auswertung,
-    /// wenn sie über <see cref="MaxAuswertungsAufwand"/> läge.
+    /// Die Auswertung - oder <c>null</c>, wenn sie über
+    /// <see cref="MaxAuswertungsAufwand"/> läge.
     /// </summary>
     public static WalkRunEvaluation? TryEvaluate(
         IReadOnlyList<GpsPoint> laidPoints,

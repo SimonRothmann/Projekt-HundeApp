@@ -395,7 +395,7 @@ public partial class RallyObedienceKatalogTests
     // ---- Länderfilter ----
 
     private static async Task<HashSet<string>> SichtbareAsync(ApplicationDbContext db, Guid? nutzer, bool alle = false) =>
-        (await new SportCatalogService(db).GetSportsAsync(nutzer, alle)).Value!.Select(s => s.Code).ToHashSet();
+        (await new SportCatalogService(db, TimeProvider.System).GetSportsAsync(nutzer, alle)).Value!.Select(s => s.Code).ToHashSet();
 
     private static async Task<Guid> PersonAsync(ApplicationDbContext db, string? land)
     {
@@ -423,7 +423,7 @@ public partial class RallyObedienceKatalogTests
     public async Task Ordnungen_ProLand_FciUeberallDasNationaleNurImEigenenLand()
     {
         await using var db = await KatalogAsync();
-        var dienst = new SportCatalogService(db);
+        var dienst = new SportCatalogService(db, TimeProvider.System);
         var sport = await db.Sports.SingleAsync(s => s.Code == Code);
 
         async Task<string[]> NamenAsync(string? land) =>
@@ -442,7 +442,7 @@ public partial class RallyObedienceKatalogTests
     {
         await using var db = await KatalogAsync();
         var fci = await db.Regulations.CountAsync(r => r.CountryCode == null);
-        var laender = (await new SportCatalogService(db).GetCountriesAsync()).Value!;
+        var laender = (await new SportCatalogService(db, TimeProvider.System).GetCountriesAsync()).Value!;
 
         Assert.Equal(fci + await db.Regulations.CountAsync(r => r.CountryCode == "DE"), laender.Single(l => l.Code == "DE").RegulationCount);
         Assert.Equal(fci + await db.Regulations.CountAsync(r => r.CountryCode == "AT"), laender.Single(l => l.Code == "AT").RegulationCount);

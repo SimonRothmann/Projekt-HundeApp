@@ -18,23 +18,19 @@ public class TrainerOpenCountsService(IApplicationDbContext db) : ITrainerOpenCo
 {
     public async Task<Result<TrainerOpenCountsDto>> GetAsync(Guid userId, CancellationToken ct = default)
     {
-        // Dieselbe Reichweite wie GroupService.GetMyGroupsAsync und
-        // GetManageableGroupAsync: eigene Gruppen, mit-betreute und alle
-        // Gruppen der Vereine, in denen man alle Gruppen verwaltet. Nur dort
-        // darf man Gruppenanfragen entscheiden. Vereinsanfragen entscheidet,
-        // wer Mitglieder verwaltet - ein eigener Kreis.
-        var meineRollen = await db.ClubTrainers
+        // Gruppenanfragen entscheidet, wer Trainer:in der Gruppe ist (eine
+        // Definition: GruppenIdsDerTrainerin, dieselbe wie bei
+        // GetManageableGroupAsync). Vereinsanfragen entscheidet, wer
+        // Mitglieder verwaltet - ein eigener Kreis.
+        var mitgliederClubIds = await db.ClubTrainers
             .Where(t => t.UserId == userId)
-            .Select(t => new { t.ClubId, t.Role })
+            .MitRolle(ClubRollen.Mitglieder)
+            .Select(t => t.ClubId)
             .ToListAsync(ct);
-        var clubIds = meineRollen.Where(r => (r.Role & ClubRollen.AlleGruppen) != 0).Select(r => r.ClubId).ToList();
-        var mitgliederClubIds = meineRollen.Where(r => (r.Role & ClubRollen.Mitglieder) != 0).Select(r => r.ClubId).ToList();
 
         var gruppenAnfragen = await db.GroupMembers
             .Where(m => m.Status == GroupMemberStatus.Pending
-                && (m.Group!.TrainerId == userId
-                    || m.Group.Trainers.Any(t => t.UserId == userId)
-                    || (m.Group.ClubId != null && clubIds.Contains(m.Group.ClubId.Value))))
+                && db.GruppenIdsDerTrainerin(userId).Contains(m.GroupId))
             .GroupBy(m => m.GroupId)
             .Select(g => new GroupOpenCountDto(g.Key, g.Count()))
             .AsNoTracking()

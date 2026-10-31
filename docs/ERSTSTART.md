@@ -29,6 +29,13 @@ Beide zu verlangen wäre falsch: Wer über den Verein kommt, trägt sein erstes
 Training oft erst nach dem ersten Gruppentraining ein — und wer allein
 trainiert, wird nie einem Verein beitreten.
 
+**Wer das entscheidet:** Diese Festlegung führt das Backend
+(`OnboardingService`, Feld `isComplete`); sie ist maßgeblich. Die Gabelung auf
+der Startseite (`lib/erststart.ts`) erscheint heute erst nach dem ersten
+Training, nur solange noch kein Weg gegangen wurde und nur in den ersten sieben
+Tagen danach — eine Zeitregel, die allein im Frontend steht und das Feld noch
+nicht liest.
+
 ## Trainer:innen gehören dazu
 
 Wer einem Verein als Trainer:in zugewiesen wird, bekommt **keine
@@ -38,9 +45,9 @@ steht in `Group.TrainerId` oder `GroupTrainers`, nicht in `GroupMembers`.
 
 Der erste Wurf schaute nur auf Mitgliedschaften — und forderte eine
 Vereinstrainerin auf, dem Verein beizutreten, den sie leitet, und einer
-Gruppe, die sie führt. Beide Fragen gehen jetzt über
-`ClubAccessQueries.BelongsToAnyClubAsync` / `BelongsToAnyGroupAsync`, die
-Trainerrollen mitzählen.
+Gruppe, die sie führt. `OnboardingService` fragt deshalb beides ab: Verein
+(freigegebenes Mitglied ODER eine Rolle im Verein) und Gruppe (aktives Mitglied
+ODER Leitung/Mit-Betreuung), in je einer Abfrage.
 
 Dieselbe Falle steckte in der Dashboard-Karte „Tritt einem Verein bei": Sie
 las `/api/clubs/my-memberships` und hielt Trainer:innen für vereinslos. Sie

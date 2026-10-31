@@ -73,7 +73,7 @@ public static partial class GroupRegistrationRules
         var hund = rufname?.Trim() ?? "";
         var art = rasse?.Trim() ?? "";
         var tel = telefon?.Trim() ?? "";
-        var anmerkung = string.IsNullOrWhiteSpace(notiz) ? null : notiz.Trim();
+        var anmerkung = Texte.NullIfBlank(notiz);
 
         if (vor.Length == 0) return (null, "Bitte den Vornamen angeben.");
         if (nach.Length == 0) return (null, "Bitte den Nachnamen angeben.");

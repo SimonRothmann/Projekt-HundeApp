@@ -203,7 +203,7 @@ public class TrainerOpenCountsServiceTests
         });
         await db.SaveChangesAsync();
 
-        var training = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var training = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), TimeProvider.System);
         var liste = await training.GetSessionsToRateAsync(trainer);
         var zahlen = await new TrainerOpenCountsService(db).GetAsync(trainer);
 
@@ -234,7 +234,7 @@ public class TrainerOpenCountsServiceTests
             Session(grenze.AddDays(-200)));
         await db.SaveChangesAsync();
 
-        var training = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var training = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), TimeProvider.System);
         var liste = await training.GetSessionsToRateAsync(trainer);
         var zahlen = await new TrainerOpenCountsService(db).GetAsync(trainer);
 
@@ -274,7 +274,7 @@ public class TrainerOpenCountsServiceTests
             Session("Gut.", null, [])); // Fährte-only mit Text: fertig
         await db.SaveChangesAsync();
 
-        var training = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var training = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), TimeProvider.System);
         var liste = await training.GetSessionsToRateAsync(trainer);
         var zahlen = await new TrainerOpenCountsService(db).GetAsync(trainer);
 
@@ -296,7 +296,7 @@ public class TrainerOpenCountsServiceTests
         var session = new TrainingSession { UserId = besitzer, DogId = hund.Id, Date = Vereinszeit.Heute().AddDays(-1), DurationMinutes = 20 };
         db.TrainingSessions.Add(session);
         await db.SaveChangesAsync();
-        var training = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var training = new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), TimeProvider.System);
         var zaehler = new TrainerOpenCountsService(db);
 
         Assert.Equal(1, (await zaehler.GetAsync(trainer)).Value!.SessionsToRate);

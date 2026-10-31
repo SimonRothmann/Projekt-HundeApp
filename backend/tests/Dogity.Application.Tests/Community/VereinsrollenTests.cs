@@ -153,7 +153,7 @@ public class VereinsrollenTests
         Assert.DoesNotContain(w.Verein.Id, await w.Db.GetVisibleClubIdsAsync(mitgliederverwaltung));
         Assert.DoesNotContain(w.Verein.Id, await w.Db.GetVisibleClubIdsAsync(vorstand));
         // Aber sie gehören zum Verein: keine Aufforderung beizutreten.
-        Assert.True(await w.Db.BelongsToAnyClubAsync(vorstand));
+        Assert.True(await w.Db.ZaehltImErststartZumVereinAsync(vorstand));
     }
 
     // ------------------------------------------------------------ Gruppen: Training nur eigene

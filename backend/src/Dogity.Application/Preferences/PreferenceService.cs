@@ -187,24 +187,10 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
 
         if (hund is null) return Result<IReadOnlyList<Guid>>.NotFound("Hund nicht gefunden.");
 
-        // Die Vererbungsregel steht NUR hier. Sie im Frontend nachzubauen
-        // hieße, sie zweimal zu pflegen - und die beiden Fassungen liefen
-        // beim ersten Sonderfall auseinander.
-        if (hund.UsesOwnSports)
-        {
-            var eigene = await db.DogSportSelections
-                .Where(s => s.DogId == dogId)
-                .Select(s => s.SportId)
-                .ToListAsync(ct);
-            return Result<IReadOnlyList<Guid>>.Success(eigene);
-        }
-
-        var vomMenschen = await db.UserSportSelections
-            .Where(s => s.UserPreference!.UserId == userId)
-            .Select(s => s.SportId)
-            .ToListAsync(ct);
-
-        return Result<IReadOnlyList<Guid>>.Success(vomMenschen);
+        // Die Vererbungsregel steht in Sportwahl (auch der Erinnerungsdienst nutzt sie);
+        // das Frontend baut sie nicht nach, es bekommt das Ergebnis.
+        var wirksame = await Sportwahl.LadenAsync(db, [userId], hund.UsesOwnSports ? [dogId] : [], ct);
+        return Result<IReadOnlyList<Guid>>.Success(wirksame(userId, dogId, hund.UsesOwnSports));
     }
 
     public async Task<Result> UpdateDogSportsAsync(Guid userId, Guid dogId, UpdateDogSportsRequest request, CancellationToken ct = default)

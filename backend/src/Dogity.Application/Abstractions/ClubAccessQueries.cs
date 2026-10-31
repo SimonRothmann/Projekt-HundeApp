@@ -104,29 +104,75 @@ public static class ClubAccessQueries
     public static Task<bool> CanManageClubAsync(this IApplicationDbContext db, Guid userId, Guid clubId, CancellationToken ct = default) =>
         HatRolleAsync(db, userId, clubId, ClubRole.Verwaltung, ct);
 
+    /// <summary>Eine Zeile der Beziehung "<see cref="UserId"/> ist Trainer:in der Gruppe <see cref="GroupId"/>".</summary>
+    public sealed class GruppenTrainerin
+    {
+        public Guid GroupId { get; init; }
+        public Guid UserId { get; init; }
+    }
+
     /// <summary>
-    /// Die Gruppe, wenn der/die Nutzer:in sie VERWALTEN darf - sonst null.
-    /// Verwalten darf: wer die Gruppe leitet (<see cref="Group.TrainerId"/>), wer
-    /// als weitere:r Trainer:in angenommen hat (offene Einladungen blendet der
-    /// globale Filter aus) und wer alle Gruppen des Vereins verwaltet
-    /// (<see cref="CanManageAllGroupsAsync"/>), dem die Gruppe gehört. Wer im
-    /// Verein nur Training hat, verwaltet allein die eigenen Gruppen.
+    /// Wer ist Trainer:in welcher Gruppe - die EINE Definition von "Trainer:in
+    /// dieser Gruppe", als Beziehung und damit einbettbar (wie
+    /// <see cref="DogAccessQueries.ZugaenglicheHundeIds"/>), auch je Zeile einer
+    /// anderen Abfrage. Trainer:in einer Gruppe ist, wer sie leitet
+    /// (<see cref="Group.TrainerId"/>), wer als weitere:r Trainer:in angenommen
+    /// hat (offene Einladungen blendet der globale Filter aus) und wer alle
+    /// Gruppen des Vereins verwaltet (<see cref="ClubRollen.AlleGruppen"/>), dem
+    /// die Gruppe gehört. Wer im Verein nur Training hat, ist Trainer:in allein
+    /// der eigenen Gruppen.
+    /// </summary>
+    public static IQueryable<GruppenTrainerin> GruppenTrainerinnen(this IApplicationDbContext db) =>
+        db.Groups.Select(g => new GruppenTrainerin { GroupId = g.Id, UserId = g.TrainerId })
+            .Union(db.GroupTrainers.Select(t => new GruppenTrainerin { GroupId = t.GroupId, UserId = t.UserId }))
+            .Union(
+                from t in db.ClubTrainers.MitRolle(ClubRollen.AlleGruppen)
+                join g in db.Groups on t.ClubId equals g.ClubId
+                select new GruppenTrainerin { GroupId = g.Id, UserId = t.UserId });
+
+    /// <summary>Die Gruppen, in denen <paramref name="userId"/> Trainer:in ist (siehe <see cref="GruppenTrainerinnen"/>).</summary>
+    public static IQueryable<Guid> GruppenIdsDerTrainerin(this IApplicationDbContext db, Guid userId) =>
+        db.GruppenTrainerinnen().Where(p => p.UserId == userId).Select(p => p.GroupId);
+
+    /// <summary>
+    /// Die Gruppe, wenn der/die Nutzer:in sie VERWALTEN darf - sonst null:
+    /// wer in ihr Trainer:in ist (<see cref="GruppenTrainerinnen"/>).
     ///
     /// Eine Definition für Gruppenverwaltung und Anmeldungen, damit "wer darf
     /// die Gruppe anfassen" nicht an zwei Stellen verschieden beantwortet wird.
     /// Liefert die getrackte Entität zurück, damit Aufrufer sie direkt ändern
     /// können.
     /// </summary>
-    public static async Task<Group?> GetManageableGroupAsync(this IApplicationDbContext db, Guid userId, Guid groupId, CancellationToken ct = default)
-    {
-        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
-        if (group is null) return null;
-        if (group.TrainerId == userId) return group;
-        if (await db.GroupTrainers.AnyAsync(t => t.GroupId == groupId && t.UserId == userId, ct)) return group;
-        if (group.ClubId is { } clubId && await db.CanManageAllGroupsAsync(userId, clubId, ct))
-            return group;
-        return null;
-    }
+    public static Task<Group?> GetManageableGroupAsync(this IApplicationDbContext db, Guid userId, Guid groupId, CancellationToken ct = default) =>
+        db.Groups
+            .Where(g => g.Id == groupId && db.GruppenIdsDerTrainerin(userId).Contains(g.Id))
+            .FirstOrDefaultAsync(ct);
+
+    /// <summary>
+    /// Betreuungen, die über keine Gruppe mehr bestehen: Es gibt keine Gruppe,
+    /// in der das betreute Mitglied aktiv ist und die betreuende Person
+    /// Trainer:in (<see cref="GruppenTrainerinnen"/>). <paramref name="ausser"/>
+    /// nimmt eine Gruppe aus der Betrachtung - die, die das Mitglied gerade verlässt.
+    /// </summary>
+    public static IQueryable<TrainerAssignment> OhneGemeinsameGruppe(this IQueryable<TrainerAssignment> betreuungen, IApplicationDbContext db, Guid ausser = default) =>
+        betreuungen.Where(a => !db.GruppenTrainerinnen().Any(p =>
+            p.UserId == a.TrainerId
+            && p.GroupId != ausser
+            && db.GroupMembers.Any(m => m.GroupId == p.GroupId && m.UserId == a.MemberId && m.Status == GroupMemberStatus.Active)));
+
+    /// <summary>
+    /// Wer zu einem Verein gehört: mit irgendeiner Rolle (auch Vorstand) oder
+    /// als freigegebenes Mitglied. Weiter als <see cref="IsClubTrainerAsync"/>,
+    /// denn hier geht es um die Zugehörigkeit, nicht um ein Recht.
+    /// </summary>
+    public static IQueryable<Guid> VereinsPersonenIds(this IApplicationDbContext db, Guid clubId) =>
+        db.ClubTrainers.Where(t => t.ClubId == clubId).Select(t => t.UserId)
+            .Union(db.ClubMemberships
+                .Where(m => m.ClubId == clubId && m.Status == ClubMembershipStatus.Approved)
+                .Select(m => m.UserId));
+
+    public static Task<bool> GehoertZumVereinAsync(this IApplicationDbContext db, Guid userId, Guid clubId, CancellationToken ct = default) =>
+        db.VereinsPersonenIds(clubId).AnyAsync(id => id == userId, ct);
 
     /// <summary>
     /// Ob jemand überhaupt irgendwo Trainer:in ist: als Hauptverantwortliche:r
@@ -143,37 +189,4 @@ public static class ClubAccessQueries
         if (await db.GroupTrainers.AnyAsync(t => t.UserId == userId, ct)) return true;
         return await db.ClubTrainers.Where(t => t.UserId == userId).MitRolle(ClubRollen.Trainer).AnyAsync(ct);
     }
-
-    /// <summary>
-    /// Ob jemand zu irgendeinem Verein gehört - als freigegebenes Mitglied
-    /// ODER mit einer Rolle im Verein (jede, auch Vorstand).
-    ///
-    /// Der Zusatz ist wichtig: Trainer:innen bekommen beim Zuweisen KEINE
-    /// Mitgliedschaftszeile (siehe ClubService.AssignTrainerAsync), sie stehen
-    /// in einer eigenen Tabelle. Wer nur auf ClubMemberships schaut, hält eine
-    /// Vereinstrainerin für vereinslos - und fordert sie auf, einem Verein
-    /// beizutreten, den sie leitet.
-    /// </summary>
-    public static async Task<bool> BelongsToAnyClubAsync(this IApplicationDbContext db, Guid userId, CancellationToken ct = default)
-    {
-        if (await db.ClubTrainers.AnyAsync(t => t.UserId == userId, ct)) return true;
-        return await db.ClubMemberships
-            .AnyAsync(m => m.UserId == userId && m.Status == ClubMembershipStatus.Approved, ct);
-    }
-
-    /// <summary>
-    /// Ob jemand zu irgendeiner Trainingsgruppe gehört - als aktives Mitglied,
-    /// als Hauptverantwortliche:r oder als weitere:r Trainer:in.
-    ///
-    /// Dieselbe Falle wie oben: Wer eine Gruppe leitet, ist kein "Mitglied"
-    /// im Sinne von GroupMembers.
-    /// </summary>
-    public static async Task<bool> BelongsToAnyGroupAsync(this IApplicationDbContext db, Guid userId, CancellationToken ct = default)
-    {
-        if (await db.Groups.AnyAsync(g => g.TrainerId == userId, ct)) return true;
-        if (await db.GroupTrainers.AnyAsync(t => t.UserId == userId, ct)) return true;
-        return await db.GroupMembers
-            .AnyAsync(m => m.UserId == userId && m.Status == GroupMemberStatus.Active, ct);
-    }
-
 }

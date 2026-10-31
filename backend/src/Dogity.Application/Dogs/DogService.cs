@@ -400,32 +400,37 @@ public class DogService(
         if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result<IReadOnlyList<DogBetreuungDto>>.NotFound("Hund nicht gefunden.");
 
+        // Die Gruppe wird gleich in der Abfrage mitgeholt (eine für alle
+        // Betreuungen). Dieselbe Beziehung wie beim Beenden durch die
+        // Gruppenverwaltung (GroupService.GehoertZurGruppeAsync): das betreute
+        // Mitglied ist aktiv in der Gruppe, die betreuende Person dort
+        // Trainer:in. Ohne Treffer (Gruppe verlassen, Betreuung blieb) bleibt
+        // der Name offen.
         var betreuungen = await db.TrainerAssignments
             .Where(a => a.DogId == dogId)
             .OrderBy(a => a.StartDate)
-            .Select(a => new { a.TrainerId, a.MemberId, a.StartDate })
+            .Select(a => new
+            {
+                a.TrainerId,
+                a.StartDate,
+                Gruppe = db.Groups
+                    .Where(g => g.Members.Any(m => m.UserId == a.MemberId && m.Status == GroupMemberStatus.Active))
+                    .Where(g => db.GruppenTrainerinnen().Any(p => p.GroupId == g.Id && p.UserId == a.TrainerId))
+                    .OrderBy(g => g.Name)
+                    .Select(g => g.Name)
+                    .FirstOrDefault(),
+            })
             .AsNoTracking()
             .ToListAsync(ct);
 
         var lookup = await userLookup.FindByIdsAsync(betreuungen.Select(b => b.TrainerId).Distinct().ToList(), ct);
-        var dtos = new List<DogBetreuungDto>();
-        foreach (var b in betreuungen)
-        {
-            var name = lookup.TryGetValue(b.TrainerId, out var info) ? $"{info.FirstName} {info.LastName}".Trim() : "";
-            // Dieselbe Beziehung wie beim Beenden durch die Gruppenverwaltung
-            // (GroupService.GehoertZurGruppeAsync): das betreute Mitglied ist
-            // aktiv in der Gruppe, die betreuende Person dort Trainer:in. Ohne
-            // Treffer (Gruppe verlassen, Betreuung blieb) bleibt der Name offen.
-            var gruppe = await db.Groups
-                .Where(g => g.Members.Any(m => m.UserId == b.MemberId && m.Status == GroupMemberStatus.Active))
-                .Where(g => g.TrainerId == b.TrainerId
-                    || g.Trainers.Any(t => t.UserId == b.TrainerId)
-                    || (g.ClubId != null && db.ClubTrainers.Any(t => t.ClubId == g.ClubId && t.UserId == b.TrainerId && (t.Role & ClubRollen.AlleGruppen) != 0)))
-                .OrderBy(g => g.Name)
-                .Select(g => g.Name)
-                .FirstOrDefaultAsync(ct);
-            dtos.Add(new DogBetreuungDto(b.TrainerId, name.Length > 0 ? name : "(unbekannt)", b.StartDate, gruppe));
-        }
+        var dtos = betreuungen
+            .Select(b =>
+            {
+                var name = lookup.TryGetValue(b.TrainerId, out var info) ? $"{info.FirstName} {info.LastName}".Trim() : "";
+                return new DogBetreuungDto(b.TrainerId, name.Length > 0 ? name : "(unbekannt)", b.StartDate, b.Gruppe);
+            })
+            .ToList();
 
         return Result<IReadOnlyList<DogBetreuungDto>>.Success(dtos);
     }

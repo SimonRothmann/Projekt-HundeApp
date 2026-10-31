@@ -51,7 +51,7 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
             Reason = request.Reason,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
-            Note = NotizOderNull(request.Note),
+            Note = Texte.NullIfBlank(request.Note),
             CreatedByUserId = userId,
         };
         db.DogPauses.Add(pause);
@@ -75,7 +75,7 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
         pause.Reason = request.Reason;
         pause.StartDate = request.StartDate;
         pause.EndDate = request.EndDate;
-        pause.Note = NotizOderNull(request.Note);
+        pause.Note = Texte.NullIfBlank(request.Note);
         pause.UpdatedAt = timeProvider.GetUtcNow();
         await db.SaveChangesAsync(ct);
 
@@ -127,9 +127,6 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
     }
 
     private DateOnly Heute() => Vereinszeit.Tag(timeProvider.GetUtcNow());
-
-    private static string? NotizOderNull(string? notiz) =>
-        string.IsNullOrWhiteSpace(notiz) ? null : notiz.Trim();
 
     /// <summary>Die Fehlermeldung zur Eingabe, sonst null.</summary>
     private async Task<string?> PruefeAsync(Guid dogId, SaveDogPauseRequest request, Guid? ignoriereId, CancellationToken ct)

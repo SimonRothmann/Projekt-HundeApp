@@ -37,7 +37,7 @@ public class KatalogHandaenderungTests
     private static Task<List<RegulationExercise>> ZeilenAsync(ApplicationDbContext db, Guid versionId) =>
         db.RegulationExercises.IgnoreQueryFilters().Include(re => re.Exercise).Where(re => re.RegulationVersionId == versionId).ToListAsync();
 
-    private static RegulationManagementService Verwaltung(ApplicationDbContext db) => new(db);
+    private static RegulationManagementService Verwaltung(ApplicationDbContext db) => new(db, TimeProvider.System);
 
     // ----- Schlüssel -------------------------------------------------------
 
@@ -404,7 +404,7 @@ public class KatalogHandaenderungTests
 
     // ----- Admin-Übernahme (Import) -----------------------------------------
 
-    private static RegulationImportService Import(ApplicationDbContext db) => new(db, null!);
+    private static RegulationImportService Import(ApplicationDbContext db) => new(db, null!, TimeProvider.System);
 
     [Fact]
     public async Task Import_ErgaenzteUebung_BleibtBeimNaechstenLaufErhalten()

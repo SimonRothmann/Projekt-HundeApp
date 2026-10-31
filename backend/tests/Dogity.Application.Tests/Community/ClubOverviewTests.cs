@@ -351,7 +351,7 @@ public class ClubOverviewTests
         var v = w.Verein.Id;
         var einladungen = new ClubInviteService(w.Db, w.Vereine);
         var bibliothek = new GroupTrainingService(w.Db);
-        var katalog = new SportCatalogService(w.Db);
+        var katalog = new SportCatalogService(w.Db, TimeProvider.System);
         var ergebnisse = new Dictionary<string, bool>
         {
             ["Stammdaten"] = (await w.Vereine.UpdateClubAsync(vorstand, false, v, new UpdateClubRequest("Neu", null))).Succeeded,

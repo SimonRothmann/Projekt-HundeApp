@@ -13,13 +13,6 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
         return FromResult(result);
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<GoalDto>> GetById(Guid id, CancellationToken ct)
-    {
-        var result = await goalService.GetByIdAsync(CurrentUserId, id, ct);
-        return FromResult(result);
-    }
-
     [HttpPost]
     public async Task<ActionResult<GoalDto>> Create(CreateGoalRequest request, CancellationToken ct)
     {
@@ -27,7 +20,8 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
         if (!result.Succeeded)
             return BadRequest(new { errors = result.Errors });
 
-        return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
+        // Ohne Ziel-Adresse im Location-Header: Einzelabruf gibt es nicht, das Frontend lädt Listen.
+        return StatusCode(StatusCodes.Status201Created, result.Value);
     }
 
     [HttpPut("{id:guid}/status")]

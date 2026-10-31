@@ -117,8 +117,8 @@ public partial class SachkundeAdminService(IApplicationDbContext db, TimeProvide
             option.Kind = art;
             option.Text = zeile.Text.Trim();
             option.IsCorrect = art == QuizOptionKind.Answer && zeile.IsCorrect;
-            option.MatchKey = string.IsNullOrWhiteSpace(zeile.MatchKey) ? null : zeile.MatchKey.Trim();
-            option.ImageName = string.IsNullOrWhiteSpace(zeile.ImageName) ? null : zeile.ImageName.Trim();
+            option.MatchKey = Texte.NullIfBlank(zeile.MatchKey);
+            option.ImageName = Texte.NullIfBlank(zeile.ImageName);
             option.SortOrder = reihenfolge;
         }
 

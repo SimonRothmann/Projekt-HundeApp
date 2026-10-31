@@ -25,7 +25,7 @@ public class FeedbackReplyTests
         var db = InMemoryDbContext.Create();
         var meldungen = new FakeNotificationService();
         var lookup = new FakeUserLookupService();
-        var dienst = new TrainingService(db, meldungen, lookup, new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var dienst = new TrainingService(db, meldungen, lookup, new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), TimeProvider.System);
 
         var besitzer = Guid.NewGuid();
         var trainer = Guid.NewGuid();

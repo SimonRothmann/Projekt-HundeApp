@@ -21,7 +21,7 @@ public class TrainingServiceTests
     private static TrainingService MakeService(out Dogity.Infrastructure.Persistence.ApplicationDbContext db)
     {
         db = InMemoryDbContext.Create();
-        return new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        return new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), TimeProvider.System);
     }
 
     private sealed record Setup(Guid UserId, Guid DogId, Guid CatalogExerciseId, Guid CatalogItemId, Guid FreeTextItemId, Guid RestWeekItemId);
@@ -384,7 +384,7 @@ public class TrainingServiceTests
     {
         var db = InMemoryDbContext.Create();
         var lookup = new FakeUserLookupService();
-        var service = new TrainingService(db, new FakeNotificationService(), lookup, new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var service = new TrainingService(db, new FakeNotificationService(), lookup, new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), TimeProvider.System);
         var setup = await SetupPlanAsync(db);
         lookup.Register(setup.UserId, "max@dogity.test", "Max", "Mustermann");
         var (trainerId, sessionId, exerciseId) = await SetupTrainerAndExerciseAsync(service, db, setup);
@@ -563,7 +563,7 @@ public class TrainingServiceTests
     {
         var db = InMemoryDbContext.Create();
         var notifications = new FakeNotificationService();
-        var service = new TrainingService(db, notifications, new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService());
+        var service = new TrainingService(db, notifications, new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), TimeProvider.System);
         var setup = await SetupPlanAsync(db);
         var (trainerId, sessionId, _) = await SetupTrainerAndExerciseAsync(service, db, setup);
         // Die Übung bleibt unbewertet, damit "Passt so" wirklich Sterne kopiert -
@@ -937,7 +937,7 @@ public class TrainingServiceTests
     {
         db = InMemoryDbContext.Create();
         wetter = new MerkendeWetterAnreicherung();
-        return new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), wetter);
+        return new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), wetter, TimeProvider.System);
     }
 
     [Fact]

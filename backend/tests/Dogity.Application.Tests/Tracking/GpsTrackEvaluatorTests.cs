@@ -63,7 +63,7 @@ public class GpsTrackEvaluatorTests
         var track = StraightTrack();
         var walk = Walk(Enumerable.Range(0, 101).Select(m => ((double)m, 0.0, m)));
 
-        var result = GpsTrackEvaluator.Evaluate(track, walk);
+        var result = GpsTrackEvaluator.TryEvaluate(track, walk)!.Value;
 
         Assert.True(result.AvgDeviationMeters < 0.5, $"Ø war {result.AvgDeviationMeters}");
         Assert.Equal(100, result.OnTrackPercent, 1);
@@ -81,7 +81,7 @@ public class GpsTrackEvaluatorTests
         // Gleiche Linie, aber 10 s später gestartet (= ~10 m Rückstand).
         var walk = Walk(Enumerable.Range(0, 91).Select(m => ((double)m, 0.0, m + 10)));
 
-        var result = GpsTrackEvaluator.Evaluate(track, walk);
+        var result = GpsTrackEvaluator.TryEvaluate(track, walk)!.Value;
 
         Assert.True(result.AvgDeviationMeters < 0.5, $"Ø war {result.AvgDeviationMeters}");
         Assert.Equal(100, result.OnTrackPercent, 1);
@@ -94,7 +94,7 @@ public class GpsTrackEvaluatorTests
         // Durchgehend 10 m seitlich versetzt.
         var walk = Walk(Enumerable.Range(0, 101).Select(m => ((double)m, 10.0, m)));
 
-        var result = GpsTrackEvaluator.Evaluate(track, walk);
+        var result = GpsTrackEvaluator.TryEvaluate(track, walk)!.Value;
 
         Assert.InRange(result.AvgDeviationMeters, 9.0, 11.0);
         Assert.InRange(result.MaxDeviationMeters, 9.0, 11.0);
@@ -111,7 +111,7 @@ public class GpsTrackEvaluatorTests
         // Ablauf endet bei 50 m -> nur der erste Gegenstand wird erreicht.
         var walk = Walk(Enumerable.Range(0, 51).Select(m => ((double)m, 0.0, m)));
 
-        var result = GpsTrackEvaluator.Evaluate(track, walk);
+        var result = GpsTrackEvaluator.TryEvaluate(track, walk)!.Value;
 
         Assert.Equal(2, result.ArticlesTotal);
         Assert.Equal(1, result.ArticlesFound);
@@ -126,7 +126,7 @@ public class GpsTrackEvaluatorTests
 
         var walk = Walk(Enumerable.Range(0, 101).Select(m => ((double)m, 0.0, m)));
 
-        var result = GpsTrackEvaluator.Evaluate(track, walk);
+        var result = GpsTrackEvaluator.TryEvaluate(track, walk)!.Value;
 
         Assert.Equal(1, result.ArticlesTotal);
     }
@@ -143,7 +143,7 @@ public class GpsTrackEvaluatorTests
         for (var s = 1; s <= 20; s++) spec.Add((50, 0.0, 50 + s));
         for (var m = 51; m <= 70; m++) spec.Add((m, 0.0, 70 + (m - 50)));
 
-        var result = GpsTrackEvaluator.Evaluate(track, Walk(spec));
+        var result = GpsTrackEvaluator.TryEvaluate(track, Walk(spec))!.Value;
 
         var stop = Assert.Single(result.Stops);
         Assert.Equal(WalkStopKind.Indication, stop.Kind);
@@ -161,7 +161,7 @@ public class GpsTrackEvaluatorTests
         for (var m = 0; m <= 50; m++) spec.Add((m, 0.0, m));
         for (var s = 1; s <= 20; s++) spec.Add((50, 0.0, 50 + s));
 
-        var result = GpsTrackEvaluator.Evaluate(track, Walk(spec));
+        var result = GpsTrackEvaluator.TryEvaluate(track, Walk(spec))!.Value;
 
         var stop = Assert.Single(result.Stops);
         Assert.Equal(WalkStopKind.Explained, stop.Kind);
@@ -181,7 +181,7 @@ public class GpsTrackEvaluatorTests
         for (var m = 0; m <= 40; m++) spec.Add((m, 0.0, m));
         for (var s = 1; s <= 25; s++) spec.Add((40, 0.0, 40 + s));
 
-        var result = GpsTrackEvaluator.Evaluate(track, Walk(spec));
+        var result = GpsTrackEvaluator.TryEvaluate(track, Walk(spec))!.Value;
 
         var stop = Assert.Single(result.Stops);
         Assert.Equal(WalkStopKind.Unexplained, stop.Kind);
@@ -202,7 +202,7 @@ public class GpsTrackEvaluatorTests
         for (var s = 1; s <= 5; s++) spec.Add((40, 0.0, 40 + s));
         for (var m = 41; m <= 60; m++) spec.Add((m, 0.0, 45 + (m - 40)));
 
-        var result = GpsTrackEvaluator.Evaluate(track, Walk(spec));
+        var result = GpsTrackEvaluator.TryEvaluate(track, Walk(spec))!.Value;
 
         Assert.Empty(result.Stops);
     }
@@ -210,11 +210,11 @@ public class GpsTrackEvaluatorTests
     [Fact]
     public void EmptyInput_DoesNotThrow()
     {
-        var empty = GpsTrackEvaluator.Evaluate([], []);
+        var empty = GpsTrackEvaluator.TryEvaluate([], [])!.Value;
         Assert.Equal(0, empty.ArticlesTotal);
         Assert.Empty(empty.Points);
 
-        var noWalk = GpsTrackEvaluator.Evaluate(StraightTrack(), []);
+        var noWalk = GpsTrackEvaluator.TryEvaluate(StraightTrack(), [])!.Value;
         Assert.Empty(noWalk.Points);
         Assert.Empty(noWalk.Stops);
     }
@@ -235,7 +235,7 @@ public class GpsTrackEvaluatorTests
         });
 
         var walk = Walk(Enumerable.Range(0, 101).Select(m => ((double)m, 0.0, m)));
-        var result = GpsTrackEvaluator.Evaluate(track, walk);
+        var result = GpsTrackEvaluator.TryEvaluate(track, walk)!.Value;
 
         Assert.True(result.AvgDeviationMeters < 0.5, $"Ø war {result.AvgDeviationMeters}");
     }
@@ -261,7 +261,6 @@ public class GpsTrackEvaluatorTests
         var walk = Walk(Enumerable.Range(0, 45_000).Select(i => (i * 0.01, 0.0, i)));
 
         Assert.Null(GpsTrackEvaluator.TryEvaluate(track, walk));
-        Assert.Throws<InvalidOperationException>(() => GpsTrackEvaluator.Evaluate(track, walk));
     }
 
     [Fact]
@@ -274,7 +273,7 @@ public class GpsTrackEvaluatorTests
             .Select(_ => new GpsWalkPoint { Latitude = LatAt(50), Longitude = BaseLon, Timestamp = T0 })
             .ToList();
 
-        var result = GpsTrackEvaluator.Evaluate(track, walk);
+        var result = GpsTrackEvaluator.TryEvaluate(track, walk)!.Value;
 
         Assert.Empty(result.Stops);
         Assert.Equal(20_000, result.Points.Count);
@@ -291,7 +290,7 @@ public class GpsTrackEvaluatorTests
             .Concat(Enumerable.Range(6, 16).Select(s => (30.0, 0.0, s)))
             .Concat(Enumerable.Range(22, 10).Select(s => (30.0 + (s - 21) * 5.0, 0.0, s)));
 
-        var result = GpsTrackEvaluator.Evaluate(track, Walk(spec));
+        var result = GpsTrackEvaluator.TryEvaluate(track, Walk(spec))!.Value;
 
         var halt = Assert.Single(result.Stops);
         Assert.Equal(15, halt.DurationSeconds);
@@ -305,7 +304,7 @@ public class GpsTrackEvaluatorTests
         var track = StraightTrack(4_999);
         var walk = Walk(Enumerable.Range(0, 500).Select(i => (i * 10.0, 2.0, i)));
 
-        var result = GpsTrackEvaluator.Evaluate(track, walk);
+        var result = GpsTrackEvaluator.TryEvaluate(track, walk)!.Value;
 
         Assert.All(result.Points, p => Assert.InRange(p.DeviationMeters, 1.9, 2.1));
     }

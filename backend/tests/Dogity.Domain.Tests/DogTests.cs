@@ -11,16 +11,15 @@ public class DogTests
         var dog = new Dog { Name = "Bello", Gender = DogGender.Male };
 
         Assert.NotEqual(Guid.Empty, dog.Id);
-        Assert.False(dog.IsDeleted);
+        Assert.Null(dog.DeletedAt);
     }
 
     [Fact]
-    public void SoftDelete_SetsIsDeleted()
+    public void EveryNewDog_GetsItsOwnId()
     {
-        var dog = new Dog { Name = "Bello", Gender = DogGender.Male };
+        var first = new Dog { Name = "Bello" };
+        var second = new Dog { Name = "Bello" };
 
-        dog.DeletedAt = DateTimeOffset.UtcNow;
-
-        Assert.True(dog.IsDeleted);
+        Assert.NotEqual(first.Id, second.Id);
     }
 }

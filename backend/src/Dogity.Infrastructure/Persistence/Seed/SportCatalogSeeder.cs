@@ -1546,19 +1546,14 @@ public static partial class SportCatalogSeeder
                 "Ein Hoop oder Tunnel außerhalb der Reihenfolge führt zu ohne Bewertung. Ein freiwilliger Abstieg nach H2, H1 oder H0 ist jederzeit möglich.\n" +
                 hoopersBewertung + "\n" + hoopersBis2026));
 
-        // Die ursprünglichen fehlerhaften RegulationVersions (BH/IBGH "2024",
-        // IGP "2025") wurden inzwischen aus dem Code entfernt, nachdem die
-        // einmalige Bereinigung bestätigt hatte, dass keine echten
-        // Trainingsdaten mehr darauf verweisen - RemoveSupersededVersionAsync
-        // ist daher hier nicht mehr nötig. Verbleibt als Hilfsfunktion für
-        // künftige Prüfungsordnungs-Revisionen (siehe
-        // PRUEFUNGSORDNUNG_UPDATE.md "Versions-Supersession"). Als
-        // Sicherheitsnetz läuft RemoveOrphanedExercisesAsync weiterhin bei
-        // jedem Start - idempotent, findet auf einer bereits bereinigten
-        // Datenbank einfach nichts mehr.
         // Fehlerhafte BH-Version "2024" (Leinenführigkeit 30 statt 15,
         // Freifolge fehlte, Ablage 5 statt 10) durch die korrekte
-        // "2025"-Version abgelöst - siehe RegulationSeed "BH" oben.
+        // "2025"-Version abgelöst - siehe RegulationSeed "BH" oben und
+        // PRUEFUNGSORDNUNG_UPDATE.md "Versions-Supersession". Die Bereinigung
+        // läuft bei jedem Start und findet auf einer bereinigten Datenbank
+        // nichts mehr. Die früheren IBGH-"2024"- und IGP-"2025"-Versionen sind
+        // aus dem Code entfernt, nachdem die einmalige Bereinigung bestätigt
+        // hatte, dass keine echten Trainingsdaten mehr darauf verweisen.
         await RemoveSupersededVersionAsync(db, bh, "BH", "2024");
 
         // Fährte A/B/C waren als "vereinsinterne Trainingsstufen" mit teils
@@ -1586,6 +1581,8 @@ public static partial class SportCatalogSeeder
         var rally = await SeedRallyObedienceAsync(db);
         await SeedMantrailingAsync(db);
 
+        // Als Sicherheitsnetz bei jedem Start - idempotent, findet auf einer
+        // bereits bereinigten Datenbank nichts.
         await RemoveOrphanedExercisesAsync(db, bh);
         await RemoveOrphanedExercisesAsync(db, ibgh1);
         await RemoveOrphanedExercisesAsync(db, ibgh2);
@@ -2015,13 +2012,6 @@ public static partial class SportCatalogSeeder
         }
     }
 
-    // Entfernt eine durch eine neuere, korrigierte Version abgelöste,
-    // fehlerhafte RegulationVersion (siehe PRUEFUNGSORDNUNG_UPDATE.md
-    // "Versions-Supersession") - Cascade-Delete entfernt automatisch deren
-    // RegulationExercise-Zeilen. Von der neuen Version weiterhin genutzte,
-    // gemeinsame Exercise-Zeilen (z.B. "Freifolge", die in alter wie neuer
-    // Version vorkommt) bleiben unberührt, da nur die JOIN-Zeile der alten
-    // Version gelöscht wird, nicht die Übung selbst.
     /// <summary>
     /// Entfernt eine komplette Prüfungsordnung samt ihrer Versionen - für
     /// Doppel- oder Fehleinträge, die es gar nicht geben sollte.
@@ -2057,7 +2047,14 @@ public static partial class SportCatalogSeeder
         await db.SaveChangesAsync();
     }
 
-    // Sucht wie RemoveRegulationAsync bewusst über den Namen (Altbereinigung).
+    // Entfernt eine durch eine neuere, korrigierte Version abgelöste,
+    // fehlerhafte RegulationVersion (siehe PRUEFUNGSORDNUNG_UPDATE.md
+    // "Versions-Supersession") - samt deren RegulationExercise-Zeilen. Von
+    // der neuen Version weiterhin genutzte, gemeinsame Exercise-Zeilen (z.B.
+    // "Freifolge", die in alter wie neuer Version vorkommt) bleiben
+    // unberührt, da nur die JOIN-Zeile der alten Version gelöscht wird, nicht
+    // die Übung selbst. Sucht wie RemoveRegulationAsync bewusst über den
+    // Namen (Altbereinigung).
     private static async Task RemoveSupersededVersionAsync(ApplicationDbContext db, Sport sport, string regulationName, string oldVersionLabel)
     {
         var regulation = await db.Regulations.FirstOrDefaultAsync(r => r.SportId == sport.Id && r.Name == regulationName);

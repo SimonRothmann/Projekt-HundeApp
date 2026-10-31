@@ -1470,10 +1470,6 @@ export type AdminQuizQuestion = {
 export type OnboardingStatus = {
   hasDog: boolean;
   firstDogId: string | null;
-  firstDogName: string | null;
-  // Bei genau einem Hund führt "Training erfassen" auf dem Dashboard direkt
-  // zu ihm statt auf die Liste.
-  dogCount: number;
   hasGoal: boolean;
   hasTraining: boolean;
   hasClubMembership: boolean;

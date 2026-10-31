@@ -215,7 +215,7 @@ public class OesterreichKatalogTests
     // ---- Sportarten nach Land (Teil A) ----
 
     private static async Task<HashSet<string>> SichtbareAsync(ApplicationDbContext db, Guid? nutzer, bool alle = false) =>
-        (await new SportCatalogService(db).GetSportsAsync(nutzer, alle)).Value!.Select(s => s.Code).ToHashSet();
+        (await new SportCatalogService(db, TimeProvider.System).GetSportsAsync(nutzer, alle)).Value!.Select(s => s.Code).ToHashSet();
 
     private static async Task<Guid> PersonAsync(ApplicationDbContext db, string? land)
     {
@@ -322,7 +322,7 @@ public class OesterreichKatalogTests
     {
         await using var db = await KatalogAsync();
         var nutzer = await PersonAsync(db, "DE");
-        var dienst = new SportCatalogService(db);
+        var dienst = new SportCatalogService(db, TimeProvider.System);
         var bsp = await db.Sports.SingleAsync(s => s.Code == "BSP");
         var ordnung = await db.Regulations.FirstAsync(r => r.SportId == bsp.Id);
 

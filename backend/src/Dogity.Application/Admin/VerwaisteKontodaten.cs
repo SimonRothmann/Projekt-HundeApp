@@ -55,6 +55,7 @@ internal static class VerwaisteKontodaten
         await Sammeln(db.TrainingSessions.IgnoreQueryFilters().Select(s => s.UserId));
         await Sammeln(db.UserPreferences.IgnoreQueryFilters().Select(p => p.UserId));
         await Sammeln(db.QuizMasteries.IgnoreQueryFilters().Select(m => m.UserId));
+        await Sammeln(db.QuizExamAttempts.IgnoreQueryFilters().Select(a => a.UserId));
         await Sammeln(db.Notifications.IgnoreQueryFilters().Select(n => n.UserId));
         await Sammeln(db.PushSubscriptions.IgnoreQueryFilters().Select(s => s.UserId));
         await Sammeln(db.SentReminders.IgnoreQueryFilters().Select(r => r.UserId));
@@ -144,6 +145,8 @@ internal static class VerwaisteKontodaten
             await db.DogOwners.IgnoreQueryFilters().CountAsync(o => verwaist.Contains(o.UserId), ct)
             + await db.UserPreferences.IgnoreQueryFilters().CountAsync(p => verwaist.Contains(p.UserId), ct)
             + await db.QuizMasteries.IgnoreQueryFilters().CountAsync(m => verwaist.Contains(m.UserId), ct)
+            + await db.QuizExamAttempts.IgnoreQueryFilters().CountAsync(a => verwaist.Contains(a.UserId), ct)
+            + await db.PushSubscriptions.IgnoreQueryFilters().CountAsync(s => verwaist.Contains(s.UserId), ct)
             + await db.SentReminders.IgnoreQueryFilters().CountAsync(r => verwaist.Contains(r.UserId), ct)
             + await db.ClubMemberships.IgnoreQueryFilters().CountAsync(m => verwaist.Contains(m.UserId), ct)
             + await db.ClubTrainers.IgnoreQueryFilters().CountAsync(t => verwaist.Contains(t.UserId), ct)

@@ -55,7 +55,7 @@ public class SportCatalogServiceTests
             ("Sitz mit Abholen", 2),
             ("Leinenführigkeit", 0),
             ("Ablegen unter Ablenkung", 1));
-        var service = new SportCatalogService(db);
+        var service = new SportCatalogService(db, TimeProvider.System);
 
         var result = await service.GetRegulationDetailAsync(regulationId);
 
@@ -76,7 +76,7 @@ public class SportCatalogServiceTests
             ("Voran mit Platz", 0),
             ("Apportieren über die Hürde", 0),
             ("Leinenführigkeit", 0));
-        var service = new SportCatalogService(db);
+        var service = new SportCatalogService(db, TimeProvider.System);
 
         var result = await service.GetRegulationDetailAsync(regulationId);
 
@@ -114,7 +114,7 @@ public class SportCatalogServiceTests
         var db = InMemoryDbContext.Create();
         var (sportId, ich, _, _) = await SeedVereinsUebungenAsync(db);
 
-        var result = await new SportCatalogService(db).GetExercisesAsync(sportId, ich);
+        var result = await new SportCatalogService(db, TimeProvider.System).GetExercisesAsync(sportId, ich);
 
         // Verhalten wie vor dem Scope-Filter: global plus eigener Verein, nie der fremde.
         Assert.Equal(["Global", "Meine Übung"], result.Value!.Select(e => e.Name));
@@ -126,7 +126,7 @@ public class SportCatalogServiceTests
         var db = InMemoryDbContext.Create();
         var (sportId, ich, _, _) = await SeedVereinsUebungenAsync(db);
 
-        var result = await new SportCatalogService(db).GetExercisesAsync(sportId, ich, ExerciseScope.Global);
+        var result = await new SportCatalogService(db, TimeProvider.System).GetExercisesAsync(sportId, ich, ExerciseScope.Global);
 
         Assert.Equal(["Global"], result.Value!.Select(e => e.Name));
     }
@@ -137,7 +137,7 @@ public class SportCatalogServiceTests
         var db = InMemoryDbContext.Create();
         var (sportId, ich, meinVerein, _) = await SeedVereinsUebungenAsync(db);
 
-        var result = await new SportCatalogService(db).GetExercisesAsync(sportId, ich, ExerciseScope.ForClub(meinVerein));
+        var result = await new SportCatalogService(db, TimeProvider.System).GetExercisesAsync(sportId, ich, ExerciseScope.ForClub(meinVerein));
 
         Assert.Equal(["Meine Übung"], result.Value!.Select(e => e.Name));
     }
@@ -148,7 +148,7 @@ public class SportCatalogServiceTests
         var db = InMemoryDbContext.Create();
         var (sportId, ich, _, fremderVerein) = await SeedVereinsUebungenAsync(db);
 
-        var result = await new SportCatalogService(db).GetExercisesAsync(sportId, ich, ExerciseScope.ForClub(fremderVerein));
+        var result = await new SportCatalogService(db, TimeProvider.System).GetExercisesAsync(sportId, ich, ExerciseScope.ForClub(fremderVerein));
 
         // Kein Fehler, aber auch nichts: Die Sichtbarkeitsprüfung greift vor dem Scope.
         Assert.True(result.Succeeded);

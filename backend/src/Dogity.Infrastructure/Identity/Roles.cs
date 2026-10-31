@@ -8,6 +8,8 @@ public static class Roles
 {
     public const string User = "USER";
     public const string Trainer = "TRAINER";
+    // Reserviert: Die Rollen werden angelegt, aber noch nirgends vergeben oder geprüft
+    // (Vereinsrechte hängen an ClubTrainer, siehe ClubRole).
     public const string ClubAdmin = "CLUB_ADMIN";
     public const string Judge = "JUDGE";
     public const string Admin = "ADMIN";

@@ -264,6 +264,15 @@ public class GpsTrackService(
         if (Textlaengen.ZuLang(request.Comment, Textlaengen.FaehrtenKommentar, "Der Kommentar") is { } zuLang)
             return Result<GpsWalkRunDto>.Failure(zuLang);
 
+        // Die Frist (Ablauffristen) gilt für den Beginn des Ablaufs, nicht für den Zeitpunkt der
+        // Anfrage: Ein offline aufgezeichneter Ablauf kommt oft erst Stunden später an und
+        // darf deshalb nicht scheitern. Ohne automatischen Punkt lässt sich nichts prüfen.
+        var legeEnde = await db.GpsPoints
+            .Where(p => p.TrackId == trackId && p.PointType == GpsPointType.Automatic)
+            .MaxAsync(p => (DateTimeOffset?)p.Timestamp, ct);
+        if (legeEnde is not null && !Ablauffristen.NochZuSuchen(legeEnde, track.Kind, request.Points.Min(p => p.Timestamp)))
+            return Result<GpsWalkRunDto>.Failure("Diese Spur wurde zu lange vor dem Ablauf gelegt, um sie noch abzulaufen.");
+
         var walkRun = new GpsWalkRun
         {
             TrackId = trackId,

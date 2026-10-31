@@ -82,7 +82,7 @@ public class ClubEinladungTests
         Assert.Equal(ClubMembershipSource.Invitation, zeile.Source);
         Assert.Equal(MailPerson, zeile.InvitedEmail);
         Assert.Null(zeile.DecidedAt);
-        Assert.False(await a.Db.BelongsToAnyClubAsync(a.Person));
+        Assert.False(await a.Db.ZaehltImErststartZumVereinAsync(a.Person));
     }
 
     [Fact]
@@ -321,7 +321,7 @@ public class ClubEinladungTests
         Assert.NotNull(zeile.DecidedAt);
         Assert.Null(zeile.InvitedEmail);
         Assert.Equal(a.Person, Assert.Single((await a.Dienst.GetMembersAsync(a.Verwaltung, a.Verein.Id)).Value!).UserId);
-        Assert.True(await a.Db.BelongsToAnyClubAsync(a.Person));
+        Assert.True(await a.Db.ZaehltImErststartZumVereinAsync(a.Person));
         Assert.Empty((await a.Dienst.GetInvitationsAsync(a.Verwaltung, a.Verein.Id)).Value!);
     }
 
@@ -361,7 +361,7 @@ public class ClubEinladungTests
         Assert.Null(zeile.InvitedEmail);
         Assert.Empty((await a.Dienst.GetMembersAsync(a.Verwaltung, a.Verein.Id)).Value!);
         Assert.Empty((await a.Dienst.GetInvitationsAsync(a.Verwaltung, a.Verein.Id)).Value!);
-        Assert.False(await a.Db.BelongsToAnyClubAsync(a.Person));
+        Assert.False(await a.Db.ZaehltImErststartZumVereinAsync(a.Person));
     }
 
     [Theory]

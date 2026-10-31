@@ -43,13 +43,7 @@ public static class AdaptivePlanGenerator
 
     private static int RepetitionsFor(ExerciseDifficulty d, bool weak)
     {
-        var baseReps = d switch
-        {
-            ExerciseDifficulty.Beginner => 3,
-            ExerciseDifficulty.Intermediate => 2,
-            ExerciseDifficulty.Advanced => 1,
-            _ => 2
-        };
+        var baseReps = TrainingPlanGenerator.RepetitionsFor(d);
         // Schwachstellen bewusst häufiger üben.
         return weak ? baseReps + 1 : baseReps;
     }

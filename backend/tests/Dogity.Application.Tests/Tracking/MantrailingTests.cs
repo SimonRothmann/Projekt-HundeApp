@@ -42,8 +42,8 @@ public class MantrailingTests
     [Fact]
     public void GleicheStrecke_8mNeben_IstBeiDerFaehrteRotUndBeimMantrailingGruenUndAufDerSpur()
     {
-        var faehrte = GpsTrackEvaluator.Evaluate(Spur(), LaufNeben(8), GpsTrackKind.Faehrte);
-        var trail = GpsTrackEvaluator.Evaluate(Spur(), LaufNeben(8), GpsTrackKind.Mantrailing);
+        var faehrte = GpsTrackEvaluator.TryEvaluate(Spur(), LaufNeben(8), GpsTrackKind.Faehrte)!.Value;
+        var trail = GpsTrackEvaluator.TryEvaluate(Spur(), LaufNeben(8), GpsTrackKind.Mantrailing)!.Value;
 
         var fGrenzen = GpsTrackEvaluator.ToleranzFuer(GpsTrackKind.Faehrte);
         var mGrenzen = GpsTrackEvaluator.ToleranzFuer(GpsTrackKind.Mantrailing);
@@ -57,7 +57,7 @@ public class MantrailingTests
     [Fact]
     public void GleicheStrecke_18mNeben_IstBeimMantrailingGelbUndNichtMehrAufDerSpur()
     {
-        var trail = GpsTrackEvaluator.Evaluate(Spur(), LaufNeben(18), GpsTrackKind.Mantrailing);
+        var trail = GpsTrackEvaluator.TryEvaluate(Spur(), LaufNeben(18), GpsTrackKind.Mantrailing)!.Value;
         var grenzen = GpsTrackEvaluator.ToleranzFuer(GpsTrackKind.Mantrailing);
 
         Assert.True(trail.AvgDeviationMeters > grenzen.GreenMaxMeters && trail.AvgDeviationMeters <= grenzen.AmberMaxMeters, "gelb");
@@ -67,8 +67,8 @@ public class MantrailingTests
     [Fact]
     public void OhneArt_GiltDieFaehrte()
     {
-        var ohne = GpsTrackEvaluator.Evaluate(Spur(), LaufNeben(5));
-        var faehrte = GpsTrackEvaluator.Evaluate(Spur(), LaufNeben(5), GpsTrackKind.Faehrte);
+        var ohne = GpsTrackEvaluator.TryEvaluate(Spur(), LaufNeben(5))!.Value;
+        var faehrte = GpsTrackEvaluator.TryEvaluate(Spur(), LaufNeben(5), GpsTrackKind.Faehrte)!.Value;
 
         Assert.Equal(faehrte.OnTrackPercent, ohne.OnTrackPercent);
     }
@@ -90,8 +90,8 @@ public class MantrailingTests
             PointType = GpsPointType.Manual, MarkerType = GpsMarkerType.Article
         });
 
-        var faehrte = GpsTrackEvaluator.Evaluate(gelegt, LaufNeben(0), GpsTrackKind.Faehrte);
-        var trail = GpsTrackEvaluator.Evaluate(gelegt, LaufNeben(0), GpsTrackKind.Mantrailing);
+        var faehrte = GpsTrackEvaluator.TryEvaluate(gelegt, LaufNeben(0), GpsTrackKind.Faehrte)!.Value;
+        var trail = GpsTrackEvaluator.TryEvaluate(gelegt, LaufNeben(0), GpsTrackKind.Mantrailing)!.Value;
 
         Assert.Equal(1, faehrte.ArticlesTotal);
         Assert.Equal(0, trail.ArticlesTotal);
