@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { clearCachedData, getCachedData, setCachedData } from "@/lib/read-cache";
 import { useT } from "@/lib/i18n";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 import type { Dog, DogOwner, Goal, Sport, TrainingSession } from "@/lib/types";
 
 // Initial werden nur die Trainings der letzten 3 Monate geladen (die

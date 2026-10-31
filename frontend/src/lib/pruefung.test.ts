@@ -1,17 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  datumKurz,
-  datumMitWochentag,
-  heuteIso,
-  leistungen,
-  morgenIso,
-  naechstesZiel,
-  pruefungsName,
-  punkteText,
-  restzeitText,
-  tageBisPruefung,
-  vorgabePruefungstag,
-} from "./pruefung";
+import { datumKurz, datumMitWochentag, leistungen, morgenIso, naechstesZiel, pruefeErgebnis, pruefeNeuenTermin, pruefungsName, punkteText, restzeitText, tageBisPruefung, vorgabePruefungstag } from "./pruefung";
+import { heuteIso } from "./kalendertag";
 import type { Goal } from "./types";
 
 // Mittags Ortszeit: liegt auch bei Zeitzonen-Sprüngen sicher am selben Kalendertag.
@@ -173,5 +162,56 @@ describe("restzeitText", () => {
 
   it("sagt nach dem Prüfungstag, dass das Ergebnis fehlt", () => {
     expect(restzeitText(t, -3)).toBe("Ergebnis fehlt");
+  });
+});
+
+describe("pruefeErgebnis", () => {
+  // Wie t(): ersetzt {platzhalter} im Satz.
+  const t = (text: string, werte?: Record<string, string | number>) =>
+    text.replace(/\{(\w+)\}/g, (_, name) => String(werte?.[name] ?? `{${name}}`));
+  const jetzt = Date.parse("2026-09-30T12:00:00");
+  const ok = { datum: "2026-09-30", punkte: "", notiz: "" };
+
+  it("verlangt den Prüfungstag", () => {
+    expect(pruefeErgebnis(t, { ...ok, datum: "" }, null, jetzt)).toBe("Bitte den Prüfungstag angeben.");
+  });
+
+  it("lässt den Tag bis morgen zu, danach nicht mehr", () => {
+    expect(pruefeErgebnis(t, { ...ok, datum: "2026-10-01" }, null, jetzt)).toBeNull();
+    expect(pruefeErgebnis(t, { ...ok, datum: "2026-10-02" }, null, jetzt)).toBe("Der Prüfungstag darf nicht in der Zukunft liegen.");
+  });
+
+  it("Punkte sind optional", () => {
+    expect(pruefeErgebnis(t, ok, 100, jetzt)).toBeNull();
+    expect(pruefeErgebnis(t, { ...ok, punkte: "  " }, 100, jetzt)).toBeNull();
+  });
+
+  it("Punkte sind eine ganze Zahl ab 0", () => {
+    const meldung = "Die Punktzahl muss eine ganze Zahl ab 0 sein.";
+    expect(pruefeErgebnis(t, { ...ok, punkte: "-1" }, 100, jetzt)).toBe(meldung);
+    expect(pruefeErgebnis(t, { ...ok, punkte: "87.5" }, 100, jetzt)).toBe(meldung);
+    expect(pruefeErgebnis(t, { ...ok, punkte: "viel" }, 100, jetzt)).toBe(meldung);
+    expect(pruefeErgebnis(t, { ...ok, punkte: "0" }, 100, jetzt)).toBeNull();
+  });
+
+  it("Punkte nicht über der Höchstpunktzahl - ohne bekannte Höchstzahl gibt es keine Grenze", () => {
+    expect(pruefeErgebnis(t, { ...ok, punkte: "100" }, 100, jetzt)).toBeNull();
+    expect(pruefeErgebnis(t, { ...ok, punkte: "101" }, 100, jetzt)).toBe("Die Punktzahl darf höchstens 100 betragen.");
+    expect(pruefeErgebnis(t, { ...ok, punkte: "5000" }, null, jetzt)).toBeNull();
+  });
+});
+
+describe("pruefeNeuenTermin", () => {
+  const t = (text: string) => text;
+  const jetzt = Date.parse("2026-09-30T12:00:00");
+
+  it("verlangt einen Termin", () => {
+    expect(pruefeNeuenTermin(t, "", jetzt)).toBe("Bitte den neuen Prüfungstermin angeben.");
+  });
+
+  it("morgen ist der früheste Termin", () => {
+    expect(pruefeNeuenTermin(t, "2026-09-30", jetzt)).toBe("Der neue Termin muss in der Zukunft liegen.");
+    expect(pruefeNeuenTermin(t, "2026-10-01", jetzt)).toBeNull();
+    expect(pruefeNeuenTermin(t, "2027-03-01", jetzt)).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { AMBER_MAX_M, GREEN_MAX_M } from "@/components/tracking/walk-run-evaluation";
+import { FAEHRTE_GRENZEN } from "./mantrailing";
+import { ampelStufe } from "./spur-ampel";
 import {
-  ampelStufe,
   baueBildTexte,
   faehrtenGeometrie,
   faehrtenKennzahlen,
@@ -200,10 +200,10 @@ describe("formatiereMassstab", () => {
 
 describe("ampelStufe", () => {
   it("nutzt die Schwellen der Auswertung im Tagebuch", () => {
-    expect(ampelStufe(GREEN_MAX_M)).toBe("gruen");
-    expect(ampelStufe(GREEN_MAX_M + 0.1)).toBe("gelb");
-    expect(ampelStufe(AMBER_MAX_M)).toBe("gelb");
-    expect(ampelStufe(AMBER_MAX_M + 0.1)).toBe("rot");
+    expect(ampelStufe(FAEHRTE_GRENZEN.gruenBis)).toBe("gruen");
+    expect(ampelStufe(FAEHRTE_GRENZEN.gruenBis + 0.1)).toBe("gelb");
+    expect(ampelStufe(FAEHRTE_GRENZEN.gelbBis)).toBe("gelb");
+    expect(ampelStufe(FAEHRTE_GRENZEN.gelbBis + 0.1)).toBe("rot");
     expect(ampelStufe(0)).toBe("gruen");
   });
 });

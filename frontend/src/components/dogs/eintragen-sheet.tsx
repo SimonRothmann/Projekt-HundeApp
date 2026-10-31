@@ -29,7 +29,6 @@ import {
   KEIN_ORT,
   letzteEinheit,
   loeseZeilenAuf,
-  tagVorher,
   uhrzeitText,
   VORGABE_BEWERTUNG,
   vorbelegteDauer,
@@ -46,7 +45,7 @@ import {
 } from "@/lib/eintragen";
 import { istPlanZielFehler, ohnePlanVerknuepfung } from "@/lib/trainingsplan";
 import { REITER_PARAMETER } from "@/lib/hundeseite";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso, plusTage } from "@/lib/kalendertag";
 import { aktuellePause } from "@/lib/pausen";
 import { useSprache, useT } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
@@ -181,7 +180,7 @@ function EintragenInhalt({
   const [hundId, setHundId] = useState(startHund);
   const [hundWahl, setHundWahl] = useState(false);
   const [tag, setTag] = useState<Tag>("heute");
-  const [anderesDatum, setAnderesDatum] = useState(() => tagVorher(heuteIso(), 2));
+  const [anderesDatum, setAnderesDatum] = useState(() => plusTage(heuteIso(), -2));
   const [zeilen, setZeilen] = useState<EintragZeile[]>(() => (vorgabePlan ? [zeileAusPlanItem(vorgabePlan)] : []));
   const [bewertung, setBewertung] = useState<Bewertung>(VORGABE_BEWERTUNG);
   const [offeneDetails, setOffeneDetails] = useState<ReadonlySet<string>>(new Set());

@@ -7,7 +7,8 @@ import type {
   TrainingPlanItem,
   TrainingSession,
 } from "@/lib/types";
-import { heuteIso, tageBisPruefung } from "@/lib/pruefung";
+import { tageBisPruefung } from "@/lib/pruefung";
+import { heuteIso, plusTage } from "@/lib/kalendertag";
 import { gewaehltesPlanItem, offeneWochenziele, passendesPlanItem, planItemName } from "@/lib/trainingsplan";
 import type { LocationValue } from "@/components/dogs/location-time-fields";
 
@@ -381,14 +382,6 @@ export function loeseZeilenAuf(
 
 export type Tag = "heute" | "gestern" | "anderer";
 
-/** Der Kalendertag vor `iso`, `tage` Tage zurück, als "JJJJ-MM-TT". */
-export function tagVorher(iso: string, tage: number): string {
-  const [jahr, monat, tag] = iso.split("-").map(Number);
-  const d = new Date(jahr, monat - 1, tag);
-  d.setDate(d.getDate() - tage);
-  return heuteIso(d.getTime());
-}
-
 /**
  * Das Datum des Eintrags. Der Kalendertag des Geräts, nicht der UTC-Tag: Wer
  * nach Mitternacht (Ortszeit) einträgt, trainierte noch "heute". `anderes` ist
@@ -397,7 +390,7 @@ export function tagVorher(iso: string, tage: number): string {
 export function datumFuerTag(tag: Tag, anderes: string, jetzt: number = Date.now()): string {
   const heute = heuteIso(jetzt);
   if (tag === "heute") return heute;
-  if (tag === "gestern") return tagVorher(heute, 1);
+  if (tag === "gestern") return plusTage(heute, -1);
   return anderes;
 }
 

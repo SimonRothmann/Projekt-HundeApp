@@ -264,6 +264,24 @@ export const EN: Record<string, string> = {
   "Fährte {nummer}": "Track {nummer}",
   "Fährtenalter {minuten} Min.": "Track age {minuten} min",
   "Gelegt bis {uhrzeit}": "Laid until {uhrzeit}",
+  "Gestern gelegt bis {uhrzeit}": "Laid yesterday until {uhrzeit}",
+  "Gelegt am {datum} bis {uhrzeit}": "Laid on {datum} until {uhrzeit}",
+  "Zuletzt gelegt": "Laid recently",
+  "Spuren bleiben sichtbar": "Tracks stay visible",
+  "Gelegte Fährten und Trails bleiben auf der Startseite stehen, solange du sie noch suchen kannst: eine Fährte bis 24 Stunden, ein Trail bis 48 Stunden nach dem Legen. Über Nacht verschwanden sie vorher. Der Abschnitt heißt dann „Zuletzt gelegt“ und sagt dazu, wann die Spur gelegt wurde.":
+    "Laid tracks and trails now stay on the home page for as long as you can still search them: a track up to 24 hours, a trail up to 48 hours after laying. Before, they disappeared overnight. The section is then called “Laid recently” and tells you when the track was laid.",
+  "Das Fenster zum Ergebnis eines Trails ließ sich nicht schließen, wenn der Trail länger als eine Woche gelegen hatte. Der Vorschlag fürs Trailalter bleibt jetzt leer, wenn er über der erlaubten Zeit liegt.":
+    "The window for a trail's result could not be closed if the trail had aged for more than a week. The suggestion for the trail age is now left empty when it is above the allowed time.",
+  "Datumsangaben stimmen jetzt auch außerhalb Mitteleuropas: Prüfungstermine, Trainingstage und Geburtstage standen auf Geräten in anderen Zeitzonen manchmal einen Tag zu früh.":
+    "Dates are now correct outside Central Europe too: test dates, training days and birthdays sometimes showed one day too early on devices in other time zones.",
+  "Lädt die Startseite, eine Gruppe oder die Liste der Sportarten wegen einer schlechten Verbindung nicht, steht dort jetzt ein Hinweis mit „Erneut versuchen“ – statt einer leeren Seite oder der falschen Aussage, es gebe nichts.":
+    "If the home page, a group or the list of sports does not load because of a poor connection, a notice with “Try again” now appears – instead of an empty page or the wrong claim that there is nothing.",
+  "Trainer:innen sehen bei Terminen anderer Gruppen nur noch, was sie dort tun dürfen: Bearbeiten, Absagen und Löschen erscheinen nur bei Terminen ihrer eigenen Gruppen.":
+    "For sessions of other groups, trainers now only see what they may do there: Edit, Cancel and Delete appear only for sessions of their own groups.",
+  "Betreuungen eines Hundes enden, wenn die Vereinsrolle der Trainer:in wegfällt.":
+    "A trainer's supervision of a dog ends when their club role is removed.",
+  "Die Wochen eines Trainingsplans beginnen um Mitternacht – nicht erst zur Uhrzeit, zu der der Plan angelegt wurde. Am Wochenwechsel zeigt die App die neue Woche jetzt schon morgens.":
+    "The weeks of a training plan start at midnight – not only at the time of day the plan was created. On the day the week changes, the app now shows the new week from the morning.",
   "Gelegte Fährte": "Laid track",
   "Heute gelegt": "Laid today",
   "Im Profil kannst du unter „Deine Daten“ alles herunterladen, was Dogity über dich gespeichert hat: Konto, Hunde, Trainings, Fährten samt Punkten, Ziele, Verein und Lernfortschritt.": "Under “Your data” in your profile you can download everything Dogity has stored about you: account, dogs, training sessions, tracks including their points, goals, club and learning progress.",
@@ -363,7 +381,7 @@ export const EN: Record<string, string> = {
   "Fügt hinzu…": "Adding…",
   "Für dieses Land sind noch keine Prüfungsordnungen hinterlegt. Tagebuch, Fährte, Trainingsplanung und Verein funktionieren davon unabhängig vollständig - nur der Prüfungskatalog bleibt leer.": "No test regulations are on file for this country yet. The diary, tracking, training planning and club features work fully regardless – only the test catalogue stays empty.",
   "Für dieses Ziel gibt es keine gewichtbaren Übungen.": "There are no weightable exercises for this goal.",
-  "GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als 8 m werden verworfen; findet das GPS länger keinen genauen Fix (z.B. ohne Netz), lockert sich der Filter schrittweise bis 20 m.": "GPS accuracy (error radius). Points less accurate than 8 m are discarded; if the GPS cannot get a precise fix for a while (e.g. without a network), the filter loosens step by step up to 20 m.",
+  "GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als {max} m werden verworfen; findet das GPS länger keinen genauen Fix (z.B. ohne Netz), lockert sich der Filter schrittweise bis {gelockert} m.": "GPS accuracy (error radius). Points less accurate than {max} m are discarded; if the GPS cannot get a precise fix for a while (e.g. without a network), the filter loosens step by step up to {gelockert} m.",
   "Geburtsdatum": "Date of birth",
   "Gefällt dir Dogity? Über Unterstützung freue ich mich sehr.": "Do you like Dogity? Support is always very welcome.",
   "Gelegte Fährte und Ablauf des Hundes lassen sich übereinanderlegen. Die Auswertung zeigt die Abweichung, gefundene Gegenstände und Stockungen - und unterscheidet dabei, ob der Hund verweist oder wirklich sucht.": "The laid track and the dog's run can be laid over each other. The evaluation shows the deviation, the articles found and the hesitations – and tells apart whether the dog is indicating or really searching.",
@@ -932,6 +950,8 @@ export const EN: Record<string, string> = {
   "Einladungslink konnte nicht erstellt werden.": "The invitation link could not be created.",
   "Einladungslink konnte nicht geladen werden.": "The invitation link could not be loaded.",
   "Erneut versuchen": "Try again",
+  "Die Startseite konnte nicht geladen werden.": "The home page could not be loaded.",
+  "Die Startseite konnte nicht aktualisiert werden.": "The home page could not be updated.",
   "Für das Vereinsheim gibt es einen Aushang zum Ausdrucken: großer QR-Code, drei kurze Schritte und der Link als Text. Der Link lässt sich jederzeit ersetzen oder abschalten.": "For the clubhouse there is a poster to print: a large QR code, three short steps and the link as text. The link can be replaced or turned off at any time.",
   "Für diesen Verein gibt es noch keinen Einladungslink. Erstelle ihn zuerst auf der Seite „Verein“.": "This club does not have an invitation link yet. Create it first on the “Club” page.",
   "Ich habe schon ein Konto": "I already have an account",
@@ -2266,8 +2286,8 @@ export const EN: Record<string, string> = {
   "Du kannst vor- und zurückblättern und Antworten ändern. Es gibt keine Zeitbegrenzung.": "You can page back and forth and change answers. There is no time limit.",
   "Bei jeder Frage ist genau eine Antwort richtig.": "Exactly one answer is correct for every question.",
   "Freitextfragen sind nicht dabei, sie lassen sich nicht automatisch werten.": "Free-text questions are not included; they cannot be scored automatically.",
-  "Übungsprüfung – keine offizielle Prüfung. Gewertet nach der verbreiteten Regel: 2 Punkte je richtige Antwort, 2 Punkte Abzug je falsch angekreuzte, bestanden ab 70 %. Dein Verband oder Verein kann anders werten.":
-    "Practice exam – not an official exam. Scored by the common rule: 2 points per correct answer, 2 points deducted per wrong answer ticked, pass from 70 %. Your association or club may score differently.",
+  "Übungsprüfung – keine offizielle Prüfung. Gewertet nach der verbreiteten Regel: {punkte} Punkte je richtige Antwort, {punkte} Punkte Abzug je falsch angekreuzte, bestanden ab {prozent} %. Dein Verband oder Verein kann anders werten.":
+    "Practice exam – not an official exam. Scored by the common rule: {punkte} points per correct answer, {punkte} points deducted per wrong answer ticked, pass from {prozent} %. Your association or club may score differently.",
   "Die Übungsprüfung konnte nicht geladen werden.": "The practice exam could not be loaded.",
   "Die Übungsprüfung konnte nicht abgegeben werden.": "The practice exam could not be handed in.",
   "Abgeben": "Hand in",
@@ -2377,7 +2397,7 @@ export const EN: Record<string, string> = {
   "+4 Monate": "+4 months",
   "+5 Monate": "+5 months",
   "+6 Monate": "+6 months",
-  "14 Tage vor Ablauf und am Tag selbst, Tierarzttermine am Vortag ab 18 Uhr": "14 days before expiry and on the day itself, vet appointments the day before from 6 pm",
+  "{tage} Tage vor Ablauf und am Tag selbst, Tierarzttermine am Vortag ab 18 Uhr": "{tage} days before expiry and on the day itself, vet appointments the day before from 6 pm",
   "Als Nächstes": "Next up",
   "Art": "Type",
   "Bald fällig": "Due soon",
@@ -2414,7 +2434,7 @@ export const EN: Record<string, string> = {
   "Kontrolle": "Check-up",
   "Leptospirose": "Leptospirosis",
   "Maßgeblich ist, was der Tierarzt im Impfpass einträgt. Dogity rechnet keine Fristen aus: „Gültig bis“ bzw. „nächste fällig“ trägst du selbst ein.": "What counts is what the vet enters in the vaccination record. Dogity does not calculate any deadlines: you enter “valid until” or “next due” yourself.",
-  "Nichts Dringendes in den nächsten 30 Tagen.": "Nothing urgent in the next 30 days.",
+  "Nichts Dringendes in den nächsten {tage} Tagen.": "Nothing urgent in the next {tage} days.",
   "Noch keine Einträge. Trag zum Beispiel die Tollwut-Impfung ein.": "No entries yet. For example, add the rabies vaccination.",
   "Nächste fällig (optional)": "Next due (optional)",
   "Oben steht „Als Nächstes“: Abgelaufenes in Rot, bald Fälliges in Gelb und der nächste Tierarzttermin. Wenn du eine Impfung erneuerst, trägst du sie einfach neu ein – die alte bleibt im Verlauf. Auf der Startseite erscheint ein kleiner Hinweis, wenn etwas abgelaufen oder in zwei Wochen fällig ist oder ein Tierarzttermin in den nächsten zwei Tagen ansteht.": "At the top is “Next up”: expired items in red, items due soon in yellow and the next vet appointment. When you renew a vaccination, you simply enter it again – the old one stays in the history. A small note appears on the home page when something has expired or is due within two weeks, or when a vet appointment is coming up in the next two days.",
@@ -2602,7 +2622,7 @@ export const EN: Record<string, string> = {
   "Marker gesetzt.": "Marker set.",
   "Aufzeichnung verwerfen? Der bisher aufgezeichnete Trail geht verloren.": "Discard recording? The trail recorded so far will be lost.",
   "Trail gespeichert.": "Trail saved.",
-  "Suchen, sobald die Liegezeit um ist - die Startseite zeigt ihn unter „Heute gelegt“.": "Search once the trail has aged enough - the home page shows it under “Laid today”.",
+  "Suchen, sobald die Liegezeit um ist - die Startseite zeigt ihn, solange er sich noch suchen lässt ({stunden} Stunden nach dem Legen).": "Search once the trail has aged enough - the home page shows it for as long as it can still be searched ({stunden} hours after laying).",
   "Jetzt suchen": "Search now",
   "Trail legen": "Lay trail",
   "Legen beenden und den Trail speichern?": "Finish laying and save the trail?",

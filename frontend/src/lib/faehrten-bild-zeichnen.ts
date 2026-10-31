@@ -1,15 +1,14 @@
 import {
-  AMPEL_FARBEN,
   faerbeSegmente,
   formatiereMassstab,
   massstabsbalken,
   passeEin,
-  type Ampel,
   type BildTexte,
   type Einpassung,
   type FaehrtenGeometrie,
 } from "@/lib/faehrten-bild";
 import type { SpurGrenzen } from "@/lib/mantrailing";
+import { AMPEL_FARBEN, type Ampel } from "@/lib/spur-ampel";
 
 /**
  * Zeichnet das Fährtenbild auf eine Canvas-Fläche (Hochformat, 1080 x 1350).

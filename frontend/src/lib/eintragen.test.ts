@@ -17,7 +17,6 @@ import {
   loeseZeilenAuf,
   sammelWerte,
   sucheUebungen,
-  tagVorher,
   trifftSuche,
   uhrzeitText,
   vorbelegteDauer,
@@ -27,6 +26,7 @@ import {
   zeilenAusEinheit,
   zuletztChips,
 } from "./eintragen";
+import { plusTage } from "./kalendertag";
 import type {
   Exercise,
   Goal,
@@ -577,9 +577,9 @@ describe("Tag und Datum", () => {
   });
 
   it("zählt über Monats- und Jahresgrenzen", () => {
-    expect(tagVorher("2026-10-01", 1)).toBe("2026-09-30");
-    expect(tagVorher("2026-01-01", 1)).toBe("2025-12-31");
-    expect(tagVorher("2026-10-07", 2)).toBe("2026-10-05");
+    expect(plusTage("2026-10-01", -1)).toBe("2026-09-30");
+    expect(plusTage("2026-01-01", -1)).toBe("2025-12-31");
+    expect(plusTage("2026-10-07", -2)).toBe("2026-10-05");
   });
 
   it("lässt keine Zukunft und kein halbes Datum zu", () => {

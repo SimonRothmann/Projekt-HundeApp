@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CalendarClock, ChevronRight, Clock, TriangleAlert } from "lucide-react";
 import type { Dog } from "@/lib/types";
 import { hinweiseFuerHund, type Ton } from "@/lib/gesundheit";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 import { useSprache, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 

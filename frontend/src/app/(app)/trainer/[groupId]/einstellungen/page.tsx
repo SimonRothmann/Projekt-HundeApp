@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { Pencil, UserCog } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useGroupDetail } from "@/lib/use-group-detail";
+import { GruppeNichtGeladen } from "@/components/trainer/gruppe-nicht-geladen";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { GroupDissolveSection } from "@/components/trainer/group-dissolve-section";
@@ -19,14 +20,10 @@ import { GroupTrainersSection } from "@/components/trainer/group-trainers-sectio
 export default function TrainerGruppeEinstellungenPage() {
   const t = useT();
   const { groupId } = useParams<{ groupId: string }>();
-  const { detail, laden, fehlgeschlagen } = useGroupDetail(groupId);
+  const { detail, laden, fehlgeschlagen, ladefehler, nochmal } = useGroupDetail(groupId);
 
   if (detail === null) {
-    return (
-      <p className="break-words text-muted-foreground">
-        {fehlgeschlagen ? t("Diese Gruppe kannst du nicht öffnen: Es gibt sie nicht mehr, oder sie gehört nicht zu deinen Gruppen.") : t("Lädt…")}
-      </p>
-    );
+    return <GruppeNichtGeladen fehlgeschlagen={fehlgeschlagen} ladefehler={ladefehler} onNochmal={nochmal} />;
   }
 
   return (

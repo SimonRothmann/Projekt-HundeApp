@@ -1,4 +1,4 @@
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 import type { GroupTrainingSession } from "@/lib/types";
 
 /**

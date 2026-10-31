@@ -2,7 +2,7 @@ import type { Dog, DogGender, DogPause, Goal, PauseGrund } from "@/lib/types";
 import { PAUSE_GRUND } from "@/lib/types";
 import type { Sprache } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso, plusJahre, plusTage, tagesnummer, vereinszeitTag } from "@/lib/kalendertag";
 import { ortsformat } from "@/lib/ortsformat";
 
 /**
@@ -12,7 +12,7 @@ import { ortsformat } from "@/lib/ortsformat";
  * den Fehler vor dem Senden sieht).
  *
  * Daten sind Kalendertage ("2026-10-03"); gerechnet wird wie in
- * lib/pruefung.ts mit Tagesnummern und nie mit `new Date("2026-10-03")`.
+ * lib/kalendertag.ts mit Tagesnummern und nie mit `new Date("2026-10-03")`.
  * Beide Grenzen einer Pause gelten einschließlich.
  */
 
@@ -22,31 +22,9 @@ type Uebersetzer = (text: string, werte?: Record<string, string | number>) => st
 export const LAEUFIGKEIT_TAGE = 21;
 
 /** Gleiche Grenzen wie der Server (DogPauseService). */
-const MAX_JAHRE_ZURUECK = 5;
-const MAX_JAHRE_VORAUS = 2;
-const MAX_DAUER_JAHRE = 2;
-
-const TAG_MS = 24 * 60 * 60 * 1000;
-
-/** Nummer des Kalendertags (Tage seit 1970) - Datumsrechnung ohne Zeitzonen. */
-export function tagesnummer(iso: string): number {
-  const [jahr, monat, tag] = iso.slice(0, 10).split("-").map(Number);
-  return Math.round(Date.UTC(jahr, monat - 1, tag) / TAG_MS);
-}
-
-/** Der Kalendertag n Tage später (oder früher) als "JJJJ-MM-TT". */
-export function plusTage(iso: string, tage: number): string {
-  return new Date((tagesnummer(iso) + tage) * TAG_MS).toISOString().slice(0, 10);
-}
-
-/** Der Kalendertag n Jahre später (am 29.2. des Schaltjahres: der 28.). */
-export function plusJahre(iso: string, jahre: number): string {
-  const [jahr, monat, tag] = iso.slice(0, 10).split("-").map(Number);
-  const ziel = new Date(Date.UTC(jahr + jahre, monat - 1, tag));
-  // Ein Überlauf (29.2. -> 1.3.) fiele in den nächsten Monat: zurück auf den letzten Tag.
-  if (ziel.getUTCMonth() !== monat - 1) ziel.setUTCDate(0);
-  return ziel.toISOString().slice(0, 10);
-}
+export const MAX_JAHRE_ZURUECK = 5;
+export const MAX_JAHRE_VORAUS = 2;
+export const MAX_DAUER_JAHRE = 2;
 
 /** Vorschlag für das Ende einer Läufigkeit, die an diesem Tag beginnt. */
 export function laeufigkeitEnde(beginn: string): string {
@@ -231,7 +209,7 @@ export function vorschlagZieldatum(
   const zurueckfall = plusTage(goal.targetDate, 14);
   if (!plan || plan.items.length === 0) return zurueckfall;
 
-  const beginn = heuteIso(new Date(plan.generatedAt).getTime());
+  const beginn = vereinszeitTag(new Date(plan.generatedAt).getTime());
   const letzteWoche = Math.max(...plan.items.map((item) => item.weekNumber));
   const pausentage = pausentageZwischen(goal.planPausen ?? [], beginn, goal.targetDate, heute);
   const aktiveTage = tagesnummer(goal.targetDate) - tagesnummer(beginn) - pausentage;

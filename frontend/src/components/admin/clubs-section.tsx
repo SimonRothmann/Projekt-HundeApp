@@ -210,10 +210,13 @@ export function ClubsSection() {
                               </span>
                               <div className="flex shrink-0 items-center gap-1">
                                 {/* Wer schon Trainer:in ist, braucht die
-                                    Beförderung nicht angeboten zu bekommen. */}
+                                    Beförderung nicht angeboten zu bekommen; wer
+                                    eine andere Rolle hat, ändert sie über die
+                                    Rollenkarte des Vereins - "Zum Trainer" ginge
+                                    daran vorbei. */}
                                 {m.isTrainer ? (
                                   <Badge variant="secondary">{t("Trainer")}</Badge>
-                                ) : (
+                                ) : m.hatRolle ? null : (
                                   <Button
                                     type="button"
                                     size="sm"

@@ -136,9 +136,12 @@ export function teileUebungen(uebungen: readonly PruefungsreifeUebung[]): {
   };
 }
 
-/** Die Regeln der Faustregel in Klartext - für das aufklappbare "Wie wird das berechnet?". Zahlen wie auf dem Server. */
+/**
+ * Die Regeln der Faustregel in Klartext - für das aufklappbare "Wie wird das berechnet?".
+ * Gerechnet wird auf dem Server (Pruefungsreife.cs); die Zahlen hier sind nur für die
+ * Erklärung und durch backend-kopplung.test.ts daran gekoppelt.
+ */
 export const REGELN = {
-  sicherBox: 4,
   sicherBewertung: 4,
   sicherTage: 28,
   gruenProzent: 80,

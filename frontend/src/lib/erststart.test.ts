@@ -46,6 +46,10 @@ describe("erststartZustand", () => {
     expect(erststartZustand(nachTraining(60 * 1000), JETZT)).toBe("gabelung");
   });
 
+  it("zeigt die Gabelung nur bei erledigtem Erststart: Das Feld des Servers entscheidet, nicht eine eigene Auslegung", () => {
+    expect(erststartZustand(nachTraining(60 * 1000, { isComplete: false }), JETZT)).toBeNull();
+  });
+
   it("zeigt die Gabelung noch am letzten Tag des Fensters, danach nicht mehr", () => {
     expect(erststartZustand(nachTraining(GABELUNG_TAGE * TAG), JETZT)).toBe("gabelung");
     expect(erststartZustand(nachTraining(GABELUNG_TAGE * TAG + 1), JETZT)).toBeNull();

@@ -1,5 +1,5 @@
 import { istDoppelteAnmeldung, pruefeAnmeldung, tagDerAnmeldung, type AnmeldeFehler } from "@/lib/anmeldung";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 
 /**
  * Einlesen der Antworten eines Google-Formulars als CSV (Google Formulare ->

@@ -11,6 +11,7 @@ import {
   spurGrenzen,
   stundenText,
   trailAenderungen,
+  trailalterVorschlag,
 } from "./mantrailing";
 
 describe("istMantrailing", () => {
@@ -83,6 +84,30 @@ describe("Trailalter in Stunden", () => {
     expect(minutenAusStundenText("-1")).toBeUndefined();
     expect(minutenAusStundenText("1,5,2")).toBeUndefined();
     expect(minutenAusStundenText("169")).toBeUndefined();
+  });
+});
+
+describe("trailalterVorschlag", () => {
+  it("schlägt die Liegezeit in Stunden vor", () => {
+    expect(trailalterVorschlag(90)).toBe("1,5");
+    expect(trailalterVorschlag(90, "en")).toBe("1.5");
+  });
+
+  it("lässt das Feld bei keiner Liegezeit leer", () => {
+    expect(trailalterVorschlag(null)).toBe("");
+    expect(trailalterVorschlag(undefined)).toBe("");
+  });
+
+  it("nimmt genau eine Woche noch an", () => {
+    expect(trailalterVorschlag(168 * 60)).toBe("168");
+    expect(minutenAusStundenText(trailalterVorschlag(168 * 60))).toBe(168 * 60);
+  });
+
+  it("lässt das Feld bei mehr als einer Woche leer, damit das Fenster sich schließen lässt", () => {
+    expect(trailalterVorschlag(168 * 60 + 60)).toBe("");
+    expect(trailalterVorschlag(30 * 24 * 60)).toBe("");
+    // Was das Feld vorschlägt, lässt die Prüfung beim Schließen durch.
+    expect(trailAenderungen({ ageMinutes: null }, {}, { gefunden: null, anzeige: null, alterText: trailalterVorschlag(30 * 24 * 60) }).fehler).toBeUndefined();
   });
 });
 

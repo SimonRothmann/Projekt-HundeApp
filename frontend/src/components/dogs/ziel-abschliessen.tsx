@@ -4,7 +4,16 @@ import { useState, type ReactNode } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { Goal, NextStage } from "@/lib/types";
 import { TEXTLAENGE } from "@/lib/textlaengen";
-import { datumKurz, morgenIso, pruefungsName, punkteText, vorgabePruefungstag } from "@/lib/pruefung";
+import {
+  datumKurz,
+  morgenIso,
+  pruefeErgebnis,
+  pruefeNeuenTermin,
+  pruefungsName,
+  punkteText,
+  vorgabePruefungstag,
+  type ErgebnisEingabe,
+} from "@/lib/pruefung";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,24 +33,6 @@ import { katalogName } from "@/lib/katalog-name";
  * hat (BH/VT, Agility und Co. werden nicht nach Punkten gewertet) - oder wenn
  * schon ein Wert drinsteht, den man sonst nicht mehr korrigieren könnte.
  */
-export type ErgebnisEingabe = { datum: string; punkte: string; notiz: string };
-
-/** Fehlermeldung zur Eingabe, sonst null - die Regeln des Servers, damit man sie vor dem Senden sieht. */
-export function pruefeErgebnis(
-  t: ReturnType<typeof useT>,
-  eingabe: ErgebnisEingabe,
-  hoechstens: number | null | undefined,
-): string | null {
-  if (!eingabe.datum) return t("Bitte den Prüfungstag angeben.");
-  if (eingabe.datum > morgenIso()) return t("Der Prüfungstag darf nicht in der Zukunft liegen.");
-  const text = eingabe.punkte.trim();
-  if (text === "") return null;
-  const punkte = Number(text);
-  if (!Number.isInteger(punkte) || punkte < 0) return t("Die Punktzahl muss eine ganze Zahl ab 0 sein.");
-  if (hoechstens != null && punkte > hoechstens) return t("Die Punktzahl darf höchstens {max} betragen.", { max: hoechstens });
-  return null;
-}
-
 export function ErgebnisFelder({
   eingabe,
   onChange,
@@ -164,13 +155,7 @@ export function ZielAbschliessen({
     if (ergebnis) await onChanged();
   }
 
-  const fehler = bestanden
-    ? pruefeErgebnis(t, eingabe, goal.maxPoints)
-    : neuerTermin === ""
-      ? t("Bitte den neuen Prüfungstermin angeben.")
-      : neuerTermin < morgenIso()
-        ? t("Der neue Termin muss in der Zukunft liegen.")
-        : null;
+  const fehler = bestanden ? pruefeErgebnis(t, eingabe, goal.maxPoints) : pruefeNeuenTermin(t, neuerTermin);
 
   async function speichern() {
     if (fehler) return;

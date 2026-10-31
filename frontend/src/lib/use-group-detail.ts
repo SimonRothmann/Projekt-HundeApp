@@ -7,6 +7,14 @@ import { useT } from "@/lib/i18n";
 import type { GroupDetail } from "@/lib/types";
 
 /**
+ * Warum die Gruppe nicht kam: Der Server sagt "gibt es nicht / darfst du nicht" (404, 403) -
+ * alles andere (Netz, Serverfehler, Drosselung) ist ein Ladefehler, der sich wiederholen lässt.
+ */
+export function ladefehlerArt(err: unknown): "nichtVerfuegbar" | "ladefehler" {
+  return err instanceof ApiError && (err.status === 404 || err.status === 403) ? "nichtVerfuegbar" : "ladefehler";
+}
+
+/**
  * Die Gruppe samt Mitgliedern, Trainer:innen und Einladungen - gemeinsam für
  * die Gruppenseite und deren Einstellungen. `laden` holt sie nach einer
  * Änderung neu.
@@ -14,16 +22,18 @@ import type { GroupDetail } from "@/lib/types";
 export function useGroupDetail(groupId: string) {
   const t = useT();
   const [detail, setDetail] = useState<GroupDetail | null>(null);
-  // Ohne das bliebe die Seite bei "Lädt…" stehen, etwa wenn ein alter Link auf
-  // eine Gruppe zeigt, die jemand mit der Rolle Training nicht mehr verwaltet.
-  const [fehlgeschlagen, setFehlgeschlagen] = useState(false);
+  // Ohne das bliebe die Seite bei "Lädt…" stehen. Zwei verschiedene Gründe: Der Server sagt "gibt es
+  // nicht / darfst du nicht" (404, 403 - etwa ein alter Link auf eine Gruppe, die jemand mit der
+  // Rolle Training nicht mehr verwaltet), oder das Laden scheiterte (Netz, Serverfehler) und lässt
+  // sich wiederholen. Die Aussage "kannst du nicht öffnen" gilt nur für den ersten.
+  const [fehler, setFehler] = useState<"nichtVerfuegbar" | "ladefehler" | null>(null);
 
   const laden = useCallback(async () => {
     try {
       setDetail(await api.get<GroupDetail>(`/api/groups/${groupId}`));
-      setFehlgeschlagen(false);
+      setFehler(null);
     } catch (err) {
-      setFehlgeschlagen(true);
+      setFehler(ladefehlerArt(err));
       toast.error(err instanceof ApiError ? err.message : t("Gruppe konnte nicht geladen werden."));
     }
     // t bewusst nicht in der Liste: nur für die Fehlermeldung.
@@ -36,5 +46,11 @@ export function useGroupDetail(groupId: string) {
     void laden();
   }, [laden]);
 
-  return { detail, laden, fehlgeschlagen };
+  /** Nach einem Ladefehler: zurück zu "Lädt…" und noch einmal versuchen. */
+  function nochmal() {
+    setFehler(null);
+    void laden();
+  }
+
+  return { detail, laden, fehlgeschlagen: fehler === "nichtVerfuegbar", ladefehler: fehler === "ladefehler", nochmal };
 }

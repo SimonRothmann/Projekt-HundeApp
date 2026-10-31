@@ -1,3 +1,5 @@
+import { automatischePunkte } from "@/lib/geo";
+import { heuteIso, tageBis } from "@/lib/kalendertag";
 import { istMantrailing, MANTRAILING_CODE } from "@/lib/mantrailing";
 import type { GpsTrack, Sport } from "@/lib/types";
 
@@ -61,7 +63,7 @@ export type OffeneFaehrte = {
  * automatischen Punkt (mit gültiger Zeit) hat.
  */
 export function legeEnde(track: Pick<GpsTrack, "points">): Date | null {
-  const automatisch = track.points.filter((p) => p.pointType !== 1);
+  const automatisch = automatischePunkte(track.points);
   const letzter = automatisch[automatisch.length - 1];
   if (!letzter) return null;
   const ende = new Date(letzter.timestamp);
@@ -69,25 +71,9 @@ export function legeEnde(track: Pick<GpsTrack, "points">): Date | null {
 }
 
 /**
- * Gelegte Fährten ohne Ablauf, in Legereihenfolge.
- *
- * Das Alter zählt ab dem Ende des Legens, nicht ab dem Beginn: ab da altert
- * der letzte Abschnitt, und bei zwanzig Minuten Legezeit ist der Unterschied
- * erheblich.
+ * So lange nach dem Ende des Legens kann eine Fährte noch abgelaufen werden
+ * (Ablauffristen im Backend; backend-kopplung.test.ts prüft beide Zahlen).
  */
-export function nichtAbgelaufeneFaehrten(tracks: GpsTrack[], jetzt: number = Date.now()): OffeneFaehrte[] {
-  return tracks
-    .filter((track) => track.walkRuns.length === 0)
-    .map((track) => {
-      const gelegtBis = legeEnde(track);
-      if (!gelegtBis) return null;
-      return { track, gelegtBis, alterMinuten: Math.max(0, Math.round((jetzt - gelegtBis.getTime()) / 60000)) };
-    })
-    .filter((f): f is OffeneFaehrte => f !== null)
-    .sort((a, b) => a.gelegtBis.getTime() - b.gelegtBis.getTime());
-}
-
-/** So lange nach dem Ende des Legens kann eine Fährte noch abgelaufen werden. */
 export const ABLAUF_FRIST_STUNDEN = 24;
 
 /**
@@ -112,4 +98,35 @@ export function kannNochAblaufen(track: Pick<GpsTrack, "points" | "kind">, jetzt
   if (!ende) return false;
   const frist = istMantrailing(track) ? ABLAUF_FRIST_STUNDEN_TRAIL : ABLAUF_FRIST_STUNDEN;
   return jetzt - ende.getTime() <= frist * 60 * 60 * 1000;
+}
+
+/**
+ * Gelegte Fährten ohne Ablauf, die sich noch ablaufen lassen, in Legereihenfolge.
+ *
+ * Das Alter zählt ab dem Ende des Legens, nicht ab dem Beginn: ab da altert
+ * der letzte Abschnitt, und bei zwanzig Minuten Legezeit ist der Unterschied
+ * erheblich. Die Frist ist dieselbe wie für "Erneut ablaufen"
+ * ({@link kannNochAblaufen}): Der Server liefert die noch suchbaren Spuren
+ * (Ablauffristen im Backend), ein Zwischenspeicher der Startseite kann aber
+ * älter sein als die Frist.
+ */
+export function nichtAbgelaufeneFaehrten(tracks: GpsTrack[], jetzt: number = Date.now()): OffeneFaehrte[] {
+  return tracks
+    .filter((track) => track.walkRuns.length === 0 && kannNochAblaufen(track, jetzt))
+    .map((track) => {
+      const gelegtBis = legeEnde(track);
+      if (!gelegtBis) return null;
+      return { track, gelegtBis, alterMinuten: Math.max(0, Math.round((jetzt - gelegtBis.getTime()) / 60000)) };
+    })
+    .filter((f): f is OffeneFaehrte => f !== null)
+    .sort((a, b) => a.gelegtBis.getTime() - b.gelegtBis.getTime());
+}
+
+/**
+ * Wie viele Kalendertage (auf dem Gerät) das Ende des Legens zurückliegt:
+ * 0 = heute, 1 = gestern. Die Karte "Zuletzt gelegt" sagt damit, ob eine
+ * Fährte von heute ist oder die Übernachtfährte von gestern.
+ */
+export function tageSeitLegen(gelegtBis: Date, jetzt: number = Date.now()): number {
+  return tageBis(heuteIso(jetzt), heuteIso(gelegtBis.getTime()));
 }

@@ -61,6 +61,41 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.47",
+    datum: "2026-11-01",
+    titel: uebersetzbar("Spuren bleiben sichtbar"),
+    aenderungen: [
+      {
+        art: "behoben",
+        text: uebersetzbar("Gelegte Fährten und Trails bleiben auf der Startseite stehen, solange du sie noch suchen kannst: eine Fährte bis 24 Stunden, ein Trail bis 48 Stunden nach dem Legen. Über Nacht verschwanden sie vorher. Der Abschnitt heißt dann „Zuletzt gelegt“ und sagt dazu, wann die Spur gelegt wurde."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Das Fenster zum Ergebnis eines Trails ließ sich nicht schließen, wenn der Trail länger als eine Woche gelegen hatte. Der Vorschlag fürs Trailalter bleibt jetzt leer, wenn er über der erlaubten Zeit liegt."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Datumsangaben stimmen jetzt auch außerhalb Mitteleuropas: Prüfungstermine, Trainingstage und Geburtstage standen auf Geräten in anderen Zeitzonen manchmal einen Tag zu früh."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Lädt die Startseite, eine Gruppe oder die Liste der Sportarten wegen einer schlechten Verbindung nicht, steht dort jetzt ein Hinweis mit „Erneut versuchen“ – statt einer leeren Seite oder der falschen Aussage, es gebe nichts."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Trainer:innen sehen bei Terminen anderer Gruppen nur noch, was sie dort tun dürfen: Bearbeiten, Absagen und Löschen erscheinen nur bei Terminen ihrer eigenen Gruppen."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Betreuungen eines Hundes enden, wenn die Vereinsrolle der Trainer:in wegfällt."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Wochen eines Trainingsplans beginnen um Mitternacht – nicht erst zur Uhrzeit, zu der der Plan angelegt wurde. Am Wochenwechsel zeigt die App die neue Woche jetzt schon morgens."),
+      },
+    ],
+  },
+  {
     version: "0.46",
     datum: "2026-10-31",
     titel: uebersetzbar("Mantrailing"),

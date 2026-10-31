@@ -1,8 +1,8 @@
 import { api, ApiError, istVoruebergehendUnerreichbar } from "@/lib/api";
-import { estimateLengthMeters } from "@/lib/geo";
+import { estimateLengthMeters, markerPunkte } from "@/lib/geo";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { ART_MANTRAILING, type TrailAngabenVorLegen } from "@/lib/mantrailing";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 import { untergrundAlsText } from "@/lib/untergrund";
 import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 
@@ -217,7 +217,7 @@ export function wirdAngezeigt(schluessel: string) {
 
 /** Anzahl der Marker (Gegenstände, Leckerlipots, ...) einer Sicherung. */
 export function markerAnzahl(sicherung: AufzeichnungsSicherung) {
-  return sicherung.art === "faehrte" ? sicherung.points.filter((p) => p.pointType === 1).length : 0;
+  return sicherung.art === "faehrte" ? markerPunkte(sicherung.points).length : 0;
 }
 
 /**

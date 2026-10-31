@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
-import { jahreZurueck, MAX_HUNDEALTER_JAHRE, pruefeAnmeldung, tagDerAnmeldung, wurftagVorschlag } from "@/lib/anmeldung";
+import { MAX_HUNDEALTER_JAHRE, pruefeAnmeldung, tagDerAnmeldung, wurftagVorschlag } from "@/lib/anmeldung";
 import { anmeldeFehlerSatz } from "@/lib/anmeldung-texte";
 import { useT } from "@/lib/i18n";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso, plusJahre } from "@/lib/kalendertag";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import type { GroupRegistration } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -164,7 +164,7 @@ function Formular({
               id="reg-wurftag"
               type="date"
               value={eingabe.wurftag}
-              min={jahreZurueck(referenz, MAX_HUNDEALTER_JAHRE)}
+              min={plusJahre(referenz, -MAX_HUNDEALTER_JAHRE)}
               max={heute}
               onChange={(e) => patch({ wurftag: e.target.value })}
               // Wie im öffentlichen Formular: leer angetippt, 8 Wochen zurück vorschlagen.

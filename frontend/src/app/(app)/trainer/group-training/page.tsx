@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Club, GroupTrainingCategory, GroupTrainingExercise, GroupTrainingLibrary } from "@/lib/types";
+import { GROUP_EXAM, type Club, type GroupTrainingCategory, type GroupTrainingExercise, type GroupTrainingLibrary } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,12 +19,7 @@ const CATS: GroupTrainingCategory[] = [0, 1, 2];
 const categoryLabel: Record<GroupTrainingCategory, string> = { 0: uebersetzbar("Welpen"), 1: uebersetzbar("Junghunde"), 2: uebersetzbar("Basis") };
 const categoryVariant: Record<GroupTrainingCategory, "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
 
-const EXAM_FLAGS: { bit: number; label: string }[] = [
-  { bit: 1, label: "BH" },
-  { bit: 2, label: "IBGH1" },
-  { bit: 4, label: "IBGH2" },
-  { bit: 8, label: "IBGH3" },
-];
+const EXAM_FLAGS: { bit: number; label: string }[] = Object.entries(GROUP_EXAM).map(([label, bit]) => ({ bit, label }));
 const examLabels = (mask: number) => EXAM_FLAGS.filter((f) => (mask & f.bit) !== 0).map((f) => f.label);
 
 const textareaClass =

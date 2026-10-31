@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ampelLabel } from "@/components/tracking/walk-run-evaluation";
-import { ampelStufe, baueBildTexte, faehrtenKennzahlen, faerbeSegmente } from "./faehrten-bild";
+import { ampelLabel, ampelStufe } from "./spur-ampel";
+import { baueBildTexte, faehrtenKennzahlen, faerbeSegmente } from "./faehrten-bild";
 import { ABLAUF_FRIST_STUNDEN, ABLAUF_FRIST_STUNDEN_TRAIL, kannNochAblaufen, spurArten } from "./faehrte";
 import { uebersetze } from "./i18n";
 import { ablaufDaten, DEVIATION_COLORS, deviationColor } from "./karte/spur-daten";

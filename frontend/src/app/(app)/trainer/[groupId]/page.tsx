@@ -6,6 +6,7 @@ import { Settings } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { ANSICHT_PARAMETER, waehleAnsicht, type GruppenAnsicht } from "@/lib/gruppen-ansicht";
 import { useGroupDetail } from "@/lib/use-group-detail";
+import { GruppeNichtGeladen } from "@/components/trainer/gruppe-nicht-geladen";
 import { useGroupRegistrations } from "@/lib/use-group-registrations";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -31,15 +32,11 @@ export default function TrainerGroupPage() {
   const router = useRouter();
   const pathname = usePathname();
   const suchparameter = useSearchParams();
-  const { detail, laden, fehlgeschlagen } = useGroupDetail(groupId);
+  const { detail, laden, fehlgeschlagen, ladefehler, nochmal } = useGroupDetail(groupId);
   const anmeldungen = useGroupRegistrations(groupId);
 
   if (detail === null) {
-    return (
-      <p className="break-words text-muted-foreground">
-        {fehlgeschlagen ? t("Diese Gruppe kannst du nicht öffnen: Es gibt sie nicht mehr, oder sie gehört nicht zu deinen Gruppen.") : t("Lädt…")}
-      </p>
-    );
+    return <GruppeNichtGeladen fehlgeschlagen={fehlgeschlagen} ladefehler={ladefehler} onNochmal={nochmal} />;
   }
 
   const mitglieder = detail.members.length;

@@ -8,6 +8,7 @@ import { BlockLabel } from "@/components/ui/block-label";
 import { TrackMap, TrackLegend } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 import { kannNochAblaufen } from "@/lib/faehrte";
+import { automatischePunkte } from "@/lib/geo";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
 import { WalkRunComment } from "@/components/tracking/walk-run-comment";
@@ -28,7 +29,7 @@ import { ortsformat } from "@/lib/ortsformat";
 // nicht die manuell gesetzten Marker (die tragen ggf. einen späteren
 // Zeitstempel und würden die Legezeit verzerren).
 function trackTimes(points: GpsPoint[]): { start: Date; end: Date; durationMs: number } | null {
-  const auto = points.filter((p) => p.pointType !== 1);
+  const auto = automatischePunkte(points);
   if (auto.length < 2) return null;
   const start = new Date(auto[0].timestamp);
   const end = new Date(auto[auto.length - 1].timestamp);

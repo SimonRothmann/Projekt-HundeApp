@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
+import { tagAlsDatum } from "@/lib/kalendertag";
 
 const statusLabel: Record<Goal["status"], string> = { 0: uebersetzbar("Aktiv"), 1: uebersetzbar("Erreicht"), 2: uebersetzbar("Beendet") };
 const statusVariant: Record<Goal["status"], "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
@@ -89,7 +90,7 @@ export function GoalPlanCard({
         <div className="min-w-0">
           <CardTitle className="text-base break-words">{pruefungsName(goal, sprache)}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {t("Ziel: {datum}", { datum: new Date(goal.targetDate).toLocaleDateString(ort) })}
+            {t("Ziel: {datum}", { datum: tagAlsDatum(goal.targetDate).toLocaleDateString(ort) })}
             {aktiv && ` · ${restzeitText(t, tageBisPruefung(goal.targetDate))}`}
           </p>
           {!aktiv && (

@@ -478,3 +478,11 @@ Punkt 1 lässt sich vorab ausliefern, 2 und 3 gehören zusammen.
    der Hund führt: Wer doch aufs Display schaut, soll dasselbe sehen, und
    zwei getrennte Ansichten wären zwei Stellen zum Pflegen.
 3. Die Ausrichtung wird **pro Nutzer gemerkt** (`UserPreferences`).
+
+## Filter: Legen und Ablaufen (2026-10-31)
+
+Das Legen filtert streng (8 m, bis 20 m gelockert, Kalman-Glättung), der
+Ablauf läuft bewusst mit den Standardwerten (25 m, ohne Glättung), bis ein
+Feldtest anderes zeigt: strengere Filter könnten bei schlechtem Empfang leere
+Läufe ergeben. Beide Profile stehen mit den Farbgrenzen der Genauigkeitsanzeige
+in `frontend/src/lib/gps-profil.ts`.

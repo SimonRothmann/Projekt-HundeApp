@@ -1,6 +1,8 @@
 import type { GpsWalkRun } from "@/lib/types";
+import { automatischePunkte, markerPunkte } from "@/lib/geo";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { FAEHRTE_GRENZEN, type SpurGrenzen } from "@/lib/mantrailing";
+import { AMPEL_FARBEN, ampelStufe } from "@/lib/spur-ampel";
 
 /**
  * Die Fährte als GeoJSON für die Karte.
@@ -13,7 +15,7 @@ import { FAEHRTE_GRENZEN, type SpurGrenzen } from "@/lib/mantrailing";
 
 // Kompatibel zu sowohl GpsPoint (pointType/label gesetzt) als auch
 // GpsWalkPoint (kennt beide Felder nicht - zählt dann automatisch als
-// "automatischer Punkt", siehe pointType !== 1 unten).
+// "automatischer Punkt", siehe automatischePunkte in lib/geo.ts).
 export type KartenPunkt = {
   latitude: number;
   longitude: number;
@@ -63,17 +65,13 @@ export const WALK_RUN_COLORS = ["#3b82f6", "#14b8a6", "#6366f1", "#06b6d4"];
 export const TRACK_LINE_COLOR = "#e11dde";
 export const TRACK_CASING_COLOR = "#1e1b2e";
 
-// Ampelfarben für die Abweichung der Ablauf-Linie. Die Schwellen sind die der
-// Auswertung (walk-run-evaluation.tsx, identisch zum GpsTrackEvaluator im
-// Backend) - dieselben Zahlen, damit Karte, Auswertung und Fährtenbild nie
-// verschiedene Farben für denselben Ablauf zeigen.
-export const DEVIATION_COLORS = { green: "#16a34a", amber: "#d97706", red: "#dc2626" } as const;
+// Ampelfarben für die Abweichung der Ablauf-Linie: die Farbtabelle und die
+// Einstufung der Auswertung (lib/spur-ampel.ts), damit Karte, Auswertung und
+// Fährtenbild nie verschiedene Farben für denselben Ablauf zeigen.
+export const DEVIATION_COLORS = { green: AMPEL_FARBEN.gruen, amber: AMPEL_FARBEN.gelb, red: AMPEL_FARBEN.rot } as const;
 
 export function deviationColor(meters: number | null | undefined, grenzen: SpurGrenzen = FAEHRTE_GRENZEN): string | null {
-  if (meters == null) return null;
-  if (meters <= grenzen.gruenBis) return DEVIATION_COLORS.green;
-  if (meters <= grenzen.gelbBis) return DEVIATION_COLORS.amber;
-  return DEVIATION_COLORS.red;
+  return meters == null ? null : AMPEL_FARBEN[ampelStufe(meters, grenzen)];
 }
 
 // Beschriftung manueller Marker nach fachlicher Bedeutung (GpsMarkerType).
@@ -131,8 +129,8 @@ export type LegungDaten = {
  * Linienführung verzerren.
  */
 export function legungDaten(points: KartenPunkt[], live: boolean, t: TextUebersetzer): LegungDaten {
-  const automatisch = points.filter((p) => p.pointType !== 1);
-  const manuell = points.filter((p) => p.pointType === 1);
+  const automatisch = automatischePunkte(points);
+  const manuell = markerPunkte(points);
 
   const enden: Merkmal<Punkt>[] = [];
   if (automatisch.length > 0) {

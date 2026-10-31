@@ -27,12 +27,33 @@ export function bearingDegrees(a: Coordinate, b: Coordinate): number {
   return ((θ * 180) / Math.PI + 360) % 360;
 }
 
-// pointType 1 = manuell gesetzter Marker (siehe GpsPointType in lib/types.ts) -
-// liegt i.d.R. nicht exakt auf der gelaufenen Linie und würde die
-// Distanzschätzung verzerren. GpsWalkPoint kennt kein pointType-Feld (immer
-// undefined), dort gehen folglich alle Punkte in die Schätzung ein.
+/**
+ * Die Art eines GPS-Punkts (GpsPointType im Backend, GpsPoint.pointType): 0 =
+ * automatisch aufgezeichnet, 1 = von Hand gesetzter Marker. Ein Marker liegt
+ * i.d.R. nicht exakt auf der gelaufenen Linie und gehört nicht in Länge,
+ * Fährtenalter oder Linie. GpsWalkPoint kennt kein pointType-Feld (immer
+ * undefined) - dort zählt jeder Punkt als automatisch. Die EINE Stelle für diese
+ * Unterscheidung.
+ */
+export const PUNKT_AUTOMATISCH = 0;
+export const PUNKT_MARKER = 1;
+
+type MitPunktart = { pointType?: number };
+
+export const istMarker = (p: MitPunktart): boolean => p.pointType === PUNKT_MARKER;
+
+/** Die Punkte der gelaufenen Linie: alles außer den Markern, in der Reihenfolge der Eingabe. */
+export function automatischePunkte<T extends MitPunktart>(punkte: readonly T[]): T[] {
+  return punkte.filter((p) => !istMarker(p));
+}
+
+/** Die von Hand gesetzten Marker, in der Reihenfolge der Eingabe. */
+export function markerPunkte<T extends MitPunktart>(punkte: readonly T[]): T[] {
+  return punkte.filter(istMarker);
+}
+
 export function estimateLengthMeters(points: (Coordinate & { pointType?: number })[]): number {
-  const automaticPoints = points.filter((p) => p.pointType !== 1);
+  const automaticPoints = automatischePunkte(points);
   let total = 0;
   for (let i = 1; i < automaticPoints.length; i++) {
     total += haversineMeters(automaticPoints[i - 1], automaticPoints[i]);

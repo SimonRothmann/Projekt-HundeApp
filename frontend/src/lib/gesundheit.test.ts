@@ -8,7 +8,6 @@ import {
   gliedere,
   hinweiseFuerHund,
   naechstes,
-  plusMonate,
   pruefeEintrag,
   schnellwahlen,
   terminText,
@@ -83,13 +82,6 @@ describe("Schnellwahl", () => {
 
   it("der 29.2. im Schaltjahr fällt im Folgejahr auf den 28.2.", () => {
     expect(faelligNach("2028-02-29", { label: "", jahre: 1 })).toBe("2029-02-28");
-  });
-
-  it("plusMonate hält sich an das Monatsende", () => {
-    expect(plusMonate("2026-11-30", 3)).toBe("2027-02-28");
-    expect(plusMonate("2026-10-31", 1)).toBe("2026-11-30");
-    expect(plusMonate("2026-11-15", 3)).toBe("2027-02-15");
-    expect(plusMonate("2026-12-15", 1)).toBe("2027-01-15");
   });
 });
 

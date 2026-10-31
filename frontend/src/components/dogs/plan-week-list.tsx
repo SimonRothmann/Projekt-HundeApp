@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
+import { tagAlsDatum } from "@/lib/kalendertag";
 
 // Warum der adaptive Generator eine Übung geplant hat (siehe PlanItemReason).
 const reasonLabel: Record<PlanItemReason, string> = { 0: uebersetzbar("Schwäche"), 1: uebersetzbar("Wiederholung"), 2: uebersetzbar("Neu") };
@@ -124,7 +125,7 @@ function PlanUebung({
             // (Mobile-App-first, kein horizontaler Scroll).
             <li key={log.trainingExerciseId} className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
               <span className="whitespace-nowrap">
-                {new Date(log.date).toLocaleDateString(ort)} · {"★".repeat(log.rating)}
+                {tagAlsDatum(log.date).toLocaleDateString(ort)} · {"★".repeat(log.rating)}
                 {"☆".repeat(5 - log.rating)} {log.success ? "✓" : "✗"}
               </span>{" "}
               <ExerciseNotes

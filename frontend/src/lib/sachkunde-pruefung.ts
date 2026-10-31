@@ -14,6 +14,13 @@ import type {
  * Prüfung gar nicht.
  */
 
+/**
+ * Punkte je richtige Antwort - und Abzug je falsch angekreuzte. Nur für Texte;
+ * gewertet wird im Backend (SachkundePruefung.PunkteJeAntwort, gekoppelt in
+ * backend-kopplung.test.ts). Die Bestehensgrenze liefert der Server mit.
+ */
+export const PUNKTE_JE_ANTWORT = 2;
+
 /** Alle Antworten einer Prüfung, nach Frage-Id. Fehlt ein Eintrag, ist die Frage offen. */
 export type Antworten = Record<string, QuizExamAnswer>;
 

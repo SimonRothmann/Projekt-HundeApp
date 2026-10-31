@@ -1,3 +1,4 @@
+import { automatischePunkte } from "@/lib/geo";
 import type { GpsTrack, TrainingSession } from "@/lib/types";
 
 /**
@@ -71,7 +72,7 @@ export function faehrteWetterOffen(
   spur: Pick<GpsTrack, "points" | "walkRuns" | "laidTemperatureC" | "searchTemperatureC">,
 ): boolean {
   // Manuelle Marker (Typ 1) zählen nicht - der Server fragt nach dem ersten automatischen Punkt.
-  const gelegt = spur.points.some((p) => p.pointType !== 1);
+  const gelegt = automatischePunkte(spur.points).length > 0;
   if (!gelegt) return false;
   if (spur.laidTemperatureC == null) return true;
   // Das Suchen-Wetter fragt der Server nach dem ersten Punkt eines Ablaufs.

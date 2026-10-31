@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { morgenIso, pruefungsName } from "@/lib/pruefung";
+import { morgenIso, pruefeNeuenTermin, pruefungsName } from "@/lib/pruefung";
 import { vorschlagZieldatum } from "@/lib/pausen";
 import { useSprache, useT } from "@/lib/i18n";
 
@@ -48,7 +48,7 @@ export function ZieldatumHinweis({
     setOffen(true);
   }
 
-  const fehler = datum === "" ? t("Bitte den neuen Prüfungstermin angeben.") : datum < morgenIso() ? t("Der neue Termin muss in der Zukunft liegen.") : null;
+  const fehler = pruefeNeuenTermin(t, datum);
 
   async function speichern() {
     if (fehler) return;

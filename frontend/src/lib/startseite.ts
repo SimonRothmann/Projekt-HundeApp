@@ -1,5 +1,6 @@
 import type { Dog, DogPause, Goal, GroupTrainingSession, OffenesFeedback, TrainingPlanItem } from "@/lib/types";
-import { heuteIso, tageBisPruefung } from "@/lib/pruefung";
+import { fruehestesZiel, laufendeZiele, tageBisPruefung } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 import { aktuellePause } from "@/lib/pausen";
 import { offeneWochenziele, wochenFortschritt } from "@/lib/trainingsplan";
 
@@ -130,8 +131,8 @@ export function zielAufteilung(
       continue;
     }
 
-    const laufende = aktive.filter((g) => tageBisPruefung(g.targetDate, jetzt) >= 0);
-    const naechstes = laufende.reduce<Goal | null>((bestes, g) => (bestes === null || g.targetDate < bestes.targetDate ? g : bestes), null);
+    const laufende = laufendeZiele(aktive, jetzt);
+    const naechstes = fruehestesZiel(laufende);
     if (naechstes) {
       karten.push({
         hund: dog,

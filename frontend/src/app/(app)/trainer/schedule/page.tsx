@@ -27,7 +27,7 @@ import { einladbareGruppen } from "@/lib/beitrittsfreigabe";
 import { useSprache, useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { ortsformat } from "@/lib/ortsformat";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 import { serieStandardEnde, wochentagVon } from "@/lib/termin-serie";
 const CATS: GroupTrainingCategory[] = [0, 1, 2];
 const categoryLabel: Record<GroupTrainingCategory, string> = { 0: uebersetzbar("Welpen"), 1: uebersetzbar("Junghunde"), 2: uebersetzbar("Basis") };
@@ -35,9 +35,6 @@ const categoryVariant: Record<GroupTrainingCategory, "default" | "secondary" | "
 
 const textareaClass =
   "w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/85 dark:focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
-
-// Kalendertag auf dem Gerät (nicht UTC), sonst steht nach Mitternacht noch "gestern" im Formular.
-const todayIso = () => heuteIso();
 
 type ContentDraft = { key: string; exerciseId: string | null; freeText: string | null };
 let draftSeq = 0;
@@ -68,13 +65,13 @@ const emptyForm = (): Form => ({
   mode: "series", // Vereinstrainings laufen meist wöchentlich – Serie als Default
   groupId: "",
   category: 0,
-  date: todayIso(),
+  date: heuteIso(),
   time: "18:00",
   // Serie vorbelegt: Beginn heute, Wochentag des Beginns, Ende nach zwölf Wochen -
   // sonst stünde dort "heute bis heute" und ergäbe meist null Termine.
-  weekday: wochentagVon(todayIso()) ?? 2,
-  fromDate: todayIso(),
-  toDate: serieStandardEnde(todayIso()),
+  weekday: wochentagVon(heuteIso()) ?? 2,
+  fromDate: heuteIso(),
+  toDate: serieStandardEnde(heuteIso()),
   durationMinutes: "60",
   location: "",
   notes: "",
@@ -117,7 +114,7 @@ export default function SchedulePage() {
 
   const loadSchedule = useCallback(async () => {
     if (!clubId) return;
-    const params = new URLSearchParams({ from: todayIso() });
+    const params = new URLSearchParams({ from: heuteIso() });
     if (filterGroup) params.set("groupId", filterGroup);
     if (mineOnly) params.set("mineOnly", "true");
     try {
@@ -197,8 +194,8 @@ export default function SchedulePage() {
       date: heuteIso(d.getTime()),
       time: d.toTimeString().slice(0, 5),
       weekday: d.getDay(),
-      fromDate: todayIso(),
-      toDate: todayIso(),
+      fromDate: heuteIso(),
+      toDate: heuteIso(),
       durationMinutes: String(s.durationMinutes),
       location: s.location ?? "",
       notes: s.notes ?? "",
@@ -582,11 +579,14 @@ export default function SchedulePage() {
                         ))}
                       </ol>
                     )}
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" size="sm" variant="outline" onClick={() => openEdit(s)}><Pencil className="size-3.5" />{t("Bearbeiten")}</Button>
-                      {s.status === 0 && <Button type="button" size="sm" variant="ghost" onClick={() => cancelSession(s)}>{t("Absagen")}</Button>}
-                      <Button type="button" size="sm" variant="ghost" onClick={() => deleteSession(s)}><Trash2 className="size-3.5 text-muted-foreground" />{t("Löschen")}</Button>
-                    </div>
+                    {/* Termine fremder Gruppen (als Termin-Trainer:in eingetragen) bleiben ohne Knöpfe: der Server ließe sie nicht zu. */}
+                    {s.kannVerwalten && (
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" size="sm" variant="outline" onClick={() => openEdit(s)}><Pencil className="size-3.5" />{t("Bearbeiten")}</Button>
+                        {s.status === 0 && <Button type="button" size="sm" variant="ghost" onClick={() => cancelSession(s)}>{t("Absagen")}</Button>}
+                        <Button type="button" size="sm" variant="ghost" onClick={() => deleteSession(s)}><Trash2 className="size-3.5 text-muted-foreground" />{t("Löschen")}</Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}

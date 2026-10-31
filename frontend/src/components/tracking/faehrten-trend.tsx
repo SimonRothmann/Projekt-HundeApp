@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { api } from "@/lib/api";
 import type { DogTrackStats } from "@/lib/types";
-import { ampelStufe, type Ampel } from "@/lib/faehrten-bild";
+import { ampelStufe, type Ampel } from "@/lib/spur-ampel";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat, zahlText } from "@/lib/ortsformat";
 import { cn } from "@/lib/utils";
+import { tagAlsDatum } from "@/lib/kalendertag";
 
 // Bewertungstrend als Pfeil: steigend (grün) / fallend (rot) / stabil.
 // null (zu wenige Durchgänge) rendert nichts.
@@ -134,7 +135,7 @@ export function FaehrtenTrend({
   // Ein Satz für beide Darstellungen, damit Tooltips nicht auseinanderlaufen.
   const tooltip = (run: (typeof runs)[number]) =>
     t("{datum}: Ø {meter} m · {prozent} % auf der Fährte", {
-      datum: new Date(run.date).toLocaleDateString(datumFormat),
+      datum: tagAlsDatum(run.date).toLocaleDateString(datumFormat),
       meter: Math.round(run.avgDeviationMeters),
       prozent: Math.round(run.onTrackPercent),
     });

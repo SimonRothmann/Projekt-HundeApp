@@ -14,8 +14,9 @@ namespace Dogity.Application.Onboarding;
 /// </param>
 /// <param name="IsComplete">
 /// Die Festlegung, wann der Erststart erledigt ist: ein Hund UND (ein Training ODER
-/// eine Gruppe). Maßgeblich ist diese Regel (siehe docs/ERSTSTART.md); die Karte im
-/// Frontend entscheidet bisher nach eigener Zeitregel (lib/erststart.ts).
+/// eine Gruppe). Maßgeblich ist diese Regel (siehe docs/ERSTSTART.md); das Frontend
+/// liest dieses Feld, nur wie lange die Gabelung nach dem Erledigen steht, regelt
+/// lib/erststart.ts (GABELUNG_TAGE).
 /// </param>
 /// <param name="HasPendingClubRequest">
 /// Beitrittsanfrage gestellt, aber noch nicht freigegeben. Wichtig für die

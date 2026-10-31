@@ -30,11 +30,13 @@ Training oft erst nach dem ersten Gruppentraining ein — und wer allein
 trainiert, wird nie einem Verein beitreten.
 
 **Wer das entscheidet:** Diese Festlegung führt das Backend
-(`OnboardingService`, Feld `isComplete`); sie ist maßgeblich. Die Gabelung auf
-der Startseite (`lib/erststart.ts`) erscheint heute erst nach dem ersten
-Training, nur solange noch kein Weg gegangen wurde und nur in den ersten sieben
-Tagen danach — eine Zeitregel, die allein im Frontend steht und das Feld noch
-nicht liest.
+(`OnboardingService`, Feld `isComplete`); sie ist maßgeblich. Die Startseite
+(`lib/erststart.ts`) liest das Feld und legt keine eigene Auslegung von
+„erledigt" daneben. Eine Regel bleibt im Frontend, weil sie etwas anderes
+regelt: **wie lange die Gabelung nach dem Erledigen noch steht**. Sie erscheint
+erst nach dem ersten Training, nur solange noch kein Weg gegangen wurde und nur
+in den ersten sieben Tagen danach (`GABELUNG_TAGE`) — eine Frage der Anzeige,
+nicht des Fortschritts.
 
 ## Trainer:innen gehören dazu
 

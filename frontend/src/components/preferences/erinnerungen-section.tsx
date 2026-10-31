@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
 import {
+  GESUNDHEIT_VORLAUF_TAGE,
   STUNDEN,
   WOCHENTAGE,
   gueltigeStunde,
@@ -93,7 +94,7 @@ export function ErinnerungenSection() {
             disabled={speichert}
             onChange={(an) => void speichern({ health: an })}
             titel={t("Gesundheit: Impfungen, Entwurmung, Tierarzt")}
-            beschreibung={t("14 Tage vor Ablauf und am Tag selbst, Tierarzttermine am Vortag ab 18 Uhr")}
+            beschreibung={t("{tage} Tage vor Ablauf und am Tag selbst, Tierarzttermine am Vortag ab 18 Uhr", { tage: GESUNDHEIT_VORLAUF_TAGE })}
           />
         )}
         {isTrainer && (

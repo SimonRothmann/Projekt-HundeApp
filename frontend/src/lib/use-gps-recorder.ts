@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { aufzeichnungBeendet, aufzeichnungGestartet } from "@/lib/api";
 import { haversineMeters } from "@/lib/geo";
+import { MIN_ABSTAND_METER, type GpsProfil } from "@/lib/gps-profil";
 import { uebersetzeAktuell } from "@/lib/i18n";
 import { kalmanInit, kalmanStep, type KalmanState } from "@/lib/kalman";
 
@@ -18,35 +19,8 @@ const GPS_MAX_POSITION_AGE_MS = 1000;
 // aktuelle Position, und der Aufruf ist einmalig statt kontinuierlich.
 const MARK_POINT_MAX_POSITION_AGE_MS = 0;
 
-// Standardwerte - können pro Aufzeichnungstyp überschrieben werden.
-const DEFAULT_MAX_ACCURACY_METERS = 25;
-const DEFAULT_MIN_DISTANCE_METERS = 2;
-
-export type GpsRecorderOptions = {
-  // Punkte mit größerem Fehlerkreis werden verworfen. Kleiner = genauer, aber
-  // längere Wartezeit beim Kaltstart bis die Aufzeichnung erste Punkte liefert.
-  maxAccuracyMeters?: number;
-  // Obergrenze für die adaptive Lockerung des Genauigkeitsfilters. Ohne Netz
-  // (kein aGPS, keine WLAN-Ortung) konvergiert der GPS-Chip oft nur bis
-  // 10-20 m - ein harter 8m-Filter würde dann NIE einen Punkt akzeptieren
-  // und die Aufzeichnung bliebe komplett leer. Deshalb: startet der Filter
-  // bei maxAccuracyMeters und wird, wenn RELAX_AFTER_MS lang kein Punkt
-  // akzeptiert wurde, schrittweise bis zu dieser Obergrenze gelockert. Der
-  // Kalman-Filter gewichtet die schlechteren Messungen ohnehin schwächer -
-  // ein leicht verrauschter Track ist besser als gar keiner.
-  // Default: identisch zu maxAccuracyMeters (keine Lockerung).
-  relaxedMaxAccuracyMeters?: number;
-  // Mindestabstand; eliminiert GPS-Rauschen im Stillstand.
-  minDistanceMeters?: number;
-  // Kalman-Filter: adaptiv gewichtete Positionsglättung. Im Gegensatz zu EMA
-  // variiert das Gewicht pro Messung abhängig von der gemeldeten GPS-Genauigkeit:
-  // schlechte Messung → weniger Gewicht (stärker geglättet), gute Messung →
-  // mehr Gewicht. Besser als EMA für Präzisionsanwendungen (z.B. Fährte).
-  kalman?: boolean;
-};
-
 // Nach so vielen ms ohne akzeptierten Punkt beginnt die Lockerung des
-// Genauigkeitsfilters (sofern relaxedMaxAccuracyMeters > maxAccuracyMeters).
+// Genauigkeitsfilters (sofern relaxedMaxAccuracyMeters > maxAccuracyMeters, siehe lib/gps-profil.ts).
 const RELAX_AFTER_MS = 15_000;
 // Pro weiterem Intervall dieser Länge wird der Schwellwert um 1 m gelockert,
 // bis relaxedMaxAccuracyMeters erreicht ist. Beispiel Fährte (8 m → 20 m):
@@ -83,14 +57,9 @@ function withSmoothedCoords(
  */
 export function useGpsRecorder<T>(
   toPoint: (position: GeolocationPosition) => T,
-  options: GpsRecorderOptions = {},
+  profil: GpsProfil,
 ) {
-  const {
-    maxAccuracyMeters = DEFAULT_MAX_ACCURACY_METERS,
-    relaxedMaxAccuracyMeters = maxAccuracyMeters,
-    minDistanceMeters = DEFAULT_MIN_DISTANCE_METERS,
-    kalman = false,
-  } = options;
+  const { maxAccuracyMeters, relaxedMaxAccuracyMeters, kalman } = profil;
 
   const [isRecording, setIsRecording] = useState(false);
   const [points, setPoints] = useState<T[]>([]);
@@ -200,7 +169,7 @@ export function useGpsRecorder<T>(
     const last = lastRecordedRef.current;
     if (
       last !== null &&
-      haversineMeters(last, { latitude: smoothedLat, longitude: smoothedLon }) < minDistanceMeters
+      haversineMeters(last, { latitude: smoothedLat, longitude: smoothedLon }) < MIN_ABSTAND_METER
     ) {
       return;
     }

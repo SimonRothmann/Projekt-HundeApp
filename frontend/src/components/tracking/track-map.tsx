@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EBENE_GEAENDERT, KARTEN_EBENEN, ebeneMerken, gespeicherteEbene, type KartenEbene } from "@/lib/karten-ebenen";
 import type { GpsWalkRun } from "@/lib/types";
 import { useT } from "@/lib/i18n";
+import { automatischePunkte } from "@/lib/geo";
 import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
 import { kartenTexte } from "@/lib/karte/kartentexte";
 import { glaettePeilung, naechsteAusrichtung, rohePeilung, zielPeilung, type Ausrichtung } from "@/lib/karte/peilung";
@@ -485,7 +486,7 @@ export function TrackMap({
     const map = mapRef.current;
     if (!mapReady || !map || !isLive) return;
 
-    const quelle = hasLiveWalkRun && liveWalkRunPoints ? liveWalkRunPoints : points.filter((p) => p.pointType !== 1);
+    const quelle = hasLiveWalkRun && liveWalkRunPoints ? liveWalkRunPoints : automatischePunkte(points);
     const letzter = quelle[quelle.length - 1];
     if (!letzter) return;
 
@@ -533,7 +534,7 @@ export function TrackMap({
     if (!mapReady || !map || !maplibre) return;
 
     const d = liveAblaufDaten(liveWalkRunPoints, walkRuns.length, t);
-    const legung = live ? points.filter((p) => p.pointType !== 1) : [];
+    const legung = live ? automatischePunkte(points) : [];
     const legungsEnde = legung.length > 0 ? legung[legung.length - 1] : null;
     const ziel: [number, number] | null =
       d.letzter ?? (legungsEnde ? [legungsEnde.longitude, legungsEnde.latitude] : null);

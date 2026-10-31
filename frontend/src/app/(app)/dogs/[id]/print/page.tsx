@@ -14,6 +14,7 @@ import { ortsformat } from "@/lib/ortsformat";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { groupByWeek, istPausenwoche, planItemName } from "@/lib/trainingsplan";
 import { katalogName, uebungName } from "@/lib/katalog-name";
+import { tagAlsDatum } from "@/lib/kalendertag";
 
 const GOAL_STATUS_LABEL: Record<number, string> = { 0: uebersetzbar("Aktiv"), 1: uebersetzbar("Erreicht"), 2: uebersetzbar("Abgebrochen") };
 
@@ -65,7 +66,7 @@ export default function DogPrintPage() {
         <h1 className="text-2xl font-semibold">{dog.name}</h1>
         <p className="text-sm text-muted-foreground">
           {dog.breed ?? t("Rasse unbekannt")}
-          {dog.birthday && ` · ${t("geboren {datum}", { datum: new Date(dog.birthday).toLocaleDateString(ort) })}`}
+          {dog.birthday && ` · ${t("geboren {datum}", { datum: tagAlsDatum(dog.birthday).toLocaleDateString(ort) })}`}
         </p>
       </header>
 
@@ -108,7 +109,7 @@ export default function DogPrintPage() {
                   {goal.regulationName && ` - ${katalogName({ name: goal.regulationName, nameEn: goal.regulationNameEn }, sprache)}`}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {t(GOAL_STATUS_LABEL[goal.status])} · {t("Ziel: {datum}", { datum: new Date(goal.targetDate).toLocaleDateString(ort) })}
+                  {t(GOAL_STATUS_LABEL[goal.status])} · {t("Ziel: {datum}", { datum: tagAlsDatum(goal.targetDate).toLocaleDateString(ort) })}
                 </span>
               </div>
               {goal.notes && <p className="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{goal.notes}</p>}
@@ -165,7 +166,7 @@ export default function DogPrintPage() {
           sessions.map((session) => (
             <div key={session.id} className="break-inside-avoid rounded-md border p-4">
               <div className="flex items-center justify-between">
-                <span className="font-medium">{new Date(session.date).toLocaleDateString(ort)}</span>
+                <span className="font-medium">{tagAlsDatum(session.date).toLocaleDateString(ort)}</span>
                 <span className="text-sm text-muted-foreground">{t("{n} Min.", { n: session.durationMinutes })}</span>
               </div>
               {session.notes && <p className="mt-1 text-sm text-muted-foreground">{session.notes}</p>}

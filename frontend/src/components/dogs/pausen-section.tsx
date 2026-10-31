@@ -18,7 +18,8 @@ import {
   waehlbareGruende,
   type PausenEingabe,
 } from "@/lib/pausen";
-import { datumKurz, heuteIso } from "@/lib/pruefung";
+import { datumKurz } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { useSprache, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";

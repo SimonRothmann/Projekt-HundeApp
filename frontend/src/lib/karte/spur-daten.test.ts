@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { uebersetze } from "@/lib/i18n";
-import { AMBER_MAX_M, GREEN_MAX_M } from "@/components/tracking/walk-run-evaluation";
+import { FAEHRTE_GRENZEN } from "../mantrailing";
 import type { GpsWalkPoint, GpsWalkRun, GpsWalkStop } from "@/lib/types";
 import {
   DEVIATION_COLORS,
@@ -145,10 +145,10 @@ describe("ablaufDaten", () => {
   }
 
   it("färbt Segmente an den Schwellen der Auswertung", () => {
-    expect(segmentFarbe(0, GREEN_MAX_M)).toBe(DEVIATION_COLORS.green);
-    expect(segmentFarbe(0, GREEN_MAX_M + 0.01)).toBe(DEVIATION_COLORS.amber);
-    expect(segmentFarbe(0, AMBER_MAX_M)).toBe(DEVIATION_COLORS.amber);
-    expect(segmentFarbe(0, AMBER_MAX_M + 0.01)).toBe(DEVIATION_COLORS.red);
+    expect(segmentFarbe(0, FAEHRTE_GRENZEN.gruenBis)).toBe(DEVIATION_COLORS.green);
+    expect(segmentFarbe(0, FAEHRTE_GRENZEN.gruenBis + 0.01)).toBe(DEVIATION_COLORS.amber);
+    expect(segmentFarbe(0, FAEHRTE_GRENZEN.gelbBis)).toBe(DEVIATION_COLORS.amber);
+    expect(segmentFarbe(0, FAEHRTE_GRENZEN.gelbBis + 0.01)).toBe(DEVIATION_COLORS.red);
   });
 
   it("nimmt je Segment die Farbe des schlechteren Endpunkts", () => {

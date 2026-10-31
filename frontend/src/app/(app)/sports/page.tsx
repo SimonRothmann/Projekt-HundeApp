@@ -33,6 +33,7 @@ import { katalogKategorie, katalogName, katalogText, uebungName } from "@/lib/ka
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
 import { ordnungenPfad, sportartenPfad } from "@/lib/katalog-land";
+import { tagAlsDatum } from "@/lib/kalendertag";
 const textareaClass =
   "w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/85 dark:focus-visible:ring-ring/60 md:text-sm dark:bg-input/30";
 
@@ -546,7 +547,7 @@ function RegulationBlock({
                 <p className="text-xs text-muted-foreground">
                   {t("Version {version} · gültig ab {datum}", {
                     version: detail.currentVersion.versionLabel,
-                    datum: new Date(detail.currentVersion.validFrom).toLocaleDateString(ort),
+                    datum: tagAlsDatum(detail.currentVersion.validFrom).toLocaleDateString(ort),
                   })}
                 </p>
                 {canEdit && !editingMeta && (

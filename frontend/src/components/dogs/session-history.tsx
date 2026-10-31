@@ -15,15 +15,16 @@ import { feedbackKennung, istNeuesFeedback, markiereGesehen } from "@/lib/feedba
 import { nachTagen, tagPasstZuFilter, type TagesFilter } from "@/lib/tagebuch";
 import { useWetterNachladen } from "@/lib/use-wetter-nachladen";
 import { trainingWetterOffen } from "@/lib/wetter-nachladen";
+import { tagAlsDatum } from "@/lib/kalendertag";
 
-// Monatsschlüssel im Format "2026-07" für die Gruppierung; toLocaleDateString
-// mit month:"long" liefert die Anzeige-Version ("Juli 2026").
+// Monatsschlüssel im Format "2026-07" für die Gruppierung - der Anfang des Kalendertags selbst,
+// ohne Umweg über ein Date; toLocaleDateString mit month:"long" liefert die Anzeige-Version
+// ("Juli 2026").
 function monthKey(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+  return iso.slice(0, 7);
 }
 function monthLabel(iso: string, ort: string): string {
-  return new Date(iso).toLocaleDateString(ort, { month: "long", year: "numeric" });
+  return tagAlsDatum(iso).toLocaleDateString(ort, { month: "long", year: "numeric" });
 }
 
 /**

@@ -2,42 +2,23 @@ import type { Goal } from "@/lib/types";
 import type { Sprache } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
+import { heuteIso, plusTage, tageBis, tagTeile } from "@/lib/kalendertag";
 
 /**
  * Rechnen und Sortieren rund um Prüfungstermin und Prüfungsergebnis - als reine
  * Funktionen, damit die Startseite, die Hundeseite und der Abschluss-Dialog
  * dasselbe meinen und die Regeln getestet werden können.
  *
- * Daten sind Kalendertage ("2026-10-03"), keine Zeitpunkte. Gerechnet wird
- * deshalb mit dem Kalendertag des Geräts und nie mit `new Date("2026-10-03")`:
+ * Daten sind Kalendertage ("2026-10-03"), keine Zeitpunkte. Gerechnet und
+ * formatiert wird mit lib/kalendertag.ts und nie mit `new Date("2026-10-03")`:
  * Das wäre UTC-Mitternacht und fiele westlich von Greenwich auf den Vortag.
  */
 
 type Uebersetzer = (text: string, werte?: Record<string, string | number>) => string;
 
-const TAG_MS = 24 * 60 * 60 * 1000;
-
-function teile(iso: string): [number, number, number] {
-  const [jahr, monat, tag] = iso.slice(0, 10).split("-").map(Number);
-  return [jahr, monat, tag];
-}
-
-/** Anzahl ganzer Tage seit 1970 für einen Kalendertag - unabhängig von Zeitzone und Sommerzeit. */
-function tagesnummer(iso: string): number {
-  const [jahr, monat, tag] = teile(iso);
-  return Math.round(Date.UTC(jahr, monat - 1, tag) / TAG_MS);
-}
-
-/** Der heutige Kalendertag auf dem Gerät als "JJJJ-MM-TT". */
-export function heuteIso(jetzt: number = Date.now()): string {
-  const d = new Date(jetzt);
-  const zweistellig = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${zweistellig(d.getMonth() + 1)}-${zweistellig(d.getDate())}`;
-}
-
 /** Tage von heute bis zum Datum: positiv = noch hin, 0 = heute, negativ = vorbei. */
 export function tageBisPruefung(zieldatum: string, jetzt: number = Date.now()): number {
-  return tagesnummer(zieldatum) - tagesnummer(heuteIso(jetzt));
+  return tageBis(zieldatum, heuteIso(jetzt));
 }
 
 /**
@@ -62,9 +43,52 @@ export function vorgabePruefungstag(zieldatum: string, jetzt: number = Date.now(
 
 /** Der morgige Tag - frühestes Datum für einen neuen Prüfungstermin. */
 export function morgenIso(jetzt: number = Date.now()): string {
-  const d = new Date(jetzt);
-  d.setDate(d.getDate() + 1);
-  return heuteIso(d.getTime());
+  return plusTage(heuteIso(jetzt), 1);
+}
+
+/** Die Felder eines Prüfungsergebnisses, wie sie im Formular stehen: Tag (JJJJ-MM-TT), Punkte, Notiz. */
+export type ErgebnisEingabe = { datum: string; punkte: string; notiz: string };
+
+/**
+ * Fehlermeldung zu einem Prüfungsergebnis, sonst null - die Regeln des Servers, damit man sie vor
+ * dem Senden sieht. Der Prüfungstag darf höchstens morgen sein (ein Gerät kurz vor Mitternacht
+ * kann dem Server voraus sein); Punkte sind optional, ganz und nicht über der Höchstpunktzahl der
+ * Prüfungsordnung (falls bekannt).
+ */
+export function pruefeErgebnis(
+  t: Uebersetzer,
+  eingabe: ErgebnisEingabe,
+  hoechstens: number | null | undefined,
+  jetzt: number = Date.now(),
+): string | null {
+  if (!eingabe.datum) return t("Bitte den Prüfungstag angeben.");
+  if (eingabe.datum > morgenIso(jetzt)) return t("Der Prüfungstag darf nicht in der Zukunft liegen.");
+  const text = eingabe.punkte.trim();
+  if (text === "") return null;
+  const punkte = Number(text);
+  if (!Number.isInteger(punkte) || punkte < 0) return t("Die Punktzahl muss eine ganze Zahl ab 0 sein.");
+  if (hoechstens != null && punkte > hoechstens) return t("Die Punktzahl darf höchstens {max} betragen.", { max: hoechstens });
+  return null;
+}
+
+/**
+ * Fehlermeldung zu einem neuen Prüfungstermin (nach nicht bestanden, oder beim Verschieben des
+ * Zieldatums), sonst null: Er muss angegeben sein und mindestens morgen liegen. Die eine Regel für
+ * beide Dialoge.
+ */
+export function pruefeNeuenTermin(t: Uebersetzer, termin: string, jetzt: number = Date.now()): string | null {
+  if (termin === "") return t("Bitte den neuen Prüfungstermin angeben.");
+  return termin < morgenIso(jetzt) ? t("Der neue Termin muss in der Zukunft liegen.") : null;
+}
+
+/** Aktive Ziele, deren Prüfungstag noch nicht verstrichen ist - alles, worauf sich der Hund gerade vorbereitet. */
+export function laufendeZiele(goals: readonly Goal[] | null | undefined, jetzt: number = Date.now()): Goal[] {
+  return (goals ?? []).filter((g) => g.status === 0 && tageBisPruefung(g.targetDate, jetzt) >= 0);
+}
+
+/** Das Ziel mit dem nächsten Zieldatum. */
+export function fruehestesZiel(goals: readonly Goal[]): Goal | null {
+  return goals.reduce<Goal | null>((bestes, g) => (bestes === null || g.targetDate < bestes.targetDate ? g : bestes), null);
 }
 
 /**
@@ -119,7 +143,7 @@ export function punkteText(t: Uebersetzer, punkte: number, hoechstens: number | 
 
 /** "03.10.2026" bzw. "03/10/2026". */
 export function datumKurz(iso: string, sprache: Sprache = "de"): string {
-  const [jahr, monat, tag] = teile(iso);
+  const [jahr, monat, tag] = tagTeile(iso);
   return new Date(jahr, monat - 1, tag).toLocaleDateString(ortsformat(sprache), {
     day: "2-digit",
     month: "2-digit",
@@ -129,7 +153,7 @@ export function datumKurz(iso: string, sprache: Sprache = "de"): string {
 
 /** "Samstag, 3. Oktober" - für "am …" auf der Zielkarte. */
 export function datumMitWochentag(iso: string, sprache: Sprache = "de"): string {
-  const [jahr, monat, tag] = teile(iso);
+  const [jahr, monat, tag] = tagTeile(iso);
   return new Date(jahr, monat - 1, tag).toLocaleDateString(ortsformat(sprache), {
     weekday: "long",
     day: "numeric",

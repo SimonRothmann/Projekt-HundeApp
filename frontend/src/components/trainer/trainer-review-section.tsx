@@ -15,6 +15,7 @@ import { uebungName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { istDurchBewertungErledigt, kannSelbsteinschaetzungUebernehmen } from "@/lib/trainer-bewertung";
+import { tagAlsDatum } from "@/lib/kalendertag";
 
 /**
  * Trainerseite: alle offenen Trainings der betreuten Hunde in EINER Ansicht -
@@ -221,7 +222,7 @@ export function TrainerReviewSection() {
                     <div key={s.sessionId} className="min-w-0 rounded-md border p-2.5">
                       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                         <span className="text-xs text-muted-foreground">
-                          {new Date(s.date).toLocaleDateString(ortsformat(sprache))} · {t("{n} Min.", { n: s.durationMinutes })}
+                          {tagAlsDatum(s.date).toLocaleDateString(ortsformat(sprache))} · {t("{n} Min.", { n: s.durationMinutes })}
                         </span>
                         <Badge variant={open === 0 ? "secondary" : "outline"} className="shrink-0">
                           {s.exercises.length > 0

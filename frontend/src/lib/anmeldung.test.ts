@@ -4,7 +4,6 @@ import {
   istDoppelteAnmeldung,
   istGueltigeTelefonnummer,
   istGueltigerAnmeldecode,
-  jahreZurueck,
   wurftagVorschlag,
   normalisiereTelefon,
   pruefeAnmeldung,
@@ -66,17 +65,6 @@ describe("istDoppelteAnmeldung", () => {
   it("hält Geschwister (anderer Rufname) und andere Nummern auseinander", () => {
     expect(istDoppelteAnmeldung({ phone: "0721 123456", dogName: "Bella" }, { phone: "0721 123456", dogName: "Luna" })).toBe(false);
     expect(istDoppelteAnmeldung({ phone: "0721 123456", dogName: "Bella" }, { phone: "0721 654321", dogName: "Bella" })).toBe(false);
-  });
-});
-
-describe("jahreZurueck", () => {
-  it("rechnet in ganzen Jahren", () => {
-    expect(jahreZurueck("2026-10-01", 2)).toBe("2024-10-01");
-  });
-
-  it("macht aus dem 29. Februar den 28., wenn das Zieljahr kein Schaltjahr ist", () => {
-    expect(jahreZurueck("2028-02-29", 2)).toBe("2026-02-28");
-    expect(jahreZurueck("2028-02-29", 4)).toBe("2024-02-29");
   });
 });
 

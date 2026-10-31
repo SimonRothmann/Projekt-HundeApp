@@ -32,6 +32,11 @@ export function erststartZustand(status: OnboardingStatus | null, jetzt: number 
 
   if (!status.hasDog) return "hund";
 
+  // Ob der Erststart erledigt ist, entscheidet der Server (isComplete: Hund und Training oder
+  // Gruppe, siehe docs/ERSTSTART.md) - keine zweite Auslegung hier. Das Frontend regelt nur noch,
+  // wie lange danach die Gabelung steht (Weg gegangen, sieben Tage).
+  if (!status.isComplete) return null;
+
   // Ziel gesetzt, Verein oder Gruppe angefragt/beigetreten: Die Gabelung hat
   // ihren Zweck erfüllt - einer der beiden Wege ist gegangen.
   const einWegGegangen =

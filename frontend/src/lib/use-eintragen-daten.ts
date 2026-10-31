@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { angeboteneSportarten } from "@/lib/eintragen";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
 import type { Dog, Exercise, Goal, GroupTrainingSession, Sport, TrainingSession } from "@/lib/types";
 

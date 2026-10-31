@@ -4,10 +4,10 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { CheckCircle2, PawPrint } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
-import { istGueltigerAnmeldecode, jahreZurueck, MAX_HUNDEALTER_JAHRE, pruefeAnmeldung, wurftagVorschlag } from "@/lib/anmeldung";
+import { istGueltigerAnmeldecode, MAX_HUNDEALTER_JAHRE, pruefeAnmeldung, wurftagVorschlag } from "@/lib/anmeldung";
 import { anmeldeFehlerSatz } from "@/lib/anmeldung-texte";
 import { useT } from "@/lib/i18n";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso, plusJahre } from "@/lib/kalendertag";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import type { GroupRegistrationForm } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -242,7 +242,7 @@ export function Anmeldeformular({ code }: { code: string }) {
                     // dort aufgeht statt beim heutigen Tag (siehe wurftagVorschlag).
                     onFocus={() => { if (!wurftag) setWurftag(wurftagVorschlag(heute)); }}
                     onPointerDown={() => { if (!wurftag) setWurftag(wurftagVorschlag(heute)); }}
-                    min={jahreZurueck(heute, MAX_HUNDEALTER_JAHRE)}
+                    min={plusJahre(heute, -MAX_HUNDEALTER_JAHRE)}
                     max={heute}
                     required
                   />

@@ -17,6 +17,7 @@ import type {
   TrainerOpenCounts,
   TrainingPlanItem,
 } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 import { OnboardingGuide } from "@/components/onboarding/onboarding-guide";
 import { ErsterHundKarte } from "@/components/onboarding/erster-hund-karte";
 import { erststartZustand } from "@/lib/erststart";
@@ -38,7 +39,7 @@ import { GesundheitsHinweise } from "@/components/dashboard/gesundheit-hinweise"
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
 import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { useT } from "@/lib/i18n";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 
 /** Kompakte Zeile, wie sie die Startseite für Nebensächliches nutzt (Verein, Sachkunde). */
 const ZEILE =
@@ -99,23 +100,27 @@ let zwischenstand: { nutzerId: string; daten: Startdaten } | null = null;
  * Abschnitte rutschten nacheinander ins Bild. Jetzt holt /api/dashboard die
  * Daten je Hund in einem Aufruf, der Rest läuft parallel dazu.
  *
- * Fehler einzelner Teile lassen nur deren Abschnitt weg - die Startseite
- * steht auch offline oder bei einem Serverfehler.
+ * Fehlt die Antwort von /api/dashboard oder die Sportartenliste, wirft die
+ * Funktion: Leere Listen sagten dort "kein Hund", "keine Fährte" und "keine
+ * Einschränkung", obwohl nur nicht geladen wurde (der Server liefert bei einem
+ * Fehler einer Teilabfrage ebenfalls einen Fehler für das Ganze). Der Aufrufer
+ * zeigt dann den Fehlerzustand oder behält den letzten Stand. Nur Termine und
+ * Erststart-Status dürfen ausfallen: Ohne sie fehlt bloß deren Karte.
  */
 async function ladeStartdaten(): Promise<Startdaten> {
   // Der Kalendertag auf dem Gerät, nicht der UTC-Tag: Nach Mitternacht läge
   // dieser sonst noch beim gestrigen und zeigte schon vorbeigegangene Termine.
   const heute = heuteIso();
   const [dashboard, sports, onboarding, termine] = await Promise.all([
-    api.get<DashboardDaten>("/api/dashboard").catch(() => null),
-    api.get<Sport[]>("/api/sports").catch(() => [] as Sport[]),
+    api.get<DashboardDaten>("/api/dashboard"),
+    api.get<Sport[]>("/api/sports"),
     api.get<OnboardingStatus>("/api/onboarding/status").catch(() => null),
     api
       .get<GroupTrainingSession[]>(`/api/group-training/schedule/mine?from=${heute}`)
       .catch(() => [] as GroupTrainingSession[]),
   ]);
 
-  const eintraege = dashboard?.dogs ?? [];
+  const eintraege = dashboard.dogs;
   const jetzt = Date.now();
   const bhSportIds = new Set(sports.filter((sport) => sport.code === "BH").map((sport) => sport.id));
   return {
@@ -136,9 +141,9 @@ async function ladeStartdaten(): Promise<Startdaten> {
     onboarding,
     termine,
     // Fehlt bei einem zwischengespeicherten Stand aus der Zeit vor der Feedback-Karte.
-    feedback: dashboard?.openFeedback ?? [],
-    einladungen: dashboard?.groupInvitations ?? [],
-    vereinsEinladungen: dashboard?.clubInvitations ?? [],
+    feedback: dashboard.openFeedback ?? [],
+    einladungen: dashboard.groupInvitations ?? [],
+    vereinsEinladungen: dashboard.clubInvitations ?? [],
   };
 }
 
@@ -152,14 +157,29 @@ export default function DashboardPage() {
     zwischenstand && zwischenstand.nutzerId === nutzerId ? zwischenstand.daten : null,
   );
   const [trainerZahlen, setTrainerZahlen] = useState<TrainerOpenCounts | null>(null);
+  // Das (Neu-)Laden ist gescheitert: ohne Daten der Fehlerzustand mit "Erneut versuchen", mit Daten
+  // bleibt der letzte Stand stehen und ein Hinweis sagt, dass er nicht aktuell ist.
+  const [ladefehler, setLadefehler] = useState(false);
 
   function uebernehmen(neu: Startdaten) {
     if (nutzerId) zwischenstand = { nutzerId, daten: neu };
     setDaten(neu);
+    setLadefehler(false);
   }
 
+  function erneutVersuchen() {
+    setLadefehler(false);
+    void neuLaden();
+  }
+
+  // Wirft nie: Die Aufrufer warten darauf nach einer Aktion (Training gespeichert, Ziel geändert)
+  // und hätten für einen Fehler beim Neuladen keine passende Meldung.
   async function neuLaden() {
-    uebernehmen(await ladeStartdaten());
+    try {
+      uebernehmen(await ladeStartdaten());
+    } catch {
+      setLadefehler(true);
+    }
   }
 
   // Der Hund der Karte "Wie heißt dein Hund?" ist angelegt: Startseite neu
@@ -167,22 +187,25 @@ export default function DashboardPage() {
   // Eintragen-Fenster für ihn öffnen - ohne Seitenwechsel. Schließt der
   // Nutzer es ohne Speichern, bleibt genau diese Startseite stehen.
   async function ersterHundAngelegt(hund: HundDaten) {
-    const frisch = await ladeStartdaten();
+    const frisch = await ladeStartdaten().catch(() => null);
     // Kam der Hund im Neuladen nicht an (kurz ohne Netz), tragen wir ihn von
     // Hand ein: Die Karte bliebe sonst stehen, und ein zweiter Druck auf
     // "Weiter" legte ihn doppelt an.
-    if (frisch.hunde.some((h) => h.id === hund.id)) {
+    if (frisch?.hunde.some((h) => h.id === hund.id)) {
       uebernehmen(frisch);
     } else {
-      uebernehmen({
-        ...frisch,
-        hunde: [...frisch.hunde, hund],
-        onboarding: {
-          ...(frisch.onboarding ?? OHNE_FORTSCHRITT),
-          hasDog: true,
-          firstDogId: hund.id,
-        },
-      });
+      const basis = frisch ?? daten;
+      if (basis) {
+        uebernehmen({
+          ...basis,
+          hunde: [...basis.hunde.filter((h) => h.id !== hund.id), hund],
+          onboarding: {
+            ...(basis.onboarding ?? OHNE_FORTSCHRITT),
+            hasDog: true,
+            firstDogId: hund.id,
+          },
+        });
+      }
     }
     oeffneEintragen(hund.id);
   }
@@ -217,11 +240,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let abgebrochen = false;
-    void ladeStartdaten().then((frisch) => {
-      if (abgebrochen) return;
-      if (nutzerId) zwischenstand = { nutzerId, daten: frisch };
-      setDaten(frisch);
-    });
+    ladeStartdaten().then(
+      (frisch) => {
+        if (abgebrochen) return;
+        if (nutzerId) zwischenstand = { nutzerId, daten: frisch };
+        setDaten(frisch);
+        setLadefehler(false);
+      },
+      () => {
+        if (!abgebrochen) setLadefehler(true);
+      },
+    );
     return () => {
       abgebrochen = true;
     };
@@ -331,15 +360,28 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-semibold tracking-tight">{t("Hallo, {name}", { name: user?.firstName ?? "" })}</h1>
       )}
 
+      {ladefehler && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-surface-border bg-surface px-3 py-2">
+          <p className="min-w-0 text-sm text-muted-foreground [overflow-wrap:anywhere]">
+            {daten === null ? t("Die Startseite konnte nicht geladen werden.") : t("Die Startseite konnte nicht aktualisiert werden.")}
+          </p>
+          <Button type="button" size="sm" variant="outline" className="coarse:min-h-11" onClick={erneutVersuchen}>
+            {t("Erneut versuchen")}
+          </Button>
+        </div>
+      )}
+
       {daten === null ? (
         // Platzhalter etwa in der Größe der Karten: Die Startseite erscheint
         // danach in einem Zug, statt Abschnitt für Abschnitt nachzurutschen und
-        // die Karten darunter wegzuschieben.
-        <div className="flex flex-col gap-4" aria-busy="true">
-          <span className="sr-only">{t("Lädt…")}</span>
-          <div className="h-28 rounded-xl bg-card motion-safe:animate-pulse" />
-          <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
-        </div>
+        // die Karten darunter wegzuschieben. Nach einem Ladefehler steht oben der Hinweis.
+        !ladefehler && (
+          <div className="flex flex-col gap-4" aria-busy="true">
+            <span className="sr-only">{t("Lädt…")}</span>
+            <div className="h-28 rounded-xl bg-card motion-safe:animate-pulse" />
+            <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+          </div>
+        )
       ) : erststart ? (
         <>
           {einladungen}

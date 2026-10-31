@@ -543,7 +543,7 @@ export type Club = {
 // Vereins-Trainingsbibliothek (siehe docs/GROUP_TRAINING_LIBRARY.md).
 export type GroupTrainingCategory = 0 | 1 | 2; // 0 = Welpen, 1 = Junghunde, 2 = Basis
 
-// Prüfungs-Tags als Bitmaske (siehe Domain.Community.GroupExamTarget [Flags]).
+// Prüfungs-Tags als Bitmaske (siehe Domain.Community.GroupExamTarget [Flags]) - die EINE Fassung im Frontend.
 export const GROUP_EXAM = { BH: 1, IBGH1: 2, IBGH2: 4, IBGH3: 8 } as const;
 
 // Wiederverwendbarer Übungs-Baustein eines Vereins.
@@ -624,6 +624,9 @@ export type GroupTrainingSession = {
   responses: SessionResponse[];
   // Anmeldungen der Gruppe - nur für die, die die Gruppe verwalten dürfen, sonst 0.
   registrationCount: number;
+  // Ob der Aufrufer den Termin ändern, absagen und löschen darf (Trainer-Rolle im Verein UND
+  // Trainer:in der Gruppe) - die Terminliste zeigt auch Termine fremder Gruppen.
+  kannVerwalten: boolean;
 };
 
 export type ClubTrainerInfo = {
@@ -1494,7 +1497,8 @@ export type DashboardHund = {
   sportIds: string[];
   // Aktive Ziele mit Trainingsplan - Quelle für "Diese Woche".
   activeGoals: Goal[];
-  // Heute gelegte Fährten samt Abläufen - Quelle für "Heute gelegt".
+  // Noch suchbare Spuren (Fährte 24, Trail 48 Stunden nach dem Legen) samt Abläufen - Quelle für
+  // "Heute gelegt" / "Zuletzt gelegt"; der Name stammt aus der Zeit, als es nur die von heute waren.
   tracksToday: GpsTrack[];
 };
 

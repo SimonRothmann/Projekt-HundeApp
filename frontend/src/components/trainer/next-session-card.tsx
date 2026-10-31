@@ -12,7 +12,7 @@ import { SessionCounts } from "@/components/schedule/session-counts";
 import { naechsterTermin, zusageNamen } from "@/lib/naechster-termin";
 import { cn } from "@/lib/utils";
 import { useSprache, useT } from "@/lib/i18n";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 import { ortsformat } from "@/lib/ortsformat";
 
 /** So weit voraus wird gesucht - ein Termin jenseits davon ist noch nicht "der nächste". */

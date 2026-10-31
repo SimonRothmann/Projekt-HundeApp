@@ -1,8 +1,8 @@
-import { estimateLengthMeters } from "@/lib/geo";
-import type { GpsPoint, GpsTrack, GpsWalkRun } from "@/lib/types";
+import { automatischePunkte, estimateLengthMeters, markerPunkte } from "@/lib/geo";
+import type { GpsTrack, GpsWalkRun } from "@/lib/types";
 import { formatDelta, formatTemperature } from "@/lib/weather";
-import { ampelLabel } from "@/components/tracking/walk-run-evaluation";
 import { FAEHRTE_GRENZEN, istMantrailing, spurGrenzen, type SpurGrenzen } from "@/lib/mantrailing";
+import { ampelLabel, ampelStufe, type Ampel } from "@/lib/spur-ampel";
 
 /**
  * Reine Geometrie und Kennzahlen für das Fährtenbild ("Als Bild teilen").
@@ -131,18 +131,6 @@ export function formatiereMassstab(meter: number): string {
   return meter >= 1000 ? `${meter / 1000} km` : `${meter} m`;
 }
 
-export type Ampel = "gruen" | "gelb" | "rot";
-
-/** Dieselben Schwellen wie die Auswertung im Tagebuch und die Kartenlinie - ohne Angabe die der Fährte. */
-export function ampelStufe(abweichungMeter: number, grenzen: SpurGrenzen = FAEHRTE_GRENZEN): Ampel {
-  if (abweichungMeter <= grenzen.gruenBis) return "gruen";
-  if (abweichungMeter <= grenzen.gelbBis) return "gelb";
-  return "rot";
-}
-
-/** Dieselben Farben wie die Ablauflinie auf der Karte (DEVIATION_COLORS in lib/karte/spur-daten.ts). */
-export const AMPEL_FARBEN: Record<Ampel, string> = { gruen: "#16a34a", gelb: "#d97706", rot: "#dc2626" };
-
 export type Linienstueck = {
   /** null: für dieses Stück gibt es keine Abweichung. */
   stufe: Ampel | null;
@@ -182,10 +170,6 @@ export function neuesterAusgewerteterAblauf(ablaeufe: GpsWalkRun[]): GpsWalkRun 
   return neuester;
 }
 
-function automatischePunkte(track: GpsTrack): GpsPoint[] {
-  return track.points.filter((p) => p.pointType !== 1);
-}
-
 /**
  * Liegezeit in Minuten: eine am Track hinterlegte, sonst die Zeit vom Ende
  * des Legens bis zum Start des Ablaufs. Neu aufgezeichnete Fährten tragen
@@ -193,7 +177,7 @@ function automatischePunkte(track: GpsTrack): GpsPoint[] {
  */
 export function liegezeitMinuten(track: GpsTrack, ablauf: GpsWalkRun | null): number | null {
   if (track.ageMinutes != null) return track.ageMinutes;
-  const gelegt = automatischePunkte(track);
+  const gelegt = automatischePunkte(track.points);
   const letzter = gelegt[gelegt.length - 1];
   const erster = ablauf?.points[0];
   if (!letzter || !erster) return null;
@@ -219,7 +203,7 @@ export type FaehrtenKennzahlen = {
 
 export function faehrtenKennzahlen(track: GpsTrack, ablauf: GpsWalkRun | null): FaehrtenKennzahlen {
   const avg = ablauf?.avgDeviationMeters ?? null;
-  const laenge = track.lengthMeters != null ? track.lengthMeters : estimateLengthMeters(automatischePunkte(track));
+  const laenge = track.lengthMeters != null ? track.lengthMeters : estimateLengthMeters(automatischePunkte(track.points));
   return {
     aufFaehrtePercent: ablauf?.onTrackPercent != null ? Math.round(ablauf.onTrackPercent) : null,
     mittlereAbweichungM: avg != null ? Math.round(avg) : null,
@@ -247,10 +231,10 @@ export type FaehrtenGeometrie = {
  * zeichnen gibt (weniger als zwei Punkte sind keine Linie).
  */
 export function faehrtenGeometrie(track: GpsTrack, ablauf: GpsWalkRun | null): FaehrtenGeometrie | null {
-  const gelegt = automatischePunkte(track);
+  const gelegt = automatischePunkte(track.points);
   if (gelegt.length < 2) return null;
 
-  const marker = track.points.filter((p) => p.pointType === 1);
+  const marker = markerPunkte(track.points);
   const ablaufPunkte = ablauf?.points ?? [];
   const mitte = mittelpunkt([...gelegt, ...marker, ...ablaufPunkte]);
   if (!mitte) return null;
@@ -267,7 +251,7 @@ export function faehrtenGeometrie(track: GpsTrack, ablauf: GpsWalkRun | null): F
 
 /** Tag des Legens (lokale Zeit) - ohne Uhrzeit, das Bild nennt keine. */
 export function legedatum(track: GpsTrack): Date | null {
-  const erster = automatischePunkte(track)[0] ?? track.points[0];
+  const erster = automatischePunkte(track.points)[0] ?? track.points[0];
   if (!erster) return null;
   const datum = new Date(erster.timestamp);
   return Number.isNaN(datum.getTime()) ? null : datum;

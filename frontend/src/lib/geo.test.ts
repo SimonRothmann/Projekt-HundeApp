@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bearingDegrees, estimateLengthMeters, haversineMeters } from "@/lib/geo";
+import { automatischePunkte, bearingDegrees, estimateLengthMeters, haversineMeters, markerPunkte, PUNKT_MARKER } from "@/lib/geo";
 
 // Referenzpunkt für alle Tests: Karlsbad (Nordschwarzwald), realistische
 // Trainingsplatz-Koordinaten. 1° Breite ≈ 111.111 m, 1° Länge ≈ 76.500 m
@@ -83,5 +83,21 @@ describe("estimateLengthMeters", () => {
       { ...offsetMeters(100, 0), pointType: 0 },
     ];
     expect(estimateLengthMeters(track)).toBe(100);
+  });
+});
+
+describe("automatische Punkte und Marker", () => {
+  const lat = (latitude: number, pointType?: number) => ({ latitude, longitude: 8, pointType });
+
+  it("trennt Marker von der gelaufenen Linie und behält die Reihenfolge", () => {
+    const punkte = [lat(1, 0), lat(2, PUNKT_MARKER), lat(3, 0)];
+    expect(automatischePunkte(punkte).map((p) => p.latitude)).toEqual([1, 3]);
+    expect(markerPunkte(punkte).map((p) => p.latitude)).toEqual([2]);
+  });
+
+  it("zählt Punkte ohne pointType (Ablauf-Punkte) als automatisch", () => {
+    const punkte = [lat(1), lat(2)];
+    expect(automatischePunkte(punkte)).toHaveLength(2);
+    expect(markerPunkte(punkte)).toHaveLength(0);
   });
 });

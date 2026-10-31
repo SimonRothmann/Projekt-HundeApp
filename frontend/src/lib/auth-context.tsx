@@ -6,11 +6,10 @@ import { alleSicherungenLoeschen } from "@/lib/aufzeichnung-sicherung";
 import { loescheGesehen } from "@/lib/feedback-gesehen";
 import { abrufFaellig } from "@/lib/glocke";
 import { leseCacheLeeren } from "@/lib/read-cache";
-import { pushBeimAbmeldenEntfernen, pushLokalLoesen, setzeAppBadge } from "@/lib/push";
+import { pushBeimAbmeldenEntfernen, setzeAppBadge } from "@/lib/push";
+import { sitzungSpeichern, type AuthUser } from "@/lib/sitzung";
 import { loescheStartPo } from "@/lib/start-po";
 import type { AuthResponse } from "@/lib/types";
-
-type AuthUser = Pick<AuthResponse, "userId" | "email" | "firstName" | "lastName" | "roles">;
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -39,17 +38,6 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-/** Wer sich zuletzt auf diesem Gerät angemeldet hat - nur die Id, nichts sonst. */
-const LETZTE_PERSON_KEY = "dogity_letzte_person";
-
-function letztePerson(): string | null {
-  try {
-    return window.localStorage.getItem(LETZTE_PERSON_KEY);
-  } catch {
-    return null;
-  }
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -169,34 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function persist(response: AuthResponse) {
-    // Meldet sich jemand anderes an als zuletzt, geht der Zwischenspeicher
-    // der vorigen Person vorher weg - auch wenn sie sich nie abgemeldet hat,
-    // sondern ihre Sitzung nur abgelaufen ist (dann räumt kein logout() auf).
-    // Abgewartet, bevor die ersten Seiten den Speicher lesen.
-    if (letztePerson() !== response.userId) {
-      await leseCacheLeeren();
-      // Auch Push gehört der Person, nicht dem Gerät: War die Sitzung der
-      // vorigen Person nur abgelaufen (kein logout()), hinge ihre Anmeldung noch
-      // am Browser - und ihre Meldungen kämen auf dem Gerät der neuen Person an.
-      void pushLokalLoesen();
-    }
-    try {
-      window.localStorage.setItem(LETZTE_PERSON_KEY, response.userId);
-    } catch {
-      // Ohne Merker wird beim nächsten Anmelden eben einmal zu viel geleert.
-    }
-
-    const authUser: AuthUser = {
-      userId: response.userId,
-      email: response.email,
-      firstName: response.firstName,
-      lastName: response.lastName,
-      roles: response.roles,
-    };
-    window.localStorage.setItem(TOKEN_KEY, response.token);
-    window.localStorage.setItem(REFRESH_KEY, response.refreshToken);
-    window.localStorage.setItem(USER_KEY, JSON.stringify(authUser));
-    setUser(authUser);
+    setUser(await sitzungSpeichern(response));
   }
 
   async function login(email: string, password: string) {

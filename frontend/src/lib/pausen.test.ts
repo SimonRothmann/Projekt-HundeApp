@@ -8,7 +8,6 @@ import {
   pausenZeitraumText,
   pausentageZwischen,
   pausiertAm,
-  plusTage,
   pruefePause,
   vorgeschlagenesEnde,
   vorschlagZieldatum,
@@ -24,14 +23,6 @@ const tEn = (text: string, werte?: Record<string, string | number>) => uebersetz
 function pause(teil: Partial<DogPause> = {}): DogPause {
   return { id: "p", startDate: "2026-11-01", endDate: "2026-11-03", reason: PAUSE_GRUND.Verletzt, note: null, ...teil };
 }
-
-describe("plusTage", () => {
-  it("rechnet über Monats- und Jahresgrenzen", () => {
-    expect(plusTage("2026-10-30", 3)).toBe("2026-11-02");
-    expect(plusTage("2026-12-30", 3)).toBe("2027-01-02");
-    expect(plusTage("2027-03-01", -1)).toBe("2027-02-28");
-  });
-});
 
 describe("laeufigkeitEnde", () => {
   it("schlägt als Ende Beginn + 21 Tage vor", () => {

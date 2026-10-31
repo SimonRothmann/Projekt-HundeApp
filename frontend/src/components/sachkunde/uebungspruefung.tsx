@@ -370,9 +370,12 @@ function Startseite({
           <li>{t("Freitextfragen sind nicht dabei, sie lassen sich nicht automatisch werten.")}</li>
         </ul>
 
-        <div className="mt-4">
-          <PruefungHinweis />
-        </div>
+        {/* Ohne Prüfungsdaten (info) gibt es keine Grenze, die der Satz nennen könnte. */}
+        {info && (
+          <div className="mt-4">
+            <PruefungHinweis prozent={info.passPercent} />
+          </div>
+        )}
 
         <div className="mt-5 flex flex-wrap gap-2">
           <Button disabled={beschaeftigt} onClick={onStart}>

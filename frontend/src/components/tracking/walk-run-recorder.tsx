@@ -18,6 +18,8 @@ import {
   type AblaufSicherung,
 } from "@/lib/aufzeichnung-sicherung";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
+import { GENAUIGKEIT_KLASSE } from "@/components/tracking/genauigkeit-klasse";
+import { genauigkeitsStufe, GPS_PROFIL_ABLAUF } from "@/lib/gps-profil";
 import { TrackMap } from "@/components/tracking/track-map";
 import { AblaufErgebnisSheet } from "@/components/tracking/ablauf-ergebnis-sheet";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
@@ -88,7 +90,7 @@ export function WalkRunRecorder({
   const trail = istMantrailing(track);
   const verdeckt = trail && track?.doubleBlind === true;
   const sichtbareLegung = verdeckt ? undefined : laidTrackPoints;
-  const { isRecording, points, setPoints, currentAccuracy, start: startRecording, stop } = useGpsRecorder(toWalkPoint);
+  const { isRecording, points, setPoints, currentAccuracy, start: startRecording, stop } = useGpsRecorder(toWalkPoint, GPS_PROFIL_ABLAUF);
   // Optionaler Kommentar zu diesem Ablauf-Versuch (z.B. "bei Regen", "Hund
   // hat an Winkel 2 verloren") - wird beim Stoppen mitgespeichert.
   const [comment, setComment] = useState("");
@@ -275,14 +277,7 @@ export function WalkRunRecorder({
             <>
               {" · "}
               <span
-                // Wie beim Legen: im Sonnenlicht lesbar (siehe fahrte-recorder.tsx).
-                className={
-                  currentAccuracy <= 10
-                    ? "font-semibold text-green-700 dark:text-green-400"
-                    : currentAccuracy <= 25
-                      ? "font-semibold text-amber-700 dark:text-amber-400"
-                      : "font-semibold text-destructive"
-                }
+                className={GENAUIGKEIT_KLASSE[genauigkeitsStufe(currentAccuracy, GPS_PROFIL_ABLAUF)]}
                 title={t("GPS-Genauigkeit (Radius des Fehlerkreises).")}
               >
                 ±{Math.round(currentAccuracy)} m

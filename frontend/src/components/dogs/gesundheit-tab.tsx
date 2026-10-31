@@ -22,6 +22,7 @@ import {
   ART_UEBERSCHRIFT,
   TITEL_VORSCHLAEGE,
   faelligNach,
+  BALD_TAGE,
   fristText,
   gliedere,
   naechstes,
@@ -36,7 +37,8 @@ import {
   type NaechstesZeile,
   type Ton,
 } from "@/lib/gesundheit";
-import { datumKurz, heuteIso } from "@/lib/pruefung";
+import { datumKurz } from "@/lib/pruefung";
+import { heuteIso } from "@/lib/kalendertag";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { useSprache, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -144,7 +146,7 @@ export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: bool
           <section className="flex min-w-0 flex-col gap-2" aria-label={t("Als Nächstes")}>
             <h3 className="text-sm font-medium">{t("Als Nächstes")}</h3>
             {zeilen.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("Nichts Dringendes in den nächsten 30 Tagen.")}</p>
+              <p className="text-sm text-muted-foreground">{t("Nichts Dringendes in den nächsten {tage} Tagen.", { tage: BALD_TAGE })}</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {zeilen.map((zeile) => (

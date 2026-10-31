@@ -191,7 +191,7 @@ public class DemoSzenarienSeederTests
         Assert.Equal(2, erreicht.Count);
         Assert.Contains(erreicht, g => g.ExamScore is null && g.ExamDate is not null);
         Assert.Contains(erreicht, g => g.ExamScore is { } punkte && punkte is > 0 and < 100);
-        var heute = DateOnly.FromDateTime(DateTime.UtcNow);
+        var heute = Vereinszeit.Heute();
         var aktiv = ziele.Single(g => g.Notes == DemoSzenarienSeeder.NotizUprZiel);
         Assert.Equal(GoalStatus.Active, aktiv.Status);
         Assert.InRange(aktiv.TargetDate.DayNumber - heute.DayNumber, 21, 40);

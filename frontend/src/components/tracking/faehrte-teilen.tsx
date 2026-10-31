@@ -7,7 +7,6 @@ import type { GpsTrack } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
-  ampelStufe,
   baueBildTexte,
   faehrtenGeometrie,
   legedatumFuerDatei,
@@ -15,6 +14,7 @@ import {
 } from "@/lib/faehrten-bild";
 import { BILD_BREITE, BILD_HOEHE, zeichneFaehrtenbild } from "@/lib/faehrten-bild-zeichnen";
 import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
+import { ampelStufe } from "@/lib/spur-ampel";
 import { useSprache, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 

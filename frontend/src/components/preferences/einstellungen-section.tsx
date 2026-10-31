@@ -125,15 +125,20 @@ export function SportartenSection() {
   const { preferences } = usePreferences();
   const { speichert, speichern } = useSpeichern();
   const [sports, setSports] = useState<Sport[] | null>(null);
+  const [ladefehler, setLadefehler] = useState(false);
   const t = useT();
   const sprache = useSprache();
 
-  useEffect(() => {
+  function laden() {
     api
       .get<Sport[]>("/api/sports")
       .then(setSports)
-      .catch(() => setSports([]));
-  }, []);
+      // Ein Fehler ist keine leere Liste: Die Karte sagte sonst "alle Sportarten", obwohl nur die
+      // Liste fehlt.
+      .catch(() => setLadefehler(true));
+  }
+
+  useEffect(laden, []);
 
   function sportartUmschalten(sportId: string, ausgewaehlt: boolean) {
     const ids = ausgewaehlt
@@ -150,13 +155,25 @@ export function SportartenSection() {
     <Card>
       <CardHeader>
         <CardDescription>
-          {alleSportarten
+          {ladefehler ? t("Sportarten konnten nicht geladen werden.") : alleSportarten
             ? t("Zurzeit werden dir alle Sportarten angeboten. Wähle aus, was du machst – dann zeigt das Tagebuch nur noch diese und Freitext.")
             : t("Im Tagebuch werden dir nur die ausgewählten Sportarten angeboten, dazu immer Freitext.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {sports === null ? (
+        {ladefehler ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start coarse:min-h-11"
+            onClick={() => {
+              setLadefehler(false);
+              laden();
+            }}
+          >
+            {t("Erneut versuchen")}
+          </Button>
+        ) : sports === null ? (
           <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
         ) : (
           <>

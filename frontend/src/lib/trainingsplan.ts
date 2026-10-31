@@ -1,7 +1,9 @@
 import type { Goal, PauseZeitraum, TrainingPlanItem } from "@/lib/types";
 import type { Sprache } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
-import { heuteIso, tageBisPruefung } from "@/lib/pruefung";
+import { tageBisPruefung } from "@/lib/pruefung";
+import { heuteIso, tageBis, vereinszeitTag } from "@/lib/kalendertag";
+import { pausentageZwischen } from "@/lib/pausen";
 
 /**
  * Welche Wochen eines Trainingsplans die Hundeseite zeigt.
@@ -62,51 +64,31 @@ export function groupByWeek(items: TrainingPlanItem[]): [number, TrainingPlanIte
 }
 
 /**
- * Wie viele Millisekunden von `von` bis `bis` auf Pausentage fallen.
- *
- * Eine Pause beginnt mit dem Kalendertag um 0 Uhr (Ortszeit des Geräts) und
- * reicht bis zum Ende ihres letzten Tages; ohne Ende gilt sie unbegrenzt. Die
- * Tage werden vereinigt gezählt - eine Überschneidung (gibt es im Betrieb
- * nicht, der Server lehnt sie ab) zählte sonst doppelt.
+ * Die Planwoche (ab 1) an einem Kalendertag - dieselbe Regel wie im Server
+ * (Trainingspausen.Planwoche): ganze Kalendertage seit dem Planbeginn, ohne die Tage, an denen der
+ * Hund pausiert, durch 7, abgerundet. Vor dem Planbeginn die erste.
  */
-export function pausierteMillisekunden(pausen: readonly PauseZeitraum[] | undefined, von: number, bis: number): number {
-  if (!pausen || pausen.length === 0 || bis <= von) return 0;
-  // 0 Uhr Ortszeit des Kalendertags; mit `plus` der Tag danach (Sommerzeit-fest, anders als + 24 h).
-  const mitternacht = (iso: string, plus = 0) => {
-    const [jahr, monat, tag] = iso.slice(0, 10).split("-").map(Number);
-    return new Date(jahr, monat - 1, tag + plus).getTime();
-  };
-  const stuecke = pausen
-    .map((p) => [Math.max(mitternacht(p.start), von), Math.min(p.end ? mitternacht(p.end, 1) : Infinity, bis)] as const)
-    .filter(([anfang, ende]) => anfang < ende)
-    .sort((a, b) => a[0] - b[0]);
-
-  let summe = 0;
-  let bisher = -Infinity;
-  for (const [anfang, ende] of stuecke) {
-    const ab = Math.max(anfang, bisher);
-    if (ab < ende) summe += ende - ab;
-    bisher = Math.max(bisher, ende);
-  }
-  return summe;
+function planwocheAmTag(planBeginn: string, tag: string, pausen: readonly PauseZeitraum[] | undefined): number {
+  const vergangen = tageBis(tag, planBeginn);
+  if (vergangen <= 0) return 1;
+  const aktiv = vergangen - pausentageZwischen(pausen ?? [], planBeginn, tag, tag);
+  return Math.floor(Math.max(0, aktiv) / 7) + 1;
 }
 
-// Bestimmt die aktuelle Trainingswoche kalendarisch: Woche 1 startet mit der
-// Plan-Erstellung (generatedAt), jede weitere angebrochene 7-Tage-Woche zählt
-// eins hoch. Ergebnis wird auf die tatsächlich vorhandenen Wochennummern
-// begrenzt (vor Planstart -> erste Woche, nach Planende -> letzte Woche).
-// Fällt auf die erste Woche zurück, wenn kein/ungültiges Startdatum vorliegt.
-// Aus GoalPlanCard hierher gezogen, weil die Startseite ("Diese Woche")
-// dieselbe Woche meinen muss wie der Plan auf der Hundeseite.
+// Bestimmt die Trainingswoche an einem Kalendertag: Woche 1 beginnt mit dem Tag der
+// Plan-Erstellung (generatedAt, als Tag in Vereinszeit), jede weitere angebrochene 7-Tage-Woche
+// zählt eins hoch. Ergebnis wird auf die tatsächlich vorhandenen Wochennummern begrenzt (vor
+// Planstart -> erste Woche, nach Planende -> letzte Woche). Fällt auf die erste Woche zurück,
+// wenn kein/ungültiges Startdatum vorliegt.
 //
-// Trainingspausen halten den Plan an: Die Tage, an denen der Hund pausiert,
-// zählen nicht mit (dieselbe Regel wie im Server, Trainingspausen.Planwoche;
-// siehe docs/SMART_TRAINING_PLAN.md, "Pausen"). Während einer Pause steht die
-// Woche still, danach geht es dort weiter, wo der Plan stand.
-export function computeCurrentWeek(
+// Trainingspausen halten den Plan an: Die Tage, an denen der Hund pausiert, zählen nicht mit
+// (dieselbe Regel wie im Server, Trainingspausen.Planwoche; siehe docs/SMART_TRAINING_PLAN.md,
+// "Pausen"). Während einer Pause steht die Woche still, danach geht es dort weiter, wo der Plan
+// stand.
+function planwocheAmKalendertag(
   weeks: [number, TrainingPlanItem[]][],
   generatedAt: string | undefined,
-  jetzt: number = Date.now(),
+  tag: string,
   pausen?: readonly PauseZeitraum[],
 ): number | undefined {
   if (weeks.length === 0) return undefined;
@@ -114,17 +96,27 @@ export function computeCurrentWeek(
   const minWeek = Math.min(...weekNumbers);
   const maxWeek = Math.max(...weekNumbers);
 
-  const start = generatedAt ? new Date(generatedAt).getTime() : NaN;
+  const start = generatedAt ? Date.parse(generatedAt) : NaN;
   if (Number.isNaN(start)) return weekNumbers[0];
 
-  const weekMs = 7 * 24 * 60 * 60 * 1000;
-  const aktiv = jetzt - start - pausierteMillisekunden(pausen, start, jetzt);
-  const byDate = Math.floor(aktiv / weekMs) + 1;
+  const byDate = planwocheAmTag(vereinszeitTag(start), tag, pausen);
   const clamped = Math.min(Math.max(byDate, minWeek), maxWeek);
   // Bei (seltenen) Lücken die nächste vorhandene Wochennummer wählen.
   return weekNumbers.includes(clamped)
     ? clamped
     : (weekNumbers.filter((n) => n >= clamped).sort((a, b) => a - b)[0] ?? maxWeek);
+}
+
+// Die laufende Woche: die Planwoche am heutigen Kalendertag (Vereinszeit, wie im Server).
+// Aus GoalPlanCard hierher gezogen, weil die Startseite ("Diese Woche") dieselbe Woche meinen
+// muss wie der Plan auf der Hundeseite.
+export function computeCurrentWeek(
+  weeks: [number, TrainingPlanItem[]][],
+  generatedAt: string | undefined,
+  jetzt: number = Date.now(),
+  pausen?: readonly PauseZeitraum[],
+): number | undefined {
+  return planwocheAmKalendertag(weeks, generatedAt, vereinszeitTag(jetzt), pausen);
 }
 
 /**
@@ -154,39 +146,40 @@ function uebungenDerLaufendenWoche(
 }
 
 /**
- * Der Zeitpunkt, an dem ein Trainingsdatum für die Wochenrechnung gilt.
+ * Ob ein Trainingsdatum zählen darf: ein gültiger Kalendertag, der nicht in der Zukunft liegt.
  *
- * Heute ist "jetzt": Eine Woche beginnt mit der Uhrzeit der Plan-Erstellung,
- * und ein Training von heute läge mit der Tagesmitte sonst vor dem Planstart,
- * wenn der Plan erst am Nachmittag entstand. Das Formular belegt das Datum mit
- * dem UTC-Tag vor, deshalb zählen beide Kalendertage als heute. Jeder andere
- * Tag gilt als sein Ende - er gehört zu der Woche, in der er endet.
+ * Das Formular belegt das Datum mit dem UTC-Tag vor, deshalb zählen beide Kalendertage als heute.
+ * Ein Datum in der Zukunft zählt noch nicht, auch wenn es in dieselbe Planwoche fällt; das deckt
+ * nebenbei Tage nach dem Zieldatum ab, die die letzte Planwoche sonst zuschlüge.
  */
-function zeitpunktDesTages(datum: string, jetzt: number): number | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return null;
-  if (datum === heuteIso(jetzt) || datum === new Date(jetzt).toISOString().slice(0, 10)) return jetzt;
-  const [jahr, monat, tag] = datum.split("-").map(Number);
-  const ende = new Date(jahr, monat - 1, tag, 23, 59, 59, 999).getTime();
-  return Number.isNaN(ende) ? null : ende;
+function istZaehlbaresDatum(datum: string, jetzt: number): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return false;
+  const heute = heuteIso(jetzt);
+  const utcHeute = new Date(jetzt).toISOString().slice(0, 10);
+  return datum <= (heute > utcHeute ? heute : utcHeute);
 }
 
 /**
- * Ob der Zeitpunkt in der laufenden Planwoche des Ziels liegt - die Prüfung,
+ * Ob der Kalendertag in der laufenden Planwoche des Ziels liegt - die Prüfung,
  * die ein Training erfüllen muss, um für die Woche zu zählen.
  *
- * Vor dem Planstart gibt es noch keine Woche; computeCurrentWeek würde dort
- * die erste Woche zurückgeben und ein Training von vor dem Plan dieser
- * zurechnen.
+ * Vor dem Planstart gibt es noch keine Woche; die Planwoche gäbe dort die
+ * erste zurück und ein Training von vor dem Plan würde dieser zugerechnet.
+ *
+ * Die Planwoche rechnet in Vereinszeit (wie der Server), das Trainingsdatum und "heute"
+ * (istZaehlbaresDatum) mit dem Gerätetag. Außerhalb von Mitteleuropa kann ein Training "von
+ * heute" deshalb rund um den Wochenwechsel der Nachbarwoche zugerechnet werden; das gilt auch
+ * für passendesPlanItem und gewaehltesPlanItem und ist so gewollt (Serverregel zählt).
  */
-function zeitpunktInLaufenderWoche(
+function tagInLaufenderWoche(
   goal: Goal,
   laufend: { woche: number; wochen: [number, TrainingPlanItem[]][] },
-  zeitpunkt: number,
+  tag: string,
 ): boolean {
   const generatedAt = goal.trainingPlan?.generatedAt;
-  const start = generatedAt ? new Date(generatedAt).getTime() : NaN;
-  if (!Number.isNaN(start) && zeitpunkt < start) return false;
-  return computeCurrentWeek(laufend.wochen, generatedAt, zeitpunkt, goal.planPausen) === laufend.woche;
+  const start = generatedAt ? Date.parse(generatedAt) : NaN;
+  if (!Number.isNaN(start) && tag < vereinszeitTag(start)) return false;
+  return planwocheAmKalendertag(laufend.wochen, generatedAt, tag, goal.planPausen) === laufend.woche;
 }
 
 /** Die Antwort des Servers, wenn ein Plan-Ziel nicht (mehr) existiert (TrainingService). */
@@ -257,18 +250,15 @@ export function passendesPlanItem(
   vergeben?: ReadonlyMap<string, number>,
 ): TrainingPlanItem | null {
   if (!exerciseId) return null;
-  const zeitpunkt = zeitpunktDesTages(datum, jetzt);
-  // Ein Training ist etwas Geschehenes: ein Datum in der Zukunft zählt noch
-  // nicht, auch wenn es in dieselbe Planwoche fällt. Das deckt nebenbei Tage
-  // nach dem Zieldatum ab, die computeCurrentWeek der letzten Woche zuschlüge.
-  if (zeitpunkt === null || zeitpunkt > jetzt) return null;
+  // Ein Training ist etwas Geschehenes (siehe istZaehlbaresDatum).
+  if (!istZaehlbaresDatum(datum, jetzt)) return null;
 
   let bestes: { item: TrainingPlanItem; zieldatum: string } | null = null;
   for (const goal of goals ?? []) {
     const laufend = uebungenDerLaufendenWoche(goal, jetzt);
     if (!laufend || !goal.trainingPlan) continue;
 
-    if (!zeitpunktInLaufenderWoche(goal, laufend, zeitpunkt)) continue;
+    if (!tagInLaufenderWoche(goal, laufend, datum)) continue;
 
     const item = laufend.uebungen.find(
       (kandidat) =>
@@ -301,12 +291,11 @@ export function gewaehltesPlanItem(
   datum: string,
   jetzt: number = Date.now(),
 ): TrainingPlanItem | null {
-  const zeitpunkt = zeitpunktDesTages(datum, jetzt);
-  if (zeitpunkt === null || zeitpunkt > jetzt) return null;
+  if (!istZaehlbaresDatum(datum, jetzt)) return null;
   for (const goal of goals ?? []) {
     const laufend = uebungenDerLaufendenWoche(goal, jetzt);
     const item = laufend?.uebungen.find((kandidat) => kandidat.id === gewaehlt.id);
-    if (laufend && item) return zeitpunktInLaufenderWoche(goal, laufend, zeitpunkt) ? item : null;
+    if (laufend && item) return tagInLaufenderWoche(goal, laufend, datum) ? item : null;
   }
   return (goals ?? []).length === 0 && datum === heuteIso(jetzt) ? gewaehlt : null;
 }

@@ -35,8 +35,8 @@ export type SpurGrenzen = { gruenBis: number; gelbBis: number };
  * Fährte 3/6 m, Mantrailing 10/25 m. Der Hund arbeitet beim Mantrailing an
  * langer Leine und sucht den Geruch auch neben der Laufspur - eng an der Linie
  * wie bei der Fährte ist dort nicht das Ziel. Dieselben Zahlen stehen im
- * Backend (GpsTrackEvaluator.FaehrteToleranz und MantrailingToleranz): beim
- * Ändern beide Stellen anfassen.
+ * Backend (GpsTrackEvaluator.FaehrteToleranz und MantrailingToleranz); der Test
+ * backend-kopplung.test.ts hält beide Seiten zusammen.
  */
 export const FAEHRTE_GRENZEN: SpurGrenzen = { gruenBis: 3, gelbBis: 6 };
 export const MANTRAILING_GRENZEN: SpurGrenzen = { gruenBis: 10, gelbBis: 25 };
@@ -74,6 +74,16 @@ export function stundenText(minuten: number | null | undefined, sprache: "de" | 
   if (minuten == null) return "";
   const text = String(Math.round((minuten / MINUTEN_JE_STUNDE) * 100) / 100);
   return sprache === "en" ? text : text.replace(".", ",");
+}
+
+/**
+ * Der Vorschlag fürs Trailalter-Feld: die Liegezeit in Stunden - aber nur, wenn das Feld sie
+ * auch annimmt. Lag die Spur länger als erlaubt (eine Woche), bleibt das Feld leer: Ein
+ * Vorschlag, den die Prüfung ablehnt, ließe das Ergebnis-Fenster nicht mehr schließen.
+ */
+export function trailalterVorschlag(minuten: number | null | undefined, sprache: "de" | "en" = "de"): string {
+  const text = stundenText(minuten, sprache);
+  return minutenAusStundenText(text) === undefined ? "" : text;
 }
 
 /**

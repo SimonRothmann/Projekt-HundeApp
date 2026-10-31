@@ -29,7 +29,10 @@ export const ERSTE_STUNDE = 8;
 export const LETZTE_STUNDE = 21;
 export const STUNDEN: readonly number[] = Array.from({ length: LETZTE_STUNDE - ERSTE_STUNDE + 1 }, (_, i) => ERSTE_STUNDE + i);
 
-const ALLE_TAGE = 127;
+export const ALLE_TAGE = 127;
+
+/** So viele Tage vor Ablauf einer Frist kommt die Vorab-Erinnerung (Erinnerungsregeln.GesundheitVorlaufTage). */
+export const GESUNDHEIT_VORLAUF_TAGE = 14;
 
 export function tagGewaehlt(maske: number, bit: number): boolean {
   return (maske & bit) !== 0;

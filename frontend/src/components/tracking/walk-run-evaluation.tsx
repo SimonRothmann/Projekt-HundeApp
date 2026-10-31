@@ -6,31 +6,19 @@ import { cn } from "@/lib/utils";
 
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
-import { FAEHRTE_GRENZEN, istMantrailing, spurGrenzen } from "@/lib/mantrailing";
-// Die Fährte-Schwellen stehen in lib/mantrailing.ts (zusammen mit denen für
-// Mantrailing, je Art eine Zahl, ein Ort) und sind identisch zum Backend
-// (GpsTrackEvaluator) - bewusst großzügig, weil der GPS-Fehler selbst 3-8 m
-// beträgt. Hier nur unter den alten Namen, die Kartenlinie und Fährtenbild
-// (lib/faehrten-bild.ts) für die Fährte weiter nutzen.
-export const GREEN_MAX_M = FAEHRTE_GRENZEN.gruenBis;
-export const AMBER_MAX_M = FAEHRTE_GRENZEN.gelbBis;
-
+import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
+import { ampelLabel, ampelStufe, type Ampel } from "@/lib/spur-ampel";
 type Spur = { kind?: number | null };
 
-function ampelClass(avgMeters: number, art?: Spur): string {
-  const grenzen = spurGrenzen(art);
-  if (avgMeters <= grenzen.gruenBis) return "text-emerald-600 dark:text-emerald-500";
-  if (avgMeters <= grenzen.gelbBis) return "text-amber-600 dark:text-amber-500";
-  return "text-destructive";
-}
+// Die Grenzen je Art stehen in lib/mantrailing.ts, die Einstufung in lib/spur-ampel.ts.
+const AMPEL_KLASSE: Record<Ampel, string> = {
+  gruen: "text-emerald-600 dark:text-emerald-500",
+  gelb: "text-amber-600 dark:text-amber-500",
+  rot: "text-destructive",
+};
 
-export function ampelLabel(avgMeters: number, art?: Spur): string {
-  const grenzen = spurGrenzen(art);
-  if (avgMeters <= grenzen.gruenBis) {
-    return istMantrailing(art) ? uebersetzbar("nah an der Spur") : uebersetzbar("eng an der Fährte");
-  }
-  if (avgMeters <= grenzen.gelbBis) return uebersetzbar("mittlere Abweichung");
-  return uebersetzbar("deutlich abgekommen");
+function ampelClass(avgMeters: number, art?: Spur): string {
+  return AMPEL_KLASSE[ampelStufe(avgMeters, spurGrenzen(art))];
 }
 
 const stopLabel: Record<number, string> = { 0: uebersetzbar("unerklärt"), 1: uebersetzbar("Verweisen"), 2: uebersetzbar("erklärt") };

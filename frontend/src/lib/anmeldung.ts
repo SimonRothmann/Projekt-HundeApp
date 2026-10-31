@@ -1,5 +1,5 @@
 import { istGueltigerEinladungscode } from "@/lib/einladung";
-import { heuteIso } from "@/lib/pruefung";
+import { heuteIso, plusJahre, plusTage } from "@/lib/kalendertag";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 
 /**
@@ -25,8 +25,8 @@ export function anmeldungsUrl(origin: string, code: string): string {
 /** So alt darf der Hund bei der Anmeldung höchstens sein, in Jahren. */
 export const MAX_HUNDEALTER_JAHRE = 2;
 
-const TELEFON_MIN_ZEICHEN = 6;
-const TELEFON_MIN_ZIFFERN = 6;
+export const TELEFON_MIN_ZEICHEN = 6;
+export const TELEFON_MIN_ZIFFERN = 6;
 export const TELEFON_MAX_ZEICHEN = 30;
 // Ziffern, +, Leerzeichen, /, -, ( ) - lose, weil Nummern in jeder Schreibweise aufgeschrieben werden.
 const TELEFON_ZEICHEN = /^[0-9+\s/()-]+$/;
@@ -95,22 +95,9 @@ export function istDoppelteAnmeldung(
  */
 export const WURFTAG_VORSCHLAG_WOCHEN = 8;
 
-/** Heute (ISO-Tag) minus 8 Wochen, als ISO-Tag. Rechnet in UTC, damit Sommerzeit nichts verschiebt. */
+/** Heute (ISO-Tag) minus 8 Wochen, als ISO-Tag. */
 export function wurftagVorschlag(heuteIsoTag: string): string {
-  const [jahr, monat, tag] = heuteIsoTag.slice(0, 10).split("-").map(Number);
-  const datum = new Date(Date.UTC(jahr, monat - 1, tag - WURFTAG_VORSCHLAG_WOCHEN * 7));
-  return datum.toISOString().slice(0, 10);
-}
-
-/** Ein Kalendertag um ganze Jahre zurück; der 29. Februar wird zum 28. (wie DateOnly.AddYears im Backend). */
-export function jahreZurueck(iso: string, jahre: number): string {
-  const [jahr, monat, tag] = iso.slice(0, 10).split("-").map(Number);
-  const ziel = jahr - jahre;
-  const schaltjahr = (ziel % 4 === 0 && ziel % 100 !== 0) || ziel % 400 === 0;
-  const letzterTag = monat === 2 ? (schaltjahr ? 29 : 28) : null;
-  const gekappt = letzterTag !== null ? Math.min(tag, letzterTag) : tag;
-  const zweistellig = (n: number) => String(n).padStart(2, "0");
-  return `${String(ziel).padStart(4, "0")}-${zweistellig(monat)}-${zweistellig(gekappt)}`;
+  return plusTage(heuteIsoTag, -WURFTAG_VORSCHLAG_WOCHEN * 7);
 }
 
 export type WurftagFehler = "fehlt" | "zukunft" | "zuAlt";
@@ -127,7 +114,7 @@ export function wurftagFehler(
 ): WurftagFehler | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(wurftag)) return "fehlt";
   if (wurftag > heute) return "zukunft";
-  if (wurftag < jahreZurueck(referenztag, MAX_HUNDEALTER_JAHRE)) return "zuAlt";
+  if (wurftag < plusJahre(referenztag, -MAX_HUNDEALTER_JAHRE)) return "zuAlt";
   return null;
 }
 

@@ -3,11 +3,15 @@ import {
   computeCurrentWeek,
   groupByWeek,
   passendesPlanItem,
-  pausierteMillisekunden,
   wochenFortschritt,
 } from "./trainingsplan";
-import { plusTage } from "./pausen";
+import { plusTage } from "./kalendertag";
+import { pausentageZwischen } from "./pausen";
 import type { Goal, PauseZeitraum, TrainingPlanItem } from "./types";
+
+// Die Planwoche rechnet in ganzen Kalendertagen der Vereinszeit (wie der Server) - der Test legt
+// die Zeitzone des Geräts selbst fest, damit "0 Uhr Ortszeit" und "0 Uhr Vereinszeit" dasselbe sind.
+process.env.TZ = "Europe/Berlin";
 
 /**
  * Die Planwoche mit Trainingspausen - dieselben Fälle wie im Server
@@ -90,16 +94,61 @@ describe("computeCurrentWeek mit Pausen", () => {
   });
 });
 
-describe("pausierteMillisekunden", () => {
+describe("Pausentage der Planrechnung", () => {
+  const tag = (n: number) => plusTage(BEGINN_TAG, n);
+
   it("zählt überschneidende Pausen nur einmal", () => {
-    const ms = pausierteMillisekunden([pause(2, 8), pause(6, 12)], BEGINN, mittag(30));
-    expect(ms).toBe(11 * 24 * 60 * 60 * 1000);
+    expect(pausentageZwischen([pause(2, 8), pause(6, 12)], BEGINN_TAG, tag(30), tag(30))).toBe(11);
   });
 
   it("zählt nichts, wenn das Fenster leer ist", () => {
-    expect(pausierteMillisekunden([pause(2, 8)], mittag(5), mittag(5))).toBe(0);
-    expect(pausierteMillisekunden(undefined, BEGINN, mittag(5))).toBe(0);
+    expect(pausentageZwischen([pause(2, 8)], tag(5), tag(5), tag(5))).toBe(0);
+    expect(pausentageZwischen([], BEGINN_TAG, tag(5), tag(5))).toBe(0);
   });
+});
+
+describe("Planwoche in ganzen Tagen der Vereinszeit (Regel des Servers)", () => {
+  // Plan am Nachmittag erstellt: 1.9. um 15:00 Uhr Berlin (13:00 UTC).
+  const NACHMITTAGS = "2026-09-01T13:00:00Z";
+  const um = (iso: string) => Date.parse(iso);
+  const woche_ = (jetzt: string, pausen?: PauseZeitraum[]) => computeCurrentWeek(wochen, NACHMITTAGS, um(jetzt), pausen);
+
+  it("die neue Woche beginnt um 0 Uhr des siebten Tages, nicht erst zur Uhrzeit der Erstellung", () => {
+    // 8.9. um 08:00 Uhr: sieben Kalendertage seit dem Planbeginn - der Server sagt Woche 2.
+    expect(woche_("2026-09-08T06:00:00Z")).toBe(2);
+    expect(woche_("2026-09-07T21:59:00Z")).toBe(1); // 7.9., 23:59 Uhr
+    expect(woche_("2026-09-07T22:00:00Z")).toBe(2); // 8.9., 0:00 Uhr
+  });
+
+  it("der Tag wechselt um Mitternacht Vereinszeit, nicht um Mitternacht UTC", () => {
+    // 2.9., 00:30 Uhr Berlin = 1.9., 22:30 UTC: für den Server schon der 2.9. als Planbeginn.
+    const spaet = (jetzt: string) => computeCurrentWeek(wochen, "2026-09-01T22:30:00Z", Date.parse(jetzt), undefined);
+    expect(spaet("2026-09-08T21:30:00Z")).toBe(1); // 8.9., 23:30 Uhr: erst 6 Tage seit dem 2.9.
+    expect(spaet("2026-09-08T22:30:00Z")).toBe(2); // 9.9., 00:30 Uhr: 7 Tage
+  });
+
+  it("Pausentage sind ganze Kalendertage, beide Grenzen einschließlich", () => {
+    // Pause 3.9. bis 9.9. (7 Tage): am 15.9. (14 Tage seit Beginn) sind 7 aktive Tage vergangen.
+    const pausen: PauseZeitraum[] = [{ start: "2026-09-03", end: "2026-09-09" }];
+    expect(woche_("2026-09-14T10:00:00Z", pausen)).toBe(1); // 13 Tage - 7 = 6
+    expect(woche_("2026-09-15T10:00:00Z", pausen)).toBe(2); // 14 Tage - 7 = 7
+  });
+
+  it("ein Training am Tag des Planbeginns zählt, eines davor nicht", () => {
+    const g = ziel([]);
+    g.trainingPlan = { id: "p", generatedAt: NACHMITTAGS, items: [1, 2].map((w) => item({ id: `sitz-w${w}`, weekNumber: w, exerciseId: "sitz" })) };
+    const jetzt = um("2026-09-03T10:00:00Z");
+    expect(passendesPlanItem([g], "sitz", "2026-09-01", jetzt)?.id).toBe("sitz-w1");
+    expect(passendesPlanItem([g], "sitz", "2026-08-31", jetzt)).toBeNull();
+  });
+
+  function ziel(planPausen: PauseZeitraum[]): Goal {
+    return {
+      id: "g", dogId: "d", sportId: "s", sportName: "BH", regulationId: null, regulationName: null,
+      targetDate: "2026-12-01", status: 0, notes: null, isCustom: false, weeklyExerciseCount: 1, trainingDaysPerWeek: 1,
+      weekConfigs: [], trainingPlan: null, planManagedByTrainer: false, planPausen,
+    };
+  }
 });
 
 describe("Plan und Pause im Zusammenspiel", () => {

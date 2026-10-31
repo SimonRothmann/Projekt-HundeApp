@@ -16,10 +16,14 @@ import {
   type FaehrtenSicherung,
 } from "@/lib/aufzeichnung-sicherung";
 import { TRAIL_UNTERGRUENDE, UNTERGRUENDE, untergrundUmschalten } from "@/lib/untergrund";
+import { automatischePunkte, markerPunkte, PUNKT_AUTOMATISCH, PUNKT_MARKER } from "@/lib/geo";
+import { ABLAUF_FRIST_STUNDEN_TRAIL } from "@/lib/faehrte";
 import { LEERE_TRAIL_ANGABEN, type TrailAngabenVorLegen } from "@/lib/mantrailing";
 import { TrailLegenFormular } from "@/components/tracking/trail-angaben";
 import { cn } from "@/lib/utils";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
+import { GENAUIGKEIT_KLASSE } from "@/components/tracking/genauigkeit-klasse";
+import { genauigkeitsStufe, GPS_PROFIL_LEGEN } from "@/lib/gps-profil";
 import { TrackMap } from "@/components/tracking/track-map";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
@@ -33,7 +37,7 @@ function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
     longitude: position.coords.longitude,
     timestamp: new Date(position.timestamp).toISOString(),
     accuracy: position.coords.accuracy,
-    pointType: 0,
+    pointType: PUNKT_AUTOMATISCH,
     label: null,
     markerType: 0,
   };
@@ -84,13 +88,8 @@ export function FahrteRecorder({
   const t = useT();
   const { isRecording, points, setPoints, currentAccuracy, start, stop, markPoint } = useGpsRecorder(
     toAutomaticPoint,
-    // Fährte braucht höhere Präzision als ein normaler Spaziergang: Erstaufnahme
-    // und Wiederholung sollen deckungsgleich sein. Schwellwert 8 m verwirft
-    // Kaltstart-Schlechtpunkte früh. Ohne Netz (kein aGPS) konvergiert der
-    // Chip aber oft nur bis 10-20 m - dann lockert sich der Filter nach 15 s
-    // schrittweise bis 20 m, statt die Aufzeichnung dauerhaft leer zu lassen
-    // (der Kalman-Filter gewichtet schlechtere Messungen ohnehin schwächer).
-    { maxAccuracyMeters: 8, relaxedMaxAccuracyMeters: 20, kalman: true },
+    // Die Fährte braucht höhere Präzision als ein Spaziergang (Begründung im Profil).
+    GPS_PROFIL_LEGEN,
   );
   // Auch der Ablauf der eben gelegten Fährte (Karte "Fährte gespeichert") ist
   // eine Aufzeichnung, die das Fenster nicht überleben würde.
@@ -108,7 +107,7 @@ export function FahrteRecorder({
   const [isMarking, setIsMarking] = useState(false);
   // Die eben gelegte Fährte: bietet direkt danach das Ablaufen an, statt dass
   // man sie im Tagebuch wieder heraussuchen muss. Offline gespeichert gibt es
-  // noch keine Id - dann erinnert später die Startseite ("Heute gelegt").
+  // noch keine Id - dann erinnert später die Startseite ("Zuletzt gelegt").
   const [gelegt, setGelegt] = useState<GpsTrack | null>(null);
   const { user } = useAuth();
   const schluessel = faehrtenSchluessel(dogId);
@@ -175,7 +174,7 @@ export function FahrteRecorder({
     setIsMarking(true);
     markPoint(
       (point) => {
-        setPoints((prev) => [...prev, { ...point, pointType: 1, label: null, markerType: typ }]);
+        setPoints((prev) => [...prev, { ...point, pointType: PUNKT_MARKER, label: null, markerType: typ }]);
         setIsMarking(false);
         toast.success(
           trailModus
@@ -264,8 +263,8 @@ export function FahrteRecorder({
     await onSaved();
   }
 
-  const autoPunkte = points.filter((p) => p.pointType !== 1).length;
-  const markerPunkte = points.filter((p) => p.pointType === 1).length;
+  const autoPunkte = automatischePunkte(points).length;
+  const markerAnzahl = markerPunkte(points).length;
 
   // Nicht am Aufzeichnen: Untergrund wählen und starten. Die Hundeseite zeigt
   // das im Fenster "Fährte legen" (Titel und Rahmen kommen von dort).
@@ -289,7 +288,7 @@ export function FahrteRecorder({
             <p className="text-sm">
               <span className="font-medium">{trailModus ? t("Trail gespeichert.") : t("Fährte gespeichert.")}</span>{" "}
               {trailModus
-                ? t("Suchen, sobald die Liegezeit um ist - die Startseite zeigt ihn unter „Heute gelegt“.")
+                ? t("Suchen, sobald die Liegezeit um ist - die Startseite zeigt ihn, solange er sich noch suchen lässt ({stunden} Stunden nach dem Legen).", { stunden: ABLAUF_FRIST_STUNDEN_TRAIL })
                 : t("Ablaufen, sobald sie alt genug ist - die Startseite erinnert dich daran.")}
             </p>
             <div className="flex flex-wrap items-center gap-2">
@@ -360,21 +359,13 @@ export function FahrteRecorder({
       titel={trailModus ? t("Trail legen") : t("Fährte legen")}
       status={
         <>
-          {t("{punkte} Punkte · {marker} Marker", { punkte: autoPunkte, marker: markerPunkte })}
+          {t("{punkte} Punkte · {marker} Marker", { punkte: autoPunkte, marker: markerAnzahl })}
           {currentAccuracy !== null && (
             <>
               {" · "}
               <span
-                // Draußen im Sonnenlicht gelesen: 700er-Töne im Hellen (>= 5:1 auf
-                // Weiß), halbfett, damit "±6 m" nicht in der Leiste untergeht.
-                className={
-                  currentAccuracy <= 8
-                    ? "font-semibold text-green-700 dark:text-green-400"
-                    : currentAccuracy <= 15
-                      ? "font-semibold text-amber-700 dark:text-amber-400"
-                      : "font-semibold text-destructive"
-                }
-                title={t("GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als 8 m werden verworfen; findet das GPS länger keinen genauen Fix (z.B. ohne Netz), lockert sich der Filter schrittweise bis 20 m.")}
+                className={GENAUIGKEIT_KLASSE[genauigkeitsStufe(currentAccuracy, GPS_PROFIL_LEGEN)]}
+                title={t("GPS-Genauigkeit (Fehlerkreis-Radius). Punkte ungenauer als {max} m werden verworfen; findet das GPS länger keinen genauen Fix (z.B. ohne Netz), lockert sich der Filter schrittweise bis {gelockert} m.", { max: GPS_PROFIL_LEGEN.maxAccuracyMeters, gelockert: GPS_PROFIL_LEGEN.relaxedMaxAccuracyMeters })}
               >
                 ±{Math.round(currentAccuracy)} m
               </span>

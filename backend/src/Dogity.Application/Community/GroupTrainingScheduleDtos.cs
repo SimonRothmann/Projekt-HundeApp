@@ -43,7 +43,14 @@ public record GroupTrainingSessionDto(
     /// Personen, die die Gruppe verwalten dürfen, für alle anderen 0: Wer die
     /// Anmeldungen nicht sehen darf, soll auch nicht ablesen können, wie viele es sind.
     /// </summary>
-    int RegistrationCount = 0);
+    int RegistrationCount = 0,
+    /// <summary>
+    /// Ob der Aufrufer diesen Termin ändern, absagen und löschen darf - dieselbe Regel, mit der
+    /// der Server diese Aktionen zulässt (Trainer-Rolle im Verein UND Trainer:in der Gruppe).
+    /// Die Terminliste zeigt auch Termine fremder Gruppen, in die jemand als Termin-Trainer:in
+    /// eingetragen ist; für die gibt es die Knöpfe nicht, der Server antwortete 404.
+    /// </summary>
+    bool KannVerwalten = false);
 
 /// <summary>Antwort eines Mitglieds auf einen Termin ("Ich komme" / "Kann nicht").</summary>
 public record RespondToSessionRequest(bool Attending);

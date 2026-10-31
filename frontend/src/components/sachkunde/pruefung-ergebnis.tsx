@@ -82,7 +82,7 @@ export function PruefungsErgebnis({
         </p>
       </div>
 
-      <PruefungHinweis />
+      <PruefungHinweis prozent={ergebnis.passPercent} />
 
       <section className="min-w-0 rounded-xl border border-border/60 bg-card p-4">
         <h3 className="text-sm font-semibold">{t("Punkte je Komplex")}</h3>

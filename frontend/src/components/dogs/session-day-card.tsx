@@ -22,6 +22,7 @@ import { istNeuesFeedback } from "@/lib/feedback-gesehen";
 import { darfBearbeiten, ganzerTagBearbeitbar } from "@/lib/tagebuch";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { cn } from "@/lib/utils";
+import { tagAlsDatum } from "@/lib/kalendertag";
 
 /**
  * Ob eine Einheit Angaben zu Ort, Zeit, Wetter oder Verfassung trägt.
@@ -218,7 +219,7 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
       // Neues Datum nennen: die Hundeseite lädt nur die letzten drei Monate,
       // ein weiter zurück verschobenes Training verschwindet sonst wortlos aus
       // der Liste und sieht wie gelöscht aus.
-      toast.success(t("Training auf den {datum} verschoben.", { datum: new Date(value).toLocaleDateString(ort) }));
+      toast.success(t("Training auf den {datum} verschoben.", { datum: tagAlsDatum(value).toLocaleDateString(ort) }));
       setEditing(false);
       await onChanged();
     } catch (err) {

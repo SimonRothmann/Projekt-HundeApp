@@ -456,6 +456,21 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
         bool SiehtNamen(GroupTrainingSession s) =>
             verwaltbareGruppen.Contains(s.GroupId) || s.Trainers.Any(t => t.UserId == callerId);
 
+        // Ändern, absagen, löschen darf, wer im Verein Trainer:in ist UND die Gruppe verwaltet
+        // (KannTerminVerwaltenAsync, hier für alle Termine auf einmal). Ohne verwaltbare Gruppe
+        // ist die Antwort überall nein - dann entfällt auch die Abfrage (Mitglieder-Startseite).
+        var clubIds = sessions.Select(s => s.ClubId).Distinct().ToList();
+        var trainerVereine = verwaltbareGruppen.Count == 0
+            ? new List<Guid>()
+            : await db.ClubTrainers
+                .Where(t => t.UserId == callerId && clubIds.Contains(t.ClubId))
+                .MitRolle(ClubRollen.Trainer)
+                .Select(t => t.ClubId)
+                .Distinct()
+                .ToListAsync(ct);
+        bool KannVerwalten(GroupTrainingSession s) =>
+            trainerVereine.Contains(s.ClubId) && verwaltbareGruppen.Contains(s.GroupId);
+
         var anmeldungen = verwaltbareGruppen.Count == 0
             ? new Dictionary<Guid, int>()
             : await db.GroupRegistrations
@@ -514,13 +529,13 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
             // "Offen" ergäbe mit Zu- und Absagen die Mitgliederzahl der Gruppe -
             // die ist Sache der Trainer:innen, Mitglieder bekommen 0.
             var offen = SiehtNamen(s) ? Math.Max(0, aktive.Count - gezaehlt.Count) : 0;
-            return ToDto(s, names, meine, zusagen, absagen, offen, liste, anmeldungen.GetValueOrDefault(s.GroupId));
+            return ToDto(s, names, meine, zusagen, absagen, offen, liste, anmeldungen.GetValueOrDefault(s.GroupId), KannVerwalten(s));
         }).ToList();
     }
 
     private static GroupTrainingSessionDto ToDto(
         GroupTrainingSession s, IReadOnlyDictionary<Guid, UserLookupResult> names,
-        bool? myResponse, int attending, int declining, int open, IReadOnlyList<SessionResponseDto> responses, int registrations)
+        bool? myResponse, int attending, int declining, int open, IReadOnlyList<SessionResponseDto> responses, int registrations, bool kannVerwalten)
     {
         var items = s.Items
             .OrderBy(i => i.SortOrder)
@@ -540,7 +555,7 @@ public class GroupTrainingScheduleService(IApplicationDbContext db, IUserLookupS
             s.StartsAt, s.DurationMinutes, s.Location, s.Notes, s.Status,
             items.Sum(i => i.Exercise?.DurationMinutes ?? 0),
             items, trainers,
-            myResponse, attending, declining, open, responses, registrations);
+            myResponse, attending, declining, open, responses, registrations, kannVerwalten);
     }
 
     private static GroupTrainingExerciseDto ToExerciseDto(GroupTrainingExercise e) =>

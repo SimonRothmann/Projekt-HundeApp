@@ -64,6 +64,10 @@ export function ClubRolesSection({
     try {
       setPersonen(await api.get<ClubTrainerInfo[]>(`/api/clubs/${clubId}/roles`));
     } catch (err) {
+      // 404 heißt: Man darf die Rollen nicht (mehr) sehen - etwa weil man sich gerade selbst das
+      // Rollenrecht genommen hat. Dann bleibt der alte Stand stehen, ohne Fehlermeldung und ohne
+      // die falsche Aussage "Noch niemand hat eine Rolle"; die Seite blendet die Karte ohnehin aus.
+      if (err instanceof ApiError && err.status === 404) return;
       setPersonen([]);
       toast.error(err instanceof ApiError ? err.message : t("Rollen konnten nicht geladen werden."));
     }
@@ -80,9 +84,11 @@ export function ClubRolesSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubId]);
 
+  // Zuerst die Seite informieren: Wer sich selbst Rechte genommen hat, sieht danach andere
+  // Abschnitte (und diese Karte nicht mehr); das Nachladen darf dann ins Leere laufen.
   async function nachAenderung() {
-    await laden();
     await onGeaendert?.();
+    await laden();
   }
 
   async function setzen(p: ClubTrainerInfo, rollen: number) {

@@ -2,8 +2,9 @@ import { GESUNDHEIT_ART, GESUNDHEIT_ZUSTAND } from "@/lib/types";
 import type { Dog, DogGesundheitStand, DogHealthRecord, GesundheitsArt, GesundheitsZustand } from "@/lib/types";
 import type { Sprache } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
-import { datumKurz, heuteIso } from "@/lib/pruefung";
-import { datumTagMonat, plusJahre, tagesnummer } from "@/lib/pausen";
+import { datumKurz } from "@/lib/pruefung";
+import { heuteIso, plusJahre, plusMonate, tageBis } from "@/lib/kalendertag";
+import { datumTagMonat } from "@/lib/pausen";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 
 /**
@@ -33,23 +34,18 @@ export const HINWEIS_TAGE = 14;
 export const HINWEIS_TERMIN_TAGE = 2;
 
 /** Gleiche Grenzen wie der Server (DogHealthService). */
-const MAX_JAHRE_ZURUECK = 25;
-const MAX_JAHRE_VORAUS = 2;
-const MAX_FRIST_JAHRE = 10;
+export const MAX_JAHRE_ZURUECK = 25;
+export const MAX_JAHRE_VORAUS = 2;
+export const MAX_FRIST_JAHRE = 10;
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Wie es um eine Frist steht - dieselbe Rechnung wie Gesundheitsstand.Zustand im Server. */
 export function zustand(faellig: string | null, heute: string = heuteIso()): GesundheitsZustand {
   if (faellig === null) return GESUNDHEIT_ZUSTAND.Ok;
-  const rest = tagesnummer(faellig) - tagesnummer(heute);
+  const rest = tageBis(faellig, heute);
   if (rest < 0) return GESUNDHEIT_ZUSTAND.Ueberfaellig;
   return rest <= BALD_TAGE ? GESUNDHEIT_ZUSTAND.Bald : GESUNDHEIT_ZUSTAND.Ok;
-}
-
-/** Tage von heute bis zum Datum: positiv = noch hin, 0 = heute, negativ = vorbei. */
-export function tageBis(iso: string, heute: string = heuteIso()): number {
-  return tagesnummer(iso) - tagesnummer(heute);
 }
 
 export const ART_TEXT: Record<GesundheitsArt, string> = {
@@ -123,14 +119,6 @@ export function schnellwahlen(art: GesundheitsArt): Schnellwahl[] {
     ];
   }
   return [];
-}
-
-/** Der Kalendertag n Monate später (der 31. + 1 Monat: der letzte Tag des Folgemonats). */
-export function plusMonate(iso: string, monate: number): string {
-  const [jahr, monat, tag] = iso.slice(0, 10).split("-").map(Number);
-  const ziel = new Date(Date.UTC(jahr, monat - 1 + monate, tag));
-  if (ziel.getUTCMonth() !== (((monat - 1 + monate) % 12) + 12) % 12) ziel.setUTCDate(0);
-  return ziel.toISOString().slice(0, 10);
 }
 
 /** Das Datum, das eine Schnellwahl ab dem Datum des Eintrags einträgt. */

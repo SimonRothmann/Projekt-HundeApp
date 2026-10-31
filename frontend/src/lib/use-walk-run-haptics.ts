@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { bearingDegrees, haversineMeters } from "@/lib/geo";
+import { automatischePunkte, bearingDegrees, haversineMeters, markerPunkte } from "@/lib/geo";
 import type { GpsPoint, GpsWalkPoint } from "@/lib/types";
 
 // Auslöseradius für die Vibration vor einem POI (Gegenstand oder Abbiegung).
@@ -95,7 +95,7 @@ type Poi = {
 // die kommen als "object"-POIs separat.
 // Exportiert für Unit-Tests (reine Geometrie-Logik ohne Hook-Kontext).
 export function findTurnPoints(points: GpsPoint[]): Poi[] {
-  const auto = points.filter((p) => p.pointType !== 1);
+  const auto = automatischePunkte(points);
   const turns: Poi[] = [];
   for (let i = 1; i < auto.length - 1; i++) {
     const prev = auto[i - 1];
@@ -125,9 +125,7 @@ export function useWalkRunHaptics(
 ) {
   const pois = useMemo<Poi[]>(() => {
     if (!laidTrackPoints || laidTrackPoints.length < 2) return [];
-    const markers = laidTrackPoints
-      .filter((p) => p.pointType === 1)
-      .map<Poi>((p, i) => ({ key: `obj-${i}`, latitude: p.latitude, longitude: p.longitude, kind: "object" }));
+    const markers = markerPunkte(laidTrackPoints).map<Poi>((p, i) => ({ key: `obj-${i}`, latitude: p.latitude, longitude: p.longitude, kind: "object" }));
     return [...markers, ...findTurnPoints(laidTrackPoints)];
   }, [laidTrackPoints]);
 

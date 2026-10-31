@@ -1,6 +1,6 @@
 import type { Dog, Goal, TrainingSession } from "@/lib/types";
 import type { Sprache } from "@/lib/i18n";
-import { pruefungsName, tageBisPruefung } from "@/lib/pruefung";
+import { fruehestesZiel, laufendeZiele, pruefungsName, tageBisPruefung } from "@/lib/pruefung";
 import { wochenFortschritt } from "@/lib/trainingsplan";
 import { istNeuesFeedback } from "@/lib/feedback-gesehen";
 
@@ -44,8 +44,7 @@ export function verfuegbarerReiter(
  * wartet auf sein Ergebnis und hat keine laufende Woche mehr.
  */
 export function laufendesZiel(goals: readonly Goal[] | null | undefined, jetzt: number = Date.now()): Goal | null {
-  const laufende = (goals ?? []).filter((g) => g.status === 0 && tageBisPruefung(g.targetDate, jetzt) >= 0);
-  return laufende.reduce<Goal | null>((bestes, g) => (bestes === null || g.targetDate < bestes.targetDate ? g : bestes), null);
+  return fruehestesZiel(laufendeZiele(goals, jetzt));
 }
 
 /**

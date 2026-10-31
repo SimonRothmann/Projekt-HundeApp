@@ -13,7 +13,7 @@ import { ablaufKommentarSpeichern } from "@/components/tracking/walk-run-comment
 import { TrailErgebnisFormular } from "@/components/tracking/trail-angaben";
 import { istWischNachUnten, kommentarAenderung } from "@/lib/ablauf-ergebnis";
 import { liegezeitMinuten } from "@/lib/faehrten-bild";
-import { istMantrailing, stundenText, trailAenderungen } from "@/lib/mantrailing";
+import { istMantrailing, trailAenderungen, trailalterVorschlag } from "@/lib/mantrailing";
 import { toast } from "sonner";
 import { useSprache, useT } from "@/lib/i18n";
 import { TEXTLAENGE } from "@/lib/textlaengen";
@@ -60,7 +60,7 @@ export function AblaufErgebnisSheet({
   const [gefunden, setGefunden] = useState<boolean | null>(run.personFound ?? null);
   const [anzeige, setAnzeige] = useState<number | null>(run.indication ?? null);
   // Das Alter der Spur, sonst die Zeit vom Ende des Legens bis zum Start dieses Laufs.
-  const [alterText, setAlterText] = useState(() => (track ? stundenText(liegezeitMinuten(track, run), sprache) : ""));
+  const [alterText, setAlterText] = useState(() => (track ? trailalterVorschlag(liegezeitMinuten(track, run), sprache) : ""));
   // Scheiterte das Speichern des Kommentars einmal, schließt der nächste
   // Versuch trotzdem - sonst säße man ohne Netz in einem Fenster fest.
   const aufgegeben = useRef(false);

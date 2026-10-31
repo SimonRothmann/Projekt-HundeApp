@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { Goal } from "@/lib/types";
-import { datumKurz, leistungen, pruefungsName, punkteText, vorgabePruefungstag } from "@/lib/pruefung";
+import { datumKurz, leistungen, pruefeErgebnis, pruefungsName, punkteText, vorgabePruefungstag, type ErgebnisEingabe } from "@/lib/pruefung";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Medal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSprache, useT } from "@/lib/i18n";
-import { ErgebnisFelder, pruefeErgebnis, type ErgebnisEingabe } from "@/components/dogs/ziel-abschliessen";
+import { ErgebnisFelder } from "@/components/dogs/ziel-abschliessen";
 
 /**
  * "Leistungen": die bestandenen Prüfungen eines Hundes, neueste zuerst.
