@@ -45,7 +45,14 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             })
             .ToListAsync(ct);
 
-        return zeilen.Select(z => ClubDto.Fuer(z.Id, z.Name, z.Description, z.TrainerCount, z.GroupCount, z.Roles)).ToList();
+        // Training, Vorstand und die Prüfungsleitung wissen vom nächsten Prüfungstag (ohne Meldeliste).
+        var sehenPruefung = zeilen
+            .Where(z => (z.Roles & (ClubRole.Training | ClubRole.Vorstand | ClubRollen.Pruefungen)) != 0)
+            .Select(z => z.Id)
+            .ToList();
+        var naechste = await db.NaechstePruefungenAsync(sehenPruefung, Vereinszeit.Heute(), ct);
+
+        return zeilen.Select(z => ClubDto.Fuer(z.Id, z.Name, z.Description, z.TrainerCount, z.GroupCount, z.Roles, naechste.GetValueOrDefault(z.Id))).ToList();
     }
 
     public async Task<Result<ClubDetailDto>> GetDetailAsync(Guid clubId, CancellationToken ct = default)
@@ -308,6 +315,12 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
         entry.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
+        // Eine Person nur mit Rolle (ohne Mitgliedschaft) verlässt den Verein mit der letzten Rolle.
+        if (!await db.GehoertZumVereinAsync(userId, clubId, ct))
+        {
+            await ClubExamAnonymisierung.MitgliedAusVereinAsync(db, clubId, userId, ct);
+            await db.SaveChangesAsync(ct);
+        }
         await BeendeBetreuungenOhneGruppeAsync(clubId, userId, ct);
         // Nach dem Speichern: wer sonst nirgends Trainer:in ist, verliert das
         // Kennzeichen wieder.
@@ -810,6 +823,9 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
                 || (a.TrainerId == userId && clubMemberIds.Contains(a.MemberId)))
             .ToListAsync(ct);
         foreach (var a in assignments) a.DeletedAt = now;
+
+        // Wer den Verein verlässt, bleibt auf den Meldelisten der Prüfungen nicht als Person stehen.
+        await ClubExamAnonymisierung.MitgliedAusVereinAsync(db, clubId, userId, ct);
 
         await db.SaveChangesAsync(ct);
         // Wer dadurch nirgends mehr Trainer:in ist, verliert das Kennzeichen.

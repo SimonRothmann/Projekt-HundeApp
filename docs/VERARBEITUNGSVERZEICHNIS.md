@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-10-31 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-11-01 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -95,6 +95,20 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Besonderheit | Zugang allein über den geheimen Code im Link (`groups.RegistrationCode`, 128 Bit Zufall, Erzeugung wie beim Vereins-Einladungslink; ersetzbar und abschaltbar). Das öffentliche Formular ist gegen Missbrauch geschützt: Ratenbegrenzung je IP (10 Anmeldungen/Minute), Köder-Feld gegen Roboter, serverseitige Prüfung aller Felder, Obergrenze von 500 Anmeldungen je Gruppe, Doppelanmeldungen (gleiche normalisierte Telefonnummer und gleicher Rufname innerhalb von 30 Tagen) legen nichts neu an. Die Seite hat `noindex` und `no-referrer`. Eine neue Anmeldung löst eine In-App-Benachrichtigung an die Trainer:innen der Gruppe aus (Rufname und Rasse des Hundes). CSV-Import: Die Datei wird im Browser gelesen, nur geprüfte Zeilen gehen an den Server. Die Anmeldungen sind **nicht** Teil des Datenexports einer Trainer:in (fremde Daten). |
 | Löschfrist | Löschen durch die Trainer:innen jederzeit (endgültig, samt Anwesenheit); automatisch endgültig nach 12 Monaten ohne Aktivität (täglicher Hintergrunddienst `RegistrationRetentionBackgroundService`; Aktivität = Anlegen in Dogity, letzte Änderung inkl. „bezahlt“, letzter Anwesenheits-Haken – nicht der Google-Zeitstempel eines Imports); mit Löschen der Gruppe; Anmeldungen zu Gruppen, die es nicht mehr gibt, räumt `CommunityOrphanCleanup` beim Start weg. Bei der Löschung des Kontos einer Trainer:in bleiben die Anmeldungen (sie gehören dem Verein), nur die Verweise auf sie werden auf null gesetzt; wird die Gruppe dabei mangels Nachfolger:in geschlossen, gehen die Anmeldungen mit. Sicherungen: siehe Abschnitt 2.6. |
 | Tabellen | `group_registrations`, `group_registration_attendances`, Spalte `groups.RegistrationCode` |
+
+### 2.4b Prüfungen des Vereins (Meldeliste, Prüfungsreife, Ergebnisse)
+
+| | |
+|---|---|
+| Zweck | Durchführung von Prüfungen durch den Verein: Prüfungstag planen, Teams melden, Starterliste drucken, Prüfungsreife der gemeldeten Hunde einschätzen, Ergebnisse festhalten (bei Mitglied-Teams zugleich als Leistung beim Hund) |
+| Betroffene | Vereinsmitglieder mit ihren Hunden (Mitglied-Teams); Gäste ohne Dogity-Konto (Gast-Teams, von der Prüfungsleitung eingetragen); Richter:innen (nur der Name als Freitext) |
+| Datenkategorien | Prüfungstag (Datum, Uhrzeit, Ort, Name der Richter:in, Meldeschluss, Bemerkung); je Team: Mitglied (Verweis auf das Konto, Name aus dem Konto) und Hund (Verweis; Name, Rasse, Alter aus dem Hund) oder Gast (Name Hundeführer:in, Hundename, Verein/Rasse als Freitext), Ordnung, Startreihenfolge; Ergebnis (bestanden/nicht bestanden/nicht angetreten, Punkte, Bemerkung, wer und wann); bei Mitglied-Teams der Verweis auf das Ziel am Hund, das das Ergebnis trägt. Die Prüfungsreife wird **nicht gespeichert**, sondern bei jedem Abruf aus dem Trainingsstand berechnet; die Prüfungsleitung erhält nur Ampel, Zählung und die offenen/wackeligen Übungen – kein Tagebuch, keine Notizen, keine Bewertungen, keine Pausen, keine Theorie (Sachkunde). |
+| Rechtsgrundlage | Meldung und Ergebnis: Art. 6 Abs. 1 lit. b (Mitgliedschaft im Verein; bei Gästen ihre Anmeldung zur Prüfung beim Verein). Prüfungsreife: lit. f – berechtigtes Interesse des Vereins, dass die Prüfungsleitung die Vorbereitung eines gemeldeten Teams einschätzen kann; geringer Eingriff (nur Ampel und offene Übungen), Betroffene werden bei der Meldung benachrichtigt, Widerspruch durch Austragen des Teams. Transparenz statt Zustimmung: Weil die Mitglieder nichts bestätigen, erfahren sie es per Benachrichtigung (Glocke und Push). |
+| Empfänger | Ausbildungswart:in und Verwaltung des Vereins (Meldeliste, Reife, Ergebnisse); Training und Vorstand sehen nur Datum, Ort und Ordnungen des nächsten Prüfungstags; Vorstand/Verwaltung zusätzlich je Monat Summen (Prüfungen, Teams, bestanden) in der Vereinsübersicht; die Besitzer:innen des gemeldeten Hundes (Benachrichtigung, „Gemeldet“ auf der Hundeseite); Hosting-Dienstleister (Auftragsverarbeiter) |
+| Drittland | nein |
+| Besonderheit | Rechte in jeder Methode von `ClubExamService` über `ClubAccessQueries.CanManageExamsAsync` (Ausbildungswart:in, Verwaltung des eigenen Vereins); fremder Verein oder fehlende Rolle: 404. Die Auswahl beim Eintragen zeigt der Prüfungsleitung Name und Hunde (Name, Rasse, Alter) der freigegebenen Mitglieder bzw. Rolleninhaber:innen des eigenen Vereins. Gäste: Freitext Dritter, nur im Eintrag; er wird beim Austragen und Löschen der Prüfung auch hinter dem Soft-Delete geleert. Ein Ergebnis „bestanden“ trägt über `GoalService` das Ziel der Familie ein (Leistung); die Familie behält die Hoheit darüber – hat sie das Ziel geändert oder gelöscht, ändert eine spätere Korrektur der Prüfungsleitung nur den Eintrag. |
+| Löschfrist | Gastdaten: mit dem Austragen des Teams bzw. dem Löschen der Prüfung (ein Prüfungstag mit Ergebnissen lässt sich nicht löschen; zuerst die Ergebnisse zurücknehmen). Austritt aus dem Verein, Löschen des Hundes oder des Kontos: Der Eintrag wird anonymisiert (Verweise auf Mitglied, Hund und Ziel leer; die Anzeige schreibt „Ehemaliges Mitglied“), das Ergebnis bleibt für die Vereinszahlen (`ClubExamAnonymisierung`, aufgerufen vom Vereins-Austritt, `DogService.DeleteAsync`, `AccountDataService.PurgeAsync` und `CommunityOrphanCleanup`). Beim Löschen des Kontos der Prüfungsleitung werden nur die Verweise auf sie leer. Sicherungen: siehe Abschnitt 2.6. |
+| Tabellen | `club_exams`, `club_exam_regulations`, `club_exam_entries` |
 
 ### 2.5 Sachkunde-Lernmodul und Benachrichtigungen
 
@@ -282,6 +296,7 @@ Auswahl.
 | Auskunft und Übertragbarkeit (Art. 15, 20) | `GET /api/profile/export`, in der App unter Profil → „Daten & Konto“ → „Meine Daten herunterladen“; enthält auch die Geräte mit Push (Bezeichnung und Zeitpunkte, ohne Adresse und Schlüssel), die Einstellung zu E-Mails, die Einstellungen der Erinnerungen und die versendeten Erinnerungen (Art, Bezug, Zeitpunkt) |
 | Löschung (Art. 17) | `DELETE /api/profile` mit Passwortbestätigung, in der App unter Profil → „Daten & Konto“ → „Konto löschen“; entfernt die Fachdaten und anschließend das Konto |
 | Berichtigung (Art. 16) | Profil, Hunde- und Trainingsbearbeitung in der App |
+| Meldungen zu Prüfungen (2.4b) | Der Datenexport enthält die eigenen Meldungen (Verein, Datum, Ordnung, Hund, Ergebnis, Punkte, Bemerkung), nicht die Gastdaten (Daten der Gäste). Die Löschung des Kontos anonymisiert die Einträge. Berichtigung und Widerspruch über den Verein (Prüfungsleitung). |
 | Angemeldete ohne Konto (2.4a) | Auskunft, Berichtigung, Löschung formlos beim Verein oder per E-Mail an den Betreiber; die Trainer:innen bearbeiten und löschen Anmeldungen in der App (Trainer-Seite der Gruppe). Es gibt keinen Selbstbedienungs-Zugang, weil es kein Konto gibt. |
 | Einschränkung, Widerspruch (Art. 18, 21) | formlos per E-Mail |
 

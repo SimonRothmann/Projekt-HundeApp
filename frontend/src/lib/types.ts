@@ -498,7 +498,17 @@ export type GroupTrainerOption = {
 // Vereinsübersicht für Vorstand und Verwaltung (siehe ClubOverviewService): nur Zählwerte und Namen, keine E-Mail.
 export type ClubOverviewRole = { role: number; count: number };
 export type ClubOverviewGroup = { id: string; name: string; memberCount: number; trainerCount: number };
-export type ClubOverviewMonth = { year: number; month: number; planned: number; cancelled: number; attendances: number };
+export type ClubOverviewMonth = {
+  year: number;
+  month: number;
+  planned: number;
+  cancelled: number;
+  attendances: number;
+  /** Prüfungstage des Monats (nicht abgesagt), die Teams darauf und davon die bestandenen - nur Summen. */
+  exams?: number;
+  examTeams?: number;
+  examsPassed?: number;
+};
 export type ClubOverview = {
   memberCount: number;
   newMembersLast30Days: number;
@@ -538,6 +548,10 @@ export type Club = {
   isTrainer?: boolean;
   /** Darf die Vereinsübersicht lesen (Vorstand, Verwaltung). */
   canViewOverview?: boolean;
+  /** Darf Prüfungstage führen (Ausbildungswart:in, Verwaltung). */
+  canManageExams?: boolean;
+  /** Der nächste Prüfungstag - nur für Training, Vorstand und die Prüfungsleitung, ohne Meldeliste. */
+  nextExam?: VereinsPruefungHinweis | null;
 };
 
 // Vereins-Trainingsbibliothek (siehe docs/GROUP_TRAINING_LIBRARY.md).
@@ -1623,3 +1637,85 @@ export type AdminTestpushErgebnis = {
   /** Auf wie vielen eigenen Geräten Push eingeschaltet ist - an die geht die Meldung. */
   geraete: number;
 };
+
+
+// ---- Prüfungen des Vereins (Backend: ClubExamDtos.cs) ----
+
+// Zahlen, keine Namen - die API überträgt Enums numerisch.
+export const PRUEFUNG_STATUS = { Geplant: 0, Fertig: 1, Abgesagt: 2 } as const;
+export type PruefungStatus = (typeof PRUEFUNG_STATUS)[keyof typeof PRUEFUNG_STATUS];
+
+export const PRUEFUNG_ERGEBNIS = { Offen: 0, Bestanden: 1, NichtBestanden: 2, NichtAngetreten: 3 } as const;
+export type PruefungErgebnis = (typeof PRUEFUNG_ERGEBNIS)[keyof typeof PRUEFUNG_ERGEBNIS];
+
+export const TEAM_ART = { Mitglied: 0, Gast: 1, EhemaligesMitglied: 2 } as const;
+export type TeamArt = (typeof TEAM_ART)[keyof typeof TEAM_ART];
+
+/** Eine Ordnung eines Prüfungstags; maxPoints nur im Detail (null = keine Punktwertung). */
+export type PruefungOrdnung = { id: string; name: string; nameEn?: string | null; maxPoints?: number | null };
+
+/** Datum, Ort und Ordnungen des nächsten Prüfungstags (ClubExamHinweisDto). */
+export type VereinsPruefungHinweis = { date: string; location: string; regulations: PruefungOrdnung[] };
+
+export type VereinsPruefungListe = {
+  id: string;
+  date: string;
+  /** "HH:mm:ss" */
+  startTime: string | null;
+  location: string;
+  status: PruefungStatus;
+  teamCount: number;
+  passedCount: number;
+  regulations: PruefungOrdnung[];
+};
+
+export type PruefungReifeUebung = { exerciseId: string; name: string; nameEn?: string | null; isMandatory: boolean; zustand: ReifeZustand };
+
+/** Prüfungsreife für die Prüfungsleitung: Ampel, Zählung, was noch fehlt - sonst nichts (ClubExamReifeDto). */
+export type PruefungReife = { ampel: ReifeAmpel; sicher: number; wackelig: number; offen: number; fehlend: PruefungReifeUebung[] };
+
+export type PruefungTeam = {
+  id: string;
+  regulationId: string;
+  /** Platz in der Starterliste der Ordnung, von 1 an. */
+  startNumber: number;
+  kind: TeamArt;
+  handlerName: string | null;
+  dogName: string | null;
+  breed: string | null;
+  birthday: string | null;
+  /** Verein und Rasse eines Gast-Teams, frei geschrieben. */
+  info: string | null;
+  /** Nur bei Mitglied-Teams ohne Ergebnis und mit laufendem Ziel zur Ordnung. */
+  reife: PruefungReife | null;
+  result: PruefungErgebnis;
+  score: number | null;
+  resultNote: string | null;
+};
+
+export type VereinsPruefung = {
+  id: string;
+  clubId: string;
+  clubName: string;
+  date: string;
+  startTime: string | null;
+  location: string;
+  judgeName: string | null;
+  registrationDeadline: string | null;
+  note: string | null;
+  status: PruefungStatus;
+  offeredRegulations: PruefungOrdnung[];
+  /** Angebotene und die der Teams zusammen. */
+  regulations: PruefungOrdnung[];
+  entries: PruefungTeam[];
+};
+
+export type PruefungKandidat = {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  dogs: { id: string; name: string; breed: string | null; birthday: string | null }[];
+};
+
+/** "Gemeldet: ..." auf der Hundeseite (DogExamRegistrationDto). */
+export type HundMeldung = { entryId: string; date: string; clubName: string; regulation: PruefungOrdnung };

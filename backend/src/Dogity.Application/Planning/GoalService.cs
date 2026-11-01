@@ -178,6 +178,79 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         return await GetByIdAsync(userId, goalId, ct);
     }
 
+    // ---------- Prüfungen des Vereins (Paket V4) ----------
+    //
+    // Die Prüfungsleitung trägt das Ergebnis ein, das Ziel gehört der Familie.
+    // Deshalb gibt es hier keine Rechteprüfung am Hund - die hat ClubExamService
+    // über die Rolle im Verein getroffen - und kein Speichern: Der Aufrufer
+    // speichert Eintrag und Ziel in EINEM Zug.
+
+    public async Task<IReadOnlyDictionary<Guid, int>> GetHoechstpunkteAsync(IReadOnlyCollection<Guid> regulationIds, CancellationToken ct = default) =>
+        regulationIds.Count == 0 ? new Dictionary<Guid, int>() : await GetMaxPointsByRegulationAsync(regulationIds, ct);
+
+    public async Task<string?> PruefeVereinsergebnisAsync(Guid regulationId, DateOnly tag, int? punkte, string? notiz, CancellationToken ct = default)
+    {
+        var hoechstens = (await GetMaxPointsByRegulationAsync([regulationId], ct)).TryGetValue(regulationId, out var summe) ? summe : (int?)null;
+        return ValidateExamResult(tag, punkte, notiz?.Trim(), hoechstens, Vereinszeit.Tag(timeProvider.GetUtcNow()));
+    }
+
+    public async Task<VereinsZiel> TrageVereinsergebnisAsync(Guid dogId, Guid regulationId, VereinsErgebnis ergebnis, CancellationToken ct = default)
+    {
+        // Das laufende Ziel zur Ordnung, das dem Prüfungstag am nächsten liegt: dasselbe, das die Familie selbst abschlösse.
+        var ziel = await db.Goals
+            .Where(g => g.DogId == dogId && g.RegulationId == regulationId && g.Status == GoalStatus.Active)
+            .OrderBy(g => g.TargetDate).ThenBy(g => g.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+        if (ziel is not null)
+        {
+            ziel.Status = GoalStatus.Achieved;
+            ApplyExamResult(ziel, ergebnis.Tag, ergebnis.Punkte, ergebnis.Notiz);
+            return new VereinsZiel(ziel.Id, false);
+        }
+
+        // Kein laufendes Ziel: eine Leistung, als hätte die Familie sie nachgetragen - mit leerem
+        // Plan wie jedes erreichte Ziel (die Oberfläche rechnet mit einem Plan).
+        var sportId = await db.Regulations.Where(r => r.Id == regulationId).Select(r => r.SportId).FirstAsync(ct);
+        var neu = new Goal
+        {
+            DogId = dogId,
+            SportId = sportId,
+            RegulationId = regulationId,
+            TargetDate = ergebnis.Tag,
+            Status = GoalStatus.Achieved,
+        };
+        neu.TrainingPlan = new TrainingPlan { GoalId = neu.Id, Goal = neu };
+        ApplyExamResult(neu, ergebnis.Tag, ergebnis.Punkte, ergebnis.Notiz);
+        db.Goals.Add(neu);
+        return new VereinsZiel(neu.Id, true);
+    }
+
+    public async Task<bool> ZieheVereinsergebnisNachAsync(
+        Guid goalId, Guid dogId, VereinsErgebnis bisher, VereinsErgebnis? neu, bool neuAngelegt, CancellationToken ct = default)
+    {
+        var ziel = await db.Goals.FirstOrDefaultAsync(g => g.Id == goalId && g.DogId == dogId, ct);
+        // Gelöscht oder von der Familie geändert (anderer Status, Tag, Punkte, Notiz): Die Familie gewinnt.
+        if (ziel is null || !(ziel.Status == GoalStatus.Achieved && ziel.ExamDate == bisher.Tag && ziel.ExamScore == bisher.Punkte
+                && LeerAlsNull(ziel.ExamNote) == LeerAlsNull(bisher.Notiz)))
+            return false;
+
+        if (neu is { } ergebnis)
+            ApplyExamResult(ziel, ergebnis.Tag, ergebnis.Punkte, ergebnis.Notiz);
+        else if (neuAngelegt)
+            ziel.DeletedAt = timeProvider.GetUtcNow();
+        else
+        {
+            ziel.Status = GoalStatus.Active;
+            ziel.ExamDate = null;
+            ziel.ExamScore = null;
+            ziel.ExamNote = null;
+            ziel.UpdatedAt = timeProvider.GetUtcNow();
+        }
+        return true;
+    }
+
+    private static string? LeerAlsNull(string? text) => string.IsNullOrEmpty(text) ? null : text;
+
     public async Task<Result<GoalDto>> UpdateTargetDateAsync(Guid userId, Guid goalId, DateOnly newTargetDate, CancellationToken ct = default)
     {
         var goal = await GetOwnedGoalAsync(userId, goalId, ct);
@@ -939,6 +1012,19 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         var regulationIds = goals.Where(g => g.RegulationId is not null).Select(g => g.RegulationId!.Value).Distinct().ToList();
         if (regulationIds.Count == 0) return new Dictionary<Guid, int>();
 
+        var jeOrdnung = await GetMaxPointsByRegulationAsync(regulationIds, ct);
+        var result = new Dictionary<Guid, int>();
+        foreach (var goal in goals.Where(g => g.RegulationId is not null))
+        {
+            if (jeOrdnung.TryGetValue(goal.RegulationId!.Value, out var sum))
+                result[goal.Id] = sum;
+        }
+        return result;
+    }
+
+    // Die Höchstpunktzahl je Prüfungsordnung; Ordnungen ohne Punktwertung fehlen.
+    private async Task<Dictionary<Guid, int>> GetMaxPointsByRegulationAsync(IReadOnlyCollection<Guid> regulationIds, CancellationToken ct)
+    {
         var currentVersionByRegulation = (await db.AktuelleFassungenAsync(regulationIds, Vereinszeit.Tag(timeProvider.GetUtcNow()), ct))
             .ToDictionary(kv => kv.Key, kv => kv.Value.Id);
 
@@ -951,11 +1037,10 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .ToDictionary(g => g.Key, g => g.Sum(re => re.MaxPoints));
 
         var result = new Dictionary<Guid, int>();
-        foreach (var goal in goals.Where(g => g.RegulationId is not null))
+        foreach (var (regulationId, versionId) in currentVersionByRegulation)
         {
-            if (currentVersionByRegulation.TryGetValue(goal.RegulationId!.Value, out var versionId)
-                && sumByVersion.GetValueOrDefault(versionId) is > 0 and var sum)
-                result[goal.Id] = sum;
+            if (sumByVersion.GetValueOrDefault(versionId) is > 0 and var sum)
+                result[regulationId] = sum;
         }
         return result;
     }

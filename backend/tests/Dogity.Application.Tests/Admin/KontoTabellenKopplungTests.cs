@@ -44,6 +44,9 @@ public class KontoTabellenKopplungTests
         "DogPause.CreatedByUserId", "DogHealthRecord.CreatedByUserId", "GroupRegistration.PaidByUserId",
         "GroupRegistrationAttendance.MarkedByUserId", "GroupTrainingExercise.CreatedByUserId",
         "GroupTrainingSession.CreatedByUserId", "GroupTrainingUnit.CreatedByUserId", "QuizQuestion.EditedByUserId",
+        // Prüfungen des Vereins: Der Prüfungstag und das Ergebnis gehören dem Verein; beim Mitglied-Team lösen
+        // sich Person, Hund und Ziel (ClubExamAnonymisierung) - das Ergebnis bleibt für die Vereinszahlen.
+        "ClubExam.CreatedByUserId", "ClubExamEntry.ResultByUserId", "ClubExamEntry.MemberUserId",
     ];
 
     /// <summary>Hängen an einer anderen Zeile (Einstellung) oder gehören zur Anmeldung (Identity).</summary>

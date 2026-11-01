@@ -58,6 +58,172 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.ToTable("clubs", (string)null);
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExam", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClubId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("JudgeName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateOnly?>("RegistrationDeadline")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly?>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId", "Date");
+
+                    b.ToTable("club_exams", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExamEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DogId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ExamId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("GoalCreated")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("GoalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GuestDogName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("GuestHandlerName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("GuestInfo")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("MemberUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RegulationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("ResultByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ResultEnteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ResultNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("Score")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StartOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DogId");
+
+                    b.HasIndex("GoalId");
+
+                    b.HasIndex("MemberUserId");
+
+                    b.HasIndex("RegulationId");
+
+                    b.HasIndex("ExamId", "RegulationId", "StartOrder");
+
+                    b.ToTable("club_exam_entries", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExamRegulation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ExamId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RegulationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RegulationId");
+
+                    b.HasIndex("ExamId", "RegulationId");
+
+                    b.ToTable("club_exam_regulations", (string)null);
+                });
+
             modelBuilder.Entity("Dogity.Domain.Community.ClubMembership", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2784,6 +2950,65 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.ToTable("user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExam", b =>
+                {
+                    b.HasOne("Dogity.Domain.Community.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExamEntry", b =>
+                {
+                    b.HasOne("Dogity.Domain.Dogs.Dog", null)
+                        .WithMany()
+                        .HasForeignKey("DogId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Dogity.Domain.Community.ClubExam", "Exam")
+                        .WithMany("Entries")
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Dogity.Domain.Planning.Goal", null)
+                        .WithMany()
+                        .HasForeignKey("GoalId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Dogity.Domain.Sports.Regulation", "Regulation")
+                        .WithMany()
+                        .HasForeignKey("RegulationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Exam");
+
+                    b.Navigation("Regulation");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExamRegulation", b =>
+                {
+                    b.HasOne("Dogity.Domain.Community.ClubExam", "Exam")
+                        .WithMany("Regulations")
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Dogity.Domain.Sports.Regulation", "Regulation")
+                        .WithMany()
+                        .HasForeignKey("RegulationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Exam");
+
+                    b.Navigation("Regulation");
+                });
+
             modelBuilder.Entity("Dogity.Domain.Community.ClubMembership", b =>
                 {
                     b.HasOne("Dogity.Domain.Community.Club", "Club")
@@ -3328,6 +3553,13 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Navigation("Memberships");
 
                     b.Navigation("Trainers");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExam", b =>
+                {
+                    b.Navigation("Entries");
+
+                    b.Navigation("Regulations");
                 });
 
             modelBuilder.Entity("Dogity.Domain.Community.Group", b =>

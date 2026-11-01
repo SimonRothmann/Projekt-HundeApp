@@ -102,10 +102,12 @@ mit `isAdmin`).
 |---|---|---|
 | Mitgliederverwaltung, Verwaltung | Mitglieder (Name, E-Mail), offene Anfragen, offene Einladungen (nur die eingegebene Adresse) **des eigenen Vereins**, den Einladungslink | alles von anderen Vereinen; Tagebuch der Mitglieder (nur über eine Betreuung) |
 | Ausbildungswart:in, Verwaltung | alle Gruppen und Termine **des eigenen Vereins** (mit Mitgliedern, Anmeldungen), die Liste der Rollen im Verein - mit Name und Rollen; die **E-Mail-Adresse** der Rolleninhaber:innen (und der Trainer:innen in der Auswahl für die Gruppenleitung) nur mit Mitgliederverwaltung/Verwaltung bzw. als Admin (`GetRoleHoldersAsync`, `GetAssignableTrainersAsync`) | die Mitgliederliste und Anfragen des Vereins (nur mit Mitgliederverwaltung bzw. Verwaltung); alles von anderen Vereinen |
-| Training | die eigenen Gruppen (Leitung, Mit-Betreuung), deren Termine, Anfragen und Anmeldungen, den Vereinskatalog; die Gruppen des Vereins in der Vereinsliste (wie jedes Mitglied) | fremde Gruppen und deren Termine, Mitgliederliste, Vereinsanfragen |
-| Vorstand (die Verwaltung sieht dieselbe Übersicht, dazu alles aus den Zeilen oben) | die Vereinsübersicht: Zahlen des Vereins (Mitglieder, Anfragen, Einladungen, Rollen, Gruppen, Termine und Zusagen als Summen) und die Mitgliederliste mit Name, Gruppen und Rollen; dazu die Gruppen des Vereins in der Vereinsliste (wie jedes Mitglied) | E-Mail-Adressen, Hunde, Trainingstagebücher, Zusagen einzelner Personen, Anfragen und Einladungen einzeln; alles von anderen Vereinen |
+| Ausbildungswart:in, Verwaltung (Prüfungen) | die **Prüfungstage des eigenen Vereins** (`ClubExamService`, `CanManageExamsAsync`): die Meldeliste mit Name und Hund jedes Teams (Gäste mit den Angaben, die die Prüfungsleitung selbst eingetragen hat), je Mitglied-Team ohne Ergebnis die **Prüfungsreife** (Ampel, Zählung sicher/wackelig/offen und die offenen/wackeligen Übungen - über `PruefungsreifeLader` ohne Betrachter, also ohne Theoriezeile) und die Ergebnisse. Beim Eintragen eines Teams außerdem die **Vereinsmitglieder** (Name; freigegebene Mitglieder und Rolleninhaber:innen) mit ihren aktiven, nicht archivierten **Hunden** (Name, Rasse, Alter) - nur dort, nur im eigenen Verein | Tagebuch, Notizen, Bewertungen, Pausen und die Theorie (Sachkunde) der Hunde; Gast-Daten anderer Vereine; die Prüfungen anderer Vereine |
+| Training | die eigenen Gruppen (Leitung, Mit-Betreuung), deren Termine, Anfragen und Anmeldungen, den Vereinskatalog; die Gruppen des Vereins in der Vereinsliste (wie jedes Mitglied); in der Vereinsliste außerdem die Zeile „Nächste Prüfung: BH am 14.3.“ (`ClubDto.NextExam`: Datum, Ort, Ordnungen) | fremde Gruppen und deren Termine, Mitgliederliste, Vereinsanfragen, die **Meldeliste** der Prüfungen |
+| Vorstand (die Verwaltung sieht dieselbe Übersicht, dazu alles aus den Zeilen oben) | die Vereinsübersicht: Zahlen des Vereins (Mitglieder, Anfragen, Einladungen, Rollen, Gruppen, Termine und Zusagen als Summen) und die Mitgliederliste mit Name, Gruppen und Rollen; dazu die Gruppen des Vereins in der Vereinsliste (wie jedes Mitglied) und die Zeile „Nächste Prüfung“; je Monat Summen der Prüfungen (Prüfungstage, Teams, bestanden) | E-Mail-Adressen, Hunde, Trainingstagebücher, Zusagen einzelner Personen, Anfragen und Einladungen einzeln; alles von anderen Vereinen |
 | Gruppentrainer:in | die eigene Gruppe, deren aktive Mitglieder, die Hunde, die sie betreut | andere Gruppen, offene Einladungen mit Namen |
 | Mitglied | die eigenen Hunde, Gruppen und Vereine, offene Einladungen an sich selbst (mit Namen des Vereins) | andere Mitglieder |
+| Besitzer:in / Mitbesitzer:in eines Hundes (Prüfungen) | wofür der Hund bei einer Vereinsprüfung gemeldet ist („Gemeldet: ...“ auf der Hundeseite, `GET /api/dogs/{id}/club-exams`), Benachrichtigungen (Glocke und Push) bei Meldung, Rücknahme, Absage und Ergebnis; ein bestandenes Ergebnis steht sofort als Leistung am Hund und gehört der Familie (hat sie die Leistung geändert und die Prüfungsleitung stellt das Ergebnis später auf „nicht bestanden“ und wieder auf „bestanden“, entsteht eine zweite Leistung - die Familie kann sie löschen) | betreuende Trainer:innen sehen die Meldungen nicht (404) |
 | Eingeladene Person | nur den Vereins-/Gruppen-/Hundenamen und wer einlädt | - |
 | Besitzer:in / Mitbesitzer:in eines Hundes | Trainingspausen mit Grund (verletzt, krank, läufig), Zeitraum und Notiz; trägt sie ein, ändert und löscht sie | - |
 | Besitzer:in / Mitbesitzer:in eines Hundes | Gesundheitseinträge (Impfungen, Entwurmung, Parasitenschutz, Tierarzttermine) und den Gesundheitsstand am Hund; trägt sie ein, ändert und löscht sie; bekommt die Erinnerungen dazu | - |
@@ -131,6 +133,8 @@ Seiten unter `/trainer` geht zu den Vereinen (`lib/zurueck.ts`).
 | Vereinsübersicht | `/trainer/verein` über „Vereinsübersicht“ bei den Vereinen | Vorstand, Verwaltung |
 | Eigene Gruppen, Termine, Katalog | Trainer-Menü; „Terminplanung“ bietet „Neuer Termin“ nur, wenn man eine Gruppe leitet oder betreut | Training |
 | Alle Gruppen und Termine des Vereins | Trainer-Menü („Meine Gruppen“, „Terminplanung“) | Ausbildungswart:in, Verwaltung |
+| Prüfungstage anlegen, Teams eintragen, Meldeliste und Prüfungsreife sehen, Ergebnisse eintragen, Starterliste drucken | Trainer-Menü → Werkzeuge „Prüfungen“ (`/trainer/pruefungen`, Kachel nur mit `canManageExams`) | Ausbildungswart:in, Verwaltung |
+| „Nächste Prüfung“ (nur Datum, Ort, Ordnungen - kein Link zur Meldeliste) | Vereinsliste (`/clubs`), bei den eigenen Rollen | Training, Vorstand (und die Prüfungsleitung) |
 
 ## Wo die Prüfungen liegen
 
@@ -145,6 +149,7 @@ beim Hinzufügen der zweiten verloren.
     Verwaltung), `CanManageMembersAsync` (Mitgliederverwaltung, Verwaltung),
     `CanAppointTrainersAsync` (Ausbildungswart:in, Verwaltung),
     `CanViewClubOverviewAsync` (Vorstand, Verwaltung; `ClubOverviewService`),
+    `CanManageExamsAsync` (Ausbildungswart:in, Verwaltung: Prüfungstage des Vereins, `ClubExamService`),
     `CanManageClubAsync` (Verwaltung). `MitRolle` filtert Abfragen über viele
     Zeilen nach derselben Menge. Services vergleichen keine Rollen selbst.
   - `GruppenTrainerinnen` / `GruppenIdsDerTrainerin` - die EINE Definition von

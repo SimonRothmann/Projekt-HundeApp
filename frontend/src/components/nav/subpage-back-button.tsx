@@ -43,7 +43,7 @@ export function SubpageBackButton() {
   if (!pathname) return null;
 
   const normalized = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
-  if (normalized === "/" || ROOT_PATHS.has(normalized) || normalized.endsWith("/print")) return null;
+  if (normalized === "/" || ROOT_PATHS.has(normalized) || normalized.endsWith("/print") || normalized.endsWith("/druck")) return null;
 
   // Nur seiteninterne Ziele: ein ?from= aus einem geteilten Link darf nicht von der Seite fortführen.
   const target = zurueckZiel(normalized, searchParams?.get("from"), isTrainer);

@@ -30,7 +30,7 @@ type Symbol = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 
 // Jede Ampelfarbe hat auch eine eigene Form (Haken, Warndreieck, Kreuz) und ein Wort:
 // Nichts hängt allein an der Farbe.
-const AMPEL: Record<ReifeAmpel, { symbol: Symbol; klassen: string }> = {
+export const AMPEL: Record<ReifeAmpel, { symbol: Symbol; klassen: string }> = {
   [REIFE_AMPEL.Gruen]: {
     symbol: CircleCheck,
     klassen: "border-emerald-600/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
@@ -45,7 +45,7 @@ const AMPEL: Record<ReifeAmpel, { symbol: Symbol; klassen: string }> = {
   },
 };
 
-const ZUSTAND: Record<ReifeZustand, { symbol: Symbol; klassen: string }> = {
+export const ZUSTAND: Record<ReifeZustand, { symbol: Symbol; klassen: string }> = {
   [REIFE_ZUSTAND.Sicher]: { symbol: CircleCheck, klassen: "text-emerald-700 dark:text-emerald-400" },
   [REIFE_ZUSTAND.Wackelig]: { symbol: TriangleAlert, klassen: "text-amber-700 dark:text-amber-400" },
   [REIFE_ZUSTAND.Offen]: { symbol: CircleDashed, klassen: "text-muted-foreground" },

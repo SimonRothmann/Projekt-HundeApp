@@ -10,6 +10,7 @@ import { laeuftFaehrte, spurArten } from "@/lib/faehrte";
 import { DogEditForm } from "@/components/dogs/dog-edit-form";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { LeistungenCard } from "@/components/dogs/leistungen-card";
+import { GemeldetHinweis } from "@/components/dogs/gemeldet-hinweis";
 import { DogHeader } from "@/components/dogs/dog-header";
 import { PauseBand } from "@/components/dogs/pause-band";
 import { DogActionBar } from "@/components/dogs/dog-action-bar";
@@ -192,6 +193,8 @@ function DogPage({ id }: { id: string }) {
           Innenelement, damit "hidden" nicht von einer Klasse überstimmt wird. */}
       <div role="tabpanel" id={reiterPanelId("plan")} aria-labelledby={reiterTabId("plan")} hidden={reiter !== "plan"}>
         <div className="flex flex-col gap-6">
+          {/* Nur die Familie: Der Server antwortet betreuenden Trainer:innen mit 404. */}
+          {isOwner && <GemeldetHinweis dogId={id} />}
           <GoalsSection dogId={id} dogName={dog.name} sports={angebotene} goals={goals} onEintragen={oeffneEintragen} onChanged={loadAll} />
           <LeistungenCard goals={goals} onChanged={loadAll} />
         </div>

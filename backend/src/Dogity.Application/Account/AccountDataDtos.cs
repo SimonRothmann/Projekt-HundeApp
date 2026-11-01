@@ -28,7 +28,8 @@ public record AccountExportDto(
     IReadOnlyList<TrainingspauseExportDto> Trainingspausen,
     IReadOnlyList<ErinnerungExportDto> ErinnerungenVersendet,
     // Am Ende mit Vorgabe, wie die übrigen später hinzugekommenen Teile: bestehende Aufrufer bleiben gültig.
-    IReadOnlyList<GesundheitseintragExportDto>? Gesundheit = null);
+    IReadOnlyList<GesundheitseintragExportDto>? Gesundheit = null,
+    IReadOnlyList<PruefungsmeldungExportDto>? Pruefungsmeldungen = null);
 
 public record KontoExportDto(
     Guid Id,
@@ -111,6 +112,20 @@ public record GesundheitseintragExportDto(
     DateOnly? GueltigBis,
     string? Notiz,
     DateTimeOffset AngelegtAm);
+
+/// <summary>
+/// Eine Meldung zu einem Prüfungstag des Vereins, die die Prüfungsleitung für einen eigenen Hund eingetragen hat.
+/// Gäste stehen nicht hier: Sie sind Daten der Gäste, nicht dieser Person.
+/// </summary>
+/// <param name="Ergebnis">"offen", "bestanden", "nicht bestanden" oder "nicht angetreten".</param>
+public record PruefungsmeldungExportDto(
+    string Verein,
+    DateOnly Datum,
+    string Ordnung,
+    Guid? HundId,
+    string Ergebnis,
+    int? Punkte,
+    string? Bemerkung);
 
 public record TrainingExportDto(
     Guid Id,

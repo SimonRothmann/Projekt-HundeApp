@@ -65,6 +65,9 @@ public static class ClubRollen
 
     /// <summary>Rollen, die die Vereinsübersicht lesen dürfen.</summary>
     public const ClubRole Uebersicht = ClubRole.Vorstand | ClubRole.Verwaltung;
+
+    /// <summary>Die Prüfungsleitung: Rollen, die Prüfungstage anlegen, Teams eintragen und Ergebnisse führen.</summary>
+    public const ClubRole Pruefungen = ClubRole.Ausbildungswart | ClubRole.Verwaltung;
 }
 
 /// <summary>

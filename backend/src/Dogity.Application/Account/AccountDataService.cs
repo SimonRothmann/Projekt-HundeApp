@@ -57,6 +57,11 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
 
         var pausen = await db.DogPauses.Where(p => hundeIds.Contains(p.DogId)).AsNoTracking().ToListAsync(ct);
         var gesundheit = await db.DogHealthRecords.Where(r => hundeIds.Contains(r.DogId)).AsNoTracking().ToListAsync(ct);
+        var pruefungsmeldungen = await db.ClubExamEntries
+            .Where(e => e.MemberUserId == userId)
+            .Select(e => new { e.Exam!.Date, Verein = e.Exam.Club!.Name, Ordnung = e.Regulation!.Name, e.DogId, e.Result, e.Score, e.ResultNote })
+            .AsNoTracking()
+            .ToListAsync(ct);
 
         var ziele = await db.Goals.Where(g => hundeIds.Contains(g.DogId)).AsNoTracking().ToListAsync(ct);
         var zielIds = ziele.Select(z => z.Id).ToList();
@@ -376,6 +381,23 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     r.DueDate,
                     r.Note,
                     r.CreatedAt))
+                .ToList(),
+            pruefungsmeldungen
+                .OrderByDescending(m => m.Date)
+                .Select(m => new PruefungsmeldungExportDto(
+                    m.Verein,
+                    m.Date,
+                    m.Ordnung,
+                    m.DogId,
+                    m.Result switch
+                    {
+                        ClubExamResult.Passed => "bestanden",
+                        ClubExamResult.Failed => "nicht bestanden",
+                        ClubExamResult.NotStarted => "nicht angetreten",
+                        _ => "offen"
+                    },
+                    m.Score,
+                    m.ResultNote))
                 .ToList());
 
         return Result<AccountExportDto>.Success(export);
@@ -542,6 +564,12 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         foreach (var s in await db.GroupTrainingSessions.IgnoreQueryFilters()
                      .Where(s => s.CreatedByUserId == userId).ToListAsync(ct))
             s.CreatedByUserId = null;
+        foreach (var x in await db.ClubExams.IgnoreQueryFilters()
+                     .Where(x => x.CreatedByUserId == userId).ToListAsync(ct))
+            x.CreatedByUserId = null;
+        foreach (var e in await db.ClubExamEntries.IgnoreQueryFilters()
+                     .Where(e => e.ResultByUserId == userId).ToListAsync(ct))
+            e.ResultByUserId = null;
         foreach (var q in await db.QuizQuestions.IgnoreQueryFilters()
                      .Where(q => q.EditedByUserId == userId).ToListAsync(ct))
             q.EditedByUserId = null;
@@ -572,6 +600,11 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         foreach (var a in await db.GroupRegistrationAttendances.IgnoreQueryFilters()
                      .Where(a => a.MarkedByUserId == userId).ToListAsync(ct))
             a.MarkedByUserId = null;
+
+        // Die Meldelisten der Prüfungen: Das Ergebnis bleibt für die Vereinszahlen, die Person und ihre Hunde
+        // nicht (auch die der Hunde, die mit ihr gehen). Vor dem Löschen der Ziele und Hunde.
+        await ClubExamAnonymisierung.MitgliederEntfernenAsync(db, [userId], ct);
+        await ClubExamAnonymisierung.HundeEntfernenAsync(db, alleinMeineHunde, ct);
 
         // Von innen nach außen entfernen, damit kein Fremdschlüssel ins Leere
         // zeigt, während die Datenbank noch mitten im Vorgang ist.

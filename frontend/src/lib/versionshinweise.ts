@@ -61,6 +61,29 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.48",
+    datum: "2026-11-01",
+    titel: uebersetzbar("Prüfungstage im Verein"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Vereine können Prüfungen planen: Ausbildungswart:in und Verwaltung legen einen Prüfungstag an und tragen die Teams ein – Mitglieder mit ihrem Hund oder Gäste. In der Meldeliste steht für jedes Team die Prüfungsreife mit Ampel und dem, was noch fehlt – nicht das Trainingstagebuch."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Die Starterliste lässt sich drucken, nach der Prüfung auch die Ergebnisliste. Die Ergebnisse trägt der Verein direkt ein: Ist ein Team bestanden, steht die Prüfung sofort bei den Leistungen des Hundes."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Du erfährst es, wenn dein Hund für eine Prüfung gemeldet wird, die Meldung zurückgenommen oder die Prüfung abgesagt wird und wenn ein Ergebnis eingetragen ist. Auf der Hundeseite steht „Gemeldet“, solange die Prüfung ansteht."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Training und Vorstand sehen bei den Vereinen, wann die nächste Prüfung ist. Die Vereinsübersicht zählt Prüfungen, Teams und bestandene Prüfungen je Monat."),
+      },
+    ],
+  },
+  {
     version: "0.47",
     datum: "2026-11-01",
     titel: uebersetzbar("Spuren bleiben sichtbar"),

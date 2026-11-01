@@ -165,6 +165,8 @@ public class DogService(
             return Result.NotFound("Hund nicht gefunden.");
 
         dog.DeletedAt = DateTimeOffset.UtcNow;
+        // Der Hund steht auf keiner Meldeliste der Prüfungen mehr.
+        await ClubExamAnonymisierung.HundeEntfernenAsync(db, [dogId], ct);
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }

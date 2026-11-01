@@ -64,6 +64,16 @@ export const TEXTLAENGE = {
   vereinsName: 150,
   /** Club.Description: Beschreibung des Vereins */
   vereinsBeschreibung: 500,
+  /** ClubExam.Location: Ort eines Prüfungstags */
+  pruefungsOrt: 100,
+  /** ClubExam.JudgeName: Name der Richter:in */
+  pruefungsRichter: 100,
+  /** ClubExam.Note: Bemerkung zum Prüfungstag */
+  pruefungsBemerkung: 500,
+  /** ClubExamEntry.GuestHandlerName und GuestDogName: Name von Hundeführer:in und Hund eines Gast-Teams */
+  gastName: 100,
+  /** ClubExamEntry.GuestInfo: Verein und Rasse eines Gast-Teams */
+  gastInfo: 200,
   /** Suchbegriff der Admin-Nutzerliste (Textlaengen.NutzerSuche, wird nicht gespeichert) */
   nutzerSuche: 100,
 } as const;
