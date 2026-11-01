@@ -2527,7 +2527,7 @@ export const EN: Record<string, string> = {
   "Sortiert nach den Konten der letzten 30 Tage. Gezählt wird, wer etwas angelegt hat - bei Push, wer es eingeschaltet hat.": "Sorted by the accounts of the last 30 days. Counted is who created something - for push, who turned it on.",
   "Stunde des Tages (0 bis 23 Uhr)": "Hour of the day (0 to 23)",
   "Trainer-Betreuung": "Trainer supervision",
-  "Trainings der letzten 90 Tage mit mindestens einer Übung aus der Sportart, und Hunde, die die Sportart ausgewählt haben.": "Sessions of the last 90 days with at least one exercise from the sport, and dogs that have selected the sport.",
+  "Trainings der letzten 90 Tage mit mindestens einer Übung aus der Sportart, und Hunde mit einem laufenden Ziel in der Sportart.": "Sessions of the last 90 days with at least one exercise from the sport, and dogs with a current goal in the sport.",
   "Trainings, Fährten und Abläufe der letzten 90 Tage nach dem Zeitpunkt des Eintragens, in deutscher Zeit.": "Sessions, tracks and runs of the last 90 days by the time they were entered, in German time.",
   "Trainingsplan": "Training plan",
   "Vereinsbeitritt": "Joining a club",
