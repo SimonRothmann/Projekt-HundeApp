@@ -170,6 +170,8 @@ Bericht mit Belegen, Gegenprüfung, Vorschlag und Risiko je Befund: [docs/PRUEFU
 - [x] **[niedrig]** (behoben 2026-10-31: bei eigener Änderung zuerst die Seite informieren, 404 beim Nachladen der Rollenkarte bleibt still) Neufund 31.10.: Rollenkarte zeigte nach dem Entziehen des eigenen Rollenrechts einen Fehler-Toast und „Noch niemand hat eine Rolle“
 - [x] **[niedrig]** (behoben 2026-10-31: `useGroupDetail` unterscheidet 404/403 von Lade-Fehlern, bei Letzteren „Gruppe konnte nicht geladen werden.“ mit „Erneut versuchen“ auf beiden Seiten; `use-group-detail.test.ts`) Neufund 31.10.: Gruppenseiten sagten bei jedem Ladefehler „Diese Gruppe kannst du nicht öffnen“
 - [x] **[niedrig]** (behoben 2026-10-31: die Mitgliederliste der Vereinsverwaltung im Adminbereich bietet „Zum Trainer“ nur ohne Rolle an) Neufund 31.10.: Admin-Vereinsliste bot „Zum Trainer“ auch Mitgliedern mit Rolle an
+- [x] **[niedrig]** (behoben 2026-11-01: `ablaufBeginn` in `lib/faehrte.ts` nimmt den Zeitstempel des ersten Punkts, nur ohne Punkte `createdAt`; `faehrte.test.ts`) Fund auf Test 01.11.: „Ablauf N: gestartet HH:MM“ zeigte den Zeitpunkt des Speicherns statt des Beginns
+- [x] **[niedrig]** (behoben 2026-11-01: `zeigeVereinsweg` in `lib/erststart.ts`, Link nur ohne Mitgliedschaft und ohne offene Anfrage, bei unbekanntem Status wie bisher; `erststart.test.ts`) Fund auf Test 01.11.: Karte „Wie heißt dein Hund?“ bot den Beitrittslink auch Personen an, die schon im Verein sind
 
 ## Nächste Features (Briefs in docs/)
 

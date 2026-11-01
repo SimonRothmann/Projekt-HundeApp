@@ -82,6 +82,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         text: uebersetzbar("Lädt die Startseite, eine Gruppe oder die Liste der Sportarten wegen einer schlechten Verbindung nicht, steht dort jetzt ein Hinweis mit „Erneut versuchen“ – statt einer leeren Seite oder der falschen Aussage, es gebe nichts."),
       },
       {
+        art: "behoben",
+        text: uebersetzbar("Bei einem abgelaufenen Ablauf steht jetzt die Uhrzeit, zu der du wirklich losgelaufen bist. Vorher stand dort der Zeitpunkt, an dem der Ablauf gespeichert wurde – nach einem Ablauf ohne Netz oft Stunden später."),
+      },
+      {
         art: "verbessert",
         text: uebersetzbar("Trainer:innen sehen bei Terminen anderer Gruppen nur noch, was sie dort tun dürfen: Bearbeiten, Absagen und Löschen erscheinen nur bei Terminen ihrer eigenen Gruppen."),
       },

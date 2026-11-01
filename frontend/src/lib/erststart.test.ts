@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { OnboardingStatus } from "@/lib/types";
-import { erststartZustand, GABELUNG_TAGE, pruefeErstenHund } from "@/lib/erststart";
+import { erststartZustand, GABELUNG_TAGE, pruefeErstenHund, zeigeVereinsweg } from "@/lib/erststart";
 
 const JETZT = Date.parse("2026-09-30T12:00:00Z");
 const TAG = 24 * 60 * 60 * 1000;
@@ -98,5 +98,23 @@ describe("pruefeErstenHund", () => {
   it("nimmt den bereinigten Namen und das gewählte Geschlecht (auch Rüde = 0)", () => {
     expect(pruefeErstenHund("  Bella ", 1)).toEqual({ ok: true, name: "Bella", geschlecht: 1 });
     expect(pruefeErstenHund("Rex", 0)).toEqual({ ok: true, name: "Rex", geschlecht: 0 });
+  });
+});
+
+describe("zeigeVereinsweg", () => {
+  it("bietet den Weg über den Verein an, solange nichts mit einem Verein läuft", () => {
+    expect(zeigeVereinsweg(stand({ hasDog: false }))).toBe(true);
+  });
+
+  it("bietet ihn an, wenn der Status unbekannt ist", () => {
+    expect(zeigeVereinsweg(null)).toBe(true);
+  });
+
+  it("bietet ihn nicht an, wenn die Person schon im Verein ist (auch ohne Hund)", () => {
+    expect(zeigeVereinsweg(stand({ hasDog: false, hasClubMembership: true }))).toBe(false);
+  });
+
+  it("bietet ihn nicht an, wenn die Beitrittsanfrage schon gestellt ist", () => {
+    expect(zeigeVereinsweg(stand({ hasDog: false, hasPendingClubRequest: true }))).toBe(false);
   });
 });

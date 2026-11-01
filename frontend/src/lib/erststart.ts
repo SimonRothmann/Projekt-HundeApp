@@ -54,6 +54,19 @@ export function erststartZustand(status: OnboardingStatus | null, jetzt: number 
 }
 
 /**
+ * Ob die Karte "Wie heißt dein Hund?" den Weg über den Verein anbietet ("Du hast
+ * einen Einladungslink von deinem Verein?").
+ *
+ * Wer schon im Verein ist (auch als Trainer:in oder mit Vereinsrolle, aber ohne
+ * Hund) oder die Anfrage schon gestellt hat, braucht ihn nicht: Der Link würde
+ * zu etwas auffordern, das erledigt ist. Ist der Status unbekannt (Abruf
+ * fehlgeschlagen), bleibt es beim Angebot wie bisher.
+ */
+export function zeigeVereinsweg(status: OnboardingStatus | null): boolean {
+  return status === null || (!status.hasClubMembership && !status.hasPendingClubRequest);
+}
+
+/**
  * Prüft die Eingabe der Karte "Wie heißt dein Hund?" (und des Formulars auf der
  * Hundeliste): Name und Geschlecht sind Pflicht.
  *

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { BlockLabel } from "@/components/ui/block-label";
 import { TrackMap, TrackLegend } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
-import { kannNochAblaufen } from "@/lib/faehrte";
+import { ablaufBeginn, kannNochAblaufen } from "@/lib/faehrte";
 import { automatischePunkte } from "@/lib/geo";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
@@ -250,7 +250,7 @@ export function GpsTrackSection({
                 <ul className="flex flex-col gap-1.5 text-xs text-muted-foreground">
                   {track.walkRuns.map((run, i) => {
                     const durMs = walkRunDurationMs(run);
-                    const started = new Date(run.createdAt);
+                    const started = ablaufBeginn(run);
                     return (
                       <li
                         key={run.id}

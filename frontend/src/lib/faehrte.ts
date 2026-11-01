@@ -1,7 +1,7 @@
 import { automatischePunkte } from "@/lib/geo";
 import { heuteIso, tageBis } from "@/lib/kalendertag";
 import { istMantrailing, MANTRAILING_CODE } from "@/lib/mantrailing";
-import type { GpsTrack, Sport } from "@/lib/types";
+import type { GpsTrack, GpsWalkRun, Sport } from "@/lib/types";
 
 /**
  * Sportarten, bei denen eine Spur aufgezeichnet wird: die Fährte und, seit
@@ -68,6 +68,17 @@ export function legeEnde(track: Pick<GpsTrack, "points">): Date | null {
   if (!letzter) return null;
   const ende = new Date(letzter.timestamp);
   return Number.isNaN(ende.getTime()) ? null : ende;
+}
+
+/**
+ * Wann ein Ablauf begonnen hat: der Zeitstempel seines ersten Punkts.
+ *
+ * `createdAt` ist NICHT der Beginn, sondern der Zeitpunkt, an dem der Ablauf
+ * gespeichert wurde - also sein Ende, bei der Offline-Warteschlange noch
+ * später. Nur ein Ablauf ohne Punkte hat nichts anderes als diesen Zeitpunkt.
+ */
+export function ablaufBeginn(ablauf: Pick<GpsWalkRun, "points" | "createdAt">): Date {
+  return new Date(ablauf.points[0]?.timestamp ?? ablauf.createdAt);
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { kannNochAblaufen, laeuftFaehrte, nichtAbgelaufeneFaehrten } from "./faehrte";
+import { ablaufBeginn, kannNochAblaufen, laeuftFaehrte, nichtAbgelaufeneFaehrten } from "./faehrte";
 import type { GpsPoint, GpsTrack, Sport } from "./types";
 
 const sport = (id: string, code: string): Sport => ({ id, code, name: code, description: null, clubId: null });
@@ -108,5 +108,26 @@ describe("kannNochAblaufen", () => {
   it("lehnt eine Fährte ohne automatische Punkte ab", () => {
     expect(kannNochAblaufen(track("d", []), ENDE)).toBe(false);
     expect(kannNochAblaufen(track("e", [punkt("2026-09-10T09:00:00Z", 1)]), ENDE)).toBe(false);
+  });
+});
+
+describe("ablaufBeginn", () => {
+  const ablauf = (punkte: string[], createdAt: string) => ({
+    createdAt,
+    points: punkte.map((timestamp) => ({ latitude: 48.9, longitude: 8.5, timestamp, accuracy: 5, deviationMeters: null })),
+  });
+
+  it("nimmt den ersten Punkt, nicht den Zeitpunkt des Speicherns", () => {
+    const a = ablauf(["2026-11-01T09:00:00Z", "2026-11-01T09:12:00Z"], "2026-11-01T09:13:00Z");
+    expect(ablaufBeginn(a).toISOString()).toBe("2026-11-01T09:00:00.000Z");
+  });
+
+  it("nimmt auch bei später gespeichertem Ablauf (Offline-Warteschlange) den ersten Punkt", () => {
+    const a = ablauf(["2026-11-01T09:00:00Z"], "2026-11-01T17:45:00Z");
+    expect(ablaufBeginn(a).toISOString()).toBe("2026-11-01T09:00:00.000Z");
+  });
+
+  it("fällt ohne Punkte auf den Zeitpunkt des Speicherns zurück", () => {
+    expect(ablaufBeginn(ablauf([], "2026-11-01T09:13:00Z")).toISOString()).toBe("2026-11-01T09:13:00.000Z");
   });
 });

@@ -5,9 +5,9 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ChevronRight, Dog as DogIcon } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
-import { pruefeErstenHund } from "@/lib/erststart";
+import { pruefeErstenHund, zeigeVereinsweg } from "@/lib/erststart";
 import { TEXTLAENGE } from "@/lib/textlaengen";
-import type { Dog, DogGender } from "@/lib/types";
+import type { Dog, DogGender, OnboardingStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,12 +29,15 @@ import { useT } from "@/lib/i18n";
  * nur die Karte gesehen hat.
  *
  * Wer stattdessen einen Einladungslink seines Vereins hat, braucht diese Karte
- * nicht - die Zeile darunter führt dorthin.
+ * nicht - die Zeile darunter führt dorthin. Wer schon im Verein ist oder die
+ * Anfrage gestellt hat, bekommt die Zeile nicht (zeigeVereinsweg).
  */
 export function ErsterHundKarte({
+  status,
   onAngelegt,
   onDismissed,
 }: {
+  status: OnboardingStatus | null;
   /** Der Hund ist angelegt; die Startseite lädt neu und öffnet das Eintragen-Fenster. */
   onAngelegt: (hund: Dog) => Promise<void>;
   onDismissed: () => void;
@@ -122,20 +125,22 @@ export function ErsterHundKarte({
           </Button>
         </form>
 
-        <Link
-          href="/clubs"
-          className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg border border-border/60 bg-card px-3 py-2 text-sm transition-colors hover:border-primary/40"
-        >
-          <span className="min-w-0 flex-1">
-            <span className="block font-medium [overflow-wrap:anywhere]">
-              {t("Du hast einen Einladungslink von deinem Verein?")}
+        {zeigeVereinsweg(status) && (
+          <Link
+            href="/clubs"
+            className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg border border-border/60 bg-card px-3 py-2 text-sm transition-colors hover:border-primary/40"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium [overflow-wrap:anywhere]">
+                {t("Du hast einen Einladungslink von deinem Verein?")}
+              </span>
+              <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                {t("Such deinen Verein hier und stell eine Beitrittsanfrage – dein Trainer sieht dann eure Trainings.")}
+              </span>
             </span>
-            <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">
-              {t("Such deinen Verein hier und stell eine Beitrittsanfrage – dein Trainer sieht dann eure Trainings.")}
-            </span>
-          </span>
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-        </Link>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </Link>
+        )}
 
         <AusblendenKnopf onDismissed={onDismissed} />
       </CardContent>

@@ -389,7 +389,7 @@ export default function DashboardPage() {
           <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} onChanged={neuLaden} />
 
           {erststartKarte === "hund" ? (
-            <ErsterHundKarte onAngelegt={ersterHundAngelegt} onDismissed={erststartWegklicken} />
+            <ErsterHundKarte status={daten.onboarding} onAngelegt={ersterHundAngelegt} onDismissed={erststartWegklicken} />
           ) : (
             daten.onboarding && <OnboardingGuide status={daten.onboarding} onDismissed={erststartWegklicken} />
           )}
