@@ -119,6 +119,3 @@ export const STAND = "2026-10-31";
  * Test, bis die englische nachgezogen und dieses Datum angehoben ist.
  */
 export const STAND_EN = "2026-10-31";
-
-/** "Hauptstr. 20/2, 76307 Karlsbad" - für Fließtext und strukturierte Daten. */
-export const ANSCHRIFT_EINZEILIG = `${BETREIBER.strasse}, ${BETREIBER.plz} ${BETREIBER.ort}`;

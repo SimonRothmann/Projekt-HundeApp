@@ -21,7 +21,7 @@ export function ablaufKommentarSpeichern(trackId: string, runId: string, komment
 
 /**
  * Zeigt den Kommentar eines Ablauf-Versuchs (GpsWalkRun) und erlaubt, ihn
- * inline zu bearbeiten (siehe Wunsch 1). Auch bei abgeschlossenen Trainings
+ * inline zu bearbeiten. Auch bei abgeschlossenen Trainings
  * nutzbar - ein Kommentar ist keine Aufzeichnung, sondern eine nachträgliche
  * Notiz zum bereits gelaufenen Versuch.
  */

@@ -5,8 +5,8 @@ import { api, ApiError } from "@/lib/api";
 import type { Country } from "@/lib/types";
 import { usePreferences } from "@/lib/preferences-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Chip } from "@/components/ui/chip";
 import { Globe, Languages } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSprache, useT } from "@/lib/i18n";
 import { SPRACHE_NAME, SPRACHEN } from "@/lib/i18n/sprachen";
@@ -84,16 +84,16 @@ export function SpracheUndLandSection() {
           <p className="text-sm font-medium">{t("Sprache der Oberfläche")}</p>
           <div className="flex flex-wrap gap-1.5">
             {SPRACHEN.map((code) => (
-              <Wahl
+              <Chip kompakt
                 key={code}
-                aktiv={sprache === code}
+                gewaehlt={sprache === code}
                 disabled={speichert}
                 onClick={() => void speichern(() => api.put("/api/preferences/locale", { locale: code }))}
               >
                 {/* Der Sprachname steht in seiner eigenen Sprache. "German"
                     hilft niemandem, der nur Deutsch liest. */}
                 {SPRACHE_NAME[code]}
-              </Wahl>
+              </Chip>
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
@@ -114,9 +114,9 @@ export function SpracheUndLandSection() {
               <>
                 <div className="flex flex-wrap gap-1.5">
                   {laender.map((l) => (
-                    <Wahl
+                    <Chip kompakt
                       key={l.code}
-                      aktiv={l.code === gewaehltesLand}
+                      gewaehlt={l.code === gewaehltesLand}
                       disabled={speichert}
                       onClick={() => void speichern(() => api.put("/api/preferences/country", { country: l.code }))}
                     >
@@ -124,7 +124,7 @@ export function SpracheUndLandSection() {
                       {l.regulationCount === 0 && (
                         <span className="ml-1.5 text-xs opacity-60">{t("leer")}</span>
                       )}
-                    </Wahl>
+                    </Chip>
                   ))}
                 </div>
 
@@ -146,39 +146,5 @@ export function SpracheUndLandSection() {
         )}
       </CardContent>
     </Card>
-  );
-}
-
-/**
- * Derselbe Knopf wie bei Modulen und Sportarten (condition-picker-Muster):
- * gedrückter Zustand über aria-pressed und Randfarbe, Mindesthöhe für grobe
- * Zeiger.
- */
-function Wahl({
-  aktiv,
-  disabled,
-  onClick,
-  children,
-}: {
-  aktiv: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={aktiv}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "inline-flex min-h-9 items-center rounded-full coarse:min-h-11 border px-3 text-sm transition-colors disabled:opacity-60",
-        aktiv
-          ? "border-primary bg-primary/10 font-medium text-foreground"
-          : "border-input text-muted-foreground hover:border-foreground/30 hover:text-foreground",
-      )}
-    >
-      {children}
-    </button>
   );
 }

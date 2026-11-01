@@ -13,6 +13,7 @@ import type {
   QuizSession,
 } from "@/lib/types";
 import { QuizAssignment } from "@/components/sachkunde/quiz-assignment";
+import { antwortFarben } from "@/components/sachkunde/antwort-farben";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Eye, RotateCcw, X } from "lucide-react";
@@ -368,7 +369,12 @@ export function QuizTrainer({ catalog, anfangsModus = "learn" }: { catalog: Quiz
                     className={cn(
                       "flex w-full min-w-0 items-start gap-2.5 rounded-lg border px-3 py-3 text-left text-sm transition-colors",
                       "coarse:min-h-12 disabled:cursor-default",
-                      antwortKlasse(option.id, option.isCorrect, gewaehlt, auswertung),
+                      antwortFarben({
+                        gewaehlt: gewaehlt.includes(option.id),
+                        aufgeloest: auswertung !== null,
+                        richtig: option.isCorrect,
+                        falsch: gewaehlt.includes(option.id),
+                      }),
                     )}
                   >
                     <span className="mt-0.5 shrink-0">
@@ -451,22 +457,6 @@ export function QuizTrainer({ catalog, anfangsModus = "learn" }: { catalog: Quiz
       </div>
     </div>
   );
-}
-
-function antwortKlasse(
-  optionId: string,
-  istRichtig: boolean,
-  gewaehlt: string[],
-  auswertung: Auswertung | null,
-): string {
-  if (!auswertung) {
-    return gewaehlt.includes(optionId)
-      ? "border-primary bg-primary/10"
-      : "border-input hover:border-primary/50 hover:bg-accent/30";
-  }
-  if (istRichtig) return "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
-  if (gewaehlt.includes(optionId)) return "border-destructive/60 bg-destructive/10 text-destructive";
-  return "border-border/40 opacity-60";
 }
 
 /**

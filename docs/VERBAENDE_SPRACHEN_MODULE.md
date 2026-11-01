@@ -351,8 +351,7 @@ Freigabe.
 - Admins werden beim Eingang benachrichtigt, sonst bliebe der Antrag
   liegen, bis zufällig jemand in die Verwaltung schaut.
 
-Offen: Sprachen (Schritt 3). `Locale` ist im Datenmodell schon vorgesehen,
-wird aber noch nirgends ausgewertet.
+Sprachen (Schritt 3): umgesetzt, siehe unten (Fassung 0.10 und die Pakete E1/E2).
 
 **Paket E1 umgesetzt (2026-10-16, Fassung 0.30):** Englisch ohne Konto,
 Lücken der Oberfläche, Servermeldungen.

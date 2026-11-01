@@ -8,8 +8,10 @@ import {
   formatiereVeroeffentlichung,
   VERSIONSHINWEISE,
 } from "@/lib/versionshinweise";
-import { cn } from "@/lib/utils";
 import { useSprache, useT } from "@/lib/i18n";
+
+/** So viele Punkte der jüngsten Fassung zeigt der Auszug. */
+const MAX_PUNKTE = 3;
 
 /**
  * Die jüngste Fassung in Kurzform: Nummer, Datum, Überschrift, die ersten
@@ -20,21 +22,15 @@ import { useSprache, useT } from "@/lib/i18n";
  * Frage eine andere und kleinere: Tut sich hier überhaupt noch etwas, und
  * seit wann?
  */
-export function LetzteNeuerung({
-  className,
-  maxPunkte = 3,
-}: {
-  className?: string;
-  maxPunkte?: number;
-}) {
+export function LetzteNeuerung() {
   const t = useT();
   const sprache = useSprache();
   const neueste = VERSIONSHINWEISE[0];
-  const auszug = neueste.aenderungen.slice(0, maxPunkte);
+  const auszug = neueste.aenderungen.slice(0, MAX_PUNKTE);
   const rest = neueste.aenderungen.length - auszug.length;
 
   return (
-    <div className={cn("min-w-0", className)}>
+    <div className="min-w-0">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-semibold">{t("Version {v}", { v: neueste.version })}</span>
         <time dateTime={neueste.datum} className="text-sm text-muted-foreground">

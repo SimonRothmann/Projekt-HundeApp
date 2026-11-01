@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, BottomSheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
 import { useT } from "@/lib/i18n";
 import type { SpurArten } from "@/lib/faehrte";
-import { cn } from "@/lib/utils";
+import { Chip } from "@/components/ui/chip";
 
 /**
  * Das Fenster "Fährte legen": der Recorder (Untergrund wählen, "Legen starten")
@@ -54,7 +54,7 @@ export function DogFaehrteSheet({
     >
       {/* Das X würde während der Aufzeichnung ins Leere tippen (onOpenChange
           verwirft das Schließen) - dann gar nicht erst anbieten. */}
-      <SheetContent side="bottom" showCloseButton={!aufzeichnet} className="max-h-[85vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <BottomSheetContent showCloseButton={!aufzeichnet}>
         <SheetHeader>
           <SheetTitle>{trail ? t("Trail legen") : t("Fährte legen")}</SheetTitle>
         </SheetHeader>
@@ -67,27 +67,21 @@ export function DogFaehrteSheet({
                 { istTrail: false, label: t("Fährte") },
                 { istTrail: true, label: t("Trail") },
               ].map((wahl) => (
-                <button
+                <Chip
                   key={String(wahl.istTrail)}
-                  type="button"
-                  aria-pressed={trail === wahl.istTrail}
+                  gewaehlt={trail === wahl.istTrail}
                   onClick={() => setTrail(wahl.istTrail)}
-                  className={cn(
-                    "min-h-11 rounded-lg border px-3 text-sm font-medium transition-colors",
-                    trail === wahl.istTrail
-                      ? "border-primary bg-primary/15 text-primary-text"
-                      : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-                  )}
+                  className="justify-center text-center"
                 >
                   {wahl.label}
-                </button>
+                </Chip>
               ))}
             </div>
           )}
           {/* key: Ein anderer Spur-Typ bekommt einen frischen Recorder statt des Zustands des vorigen. */}
           <FahrteRecorder key={String(trail)} dogId={dogId} onSaved={onSaved} onAufzeichnung={setAufzeichnet} mantrailing={trail} />
         </div>
-      </SheetContent>
+      </BottomSheetContent>
     </Sheet>
   );
 }

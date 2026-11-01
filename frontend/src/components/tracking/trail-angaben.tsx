@@ -3,6 +3,7 @@
 import { useId } from "react";
 import type { GpsTrack, GpsWalkRun } from "@/lib/types";
 import { Input } from "@/components/ui/input";
+import { Chip } from "@/components/ui/chip";
 import { Label } from "@/components/ui/label";
 import { ANZEIGEVERHALTEN, anzeigeverhaltenLabel, stundenText, type TrailAngabenVorLegen } from "@/lib/mantrailing";
 import { TEXTLAENGE } from "@/lib/textlaengen";
@@ -16,25 +17,6 @@ import { useSprache, useT } from "@/lib/i18n";
  * Suchversuch gelten), nach dem Suchen Person gefunden, Anzeigeverhalten und
  * Trailalter (am Lauf bzw. am Trail, siehe lib/mantrailing.ts, trailAenderungen).
  */
-
-/** Ein Antippen-Knopf wie die Untergründe beim Fährtelegen: Aussehen eines Chips, Trefferfläche 44 px. */
-function Wahl({ aktiv, onClick, children }: { aktiv: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={aktiv}
-      onClick={onClick}
-      className={cn(
-        "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11",
-        aktiv
-          ? "border-primary bg-primary/15 text-primary-text"
-          : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 /** Vor dem Legen: Doppelblind, Negativ-Trail, Geruchsartikel. */
 export function TrailLegenFormular({
@@ -55,12 +37,12 @@ export function TrailLegenFormular({
           <span className="font-normal text-muted-foreground">· {t("optional")}</span>
         </span>
         <div role="group" aria-labelledby={`${id}-art`} className="flex flex-wrap gap-1.5">
-          <Wahl aktiv={werte.doubleBlind} onClick={() => onChange({ ...werte, doubleBlind: !werte.doubleBlind })}>
+          <Chip kompakt gewaehlt={werte.doubleBlind} onClick={() => onChange({ ...werte, doubleBlind: !werte.doubleBlind })}>
             {t("Doppelblind")}
-          </Wahl>
-          <Wahl aktiv={werte.negativeTrail} onClick={() => onChange({ ...werte, negativeTrail: !werte.negativeTrail })}>
+          </Chip>
+          <Chip kompakt gewaehlt={werte.negativeTrail} onClick={() => onChange({ ...werte, negativeTrail: !werte.negativeTrail })}>
             {t("Negativ-Trail")}
-          </Wahl>
+          </Chip>
         </div>
         <p className="text-xs text-muted-foreground">
           {t("Doppelblind: Das Team kennt den Verlauf nicht. Negativ-Trail: Am Ende wartet niemand.")}
@@ -115,12 +97,12 @@ export function TrailErgebnisFormular({
           {frage}
         </span>
         <div role="group" aria-labelledby={`${id}-gefunden`} className="flex flex-wrap gap-1.5">
-          <Wahl aktiv={gefunden === true} onClick={() => onGefunden(gefunden === true ? null : true)}>
+          <Chip kompakt gewaehlt={gefunden === true} onClick={() => onGefunden(gefunden === true ? null : true)}>
             {t("Ja")}
-          </Wahl>
-          <Wahl aktiv={gefunden === false} onClick={() => onGefunden(gefunden === false ? null : false)}>
+          </Chip>
+          <Chip kompakt gewaehlt={gefunden === false} onClick={() => onGefunden(gefunden === false ? null : false)}>
             {t("Nein")}
-          </Wahl>
+          </Chip>
         </div>
       </div>
 
@@ -132,9 +114,9 @@ export function TrailErgebnisFormular({
           </span>
           <div role="group" aria-labelledby={`${id}-anzeige`} className="flex flex-wrap gap-1.5">
             {ANZEIGEVERHALTEN.map((a) => (
-              <Wahl key={a.value} aktiv={anzeige === a.value} onClick={() => onAnzeige(anzeige === a.value ? null : a.value)}>
+              <Chip kompakt key={a.value} gewaehlt={anzeige === a.value} onClick={() => onAnzeige(anzeige === a.value ? null : a.value)}>
                 {t(a.label)}
-              </Wahl>
+              </Chip>
             ))}
           </div>
         </div>

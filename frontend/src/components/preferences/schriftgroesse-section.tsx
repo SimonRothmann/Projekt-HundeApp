@@ -5,7 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import { usePreferences } from "@/lib/preferences-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Type } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Chip } from "@/components/ui/chip";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import {
@@ -67,22 +67,15 @@ export function SchriftgroesseSection() {
       <CardContent className="flex min-w-0 flex-col gap-3">
         <div className="flex flex-wrap gap-1.5">
           {SCHRIFTGROESSEN.map((stufe) => (
-            <button
+            <Chip
               key={stufe}
-              type="button"
-              aria-pressed={gewaehlt === stufe}
+              gewaehlt={gewaehlt === stufe}
               disabled={speichert}
               onClick={() => void waehlen(stufe)}
-              className={cn(
-                "inline-flex min-h-11 items-center rounded-full border px-4 transition-colors disabled:opacity-60",
-                STUFEN[stufe].vorschau,
-                gewaehlt === stufe
-                  ? "border-primary bg-primary/10 font-medium text-foreground"
-                  : "border-input text-muted-foreground hover:border-foreground/30 hover:text-foreground",
-              )}
+              className={STUFEN[stufe].vorschau}
             >
               {t(STUFEN[stufe].label)}
-            </button>
+            </Chip>
           ))}
         </div>
 

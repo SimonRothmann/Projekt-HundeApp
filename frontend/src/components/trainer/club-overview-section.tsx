@@ -12,7 +12,7 @@ import { rollenVon, ROLLEN } from "@/lib/vereinsrollen";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Abschnittsname } from "@/components/dogs/eintragen-chip";
+import { Abschnittsname } from "@/components/dogs/abschnittsname";
 
 /**
  * Die Vereinsübersicht für Vorstand und Verwaltung: Zahlen aus den Vereinsdaten

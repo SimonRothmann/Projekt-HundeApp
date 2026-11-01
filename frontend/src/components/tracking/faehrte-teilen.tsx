@@ -5,7 +5,7 @@ import { Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import type { GpsTrack } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   baueBildTexte,
   faehrtenGeometrie,
@@ -41,7 +41,7 @@ export function FaehrteTeilen({ track, hundeName }: { track: GpsTrack; hundeName
         {t("Als Bild teilen")}
       </Button>
       <Sheet open={offen} onOpenChange={setOffen}>
-        <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto">
+        <BottomSheetContent>
           <SheetHeader>
             <SheetTitle>{istMantrailing(track) ? t("Trail als Bild teilen") : t("Fährte als Bild teilen")}</SheetTitle>
             <SheetDescription>
@@ -53,7 +53,7 @@ export function FaehrteTeilen({ track, hundeName }: { track: GpsTrack; hundeName
           {/* Erst beim Öffnen eingehängt: Das Bild wird nur gezeichnet, wenn
               jemand es sehen will, und beim Schließen räumt die Komponente auf. */}
           <BildVorschau track={track} hundeName={hundeName} />
-        </SheetContent>
+        </BottomSheetContent>
       </Sheet>
     </>
   );

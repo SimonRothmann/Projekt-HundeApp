@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import type { GroupTrainingSession } from "@/lib/types";
 import { mitAntwort } from "@/lib/termin-zusage";
-import { cn } from "@/lib/utils";
+import { Chip } from "@/components/ui/chip";
 import { useT } from "@/lib/i18n";
 
 /**
@@ -71,23 +71,17 @@ export function AntwortKnoepfe({
       ].map((wahl) => {
         const aktiv = termin.myResponse === wahl.kommt;
         return (
-          <button
+          <Chip
             key={wahl.text}
-            type="button"
-            aria-pressed={aktiv}
+            kompakt
+            gewaehlt={aktiv}
             disabled={gesperrt}
             onClick={() => onAntwort(wahl.kommt)}
-            className={cn(
-              "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11 disabled:opacity-60",
-              aktiv
-                ? wahl.kommt
-                  ? "border-primary bg-primary/15 font-medium text-primary-text"
-                  : "border-destructive/50 bg-destructive/10 font-medium text-destructive"
-                : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-            )}
+            // "Kann nicht" ist gewählt rot statt im Primärton.
+            className={aktiv && !wahl.kommt ? "border-destructive/50 bg-destructive/10 text-destructive" : undefined}
           >
             {wahl.text}
-          </button>
+          </Chip>
         );
       })}
     </div>

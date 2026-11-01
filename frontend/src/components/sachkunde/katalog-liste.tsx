@@ -70,7 +70,7 @@ export function KatalogListe({ catalogs, basis }: { catalogs: QuizCatalog[]; bas
 }
 
 /** "Fragen: SWHV · Stand 2024" - wer die Fragen herausgibt und in welcher Ausgabe. */
-export function KatalogHerkunft({ catalog }: { catalog: Pick<QuizCatalog, "publisher" | "edition"> }) {
+function KatalogHerkunft({ catalog }: { catalog: Pick<QuizCatalog, "publisher" | "edition"> }) {
   const t = useT();
   return (
     <>

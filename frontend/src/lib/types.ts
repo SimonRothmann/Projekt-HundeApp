@@ -268,7 +268,7 @@ export type GoalStatus = 0 | 1 | 2; // 0 = Active, 1 = Achieved, 2 = Cancelled
 export type TrainingPlanItemLog = {
   trainingSessionId: string;
   // Id der durchgeführten Übung - nötig, um die Notiz auch aus dem Plan-Log
-  // heraus bearbeiten zu können (siehe ExerciseNotes / Wunsch 2).
+  // heraus bearbeiten zu können (siehe ExerciseNotes).
   trainingExerciseId: string;
   date: string;
   rating: number;
@@ -1516,12 +1516,11 @@ export type OffenesFeedback = {
 
 export type DashboardDaten = {
   dogs: DashboardHund[];
-  // Optional, weil der Stale-While-Revalidate-Cache noch Antworten ohne dieses Feld liefern kann.
-  openFeedback?: OffenesFeedback[];
-  /** Eigene offene Gruppeneinladungen (als Mitglied). Optional wie openFeedback: ältere Zwischenstände haben das Feld nicht. */
-  groupInvitations?: DashboardGruppeneinladung[];
-  /** Eigene offene Vereinseinladungen. Optional aus demselben Grund wie groupInvitations. */
-  clubInvitations?: DashboardVereinseinladung[];
+  openFeedback: OffenesFeedback[];
+  /** Eigene offene Gruppeneinladungen (als Mitglied). */
+  groupInvitations: DashboardGruppeneinladung[];
+  /** Eigene offene Vereinseinladungen. */
+  clubInvitations: DashboardVereinseinladung[];
 };
 
 /** Eine offene Einladung in eine Trainingsgruppe (Backend: DashboardGroupInvitationDto). */

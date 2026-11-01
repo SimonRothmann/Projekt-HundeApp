@@ -12,8 +12,8 @@ import { TEXTLAENGE } from "@/lib/textlaengen";
  * Zeigt die Notiz einer durchgeführten Übung (TrainingExercise.Notes) und
  * erlaubt, sie inline zu bearbeiten. Bewusst geteilt zwischen
  * Trainingstagebuch (SessionHistory) und Trainingsplan-Log (GoalPlanCard),
- * damit dieselbe Notiz an beiden Stellen sichtbar UND editierbar ist
- * (siehe Wunsch 2). `compact` verkleinert die Darstellung fürs Plan-Log.
+ * damit dieselbe Notiz an beiden Stellen sichtbar UND editierbar ist.
+ * `compact` verkleinert die Darstellung fürs Plan-Log.
  * `darfBearbeiten` = false (fremder Eintrag einer betreuenden Trainer:in-
  * Sicht): nur anzeigen, ohne Notiz-Knopf und Stift. Das Backend prüft
  * ohnehin (TrainingsRechte).

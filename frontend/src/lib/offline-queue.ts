@@ -17,7 +17,7 @@ const DB_VERSION = 1;
 export type QueuedRequest = {
   id: string;
   path: string;
-  method: "POST" | "PUT" | "DELETE";
+  method: "POST";
   body: unknown;
   label: string;
   createdAt: string;
@@ -210,9 +210,7 @@ export async function syncQueuedRequests(
 
   for (const item of items) {
     try {
-      if (item.method === "POST") await postMitPlanAusweg(item);
-      else if (item.method === "PUT") await api.put(item.path, item.body);
-      else await api.delete(item.path);
+      await postMitPlanAusweg(item);
 
       await removeQueuedRequest(item.id);
       syncedCount++;

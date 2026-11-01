@@ -8,7 +8,7 @@ import { Archive, ArchiveRestore, ChevronDown, CirclePause, Eye, Pencil, Printer
 import { api, ApiError } from "@/lib/api";
 import type { Dog, DogBetreuung, DogOwner } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BetreuungenSection } from "@/components/dogs/betreuungen-section";
 import { CoOwnersSection } from "@/components/dogs/co-owners-section";
 import { PausenSection } from "@/components/dogs/pausen-section";
@@ -109,7 +109,7 @@ export function DogActionsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <BottomSheetContent>
         <SheetHeader>
           <SheetTitle>{t("Verwalten")}</SheetTitle>
           <SheetDescription className="[overflow-wrap:anywhere]">{dog.name}</SheetDescription>
@@ -217,7 +217,7 @@ export function DogActionsSheet({
             </>
           )}
         </div>
-      </SheetContent>
+      </BottomSheetContent>
     </Sheet>
   );
 }

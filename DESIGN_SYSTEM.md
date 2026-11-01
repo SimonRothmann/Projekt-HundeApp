@@ -271,6 +271,8 @@ Folgen für den Code:
 - Alles, was man antippt und das einen Rand hat (Eingabe, Auswahl,
   Outline-Knopf, nicht gewählter Chip/Umschalter), nutzt `border-input`.
   `--border` bleibt leise und ist nur für Trennlinien und Karten da.
+  Auswahl-Knöpfe in Pillenform sind immer `Chip` (`components/ui/chip.tsx`),
+  nicht neu gebaut; `kompakt` für dichte Reihen (44 px erst auf Touch-Geräten).
 - `--input` ist kein Flächenton mehr. Als Fläche dient `muted` (hell);
   `bg-input/30` steht nur noch hinter `dark:`.
 - Fokusringe: hell `ring-ring/85`, dunkel `dark:ring-ring/50` bzw. `/60`

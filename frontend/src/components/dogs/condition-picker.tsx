@@ -1,7 +1,7 @@
 "use client";
 
 import { DOG_CONDITION, type DogCondition } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { Chip } from "@/components/ui/chip";
 
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
@@ -17,7 +17,7 @@ import { uebersetzbar } from "@/lib/i18n/sprachen";
  * dass man mit einer falschen Angabe leben muss.
  */
 
-export const CONDITIONS: { key: DogCondition; label: string; hint: string }[] = [
+const CONDITIONS: { key: DogCondition; label: string; hint: string }[] = [
   { key: DOG_CONDITION.Motivated, label: uebersetzbar("motiviert"), hint: uebersetzbar("zieht mit, arbeitet freudig") },
   { key: DOG_CONDITION.Settled, label: uebersetzbar("ausgeglichen"), hint: uebersetzbar("unauffällig, wie üblich") },
   { key: DOG_CONDITION.Distracted, label: uebersetzbar("abgelenkt"), hint: uebersetzbar("bei der Umwelt statt beim Hundeführer") },
@@ -44,22 +44,16 @@ export function ConditionPicker({
       {CONDITIONS.map((c) => {
         const aktiv = value === c.key;
         return (
-          <button
+          <Chip
             key={c.key}
-            type="button"
+            kompakt
             disabled={disabled}
-            aria-pressed={aktiv}
+            gewaehlt={aktiv}
             title={t(c.hint)}
             onClick={() => onChange(aktiv ? null : c.key)}
-            className={cn(
-              "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11 disabled:opacity-50",
-              aktiv
-                ? "border-primary bg-primary/15 text-primary-text"
-                : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-            )}
           >
             {t(c.label)}
-          </button>
+          </Chip>
         );
       })}
     </div>

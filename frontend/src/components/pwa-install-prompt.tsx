@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { mitBausteinen, useT } from "@/lib/i18n";
 import { istTouchGeraet } from "@/lib/geraet";
+import { merkeWeggeklickt, warWeggeklickt } from "@/lib/weggeklickt";
 // Chrome/Edge/Android fire this event before showing the native install prompt.
 // iOS Safari has no equivalent — we show manual instructions there instead.
 interface BeforeInstallPromptEvent extends Event {
@@ -15,26 +16,6 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const SPEICHER_SCHLUESSEL = "dogity.pwa-hinweis.weggeklickt";
-
-// Je Gerät gemerkt, ob der Hinweis weggeklickt wurde. Jeder Zugriff gesichert:
-// in privaten Fenstern und bei gesperrten Website-Daten wirft localStorage -
-// dann erscheint der Hinweis eben beim nächsten Besuch wieder, statt dass die
-// App abstürzt.
-function warWeggeklickt(): boolean {
-  try {
-    return window.localStorage.getItem(SPEICHER_SCHLUESSEL) !== null;
-  } catch {
-    return false;
-  }
-}
-
-function merkeWeggeklickt(): void {
-  try {
-    window.localStorage.setItem(SPEICHER_SCHLUESSEL, "1");
-  } catch {
-    // Ohne Speicher kommt der Hinweis beim nächsten Besuch wieder - harmlos.
-  }
-}
 
 // Über der unteren Navigation (rund 4,3 rem hoch, plus Sicherheitsabstand am
 // iPhone), sonst läge der Hinweis darüber und verdeckte "Profil". Den Abstand
@@ -66,11 +47,10 @@ export function PwaInstallPrompt() {
     // Bereits installiert oder weggeklickt → nichts anzeigen.
     // Nur auf Handy und Tablet - am Rechner bietet der Browser das Installieren
     // selbst an, ein eigener Hinweis wäre dort nur Lärm.
-    if (isInStandaloneMode() || warWeggeklickt() || !istTouchGeraet()) return;
+    if (isInStandaloneMode() || warWeggeklickt(SPEICHER_SCHLUESSEL) || !istTouchGeraet()) return;
 
     if (isIos()) {
       // iOS: kein beforeinstallprompt — manuellen Hinweis nach 3 s zeigen.
-      // Umbenannt: hiess frueher t und verdeckte damit den Uebersetzer.
       const zeitgeber = window.setTimeout(() => setShowIosHint(true), 3000);
       return () => window.clearTimeout(zeitgeber);
     }
@@ -94,7 +74,7 @@ export function PwaInstallPrompt() {
   }
 
   function wegklicken() {
-    merkeWeggeklickt();
+    merkeWeggeklickt(SPEICHER_SCHLUESSEL);
     setDismissed(true);
   }
 

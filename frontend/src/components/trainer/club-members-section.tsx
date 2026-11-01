@@ -6,17 +6,15 @@ import type { Club, ClubInvitation, ClubMemberRequest } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, ShieldPlus, ShieldCheck, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 
-export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onBefoerdert?: () => void }) {
+export function ClubMembersSection({ club, onBefoerdert }: { club: Club; onBefoerdert?: () => void }) {
   const t = useT();
   const ort = ortsformat(useSprache());
-  const [selectedClubId, setSelectedClubId] = useState(clubs[0]?.id ?? "");
   const [members, setMembers] = useState<ClubMemberRequest[] | null>(null);
   const [promotingUserId, setPromotingUserId] = useState<string | null>(null);
   const [entferneUserId, setEntferneUserId] = useState<string | null>(null);
@@ -27,26 +25,18 @@ export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onB
   const [einladungen, setEinladungen] = useState<ClubInvitation[]>([]);
   const [zieheZurueck, setZieheZurueck] = useState<string | null>(null);
 
-  async function loadMembers(clubId: string) {
-    if (!clubId) {
-      setMembers([]);
-      return;
-    }
+  async function loadMembers() {
     try {
-      const data = await api.get<ClubMemberRequest[]>(`/api/clubs/${clubId}/members`);
+      const data = await api.get<ClubMemberRequest[]>(`/api/clubs/${club.id}/members`);
       setMembers(data);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Mitglieder konnten nicht geladen werden."));
     }
   }
 
-  async function loadInvitations(clubId: string) {
-    if (!clubId) {
-      setEinladungen([]);
-      return;
-    }
+  async function loadInvitations() {
     try {
-      setEinladungen(await api.get<ClubInvitation[]>(`/api/clubs/${clubId}/invitations`));
+      setEinladungen(await api.get<ClubInvitation[]>(`/api/clubs/${club.id}/invitations`));
     } catch {
       setEinladungen([]);
     }
@@ -55,9 +45,9 @@ export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onB
   useEffect(() => {
     // Initialer Datenabruf bei Mount (externe Quelle: REST API).
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadMembers(selectedClubId);
-    loadInvitations(selectedClubId);
-  }, [selectedClubId]);
+    loadMembers();
+    loadInvitations();
+  }, [club.id]);
 
   /**
    * Jemanden per E-Mail-Adresse EINLADEN - nicht aufnehmen.
@@ -73,7 +63,7 @@ export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onB
     if (!mail) return;
     setLadtEin(true);
     try {
-      const ergebnis = await api.post<{ joined: boolean }>(`/api/clubs/${selectedClubId}/members`, { email: mail });
+      const ergebnis = await api.post<{ joined: boolean }>(`/api/clubs/${club.id}/members`, { email: mail });
       // Hatte die Person selbst schon angefragt, nimmt der Server sie gleich auf -
       // dann wäre "eingeladen" falsch. Deshalb meldet er, was passiert ist.
       toast.success(
@@ -83,7 +73,7 @@ export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onB
       );
       setNeueMail("");
       // Beide Listen neu laden: Mitglied oder offene Einladung.
-      await Promise.all([loadMembers(selectedClubId), loadInvitations(selectedClubId)]);
+      await Promise.all([loadMembers(), loadInvitations()]);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Einladung fehlgeschlagen."));
     } finally {
@@ -95,9 +85,9 @@ export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onB
     if (!window.confirm(t("Einladung an {mail} zurückziehen?", { mail: einladung.invitedEmail }))) return;
     setZieheZurueck(einladung.membershipId);
     try {
-      await api.delete(`/api/clubs/${selectedClubId}/invitations/${einladung.membershipId}`);
+      await api.delete(`/api/clubs/${club.id}/invitations/${einladung.membershipId}`);
       toast.success(t("Einladung zurückgezogen."));
-      await loadInvitations(selectedClubId);
+      await loadInvitations();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Das hat nicht geklappt."));
     } finally {
@@ -107,7 +97,7 @@ export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onB
 
   // Der Server entscheidet (Ausbildungswart:in, Verwaltung) und liefert es mit dem Verein mit; wer
   // nur Mitglieder verwaltet, bekäme beim Antippen ohnehin "Verein nicht gefunden". Fehlt die Angabe, gilt: nein.
-  const darfBefoerdern = clubs.find((c) => c.id === selectedClubId)?.canAppointTrainers === true;
+  const darfBefoerdern = club.canAppointTrainers === true;
 
   async function handlePromote(m: ClubMemberRequest) {
     // Die Rolle lässt sich hier nicht wieder entziehen - deshalb vorher fragen.
@@ -116,11 +106,11 @@ export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onB
     const userId = m.userId;
     setPromotingUserId(userId);
     try {
-      await api.post(`/api/clubs/${selectedClubId}/members/${userId}/promote`);
+      await api.post(`/api/clubs/${club.id}/members/${userId}/promote`);
       toast.success(t("Mitglied ist jetzt Trainer."));
       // Neu laden, sonst bietet die Zeile weiter "Zum Trainer machen" an,
       // obwohl die Person es gerade geworden ist.
-      await loadMembers(selectedClubId);
+      await loadMembers();
       onBefoerdert?.();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Beförderung fehlgeschlagen."));
@@ -134,9 +124,9 @@ export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onB
     if (!window.confirm(t("{name} aus dem Verein entfernen?", { name }))) return;
     setEntferneUserId(m.userId);
     try {
-      await api.delete(`/api/clubs/${selectedClubId}/members/${m.userId}`);
+      await api.delete(`/api/clubs/${club.id}/members/${m.userId}`);
       toast.success(t("Mitglied entfernt."));
-      await loadMembers(selectedClubId);
+      await loadMembers();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Entfernen fehlgeschlagen."));
     } finally {
@@ -151,20 +141,6 @@ export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onB
           <Users className="size-5" />
 {t("Mitglieder")}
         </CardTitle>
-        {clubs.length > 1 && (
-          <Select value={selectedClubId} onValueChange={(value) => setSelectedClubId(value ?? "")}>
-            <SelectTrigger className="w-48 max-w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {clubs.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <form
@@ -180,7 +156,7 @@ export function ClubMembersSection({ clubs, onBefoerdert }: { clubs: Club[]; onB
             placeholder={t("E-Mail-Adresse")}
             value={neueMail}
             onChange={(e) => setNeueMail(e.target.value)}
-            disabled={!selectedClubId || ladtEin}
+            disabled={ladtEin}
           />
           <Button type="submit" size="sm" disabled={!neueMail.trim() || ladtEin}>
             <UserPlus className="size-4" />

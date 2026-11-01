@@ -12,10 +12,6 @@ function Sheet({ ...props }: SheetPrimitive.Root.Props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
 
-function SheetTrigger({ ...props }: SheetPrimitive.Trigger.Props) {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
-}
-
 function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
   return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
 }
@@ -82,6 +78,25 @@ function SheetContent({
   )
 }
 
+/**
+ * Das Fenster von unten, wie es die Dialoge der App brauchen: höchstens 90 %
+ * der Bildschirmhöhe, darüber scrollt es, und unten bleibt Abstand zum Rand.
+ * Eine Fassung für alle - `eintragen-sheet` und `ablauf-ergebnis-sheet`
+ * steuern Höhe und Lage selbst und nutzen SheetContent.
+ */
+function BottomSheetContent({
+  className,
+  ...props
+}: Omit<React.ComponentProps<typeof SheetContent>, "side">) {
+  return (
+    <SheetContent
+      side="bottom"
+      className={cn("max-h-[90vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]", className)}
+      {...props}
+    />
+  )
+}
+
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -130,9 +145,9 @@ function SheetDescription({
 
 export {
   Sheet,
-  SheetTrigger,
   SheetClose,
   SheetContent,
+  BottomSheetContent,
   SheetHeader,
   SheetFooter,
   SheetTitle,

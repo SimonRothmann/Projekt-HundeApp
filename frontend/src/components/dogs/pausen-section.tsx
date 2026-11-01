@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { PAUSE_GRUND, type Dog, type DogPause, type PauseGrund } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -239,20 +240,9 @@ function PauseFormular({
         <Label>{t("Grund")}</Label>
         <div className={cn("grid gap-2", gruende.length === 3 ? "grid-cols-3" : "grid-cols-2")} role="group" aria-label={t("Grund")}>
           {gruende.map((grund: PauseGrund) => (
-            <button
-              key={grund}
-              type="button"
-              aria-pressed={eingabe.grund === grund}
-              onClick={() => aendere({ grund })}
-              className={cn(
-                "flex min-h-11 min-w-0 items-center justify-center rounded-md border px-2 text-sm font-medium transition-colors",
-                eingabe.grund === grund
-                  ? "border-primary bg-primary/10 text-primary-text"
-                  : "border-input text-muted-foreground hover:bg-muted",
-              )}
-            >
-              <span className="min-w-0 truncate">{t(PAUSE_GRUND_TEXT[grund])}</span>
-            </button>
+            <Chip key={grund} gewaehlt={eingabe.grund === grund} onClick={() => aendere({ grund })} className="justify-center text-center">
+              {t(PAUSE_GRUND_TEXT[grund])}
+            </Chip>
           ))}
         </div>
       </div>

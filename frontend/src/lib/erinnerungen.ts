@@ -38,11 +38,6 @@ export function tagGewaehlt(maske: number, bit: number): boolean {
   return (maske & bit) !== 0;
 }
 
-/** Wie viele Tage gewählt sind. */
-export function anzahlTage(maske: number): number {
-  return WOCHENTAGE.filter((t) => tagGewaehlt(maske, t.bit)).length;
-}
-
 /**
  * Schaltet einen Wochentag um. Der letzte gewählte Tag lässt sich nicht
  * abwählen: Eine Auswahl ohne Tag hieße "nie", und das ist der Schalter darüber.

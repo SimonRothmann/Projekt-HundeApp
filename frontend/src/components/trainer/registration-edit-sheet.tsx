@@ -12,7 +12,7 @@ import type { GroupRegistration } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 type Eingabe = {
   vorname: string;
@@ -58,7 +58,7 @@ export function RegistrationEditSheet({
   const t = useT();
   return (
     <Sheet open={offen} onOpenChange={onOffenChange}>
-      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+      <BottomSheetContent>
         {/* Der Inhalt hängt am Schlüssel: Jedes Öffnen beginnt mit frischem Zustand. */}
         <Formular
           key={registrierung?.id ?? "neu"}
@@ -70,7 +70,7 @@ export function RegistrationEditSheet({
           }}
           titel={registrierung ? t("Anmeldung bearbeiten") : t("Anmeldung hinzufügen")}
         />
-      </SheetContent>
+      </BottomSheetContent>
     </Sheet>
   );
 }

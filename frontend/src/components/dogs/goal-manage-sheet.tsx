@@ -10,7 +10,7 @@ import { ZielAbschliessen } from "@/components/dogs/ziel-abschliessen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { CheckCircle2, ChevronDown, MoreHorizontal, Pencil, SlidersHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -136,7 +136,7 @@ export function GoalManageSheet({
         <MoreHorizontal className="size-5" />
       </Button>
       <Sheet open={offen} onOpenChange={setOffen}>
-        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <BottomSheetContent>
           <SheetHeader>
             <SheetTitle>{t("Ziel verwalten")}</SheetTitle>
             <SheetDescription className="[overflow-wrap:anywhere]">{t("{pruefung} mit {hund}", { pruefung: name, hund: dogName })}</SheetDescription>
@@ -229,7 +229,7 @@ export function GoalManageSheet({
               </Button>
             </div>
           </div>
-        </SheetContent>
+        </BottomSheetContent>
       </Sheet>
     </>
   );

@@ -17,7 +17,7 @@ import {
 import { SchalterZeile } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ListenGruppe } from "@/components/profile/einstellungs-liste";
-import { cn } from "@/lib/utils";
+import { Chip } from "@/components/ui/chip";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 
@@ -114,22 +114,16 @@ export function ErinnerungenSection() {
                 {WOCHENTAGE.map((tag) => {
                   const aktiv = tagGewaehlt(werte.trainerSummaryDays, tag.bit);
                   return (
-                    <button
+                    <Chip
                       key={tag.bit}
-                      type="button"
                       disabled={speichert}
-                      aria-pressed={aktiv}
+                      gewaehlt={aktiv}
                       aria-label={t(tag.lang)}
                       onClick={() => tagWechseln(tag.bit)}
-                      className={cn(
-                        "flex size-11 shrink-0 items-center justify-center rounded-full border text-sm transition-colors disabled:opacity-50",
-                        aktiv
-                          ? "border-primary bg-primary/15 font-medium text-primary-text"
-                          : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-                      )}
+                      className="size-11 shrink-0 justify-center px-0 text-center"
                     >
                       {t(tag.kurz)}
-                    </button>
+                    </Chip>
                   );
                 })}
               </div>

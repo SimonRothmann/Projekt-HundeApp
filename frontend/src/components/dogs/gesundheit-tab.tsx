@@ -14,6 +14,7 @@ import {
 } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -393,18 +394,9 @@ function EintragFormular({
         <Label>{t("Art")}</Label>
         <div className="grid grid-cols-2 gap-2" role="group" aria-label={t("Art")}>
           {ARTEN.map((art) => (
-            <button
-              key={art}
-              type="button"
-              aria-pressed={eingabe.art === art}
-              onClick={() => waehleArt(art)}
-              className={cn(
-                "flex min-h-11 min-w-0 items-center justify-center rounded-md border px-2 text-sm font-medium transition-colors",
-                eingabe.art === art ? "border-primary bg-primary/10 text-primary-text" : "border-input text-muted-foreground hover:bg-muted",
-              )}
-            >
-              <span className="min-w-0 py-1 text-center leading-tight [overflow-wrap:anywhere]">{t(ART_TEXT[art])}</span>
-            </button>
+            <Chip key={art} gewaehlt={eingabe.art === art} onClick={() => waehleArt(art)} className="justify-center text-center">
+              {t(ART_TEXT[art])}
+            </Chip>
           ))}
         </div>
       </div>
@@ -421,18 +413,9 @@ function EintragFormular({
         {vorschlaege.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {vorschlaege.map((v) => (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={eingabe.titel === t(v)}
-                onClick={() => aendere({ titel: t(v) })}
-                className={cn(
-                  "min-h-11 min-w-0 rounded-full border px-3 text-sm transition-colors [overflow-wrap:anywhere]",
-                  eingabe.titel === t(v) ? "border-primary bg-primary/10 text-primary-text" : "border-input text-muted-foreground hover:bg-muted",
-                )}
-              >
+              <Chip key={v} gewaehlt={eingabe.titel === t(v)} onClick={() => aendere({ titel: t(v) })}>
                 {t(v)}
-              </button>
+              </Chip>
             ))}
           </div>
         )}

@@ -111,8 +111,8 @@ export default function TrainerVereinPage() {
         </Card>
       )}
 
-      {/* key: Jeder Verein bekommt frische Abschnitte - die Mitgliederliste
-          merkt sich sonst den zuerst gewählten Verein. */}
+      {/* key: Jeder Verein bekommt frische Abschnitte - sonst zeigt die
+          Mitgliederliste beim Wechsel noch den vorigen Verein, bis die neue geladen ist. */}
       {club.canViewOverview && <ClubOverviewSection key={`uebersicht-${club.id}`} clubId={club.id} />}
       {club.canManage && <ClubStammdatenSection key={`stammdaten-${club.id}`} club={club} onGespeichert={laden} />}
       {club.canAppointTrainers && (
@@ -129,10 +129,10 @@ export default function TrainerVereinPage() {
         />
       )}
       {club.canManageMembers && <ClubAnfragenKarte key={`anfragen-${club.id}`} club={club} />}
-      {club.canManageMembers && <ClubInviteSection key={`einladung-${club.id}`} clubs={[club]} />}
+      {club.canManageMembers && <ClubInviteSection key={`einladung-${club.id}`} club={club} />}
       {club.canManageMembers && <ClubMembersSection
           key={`mitglieder-${club.id}-${mitgliederStand}`}
-          clubs={[club]}
+          club={club}
           onBefoerdert={() => setRollenStand((n) => n + 1)}
         />}
       {club.isTrainer && (

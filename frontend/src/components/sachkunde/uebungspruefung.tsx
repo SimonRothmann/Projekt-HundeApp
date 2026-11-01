@@ -24,6 +24,7 @@ import { QuizAssignment } from "@/components/sachkunde/quiz-assignment";
 import { PruefungsErgebnis } from "@/components/sachkunde/pruefung-ergebnis";
 import { PruefungHinweis } from "@/components/sachkunde/pruefung-hinweis";
 import { Badge } from "@/components/ui/badge";
+import { auswahlRahmen } from "@/components/ui/chip";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -417,7 +418,7 @@ function AntwortListe({
               className={cn(
                 "flex w-full min-w-0 items-start gap-2.5 rounded-lg border px-3 py-3 text-left text-sm transition-colors",
                 "coarse:min-h-12",
-                aktiv ? "border-primary bg-primary/10" : "border-input hover:border-primary/50 hover:bg-accent/30",
+                auswahlRahmen(aktiv),
               )}
             >
               <span

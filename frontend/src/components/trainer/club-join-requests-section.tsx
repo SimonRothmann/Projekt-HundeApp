@@ -6,7 +6,7 @@ import type { Club, ClubMemberRequest, Group } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Chip } from "@/components/dogs/eintragen-chip";
+import { Chip } from "@/components/ui/chip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserCheck } from "lucide-react";
 import { toast } from "sonner";

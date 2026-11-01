@@ -8,7 +8,7 @@ import { api, ApiError } from "@/lib/api";
 import { formatDogAge } from "@/lib/dog-age";
 import { useT } from "@/lib/i18n";
 import type { GroupRegistration } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { Chip } from "@/components/ui/chip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -116,18 +116,9 @@ export function RegistrationList({
                 ["offen", t("Unbezahlt ({n})", { n: offene })],
               ] as const
             ).map(([wert, label]) => (
-              <button
-                key={wert}
-                type="button"
-                aria-pressed={filter === wert}
-                onClick={() => setFilter(wert)}
-                className={cn(
-                  "min-h-9 rounded-full border px-3 text-sm font-medium transition-colors coarse:min-h-11",
-                  filter === wert ? "border-primary bg-primary/10 text-primary-text" : "border-input text-muted-foreground hover:bg-muted",
-                )}
-              >
+              <Chip key={wert} kompakt gewaehlt={filter === wert} onClick={() => setFilter(wert)}>
                 {label}
-              </button>
+              </Chip>
             ))}
           </div>
         )}

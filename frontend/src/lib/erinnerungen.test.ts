@@ -6,7 +6,6 @@ import {
   VORGABE_STUNDE,
   VORGABE_TAGE,
   WOCHENTAGE,
-  anzahlTage,
   gueltigeStunde,
   stundeText,
   tagGewaehlt,
@@ -23,7 +22,6 @@ describe("Wochentage", () => {
   it("Vorgabe ist nur der Sonntag um 18 Uhr", () => {
     expect(VORGABE_TAGE).toBe(64);
     expect(tagGewaehlt(VORGABE_TAGE, 64)).toBe(true);
-    expect(anzahlTage(VORGABE_TAGE)).toBe(1);
     expect(VORGABE_STUNDE).toBe(18);
   });
 });

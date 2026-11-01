@@ -10,6 +10,7 @@ import { datumMitWochentag } from "@/lib/pruefung";
 import { heuteIso } from "@/lib/kalendertag";
 import type { AttendanceDay, GroupRegistration } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Chip } from "@/components/ui/chip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
@@ -140,18 +141,9 @@ export function RegistrationAttendance({
       <CardContent className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("Tag wählen")}>
           {chips.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              aria-pressed={datum === tag}
-              onClick={() => setDatum(tag)}
-              className={cn(
-                "min-h-9 rounded-full border px-3 text-sm font-medium transition-colors coarse:min-h-11",
-                datum === tag ? "border-primary bg-primary/10 text-primary-text" : "border-input text-muted-foreground hover:bg-muted",
-              )}
-            >
+            <Chip key={tag} kompakt gewaehlt={datum === tag} onClick={() => setDatum(tag)}>
               {tag === heute ? t("Heute") : tagKurz(tag, sprache)}
-            </button>
+            </Chip>
           ))}
           {/* Hinter den Chips, ohne sichtbare Beschriftung (das Feld erklärt sich selbst). Keine feste
               Mindestbreite: Safari auf dem iPhone ließe sonst das Feld über den Kartenrand ragen

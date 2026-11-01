@@ -7,8 +7,9 @@
  * PWA) zentral einsehbar.
  *
  * Kein Auth: Browser senden CSP-Reports ohne Credentials. Gegen Missbrauch
- * (Log-Flutung) ist der gelesene Body hart gekappt; mehr Schutz braucht ein
- * reiner Beobachtungs-Endpoint für die Report-Only-Woche nicht.
+ * (Log-Flutung) wird nur der Anfang des Bodys geloggen (er wird allerdings
+ * vorher ganz gelesen); mehr Schutz braucht ein reiner Beobachtungs-Endpoint
+ * nicht.
  */
 const MAX_REPORT_BYTES = 8_192;
 

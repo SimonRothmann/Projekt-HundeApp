@@ -7,7 +7,7 @@ import { FaehrtenTrend } from "@/components/tracking/faehrten-trend";
 import { useT } from "@/lib/i18n";
 import { useFaehrtenStats } from "@/lib/use-faehrten-stats";
 import { geltenderFilter, nachTagen, verfuegbareFilter, type TagesFilter } from "@/lib/tagebuch";
-import { cn } from "@/lib/utils";
+import { Chip } from "@/components/ui/chip";
 
 /**
  * Der Reiter "Tagebuch": der Fährten-Verlauf, die Filter und das kompakte
@@ -80,20 +80,9 @@ export function DiaryTab({
       {angeboten.length > 0 && (
         <div role="group" aria-label={t("Tage filtern")} className="flex flex-wrap gap-1.5">
           {angeboten.map((art) => (
-            <button
-              key={art}
-              type="button"
-              aria-pressed={filter === art}
-              onClick={() => setGewaehlt(art)}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11",
-                filter === art
-                  ? "border-primary bg-primary/15 text-primary-text"
-                  : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-              )}
-            >
+            <Chip key={art} kompakt gewaehlt={filter === art} onClick={() => setGewaehlt(art)}>
               {filterLabel[art]}
-            </button>
+            </Chip>
           ))}
         </div>
       )}

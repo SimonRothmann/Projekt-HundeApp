@@ -3,6 +3,7 @@
 import type { QuizKey } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { antwortFarben } from "@/components/sachkunde/antwort-farben";
 
 import { useT } from "@/lib/i18n";
 /**
@@ -91,7 +92,12 @@ export function QuizAssignment({
                       className={cn(
                         "min-w-10 rounded-md border px-3 py-2 text-sm font-medium transition-colors",
                         "coarse:min-h-11 disabled:cursor-default",
-                        schluesselKlasse(aktiv, aufgeloest, ergebnis, k.key === term.solutionKey),
+                        antwortFarben({
+                          gewaehlt: aktiv,
+                          aufgeloest,
+                          richtig: k.key === term.solutionKey,
+                          falsch: aktiv && ergebnis === false,
+                        }),
                       )}
                     >
                       {k.key}
@@ -111,22 +117,4 @@ export function QuizAssignment({
       )}
     </div>
   );
-}
-
-function schluesselKlasse(
-  aktiv: boolean,
-  aufgeloest: boolean,
-  ergebnis: boolean | undefined,
-  istLoesung: boolean,
-): string {
-  if (!aufgeloest) {
-    return aktiv
-      ? "border-primary bg-primary/15 text-primary-text"
-      : "border-input hover:border-primary/50 hover:bg-accent/30";
-  }
-  // Nach dem Auflösen: die richtige Zuordnung immer grün, eine falsch gewählte
-  // rot. So sieht man in einem Blick, was man verwechselt hat.
-  if (istLoesung) return "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
-  if (aktiv && ergebnis === false) return "border-destructive/60 bg-destructive/10 text-destructive";
-  return "border-border/40 text-muted-foreground opacity-60";
 }

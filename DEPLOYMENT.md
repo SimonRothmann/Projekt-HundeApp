@@ -18,7 +18,7 @@ Skalierbar.
 
 Auf Entwicklungsrechnern ohne Docker läuft jeder Dienst nativ:
 
-- Backend: `dotnet run` (ASP.NET Core, Kestrel auf https://localhost:5443)
+- Backend: `dotnet run` (ASP.NET Core, Kestrel auf http://localhost:5080, https auf Port 7297; siehe `launchSettings.json`)
 - Frontend: `npm run dev` (Next.js auf http://localhost:3000)
 - Database: lokal installiertes PostgreSQL (Service, kein Container)
 
@@ -51,9 +51,11 @@ Schritt-für-Schritt-Anleitung (Ersteinrichtung, laufende Deployments,
 Backups): [deploy/README.md](deploy/README.md).
 
 Services: `postgres`, `backend-prod`, `frontend-prod`, `backend-test`,
-`frontend-test`, `caddy`. Storage/Worker (siehe unten) sind noch nicht
-Teil des Compose-Setups - erst bei tatsächlichem Bedarf (Dateiuploads,
-Hintergrundjobs) ergänzen, kein Premature-Setup für ungenutzte Services.
+`frontend-test`, `mail` (eigener Versand-Mailserver, nur ausgehend, siehe
+[docs/BETRIEB.md](docs/BETRIEB.md) "E-Mail") und `caddy`. Einen eigenen
+Worker- oder Storage-Dienst gibt es nicht: Die Hintergrundarbeit (Mail-,
+Push-, Erinnerungs-, Wetter-, Plan- und Aufbewahrungsdienst) läuft als
+`BackgroundService` im Backend-Prozess.
 
 ---
 
@@ -84,39 +86,49 @@ Database:
 PostgreSQL Docker Container auf der VPS
 
 
-Storage:
+Dateien:
 
-Cloudflare R2 (kostenloses Freikontingent, kein eigener Server nötig)
+Es gibt keinen Dateispeicher. Hundebilder liegen als Bytes in der
+Datenbank (`dog_images`) und gehen als Data-URI über die API, alles andere
+sind Datenbankzeilen.
+
+Cloudflare R2 dient nur den Sicherungen (siehe "Backups").
 
 
 ---
 
 # Deployment Flow
 
-Kein CI/CD-Dienst in Phase 1 (siehe TECH_STACK.md) — Deployment erfolgt
-manuell per Skript, um keine Kosten/Komplexität durch einen externen
-CI-Anbieter zu erzeugen:
+Das Deployment bleibt manuell und zweistufig (Einzelheiten:
+[deploy/README.md](deploy/README.md)):
 
 
 Developer (lokal)
 
 ↓
 
-`scripts/deploy.sh` (siehe [deploy/README.md](deploy/README.md)):
-Build (`dotnet build`, `npm run build`) + Tests lokal als Vorab-Check
+Push auf `master`
 
 ↓
 
-Code-Sync per `rsync` auf die VPS (kein Image-Registry nötig)
+`scripts/deploy-test.sh` AUF der VPS: Git-Checkout aktualisieren, nur die
+Test-Dienste neu bauen und starten
 
 ↓
 
-`docker compose build && docker compose up -d` AUF der VPS
+Prüfung auf der Test-Umgebung
+
+↓
+
+`scripts/promote-to-prod.sh` (lokal): `prod`-Branch per Fast-Forward auf
+`master`, Push, dann per SSH `scripts/deploy-prod.sh` auf der VPS
 
 ---
 
-GitHub Actions kann später optional ergänzt werden (siehe TECH_STACK.md),
-ist für den Start aber nicht erforderlich.
+Die Prüfungen laufen zusätzlich in GitHub Actions
+(`.github/workflows/ci.yml`: Backend und Frontend bei jedem Push und
+Pull Request, siehe TECH_STACK.md "CI/CD"). Das Deployment selbst löst die
+CI nicht aus.
 
 
 ---
@@ -127,9 +139,7 @@ ist für den Start aber nicht erforderlich.
 Pflicht:
 
 
-Datenbank täglich.
-
-Dateien regelmäßig.
+Datenbank täglich (Dateien gibt es keine gesondert, siehe "Dateien" oben).
 
 
 Umgesetzt seit 2026-09-09: verschlüsselte tägliche Sicherung nach

@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { tagAlsDatum } from "@/lib/kalendertag";
 
 // Bewertungstrend als Pfeil: steigend (grün) / fallend (rot) / stabil.
-// null (zu wenige Durchgänge) rendert nichts.
+// null (zu wenige Durchgänge) und eine Veränderung unter 0,25 zeigen beide "→ stabil".
 export function TrendBadge({ trend }: { trend: number | null }) {
   const t = useT();
   const sprache = useSprache();
@@ -35,7 +35,7 @@ export function TrendBadge({ trend }: { trend: number | null }) {
  * ablesen. `aenderung` ist die Änderung der mittleren Abweichung in Metern
  * (jüngere Hälfte der Abläufe minus ältere): negativ = näher an der Fährte.
  */
-export function AbweichungsTrend({ aenderung }: { aenderung: number }) {
+function AbweichungsTrend({ aenderung }: { aenderung: number }) {
   const t = useT();
   const sprache = useSprache();
   const titel = t("Mittlere Abweichung der jüngeren Hälfte der Abläufe im Vergleich zur älteren");
@@ -85,7 +85,6 @@ export function FaehrtenTrend({
   hoechstens,
   nachAbweichung = false,
   className = "border-t pt-2",
-  aktualisiert,
   stats: vorgegeben,
 }: {
   dogId: string;
@@ -96,8 +95,6 @@ export function FaehrtenTrend({
   /** Balken nach mittlerer Abweichung färben (Ampel) und mit ganzen Prozent beschriften. */
   nachAbweichung?: boolean;
   className?: string;
-  /** Ändert sich der Wert, wird neu geladen - z. B. nach einem neuen Ablauf. */
-  aktualisiert?: unknown;
   /**
    * Schon geladene Auswertung des Hundes. Die Hundeseite braucht dieselben
    * Zahlen für die Tageszeilen des Tagebuchs und lädt sie einmal für beide;
@@ -125,7 +122,7 @@ export function FaehrtenTrend({
     return () => {
       active = false;
     };
-  }, [dogId, aktualisiert, vorgegeben]);
+  }, [dogId, vorgegeben]);
 
   if (stats === null || stats.runs.length === 0 || stats.runs.length < mindestens) return null;
 

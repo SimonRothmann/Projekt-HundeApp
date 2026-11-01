@@ -5,7 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import type { WeightableExercise } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -90,7 +90,7 @@ export function ExerciseWeightingSheet({
         </Button>
       )}
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+        <BottomSheetContent>
           <SheetHeader>
             <SheetTitle>{t("Übungen gewichten")}</SheetTitle>
             <SheetDescription>
@@ -144,7 +144,7 @@ export function ExerciseWeightingSheet({
               ))
             )}
           </div>
-        </SheetContent>
+        </BottomSheetContent>
       </Sheet>
     </>
   );

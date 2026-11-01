@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PasswortHinweis } from "@/components/passwort-hinweis";
 
 /**
@@ -35,13 +35,13 @@ function KontoSheet({
 }) {
   return (
     <Sheet open={offen} onOpenChange={(naechster) => !naechster && onSchliessen()}>
-      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+      <BottomSheetContent>
         <SheetHeader>
           <SheetTitle>{titel}</SheetTitle>
           {beschreibung && <SheetDescription>{beschreibung}</SheetDescription>}
         </SheetHeader>
         {children}
-      </SheetContent>
+      </BottomSheetContent>
     </Sheet>
   );
 }

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Chip } from "@/components/dogs/eintragen-chip";
+import { Chip } from "@/components/ui/chip";
 
 function anzeigename(p: { firstName: string; lastName: string; email?: string | null }) {
   return `${p.firstName} ${p.lastName}`.trim() || p.email || "";

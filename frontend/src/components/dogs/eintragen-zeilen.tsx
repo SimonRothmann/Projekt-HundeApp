@@ -4,7 +4,7 @@ import { Check, ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Abschnittsname } from "@/components/dogs/eintragen-chip";
+import { Abschnittsname } from "@/components/dogs/abschnittsname";
 import { BEWERTUNGEN, type AufgeloesteZeile, type Bewertung, type EintragZeile, type Werte } from "@/lib/eintragen";
 import { useSprache, useT } from "@/lib/i18n";
 import { katalogName, katalogText } from "@/lib/katalog-name";

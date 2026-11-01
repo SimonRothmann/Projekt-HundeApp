@@ -8,7 +8,7 @@ import type { Goal } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { morgenIso, pruefeNeuenTermin, pruefungsName } from "@/lib/pruefung";
 import { vorschlagZieldatum } from "@/lib/pausen";
 import { useSprache, useT } from "@/lib/i18n";
@@ -82,7 +82,7 @@ export function ZieldatumHinweis({
       </div>
 
       <Sheet open={offen} onOpenChange={setOffen}>
-        <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <BottomSheetContent>
           <SheetHeader>
             <SheetTitle>{t("Zieldatum verschieben")}</SheetTitle>
             <SheetDescription className="[overflow-wrap:anywhere]">{pruefungsName(goal, sprache)}</SheetDescription>
@@ -108,7 +108,7 @@ export function ZieldatumHinweis({
               {speichert ? t("Speichert…") : t("Zieldatum speichern")}
             </Button>
           </div>
-        </SheetContent>
+        </BottomSheetContent>
       </Sheet>
     </>
   );

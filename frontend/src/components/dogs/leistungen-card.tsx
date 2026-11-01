@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Medal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSprache, useT } from "@/lib/i18n";
@@ -154,7 +154,7 @@ function ErgebnisBearbeiten({
 
   return (
     <Sheet open onOpenChange={(offen) => !offen && onClose()}>
-      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+      <BottomSheetContent>
         <SheetHeader>
           <SheetTitle>{goal.examDate ? t("Ergebnis bearbeiten") : t("Ergebnis nachtragen")}</SheetTitle>
           <SheetDescription className="[overflow-wrap:anywhere]">{pruefungsName(goal, sprache)}</SheetDescription>
@@ -166,7 +166,7 @@ function ErgebnisBearbeiten({
             {speichert ? t("Speichert…") : t("Ergebnis speichern")}
           </Button>
         </div>
-      </SheetContent>
+      </BottomSheetContent>
     </Sheet>
   );
 }

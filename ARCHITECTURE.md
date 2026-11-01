@@ -48,21 +48,20 @@ dass einzelne Module später ausgelagert werden können.
 
                         |
 
-                        |
-
                   PWA Frontend
 
                    Next.js
 
                         |
 
-                        |
-
-                  API Gateway
+                 Caddy (Reverse Proxy, TLS)
 
                         |
 
                ASP.NET Core API
+
+        mit Hintergrunddiensten
+        (BackgroundService, selber Prozess)
 
                         |
 
@@ -70,25 +69,14 @@ dass einzelne Module später ausgelagert werden können.
 
     |                |                |
 
- PostgreSQL       Storage          Cache
+ PostgreSQL     Mailserver     Externe Dienste
+ Database       (ausgehend)    Open-Meteo (Wetter)
+                               Photon (Ortssuche)
+                               Web Push
 
- Database         Files            Redis
-
-    |
-
-    |
-
-Background Worker
-
-    |
-
-    |
-
-Prüfungsordnung Sync
-
-Benachrichtigungen
-
-Training Analyse
+Es gibt keinen API-Gateway, keinen Cache-Dienst und keinen Dateispeicher.
+Die Hintergrundarbeit besteht aus Mail-, Push-, Erinnerungs-, Wetter-,
+Plan- und Aufbewahrungsdienst (siehe "Hintergrundprozesse").
 
 
 ---
@@ -164,15 +152,15 @@ Training
 
 Exercise
 
-Exam
+Goal
 
 Sport
 
+Regulation
+
 Group
 
-User
-
-Trainer
+Club
 
 
 Keine Datenbankabhängigkeiten.
@@ -191,13 +179,13 @@ Enthält:
 Beispiel:
 
 
-CreateTrainingSession
+TrainingService (Training erfassen)
 
-GenerateTrainingPlan
+AdaptivePlanGenerator (Trainingsplan erzeugen)
 
-AssignTrainer
+GoalService (Ziele und Pläne)
 
-SyncExamRegulation
+ClubService (Vereine, Rollen, Mitglieder)
 
 
 ---
@@ -206,9 +194,8 @@ SyncExamRegulation
 
 Enthält:
 
-- Datenbank
-- Files
-- externe APIs
+- Datenbank (EF Core, Migrationen)
+- externe APIs (Wetter, Ortssuche)
 - E-Mail
 - Push Notifications
 
@@ -230,22 +217,12 @@ Warum?
 
 # Storage
 
-Für:
+Es gibt keinen Dateispeicher. Das einzige Bild, das Dogity speichert, ist das
+Hundebild: als Bytes in `dog_images` (siehe DATABASE.md). Cloudflare R2 dient
+nur den Datenbanksicherungen (docs/BACKUP.md).
 
-- Bilder
-- Videos
-- Dokumente
-- Prüfungsunterlagen
-
-
-Empfehlung:
-
-S3 kompatibler Storage.
-
-Beispiele:
-
-- Cloudflare R2
-- Hetzner Object Storage
+Sollten später Videos oder Dokumente dazukommen: S3-kompatibler Storage
+(z. B. Cloudflare R2) statt der Datenbank.
 
 ---
 
@@ -318,6 +295,10 @@ oder
 
 2. Benutzerentscheidung
 
+Heute wird offline nur Neues angelegt (Training, GPS-Aufzeichnung) und per
+POST nachgeschickt; bearbeitet wird nur mit Verbindung. Zwei Geräte können
+sich so nicht überschreiben.
+
 ---
 
 # GPS Architektur
@@ -352,12 +333,14 @@ PostGIS Erweiterung möglich.
 
 # Hintergrundprozesse
 
-Worker übernimmt:
+Sechs `BackgroundService` im Backend-Prozess (`Api/Hosting`):
 
-- Prüfungsordnung prüfen
-- Erinnerungen
-- Trainingsanalyse
-- Benachrichtigungen
+- Mailversand (Warteschlange)
+- Push-Versand (Warteschlange)
+- Erinnerungen (Termine, Fährten, Gesundheit, offene Rückmeldungen)
+- Wetter-Nachtrag (Wetter zu Trainings und Fährten nachladen)
+- Plan-Neuberechnung (adaptiver Trainingsplan)
+- Aufbewahrung (Gruppen-Anmeldungen nach zwölf Monaten ohne Aktivität löschen)
 
 ---
 
@@ -365,12 +348,11 @@ Worker übernimmt:
 
 Pflicht:
 
-- HTTPS
-- JWT / OAuth2
-- Passwort Hashing
-- Rollenprüfung
-- Rate Limiting
-- Audit Logs
+- HTTPS (Caddy)
+- JWT mit erneuerbaren Anmeldungen (`refresh_tokens`)
+- Passwort Hashing (ASP.NET Identity)
+- Rollen- und Zuordnungsprüfung im Service (docs/BERECHTIGUNGEN.md)
+- Rate Limiting an den anonymen Endpunkten
 
 ---
 

@@ -13,7 +13,8 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { ConditionPicker } from "@/components/dogs/condition-picker";
 import { LocationTimeFields, type LocationValue } from "@/components/dogs/location-time-fields";
-import { Abschnittsname, Chip } from "@/components/dogs/eintragen-chip";
+import { Abschnittsname } from "@/components/dogs/abschnittsname";
+import { Chip } from "@/components/ui/chip";
 import { EintragenFuss } from "@/components/dogs/eintragen-fuss";
 import { EintragenSuche } from "@/components/dogs/eintragen-suche";
 import { EintragenZeilen } from "@/components/dogs/eintragen-zeilen";

@@ -3,7 +3,7 @@
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Chip } from "@/components/ui/chip";
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 
@@ -33,21 +33,10 @@ export function ThemeSection() {
         {STUFEN.map(({ key, label, icon: Icon }) => {
           const gewaehlt = (resolvedTheme ?? "dark") === key;
           return (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={gewaehlt}
-              onClick={() => setTheme(key)}
-              className={cn(
-                "inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm transition-colors",
-                gewaehlt
-                  ? "border-primary bg-primary/10 font-medium text-foreground"
-                  : "border-input text-muted-foreground hover:border-foreground/30 hover:text-foreground",
-              )}
-            >
+            <Chip key={key} gewaehlt={gewaehlt} onClick={() => setTheme(key)}>
               <Icon className="size-4" aria-hidden />
               {t(label)}
-            </button>
+            </Chip>
           );
         })}
       </CardContent>

@@ -1,7 +1,7 @@
 # Dogity
 ## Die digitale Plattform für modernen Hundesport
 
-Version: 0.1.0
+Version: siehe `frontend/src/lib/versionshinweise.ts` (die Neuerungen-Seite der App)
 
 ---
 
@@ -139,10 +139,9 @@ Die Anwendung wird entwickelt wie ein professionelles SaaS-Produkt:
 - sichere Erweiterbarkeit
 - niedrige Betriebskosten
 
-CI/CD per externem Dienst (z.B. GitHub Actions) ist bewusst nicht Teil
-des Starts, siehe [TECH_STACK.md](TECH_STACK.md) "CI/CD" - Deployment
-erfolgt über ein manuelles Skript, um keine zusätzlichen Kosten/Abhängigkeiten
-zu erzeugen.
+Die Prüfungen laufen in GitHub Actions (`.github/workflows/ci.yml`, siehe
+[TECH_STACK.md](TECH_STACK.md) "CI/CD"); das Deployment bleibt manuell und
+zweistufig (Test, dann Prod), siehe [deploy/README.md](deploy/README.md).
 
 ---
 
@@ -279,7 +278,7 @@ unabhängige Bausteine:
   Schreibvorgänge offline und synchronisiert automatisch beim Reconnect
   (`offline-sync-listener.tsx`). Das ist aktuell **nur für zwei Funktionen
   verdrahtet**: Trainingstagebuch-Einträge (`POST /api/trainings`,
-  `dogs/[id]/page.tsx`) und GPS-Aufzeichnungen (Fährte/Spaziergang/Lauf,
+  `components/dogs/eintragen-sheet.tsx`) und GPS-Aufzeichnungen (Fährte/Spaziergang/Lauf,
   `components/tracking/*`). Eingereiht wird auch bei 502/503 (Server startet
   bei einem Update kurz neu, `istVoruebergehendUnerreichbar` in `lib/api.ts`);
   der Listener gleicht dann alle 30 Sekunden und beim Zurückkehren in die App
@@ -291,7 +290,7 @@ ohne Verbindung mit einer Fehlermeldung fehl, statt zu queuen: Ziele/
 Trainingsplan anlegen/bearbeiten, Hund-Mitbesitzer verwalten, Vereins-/
 Gruppenbeitritt und -freigabe, Profil bearbeiten, Admin-Aktionen. Wer eine
 dieser Funktionen ebenfalls offline-fest braucht, muss sie analog zu
-`dogs/[id]/page.tsx:205` über `enqueueRequest` an dieselbe Warteschlange
+`eintragen-sheet.tsx` über `enqueueRequest` an dieselbe Warteschlange
 anschließen.
 
 Der Service Worker (`public/sw.js`) registriert sich in Dev und Production

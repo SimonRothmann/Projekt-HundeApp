@@ -7,10 +7,10 @@ import { usePreferences } from "@/lib/preferences-context";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { SchalterZeile } from "@/components/ui/switch";
 import { ListenGruppe } from "@/components/profile/einstellungs-liste";
 import { Check } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 import { useSprache, useT } from "@/lib/i18n";
@@ -18,50 +18,6 @@ import { katalogName } from "@/lib/katalog-name";
 import { sichtbareModule } from "@/lib/profil";
 import { BenachrichtigungenSection } from "@/components/preferences/benachrichtigungen-section";
 import { ErinnerungenSection } from "@/components/preferences/erinnerungen-section";
-
-/**
- * Module und Sportarten ein- und ausblenden.
- *
- * Zwei Abschnitte, weil dahinter zwei verschiedene Modelle stehen (siehe
- * docs/VERBAENDE_SPRACHEN_MODULE.md): Module werden ABGEWÄHLT - so erscheint
- * ein künftig hinzukommendes Modul bei allen von selbst, ohne dass jemand
- * etwas anfassen muss (Texte und Zählung: lib/profil.ts). Sportarten werden
- * AUSGEWÄHLT - die Aussage ist "ich mache genau das"; nichts ausgewählt heißt
- * "alle".
- *
- * Module sind eine Liste mit Schaltern; Sportarten sind Chips nach dem Muster
- * der Verfassungsauswahl (condition-picker): gedrückter Zustand über
- * aria-pressed und Randfarbe, Mindesthöhe für grobe Zeiger.
- */
-function Umschalter({
-  aktiv,
-  disabled,
-  onClick,
-  children,
-}: {
-  aktiv: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      aria-pressed={aktiv}
-      onClick={onClick}
-      className={cn(
-        "flex max-w-full shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-left text-sm transition-colors [overflow-wrap:anywhere] coarse:min-h-11 disabled:opacity-50",
-        aktiv
-          ? "border-primary bg-primary/15 text-primary-text"
-          : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-      )}
-    >
-      {aktiv && <Check className="size-4 shrink-0" />}
-      {children}
-    </button>
-  );
-}
 
 /** Hook-Teil, den beide Abschnitte teilen: speichern, Einstellungen neu laden, Fehler melden. */
 function useSpeichern() {
@@ -84,6 +40,18 @@ function useSpeichern() {
   return { speichert, speichern };
 }
 
+/**
+ * Module und Sportarten ein- und ausblenden.
+ *
+ * Zwei Abschnitte, weil dahinter zwei verschiedene Modelle stehen (siehe
+ * docs/VERBAENDE_SPRACHEN_MODULE.md): Module werden ABGEWÄHLT - so erscheint
+ * ein künftig hinzukommendes Modul bei allen von selbst, ohne dass jemand
+ * etwas anfassen muss (Texte und Zählung: lib/profil.ts). Sportarten werden
+ * AUSGEWÄHLT - die Aussage ist "ich mache genau das"; nichts ausgewählt heißt
+ * "alle".
+ *
+ * Module sind eine Liste mit Schaltern; Sportarten sind Auswahl-Chips (ui/chip).
+ */
 export function FunktionenSection() {
   const { preferences } = usePreferences();
   const { isTrainer } = useAuth();
@@ -181,14 +149,17 @@ export function SportartenSection() {
               {sports.map((s) => {
                 const gewaehlt = preferences.sportIds.includes(s.id);
                 return (
-                  <Umschalter
+                  <Chip
                     key={s.id}
-                    aktiv={gewaehlt}
+                    kompakt
+                    gewaehlt={gewaehlt}
                     disabled={speichert}
                     onClick={() => sportartUmschalten(s.id, gewaehlt)}
+                    className="shrink-0"
                   >
+                    {gewaehlt && <Check className="size-4 shrink-0" />}
                     {katalogName(s, sprache)}
-                  </Umschalter>
+                  </Chip>
                 );
               })}
             </div>

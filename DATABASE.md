@@ -68,20 +68,29 @@ deleted_at
 
 # Entity Übersicht
 
+Maßgeblich ist der Code: `ApplicationDbContext` (DbSets) und
+`Infrastructure/Persistence/Configurations`. Diese Übersicht nennt jede Tabelle
+mit einer Zeile Zweck; Felder stehen unten nur dort, wo sie erklärt werden
+müssen.
 
-Identity
+
+Identity (ASP.NET Identity, `users` erbt von IdentityUser)
 
 ├── users
 ├── roles
-├── permissions
-└── user_roles
+├── user_roles
+├── user_claims, user_logins, user_tokens, role_claims (Identity-Vorgabe, ungenutzt)
+└── refresh_tokens: Anmeldungen, die sich erneuern lassen
 
 Dog
 
 ├── dogs
-├── dog_health_records
-├── dog_documents
-└── dog_owners
+├── dog_owners: wer einen Hund besitzt oder mitbesitzt (inkl. offener Einladung)
+├── dog_images: das eine Bild eines Hundes (Bytes + MIME-Typ)
+├── dog_pauses: Trainingspause (verletzt, krank, läufig)
+├── dog_health_records: Impfungen, Entwurmung, Tierarzttermine
+├── dog_sport_selections: Sportarten, die ein Hund selbst wählt (statt des Menschen)
+└── countries: Länder für den Geltungsbereich der Prüfungsordnungen
 
 Sport
 
@@ -89,39 +98,62 @@ Sport
 ├── regulations
 ├── regulation_versions
 ├── exercises
-└── exercise_steps
+└── regulation_exercises
 
 Training
 
-├── training_sessions
-├── training_exercises
-├── training_comments
-└── training_media
+├── training_sessions (samt Wetter am Trainingsort)
+└── training_exercises
 
 Planning
 
-├── goals
+├── goals: Prüfungsziel eines Hundes
 ├── training_plans
 ├── training_plan_items
+├── training_plan_week_configs: Trainingstage je Woche, abweichend vom Plan
+└── exercise_masteries: Beherrschungsstand einer Übung je Hund (Wiedervorlage)
 
 Community
 
 ├── clubs
+├── club_memberships: Mitgliedschaft im Verein mit Status (angefragt, bestätigt, abgelehnt, eingeladen)
+├── club_trainers: Rollen im Verein als Flags (Training, Ausbildungswart:in, Vorstand, Verwaltung ...)
+├── club_registrations: Antrag, einen Verein anzulegen
 ├── groups
 ├── group_members
-└── trainer_assignments
+├── group_trainers
+├── group_registrations: Kursanmeldung ohne Konto über das Formular der Gruppe
+├── group_registration_attendances: Anwesenheit der Angemeldeten je Tag
+├── trainer_assignments: Betreuung eines Hundes durch eine Trainer:in
+├── group_training_exercises, group_training_units, group_training_unit_items:
+│   Übungsbibliothek und Einheiten für Gruppentraining (docs/GROUP_TRAINING_LIBRARY.md)
+└── group_training_sessions, group_training_session_items,
+    group_training_session_trainers, group_training_session_responses:
+    Termine der Gruppe samt Ablauf, Trainer:innen und Zu-/Absagen
+    (docs/GROUP_TRAINING_SCHEDULE.md)
 
 Tracking
 
-├── gps_tracks
+├── gps_tracks: Fährte oder Trail (Spalte `kind`)
 ├── gps_points
-└── locations
+├── gps_walk_runs: Ablauf-/Such-Versuch einer gelegten Spur
+├── gps_walk_points
+└── gps_walk_stops: Stopps und Marker während eines Versuchs
 
-Competition
+Lernen
 
-├── exams
-├── exam_results
-└── certificates
+├── quiz_catalogs, quiz_questions, quiz_options
+├── quiz_masteries: Lernstand je Frage und Person
+└── quiz_exam_attempts: Übungsprüfungen
+
+Einstellungen und Benachrichtigungen
+
+├── user_preferences
+├── user_disabled_modules
+├── user_sport_selections
+├── notifications: Glocke in der App
+├── push_subscriptions: Geräte für Push-Mitteilungen
+└── sent_reminders: welche automatische Erinnerung schon rausging (verhindert Doppelte)
 
 
 ---
@@ -452,9 +484,10 @@ Felder:
 |user_id|UUID|
 |dog_id|UUID|
 |date|date|
-|duration|int|
-|location_id|UUID|
-|weather|json|
+|start_time|time, optional|
+|duration_minutes|int|
+|latitude, longitude, location_name|Ort, optional|
+|temperature_c, relative_humidity, wind_speed_kmh, weather_code, weather_fetched_at|Wetter am Ort, optional (docs/WEATHER.md)|
 |notes|text|
 
 
@@ -520,19 +553,15 @@ notes
 # Trainingsbewertung
 
 
-Bewertung:
+Bewertung je Übung (`training_exercises.rating`):
 
 1-5 Sterne
 
 
-Zusätzlich:
-
-
-Probleme
-
-Verbesserung
-
-Nächstes Ziel
+Zusätzlich je Übung `difficulty`, `success` und `notes`; Trainer:innen
+bewerten `trainer_rating`/`trainer_note` und geben je Einheit Feedback
+(`training_sessions.trainer_feedback`), auf das die Besitzer:in mit einer
+Reaktion oder Rückfrage antwortet.
 
 
 ---
@@ -951,29 +980,20 @@ start_date
 ## gps_tracks
 
 
-Eine komplette Fährte.
+Eine gelegte Fährte oder ein Trail (`kind`).
 
 
-Felder:
+Felder (Auszug):
 
-
-
-id
-
-training_session_id
-
-length_meter
-
-duration
-
-surface
-
-weather
-
-wind
-
-comment
-
+|Feld|Typ|
+|-|-|
+|training_session_id|UUID|
+|kind|Fährte oder Trail|
+|length_meters|double, optional|
+|age_minutes|int, Liegezeit|
+|surface, weather, wind, comment|Text, optional|
+|double_blind, negative_trail, scent_article|nur Mantrailing (docs/MANTRAILING.md)|
+|laid_*, search_*|Wetter beim Legen bzw. Suchen|
 
 
 ---
@@ -996,76 +1016,24 @@ timestamp
 accuracy
 
 
-
 ---
 
 # Wetterdaten
 
-
-Automatisch.
-
-
-Speichern:
-
-
-temperature
-
-humidity
-
-wind_direction
-
-weather_condition
-
+Kein eigener Bereich: Das Wetter (Temperatur, Luftfeuchte, Wind, Wettercode,
+Abrufzeit) steht als Spalten an `training_sessions` und, getrennt für Legen
+(`laid_*`) und Suchen (`search_*`), an `gps_tracks`. Quelle und Ablauf:
+docs/WEATHER.md.
 
 
 ---
 
-# Prüfungen
+# Prüfungen und Urkunden
 
-
-## exams
-
-
-Beispiel:
-
-
-
-BH Prüfung
-
-Datum
-
-Richter
-
-Ort
-
-
----
-
-## exam_results
-
-
-
-exercise_id
-
-points
-
-comment
-
-
----
-
-# Dokumente
-
-
-## certificates
-
-
-Speichert:
-
-
-- Urkunden
-- Ergebnisse
-- Bilder
+Es gibt keine Tabellen `exams`, `exam_results` oder `certificates`. Ein
+Prüfungstermin und sein Ergebnis hängen am Ziel (`goals.exam_date`,
+`exam_score`, `exam_note`); die Prüfungsordnung liefert `regulations` samt
+`regulation_exercises`. Urkunden und Bilder werden nicht gespeichert.
 
 
 ---

@@ -128,17 +128,21 @@ einen einzigen Posten zu reduzieren. Umgesetzt auf **Contabo**; in der
 Planungsphase stand hier Hetzner (berichtigt am 2026-09-13). Verbindlich für
 Rechtstexte ist `frontend/src/lib/rechtliches.ts`, nicht diese Unterlage.
 
-Frontend + Backend + Database + Worker:
+Frontend + Backend + Database + Mailserver:
 
-Contabo VPS via Docker Compose
+Contabo VPS via Docker Compose (die Hintergrunddienste laufen im
+Backend-Prozess, einen eigenen Worker gibt es nicht)
 
-Storage:
+Dateien:
 
-Cloudflare R2 (kostenloses Freikontingent)
+Kein Dateispeicher - Hundebilder liegen als Bytes in der Datenbank
+(`dog_images`). Cloudflare R2 (kostenloses Freikontingent) dient nur den
+verschlüsselten Datenbanksicherungen (docs/BACKUP.md).
 
 DNS / SSL:
 
-Cloudflare (kostenlos) als DNS-Proxy vor der VPS, Let's Encrypt für TLS
+Cloudflare (kostenlos) für DNS, Caddy auf der VPS holt die Zertifikate
+automatisch bei Let's Encrypt
 
 Begründung gegen Cloudflare Pages für das Frontend:
 
@@ -169,13 +173,13 @@ Docker Compose
 
 Frontend (Next.js)
 
-API
+API (mit den Hintergrunddiensten)
 
 Database
 
-Worker
+Mailserver (nur ausgehend)
 
-Storage-Anbindung (Cloudflare R2)
+Caddy (Reverse Proxy, TLS)
 
 
 ---
@@ -202,7 +206,9 @@ backend
 
 database
 
-worker
+mail
+
+caddy
 
 
 ---
@@ -212,26 +218,22 @@ worker
 ## Phase 1: kein CI/CD-Dienst
 
 Um keine Kosten/Komplexität durch einen externen CI-Anbieter zu erzeugen,
-startet das Projekt mit einem manuellen Deployment-Skript
-(`deploy.sh`, lokal oder per SSH auf der VPS ausgeführt):
+startete das Projekt mit manuellen Deployment-Skripten. Daran hat sich bis
+heute nichts geändert (Einzelheiten in deploy/README.md):
 
-Push (lokal)
-
-|
-
-Build (lokal: `dotnet build`, `npm run build`)
+Push auf `master`
 
 |
 
-Test (lokal)
+`scripts/deploy-test.sh` (auf der VPS): Git-Checkout aktualisieren, Test-Dienste bauen und starten
 
 |
 
-Docker Image bauen + auf VPS übertragen
+Prüfung auf Test
 
 |
 
-Deploy (Docker Compose restart)
+`scripts/promote-to-prod.sh` (lokal): `prod`-Branch vorspulen, dann `scripts/deploy-prod.sh` auf der VPS
 
 ## Phase 2 (seit 2026-09-09): Prüfungen in GitHub Actions
 

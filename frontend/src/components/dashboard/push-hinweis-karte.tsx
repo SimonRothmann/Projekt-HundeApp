@@ -7,24 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { istTouchGeraet } from "@/lib/geraet";
 import { useT } from "@/lib/i18n";
 import { usePush } from "@/lib/use-push";
+import { merkeWeggeklickt, warWeggeklickt } from "@/lib/weggeklickt";
 
 const SPEICHER_SCHLUESSEL = "dogity.push-hinweis.weggeklickt";
-
-function warWeggeklickt(): boolean {
-  try {
-    return window.localStorage.getItem(SPEICHER_SCHLUESSEL) !== null;
-  } catch {
-    return false;
-  }
-}
-
-function merkeWeggeklickt(): void {
-  try {
-    window.localStorage.setItem(SPEICHER_SCHLUESSEL, "1");
-  } catch {
-    // Ohne Speicher kommt der Hinweis beim nächsten Öffnen wieder - kein Schaden.
-  }
-}
 
 /**
  * Bietet Push dort an, wo es alle sehen - nicht nur, wer die Neuerungen liest
@@ -42,12 +27,12 @@ export function PushHinweisKarte() {
   const t = useT();
   const [mobil] = useState(() => typeof window !== "undefined" && istTouchGeraet());
   const { zustand, arbeitet, einschalten } = usePush(mobil);
-  const [weggeklickt, setWeggeklickt] = useState(warWeggeklickt);
+  const [weggeklickt, setWeggeklickt] = useState(() => warWeggeklickt(SPEICHER_SCHLUESSEL));
 
   if (!mobil || zustand !== "aus" || weggeklickt) return null;
 
   function nichtJetzt() {
-    merkeWeggeklickt();
+    merkeWeggeklickt(SPEICHER_SCHLUESSEL);
     setWeggeklickt(true);
   }
 

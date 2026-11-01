@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { GpsMarkerType, GpsPoint, GpsTrack } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { Cookie, MapPin, MapPinPlus, Package, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -325,20 +326,14 @@ export function FahrteRecorder({
                 {untergruende.map((u) => {
                   const aktiv = untergrund.includes(u);
                   return (
-                    <button
+                    <Chip
                       key={u}
-                      type="button"
-                      aria-pressed={aktiv}
+                      kompakt
+                      gewaehlt={aktiv}
                       onClick={() => setUntergrund((vorher) => untergrundUmschalten(vorher, u, untergruende))}
-                      className={cn(
-                        "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11",
-                        aktiv
-                          ? "border-primary bg-primary/15 text-primary-text"
-                          : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-                      )}
                     >
                       {t(u)}
-                    </button>
+                    </Chip>
                   );
                 })}
               </div>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BlockLabel } from "@/components/ui/block-label";
 import { MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { Chip } from "@/components/ui/chip";
 
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
@@ -18,14 +18,6 @@ const REAKTIONEN: { wert: FeedbackReaction; text: string }[] = [
   { wert: FEEDBACK_REACTION.Thanks, text: uebersetzbar("Danke") },
   { wert: FEEDBACK_REACTION.Understood, text: uebersetzbar("Verstanden") },
 ];
-
-const chipKlasse = (aktiv: boolean) =>
-  cn(
-    "rounded-full border px-3 py-1.5 text-sm transition-colors coarse:min-h-11 disabled:opacity-60",
-    aktiv
-      ? "border-primary bg-primary/15 font-medium text-primary-text"
-      : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-  );
 
 /**
  * Die Antwort der Besitzer:in unter dem Feedback: Danke, Verstanden und eine
@@ -83,20 +75,19 @@ export function FeedbackAntwort({
     <div className="mt-1 flex flex-col gap-2 border-t border-primary/15 pt-2">
       <div role="group" aria-label={t("Antwort auf das Feedback")} className="flex flex-wrap gap-1.5">
         {REAKTIONEN.map((r) => (
-          <button
+          <Chip
             key={r.wert}
-            type="button"
-            aria-pressed={reaktion === r.wert}
+            kompakt
+            gewaehlt={reaktion === r.wert}
             disabled={sendet}
             onClick={() => speichern({ reaction: reaktion === r.wert ? null : r.wert, reply: rueckfrage })}
-            className={chipKlasse(reaktion === r.wert)}
           >
             {t(r.text)}
-          </button>
+          </Chip>
         ))}
-        <button
-          type="button"
-          aria-pressed={fragen || rueckfrage !== null}
+        <Chip
+          kompakt
+          gewaehlt={fragen || rueckfrage !== null}
           aria-expanded={fragen}
           disabled={sendet}
           onClick={() => {
@@ -105,10 +96,9 @@ export function FeedbackAntwort({
             setText(rueckfrage ?? "");
             setFragen((offen) => !offen);
           }}
-          className={chipKlasse(fragen || rueckfrage !== null)}
         >
           {t("Rückfrage")}
-        </button>
+        </Chip>
       </div>
 
       {fragen ? (

@@ -23,7 +23,7 @@ import {
 import { MODULE, REIFE_AMPEL, REIFE_ZUSTAND } from "@/lib/types";
 import type { Goal, Pruefungsreife, PruefungsreifeUebung, ReifeAmpel, ReifeZustand } from "@/lib/types";
 import { ZieldatumHinweis } from "@/components/dogs/zieldatum-hinweis";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 type Symbol = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
@@ -95,13 +95,13 @@ export function PruefungsreifeKarte({ goal, onChanged }: { goal: Goal; onChanged
       )}
 
       <Sheet open={offen} onOpenChange={setOffen}>
-        <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <BottomSheetContent>
           <SheetHeader>
             <SheetTitle>{t("Prüfungsreife")}</SheetTitle>
             <SheetDescription className="[overflow-wrap:anywhere]">{pruefungsName(goal, sprache)}</SheetDescription>
           </SheetHeader>
           {offen && <Ansicht goal={goal} />}
-        </SheetContent>
+        </BottomSheetContent>
       </Sheet>
     </>
   );

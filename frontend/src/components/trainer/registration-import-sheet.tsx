@@ -17,7 +17,7 @@ import type { GroupRegistration, ImportRegistrationsResult } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 /** So viele fehlerhafte Zeilen werden einzeln aufgelistet - der Rest als Zahl. */
 const MAX_FEHLERZEILEN = 10;
@@ -46,7 +46,7 @@ export function RegistrationImportSheet({
   const t = useT();
   return (
     <Sheet open={offen} onOpenChange={onOffenChange}>
-      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+      <BottomSheetContent>
         <SheetHeader>
           <SheetTitle>{t("Aus Google-Formular importieren")}</SheetTitle>
           <SheetDescription>{t("Lade die bisherigen Antworten als CSV-Datei und übernimm sie in diese Gruppe.")}</SheetDescription>
@@ -59,7 +59,7 @@ export function RegistrationImportSheet({
             await onImportiert();
           }}
         />
-      </SheetContent>
+      </BottomSheetContent>
     </Sheet>
   );
 }

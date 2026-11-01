@@ -1,9 +1,9 @@
 # Klügerer, adaptiver Trainingsplan-Generator — Umsetzungsplan
 
-Status: **geplant** (noch nicht implementiert). Entscheidungen mit dem Nutzer abgestimmt.
-Vor der Umsetzung: aktuellen `TrainingPlanGenerator` + `GoalService` gegen die Ist-Annahmen (Abschnitt 1) abgleichen.
+Status: **umgesetzt** (P1–P5c, dazu Pausen und Prüfungsreife, siehe Abschnitte 10, 12 und 13).
+Entscheidungen mit dem Nutzer abgestimmt. Das Dokument bleibt die Spezifikation; der Quellcode verweist darauf.
 
-## 1. Ist-Zustand (bei Umsetzung am Code bestätigen)
+## 1. Ausgangslage vor der Umsetzung (historisch)
 - Plan wird **einmalig bei Zielerstellung** erzeugt (regulations-/prüfungsbezogen, ≥4 Übungen/Woche, gruppiert nach `weekNumber`).
 - Statisch: keine Reaktion auf Trainingsverlauf, keine Schwierigkeits-Sortierung, keine Wiedervorlage, kein Mastery-Tracking.
 - Ungenutzte Signale: pro `TrainingExercise` gibt es `rating` (1–5), `success`, `date`, optional `trainerRating` → echte Leistungshistorie je Übung.

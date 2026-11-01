@@ -6,17 +6,17 @@ import { uebersetzbar } from "@/lib/i18n/sprachen";
  * Ein Menüpunkt. `module` benennt das Modul, an dem er hängt - fehlt es,
  * gehört der Punkt zum Kern und lässt sich nicht abschalten.
  */
-export type NavItem = {
+type NavItem = {
   href: string;
   label: string;
   icon: typeof Dog;
   module?: string;
 };
 
-export const homeNavItem: NavItem = { href: "/dashboard", label: uebersetzbar("Home"), icon: LayoutDashboard };
-export const dogsNavItem: NavItem = { href: "/dogs", label: uebersetzbar("Hunde"), icon: Dog };
-export const sportsNavItem: NavItem = { href: "/sports", label: uebersetzbar("Sportarten"), icon: Trophy };
-export const clubsNavItem: NavItem = { href: "/clubs", label: uebersetzbar("Vereine"), icon: Building2 };
+const homeNavItem: NavItem = { href: "/dashboard", label: uebersetzbar("Home"), icon: LayoutDashboard };
+const dogsNavItem: NavItem = { href: "/dogs", label: uebersetzbar("Hunde"), icon: Dog };
+const sportsNavItem: NavItem = { href: "/sports", label: uebersetzbar("Sportarten"), icon: Trophy };
+const clubsNavItem: NavItem = { href: "/clubs", label: uebersetzbar("Vereine"), icon: Building2 };
 export const statsNavItem: NavItem = {
   href: "/stats",
   label: uebersetzbar("Statistiken"),

@@ -63,20 +63,20 @@ const OHNE_FORTSCHRITT: OnboardingStatus = {
 type Startdaten = {
   hunde: HundDaten[];
   faehrtenHundeIds: string[];
-  /** Die Sportarten je Hund (leer = keine Einschränkung); fehlt bei Zwischenständen aus älteren Fassungen. */
-  sportIdsJeHund?: Record<string, string[]>;
-  /** Was jeder Hund legen kann (Fährte, Trail); fehlt bei Zwischenständen aus älteren Fassungen. */
-  spurArtenJeHund?: Record<string, SpurArten>;
+  /** Die Sportarten je Hund (leer = keine Einschränkung). */
+  sportIdsJeHund: Record<string, string[]>;
+  /** Was jeder Hund legen kann (Fährte, Trail). */
+  spurArtenJeHund: Record<string, SpurArten>;
   // Aufgeteilt nach Zielen: Karten (laufend), Ergebnis fehlt (abgelaufen), ohne Ziel.
   ziele: ReturnType<typeof zielAufteilung>;
   faehrten: FaehrteMitHund[];
   onboarding: OnboardingStatus | null;
   termine: GroupTrainingSession[];
   feedback: OffenesFeedback[];
-  /** Eigene offene Gruppeneinladungen; fehlt bei Zwischenständen aus älteren Fassungen. */
-  einladungen?: DashboardGruppeneinladung[];
-  /** Eigene offene Vereinseinladungen; fehlt ebenso bei älteren Zwischenständen. */
-  vereinsEinladungen?: DashboardVereinseinladung[];
+  /** Eigene offene Gruppeneinladungen. */
+  einladungen: DashboardGruppeneinladung[];
+  /** Eigene offene Vereinseinladungen. */
+  vereinsEinladungen: DashboardVereinseinladung[];
 };
 
 /**
@@ -140,10 +140,9 @@ async function ladeStartdaten(): Promise<Startdaten> {
     ),
     onboarding,
     termine,
-    // Fehlt bei einem zwischengespeicherten Stand aus der Zeit vor der Feedback-Karte.
-    feedback: dashboard.openFeedback ?? [],
-    einladungen: dashboard.groupInvitations ?? [],
-    vereinsEinladungen: dashboard.clubInvitations ?? [],
+    feedback: dashboard.openFeedback,
+    einladungen: dashboard.groupInvitations,
+    vereinsEinladungen: dashboard.clubInvitations,
   };
 }
 
@@ -324,7 +323,7 @@ export default function DashboardPage() {
       <ErfassenKarte
         hunde={daten.hunde}
         faehrtenHundeIds={faehrteAn ? daten.faehrtenHundeIds : []}
-        nurTrailHundeIds={Object.entries(daten.spurArtenJeHund ?? {})
+        nurTrailHundeIds={Object.entries(daten.spurArtenJeHund)
           .filter(([, a]) => a.mantrailing && !a.faehrte)
           .map(([id]) => id)}
         onEintragen={oeffneEintragen} onFaehrte={oeffneFaehrte} />
@@ -336,7 +335,7 @@ export default function DashboardPage() {
           Fenster darf nicht mit einem Neuladen im Hintergrund verschwinden. */}
       {faehrteHund && (
         // key: Ein anderer Hund bekommt einen frischen Recorder statt des Zustands des vorigen.
-        <DogFaehrteSheet key={faehrteHund} dogId={faehrteHund} arten={daten?.spurArtenJeHund?.[faehrteHund]} open={faehrteOffen} onOpenChange={setFaehrteOffen} onSaved={neuLaden} />
+        <DogFaehrteSheet key={faehrteHund} dogId={faehrteHund} arten={daten?.spurArtenJeHund[faehrteHund]} open={faehrteOffen} onOpenChange={setFaehrteOffen} onSaved={neuLaden} />
       )}
       {eintragenZiel && (
         <EintragenSheet

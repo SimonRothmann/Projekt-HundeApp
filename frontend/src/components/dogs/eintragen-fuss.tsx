@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Clock, Crosshair, Ellipsis, Pencil, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Chip } from "@/components/dogs/eintragen-chip";
+import { Chip } from "@/components/ui/chip";
 import { DAUER_MAX, DAUER_VORSCHLAEGE } from "@/lib/eintragen";
 import { useT } from "@/lib/i18n";
 
