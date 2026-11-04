@@ -17,7 +17,10 @@ public interface IRefreshTokenService
     /// <summary>
     /// Prüft einen vorgelegten Roh-Token, entwertet ihn und stellt einen neuen
     /// aus (Rotation). Bei Wiedervorlage eines bereits entwerteten Tokens
-    /// (Reuse/Diebstahl) werden alle aktiven Tokens des Nutzers widerrufen.
+    /// (Reuse/Diebstahl) werden alle aktiven Tokens des Nutzers widerrufen -
+    /// außer dessen Nachfolger wurde nie benutzt und die Rotation ist nicht
+    /// länger als eine Woche her: Dann ging nur die Antwort verloren, und das
+    /// Gerät bekommt einen frischen Token.
     /// </summary>
     Task<RefreshRotationResult> RotateAsync(string rawToken, CancellationToken ct = default);
 

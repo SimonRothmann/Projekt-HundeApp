@@ -240,6 +240,13 @@ export function DatenschutzEn() {
           briefly counts login attempts per IP address.
         </p>
         <p>
+          If you log in or the renewal of your login is rejected, the server records this in its operating log with the
+          internal ID of your account and the reason, so that logouts and errors can be traced (Art. 6(1)(f) GDPR).
+          These lines contain neither a password nor a token nor an email or IP address. The log exists only on the
+          server, starts anew with every new deployment of the application and is limited to about 30 MB at most; older lines are continually
+          overwritten.
+        </p>
+        <p>
           A backup of the database is created daily. It is encrypted before it leaves the server – in such a way that
           only the key for encrypting is on the server, not the one for decrypting. Anyone who gains access to the server
           can therefore not read the backups. They are stored on the server itself and additionally at{" "}
@@ -530,7 +537,8 @@ export function DatenschutzEn() {
         <p>
           The connection is encrypted with TLS throughout, also between Cloudflare and the server. Passwords are stored
           only as a hash. Logins run via short-lived tokens that can be revoked on the server side; if a token that has
-          already been used is presented again, all sessions of the account are ended, and anyone who changes or resets
+          already been used is presented again although its successor has been used, all sessions of the account are
+          ended (if only the response to a renewal got lost, the login simply continues), and anyone who changes or resets
           their password thereby logs out all other devices. After five wrong passwords in a row, the account is locked
           for a few minutes. The browser may load content only from defined sources (Content Security Policy), and login
           attempts are limited per IP address.

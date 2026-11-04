@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-11-01 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-11-04 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -196,10 +196,10 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 |---|---|
 | Zweck | Auslieferung der Seite, Betrieb, Fehlersuche, Abwehr von Angriffen |
 | Betroffene | alle Besucher:innen |
-| Datenkategorien | IP-Adresse, Zeitpunkt, aufgerufene Adresse, Browserkennung; kurzzeitige Zählung der Anmeldeversuche und der Aufrufe von Vereins-Einladungslinks je IP |
+| Datenkategorien | IP-Adresse, Zeitpunkt, aufgerufene Adresse, Browserkennung; kurzzeitige Zählung der Anmeldeversuche und der Aufrufe von Vereins-Einladungslinks je IP; seit Fassung 0.49 Betriebsprotokoll-Zeilen „Sitzung: …“ mit interner Konto-Id und Grund bei Anmeldung und abgelehnter Sitzungserneuerung (ohne IP, E-Mail, Token, Hash) |
 | Empfänger | Cloudflare als vorgeschalteter Proxy (alle Anfragen, TLS endet dort), Contabo als Hoster |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. f |
-| Besonderheit | keine Zusammenführung mit Kontodaten, keine Auswertung des Nutzungsverhaltens |
+| Besonderheit | keine Zusammenführung der Verbindungsdaten mit Kontodaten, keine Auswertung des Nutzungsverhaltens; die „Sitzung:“-Zeilen dienen nur der Fehlersuche bei Abmeldungen |
 | Löschfrist | Container-Logs rollieren (10 MB × 3 je Dienst); Sicherungen gestaffelt 14/14/70/400 Tage (siehe Abschnitt 5) |
 
 ---
@@ -261,7 +261,8 @@ Auswahl.
 - TLS für alle Verbindungen, HSTS, automatische Zertifikate über Let's Encrypt
 - Passwörter nur als Hash (ASP.NET Core Identity)
 - Kurzlebige Access-Tokens (60 Minuten), rotierende Refresh-Tokens mit
-  Wiederverwendungserkennung, serverseitig widerrufbar
+  Wiederverwendungserkennung (eine verlorene Antwort wird bis zu 7 Tage
+  toleriert), serverseitig widerrufbar
 - Content-Security-Policy durchsetzend, `frame-ancestors 'none'`,
   `X-Content-Type-Options`, Referrer-Policy
 - Rate-Limit auf den Anmeldewegen (10 Anfragen/Minute je IP; Token-Erneuerung

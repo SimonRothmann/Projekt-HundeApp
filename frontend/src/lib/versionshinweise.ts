@@ -61,6 +61,17 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.49",
+    datum: "2026-11-04",
+    titel: uebersetzbar("Angemeldet bleiben"),
+    aenderungen: [
+      {
+        art: "behoben",
+        text: uebersetzbar("Du bleibst zuverlässiger angemeldet: Ging beim Wechsel zwischen Apps oder bei schlechtem Netz die Erneuerung der Anmeldung verloren, musstest du dich neu anmelden – auch auf deinen anderen Geräten. Das passiert nicht mehr; ist die App in mehreren Tabs offen, stören sie sich dabei nicht mehr."),
+      },
+    ],
+  },
+  {
     version: "0.48",
     datum: "2026-11-01",
     titel: uebersetzbar("Prüfungstage im Verein"),

@@ -2783,4 +2783,6 @@ export const EN: Record<string, string> = {
   "{fuehrer} mit {hund}": "{fuehrer} with {hund}",
   "{n} bestanden": "{n} passed",
   "{sicher} sicher, {wackelig} wackelig, {offen} offen": "{sicher} secure, {wackelig} wobbly, {offen} open",
+  "Angemeldet bleiben": "Staying logged in",
+  "Du bleibst zuverlässiger angemeldet: Ging beim Wechsel zwischen Apps oder bei schlechtem Netz die Erneuerung der Anmeldung verloren, musstest du dich neu anmelden – auch auf deinen anderen Geräten. Das passiert nicht mehr; ist die App in mehreren Tabs offen, stören sie sich dabei nicht mehr.": "You stay logged in more reliably: If renewing your login got lost when switching between apps or on a poor connection, you had to log in again – on your other devices too. That no longer happens; if the app is open in several tabs, they no longer get in each other’s way.",
 };

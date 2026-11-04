@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Dogity.Application.Abstractions;
 using Dogity.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Dogity.Infrastructure.Identity;
@@ -11,18 +12,41 @@ namespace Dogity.Infrastructure.Identity;
 /// <see cref="RefreshToken"/> / TODO.md Roadmap 6). Der Rohwert des Tokens
 /// wird nie gespeichert - nur sein SHA-256-Hash; das Nachschlagen erfolgt
 /// über den Hash des vorgelegten Rohwerts.
+///
+/// Die Rotation verzeiht eine verlorene Antwort: Erreicht der neue Token das
+/// Gerät nie (Netz weg, App vom Betriebssystem eingefroren), legt es den alten
+/// noch einmal vor - das ist kein Diebstahl, solange der Nachfolger unbenutzt
+/// ist. Jede Ablehnung und jede Toleranz steht mit dem Präfix "Sitzung:" im
+/// Log (nie Token, Hash oder E-Mail), damit sich Abmeldungen nachvollziehen lassen.
 /// </summary>
-public class RefreshTokenService(ApplicationDbContext db, IOptions<JwtSettings> options) : IRefreshTokenService
+public class RefreshTokenService(
+    ApplicationDbContext db,
+    IOptions<JwtSettings> options,
+    ILogger<RefreshTokenService> logger) : IRefreshTokenService
 {
     private readonly JwtSettings _settings = options.Value;
 
+    /// <summary>
+    /// Toleranzfenster: So lange nach der Rotation darf der alte Token noch
+    /// einmal vorgelegt werden (verlorene Antwort), und so lange bleibt ein
+    /// rotierter Token in der Tabelle, damit er überhaupt wiedererkannt wird.
+    /// Ein Gerät, das tagelang nicht online war (Handy im Urlaub ohne Netz),
+    /// soll nicht abgemeldet werden - nach einer Woche gilt der Token als
+    /// verbraucht.
+    /// </summary>
+    private static readonly TimeSpan Toleranzfenster = TimeSpan.FromDays(7);
+
     public async Task<string> IssueAsync(Guid userId, CancellationToken ct = default)
     {
-        // Abgelaufene/verbrauchte Tokens des Nutzers opportunistisch aufräumen,
-        // damit die Tabelle nicht unbegrenzt wächst (kein separater Cron nötig).
+        // Abgelaufene Tokens und längst widerrufene des Nutzers opportunistisch
+        // aufräumen, damit die Tabelle nicht unbegrenzt wächst (kein separater
+        // Cron nötig). Frisch widerrufene bleiben im Toleranzfenster stehen:
+        // Meldet sich jemand auf Gerät B an, während Gerät A noch einen
+        // rotierten Token hält, muss der bei der Wiedervorlage noch bekannt sein.
         var cutoff = DateTimeOffset.UtcNow;
+        var toleranzEnde = cutoff - Toleranzfenster;
         var stale = await db.RefreshTokens
-            .Where(t => t.UserId == userId && (t.ExpiresAt < cutoff || t.RevokedAt != null))
+            .Where(t => t.UserId == userId && (t.ExpiresAt < cutoff || (t.RevokedAt != null && t.RevokedAt < toleranzEnde)))
             .ToListAsync(ct);
         if (stale.Count > 0) db.RefreshTokens.RemoveRange(stale);
 
@@ -43,31 +67,73 @@ public class RefreshTokenService(ApplicationDbContext db, IOptions<JwtSettings> 
 
         var hash = Hash(rawToken);
         var existing = await db.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == hash, ct);
-        if (existing is null) return new RefreshRotationResult(false);
-
-        // Reuse-Erkennung: Wird ein bereits ROTIERTER Token (hat einen
-        // Nachfolger) erneut vorgelegt, wurde er entweder gestohlen oder
-        // mehrfach abgespielt - aus Vorsicht alle aktiven Tokens des Nutzers
-        // widerrufen (erzwingt Neu-Login überall). Ein nur per Logout
-        // widerrufener Token (kein Nachfolger) oder ein abgelaufener Token ist
-        // dagegen KEIN Diebstahl-Signal: dann still scheitern, ohne andere
-        // Geräte des Nutzers mit abzumelden.
-        if (existing.RevokedAt is not null && existing.ReplacedByTokenHash is not null)
+        if (existing is null)
         {
-            await RevokeAllForUserAsync(existing.UserId, ct);
+            logger.LogInformation("Sitzung: unbekannter Token");
             return new RefreshRotationResult(false);
         }
-        if (existing.RevokedAt is not null || existing.ExpiresAt <= DateTimeOffset.UtcNow)
+
+        var jetzt = DateTimeOffset.UtcNow;
+
+        // Wird ein bereits ROTIERTER Token (hat einen Nachfolger) erneut
+        // vorgelegt, gibt es zwei Lesarten. Hat das Gerät die Antwort der
+        // Erneuerung nie erhalten, ist der Nachfolger noch unbenutzt: dann
+        // bekommt es einen frischen Token, alle anderen Sitzungen bleiben. Ist
+        // der Nachfolger dagegen schon benutzt (oder das Fenster vorbei), wurde
+        // der Token mehrfach abgespielt oder gestohlen - aus Vorsicht alle
+        // Tokens des Nutzers widerrufen (erzwingt Neu-Login überall). Ein nur
+        // per Logout widerrufener Token (kein Nachfolger) oder ein abgelaufener
+        // Token ist KEIN Diebstahl-Signal: dann still scheitern, ohne andere
+        // Geräte des Nutzers mit abzumelden.
+        RefreshToken? tolerierterNachfolger = null;
+        if (existing.RevokedAt is not null && existing.ReplacedByTokenHash is not null)
+        {
+            var nachfolger = await db.RefreshTokens.FirstOrDefaultAsync(
+                t => t.TokenHash == existing.ReplacedByTokenHash && t.UserId == existing.UserId, ct);
+            if (nachfolger is null
+                || nachfolger.RevokedAt is not null
+                || nachfolger.ExpiresAt <= jetzt
+                || existing.RevokedAt < jetzt - Toleranzfenster)
+            {
+                logger.LogWarning("Sitzung: Wiederverwendung – alle Sitzungen widerrufen (Konto {KontoId})", existing.UserId);
+                await RevokeAllForUserAsync(existing.UserId, ct);
+                return new RefreshRotationResult(false);
+            }
+
+            tolerierterNachfolger = nachfolger;
+        }
+        else if (existing.RevokedAt is not null)
+        {
+            logger.LogInformation("Sitzung: abgemeldet (widerrufen ohne Nachfolger) (Konto {KontoId})", existing.UserId);
             return new RefreshRotationResult(false);
+        }
+        else if (existing.ExpiresAt <= jetzt)
+        {
+            logger.LogInformation("Sitzung: abgelaufen (Konto {KontoId})", existing.UserId);
+            return new RefreshRotationResult(false);
+        }
 
         var newRaw = GenerateRawToken();
         var newToken = new RefreshToken
         {
             UserId = existing.UserId,
             TokenHash = Hash(newRaw),
-            ExpiresAt = DateTimeOffset.UtcNow.AddDays(_settings.RefreshExpiryDays),
+            ExpiresAt = jetzt.AddDays(_settings.RefreshExpiryDays),
         };
-        existing.RevokedAt = DateTimeOffset.UtcNow;
+        if (tolerierterNachfolger is not null)
+        {
+            // Der unbenutzte Nachfolger wird mit verbraucht: Er steht jetzt
+            // selbst in der Kette und zeigt auf den neuen Token, ebenso der
+            // vorgelegte. Wer einen von beiden später vorlegt, wird nach
+            // derselben Regel behandelt - eine Stufe genügt.
+            tolerierterNachfolger.RevokedAt = jetzt;
+            tolerierterNachfolger.ReplacedByTokenHash = newToken.TokenHash;
+            logger.LogInformation("Sitzung: verlorene Antwort toleriert (Konto {KontoId})", existing.UserId);
+        }
+        else
+        {
+            existing.RevokedAt = jetzt;
+        }
         existing.ReplacedByTokenHash = newToken.TokenHash;
         db.RefreshTokens.Add(newToken);
         await db.SaveChangesAsync(ct);
@@ -92,6 +158,8 @@ public class RefreshTokenService(ApplicationDbContext db, IOptions<JwtSettings> 
         if (konto is not null
             && Sperren.Bestimme(konto.LockoutEnd, DateTimeOffset.UtcNow) != Sperrart.Dauerhaft)
             return rotation;
+
+        logger.LogWarning("Sitzung: Konto gesperrt/gelöscht (Konto {KontoId})", rotation.UserId);
 
         // Ohne Konto gibt es nichts mehr zu widerrufen, die Zeilen sind
         // Altlast (z. B. nach einer Löschung, die mittendrin abbrach).

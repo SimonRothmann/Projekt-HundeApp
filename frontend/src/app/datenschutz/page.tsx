@@ -249,6 +249,13 @@ function DatenschutzDe() {
           IP-Adresse.
         </p>
         <p>
+          Meldest du dich an oder wird die Erneuerung deiner Anmeldung abgelehnt, hält der Server das mit der internen
+          Kennung deines Kontos und dem Grund im Betriebsprotokoll fest, damit sich Abmeldungen und Fehler
+          nachvollziehen lassen (Art. 6 Abs. 1 lit. f DSGVO). Diese Zeilen enthalten weder Passwort noch Token noch
+          E-Mail- oder IP-Adresse. Das Protokoll liegt nur auf dem Server, beginnt mit jedem neuen Ausrollen der Anwendung neu und ist auf
+          höchstens etwa 30 MB begrenzt; ältere Zeilen werden laufend überschrieben.
+        </p>
+        <p>
           Von der Datenbank wird täglich eine Sicherung erstellt. Sie wird verschlüsselt, bevor sie den Server
           verlässt – und zwar so, dass auf dem Server nur der Schlüssel zum Verschlüsseln liegt, nicht der zum
           Öffnen. Wer sich Zugang zum Server verschafft, kann die Sicherungen deshalb nicht lesen. Abgelegt werden
@@ -544,8 +551,9 @@ function DatenschutzDe() {
         <p>
           Die Verbindung ist durchgehend mit TLS verschlüsselt, auch zwischen Cloudflare und dem Server. Passwörter
           werden nur als Hash gespeichert. Anmeldungen laufen über kurzlebige Token, die sich serverseitig widerrufen
-          lassen; wird ein bereits verbrauchter Token erneut vorgelegt, werden alle Sitzungen des Kontos beendet,
-          und wer sein Passwort ändert oder zurücksetzt, meldet damit alle anderen Geräte ab. Nach fünf falschen
+          lassen; wird ein bereits verbrauchter Token erneut vorgelegt, obwohl sein Nachfolger schon benutzt wurde,
+          werden alle Sitzungen des Kontos beendet (ging nur die Antwort einer Erneuerung verloren, läuft die
+          Anmeldung weiter), und wer sein Passwort ändert oder zurücksetzt, meldet damit alle anderen Geräte ab. Nach fünf falschen
           Passwörtern in Folge wird das Konto für einige Minuten gesperrt. Der Browser darf Inhalte nur
           aus festgelegten Quellen laden (Content-Security-Policy), und Anmeldeversuche sind je IP-Adresse begrenzt.
         </p>

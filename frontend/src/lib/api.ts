@@ -175,10 +175,29 @@ type Erneuerung = "erneuert" | "abgelaufen" | "unerreichbar";
 
 let refreshInFlight: Promise<Erneuerung> | null = null;
 
+// Browserweite Sperre: Alle Tabs und Fenster teilen sich localStorage und
+// damit den Refresh-Token. Die Single-Flight oben gilt nur je Tab - ohne die
+// Sperre erneuerten zwei Tabs gleichzeitig mit demselben Token.
+const ERNEUERUNGS_SPERRE = "dogity-token-erneuern";
+
+// Erneuert höchstens einmal je Token über alle Tabs: Wer die Sperre bekommt,
+// liest den Refresh-Token neu. Hat ein anderer Tab ihn inzwischen ersetzt, liegt
+// auch der neue Access-Token schon im localStorage - dann nicht zum Server.
+// Ohne Web Locks (alter Browser) bleibt es bei der Erneuerung je Tab.
+async function tryRefreshToken(): Promise<Erneuerung> {
+  if (typeof navigator === "undefined" || !navigator.locks) return erneuereMitGespeichertemToken();
+  const vorher = window.localStorage.getItem(REFRESH_KEY);
+  return navigator.locks.request(ERNEUERUNGS_SPERRE, async () => {
+    const jetzt = window.localStorage.getItem(REFRESH_KEY);
+    if (vorher && jetzt && jetzt !== vorher) return "erneuert";
+    return erneuereMitGespeichertemToken();
+  });
+}
+
 // Holt mit dem gespeicherten Refresh-Token einen neuen Access-Token. Bewusst
 // ein roher fetch (nicht request()), damit ein 401 hier NICHT rekursiv wieder
 // einen Refresh anstößt.
-async function tryRefreshToken(): Promise<Erneuerung> {
+async function erneuereMitGespeichertemToken(): Promise<Erneuerung> {
   const refreshToken = window.localStorage.getItem(REFRESH_KEY);
   if (!refreshToken) return "abgelaufen";
   try {
@@ -231,6 +250,11 @@ async function send(path: string, init?: RequestInit, isRetry = false): Promise<
   // Token - z.B. falsches Passwort beim Login - ist dagegen eine normale
   // Formular-Fehlermeldung und löst keinen Refresh aus.)
   if (res.status === 401 && token && !isRetry) {
+    // Hat inzwischen jemand erneuert (eine Erneuerung in diesem Tab, die
+    // schon fertig ist, oder ein anderer Tab), liegt ein neuer Access-Token
+    // bereit: nur wiederholen. Eine weitere Erneuerung wäre unnötig - jede
+    // ist eine Gelegenheit, dass ihre Antwort verloren geht.
+    if (getToken() !== token) return send(path, init, true);
     refreshInFlight ??= tryRefreshToken().finally(() => {
       refreshInFlight = null;
     });

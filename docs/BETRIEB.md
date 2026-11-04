@@ -106,6 +106,25 @@ Leer ist der Normalfall. Etwas gefunden heißt: der Browser hat eine
 Ressource blockiert, die die Seite braucht - dann gehört die Regel in
 `next.config.ts` angepasst und neu ausgerollt.
 
+**Abmeldungen nachvollziehen**
+
+Seit Fassung 0.49 schreibt das Backend jede Anmeldung und jede abgelehnte
+Sitzungserneuerung mit festem Präfix `Sitzung:`, Grund und Konto-Id ins Log
+(nie Token, Hash oder E-Mail; Erneuerungen, die klappen, stehen nicht drin).
+Mit `-t` ergänzt Docker den Zeitpunkt je Zeile, der Logger selbst schreibt keinen:
+
+```bash
+ssh dogity 'docker logs -t dogity-backend-prod-1 2>&1 | grep "Sitzung:"'
+```
+
+Gründe: `unbekannter Token`, `abgelaufen`, `abgemeldet (widerrufen ohne
+Nachfolger)`, `Wiederverwendung – alle Sitzungen widerrufen` (Warnung: Der
+Token war schon benutzt, alle Sitzungen des Kontos enden), `verlorene Antwort
+toleriert` (kein Fehler, die Sitzung läuft weiter) und `Konto gesperrt/gelöscht`.
+Die Container-Logs beginnen mit jedem Deploy neu und reichen höchstens
+30 MB zurück - wer eine Abmeldung klären will, schaut vor dem nächsten Deploy
+nach.
+
 **Stehen Updates an, die niemand einspielt?**
 
 ```bash
