@@ -438,6 +438,54 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         return Result<TrainingSessionDto>.Success(ToDto(updated!, await HasGpsTrackAsync(sessionId, ct)));
     }
 
+    public async Task<Result<TrainingSessionDto>> SetDayDurationAsync(Guid userId, Guid sessionId, int minuten, CancellationToken ct = default)
+    {
+        var session = await GetEditableSessionAsync(userId, sessionId, ct);
+        if (session is null)
+            return Result<TrainingSessionDto>.NotFound("Training nicht gefunden.");
+
+        // Dieselben Grenzen und Texte wie beim Anlegen (Validate).
+        if (minuten <= 0)
+            return Result<TrainingSessionDto>.Failure("Dauer muss größer als 0 sein.");
+        if (minuten > MaxDauerMinuten)
+        {
+            var hoechstens = MaxDauerMinuten;
+            return Result<TrainingSessionDto>.Failure($"Die Dauer darf höchstens {hoechstens} Minuten betragen.");
+        }
+
+        // Alle Einheiten des Tages, auch die, die die Person nicht bearbeiten
+        // darf: die Summe, die das Tagebuch zeigt, schließt sie mit ein. Mit
+        // fremden Einträgen ließe sich die Tagessumme nicht setzen, ohne
+        // deren Dauer anzufassen - die Oberfläche zeigt den Knopf dann gar
+        // nicht erst (ganzerTagBearbeitbar).
+        var istBesitzer = await db.IstBesitzerAsync(userId, session.DogId, ct);
+        var daySessions = await db.TrainingSessions
+            .Where(s => s.DogId == session.DogId && s.Date == session.Date)
+            .ToListAsync(ct);
+        if (daySessions.Any(s => !TrainingsRechte.DarfBearbeiten(s.UserId, userId, istBesitzer)))
+            return Result<TrainingSessionDto>.Failure("Die Dauer dieses Tages kannst du nicht ändern, weil er Einträge anderer enthält.");
+
+        // Gewünscht ist die TAGESSUMME, denn die sieht man. Die übrigen Einheiten
+        // behalten ihre Dauer (meist ist es ohnehin nur eine), die angesprochene
+        // bekommt den Rest. Reicht der nicht (< 1), bekommt sie die ganze Zahl
+        // und die anderen 0 - so stimmt die Summe immer.
+        var andere = daySessions.Where(s => s.Id != session.Id).ToList();
+        var rest = minuten - andere.Sum(s => s.DurationMinutes);
+        if (rest < 1)
+        {
+            foreach (var s in andere)
+                s.DurationMinutes = 0;
+            rest = minuten;
+        }
+        session.DurationMinutes = rest;
+
+        // Dauer fließt weder ins Wetter noch in die Wiedervorlage ein.
+        await db.SaveChangesAsync(ct);
+
+        var updated = await GetOwnedSessionAsync(userId, sessionId, ct, track: false);
+        return Result<TrainingSessionDto>.Success(ToDto(updated!, await HasGpsTrackAsync(sessionId, ct)));
+    }
+
     public async Task<Result> DeleteAsync(Guid userId, Guid sessionId, CancellationToken ct = default)
     {
         var session = await GetEditableSessionAsync(userId, sessionId, ct);

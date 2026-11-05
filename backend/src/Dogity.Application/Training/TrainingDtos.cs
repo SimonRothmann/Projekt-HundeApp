@@ -202,6 +202,12 @@ public record UpdateSessionContextRequest(
 public record UpdateSessionDateRequest(DateOnly Date);
 
 /// <summary>
+/// Dauer eines Trainingstags korrigieren: die Minuten des GANZEN Tages, so wie
+/// das Tagebuch sie in der Zeile als Summe zeigt.
+/// </summary>
+public record UpdateSessionDurationRequest(int DurationMinutes);
+
+/// <summary>
 /// Ein Ort, an dem schon trainiert wurde. Hundeführer trainieren fast immer an
 /// denselben zwei bis fünf Plätzen - deshalb ist die Liste der letzten Orte in
 /// der Praxis wertvoller als jede Suche: beim zweiten Mal genügt ein Tippen.

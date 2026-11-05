@@ -33,6 +33,15 @@ public interface ITrainingService
     Task<Result<TrainingSessionDto>> MoveTrainingDayAsync(Guid userId, Guid sessionId, DateOnly date, CancellationToken ct = default);
 
     /// <summary>
+    /// Setzt die Dauer des Trainingstags, zu dem die angegebene Einheit gehört.
+    /// <paramref name="minuten"/> ist die Tagessumme, wie das Tagebuch sie zeigt;
+    /// bei mehreren Einheiten bleibt die Aufteilung auf die anderen bestehen.
+    /// Enthält der Tag Einträge, die die Person nicht bearbeiten darf, wird
+    /// nichts geändert - sonst stimmte die Summe nicht mehr.
+    /// </summary>
+    Task<Result<TrainingSessionDto>> SetDayDurationAsync(Guid userId, Guid sessionId, int minuten, CancellationToken ct = default);
+
+    /// <summary>
     /// Trainer-Feedback zu den angegebenen Hunden, auf das noch nicht reagiert
     /// wurde - neuestes zuerst, höchstens eine feste Obergrenze. Berücksichtigt
     /// nur Hunde, die dem Nutzer als Besitzer:in/Mitbesitzer:in gehören (die

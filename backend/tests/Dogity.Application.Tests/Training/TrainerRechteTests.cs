@@ -155,6 +155,47 @@ public class TrainerRechteTests
     }
 
     [Fact]
+    public async Task TagesDauer_MitEintragDerFamilieAmTag_KannDieTrainerinNichtAendern()
+    {
+        var a = await BaueAsync();
+        var familie = await TrageEinAsync(a, a.Besitzerin);
+        var eigene = await TrageEinAsync(a, a.Trainerin);
+
+        var ergebnis = await a.Trainings.SetDayDurationAsync(a.Trainerin, eigene.Id, 25);
+
+        Assert.False(ergebnis.Succeeded);
+        Assert.False(ergebnis.IsNotFound);
+        Assert.Equal("Die Dauer dieses Tages kannst du nicht ändern, weil er Einträge anderer enthält.", ergebnis.Errors[0]);
+        Assert.All(await a.Db.TrainingSessions.ToListAsync(), s => Assert.Equal(10, s.DurationMinutes));
+        // Die Familie darf: für sie ist der ganze Tag bearbeitbar.
+        Assert.True((await a.Trainings.SetDayDurationAsync(a.Mitbesitzer, familie.Id, 25)).Succeeded);
+    }
+
+    [Fact]
+    public async Task TagesDauer_EinheitDerFamilie_IstFuerDieTrainerinNichtGefunden()
+    {
+        var a = await BaueAsync();
+        var familie = await TrageEinAsync(a, a.Besitzerin);
+
+        Assert.True((await a.Trainings.SetDayDurationAsync(a.Trainerin, familie.Id, 25)).IsNotFound);
+        Assert.Equal(10, (await a.Db.TrainingSessions.SingleAsync()).DurationMinutes);
+    }
+
+    [Fact]
+    public async Task TagesDauer_TrainerinMitNurEigenerEinheitAmTag_DarfAendern()
+    {
+        var a = await BaueAsync();
+        // Die Familie hat nur an einem anderen Tag eingetragen.
+        await TrageEinAsync(a, a.Besitzerin, Heute.AddDays(-1));
+        var eigene = await TrageEinAsync(a, a.Trainerin);
+
+        var ergebnis = await a.Trainings.SetDayDurationAsync(a.Trainerin, eigene.Id, 25);
+
+        Assert.True(ergebnis.Succeeded, string.Join(", ", ergebnis.Errors));
+        Assert.Equal(25, ergebnis.Value!.DurationMinutes);
+    }
+
+    [Fact]
     public async Task Tagebuch_SagtJeTraining_ObDieAnsehendePersonBearbeitenDarf()
     {
         var a = await BaueAsync();

@@ -181,6 +181,11 @@ export const EN: Record<string, string> = {
   "Datum des Trainingstags": "Date of the training day",
   "Datum konnte nicht geändert werden.": "The date could not be changed.",
   "Datum ändern": "Change date",
+  "Dauer ändern": "Change duration",
+  "Dauer gespeichert.": "Duration saved.",
+  "Dauer konnte nicht geändert werden.": "The duration could not be changed.",
+  "Die Dauer dieses Tages kannst du nicht ändern, weil er Einträge anderer enthält.": "You cannot change the duration of this day because it contains entries by others.",
+  "Dauer des Trainingstags in Minuten": "Duration of the training day in minutes",
   "Dein Antrag wird geprüft. Du bekommst eine Benachrichtigung, sobald entschieden ist.": "Your request is being reviewed. You will be notified once it is decided.",
   "Dein Passwort wurde geändert.": "Your password has been changed.",
   "Dein Trainer betreut diesen Plan – er wird nicht mehr automatisch angepasst.": "Your trainer looks after this plan – it is no longer adjusted automatically.",
@@ -2785,4 +2790,5 @@ export const EN: Record<string, string> = {
   "{sicher} sicher, {wackelig} wackelig, {offen} offen": "{sicher} secure, {wackelig} wobbly, {offen} open",
   "Angemeldet bleiben": "Staying logged in",
   "Du bleibst zuverlässiger angemeldet: Ging beim Wechsel zwischen Apps oder bei schlechtem Netz die Erneuerung der Anmeldung verloren, musstest du dich neu anmelden – auch auf deinen anderen Geräten. Das passiert nicht mehr; ist die App in mehreren Tabs offen, stören sie sich dabei nicht mehr.": "You stay logged in more reliably: If renewing your login got lost when switching between apps or on a poor connection, you had to log in again – on your other devices too. That no longer happens; if the app is open in several tabs, they no longer get in each other’s way.",
+  "Eine falsch eingetragene Trainingsdauer lässt sich jetzt korrigieren: Tag im Tagebuch aufklappen und „Dauer ändern“ antippen.": "A wrongly entered training duration can now be corrected: open the day in the diary and tap “Change duration”.",
 };

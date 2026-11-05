@@ -6,7 +6,7 @@ import type { TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { BlockLabel } from "@/components/ui/block-label";
 import { Input } from "@/components/ui/input";
-import { Check, ListChecks, MessageSquarePlus, Pencil, Trash2 } from "lucide-react";
+import { Check, ListChecks, MessageSquarePlus, Pencil, Timer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
 import { SessionContextEditor } from "@/components/dogs/session-context-editor";
@@ -23,6 +23,7 @@ import { darfBearbeiten, ganzerTagBearbeitbar } from "@/lib/tagebuch";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { cn } from "@/lib/utils";
 import { tagAlsDatum } from "@/lib/kalendertag";
+import { DAUER_MAX, istGueltigeDauer } from "@/lib/eintragen";
 
 /**
  * Ob eine Einheit Angaben zu Ort, Zeit, Wetter oder Verfassung trägt.
@@ -273,8 +274,93 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
 }
 
 /**
+ * Dauer eines Trainingstags korrigieren - wer sich beim Eintragen vertippt
+ * hat, musste den Tag sonst löschen und neu anlegen.
+ *
+ * Gezeigt und geändert wird die SUMME des Tages, so wie die Zeile darüber sie
+ * nennt. Wie sie auf mehrere Einheiten verteilt wird, entscheidet der Server
+ * (siehe TrainingService.SetDayDurationAsync).
+ *
+ * Gleiches Muster wie DayDate: Knopf in der Leiste, der sich zum Eingabefeld
+ * öffnet.
+ */
+function DayDuration({ sessions, onChanged }: { sessions: TrainingSession[]; onChanged: () => Promise<void> }) {
+  const t = useT();
+  const summe = sessions.reduce((n, s) => n + s.durationMinutes, 0);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(String(summe));
+  const [saving, setSaving] = useState(false);
+  const minuten = Number(value);
+  // Leer ist erlaubt (dann einfach zumachen), alles andere muss eine gültige Dauer sein.
+  const ungueltig = value.trim() !== "" && !istGueltigeDauer(minuten);
+
+  async function save() {
+    // Leer oder unverändert: einfach zumachen, wie bei DayDate.
+    if (value.trim() === "" || minuten === summe) {
+      setEditing(false);
+      return;
+    }
+    if (ungueltig) return;
+    setSaving(true);
+    try {
+      await api.put(`/api/trainings/${sessions[0].id}/duration`, { durationMinutes: minuten });
+      toast.success(t("Dauer gespeichert."));
+      setEditing(false);
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Dauer konnte nicht geändert werden."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-muted-foreground"
+        onClick={() => {
+          // Frisch aus dem Tag füllen, nicht aus dem Stand beim Mounten (siehe DayDate).
+          setValue(String(summe));
+          setEditing(true);
+        }}
+      >
+        <Timer className="size-3.5" />
+        {t("Dauer ändern")}
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+      <Input
+        type="number"
+        inputMode="numeric"
+        min={1}
+        max={DAUER_MAX}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="w-24"
+        aria-label={t("Dauer des Trainingstags in Minuten")}
+        aria-invalid={ungueltig || undefined}
+        autoFocus
+      />
+      <span className="text-sm text-muted-foreground">{t("Min.")}</span>
+      <Button size="sm" onClick={save} disabled={saving || ungueltig}>
+        <Check className="size-3.5" />
+        {saving ? t("Speichert…") : t("Speichern")}
+      </Button>
+      <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+        {t("Abbrechen")}
+      </Button>
+    </div>
+  );
+}
+
+/**
  * Die volle Karte eines aufgeklappten Trainingstags: alles, was zum Tag gehört -
- * Datum ändern und Tag löschen, Ort/Zeit/Verfassung, Kommentar, Übungen mit
+ * Datum und Dauer ändern und Tag löschen, Ort/Zeit/Verfassung, Kommentar, Übungen mit
  * Bewertung, Fährten mit Karte und Auswertung, Trainer-Feedback.
  *
  * Wird erst gemountet, wenn der Tag aufgeklappt ist (siehe SessionHistory):
@@ -326,8 +412,8 @@ export function SessionDayCard({
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Datum ändern und löschen gibt es nur im aufgeklappten Tag: in der
-          Zeile wären es zwei winzige Knöpfe neben einer Fläche, die man
+      {/* Datum und Dauer ändern und löschen gibt es nur im aufgeklappten Tag: in der
+          Zeile wären es winzige Knöpfe neben einer Fläche, die man
           zum Aufklappen antippt. */}
       {/* Nur, wenn alle Einheiten des Tages bearbeitbar sind: Datum und
           Löschen wirken auf den ganzen Tag. Trainer:innen eines betreuten
@@ -335,7 +421,10 @@ export function SessionDayCard({
           bei Einträgen der Familie bekämen sie nur eine Fehlermeldung. */}
       {tagBearbeitbar && (
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-          <DayDate sessions={tag} onChanged={onChanged} />
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <DayDate sessions={tag} onChanged={onChanged} />
+            <DayDuration sessions={tag} onChanged={onChanged} />
+          </div>
           <Button
             size="sm"
             variant="ghost"

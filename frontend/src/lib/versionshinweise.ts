@@ -69,6 +69,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "behoben",
         text: uebersetzbar("Du bleibst zuverlässiger angemeldet: Ging beim Wechsel zwischen Apps oder bei schlechtem Netz die Erneuerung der Anmeldung verloren, musstest du dich neu anmelden – auch auf deinen anderen Geräten. Das passiert nicht mehr; ist die App in mehreren Tabs offen, stören sie sich dabei nicht mehr."),
       },
+      {
+        art: "neu",
+        text: uebersetzbar("Eine falsch eingetragene Trainingsdauer lässt sich jetzt korrigieren: Tag im Tagebuch aufklappen und „Dauer ändern“ antippen."),
+      },
     ],
   },
   {
