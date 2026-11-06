@@ -987,8 +987,9 @@ export type GpsWalkPoint = {
   deviationMeters: number | null;
 };
 
-// 0 = unerklärt (Warnsignal), 1 = Verweisen am Gegenstand (gut), 2 = erklärt/neutral.
-export type WalkStopKind = 0 | 1 | 2;
+// 0 = unerklärt (Warnsignal), 1 = Verweisen am Gegenstand (gut), 2 = erklärt/neutral,
+// 3 = am Winkel der Fährte (neutral: der Hund arbeitet den Winkel aus).
+export type WalkStopKind = 0 | 1 | 2 | 3;
 
 export type GpsWalkStop = {
   latitude: number;
@@ -996,6 +997,31 @@ export type GpsWalkStop = {
   durationSeconds: number;
   kind: WalkStopKind;
   markerLabel: string | null;
+};
+
+// Ein Schenkel der gelegten Fährte im Ablauf (nur Fährte). Fehlende Werte sind null:
+// Dauer und Tempo, wenn das Ende des Schenkels nie erreicht wurde.
+export type GpsWalkRunLeg = {
+  number: number;
+  lengthMeters: number;
+  durationSeconds: number | null;
+  speedMetersPerMinute: number | null;
+  avgDeviationMeters: number | null;
+};
+
+// Ein Winkel der gelegten Fährte im Ablauf (nur Fährte). direction: 0 = links, 1 = rechts.
+export type GpsWalkRunCorner = {
+  number: number;
+  direction: 0 | 1;
+  sharp: boolean;
+  turnDegrees: number;
+  latitude: number;
+  longitude: number;
+  reached: boolean;
+  overshootMeters: number | null;
+  overshot: boolean;
+  holdSeconds: number;
+  timeAtCornerSeconds: number | null;
 };
 
 export type GpsWalkRun = {
@@ -1015,6 +1041,10 @@ export type GpsWalkRun = {
   articlesTotal: number | null;
   evaluatedAt: string | null;
   stops: GpsWalkStop[];
+  // Schenkel und Winkel der Fährte. Optional, weil ältere Stände (Read-Cache, Backend vor
+  // Fassung 1.0) die Felder nicht kennen; beim Mantrailing leer.
+  legs?: GpsWalkRunLeg[];
+  corners?: GpsWalkRunCorner[];
   // Nur Mantrailing: Ergebnis des Laufs. Optional, weil ältere Stände (Read-Cache,
   // Backend vor Fassung 0.46) die Felder nicht kennen.
   /** Person gefunden - bei einem Negativ-Trail: korrekt angezeigt, dass niemand da ist. */
@@ -1187,8 +1217,18 @@ export type DogTrackRun = {
   unexplainedStops: number;
 };
 
+// Anteil sauber abgelaufener Winkel einer Gruppe (0 = links, 1 = rechts, 2 = spitz); ein spitzer
+// Winkel zählt in seiner Richtung und bei "spitz". reached = Zahl der erreichten Winkel.
+export type DogTrackCornerGroup = {
+  group: 0 | 1 | 2;
+  reached: number;
+  cleanPercent: number;
+};
+
 export type DogTrackStats = {
   runs: DogTrackRun[];
+  // Optional: ältere Stände kennen die Winkel nicht.
+  cornerGroups?: DogTrackCornerGroup[];
   // Negativ = Abweichung sinkt = Verbesserung.
   deviationTrend: number | null;
   // Positiv = mehr Zeit auf der Fährte = Verbesserung.

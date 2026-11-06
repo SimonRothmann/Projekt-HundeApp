@@ -76,6 +76,8 @@ public interface IApplicationDbContext
     DbSet<GpsWalkRun> GpsWalkRuns { get; }
     DbSet<GpsWalkPoint> GpsWalkPoints { get; }
     DbSet<GpsWalkStop> GpsWalkStops { get; }
+    DbSet<GpsWalkRunLeg> GpsWalkRunLegs { get; }
+    DbSet<GpsWalkRunCorner> GpsWalkRunCorners { get; }
 
     DbSet<QuizCatalog> QuizCatalogs { get; }
     DbSet<QuizQuestion> QuizQuestions { get; }

@@ -14,7 +14,7 @@ Je Ablauf-Versuch (`GpsWalkRun`) gegen die gelegte Fährte (`GpsTrack`):
 | `GpsWalkStop[]` | erkannte Halte, klassifiziert (siehe unten) |
 | `GpsWalkPoint.DeviationMeters` | Abweichung je Punkt → Karte färbt die Linie abschnittsweise ein |
 
-Alle Werte sind **persistiert** (Migration `AddTrackEvaluation`), damit Trend-Auswertungen nicht sämtliche GPS-Punkte laden müssen. Ein Ablauf lässt sich nur anlegen, solange die Frist zum Suchen läuft (Fährte 24, Trail 48 Stunden nach dem Ende des Legens, gemessen am Beginn des Ablaufs; `Ablauffristen`). Berechnung beim Anlegen eines Ablaufs, per `POST /api/gps-tracks/{id}/walk-runs/{runId}/evaluate` neu anstoßbar; Altbestand wird beim Anwendungsstart einmalig nachgerechnet (`IGpsTrackEvaluationBackfill`, idempotent über `EvaluatedAt == null`).
+Alle Werte sind **persistiert** (Migration `AddTrackEvaluation`), damit Trend-Auswertungen nicht sämtliche GPS-Punkte laden müssen. Ein Ablauf lässt sich nur anlegen, solange die Frist zum Suchen läuft (Fährte 24, Trail 48 Stunden nach dem Ende des Legens, gemessen am Beginn des Ablaufs; `Ablauffristen`). Berechnung beim Anlegen eines Ablaufs, per `POST /api/gps-tracks/{id}/walk-runs/{runId}/evaluate` neu anstoßbar; Altbestand wird beim Anwendungsstart einmalig nachgerechnet (`IGpsTrackEvaluationBackfill`, idempotent über `EvaluatedAt == null` bzw. eine ältere `EvaluationVersion`).
 
 ## Warum Punkt-zu-Segment statt Punkt-zu-Punkt
 
@@ -54,6 +54,34 @@ Bewusst großzügig: Der GPS-Fehler liegt bei **±3–8 m** — in derselben Gr�
 **Keine Prüfungspunkte-Schätzung.** Bei diesem Messfehler und Kriterien, die GPS gar nicht sieht (Ausarbeitung, Verweisen-Qualität), wäre eine Note wie „88/100" Schein-Genauigkeit.
 
 Die Douglas-Peucker-Vereinfachung (1 m Toleranz, ab 2000 Punkten) betrifft nur den **Lesepfad**; gerechnet wird auf den gespeicherten Rohpunkten.
+
+## Winkel und Schenkel
+
+Nur bei der **Fährte** (`GpsTrackKind.Faehrte`), nicht beim Mantrailing. Die Geometrie der gelegten Linie rechnet `FaehrtenGeometrie` (rein), die Auswertung je Ablauf steht im `GpsTrackEvaluator`. Gespeichert wird je Ablauf in `GpsWalkRunLeg` / `GpsWalkRunCorner`; bei jeder Neuauswertung werden sie ersetzt.
+
+**Erkennung** (an der gelegten Linie, Marker ausgenommen):
+
+```
+VereinfachungToleranzMeters = 4     // Douglas-Peucker, eigene Toleranz (nicht die der Anzeige)
+WinkelMinDegrees            = 45    // ab dieser Richtungsänderung ein Winkel
+SpitzAbDegrees              = 105   // darüber spitz (Innenwinkel unter 75°)
+MinAbschnittMeters          = 10    // Abschnitte beiderseits ≥ 10 m; Knicke näher als 10 m = ein Winkel
+MaxWinkel                   = 100   // mehr: weder Winkel noch Schenkel (Schutz vor präparierten Zickzack-Aufzeichnungen)
+```
+
+Knicke unter 20° nehmen an der Zusammenfassung naher Knicke nicht teil (Reste der Vereinfachung einer Kurve). Zusammengefasste Knicke: Summe der Richtungsänderungen, Lage in der Mitte zwischen erstem und letztem Knick. Richtung links/rechts aus dem Vorzeichen des Kreuzprodukts in Laufrichtung. **Schenkel** sind die Abschnitte zwischen Start, Winkeln und Ende; Längen und Stationierungen (Meter ab Start) gelten entlang der vereinfachten Linie. Die Erkennung ist von der Vibration (`use-walk-run-haptics`, warnt früh ab 30°) getrennt.
+
+**Auswertung je Ablauf** (auf dem *Fortschritt*: Stationierung der auf die vereinfachte Linie projizierten Ablaufpunkte, laufendes Maximum – Rauschen und Zurückgehen setzen ihn nicht zurück):
+
+- **Schenkel**: Dauer vom ersten Punkt mit Fortschritt ≥ Anfang bis zum ersten mit Fortschritt ≥ Ende (leer, wenn das Ende nie erreicht wurde), daraus das Tempo. Beim letzten Schenkel reicht ein Fortschritt bis `MarkerProximityMeters` (8 m) vor dem Fährtenende – dort bleibt der Hundeführer meist stehen, während der Hund am Endgegenstand liegt; das Tempo gilt dann für die gemessene Strecke; Ø Abweichung der Punkte im Schenkel. Ein Punkt genau auf dem Winkel zählt noch zum Schenkel davor.
+- **Winkel erreicht**: Fortschritt ≥ Stationierung des Winkels.
+- **Überschießen**: größte Abweichung der Punkte mit Fortschritt in [Winkel − 5 m, Winkel + 20 m]; über der gelben Grenze der Fährte (6 m) gilt der Winkel als überschossen. Nicht erreichte Winkel sind weder sauber noch überschossen.
+- **Halt am Winkel**: Summe der Halte im Umkreis von `MarkerProximityMeters` (8 m). Ein bisher *unerklärter* Halt dort wird als `AtCorner` („am Winkel“) eingeordnet – der Hund arbeitet den Winkel aus, das ist normal. Gegenstand (Verweisen) und Leckerli (erklärt) gehen vor.
+- **Zeit am Winkel**: Zeit zwischen Fortschritt Winkel − 10 m und Winkel + 10 m.
+
+Die Gesamtkennzahlen (Ø/max. Abweichung, % auf Fährte) und die Toleranzen bleiben unverändert; nur die Einordnung der Halte kennt „am Winkel“. Bestehende Auswertungen trägt der Backfill beim Start nach: `GpsWalkRun.EvaluationVersion` gegen `GpsTrackEvaluator.AktuelleVersion` (1); er speichert alle 50 Abläufe und überspringt einen Ablauf, dessen Berechnung eine Ausnahme wirft (Warnung im Log, Version unverändert, nächster Start versucht es erneut).
+
+**Grenzen**: Wie die Abweichung messen auch Winkel und Schenkel die Linie des Hundeführers. Kreuzt sich eine Fährte selbst, kann die Projektion auf den falschen Schenkel springen; die Winkel sind nicht von Hand korrigierbar. Die Entwicklung des Hundes zeigt den Anteil sauberer Winkel nach links / rechts / spitz (ein spitzer Winkel zählt in seiner Richtung und bei „spitz“), erst ab 3 erreichten Winkeln je Gruppe und über die angezeigten jüngsten 12 Abläufe – ohne Note.
 
 ## Offen / bewusst nicht enthalten
 

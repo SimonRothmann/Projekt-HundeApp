@@ -46,6 +46,8 @@ public class GpsWalkRunConfiguration : IEntityTypeConfiguration<GpsWalkRun>
         builder.ToTable("gps_walk_runs");
         builder.Property(r => r.Comment).HasMaxLength(Textlaengen.FaehrtenKommentar);
         builder.Property(r => r.Indication).HasConversion<string>().HasMaxLength(20);
+        // Bestehende Zeilen gelten als "vor Winkel und Schenkeln" (0); der Backfill rechnet sie nach.
+        builder.Property(r => r.EvaluationVersion).HasDefaultValue(0);
 
         builder.HasOne(r => r.Track)
             .WithMany(t => t.WalkRuns)
@@ -88,5 +90,37 @@ public class GpsWalkStopConfiguration : IEntityTypeConfiguration<GpsWalkStop>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(s => s.WalkRunId);
+    }
+}
+
+public class GpsWalkRunLegConfiguration : IEntityTypeConfiguration<GpsWalkRunLeg>
+{
+    public void Configure(EntityTypeBuilder<GpsWalkRunLeg> builder)
+    {
+        builder.ToTable("gps_walk_run_legs");
+
+        builder.HasOne(l => l.WalkRun)
+            .WithMany(r => r.Legs)
+            .HasForeignKey(l => l.WalkRunId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(l => l.WalkRunId);
+    }
+}
+
+public class GpsWalkRunCornerConfiguration : IEntityTypeConfiguration<GpsWalkRunCorner>
+{
+    public void Configure(EntityTypeBuilder<GpsWalkRunCorner> builder)
+    {
+        builder.ToTable("gps_walk_run_corners");
+        // Als String wie GpsWalkStop.Kind.
+        builder.Property(c => c.Direction).HasConversion<string>().HasMaxLength(20);
+
+        builder.HasOne(c => c.WalkRun)
+            .WithMany(r => r.Corners)
+            .HasForeignKey(c => c.WalkRunId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(c => c.WalkRunId);
     }
 }

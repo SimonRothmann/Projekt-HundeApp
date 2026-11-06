@@ -2601,6 +2601,11 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("EvaluatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("EvaluationVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Indication")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
@@ -2628,6 +2633,106 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.HasIndex("TrackId");
 
                     b.ToTable("gps_walk_runs", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunCorner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("HoldSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("OvershootMeters")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("Overshot")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Reached")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Sharp")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("TimeAtCornerSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("TurnDegrees")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WalkRunId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WalkRunId");
+
+                    b.ToTable("gps_walk_run_corners", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunLeg", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<double?>("AvgDeviationMeters")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DurationSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("LengthMeters")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("SpeedMetersPerMinute")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WalkRunId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WalkRunId");
+
+                    b.ToTable("gps_walk_run_legs", (string)null);
                 });
 
             modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkStop", b =>
@@ -3627,6 +3732,28 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Navigation("Track");
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunCorner", b =>
+                {
+                    b.HasOne("Dogity.Domain.Tracking.GpsWalkRun", "WalkRun")
+                        .WithMany("Corners")
+                        .HasForeignKey("WalkRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WalkRun");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunLeg", b =>
+                {
+                    b.HasOne("Dogity.Domain.Tracking.GpsWalkRun", "WalkRun")
+                        .WithMany("Legs")
+                        .HasForeignKey("WalkRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WalkRun");
+                });
+
             modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkStop", b =>
                 {
                     b.HasOne("Dogity.Domain.Tracking.GpsWalkRun", "WalkRun")
@@ -3828,6 +3955,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRun", b =>
                 {
+                    b.Navigation("Corners");
+
+                    b.Navigation("Legs");
+
                     b.Navigation("Points");
 
                     b.Navigation("Stops");

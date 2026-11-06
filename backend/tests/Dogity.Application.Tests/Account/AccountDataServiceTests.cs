@@ -169,6 +169,25 @@ public class AccountDataServiceTests
     }
 
     [Fact]
+    public async Task Purge_EntferntAuchSchenkelUndWinkelDerAbläufe()
+    {
+        var (dienst, db, _) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        HundMitAllem(db, nutzer, "Bello");
+        var lauf = new GpsWalkRun { TrackId = db.GpsTracks.Local.Single().Id };
+        db.GpsWalkRuns.Add(lauf);
+        db.GpsWalkRunLegs.Add(new GpsWalkRunLeg { WalkRunId = lauf.Id, Number = 1, LengthMeters = 80 });
+        db.GpsWalkRunCorners.Add(new GpsWalkRunCorner { WalkRunId = lauf.Id, Number = 1, Latitude = 48.9, Longitude = 8.5 });
+        await db.SaveChangesAsync();
+
+        await dienst.PurgeAsync(nutzer);
+
+        // Die Lage der Winkel liegt im Gelände des Kontos - sie darf nicht übrig bleiben.
+        Assert.Empty(db.GpsWalkRunLegs.IgnoreQueryFilters());
+        Assert.Empty(db.GpsWalkRunCorners.IgnoreQueryFilters());
+    }
+
+    [Fact]
     public async Task Export_NenntDieHerkunftDerVereinsanfrage()
     {
         var (dienst, db, lookup) = Aufsetzen();

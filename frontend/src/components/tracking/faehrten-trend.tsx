@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { api } from "@/lib/api";
-import type { DogTrackStats } from "@/lib/types";
+import type { DogTrackCornerGroup, DogTrackStats } from "@/lib/types";
 import { ampelStufe, type Ampel } from "@/lib/spur-ampel";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat, zahlText } from "@/lib/ortsformat";
@@ -56,6 +56,35 @@ function AbweichungsTrend({ aenderung }: { aenderung: number }) {
     <span className="flex items-center gap-0.5 text-destructive" title={titel}>
       <TrendingDown className="size-3.5 shrink-0" /> {t("{meter} m weiter weg von der Fährte", { meter })}
     </span>
+  );
+}
+
+/**
+ * Wie sauber der Hund seine Winkel abläuft - nach links, rechts und spitz getrennt, mit der Zahl
+ * der erreichten Winkel ("links 80 % von 10"). Der Server liefert nur Gruppen mit genug Winkeln;
+ * ohne Gruppen erscheint nichts. Bewusst keine Note und keine Farbe: Es zeigt, welche Winkel
+ * schwerer fallen, nicht ob der Hund "gut" ist.
+ */
+function WinkelGruppen({ gruppen }: { gruppen: DogTrackCornerGroup[] }) {
+  const t = useT();
+  if (gruppen.length === 0) return null;
+
+  const zeile = (g: DogTrackCornerGroup): string => {
+    const werte = { prozent: g.cleanPercent, anzahl: g.reached };
+    if (g.group === 0) return t("links {prozent} % von {anzahl}", werte);
+    if (g.group === 1) return t("rechts {prozent} % von {anzahl}", werte);
+    return t("spitz {prozent} % von {anzahl}", werte);
+  };
+
+  return (
+    <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+      <span className="font-medium" title={t("Anteil der erreichten Winkel, bei denen der Hund nicht über die Linie hinausgelaufen ist")}>
+        {t("Winkel sauber")}
+      </span>
+      {gruppen.map((g) => (
+        <span key={g.group}>{zeile(g)}</span>
+      ))}
+    </div>
   );
 }
 
@@ -190,6 +219,7 @@ export function FaehrtenTrend({
         {last.articlesTotal > 0 &&
           ` · ${t("{gefunden}/{gesamt} Gegenstände", { gefunden: last.articlesFound, gesamt: last.articlesTotal })}`}
       </p>
+      <WinkelGruppen gruppen={stats.cornerGroups ?? []} />
     </div>
   );
 }

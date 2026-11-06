@@ -98,6 +98,8 @@ public class GpsTrackService(
             .Include(t => t.Points)
             .Include(t => t.WalkRuns).ThenInclude(r => r.Points)
             .Include(t => t.WalkRuns).ThenInclude(r => r.Stops)
+            .Include(t => t.WalkRuns).ThenInclude(r => r.Legs)
+            .Include(t => t.WalkRuns).ThenInclude(r => r.Corners)
             .AsSplitQuery()
             .AsNoTracking()
             .ToListAsync(ct);
@@ -316,6 +318,8 @@ public class GpsTrackService(
         var walkRun = await db.GpsWalkRuns
             .Include(r => r.Points)
             .Include(r => r.Stops)
+            .Include(r => r.Legs)
+            .Include(r => r.Corners)
             .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
         if (walkRun is null)
             return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
@@ -331,7 +335,7 @@ public class GpsTrackService(
     /// <summary>
     /// Wertet einen Ablauf gegen seine gelegte Fährte aus und schreibt das
     /// Ergebnis auf die Entitäten (ohne SaveChanges - der Aufrufer entscheidet,
-    /// wann gespeichert wird). Bestehende Halte werden ersetzt.
+    /// wann gespeichert wird). Bestehende Halte, Schenkel und Winkel werden ersetzt.
     ///
     /// <c>false</c>, wenn die Auswertung zu aufwendig wäre (siehe
     /// <see cref="GpsTrackEvaluator.MaxAuswertungsAufwand"/>). Der Ablauf gilt
@@ -351,45 +355,11 @@ public class GpsTrackService(
         if (GpsTrackEvaluator.TryEvaluate(laidPoints, walkPoints, kind) is not { } evaluation)
         {
             walkRun.EvaluatedAt = DateTimeOffset.UtcNow;
+            walkRun.EvaluationVersion = GpsTrackEvaluator.AktuelleVersion;
             return false;
         }
 
-        var byId = walkPoints.ToDictionary(p => p.Id);
-        foreach (var evaluated in evaluation.Points)
-        {
-            if (byId.TryGetValue(evaluated.PointId, out var point))
-                point.DeviationMeters = evaluated.DeviationMeters;
-        }
-
-        walkRun.AvgDeviationMeters = evaluation.AvgDeviationMeters;
-        walkRun.MaxDeviationMeters = evaluation.MaxDeviationMeters;
-        walkRun.OnTrackPercent = evaluation.OnTrackPercent;
-        walkRun.ArticlesFound = evaluation.ArticlesFound;
-        walkRun.ArticlesTotal = evaluation.ArticlesTotal;
-        walkRun.EvaluatedAt = DateTimeOffset.UtcNow;
-
-        // Alte Halte hart entfernen statt soft-deleten: sie sind reine
-        // Rechenergebnisse ohne eigenen Verlauf und würden sonst bei jeder
-        // Neuberechnung als Leichen mitwachsen.
-        var existingStops = await db.GpsWalkStops.Where(s => s.WalkRunId == walkRun.Id).ToListAsync(ct);
-        if (existingStops.Count > 0) db.GpsWalkStops.RemoveRange(existingStops);
-        walkRun.Stops.Clear();
-
-        foreach (var stop in evaluation.Stops)
-        {
-            // Über das DbSet mit explizitem FK, nicht über die getrackte
-            // Navigation (sonst stuft EF die neuen Zeilen per Collection-Fixup
-            // als Modified statt Added ein - siehe TrainingService.CreateAsync).
-            db.GpsWalkStops.Add(new GpsWalkStop
-            {
-                WalkRunId = walkRun.Id,
-                Latitude = stop.Latitude,
-                Longitude = stop.Longitude,
-                DurationSeconds = stop.DurationSeconds,
-                Kind = stop.Kind,
-                MarkerLabel = stop.MarkerLabel
-            });
-        }
+        await WalkRunEvaluationWriter.WriteAsync(db, walkRun, walkPoints, evaluation, ct);
 
         return true;
     }
@@ -481,6 +451,8 @@ public class GpsTrackService(
             .Include(t => t.Points)
             .Include(t => t.WalkRuns).ThenInclude(r => r.Points)
             .Include(t => t.WalkRuns).ThenInclude(r => r.Stops)
+            .Include(t => t.WalkRuns).ThenInclude(r => r.Legs)
+            .Include(t => t.WalkRuns).ThenInclude(r => r.Corners)
             .FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
             return Result<GpsTrackDto>.NotFound("Fährte nicht gefunden.");
@@ -579,6 +551,14 @@ public class GpsTrackService(
                 .Select(s => new GpsWalkStopDto(s.Latitude, s.Longitude, s.DurationSeconds, s.Kind, s.MarkerLabel))
                 .ToList(),
             r.PersonFound,
-            r.Indication);
+            r.Indication,
+            Legs: r.Legs.OrderBy(l => l.Number)
+                .Select(l => new GpsWalkRunLegDto(l.Number, l.LengthMeters, l.DurationSeconds, l.SpeedMetersPerMinute, l.AvgDeviationMeters))
+                .ToList(),
+            Corners: r.Corners.OrderBy(c => c.Number)
+                .Select(c => new GpsWalkRunCornerDto(
+                    c.Number, c.Direction, c.Sharp, c.TurnDegrees, c.Latitude, c.Longitude, c.Reached,
+                    c.OvershootMeters, c.Overshot, c.HoldSeconds, c.TimeAtCornerSeconds))
+                .ToList());
     }
 }

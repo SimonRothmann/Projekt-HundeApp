@@ -35,7 +35,7 @@ public class GpsTrackRemovalTests
         return s;
     }
 
-    /// <summary>Fährte mit Punkt, Ablauf, Ablaufpunkt und Stockung - alles, was daran hängen kann.</summary>
+    /// <summary>Fährte mit Punkt, Ablauf, Ablaufpunkt, Stockung, Schenkel und Winkel - alles, was daran hängen kann.</summary>
     private static Faehrte VollstaendigeFaehrte(ApplicationDbContext db, Guid trainingId)
     {
         var track = new GpsTrack { TrainingSessionId = trainingId, LengthMeters = 300 };
@@ -45,6 +45,8 @@ public class GpsTrackRemovalTests
         db.GpsWalkRuns.Add(run);
         db.GpsWalkPoints.Add(new GpsWalkPoint { WalkRunId = run.Id, Latitude = 48.9, Longitude = 8.5, Timestamp = DateTimeOffset.UtcNow });
         db.GpsWalkStops.Add(new GpsWalkStop { WalkRunId = run.Id });
+        db.GpsWalkRunLegs.Add(new GpsWalkRunLeg { WalkRunId = run.Id, Number = 1 });
+        db.GpsWalkRunCorners.Add(new GpsWalkRunCorner { WalkRunId = run.Id, Number = 1 });
         return new Faehrte(track.Id, run.Id);
     }
 
@@ -55,6 +57,8 @@ public class GpsTrackRemovalTests
         Assert.NotNull((await db.GpsWalkRuns.IgnoreQueryFilters().SingleAsync(r => r.Id == f.RunId)).DeletedAt);
         Assert.All(db.GpsWalkPoints.IgnoreQueryFilters().Where(p => p.WalkRunId == f.RunId), p => Assert.NotNull(p.DeletedAt));
         Assert.All(db.GpsWalkStops.IgnoreQueryFilters().Where(s => s.WalkRunId == f.RunId), s => Assert.NotNull(s.DeletedAt));
+        Assert.All(db.GpsWalkRunLegs.IgnoreQueryFilters().Where(l => l.WalkRunId == f.RunId), l => Assert.NotNull(l.DeletedAt));
+        Assert.All(db.GpsWalkRunCorners.IgnoreQueryFilters().Where(c => c.WalkRunId == f.RunId), c => Assert.NotNull(c.DeletedAt));
     }
 
     private static async Task AssertNichtsGeloeschtAsync(ApplicationDbContext db, Faehrte f)
@@ -64,6 +68,8 @@ public class GpsTrackRemovalTests
         Assert.Null((await db.GpsWalkRuns.IgnoreQueryFilters().SingleAsync(r => r.Id == f.RunId)).DeletedAt);
         Assert.All(db.GpsWalkPoints.IgnoreQueryFilters().Where(p => p.WalkRunId == f.RunId), p => Assert.Null(p.DeletedAt));
         Assert.All(db.GpsWalkStops.IgnoreQueryFilters().Where(s => s.WalkRunId == f.RunId), s => Assert.Null(s.DeletedAt));
+        Assert.All(db.GpsWalkRunLegs.IgnoreQueryFilters().Where(l => l.WalkRunId == f.RunId), l => Assert.Null(l.DeletedAt));
+        Assert.All(db.GpsWalkRunCorners.IgnoreQueryFilters().Where(c => c.WalkRunId == f.RunId), c => Assert.Null(c.DeletedAt));
     }
 
     [Fact]

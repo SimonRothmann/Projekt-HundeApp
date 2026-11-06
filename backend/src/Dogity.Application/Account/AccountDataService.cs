@@ -477,6 +477,10 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             .Where(p => ablaufIds.Contains(p.WalkRunId)).ToListAsync(ct);
         var stockungen = await db.GpsWalkStops.IgnoreQueryFilters()
             .Where(s => ablaufIds.Contains(s.WalkRunId)).ToListAsync(ct);
+        var schenkel = await db.GpsWalkRunLegs.IgnoreQueryFilters()
+            .Where(l => ablaufIds.Contains(l.WalkRunId)).ToListAsync(ct);
+        var winkel = await db.GpsWalkRunCorners.IgnoreQueryFilters()
+            .Where(c => ablaufIds.Contains(c.WalkRunId)).ToListAsync(ct);
 
         var ziele = await db.Goals.IgnoreQueryFilters()
             .Where(g => alleinMeineHunde.Contains(g.DogId)).ToListAsync(ct);
@@ -631,6 +635,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         // zeigt, während die Datenbank noch mitten im Vorgang ist.
         db.GpsWalkPoints.RemoveRange(ablaufpunkte);
         db.GpsWalkStops.RemoveRange(stockungen);
+        db.GpsWalkRunLegs.RemoveRange(schenkel);
+        db.GpsWalkRunCorners.RemoveRange(winkel);
         db.GpsWalkRuns.RemoveRange(ablaeufe);
         db.GpsPoints.RemoveRange(faehrtenpunkte);
         db.GpsTracks.RemoveRange(faehrten);

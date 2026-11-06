@@ -276,7 +276,7 @@ using (var scope = app.Services.CreateScope())
     // vor dem Serving; ist idempotent (nur solange keine Mastery-Zeilen da sind).
     await scope.ServiceProvider.GetRequiredService<IExerciseMasteryService>().BackfillIfEmptyAsync();
     // Einmalige Nachauswertung bestehender Fährten-Abläufe (idempotent: wertet
-    // nur Abläufe ohne EvaluatedAt aus).
+    // nur Abläufe ohne EvaluatedAt oder mit älterem Stand der Auswertung aus).
     await scope.ServiceProvider.GetRequiredService<IGpsTrackEvaluationBackfill>().BackfillAsync();
     // Trainer-Kennzeichen (Identity-Rolle TRAINER) mit der Datenlage abgleichen.
     // Die Rolle wurde bis hierher nie vergeben - Trainer:innen standen in der

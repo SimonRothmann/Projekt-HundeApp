@@ -180,22 +180,25 @@ public class StatsService(IApplicationDbContext db, TimeProvider timeProvider) :
             // ein Verlauf, der beides mischt, vergliche Abweichungen, die nicht vergleichbar sind.
             where run.EvaluatedAt != null && session.DogId == dogId && track.Kind == GpsTrackKind.Faehrte
             orderby session.Date, run.CreatedAt
-            select new DogTrackRunDto(
-                session.Date,
-                run.AvgDeviationMeters!.Value,
-                run.OnTrackPercent!.Value,
-                run.ArticlesFound ?? 0,
-                run.ArticlesTotal ?? 0,
-                run.Stops.Count(s => s.Kind == WalkStopKind.Unexplained)))
+            select new TrackRunRow(
+                run.Id,
+                new DogTrackRunDto(
+                    session.Date,
+                    run.AvgDeviationMeters!.Value,
+                    run.OnTrackPercent!.Value,
+                    run.ArticlesFound ?? 0,
+                    run.ArticlesTotal ?? 0,
+                    run.Stops.Count(s => s.Kind == WalkStopKind.Unexplained))))
             .AsNoTracking()
             .ToListAsync(ct);
 
         if (rows.Count == 0)
-            return Result<DogTrackStatsDto>.Success(new DogTrackStatsDto([], null, null));
+            return Result<DogTrackStatsDto>.Success(new DogTrackStatsDto([], null, null, []));
 
         // Anzeige auf die jüngsten 12 Abläufe begrenzen - genug für einen
         // Verlauf, ohne die Karte auf dem Handy zu überfüllen.
-        var recent = rows.Count > 12 ? rows.Skip(rows.Count - 12).ToList() : rows;
+        var recentRows = rows.Count > 12 ? rows.Skip(rows.Count - 12).ToList() : rows;
+        var recent = recentRows.Select(r => r.Run).ToList();
 
         double? deviationTrend = null;
         double? onTrackTrend = null;
@@ -214,8 +217,38 @@ public class StatsService(IApplicationDbContext db, TimeProvider timeProvider) :
             .Select(r => r with { AvgDeviationMeters = Math.Round(r.AvgDeviationMeters, 1), OnTrackPercent = Math.Round(r.OnTrackPercent, 0) })
             .ToList();
 
-        return Result<DogTrackStatsDto>.Success(new DogTrackStatsDto(runs, deviationTrend, onTrackTrend));
+        // Winkel der angezeigten Abläufe. Nur erreichte zählen: Ein Winkel, den der Hund nie sah,
+        // sagt nichts darüber, ob er ihn sauber kann.
+        var recentIds = recentRows.Select(r => r.RunId).ToList();
+        var winkel = await db.GpsWalkRunCorners
+            .Where(c => recentIds.Contains(c.WalkRunId) && c.Reached)
+            .Select(c => new { c.Direction, c.Sharp, c.Overshot })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var gruppen = new List<DogTrackCornerGroupDto>();
+        foreach (var (gruppe, ueberschossen) in new (CornerGroup, List<bool>)[]
+                 {
+                     (CornerGroup.Left, winkel.Where(w => w.Direction == CornerDirection.Left).Select(w => w.Overshot).ToList()),
+                     (CornerGroup.Right, winkel.Where(w => w.Direction == CornerDirection.Right).Select(w => w.Overshot).ToList()),
+                     (CornerGroup.Sharp, winkel.Where(w => w.Sharp).Select(w => w.Overshot).ToList()),
+                 })
+        {
+            if (ueberschossen.Count < MinErreichteWinkel) continue;
+            gruppen.Add(new DogTrackCornerGroupDto(
+                gruppe, ueberschossen.Count, (int)Math.Round(ueberschossen.Count(u => !u) * 100.0 / ueberschossen.Count)));
+        }
+
+        return Result<DogTrackStatsDto>.Success(new DogTrackStatsDto(runs, deviationTrend, onTrackTrend, gruppen));
     }
+
+    /// <summary>
+    /// Ab so vielen erreichten Winkeln zeigt die Entwicklung eine Gruppe (links / rechts / spitz).
+    /// Darunter wäre "100 % von 2" eine Aussage, die nichts trägt.
+    /// </summary>
+    public const int MinErreichteWinkel = 3;
+
+    private record TrackRunRow(Guid RunId, DogTrackRunDto Run);
 
     private record ExerciseRow(string Name, string? NameEn, int Rating, bool Success, DateOnly Date);
 

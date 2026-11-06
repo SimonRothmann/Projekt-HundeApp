@@ -138,7 +138,9 @@ Tracking
 ├── gps_points
 ├── gps_walk_runs: Ablauf-/Such-Versuch einer gelegten Spur
 ├── gps_walk_points
-└── gps_walk_stops: Stopps und Marker während eines Versuchs
+├── gps_walk_stops: Stopps und Marker während eines Versuchs
+├── gps_walk_run_legs: Schenkel der Fährte mit Dauer/Tempo im Versuch (docs/TRACK_EVALUATION.md)
+└── gps_walk_run_corners: Winkel der Fährte mit Überschießen/Halt im Versuch
 
 Lernen
 

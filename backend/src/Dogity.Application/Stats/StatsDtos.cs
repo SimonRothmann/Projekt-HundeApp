@@ -51,6 +51,20 @@ public record DogTrackRunDto(
     int ArticlesTotal,
     int UnexplainedStops);
 
+/// <summary>Nach welchem Merkmal Winkel in der Entwicklung zusammengefasst werden; ein spitzer Winkel zählt in seiner Richtung UND bei "spitz".</summary>
+public enum CornerGroup
+{
+    Left,
+    Right,
+    Sharp
+}
+
+/// <summary>
+/// Wie sauber ein Hund eine Art Winkel abgelaufen ist: Reached = Zahl der erreichten Winkel der
+/// Gruppe, CleanPercent = Anteil davon ohne Überschießen (ganze Prozent). Keine Note, nur Häufigkeit.
+/// </summary>
+public record DogTrackCornerGroupDto(CornerGroup Group, int Reached, int CleanPercent);
+
 /// <summary>
 /// Fährten-Entwicklung eines Hundes: die jüngsten ausgewerteten Abläufe
 /// (chronologisch aufsteigend) plus Trend nach demselben Muster wie
@@ -62,7 +76,12 @@ public record DogTrackStatsDto(
     /// <summary>Negativ = Abweichung sinkt = Verbesserung.</summary>
     double? DeviationTrend,
     /// <summary>Positiv = mehr Zeit auf der Fährte = Verbesserung.</summary>
-    double? OnTrackTrend);
+    double? OnTrackTrend,
+    /// <summary>
+    /// Winkel der angezeigten Abläufe nach links / rechts / spitz; Gruppen mit weniger als
+    /// <see cref="StatsService.MinErreichteWinkel"/> erreichten Winkeln fehlen.
+    /// </summary>
+    IReadOnlyList<DogTrackCornerGroupDto> CornerGroups);
 
 /// <summary>
 /// Was die Verfassung des Hundes mit seinen Bewertungen zu tun hat.

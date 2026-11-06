@@ -25,6 +25,28 @@ public record GpsWalkStopDto(
     WalkStopKind Kind,
     string? MarkerLabel);
 
+/// <summary>Ein Schenkel der Fährte im Ablauf (siehe GpsWalkRunLeg).</summary>
+public record GpsWalkRunLegDto(
+    int Number,
+    double LengthMeters,
+    int? DurationSeconds,
+    double? SpeedMetersPerMinute,
+    double? AvgDeviationMeters);
+
+/// <summary>Ein Winkel der Fährte im Ablauf (siehe GpsWalkRunCorner).</summary>
+public record GpsWalkRunCornerDto(
+    int Number,
+    CornerDirection Direction,
+    bool Sharp,
+    double TurnDegrees,
+    double Latitude,
+    double Longitude,
+    bool Reached,
+    double? OvershootMeters,
+    bool Overshot,
+    int HoldSeconds,
+    int? TimeAtCornerSeconds);
+
 public record GpsWalkRunDto(
     Guid Id,
     Guid TrackId,
@@ -42,7 +64,10 @@ public record GpsWalkRunDto(
     IReadOnlyList<GpsWalkStopDto> Stops,
     // Nur Mantrailing (siehe GpsWalkRun): null, solange nicht angegeben.
     bool? PersonFound,
-    TrailIndication? Indication);
+    TrailIndication? Indication,
+    // Nur Fährte (beim Mantrailing leer): Schenkel und Winkel, in Laufreihenfolge.
+    IReadOnlyList<GpsWalkRunLegDto> Legs,
+    IReadOnlyList<GpsWalkRunCornerDto> Corners);
 
 public record GpsTrackDto(
     Guid Id,

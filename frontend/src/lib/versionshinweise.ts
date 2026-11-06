@@ -68,6 +68,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
     titel: uebersetzbar("Dogity 1.0"),
     aenderungen: [
       {
+        art: "neu",
+        text: uebersetzbar("Fährte: Nach dem Absuchen zeigt Dogity jeden Winkel und jeden Schenkel einzeln – ob der Hund sauber abgebogen oder überschossen ist, wo er gestockt hat und wie lange er für jeden Schenkel gebraucht hat. In der Entwicklung des Hundes siehst du, ob linke, rechte oder spitze Winkel schwerer fallen."),
+      },
+      {
         art: "verbessert",
         text: uebersetzbar("Dogity ist jetzt in Fassung 1.0: Trainingstagebuch, Fährten und Mantrailing, Prüfungen, Vereinsarbeit und Sachkunde sind im Alltag erprobt. Danke an alle, die seit den ersten Fassungen mitgetestet und Rückmeldungen gegeben haben."),
       },
