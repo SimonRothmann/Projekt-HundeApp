@@ -63,6 +63,12 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             .AsNoTracking()
             .ToListAsync(ct);
 
+        var arbeitseinsaetze = await db.ClubWorkParticipations
+            .Where(p => p.UserId == userId)
+            .Select(p => new { p.Event!.Date, Verein = p.Event.Club!.Name, p.Event.Title, Minuten = p.Minutes ?? p.Event.DurationMinutes })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
         var ziele = await db.Goals.Where(g => hundeIds.Contains(g.DogId)).AsNoTracking().ToListAsync(ct);
         var zielIds = ziele.Select(z => z.Id).ToList();
         var plaene = await db.TrainingPlans.Where(p => zielIds.Contains(p.GoalId)).AsNoTracking().ToListAsync(ct);
@@ -398,6 +404,10 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     },
                     m.Score,
                     m.ResultNote))
+                .ToList(),
+            arbeitseinsaetze
+                .OrderByDescending(a => a.Date)
+                .Select(a => new ArbeitseinsatzExportDto(a.Verein, a.Date, a.Title, a.Minuten))
                 .ToList());
 
         return Result<AccountExportDto>.Success(export);
@@ -570,6 +580,12 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         foreach (var e in await db.ClubExamEntries.IgnoreQueryFilters()
                      .Where(e => e.ResultByUserId == userId).ToListAsync(ct))
             e.ResultByUserId = null;
+        foreach (var x in await db.ClubWorkEvents.IgnoreQueryFilters()
+                     .Where(x => x.CreatedByUserId == userId).ToListAsync(ct))
+            x.CreatedByUserId = null;
+        foreach (var p in await db.ClubWorkParticipations.IgnoreQueryFilters()
+                     .Where(p => p.RecordedByUserId == userId).ToListAsync(ct))
+            p.RecordedByUserId = null;
         foreach (var q in await db.QuizQuestions.IgnoreQueryFilters()
                      .Where(q => q.EditedByUserId == userId).ToListAsync(ct))
             q.EditedByUserId = null;
@@ -605,6 +621,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         // nicht (auch die der Hunde, die mit ihr gehen). Vor dem Löschen der Ziele und Hunde.
         await ClubExamAnonymisierung.MitgliederEntfernenAsync(db, [userId], ct);
         await ClubExamAnonymisierung.HundeEntfernenAsync(db, alleinMeineHunde, ct);
+        // Arbeitseinsätze: Die Stunden bleiben in den Summen des Vereins, die Person nicht.
+        await ClubWorkAnonymisierung.MitgliederEntfernenAsync(db, [userId], ct);
 
         // Von innen nach außen entfernen, damit kein Fremdschlüssel ins Leere
         // zeigt, während die Datenbank noch mitten im Vorgang ist.

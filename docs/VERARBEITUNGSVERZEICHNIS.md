@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-11-04 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-11-06 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -109,6 +109,20 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Besonderheit | Rechte in jeder Methode von `ClubExamService` über `ClubAccessQueries.CanManageExamsAsync` (Ausbildungswart:in, Verwaltung des eigenen Vereins); fremder Verein oder fehlende Rolle: 404. Die Auswahl beim Eintragen zeigt der Prüfungsleitung Name und Hunde (Name, Rasse, Alter) der freigegebenen Mitglieder bzw. Rolleninhaber:innen des eigenen Vereins. Gäste: Freitext Dritter, nur im Eintrag; er wird beim Austragen und Löschen der Prüfung auch hinter dem Soft-Delete geleert. Ein Ergebnis „bestanden“ trägt über `GoalService` das Ziel der Familie ein (Leistung); die Familie behält die Hoheit darüber – hat sie das Ziel geändert oder gelöscht, ändert eine spätere Korrektur der Prüfungsleitung nur den Eintrag. |
 | Löschfrist | Gastdaten: mit dem Austragen des Teams bzw. dem Löschen der Prüfung (ein Prüfungstag mit Ergebnissen lässt sich nicht löschen; zuerst die Ergebnisse zurücknehmen). Austritt aus dem Verein, Löschen des Hundes oder des Kontos: Der Eintrag wird anonymisiert (Verweise auf Mitglied, Hund und Ziel leer; die Anzeige schreibt „Ehemaliges Mitglied“), das Ergebnis bleibt für die Vereinszahlen (`ClubExamAnonymisierung`, aufgerufen vom Vereins-Austritt, `DogService.DeleteAsync`, `AccountDataService.PurgeAsync` und `CommunityOrphanCleanup`). Beim Löschen des Kontos der Prüfungsleitung werden nur die Verweise auf sie leer. Sicherungen: siehe Abschnitt 2.6. |
 | Tabellen | `club_exams`, `club_exam_regulations`, `club_exam_entries` |
+
+### 2.4c Arbeitseinsätze des Vereins
+
+| | |
+|---|---|
+| Zweck | Der Verein hält fest, wer bei Arbeitseinsätzen (Platzpflege, Aufbau Prüfungstag, Vereinsheim ...) geholfen hat, um die Mithilfe anzuerkennen (Dank, Ehrungen) und zu planen. Es gibt keine Pflicht-Stunden, kein Soll, keine Selbsteintragung durch Mitglieder und keinen Bestätigungs-Workflow. |
+| Betroffene | Vereinsmitglieder (freigegebene Mitglieder und Rolleninhaber:innen), die die Verwaltung bei einem Einsatz abhakt |
+| Datenkategorien | Einsatz: Datum, Titel, Notiz, Dauer, wer ihn angelegt hat; je Teilnahme: Verweis auf das Konto (Name aus dem Konto), abweichende Minuten, wer sie eingetragen hat und wann |
+| Rechtsgrundlage | Art. 6 Abs. 1 lit. f – berechtigtes Interesse des Vereins, die Mithilfe seiner Mitglieder festzuhalten und anzuerkennen; es gibt keine Pflicht dazu. Widerspruch nach Art. 21 möglich, dann trägt die Verwaltung die Person aus. Transparenz statt Zustimmung: Jedes Mitglied sieht seine eigenen Einsätze und die Jahressumme in der App. |
+| Empfänger | Verwaltung (schreibt und liest) und Vorstand (liest) des Vereins sehen die Einsätze und die Auswertung mit Namen; das Mitglied sieht nur die eigenen; die Vereinsübersicht zeigt je Monat nur Summen (Zahl der Einsätze, Minuten); Hosting-Dienstleister (Auftragsverarbeiter). Keine Benachrichtigung beim Abhaken. |
+| Drittland | nein |
+| Besonderheit | Rechte in jeder Methode von `ClubWorkService` über `ClubAccessQueries.CanManageWorkEventsAsync` (Verwaltung) bzw. `CanViewWorkEventsAsync` (Verwaltung, Vorstand); „meine Einsätze“ für jedes Mitglied des Vereins. Fremder Verein oder fehlende Rolle: 404. Abgehakt wird erst ab dem Tag des Einsatzes. |
+| Löschfrist | Austritt aus dem Verein und Löschen des Kontos lösen die Teilnahme von der Person (Verweis leer; die Minuten zählen als „Ehemaliges Mitglied“ in den Summen weiter, `ClubWorkAnonymisierung`); Austragen auf Widerspruch löscht die Teilnahme endgültig; das Löschen eines Einsatzes löscht seine Teilnahmen endgültig. Automatisch werden Einsätze samt Teilnahmen endgültig gelöscht, wenn ihr Datum vor dem Beginn des drittletzten Kalenderjahres liegt (2026: vor dem 01.01.2024; täglicher Hintergrunddienst `ClubWorkRetentionBackgroundService`). Sicherungen: siehe Abschnitt 2.6. |
+| Tabellen | `club_work_events`, `club_work_participations` |
 
 ### 2.5 Sachkunde-Lernmodul und Benachrichtigungen
 
@@ -297,6 +311,7 @@ Auswahl.
 | Auskunft und Übertragbarkeit (Art. 15, 20) | `GET /api/profile/export`, in der App unter Profil → „Daten & Konto“ → „Meine Daten herunterladen“; enthält auch die Geräte mit Push (Bezeichnung und Zeitpunkte, ohne Adresse und Schlüssel), die Einstellung zu E-Mails, die Einstellungen der Erinnerungen und die versendeten Erinnerungen (Art, Bezug, Zeitpunkt) |
 | Löschung (Art. 17) | `DELETE /api/profile` mit Passwortbestätigung, in der App unter Profil → „Daten & Konto“ → „Konto löschen“; entfernt die Fachdaten und anschließend das Konto |
 | Berichtigung (Art. 16) | Profil, Hunde- und Trainingsbearbeitung in der App |
+| Arbeitseinsätze (2.4c) | Der Datenexport enthält die eigenen Teilnahmen (Verein, Datum, Titel, Minuten). Die Löschung des Kontos löst die Teilnahmen von der Person. Berichtigung und Widerspruch über die Verwaltung des Vereins (Austragen). |
 | Meldungen zu Prüfungen (2.4b) | Der Datenexport enthält die eigenen Meldungen (Verein, Datum, Ordnung, Hund, Ergebnis, Punkte, Bemerkung), nicht die Gastdaten (Daten der Gäste). Die Löschung des Kontos anonymisiert die Einträge. Berichtigung und Widerspruch über den Verein (Prüfungsleitung). |
 | Angemeldete ohne Konto (2.4a) | Auskunft, Berichtigung, Löschung formlos beim Verein oder per E-Mail an den Betreiber; die Trainer:innen bearbeiten und löschen Anmeldungen in der App (Trainer-Seite der Gruppe). Es gibt keinen Selbstbedienungs-Zugang, weil es kein Konto gibt. |
 | Einschränkung, Widerspruch (Art. 18, 21) | formlos per E-Mail |

@@ -7,6 +7,7 @@ import { rollenVon } from "@/lib/vereinsrollen";
 import { naechstePruefungText } from "@/lib/pruefungen";
 import { VereinsantragSection } from "@/components/clubs/vereinsantrag-section";
 import { MeineGruppenSection } from "@/components/clubs/meine-gruppen-section";
+import { MeineArbeitseinsaetzeKarte } from "@/components/arbeitseinsaetze/meine-karte";
 import type { Club, ClubSummary, ClubMembership, Group } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -200,6 +201,8 @@ export default function ClubsPage() {
                   {meiner?.nextExam && (
                     <p className="text-sm [overflow-wrap:anywhere]">{naechstePruefungText(t, meiner.nextExam, sprache)}</p>
                   )}
+                  {/* Jedes Mitglied sieht die eigenen Arbeitseinsätze (nur, wenn es welche gibt). */}
+                  {(isApproved || rollen.length > 0) && <MeineArbeitseinsaetzeKarte clubId={club.id} />}
                   {isApproved ? (
                     <div className="flex items-center gap-2">
                       <Badge>{t("Mitglied")}</Badge>

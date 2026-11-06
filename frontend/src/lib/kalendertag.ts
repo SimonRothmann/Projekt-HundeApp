@@ -20,7 +20,7 @@ const VEREINSZEIT = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Berlin"
  * rechnet (Vereinszeit.Tag). Für Regeln, die Frontend und Server gleich auslegen müssen (Planwoche);
  * was die Person am Gerät als "heute" sieht, bleibt `heuteIso`.
  */
-export function vereinszeitTag(zeitpunkt: number): string {
+export function vereinszeitTag(zeitpunkt: number = Date.now()): string {
   const teile = VEREINSZEIT.formatToParts(zeitpunkt);
   const wert = (art: string) => teile.find((t) => t.type === art)?.value ?? "";
   return `${wert("year")}-${wert("month")}-${wert("day")}`;

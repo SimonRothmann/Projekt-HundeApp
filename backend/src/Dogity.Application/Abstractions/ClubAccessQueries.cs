@@ -95,6 +95,14 @@ public static class ClubAccessQueries
     public static Task<bool> CanManageExamsAsync(this IApplicationDbContext db, Guid userId, Guid clubId, CancellationToken ct = default) =>
         HatRolleAsync(db, userId, clubId, ClubRollen.Pruefungen, ct);
 
+    /// <summary>Ob jemand die Arbeitseinsätze des Vereins führen darf (Verwaltung): anlegen, ändern, löschen, Helfer:innen abhaken.</summary>
+    public static Task<bool> CanManageWorkEventsAsync(this IApplicationDbContext db, Guid userId, Guid clubId, CancellationToken ct = default) =>
+        HatRolleAsync(db, userId, clubId, ClubRollen.Arbeitseinsaetze, ct);
+
+    /// <summary>Ob jemand die Arbeitseinsätze und ihre Auswertung mit Namen lesen darf (Verwaltung, Vorstand).</summary>
+    public static Task<bool> CanViewWorkEventsAsync(this IApplicationDbContext db, Guid userId, Guid clubId, CancellationToken ct = default) =>
+        HatRolleAsync(db, userId, clubId, ClubRollen.ArbeitseinsaetzeLesen, ct);
+
     /// <summary>Ob jemand die Vereinsübersicht lesen darf (Vorstand, Verwaltung) - wird erst mit der Vorstand-Übersicht genutzt.</summary>
     public static Task<bool> CanViewClubOverviewAsync(this IApplicationDbContext db, Guid userId, Guid clubId, CancellationToken ct = default) =>
         HatRolleAsync(db, userId, clubId, ClubRollen.Uebersicht, ct);

@@ -67,6 +67,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
     aenderungen: [
       {
         art: "neu",
+        text: uebersetzbar("Die Verwaltung eines Vereins kann Arbeitseinsätze eintragen und abhaken, wer geholfen hat – mit Jahresauswertung für Verwaltung und Vorstand. Jedes Mitglied sieht seine eigenen Einsätze."),
+      },
+      {
+        art: "neu",
         text: uebersetzbar("Ist bei einem Hund eine Impfung oder ein anderer Gesundheitstermin fällig, siehst du das jetzt schon in der Hundeliste."),
       },
       {

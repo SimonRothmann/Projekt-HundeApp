@@ -72,6 +72,9 @@ builder.Services.AddHostedService<ErinnerungBackgroundService>();
 // Aufbewahrungsfrist der Gruppen-Anmeldungen (12 Monate ohne Aktivität).
 builder.Services.AddHostedService<RegistrationRetentionBackgroundService>();
 
+// Aufbewahrungsfrist der Arbeitseinsätze (drittletztes Kalenderjahr).
+builder.Services.AddHostedService<ClubWorkRetentionBackgroundService>();
+
 // Versand von Mails und Push-Nachrichten außerhalb des Requests (Warteschlangen
 // in Dogity.Infrastructure). Auch ohne SMTP/VAPID registriert: Dann
 // protokolliert bzw. verwirft der Dienst nur, es ändert sich nichts an der Anwendung.

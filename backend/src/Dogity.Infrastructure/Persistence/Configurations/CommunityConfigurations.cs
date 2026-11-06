@@ -403,6 +403,41 @@ public class ClubExamEntryConfiguration : IEntityTypeConfiguration<ClubExamEntry
     }
 }
 
+public class ClubWorkEventConfiguration : IEntityTypeConfiguration<ClubWorkEvent>
+{
+    public void Configure(EntityTypeBuilder<ClubWorkEvent> builder)
+    {
+        builder.ToTable("club_work_events");
+        builder.Property(e => e.Title).HasMaxLength(Textlaengen.ArbeitseinsatzTitel).IsRequired();
+        builder.Property(e => e.Note).HasMaxLength(Textlaengen.ArbeitseinsatzNotiz);
+
+        builder.HasOne(e => e.Club)
+            .WithMany()
+            .HasForeignKey(e => e.ClubId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(e => new { e.ClubId, e.Date });
+    }
+}
+
+public class ClubWorkParticipationConfiguration : IEntityTypeConfiguration<ClubWorkParticipation>
+{
+    public void Configure(EntityTypeBuilder<ClubWorkParticipation> builder)
+    {
+        builder.ToTable("club_work_participations");
+
+        builder.HasOne(p => p.Event)
+            .WithMany(e => e.Participations)
+            .HasForeignKey(p => p.ClubWorkEventId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Eine Person steht höchstens einmal bei einem Einsatz. Zeilen ohne Person (ehemalige Mitglieder)
+        // dürfen sich beliebig oft gleichen: PostgreSQL behandelt NULL in einem eindeutigen Index als verschieden.
+        builder.HasIndex(p => new { p.ClubWorkEventId, p.UserId }).IsUnique();
+        builder.HasIndex(p => p.UserId);
+    }
+}
+
 public class ClubRegistrationConfiguration : IEntityTypeConfiguration<ClubRegistration>
 {
     public void Configure(EntityTypeBuilder<ClubRegistration> builder)

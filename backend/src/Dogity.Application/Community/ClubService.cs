@@ -319,6 +319,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         if (!await db.GehoertZumVereinAsync(userId, clubId, ct))
         {
             await ClubExamAnonymisierung.MitgliedAusVereinAsync(db, clubId, userId, ct);
+            await ClubWorkAnonymisierung.MitgliedAusVereinAsync(db, clubId, userId, ct);
             await db.SaveChangesAsync(ct);
         }
         await BeendeBetreuungenOhneGruppeAsync(clubId, userId, ct);
@@ -824,8 +825,9 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
             .ToListAsync(ct);
         foreach (var a in assignments) a.DeletedAt = now;
 
-        // Wer den Verein verlässt, bleibt auf den Meldelisten der Prüfungen nicht als Person stehen.
+        // Wer den Verein verlässt, bleibt auf den Meldelisten der Prüfungen und bei den Arbeitseinsätzen nicht als Person stehen.
         await ClubExamAnonymisierung.MitgliedAusVereinAsync(db, clubId, userId, ct);
+        await ClubWorkAnonymisierung.MitgliedAusVereinAsync(db, clubId, userId, ct);
 
         await db.SaveChangesAsync(ct);
         // Wer dadurch nirgends mehr Trainer:in ist, verliert das Kennzeichen.

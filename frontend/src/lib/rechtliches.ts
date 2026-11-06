@@ -108,7 +108,7 @@ export const SICHERUNG_AUFBEWAHRUNG = {
 } as const;
 
 /** Letzte inhaltliche Änderung an Impressum oder Datenschutzerklärung. */
-export const STAND = "2026-11-04";
+export const STAND = "2026-11-06";
 
 /**
  * Stand der englischen Datenschutzerklärung (app/datenschutz/datenschutz-en.tsx).
@@ -118,4 +118,4 @@ export const STAND = "2026-11-04";
  * deutsche Fassung ändert und STAND anhebt, bekommt so lange einen roten
  * Test, bis die englische nachgezogen und dieses Datum angehoben ist.
  */
-export const STAND_EN = "2026-11-04";
+export const STAND_EN = "2026-11-06";

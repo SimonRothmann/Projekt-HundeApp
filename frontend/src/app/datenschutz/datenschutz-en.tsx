@@ -114,6 +114,12 @@ export function DatenschutzEn() {
             "Entries for exam days of your club: name, your dog (name, breed, age), regulation, starting order and – after the exam – the result with points and a short remark; described in detail in section 10",
           ]}
         />
+        <p className="font-medium text-foreground">Work sessions of the club</p>
+        <Liste
+          punkte={[
+            "Taking part in work sessions of your club with date, title and hours – entered by the administration of the club",
+          ]}
+        />
         <p className="font-medium text-foreground">Sign-up to a group (without an account)</p>
         <Liste
           punkte={[
@@ -168,6 +174,7 @@ export function DatenschutzEn() {
             "Path of the person being searched for in mantrailing: Art. 6(1)(f) GDPR – there is no contract with that person. The legitimate interest is that the person who records can document their training; the intrusion is small because the person walks the path voluntarily and knows about it beforehand. They can object to the storage; the track is then deleted.",
             "Sign-up to a group through a sign-up form (without an account): Art. 6(1)(b) GDPR – see section 9.",
             "Club exams: Art. 6(1)(b) GDPR for the entry and the result, point (f) for the exam readiness – see section 10.",
+            "Work sessions of the club: Art. 6(1)(f) GDPR – the club’s legitimate interest is to record and recognise the help of its members; there is no obligation to take part. You can object under Art. 21 GDPR (section 12), then the administration removes you.",
             "Emails (welcome, password reset, invitations and decisions on join requests): Art. 6(1)(b) GDPR – they belong to the account and club functions. Whether you receive the emails about invitations and decisions, you choose at registration (preselected); you can unsubscribe at any time via the link in the email, without signing in, or under Profile → Features.",
             "Push notifications: Art. 6(1)(a) GDPR and Section 25(1) TDDDG (the German Telecommunications Digital Services Data Protection Act) – they only begin once you have switched them on yourself on a device and the browser or operating system has asked you for permission. You can switch them off in the app at any time or withdraw the permission in the device.",
             "Reminders (session the day before, track not yet walked, health of the dog, open feedback): Art. 6(1)(b) GDPR – they belong to the functions you use; you can switch off each one individually under Profile → Features. If they arrive as push, your consent to push from above applies in addition.",
@@ -348,6 +355,7 @@ export function DatenschutzEn() {
             "Health entries of your dog (vaccinations, deworming, parasite protection, vet appointments) are seen only by you and the co-owners. Trainers who look after the dog see none of it – not even that such entries exist. Nobody else sees them either. The server ensures this, not just the display.",
             "Your reply to a trainer’s feedback (“Thanks”, “Understood”, “Question”) is seen by the trainer who gave it and by the owners of the dog; it triggers a notification for the trainer. If the trainer writes new feedback, your reply is reset.",
             "Within a club the roles see different amounts, but never your training diary: Trainers see their groups and the members of those groups. The training officer and the administration see all groups of the club and the entry lists of the exam days (section 10). Membership management and the administration see the member list with name and email address, the join requests – including whether they came through the club’s invitation link – and the invitations. The board and the administration see name, group membership, roles and member-since date of the members as well as aggregated figures for the club (members, groups, sessions, acceptances and exams as totals) – no training diaries and no email addresses.",
+            "Work sessions: The administration of the club records who helped. Administration and board see the evaluation with names, you see your own sessions, nobody else; the club overview only shows totals.",
             "In the administration, the operator sees aggregated key figures, such as how many of the accounts of the last 30 days have created a dog. These are numbers, not persons; nothing is measured in the browser for this.",
             "Anyone who invites you to a club, to a group, as a trainer of a group or as a co-owner of a dog sees, until you accept, only the email address entered for that – not your name. If you decline, it stays that way.",
             "For technical reasons the operator can access the database, but does so only for troubleshooting and operation.",
@@ -473,6 +481,7 @@ export function DatenschutzEn() {
             "Individual entries – training sessions, tracks, dogs, training breaks, health entries: until you delete them.",
             "Sign-ups to a group without an account (section 9): until the trainers delete them, at the latest twelve months after the last attendance, change or sign-up.",
             "Exam days of the club with entry lists (section 10): until the exam organisers delete them; guest data with the exam or the team. The results remain without a personal reference for the club’s figures.",
+            "Work sessions of the club: until the administration removes you or deletes the session, at the latest until the end of the second calendar year after the session (older ones are deleted automatically and for good). If you leave the club or delete your account, only the hours remain, without a link to you.",
             "Login tokens on the server: the short-lived one after one hour, the renewal token after 60 days at the latest.",
             "Devices for push notifications: until you switch off push there, log out or delete your account; a device that the push service no longer knows is removed on the next send.",
             "The note “reminder sent”: 60 days, at the latest until you delete your account.",

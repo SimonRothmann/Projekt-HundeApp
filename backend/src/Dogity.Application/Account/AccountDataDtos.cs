@@ -29,7 +29,8 @@ public record AccountExportDto(
     IReadOnlyList<ErinnerungExportDto> ErinnerungenVersendet,
     // Am Ende mit Vorgabe, wie die übrigen später hinzugekommenen Teile: bestehende Aufrufer bleiben gültig.
     IReadOnlyList<GesundheitseintragExportDto>? Gesundheit = null,
-    IReadOnlyList<PruefungsmeldungExportDto>? Pruefungsmeldungen = null);
+    IReadOnlyList<PruefungsmeldungExportDto>? Pruefungsmeldungen = null,
+    IReadOnlyList<ArbeitseinsatzExportDto>? Arbeitseinsaetze = null);
 
 public record KontoExportDto(
     Guid Id,
@@ -126,6 +127,10 @@ public record PruefungsmeldungExportDto(
     string Ergebnis,
     int? Punkte,
     string? Bemerkung);
+
+/// <summary>Eine Teilnahme an einem Arbeitseinsatz des Vereins, die die Verwaltung für diese Person eingetragen hat.</summary>
+/// <param name="Minuten">Die Minuten, die zählen (die abweichenden, sonst die Dauer des Einsatzes).</param>
+public record ArbeitseinsatzExportDto(string Verein, DateOnly Datum, string Titel, int Minuten);
 
 public record TrainingExportDto(
     Guid Id,

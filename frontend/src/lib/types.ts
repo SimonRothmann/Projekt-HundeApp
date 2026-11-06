@@ -511,6 +511,9 @@ export type ClubOverviewMonth = {
   exams?: number;
   examTeams?: number;
   examsPassed?: number;
+  /** Arbeitseinsätze des Monats und die Minuten aller Helfer:innen zusammen - nur Summen. */
+  workEvents?: number;
+  workMinutes?: number;
 };
 export type ClubOverview = {
   memberCount: number;
@@ -555,6 +558,10 @@ export type Club = {
   canManageExams?: boolean;
   /** Der nächste Prüfungstag - nur für Training, Vorstand und die Prüfungsleitung, ohne Meldeliste. */
   nextExam?: VereinsPruefungHinweis | null;
+  /** Darf Arbeitseinsätze eintragen und abhaken (Verwaltung). */
+  canManageWork?: boolean;
+  /** Darf Arbeitseinsätze und ihre Auswertung lesen (Verwaltung, Vorstand). */
+  canViewWork?: boolean;
 };
 
 // Vereins-Trainingsbibliothek (siehe docs/GROUP_TRAINING_LIBRARY.md).
@@ -1722,3 +1729,59 @@ export type PruefungKandidat = {
 
 /** "Gemeldet: ..." auf der Hundeseite (DogExamRegistrationDto). */
 export type HundMeldung = { entryId: string; date: string; clubName: string; regulation: PruefungOrdnung };
+
+// Arbeitseinsätze des Vereins (ClubWorkService): Verwaltung schreibt, Verwaltung und Vorstand lesen.
+
+export type ArbeitseinsatzListe = {
+  id: string;
+  date: string;
+  title: string;
+  durationMinutes: number;
+  helperCount: number;
+  totalMinutes: number;
+};
+
+/** Eine abgehakte Person; `former`: nicht mehr im Verein (Namen leer, Anzeige "Ehemaliges Mitglied"). */
+export type ArbeitseinsatzHelfer = {
+  /** Id der Teilnahme, nicht der Person. */
+  id: string;
+  userId: string | null;
+  firstName: string;
+  lastName: string;
+  former: boolean;
+  /** Die Minuten, die zählen: die abweichenden, sonst die Dauer des Einsatzes. */
+  minutes: number;
+  /** Die Minuten weichen von der Dauer des Einsatzes ab. */
+  custom: boolean;
+};
+
+export type Arbeitseinsatz = {
+  id: string;
+  clubId: string;
+  clubName: string;
+  date: string;
+  title: string;
+  note: string | null;
+  durationMinutes: number;
+  participants: ArbeitseinsatzHelfer[];
+};
+
+export type ArbeitseinsatzKandidat = { userId: string; firstName: string; lastName: string };
+
+/** Eine Zeile der Jahresauswertung; in der Sammelzeile der Ehemaligen sind die Namen leer. */
+export type ArbeitseinsatzZeile = { firstName: string; lastName: string; eventCount: number; minutes: number };
+
+export type ArbeitseinsatzAuswertung = {
+  year: number;
+  /** Jahre mit Einsätzen, das neueste zuerst. */
+  years: number[];
+  eventCount: number;
+  participationCount: number;
+  totalMinutes: number;
+  rows: ArbeitseinsatzZeile[];
+  former: ArbeitseinsatzZeile | null;
+};
+
+export type MeinArbeitseinsatz = { id: string; date: string; title: string; minutes: number };
+
+export type MeineArbeitseinsaetze = { year: number; yearEventCount: number; yearMinutes: number; items: MeinArbeitseinsatz[] };

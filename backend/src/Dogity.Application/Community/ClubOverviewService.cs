@@ -8,7 +8,7 @@ namespace Dogity.Application.Community;
 /// <summary>
 /// Die Vereinsübersicht für Vorstand und Verwaltung (siehe
 /// <see cref="ClubOverviewDto"/>). Rechnet nur mit Vereinsdaten: Mitgliedschaften,
-/// Rollen, Gruppen, Gruppentermine und Zusagen, Prüfungstage und ihre Teams (nur Summen) - keine Trainingstagebücher und
+/// Rollen, Gruppen, Gruppentermine und Zusagen, Prüfungstage und ihre Teams, Arbeitseinsätze und ihre Stunden (nur Summen) - keine Trainingstagebücher und
 /// nichts zur App-Nutzung einzelner Personen. Damit entsteht keine neue
 /// Datenart, nur ein neuer Empfängerkreis (der Vorstand).
 ///
@@ -124,7 +124,7 @@ public class ClubOverviewService(IApplicationDbContext db, IUserLookupService us
     }
 
     /// <summary>
-    /// Termine, Zusagen und Prüfungen je Kalendermonat (deutsche Zeit) für die letzten 6
+    /// Termine, Zusagen, Prüfungen und Arbeitseinsätze je Kalendermonat (deutsche Zeit) für die letzten 6
     /// Monate bis einschließlich des laufenden. Zusagen zählen nur bei nicht
     /// abgesagten Terminen und nur von Personen, die jetzt aktives Mitglied der
     /// Gruppe sind (wie bei der Termin-Ansicht der Trainer:innen).
@@ -170,11 +170,25 @@ public class ClubOverviewService(IApplicationDbContext db, IUserLookupService us
                 .ToListAsync(ct))
             .ToDictionary(x => x.ExamId);
 
+        // Arbeitseinsätze nach ihrem Datum; nur Zahl und Minuten, keine Namen.
+        var einsaetze = await db.ClubWorkEvents
+            .Where(e => e.ClubId == clubId && e.Date >= erster && e.Date < ende)
+            .Select(e => new { e.Id, e.Date, e.DurationMinutes })
+            .AsNoTracking()
+            .ToListAsync(ct);
+        var einsatzIds = einsaetze.Select(e => e.Id).ToList();
+        var helfer = (await db.ClubWorkParticipations
+                .Where(p => einsatzIds.Contains(p.ClubWorkEventId))
+                .Select(p => new { p.ClubWorkEventId, p.Minutes })
+                .ToListAsync(ct))
+            .ToLookup(p => p.ClubWorkEventId);
+
         return Enumerable.Range(0, Monate)
             .Select(i => erster.AddMonths(i))
             .Select(monat =>
             {
                 var imMonatPruefungen = pruefungen.Where(p => p.Date.Year == monat.Year && p.Date.Month == monat.Month).ToList();
+                var imMonatEinsaetze = einsaetze.Where(e => e.Date.Year == monat.Year && e.Date.Month == monat.Month).ToList();
                 var imMonat = termine.Where(t =>
                 {
                     var tag = Vereinszeit.Tag(t.StartsAt);
@@ -189,7 +203,9 @@ public class ClubOverviewService(IApplicationDbContext db, IUserLookupService us
                     geplant.Sum(t => zusagen.GetValueOrDefault(t.Id)),
                     imMonatPruefungen.Count,
                     imMonatPruefungen.Sum(p => teams.TryGetValue(p.Id, out var z) ? z.Teams : 0),
-                    imMonatPruefungen.Sum(p => teams.TryGetValue(p.Id, out var z) ? z.Bestanden : 0));
+                    imMonatPruefungen.Sum(p => teams.TryGetValue(p.Id, out var z) ? z.Bestanden : 0),
+                    imMonatEinsaetze.Count,
+                    imMonatEinsaetze.Sum(e => helfer[e.Id].Sum(h => h.Minutes ?? e.DurationMinutes)));
             })
             .ToList();
     }

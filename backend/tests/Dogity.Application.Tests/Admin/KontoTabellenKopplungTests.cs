@@ -47,6 +47,9 @@ public class KontoTabellenKopplungTests
         // Prüfungen des Vereins: Der Prüfungstag und das Ergebnis gehören dem Verein; beim Mitglied-Team lösen
         // sich Person, Hund und Ziel (ClubExamAnonymisierung) - das Ergebnis bleibt für die Vereinszahlen.
         "ClubExam.CreatedByUserId", "ClubExamEntry.ResultByUserId", "ClubExamEntry.MemberUserId",
+        // Arbeitseinsätze des Vereins: Einsatz und Stunden gehören dem Verein; die Teilnahme verliert die Person
+        // (ClubWorkAnonymisierung), die Stunden bleiben in den Summen.
+        "ClubWorkEvent.CreatedByUserId", "ClubWorkParticipation.UserId", "ClubWorkParticipation.RecordedByUserId",
     ];
 
     /// <summary>Hängen an einer anderen Zeile (Einstellung) oder gehören zur Anmeldung (Identity).</summary>

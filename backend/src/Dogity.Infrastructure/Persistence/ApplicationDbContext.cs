@@ -67,6 +67,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ClubExam> ClubExams => Set<ClubExam>();
     public DbSet<ClubExamRegulation> ClubExamRegulations => Set<ClubExamRegulation>();
     public DbSet<ClubExamEntry> ClubExamEntries => Set<ClubExamEntry>();
+    public DbSet<ClubWorkEvent> ClubWorkEvents => Set<ClubWorkEvent>();
+    public DbSet<ClubWorkParticipation> ClubWorkParticipations => Set<ClubWorkParticipation>();
 
     public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
     public DbSet<UserDisabledModule> UserDisabledModules => Set<UserDisabledModule>();
@@ -169,6 +171,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<ClubExam>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<ClubExamRegulation>().HasQueryFilter(e => e.DeletedAt == null && e.Exam!.DeletedAt == null);
         builder.Entity<ClubExamEntry>().HasQueryFilter(e => e.DeletedAt == null && e.Exam!.DeletedAt == null);
+        builder.Entity<ClubWorkEvent>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<ClubWorkParticipation>().HasQueryFilter(e => e.DeletedAt == null && e.Event!.DeletedAt == null);
         builder.Entity<GpsTrack>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsPoint>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkRun>().HasQueryFilter(e => e.DeletedAt == null);

@@ -12,7 +12,8 @@ namespace Dogity.Application.Community;
 /// <see cref="AssignClubTrainerRequest"/>), die übrigen daraus abgeleitete Rechte
 /// (dieselben Rollenmengen wie ClubAccessQueries).
 /// <paramref name="NextExam"/> ist der nächste Prüfungstag (Datum, Ort, Ordnungen), den Training, Vorstand und
-/// die Prüfungsleitung hier sehen - nie die Meldeliste.
+/// die Prüfungsleitung hier sehen - nie die Meldeliste. <paramref name="CanManageWork"/> (Verwaltung) darf
+/// Arbeitseinsätze eintragen und abhaken, <paramref name="CanViewWork"/> (Verwaltung, Vorstand) die Auswertung lesen.
 /// </param>
 public record ClubDto(
     Guid Id,
@@ -27,7 +28,9 @@ public record ClubDto(
     bool IsTrainer = false,
     bool CanViewOverview = false,
     bool CanManageExams = false,
-    ClubExamHinweisDto? NextExam = null)
+    ClubExamHinweisDto? NextExam = null,
+    bool CanManageWork = false,
+    bool CanViewWork = false)
 {
     /// <summary>Der Verein aus Sicht einer Person mit diesen Rollen.</summary>
     public static ClubDto Fuer(Guid id, string name, string? description, int trainerCount, int groupCount, ClubRole roles, ClubExamHinweisDto? nextExam = null) =>
@@ -39,7 +42,9 @@ public record ClubDto(
             IsTrainer: (roles & ClubRollen.Trainer) != 0,
             CanViewOverview: (roles & ClubRollen.Uebersicht) != 0,
             CanManageExams: (roles & ClubRollen.Pruefungen) != 0,
-            NextExam: nextExam);
+            NextExam: nextExam,
+            CanManageWork: (roles & ClubRollen.Arbeitseinsaetze) != 0,
+            CanViewWork: (roles & ClubRollen.ArbeitseinsaetzeLesen) != 0);
 }
 
 /// <param name="Email">Nur für die, die Mitglieder verwalten dürfen (und den Admin); sonst null - Namen und Rollen genügen, um Rollen zu verteilen.</param>
@@ -155,9 +160,9 @@ public record ClubOverviewGroupDto(Guid Id, string Name, int MemberCount, int Tr
 /// "abgesagt"), <paramref name="Attendances"/> die Zusagen dazu: nur von
 /// aktuellen Gruppenmitgliedern, nur Summen, nichts je Person. Dazu die Prüfungstage
 /// des Monats (nicht abgesagt): ihre Zahl, die Teams darauf und davon die bestandenen -
-/// ebenfalls nur Summen.
+/// ebenfalls nur Summen. Ebenso die Arbeitseinsätze des Monats: ihre Zahl und die Minuten aller Helfer:innen zusammen.
 /// </summary>
-public record ClubOverviewMonthDto(int Year, int Month, int Planned, int Cancelled, int Attendances, int Exams = 0, int ExamTeams = 0, int ExamsPassed = 0);
+public record ClubOverviewMonthDto(int Year, int Month, int Planned, int Cancelled, int Attendances, int Exams = 0, int ExamTeams = 0, int ExamsPassed = 0, int WorkEvents = 0, int WorkMinutes = 0);
 
 /// <summary>
 /// Ein Mitglied in der Vorstandsübersicht: Name, Mitglied seit, Gruppen und
