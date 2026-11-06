@@ -91,7 +91,7 @@ Stand master nach diesem Eintrag. Prod = 0.40 (51979f9, verifiziert). Test = 0.4
 
 - [ ] ÖKV-Ordnungen Obedience und Rally Obedience gegen die Originale auf oekv.at prüfen, sobald die Seite wieder erreichbar ist (bisher aus einer Webarchiv-Kopie übernommen, siehe docs/PO_VERIFIKATION.md); VDH-RO-Senioren-Schildauswahl wurde nur aus Bildern abgelesen.
 - [ ] Titel werden in der Nutzersprache gespeichert ("Tollwut" vs. "Rabies" = verschiedene Titel nach Sprachwechsel, alte Erinnerung läuft weiter). Entscheiden: sprachunabhängige Kanon-Titel speichern oder so lassen (docs/GESUNDHEIT.md).
-- [ ] Hundeliste (/dogs) bekommt `DogDto.Gesundheit`, zeigt ihn aber nicht an; kein Hinweispunkt am Reiter bei Überfälligem.
+- [x] (K2, Fassung 0.50: Hundekarte zeigt überfällige Fristen; ein Hinweispunkt am Reiter "Gesundheit" der Hundeseite bleibt offen) Hundeliste (/dogs) bekommt `DogDto.Gesundheit`, zeigt ihn aber nicht an; kein Hinweispunkt am Reiter bei Überfälligem.
 - [x] (geprüft 2026-10-29: `KatalogTextlaengenTests` belegt für alle geseedeten Texte, auch die englischen, dass sie in die Spalten des EF-Modells passen - kein Überlauf, keine Spalte verlängert) Unbestätigt: Ein Sub-Worker meldete einen Absturz von `SeedSkgAgilityAsync` auf FRISCHER Postgres-Datenbank (varchar 2000). Der Prüflauf maß in-memory höchstens 1995 Zeichen (SKG Agility Klasse 2) - Reserve 5 Zeichen. Auf frischer DB nachstellen; ggf. Spalte verlängern (siehe Befund "Seed-Fehler" unten).
 
 ## Prüfung nach den Grundsätzen (2026-10-27)

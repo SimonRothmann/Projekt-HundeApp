@@ -212,6 +212,24 @@ public class TrainerRechteTests
     }
 
     [Fact]
+    public async Task Tagebuch_SagtJeTraining_ObDieAnsehendePersonEsSelbstEingetragenHat()
+    {
+        var a = await BaueAsync();
+        var familie = await TrageEinAsync(a, a.Besitzerin);
+        var eigene = await TrageEinAsync(a, a.Trainerin);
+
+        var sichtTrainerin = (await a.Trainings.GetByDogAsync(a.Trainerin, a.DogId)).Value!;
+        var sichtBesitzerin = (await a.Trainings.GetByDogAsync(a.Besitzerin, a.DogId)).Value!;
+
+        Assert.False(sichtTrainerin.Single(s => s.Id == familie.Id).VonMir);
+        Assert.True(sichtTrainerin.Single(s => s.Id == eigene.Id).VonMir);
+        Assert.True(sichtBesitzerin.Single(s => s.Id == familie.Id).VonMir);
+        Assert.False(sichtBesitzerin.Single(s => s.Id == eigene.Id).VonMir);
+        Assert.True((await a.Trainings.GetByIdAsync(a.Trainerin, eigene.Id)).Value!.VonMir);
+        Assert.False((await a.Trainings.GetByIdAsync(a.Trainerin, familie.Id)).Value!.VonMir);
+    }
+
+    [Fact]
     public async Task Faehrte_DerFamilie_KannDieTrainerinNichtLoeschen()
     {
         var a = await BaueAsync();

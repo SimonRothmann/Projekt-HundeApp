@@ -19,7 +19,7 @@ import { useSprache, useT } from "@/lib/i18n";
 import { uebungName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
 import { istNeuesFeedback } from "@/lib/feedback-gesehen";
-import { darfBearbeiten, ganzerTagBearbeitbar } from "@/lib/tagebuch";
+import { darfBearbeiten, einheitFuerTagesaenderung, ganzerTagBearbeitbar } from "@/lib/tagebuch";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { cn } from "@/lib/utils";
 import { tagAlsDatum } from "@/lib/kalendertag";
@@ -203,6 +203,13 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(date);
   const [saving, setSaving] = useState(false);
+  const feld = useRef<HTMLInputElement>(null);
+
+  // iOS-Safari schiebt das fokussierte Feld erst beim ersten Tastendruck über
+  // die Tastatur; deshalb nach dem Öffnen selbst in den Blick holen.
+  useEffect(() => {
+    if (editing) feld.current?.scrollIntoView({ block: "center" });
+  }, [editing]);
 
   async function save() {
     // Datum weggewischt oder unverändert: einfach zumachen, statt für einen
@@ -253,6 +260,7 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1.5">
       <Input
+        ref={feld}
         type="date"
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -290,9 +298,15 @@ function DayDuration({ sessions, onChanged }: { sessions: TrainingSession[]; onC
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(String(summe));
   const [saving, setSaving] = useState(false);
+  const feld = useRef<HTMLInputElement>(null);
   const minuten = Number(value);
   // Leer ist erlaubt (dann einfach zumachen), alles andere muss eine gültige Dauer sein.
   const ungueltig = value.trim() !== "" && !istGueltigeDauer(minuten);
+
+  // Wie bei DayDate: iOS-Safari lässt das Feld sonst unter der Tastatur.
+  useEffect(() => {
+    if (editing) feld.current?.scrollIntoView({ block: "center" });
+  }, [editing]);
 
   async function save() {
     // Leer oder unverändert: einfach zumachen, wie bei DayDate.
@@ -303,7 +317,7 @@ function DayDuration({ sessions, onChanged }: { sessions: TrainingSession[]; onC
     if (ungueltig) return;
     setSaving(true);
     try {
-      await api.put(`/api/trainings/${sessions[0].id}/duration`, { durationMinutes: minuten });
+      await api.put(`/api/trainings/${einheitFuerTagesaenderung(sessions).id}/duration`, { durationMinutes: minuten });
       toast.success(t("Dauer gespeichert."));
       setEditing(false);
       await onChanged();
@@ -335,6 +349,7 @@ function DayDuration({ sessions, onChanged }: { sessions: TrainingSession[]; onC
   return (
     <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
       <Input
+        ref={feld}
         type="number"
         inputMode="numeric"
         min={1}

@@ -86,7 +86,14 @@ public record TrainingSessionDto(
     /// TrainingsRechte): Besitzer:innen immer, Trainer:innen nur selbst
     /// eingetragene. Die Hundeseite blendet danach die Bearbeiten-Knöpfe aus.
     /// </summary>
-    bool DarfBearbeiten = true);
+    bool DarfBearbeiten = true,
+    /// <summary>
+    /// Ob die ansehende Person dieses Training selbst eingetragen hat. Ohne
+    /// fremde Kennungen im Frontend: Es kann damit unter mehreren Einheiten
+    /// eines Tages die eigene ansprechen (z. B. beim Ändern der Dauer). Nur in
+    /// den Lesepfaden (GetByDog, GetById) berechnet, sonst false.
+    /// </summary>
+    bool VonMir = false);
 
 public record SetFeedbackRequest(string Feedback);
 

@@ -61,6 +61,21 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "0.50",
+    datum: "2026-11-06",
+    titel: uebersetzbar("Arbeitseinsätze im Verein"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Ist bei einem Hund eine Impfung oder ein anderer Gesundheitstermin fällig, siehst du das jetzt schon in der Hundeliste."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("„Dauer ändern“ und „Datum ändern“ im Tagebuch: Das Eingabefeld bleibt auf dem iPhone über der Tastatur, und an Tagen mit Einträgen von dir und deiner Trainer:in ändert die Korrektur der Dauer deinen eigenen Eintrag."),
+      },
+    ],
+  },
+  {
     version: "0.49",
     datum: "2026-11-04",
     titel: uebersetzbar("Angemeldet bleiben"),

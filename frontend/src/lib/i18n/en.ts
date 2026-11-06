@@ -2474,6 +2474,9 @@ export const EN: Record<string, string> = {
   "{hund}: {titel} seit {datum} fällig": "{hund}: {titel} due since {datum}",
   "{text} und 1 weitere": "{text} and 1 more",
   "{text} und {n} weitere": "{text} and {n} more",
+  "{art} überfällig": "{art} overdue",
+  "{n} Gesundheitsfristen überfällig": "{n} health deadlines overdue",
+  "Gesundheitsfrist überfällig": "Health deadline overdue",
   "Überfällig": "Overdue",
   "übermorgen": "the day after tomorrow",
   "Bitte eine Art für den Eintrag wählen.": "Please choose a type for the entry.",
@@ -2791,4 +2794,7 @@ export const EN: Record<string, string> = {
   "Angemeldet bleiben": "Staying logged in",
   "Du bleibst zuverlässiger angemeldet: Ging beim Wechsel zwischen Apps oder bei schlechtem Netz die Erneuerung der Anmeldung verloren, musstest du dich neu anmelden – auch auf deinen anderen Geräten. Das passiert nicht mehr; ist die App in mehreren Tabs offen, stören sie sich dabei nicht mehr.": "You stay logged in more reliably: If renewing your login got lost when switching between apps or on a poor connection, you had to log in again – on your other devices too. That no longer happens; if the app is open in several tabs, they no longer get in each other’s way.",
   "Eine falsch eingetragene Trainingsdauer lässt sich jetzt korrigieren: Tag im Tagebuch aufklappen und „Dauer ändern“ antippen.": "A wrongly entered training duration can now be corrected: open the day in the diary and tap “Change duration”.",
+  "Arbeitseinsätze im Verein": "Work sessions at the club",
+  "Ist bei einem Hund eine Impfung oder ein anderer Gesundheitstermin fällig, siehst du das jetzt schon in der Hundeliste.": "If a dog has a vaccination or another health appointment due, you can now see it right in the dog list.",
+  "„Dauer ändern“ und „Datum ändern“ im Tagebuch: Das Eingabefeld bleibt auf dem iPhone über der Tastatur, und an Tagen mit Einträgen von dir und deiner Trainer:in ändert die Korrektur der Dauer deinen eigenen Eintrag.": "“Change duration” and “Change date” in the diary: on iPhone the input field now stays above the keyboard, and on days with entries from both you and your trainer, correcting the duration changes your own entry.",
 };

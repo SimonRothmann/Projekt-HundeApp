@@ -72,8 +72,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         var istBesitzer = await db.IstBesitzerAsync(userId, dogId, ct);
         return Result<IReadOnlyList<TrainingSessionDto>>.Success(
             sessions.Select(s => firstTrackBySession.TryGetValue(s.Id, out var track)
-                ? ToDto(s, hasGpsTrack: true, track.LengthMeters, track.Surface, TrainingsRechte.DarfBearbeiten(s.UserId, userId, istBesitzer))
-                : ToDto(s, hasGpsTrack: false, darfBearbeiten: TrainingsRechte.DarfBearbeiten(s.UserId, userId, istBesitzer))).ToList());
+                ? ToDto(s, hasGpsTrack: true, track.LengthMeters, track.Surface, darfBearbeiten: TrainingsRechte.DarfBearbeiten(s.UserId, userId, istBesitzer), vonMir: s.UserId == userId)
+                : ToDto(s, hasGpsTrack: false, darfBearbeiten: TrainingsRechte.DarfBearbeiten(s.UserId, userId, istBesitzer), vonMir: s.UserId == userId)).ToList());
     }
 
     public async Task<Result<TrainingSessionDto>> GetByIdAsync(Guid userId, Guid sessionId, CancellationToken ct = default)
@@ -83,7 +83,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             return Result<TrainingSessionDto>.NotFound("Training nicht gefunden.");
 
         var darfBearbeiten = TrainingsRechte.DarfBearbeiten(session.UserId, userId, await db.IstBesitzerAsync(userId, session.DogId, ct));
-        return Result<TrainingSessionDto>.Success(ToDto(session, await HasGpsTrackAsync(session.Id, ct), darfBearbeiten: darfBearbeiten));
+        return Result<TrainingSessionDto>.Success(ToDto(session, await HasGpsTrackAsync(session.Id, ct), darfBearbeiten: darfBearbeiten, vonMir: session.UserId == userId));
     }
 
     private Task<bool> HasGpsTrackAsync(Guid sessionId, CancellationToken ct)
@@ -965,7 +965,8 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
     // darfBearbeiten: Wer ein Training gerade geändert oder angelegt hat, darf es
     // bearbeiten - nur die Lesepfade (GetByDog, GetById) müssen es ausrechnen.
-    private static TrainingSessionDto ToDto(TrainingSession s, bool hasGpsTrack, double? trackLengthMeters = null, string? trackSurface = null, bool darfBearbeiten = true) => new(
+    // vonMir ebenso; die Antworten der Schreibpfade nutzt das Frontend dafür nicht.
+    private static TrainingSessionDto ToDto(TrainingSession s, bool hasGpsTrack, double? trackLengthMeters = null, string? trackSurface = null, bool darfBearbeiten = true, bool vonMir = false) => new(
         s.Id,
         s.DogId,
         s.Date,
@@ -1001,5 +1002,6 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         s.TrainerReviewedAt,
         trackLengthMeters,
         trackSurface,
-        darfBearbeiten);
+        darfBearbeiten,
+        vonMir);
 }

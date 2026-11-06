@@ -253,6 +253,9 @@ export type TrainingSession = {
   // Fehlt bei älteren Lesecache-Ständen - gilt dann als ja (der Server prüft
   // ohnehin).
   darfBearbeiten?: boolean;
+  // Ob die angemeldete Person die Einheit selbst eingetragen hat (nur in der
+  // Liste vom Server gesetzt; fehlt im älteren Lesecache - gilt dann als nein).
+  vonMir?: boolean;
 };
 
 // Schnelle Reaktion auf Trainer-Feedback. Numerisch wie alle Enums der API.

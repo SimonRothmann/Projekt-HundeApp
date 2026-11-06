@@ -156,6 +156,17 @@ export function ganzerTagBearbeitbar(tag: readonly TrainingSession[], istBesitze
   return tag.every((s) => darfBearbeiten(s, istBesitzer));
 }
 
+/**
+ * Die Einheit, die eine Änderung am ganzen Tag ansprechen soll (Dauer): die,
+ * die die Person selbst eingetragen hat, sonst die erste. Der Server verteilt
+ * eine Tagessumme so, dass die angesprochene Einheit den Rest bekommt - an
+ * einem Tag mit Einträgen von Familie und Trainer:in soll die Korrektur der
+ * Besitzerin nicht auf dem Eintrag der Trainer:in landen.
+ */
+export function einheitFuerTagesaenderung(tag: readonly TrainingSession[]): TrainingSession {
+  return tag.find((s) => s.vonMir) ?? tag[0];
+}
+
 // ---- Filter ----
 
 export type TagesFilter = "alle" | "faehrten" | "feedback";

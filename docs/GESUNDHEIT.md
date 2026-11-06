@@ -122,4 +122,4 @@ Siehe `docs/DEMO_DATEN.md`, Szenario „Gesundheit“: Max' Bello und Emma.
 ## Nicht Teil dieses Pakets
 
 Kein Foto vom Impfpass; keine Impfintervall-Vorschläge; keine Erinnerung an Überfälliges nach dem Tag selbst; keine Erinnerung per E-Mail;
-Gruppentraining und Hundeliste zeigen den Stand nicht (die Hundeliste bekommt das Feld, nutzt es aber noch nicht).
+das Gruppentraining zeigt den Stand nicht; die Hundeliste zeigt nur Überfälliges (eine Zeile an der Karte, `ueberfaelligZeile`), „bald fällig“ und Termine zeigt sie nicht.

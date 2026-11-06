@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   darfBearbeiten,
+  einheitFuerTagesaenderung,
   ganzerTagBearbeitbar,
   geltenderFilter,
   laufAmTag,
@@ -209,5 +210,16 @@ describe("darfBearbeiten / ganzerTagBearbeitbar", () => {
     expect(ganzerTagBearbeitbar([einheit({ darfBearbeiten: true }), einheit()], true)).toBe(true);
     expect(ganzerTagBearbeitbar([einheit({ darfBearbeiten: true }), einheit()], false)).toBe(false);
     expect(ganzerTagBearbeitbar([einheit({ darfBearbeiten: true }), einheit({ darfBearbeiten: false })], true)).toBe(false);
+  });
+});
+
+describe("einheitFuerTagesaenderung", () => {
+  it("nimmt die selbst eingetragene Einheit, auch wenn sie nicht die erste ist", () => {
+    const tag = [einheit({ id: "trainerin", vonMir: false }), einheit({ id: "ich", vonMir: true })];
+    expect(einheitFuerTagesaenderung(tag).id).toBe("ich");
+  });
+
+  it("nimmt sonst die erste Einheit", () => {
+    expect(einheitFuerTagesaenderung([einheit({ id: "a" }), einheit({ id: "b", vonMir: false })]).id).toBe("a");
   });
 });
