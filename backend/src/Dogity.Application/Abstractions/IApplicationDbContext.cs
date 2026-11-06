@@ -64,6 +64,7 @@ public interface IApplicationDbContext
     DbSet<ClubExamEntry> ClubExamEntries { get; }
     DbSet<ClubWorkEvent> ClubWorkEvents { get; }
     DbSet<ClubWorkParticipation> ClubWorkParticipations { get; }
+    DbSet<ClubWorkGuest> ClubWorkGuests { get; }
 
     DbSet<UserPreference> UserPreferences { get; }
     DbSet<UserDisabledModule> UserDisabledModules { get; }

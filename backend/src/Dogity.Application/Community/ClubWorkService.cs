@@ -74,6 +74,20 @@ public class ClubWorkService(IApplicationDbContext db, IUserLookupService userLo
         return Result<IReadOnlyList<ClubWorkCandidateDto>>.Success(liste);
     }
 
+    public async Task<Result<IReadOnlyList<ClubWorkGuestDto>>> GetGuestsAsync(Guid userId, Guid clubId, CancellationToken ct = default)
+    {
+        if (!await db.CanManageWorkEventsAsync(userId, clubId, ct))
+            return Result<IReadOnlyList<ClubWorkGuestDto>>.NotFound("Verein nicht gefunden.");
+
+        var gaeste = await db.ClubWorkGuests.Where(g => g.ClubId == clubId).AsNoTracking().ToListAsync(ct);
+        IReadOnlyList<ClubWorkGuestDto> liste = gaeste
+            .Select(g => new ClubWorkGuestDto(g.Id, g.FirstName, g.LastName ?? ""))
+            .OrderBy(g => g.LastName, StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(g => g.FirstName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        return Result<IReadOnlyList<ClubWorkGuestDto>>.Success(liste);
+    }
+
     public async Task<Result<ClubWorkSummaryDto>> GetSummaryAsync(Guid userId, Guid clubId, int? year, CancellationToken ct = default)
     {
         if (!await db.CanViewWorkEventsAsync(userId, clubId, ct))
@@ -96,21 +110,27 @@ public class ClubWorkService(IApplicationDbContext db, IUserLookupService userLo
         var ids = dauer.Keys.ToList();
         var teilnahmen = (await db.ClubWorkParticipations
                 .Where(p => ids.Contains(p.ClubWorkEventId))
-                .Select(p => new { p.ClubWorkEventId, p.UserId, p.Minutes })
+                .Select(p => new { p.ClubWorkEventId, p.UserId, p.GuestId, p.Minutes })
                 .ToListAsync(ct))
-            .Select(p => new { p.ClubWorkEventId, p.UserId, Minuten = p.Minutes ?? dauer[p.ClubWorkEventId] })
+            .Select(p => new { p.ClubWorkEventId, p.UserId, p.GuestId, Minuten = p.Minutes ?? dauer[p.ClubWorkEventId] })
             .ToList();
 
         var namen = await userLookup.FindByIdsAsync(
             teilnahmen.Where(p => p.UserId is not null).Select(p => p.UserId!.Value).Distinct().ToList(), ct);
-        // Wen es als Konto nicht mehr gibt, zählt wie ein ehemaliges Mitglied.
+        var gaeste = await GaesteAsync(teilnahmen.Where(p => p.GuestId is not null).Select(p => p.GuestId!.Value).Distinct().ToList(), ct);
+        // Wen es als Konto nicht mehr gibt, zählt wie ein ehemaliges Mitglied; Personen ohne Konto haben eigene Zeilen.
         bool Bekannt(Guid? id) => id is { } wer && namen.ContainsKey(wer);
+        bool BekannterGast(Guid? id) => id is { } wer && gaeste.ContainsKey(wer);
         var bekannt = teilnahmen.Where(p => Bekannt(p.UserId)).ToList();
-        var ehemalige = teilnahmen.Where(p => !Bekannt(p.UserId)).ToList();
+        var ehemalige = teilnahmen.Where(p => !Bekannt(p.UserId) && !BekannterGast(p.GuestId)).ToList();
 
         var zeilen = bekannt
             .GroupBy(p => p.UserId!.Value)
             .Select(g => new ClubWorkSummaryRowDto(namen[g.Key].FirstName, namen[g.Key].LastName, g.Count(), g.Sum(p => p.Minuten)))
+            .Concat(teilnahmen
+                .Where(p => BekannterGast(p.GuestId))
+                .GroupBy(p => p.GuestId!.Value)
+                .Select(g => new ClubWorkSummaryRowDto(gaeste[g.Key].FirstName, gaeste[g.Key].LastName ?? "", g.Count(), g.Sum(p => p.Minuten), Guest: true)))
             .OrderByDescending(z => z.Minutes)
             .ThenBy(z => z.LastName, StringComparer.CurrentCultureIgnoreCase)
             .ThenBy(z => z.FirstName, StringComparer.CurrentCultureIgnoreCase)
@@ -205,37 +225,133 @@ public class ClubWorkService(IApplicationDbContext db, IUserLookupService userLo
         if (einsatz.Date > Heute()) return Result.Failure("Helfer:innen lassen sich erst ab dem Tag des Einsatzes abhaken.");
 
         var gewollt = (request.UserIds ?? []).Distinct().ToList();
-        if (gewollt.Count == 0) return Result.Failure("Bitte wähle mindestens eine Person.");
+        var gewollteGaeste = (request.GuestIds ?? []).Distinct().ToList();
+        if (gewollt.Count == 0 && gewollteGaeste.Count == 0) return Result.Failure("Bitte wähle mindestens eine Person.");
         var imVerein = await db.VereinsPersonenIds(clubId).Where(id => gewollt.Contains(id)).CountAsync(ct);
         if (imVerein != gewollt.Count) return Result.Failure("Diese Person gehört nicht zum Verein.");
+        var gaesteImVerein = await db.ClubWorkGuests.Where(g => g.ClubId == clubId && gewollteGaeste.Contains(g.Id)).CountAsync(ct);
+        if (gaesteImVerein != gewollteGaeste.Count) return Result.Failure("Diese Person gehört nicht zum Verein.");
 
-        var schonDa = await db.ClubWorkParticipations
-            .Where(p => p.ClubWorkEventId == einsatz.Id && p.UserId != null)
-            .Select(p => p.UserId!.Value)
+        var vorhandene = await db.ClubWorkParticipations
+            .Where(p => p.ClubWorkEventId == einsatz.Id)
+            .Select(p => new { p.UserId, p.GuestId })
             .ToListAsync(ct);
+        var schonDa = vorhandene.Where(p => p.UserId != null).Select(p => p.UserId!.Value).ToList();
+        var gastSchonDa = vorhandene.Where(p => p.GuestId != null).Select(p => p.GuestId!.Value).ToList();
 
         // Je Person ein eigenes Speichern: Gleichzeitige Anfragen (Doppeltipp, zwei Personen der Verwaltung)
         // können sich so nicht gegenseitig verklemmen - mehrere Zeilen in einem Speichern sperren in
         // wechselnder Reihenfolge, und Postgres bricht dann eine Anfrage ab. Wer inzwischen von der anderen
         // Anfrage abgehakt wurde, scheitert am eindeutigen Index; das ist kein Fehler, die Person steht ja da.
         foreach (var id in gewollt.Except(schonDa))
+            await HakeAbAsync(new ClubWorkParticipation { ClubWorkEventId = einsatz.Id, UserId = id }, userId, ct);
+        foreach (var id in gewollteGaeste.Except(gastSchonDa))
+            await HakeAbAsync(new ClubWorkParticipation { ClubWorkEventId = einsatz.Id, GuestId = id }, userId, ct);
+        return Result.Success();
+    }
+
+    private async Task HakeAbAsync(ClubWorkParticipation teilnahme, Guid userId, CancellationToken ct)
+    {
+        teilnahme.RecordedByUserId = userId;
+        teilnahme.RecordedAt = timeProvider.GetUtcNow();
+        db.ClubWorkParticipations.Add(teilnahme);
+        try
         {
-            var teilnahme = new ClubWorkParticipation
+            await db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex) when (IstGleichzeitigerKonflikt(ex) || IstInzwischenWeg(ex))
+        {
+            // Schon abgehakt, oder die Person ohne Konto wurde gleichzeitig gelöscht bzw. zugeordnet:
+            // dann gibt es nichts mehr abzuhaken.
+            db.ClubWorkParticipations.Remove(teilnahme);
+        }
+    }
+
+    // ---------- Helfer:innen ohne Konto ----------
+
+    public async Task<Result<ClubWorkGuestDto>> CreateGuestAsync(Guid userId, Guid clubId, SaveClubWorkGuestRequest request, CancellationToken ct = default)
+    {
+        if (!await db.CanManageWorkEventsAsync(userId, clubId, ct))
+            return Result<ClubWorkGuestDto>.NotFound("Verein nicht gefunden.");
+        var fehler = PruefeGast(request);
+        if (fehler is not null) return Result<ClubWorkGuestDto>.Failure(fehler);
+
+        var gast = new ClubWorkGuest { ClubId = clubId, CreatedByUserId = userId };
+        UebernimmGast(gast, request);
+        db.ClubWorkGuests.Add(gast);
+        await db.SaveChangesAsync(ct);
+        return Result<ClubWorkGuestDto>.Success(new ClubWorkGuestDto(gast.Id, gast.FirstName, gast.LastName ?? ""));
+    }
+
+    public async Task<Result<ClubWorkGuestDto>> UpdateGuestAsync(Guid userId, Guid clubId, Guid guestId, SaveClubWorkGuestRequest request, CancellationToken ct = default)
+    {
+        var gast = await LadeGastAsync(userId, clubId, guestId, ct);
+        if (gast is null) return Result<ClubWorkGuestDto>.NotFound("Person nicht gefunden.");
+        var fehler = PruefeGast(request);
+        if (fehler is not null) return Result<ClubWorkGuestDto>.Failure(fehler);
+
+        UebernimmGast(gast, request);
+        gast.UpdatedAt = timeProvider.GetUtcNow();
+        await db.SaveChangesAsync(ct);
+        return Result<ClubWorkGuestDto>.Success(new ClubWorkGuestDto(gast.Id, gast.FirstName, gast.LastName ?? ""));
+    }
+
+    public async Task<Result> DeleteGuestAsync(Guid userId, Guid clubId, Guid guestId, CancellationToken ct = default)
+    {
+        var gast = await LadeGastAsync(userId, clubId, guestId, ct);
+        if (gast is null) return Result.NotFound("Person nicht gefunden.");
+
+        // Endgültig, samt Teilnahmen: Es sind Angaben zu einer Person ohne eigenes Konto, die der Verein auf Wunsch entfernen können muss.
+        db.ClubWorkParticipations.RemoveRange(
+            await db.ClubWorkParticipations.IgnoreQueryFilters().Where(p => p.GuestId == gast.Id).ToListAsync(ct));
+        db.ClubWorkGuests.Remove(gast);
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> AssignGuestAsync(Guid userId, Guid clubId, Guid guestId, AssignClubWorkGuestRequest request, CancellationToken ct = default)
+    {
+        var gast = await LadeGastAsync(userId, clubId, guestId, ct);
+        if (gast is null) return Result.NotFound("Person nicht gefunden.");
+        if (!await db.VereinsPersonenIds(clubId).AnyAsync(id => id == request.UserId, ct))
+            return Result.Failure("Diese Person gehört nicht zum Verein.");
+
+        var vonGast = await db.ClubWorkParticipations.Where(p => p.GuestId == gast.Id).ToListAsync(ct);
+        var einsatzIds = vonGast.Select(p => p.ClubWorkEventId).ToList();
+        var dauer = await db.ClubWorkEvents.Where(e => einsatzIds.Contains(e.Id)).ToDictionaryAsync(e => e.Id, e => e.DurationMinutes, ct);
+        var vomMitglied = (await db.ClubWorkParticipations
+                .Where(p => p.UserId == request.UserId && einsatzIds.Contains(p.ClubWorkEventId))
+                .ToListAsync(ct))
+            .ToDictionary(p => p.ClubWorkEventId);
+
+        foreach (var teilnahme in vonGast)
+        {
+            if (!vomMitglied.TryGetValue(teilnahme.ClubWorkEventId, out var vorhanden))
             {
-                ClubWorkEventId = einsatz.Id,
-                UserId = id,
-                RecordedByUserId = userId,
-                RecordedAt = timeProvider.GetUtcNow()
-            };
-            db.ClubWorkParticipations.Add(teilnahme);
-            try
-            {
-                await db.SaveChangesAsync(ct);
+                teilnahme.GuestId = null;
+                teilnahme.UserId = request.UserId;
+                teilnahme.UpdatedAt = timeProvider.GetUtcNow();
+                continue;
             }
-            catch (Exception ex) when (IstGleichzeitigerKonflikt(ex))
+            // Das Mitglied ist bei diesem Einsatz schon abgehakt: Es bleibt die Teilnahme mit den höheren Minuten.
+            var einsatzDauer = dauer.GetValueOrDefault(teilnahme.ClubWorkEventId);
+            if ((teilnahme.Minutes ?? einsatzDauer) > (vorhanden.Minutes ?? einsatzDauer))
             {
-                db.ClubWorkParticipations.Remove(teilnahme);
+                vorhanden.Minutes = teilnahme.Minutes;
+                vorhanden.UpdatedAt = timeProvider.GetUtcNow();
             }
+            db.ClubWorkParticipations.Remove(teilnahme);
+        }
+        db.ClubWorkGuests.Remove(gast);
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex) when (IstGleichzeitigerKonflikt(ex))
+        {
+            // Zwischendurch wurde das Mitglied von einer anderen Anfrage abgehakt; ein neuer Versuch sieht es.
+            return Result.Failure("Das Zuordnen hat sich mit einer anderen Änderung überschnitten. Bitte versuche es noch einmal.");
         }
         return Result.Success();
     }
@@ -284,6 +400,14 @@ public class ClubWorkService(IApplicationDbContext db, IUserLookupService userLo
         return false;
     }
 
+    private static bool IstInzwischenWeg(Exception ex)
+    {
+        for (var e = ex; e is not null; e = e.InnerException)
+            if (e is DbException { SqlState: FremdschluesselVerletzt })
+                return true;
+        return false;
+    }
+
     private DateOnly Heute() => Vereinszeit.Tag(timeProvider.GetUtcNow());
 
     /// <summary>Der Einsatz, wenn die Person ihn lesen (oder mit <paramref name="schreiben"/> ändern) darf - sonst null (fremder Verein, fehlende Rolle, gibt es nicht).</summary>
@@ -293,6 +417,31 @@ public class ClubWorkService(IApplicationDbContext db, IUserLookupService userLo
         if (!darf) return null;
         var abfrage = db.ClubWorkEvents.Where(e => e.Id == eventId && e.ClubId == clubId);
         return await (track ? abfrage : abfrage.AsNoTracking()).FirstOrDefaultAsync(ct);
+    }
+
+    /// <summary>Die Person ohne Konto, wenn die Person sie ändern darf (Verwaltung des Vereins) - sonst null.</summary>
+    private async Task<ClubWorkGuest?> LadeGastAsync(Guid userId, Guid clubId, Guid guestId, CancellationToken ct)
+    {
+        if (!await db.CanManageWorkEventsAsync(userId, clubId, ct)) return null;
+        return await db.ClubWorkGuests.FirstOrDefaultAsync(g => g.Id == guestId && g.ClubId == clubId, ct);
+    }
+
+    private async Task<Dictionary<Guid, ClubWorkGuest>> GaesteAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+        ids.Count == 0
+            ? []
+            : await db.ClubWorkGuests.Where(g => ids.Contains(g.Id)).AsNoTracking().ToDictionaryAsync(g => g.Id, ct);
+
+    private static string? PruefeGast(SaveClubWorkGuestRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.FirstName)) return "Bitte einen Vornamen angeben.";
+        return Textlaengen.ZuLang(request.FirstName, Textlaengen.ArbeitseinsatzGastName, "Der Vorname")
+            ?? Textlaengen.ZuLang(request.LastName, Textlaengen.ArbeitseinsatzGastName, "Der Nachname");
+    }
+
+    private static void UebernimmGast(ClubWorkGuest gast, SaveClubWorkGuestRequest request)
+    {
+        gast.FirstName = request.FirstName.Trim();
+        gast.LastName = Texte.NullIfBlank(request.LastName);
     }
 
     private string? Pruefe(SaveClubWorkEventRequest request)
@@ -333,14 +482,18 @@ public class ClubWorkService(IApplicationDbContext db, IUserLookupService userLo
             .ToListAsync(ct);
         var namen = await userLookup.FindByIdsAsync(
             teilnahmen.Where(p => p.UserId is not null).Select(p => p.UserId!.Value).Distinct().ToList(), ct);
+        var gaeste = await GaesteAsync(teilnahmen.Where(p => p.GuestId is not null).Select(p => p.GuestId!.Value).Distinct().ToList(), ct);
 
         var helfer = teilnahmen
             .Select(p =>
             {
+                var minuten = p.Minutes ?? einsatz.DurationMinutes;
+                if (p.GuestId is { } gastId && gaeste.TryGetValue(gastId, out var gast))
+                    return new ClubWorkParticipantDto(p.Id, null, gast.FirstName, gast.LastName ?? "", false, minuten, p.Minutes is not null, gastId, true);
                 var info = p.UserId is { } id && namen.TryGetValue(id, out var gefunden) ? gefunden : null;
                 return new ClubWorkParticipantDto(
                     p.Id, info is null ? null : p.UserId, info?.FirstName ?? "", info?.LastName ?? "", info is null,
-                    p.Minutes ?? einsatz.DurationMinutes, p.Minutes is not null);
+                    minuten, p.Minutes is not null);
             })
             // Ehemalige Mitglieder ans Ende, die übrigen nach Namen.
             .OrderBy(h => h.Former)

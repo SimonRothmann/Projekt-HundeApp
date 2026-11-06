@@ -8,6 +8,7 @@ import {
   csvFeld,
   dauerText,
   filtereKandidaten,
+  gleicheGastPerson,
   helferName,
   minutenAusEingabe,
   pruefeEinsatz,
@@ -100,6 +101,44 @@ describe("Auswahl der Personen", () => {
   });
 });
 
+describe("Personen ohne Konto", () => {
+  const liste = [
+    { id: "1", firstName: "Karl", lastName: "Opa" },
+    { id: "2", firstName: "Erna", lastName: "" },
+  ];
+
+  it("erkennt dieselbe Person ohne Groß-/Kleinschreibung, Akzente und Leerzeichen", () => {
+    expect(gleicheGastPerson(liste, "karl", "OPA")?.id).toBe("1");
+    expect(gleicheGastPerson(liste, " Karl ", "O pa")?.id).toBe("1");
+    expect(gleicheGastPerson(liste, "Erna", "")?.id).toBe("2");
+    expect(gleicheGastPerson([{ id: "3", firstName: "José", lastName: "" }], "Jose", "")?.id).toBe("3");
+  });
+
+  it("kennt keine Treffer bei anderem oder leerem Namen", () => {
+    expect(gleicheGastPerson(liste, "Karl", "")).toBeUndefined();
+    expect(gleicheGastPerson(liste, "Karla", "Opa")).toBeUndefined();
+    expect(gleicheGastPerson(liste, "", "")).toBeUndefined();
+  });
+
+  it("sucht auch in Personen ohne Konto nach jedem Wort", () => {
+    expect(filtereKandidaten(liste, "opa karl").map((g) => g.id)).toEqual(["1"]);
+  });
+
+  it("setzt in der CSV '(ohne Konto)' hinter den Namen", () => {
+    const a: ArbeitseinsatzAuswertung = {
+      year: 2026, years: [2026], eventCount: 1, participationCount: 2, totalMinutes: 180,
+      rows: [
+        { firstName: "Karl", lastName: "Opa", eventCount: 1, minutes: 120, guest: true },
+        { firstName: "Erna", lastName: "", eventCount: 1, minutes: 60, guest: true },
+      ],
+      former: null,
+    };
+    const csv = auswertungAlsCsv(t, a, "de");
+    expect(csv).toContain("\r\nKarl Opa (ohne Konto);1;2\r\n");
+    expect(csv).toContain("\r\nErna (ohne Konto);1;1\r\n");
+  });
+});
+
 describe("CSV der Jahresauswertung", () => {
   const auswertung: ArbeitseinsatzAuswertung = {
     year: 2026,
@@ -155,5 +194,9 @@ describe("Frontend und Backend meinen dieselben Längen", () => {
   it("Titel und Notiz eines Arbeitseinsatzes (Textlaengen.cs)", () => {
     expect(TEXTLAENGE.arbeitseinsatzTitel).toBe(wert("ArbeitseinsatzTitel"));
     expect(TEXTLAENGE.arbeitseinsatzNotiz).toBe(wert("ArbeitseinsatzNotiz"));
+  });
+
+  it("Vor- und Nachname einer Person ohne Konto (Textlaengen.cs)", () => {
+    expect(TEXTLAENGE.arbeitseinsatzGastName).toBe(wert("ArbeitseinsatzGastName"));
   });
 });

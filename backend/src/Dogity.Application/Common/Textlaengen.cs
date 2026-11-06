@@ -80,6 +80,8 @@ public static class Textlaengen
     public const int ArbeitseinsatzTitel = 100;
     /// <summary>ClubWorkEvent.Note: Notiz zu einem Arbeitseinsatz.</summary>
     public const int ArbeitseinsatzNotiz = 500;
+    /// <summary>ClubWorkGuest.FirstName und LastName: Vor- und Nachname einer Helfer:in ohne Konto.</summary>
+    public const int ArbeitseinsatzGastName = 100;
     /// <summary>Suchbegriff der Admin-Nutzerliste (wird nicht gespeichert).</summary>
     public const int NutzerSuche = 100;
     /// <summary>ApplicationUser.FirstName und LastName: Vor- und Nachname einer Person; die Spalten selbst sind unbegrenzt, diese Grenze prüfen Registrierung und Profil.</summary>

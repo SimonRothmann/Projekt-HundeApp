@@ -78,6 +78,8 @@ export const TEXTLAENGE = {
   arbeitseinsatzTitel: 100,
   /** ClubWorkEvent.Note: Notiz zu einem Arbeitseinsatz */
   arbeitseinsatzNotiz: 500,
+  /** ClubWorkGuest.FirstName und LastName: Vor- und Nachname einer Helfer:in ohne Konto */
+  arbeitseinsatzGastName: 100,
   /** Suchbegriff der Admin-Nutzerliste (Textlaengen.NutzerSuche, wird nicht gespeichert) */
   nutzerSuche: 100,
 } as const;

@@ -67,7 +67,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
     aenderungen: [
       {
         art: "neu",
-        text: uebersetzbar("Die Verwaltung eines Vereins kann Arbeitseinsätze eintragen und abhaken, wer geholfen hat – mit Jahresauswertung für Verwaltung und Vorstand. Jedes Mitglied sieht seine eigenen Einsätze."),
+        text: uebersetzbar("Die Verwaltung eines Vereins kann Arbeitseinsätze eintragen und abhaken, wer geholfen hat – mit Jahresauswertung für Verwaltung und Vorstand. Jedes Mitglied sieht seine eigenen Einsätze. Auch wer Dogity nicht nutzt, lässt sich als Helfer:in ohne Konto abhaken."),
       },
       {
         art: "neu",

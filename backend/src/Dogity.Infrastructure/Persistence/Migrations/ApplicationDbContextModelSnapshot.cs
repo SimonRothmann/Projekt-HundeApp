@@ -408,6 +408,43 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.ToTable("club_work_events", (string)null);
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Community.ClubWorkGuest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClubId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("LastName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId");
+
+                    b.ToTable("club_work_guests", (string)null);
+                });
+
             modelBuilder.Entity("Dogity.Domain.Community.ClubWorkParticipation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -422,6 +459,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("GuestId")
+                        .HasColumnType("uuid");
 
                     b.Property<int?>("Minutes")
                         .HasColumnType("integer");
@@ -440,7 +480,12 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("GuestId");
+
                     b.HasIndex("UserId");
+
+                    b.HasIndex("ClubWorkEventId", "GuestId")
+                        .IsUnique();
 
                     b.HasIndex("ClubWorkEventId", "UserId")
                         .IsUnique();
@@ -3125,6 +3170,17 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Navigation("Club");
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Community.ClubWorkGuest", b =>
+                {
+                    b.HasOne("Dogity.Domain.Community.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+                });
+
             modelBuilder.Entity("Dogity.Domain.Community.ClubWorkParticipation", b =>
                 {
                     b.HasOne("Dogity.Domain.Community.ClubWorkEvent", "Event")
@@ -3133,7 +3189,14 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Dogity.Domain.Community.ClubWorkGuest", "Guest")
+                        .WithMany()
+                        .HasForeignKey("GuestId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.Navigation("Event");
+
+                    b.Navigation("Guest");
                 });
 
             modelBuilder.Entity("Dogity.Domain.Community.Group", b =>

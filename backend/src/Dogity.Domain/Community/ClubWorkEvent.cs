@@ -43,9 +43,35 @@ public class ClubWorkParticipation : Entity
 
     public Guid? UserId { get; set; }
 
+    /// <summary>
+    /// Eine Person ohne Dogity-Konto (<see cref="ClubWorkGuest"/>). Höchstens eines von <see cref="UserId"/> und
+    /// GuestId ist gesetzt; sind beide leer, ist es ein ehemaliges Mitglied.
+    /// </summary>
+    public Guid? GuestId { get; set; }
+    public ClubWorkGuest? Guest { get; set; }
+
     /// <summary>Abweichende Dauer dieser Person; null = die Dauer des Einsatzes.</summary>
     public int? Minutes { get; set; }
 
     public Guid? RecordedByUserId { get; set; }
     public DateTimeOffset RecordedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>
+/// Eine Helfer:in ohne Dogity-Konto, von der Verwaltung angelegt (Paket A2): Nicht alle Mitglieder nutzen die App,
+/// sollen aber über mehrere Einsätze hinweg als dieselbe Person gezählt werden. Der Nachname ist optional - manche
+/// Vereine kennen nur "Opa Karl". Die Person hat keine Ansicht; Auskunft und Löschung laufen über den Verein.
+///
+/// Wird endgültig gelöscht (von der Verwaltung samt Teilnahmen, oder vom täglichen Lauf, wenn keine Teilnahme mehr
+/// bleibt), nicht weich: Es sind Angaben zu einer Person.
+/// </summary>
+public class ClubWorkGuest : Entity
+{
+    public Guid ClubId { get; set; }
+    public Club? Club { get; set; }
+
+    public string FirstName { get; set; } = string.Empty;
+    public string? LastName { get; set; }
+
+    public Guid? CreatedByUserId { get; set; }
 }

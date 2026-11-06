@@ -435,6 +435,31 @@ public class ClubWorkParticipationConfiguration : IEntityTypeConfiguration<ClubW
         // dürfen sich beliebig oft gleichen: PostgreSQL behandelt NULL in einem eindeutigen Index als verschieden.
         builder.HasIndex(p => new { p.ClubWorkEventId, p.UserId }).IsUnique();
         builder.HasIndex(p => p.UserId);
+
+        // Dasselbe für Personen ohne Konto. Löscht die Verwaltung die Person, gehen ihre Teilnahmen mit.
+        builder.HasOne(p => p.Guest)
+            .WithMany()
+            .HasForeignKey(p => p.GuestId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(p => new { p.ClubWorkEventId, p.GuestId }).IsUnique();
+        builder.HasIndex(p => p.GuestId);
+    }
+}
+
+public class ClubWorkGuestConfiguration : IEntityTypeConfiguration<ClubWorkGuest>
+{
+    public void Configure(EntityTypeBuilder<ClubWorkGuest> builder)
+    {
+        builder.ToTable("club_work_guests");
+        builder.Property(g => g.FirstName).HasMaxLength(Textlaengen.ArbeitseinsatzGastName).IsRequired();
+        builder.Property(g => g.LastName).HasMaxLength(Textlaengen.ArbeitseinsatzGastName);
+
+        builder.HasOne(g => g.Club)
+            .WithMany()
+            .HasForeignKey(g => g.ClubId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(g => g.ClubId);
     }
 }
 

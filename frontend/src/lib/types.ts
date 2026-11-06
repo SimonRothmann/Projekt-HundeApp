@@ -1753,6 +1753,9 @@ export type ArbeitseinsatzHelfer = {
   minutes: number;
   /** Die Minuten weichen von der Dauer des Einsatzes ab. */
   custom: boolean;
+  /** Gesetzt bei einer Person ohne Dogity-Konto (`guest`); dann ist `userId` leer. */
+  guestId: string | null;
+  guest: boolean;
 };
 
 export type Arbeitseinsatz = {
@@ -1768,8 +1771,11 @@ export type Arbeitseinsatz = {
 
 export type ArbeitseinsatzKandidat = { userId: string; firstName: string; lastName: string };
 
-/** Eine Zeile der Jahresauswertung; in der Sammelzeile der Ehemaligen sind die Namen leer. */
-export type ArbeitseinsatzZeile = { firstName: string; lastName: string; eventCount: number; minutes: number };
+/** Eine Helfer:in ohne Dogity-Konto, von der Verwaltung angelegt; der Nachname kann leer sein. */
+export type ArbeitseinsatzGast = { id: string; firstName: string; lastName: string };
+
+/** Eine Zeile der Jahresauswertung; in der Sammelzeile der Ehemaligen sind die Namen leer, `guest`: ohne Dogity-Konto. */
+export type ArbeitseinsatzZeile = { firstName: string; lastName: string; eventCount: number; minutes: number; guest?: boolean };
 
 export type ArbeitseinsatzAuswertung = {
   year: number;

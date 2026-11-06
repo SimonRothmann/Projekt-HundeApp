@@ -1,7 +1,7 @@
 import type { Sprache } from "@/lib/i18n";
 import { plusTage, tageBis } from "@/lib/kalendertag";
 import { ortsformat } from "@/lib/ortsformat";
-import type { ArbeitseinsatzAuswertung, ArbeitseinsatzKandidat } from "@/lib/types";
+import type { ArbeitseinsatzAuswertung, ArbeitseinsatzGast } from "@/lib/types";
 
 /**
  * Rechnen und Prüfen rund um die Arbeitseinsätze des Vereins - als reine Funktionen, damit Liste,
@@ -81,13 +81,24 @@ function normal(text: string): string {
 }
 
 /** Die Personen, die zur Suche passen - nur im Browser. Jedes Wort muss im Namen vorkommen (Groß-/Kleinschreibung und Akzente egal); leer heißt: alle. */
-export function filtereKandidaten(liste: readonly ArbeitseinsatzKandidat[], suche: string): ArbeitseinsatzKandidat[] {
+export function filtereKandidaten<T extends { firstName: string; lastName: string }>(liste: readonly T[], suche: string): T[] {
   const worte = normal(suche).split(/\s+/).filter(Boolean);
   if (worte.length === 0) return [...liste];
   return liste.filter((k) => {
     const heu = normal(`${k.firstName} ${k.lastName}`);
     return worte.every((w) => heu.includes(w));
   });
+}
+
+/** Ohne Groß-/Kleinschreibung, Akzente und Leerzeichen - wie die Namen zweier Personen ohne Konto verglichen werden. */
+function gastSchluessel(vorname: string, nachname: string): string {
+  return normal(`${vorname}${nachname}`).replace(/\s+/g, "");
+}
+
+/** Die Person ohne Konto, die schon so heißt - sonst undefined. Dann fragt die Oberfläche, ob sie die vorhandene meint. */
+export function gleicheGastPerson(liste: readonly ArbeitseinsatzGast[], vorname: string, nachname: string): ArbeitseinsatzGast | undefined {
+  const gesucht = gastSchluessel(vorname, nachname);
+  return gesucht ? liste.find((g) => gastSchluessel(g.firstName, g.lastName) === gesucht) : undefined;
 }
 
 /** Vor- und Nachname zur Anzeige; bei einem ehemaligen Mitglied (leere Namen) der Platzhalter. */
@@ -110,6 +121,7 @@ export function csvFeld(wert: string): string {
 /**
  * Die Jahresauswertung als CSV (Name; Einsätze; Stunden): Semikolon als Trenner und Komma als
  * Dezimalzeichen, wie ein deutsches Excel es erwartet; im englischen Gebietsschema der Punkt.
+ * Personen ohne Dogity-Konto tragen "(ohne Konto)" hinter dem Namen.
  * Dazu die Sammelzeile der Ehemaligen und eine Zeile "Gesamt" (Einsätze des Jahres, Stunden aller Helfer:innen).
  * Mit Byte-Order-Mark, damit Umlaute in Excel stimmen.
  */
@@ -118,7 +130,11 @@ export function auswertungAlsCsv(t: Uebersetzer, a: ArbeitseinsatzAuswertung, sp
     stundenZahl(minuten).toLocaleString(ortsformat(sprache), { maximumFractionDigits: 2, useGrouping: false });
   const zeilen = [
     [t("Name"), t("Einsätze"), t("Stunden")],
-    ...a.rows.map((r) => [`${r.firstName} ${r.lastName}`.trim(), String(r.eventCount), stunden(r.minutes)]),
+    ...a.rows.map((r) => [
+      `${`${r.firstName} ${r.lastName}`.trim()}${r.guest ? ` (${t("ohne Konto")})` : ""}`,
+      String(r.eventCount),
+      stunden(r.minutes),
+    ]),
     ...(a.former ? [[t("Ehemalige Mitglieder"), String(a.former.eventCount), stunden(a.former.minutes)]] : []),
     [t("Gesamt"), String(a.eventCount), stunden(a.totalMinutes)],
   ];

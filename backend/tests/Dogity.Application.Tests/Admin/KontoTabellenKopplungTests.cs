@@ -50,6 +50,8 @@ public class KontoTabellenKopplungTests
         // Arbeitseinsätze des Vereins: Einsatz und Stunden gehören dem Verein; die Teilnahme verliert die Person
         // (ClubWorkAnonymisierung), die Stunden bleiben in den Summen.
         "ClubWorkEvent.CreatedByUserId", "ClubWorkParticipation.UserId", "ClubWorkParticipation.RecordedByUserId",
+        // Personen ohne Konto (Paket A2) gehören dem Verein; nur der Verweis auf die anlegende Verwaltungsperson wird geleert.
+        "ClubWorkGuest.CreatedByUserId",
     ];
 
     /// <summary>Hängen an einer anderen Zeile (Einstellung) oder gehören zur Anmeldung (Identity).</summary>

@@ -8,7 +8,8 @@ public record ClubWorkEventListItemDto(Guid Id, DateOnly Date, string Title, int
 /// <param name="Former">Die Person ist nicht mehr im Verein oder hat kein Konto mehr: Die Namen sind leer, die Anzeige schreibt "Ehemaliges Mitglied".</param>
 /// <param name="Minutes">Die Minuten, die zählen: die abweichenden, sonst die Dauer des Einsatzes.</param>
 /// <param name="Custom">Die Minuten weichen von der Dauer des Einsatzes ab (sind für diese Person eigens gesetzt).</param>
-public record ClubWorkParticipantDto(Guid Id, Guid? UserId, string FirstName, string LastName, bool Former, int Minutes, bool Custom);
+/// <param name="GuestId">Gesetzt bei einer Person ohne Dogity-Konto (<paramref name="Guest"/>); dann ist <paramref name="UserId"/> leer.</param>
+public record ClubWorkParticipantDto(Guid Id, Guid? UserId, string FirstName, string LastName, bool Former, int Minutes, bool Custom, Guid? GuestId = null, bool Guest = false);
 
 public record ClubWorkEventDto(
     Guid Id,
@@ -22,7 +23,8 @@ public record ClubWorkEventDto(
 
 public record SaveClubWorkEventRequest(DateOnly Date, string Title, string? Note, int DurationMinutes);
 
-public record AddClubWorkParticipantsRequest(IReadOnlyList<Guid>? UserIds);
+/// <param name="GuestIds">Personen ohne Konto (<see cref="ClubWorkGuestDto"/>) des Vereins.</param>
+public record AddClubWorkParticipantsRequest(IReadOnlyList<Guid>? UserIds, IReadOnlyList<Guid>? GuestIds = null);
 
 /// <param name="Minutes">Abweichende Minuten dieser Person; null = die Dauer des Einsatzes.</param>
 public record SetClubWorkMinutesRequest(int? Minutes);
@@ -30,8 +32,18 @@ public record SetClubWorkMinutesRequest(int? Minutes);
 /// <summary>Eine Person, die sich abhaken lässt - die Auswahl im Fenster "Helfer:innen hinzufügen".</summary>
 public record ClubWorkCandidateDto(Guid UserId, string FirstName, string LastName);
 
+/// <summary>Eine Helfer:in ohne Dogity-Konto, wie die Verwaltung sie angelegt hat (Paket A2).</summary>
+public record ClubWorkGuestDto(Guid Id, string FirstName, string LastName);
+
+/// <param name="LastName">Leer, wenn nur ein Vorname bekannt ist.</param>
+public record SaveClubWorkGuestRequest(string FirstName, string? LastName);
+
+/// <param name="UserId">Das Mitglied (oder die Person mit Rolle), das die Person ohne Konto ab jetzt ist.</param>
+public record AssignClubWorkGuestRequest(Guid UserId);
+
 /// <param name="EventCount">Einsätze, bei denen die Person abgehakt ist (in der Sammelzeile: Teilnahmen aller Ehemaligen).</param>
-public record ClubWorkSummaryRowDto(string FirstName, string LastName, int EventCount, int Minutes);
+/// <param name="Guest">Die Person hat kein Dogity-Konto.</param>
+public record ClubWorkSummaryRowDto(string FirstName, string LastName, int EventCount, int Minutes, bool Guest = false);
 
 /// <summary>
 /// Die Jahresauswertung: je Person Einsätze und Minuten, nach Minuten absteigend.

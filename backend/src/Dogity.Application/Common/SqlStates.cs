@@ -8,4 +8,7 @@ internal static class SqlStates
 
     /// <summary>"deadlock_detected": zwei gleichzeitige Schreibvorgänge haben sich gegenseitig blockiert, Postgres bricht einen ab.</summary>
     public const string Verklemmung = "40P01";
+
+    /// <summary>"foreign_key_violation": der Datensatz, auf den verwiesen wird, ist inzwischen weg (etwa gleichzeitig gelöscht).</summary>
+    public const string FremdschluesselVerletzt = "23503";
 }

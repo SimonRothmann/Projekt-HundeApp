@@ -13,7 +13,7 @@ import { Chip } from "@/components/ui/chip";
 
 /**
  * Die Jahresauswertung (Verwaltung, Vorstand): je Person Einsätze und Stunden im Kalenderjahr, nach Stunden
- * sortiert, ehemalige Mitglieder als eine Sammelzeile ohne Namen. Die Jahre, für die es Einsätze gibt, sind
+ * sortiert, Personen ohne Dogity-Konto als eigene, gekennzeichnete Zeilen, ehemalige Mitglieder als eine Sammelzeile ohne Namen. Die Jahre, für die es Einsätze gibt, sind
  * wählbar; die CSV-Datei entsteht im Browser aus den geladenen Zahlen.
  */
 export function Auswertung({ clubId }: { clubId: string }) {
@@ -84,7 +84,7 @@ export function Auswertung({ clubId }: { clubId: string }) {
           <CardContent>
             <ul className="flex flex-col divide-y">
               {daten.rows.map((r, i) => (
-                <Zeile key={i} name={helferName(t, r)} einsaetze={r.eventCount} minuten={r.minutes} sprache={sprache} />
+                <Zeile key={i} name={helferName(t, r)} ohneKonto={r.guest} einsaetze={r.eventCount} minuten={r.minutes} sprache={sprache} />
               ))}
               {daten.former && <Zeile name={t("Ehemalige Mitglieder")} einsaetze={daten.former.eventCount} minuten={daten.former.minutes} sprache={sprache} gedaempft />}
             </ul>
@@ -109,11 +109,14 @@ export function Auswertung({ clubId }: { clubId: string }) {
   );
 }
 
-function Zeile({ name, einsaetze, minuten, sprache, gedaempft }: { name: string; einsaetze: number; minuten: number; sprache: ReturnType<typeof useSprache>; gedaempft?: boolean }) {
+function Zeile({ name, ohneKonto, einsaetze, minuten, sprache, gedaempft }: { name: string; ohneKonto?: boolean; einsaetze: number; minuten: number; sprache: ReturnType<typeof useSprache>; gedaempft?: boolean }) {
   const t = useT();
   return (
     <li className="flex min-w-0 items-center gap-3 py-3 coarse:min-h-14">
-      <span className={`min-w-0 flex-1 font-medium [overflow-wrap:anywhere] ${gedaempft ? "text-muted-foreground" : ""}`}>{name}</span>
+      <span className={`min-w-0 flex-1 font-medium [overflow-wrap:anywhere] ${gedaempft ? "text-muted-foreground" : ""}`}>
+        {name}
+        {ohneKonto && <span className="ml-2 text-xs font-normal text-muted-foreground">{t("ohne Konto")}</span>}
+      </span>
       <span className="shrink-0 text-right text-sm tabular-nums">
         <span className="block font-medium">{stundenText(minuten, sprache)}</span>
         <span className="block text-xs text-muted-foreground">

@@ -586,6 +586,9 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         foreach (var p in await db.ClubWorkParticipations.IgnoreQueryFilters()
                      .Where(p => p.RecordedByUserId == userId).ToListAsync(ct))
             p.RecordedByUserId = null;
+        foreach (var g in await db.ClubWorkGuests.IgnoreQueryFilters()
+                     .Where(g => g.CreatedByUserId == userId).ToListAsync(ct))
+            g.CreatedByUserId = null;
         foreach (var q in await db.QuizQuestions.IgnoreQueryFilters()
                      .Where(q => q.EditedByUserId == userId).ToListAsync(ct))
             q.EditedByUserId = null;

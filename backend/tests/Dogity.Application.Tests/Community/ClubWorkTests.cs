@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Dogity.Application.Account;
 using Dogity.Application.Common;
 using Dogity.Application.Community;
@@ -718,5 +719,465 @@ public class ClubWorkTests
         var august = monate.Single(m => (m.Year, m.Month) == (2026, 8));
         Assert.Equal((1, 180), (august.WorkEvents, august.WorkMinutes));
         Assert.All(monate.Where(m => m.Month is not (8 or 10)), m => Assert.Equal((0, 0), (m.WorkEvents, m.WorkMinutes)));
+    }
+
+    // ------------------------------------------------------------ Helfer:innen ohne Konto (Paket A2)
+
+    private static async Task<Guid> GastAsync(Welt w, string vorname = "Karl", string? nachname = "Opa")
+    {
+        var gast = await w.Dienst.CreateGuestAsync(w.Verwaltung, w.Verein.Id, new SaveClubWorkGuestRequest(vorname, nachname));
+        Assert.True(gast.Succeeded, string.Join(";", gast.Errors));
+        return gast.Value!.Id;
+    }
+
+    private static async Task AbhakenGaesteAsync(Welt w, Guid einsatz, params Guid[] gaeste)
+    {
+        var ergebnis = await w.Dienst.AddParticipantsAsync(w.Verwaltung, w.Verein.Id, einsatz, new AddClubWorkParticipantsRequest(null, gaeste));
+        Assert.True(ergebnis.Succeeded, string.Join(";", ergebnis.Errors));
+    }
+
+    [Theory]
+    [MemberData(nameof(Zugriff))]
+    public async Task Gast_Schreiben_NurVerwaltung_Vorstandliest_AndereBekommenNotFound(ClubRole rollen, bool lesen, bool schreiben)
+    {
+        var w = await AufbauenAsync();
+        var einsatz = await AnlegenAsync(w);
+        var gast = await GastAsync(w);
+        await AbhakenGaesteAsync(w, einsatz, gast);
+        var person = Guid.NewGuid();
+        w.Nutzer.Register(person, "p@example.org", "Pia", "Person");
+        if (rollen != 0) w.Db.ClubTrainers.Add(new ClubTrainer { ClubId = w.Verein.Id, UserId = person, Role = rollen });
+        await w.Db.SaveChangesAsync();
+        var id = w.Verein.Id;
+
+        // Lesen können Verwaltung und Vorstand über Einsatz und Auswertung; die Auswahl der Personen ist Sache der Verwaltung.
+        var detail = await w.Dienst.GetAsync(person, id, einsatz);
+        Assert.Equal(!lesen, detail.IsNotFound);
+        if (lesen) Assert.True(detail.Value!.Participants.Single().Guest);
+        var auswertung = await w.Dienst.GetSummaryAsync(person, id, 2026);
+        Assert.Equal(!lesen, auswertung.IsNotFound);
+        if (lesen) Assert.True(auswertung.Value!.Rows.Single().Guest);
+
+        var schreibend = new List<Result>
+        {
+            await w.Dienst.GetGuestsAsync(person, id),
+            await w.Dienst.CreateGuestAsync(person, id, new SaveClubWorkGuestRequest("Neu", null)),
+            await w.Dienst.UpdateGuestAsync(person, id, gast, new SaveClubWorkGuestRequest("Neu", null)),
+            await w.Dienst.AddParticipantsAsync(person, id, einsatz, new AddClubWorkParticipantsRequest(null, [gast])),
+        };
+        // Zuordnen und Löschen räumen die Person weg - mit Recht prüfen das eigene Tests, hier nur die Ablehnung.
+        if (!schreiben)
+        {
+            schreibend.Add(await w.Dienst.AssignGuestAsync(person, id, gast, new AssignClubWorkGuestRequest(w.Max)));
+            schreibend.Add(await w.Dienst.DeleteGuestAsync(person, id, gast));
+        }
+        foreach (var ergebnis in schreibend)
+        {
+            Assert.Equal(!schreiben, ergebnis.IsNotFound);
+            if (!schreiben) Assert.False(ergebnis.Succeeded);
+        }
+        if (!schreiben)
+        {
+            var g = await w.Db.ClubWorkGuests.AsNoTracking().SingleAsync();
+            Assert.Equal(("Karl", "Opa"), (g.FirstName, g.LastName));
+            Assert.Equal(1, await w.Db.ClubWorkParticipations.CountAsync());
+        }
+    }
+
+    [Fact]
+    public async Task Gast_FremderVerein_IstNichtGefunden_AuchMitVerwaltungDort()
+    {
+        var w = await AufbauenAsync();
+        var gast = await GastAsync(w);
+        var fremd = new Club { Name = "Anderer Verein" };
+        w.Db.Clubs.Add(fremd);
+        w.Db.ClubTrainers.Add(new ClubTrainer { ClubId = fremd.Id, UserId = w.Verwaltung, Role = ClubRole.Verwaltung });
+        await w.Db.SaveChangesAsync();
+
+        // Mit der Id des fremden Vereins in der Adresse: der Gast gehört nicht dazu.
+        Assert.True((await w.Dienst.UpdateGuestAsync(w.Verwaltung, fremd.Id, gast, new SaveClubWorkGuestRequest("X", null))).IsNotFound);
+        Assert.True((await w.Dienst.DeleteGuestAsync(w.Verwaltung, fremd.Id, gast)).IsNotFound);
+        Assert.True((await w.Dienst.AssignGuestAsync(w.Verwaltung, fremd.Id, gast, new AssignClubWorkGuestRequest(w.Max))).IsNotFound);
+        Assert.Empty((await w.Dienst.GetGuestsAsync(w.Verwaltung, fremd.Id)).Value!);
+        // Und ein Fremder ohne Rolle im Verein erst recht.
+        var fremder = Guid.NewGuid();
+        Assert.True((await w.Dienst.CreateGuestAsync(fremder, w.Verein.Id, new SaveClubWorkGuestRequest("X", null))).IsNotFound);
+        Assert.Equal(1, await w.Db.ClubWorkGuests.CountAsync());
+    }
+
+    [Fact]
+    public async Task Gast_AnlegenUmbenennenLoeschen_PrueftNamenUndTrimmt()
+    {
+        var w = await AufbauenAsync();
+        var id = w.Verein.Id;
+
+        Assert.False((await w.Dienst.CreateGuestAsync(w.Verwaltung, id, new SaveClubWorkGuestRequest("  ", "Opa"))).Succeeded);
+        Assert.False((await w.Dienst.CreateGuestAsync(w.Verwaltung, id, new SaveClubWorkGuestRequest(new string('a', Textlaengen.ArbeitseinsatzGastName + 1), null))).Succeeded);
+        Assert.False((await w.Dienst.CreateGuestAsync(w.Verwaltung, id, new SaveClubWorkGuestRequest("Karl", new string('b', Textlaengen.ArbeitseinsatzGastName + 1)))).Succeeded);
+        Assert.True((await w.Dienst.CreateGuestAsync(w.Verwaltung, id, new SaveClubWorkGuestRequest(new string('a', Textlaengen.ArbeitseinsatzGastName), null))).Succeeded);
+        Assert.Equal(1, await w.Db.ClubWorkGuests.CountAsync());
+
+        var gast = (await w.Dienst.CreateGuestAsync(w.Verwaltung, id, new SaveClubWorkGuestRequest("  Karl ", "  "))).Value!;
+        Assert.Equal(("Karl", ""), (gast.FirstName, gast.LastName));
+        var zeile = await w.Db.ClubWorkGuests.AsNoTracking().SingleAsync(g => g.Id == gast.Id);
+        Assert.Equal((w.Verein.Id, w.Verwaltung, null), (zeile.ClubId, zeile.CreatedByUserId, zeile.LastName));
+
+        var neu = (await w.Dienst.UpdateGuestAsync(w.Verwaltung, id, gast.Id, new SaveClubWorkGuestRequest("Karl-Heinz", "Opa"))).Value!;
+        Assert.Equal(("Karl-Heinz", "Opa"), (neu.FirstName, neu.LastName));
+        Assert.False((await w.Dienst.UpdateGuestAsync(w.Verwaltung, id, gast.Id, new SaveClubWorkGuestRequest("", "Opa"))).Succeeded);
+        Assert.True((await w.Dienst.UpdateGuestAsync(w.Verwaltung, id, Guid.NewGuid(), new SaveClubWorkGuestRequest("X", null))).IsNotFound);
+
+        // Namensgleiche Personen sind erlaubt - die Oberfläche weist nur darauf hin.
+        await GastAsync(w, "Karl-Heinz", "Opa");
+        var liste = (await w.Dienst.GetGuestsAsync(w.Verwaltung, id)).Value!;
+        Assert.Equal(3, liste.Count);
+    }
+
+    [Fact]
+    public async Task Gast_Loeschen_NimmtDieTeilnahmenEndgueltigMit_AndereBleiben()
+    {
+        var w = await AufbauenAsync();
+        var einsatz = await AnlegenAsync(w);
+        var gast = await GastAsync(w);
+        var anderer = await GastAsync(w, "Erna", null);
+        await AbhakenAsync(w, einsatz, w.Max);
+        await AbhakenGaesteAsync(w, einsatz, gast, anderer);
+
+        Assert.True((await w.Dienst.DeleteGuestAsync(w.Verwaltung, w.Verein.Id, gast)).Succeeded);
+
+        Assert.Equal(anderer, (await w.Db.ClubWorkGuests.IgnoreQueryFilters().SingleAsync()).Id);
+        Assert.Equal(2, await w.Db.ClubWorkParticipations.IgnoreQueryFilters().CountAsync());
+        Assert.DoesNotContain(await w.Db.ClubWorkParticipations.IgnoreQueryFilters().ToListAsync(), p => p.GuestId == gast);
+    }
+
+    [Fact]
+    public async Task Abhaken_MitgliederUndGaesteGemischt_ZaehltBeideUndSpeichertJePerson()
+    {
+        var w = await AufbauenAsync();
+        var einsatz = await AnlegenAsync(w, minuten: 120);
+        var gast = await GastAsync(w);
+
+        var ergebnis = await w.Dienst.AddParticipantsAsync(w.Verwaltung, w.Verein.Id, einsatz, new AddClubWorkParticipantsRequest([w.Max], [gast]));
+
+        Assert.True(ergebnis.Succeeded);
+        var zeilen = await w.Db.ClubWorkParticipations.AsNoTracking().ToListAsync();
+        Assert.Equal(2, zeilen.Count);
+        Assert.Single(zeilen, z => z.UserId == w.Max && z.GuestId is null);
+        var teilnahme = Assert.Single(zeilen, z => z.GuestId == gast && z.UserId is null);
+        Assert.Equal((w.Verwaltung, Jetzt), (teilnahme.RecordedByUserId, teilnahme.RecordedAt));
+        var liste = (await w.Dienst.GetListAsync(w.Verwaltung, w.Verein.Id)).Value!.Single();
+        Assert.Equal((2, 240), (liste.HelperCount, liste.TotalMinutes));
+    }
+
+    [Fact]
+    public async Task Abhaken_DesselbenGastesDoppelt_IstIdempotent_UndBraucht_MindestensEinePerson()
+    {
+        var w = await AufbauenAsync();
+        var einsatz = await AnlegenAsync(w);
+        var gast = await GastAsync(w);
+
+        await AbhakenGaesteAsync(w, einsatz, gast, gast);
+        await AbhakenGaesteAsync(w, einsatz, gast);
+
+        Assert.Equal(1, await w.Db.ClubWorkParticipations.CountAsync());
+        Assert.False((await w.Dienst.AddParticipantsAsync(w.Verwaltung, w.Verein.Id, einsatz, new AddClubWorkParticipantsRequest([], []))).Succeeded);
+        Assert.False((await w.Dienst.AddParticipantsAsync(w.Verwaltung, w.Verein.Id, einsatz, new AddClubWorkParticipantsRequest(null))).Succeeded);
+    }
+
+    [Fact]
+    public async Task Abhaken_GastEinesFremdenVereins_IstEinFehler_UndNichtsWirdGespeichert()
+    {
+        var w = await AufbauenAsync();
+        var einsatz = await AnlegenAsync(w);
+        var fremd = new Club { Name = "Anderer Verein" };
+        var fremderGast = new ClubWorkGuest { ClubId = fremd.Id, FirstName = "Fritz" };
+        w.Db.Clubs.Add(fremd);
+        w.Db.ClubWorkGuests.Add(fremderGast);
+        await w.Db.SaveChangesAsync();
+        var eigener = await GastAsync(w);
+
+        var ergebnis = await w.Dienst.AddParticipantsAsync(w.Verwaltung, w.Verein.Id, einsatz, new AddClubWorkParticipantsRequest([w.Max], [eigener, fremderGast.Id]));
+
+        Assert.False(ergebnis.Succeeded);
+        Assert.False(ergebnis.IsNotFound);
+        Assert.Equal(0, await w.Db.ClubWorkParticipations.CountAsync());
+        // Auch vor dem Tag des Einsatzes und mit unbekannter Id gilt: nichts.
+        Assert.False((await w.Dienst.AddParticipantsAsync(w.Verwaltung, w.Verein.Id, einsatz, new AddClubWorkParticipantsRequest(null, [Guid.NewGuid()]))).Succeeded);
+    }
+
+    [Fact]
+    public async Task Abhaken_DesGastes_ErstAbDemTagDesEinsatzes()
+    {
+        var w = await AufbauenAsync();
+        var einsatz = await AnlegenAsync(w, Heute.AddDays(3));
+        var gast = await GastAsync(w);
+
+        Assert.False((await w.Dienst.AddParticipantsAsync(w.Verwaltung, w.Verein.Id, einsatz, new AddClubWorkParticipantsRequest(null, [gast]))).Succeeded);
+        Assert.Equal(0, await w.Db.ClubWorkParticipations.CountAsync());
+    }
+
+    [Fact]
+    public async Task Detail_ZeigtGaesteMitKennzeichen_AbweichendeMinutenUndAustragenWieBeiMitgliedern()
+    {
+        var w = await AufbauenAsync();
+        var einsatz = await AnlegenAsync(w, minuten: 120);
+        var gast = await GastAsync(w, "Karl", "Opa");
+        var ohneNachname = await GastAsync(w, "Erna", null);
+        await AbhakenAsync(w, einsatz, w.Max);
+        await AbhakenGaesteAsync(w, einsatz, gast, ohneNachname);
+        var teilnahme = (await w.Db.ClubWorkParticipations.AsNoTracking().SingleAsync(p => p.GuestId == gast)).Id;
+
+        Assert.True((await w.Dienst.SetMinutesAsync(w.Verwaltung, w.Verein.Id, einsatz, teilnahme, new SetClubWorkMinutesRequest(45))).Succeeded);
+        var detail = (await w.Dienst.GetAsync(w.Verwaltung, w.Verein.Id, einsatz)).Value!;
+
+        var g = detail.Participants.Single(p => p.GuestId == gast);
+        Assert.Equal((true, null, "Karl", "Opa", false, 45, true), (g.Guest, g.UserId, g.FirstName, g.LastName, g.Former, g.Minutes, g.Custom));
+        var e = detail.Participants.Single(p => p.GuestId == ohneNachname);
+        Assert.Equal(("Erna", "", 120), (e.FirstName, e.LastName, e.Minutes));
+        Assert.Single(detail.Participants, p => !p.Guest && p.UserId == w.Max);
+        // Nach Namen: Abel... - Mustermann; Gäste stehen darin, ehemalige Mitglieder (keine hier) am Ende.
+        Assert.Equal(["", "Mustermann", "Opa"], detail.Participants.Select(p => p.LastName));
+
+        Assert.True((await w.Dienst.RemoveParticipantAsync(w.Verwaltung, w.Verein.Id, einsatz, teilnahme)).Succeeded);
+        Assert.Equal(2, await w.Db.ClubWorkParticipations.IgnoreQueryFilters().CountAsync());
+        // Die Person ohne Konto selbst bleibt (sie lässt sich für andere Einsätze abhaken).
+        Assert.Equal(2, await w.Db.ClubWorkGuests.CountAsync());
+    }
+
+    [Fact]
+    public async Task Auswertung_HatGastZeilenMitKennzeichen_NachStundenSortiert_UndZaehltInDenSummenMit()
+    {
+        var w = await AufbauenAsync();
+        var a = await AnlegenAsync(w, Heute, minuten: 120);
+        var b = await AnlegenAsync(w, Heute.AddDays(-5), minuten: 60);
+        var karl = await GastAsync(w, "Karl", "Opa");
+        var erna = await GastAsync(w, "Erna", null);
+        await AbhakenAsync(w, a, w.Max);
+        await AbhakenGaesteAsync(w, a, karl, erna);
+        await AbhakenGaesteAsync(w, b, karl);
+        await w.Dienst.SetMinutesAsync(w.Verwaltung, w.Verein.Id, a, (await w.Db.ClubWorkParticipations.AsNoTracking().SingleAsync(p => p.GuestId == erna)).Id, new SetClubWorkMinutesRequest(30));
+
+        var s = (await w.Dienst.GetSummaryAsync(w.Verwaltung, w.Verein.Id, 2026)).Value!;
+
+        // Karl: 2 Einsätze, 180 min; Max: 120; Erna: 30.
+        Assert.Equal([("Karl", true, 2, 180), ("Max", false, 1, 120), ("Erna", true, 1, 30)],
+            s.Rows.Select(r => (r.FirstName, r.Guest, r.EventCount, r.Minutes)));
+        Assert.Equal("", s.Rows[2].LastName);
+        Assert.Null(s.Former);
+        Assert.Equal((2, 4, 330), (s.EventCount, s.ParticipationCount, s.TotalMinutes));
+    }
+
+    [Fact]
+    public async Task Uebersicht_ZaehltMinutenDerGaesteMit()
+    {
+        var w = await AufbauenAsync();
+        var a = await AnlegenAsync(w, Heute, minuten: 120);
+        await AbhakenAsync(w, a, w.Max);
+        await AbhakenGaesteAsync(w, a, await GastAsync(w));
+        var vorstand = Guid.NewGuid();
+        w.Nutzer.Register(vorstand, "v@example.org", "Vera", "Vorstand");
+        w.Db.ClubTrainers.Add(new ClubTrainer { ClubId = w.Verein.Id, UserId = vorstand, Role = ClubRole.Vorstand });
+        await w.Db.SaveChangesAsync();
+
+        var monate = (await new ClubOverviewService(w.Db, w.Nutzer, new FesteUhr()).GetOverviewAsync(vorstand, false, w.Verein.Id)).Value!.Months;
+
+        Assert.Equal((1, 240), monate.Where(m => (m.Year, m.Month) == (2026, 10)).Select(m => (m.WorkEvents, m.WorkMinutes)).Single());
+    }
+
+    [Fact]
+    public async Task MeineEinsaetze_ZeigenKeineGaeste()
+    {
+        var w = await AufbauenAsync();
+        var a = await AnlegenAsync(w);
+        await AbhakenGaesteAsync(w, a, await GastAsync(w, "Max", "Mustermann"));
+
+        var mein = (await w.Dienst.GetMineAsync(w.Max, w.Verein.Id)).Value!;
+
+        Assert.Empty(mein.Items);
+    }
+
+    [Fact]
+    public async Task Zuordnen_VerschiebtDieTeilnahmenAufDasMitglied_UndLoeschtDenGast()
+    {
+        var w = await AufbauenAsync();
+        var a = await AnlegenAsync(w, Heute, minuten: 120);
+        var b = await AnlegenAsync(w, Heute.AddDays(-5), minuten: 60);
+        var gast = await GastAsync(w);
+        await AbhakenGaesteAsync(w, a, gast);
+        await AbhakenGaesteAsync(w, b, gast);
+        await w.Dienst.SetMinutesAsync(w.Verwaltung, w.Verein.Id, b, (await w.Db.ClubWorkParticipations.AsNoTracking().SingleAsync(p => p.ClubWorkEventId == b)).Id, new SetClubWorkMinutesRequest(90));
+
+        var ergebnis = await w.Dienst.AssignGuestAsync(w.Verwaltung, w.Verein.Id, gast, new AssignClubWorkGuestRequest(w.Max));
+
+        Assert.True(ergebnis.Succeeded, string.Join(";", ergebnis.Errors));
+        Assert.Empty(await w.Db.ClubWorkGuests.IgnoreQueryFilters().ToListAsync());
+        var zeilen = await w.Db.ClubWorkParticipations.IgnoreQueryFilters().AsNoTracking().ToListAsync();
+        Assert.Equal(2, zeilen.Count);
+        Assert.All(zeilen, z => Assert.Equal((w.Max, (Guid?)null), (z.UserId, z.GuestId)));
+        Assert.Equal(90, zeilen.Single(z => z.ClubWorkEventId == b).Minutes);
+        // Das Mitglied sieht die Einsätze jetzt selbst.
+        Assert.Equal(2, (await w.Dienst.GetMineAsync(w.Max, w.Verein.Id)).Value!.Items.Count);
+    }
+
+    [Fact]
+    public async Task Zuordnen_BeiKonflikt_BleibtDieTeilnahmeMitDenHoeherenMinuten()
+    {
+        var w = await AufbauenAsync();
+        var kurzerGast = await AnlegenAsync(w, Heute, minuten: 120);   // Gast 30, Mitglied 120 -> Mitglied bleibt
+        var laengerGast = await AnlegenAsync(w, Heute.AddDays(-1), minuten: 120);   // Gast 200, Mitglied wie alle (120) -> Gast gewinnt
+        var gleich = await AnlegenAsync(w, Heute.AddDays(-2), minuten: 120);   // beide wie alle -> eine Zeile
+        var gast = await GastAsync(w);
+        foreach (var e in new[] { kurzerGast, laengerGast, gleich })
+        {
+            await AbhakenAsync(w, e, w.Max);
+            await AbhakenGaesteAsync(w, e, gast);
+        }
+        async Task Minuten(Guid einsatz, Func<ClubWorkParticipation, bool> wer, int minuten) =>
+            Assert.True((await w.Dienst.SetMinutesAsync(w.Verwaltung, w.Verein.Id, einsatz,
+                (await w.Db.ClubWorkParticipations.AsNoTracking().ToListAsync()).Single(p => p.ClubWorkEventId == einsatz && wer(p)).Id,
+                new SetClubWorkMinutesRequest(minuten))).Succeeded);
+        await Minuten(kurzerGast, p => p.GuestId == gast, 30);
+        await Minuten(laengerGast, p => p.GuestId == gast, 200);
+
+        Assert.True((await w.Dienst.AssignGuestAsync(w.Verwaltung, w.Verein.Id, gast, new AssignClubWorkGuestRequest(w.Max))).Succeeded);
+
+        var zeilen = await w.Db.ClubWorkParticipations.IgnoreQueryFilters().AsNoTracking().ToListAsync();
+        Assert.Equal(3, zeilen.Count);
+        Assert.All(zeilen, z => Assert.Equal((w.Max, (Guid?)null), (z.UserId, z.GuestId)));
+        Assert.Null(zeilen.Single(z => z.ClubWorkEventId == kurzerGast).Minutes);
+        Assert.Equal(200, zeilen.Single(z => z.ClubWorkEventId == laengerGast).Minutes);
+        Assert.Null(zeilen.Single(z => z.ClubWorkEventId == gleich).Minutes);
+        Assert.Empty(await w.Db.ClubWorkGuests.IgnoreQueryFilters().ToListAsync());
+    }
+
+    [Fact]
+    public async Task Zuordnen_VerlangtEinMitgliedDesVereins_UndEinenGastDesVereins()
+    {
+        var w = await AufbauenAsync();
+        var einsatz = await AnlegenAsync(w);
+        var gast = await GastAsync(w);
+        await AbhakenGaesteAsync(w, einsatz, gast);
+        var fremder = Guid.NewGuid();
+        w.Nutzer.Register(fremder, "f@example.org", "Frida", "Fremd");
+
+        var ergebnis = await w.Dienst.AssignGuestAsync(w.Verwaltung, w.Verein.Id, gast, new AssignClubWorkGuestRequest(fremder));
+
+        Assert.False(ergebnis.Succeeded);
+        Assert.False(ergebnis.IsNotFound);
+        Assert.Equal(1, await w.Db.ClubWorkGuests.CountAsync());
+        Assert.Equal(gast, (await w.Db.ClubWorkParticipations.SingleAsync()).GuestId);
+        Assert.True((await w.Dienst.AssignGuestAsync(w.Verwaltung, w.Verein.Id, Guid.NewGuid(), new AssignClubWorkGuestRequest(w.Max))).IsNotFound);
+    }
+
+    [Fact]
+    public async Task Zuordnen_AuchEinePersonMitRolleOhneMitgliedschaft_IstMoeglich()
+    {
+        var w = await AufbauenAsync();
+        var einsatz = await AnlegenAsync(w);
+        var gast = await GastAsync(w);
+        await AbhakenGaesteAsync(w, einsatz, gast);
+
+        Assert.True((await w.Dienst.AssignGuestAsync(w.Verwaltung, w.Verein.Id, gast, new AssignClubWorkGuestRequest(w.Verwaltung))).Succeeded);
+
+        Assert.Equal(w.Verwaltung, (await w.Db.ClubWorkParticipations.SingleAsync()).UserId);
+    }
+
+    [Fact]
+    public async Task Aufbewahrung_LoeschtGaesteOhneTeilnahmeNachDreissigTagen_NichtDieMitTeilnahmeOderFrischen()
+    {
+        var w = await AufbauenAsync();
+        var einsatz = await AnlegenAsync(w, Heute);
+        var alt = Jetzt.AddDays(-31);
+        var verwaist = new ClubWorkGuest { ClubId = w.Verein.Id, FirstName = "Verwaist", CreatedAt = alt };
+        var mitTeilnahme = new ClubWorkGuest { ClubId = w.Verein.Id, FirstName = "Aktiv", CreatedAt = alt };
+        var frisch = new ClubWorkGuest { ClubId = w.Verein.Id, FirstName = "Frisch", CreatedAt = Jetzt.AddDays(-29) };
+        // Ein Gast, dessen einzige Teilnahme mit einem alten Einsatz gelöscht wird, folgt im selben Lauf.
+        var letzter = new ClubWorkGuest { ClubId = w.Verein.Id, FirstName = "Letzter", CreatedAt = alt };
+        var altEinsatz = new ClubWorkEvent { ClubId = w.Verein.Id, Date = new DateOnly(2023, 12, 31), Title = "Alt", DurationMinutes = 60 };
+        w.Db.ClubWorkGuests.AddRange(verwaist, mitTeilnahme, frisch, letzter);
+        w.Db.ClubWorkEvents.Add(altEinsatz);
+        w.Db.ClubWorkParticipations.AddRange(
+            new ClubWorkParticipation { ClubWorkEventId = einsatz, GuestId = mitTeilnahme.Id },
+            new ClubWorkParticipation { ClubWorkEventId = altEinsatz.Id, GuestId = letzter.Id });
+        await w.Db.SaveChangesAsync();
+
+        var entfernt = await new ClubWorkRetention(w.Db).CleanupAsync(Jetzt);
+
+        Assert.Equal(1, entfernt);
+        Assert.Equivalent(new[] { "Aktiv", "Frisch" }, await w.Db.ClubWorkGuests.IgnoreQueryFilters().Select(g => g.FirstName).ToListAsync());
+        Assert.Equal(1, await w.Db.ClubWorkParticipations.IgnoreQueryFilters().CountAsync());
+        // Auch ohne fällige Einsätze läuft die Gast-Bereinigung.
+        w.Db.ClubWorkGuests.Add(new ClubWorkGuest { ClubId = w.Verein.Id, FirstName = "Noch einer", CreatedAt = alt });
+        await w.Db.SaveChangesAsync();
+        Assert.Equal(0, await new ClubWorkRetention(w.Db).CleanupAsync(Jetzt));
+        Assert.Equal(2, await w.Db.ClubWorkGuests.IgnoreQueryFilters().CountAsync());
+    }
+
+    [Fact]
+    public async Task KontoLoeschen_LeertCreatedByUserIdDerGaeste_DieGaesteBleiben()
+    {
+        var w = await AufbauenAsync();
+        var einsatz = await AnlegenAsync(w);
+        var gast = await GastAsync(w);
+        await AbhakenGaesteAsync(w, einsatz, gast);
+
+        Assert.True((await new AccountDataService(w.Db, w.Nutzer, w.Meldungen).PurgeAsync(w.Verwaltung)).Succeeded);
+
+        var zeile = await w.Db.ClubWorkGuests.IgnoreQueryFilters().SingleAsync();
+        Assert.Null(zeile.CreatedByUserId);
+        Assert.Equal(gast, (await w.Db.ClubWorkParticipations.IgnoreQueryFilters().SingleAsync()).GuestId);
+    }
+
+    // ---- Gleichzeitiges Abhaken (Unique-Verletzung, SqlState 23505), Logik wie bei Mitgliedern
+
+    private sealed class EindeutigerIndexVerletzt : DbException
+    {
+        public EindeutigerIndexVerletzt() : base("Doppelter Schlüssel.") { }
+        public override string? SqlState => "23505";
+    }
+
+    /// <summary>Das erste Speichern scheitert an einer schnelleren Anfrage, die dieselbe Person schon abgehakt hat.</summary>
+    private sealed class VerlierendesRennenContext(DbContextOptions<ApplicationDbContext> options, Func<Task> andereWarSchneller)
+        : ApplicationDbContext(options)
+    {
+        public int Speichern { get; private set; }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            Speichern++;
+            if (Speichern > 1) return await base.SaveChangesAsync(cancellationToken);
+            await andereWarSchneller();
+            throw new DbUpdateException("Speichern fehlgeschlagen.", new EindeutigerIndexVerletzt());
+        }
+    }
+
+    [Fact]
+    public async Task Abhaken_GleichzeitigerGast_UniqueVerletzungIstKeinFehler_UndJederGastWirdEinzelnGespeichert()
+    {
+        var optionen = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        var verwaltung = Guid.NewGuid();
+        var verein = new Club { Name = "Hundesportverein Nord" };
+        var einsatz = new ClubWorkEvent { ClubId = verein.Id, Date = Heute, Title = "Platzpflege", DurationMinutes = 120 };
+        var erster = new ClubWorkGuest { ClubId = verein.Id, FirstName = "Karl" };
+        var zweiter = new ClubWorkGuest { ClubId = verein.Id, FirstName = "Erna" };
+        await using var andere = new ApplicationDbContext(optionen);
+        andere.Clubs.Add(verein);
+        andere.ClubTrainers.Add(new ClubTrainer { ClubId = verein.Id, UserId = verwaltung, Role = ClubRole.Verwaltung });
+        andere.ClubWorkEvents.Add(einsatz);
+        andere.ClubWorkGuests.AddRange(erster, zweiter);
+        await andere.SaveChangesAsync();
+        await using var db = new VerlierendesRennenContext(optionen, async () =>
+        {
+            andere.ClubWorkParticipations.Add(new ClubWorkParticipation { ClubWorkEventId = einsatz.Id, GuestId = erster.Id });
+            await andere.SaveChangesAsync();
+        });
+        var dienst = new ClubWorkService(db, new FakeUserLookupService(), new FesteUhr());
+
+        var ergebnis = await dienst.AddParticipantsAsync(verwaltung, verein.Id, einsatz.Id, new AddClubWorkParticipantsRequest(null, [erster.Id, zweiter.Id]));
+
+        Assert.True(ergebnis.Succeeded);
+        Assert.Equivalent(new[] { erster.Id, zweiter.Id }, await andere.ClubWorkParticipations.Select(p => p.GuestId!.Value).ToListAsync());
+        // Der Konflikt, ein Speichern für den zweiten Gast: je Person ein eigenes Speichern.
+        Assert.Equal(2, db.Speichern);
     }
 }

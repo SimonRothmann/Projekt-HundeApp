@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Pencil, Timer, Trash2, UserMinus, UserPlus } from "lucide-react";
+import { Pencil, Timer, Trash2, UserMinus, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { abhakbar, dauerText, helferName } from "@/lib/arbeitseinsaetze";
@@ -14,12 +14,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EinsatzSheet } from "@/components/arbeitseinsaetze/einsatz-sheet";
+import { GaesteSheet } from "@/components/arbeitseinsaetze/gaeste-sheet";
 import { HelferSheet } from "@/components/arbeitseinsaetze/helfer-sheet";
 import { MinutenSheet } from "@/components/arbeitseinsaetze/minuten-sheet";
 
 /**
  * Ein Arbeitseinsatz: Kopf mit Datum, Titel, Dauer und Notiz, die abgehakten Helfer:innen mit ihren Minuten
- * (abweichende Minuten änderbar) und "Helfer:innen hinzufügen". Ändern darf nur die Verwaltung; der Vorstand
+ * (abweichende Minuten änderbar; Personen ohne Konto sind gekennzeichnet) und "Helfer:innen hinzufügen". Ändern darf nur die Verwaltung; der Vorstand
  * sieht den Einsatz lesend. Der Verein steht in der Adresse (?verein=). Alles Weitere entscheidet der Server.
  */
 export default function ArbeitseinsatzDetailPage() {
@@ -33,6 +34,7 @@ export default function ArbeitseinsatzDetailPage() {
   const [nichtGefunden, setNichtGefunden] = useState(false);
   const [bearbeiten, setBearbeiten] = useState(false);
   const [hinzufuegen, setHinzufuegen] = useState(false);
+  const [gaesteOffen, setGaesteOffen] = useState(false);
   const [minutenFuer, setMinutenFuer] = useState<ArbeitseinsatzHelfer | null>(null);
   const [laeuft, setLaeuft] = useState(false);
 
@@ -128,6 +130,10 @@ export default function ArbeitseinsatzDetailPage() {
             <Pencil className="size-4" />
             {t("Bearbeiten")}
           </Button>
+          <Button variant="outline" onClick={() => setGaesteOffen(true)} disabled={laeuft} className="coarse:min-h-11">
+            <Users className="size-4" />
+            {t("Personen ohne Konto")}
+          </Button>
         </div>
       )}
       {darfAendern && !kannAbhaken && (
@@ -153,6 +159,7 @@ export default function ArbeitseinsatzDetailPage() {
                       <span className="font-medium [overflow-wrap:anywhere]">{helferName(t, h)}</span>
                       <span className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
                         {dauerText(h.minutes)}
+                        {h.guest && <Badge variant="outline">{t("ohne Konto")}</Badge>}
                         {h.custom && <Badge variant="secondary">{t("abweichend")}</Badge>}
                       </span>
                     </div>
@@ -220,6 +227,7 @@ export default function ArbeitseinsatzDetailPage() {
           await laden();
         }}
       />
+      <GaesteSheet clubId={vereinId} open={gaesteOffen} onOpenChange={setGaesteOffen} onGeaendert={laden} />
       <MinutenSheet
         clubId={vereinId}
         einsatz={einsatz}
