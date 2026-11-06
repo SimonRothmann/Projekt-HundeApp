@@ -196,12 +196,14 @@ function Formular({ clubId, einsatz, onAbgehakt }: { clubId: string; einsatz: Ar
             </ul>
           ) : (
             <p className="text-sm text-muted-foreground">
-              {freieGaeste.length === 0
+              {gaeste.length === 0
                 ? t("Noch niemand ohne Konto angelegt.")
-                : // Hat schon der Mitgliederblock "Keine Treffer." gezeigt, nicht noch einmal.
-                  treffer.length === 0 && frei.length > 0
-                  ? null
-                  : t("Keine Treffer.")}
+                : freieGaeste.length === 0
+                  ? t("Alle Personen ohne Konto sind schon abgehakt.")
+                  : // Hat schon der Mitgliederblock "Keine Treffer." gezeigt, nicht noch einmal.
+                    treffer.length === 0 && frei.length > 0
+                    ? null
+                    : t("Keine Treffer.")}
             </p>
           )}
 

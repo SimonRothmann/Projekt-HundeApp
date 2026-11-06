@@ -21,8 +21,10 @@ import { uebersetzbar } from "@/lib/i18n/sprachen";
  * Nummerierung: MAJOR.MINOR, je Veröffentlichung eine Minor-Stufe höher,
  * eine dritte Stelle nur für Fehlerbehebungen zwischendurch (0.9.1). Kein
  * SemVer im engeren Sinn - es gibt keine öffentliche Schnittstelle, deren
- * Bruch eine Major-Stufe rechtfertigen würde. 1.0 bleibt bewusst frei: als
- * Ansage, nicht als Nebenwirkung des Hochzählens.
+ * Bruch eine Major-Stufe rechtfertigen würde. 1.0 wurde am Tag der
+ * Umsetzung (2026-11-06) als Ansage gesetzt, nicht als Nebenwirkung des
+ * Hochzählens; danach steigt wieder je Veröffentlichung die Minor-Stufe
+ * (1.1, 1.2 ...).
  *
  * Neueste Fassung steht oben. Darauf verlässt sich die Anzeige, und
  * versionshinweise.test.ts wacht darüber.
@@ -60,6 +62,21 @@ export type Versionshinweis = {
 export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
+  {
+    version: "1.0",
+    datum: "2026-11-06",
+    titel: uebersetzbar("Dogity 1.0"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Dogity ist jetzt in Fassung 1.0: Trainingstagebuch, Fährten und Mantrailing, Prüfungen, Vereinsarbeit und Sachkunde sind im Alltag erprobt. Danke an alle, die seit den ersten Fassungen mitgetestet und Rückmeldungen gegeben haben."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Arbeitseinsätze: Sind alle Helfer:innen ohne Konto schon abgehakt, sagt die Auswahl das jetzt auch so."),
+      },
+    ],
+  },
   {
     version: "0.50",
     datum: "2026-11-06",

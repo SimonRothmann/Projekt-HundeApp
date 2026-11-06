@@ -105,7 +105,7 @@ Versandfenster wie bei allen: 08:00-21:59 Vereinszeit.
 - **Modul:** „Gesundheit“ (`gesundheit`) ist über den vorhandenen Mechanismus (`UserDisabledModule`) abschaltbar, Vorgabe an. Abgeschaltet = Reiter,
   Hinweis auf der Startseite und Erinnerungen weg; die Daten bleiben.
 - Alle Texte über `t()`/`en.ts`. Die Titelvorschläge sind übersetzt (englisch „Rabies“ usw.) und werden so gespeichert, wie sie in der Sprache der
-  Person stehen; bei einem Sprachwechsel zwischen zwei Impfungen derselben Art gelten „Tollwut“ und „Rabies“ als verschiedene Titel.
+  Person stehen; bei einem Sprachwechsel zwischen zwei Impfungen derselben Art gelten „Tollwut“ und „Rabies“ als verschiedene Titel. Bewusst so belassen (Entscheidung 2026-11-06): Titel sind Freitext der Nutzer:innen; nach einem Sprachwechsel legt man den Eintrag neu an.
 
 ## Datenschutz
 

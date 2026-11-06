@@ -19,8 +19,8 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// Trainerbetreuung) inkl. Beispieldaten (Verein, Gruppe, Hunde, Training
 /// mit Trainer-Feedback, Fährtenaufnahme, Ziel mit generiertem
 /// Trainingsplan), damit Features ohne manuelles Anlegen über die UI
-/// getestet werden können. Nur in Development aktiv (siehe Program.cs),
-/// nie produktiv und idempotent (überspringt, falls bereits vorhanden).
+/// getestet werden können. Nur in Development oder mit Demo:Aktiv aktiv (siehe
+/// Program.cs), nie produktiv und idempotent (überspringt, falls bereits vorhanden).
 ///
 /// Das Demo-Passwort ist bewusst fest codiert: es handelt sich um
 /// Wegwerf-Testdaten für die lokale Dev-Datenbank, kein echtes Secret

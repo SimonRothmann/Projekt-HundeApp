@@ -37,7 +37,7 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// Warum ein eigener Seeder und nicht noch mehr im DemoDataSeeder: Der bricht
 /// ab, sobald das Trainer-Konto existiert - auf der Test-Umgebung gibt es die
 /// Demo-Konten seit Juli, jede Erweiterung dort käme nie an. Dieser Seeder
-/// läuft bei JEDEM Start (siehe Program.cs, nur in Development), und jedes
+/// läuft bei JEDEM Start (siehe Program.cs, nur in Development oder mit Demo:Aktiv), und jedes
 /// Szenario prüft für sich, ob seine Daten schon da sind (an festen Texten),
 /// und legt nur Fehlendes an. Termine sind "rollend": bei jedem Start gibt es
 /// wieder künftige. Ebenso die Nachtfährte: Solange niemand sie abgelaufen hat,

@@ -12,9 +12,9 @@ namespace Dogity.Infrastructure.Email;
 /// Passwort-Reset den vollständigen Reset-Link inkl. gültigem Token - in
 /// Production-Container-Logs (Retention bis zum nächsten Recreate) wäre das
 /// für jeden mit Log-Zugriff ein Konto-Übernahme-Vektor. In Development
-/// (lokal + Test-VPS) bleibt der Body einsehbar, dort ist der geloggte Link
-/// der dokumentierte Weg, den Reset ohne echten E-Mail-Versand
-/// durchzuspielen (siehe deploy/README.md "Logs / Status"). Es wird nur die
+/// (lokal) bleibt der Body einsehbar, dort ist der geloggte Link der Weg, den
+/// Reset ohne echten E-Mail-Versand durchzuspielen. Die Testumgebung läuft als
+/// Staging und loggt ihn wie Prod nicht. Es wird nur die
 /// Textfassung geloggt, nie das HTML.
 /// </summary>
 public class LoggingEmailSender(ILogger<LoggingEmailSender> logger, IHostEnvironment environment) : IEmailSender

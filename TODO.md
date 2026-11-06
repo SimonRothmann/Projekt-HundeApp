@@ -91,7 +91,7 @@ Stand master nach diesem Eintrag. Prod = 0.40 (51979f9, verifiziert). Test = 0.4
 ## Offene Punkte aus Gesundheit (0.41)
 
 - [ ] ÖKV-Ordnungen Obedience und Rally Obedience gegen die Originale auf oekv.at prüfen, sobald die Seite wieder erreichbar ist (bisher aus einer Webarchiv-Kopie übernommen, siehe docs/PO_VERIFIKATION.md); VDH-RO-Senioren-Schildauswahl wurde nur aus Bildern abgelesen.
-- [ ] Titel werden in der Nutzersprache gespeichert ("Tollwut" vs. "Rabies" = verschiedene Titel nach Sprachwechsel, alte Erinnerung läuft weiter). Entscheiden: sprachunabhängige Kanon-Titel speichern oder so lassen (docs/GESUNDHEIT.md).
+- [x] Titel werden in der Nutzersprache gespeichert ("Tollwut" vs. "Rabies" = verschiedene Titel nach Sprachwechsel, alte Erinnerung läuft weiter). Entschieden 2026-11-06: bleibt so – Titel sind Freitext der Nutzer:innen; nach einem Sprachwechsel neu anlegen (docs/GESUNDHEIT.md).
 - [x] (K2, Fassung 0.50: Hundekarte zeigt überfällige Fristen; ein Hinweispunkt am Reiter "Gesundheit" der Hundeseite bleibt offen) Hundeliste (/dogs) bekommt `DogDto.Gesundheit`, zeigt ihn aber nicht an; kein Hinweispunkt am Reiter bei Überfälligem.
 - [x] (geprüft 2026-10-29: `KatalogTextlaengenTests` belegt für alle geseedeten Texte, auch die englischen, dass sie in die Spalten des EF-Modells passen - kein Überlauf, keine Spalte verlängert) Unbestätigt: Ein Sub-Worker meldete einen Absturz von `SeedSkgAgilityAsync` auf FRISCHER Postgres-Datenbank (varchar 2000). Der Prüflauf maß in-memory höchstens 1995 Zeichen (SKG Agility Klasse 2) - Reserve 5 Zeichen. Auf frischer DB nachstellen; ggf. Spalte verlängern (siehe Befund "Seed-Fehler" unten).
 
@@ -260,7 +260,7 @@ Im Rahmen eines vollständigen Performance-Audits identifiziert, aber bewusst zu
 - [x] (erledigt 2026-10-16) Lasttest mit bis zu 1.000 gleichzeitigen Sitzungen: 0 Fehler, Startseite p95 unter 30 ms. Behoben: SQL-Abfragen nicht mehr im Prod-Protokoll, Verbindungsvorrat Prod 50 / Test 20. Ergebnisse in `docs/BETRIEB.md` ("Belastbarkeit"). Daraus offen:
 - [x] (erledigt 2026-10-16, Betreiber: "2-4 GB") Postgres-Speicher: `shared_buffers` 2 GB, `effective_cache_size` 6 GB, `work_mem` 16 MB, `maintenance_work_mem` 256 MB, `shm_size` 512 MB in `docker-compose.yml`. Greift erst nach Neustart der Datenbank, danach Backends neu starten (Befehl in `docs/BETRIEB.md`, "Speicher der Datenbank"). Datenbanken waren zu dem Zeitpunkt 12 bzw. 14 MB groß - Wirkung erst bei wachsenden Daten.
 - [x] Fährte speichern wartet auf das Wetter (erledigt 2026-10-18): Speichern von Fährte, Ablauf und Training reiht nur einen Auftrag ein (`IWetterQueue`, wie Mail und Push), `WetterNachtragBackgroundService` fragt Open-Meteo und trägt in dieselben Felder nach; Gegenprobe vor dem Eintragen (Datensatz gelöscht, Ort oder Zeit geändert, Feld schon gefüllt: verworfen). Das Frontend lädt einmal nach, solange das Wetter fehlt. Kein Nachholer beim Start (Begründung im Kommentar von `WetterQueue`).
-- [ ] Anmelde-Drossel 10 Versuche/Minute je IP: Melden sich bei einer Vereinsveranstaltung viele über dasselbe WLAN an, teilen sie sich eine IP. Beobachten; ggf. Grenze für Anmeldungen anheben oder zusätzlich je E-Mail-Adresse drosseln.
+- [ ] Anmelde-Drossel 10 Versuche/Minute je IP: Melden sich bei einer Vereinsveranstaltung viele über dasselbe WLAN an, teilen sie sich eine IP. Beobachten; ggf. Grenze für Anmeldungen anheben oder zusätzlich je E-Mail-Adresse drosseln. Ablehnungen stehen seit 1.0 als „Drossel:“ im Backend-Log (docs/BETRIEB.md).
 - [x] `GET /api/admin/users` liefert alle Nutzer ohne Paging zurück - erledigt: Endpoint hat inzwischen `page`/`pageSize`-Parameter (`AdminUserPageDto`, Default 50/Seite).
 - [x] (erledigt 2026-10-16: `GET /api/sports/{sportId}/exercises?katalog=global` bzw. `?katalog=verein&clubId=...` filtert serverseitig, ein fremder Verein ergibt eine leere Liste, ohne Parameter unverändert; `catalog-section.tsx` filtert nicht mehr selbst) `global-exercises-section.tsx`/`club-exercises-section.tsx` luden alle für den Nutzer sichtbaren Übungen und filterten client-seitig auf `clubId === null` bzw. den gewählten Verein - ein Query-Parameter am bestehenden `/api/sports/{sportId}/exercises`-Endpoint würde das vermeiden, spart aber nur wenige KB pro Aufruf in der Admin/Trainer-Verwaltung (kein Endnutzer-Pfad auf dem Hundeplatz).
 
@@ -344,7 +344,7 @@ Ausgelöst durch die Nutzerfrage "wie verhindern wir, dass Nutzer, die 3x/Woche 
 ### Zurückgestellt (Nice-to-have, bewusst NICHT auf der Roadmap)
 
 - Cookie-Auth + Refresh-Token-Rotation (JWT-Härtung Stufe 2): bricht `api.ts`, 401-Handling, Offline-Queue und Dev-CORS gleichzeitig - erst vor einer öffentlichen Beta mit Fremdnutzern angehen. CSP + SecurityStamp senken das Risiko bis dahin ausreichend.
-- Test-Env von `Development` auf eigenes `Staging`-Environment umstellen (Demo-Seeder an explizites `Seed:Demo`-Flag koppeln, CORS festnageln, Swagger schützen): erst nötig, wenn die Test-Domain öffentlich sichtbar beworben wird.
+- ~~Test-Env von `Development` auf eigenes `Staging`-Environment umstellen~~ - erledigt 1.0: `ASPNETCORE_ENVIRONMENT=Staging`, Demo-Seeder über `Demo__Aktiv`, CORS auf `TEST_DOMAIN`, kein Swagger.
 - PDF-Export: Druckansicht `/dogs/[id]/print` + Browser-Print deckt den Bedarf.
 - ~~Exercises-Endpoint-Query-Parameter~~ - erledigt 2026-10-16 (siehe Performance-Backlog oben).
 
@@ -376,8 +376,8 @@ Nicht im Code lösbar - auf dem Server bzw. im Cloudflare-Dashboard:
       zulassen (Liste im Caddyfile). Let's Encrypt funktioniert weiter, die
       Prüfung läuft ebenfalls über Cloudflare.
 - [ ] **Testumgebung abschirmen.** test.dogity.net ist öffentlich, der
-      Demo-Admin hat ein im Repo stehendes Passwort, Swagger und die
-      Entwickler-Fehlerseite sind offen (ASPNETCORE_ENVIRONMENT=Development).
+      Demo-Admin hat ein im Repo stehendes Passwort (Swagger, Entwickler-Fehlerseite
+      und offenes CORS gibt es seit 1.0 dort nicht mehr: Staging).
       Getrennt von Prod (eigene DB-Rolle), aber jede:r kann dort Admin sein und
       die Nutzerliste der Testumgebung sehen. Vorschlag: Cloudflare Access
       (kostenlos) vor test.dogity.net und api-test.dogity.net. Entscheidung

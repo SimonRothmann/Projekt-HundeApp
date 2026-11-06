@@ -1,8 +1,8 @@
 # Demo-Daten und Demo-Szenarien
 
 Status: **umgesetzt** (2026-09-30, ergänzt 2026-10-16: Englisch, Mitbesitz, Österreich,
-Vereinsantrag, Hoopers, Nachtfährte; 2026-10-18: Schweiz; 2026-10-22: Trainingspausen; 2026-10-23: Sachkunde-Übungsprüfung; 2026-10-27: Gesundheit; 2026-10-31: Mantrailing). Gilt nur für Development (lokal und die
-Test-Umgebung); Produktion bekommt nichts davon.
+Vereinsantrag, Hoopers, Nachtfährte; 2026-10-18: Schweiz; 2026-10-22: Trainingspausen; 2026-10-23: Sachkunde-Übungsprüfung; 2026-10-27: Gesundheit; 2026-10-31: Mantrailing). Gilt nur für Development (lokal) und die
+Test-Umgebung (Staging mit `Demo__Aktiv=true`); Produktion bekommt nichts davon.
 
 ## Zwei Seeder, zwei Aufgaben
 
@@ -12,7 +12,7 @@ Test-Umgebung); Produktion bekommt nichts davon.
   Juli, deshalb kommt dort nichts mehr an, was man ihm hinzufügt.
 - `DemoSzenarienSeeder` ergänzt die Konten um Szenarien, mit denen sich **alle
   Funktionen** von Hand ausprobieren lassen. Er läuft bei **jedem Start**
-  (`Program.cs`, nur Development, nach dem `DemoDataSeeder`).
+  (`Program.cs`, nur Development oder `Demo:Aktiv`, nach dem `DemoDataSeeder`).
 
 Der Szenarien-Seeder:
 

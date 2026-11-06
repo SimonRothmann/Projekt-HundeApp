@@ -12,6 +12,7 @@ klemmt. Die Sicherung der Datenbank hat eine eigene Seite:
 | 03:00 täglich | Sicherung der Prod-Datenbank nach R2 | `cat /var/backups/dogity/LETZTER_LAUF` |
 | 04:30, nur wenn nötig | Neustart, falls ein Kernel-Update darauf wartet | `uptime`, `uname -r` |
 | 04:00 sonntags | Build-Cache auf 20 GB beschneiden, verwaiste Images entfernen | `docker system df` |
+| alle 30 min | Erreichbarkeit von dogity.net und api.dogity.net (GitHub Actions, Mail bei Ausfall) | Reiter Actions im Repo |
 | laufend | Livepatch schließt Kernel-Lücken ohne Neustart (Ubuntu Pro, seit 2026-09-09) | `canonical-livepatch status` |
 
 Die Konfiguration für Updates und Neustart steht in
@@ -124,6 +125,17 @@ toleriert` (kein Fehler, die Sitzung läuft weiter) und `Konto gesperrt/gelösch
 Die Container-Logs beginnen mit jedem Deploy neu und reichen höchstens
 30 MB zurück - wer eine Abmeldung klären will, schaut vor dem nächsten Deploy
 nach.
+
+**Abgelehnte Anfragen der Drossel (429)**
+
+Seit Fassung 1.0 schreibt das Backend jede von der Drossel abgelehnte Anfrage
+mit festem Präfix `Drossel:`, Methode und Route-Muster ins Log (nie IP, Pfad mit
+Einladungscode, Query-String oder Token). So lässt sich sehen, ob echte
+Nutzer:innen im Vereinsheim-WLAN getroffen werden:
+
+```bash
+ssh dogity 'docker logs -t dogity-backend-prod-1 2>&1 | grep "Drossel:"'
+```
 
 **Stehen Updates an, die niemand einspielt?**
 
