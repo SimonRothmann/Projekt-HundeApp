@@ -132,7 +132,7 @@ export function DatenschutzEn() {
           punkte={[
             "your learning progress in the theory-test question trainer (Sachkunde) and the results of your practice exams",
             "Notifications within the app",
-            "your settings: language, country, font size, hidden areas, chosen sports, whether important notifications are also sent by email and which reminders you receive (for trainers, with the weekdays and time they chose)",
+            "your settings: language, country, font size, step length, hidden areas, chosen sports, whether important notifications are also sent by email and which reminders you receive (for trainers, with the weekdays and time they chose)",
             "which reminders have already been sent to you (kind, session or track or day, time) – only as a note so that a reminder does not arrive twice; described in detail in section 7",
             "Devices on which you have switched on push notifications: the device’s address at its manufacturer’s push service, the device’s keys for encryption, a short label such as “iPhone (Safari)” as well as the time of registration and of the last delivery – described in detail in section 7",
           ]}

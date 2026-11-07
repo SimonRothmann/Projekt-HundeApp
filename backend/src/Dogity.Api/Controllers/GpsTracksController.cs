@@ -41,6 +41,13 @@ public class GpsTracksController(IGpsTrackService gpsTrackService) : ApiControll
         return FromResultAlsBadRequest(result);
     }
 
+    [HttpPut("{id:guid}/verdeckt")]
+    public async Task<ActionResult<GpsTrackDto>> UpdateVerdeckt(Guid id, UpdateGpsVerdecktRequest request, CancellationToken ct)
+    {
+        var result = await gpsTrackService.UpdateVerdecktAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("{id:guid}/walk-runs/{runId:guid}/trail")]
     public async Task<ActionResult<GpsWalkRunDto>> UpdateTrailRun(Guid id, Guid runId, UpdateGpsTrailRunRequest request, CancellationToken ct)
     {

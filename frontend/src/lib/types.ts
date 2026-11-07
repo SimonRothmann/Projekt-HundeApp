@@ -1079,6 +1079,8 @@ export type GpsTrack = {
   /** Alter der Spur in Minuten; beim Mantrailing das Trailalter (die Oberfläche zeigt Stunden). */
   ageMinutes: number | null;
   surface: string | null;
+  /** Bodenzustand beim Legen (Mehrfachauswahl als Text, nur Fährte). Optional wie die Felder darunter. */
+  groundCondition?: string | null;
   weather: string | null;
   wind: string | null;
   comment: string | null;
@@ -1087,6 +1089,7 @@ export type GpsTrack = {
   // Art der Aufzeichnung: 0 = Fährte, 1 = Mantrailing (ART_* in lib/mantrailing.ts). Wie die
   // Angaben darunter optional - ältere Stände kennen sie nicht und gelten als Fährte.
   kind?: number;
+  /** Beim Mantrailing "Doppelblind", bei der Fährte "Verdeckt absuchen": Beim Absuchen sind Verlauf, Marker und Haptik aus. */
   doubleBlind?: boolean;
   negativeTrail?: boolean;
   scentArticle?: string | null;
@@ -1103,6 +1106,9 @@ export type GpsTrack = {
   searchRelativeHumidity: number | null;
   searchWindSpeedKmh: number | null;
   searchWeatherCode: number | null;
+  /** Windrichtung in Grad, AUS der der Wind kommt (lib/wind.ts); fehlt bei Fährten, deren Wetter vor Paket F4 geholt wurde. */
+  laidWindDirectionDeg?: number | null;
+  searchWindDirectionDeg?: number | null;
   temperatureDeltaC: number | null;
   weatherFetchedAt: string | null;
 };
@@ -1659,6 +1665,8 @@ export type UserPreferences = {
   trainerSummaryHour: number;
   /** Erinnerung an ablaufende Impfungen, fällige Entwurmung und Tierarzttermine. Vorgabe: ja. */
   reminderHealth: boolean;
+  /** Schrittlänge in cm (40 bis 120) für die Umrechnung der Fährtenlänge in Schritte, null = Standard (lib/schritte.ts). */
+  stepLengthCm: number | null;
 };
 
 /** Ein wählbarer Geltungsbereich - Spiegel von Application/Sports/CountryDto. */

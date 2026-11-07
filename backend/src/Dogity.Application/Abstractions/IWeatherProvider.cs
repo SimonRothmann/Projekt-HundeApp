@@ -6,7 +6,9 @@ public record WeatherReading(
     int? RelativeHumidity,
     double? WindSpeedKmh,
     /// <summary>WMO-Wettercode (siehe Open-Meteo weather_code).</summary>
-    int? WeatherCode);
+    int? WeatherCode,
+    /// <summary>Windrichtung in Grad, aus der der Wind kommt (Open-Meteo wind_direction_10m), 0 bis 359.</summary>
+    int? WindDirectionDeg = null);
 
 /// <summary>
 /// Liefert Wetterdaten zu Ort und Zeitpunkt - für die Fährte der springende

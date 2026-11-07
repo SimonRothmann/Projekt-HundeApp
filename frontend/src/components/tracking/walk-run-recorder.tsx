@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 import { istMantrailing } from "@/lib/mantrailing";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,9 @@ import { GENAUIGKEIT_KLASSE } from "@/components/tracking/genauigkeit-klasse";
 import { genauigkeitsStufe, GPS_PROFIL_ABLAUF } from "@/lib/gps-profil";
 import { TrackMap } from "@/components/tracking/track-map";
 import { AblaufErgebnisSheet } from "@/components/tracking/ablauf-ergebnis-sheet";
+import { AnsatzHinweis } from "@/components/tracking/ansatz-hinweis";
+import { ansatzHinweis, ansatzPunkt } from "@/lib/ansatz";
+import { rohePeilung } from "@/lib/karte/peilung";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
 import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/components/tracking/unterbrochene-aufzeichnung";
 import { primeHapticsAudio, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
@@ -82,14 +85,20 @@ export function WalkRunRecorder({
   /**
    * Die gelegte Spur selbst. Beim Mantrailing (kind) ändern sich Begriffe, Grenzen und das Ergebnis-Fenster;
    * bei einem doppelblinden Trail sieht das Team die gelegte Linie während der Suche nicht und bekommt keine
-   * Vibration an Abbiegungen - beides verriete den Verlauf.
+   * Vibration an Abbiegungen - beides verriete den Verlauf. Dasselbe gilt für eine Fährte, die verdeckt
+   * abgesucht wird (doubleBlind): Linie, Marker und Haptik sind aus; zu sehen ist der Startpunkt, und
+   * bis der Ansatz gefunden ist, Entfernung und Richtung dorthin.
    */
   track?: GpsTrack;
 }) {
   const t = useT();
   const trail = istMantrailing(track);
-  const verdeckt = trail && track?.doubleBlind === true;
+  const verdeckt = track?.doubleBlind === true;
   const sichtbareLegung = verdeckt ? undefined : laidTrackPoints;
+  // Nur die Fährte sucht ihren Ansatz; der Trail beginnt dort, wo die Suche anfängt (unverändert).
+  const ansatz = verdeckt && !trail ? ansatzPunkt(laidTrackPoints ?? []) : null;
+  // Auf der Karte erlaubt ist der Startpunkt der Legung - der Rest nicht.
+  const verdeckteKarte = useMemo(() => (ansatz ? [ansatz] : KEINE_PUNKTE), [ansatz]);
   const { isRecording, points, setPoints, currentAccuracy, start: startRecording, stop } = useGpsRecorder(toWalkPoint, GPS_PROFIL_ABLAUF);
   // Optionaler Kommentar zu diesem Ablauf-Versuch (z.B. "bei Regen", "Hund
   // hat an Winkel 2 verloren") - wird beim Stoppen mitgespeichert.
@@ -145,6 +154,8 @@ export function WalkRunRecorder({
     // Update-Loop im Aufrufer auslöst.
     onLivePointsChange?.(trackId, isRecording ? points : EMPTY_WALK_POINTS);
   }, [points, isRecording, onLivePointsChange, trackId]);
+
+  const hinweis = ansatz ? ansatzHinweis(points, ansatz) : null;
 
   // Vibriere 10 Schritte (~8 m) vor jedem markierten Gegenstand und vor
   // jeder erkannten Abbiegung der Legung. sessionKey = trackId+isRecording:
@@ -299,7 +310,8 @@ export function WalkRunRecorder({
       onAbschluss={stopRecording}
       onAbbrechen={abbrechen}
     >
-      <TrackMap points={sichtbareLegung ?? KEINE_PUNKTE} liveWalkRunPoints={points} art={track} fill />
+      <TrackMap points={sichtbareLegung ?? verdeckteKarte} liveWalkRunPoints={points} art={track} fill />
+      {hinweis && <AnsatzHinweis hinweis={hinweis} laufrichtung={rohePeilung(points)} />}
     </AufzeichnungVollbild>
   );
 }

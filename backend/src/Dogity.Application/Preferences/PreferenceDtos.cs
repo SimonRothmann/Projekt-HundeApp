@@ -15,6 +15,7 @@ namespace Dogity.Application.Preferences;
 /// <param name="TrainerSummaryDays">Wochentage der Zusammenfassung als Bitmaske (Mo = 1 ... So = 64). Vorgabe: Sonntag.</param>
 /// <param name="TrainerSummaryHour">Uhrzeit der Zusammenfassung, volle Stunde 8 bis 21 (Vereinszeit). Vorgabe: 18.</param>
 /// <param name="ReminderHealth">Erinnerung an ablaufende Impfungen, fällige Entwurmung und Tierarzttermine. Vorgabe: ja.</param>
+/// <param name="StepLengthCm">Schrittlänge in cm (40 bis 120) für die Umrechnung der Fährtenlänge in Schritte, null = Standard (75).</param>
 public record UserPreferenceDto(
     string? Locale,
     string? Country,
@@ -27,7 +28,8 @@ public record UserPreferenceDto(
     bool ReminderTrainerSummary = true,
     int TrainerSummaryDays = 64,
     int TrainerSummaryHour = 18,
-    bool ReminderHealth = true);
+    bool ReminderHealth = true,
+    int? StepLengthCm = null);
 
 public record UpdateModulesRequest(IReadOnlyList<string> DisabledModules);
 public record UpdateSportsRequest(IReadOnlyList<Guid> SportIds);
@@ -35,6 +37,9 @@ public record UpdateLocaleRequest(string? Locale);
 public record UpdateCountryRequest(string? Country);
 public record UpdateFontScaleRequest(string? FontScale);
 public record UpdateEmailNotificationsRequest(bool Enabled);
+
+/// <summary>Schrittlänge in cm, 40 bis 120; null setzt auf den Standard (75 cm) zurück.</summary>
+public record UpdateStepLengthRequest(int? StepLengthCm);
 
 /// <summary>
 /// Alle Einstellungen der Erinnerungen auf einmal - sie gehören zusammen und werden

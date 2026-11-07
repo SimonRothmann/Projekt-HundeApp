@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import type { GpsWalkRun } from "@/lib/types";
+import type { GpsTrack, GpsWalkRun } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,14 @@ import {
   winkelBeschriftung,
   zustandBeschriftung,
 } from "@/lib/winkel-schenkel";
-type Spur = { kind?: number | null };
+import { useSchritte } from "@/lib/use-schritte";
+import { windBeschriftung, windJeSchenkel } from "@/lib/wind";
+
+// Die Spur des Laufs. Mit Punkten und Wetter ordnet die Anzeige die Schenkel nach dem Wind ein (lib/wind.ts);
+// ohne bleibt es bei Art und Grenzen.
+type Spur = { kind?: number | null } & Partial<
+  Pick<GpsTrack, "points" | "laidWindSpeedKmh" | "laidWindDirectionDeg" | "searchWindSpeedKmh" | "searchWindDirectionDeg">
+>;
 
 // Die Grenzen je Art stehen in lib/mantrailing.ts, die Einstufung in lib/spur-ampel.ts.
 const AMPEL_KLASSE: Record<Ampel, string> = {
@@ -50,6 +57,8 @@ const stopClass: Record<number, string> = {
  */
 function WinkelUndSchenkel({ run, gross, art }: { run: GpsWalkRun; gross: boolean; art?: Spur }) {
   const t = useT();
+  const schritte = useSchritte();
+  const wind = windJeSchenkel(art ?? {}, run.legs ?? [], run.corners ?? []);
   if (!hatWinkelUndSchenkel(run)) return null;
 
   const grenzen = spurGrenzen(art);
@@ -64,10 +73,16 @@ function WinkelUndSchenkel({ run, gross, art }: { run: GpsWalkRun; gross: boolea
           const platz = "flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 py-1.5 [overflow-wrap:anywhere]";
           if (zeile.art === "schenkel") {
             const { leg } = zeile;
+            const lage = wind.get(leg.number);
+            const schrittText = schritte(leg.lengthMeters);
             return (
               <li key={`s${leg.number}`} className={platz}>
                 <span className="font-medium">{t("Schenkel {nr}", { nr: leg.number })}</span>
-                <span>· {t("{meter} m", { meter: Math.round(leg.lengthMeters) })}</span>
+                <span>
+                  · {t("{meter} m", { meter: Math.round(leg.lengthMeters) })}
+                  {schrittText ? ` ${schrittText}` : ""}
+                </span>
+                {lage && <span>· {t(windBeschriftung(lage))}</span>}
                 {leg.durationSeconds != null && <span>· {t("{dauer} min", { dauer: dauerText(leg.durationSeconds) })}</span>}
                 {leg.avgDeviationMeters != null && (
                   <span className={ampelClass(leg.avgDeviationMeters, art)}>

@@ -35,6 +35,20 @@ export const TRAIL_UNTERGRUENDE: readonly string[] = [
 ];
 
 /**
+ * Zustand des Bodens beim Legen (nur Fährte), gleiche Mechanik wie der Untergrund: Mehrfachauswahl zum
+ * Antippen, gespeichert als deutscher Text in GpsTrack.GroundCondition. Frost und Schnee ändern, wie sich
+ * der Geruch hält - deshalb gehört die Angabe zur Fährte. Mit untergrundUmschalten und untergrundAlsText
+ * zu verwenden (Liste als dritter Parameter).
+ */
+export const BODENZUSTAENDE: readonly string[] = [
+  uebersetzbar("trocken"),
+  uebersetzbar("feucht"),
+  uebersetzbar("nass"),
+  uebersetzbar("gefroren"),
+  uebersetzbar("Schnee"),
+];
+
+/**
  * Einen Untergrund an- oder abwählen.
  *
  * Mehrfachauswahl, weil eine Fährte über einen Untergrundwechsel führen kann.

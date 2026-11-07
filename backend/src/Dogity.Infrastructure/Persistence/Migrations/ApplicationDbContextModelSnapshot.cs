@@ -2085,6 +2085,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
+                    b.Property<int?>("StepLengthCm")
+                        .HasColumnType("integer");
+
                     b.Property<int>("TrainerSummaryDays")
                         .HasColumnType("integer")
                         .HasDefaultValue(64);
@@ -2473,6 +2476,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<string>("GroundCondition")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -2487,6 +2494,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<int?>("LaidWeatherCode")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LaidWindDirectionDeg")
                         .HasColumnType("integer");
 
                     b.Property<double?>("LaidWindSpeedKmh")
@@ -2509,6 +2519,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<int?>("SearchWeatherCode")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SearchWindDirectionDeg")
                         .HasColumnType("integer");
 
                     b.Property<double?>("SearchWindSpeedKmh")

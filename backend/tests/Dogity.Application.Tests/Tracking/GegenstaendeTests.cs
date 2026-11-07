@@ -394,10 +394,10 @@ public class GegenstaendeTests
             Enumerable.Range(0, 10).Select(i => new CreateGpsWalkPointRequest(LatAt(i * 5), BaseLon, T0.AddHours(2).AddMinutes(i), 5)).ToList()))).Value!;
 
         Assert.Equal(2, lauf.ArticlesFound);
-        Assert.Equal(gegenstaende.Take(2).Select(g => g.Id).Order(), lauf.ReachedArticleIds.Order());
+        Assert.Equal(gegenstaende.Take(2).Select(g => g.Id).Order(), lauf.ReachedArticleIds!.Order());
         // Beim späteren Lesen derselbe Hinweis.
         var gelesen = (await w.Dienst.GetByTrainingSessionAsync(w.Nutzer, spur.TrainingSessionId)).Value!.Single().WalkRuns.Single();
-        Assert.Equal(lauf.ReachedArticleIds.Order(), gelesen.ReachedArticleIds.Order());
+        Assert.Equal(lauf.ReachedArticleIds!.Order(), gelesen.ReachedArticleIds!.Order());
     }
 
     [Fact]

@@ -38,6 +38,7 @@ const VORGABE: UserPreferences = {
   reminderHealth: true,
   trainerSummaryDays: VORGABE_TAGE,
   trainerSummaryHour: VORGABE_STUNDE,
+  stepLengthCm: null,
 };
 
 const PreferencesContext = createContext<PreferencesValue | undefined>(undefined);

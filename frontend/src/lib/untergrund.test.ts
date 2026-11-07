@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TRAIL_UNTERGRUENDE, UNTERGRUENDE, untergrundAlsText, untergrundUmschalten } from "./untergrund";
+import { BODENZUSTAENDE, TRAIL_UNTERGRUENDE, UNTERGRUENDE, untergrundAlsText, untergrundUmschalten } from "./untergrund";
 
 describe("untergrundUmschalten", () => {
   it("wählt beim ersten Antippen an und beim zweiten wieder ab", () => {
@@ -36,5 +36,17 @@ describe("TRAIL_UNTERGRUENDE", () => {
     const auswahl = untergrundUmschalten(untergrundUmschalten([], "Wiese", TRAIL_UNTERGRUENDE), "Wohngebiet", TRAIL_UNTERGRUENDE);
     expect(auswahl).toEqual(["Wohngebiet", "Wiese"]);
     expect(untergrundAlsText(TRAIL_UNTERGRUENDE)!.length).toBeLessThanOrEqual(100);
+  });
+});
+
+describe("BODENZUSTAENDE", () => {
+  it("bietet die fünf Zustände an", () => {
+    expect([...BODENZUSTAENDE]).toEqual(["trocken", "feucht", "nass", "gefroren", "Schnee"]);
+  });
+
+  it("ordnet nach der Liste der Zustände und passt mit allen ins Feld", () => {
+    const auswahl = untergrundUmschalten(untergrundUmschalten([], "Schnee", BODENZUSTAENDE), "gefroren", BODENZUSTAENDE);
+    expect(auswahl).toEqual(["gefroren", "Schnee"]);
+    expect(untergrundAlsText(BODENZUSTAENDE)!.length).toBeLessThanOrEqual(100);
   });
 });

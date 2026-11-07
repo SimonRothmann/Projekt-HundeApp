@@ -107,13 +107,19 @@ public record GpsTrackDto(
     int? SearchWeatherCode,
     double? TemperatureDeltaC,
     DateTimeOffset? WeatherFetchedAt,
-    // Nur Mantrailing (Kind = Mantrailing); bei der Fährte false bzw. null.
+    // Mantrailing-Angaben (Kind = Mantrailing); bei der Fährte false bzw. null - außer DoubleBlind: Das ist dort
+    // "Verdeckt absuchen" und wird erst nachträglich gesetzt.
     GpsTrackKind Kind,
     bool DoubleBlind,
     bool NegativeTrail,
     string? ScentArticle,
     // Bewusst schwere Übungsfährte: zählt nicht in die Entwicklung des Hundes.
-    bool ExcludeFromStats);
+    bool ExcludeFromStats,
+    // Bodenzustand beim Legen (Mehrfachauswahl als Text, nur Fährte).
+    string? GroundCondition = null,
+    // Windrichtung in Grad, AUS der der Wind kommt (null bei Fährten, deren Wetter vor Paket F4 geholt wurde).
+    int? LaidWindDirectionDeg = null,
+    int? SearchWindDirectionDeg = null);
 
 public record CreateGpsPointRequest(
     double Latitude,
@@ -156,7 +162,9 @@ public record CreateGpsTrackRequest(
     GpsTrackKind Kind = GpsTrackKind.Faehrte,
     bool DoubleBlind = false,
     bool NegativeTrail = false,
-    string? ScentArticle = null);
+    string? ScentArticle = null,
+    // Bodenzustand beim Legen (nur Fährte); ältere Clients kennen das Feld nicht.
+    string? GroundCondition = null);
 
 public record CreateGpsWalkPointRequest(double Latitude, double Longitude, DateTimeOffset Timestamp, double? Accuracy);
 
@@ -172,6 +180,12 @@ public record UpdateGpsWalkRunRequest(string? Comment);
 /// Trailalter, das erst beim Suchen feststeht. Ersetzt alle vier Angaben.
 /// </summary>
 public record UpdateGpsTrailRequest(int? AgeMinutes, bool DoubleBlind, bool NegativeTrail, string? ScentArticle);
+
+/// <summary>
+/// "Verdeckt absuchen" bei der Fährte (DoubleBlind): Beim Absuchen sind Verlauf, Marker und Haptik
+/// ausgeblendet. Lässt sich nur setzen, solange noch kein Ablauf existiert.
+/// </summary>
+public record UpdateGpsVerdecktRequest(bool Verdeckt);
 
 /// <summary>Ergebnis eines Mantrailing-Laufs. Ersetzt beide Angaben (null = nicht angegeben).</summary>
 public record UpdateGpsTrailRunRequest(bool? PersonFound, TrailIndication? Indication);

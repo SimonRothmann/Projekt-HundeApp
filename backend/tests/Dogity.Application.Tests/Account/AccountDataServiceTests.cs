@@ -237,6 +237,23 @@ public class AccountDataServiceTests
     }
 
     [Fact]
+    public async Task Export_EnthaeltSchrittlaengeUndBodenzustand()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        lookup.Register(nutzer, "ich@test.de", "Max", "Muster");
+        HundMitAllem(db, nutzer, "Bello");
+        db.GpsTracks.Local.Single().GroundCondition = "feucht, Schnee";
+        db.UserPreferences.Add(new UserPreference { UserId = nutzer, StepLengthCm = 82 });
+        await db.SaveChangesAsync();
+
+        var auskunft = (await dienst.ExportAsync(nutzer)).Value!;
+
+        Assert.Equal(82, auskunft.Einstellungen!.SchrittlaengeCm);
+        Assert.Equal("feucht, Schnee", Assert.Single(auskunft.Faehrten).Bodenzustand);
+    }
+
+    [Fact]
     public async Task Export_NenntDieHerkunftDerVereinsanfrage()
     {
         var (dienst, db, lookup) = Aufsetzen();

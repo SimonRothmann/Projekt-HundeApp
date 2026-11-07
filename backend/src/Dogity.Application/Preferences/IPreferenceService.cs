@@ -37,6 +37,12 @@ public interface IPreferenceService
     Task<Result> UpdateEmailNotificationsAsync(Guid userId, UpdateEmailNotificationsRequest request, CancellationToken ct = default);
 
     /// <summary>
+    /// Setzt die Schrittlänge für die Umrechnung der Fährtenlänge in Schritte. Erlaubt sind
+    /// 40 bis 120 cm; null stellt den Standard wieder her.
+    /// </summary>
+    Task<Result> UpdateStepLengthAsync(Guid userId, UpdateStepLengthRequest request, CancellationToken ct = default);
+
+    /// <summary>
     /// Speichert, welche Erinnerungen (Glocke + Push) kommen und - für Trainer:innen - an welchen
     /// Wochentagen und um wie viel Uhr die Zusammenfassung offener Rückmeldungen. Prüft Maske
     /// (1 bis 127) und Stunde (8 bis 21).

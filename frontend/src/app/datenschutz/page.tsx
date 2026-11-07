@@ -136,7 +136,7 @@ function DatenschutzDe() {
           punkte={[
             "dein Lernfortschritt im Sachkunde-Fragentrainer und die Ergebnisse deiner Übungsprüfungen",
             "Benachrichtigungen innerhalb der App",
-            "deine Einstellungen: Sprache, Land, Schriftgröße, ausgeblendete Bereiche, gewählte Sportarten, ob wichtige Benachrichtigungen auch per E-Mail kommen und welche Erinnerungen du bekommst (bei Trainer:innen mit gewählten Wochentagen und Uhrzeit)",
+            "deine Einstellungen: Sprache, Land, Schriftgröße, Schrittlänge, ausgeblendete Bereiche, gewählte Sportarten, ob wichtige Benachrichtigungen auch per E-Mail kommen und welche Erinnerungen du bekommst (bei Trainer:innen mit gewählten Wochentagen und Uhrzeit)",
             "welche Erinnerungen dir schon geschickt wurden (Art, Termin bzw. Fährte oder Tag, Zeitpunkt) – nur als Merkzettel, damit eine Erinnerung nicht zweimal kommt; ausführlich in Abschnitt 7",
             "Geräte, auf denen du Push-Benachrichtigungen eingeschaltet hast: die Adresse des Geräts beim Push-Dienst seines Herstellers, die Schlüssel des Geräts zur Verschlüsselung, eine Kurzbezeichnung wie „iPhone (Safari)“ sowie Zeitpunkt der Anmeldung und der letzten Zustellung – ausführlich in Abschnitt 7",
           ]}

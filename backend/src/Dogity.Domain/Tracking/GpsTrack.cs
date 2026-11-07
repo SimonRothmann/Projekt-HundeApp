@@ -34,6 +34,12 @@ public class GpsTrack : Entity
     /// </summary>
     public int? AgeMinutes { get; set; }
     public string? Surface { get; set; }
+
+    /// <summary>
+    /// Zustand des Bodens beim Legen (trocken, feucht, nass, gefroren, Schnee) - wie
+    /// <see cref="Surface"/> eine Mehrfachauswahl als Text mit deutschen Begriffen.
+    /// </summary>
+    public string? GroundCondition { get; set; }
     public string? Weather { get; set; }
     public string? Wind { get; set; }
     public string? Comment { get; set; }
@@ -44,13 +50,17 @@ public class GpsTrack : Entity
     /// </summary>
     public bool ExcludeFromStats { get; set; }
 
-    // ---- Nur Mantrailing (Kind = Mantrailing) ----
+    // ---- Nur Mantrailing (Kind = Mantrailing), DoubleBlind auch bei der Fährte ----
     // Eigenschaften des Trails gehören an die Spur, nicht an den einzelnen Lauf:
     // Sie stehen fest, sobald die Versteckperson losgeht, und gelten für jeden
     // Suchversuch auf dieser Spur. Das Ergebnis eines Versuchs steht am
     // GpsWalkRun.
 
-    /// <summary>Doppelblind: Weder Hundeführer noch Hund-Team kennen den Verlauf der Spur.</summary>
+    /// <summary>
+    /// Doppelblind: Weder Hundeführer noch Hund-Team kennen den Verlauf der Spur. Bei der Fährte
+    /// heißt es "Verdeckt absuchen" (Prüfungssimulation, wenn jemand anderes gelegt hat) und lässt
+    /// sich nur setzen, solange noch kein Ablauf existiert.
+    /// </summary>
     public bool DoubleBlind { get; set; }
 
     /// <summary>Negativ-Trail: Es liegt keine Spur zu einer Person - der Hund soll das anzeigen.</summary>
@@ -69,10 +79,17 @@ public class GpsTrack : Entity
     public double? LaidWindSpeedKmh { get; set; }
     public int? LaidWeatherCode { get; set; }
 
+    /// <summary>
+    /// Windrichtung in Grad (0 bis 359) nach der Konvention des Wetterdienstes: die Richtung, AUS der
+    /// der Wind kommt (90 = Wind aus Osten). Null bei Fährten, deren Wetter vor Paket F4 geholt wurde.
+    /// </summary>
+    public int? LaidWindDirectionDeg { get; set; }
+
     public double? SearchTemperatureC { get; set; }
     public int? SearchRelativeHumidity { get; set; }
     public double? SearchWindSpeedKmh { get; set; }
     public int? SearchWeatherCode { get; set; }
+    public int? SearchWindDirectionDeg { get; set; }
 
     public DateTimeOffset? WeatherFetchedAt { get; set; }
 

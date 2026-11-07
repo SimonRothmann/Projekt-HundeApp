@@ -89,6 +89,13 @@ Die Gesamtkennzahlen (Ø/max. Abweichung, % auf Fährte) und die Toleranzen blei
 
 `GpsPoint.Material` (Leder, Holz, Stoff, Teppich, Kunststoff, Sonstiges; Liste und Prüfung in `GegenstandsMaterial`) trägt man nach dem Legen am Gegenstand ein, nicht beim Legen. `GpsTrack.ExcludeFromStats` nimmt eine bewusst schwere Übungsfährte aus der Entwicklung des Hundes: Fährten-Trend, Winkel und Fundquote je Material lassen sie aus (`StatsService.GetDogTrackStatsAsync` – die einzige Stelle, die Fährtenwerte auswertet). Die Fundquote je Material zählt nur bewertete Gegenstände mit Material, über dieselben jüngsten 12 Abläufe wie die Winkel, und zeigt ein Material erst ab 3 Gegenständen.
 
+## Schritte, Bodenzustand, Wind, verdeckt absuchen (Paket F4)
+
+- **Schritte**: `UserPreference.StepLengthCm` (40 bis 120 cm, leer = 75). Die Anzeige rechnet die Länge der Fährte (nicht des Trails) und die Schenkellängen daraus um und rundet auf 10 (`lib/schritte.ts`). Gespeichert wird nur die Schrittlänge, nie die Schrittzahl.
+- **Bodenzustand**: `GpsTrack.GroundCondition`, Mehrfachauswahl als Text wie `Surface` (trocken, feucht, nass, gefroren, Schnee), nur bei der Fährte.
+- **Wind**: Open-Meteo `wind_direction_10m` → `LaidWindDirectionDeg` / `SearchWindDirectionDeg` (Grad, aus der der Wind kommt). Ältere Fährten bleiben ohne Richtung. Je Schenkel ordnet `lib/wind.ts` ein: Peilung Anfang→Ende (Start, Winkel, Ende der Legung) gegen die Windrichtung, Sektoren je 90 Grad (Gegen-, Rücken-, Seitenwind von links/rechts), mit dem Wind beim Suchen, sonst beim Legen, ab 5 km/h.
+- **Verdeckt absuchen**: `GpsTrack.DoubleBlind` wie beim Mantrailing, bei der Fährte nur setzbar, solange kein Ablauf existiert (`PUT /api/gps-tracks/{id}/verdeckt`). Beim Absuchen sind Linie, Marker und Haptik aus; bis der Ansatz (erster Punkt der Legung) auf 10 m gefunden ist, zeigt die Aufzeichnung Entfernung und Richtung dorthin. Wer die Fährte gelegt hat, sucht sie bewusst ebenfalls verdeckt.
+
 ## Offen / bewusst nicht enthalten
 
 - GPS am Hund (zweites Gerät / GPX-Import) — einzig echte Lösung für die Leinen-Unschärfe

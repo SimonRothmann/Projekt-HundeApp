@@ -76,6 +76,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         text: uebersetzbar("Fährte: Nach dem Absuchen hältst du für jeden Gegenstand fest, ob dein Hund ihn verwiesen, aufgenommen oder überlaufen hat – das Material trägst du beim Gegenstand nach. Die Entwicklung des Hundes zeigt die Fundquote je Material."),
       },
       {
+        art: "neu",
+        text: uebersetzbar("Fährte: Die Länge steht jetzt auch in Schritten (Schrittlänge in den Einstellungen), den Bodenzustand tippst du beim Legen an, und zum Wetter kommt die Windrichtung – samt Rücken-, Gegen- oder Seitenwind je Schenkel. Eine Fährte lässt sich verdeckt absuchen, und ein versehentlich gesetzter Marker ist beim Legen mit einem Tipp wieder weg."),
+      },
+      {
         art: "verbessert",
         text: uebersetzbar("Dogity ist jetzt in Fassung 1.0: Trainingstagebuch, Fährten und Mantrailing, Prüfungen, Vereinsarbeit und Sachkunde sind im Alltag erprobt. Danke an alle, die seit den ersten Fassungen mitgetestet und Rückmeldungen gegeben haben."),
       },

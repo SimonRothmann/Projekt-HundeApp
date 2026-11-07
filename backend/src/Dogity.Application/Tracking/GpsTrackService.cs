@@ -46,6 +46,7 @@ public class GpsTrackService(
     /// <summary>Längstes Trailalter, das sich eintragen lässt: eine Woche (in Minuten).</summary>
     public const int MaxTrailAlterMinuten = 7 * 24 * 60;
 
+    private const string VerdecktNachDemLegen = "Verdeckt absuchen stellst du nach dem Legen in den Fährtendetails ein.";
     private const string NurMantrailing = "Diese Angaben gibt es nur beim Mantrailing.";
     private const string NurFaehrte = "Diese Angabe gibt es nur bei der Fährte.";
     private const string TrailalterBereich = "Das Trailalter muss zwischen 0 und 168 Stunden liegen.";
@@ -185,6 +186,7 @@ public class GpsTrackService(
 
         var zuLang = Textlaengen.ZuLang(request.Comment, Textlaengen.FaehrtenKommentar, "Der Kommentar")
             ?? Textlaengen.ZuLang(request.Surface, Textlaengen.Kurzangabe, "Der Untergrund")
+            ?? Textlaengen.ZuLang(request.GroundCondition, Textlaengen.Kurzangabe, "Der Bodenzustand")
             ?? Textlaengen.ZuLang(request.Weather, Textlaengen.Kurzangabe, "Die Wetterangabe")
             ?? Textlaengen.ZuLang(request.Wind, Textlaengen.Kurzangabe, "Die Windangabe")
             ?? request.Points
@@ -197,8 +199,10 @@ public class GpsTrackService(
         // blieben sie ohne Bedeutung stehen und täuschten Auswertungen vor, die es nicht gibt.
         if (!Enum.IsDefined(request.Kind))
             return Result<GpsTrackDto>.Failure("Unbekannte Art der Aufzeichnung.");
+        if (request.Kind == GpsTrackKind.Faehrte && request.DoubleBlind)
+            return Result<GpsTrackDto>.Failure(VerdecktNachDemLegen);
         if (request.Kind == GpsTrackKind.Faehrte
-            && (request.DoubleBlind || request.NegativeTrail || !string.IsNullOrWhiteSpace(request.ScentArticle)))
+            && (request.NegativeTrail || !string.IsNullOrWhiteSpace(request.ScentArticle)))
             return Result<GpsTrackDto>.Failure(NurMantrailing);
         if (request.Kind == GpsTrackKind.Mantrailing && request.AgeMinutes is < 0 or > MaxTrailAlterMinuten)
             return Result<GpsTrackDto>.Failure(TrailalterBereich);
@@ -218,6 +222,8 @@ public class GpsTrackService(
             LengthMeters = request.LengthMeters,
             AgeMinutes = request.AgeMinutes,
             Surface = request.Surface,
+            // Der Bodenzustand gehört zur Fährte; ein Trail kennt ihn nicht.
+            GroundCondition = request.Kind == GpsTrackKind.Faehrte ? NullWennLeer(request.GroundCondition) : null,
             Weather = request.Weather,
             Wind = request.Wind,
             Comment = request.Comment,
@@ -412,6 +418,26 @@ public class GpsTrackService(
         track.DoubleBlind = request.DoubleBlind;
         track.NegativeTrail = request.NegativeTrail;
         track.ScentArticle = NullWennLeer(request.ScentArticle);
+        await db.SaveChangesAsync(ct);
+
+        var liste = await GetByTrainingSessionAsync(userId, track.TrainingSessionId, ct);
+        return Result<GpsTrackDto>.Success(liste.Value!.First(t => t.Id == trackId));
+    }
+
+    public async Task<Result<GpsTrackDto>> UpdateVerdecktAsync(Guid userId, Guid trackId, UpdateGpsVerdecktRequest request, CancellationToken ct = default)
+    {
+        var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
+        if (track is null || !await DarfEinheitBearbeitenAsync(userId, track.TrainingSessionId, ct))
+            return Result<GpsTrackDto>.NotFound("Fährte nicht gefunden.");
+        // Der Trail hat seinen eigenen Weg (UpdateTrailAsync, "Doppelblind" mit den übrigen Trail-Angaben).
+        if (track.Kind != GpsTrackKind.Faehrte)
+            return Result<GpsTrackDto>.Failure(NurFaehrte);
+        // Nach einem Ablauf wäre die Angabe rückwirkend: Der Ablauf hätte die Fährte gesehen, die jetzt
+        // als verdeckt gälte. Ablaufen darf man sie danach erst wieder in einem neuen Versuch.
+        if (await db.GpsWalkRuns.AnyAsync(r => r.TrackId == trackId, ct))
+            return Result<GpsTrackDto>.Failure("Verdeckt absuchen lässt sich nur einstellen, solange die Fährte noch nicht abgelaufen wurde.");
+
+        track.DoubleBlind = request.Verdeckt;
         await db.SaveChangesAsync(ct);
 
         var liste = await GetByTrainingSessionAsync(userId, track.TrainingSessionId, ct);
@@ -651,7 +677,10 @@ public class GpsTrackService(
             t.DoubleBlind,
             t.NegativeTrail,
             t.ScentArticle,
-            t.ExcludeFromStats);
+            t.ExcludeFromStats,
+            t.GroundCondition,
+            t.LaidWindDirectionDeg,
+            t.SearchWindDirectionDeg);
     }
 
     private static GpsPointDto ToPointDto(GpsPoint p) =>

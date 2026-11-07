@@ -11,6 +11,7 @@ public class GpsTrackConfiguration : IEntityTypeConfiguration<GpsTrack>
     {
         builder.ToTable("gps_tracks");
         builder.Property(t => t.Surface).HasMaxLength(Textlaengen.Kurzangabe);
+        builder.Property(t => t.GroundCondition).HasMaxLength(Textlaengen.Kurzangabe);
         builder.Property(t => t.Weather).HasMaxLength(Textlaengen.Kurzangabe);
         builder.Property(t => t.Wind).HasMaxLength(Textlaengen.Kurzangabe);
         builder.Property(t => t.Comment).HasMaxLength(Textlaengen.FaehrtenKommentar);

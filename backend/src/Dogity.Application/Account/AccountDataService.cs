@@ -175,7 +175,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     einstellung.ReminderTrainerSummary,
                     Wochentage(einstellung.TrainerSummaryDays),
                     einstellung.TrainerSummaryHour,
-                    einstellung.ReminderHealth),
+                    einstellung.ReminderHealth,
+                    einstellung.StepLengthCm),
             hunde.Select(hund =>
             {
                 var rolle = besitz.First(b => b.DogId == hund.Id);
@@ -266,7 +267,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                             .Select(a => new GegenstandsErgebnisExportDto(a.PointId, a.Result.ToString()))
                             .ToList()))
                     .ToList(),
-                faehrte.ExcludeFromStats))
+                faehrte.ExcludeFromStats,
+                faehrte.GroundCondition))
                 .ToList(),
             ziele.Select(ziel =>
             {

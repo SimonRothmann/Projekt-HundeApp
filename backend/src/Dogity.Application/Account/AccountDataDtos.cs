@@ -51,7 +51,9 @@ public record EinstellungenExportDto(
     bool ErinnerungRueckmeldungen = true,
     IReadOnlyList<string>? RueckmeldungenWochentage = null,
     int RueckmeldungenUhrzeit = 18,
-    bool ErinnerungGesundheit = true);
+    bool ErinnerungGesundheit = true,
+    // Schrittlänge in cm für die Umrechnung der Fährtenlänge in Schritte; null = Standard.
+    int? SchrittlaengeCm = null);
 
 /// <summary>
 /// Eine versendete Erinnerung - der Merkzettel gegen Doppelversand. Der Text steht
@@ -185,7 +187,9 @@ public record FaehrteExportDto(
     IReadOnlyList<GpsPunktExportDto> Punkte,
     IReadOnlyList<AblaufExportDto> Ablaeufe,
     // Bewusst schwere Übungsfährte: zählt nicht in die Entwicklung des Hundes.
-    bool NichtInDerEntwicklung);
+    bool NichtInDerEntwicklung,
+    // Bodenzustand beim Legen (Mehrfachauswahl als Text).
+    string? Bodenzustand = null);
 
 public record GpsPunktExportDto(
     double Breitengrad,
