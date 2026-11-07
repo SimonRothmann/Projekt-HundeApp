@@ -92,6 +92,8 @@ export type GegenstandsZahlen = {
   verwiesen: number;
   aufgenommen: number;
   ueberlaufen: number;
+  /** Gegenstände ohne Angabe - sonst läse sich "1/3" bei nur einer Angabe wie zwei überlaufene. */
+  ohneAngabe: number;
 };
 
 /**
@@ -105,7 +107,8 @@ export function bestaetigteZahlen(run: Pick<GpsWalkRun, "articles" | "articlesTo
   const verwiesen = angaben.filter((a) => a.result === 0).length;
   const aufgenommen = angaben.filter((a) => a.result === 1).length;
   const ueberlaufen = angaben.filter((a) => a.result === ERGEBNIS_UEBERLAUFEN).length;
-  return { gefunden: verwiesen + aufgenommen, gesamt: run.articlesTotal, verwiesen, aufgenommen, ueberlaufen };
+  const ohneAngabe = Math.max(0, run.articlesTotal - verwiesen - aufgenommen - ueberlaufen);
+  return { gefunden: verwiesen + aufgenommen, gesamt: run.articlesTotal, verwiesen, aufgenommen, ueberlaufen, ohneAngabe };
 }
 
 /** Die Aufschlüsselung als Teile ("1 verwiesen"); ein Ergebnis ohne Treffer fehlt, statt "0 überlaufen" zu melden. */
@@ -114,6 +117,7 @@ export function aufschluesselung(zahlen: GegenstandsZahlen, t: (text: string, we
     zahlen.verwiesen > 0 ? t("{n} verwiesen", { n: zahlen.verwiesen }) : null,
     zahlen.aufgenommen > 0 ? t("{n} aufgenommen", { n: zahlen.aufgenommen }) : null,
     zahlen.ueberlaufen > 0 ? t("{n} überlaufen", { n: zahlen.ueberlaufen }) : null,
+    zahlen.ohneAngabe > 0 ? t("{n} ohne Angabe", { n: zahlen.ohneAngabe }) : null,
   ]
     .filter((teil) => teil !== null)
     .join(", ");

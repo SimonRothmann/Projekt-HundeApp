@@ -2939,6 +2939,7 @@ export const EN: Record<string, string> = {
   "{n} verwiesen": "{n} indicated",
   "{n} aufgenommen": "{n} picked up",
   "{n} überlaufen": "{n} missed",
+  "{n} ohne Angabe": "{n} not recorded",
   "Gegenstand {nr}": "Article {nr}",
   "Gegenstände": "Articles",
   "Material eintragen": "Enter material",

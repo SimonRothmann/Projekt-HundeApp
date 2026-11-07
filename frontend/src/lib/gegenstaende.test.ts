@@ -109,15 +109,15 @@ describe("bestaetigteZahlen", () => {
   it("zählt verwiesen und aufgenommen als gefunden, mit Aufschlüsselung", () => {
     const zahlen = bestaetigteZahlen({ articlesTotal: 3, articles: [angabe("a", 0), angabe("b", 1), angabe("c", 2)] });
 
-    expect(zahlen).toEqual({ gefunden: 2, gesamt: 3, verwiesen: 1, aufgenommen: 1, ueberlaufen: 1 });
+    expect(zahlen).toEqual({ gefunden: 2, gesamt: 3, verwiesen: 1, aufgenommen: 1, ueberlaufen: 1, ohneAngabe: 0 });
     expect(aufschluesselung(zahlen!, t)).toBe("1 verwiesen, 1 aufgenommen, 1 überlaufen");
   });
 
-  it("lässt Ergebnisse ohne Treffer in der Aufschlüsselung weg", () => {
+  it("lässt Ergebnisse ohne Treffer weg und nennt Gegenstände ohne Angabe", () => {
     const zahlen = bestaetigteZahlen({ articlesTotal: 4, articles: [angabe("a", 0), angabe("b", 0)] });
 
-    expect(zahlen).toMatchObject({ gefunden: 2, gesamt: 4 });
-    expect(aufschluesselung(zahlen!, t)).toBe("2 verwiesen");
+    expect(zahlen).toMatchObject({ gefunden: 2, gesamt: 4, ohneAngabe: 2 });
+    expect(aufschluesselung(zahlen!, t)).toBe("2 verwiesen, 2 ohne Angabe");
   });
 
   it("gibt ohne Angaben null: dann zeigt die Anzeige die GPS-Zahl wie bisher", () => {

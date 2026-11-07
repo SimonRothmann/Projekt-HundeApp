@@ -446,6 +446,7 @@ export function FahrteRecorder({
         // ohne Hinsehen zu treffen sein. Die Beschriftung bricht um statt
         // abgeschnitten zu werden ("Leckerlipot" muss man draußen ganz lesen
         // können); min-h-16 hält die Tippfläche bei jedem Umbruch >= 44 px.
+        // hyphens-auto: Bei 375 px brach "Gegenstand" sonst ohne Strich mitten im Wort um ("Gegenstan|d").
         <div className={cn("grid gap-2", trailModus ? "grid-cols-1" : "grid-cols-4")}>
           {markerArten.map((markerArt) => (
             <Button
@@ -457,7 +458,7 @@ export function FahrteRecorder({
               className="h-auto min-h-16 flex-col gap-1 px-1 py-1.5 text-xs leading-tight whitespace-normal"
             >
               <markerArt.icon className="size-5 shrink-0" />
-              <span className="w-full min-w-0 text-center break-words">{t(markerArt.label)}</span>
+              <span className="w-full min-w-0 text-center break-words hyphens-auto">{t(markerArt.label)}</span>
             </Button>
           ))}
         </div>
