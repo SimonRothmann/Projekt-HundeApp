@@ -64,7 +64,7 @@ export const NACHTRAEGLICH_BIS = "0.9";
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
     version: "1.0",
-    datum: "2026-11-07",
+    datum: "2026-11-08",
     titel: uebersetzbar("Dogity 1.0"),
     aenderungen: [
       {
