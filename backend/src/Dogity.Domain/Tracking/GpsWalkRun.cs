@@ -65,6 +65,9 @@ public class GpsWalkRun : Entity
     public ICollection<GpsWalkRunLeg> Legs { get; set; } = new List<GpsWalkRunLeg>();
 
     public ICollection<GpsWalkRunCorner> Corners { get; set; } = new List<GpsWalkRunCorner>();
+
+    // Nur Fährte: die Angaben der Hundeführer:in je Gegenstand (verwiesen, aufgenommen, überlaufen).
+    public ICollection<GpsWalkRunArticle> Articles { get; set; } = new List<GpsWalkRunArticle>();
 }
 
 /// <summary>

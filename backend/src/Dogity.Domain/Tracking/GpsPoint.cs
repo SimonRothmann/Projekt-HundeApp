@@ -49,4 +49,11 @@ public class GpsPoint : Entity, IGeoPoint
     /// bei automatischen Punkten bedeutungslos.
     /// </summary>
     public GpsMarkerType MarkerType { get; set; } = GpsMarkerType.Article;
+
+    /// <summary>
+    /// Woraus der Gegenstand ist (Leder, Holz ...), vom Menschen nach dem Legen eingetragen -
+    /// beim Legen bleibt es bei einem Tipp je Marker. Nur bei Markern der Art
+    /// <see cref="GpsMarkerType.Article"/>; der deutsche Begriff aus <c>GegenstandsMaterial</c>.
+    /// </summary>
+    public string? Material { get; set; }
 }

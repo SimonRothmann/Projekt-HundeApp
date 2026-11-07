@@ -6,6 +6,7 @@ using Dogity.Application.Notifications;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Notifications;
+using Dogity.Domain.Tracking;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Account;
@@ -97,6 +98,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         var ablaeufe = await db.GpsWalkRuns.Where(w => faehrtenIds.Contains(w.TrackId)).AsNoTracking().ToListAsync(ct);
         var ablaufIds = ablaeufe.Select(w => w.Id).ToList();
         var ablaufpunkte = await db.GpsWalkPoints.Where(p => ablaufIds.Contains(p.WalkRunId)).AsNoTracking().ToListAsync(ct);
+        var gegenstandsangaben = await db.GpsWalkRunArticles.Where(a => ablaufIds.Contains(a.WalkRunId)).AsNoTracking().ToListAsync(ct);
 
         var mitgliedschaften = await db.ClubMemberships.Where(m => m.UserId == userId).AsNoTracking().ToListAsync(ct);
         var vereinsrollen = await db.ClubTrainers.Where(t => t.UserId == userId).ToDictionaryAsync(t => t.ClubId, t => t.Role, ct);
@@ -236,7 +238,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     .Where(p => p.TrackId == faehrte.Id)
                     .OrderBy(p => p.Timestamp)
                     .Select(p => new GpsPunktExportDto(
-                        p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, p.PointType.ToString(), p.Label))
+                        p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, p.PointType.ToString(), p.Label,
+                        p.PointType == GpsPointType.Manual ? p.Id : null, p.Material))
                     .ToList(),
                 ablaeufe
                     .Where(w => w.TrackId == faehrte.Id)
@@ -256,9 +259,14 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                             .Where(p => p.WalkRunId == w.Id)
                             .OrderBy(p => p.Timestamp)
                             .Select(p => new GpsPunktExportDto(
-                                p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, "Ablauf", null))
+                                p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, "Ablauf", null, null, null))
+                            .ToList(),
+                        gegenstandsangaben
+                            .Where(a => a.WalkRunId == w.Id)
+                            .Select(a => new GegenstandsErgebnisExportDto(a.PointId, a.Result.ToString()))
                             .ToList()))
-                    .ToList()))
+                    .ToList(),
+                faehrte.ExcludeFromStats))
                 .ToList(),
             ziele.Select(ziel =>
             {
@@ -481,6 +489,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             .Where(l => ablaufIds.Contains(l.WalkRunId)).ToListAsync(ct);
         var winkel = await db.GpsWalkRunCorners.IgnoreQueryFilters()
             .Where(c => ablaufIds.Contains(c.WalkRunId)).ToListAsync(ct);
+        var gegenstandsangaben = await db.GpsWalkRunArticles.IgnoreQueryFilters()
+            .Where(a => ablaufIds.Contains(a.WalkRunId)).ToListAsync(ct);
 
         var ziele = await db.Goals.IgnoreQueryFilters()
             .Where(g => alleinMeineHunde.Contains(g.DogId)).ToListAsync(ct);
@@ -637,6 +647,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         db.GpsWalkStops.RemoveRange(stockungen);
         db.GpsWalkRunLegs.RemoveRange(schenkel);
         db.GpsWalkRunCorners.RemoveRange(winkel);
+        db.GpsWalkRunArticles.RemoveRange(gegenstandsangaben);
         db.GpsWalkRuns.RemoveRange(ablaeufe);
         db.GpsPoints.RemoveRange(faehrtenpunkte);
         db.GpsTracks.RemoveRange(faehrten);

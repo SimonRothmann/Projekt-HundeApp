@@ -83,6 +83,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GpsWalkStop> GpsWalkStops => Set<GpsWalkStop>();
     public DbSet<GpsWalkRunLeg> GpsWalkRunLegs => Set<GpsWalkRunLeg>();
     public DbSet<GpsWalkRunCorner> GpsWalkRunCorners => Set<GpsWalkRunCorner>();
+    public DbSet<GpsWalkRunArticle> GpsWalkRunArticles => Set<GpsWalkRunArticle>();
 
     public DbSet<QuizCatalog> QuizCatalogs => Set<QuizCatalog>();
     public DbSet<QuizQuestion> QuizQuestions => Set<QuizQuestion>();
@@ -184,6 +185,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<GpsWalkStop>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkRunLeg>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkRunCorner>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GpsWalkRunArticle>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<QuizCatalog>().HasQueryFilter(e => e.DeletedAt == null);
         // Wie bei DogImage/GroupTrainer: der Filter der Pflichtbeziehung muss
         // mitgezogen werden, sonst warnt EF zu Recht vor Verweisen ins Leere.

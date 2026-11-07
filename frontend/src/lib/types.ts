@@ -976,6 +976,11 @@ export type GpsPoint = {
   pointType: GpsPointType;
   label: string | null;
   markerType: GpsMarkerType;
+  // Vom Server vergeben. Optional, weil frisch aufgezeichnete Punkte (vor dem Speichern) und ältere
+  // Stände (Read-Cache, Backend vor Fassung 1.0) sie nicht kennen.
+  id?: string;
+  /** Material eines Gegenstands (deutscher Begriff aus lib/gegenstaende.ts); null = nicht angegeben. */
+  material?: string | null;
 };
 
 export type GpsWalkPoint = {
@@ -1024,6 +1029,14 @@ export type GpsWalkRunCorner = {
   timeAtCornerSeconds: number | null;
 };
 
+// Was der Hund mit einem Gegenstand gemacht hat: 0 = verwiesen, 1 = aufgenommen, 2 = überlaufen.
+export type GegenstandsErgebnis = 0 | 1 | 2;
+
+export type GpsWalkRunArticle = {
+  pointId: string;
+  result: GegenstandsErgebnis;
+};
+
 export type GpsWalkRun = {
   id: string;
   trackId: string;
@@ -1045,6 +1058,12 @@ export type GpsWalkRun = {
   // Fassung 1.0) die Felder nicht kennen; beim Mantrailing leer.
   legs?: GpsWalkRunLeg[];
   corners?: GpsWalkRunCorner[];
+  // Nur Fährte: die Angaben der Hundeführer:in je Gegenstand (articles; fehlt ein Gegenstand, gibt es keine
+  // Angabe). articlesFound bleibt die GPS-Zahl; articlesConfirmedFound zählt verwiesen + aufgenommen und ist
+  // null ohne jede Angabe. reachedArticleIds: die Gegenstände, denen das Gespann per GPS nahe kam (null: nicht ausgewertet).
+  articles?: GpsWalkRunArticle[];
+  articlesConfirmedFound?: number | null;
+  reachedArticleIds?: string[] | null;
   // Nur Mantrailing: Ergebnis des Laufs. Optional, weil ältere Stände (Read-Cache,
   // Backend vor Fassung 0.46) die Felder nicht kennen.
   /** Person gefunden - bei einem Negativ-Trail: korrekt angezeigt, dass niemand da ist. */
@@ -1071,6 +1090,8 @@ export type GpsTrack = {
   doubleBlind?: boolean;
   negativeTrail?: boolean;
   scentArticle?: string | null;
+  /** Bewusst schwere Übungsfährte: zählt nicht in die Entwicklung des Hundes. Optional wie die Felder darüber. */
+  excludeFromStats?: boolean;
   // Automatisch ermitteltes Wetter beim Legen und beim Suchen. Fachlich am
   // wichtigsten ist temperatureDeltaC - die Änderung dazwischen bestimmt
   // maßgeblich, wie sich die Geruchsspur hält.
@@ -1225,8 +1246,17 @@ export type DogTrackCornerGroup = {
   cleanPercent: number;
 };
 
+// Fundquote eines Materials: rated bewertete Gegenstände, davon foundPercent verwiesen oder aufgenommen.
+export type DogTrackMaterialGroup = {
+  material: string;
+  rated: number;
+  foundPercent: number;
+};
+
 export type DogTrackStats = {
   runs: DogTrackRun[];
+  // Optional: ältere Stände kennen die Fundquote je Material nicht.
+  materialGroups?: DogTrackMaterialGroup[];
   // Optional: ältere Stände kennen die Winkel nicht.
   cornerGroups?: DogTrackCornerGroup[];
   // Negativ = Abweichung sinkt = Verbesserung.

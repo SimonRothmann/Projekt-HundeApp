@@ -194,13 +194,7 @@ public static class GpsTrackEvaluator
         var onTrack = deviations.Count(d => d <= onTrackMeters) * 100.0 / deviations.Length;
 
         // ---- Gegenstände: kam der Hundeführer nah genug heran? ----
-        var articlesFound = markers
-            .Where(m => articlesTotal > 0 && m.MarkerType == GpsMarkerType.Article)
-            .Count(m =>
-            {
-                var mp = Project(m.Latitude, m.Longitude, originLat);
-                return walk.Any(w => Distance(Project(w.Latitude, w.Longitude, originLat), mp) <= MarkerProximityMeters);
-            });
+        var articlesFound = articlesTotal > 0 ? ErreichteGegenstaende(markers, walk, originLat).Count : 0;
 
         // ---- Winkel und Schenkel: nur bei der Fährte ----
         var geometrie = kind == GpsTrackKind.Faehrte ? FaehrtenGeometrie.Berechnen(line) : null;
@@ -431,6 +425,40 @@ public static class GpsTrackEvaluator
         // zählt der Abstand zum jeweiligen Endpunkt.
         var t = Math.Clamp(((p.X - a.X) * dx + (p.Y - a.Y) * dy) / lengthSquared, 0, 1);
         return Distance(p, (a.X + t * dx, a.Y + t * dy));
+    }
+
+    /// <summary>
+    /// Die Gegenstände (Marker der Art Gegenstand), denen der Hundeführer in einem Ablauf auf
+    /// <see cref="MarkerProximityMeters"/> nahe kam - die Regel hinter <c>ArticlesFound</c>, einzeln
+    /// herausgegeben für den GPS-Hinweis neben der Angabe der Hundeführer:in. Aus den Rohpunkten des
+    /// Ablaufs, nicht aus der vereinfachten Anzeige-Linie: Auf einer langen Geraden bliebe sonst nur der
+    /// Anfang und das Ende, und ein Gegenstand dazwischen gälte als nicht erreicht.
+    /// null, wenn der Aufwand über <see cref="MaxAuswertungsAufwand"/> läge - wie bei der Auswertung selbst,
+    /// damit das Lesen eines riesigen Ablaufs nicht teurer wird als dessen Auswertung.
+    /// </summary>
+    public static IReadOnlyList<Guid>? ErreichteGegenstaende(IEnumerable<GpsPoint> gelegt, IEnumerable<GpsWalkPoint> ablauf)
+    {
+        var punkte = gelegt.ToList();
+        var ablaufPunkte = ablauf.ToList();
+        if ((long)ablaufPunkte.Count * punkte.Count > MaxAuswertungsAufwand)
+            return null;
+        // Derselbe Bezugspunkt wie in TryEvaluate: der Anfang der gelegten Linie.
+        var anfang = punkte.Where(p => p.PointType != GpsPointType.Manual).MinBy(p => p.Timestamp);
+        return anfang is null ? [] : ErreichteGegenstaende(punkte, ablaufPunkte, anfang.Latitude);
+    }
+
+    private static List<Guid> ErreichteGegenstaende(IEnumerable<GpsPoint> marker, IEnumerable<GpsWalkPoint> ablauf, double originLat)
+    {
+        var ablaufEbene = ablauf.Select(w => Project(w.Latitude, w.Longitude, originLat)).ToList();
+        return marker
+            .Where(m => m.PointType == GpsPointType.Manual && m.MarkerType == GpsMarkerType.Article)
+            .Where(m =>
+            {
+                var mp = Project(m.Latitude, m.Longitude, originLat);
+                return ablaufEbene.Any(w => Distance(w, mp) <= MarkerProximityMeters);
+            })
+            .Select(m => m.Id)
+            .ToList();
     }
 
     internal static (double X, double Y) Project(double latitude, double longitude, double originLat)

@@ -20,6 +20,18 @@ public interface IGpsTrackService
     /// <summary>Trägt das Ergebnis eines Mantrailing-Laufs ein (Person gefunden, Anzeigeverhalten).</summary>
     Task<Result<GpsWalkRunDto>> UpdateTrailRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsTrailRunRequest request, CancellationToken ct = default);
 
+    /// <summary>Trägt das Material eines Gegenstands ein oder entfernt es (nur Fährte, nur Marker der Art Gegenstand).</summary>
+    Task<Result<GpsPointDto>> UpdateMarkerAsync(Guid userId, Guid trackId, Guid pointId, UpdateGpsMarkerRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Trägt zu den Gegenständen eines Fährten-Ablaufs ein, ob der Hund sie verwiesen, aufgenommen
+    /// oder überlaufen hat. Nur die genannten Gegenstände ändern sich; null entfernt die Angabe.
+    /// </summary>
+    Task<Result<GpsWalkRunDto>> UpdateWalkRunArticlesAsync(Guid userId, Guid trackId, Guid walkRunId, IReadOnlyList<UpdateGpsWalkRunArticleRequest> request, CancellationToken ct = default);
+
+    /// <summary>Nimmt eine Fährte aus der Entwicklung des Hundes heraus oder wieder hinein.</summary>
+    Task<Result<GpsTrackDto>> UpdateStatsAsync(Guid userId, Guid trackId, UpdateGpsTrackStatsRequest request, CancellationToken ct = default);
+
     /// <summary>
     /// Holt das Wetter zu Lege- und Suchzeitpunkt (neu). Für Bestandsfährten,
     /// die vor der Wetter-Anbindung aufgezeichnet wurden - Ort und Zeit stecken

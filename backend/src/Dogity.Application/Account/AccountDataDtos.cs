@@ -183,7 +183,9 @@ public record FaehrteExportDto(
     bool NegativTrail,
     string? Geruchsartikel,
     IReadOnlyList<GpsPunktExportDto> Punkte,
-    IReadOnlyList<AblaufExportDto> Ablaeufe);
+    IReadOnlyList<AblaufExportDto> Ablaeufe,
+    // Bewusst schwere Übungsfährte: zählt nicht in die Entwicklung des Hundes.
+    bool NichtInDerEntwicklung);
 
 public record GpsPunktExportDto(
     double Breitengrad,
@@ -191,7 +193,11 @@ public record GpsPunktExportDto(
     DateTimeOffset Zeitpunkt,
     double? GenauigkeitMeter,
     string Art,
-    string? Beschriftung);
+    string? Beschriftung,
+    // Nur bei den Markern der gelegten Fährte: Id (worauf sich Gegenstandsergebnisse im Ablauf
+    // beziehen) und das Material eines Gegenstands.
+    Guid? Id,
+    string? Material);
 
 public record AblaufExportDto(
     Guid Id,
@@ -202,7 +208,11 @@ public record AblaufExportDto(
     // Mantrailing: Ergebnis des Laufs (bei einem Negativ-Trail: korrekt angezeigt).
     bool? PersonGefunden,
     string? Anzeigeverhalten,
-    IReadOnlyList<GpsPunktExportDto> Punkte);
+    IReadOnlyList<GpsPunktExportDto> Punkte,
+    // Fährte: was der Hund mit den Gegenständen gemacht hat (verwiesen, aufgenommen, überlaufen).
+    IReadOnlyList<GegenstandsErgebnisExportDto> Gegenstaende);
+
+public record GegenstandsErgebnisExportDto(Guid PunktId, string Ergebnis);
 
 public record ZielExportDto(
     Guid Id,

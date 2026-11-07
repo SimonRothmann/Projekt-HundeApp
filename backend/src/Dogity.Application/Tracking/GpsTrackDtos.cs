@@ -3,13 +3,17 @@ using Dogity.Domain.Tracking;
 namespace Dogity.Application.Tracking;
 
 public record GpsPointDto(
+    // Id und Material: Das Material eines Gegenstands und die Angaben je Gegenstand im Ablauf
+    // (GpsWalkRunArticleDto) hängen am Marker, nicht an seiner Lage.
+    Guid Id,
     double Latitude,
     double Longitude,
     DateTimeOffset Timestamp,
     double? Accuracy,
     GpsPointType PointType,
     string? Label,
-    GpsMarkerType MarkerType);
+    GpsMarkerType MarkerType,
+    string? Material);
 
 /// <summary>
 /// DeviationMeters: senkrechter Abstand zur gelegten Fährte (null = noch nicht
@@ -47,6 +51,9 @@ public record GpsWalkRunCornerDto(
     int HoldSeconds,
     int? TimeAtCornerSeconds);
 
+/// <summary>Was der Hund mit einem Gegenstand gemacht hat (siehe GpsWalkRunArticle).</summary>
+public record GpsWalkRunArticleDto(Guid PointId, ArticleResult Result);
+
 public record GpsWalkRunDto(
     Guid Id,
     Guid TrackId,
@@ -67,7 +74,14 @@ public record GpsWalkRunDto(
     TrailIndication? Indication,
     // Nur Fährte (beim Mantrailing leer): Schenkel und Winkel, in Laufreihenfolge.
     IReadOnlyList<GpsWalkRunLegDto> Legs,
-    IReadOnlyList<GpsWalkRunCornerDto> Corners);
+    IReadOnlyList<GpsWalkRunCornerDto> Corners,
+    // Nur Fährte: die Angaben der Hundeführer:in je Gegenstand. ArticlesFound bleibt die GPS-Zahl;
+    // ArticlesConfirmedFound zählt, was verwiesen oder aufgenommen wurde - null ohne jede Angabe.
+    IReadOnlyList<GpsWalkRunArticleDto> Articles,
+    int? ArticlesConfirmedFound,
+    // Die Gegenstände, denen das Gespann per GPS auf 8 m nahe kam (die Regel hinter ArticlesFound) -
+    // als Hinweis neben der Angabe der Hundeführer:in, nicht als Ergebnis.
+    IReadOnlyList<Guid>? ReachedArticleIds);
 
 public record GpsTrackDto(
     Guid Id,
@@ -97,7 +111,9 @@ public record GpsTrackDto(
     GpsTrackKind Kind,
     bool DoubleBlind,
     bool NegativeTrail,
-    string? ScentArticle);
+    string? ScentArticle,
+    // Bewusst schwere Übungsfährte: zählt nicht in die Entwicklung des Hundes.
+    bool ExcludeFromStats);
 
 public record CreateGpsPointRequest(
     double Latitude,
@@ -159,3 +175,12 @@ public record UpdateGpsTrailRequest(int? AgeMinutes, bool DoubleBlind, bool Nega
 
 /// <summary>Ergebnis eines Mantrailing-Laufs. Ersetzt beide Angaben (null = nicht angegeben).</summary>
 public record UpdateGpsTrailRunRequest(bool? PersonFound, TrailIndication? Indication);
+
+/// <summary>Material eines Gegenstands (aus <see cref="GegenstandsMaterial.Alle"/>); null oder leer entfernt die Angabe.</summary>
+public record UpdateGpsMarkerRequest(string? Material);
+
+/// <summary>Ergebnis zu einem Gegenstand im Ablauf; null entfernt die Angabe.</summary>
+public record UpdateGpsWalkRunArticleRequest(Guid PointId, ArticleResult? Result);
+
+/// <summary>Ob die Fährte aus der Entwicklung des Hundes herausgenommen ist.</summary>
+public record UpdateGpsTrackStatsRequest(bool ExcludeFromStats);

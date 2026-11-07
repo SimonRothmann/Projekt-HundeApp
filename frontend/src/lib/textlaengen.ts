@@ -20,6 +20,8 @@ export const TEXTLAENGE = {
   ablaufKommentar: 2000,
   /** GpsTrack.ScentArticle: Geruchsartikel eines Mantrailing-Trails */
   geruchsartikel: 100,
+  /** GpsPoint.Material: Material eines Gegenstands, nur aus der Auswahl in lib/gegenstaende.ts */
+  gegenstandsMaterial: 40,
   /** QuizQuestion.Text */
   sachkundeFrage: 2000,
   /** QuizQuestion.SampleSolution */

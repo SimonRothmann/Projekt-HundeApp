@@ -38,6 +38,12 @@ public class GpsTrack : Entity
     public string? Wind { get; set; }
     public string? Comment { get; set; }
 
+    /// <summary>
+    /// Bewusst schwere Übungsfährte: zählt nicht in die Entwicklung des Hundes (Fährten-Trend,
+    /// Winkel, Fundquote je Material). Die Fährte selbst bleibt unverändert erhalten.
+    /// </summary>
+    public bool ExcludeFromStats { get; set; }
+
     // ---- Nur Mantrailing (Kind = Mantrailing) ----
     // Eigenschaften des Trails gehören an die Spur, nicht an den einzelnen Lauf:
     // Sie stehen fest, sobald die Versteckperson losgeht, und gelten für jeden

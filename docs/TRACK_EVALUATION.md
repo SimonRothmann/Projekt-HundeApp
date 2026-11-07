@@ -83,6 +83,12 @@ Die Gesamtkennzahlen (Ø/max. Abweichung, % auf Fährte) und die Toleranzen blei
 
 **Grenzen**: Wie die Abweichung messen auch Winkel und Schenkel die Linie des Hundeführers. Kreuzt sich eine Fährte selbst, kann die Projektion auf den falschen Schenkel springen; die Winkel sind nicht von Hand korrigierbar. Die Entwicklung des Hundes zeigt den Anteil sauberer Winkel nach links / rechts / spitz (ein spitzer Winkel zählt in seiner Richtung und bei „spitz“), erst ab 3 erreichten Winkeln je Gruppe und über die angezeigten jüngsten 12 Abläufe – ohne Note.
 
+## Gegenstände: Angabe der Hundeführer:in und Material
+
+`ArticlesFound` bleibt die GPS-Zahl: Der Hundeführer kam einem Gegenstand auf 8 m (`MarkerProximityMeters`) nahe. Ob der Hund verwiesen, aufgenommen oder überlaufen hat, sieht GPS nicht – das trägt die Hundeführer:in je Gegenstand ein (`GpsWalkRunArticle`: Ablauf, Marker, `ArticleResult` Indicated/PickedUp/Missed; höchstens eine Zeile je Ablauf und Gegenstand, „keine Angabe“ = keine Zeile). Anders als Halte, Schenkel und Winkel ist das eine Eingabe und bleibt bei einer Neuauswertung stehen. Das DTO liefert `articles`, `articlesConfirmedFound` (verwiesen + aufgenommen, `null` ohne Angabe) und `reachedArticleIds` (die Gegenstände, denen GPS nahe kam – dieselbe Regel wie `ArticlesFound`, aus den Rohpunkten des Ablaufs, als Hinweis neben der Angabe). Die Anzeige zeigt mit Angaben die bestätigte Zahl, sonst die GPS-Zahl; die Halte-Einordnung bleibt die GPS-Sicht.
+
+`GpsPoint.Material` (Leder, Holz, Stoff, Teppich, Kunststoff, Sonstiges; Liste und Prüfung in `GegenstandsMaterial`) trägt man nach dem Legen am Gegenstand ein, nicht beim Legen. `GpsTrack.ExcludeFromStats` nimmt eine bewusst schwere Übungsfährte aus der Entwicklung des Hundes: Fährten-Trend, Winkel und Fundquote je Material lassen sie aus (`StatsService.GetDogTrackStatsAsync` – die einzige Stelle, die Fährtenwerte auswertet). Die Fundquote je Material zählt nur bewertete Gegenstände mit Material, über dieselben jüngsten 12 Abläufe wie die Winkel, und zeigt ein Material erst ab 3 Gegenständen.
+
 ## Offen / bewusst nicht enthalten
 
 - GPS am Hund (zweites Gerät / GPX-Import) — einzig echte Lösung für die Leinen-Unschärfe

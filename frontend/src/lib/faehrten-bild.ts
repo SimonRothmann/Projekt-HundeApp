@@ -1,3 +1,4 @@
+import { bestaetigteZahlen } from "@/lib/gegenstaende";
 import { automatischePunkte, estimateLengthMeters, markerPunkte } from "@/lib/geo";
 import type { GpsTrack, GpsWalkRun } from "@/lib/types";
 import { formatDelta, formatTemperature } from "@/lib/weather";
@@ -208,7 +209,8 @@ export function faehrtenKennzahlen(track: GpsTrack, ablauf: GpsWalkRun | null): 
     aufFaehrtePercent: ablauf?.onTrackPercent != null ? Math.round(ablauf.onTrackPercent) : null,
     mittlereAbweichungM: avg != null ? Math.round(avg) : null,
     ampel: avg != null ? ampelStufe(avg, spurGrenzen(track)) : null,
-    gefunden: ablauf?.articlesFound ?? 0,
+    // Dieselbe Regel wie die Auswertung: die bestätigte Zahl, sonst die GPS-Zahl.
+    gefunden: (ablauf ? bestaetigteZahlen(ablauf)?.gefunden : undefined) ?? ablauf?.articlesFound ?? 0,
     gesamt: ablauf?.articlesTotal ?? 0,
     liegezeitMin: liegezeitMinuten(track, ablauf ?? track.walkRuns[track.walkRuns.length - 1] ?? null),
     laengeM: laenge > 0 ? Math.round(laenge) : null,

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
+import { aufschluesselung, bestaetigteZahlen } from "@/lib/gegenstaende";
 import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
 import { ampelLabel, ampelStufe, type Ampel } from "@/lib/spur-ampel";
 import {
@@ -129,6 +130,7 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
   const stops = run.stops ?? [];
   const unexplained = stops.filter((s) => s.kind === 0).length;
   const trail = istMantrailing(art);
+  const bestaetigt = bestaetigteZahlen(run);
   const zahl = gross ? "rounded-md border border-input px-2.5 py-1.5 text-sm font-medium text-foreground" : "text-xs";
   const abweichung = t("Ø {meter} m", { meter: Math.round(avg) });
   const kennzahlen = (
@@ -144,9 +146,18 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
         </span>
       )}
       {run.articlesTotal != null && run.articlesTotal > 0 && (
-        <span className={zahl}>
-          {t("{gefunden}/{gesamt} Gegenstände", { gefunden: run.articlesFound ?? 0, gesamt: run.articlesTotal })}
-        </span>
+        // Mit Angaben der Hundeführer:in zählen die bestätigten Gegenstände, sonst die GPS-Zahl wie bisher.
+        <>
+          <span className={zahl}>
+            {t("{gefunden}/{gesamt} Gegenstände", {
+              gefunden: bestaetigt?.gefunden ?? run.articlesFound ?? 0,
+              gesamt: run.articlesTotal,
+            })}
+          </span>
+          {bestaetigt && (
+            <span className="min-w-0 text-xs text-muted-foreground [overflow-wrap:anywhere]">{aufschluesselung(bestaetigt, t)}</span>
+          )}
+        </>
       )}
     </>
   );

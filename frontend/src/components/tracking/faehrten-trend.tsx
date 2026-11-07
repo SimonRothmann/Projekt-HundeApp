@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { api } from "@/lib/api";
-import type { DogTrackCornerGroup, DogTrackStats } from "@/lib/types";
+import type { DogTrackCornerGroup, DogTrackMaterialGroup, DogTrackStats } from "@/lib/types";
 import { ampelStufe, type Ampel } from "@/lib/spur-ampel";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat, zahlText } from "@/lib/ortsformat";
@@ -83,6 +83,27 @@ function WinkelGruppen({ gruppen }: { gruppen: DogTrackCornerGroup[] }) {
       </span>
       {gruppen.map((g) => (
         <span key={g.group}>{zeile(g)}</span>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Wie oft der Hund Gegenstände eines Materials gefunden (verwiesen oder aufgenommen) hat - "Leder 90 % von 10".
+ * Der Server liefert nur Materialien mit genug bewerteten Gegenständen; ohne Daten erscheint nichts. Wie bei
+ * den Winkeln keine Note und keine Farbe.
+ */
+function MaterialQuoten({ gruppen }: { gruppen: DogTrackMaterialGroup[] }) {
+  const t = useT();
+  if (gruppen.length === 0) return null;
+
+  return (
+    <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+      <span className="font-medium" title={t("Anteil der Gegenstände, die der Hund verwiesen oder aufgenommen hat")}>
+        {t("Gegenstände nach Material")}
+      </span>
+      {gruppen.map((g) => (
+        <span key={g.material}>{t("{material} {prozent} % von {anzahl}", { material: t(g.material), prozent: g.foundPercent, anzahl: g.rated })}</span>
       ))}
     </div>
   );
@@ -220,6 +241,7 @@ export function FaehrtenTrend({
           ` · ${t("{gefunden}/{gesamt} Gegenstände", { gefunden: last.articlesFound, gesamt: last.articlesTotal })}`}
       </p>
       <WinkelGruppen gruppen={stats.cornerGroups ?? []} />
+      <MaterialQuoten gruppen={stats.materialGroups ?? []} />
     </div>
   );
 }

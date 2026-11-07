@@ -64,7 +64,7 @@ export const NACHTRAEGLICH_BIS = "0.9";
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
     version: "1.0",
-    datum: "2026-11-06",
+    datum: "2026-11-07",
     titel: uebersetzbar("Dogity 1.0"),
     aenderungen: [
       {
@@ -72,8 +72,16 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         text: uebersetzbar("Fährte: Nach dem Absuchen zeigt Dogity jeden Winkel und jeden Schenkel einzeln – ob der Hund sauber abgebogen oder überschossen ist, wo er gestockt hat und wie lange er für jeden Schenkel gebraucht hat. In der Entwicklung des Hundes siehst du, ob linke, rechte oder spitze Winkel schwerer fallen."),
       },
       {
+        art: "neu",
+        text: uebersetzbar("Fährte: Nach dem Absuchen hältst du für jeden Gegenstand fest, ob dein Hund ihn verwiesen, aufgenommen oder überlaufen hat – das Material trägst du beim Gegenstand nach. Die Entwicklung des Hundes zeigt die Fundquote je Material."),
+      },
+      {
         art: "verbessert",
         text: uebersetzbar("Dogity ist jetzt in Fassung 1.0: Trainingstagebuch, Fährten und Mantrailing, Prüfungen, Vereinsarbeit und Sachkunde sind im Alltag erprobt. Danke an alle, die seit den ersten Fassungen mitgetestet und Rückmeldungen gegeben haben."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Bewusst schwere Übungsfährten lassen sich aus der Entwicklung des Hundes herausnehmen, ohne sie zu löschen."),
       },
       {
         art: "behoben",

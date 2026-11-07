@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Dogity.Application.Tracking;
 
 /// <summary>
-/// Löscht Fährten weich - samt Punkten, Abläufen, Ablaufpunkten, Stockungen, Schenkeln und Winkeln.
+/// Löscht Fährten weich - samt Punkten, Abläufen, Ablaufpunkten, Stockungen, Schenkeln, Winkeln und Gegenstandsangaben.
 ///
 /// Eine Stelle für alle Wege, die eine Fährte mit ihrem Training verschwinden
 /// lassen (Training löschen, Aufräumen von Altbestand). Ein Training, das nur
@@ -58,6 +58,9 @@ public static class GpsTrackRemoval
         foreach (var c in await db.GpsWalkRunCorners.IgnoreQueryFilters()
                      .Where(c => ablaufIds.Contains(c.WalkRunId) && c.DeletedAt == null).ToListAsync(ct))
             c.DeletedAt = jetzt;
+        foreach (var a in await db.GpsWalkRunArticles.IgnoreQueryFilters()
+                     .Where(a => ablaufIds.Contains(a.WalkRunId) && a.DeletedAt == null).ToListAsync(ct))
+            a.DeletedAt = jetzt;
 
         return neu;
     }

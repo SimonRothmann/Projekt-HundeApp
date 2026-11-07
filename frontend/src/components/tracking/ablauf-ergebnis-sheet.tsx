@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { GpsPoint, GpsTrack, GpsWalkRun } from "@/lib/types";
+import type { GegenstandsErgebnis, GpsPoint, GpsTrack, GpsWalkRun } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ import { TrackMap } from "@/components/tracking/track-map";
 import { WalkRunEvaluation } from "@/components/tracking/walk-run-evaluation";
 import { ablaufKommentarSpeichern } from "@/components/tracking/walk-run-comment";
 import { TrailErgebnisFormular } from "@/components/tracking/trail-angaben";
+import { GegenstandsErgebnisZeilen } from "@/components/tracking/gegenstaende";
+import { ergebnisAenderungen, ergebnisseJeGegenstand, gegenstaende } from "@/lib/gegenstaende";
 import { istWischNachUnten, kommentarAenderung } from "@/lib/ablauf-ergebnis";
 import { liegezeitMinuten } from "@/lib/faehrten-bild";
 import { istMantrailing, trailAenderungen, trailalterVorschlag } from "@/lib/mantrailing";
@@ -36,6 +38,10 @@ import { TEXTLAENGE } from "@/lib/textlaengen";
  * und das Trailalter, das hier aus der Zeit zwischen Legen und Suchen
  * vorgeschlagen wird - die Angaben stehen fest, solange der Hund noch neben
  * einem steht.
+ *
+ * Bei der Fährte mit Gegenständen kommt dazu, was der Hund mit jedem gemacht hat (verwiesen, aufgenommen,
+ * überlaufen) - ohne Vorbelegung und mit demselben Speichern. Wer es jetzt nicht weiß, trägt es später in
+ * den Fährtendetails nach.
  */
 export function AblaufErgebnisSheet({
   trackId,
@@ -59,6 +65,9 @@ export function AblaufErgebnisSheet({
   const trail = istMantrailing(track);
   const [gefunden, setGefunden] = useState<boolean | null>(run.personFound ?? null);
   const [anzeige, setAnzeige] = useState<number | null>(run.indication ?? null);
+  // Die Gegenstände der gelegten Fährte (nur Fährte) und die Wahl je Gegenstand.
+  const liste = useMemo(() => (trail ? [] : gegenstaende(track?.points ?? laidTrackPoints ?? [])), [trail, track?.points, laidTrackPoints]);
+  const [ergebnisse, setErgebnisse] = useState<Record<string, GegenstandsErgebnis | null>>(() => ergebnisseJeGegenstand(run.articles));
   // Das Alter der Spur, sonst die Zeit vom Ende des Legens bis zum Start dieses Laufs.
   const [alterText, setAlterText] = useState(() => (track ? trailalterVorschlag(liegezeitMinuten(track, run), sprache) : ""));
   // Scheiterte das Speichern des Kommentars einmal, schließt der nächste
@@ -79,10 +88,12 @@ export function AblaufErgebnisSheet({
       toast.error(t("Das Trailalter muss eine Zahl in Stunden sein, höchstens 168."));
       return;
     }
-    if (aenderung || trailAenderung?.ergebnis || trailAenderung?.trail) {
+    const gegenstandsAenderung = aufgegeben.current || liste.length === 0 ? [] : ergebnisAenderungen(run.articles, ergebnisse);
+    if (aenderung || trailAenderung?.ergebnis || trailAenderung?.trail || gegenstandsAenderung.length > 0) {
       setSpeichert(true);
       try {
         if (aenderung) await ablaufKommentarSpeichern(trackId, run.id, kommentar);
+        if (gegenstandsAenderung.length > 0) await api.put(`/api/gps-tracks/${trackId}/walk-runs/${run.id}/articles`, gegenstandsAenderung);
         if (trailAenderung?.ergebnis) await api.put(`/api/gps-tracks/${trackId}/walk-runs/${run.id}/trail`, trailAenderung.ergebnis);
         if (trailAenderung?.trail) {
           try {
@@ -164,6 +175,21 @@ export function AblaufErgebnisSheet({
               onAnzeige={setAnzeige}
               onAlter={setAlterText}
             />
+          )}
+
+          {liste.length > 0 && (
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="text-sm font-medium">{t("Was hat dein Hund mit den Gegenständen gemacht?")}</span>
+              <span className="text-xs text-muted-foreground">
+                {t("Optional – du kannst es auch später in den Fährtendetails eintragen.")}
+              </span>
+              <GegenstandsErgebnisZeilen
+                liste={liste}
+                werte={ergebnisse}
+                erreicht={run.reachedArticleIds}
+                onWahl={(id, ergebnis) => setErgebnisse((vorher) => ({ ...vorher, [id]: ergebnis }))}
+              />
+            </div>
           )}
 
           <div className="flex flex-col gap-1.5">

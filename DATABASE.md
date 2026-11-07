@@ -140,7 +140,8 @@ Tracking
 ├── gps_walk_points
 ├── gps_walk_stops: Stopps und Marker während eines Versuchs
 ├── gps_walk_run_legs: Schenkel der Fährte mit Dauer/Tempo im Versuch (docs/TRACK_EVALUATION.md)
-└── gps_walk_run_corners: Winkel der Fährte mit Überschießen/Halt im Versuch
+├── gps_walk_run_corners: Winkel der Fährte mit Überschießen/Halt im Versuch
+└── gps_walk_run_articles: Angabe der Hundeführer:in je Gegenstand und Versuch (verwiesen/aufgenommen/überlaufen); Eingabe, kein Rechenergebnis
 
 Lernen
 

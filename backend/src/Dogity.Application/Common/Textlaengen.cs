@@ -20,6 +20,8 @@ public static class Textlaengen
     public const int EigeneUebung = 150;
     public const int FaehrtenKommentar = 2000;
     public const int MarkerBeschriftung = 200;
+    /// <summary>GpsPoint.Material: Material eines Gegenstands (Auswahl aus <c>GegenstandsMaterial</c>).</summary>
+    public const int GegenstandsMaterial = 40;
     /// <summary>Untergrund, Wetter, Wind einer Fährte.</summary>
     public const int Kurzangabe = 100;
     /// <summary>GpsTrack.ScentArticle: Geruchsartikel eines Mantrailing-Trails.</summary>

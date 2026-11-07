@@ -66,6 +66,12 @@ public enum CornerGroup
 public record DogTrackCornerGroupDto(CornerGroup Group, int Reached, int CleanPercent);
 
 /// <summary>
+/// Fundquote eines Materials: Rated = Zahl der bewerteten Gegenstände aus diesem Material,
+/// FoundPercent = Anteil davon, den der Hund verwiesen oder aufgenommen hat (ganze Prozent).
+/// </summary>
+public record DogTrackMaterialDto(string Material, int Rated, int FoundPercent);
+
+/// <summary>
 /// Fährten-Entwicklung eines Hundes: die jüngsten ausgewerteten Abläufe
 /// (chronologisch aufsteigend) plus Trend nach demselben Muster wie
 /// <see cref="DogExerciseStatDto.RatingTrend"/> - jüngere gegen ältere Hälfte,
@@ -81,7 +87,12 @@ public record DogTrackStatsDto(
     /// Winkel der angezeigten Abläufe nach links / rechts / spitz; Gruppen mit weniger als
     /// <see cref="StatsService.MinErreichteWinkel"/> erreichten Winkeln fehlen.
     /// </summary>
-    IReadOnlyList<DogTrackCornerGroupDto> CornerGroups);
+    IReadOnlyList<DogTrackCornerGroupDto> CornerGroups,
+    /// <summary>
+    /// Fundquote je Material über die bewerteten Gegenstände der angezeigten Abläufe; Materialien mit
+    /// weniger als <see cref="StatsService.MinGegenstaendeJeMaterial"/> bewerteten Gegenständen fehlen.
+    /// </summary>
+    IReadOnlyList<DogTrackMaterialDto> MaterialGroups);
 
 /// <summary>
 /// Was die Verfassung des Hundes mit seinen Bewertungen zu tun hat.

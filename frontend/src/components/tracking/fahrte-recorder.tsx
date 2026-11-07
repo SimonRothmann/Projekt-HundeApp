@@ -28,6 +28,7 @@ import { genauigkeitsStufe, GPS_PROFIL_LEGEN } from "@/lib/gps-profil";
 import { TrackMap } from "@/components/tracking/track-map";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
+import { GegenstandsMaterial } from "@/components/tracking/gegenstaende";
 import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/components/tracking/unterbrochene-aufzeichnung";
 
 import { useT } from "@/lib/i18n";
@@ -308,6 +309,19 @@ export function FahrteRecorder({
                 {t("Später")}
               </Button>
             </div>
+            {/* Das Material trägt man hier nach, nicht beim Legen: Dort bleibt es bei einem Tipp je Marker.
+                Zugeklappt, damit "Jetzt ablaufen" oben bleibt; die Fährtendetails bieten dasselbe später. */}
+            {!trailModus && (
+              <GegenstandsMaterial
+                trackId={gelegt.id}
+                punkte={gelegt.points}
+                onGeaendert={(punkt) =>
+                  setGelegt((vorher) =>
+                    vorher && { ...vorher, points: vorher.points.map((p) => (p.id === punkt.id ? { ...p, material: punkt.material } : p)) },
+                  )
+                }
+              />
+            )}
           </div>
         )}
         {!unterbrochen && (

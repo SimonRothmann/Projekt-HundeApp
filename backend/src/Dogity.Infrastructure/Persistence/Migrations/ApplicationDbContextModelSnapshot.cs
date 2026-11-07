@@ -2423,6 +2423,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<int>("MarkerType")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Material")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<int>("PointType")
                         .HasColumnType("integer");
 
@@ -2463,6 +2467,11 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("DoubleBlind")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("ExcludeFromStats")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Kind")
                         .IsRequired()
@@ -2633,6 +2642,40 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.HasIndex("TrackId");
 
                     b.ToTable("gps_walk_runs", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunArticle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PointId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WalkRunId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WalkRunId", "PointId")
+                        .IsUnique();
+
+                    b.ToTable("gps_walk_run_articles", (string)null);
                 });
 
             modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunCorner", b =>
@@ -3732,6 +3775,17 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Navigation("Track");
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunArticle", b =>
+                {
+                    b.HasOne("Dogity.Domain.Tracking.GpsWalkRun", "WalkRun")
+                        .WithMany("Articles")
+                        .HasForeignKey("WalkRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WalkRun");
+                });
+
             modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunCorner", b =>
                 {
                     b.HasOne("Dogity.Domain.Tracking.GpsWalkRun", "WalkRun")
@@ -3955,6 +4009,8 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRun", b =>
                 {
+                    b.Navigation("Articles");
+
                     b.Navigation("Corners");
 
                     b.Navigation("Legs");
