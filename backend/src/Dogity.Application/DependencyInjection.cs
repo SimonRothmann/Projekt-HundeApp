@@ -1,5 +1,6 @@
 using Dogity.Application.Account;
 using Dogity.Application.Admin;
+using Dogity.Application.Betrieb;
 using Dogity.Application.Community;
 using Dogity.Application.Dashboard;
 using Dogity.Application.Dogs;
@@ -56,6 +57,7 @@ public static class DependencyInjection
         services.AddScoped<ICommunityOrphanCleanup, CommunityOrphanCleanup>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IAdminUsageService, AdminUsageService>();
+        services.AddScoped<IWartungshinweisService, WartungshinweisService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<MailDrossel>();
         services.AddScoped<IAccountMailService, AccountMailService>();

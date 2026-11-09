@@ -1,3 +1,4 @@
+using Dogity.Domain.Betrieb;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Preferences;
@@ -89,6 +90,8 @@ public interface IApplicationDbContext
     DbSet<Notification> Notifications { get; }
     DbSet<PushSubscription> PushSubscriptions { get; }
     DbSet<SentReminder> SentReminders { get; }
+
+    DbSet<Wartungshinweis> Wartungshinweise { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<!-- Lädt alle 30 Sekunden neu: Ist Dogity wieder da, verschwindet die Seite von selbst. Kein Skript, keine externe Ressource. -->
+<meta http-equiv="refresh" content="30">
+<title>Dogity – Wartung</title>
+<style>
+  :root {
+    --hintergrund: #f8fafc;
+    --karte: #ffffff;
+    --text: #0f172a;
+    --gedaempft: #475569;
+    --rahmen: #e2e8f0;
+    --akzent: #4f46e5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --hintergrund: #121118;
+      --karte: #1b1a23;
+      --text: #f1f0f5;
+      --gedaempft: #b7b5c4;
+      --rahmen: #2c2a38;
+      --akzent: #a5a1f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 16px;
+    background: var(--hintergrund);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main {
+    width: 100%;
+    max-width: 28rem;
+    padding: 28px 22px;
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: 16px;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .name { margin: 0 0 4px; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; color: var(--akzent); }
+  .symbol { width: 40px; height: 40px; margin: 0 auto 8px; color: var(--akzent); }
+  h1 { margin: 16px 0 6px; font-size: 1.25rem; line-height: 1.3; }
+  p { margin: 0; }
+  .en { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--rahmen); color: var(--gedaempft); font-size: 0.9375rem; }
+</style>
+</head>
+<body>
+<main>
+  <svg class="symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+  </svg>
+  <p class="name">Dogity</p>
+  <h1>Wartungsarbeiten</h1>
+  <p>Dogity wird gerade gewartet und ist in wenigen Minuten wieder da.</p>
+  <p class="en">Dogity is being updated and will be back in a few minutes.</p>
+</main>
+</body>
+</html>

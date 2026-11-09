@@ -63,6 +63,17 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "1.1",
+    datum: "2026-11-08",
+    titel: uebersetzbar("Wartungshinweise"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Steht eine längere Wartung an, kündigt Dogity sie vorher in der App und auf der Startseite an. Während der Wartung siehst du einen Hinweis statt einer Fehlermeldung – Einträge werden auf dem Gerät gespeichert und danach nachgeschickt."),
+      },
+    ],
+  },
+  {
     version: "1.0",
     datum: "2026-11-08",
     titel: uebersetzbar("Dogity 1.0"),

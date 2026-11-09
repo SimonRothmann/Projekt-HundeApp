@@ -408,6 +408,50 @@ ssh dogity 'cd /opt/dogity && docker compose up -d --wait postgres && docker com
 
 Prüfen: `SHOW shared_buffers;` liefert `2GB`.
 
+## Wartung
+
+Dogity ist bei jedem Deploy rund 22 Sekunden nicht erreichbar. Wird eine
+Wartung länger (Server-Update, Umzug, Datenbank), gibt es zwei Teile, die
+zusammen arbeiten:
+
+**1. Vorher ankündigen: Admin → System → Wartungshinweis.** Beginn (und
+optional Ende) eintragen, den Schalter „Hinweis anzeigen“ einschalten,
+speichern. Alle sehen dann ein Banner: in der App oben, auf der Startseite und
+auf der Anmeldeseite. Ohne eigenen Text steht dort der Standardsatz („Wartungsarbeiten
+am … von … bis … Uhr – Dogity ist in dieser Zeit kurz nicht erreichbar …“); die
+Vorschau im Formular zeigt ihn. Das Banner lässt sich wegklicken, nach einer
+Änderung des Hinweises erscheint es wieder. Nach dem Ende (oder mit dem Knopf
+„Hinweis ausschalten“) verschwindet es. Bis zu 30 Sekunden darf es dauern, bis
+eine Änderung auf frisch geladenen Seiten ankommt (Zwischenspeicher); bereits
+geöffnete Seiten fragen nur alle 5 Minuten nach, dort kann es entsprechend
+länger dauern - auch bis das Banner nach dem Ende verschwindet.
+
+**2. Währenddessen: Caddy springt von selbst ein.** Ist das Frontend oder das
+Backend nicht erreichbar (Caddy bekommt 502, 503 oder 504 – also auch bei
+jedem Deploy), antwortet Caddy statt der nackten Fehlermeldung:
+
+| Wer | Antwort |
+|---|---|
+| Frontend-Domains (Prod und Test) | Wartungsseite `deploy/caddy/wartung/wartung.html`, Status 503, lädt alle 30 Sekunden neu |
+| API-Domains (Prod und Test) | `{"wartung":true}`, Status 503, Kopfzeile `X-Dogity-Wartung: 1`, mit CORS-Freigabe für das zugehörige Frontend (auch für die Vorab-Anfrage) |
+
+Die App erkennt die Kopfzeile, zeigt das Banner „Wartungsarbeiten laufen“ (nicht
+wegklickbar) und nimmt es bei der nächsten erfolgreichen Antwort zurück. Einträge,
+die in dieser Zeit auf dem Handy entstehen, gehen wie bei jedem Netzausfall in die
+Warteschlange und werden danach nachgeschickt.
+
+Dafür ist nichts einzuschalten: Die Wartungsseite braucht keinen Handgriff und
+gilt für alle vier Domains. Ändert man `deploy/caddy/Caddyfile` oder die Seite,
+prüft `caddy validate --config deploy/caddy/Caddyfile` die Datei vor dem Deploy
+(mit gesetzten Umgebungsvariablen `ACME_EMAIL`, `PROD_DOMAIN`, `PROD_API_DOMAIN`,
+`TEST_DOMAIN`, `TEST_API_DOMAIN`, Dummy-Werte genügen). Die CORS-Domain im
+Snippet `wartung_api` muss zu `Cors__AllowedOrigins__0` der jeweiligen Umgebung
+passen (docker-compose.yml).
+
+Antwortet die Anwendung selbst mit einem Fehler (auch ein 503 des Backends),
+reicht Caddy ihn unverändert durch – die Wartungsseite erscheint nur, wenn
+Caddy den Upstream nicht erreicht.
+
 ## Bewusst offen
 
 **SSH-Passwort-Anmeldung.** Steht auf `yes`, Port 22 ist weltweit offen.

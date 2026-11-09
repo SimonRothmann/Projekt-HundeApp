@@ -38,6 +38,8 @@ public class AnonymeEndpunkteTests
         ["SachkundeController.StartExam"] = "pruefung",
         ["SachkundeController.SubmitExam"] = "pruefung",
         ["EmailAbmeldungController.Setze"] = "abmeldung",
+        // Wartungshinweis: wie der Rest der Seiten gebraucht, aber ohne personenbezogene Daten; im weiten Lastbegrenzer-Topf.
+        ["WartungshinweisController.Get"] = "refresh",
         ["SachkundeController.GetCatalogs"] = null,
         ["SachkundeController.GetQuestions"] = null,
         ["SportsController.GetSports"] = null,

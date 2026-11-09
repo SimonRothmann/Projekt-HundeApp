@@ -1,4 +1,5 @@
 using Dogity.Application.Abstractions;
+using Dogity.Domain.Betrieb;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Preferences;
@@ -94,6 +95,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
     public DbSet<SentReminder> SentReminders => Set<SentReminder>();
+
+    public DbSet<Wartungshinweis> Wartungshinweise => Set<Wartungshinweis>();
 
     public DbSet<Identity.RefreshToken> RefreshTokens => Set<Identity.RefreshToken>();
 
@@ -196,5 +199,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<PushSubscription>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<SentReminder>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<Wartungshinweis>().HasQueryFilter(e => e.DeletedAt == null);
     }
 }

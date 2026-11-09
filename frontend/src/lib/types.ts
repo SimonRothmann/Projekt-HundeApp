@@ -1869,3 +1869,24 @@ export type ArbeitseinsatzAuswertung = {
 export type MeinArbeitseinsatz = { id: string; date: string; title: string; minutes: number };
 
 export type MeineArbeitseinsaetze = { year: number; yearEventCount: number; yearMinutes: number; items: MeinArbeitseinsatz[] };
+
+/** Antwort von GET /api/wartungshinweis; die Schnittstelle liefert 204, solange nichts anzuzeigen ist. */
+export type Wartungshinweis = {
+  /** Eigener Text des Betreibers; null = Standardtext. */
+  text: string | null;
+  beginn: string;
+  ende: string | null;
+  /** Die Wartung hat begonnen. */
+  laeuft: boolean;
+  /** Schlüssel fürs Wegklicken: ein geänderter Hinweis erscheint wieder. */
+  geaendertAm: string;
+};
+
+/** Der gespeicherte Hinweis im Adminbereich (GET/PUT /api/admin/wartungshinweis); alles leer, solange keiner gesetzt wurde. */
+export type WartungshinweisAdmin = {
+  text: string | null;
+  beginn: string | null;
+  ende: string | null;
+  aktiv: boolean;
+  geaendertAm: string | null;
+};

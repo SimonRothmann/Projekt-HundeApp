@@ -1,5 +1,6 @@
 import { uebersetzeAktuell, uebersetzeMeldung } from "@/lib/i18n";
 import { aktuelleSprache } from "@/lib/i18n/aktuelle-sprache";
+import { WARTUNGS_KOPFZEILE, wartungMelden } from "@/lib/wartung";
 import { schreibzugriffMelden } from "@/lib/wetter-nachladen";
 
 // Kestrel-Ports aus backend/src/Dogity.Api/Properties/launchSettings.json.
@@ -243,6 +244,12 @@ async function send(path: string, init?: RequestInit, isRetry = false): Promise<
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${resolveApiUrl()}${path}`, { ...init, headers });
+
+  // Antwortet der Proxy während einer Wartung, zeigt die App das Banner "Wartung läuft".
+  // Ausgewertet wird nur, ändert nichts am Weg der Antwort: Die Offline-Warteschlange
+  // behandelt die 503 wie bisher. Die Kopfzeile ist für fremde Herkünfte nur lesbar, weil
+  // der Proxy sie mit Access-Control-Expose-Headers freigibt.
+  wartungMelden(res.status, res.headers.get(WARTUNGS_KOPFZEILE));
 
   // 401 mit vorhandenem Token = abgelaufener Access-Token: EINMAL versuchen,
   // ihn per Refresh-Token zu erneuern und den Request zu wiederholen. Erst

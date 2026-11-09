@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthedRedirect } from "@/components/marketing/authed-redirect";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-chrome";
+import { WartungsBanner } from "@/components/wartungs-banner";
 import { StartseiteInhalt } from "@/components/marketing/startseite-inhalt";
 import { FAQ } from "@/components/marketing/startseite-daten";
 import { SITE } from "@/lib/seo";
@@ -52,6 +53,7 @@ export default function HomePage() {
       />
       <AuthedRedirect />
       <MarketingHeader />
+      <WartungsBanner umgebung="mx-auto w-full max-w-5xl px-4 pt-3" />
 
       <StartseiteInhalt />
 
