@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IDogService, DogService>();
         services.AddScoped<IDogPauseService, DogPauseService>();
         services.AddScoped<IDogHealthService, DogHealthService>();
+        services.AddScoped<IMerkzettelService, MerkzettelService>();
         services.AddScoped<ISportCatalogService, SportCatalogService>();
         services.AddScoped<IExerciseManagementService, ExerciseManagementService>();
         services.AddScoped<IRegulationManagementService, RegulationManagementService>();

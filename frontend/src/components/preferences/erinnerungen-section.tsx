@@ -23,7 +23,7 @@ import { useT } from "@/lib/i18n";
 
 /**
  * Die Erinnerungen, die Dogity von sich aus schickt: Termin am Vortag, Fährte
- * noch nicht abgelaufen, Gesundheit (Impfungen, Entwurmung, Tierarzt) und - nur
+ * noch nicht abgelaufen, Merkzettel fürs Training, Gesundheit (Impfungen, Entwurmung, Tierarzt) und - nur
  * für Trainer:innen - die Zusammenfassung offener Rückmeldungen. Jede lässt sich einzeln abschalten; die Zusammenfassung hat
  * einen eigenen Rhythmus (Wochentage und Uhrzeit), den die Trainer:in selbst wählt.
  *
@@ -42,6 +42,7 @@ export function ErinnerungenSection() {
     sessions: preferences.reminderSessions,
     tracks: preferences.reminderTracks,
     health: preferences.reminderHealth,
+    trainingNotes: preferences.reminderTrainingNotes,
     trainerSummary: preferences.reminderTrainerSummary,
     trainerSummaryDays: preferences.trainerSummaryDays,
     trainerSummaryHour: gueltigeStunde(preferences.trainerSummaryHour),
@@ -86,6 +87,13 @@ export function ErinnerungenSection() {
           onChange={(an) => void speichern({ tracks: an })}
           titel={t("Erinnerung an noch nicht abgelaufene Fährten")}
           beschreibung={t("Etwa drei Stunden nach dem Legen, solange der Ablauf noch möglich ist")}
+        />
+        <SchalterZeile
+          an={werte.trainingNotes}
+          disabled={speichert}
+          onChange={(an) => void speichern({ trainingNotes: an })}
+          titel={t("Merkzettel fürs nächste Training")}
+          beschreibung={t("Zwei Stunden vor dem Training, ohne bekannte Uhrzeit um 9 Uhr")}
         />
         {/* Ohne das Modul gibt es weder den Bereich noch die Erinnerung - dann auch keinen Schalter. */}
         {moduleEnabled(MODULE.gesundheit) && (

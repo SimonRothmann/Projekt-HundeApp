@@ -44,6 +44,8 @@ public static class Textlaengen
     public const int GesundheitTitel = 100;
     /// <summary>DogHealthRecord.Note: Notiz zu einem Gesundheitseintrag.</summary>
     public const int GesundheitNotiz = 500;
+    /// <summary>TrainingNote.Text: ein Eintrag auf dem Merkzettel fürs nächste Training.</summary>
+    public const int MerkzettelText = 500;
     /// <summary>PushSubscription.Endpoint: Adresse beim Push-Dienst (kein Freitext, vom Browser geliefert).</summary>
     public const int PushEndpoint = 2048;
     /// <summary>PushSubscription.P256dh/Auth: Schlüssel des Geräts (base64url, 87 bzw. 22 Zeichen).</summary>

@@ -89,6 +89,7 @@ Dog
 ├── dog_images: das eine Bild eines Hundes (Bytes + MIME-Typ)
 ├── dog_pauses: Trainingspause (verletzt, krank, läufig)
 ├── dog_health_records: Impfungen, Entwurmung, Tierarzttermine
+├── dog_training_rhythms: wann ein Hund meistens trainiert (Wochentage, Stunde)
 ├── dog_sport_selections: Sportarten, die ein Hund selbst wählt (statt des Menschen)
 └── countries: Länder für den Geltungsbereich der Prüfungsordnungen
 
@@ -103,7 +104,8 @@ Sport
 Training
 
 ├── training_sessions (samt Wetter am Trainingsort)
-└── training_exercises
+├── training_exercises
+└── training_notes: Merkzettel fürs nächste Training (Eintrag je Hund, optional mit Übung)
 
 Planning
 
@@ -283,6 +285,39 @@ Tierarzttermin, Sonstiges). Details in docs/GESUNDHEIT.md.
 | created_by_user_id | UUID, ohne Fremdschlüssel |
 
 Index auf (DogId, Date) und auf DueDate; Soft Delete wie überall.
+
+
+---
+
+## training_notes
+
+
+Merkzettel fürs nächste Training (Paket M2): "das machen wir nächstes Mal",
+mit Erinnerung vor dem Training. Gehört dem Hund; sehen und ändern dürfen nur
+Besitzer:innen und Mitbesitzer:innen.
+
+
+| Feld | Typ |
+|-|-|
+| id | UUID (bei Offline-Einträgen vom Gerät vergeben) |
+| dog_id | UUID (Hund, Cascade) |
+| user_id | UUID, wer gemerkt hat, ohne Fremdschlüssel (bei der Kontolöschung geleert) |
+| text | varchar(500) |
+| exercise_id | UUID, optional (Übung, bei hartem Löschen der Übung leer) |
+| goal | varchar(20), als Text: NextTraining, NextWeek, Date |
+| target_date | date, bei Date der gewählte Tag, bei NextWeek der Montag der Folgewoche |
+| done_at | timestamptz, null = offen |
+| done_in_training_id | UUID, Training, mit dem abgehakt wurde, ohne Fremdschlüssel |
+
+Index auf (DogId, DoneAt); Soft Delete wie überall. Welcher Tag "nächstes
+Training" ist, wird bei jedem Abruf berechnet und nicht gespeichert
+(`Trainingsrhythmus`: Gruppentermin, Rhythmus, Muster aus dem Tagebuch).
+
+`dog_training_rhythms`: höchstens eine Zeile je Hund (`days` Bitmaske Mo = 1 ... So = 64,
+`hour` optional); Eingabe über "Wann trainierst du meistens?".
+
+
+---
 
 
 ---

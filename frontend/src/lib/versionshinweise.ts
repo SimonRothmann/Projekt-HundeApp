@@ -63,6 +63,17 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "1.2",
+    datum: "2026-11-12",
+    titel: uebersetzbar("Merkzettel fürs nächste Training"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Sagt die Trainerin „das machen wir nächstes Mal“, merkst du es dir mit „Merken“ – am schnellsten diktiert. Dogity erinnert dich vor dem nächsten Training per Push, und beim Eintragen hakst du es ab."),
+      },
+    ],
+  },
+  {
     version: "1.1",
     datum: "2026-11-08",
     titel: uebersetzbar("Wartungshinweise"),

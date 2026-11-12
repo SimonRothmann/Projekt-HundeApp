@@ -41,7 +41,7 @@ public class KontoTabellenKopplungTests
     private static readonly string[] Geleert =
     [
         "ClubMembership.DecidedByUserId", "ClubRegistration.DecidedByUserId", "DogOwner.InvitedByUserId",
-        "DogPause.CreatedByUserId", "DogHealthRecord.CreatedByUserId", "GroupRegistration.PaidByUserId",
+        "DogPause.CreatedByUserId", "DogHealthRecord.CreatedByUserId", "TrainingNote.UserId", "GroupRegistration.PaidByUserId",
         "GroupRegistrationAttendance.MarkedByUserId", "GroupTrainingExercise.CreatedByUserId",
         "GroupTrainingSession.CreatedByUserId", "GroupTrainingUnit.CreatedByUserId", "QuizQuestion.EditedByUserId",
         // Prüfungen des Vereins: Der Prüfungstag und das Ergebnis gehören dem Verein; beim Mitglied-Team lösen

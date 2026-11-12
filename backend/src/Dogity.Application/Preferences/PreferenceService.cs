@@ -39,7 +39,8 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
                 eintrag.TrainerSummaryDays,
                 eintrag.TrainerSummaryHour,
                 eintrag.ReminderHealth,
-                eintrag.StepLengthCm));
+                eintrag.StepLengthCm,
+                eintrag.ReminderTrainingNotes));
     }
 
     public async Task<Result> UpdateModulesAsync(Guid userId, UpdateModulesRequest request, CancellationToken ct = default)
@@ -186,6 +187,7 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
         eintrag.ReminderTracks = request.Tracks;
         eintrag.ReminderTrainerSummary = request.TrainerSummary;
         if (request.Health is { } gesundheit) eintrag.ReminderHealth = gesundheit;
+        if (request.TrainingNotes is { } merkzettel) eintrag.ReminderTrainingNotes = merkzettel;
         eintrag.TrainerSummaryDays = request.TrainerSummaryDays;
         eintrag.TrainerSummaryHour = request.TrainerSummaryHour;
         eintrag.UpdatedAt = DateTimeOffset.UtcNow;

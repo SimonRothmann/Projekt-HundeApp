@@ -25,6 +25,7 @@ public interface IApplicationDbContext
     DbSet<DogImage> DogImages { get; }
     DbSet<DogPause> DogPauses { get; }
     DbSet<DogHealthRecord> DogHealthRecords { get; }
+    DbSet<DogTrainingRhythm> DogTrainingRhythms { get; }
 
     DbSet<Country> Countries { get; }
 
@@ -36,6 +37,7 @@ public interface IApplicationDbContext
 
     DbSet<TrainingSession> TrainingSessions { get; }
     DbSet<TrainingExercise> TrainingExercises { get; }
+    DbSet<TrainingNote> TrainingNotes { get; }
 
     DbSet<Goal> Goals { get; }
     DbSet<TrainingPlan> TrainingPlans { get; }

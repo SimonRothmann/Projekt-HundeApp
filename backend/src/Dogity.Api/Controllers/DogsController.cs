@@ -1,10 +1,11 @@
 using Dogity.Application.Dogs;
+using Dogity.Application.Training;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dogity.Api.Controllers;
 
 [Route("api/dogs")]
-public class DogsController(IDogService dogService, IDogPauseService pauseService, IDogHealthService healthService) : ApiControllerBase
+public class DogsController(IDogService dogService, IDogPauseService pauseService, IDogHealthService healthService, IMerkzettelService merkzettelService) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<DogDto>>> GetMyDogs(CancellationToken ct)
@@ -193,4 +194,35 @@ public class DogsController(IDogService dogService, IDogPauseService pauseServic
     [HttpDelete("{id:guid}/gesundheit/{eintragId:guid}")]
     public async Task<IActionResult> DeleteHealthRecord(Guid id, Guid eintragId, CancellationToken ct) =>
         FromResult(await healthService.DeleteAsync(CurrentUserId, id, eintragId, ct));
+
+    /// <summary>Merkzettel fürs nächste Training: nur Besitzer:innen - betreuende Trainer:innen und alle anderen bekommen 404.</summary>
+    [HttpGet("{id:guid}/merkzettel")]
+    public async Task<ActionResult<IReadOnlyList<TrainingNoteDto>>> GetMerkzettel(Guid id, CancellationToken ct) =>
+        FromResult(await merkzettelService.GetAsync(CurrentUserId, id, ct));
+
+    [HttpPost("{id:guid}/merkzettel")]
+    public async Task<ActionResult<TrainingNoteDto>> CreateMerkzettelEintrag(Guid id, SaveTrainingNoteRequest request, CancellationToken ct) =>
+        FromResult(await merkzettelService.CreateAsync(CurrentUserId, id, request, ct));
+
+    [HttpPut("{id:guid}/merkzettel/{eintragId:guid}")]
+    public async Task<ActionResult<TrainingNoteDto>> UpdateMerkzettelEintrag(Guid id, Guid eintragId, SaveTrainingNoteRequest request, CancellationToken ct) =>
+        FromResult(await merkzettelService.UpdateAsync(CurrentUserId, id, eintragId, request, ct));
+
+    [HttpPut("{id:guid}/merkzettel/{eintragId:guid}/erledigt")]
+    public async Task<ActionResult<TrainingNoteDto>> SetMerkzettelEintragErledigt(Guid id, Guid eintragId, SetTrainingNoteDoneRequest request, CancellationToken ct) =>
+        FromResult(await merkzettelService.SetDoneAsync(CurrentUserId, id, eintragId, request.Done, ct));
+
+    [HttpDelete("{id:guid}/merkzettel/{eintragId:guid}")]
+    public async Task<IActionResult> DeleteMerkzettelEintrag(Guid id, Guid eintragId, CancellationToken ct) =>
+        FromResult(await merkzettelService.DeleteAsync(CurrentUserId, id, eintragId, ct));
+
+    /// <summary>Das nächste Training des Hundes (Gruppentermin, angegebener Rhythmus oder Muster aus dem Tagebuch) für die Beschriftung beim Merken.</summary>
+    [HttpGet("{id:guid}/naechstes-training")]
+    public async Task<ActionResult<NextTrainingDto>> GetNaechstesTraining(Guid id, CancellationToken ct) =>
+        FromResult(await merkzettelService.GetNextTrainingAsync(CurrentUserId, id, ct));
+
+    /// <summary>"Wann trainierst du meistens?": speichert den Rhythmus des Hundes und liefert das daraus folgende nächste Training.</summary>
+    [HttpPut("{id:guid}/trainingsrhythmus")]
+    public async Task<ActionResult<NextTrainingDto>> SetTrainingsrhythmus(Guid id, SaveTrainingRhythmRequest request, CancellationToken ct) =>
+        FromResult(await merkzettelService.SetRhythmAsync(CurrentUserId, id, request, ct));
 }

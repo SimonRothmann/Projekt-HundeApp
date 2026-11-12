@@ -79,6 +79,7 @@ function DatenschutzDe() {
             "Name, Rasse, Geburtstag, Geschlecht, Notizen und – wenn du eines hochlädst – ein Foto",
             "Trainingspausen des Hundes, wenn du sie einträgst: der Grund (verletzt, krank oder – bei Hündinnen – läufig), Beginn und Ende oder „bis auf Weiteres“, eine kurze Notiz und wer die Pause eingetragen hat",
             "Gesundheitseinträge des Hundes, wenn du sie einträgst: Impfungen, Entwurmung, Parasitenschutz, Tierarzttermine und Sonstiges mit Titel (etwa „Tollwut“), Datum, bei Terminen die Uhrzeit, „gültig bis“ bzw. „nächste fällig“, einer kurzen Notiz und wer den Eintrag angelegt hat. Das sind Angaben über das Tier und keine Gesundheitsdaten von Menschen im Sinne des Art. 9 DSGVO; sie sind trotzdem nur für dich und die Mitbesitzer:innen sichtbar (Abschnitt 8). Ein Foto des Impfpasses gibt es nicht – Dogity speichert keine Dateien dazu",
+            "Merkzettel fürs nächste Training, wenn du etwas merkst: ein kurzer Text (zum Beispiel, was die Trainerin fürs nächste Mal angesagt hat), optional eine Übung aus dem Katalog, das Ziel („nächstes Training“, „nächste Woche“ oder ein Datum), ob und wann der Eintrag abgehakt wurde und wer ihn gemerkt hat. Dazu, wenn du sie angibst, die Tage und die Uhrzeit, an denen dein Hund meistens trainiert",
           ]}
         />
         <p className="font-medium text-foreground">Training</p>
@@ -175,14 +176,14 @@ function DatenschutzDe() {
       <Abschnitt titel="4. Auf welcher Rechtsgrundlage">
         <Liste
           punkte={[
-            "Konto, Hunde, Trainings, Fährten, Verein und Einstellungen: Art. 6 Abs. 1 lit. b DSGVO – ohne diese Daten gibt es die Funktion nicht, für die du dich angemeldet hast.",
+            "Konto, Hunde, Trainings, Fährten, Merkzettel fürs nächste Training, Verein und Einstellungen: Art. 6 Abs. 1 lit. b DSGVO – ohne diese Daten gibt es die Funktion nicht, für die du dich angemeldet hast.",
             "Laufspur der Versteckperson beim Mantrailing: Art. 6 Abs. 1 lit. f DSGVO – mit der Versteckperson besteht kein Vertrag. Das berechtigte Interesse ist, dass die Person, die aufzeichnet, ihr Training dokumentieren kann; der Eingriff ist gering, weil die Versteckperson den Weg freiwillig geht und vorher davon weiß. Sie kann der Speicherung widersprechen; die Spur wird dann gelöscht.",
             "Anmeldung zu einer Gruppe über ein Anmeldeformular (ohne Konto): Art. 6 Abs. 1 lit. b DSGVO – siehe Abschnitt 9.",
             "Prüfungen des Vereins: Art. 6 Abs. 1 lit. b DSGVO für Meldung und Ergebnis, lit. f für die Prüfungsreife – siehe Abschnitt 10.",
             "Arbeitseinsätze des Vereins: Art. 6 Abs. 1 lit. f DSGVO – berechtigtes Interesse des Vereins ist, die Mithilfe seiner Mitglieder festzuhalten und anzuerkennen; eine Pflicht dazu gibt es nicht. Du kannst nach Art. 21 DSGVO widersprechen (Abschnitt 12), dann trägt die Verwaltung dich aus. Dasselbe gilt auch für Helfer:innen ohne Konto.",
             "E-Mails (Willkommen, Passwort zurücksetzen, Einladungen und Entscheidungen über Beitrittsanfragen): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu Konto und Vereinsfunktionen. Ob du die Mails zu Einladungen und Entscheidungen bekommst, wählst du schon bei der Registrierung (vorausgewählt); abbestellen kannst du sie jederzeit über den Link in der Mail, ohne Anmeldung, oder unter Profil → Funktionen.",
             "Push-Benachrichtigungen: Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TDDDG – sie beginnen erst, wenn du sie auf einem Gerät selbst einschaltest und der Browser oder das Betriebssystem dich um Erlaubnis gefragt hat. Du kannst sie jederzeit in der App ausschalten oder die Erlaubnis im Gerät zurücknehmen.",
-            "Erinnerungen (Termin am Vortag, Fährte noch nicht abgelaufen, Gesundheit des Hundes, offene Rückmeldungen): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu den Funktionen, die du nutzt; du kannst jede einzeln unter Profil → Funktionen abschalten. Kommen sie als Push, gilt zusätzlich die Einwilligung zu Push von oben.",
+            "Erinnerungen (Termin am Vortag, Fährte noch nicht abgelaufen, Gesundheit des Hundes, Merkzettel fürs Training, offene Rückmeldungen): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu den Funktionen, die du nutzt; du kannst jede einzeln unter Profil → Funktionen abschalten. Kommen sie als Push, gilt zusätzlich die Einwilligung zu Push von oben.",
             "Schutz vor Missbrauch, Fehlersuche und Sicherheit des Betriebs: Art. 6 Abs. 1 lit. f DSGVO. Mein berechtigtes Interesse ist, dass der Dienst erreichbar bleibt und Konten nicht übernommen werden.",
             "Das Auslesen deines Standorts erlaubst du im Browser ausdrücklich und kannst die Erlaubnis jederzeit zurücknehmen.",
           ]}
@@ -325,12 +326,14 @@ function DatenschutzDe() {
         </p>
         <p className="font-medium text-foreground">Erinnerungen (vom Server)</p>
         <p>
-          Dogity schickt vier Arten von Erinnerungen von sich aus, als Meldung in der Glocke und – wo du Push
+          Dogity schickt fünf Arten von Erinnerungen von sich aus, als Meldung in der Glocke und – wo du Push
           eingeschaltet hast – als Push: am Vortag an einen Gruppentermin (wenn du Mitglied der Gruppe bist und nicht
           abgesagt hast), an eine gelegte Fährte, die noch nicht abgelaufen wurde (etwa drei Stunden nach dem Legen,
           solange der Ablauf noch möglich ist und dein Hund nicht in einer Trainingspause ist), an die Gesundheit
           deines Hundes (14 Tage vor Ablauf einer eingetragenen Frist wie einer Impfung und am Tag selbst, an einen
-          Tierarzttermin am Vortag ab 18 Uhr – an dich und die Mitbesitzer:innen), und – nur bei
+          Tierarzttermin am Vortag ab 18 Uhr – an dich und die Mitbesitzer:innen), an das, was du auf dem Merkzettel fürs
+          nächste Training notiert hast (am Trainingstag, zwei Stunden vorher – an dich und die Mitbesitzer:innen; wann dein Hund trainiert, erkennt Dogity an deinen Gruppenterminen, deiner Angabe oder deinem
+          Tagebuch), und – nur bei
           Trainer:innen – eine Zusammenfassung, wie viele Trainings auf eine Rückmeldung warten. Jede davon schaltest du
           einzeln unter Profil → Funktionen ab; bei der Zusammenfassung wählen Trainer:innen außerdem Wochentage und
           Uhrzeit. Erinnerungen kommen nur zwischen 8 und 22 Uhr deutscher Zeit und nie per E-Mail. Damit eine
@@ -368,6 +371,7 @@ function DatenschutzDe() {
             "Zusagen zu Gruppenterminen: Die Trainer:innen der Gruppe, Ausbildungswart:in und Verwaltung des Vereins sowie die dem Termin zugeordneten Trainer:innen sehen mit Namen, wer zu- oder abgesagt hat. Die anderen Mitglieder deiner Gruppe sehen nur Zahlen, etwa „5 Zusagen“. Sagst du ab, bekommen die Trainer:innen des Termins eine Benachrichtigung mit deinem Vornamen.",
             "Trainingspausen deines Hundes sehen du und die Mitbesitzer:innen mit Grund, Zeitraum und Notiz. Trainer:innen, die den Hund betreuen, sehen nur, dass er pausiert und bis wann – nicht den Grund und nicht die Notiz. Der Trainingsplan, den sie sehen, hält in dieser Zeit an; deshalb sehen sie darin auch die Zeiträume früherer Pausen, die in den Plan fallen, aber nie den Verlauf mit Gründen. Alle anderen sehen nichts davon. Das stellt der Server sicher, nicht nur die Anzeige.",
             "Gesundheitseinträge deines Hundes (Impfungen, Entwurmung, Parasitenschutz, Tierarzttermine) sehen nur du und die Mitbesitzer:innen. Trainer:innen, die den Hund betreuen, sehen nichts davon – auch nicht, dass es solche Einträge gibt. Alle anderen sehen ebenfalls nichts. Das stellt der Server sicher, nicht nur die Anzeige.",
+            "Den Merkzettel fürs nächste Training deines Hundes sehen und ändern nur du und die Mitbesitzer:innen. Trainer:innen, die den Hund betreuen, und alle anderen sehen nichts davon. Das stellt der Server sicher, nicht nur die Anzeige.",
             "Deine Antwort auf das Feedback einer Trainer:in (Danke, Verstanden, Rückfrage) sehen die Trainer:in, die es gegeben hat, und die Besitzer:innen des Hundes; sie löst bei der Trainer:in eine Benachrichtigung aus. Schreibt die Trainer:in neues Feedback, wird deine Antwort zurückgesetzt.",
             "Im Verein sehen die Rollen unterschiedlich viel, nie jedoch dein Trainingstagebuch: Trainer:innen sehen ihre Gruppen und deren Mitglieder. Ausbildungswart:in und Verwaltung sehen alle Gruppen des Vereins und die Meldelisten der Prüfungstage (Abschnitt 10). Die Mitgliederverwaltung und die Verwaltung sehen die Mitgliederliste mit Name und E-Mail-Adresse, die Beitrittsanfragen – darunter, ob sie über den Einladungslink des Vereins kamen – und die Einladungen. Der Vorstand und die Verwaltung sehen Name, Gruppenzugehörigkeit, Rollen und Mitglied-seit-Datum der Mitglieder sowie zusammengefasste Zahlen des Vereins (Mitglieder, Gruppen, Termine, Zusagen und Prüfungen als Summen) – keine Trainingstagebücher und keine E-Mail-Adressen.",
             "Arbeitseinsätze: Die Verwaltung des Vereins trägt ein, wer geholfen hat. Verwaltung und Vorstand sehen die Auswertung mit Namen, du siehst deine eigenen Einsätze, sonst niemand; die Vereinsübersicht zeigt nur Summen. Dieselben sehen die Einsätze der Helfer:innen ohne Konto; diese haben keine eigene Ansicht und wenden sich für Auskunft und Löschung an den Verein oder an die Kontaktadresse der Betreiber.",
@@ -494,7 +498,7 @@ function DatenschutzDe() {
         <Liste
           punkte={[
             "Kontodaten und alles, was daran hängt: bis du das Konto löschst.",
-            "Einzelne Einträge – Trainings, Fährten, Hunde, Trainingspausen, Gesundheitseinträge: bis du sie löschst.",
+            "Einzelne Einträge – Trainings, Fährten, Hunde, Trainingspausen, Gesundheitseinträge, Einträge auf dem Merkzettel: bis du sie löschst.",
             "Anmeldungen zu einer Gruppe ohne Konto (Abschnitt 9): bis die Trainer:innen sie löschen, spätestens zwölf Monate nach der letzten Anwesenheit, Änderung oder Anmeldung.",
             "Prüfungstage des Vereins mit Meldelisten (Abschnitt 10): bis die Prüfungsleitung sie löscht; Gastdaten mit der Prüfung bzw. dem Team. Die Ergebnisse bleiben ohne Personenbezug für die Zahlen des Vereins.",
             "Arbeitseinsätze des Vereins: bis die Verwaltung dich austrägt oder den Einsatz löscht, spätestens bis zum Ende des zweiten Kalenderjahres nach dem Einsatz (ältere werden automatisch endgültig gelöscht). Verlässt du den Verein oder löschst du dein Konto, bleiben nur die Stunden, ohne Bezug zu dir. Helfer:innen ohne Konto: bis die Verwaltung sie löscht, spätestens wenn ihr letzter Einsatz gelöscht ist.",
@@ -507,7 +511,7 @@ function DatenschutzDe() {
           ]}
         />
         <p>
-          Löschst du dein Konto, werden dein Zugang, deine Hunde samt Trainingspausen und Gesundheitseinträgen, Trainings, Fährten, Ziele, Einstellungen, dein
+          Löschst du dein Konto, werden dein Zugang, deine Hunde samt Trainingspausen, Gesundheitseinträgen und Merkzettel fürs Training, Trainings, Fährten, Ziele, Einstellungen, dein
           Lernfortschritt samt Ergebnissen der Übungsprüfungen, deine Zusagen zu Gruppenterminen, die Geräte für Push-Benachrichtigungen, die Merkzettel zu versendeten Erinnerungen und deine Vereins- und Gruppenzugehörigkeiten entfernt; in den Meldelisten der Prüfungen deines Vereins bleibt nur das Ergebnis ohne dich und deinen Hund. Hunde, die du dir mit jemandem
           teilst, bleiben bei der anderen Person – nur deine Verknüpfung damit verschwindet. Wo du als Trainer:in
           Inhalte für einen Verein angelegt hast, bleiben diese Inhalte dem Verein erhalten, die Angabe deiner

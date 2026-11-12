@@ -84,6 +84,53 @@ export type DogGesundheitStand = {
   nextAppointment: { id: string; title: string; date: string; time: string | null } | null;
 };
 
+// Wann ein Merkzettel-Eintrag drankommen soll - NUMERISCH (siehe Domain.Training.TrainingNoteGoal).
+export const MERKZETTEL_ZIEL = {
+  NaechstesTraining: 0,
+  NaechsteWoche: 1,
+  Datum: 2,
+} as const;
+
+export type MerkzettelZiel = (typeof MERKZETTEL_ZIEL)[keyof typeof MERKZETTEL_ZIEL];
+
+// Woher das erkannte nächste Training stammt - NUMERISCH (siehe Application.Training.TrainingsQuelle).
+export const TRAININGS_QUELLE = {
+  Gruppe: 0,
+  Rhythmus: 1,
+  Tagebuch: 2,
+  Unbekannt: 3,
+} as const;
+
+export type TrainingsQuelle = (typeof TRAININGS_QUELLE)[keyof typeof TRAININGS_QUELLE];
+
+// Ein Eintrag auf dem Merkzettel fürs nächste Training (Backend: TrainingNoteDto). Nur Besitzer:innen
+// und Mitbesitzer:innen bekommen ihn - der Server liefert ihn niemandem sonst.
+export type MerkzettelEintrag = {
+  id: string;
+  dogId: string;
+  text: string;
+  exerciseId: string | null;
+  exerciseName: string | null;
+  exerciseNameEn: string | null;
+  goal: MerkzettelZiel;
+  /** Der Tag, auf den der Eintrag zielt, wie er jetzt gilt (YYYY-MM-DD); null, wenn sich keiner bestimmen lässt. */
+  targetDate: string | null;
+  /** Uhrzeit des erkannten Trainings an diesem Tag ("18:00:00"); null, wenn unbekannt. */
+  targetTime: string | null;
+  doneAt: string | null;
+  doneInTrainingId: string | null;
+  createdAt: string;
+};
+
+// Das nächste Training eines Hundes (Backend: NextTrainingDto) - für "Nächstes Training · Di 18:00".
+export type NaechstesTraining = {
+  /** YYYY-MM-DD; null bei quelle = Unbekannt. */
+  date: string | null;
+  /** "18:00:00"; null, wenn die Uhrzeit nicht bekannt ist. */
+  time: string | null;
+  source: TrainingsQuelle;
+};
+
 // Ein Pausenzeitraum, wie ihn die Planrechnung braucht (Backend: PausenZeitraumDto).
 export type PauseZeitraum = {
   start: string;
@@ -1665,6 +1712,8 @@ export type UserPreferences = {
   trainerSummaryHour: number;
   /** Erinnerung an ablaufende Impfungen, fällige Entwurmung und Tierarzttermine. Vorgabe: ja. */
   reminderHealth: boolean;
+  /** Erinnerung vor dem Training an den Merkzettel des Hundes. Vorgabe: ja. */
+  reminderTrainingNotes: boolean;
   /** Schrittlänge in cm (40 bis 120) für die Umrechnung der Fährtenlänge in Schritte, null = Standard (lib/schritte.ts). */
   stepLengthCm: number | null;
 };

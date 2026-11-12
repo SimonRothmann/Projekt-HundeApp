@@ -205,6 +205,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
                 daySession.DurationMinutes += request.DurationMinutes;
                 daySession.Notes = tagesNotiz;
+                await MerkzettelErledigenAsync(userId, request, daySession.Id, ct);
 
                 // Wetter wie im Neu-Anlegen-Zweig nachziehen, sobald durch die
                 // Übernahme Zeit oder Koordinaten neu hinzukamen (die Anreicherung
@@ -260,6 +261,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         }
 
         db.TrainingSessions.Add(session);
+        await MerkzettelErledigenAsync(userId, request, session.Id, ct);
         await db.SaveChangesAsync(ct);
 
         // Wetter automatisch nachziehen, sofern Ort UND Uhrzeit vorliegen - im
@@ -269,6 +271,27 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         var created = await GetOwnedSessionAsync(userId, session.Id, ct, track: false);
         // Frisch angelegtes Training kann noch keine Fährte haben.
         return Result<TrainingSessionDto>.Success(ToDto(created!, hasGpsTrack: false));
+    }
+
+    /// <summary>
+    /// Hakt die mitgeschickten Merkzettel-Einträge ab (gespeichert wird im selben SaveChanges wie das Training).
+    /// Nur Einträge dieses Hundes und nur für Besitzer:innen - eine betreuende Trainer:in sieht den Merkzettel nicht.
+    /// </summary>
+    private async Task MerkzettelErledigenAsync(Guid userId, CreateTrainingSessionRequest request, Guid trainingId, CancellationToken ct)
+    {
+        if (request.ErledigteMerkzettelIds is not { Count: > 0 } ids || !await db.IstBesitzerAsync(userId, request.DogId, ct))
+            return;
+
+        var jetzt = timeProvider.GetUtcNow();
+        var offene = await db.TrainingNotes
+            .Where(n => n.DogId == request.DogId && n.DoneAt == null && ids.Contains(n.Id))
+            .ToListAsync(ct);
+        foreach (var eintrag in offene)
+        {
+            eintrag.DoneAt = jetzt;
+            eintrag.DoneInTrainingId = trainingId;
+            eintrag.UpdatedAt = jetzt;
+        }
     }
 
     /// <summary>So viele offene Feedbacks liefert die Startseite höchstens (die Karte zeigt eines, der Rest wird gezählt).</summary>

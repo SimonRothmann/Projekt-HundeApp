@@ -244,4 +244,11 @@ public record CreateTrainingSessionRequest(
     /// - wichtig für die Offline-Warteschlange, da sonst zwei voneinander
     /// abhängige Requests nicht unabhängig nachsynchronisiert werden könnten.
     /// </summary>
-    Guid? Id = null);
+    Guid? Id = null,
+    /// <summary>
+    /// Merkzettel-Einträge des Hundes (<see cref="TrainingNote"/>), die mit diesem Training erledigt sind.
+    /// Sie werden mit dem Training in einem Zug abgehakt - auch aus der Offline-Warteschlange, ohne dass die
+    /// Kennung des Trainings dem Gerät bekannt sein muss. Nur Besitzer:innen haken ab; fremde oder
+    /// bereits erledigte Kennungen werden übergangen.
+    /// </summary>
+    IReadOnlyList<Guid>? ErledigteMerkzettelIds = null);

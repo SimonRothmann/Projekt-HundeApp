@@ -7,6 +7,7 @@ using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Notifications;
 using Dogity.Domain.Tracking;
+using Dogity.Domain.Training;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Account;
@@ -58,6 +59,14 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
 
         var pausen = await db.DogPauses.Where(p => hundeIds.Contains(p.DogId)).AsNoTracking().ToListAsync(ct);
         var gesundheit = await db.DogHealthRecords.Where(r => hundeIds.Contains(r.DogId)).AsNoTracking().ToListAsync(ct);
+        // Eigene Merkzettel-Einträge; einer, dessen Verfasser:in nicht mehr da ist, gehört dem Hund (und damit den
+        // Übrigen). Die Übung steht als Name da, nicht als Kennung.
+        var merkzettel = await db.TrainingNotes
+            .Where(n => hundeIds.Contains(n.DogId) && (n.UserId == userId || n.UserId == null))
+            .Select(n => new { n.DogId, n.Text, Uebung = n.Exercise!.Name, n.Goal, n.TargetDate, n.DoneAt, n.CreatedAt })
+            .AsNoTracking()
+            .ToListAsync(ct);
+        var rhythmen = await db.DogTrainingRhythms.Where(r => hundeIds.Contains(r.DogId)).AsNoTracking().ToListAsync(ct);
         var pruefungsmeldungen = await db.ClubExamEntries
             .Where(e => e.MemberUserId == userId)
             .Select(e => new { e.Exam!.Date, Verein = e.Exam.Club!.Name, Ordnung = e.Regulation!.Name, e.DogId, e.Result, e.Score, e.ResultNote })
@@ -176,7 +185,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     Wochentage(einstellung.TrainerSummaryDays),
                     einstellung.TrainerSummaryHour,
                     einstellung.ReminderHealth,
-                    einstellung.StepLengthCm),
+                    einstellung.StepLengthCm,
+                    einstellung.ReminderTrainingNotes),
             hunde.Select(hund =>
             {
                 var rolle = besitz.First(b => b.DogId == hund.Id);
@@ -372,6 +382,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                         ReminderType.HealthDueAhead => "Gesundheit: Frist in 14 Tagen",
                         ReminderType.HealthDueToday => "Gesundheit: Frist heute",
                         ReminderType.HealthVetDayBefore => "Tierarzttermin morgen",
+                        ReminderType.TrainingNote => "Merkzettel vor dem Training",
                         _ => "Offene Rückmeldungen"
                     },
                     r.ReferenceId == Guid.Empty ? null : r.ReferenceId,
@@ -418,6 +429,20 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
             arbeitseinsaetze
                 .OrderByDescending(a => a.Date)
                 .Select(a => new ArbeitseinsatzExportDto(a.Verein, a.Date, a.Title, a.Minuten))
+                .ToList(),
+            merkzettel
+                .OrderByDescending(n => n.CreatedAt)
+                .Select(n => new MerkzettelExportDto(
+                    n.DogId,
+                    n.Text,
+                    n.Uebung,
+                    n.Goal switch { TrainingNoteGoal.NextWeek => "Nächste Woche", TrainingNoteGoal.Date => "Datum", _ => "Nächstes Training" },
+                    n.TargetDate,
+                    n.DoneAt,
+                    n.CreatedAt))
+                .ToList(),
+            rhythmen
+                .Select(r => new TrainingsrhythmusExportDto(r.DogId, Wochentage(r.Days), r.Hour))
                 .ToList());
 
         return Result<AccountExportDto>.Success(export);
@@ -508,6 +533,10 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         var pausen = await db.DogPauses.IgnoreQueryFilters()
             .Where(p => alleinMeineHunde.Contains(p.DogId)).ToListAsync(ct);
         var gesundheit = await db.DogHealthRecords.IgnoreQueryFilters()
+            .Where(r => alleinMeineHunde.Contains(r.DogId)).ToListAsync(ct);
+        var merkzettel = await db.TrainingNotes.IgnoreQueryFilters()
+            .Where(n => alleinMeineHunde.Contains(n.DogId)).ToListAsync(ct);
+        var rhythmen = await db.DogTrainingRhythms.IgnoreQueryFilters()
             .Where(r => alleinMeineHunde.Contains(r.DogId)).ToListAsync(ct);
         var bilder = await db.DogImages.IgnoreQueryFilters()
             .Where(i => alleinMeineHunde.Contains(i.DogId)).ToListAsync(ct);
@@ -626,6 +655,10 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         foreach (var r in await db.DogHealthRecords.IgnoreQueryFilters()
                      .Where(r => r.CreatedByUserId == userId).ToListAsync(ct))
             r.CreatedByUserId = null;
+        // Und ein Merkzettel-Eintrag: Er gehört dem gemeinsamen Hund und bleibt bei den übrigen Besitzer:innen.
+        foreach (var n in await db.TrainingNotes.IgnoreQueryFilters()
+                     .Where(n => n.UserId == userId).ToListAsync(ct))
+            n.UserId = null;
         // Die Anmeldungen zu Gruppen gehören dem Verein und bleiben - die
         // Kursteilnehmenden sind nicht diese Person. Nur der Verweis auf sie als
         // "hat bezahlt gesetzt" bzw. "hat abgehakt" geht.
@@ -663,6 +696,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         db.DogSportSelections.RemoveRange(hundesportarten);
         db.DogPauses.RemoveRange(pausen);
         db.DogHealthRecords.RemoveRange(gesundheit);
+        db.TrainingNotes.RemoveRange(merkzettel);
+        db.DogTrainingRhythms.RemoveRange(rhythmen);
         db.DogImages.RemoveRange(bilder);
         db.DogOwners.RemoveRange(besitzzeilen);
         db.Dogs.RemoveRange(hunde);

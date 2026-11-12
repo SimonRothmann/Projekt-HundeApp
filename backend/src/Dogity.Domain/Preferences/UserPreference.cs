@@ -78,6 +78,9 @@ public class UserPreference : Entity
     /// </summary>
     public bool ReminderHealth { get; set; } = true;
 
+    /// <summary>Erinnerung vor dem Training an das, was auf dem Merkzettel des Hundes steht. Standard: ja.</summary>
+    public bool ReminderTrainingNotes { get; set; } = true;
+
     /// <summary>Zusammenfassung offener Rückmeldungen (nur für Trainer:innen relevant). Standard: ja.</summary>
     public bool ReminderTrainerSummary { get; set; } = true;
 
