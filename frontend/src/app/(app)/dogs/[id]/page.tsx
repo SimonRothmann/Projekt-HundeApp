@@ -152,7 +152,12 @@ function DogPage({ id }: { id: string }) {
   async function handleTrainingSaved(offline: boolean) {
     // Offline gespeicherte Trainings liegen nur in der Warteschlange - ein
     // Server-Reload würde sie nicht enthalten und nur verwirren.
-    if (!offline) await loadAll();
+    if (!offline) {
+      await loadAll();
+      // Beim Eintragen abgehakte Merkzettel-Einträge sind jetzt erledigt - die Liste oben
+      // im Reiter Plan hat einen eigenen Abruf und zeigte sie sonst weiter als offen.
+      merkzettel.reload();
+    }
   }
 
   if (nichtGefunden)
