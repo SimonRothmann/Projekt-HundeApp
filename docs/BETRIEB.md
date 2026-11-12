@@ -32,10 +32,12 @@ ssh dogity 'sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker
 ```
 
 **Ein geänderter `deploy/caddy/Caddyfile` braucht keinen Handgriff mehr.**
-Beide Deploy-Skripte rufen am Ende `scripts/caddy-neu-laden.sh` auf: Caddy
-prüft die neue Datei und tauscht sie ohne Unterbrechung aus; ist sie
-fehlerhaft, läuft er mit der alten weiter und der Deploy endet mit einer
-Fehlermeldung. Das geht, weil der Ordner `deploy/caddy` eingebunden ist und
+Beide Deploy-Skripte rufen gleich nach dem `git`-Abgleich - vor jedem
+Container-Neustart - `scripts/caddy-neu-laden.sh` auf: Caddy prüft die neue
+Datei und tauscht sie ohne Unterbrechung aus; ist sie fehlerhaft, läuft er mit
+der alten weiter und der Deploy bricht ab, bevor etwas neu startet. Zuerst,
+damit die Wartungsseite für die Neustart-Sekunden schon beim selben Deploy
+greift (bis 2026-11-12 lief das Neuladen am Ende). Das geht, weil der Ordner `deploy/caddy` eingebunden ist und
 nicht die einzelne Datei - die hinge nach `git pull` an der alten Fassung.
 Achtung: Der Caddyfile gilt für alle vier Domains, schon der Test-Deploy
 bringt eine Änderung also auch auf Prod.
