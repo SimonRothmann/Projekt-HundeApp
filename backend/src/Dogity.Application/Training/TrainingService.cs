@@ -617,6 +617,35 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             : Result<TrainingSessionDto>.Success(ToDto(updated, await HasGpsTrackAsync(updated.Id, ct)));
     }
 
+    public async Task<Result<TrainingSessionDto>> DeleteExerciseAsync(Guid userId, Guid exerciseId, CancellationToken ct = default)
+    {
+        // Rechte wie beim Ändern; eine schon gelöschte Übung ist über den
+        // Query-Filter gar nicht mehr zu finden (404).
+        var exercise = await db.TrainingExercises
+            .Include(e => e.TrainingSession)
+            .FirstOrDefaultAsync(e => e.Id == exerciseId, ct);
+        if (exercise?.TrainingSession is null || !await db.TrainingSessions.Where(s => s.Id == exercise.TrainingSessionId).DarfBearbeiten(db, userId).AnyAsync(ct))
+            return Result<TrainingSessionDto>.NotFound("Übung nicht gefunden.");
+
+        exercise.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        // Wie beim Löschen des ganzen Trainings: der Wiedervorlage-Zustand
+        // trägt das gelöschte Ergebnis sonst weiter. Plan-Fortschritt und die
+        // Zähler der Trainer:in rechnen live aus den Übungen und folgen ohne
+        // weiteres Zutun.
+        if (exercise.ExerciseId is { } catalogExerciseId)
+        {
+            await mastery.RecomputeAsync(exercise.TrainingSession.DogId, catalogExerciseId, ct);
+            await db.SaveChangesAsync(ct);
+        }
+
+        var updated = await GetOwnedSessionAsync(userId, exercise.TrainingSessionId, ct, track: false);
+        return updated is null
+            ? Result<TrainingSessionDto>.NotFound("Training nicht gefunden.")
+            : Result<TrainingSessionDto>.Success(ToDto(updated, await HasGpsTrackAsync(updated.Id, ct)));
+    }
+
     public async Task<Result> SetFeedbackAsync(Guid trainerId, Guid sessionId, SetFeedbackRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.Feedback))

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, istVoruebergehendUnerreichbar } from "@/lib/api";
 import type { TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { BlockLabel } from "@/components/ui/block-label";
@@ -425,6 +425,29 @@ export function SessionDayCard({
     }
   }
 
+  // Nur diese eine Übung: der Rest des Trainingstags (Dauer, Kommentar,
+  // Fährten, Feedback) bleibt, auch wenn es die letzte Übung war. Löschen
+  // wird nicht in die Offline-Warteschlange gelegt - sie kennt nur Neues.
+  async function deleteExercise(id: string, name: string) {
+    if (!confirm(t("Übung „{name}“ aus diesem Training löschen?", { name }))) return;
+    try {
+      await api.delete(`/api/trainings/exercises/${id}`);
+      toast.success(t("Übung gelöscht."));
+      await onChanged();
+    } catch (err) {
+      toast.error(
+        istVoruebergehendUnerreichbar(err)
+          ? t("Keine Verbindung zum Server. Löschen geht nur online - versuche es gleich noch einmal.")
+          : err instanceof ApiError
+            ? err.message
+            : t("Löschen fehlgeschlagen."),
+      );
+      // 404: Die Übung ist schon weg (anderes Gerät, oder die Antwort eines erfolgreichen
+      // Löschens ging verloren) - neu laden, sonst bliebe die veraltete Zeile stehen.
+      if (err instanceof ApiError && err.status === 404) await onChanged();
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3 p-3">
       {/* Datum und Dauer ändern und löschen gibt es nur im aufgeklappten Tag: in der
@@ -478,6 +501,7 @@ export function SessionDayCard({
                     success={ex.success}
                     notes={ex.notes}
                     onSaved={onChanged}
+                    onDelete={() => deleteExercise(ex.id, uebungName(ex, sprache))}
                     darfBearbeiten={bearbeitbar}
                   />
                 </div>

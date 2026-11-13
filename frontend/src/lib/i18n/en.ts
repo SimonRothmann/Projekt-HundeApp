@@ -3083,4 +3083,7 @@ export const EN: Record<string, string> = {
   "Bitte mindestens einen Wochentag wählen.": "Please choose at least one weekday.",
   "Die Uhrzeit ist ungültig.": "The time is invalid.",
   "Der Eintrag": "The entry",
+  "Übung „{name}“ aus diesem Training löschen?": "Delete the exercise “{name}” from this training?",
+  "Keine Verbindung zum Server. Löschen geht nur online - versuche es gleich noch einmal.": "No connection to the server. Deleting only works online - please try again in a moment.",
+  "Eine einzelne Übung lässt sich jetzt aus einem eingetragenen Training löschen – der Rest des Trainingstags bleibt.": "A single exercise can now be deleted from a saved training – the rest of the training day stays.",
 };

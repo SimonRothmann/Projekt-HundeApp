@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
@@ -19,6 +19,10 @@ import { useT } from "@/lib/i18n";
  * musste den ganzen Trainingstag löschen und neu erfassen. Nur die Notiz war
  * änderbar (siehe ExerciseNotes).
  *
+ * `onDelete` (optional): zeigt neben dem Stift einen Papierkorb. Die Rückfrage
+ * und der Aufruf liegen beim Aufrufer (siehe SessionDayCard) - hier geht es nur
+ * um den Knopf an der Zeile, gleiches Recht wie der Stift.
+ *
  * Die Notiz wird unverändert mitgeschickt, weil der Endpunkt Bewertung,
  * Erfolg und Notiz gemeinsam setzt - ohne das würde eine Korrektur der
  * Sterne die Notiz löschen.
@@ -29,6 +33,7 @@ export function ExerciseRating({
   success,
   notes,
   onSaved,
+  onDelete,
   darfBearbeiten = true,
 }: {
   exerciseId: string;
@@ -36,6 +41,7 @@ export function ExerciseRating({
   success: boolean;
   notes: string | null;
   onSaved: () => Promise<void>;
+  onDelete?: () => void;
   darfBearbeiten?: boolean;
 }) {
   const t = useT();
@@ -93,6 +99,18 @@ export function ExerciseRating({
             }}
           >
             <Pencil className="size-3" />
+          </Button>
+        )}
+        {darfBearbeiten && onDelete && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="size-6 text-muted-foreground hover:text-destructive"
+            title={t("Übung löschen")}
+            onClick={onDelete}
+          >
+            <Trash2 className="size-3" />
           </Button>
         )}
       </span>

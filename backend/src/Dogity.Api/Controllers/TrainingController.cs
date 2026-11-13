@@ -109,6 +109,13 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         return FromResult(result);
     }
 
+    [HttpDelete("exercises/{exerciseId:guid}")]
+    public async Task<ActionResult<TrainingSessionDto>> DeleteExercise(Guid exerciseId, CancellationToken ct)
+    {
+        var result = await trainingService.DeleteExerciseAsync(CurrentUserId, exerciseId, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("exercises/{exerciseId:guid}/trainer-rating")]
     public async Task<IActionResult> SetExerciseTrainerRating(Guid exerciseId, SetExerciseTrainerRatingRequest request, CancellationToken ct)
     {

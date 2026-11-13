@@ -70,6 +70,14 @@ public interface ITrainingService
     Task<Result<TrainingSessionDto>> UpdateExerciseAsync(Guid userId, Guid exerciseId, UpdateTrainingExerciseRequest request, CancellationToken ct = default);
 
     /// <summary>
+    /// Löscht eine einzelne Übung aus einem eingetragenen Training (weich).
+    /// Wer die Einheit bearbeiten darf, darf auch die Übung löschen (wie
+    /// <see cref="UpdateExerciseAsync"/>). Die Einheit selbst bleibt auch dann
+    /// bestehen, wenn es die letzte Übung war. Liefert die aktualisierte Einheit.
+    /// </summary>
+    Task<Result<TrainingSessionDto>> DeleteExerciseAsync(Guid userId, Guid exerciseId, CancellationToken ct = default);
+
+    /// <summary>
     /// Der Besitzer antwortet auf das Trainer-Feedback eines Eintrags: Danke/
     /// Verstanden und/oder eine kurze Rückfrage. Nur Besitzer:innen des Hundes
     /// und nur, wenn es Feedback gibt; die Trainer:in, die es gegeben hat,
