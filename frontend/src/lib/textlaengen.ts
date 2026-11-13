@@ -20,6 +20,8 @@ export const TEXTLAENGE = {
   ablaufKommentar: 2000,
   /** GpsTrack.ScentArticle: Geruchsartikel eines Mantrailing-Trails */
   geruchsartikel: 100,
+  /** GpsPoint.Material: Material eines Gegenstands, nur aus der Auswahl in lib/gegenstaende.ts */
+  gegenstandsMaterial: 40,
   /** QuizQuestion.Text */
   sachkundeFrage: 2000,
   /** QuizQuestion.SampleSolution */
@@ -64,6 +66,26 @@ export const TEXTLAENGE = {
   vereinsName: 150,
   /** Club.Description: Beschreibung des Vereins */
   vereinsBeschreibung: 500,
+  /** ClubExam.Location: Ort eines Prüfungstags */
+  pruefungsOrt: 100,
+  /** ClubExam.JudgeName: Name der Richter:in */
+  pruefungsRichter: 100,
+  /** ClubExam.Note: Bemerkung zum Prüfungstag */
+  pruefungsBemerkung: 500,
+  /** ClubExamEntry.GuestHandlerName und GuestDogName: Name von Hundeführer:in und Hund eines Gast-Teams */
+  gastName: 100,
+  /** ClubExamEntry.GuestInfo: Verein und Rasse eines Gast-Teams */
+  gastInfo: 200,
+  /** ClubWorkEvent.Title: Titel eines Arbeitseinsatzes */
+  arbeitseinsatzTitel: 100,
+  /** ClubWorkEvent.Note: Notiz zu einem Arbeitseinsatz */
+  arbeitseinsatzNotiz: 500,
+  /** ClubWorkGuest.FirstName und LastName: Vor- und Nachname einer Helfer:in ohne Konto */
+  arbeitseinsatzGastName: 100,
+  /** TrainingNote.Text: ein Eintrag auf dem Merkzettel fürs nächste Training */
+  merkzettelText: 500,
+  /** Wartungshinweis.Text: eigener Text des Banners */
+  wartungshinweisText: 300,
   /** Suchbegriff der Admin-Nutzerliste (Textlaengen.NutzerSuche, wird nicht gespeichert) */
   nutzerSuche: 100,
 } as const;

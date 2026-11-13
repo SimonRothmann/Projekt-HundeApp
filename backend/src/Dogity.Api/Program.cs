@@ -72,6 +72,9 @@ builder.Services.AddHostedService<ErinnerungBackgroundService>();
 // Aufbewahrungsfrist der Gruppen-Anmeldungen (12 Monate ohne Aktivität).
 builder.Services.AddHostedService<RegistrationRetentionBackgroundService>();
 
+// Aufbewahrungsfrist der Arbeitseinsätze (drittletztes Kalenderjahr).
+builder.Services.AddHostedService<ClubWorkRetentionBackgroundService>();
+
 // Versand von Mails und Push-Nachrichten außerhalb des Requests (Warteschlangen
 // in Dogity.Infrastructure). Auch ohne SMTP/VAPID registriert: Dann
 // protokolliert bzw. verwirft der Dienst nur, es ändert sich nichts an der Anwendung.
@@ -110,6 +113,20 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Ablehnungen ins Betriebslog, damit sich messen lässt, ob die Drossel echte
+    // Nutzer:innen trifft (Vereinsheim-WLAN) - der Proxy schreibt kein Zugriffs-
+    // protokoll. Nur das Route-Template, nie der echte Pfad: Er kann Einladungs-
+    // codes enthalten. Keine IP, kein Query-String, keine Kopfzeilen.
+    options.OnRejected = (context, _) =>
+    {
+        var request = context.HttpContext.Request;
+        var route = (context.HttpContext.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText ?? "unbekannt";
+        context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Drossel")
+            .LogWarning("Drossel: {Methode} {Route} abgelehnt", request.Method, route);
+        return ValueTask.CompletedTask;
+    };
     options.AddPolicy("auth", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
@@ -232,8 +249,9 @@ var app = builder.Build();
 // Testdaten, sondern die Daten, die die App auch in Production für ihre
 // Kernfunktion (Trainingspläne gegen echte Prüfungsordnungen) zwingend
 // braucht. Ohne das würde eine Production-Instanz mit leerem Sportarten-
-// katalog starten. Swagger-UI und die erfundenen Demo-Accounts/-Daten
-// bleiben dagegen bewusst auf Development beschränkt.
+// katalog starten. Die erfundenen Demo-Accounts/-Daten laufen nur in
+// Development oder mit Demo:Aktiv (die Testumgebung läuft als Staging und
+// schaltet sie darüber ein); Swagger-UI bleibt auf Development beschränkt.
 using (var scope = app.Services.CreateScope())
 {
     await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
@@ -245,7 +263,7 @@ using (var scope = app.Services.CreateScope())
     await SachkundeSeeder.SeedAsync(scope.ServiceProvider);
     await AdminBootstrapper.SeedAsync(scope.ServiceProvider, builder.Configuration);
 
-    if (app.Environment.IsDevelopment())
+    if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Demo:Aktiv"))
     {
         await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
         // Danach und bei jedem Start: ergänzt die Demo-Konten um Szenarien (siehe
@@ -258,7 +276,7 @@ using (var scope = app.Services.CreateScope())
     // vor dem Serving; ist idempotent (nur solange keine Mastery-Zeilen da sind).
     await scope.ServiceProvider.GetRequiredService<IExerciseMasteryService>().BackfillIfEmptyAsync();
     // Einmalige Nachauswertung bestehender Fährten-Abläufe (idempotent: wertet
-    // nur Abläufe ohne EvaluatedAt aus).
+    // nur Abläufe ohne EvaluatedAt oder mit älterem Stand der Auswertung aus).
     await scope.ServiceProvider.GetRequiredService<IGpsTrackEvaluationBackfill>().BackfillAsync();
     // Trainer-Kennzeichen (Identity-Rolle TRAINER) mit der Datenlage abgleichen.
     // Die Rolle wurde bis hierher nie vergeben - Trainer:innen standen in der

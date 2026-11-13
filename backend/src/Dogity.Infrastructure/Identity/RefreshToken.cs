@@ -10,7 +10,8 @@ namespace Dogity.Infrastructure.Identity;
 /// Rotation: Jeder Refresh entwertet den benutzten Token (RevokedAt gesetzt)
 /// und stellt einen neuen aus (ReplacedByTokenHash verweist darauf). Wird ein
 /// bereits entwerteter Token erneut vorgelegt (Reuse/Diebstahl), werden alle
-/// aktiven Tokens des Nutzers widerrufen - siehe RefreshTokenService.
+/// aktiven Tokens des Nutzers widerrufen - außer der Nachfolger ist noch
+/// unbenutzt (verlorene Antwort), siehe RefreshTokenService.
 /// </summary>
 public class RefreshToken
 {

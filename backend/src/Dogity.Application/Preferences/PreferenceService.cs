@@ -9,6 +9,10 @@ namespace Dogity.Application.Preferences;
 /// <inheritdoc />
 public class PreferenceService(IApplicationDbContext db) : IPreferenceService
 {
+    /// <summary>Erlaubter Bereich der Schrittlänge in Zentimetern (Spiegel: frontend/src/lib/schritte.ts).</summary>
+    public const int SchrittlaengeMinCm = 40;
+    public const int SchrittlaengeMaxCm = 120;
+
     public async Task<Result<UserPreferenceDto>> GetAsync(Guid userId, CancellationToken ct = default)
     {
         var eintrag = await db.UserPreferences
@@ -34,7 +38,9 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
                 eintrag.ReminderTrainerSummary,
                 eintrag.TrainerSummaryDays,
                 eintrag.TrainerSummaryHour,
-                eintrag.ReminderHealth));
+                eintrag.ReminderHealth,
+                eintrag.StepLengthCm,
+                eintrag.ReminderTrainingNotes));
     }
 
     public async Task<Result> UpdateModulesAsync(Guid userId, UpdateModulesRequest request, CancellationToken ct = default)
@@ -153,6 +159,20 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
         return Result.Success();
     }
 
+    public async Task<Result> UpdateStepLengthAsync(Guid userId, UpdateStepLengthRequest request, CancellationToken ct = default)
+    {
+        // Abgelehnt statt zurechtgebogen: Eine Schrittlänge außerhalb des Bereichs wäre ein Tippfehler,
+        // und die umgerechnete Fährtenlänge stimmte still nicht.
+        if (request.StepLengthCm is { } cm && (cm < SchrittlaengeMinCm || cm > SchrittlaengeMaxCm))
+            return Result.Failure("Die Schrittlänge muss zwischen 40 und 120 cm liegen.");
+
+        var eintrag = await LadenOderAnlegenAsync(userId, ct);
+        eintrag.StepLengthCm = request.StepLengthCm;
+        eintrag.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
     public async Task<Result> UpdateRemindersAsync(Guid userId, UpdateRemindersRequest request, CancellationToken ct = default)
     {
         // Abgelehnt statt zurechtgebogen: Eine Maske ohne Tag hieße "nie", und das ist der Schalter.
@@ -167,6 +187,7 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
         eintrag.ReminderTracks = request.Tracks;
         eintrag.ReminderTrainerSummary = request.TrainerSummary;
         if (request.Health is { } gesundheit) eintrag.ReminderHealth = gesundheit;
+        if (request.TrainingNotes is { } merkzettel) eintrag.ReminderTrainingNotes = merkzettel;
         eintrag.TrainerSummaryDays = request.TrainerSummaryDays;
         eintrag.TrainerSummaryHour = request.TrainerSummaryHour;
         eintrag.UpdatedAt = DateTimeOffset.UtcNow;

@@ -53,6 +53,9 @@ public class AdminUsageTests
             return hund;
         }
 
+        public Goal Ziel(Dog hund, Sport sport, GoalStatus status = GoalStatus.Active) =>
+            new() { DogId = hund.Id, SportId = sport.Id, Status = status, TargetDate = new DateOnly(2027, 1, 1) };
+
         public TrainingSession Training(Guid nutzer, DateTimeOffset angelegt, bool geloescht = false)
         {
             var s = new TrainingSession
@@ -311,6 +314,32 @@ public class AdminUsageTests
     }
 
     [Fact]
+    public async Task Funktion_Mitbesitz_ZaehltAltbestandOhneEinladung_ZumZeitpunktDesEintragens()
+    {
+        var u = new Umgebung();
+        var ursprung = u.Konto();
+        var direkt = u.Konto();
+        var allein = u.Konto();
+        // Altbestand vor 0.19: kein InvitedByUserId; die frühere Zeile ist die
+        // ursprüngliche Besitzer:in, die spätere wurde als Mitbesitzer:in eingetragen.
+        var hund = new Dog { Name = "Bello" };
+        u.Db.Dogs.Add(hund);
+        u.Db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = ursprung, CreatedAt = VorTagen(60) });
+        u.Db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = direkt, CreatedAt = VorTagen(5), UpdatedAt = VorTagen(1) });
+        // Ein Hund mit nur einer Besitzer:in: kein Mitbesitz.
+        var einzeln = new Dog { Name = "Rex" };
+        u.Db.Dogs.Add(einzeln);
+        u.Db.DogOwners.Add(new DogOwner { DogId = einzeln.Id, UserId = allein, CreatedAt = VorTagen(60) });
+        await u.Db.SaveChangesAsync();
+
+        var f = Funktion(await u.Holen(), "co-owner");
+
+        Assert.Equal(1, f.AccountsEver);
+        Assert.Equal(1, f.AccountsLast30Days);
+        Assert.Equal(new DateOnly(2026, 10, 23), f.LastUsed);
+    }
+
+    [Fact]
     public async Task Funktion_Gruppentraining_ClubUndPush()
     {
         var u = new Umgebung();
@@ -455,7 +484,7 @@ public class AdminUsageTests
     // --- Sportarten ---
 
     [Fact]
-    public async Task Sportarten_TrainingsJeSportart_UndHundeMitAuswahl()
+    public async Task Sportarten_TrainingsJeSportart_UndHundeMitAktivemZiel()
     {
         var u = new Umgebung();
         var konto = u.Konto();
@@ -481,10 +510,10 @@ public class AdminUsageTests
 
         var hund = u.Hund(konto);
         var hundOhneKonto = u.Hund(weg);
-        u.Db.DogSportSelections.AddRange(
-            new DogSportSelection { DogId = hund.Id, SportId = faehrte.Id },
-            new DogSportSelection { DogId = hund.Id, SportId = bh.Id },
-            new DogSportSelection { DogId = hundOhneKonto.Id, SportId = bh.Id });
+        u.Db.Goals.AddRange(
+            u.Ziel(hund, faehrte),
+            u.Ziel(hund, bh),
+            u.Ziel(hundOhneKonto, bh));
         await u.Db.SaveChangesAsync();
 
         var sportarten = (await u.Holen()).Sports;
@@ -493,6 +522,33 @@ public class AdminUsageTests
         Assert.Equal(new AdminSportUsageDto("Begleithund", null, 2, 1), sportarten[0]);
         Assert.Equal(new AdminSportUsageDto("Fährte", "Tracking", 1, 1), sportarten[1]);
         Assert.Equal(new AdminSportUsageDto("Agility", null, 0, 0), sportarten[2]);
+    }
+
+    [Fact]
+    public async Task Sportarten_Hunde_NurAktiveZiele_JeHundEinmal()
+    {
+        var u = new Umgebung();
+        var konto = u.Konto();
+        var sport = new Sport { Code = "BH", Name = "Begleithund" };
+        u.Db.Sports.Add(sport);
+        var aktiv = u.Hund(konto);
+        var zweiZiele = u.Hund(konto);
+        var erreicht = u.Hund(konto);
+        var abgebrochen = u.Hund(konto);
+        var geloescht = u.Hund(konto);
+        geloescht.DeletedAt = Jetzt;
+        u.Db.Goals.AddRange(
+            u.Ziel(aktiv, sport),
+            u.Ziel(zweiZiele, sport),
+            u.Ziel(zweiZiele, sport),
+            u.Ziel(erreicht, sport, GoalStatus.Achieved),
+            u.Ziel(abgebrochen, sport, GoalStatus.Cancelled),
+            u.Ziel(geloescht, sport));
+        await u.Db.SaveChangesAsync();
+
+        var sportarten = (await u.Holen()).Sports;
+
+        Assert.Equal(2, Assert.Single(sportarten).Dogs);
     }
 
     // --- Nur Zählungen ---

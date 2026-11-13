@@ -107,6 +107,20 @@ public static partial class Uebersetzung
         ["{hund}: {titel} ist heute fällig."] = "{hund}: {titel} is due today.",
         ["Morgen {zeit}: Tierarzt mit {hund} ({titel})."] = "Tomorrow {zeit}: vet appointment with {hund} ({titel}).",
         ["Morgen: Tierarzt mit {hund} ({titel})."] = "Tomorrow: vet appointment with {hund} ({titel}).",
+        ["Heute {zeit} - gemerkt für {hund}: {text}"] = "Today {zeit} - noted for {hund}: {text}",
+        ["Heute {zeit} - gemerkt für {hund}: {text} · +{n} weitere"] = "Today {zeit} - noted for {hund}: {text} · +{n} more",
+        ["Heute Training - gemerkt für {hund}: {text}"] = "Training today - noted for {hund}: {text}",
+        ["Heute Training - gemerkt für {hund}: {text} · +{n} weitere"] = "Training today - noted for {hund}: {text} · +{n} more",
+
+        // Prüfungen des Vereins (ClubExamService) - gehen an die Besitzer:innen des gemeldeten Hundes
+        ["{verein} hat {hund} für die {ordnung} am {datum} gemeldet. Die Prüfungsleitung sieht dafür die Prüfungsreife."] = "{verein} has entered {hund} for the {ordnung} on {datum}. The exam organisers can see the exam readiness for it.",
+        ["{verein} hat die Meldung von {hund} für die {ordnung} am {datum} zurückgenommen."] = "{verein} has withdrawn the entry of {hund} for the {ordnung} on {datum}.",
+        ["Die Prüfung bei {verein} am {datum} wurde abgesagt. Die Meldung von {hund} für die {ordnung} entfällt."] = "The exam at {verein} on {datum} has been cancelled. The entry of {hund} for the {ordnung} is void.",
+        ["Ergebnis der {ordnung} vom {datum} für {hund} eingetragen: bestanden, Punkte: {punkte}."] = "Result of the {ordnung} from {datum} entered for {hund}: passed, points: {punkte}.",
+        ["Ergebnis der {ordnung} vom {datum} für {hund} eingetragen: bestanden."] = "Result of the {ordnung} from {datum} entered for {hund}: passed.",
+        ["Ergebnis der {ordnung} vom {datum} für {hund} eingetragen: nicht bestanden, Punkte: {punkte}."] = "Result of the {ordnung} from {datum} entered for {hund}: not passed, points: {punkte}.",
+        ["Ergebnis der {ordnung} vom {datum} für {hund} eingetragen: nicht bestanden."] = "Result of the {ordnung} from {datum} entered for {hund}: not passed.",
+        ["Ergebnis der {ordnung} vom {datum} für {hund} eingetragen: nicht angetreten."] = "Result of the {ordnung} from {datum} entered for {hund}: did not start.",
 
         // Konto (AccountMailService, PushTestService) - gehen an Admins
         ["{name} ({email}) möchte das Passwort zurücksetzen."] = "{name} ({email}) wants to reset their password.",

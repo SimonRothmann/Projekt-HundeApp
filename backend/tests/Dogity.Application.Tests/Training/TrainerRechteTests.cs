@@ -155,6 +155,47 @@ public class TrainerRechteTests
     }
 
     [Fact]
+    public async Task TagesDauer_MitEintragDerFamilieAmTag_KannDieTrainerinNichtAendern()
+    {
+        var a = await BaueAsync();
+        var familie = await TrageEinAsync(a, a.Besitzerin);
+        var eigene = await TrageEinAsync(a, a.Trainerin);
+
+        var ergebnis = await a.Trainings.SetDayDurationAsync(a.Trainerin, eigene.Id, 25);
+
+        Assert.False(ergebnis.Succeeded);
+        Assert.False(ergebnis.IsNotFound);
+        Assert.Equal("Die Dauer dieses Tages kannst du nicht ändern, weil er Einträge anderer enthält.", ergebnis.Errors[0]);
+        Assert.All(await a.Db.TrainingSessions.ToListAsync(), s => Assert.Equal(10, s.DurationMinutes));
+        // Die Familie darf: für sie ist der ganze Tag bearbeitbar.
+        Assert.True((await a.Trainings.SetDayDurationAsync(a.Mitbesitzer, familie.Id, 25)).Succeeded);
+    }
+
+    [Fact]
+    public async Task TagesDauer_EinheitDerFamilie_IstFuerDieTrainerinNichtGefunden()
+    {
+        var a = await BaueAsync();
+        var familie = await TrageEinAsync(a, a.Besitzerin);
+
+        Assert.True((await a.Trainings.SetDayDurationAsync(a.Trainerin, familie.Id, 25)).IsNotFound);
+        Assert.Equal(10, (await a.Db.TrainingSessions.SingleAsync()).DurationMinutes);
+    }
+
+    [Fact]
+    public async Task TagesDauer_TrainerinMitNurEigenerEinheitAmTag_DarfAendern()
+    {
+        var a = await BaueAsync();
+        // Die Familie hat nur an einem anderen Tag eingetragen.
+        await TrageEinAsync(a, a.Besitzerin, Heute.AddDays(-1));
+        var eigene = await TrageEinAsync(a, a.Trainerin);
+
+        var ergebnis = await a.Trainings.SetDayDurationAsync(a.Trainerin, eigene.Id, 25);
+
+        Assert.True(ergebnis.Succeeded, string.Join(", ", ergebnis.Errors));
+        Assert.Equal(25, ergebnis.Value!.DurationMinutes);
+    }
+
+    [Fact]
     public async Task Tagebuch_SagtJeTraining_ObDieAnsehendePersonBearbeitenDarf()
     {
         var a = await BaueAsync();
@@ -168,6 +209,24 @@ public class TrainerRechteTests
         Assert.True(sichtTrainerin.Single(s => s.Id == eigene.Id).DarfBearbeiten);
         Assert.All(sichtFamilie, s => Assert.True(s.DarfBearbeiten));
         Assert.False((await a.Trainings.GetByIdAsync(a.Trainerin, familie.Id)).Value!.DarfBearbeiten);
+    }
+
+    [Fact]
+    public async Task Tagebuch_SagtJeTraining_ObDieAnsehendePersonEsSelbstEingetragenHat()
+    {
+        var a = await BaueAsync();
+        var familie = await TrageEinAsync(a, a.Besitzerin);
+        var eigene = await TrageEinAsync(a, a.Trainerin);
+
+        var sichtTrainerin = (await a.Trainings.GetByDogAsync(a.Trainerin, a.DogId)).Value!;
+        var sichtBesitzerin = (await a.Trainings.GetByDogAsync(a.Besitzerin, a.DogId)).Value!;
+
+        Assert.False(sichtTrainerin.Single(s => s.Id == familie.Id).VonMir);
+        Assert.True(sichtTrainerin.Single(s => s.Id == eigene.Id).VonMir);
+        Assert.True(sichtBesitzerin.Single(s => s.Id == familie.Id).VonMir);
+        Assert.False(sichtBesitzerin.Single(s => s.Id == eigene.Id).VonMir);
+        Assert.True((await a.Trainings.GetByIdAsync(a.Trainerin, eigene.Id)).Value!.VonMir);
+        Assert.False((await a.Trainings.GetByIdAsync(a.Trainerin, familie.Id)).Value!.VonMir);
     }
 
     [Fact]

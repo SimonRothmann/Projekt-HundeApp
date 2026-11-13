@@ -23,7 +23,7 @@ public class OpenMeteoWeatherProvider(HttpClient http, ILogger<OpenMeteoWeatherP
     // Ab dieser Grenze ist die Forecast-API (past_days) nicht mehr zuständig.
     private const int ForecastPastDaysLimit = 90;
 
-    private const string HourlyVariables = "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code";
+    private const string HourlyVariables = "temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code";
 
     public async Task<WeatherReading?> GetAtAsync(double latitude, double longitude, DateTimeOffset instant, CancellationToken ct = default)
     {
@@ -63,7 +63,9 @@ public class OpenMeteoWeatherProvider(HttpClient http, ILogger<OpenMeteoWeatherP
                 Math.Round(temperature.Value, 1),
                 (int?)ReadDouble(hourly, "relative_humidity_2m", index),
                 ReadDouble(hourly, "wind_speed_10m", index) is { } wind ? Math.Round(wind, 1) : null,
-                (int?)ReadDouble(hourly, "weather_code", index));
+                (int?)ReadDouble(hourly, "weather_code", index),
+                // 360 und 0 sind dieselbe Richtung; gespeichert wird 0 bis 359.
+                ReadDouble(hourly, "wind_direction_10m", index) is { } richtung ? (int)Math.Round(richtung) % 360 : null);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {

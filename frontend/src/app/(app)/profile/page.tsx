@@ -12,7 +12,7 @@ import { AKTUELLE_VERSION } from "@/lib/versionshinweise";
 import { bestimmeSchriftgroesse } from "@/lib/schriftgroesse";
 import { useSprache, useT } from "@/lib/i18n";
 import { vorschauDarstellung, vorschauFunktionen, vorschauSportarten } from "@/lib/profil";
-import type { Sport } from "@/lib/types";
+import { MODULE, type Sport } from "@/lib/types";
 import { ListenGruppe, ListenZeile } from "@/components/profile/einstellungs-liste";
 import { ProfilKopf } from "@/components/profile/profil-kopf";
 import { AbmeldenZeile } from "@/components/profile/abmelden-zeile";
@@ -30,7 +30,7 @@ export default function ProfilePage() {
   const sprache = useSprache();
   const { isTrainer } = useAuth();
   const { profil } = useProfil();
-  const { preferences } = usePreferences();
+  const { preferences, moduleEnabled } = usePreferences();
   const { resolvedTheme } = useTheme();
   const neuerungenUngelesen = useNeuerungenUngelesen();
   const [sportarten, setSportarten] = useState<Sport[] | null>(null);
@@ -60,6 +60,8 @@ export default function ProfilePage() {
           href="/profile/sportarten"
           icon={Dumbbell}
           titel={t("Sportarten, die ich trainiere")}
+          // Die Schrittlänge liegt auf derselben Seite; ohne Hinweis suchte sie hier niemand.
+          untertitel={moduleEnabled(MODULE.faehrte) ? t("Auch Schrittlänge für die Fährte") : undefined}
           vorschau={vorschauSportarten(preferences.sportIds, sportarten, t, sprache)}
         />
       </ListenGruppe>

@@ -42,10 +42,19 @@ public static class GpsTrackSimplifier
         if (points.Count < MinPointsBeforeSimplifying)
             return points;
 
+        return ReduceToTolerance(points, ToleranceMeters);
+    }
+
+    /// <summary>
+    /// Douglas-Peucker mit eigener Toleranz und ohne Mindestanzahl - für die Winkelerkennung
+    /// (FaehrtenGeometrie), die eine gröbere Linie braucht als die Anzeige. Mindestens ein Punkt.
+    /// </summary>
+    internal static IReadOnlyList<T> ReduceToTolerance<T>(IReadOnlyList<T> points, double toleranceMeters) where T : IGeoPoint
+    {
         var input = points.Count > MaxPointsForDouglasPeucker ? Thin(points, MaxPointsForDouglasPeucker) : points;
         var projected = Project(input);
         var keepIndices = new HashSet<int> { 0, input.Count - 1 };
-        Reduce(projected, 0, input.Count - 1, ToleranceMeters, keepIndices);
+        Reduce(projected, 0, input.Count - 1, toleranceMeters, keepIndices);
 
         return keepIndices.OrderBy(i => i).Select(i => input[i]).ToList();
     }

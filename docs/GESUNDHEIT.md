@@ -105,7 +105,7 @@ Versandfenster wie bei allen: 08:00-21:59 Vereinszeit.
 - **Modul:** „Gesundheit“ (`gesundheit`) ist über den vorhandenen Mechanismus (`UserDisabledModule`) abschaltbar, Vorgabe an. Abgeschaltet = Reiter,
   Hinweis auf der Startseite und Erinnerungen weg; die Daten bleiben.
 - Alle Texte über `t()`/`en.ts`. Die Titelvorschläge sind übersetzt (englisch „Rabies“ usw.) und werden so gespeichert, wie sie in der Sprache der
-  Person stehen; bei einem Sprachwechsel zwischen zwei Impfungen derselben Art gelten „Tollwut“ und „Rabies“ als verschiedene Titel.
+  Person stehen; bei einem Sprachwechsel zwischen zwei Impfungen derselben Art gelten „Tollwut“ und „Rabies“ als verschiedene Titel. Bewusst so belassen (Entscheidung 2026-11-06): Titel sind Freitext der Nutzer:innen; nach einem Sprachwechsel legt man den Eintrag neu an.
 
 ## Datenschutz
 
@@ -122,4 +122,4 @@ Siehe `docs/DEMO_DATEN.md`, Szenario „Gesundheit“: Max' Bello und Emma.
 ## Nicht Teil dieses Pakets
 
 Kein Foto vom Impfpass; keine Impfintervall-Vorschläge; keine Erinnerung an Überfälliges nach dem Tag selbst; keine Erinnerung per E-Mail;
-Gruppentraining und Hundeliste zeigen den Stand nicht (die Hundeliste bekommt das Feld, nutzt es aber noch nicht).
+das Gruppentraining zeigt den Stand nicht; die Hundeliste zeigt nur Überfälliges (eine Zeile an der Karte, `ueberfaelligZeile`), „bald fällig“ und Termine zeigt sie nicht.

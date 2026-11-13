@@ -101,4 +101,31 @@ public interface IGoalService
     Task<Result<GoalDto>> SetPlanAutoRegenerationAsync(Guid userId, Guid goalId, bool enabled, CancellationToken ct = default);
 
     Task<int> RegenerateDuePlansAsync(CancellationToken ct = default);
+
+    // ---------- Prüfungen des Vereins (Paket V4) ----------
+    // Rechte hat der Aufrufer (ClubExamService) über die Vereinsrolle geprüft; diese Methoden prüfen
+    // keinen Hundezugriff und speichern nicht - der Aufrufer speichert Eintrag und Ziel in einem Zug.
+
+    /// <summary>Die Höchstpunktzahl je Prüfungsordnung; Ordnungen ohne Punktwertung fehlen.</summary>
+    Task<IReadOnlyDictionary<Guid, int>> GetHoechstpunkteAsync(IReadOnlyCollection<Guid> regulationIds, CancellationToken ct = default);
+
+    /// <summary>
+    /// Die Regeln für ein Ergebnis wie beim Ergebnis eines Ziels (Prüfungstag nicht in der Zukunft, Punkte
+    /// 0 bis Höchstpunktzahl der Ordnung, Länge der Notiz): die Fehlermeldung, sonst null.
+    /// </summary>
+    Task<string?> PruefeVereinsergebnisAsync(Guid regulationId, DateOnly tag, int? punkte, string? notiz, CancellationToken ct = default);
+
+    /// <summary>
+    /// "Bestanden" am Hund: Das laufende Ziel zur Ordnung wird erreicht (Prüfungstag, Punkte, Notiz); gibt es
+    /// keins, entsteht ein erreichtes Ziel wie eine nachgetragene Leistung.
+    /// </summary>
+    Task<VereinsZiel> TrageVereinsergebnisAsync(Guid dogId, Guid regulationId, VereinsErgebnis ergebnis, CancellationToken ct = default);
+
+    /// <summary>
+    /// Zieht das Ziel nach, wenn die Prüfungsleitung ein Ergebnis ändert (<paramref name="neu"/>) oder zurücknimmt
+    /// (<paramref name="neu"/> = null): ein dafür angelegtes Ziel wird gelöscht, ein vorher laufendes wieder aktiv
+    /// ohne Prüfungsergebnis. Hat die Familie das Ziel inzwischen verändert oder gelöscht (erkannt daran, dass es nicht
+    /// mehr genau dem <paramref name="bisher"/> eingetragenen Ergebnis entspricht), bleibt es unberührt - false.
+    /// </summary>
+    Task<bool> ZieheVereinsergebnisNachAsync(Guid goalId, Guid dogId, VereinsErgebnis bisher, VereinsErgebnis? neu, bool neuAngelegt, CancellationToken ct = default);
 }

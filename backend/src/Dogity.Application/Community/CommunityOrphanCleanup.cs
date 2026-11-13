@@ -80,6 +80,10 @@ public class CommunityOrphanCleanup(IApplicationDbContext db, IUserLookupService
             }
         }
 
+        // Die Meldelisten der Prüfungen und die Arbeitseinsätze verlieren die Person (Ergebnis und Stunden bleiben).
+        await ClubExamAnonymisierung.MitgliederEntfernenAsync(db, verwaist.ToList(), ct);
+        await ClubWorkAnonymisierung.MitgliederEntfernenAsync(db, verwaist.ToList(), ct);
+
         Weg(mitgliedschaften.Where(m => verwaist.Contains(m.UserId)));
         Weg(vereinstrainer.Where(t => verwaist.Contains(t.UserId)));
         Weg(gruppenmitglieder.Where(m => verwaist.Contains(m.UserId)));

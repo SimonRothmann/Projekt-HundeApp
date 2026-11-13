@@ -55,6 +55,14 @@ public class PreferencesController(IPreferenceService preferences) : ApiControll
         FromResult(await preferences.UpdateEmailNotificationsAsync(CurrentUserId, request, ct));
 
     /// <summary>
+    /// Schrittlänge für die Umrechnung der Fährtenlänge in Schritte. Eigener Endpunkt wie die übrigen
+    /// unabhängigen Einstellungen.
+    /// </summary>
+    [HttpPut("step-length")]
+    public async Task<IActionResult> UpdateStepLength(UpdateStepLengthRequest request, CancellationToken ct) =>
+        FromResult(await preferences.UpdateStepLengthAsync(CurrentUserId, request, ct));
+
+    /// <summary>
     /// Erinnerungen (Termin am Vortag, Fährte, offene Rückmeldungen) und der Rhythmus der
     /// Zusammenfassung für Trainer:innen. Gilt immer für die angemeldete Person.
     /// </summary>

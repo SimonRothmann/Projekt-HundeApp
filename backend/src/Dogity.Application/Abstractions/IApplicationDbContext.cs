@@ -1,3 +1,4 @@
+using Dogity.Domain.Betrieb;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Preferences;
@@ -24,6 +25,7 @@ public interface IApplicationDbContext
     DbSet<DogImage> DogImages { get; }
     DbSet<DogPause> DogPauses { get; }
     DbSet<DogHealthRecord> DogHealthRecords { get; }
+    DbSet<DogTrainingRhythm> DogTrainingRhythms { get; }
 
     DbSet<Country> Countries { get; }
 
@@ -35,6 +37,7 @@ public interface IApplicationDbContext
 
     DbSet<TrainingSession> TrainingSessions { get; }
     DbSet<TrainingExercise> TrainingExercises { get; }
+    DbSet<TrainingNote> TrainingNotes { get; }
 
     DbSet<Goal> Goals { get; }
     DbSet<TrainingPlan> TrainingPlans { get; }
@@ -59,6 +62,12 @@ public interface IApplicationDbContext
     DbSet<GroupTrainingSessionItem> GroupTrainingSessionItems { get; }
     DbSet<GroupTrainingSessionTrainer> GroupTrainingSessionTrainers { get; }
     DbSet<GroupTrainingSessionResponse> GroupTrainingSessionResponses { get; }
+    DbSet<ClubExam> ClubExams { get; }
+    DbSet<ClubExamRegulation> ClubExamRegulations { get; }
+    DbSet<ClubExamEntry> ClubExamEntries { get; }
+    DbSet<ClubWorkEvent> ClubWorkEvents { get; }
+    DbSet<ClubWorkParticipation> ClubWorkParticipations { get; }
+    DbSet<ClubWorkGuest> ClubWorkGuests { get; }
 
     DbSet<UserPreference> UserPreferences { get; }
     DbSet<UserDisabledModule> UserDisabledModules { get; }
@@ -70,6 +79,9 @@ public interface IApplicationDbContext
     DbSet<GpsWalkRun> GpsWalkRuns { get; }
     DbSet<GpsWalkPoint> GpsWalkPoints { get; }
     DbSet<GpsWalkStop> GpsWalkStops { get; }
+    DbSet<GpsWalkRunLeg> GpsWalkRunLegs { get; }
+    DbSet<GpsWalkRunCorner> GpsWalkRunCorners { get; }
+    DbSet<GpsWalkRunArticle> GpsWalkRunArticles { get; }
 
     DbSet<QuizCatalog> QuizCatalogs { get; }
     DbSet<QuizQuestion> QuizQuestions { get; }
@@ -80,6 +92,8 @@ public interface IApplicationDbContext
     DbSet<Notification> Notifications { get; }
     DbSet<PushSubscription> PushSubscriptions { get; }
     DbSet<SentReminder> SentReminders { get; }
+
+    DbSet<Wartungshinweis> Wartungshinweise { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

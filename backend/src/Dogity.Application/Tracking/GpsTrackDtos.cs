@@ -3,13 +3,17 @@ using Dogity.Domain.Tracking;
 namespace Dogity.Application.Tracking;
 
 public record GpsPointDto(
+    // Id und Material: Das Material eines Gegenstands und die Angaben je Gegenstand im Ablauf
+    // (GpsWalkRunArticleDto) hängen am Marker, nicht an seiner Lage.
+    Guid Id,
     double Latitude,
     double Longitude,
     DateTimeOffset Timestamp,
     double? Accuracy,
     GpsPointType PointType,
     string? Label,
-    GpsMarkerType MarkerType);
+    GpsMarkerType MarkerType,
+    string? Material);
 
 /// <summary>
 /// DeviationMeters: senkrechter Abstand zur gelegten Fährte (null = noch nicht
@@ -24,6 +28,31 @@ public record GpsWalkStopDto(
     int DurationSeconds,
     WalkStopKind Kind,
     string? MarkerLabel);
+
+/// <summary>Ein Schenkel der Fährte im Ablauf (siehe GpsWalkRunLeg).</summary>
+public record GpsWalkRunLegDto(
+    int Number,
+    double LengthMeters,
+    int? DurationSeconds,
+    double? SpeedMetersPerMinute,
+    double? AvgDeviationMeters);
+
+/// <summary>Ein Winkel der Fährte im Ablauf (siehe GpsWalkRunCorner).</summary>
+public record GpsWalkRunCornerDto(
+    int Number,
+    CornerDirection Direction,
+    bool Sharp,
+    double TurnDegrees,
+    double Latitude,
+    double Longitude,
+    bool Reached,
+    double? OvershootMeters,
+    bool Overshot,
+    int HoldSeconds,
+    int? TimeAtCornerSeconds);
+
+/// <summary>Was der Hund mit einem Gegenstand gemacht hat (siehe GpsWalkRunArticle).</summary>
+public record GpsWalkRunArticleDto(Guid PointId, ArticleResult Result);
 
 public record GpsWalkRunDto(
     Guid Id,
@@ -42,7 +71,17 @@ public record GpsWalkRunDto(
     IReadOnlyList<GpsWalkStopDto> Stops,
     // Nur Mantrailing (siehe GpsWalkRun): null, solange nicht angegeben.
     bool? PersonFound,
-    TrailIndication? Indication);
+    TrailIndication? Indication,
+    // Nur Fährte (beim Mantrailing leer): Schenkel und Winkel, in Laufreihenfolge.
+    IReadOnlyList<GpsWalkRunLegDto> Legs,
+    IReadOnlyList<GpsWalkRunCornerDto> Corners,
+    // Nur Fährte: die Angaben der Hundeführer:in je Gegenstand. ArticlesFound bleibt die GPS-Zahl;
+    // ArticlesConfirmedFound zählt, was verwiesen oder aufgenommen wurde - null ohne jede Angabe.
+    IReadOnlyList<GpsWalkRunArticleDto> Articles,
+    int? ArticlesConfirmedFound,
+    // Die Gegenstände, denen das Gespann per GPS auf 8 m nahe kam (die Regel hinter ArticlesFound) -
+    // als Hinweis neben der Angabe der Hundeführer:in, nicht als Ergebnis.
+    IReadOnlyList<Guid>? ReachedArticleIds);
 
 public record GpsTrackDto(
     Guid Id,
@@ -68,11 +107,19 @@ public record GpsTrackDto(
     int? SearchWeatherCode,
     double? TemperatureDeltaC,
     DateTimeOffset? WeatherFetchedAt,
-    // Nur Mantrailing (Kind = Mantrailing); bei der Fährte false bzw. null.
+    // Mantrailing-Angaben (Kind = Mantrailing); bei der Fährte false bzw. null - außer DoubleBlind: Das ist dort
+    // "Verdeckt absuchen" und wird erst nachträglich gesetzt.
     GpsTrackKind Kind,
     bool DoubleBlind,
     bool NegativeTrail,
-    string? ScentArticle);
+    string? ScentArticle,
+    // Bewusst schwere Übungsfährte: zählt nicht in die Entwicklung des Hundes.
+    bool ExcludeFromStats,
+    // Bodenzustand beim Legen (Mehrfachauswahl als Text, nur Fährte).
+    string? GroundCondition = null,
+    // Windrichtung in Grad, AUS der der Wind kommt (null bei Fährten, deren Wetter vor Paket F4 geholt wurde).
+    int? LaidWindDirectionDeg = null,
+    int? SearchWindDirectionDeg = null);
 
 public record CreateGpsPointRequest(
     double Latitude,
@@ -115,7 +162,9 @@ public record CreateGpsTrackRequest(
     GpsTrackKind Kind = GpsTrackKind.Faehrte,
     bool DoubleBlind = false,
     bool NegativeTrail = false,
-    string? ScentArticle = null);
+    string? ScentArticle = null,
+    // Bodenzustand beim Legen (nur Fährte); ältere Clients kennen das Feld nicht.
+    string? GroundCondition = null);
 
 public record CreateGpsWalkPointRequest(double Latitude, double Longitude, DateTimeOffset Timestamp, double? Accuracy);
 
@@ -132,5 +181,20 @@ public record UpdateGpsWalkRunRequest(string? Comment);
 /// </summary>
 public record UpdateGpsTrailRequest(int? AgeMinutes, bool DoubleBlind, bool NegativeTrail, string? ScentArticle);
 
+/// <summary>
+/// "Verdeckt absuchen" bei der Fährte (DoubleBlind): Beim Absuchen sind Verlauf, Marker und Haptik
+/// ausgeblendet. Lässt sich nur setzen, solange noch kein Ablauf existiert.
+/// </summary>
+public record UpdateGpsVerdecktRequest(bool Verdeckt);
+
 /// <summary>Ergebnis eines Mantrailing-Laufs. Ersetzt beide Angaben (null = nicht angegeben).</summary>
 public record UpdateGpsTrailRunRequest(bool? PersonFound, TrailIndication? Indication);
+
+/// <summary>Material eines Gegenstands (aus <see cref="GegenstandsMaterial.Alle"/>); null oder leer entfernt die Angabe.</summary>
+public record UpdateGpsMarkerRequest(string? Material);
+
+/// <summary>Ergebnis zu einem Gegenstand im Ablauf; null entfernt die Angabe.</summary>
+public record UpdateGpsWalkRunArticleRequest(Guid PointId, ArticleResult? Result);
+
+/// <summary>Ob die Fährte aus der Entwicklung des Hundes herausgenommen ist.</summary>
+public record UpdateGpsTrackStatsRequest(bool ExcludeFromStats);

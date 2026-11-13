@@ -1,5 +1,7 @@
 using Dogity.Application.Common;
 using Dogity.Domain.Community;
+using Dogity.Domain.Dogs;
+using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -317,6 +319,147 @@ public class GroupTrainingSessionResponseConfiguration : IEntityTypeConfiguratio
         // statt eine zweite anzulegen (SoftDeleteRevival).
         builder.HasIndex(r => new { r.GroupTrainingSessionId, r.UserId }).IsUnique();
         builder.HasIndex(r => r.UserId);
+    }
+}
+
+public class ClubExamConfiguration : IEntityTypeConfiguration<ClubExam>
+{
+    public void Configure(EntityTypeBuilder<ClubExam> builder)
+    {
+        builder.ToTable("club_exams");
+        builder.Property(e => e.Location).HasMaxLength(Textlaengen.PruefungsOrt).IsRequired();
+        builder.Property(e => e.JudgeName).HasMaxLength(Textlaengen.PruefungsRichter);
+        builder.Property(e => e.Note).HasMaxLength(Textlaengen.PruefungsBemerkung);
+        // Wie das Nachbar-Enum GroupTrainingSession.Status als Text gespeichert.
+        builder.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+
+        builder.HasOne(e => e.Club)
+            .WithMany()
+            .HasForeignKey(e => e.ClubId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(e => new { e.ClubId, e.Date });
+    }
+}
+
+public class ClubExamRegulationConfiguration : IEntityTypeConfiguration<ClubExamRegulation>
+{
+    public void Configure(EntityTypeBuilder<ClubExamRegulation> builder)
+    {
+        builder.ToTable("club_exam_regulations");
+
+        builder.HasOne(r => r.Exam)
+            .WithMany(e => e.Regulations)
+            .HasForeignKey(r => r.ExamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(r => r.Regulation)
+            .WithMany()
+            .HasForeignKey(r => r.RegulationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Bewusst nicht eindeutig: Der Index kennt kein DeletedAt, und eine
+        // entfernte Ordnung, die wieder angeboten wird, bekäme sonst keine neue
+        // Zeile. Doppelte hält der Service fern.
+        builder.HasIndex(r => new { r.ExamId, r.RegulationId });
+    }
+}
+
+public class ClubExamEntryConfiguration : IEntityTypeConfiguration<ClubExamEntry>
+{
+    public void Configure(EntityTypeBuilder<ClubExamEntry> builder)
+    {
+        builder.ToTable("club_exam_entries");
+        builder.Property(e => e.GuestHandlerName).HasMaxLength(Textlaengen.GastName);
+        builder.Property(e => e.GuestDogName).HasMaxLength(Textlaengen.GastName);
+        builder.Property(e => e.GuestInfo).HasMaxLength(Textlaengen.GastInfo);
+        builder.Property(e => e.ResultNote).HasMaxLength(Textlaengen.PruefungsNotiz);
+        builder.Property(e => e.Result).HasConversion<string>().HasMaxLength(20);
+
+        builder.HasOne(e => e.Exam)
+            .WithMany(x => x.Entries)
+            .HasForeignKey(e => e.ExamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(e => e.Regulation)
+            .WithMany()
+            .HasForeignKey(e => e.RegulationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Hund und Ziel werden beim Anonymisieren geleert; löscht jemand sie
+        // endgültig (Konto löschen), räumt die Datenbank den Verweis selbst ab.
+        builder.HasOne<Dog>()
+            .WithMany()
+            .HasForeignKey(e => e.DogId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne<Goal>()
+            .WithMany()
+            .HasForeignKey(e => e.GoalId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(e => new { e.ExamId, e.RegulationId, e.StartOrder });
+        builder.HasIndex(e => e.MemberUserId);
+        builder.HasIndex(e => e.DogId);
+    }
+}
+
+public class ClubWorkEventConfiguration : IEntityTypeConfiguration<ClubWorkEvent>
+{
+    public void Configure(EntityTypeBuilder<ClubWorkEvent> builder)
+    {
+        builder.ToTable("club_work_events");
+        builder.Property(e => e.Title).HasMaxLength(Textlaengen.ArbeitseinsatzTitel).IsRequired();
+        builder.Property(e => e.Note).HasMaxLength(Textlaengen.ArbeitseinsatzNotiz);
+
+        builder.HasOne(e => e.Club)
+            .WithMany()
+            .HasForeignKey(e => e.ClubId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(e => new { e.ClubId, e.Date });
+    }
+}
+
+public class ClubWorkParticipationConfiguration : IEntityTypeConfiguration<ClubWorkParticipation>
+{
+    public void Configure(EntityTypeBuilder<ClubWorkParticipation> builder)
+    {
+        builder.ToTable("club_work_participations");
+
+        builder.HasOne(p => p.Event)
+            .WithMany(e => e.Participations)
+            .HasForeignKey(p => p.ClubWorkEventId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Eine Person steht höchstens einmal bei einem Einsatz. Zeilen ohne Person (ehemalige Mitglieder)
+        // dürfen sich beliebig oft gleichen: PostgreSQL behandelt NULL in einem eindeutigen Index als verschieden.
+        builder.HasIndex(p => new { p.ClubWorkEventId, p.UserId }).IsUnique();
+        builder.HasIndex(p => p.UserId);
+
+        // Dasselbe für Personen ohne Konto. Löscht die Verwaltung die Person, gehen ihre Teilnahmen mit.
+        builder.HasOne(p => p.Guest)
+            .WithMany()
+            .HasForeignKey(p => p.GuestId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(p => new { p.ClubWorkEventId, p.GuestId }).IsUnique();
+        builder.HasIndex(p => p.GuestId);
+    }
+}
+
+public class ClubWorkGuestConfiguration : IEntityTypeConfiguration<ClubWorkGuest>
+{
+    public void Configure(EntityTypeBuilder<ClubWorkGuest> builder)
+    {
+        builder.ToTable("club_work_guests");
+        builder.Property(g => g.FirstName).HasMaxLength(Textlaengen.ArbeitseinsatzGastName).IsRequired();
+        builder.Property(g => g.LastName).HasMaxLength(Textlaengen.ArbeitseinsatzGastName);
+
+        builder.HasOne(g => g.Club)
+            .WithMany()
+            .HasForeignKey(g => g.ClubId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(g => g.ClubId);
     }
 }
 

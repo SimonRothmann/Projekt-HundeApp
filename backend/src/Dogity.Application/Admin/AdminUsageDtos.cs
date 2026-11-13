@@ -98,5 +98,5 @@ public record AdminUsageTimingDto(IReadOnlyList<int> ByWeekday, IReadOnlyList<in
 /// Oberfläche wählt (siehe <c>katalogName</c>).
 /// </summary>
 /// <param name="Trainings">Trainings der letzten 90 Tage mit mindestens einer Übung aus dieser Sportart (ein Training mit Übungen aus zwei Sportarten zählt bei beiden; Freitext-Übungen haben keine Sportart).</param>
-/// <param name="Dogs">Hunde, die diese Sportart ausdrücklich gewählt haben (Hunde ohne eigene Auswahl folgen den Sportarten ihrer Besitzer:innen und sind hier nicht mitgezählt).</param>
+/// <param name="Dogs">Hunde mit einem aktiven Ziel in dieser Sportart (je Hund einmal).</param>
 public record AdminSportUsageDto(string Name, string? NameEn, int Trainings, int Dogs);

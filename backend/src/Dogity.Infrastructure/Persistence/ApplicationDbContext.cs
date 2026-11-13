@@ -1,4 +1,5 @@
 using Dogity.Application.Abstractions;
+using Dogity.Domain.Betrieb;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Preferences;
@@ -30,6 +31,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<DogImage> DogImages => Set<DogImage>();
     public DbSet<DogPause> DogPauses => Set<DogPause>();
     public DbSet<DogHealthRecord> DogHealthRecords => Set<DogHealthRecord>();
+    public DbSet<DogTrainingRhythm> DogTrainingRhythms => Set<DogTrainingRhythm>();
 
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<Sport> Sports => Set<Sport>();
@@ -40,6 +42,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<TrainingSession> TrainingSessions => Set<TrainingSession>();
     public DbSet<TrainingExercise> TrainingExercises => Set<TrainingExercise>();
+    public DbSet<TrainingNote> TrainingNotes => Set<TrainingNote>();
 
     public DbSet<Goal> Goals => Set<Goal>();
     public DbSet<TrainingPlan> TrainingPlans => Set<TrainingPlan>();
@@ -64,6 +67,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GroupTrainingSessionItem> GroupTrainingSessionItems => Set<GroupTrainingSessionItem>();
     public DbSet<GroupTrainingSessionTrainer> GroupTrainingSessionTrainers => Set<GroupTrainingSessionTrainer>();
     public DbSet<GroupTrainingSessionResponse> GroupTrainingSessionResponses => Set<GroupTrainingSessionResponse>();
+    public DbSet<ClubExam> ClubExams => Set<ClubExam>();
+    public DbSet<ClubExamRegulation> ClubExamRegulations => Set<ClubExamRegulation>();
+    public DbSet<ClubExamEntry> ClubExamEntries => Set<ClubExamEntry>();
+    public DbSet<ClubWorkEvent> ClubWorkEvents => Set<ClubWorkEvent>();
+    public DbSet<ClubWorkParticipation> ClubWorkParticipations => Set<ClubWorkParticipation>();
+    public DbSet<ClubWorkGuest> ClubWorkGuests => Set<ClubWorkGuest>();
 
     public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
     public DbSet<UserDisabledModule> UserDisabledModules => Set<UserDisabledModule>();
@@ -75,6 +84,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GpsWalkRun> GpsWalkRuns => Set<GpsWalkRun>();
     public DbSet<GpsWalkPoint> GpsWalkPoints => Set<GpsWalkPoint>();
     public DbSet<GpsWalkStop> GpsWalkStops => Set<GpsWalkStop>();
+    public DbSet<GpsWalkRunLeg> GpsWalkRunLegs => Set<GpsWalkRunLeg>();
+    public DbSet<GpsWalkRunCorner> GpsWalkRunCorners => Set<GpsWalkRunCorner>();
+    public DbSet<GpsWalkRunArticle> GpsWalkRunArticles => Set<GpsWalkRunArticle>();
 
     public DbSet<QuizCatalog> QuizCatalogs => Set<QuizCatalog>();
     public DbSet<QuizQuestion> QuizQuestions => Set<QuizQuestion>();
@@ -85,6 +97,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
     public DbSet<SentReminder> SentReminders => Set<SentReminder>();
+
+    public DbSet<Wartungshinweis> Wartungshinweise => Set<Wartungshinweis>();
 
     public DbSet<Identity.RefreshToken> RefreshTokens => Set<Identity.RefreshToken>();
 
@@ -119,6 +133,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // Wie beim Bild: Der Hund ist die Pflichtseite, sein Filter wird mitgezogen.
         builder.Entity<DogPause>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
         builder.Entity<DogHealthRecord>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
+        builder.Entity<DogTrainingRhythm>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
+        builder.Entity<TrainingNote>().HasQueryFilter(e => e.DeletedAt == null && e.Dog!.DeletedAt == null);
         // Wie beim Bild: Der Filter muss den des Hundes mittragen. Sonst
         // meldet EF zu Recht, dass die Auswahl eines weichgelöschten Hundes
         // sichtbar bliebe, obwohl der Hund es nicht ist.
@@ -163,11 +179,20 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // Wie bei GroupTrainer/DogImage: der Termin ist die erforderliche Seite
         // der Beziehung, sein Filter muss mitgezogen werden.
         builder.Entity<GroupTrainingSessionResponse>().HasQueryFilter(e => e.DeletedAt == null && e.Session!.DeletedAt == null);
+        builder.Entity<ClubExam>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<ClubExamRegulation>().HasQueryFilter(e => e.DeletedAt == null && e.Exam!.DeletedAt == null);
+        builder.Entity<ClubExamEntry>().HasQueryFilter(e => e.DeletedAt == null && e.Exam!.DeletedAt == null);
+        builder.Entity<ClubWorkEvent>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<ClubWorkParticipation>().HasQueryFilter(e => e.DeletedAt == null && e.Event!.DeletedAt == null);
+        builder.Entity<ClubWorkGuest>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsTrack>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsPoint>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkRun>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkPoint>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<GpsWalkStop>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GpsWalkRunLeg>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GpsWalkRunCorner>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<GpsWalkRunArticle>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<QuizCatalog>().HasQueryFilter(e => e.DeletedAt == null);
         // Wie bei DogImage/GroupTrainer: der Filter der Pflichtbeziehung muss
         // mitgezogen werden, sonst warnt EF zu Recht vor Verweisen ins Leere.
@@ -178,5 +203,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<PushSubscription>().HasQueryFilter(e => e.DeletedAt == null);
         builder.Entity<SentReminder>().HasQueryFilter(e => e.DeletedAt == null);
+        builder.Entity<Wartungshinweis>().HasQueryFilter(e => e.DeletedAt == null);
     }
 }

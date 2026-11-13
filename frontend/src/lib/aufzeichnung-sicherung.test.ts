@@ -19,6 +19,7 @@ import {
   aufzeichnungsEnde,
   faehrtenSchluessel,
   markerAnzahl,
+  markerEntfernen,
   sicherungAnzeigen,
   sicherungenAbonnieren,
   sicherungenAuflisten,
@@ -181,6 +182,30 @@ describe("Anfrage aus einer Sicherung", () => {
     expect(body.date).toBe("2026-06-21");
   });
 
+  it("Fährte: schickt den Bodenzustand als Text, so wie den Untergrund", () => {
+    const body = anfrageAusSicherung(faehrte({ bodenzustand: ["feucht", "Schnee"] })).body as Record<string, unknown>;
+    expect(body.groundCondition).toBe("feucht, Schnee");
+    expect(body.surface).toBe("Wiese, Acker");
+  });
+
+  it("Fährte: ohne Bodenzustand bleibt die Anfrage, wie sie war (auch bei einer Sicherung älterer Stände)", () => {
+    expect(anfrageAusSicherung(faehrte()).body).not.toHaveProperty("groundCondition");
+    expect(anfrageAusSicherung(faehrte({ bodenzustand: [] })).body).not.toHaveProperty("groundCondition");
+  });
+
+  it("Trail: schickt keinen Bodenzustand", () => {
+    const trail = faehrte({
+      bodenzustand: ["nass"],
+      trail: { doubleBlind: false, negativeTrail: false, scentArticle: "" },
+    });
+    expect(anfrageAusSicherung(trail).body).not.toHaveProperty("groundCondition");
+  });
+
+  it("behält den Bodenzustand in der Sicherung auf dem Gerät", () => {
+    sicherungSchreiben(faehrte({ bodenzustand: ["gefroren"] }));
+    expect((sicherungLesen(faehrtenSchluessel("hund-1"), "nutzer-a") as FaehrtenSicherung).bodenzustand).toEqual(["gefroren"]);
+  });
+
   it("zählt Marker getrennt und nimmt als Ende den letzten Punkt", () => {
     expect(markerAnzahl(faehrte())).toBe(1);
     expect(markerAnzahl(ablauf())).toBe(0);
@@ -193,6 +218,40 @@ describe("Anfrage aus einer Sicherung", () => {
     expect(path).toBe("/api/gps-tracks/fährte-1/walk-runs");
     expect((body as { comment: string }).comment).toBe("bei Wind");
     expect((anfrageAusSicherung(ablauf({ kommentar: "  " })).body as { comment: null }).comment).toBeNull();
+  });
+});
+
+describe("Marker zurücknehmen", () => {
+  it("entfernt genau den übergebenen Marker, ältere Marker und die Linie bleiben", () => {
+    const aelterer = punkt("2026-09-20T08:02:00Z", 1);
+    const letzter = punkt("2026-09-20T08:04:00Z", 1);
+    const linie = [punkt("2026-09-20T08:00:05Z"), punkt("2026-09-20T08:06:00Z")];
+    const punkte = [linie[0], aelterer, letzter, linie[1]];
+
+    const danach = markerEntfernen(punkte, letzter);
+
+    expect(danach).toEqual([linie[0], aelterer, linie[1]]);
+    // Der Marker ist an Ort und Zeit identisch zum älteren, aber nur das übergebene Objekt geht.
+    expect(markerEntfernen([aelterer, { ...aelterer }], aelterer)).toHaveLength(1);
+  });
+
+  it("verändert die Eingabe nicht und lässt alles stehen, wenn der Marker nicht (mehr) da ist", () => {
+    const punkte = [punkt("2026-09-20T08:00:05Z"), punkt("2026-09-20T08:04:00Z", 1)];
+    expect(markerEntfernen(punkte, punkt("2026-09-20T08:04:00Z", 1))).toEqual(punkte);
+    expect(punkte).toHaveLength(2);
+  });
+
+  it("verschwindet auch aus der Sicherung auf dem Gerät, sobald der Recorder sie neu schreibt", () => {
+    const marker = punkt("2026-09-20T08:08:00Z", 1);
+    const sicherung = faehrte();
+    sicherungSchreiben({ ...sicherung, points: [...sicherung.points, marker] });
+    expect(markerAnzahl(sicherungLesen(faehrtenSchluessel("hund-1"), "nutzer-a")!)).toBe(2);
+
+    sicherungSchreiben({ ...sicherung, points: markerEntfernen([...sicherung.points, marker], marker) });
+
+    const gelesen = sicherungLesen(faehrtenSchluessel("hund-1"), "nutzer-a")!;
+    expect(markerAnzahl(gelesen)).toBe(1);
+    expect(gelesen.points).toHaveLength(sicherung.points.length);
   });
 });
 

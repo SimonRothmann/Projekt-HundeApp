@@ -210,3 +210,9 @@ public record AddTrainingPlanItemRequest(int WeekNumber, Guid? ExerciseId, strin
 /// als "altes Item entfernen + neues anlegen" gemacht werden.
 /// </summary>
 public record UpdateTrainingPlanItemRequest(int WeekNumber, Guid? ExerciseId, string? FreeTextLabel, int RepetitionsTarget, int DayIndex = 1);
+
+/// <summary>Ein Prüfungsergebnis, wie die Prüfungsleitung es einträgt (siehe IGoalService.TrageVereinsergebnisAsync).</summary>
+public record VereinsErgebnis(DateOnly Tag, int? Punkte, string? Notiz);
+
+/// <summary>Das Ziel, das ein Vereinsergebnis trägt; <paramref name="NeuAngelegt"/>: der Hund hatte kein laufendes Ziel dazu.</summary>
+public record VereinsZiel(Guid GoalId, bool NeuAngelegt);

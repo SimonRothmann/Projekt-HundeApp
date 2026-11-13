@@ -36,6 +36,8 @@ import { ZuErledigenZeile } from "@/components/dashboard/zu-erledigen-zeile";
 import { AbgelaufeneZiele, OhneZielZeilen, PausenZeilen, ZielKarten } from "@/components/dashboard/ziel-karten";
 import { HeuteGelegtSection, type FaehrteMitHund } from "@/components/dashboard/heute-gelegt-section";
 import { GesundheitsHinweise } from "@/components/dashboard/gesundheit-hinweise";
+import { MerkzettelHeuteKarte } from "@/components/dashboard/merkzettel-heute-karte";
+import { MerkenSheet } from "@/components/dogs/merken-sheet";
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
 import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { useT } from "@/lib/i18n";
@@ -228,6 +230,14 @@ export default function DashboardPage() {
     if (!offline) await neuLaden();
   }
 
+  // Das Merken-Fenster (Karte "Training heute"): wie beim Eintragen bleibt der Hund beim Schließen stehen.
+  const [merkenOffen, setMerkenOffen] = useState(false);
+  const [merkenHund, setMerkenHund] = useState<string | null>(null);
+  function oeffneMerken(dogId: string) {
+    setMerkenHund(dogId);
+    setMerkenOffen(true);
+  }
+
   // "Fährte legen" im Fenster statt über die Hundeseite. Wie beim Eintragen
   // bleibt der Hund beim Schließen stehen, damit der Inhalt nicht wegbricht.
   const [faehrteOffen, setFaehrteOffen] = useState(false);
@@ -349,6 +359,18 @@ export default function DashboardPage() {
           onSaved={trainingGespeichert}
         />
       )}
+      {merkenHund && (
+        <MerkenSheet
+          open={merkenOffen}
+          onOpenChange={setMerkenOffen}
+          dogId={merkenHund}
+          hunde={(daten?.hunde ?? []).filter((hund) => !hund.archivedAt)}
+          // Offline liegt der Eintrag nur in der Warteschlange - ein Neuladen würde ihn nicht zeigen.
+          onSaved={async (offline) => {
+            if (!offline) await neuLaden();
+          }}
+        />
+      )}
       {erststart ? (
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -414,6 +436,9 @@ export default function DashboardPage() {
           <TerminKarte sessions={daten.termine} />
 
           <FeedbackKarte eintraege={daten.feedback} onChanged={neuLaden} />
+
+          {/* Nur am Trainingstag mit etwas Gemerktem - sonst nichts Neues auf der Startseite. */}
+          <MerkzettelHeuteKarte hunde={daten.hunde} stand={daten} onEintragen={oeffneEintragen} onMerken={oeffneMerken} />
 
           {erfassen}
 

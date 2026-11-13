@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SchalterZeile } from "@/components/ui/switch";
 import { BlockLabel } from "@/components/ui/block-label";
 import { TrackMap, TrackLegend } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
@@ -16,12 +18,16 @@ import { WalkRunEvaluation } from "@/components/tracking/walk-run-evaluation";
 import { FaehrteTeilen } from "@/components/tracking/faehrte-teilen";
 import { TrailAngabenZeile, TrailErgebnisZeile } from "@/components/tracking/trail-angaben";
 import { AblaufErgebnisSheet } from "@/components/tracking/ablauf-ergebnis-sheet";
+import { AblaufGegenstaende, GegenstandsMaterial } from "@/components/tracking/gegenstaende";
 import { istMantrailing } from "@/lib/mantrailing";
 import { CloudSun, Pencil, Route, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useWetterNachladen } from "@/lib/use-wetter-nachladen";
 import { faehrteWetterOffen } from "@/lib/wetter-nachladen";
 import { formatDelta, formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
+import { WindRichtung } from "@/components/tracking/wind-richtung";
+import { zeigtWindrichtung } from "@/lib/wind";
+import { useSchritte } from "@/lib/use-schritte";
 
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
@@ -94,6 +100,7 @@ export function GpsTrackSection({
 }) {
   const t = useT();
   const ort = ortsformat(useSprache());
+  const schritte = useSchritte();
   const [tracks, setTracks] = useState<GpsTrack[] | null>(null);
   // Das Ergebnis eines Trail-Laufs nachtragen oder ändern (z. B. nach einer Suche ohne Netz):
   // dasselbe Fenster wie direkt nach dem Suchen.
@@ -131,6 +138,29 @@ export function GpsTrackSection({
       setTracks(listen.flat().sort((a, b) => gelegtUm(a).localeCompare(gelegtUm(b))));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Fährten konnten nicht geladen werden."));
+    }
+  }
+
+  // Eine Übungsfährte aus der Entwicklung des Hundes nehmen oder wieder hineinnehmen. Die Seite kennt
+  // Auswertungen, die sich dadurch ändern (Fährten-Trend), und lädt sie neu.
+  async function entwicklungUmschalten(trackId: string, ausDerEntwicklung: boolean) {
+    try {
+      await api.put(`/api/gps-tracks/${trackId}/stats`, { excludeFromStats: ausDerEntwicklung });
+      await loadTracks();
+      await onChanged?.();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Die Einstellung konnte nicht gespeichert werden."));
+    }
+  }
+
+  // "Verdeckt absuchen" einer Fährte ein- oder ausschalten (der Server erlaubt es nur, solange sie noch nicht
+  // abgelaufen wurde).
+  async function verdecktUmschalten(trackId: string, verdeckt: boolean) {
+    try {
+      await api.put(`/api/gps-tracks/${trackId}/verdeckt`, { verdeckt });
+      await loadTracks();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Die Einstellung konnte nicht gespeichert werden."));
     }
   }
 
@@ -190,15 +220,58 @@ export function GpsTrackSection({
                     · {t("Dauer {dauer}", { dauer: formatDuration(times.durationMs) })}
                   </span>
                 )}
-                {track.lengthMeters && <span>{Math.round(track.lengthMeters)} m</span>}
+                {track.lengthMeters && (
+                  // Bei der Fährte dahinter die Länge in Schritten - der Trail rechnet nicht in Schritten.
+                  <span>
+                    {Math.round(track.lengthMeters)} m
+                    {!istMantrailing(track) && schritte(track.lengthMeters) ? ` ${schritte(track.lengthMeters)}` : ""}
+                  </span>
+                )}
                 {/* Gespeichert ist der deutsche Begriff, angezeigt wird er in
                     der eingestellten Sprache. Frei getippte Untergründe älterer
                     Fährten kennt die Übersetzung nicht - die bleiben, wie sie sind. */}
                 {track.surface && <span>{track.surface.split(", ").map((teil) => t(teil)).join(", ")}</span>}
+                {track.groundCondition && <span>{track.groundCondition.split(", ").map((teil) => t(teil)).join(", ")}</span>}
                 {track.comment && <span>{track.comment}</span>}
+                {track.excludeFromStats && <Badge variant="outline">{t("nicht in der Entwicklung")}</Badge>}
               </div>
               {istMantrailing(track) && <TrailAngabenZeile track={track} />}
               <TrackWeather track={track} onLoaded={loadTracks} />
+              {/* Nur Fährte: Gegenstände und die Entwicklung gibt es beim Mantrailing nicht. Ändern darf, wer
+                  auch löschen darf (beides: die Fährte bearbeiten, siehe darfLoeschen). */}
+              {!istMantrailing(track) && (
+                <>
+                  <GegenstandsMaterial trackId={track.id} punkte={track.points} darfAendern={darfLoeschen} onGeaendert={loadTracks} />
+                  {/* Verdeckt absuchen: nur einstellbar, solange noch kein Ablauf existiert (der Server prüft es
+                      ebenso); danach bleibt es als Angabe stehen. */}
+                  {darfLoeschen && track.walkRuns.length === 0 ? (
+                    <div className="overflow-hidden rounded-md border border-input">
+                      <SchalterZeile
+                        an={track.doubleBlind === true}
+                        titel={t("Verdeckt absuchen")}
+                        beschreibung={t("Beim Absuchen ist der Verlauf ausgeblendet und das Handy vibriert nicht an Winkeln und Gegenständen – für eine Prüfungssimulation, wenn jemand anderes gelegt hat.")}
+                        onChange={(an) => void verdecktUmschalten(track.id, an)}
+                      />
+                    </div>
+                  ) : (
+                    track.doubleBlind === true && (
+                      <span className="flex">
+                        <Badge variant="outline">{t("Verdeckt absuchen")}</Badge>
+                      </span>
+                    )
+                  )}
+                  {darfLoeschen && (
+                    <div className="overflow-hidden rounded-md border border-input">
+                      <SchalterZeile
+                        an={track.excludeFromStats === true}
+                        titel={t("Nicht in die Entwicklung zählen")}
+                        beschreibung={t("Für bewusst schwere Übungsfährten – die Fährte bleibt erhalten.")}
+                        onChange={(an) => void entwicklungUmschalten(track.id, an)}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
               <div className="flex flex-wrap items-center gap-2">
                 {/* Der Einstieg ins Aufzeichnen hängt am Modul, die Anzeige
                     der Fährte selbst nicht: Wer die Aufzeichnung abschaltet,
@@ -263,6 +336,19 @@ export function GpsTrackSection({
                           {run.lengthMeters !== null && ` · ${Math.round(run.lengthMeters)} m`}
                         </span>
                         <WalkRunEvaluation run={run} art={track} />
+                        {/* Ohne darfAendern: Die Ergebnisse je Gegenstand folgen dem Ablauf-Kommentar
+                            (Server: HasSessionAccess), nicht dem Löschrecht. */}
+                        {!istMantrailing(track) && (
+                          <AblaufGegenstaende
+                            trackId={track.id}
+                            punkte={track.points}
+                            run={run}
+                            onSaved={async () => {
+                              await loadTracks();
+                              await onChanged?.();
+                            }}
+                          />
+                        )}
                         {istMantrailing(track) && (
                           <span className="flex flex-wrap items-center gap-1.5">
                             <TrailErgebnisZeile negativ={track.negativeTrail === true} run={run} />
@@ -357,6 +443,11 @@ function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Pr
       {wetter && <span>{t(wetter)}</span>}
       {track.laidRelativeHumidity != null && <span>{t("{n} % rF", { n: track.laidRelativeHumidity })}</span>}
       {track.laidWindSpeedKmh != null && <span>{t("{n} km/h Wind", { n: Math.round(track.laidWindSpeedKmh) })}</span>}
+      {/* Die Richtung nur mit Wind (auf km/h gerundet über 0) und nur, wo sie bekannt ist - ältere Fährten haben keine. */}
+      {zeigtWindrichtung(track.laidWindDirectionDeg, track.laidWindSpeedKmh) && <WindRichtung grad={track.laidWindDirectionDeg} />}
+      {zeigtWindrichtung(track.searchWindDirectionDeg, track.searchWindSpeedKmh) && (
+        <WindRichtung grad={track.searchWindDirectionDeg} beimSuchen />
+      )}
     </div>
   );
 }

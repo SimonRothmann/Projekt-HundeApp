@@ -65,6 +65,18 @@ public static class ClubRollen
 
     /// <summary>Rollen, die die Vereinsübersicht lesen dürfen.</summary>
     public const ClubRole Uebersicht = ClubRole.Vorstand | ClubRole.Verwaltung;
+
+    /// <summary>Die Prüfungsleitung: Rollen, die Prüfungstage anlegen, Teams eintragen und Ergebnisse führen.</summary>
+    public const ClubRole Pruefungen = ClubRole.Ausbildungswart | ClubRole.Verwaltung;
+
+    /// <summary>Rollen, die Arbeitseinsätze anlegen, ändern, löschen und abhaken (Entscheidung des Betreibers: die Verwaltung).</summary>
+    public const ClubRole Arbeitseinsaetze = ClubRole.Verwaltung;
+
+    /// <summary>
+    /// Rollen, die Arbeitseinsätze und ihre Auswertung mit Namen lesen dürfen. Der Vorstand liest nur: Dank und
+    /// Ehrungen für Mithelfende sind Vorstandssache, eingetragen wird bei der Verwaltung.
+    /// </summary>
+    public const ClubRole ArbeitseinsaetzeLesen = ClubRole.Verwaltung | ClubRole.Vorstand;
 }
 
 /// <summary>

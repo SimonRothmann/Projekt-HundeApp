@@ -23,6 +23,31 @@ public class TrainingSessionConfiguration : IEntityTypeConfiguration<TrainingSes
     }
 }
 
+public class TrainingNoteConfiguration : IEntityTypeConfiguration<TrainingNote>
+{
+    public void Configure(EntityTypeBuilder<TrainingNote> builder)
+    {
+        builder.ToTable("training_notes");
+        // Wie Condition und OwnerReaction: als Text gespeichert, damit die Spalte lesbar bleibt.
+        builder.Property(n => n.Goal).HasConversion<string>().HasMaxLength(20);
+        builder.Property(n => n.Text).HasMaxLength(Textlaengen.MerkzettelText).IsRequired();
+
+        builder.HasOne(n => n.Dog)
+            .WithMany()
+            .HasForeignKey(n => n.DogId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Wird eine Übung je hart gelöscht, bleibt der Eintrag - nur ohne Übung.
+        builder.HasOne(n => n.Exercise)
+            .WithMany()
+            .HasForeignKey(n => n.ExerciseId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Der Merkzettel eines Hundes und die Abfrage des Erinnerungsdienstes: offene Einträge je Hund.
+        builder.HasIndex(n => new { n.DogId, n.DoneAt });
+    }
+}
+
 public class TrainingExerciseConfiguration : IEntityTypeConfiguration<TrainingExercise>
 {
     public void Configure(EntityTypeBuilder<TrainingExercise> builder)

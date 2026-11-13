@@ -76,6 +76,22 @@ public class DogHealthRecordConfiguration : IEntityTypeConfiguration<DogHealthRe
     }
 }
 
+public class DogTrainingRhythmConfiguration : IEntityTypeConfiguration<DogTrainingRhythm>
+{
+    public void Configure(EntityTypeBuilder<DogTrainingRhythm> builder)
+    {
+        builder.ToTable("dog_training_rhythms");
+
+        builder.HasOne(r => r.Dog)
+            .WithMany()
+            .HasForeignKey(r => r.DogId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Ein Hund, höchstens ein Rhythmus - Speichern ersetzt den alten.
+        builder.HasIndex(r => r.DogId).IsUnique();
+    }
+}
+
 public class DogOwnerConfiguration : IEntityTypeConfiguration<DogOwner>
 {
     public void Configure(EntityTypeBuilder<DogOwner> builder)

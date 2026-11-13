@@ -26,6 +26,7 @@ public class UserPreferenceConfiguration : IEntityTypeConfiguration<UserPreferen
         builder.Property(p => p.ReminderTracks).HasDefaultValue(true).ValueGeneratedNever();
         builder.Property(p => p.ReminderTrainerSummary).HasDefaultValue(true).ValueGeneratedNever();
         builder.Property(p => p.ReminderHealth).HasDefaultValue(true).ValueGeneratedNever();
+        builder.Property(p => p.ReminderTrainingNotes).HasDefaultValue(true).ValueGeneratedNever();
         builder.Property(p => p.TrainerSummaryDays).HasDefaultValue(64).ValueGeneratedNever();
         builder.Property(p => p.TrainerSummaryHour).HasDefaultValue(18).ValueGeneratedNever();
 

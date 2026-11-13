@@ -14,6 +14,7 @@ import { PawPrint } from "lucide-react";
 import { EnvBadge, isTestEnv } from "@/components/env-badge";
 import { SupportButton } from "@/components/support-button";
 import { AuthKopfzeile } from "@/components/auth-back-link";
+import { WartungsBanner } from "@/components/wartungs-banner";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
 
 // Nur für die Test-/Dev-Datenbank (DemoDataSeeder, siehe TODO.md) - existiert
@@ -164,6 +165,7 @@ export default function LoginPage() {
     <main className="flex min-h-full flex-1 items-center justify-center bg-muted/40 p-4">
       <div className="flex w-full max-w-sm flex-col gap-3">
         <AuthKopfzeile />
+        <WartungsBanner />
         <Card className="w-full">
           <CardHeader className="items-center text-center">
             <PawPrint className="size-8 text-primary-text" />

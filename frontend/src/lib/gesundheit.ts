@@ -346,3 +346,27 @@ export function hinweiseFuerHund(
   }
   return ergebnis;
 }
+
+// ---- Hinweis an der Hundekarte ----
+
+/**
+ * Die eine Zeile an der Karte in der Hundeliste, wenn etwas überfällig ist
+ * ("Impfung überfällig"); sonst null - die Liste zeigt nur, was nicht warten
+ * kann, das Übrige steht im Bereich "Gesundheit". Der Stand kommt nur für
+ * Besitzer:innen vom Server (sonst null); die früheste Frist wird noch einmal
+ * gegen heute geprüft, weil der Lesecache von gestern sein kann.
+ */
+export function ueberfaelligZeile(
+  t: Uebersetzer,
+  stand: DogGesundheitStand | null | undefined,
+  heute: string = heuteIso(),
+): string | null {
+  if (!stand) return null;
+  const faellig = stand.nextDue;
+  const anzahl = Math.max(stand.overdue, faellig && tageBis(faellig.dueDate, heute) < 0 ? 1 : 0);
+  if (anzahl === 0) return null;
+  if (anzahl > 1) return t("{n} Gesundheitsfristen überfällig", { n: anzahl });
+  return faellig && faellig.kind !== GESUNDHEIT_ART.Sonstiges
+    ? t("{art} überfällig", { art: t(ART_TEXT[faellig.kind]) })
+    : t("Gesundheitsfrist überfällig");
+}

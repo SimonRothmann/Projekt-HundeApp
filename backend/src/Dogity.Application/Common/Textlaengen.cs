@@ -20,6 +20,8 @@ public static class Textlaengen
     public const int EigeneUebung = 150;
     public const int FaehrtenKommentar = 2000;
     public const int MarkerBeschriftung = 200;
+    /// <summary>GpsPoint.Material: Material eines Gegenstands (Auswahl aus <c>GegenstandsMaterial</c>).</summary>
+    public const int GegenstandsMaterial = 40;
     /// <summary>Untergrund, Wetter, Wind einer Fährte.</summary>
     public const int Kurzangabe = 100;
     /// <summary>GpsTrack.ScentArticle: Geruchsartikel eines Mantrailing-Trails.</summary>
@@ -42,6 +44,8 @@ public static class Textlaengen
     public const int GesundheitTitel = 100;
     /// <summary>DogHealthRecord.Note: Notiz zu einem Gesundheitseintrag.</summary>
     public const int GesundheitNotiz = 500;
+    /// <summary>TrainingNote.Text: ein Eintrag auf dem Merkzettel fürs nächste Training.</summary>
+    public const int MerkzettelText = 500;
     /// <summary>PushSubscription.Endpoint: Adresse beim Push-Dienst (kein Freitext, vom Browser geliefert).</summary>
     public const int PushEndpoint = 2048;
     /// <summary>PushSubscription.P256dh/Auth: Schlüssel des Geräts (base64url, 87 bzw. 22 Zeichen).</summary>
@@ -66,6 +70,24 @@ public static class Textlaengen
     public const int VereinsName = 150;
     /// <summary>Club.Description: Beschreibung des Vereins; die Spalte ist unbegrenzt, die Verwaltung des Vereins begrenzt sie auf 500.</summary>
     public const int VereinsBeschreibung = 500;
+    /// <summary>ClubExam.Location: Ort eines Prüfungstags.</summary>
+    public const int PruefungsOrt = 100;
+    /// <summary>ClubExam.JudgeName: Name der Richter:in.</summary>
+    public const int PruefungsRichter = 100;
+    /// <summary>ClubExam.Note: Bemerkung zum Prüfungstag.</summary>
+    public const int PruefungsBemerkung = 500;
+    /// <summary>ClubExamEntry.GuestHandlerName und GuestDogName: Name von Hundeführer:in und Hund eines Gast-Teams.</summary>
+    public const int GastName = 100;
+    /// <summary>ClubExamEntry.GuestInfo: Verein und Rasse eines Gast-Teams, frei geschrieben.</summary>
+    public const int GastInfo = 200;
+    /// <summary>ClubWorkEvent.Title: Titel eines Arbeitseinsatzes.</summary>
+    public const int ArbeitseinsatzTitel = 100;
+    /// <summary>ClubWorkEvent.Note: Notiz zu einem Arbeitseinsatz.</summary>
+    public const int ArbeitseinsatzNotiz = 500;
+    /// <summary>ClubWorkGuest.FirstName und LastName: Vor- und Nachname einer Helfer:in ohne Konto.</summary>
+    public const int ArbeitseinsatzGastName = 100;
+    /// <summary>Wartungshinweis.Text: eigener Text des Banners.</summary>
+    public const int WartungshinweisText = 300;
     /// <summary>Suchbegriff der Admin-Nutzerliste (wird nicht gespeichert).</summary>
     public const int NutzerSuche = 100;
     /// <summary>ApplicationUser.FirstName und LastName: Vor- und Nachname einer Person; die Spalten selbst sind unbegrenzt, diese Grenze prüfen Registrierung und Profil.</summary>

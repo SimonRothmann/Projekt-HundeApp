@@ -46,6 +46,8 @@ export type FaehrtenSicherung = Gemeinsam & {
   trackId: string;
   dogId: string;
   untergrund: string[];
+  /** Bodenzustand beim Legen (nur Fährte). Fehlt in Sicherungen älterer Stände. */
+  bodenzustand?: string[];
   points: GpsPoint[];
   /**
    * Nur beim Mantrailing: die vor dem Legen gewählten Angaben zum Trail. Ihr Vorhandensein heißt
@@ -215,6 +217,15 @@ export function wirdAngezeigt(schluessel: string) {
   return angezeigt.has(schluessel);
 }
 
+/**
+ * Die Punkte ohne diesen einen Marker - genau der übergebene (gleiches Objekt), ältere Marker und die
+ * Linie bleiben. Für "Zurücknehmen" nach dem Setzen: Der Recorder schreibt die Punkte danach wieder in die
+ * Sicherung, der Marker verschwindet also dort ebenfalls.
+ */
+export function markerEntfernen(punkte: readonly GpsPoint[], marker: GpsPoint): GpsPoint[] {
+  return punkte.filter((p) => p !== marker);
+}
+
 /** Anzahl der Marker (Gegenstände, Leckerlipots, ...) einer Sicherung. */
 export function markerAnzahl(sicherung: AufzeichnungsSicherung) {
   return sicherung.art === "faehrte" ? markerPunkte(sicherung.points).length : 0;
@@ -250,6 +261,7 @@ export function anfrageAusSicherung(sicherung: AufzeichnungsSicherung): { path: 
   // Übungsstunde sind im Fährtensport üblich und gehören in dieselbe
   // Einheit. Die Id macht die Anfrage wiederholbar - aus der Warteschlange
   // wie aus einer Sicherung.
+  const bodenzustand = sicherung.trail ? null : untergrundAlsText(sicherung.bodenzustand ?? []);
   return {
     path: "/api/gps-tracks",
     body: {
@@ -267,6 +279,8 @@ export function anfrageAusSicherung(sicherung: AufzeichnungsSicherung): { path: 
       wind: null,
       comment: null,
       points: sicherung.points,
+      // Nur wenn etwas gewählt ist: Ohne Bodenzustand bleibt die Anfrage, wie sie war.
+      ...(bodenzustand ? { groundCondition: bodenzustand } : {}),
       // Nur beim Trail: Die Fährte schickt nichts davon, ihre Anfrage bleibt, wie sie war.
       ...(sicherung.trail
         ? {

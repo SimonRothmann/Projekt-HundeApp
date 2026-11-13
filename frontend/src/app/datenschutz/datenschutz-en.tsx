@@ -75,6 +75,7 @@ export function DatenschutzEn() {
             "Name, breed, date of birth, sex, notes and – if you upload one – a photo",
             "Training breaks of the dog, if you enter them: the reason (injured, sick or – for bitches – in heat), start and end or “until further notice”, a short note and who entered the break",
             "Health entries of the dog, if you enter them: vaccinations, deworming, parasite protection, vet appointments and other entries with a title (such as “rabies”), date, for appointments the time, “valid until” or “next due”, a short note and who created the entry. This is information about the animal and not health data about people within the meaning of Art. 9 GDPR; it is still visible only to you and the co-owners (section 8). There is no photo of the vaccination record – Dogity stores no files for it",
+            "Note pad for the next training session, if you note something: a short text (for example what the trainer announced for next time), optionally an exercise from the catalogue, the target (“next training session”, “next week” or a date), whether and when the entry was ticked off and who noted it. In addition, if you give them, the days and the time your dog usually trains",
           ]}
         />
         <p className="font-medium text-foreground">Training</p>
@@ -108,6 +109,19 @@ export function DatenschutzEn() {
             "your acceptance or decline of a group session including the time of your reply",
           ]}
         />
+        <p className="font-medium text-foreground">Club exams</p>
+        <Liste
+          punkte={[
+            "Entries for exam days of your club: name, your dog (name, breed, age), regulation, starting order and – after the exam – the result with points and a short remark; described in detail in section 10",
+          ]}
+        />
+        <p className="font-medium text-foreground">Work sessions of the club</p>
+        <Liste
+          punkte={[
+            "Taking part in work sessions of your club with date, title and hours – entered by the administration of the club",
+            "also helpers without a Dogity account: first name and, where known, last name with their sessions – entered by the administration of the club, not by themselves",
+          ]}
+        />
         <p className="font-medium text-foreground">Sign-up to a group (without an account)</p>
         <Liste
           punkte={[
@@ -119,7 +133,7 @@ export function DatenschutzEn() {
           punkte={[
             "your learning progress in the theory-test question trainer (Sachkunde) and the results of your practice exams",
             "Notifications within the app",
-            "your settings: language, country, font size, hidden areas, chosen sports, whether important notifications are also sent by email and which reminders you receive (for trainers, with the weekdays and time they chose)",
+            "your settings: language, country, font size, step length, hidden areas, chosen sports, whether important notifications are also sent by email and which reminders you receive (for trainers, with the weekdays and time they chose)",
             "which reminders have already been sent to you (kind, session or track or day, time) – only as a note so that a reminder does not arrive twice; described in detail in section 7",
             "Devices on which you have switched on push notifications: the device’s address at its manufacturer’s push service, the device’s keys for encryption, a short label such as “iPhone (Safari)” as well as the time of registration and of the last delivery – described in detail in section 7",
           ]}
@@ -158,12 +172,14 @@ export function DatenschutzEn() {
       <Abschnitt titel="4. On what legal basis">
         <Liste
           punkte={[
-            "Account, dogs, training sessions, tracks, club and settings: Art. 6(1)(b) GDPR – without this data the function you registered for does not exist.",
+            "Account, dogs, training sessions, tracks, the note pad for the next training session, club and settings: Art. 6(1)(b) GDPR – without this data the function you registered for does not exist.",
             "Path of the person being searched for in mantrailing: Art. 6(1)(f) GDPR – there is no contract with that person. The legitimate interest is that the person who records can document their training; the intrusion is small because the person walks the path voluntarily and knows about it beforehand. They can object to the storage; the track is then deleted.",
             "Sign-up to a group through a sign-up form (without an account): Art. 6(1)(b) GDPR – see section 9.",
+            "Club exams: Art. 6(1)(b) GDPR for the entry and the result, point (f) for the exam readiness – see section 10.",
+            "Work sessions of the club: Art. 6(1)(f) GDPR – the club’s legitimate interest is to record and recognise the help of its members; there is no obligation to take part. You can object under Art. 21 GDPR (section 12), then the administration removes you. The same applies to helpers without an account.",
             "Emails (welcome, password reset, invitations and decisions on join requests): Art. 6(1)(b) GDPR – they belong to the account and club functions. Whether you receive the emails about invitations and decisions, you choose at registration (preselected); you can unsubscribe at any time via the link in the email, without signing in, or under Profile → Features.",
             "Push notifications: Art. 6(1)(a) GDPR and Section 25(1) TDDDG (the German Telecommunications Digital Services Data Protection Act) – they only begin once you have switched them on yourself on a device and the browser or operating system has asked you for permission. You can switch them off in the app at any time or withdraw the permission in the device.",
-            "Reminders (session the day before, track not yet walked, health of the dog, open feedback): Art. 6(1)(b) GDPR – they belong to the functions you use; you can switch off each one individually under Profile → Features. If they arrive as push, your consent to push from above applies in addition.",
+            "Reminders (session the day before, track not yet walked, health of the dog, note pad for training, open feedback): Art. 6(1)(b) GDPR – they belong to the functions you use; you can switch off each one individually under Profile → Features. If they arrive as push, your consent to push from above applies in addition.",
             "Protection against abuse, troubleshooting and operational security: Art. 6(1)(f) GDPR. My legitimate interest is that the service stays available and accounts are not taken over.",
             "You expressly allow your browser to read your location and can withdraw this permission at any time.",
           ]}
@@ -233,6 +249,13 @@ export function DatenschutzEn() {
           briefly counts login attempts per IP address.
         </p>
         <p>
+          If you log in or the renewal of your login is rejected, the server records this in its operating log with the
+          internal ID of your account and the reason, so that logouts and errors can be traced (Art. 6(1)(f) GDPR).
+          These lines contain neither a password nor a token nor an email or IP address. The log exists only on the
+          server, starts anew with every new deployment of the application and is limited to about 30 MB at most; older lines are continually
+          overwritten.
+        </p>
+        <p>
           A backup of the database is created daily. It is encrypted before it leaves the server – in such a way that
           only the key for encrypting is on the server, not the one for decrypting. Anyone who gains access to the server
           can therefore not read the backups. They are stored on the server itself and additionally at{" "}
@@ -292,12 +315,12 @@ export function DatenschutzEn() {
         </p>
         <p className="font-medium text-foreground">Reminders (from the server)</p>
         <p>
-          Dogity sends four kinds of reminders on its own, as a message in the bell and – where you have switched on
+          Dogity sends five kinds of reminders on its own, as a message in the bell and – where you have switched on
           push – as a push message: the day before, for a group session (if you are a member of the group and have not
           declined), for a laid track that has not been walked yet (about three hours after laying, as long as walking
           it is still possible and your dog is not on a training break), for your dog’s health (14 days before a
           deadline you entered, such as a vaccination, and on the day itself, and for a vet appointment on the day
-          before from 6 pm – to you and the co-owners), and – for trainers only – a summary of how many
+          before from 6 pm – to you and the co-owners), for what you noted on the note pad for the next training session (on the day of the training, two hours before – to you and the co-owners; Dogity recognises when your dog trains from your group sessions, your entry or your diary), and – for trainers only – a summary of how many
           training sessions are waiting for feedback. You switch off each of them individually under Profile → Features;
           for the summary, trainers also choose the weekdays and the time. Reminders only come between 8 am and 10 pm
           German time and never by email. So that a reminder does not arrive twice, the server remembers which ones it
@@ -332,8 +355,10 @@ export function DatenschutzEn() {
             "Acceptances of group sessions: The trainers of the group, the training officer and the administration of the club, and the trainers assigned to the session see by name who accepted or declined. The other members of your group only see numbers, such as “5 acceptances”. If you decline, the trainers of the session receive a notification with your first name.",
             "Training breaks of your dog are seen by you and the co-owners with reason, period and note. Trainers who look after the dog see only that it is on a break and until when – not the reason and not the note. The training plan they see stands still during that time; for that reason they also see the periods of earlier breaks that fall within the plan, but never the history with reasons. Nobody else sees any of this. The server ensures this, not just the display.",
             "Health entries of your dog (vaccinations, deworming, parasite protection, vet appointments) are seen only by you and the co-owners. Trainers who look after the dog see none of it – not even that such entries exist. Nobody else sees them either. The server ensures this, not just the display.",
+            "The note pad for your dog’s next training session is seen and changed only by you and the co-owners. Trainers who look after the dog and everybody else see none of it. The server ensures this, not just the display.",
             "Your reply to a trainer’s feedback (“Thanks”, “Understood”, “Question”) is seen by the trainer who gave it and by the owners of the dog; it triggers a notification for the trainer. If the trainer writes new feedback, your reply is reset.",
-            "Within a club the roles see different amounts, but never your training diary: Trainers see their groups and the members of those groups. The training officer and the administration see all groups of the club. Membership management and the administration see the member list with name and email address, the join requests – including whether they came through the club’s invitation link – and the invitations. The board and the administration see name, group membership, roles and member-since date of the members as well as aggregated figures for the club (members, groups, sessions and acceptances as totals) – no training diaries and no email addresses.",
+            "Within a club the roles see different amounts, but never your training diary: Trainers see their groups and the members of those groups. The training officer and the administration see all groups of the club and the entry lists of the exam days (section 10). Membership management and the administration see the member list with name and email address, the join requests – including whether they came through the club’s invitation link – and the invitations. The board and the administration see name, group membership, roles and member-since date of the members as well as aggregated figures for the club (members, groups, sessions, acceptances and exams as totals) – no training diaries and no email addresses.",
+            "Work sessions: The administration of the club records who helped. Administration and board see the evaluation with names, you see your own sessions, nobody else; the club overview only shows totals. The same people see the sessions of helpers without an account; they have no view of their own and contact the club or the operators’ contact address for access and deletion.",
             "In the administration, the operator sees aggregated key figures, such as how many of the accounts of the last 30 days have created a dog. These are numbers, not persons; nothing is measured in the browser for this.",
             "Anyone who invites you to a club, to a group, as a trainer of a group or as a co-owner of a dog sees, until you accept, only the email address entered for that – not your name. If you decline, it stays that way.",
             "For technical reasons the operator can access the database, but does so only for troubleshooting and operation.",
@@ -395,16 +420,71 @@ export function DatenschutzEn() {
           >
             {BETREIBER.email}
           </a>
-          . The other rights from section 11 apply to you in the same way.
+          . The other rights from section 12 apply to you in the same way.
         </p>
       </Abschnitt>
 
-      <Abschnitt titel="10. How long data is stored">
+      <Abschnitt titel="10. Club exams">
+        <p>
+          Clubs can plan exam days. The exam organisers of the club – training officer and administration – enter the
+          participating teams themselves; members do not register in the app. A team is either a member of the club
+          with one of their dogs or a guest without a Dogity account.
+        </p>
+        <p className="font-medium text-foreground">What data is stored</p>
+        <Liste
+          punkte={[
+            "the exam day: date, time, place, name of the judge, registration deadline and a remark",
+            "for a member team: the member’s name, their dog (name, breed, age), the exam regulation and the starting order",
+            "for a guest team: name of handler and dog and – if the exam organisers enter them – club and breed. This information comes from the exam organisers, not from the guests themselves, and is stored only in this exam",
+            "the result of each team: passed, not passed or did not start, the points if the regulation has any, a short remark, who entered it and when",
+            "the exam readiness: If an entered dog has a current goal for the same exam regulation, the exam organisers see the traffic light, the count (secure, wobbly, open) and the list of exercises that are still open or wobbly. The training diary, notes, ratings, training breaks and the state in the theory-test question trainer are never visible in this",
+          ]}
+        />
+        <p className="font-medium text-foreground">What for</p>
+        <p>Solely for the club to hold exams: entry list, start list, results.</p>
+        <p className="font-medium text-foreground">Who sees it</p>
+        <p>
+          The entry list including exam readiness and results is seen by the training officer and the administration of
+          the club – nobody else. Training and board only see that the next exam day exists: date, place and
+          regulations, no teams. For the selection when entering a team, the exam organisers see the names of the club
+          members and their dogs (name, breed, age) – only in their own club and only for members whose membership has
+          been approved or who hold a role in the club. The club overview for board and administration contains only totals per month (exams, teams,
+          passed), no names.
+        </p>
+        <p className="font-medium text-foreground">Informing the people concerned</p>
+        <p>
+          Because the member does not confirm anything themselves, they learn of it another way: The owners of the dog
+          receive a notification (in the app and, if switched on, as push) when the dog is entered, when the entry is
+          withdrawn or the exam is cancelled, and when a result is entered. On the dog’s page “Entered” is shown as long
+          as the exam is coming up. A passed result is immediately shown as an achievement on the dog; it then belongs to
+          the family, who can change or delete it like any achievement. Anyone who does not agree with the entry should
+          contact the club; the exam organisers can remove the team.
+        </p>
+        <p className="font-medium text-foreground">Legal basis</p>
+        <Liste
+          punkte={[
+            "Entry and result: Art. 6(1)(b) GDPR – taking part in the exam is part of the membership of the club or, for guests, of their registration for the exam with the club.",
+            "Exam readiness: Art. 6(1)(f) GDPR – the club’s legitimate interest is that the exam organisers can judge whether an entered team is prepared. The intrusion is small: only the traffic light and open exercises are shown, never the diary, and you are notified of the entry. You can object (Art. 21); the exam organisers then remove the team, and the exam readiness is no longer visible.",
+          ]}
+        />
+        <p className="font-medium text-foreground">Deletion</p>
+        <Liste
+          punkte={[
+            "The information about guests disappears for good when the exam organisers remove the team or delete the exam.",
+            "If a member leaves the club, or their dog or account is deleted, the team is detached from their person: name and dog are no longer visible and the list says “Former member”. The result remains without a personal reference for the club’s figures.",
+            "Under Profile → “Data & account”, “Download my data” contains your entries (club, date, regulation, dog, result). It does not contain the information about guests, as it belongs to the guests.",
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt titel="11. How long data is stored">
         <Liste
           punkte={[
             "Account data and everything attached to it: until you delete the account.",
-            "Individual entries – training sessions, tracks, dogs, training breaks, health entries: until you delete them.",
+            "Individual entries – training sessions, tracks, dogs, training breaks, health entries, entries on the note pad: until you delete them.",
             "Sign-ups to a group without an account (section 9): until the trainers delete them, at the latest twelve months after the last attendance, change or sign-up.",
+            "Exam days of the club with entry lists (section 10): until the exam organisers delete them; guest data with the exam or the team. The results remain without a personal reference for the club’s figures.",
+            "Work sessions of the club: until the administration removes you or deletes the session, at the latest until the end of the second calendar year after the session (older ones are deleted automatically and for good). If you leave the club or delete your account, only the hours remain, without a link to you. Helpers without an account: until the administration deletes them, at the latest once their last session has been deleted.",
             "Login tokens on the server: the short-lived one after one hour, the renewal token after 60 days at the latest.",
             "Devices for push notifications: until you switch off push there, log out or delete your account; a device that the push service no longer knows is removed on the next send.",
             "The note “reminder sent”: 60 days, at the latest until you delete your account.",
@@ -414,16 +494,16 @@ export function DatenschutzEn() {
           ]}
         />
         <p>
-          If you delete your account, your access, your dogs including training breaks and health entries, training sessions, tracks, goals, settings, your learning
+          If you delete your account, your access, your dogs including training breaks, health entries and note pad for training, training sessions, tracks, goals, settings, your learning
           progress including the results of practice exams, your acceptances of group sessions, the devices for push notifications, the notes on reminders sent and your club and group
-          memberships are removed. Dogs that you share with someone remain with the other person – only your link to
+          memberships are removed; in the entry lists of your club’s exams only the result remains, without you and your dog. Dogs that you share with someone remain with the other person – only your link to
           them disappears. Where you, as a trainer, have created content for a club, this content remains with the
           club, but the indication of your authorship is removed. Sign-ups to groups that you managed as a trainer
           belong to the club and remain; only the note that you set “paid” or ticked someone off is removed.
         </p>
       </Abschnitt>
 
-      <Abschnitt titel="11. Your rights">
+      <Abschnitt titel="12. Your rights">
         <p>Under the GDPR you are entitled to:</p>
         <Liste
           punkte={[
@@ -465,18 +545,19 @@ export function DatenschutzEn() {
         </p>
       </Abschnitt>
 
-      <Abschnitt titel="12. Security">
+      <Abschnitt titel="13. Security">
         <p>
           The connection is encrypted with TLS throughout, also between Cloudflare and the server. Passwords are stored
           only as a hash. Logins run via short-lived tokens that can be revoked on the server side; if a token that has
-          already been used is presented again, all sessions of the account are ended, and anyone who changes or resets
+          already been used is presented again although its successor has been used, all sessions of the account are
+          ended (if only the response to a renewal got lost, the login simply continues), and anyone who changes or resets
           their password thereby logs out all other devices. After five wrong passwords in a row, the account is locked
           for a few minutes. The browser may load content only from defined sources (Content Security Policy), and login
           attempts are limited per IP address.
         </p>
       </Abschnitt>
 
-      <Abschnitt titel="13. Automated decisions">
+      <Abschnitt titel="14. Automated decisions">
         <p>
           No automated decision with legal effect takes place. However, Dogity creates a training suggestion from your
           own ratings: Exercises that you rate lower are planned more often. This is a suggestion that you can change
@@ -484,14 +565,14 @@ export function DatenschutzEn() {
         </p>
       </Abschnitt>
 
-      <Abschnitt titel="14. Children and young people">
+      <Abschnitt titel="15. Children and young people">
         <p>
           Dogity is aimed at adults. Anyone younger than 16 years should only create an account with the consent of
           their parents. If I learn that an account exists without this consent, I delete it.
         </p>
       </Abschnitt>
 
-      <Abschnitt titel="15. Changes">
+      <Abschnitt titel="16. Changes">
         <p>
           If a function is added that processes data differently, this text changes with it. The page{" "}
           <a href="/neuerungen" className="text-primary-text underline-offset-4 hover:underline">

@@ -1,8 +1,10 @@
 using System.Globalization;
 using Dogity.Application.Common;
 using Dogity.Application.Community;
+using Dogity.Application.Training;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Notifications;
+using Dogity.Domain.Training;
 
 namespace Dogity.Application.Reminders;
 
@@ -45,6 +47,18 @@ public sealed record TrainerKandidat(Guid UserId, bool Erlaubt, int Tage, int St
 public sealed record GesundheitsAdressat(
     Guid EintragId, Guid HundId, string Hund, DogHealthKind Art, string Titel, DateOnly Datum, TimeOnly? Uhrzeit,
     DateOnly? Faellig, bool Aktuell, Guid UserId, bool Erlaubt);
+
+/// <summary>Ein offener Eintrag auf dem Merkzettel eines Hundes, soweit die Erinnerung ihn braucht.</summary>
+public sealed record MerkzettelEintrag(
+    Guid Id, string Text, TrainingNoteGoal Ziel, DateOnly? ZielDatum, DateTimeOffset Angelegt);
+
+/// <summary>
+/// Eine Besitzer:in und ein Hund mit offenem Merkzettel - eine Zeile je Person und Hund - samt dem, woraus sich
+/// das nächste Training dieser Person mit diesem Hund ergibt (<see cref="Trainingsrhythmus"/>).
+/// </summary>
+public sealed record MerkzettelKandidat(
+    Guid UserId, Guid HundId, string Hund, bool Erlaubt, IReadOnlyList<MerkzettelEintrag> Eintraege,
+    IReadOnlyList<TagebuchTraining> Tagebuch, IReadOnlyList<DateTimeOffset> Gruppentermine, GespeicherterRhythmus? Rhythmus);
 
 /// <summary>
 /// Wann welche Erinnerung fällig ist - als reine Funktionen: Zeitpunkt und Daten
@@ -283,5 +297,82 @@ public static class Erinnerungsregeln
             ? Meldung.Von("Ein Training wartet auf deine Rückmeldung.")
             : Meldung.Von("{n} Trainings warten auf deine Rückmeldung.", ("n", anzahl));
         return new FaelligeErinnerung(TrainerSchluessel(userId, Vereinszeit.Tag(jetzt)), meldung, "/trainer/bewerten");
+    }
+
+    /// <summary>So viele Zeichen vom ersten Merkzettel-Eintrag stehen in der Erinnerung; der Rest käme nicht in die Glocke und nicht auf den Sperrbildschirm.</summary>
+    private const int MerkzettelTextZeichen = 100;
+
+    /// <summary>
+    /// Der Merkzettel vor dem Training: je Person und Hund EINE Erinnerung am Trainingstag, die alle offenen
+    /// Einträge bündelt, deren Ziel auf diesen Tag fällt (<see cref="Trainingsrhythmus.ZielDesEintrags"/>).
+    /// Sie kommt zwei Stunden vor dem Training, ohne bekannte Uhrzeit um 09:00 Uhr, nie vor 08:00 Uhr und
+    /// nicht mehr, wenn das Training begonnen hat. Die Kennung enthält den Trainingstag: Unerledigte Einträge
+    /// werden am nächsten Training erneut erinnert, am selben Tag nie zweimal.
+    /// </summary>
+    public static IReadOnlyList<FaelligeErinnerung> MerkzettelErinnerungen(
+        DateTimeOffset jetzt, IEnumerable<MerkzettelKandidat> kandidaten, IReadOnlySet<ErinnerungsSchluessel> gesendet)
+    {
+        if (!ImVersandfenster(jetzt)) return [];
+
+        var lokal = Vereinszeit.Lokal(jetzt);
+        var heute = DateOnly.FromDateTime(lokal);
+        var ergebnis = new List<FaelligeErinnerung>();
+        var schonDabei = new HashSet<ErinnerungsSchluessel>();
+
+        foreach (var k in kandidaten)
+        {
+            if (!k.Erlaubt || k.Eintraege.Count == 0) continue;
+
+            var schluessel = new ErinnerungsSchluessel(ReminderType.TrainingNote, k.UserId, k.HundId, heute);
+            if (gesendet.Contains(schluessel) || !schonDabei.Add(schluessel)) continue;
+
+            var heutige = new List<(MerkzettelEintrag Eintrag, TrainingsTermin Ziel)>();
+            foreach (var e in k.Eintraege.OrderBy(e => e.Angelegt))
+            {
+                var ziel = Trainingsrhythmus.ZielDesEintrags(
+                    e.Ziel, e.ZielDatum, e.Angelegt, jetzt, k.Tagebuch, k.Gruppentermine, k.Rhythmus, erinnerung: true);
+                if (ziel is not { } termin || termin.Tag != heute) continue;
+                heutige.Add((e, termin));
+            }
+            if (heutige.Count == 0) continue;
+
+            // Gebündelt gilt die früheste bekannte Uhrzeit; ohne eine bei allen bleibt es beim Trainingstag.
+            var uhrzeit = heutige.Select(h => h.Ziel.Uhrzeit).Where(u => u is not null).Min();
+            var tag = new TrainingsTermin(heute, uhrzeit, TrainingsQuelle.Unbekannt);
+            if (lokal < Trainingsrhythmus.ErinnerungsZeitpunkt(tag)) continue;
+            if (tag.Beginn is { } beginn && lokal >= beginn) continue;
+
+            var erster = Kuerzen(heutige[0].Eintrag.Text, MerkzettelTextZeichen);
+            var weitere = heutige.Count - 1;
+            ergebnis.Add(new FaelligeErinnerung(schluessel, MerkzettelMeldung(k.Hund, uhrzeit, erster, weitere), $"/dogs/{k.HundId}?tab=plan"));
+        }
+        return ergebnis;
+    }
+
+    // Ganze Sätze je Fall (mit und ohne Uhrzeit, mit und ohne weitere Einträge): Die Wortstellung ist je Sprache anders.
+    private static Meldung MerkzettelMeldung(string hund, TimeOnly? uhrzeit, string text, int weitere)
+    {
+        if (uhrzeit is { } u)
+        {
+            var zeit = u.ToString("HH:mm", CultureInfo.InvariantCulture);
+            return weitere == 0
+                ? Meldung.Von("Heute {zeit} - gemerkt für {hund}: {text}", ("zeit", zeit), ("hund", hund), ("text", text))
+                : Meldung.Von("Heute {zeit} - gemerkt für {hund}: {text} · +{n} weitere", ("zeit", zeit), ("hund", hund), ("text", text), ("n", weitere));
+        }
+        return weitere == 0
+            ? Meldung.Von("Heute Training - gemerkt für {hund}: {text}", ("hund", hund), ("text", text))
+            : Meldung.Von("Heute Training - gemerkt für {hund}: {text} · +{n} weitere", ("hund", hund), ("text", text), ("n", weitere));
+    }
+
+    private static string Kuerzen(string text, int zeichen)
+    {
+        // Zeilenumbrüche aus dem Diktat würden die Glocke und den Push zerreißen.
+        var einzeilig = string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        if (einzeilig.Length <= zeichen) return einzeilig;
+
+        var ende = zeichen - 1;
+        // Nicht mitten in einem Emoji (zwei Zeichen) abschneiden.
+        if (char.IsHighSurrogate(einzeilig[ende - 1])) ende--;
+        return einzeilig[..ende].TrimEnd() + "…";
     }
 }

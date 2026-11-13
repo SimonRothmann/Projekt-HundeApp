@@ -32,6 +32,8 @@ describe("spurEbenen", () => {
       "ablauf-live",
       "halte",
       "marker",
+      "winkel",
+      "winkel-nummer",
       "start",
       "ende",
       "position",

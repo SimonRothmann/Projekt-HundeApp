@@ -169,6 +169,91 @@ public class AccountDataServiceTests
     }
 
     [Fact]
+    public async Task Purge_EntferntAuchSchenkelUndWinkelDerAbläufe()
+    {
+        var (dienst, db, _) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        HundMitAllem(db, nutzer, "Bello");
+        var lauf = new GpsWalkRun { TrackId = db.GpsTracks.Local.Single().Id };
+        db.GpsWalkRuns.Add(lauf);
+        db.GpsWalkRunLegs.Add(new GpsWalkRunLeg { WalkRunId = lauf.Id, Number = 1, LengthMeters = 80 });
+        db.GpsWalkRunCorners.Add(new GpsWalkRunCorner { WalkRunId = lauf.Id, Number = 1, Latitude = 48.9, Longitude = 8.5 });
+        await db.SaveChangesAsync();
+
+        await dienst.PurgeAsync(nutzer);
+
+        // Die Lage der Winkel liegt im Gelände des Kontos - sie darf nicht übrig bleiben.
+        Assert.Empty(db.GpsWalkRunLegs.IgnoreQueryFilters());
+        Assert.Empty(db.GpsWalkRunCorners.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task Purge_EntferntAuchDieGegenstandsangabenDerAbläufe()
+    {
+        var (dienst, db, _) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        HundMitAllem(db, nutzer, "Bello");
+        var lauf = new GpsWalkRun { TrackId = db.GpsTracks.Local.Single().Id };
+        db.GpsWalkRuns.Add(lauf);
+        db.GpsWalkRunArticles.Add(new GpsWalkRunArticle { WalkRunId = lauf.Id, PointId = Guid.NewGuid(), Result = ArticleResult.Missed });
+        await db.SaveChangesAsync();
+
+        await dienst.PurgeAsync(nutzer);
+
+        Assert.Empty(db.GpsWalkRunArticles.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task Export_EnthaeltMaterialGegenstandsergebnisseUndDasHerausnehmenAusDerEntwicklung()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        lookup.Register(nutzer, "ich@test.de", "Max", "Muster");
+        HundMitAllem(db, nutzer, "Bello");
+        var spur = db.GpsTracks.Local.Single();
+        spur.ExcludeFromStats = true;
+        var gegenstand = new GpsPoint
+        {
+            TrackId = spur.Id, Latitude = 48.9, Longitude = 8.5, Timestamp = DateTimeOffset.UtcNow,
+            PointType = GpsPointType.Manual, MarkerType = GpsMarkerType.Article, Material = "Leder",
+        };
+        db.GpsPoints.Add(gegenstand);
+        db.GpsPoints.Add(new GpsPoint { TrackId = spur.Id, Latitude = 48.9, Longitude = 8.5, Timestamp = DateTimeOffset.UtcNow, PointType = GpsPointType.Automatic });
+        var lauf = new GpsWalkRun { TrackId = spur.Id };
+        db.GpsWalkRuns.Add(lauf);
+        db.GpsWalkRunArticles.Add(new GpsWalkRunArticle { WalkRunId = lauf.Id, PointId = gegenstand.Id, Result = ArticleResult.PickedUp });
+        await db.SaveChangesAsync();
+
+        var auskunft = (await dienst.ExportAsync(nutzer)).Value!;
+
+        var faehrte = Assert.Single(auskunft.Faehrten);
+        Assert.True(faehrte.NichtInDerEntwicklung);
+        Assert.Equal("Leder", Assert.Single(faehrte.Punkte, p => p.Id == gegenstand.Id).Material);
+        // Die Id geht nur an Markern mit, nicht an den GPS-Punkten der Linie.
+        Assert.All(faehrte.Punkte.Where(p => p.Art != "Manual"), p => Assert.Null(p.Id));
+        var angabe = Assert.Single(Assert.Single(faehrte.Ablaeufe).Gegenstaende);
+        Assert.Equal(gegenstand.Id, angabe.PunktId);
+        Assert.Equal("PickedUp", angabe.Ergebnis);
+    }
+
+    [Fact]
+    public async Task Export_EnthaeltSchrittlaengeUndBodenzustand()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        lookup.Register(nutzer, "ich@test.de", "Max", "Muster");
+        HundMitAllem(db, nutzer, "Bello");
+        db.GpsTracks.Local.Single().GroundCondition = "feucht, Schnee";
+        db.UserPreferences.Add(new UserPreference { UserId = nutzer, StepLengthCm = 82 });
+        await db.SaveChangesAsync();
+
+        var auskunft = (await dienst.ExportAsync(nutzer)).Value!;
+
+        Assert.Equal(82, auskunft.Einstellungen!.SchrittlaengeCm);
+        Assert.Equal("feucht, Schnee", Assert.Single(auskunft.Faehrten).Bodenzustand);
+    }
+
+    [Fact]
     public async Task Export_NenntDieHerkunftDerVereinsanfrage()
     {
         var (dienst, db, lookup) = Aufsetzen();

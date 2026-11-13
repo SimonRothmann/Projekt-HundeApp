@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { MAX_HUNDEALTER_JAHRE, TELEFON_MIN_ZEICHEN, TELEFON_MIN_ZIFFERN } from "./anmeldung";
 import { MAX_IMPORT_ZEILEN } from "./anmeldung-csv";
+import { MAX_MINUTEN, MAX_TAGE_VORAUS, MIN_MINUTEN } from "./arbeitseinsaetze";
 import { DAUER_MAX } from "./eintragen";
 import { ALLE_TAGE, ERSTE_STUNDE, GESUNDHEIT_VORLAUF_TAGE, LETZTE_STUNDE, VORGABE_STUNDE, VORGABE_TAGE } from "./erinnerungen";
 import { ABLAUF_FRIST_STUNDEN, ABLAUF_FRIST_STUNDEN_TRAIL, FAEHRTEN_SPORTARTEN } from "./faehrte";
@@ -125,6 +126,13 @@ describe("Frontend und Backend meinen dieselben Zahlen", () => {
 
   it("Training: Dauer höchstens 600 Minuten (TrainingService)", () => {
     expect(DAUER_MAX).toBe(zahl("Training/TrainingService.cs", "MaxDauerMinuten"));
+  });
+
+  it("Arbeitseinsätze: Dauer 15 bis 720 Minuten, höchstens 30 Tage im Voraus (ClubWorkService)", () => {
+    const datei = "Community/ClubWorkService.cs";
+    expect(MIN_MINUTEN).toBe(zahl(datei, "MinMinuten"));
+    expect(MAX_MINUTEN).toBe(zahl(datei, "MaxMinuten"));
+    expect(MAX_TAGE_VORAUS).toBe(zahl(datei, "MaxTageVoraus"));
   });
 
   it("Gruppenanmeldung: Hundealter, Telefon, Import (GroupRegistrationRules)", () => {

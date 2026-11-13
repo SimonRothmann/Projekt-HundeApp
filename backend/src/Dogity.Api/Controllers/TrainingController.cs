@@ -63,6 +63,16 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
         return FromResult(result);
     }
 
+    /// <summary>
+    /// Dauer des Trainingstags korrigieren (siehe ITrainingService.SetDayDurationAsync).
+    /// </summary>
+    [HttpPut("{id:guid}/duration")]
+    public async Task<ActionResult<TrainingSessionDto>> SetDayDuration(Guid id, UpdateSessionDurationRequest request, CancellationToken ct)
+    {
+        var result = await trainingService.SetDayDurationAsync(CurrentUserId, id, request.DurationMinutes, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("{id:guid}/feedback")]
     public async Task<IActionResult> SetFeedback(Guid id, SetFeedbackRequest request, CancellationToken ct)
     {
@@ -96,6 +106,13 @@ public class TrainingController(ITrainingService trainingService) : ApiControlle
     public async Task<ActionResult<TrainingSessionDto>> UpdateExercise(Guid exerciseId, UpdateTrainingExerciseRequest request, CancellationToken ct)
     {
         var result = await trainingService.UpdateExerciseAsync(CurrentUserId, exerciseId, request, ct);
+        return FromResult(result);
+    }
+
+    [HttpDelete("exercises/{exerciseId:guid}")]
+    public async Task<ActionResult<TrainingSessionDto>> DeleteExercise(Guid exerciseId, CancellationToken ct)
+    {
+        var result = await trainingService.DeleteExerciseAsync(CurrentUserId, exerciseId, ct);
         return FromResult(result);
     }
 

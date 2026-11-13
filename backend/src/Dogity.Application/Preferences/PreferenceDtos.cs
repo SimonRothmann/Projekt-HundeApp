@@ -15,6 +15,8 @@ namespace Dogity.Application.Preferences;
 /// <param name="TrainerSummaryDays">Wochentage der Zusammenfassung als Bitmaske (Mo = 1 ... So = 64). Vorgabe: Sonntag.</param>
 /// <param name="TrainerSummaryHour">Uhrzeit der Zusammenfassung, volle Stunde 8 bis 21 (Vereinszeit). Vorgabe: 18.</param>
 /// <param name="ReminderHealth">Erinnerung an ablaufende Impfungen, fällige Entwurmung und Tierarzttermine. Vorgabe: ja.</param>
+/// <param name="ReminderTrainingNotes">Erinnerung vor dem Training an den Merkzettel des Hundes. Vorgabe: ja.</param>
+/// <param name="StepLengthCm">Schrittlänge in cm (40 bis 120) für die Umrechnung der Fährtenlänge in Schritte, null = Standard (75).</param>
 public record UserPreferenceDto(
     string? Locale,
     string? Country,
@@ -27,7 +29,9 @@ public record UserPreferenceDto(
     bool ReminderTrainerSummary = true,
     int TrainerSummaryDays = 64,
     int TrainerSummaryHour = 18,
-    bool ReminderHealth = true);
+    bool ReminderHealth = true,
+    int? StepLengthCm = null,
+    bool ReminderTrainingNotes = true);
 
 public record UpdateModulesRequest(IReadOnlyList<string> DisabledModules);
 public record UpdateSportsRequest(IReadOnlyList<Guid> SportIds);
@@ -36,13 +40,16 @@ public record UpdateCountryRequest(string? Country);
 public record UpdateFontScaleRequest(string? FontScale);
 public record UpdateEmailNotificationsRequest(bool Enabled);
 
+/// <summary>Schrittlänge in cm, 40 bis 120; null setzt auf den Standard (75 cm) zurück.</summary>
+public record UpdateStepLengthRequest(int? StepLengthCm);
+
 /// <summary>
 /// Alle Einstellungen der Erinnerungen auf einmal - sie gehören zusammen und werden
 /// zusammen angezeigt. <paramref name="TrainerSummaryDays"/> 1 bis 127, <paramref name="TrainerSummaryHour"/> 8 bis 21.
-/// <paramref name="Health"/> fehlt bei Geräten, die noch eine ältere Fassung der App zeigen: null lässt den Schalter, wie er ist.
+/// <paramref name="Health"/> und <paramref name="TrainingNotes"/> fehlen bei Geräten, die noch eine ältere Fassung der App zeigen: null lässt den Schalter, wie er ist.
 /// </summary>
 public record UpdateRemindersRequest(
-    bool Sessions, bool Tracks, bool TrainerSummary, int TrainerSummaryDays, int TrainerSummaryHour, bool? Health = null);
+    bool Sessions, bool Tracks, bool TrainerSummary, int TrainerSummaryDays, int TrainerSummaryHour, bool? Health = null, bool? TrainingNotes = null);
 
 /// <summary>
 /// Die wählbaren Schriftgrößen. Steht hier und nicht im Service, weil auch der

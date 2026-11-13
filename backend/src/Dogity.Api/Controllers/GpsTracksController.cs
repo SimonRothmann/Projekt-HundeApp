@@ -41,11 +41,39 @@ public class GpsTracksController(IGpsTrackService gpsTrackService) : ApiControll
         return FromResultAlsBadRequest(result);
     }
 
+    [HttpPut("{id:guid}/verdeckt")]
+    public async Task<ActionResult<GpsTrackDto>> UpdateVerdeckt(Guid id, UpdateGpsVerdecktRequest request, CancellationToken ct)
+    {
+        var result = await gpsTrackService.UpdateVerdecktAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("{id:guid}/walk-runs/{runId:guid}/trail")]
     public async Task<ActionResult<GpsWalkRunDto>> UpdateTrailRun(Guid id, Guid runId, UpdateGpsTrailRunRequest request, CancellationToken ct)
     {
         var result = await gpsTrackService.UpdateTrailRunAsync(CurrentUserId, id, runId, request, ct);
         return FromResultAlsBadRequest(result);
+    }
+
+    [HttpPut("{id:guid}/markers/{pointId:guid}")]
+    public async Task<ActionResult<GpsPointDto>> UpdateMarker(Guid id, Guid pointId, UpdateGpsMarkerRequest request, CancellationToken ct)
+    {
+        var result = await gpsTrackService.UpdateMarkerAsync(CurrentUserId, id, pointId, request, ct);
+        return FromResult(result);
+    }
+
+    [HttpPut("{id:guid}/walk-runs/{runId:guid}/articles")]
+    public async Task<ActionResult<GpsWalkRunDto>> UpdateWalkRunArticles(Guid id, Guid runId, IReadOnlyList<UpdateGpsWalkRunArticleRequest> request, CancellationToken ct)
+    {
+        var result = await gpsTrackService.UpdateWalkRunArticlesAsync(CurrentUserId, id, runId, request, ct);
+        return FromResult(result);
+    }
+
+    [HttpPut("{id:guid}/stats")]
+    public async Task<ActionResult<GpsTrackDto>> UpdateStats(Guid id, UpdateGpsTrackStatsRequest request, CancellationToken ct)
+    {
+        var result = await gpsTrackService.UpdateStatsAsync(CurrentUserId, id, request, ct);
+        return FromResult(result);
     }
 
     [HttpPost("{id:guid}/walk-runs/{runId:guid}/evaluate")]

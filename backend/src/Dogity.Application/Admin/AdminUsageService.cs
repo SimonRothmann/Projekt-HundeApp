@@ -3,6 +3,7 @@ using Dogity.Application.Common;
 using Dogity.Application.Community;
 using Dogity.Application.Preferences;
 using Dogity.Domain.Community;
+using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Admin;
@@ -139,14 +140,23 @@ public class AdminUsageService(
         new("dog-photo",
             db.DogImages.Select(i => new Zeile { UserId = null, DogId = i.DogId, At = i.CreatedAt })),
 
-        // Mitbesitz: angenommene Einladungen (der globale Filter lässt nur
-        // aktive Besitzzeilen durch). Die Zeile entsteht mit der Einladung, die
-        // Annahme setzt UpdatedAt - das ist der Moment, in dem die Person
-        // etwas tut, nicht CreatedAt. Konto: die eingeladene Person.
+        // Mitbesitz (der globale Filter lässt nur aktive Besitzzeilen durch):
+        // a) angenommene Einladungen. Die Zeile entsteht mit der Einladung, die
+        //    Annahme setzt UpdatedAt - das ist der Moment, in dem die Person
+        //    etwas tut, nicht CreatedAt.
+        // b) Altbestand vor 0.19, als Mitbesitz noch direkt eingetragen wurde
+        //    und es kein InvitedByUserId gab: Dort ist die erste Zeile des
+        //    Hundes die ursprüngliche Besitzer:in, jede spätere ohne Einlader
+        //    wurde als Mitbesitzer:in eingetragen. Zeitpunkt ist das Eintragen
+        //    (CreatedAt); UpdatedAt kann aus anderen Gründen gesetzt sein.
+        // Konto: die Person der Zeile.
         new("co-owner",
             db.DogOwners
-                .Where(o => o.InvitedByUserId != null && db.Dogs.Any(d => d.Id == o.DogId))
-                .Select(o => new Zeile { UserId = o.UserId, DogId = null, At = o.UpdatedAt ?? o.CreatedAt })),
+                .Where(o => db.Dogs.Any(d => d.Id == o.DogId)
+                    && (o.InvitedByUserId != null
+                        || db.DogOwners.Any(v => v.DogId == o.DogId && v.Id != o.Id
+                            && v.InvitedByUserId == null && v.CreatedAt < o.CreatedAt)))
+                .Select(o => new Zeile { UserId = o.UserId, DogId = null, At = o.InvitedByUserId != null ? o.UpdatedAt ?? o.CreatedAt : o.CreatedAt })),
 
         // Trainer-Betreuung: die Trainer:in übernimmt den Hund (GroupService),
         // nicht die Familie.
@@ -398,10 +408,13 @@ public class AdminUsageService(
             .GroupBy(t => t.SportId)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        // DogSportSelection hat keinen Besitzbezug; ein Hund zählt, wenn
-        // mindestens eine seiner Besitzer:innen noch ein Konto hat.
-        var hunde = (await db.DogSportSelections
-                .Select(s => new { s.SportId, s.DogId })
+        // Hunde: mit einem aktiven Ziel in der Sportart (die Sportart-Auswahl
+        // DogSportSelection lässt sich in der App nicht setzen und wäre immer
+        // leer). Je Hund und Sportart einmal; ein Hund zählt, wenn mindestens
+        // eine seiner Besitzer:innen noch ein Konto hat.
+        var hunde = (await db.Goals
+                .Where(g => g.Status == GoalStatus.Active && db.Dogs.Any(d => d.Id == g.DogId))
+                .Select(g => new { g.SportId, g.DogId })
                 .Distinct()
                 .ToListAsync(ct))
             .Where(s => besitzer[s.DogId].Any(konten.Contains))

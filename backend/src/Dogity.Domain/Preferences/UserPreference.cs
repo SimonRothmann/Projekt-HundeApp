@@ -78,6 +78,9 @@ public class UserPreference : Entity
     /// </summary>
     public bool ReminderHealth { get; set; } = true;
 
+    /// <summary>Erinnerung vor dem Training an das, was auf dem Merkzettel des Hundes steht. Standard: ja.</summary>
+    public bool ReminderTrainingNotes { get; set; } = true;
+
     /// <summary>Zusammenfassung offener Rückmeldungen (nur für Trainer:innen relevant). Standard: ja.</summary>
     public bool ReminderTrainerSummary { get; set; } = true;
 
@@ -90,6 +93,13 @@ public class UserPreference : Entity
 
     /// <summary>Uhrzeit der Zusammenfassung in Vereinszeit, volle Stunde von 8 bis 21. Standard: 18.</summary>
     public int TrainerSummaryHour { get; set; } = 18;
+
+    /// <summary>
+    /// Schrittlänge in Zentimetern (40 bis 120), mit der die Länge einer Fährte in Schritte
+    /// umgerechnet wird - Prüfungsordnungen rechnen in Schritten. Null = Standard (75 cm).
+    /// Eine Einstellung wie die Sprache und kein Messwert: Sie gehört zum Menschen, nicht zum Hund.
+    /// </summary>
+    public int? StepLengthCm { get; set; }
 
     public ICollection<UserDisabledModule> DisabledModules { get; set; } = new List<UserDisabledModule>();
     public ICollection<UserSportSelection> Sports { get; set; } = new List<UserSportSelection>();

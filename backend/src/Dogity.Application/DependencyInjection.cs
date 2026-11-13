@@ -1,5 +1,6 @@
 using Dogity.Application.Account;
 using Dogity.Application.Admin;
+using Dogity.Application.Betrieb;
 using Dogity.Application.Community;
 using Dogity.Application.Dashboard;
 using Dogity.Application.Dogs;
@@ -27,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IDogService, DogService>();
         services.AddScoped<IDogPauseService, DogPauseService>();
         services.AddScoped<IDogHealthService, DogHealthService>();
+        services.AddScoped<IMerkzettelService, MerkzettelService>();
         services.AddScoped<ISportCatalogService, SportCatalogService>();
         services.AddScoped<IExerciseManagementService, ExerciseManagementService>();
         services.AddScoped<IRegulationManagementService, RegulationManagementService>();
@@ -47,12 +49,16 @@ public static class DependencyInjection
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IClubInviteService, ClubInviteService>();
         services.AddScoped<IClubOverviewService, ClubOverviewService>();
+        services.AddScoped<IClubExamService, ClubExamService>();
+        services.AddScoped<IClubWorkService, ClubWorkService>();
+        services.AddScoped<IClubWorkRetention, ClubWorkRetention>();
         services.AddScoped<IGroupRegistrationService, GroupRegistrationService>();
         services.AddScoped<IGroupRegistrationFormService, GroupRegistrationFormService>();
         services.AddScoped<IGroupRegistrationRetention, GroupRegistrationRetention>();
         services.AddScoped<ICommunityOrphanCleanup, CommunityOrphanCleanup>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IAdminUsageService, AdminUsageService>();
+        services.AddScoped<IWartungshinweisService, WartungshinweisService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<MailDrossel>();
         services.AddScoped<IAccountMailService, AccountMailService>();

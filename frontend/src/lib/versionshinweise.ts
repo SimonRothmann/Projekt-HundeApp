@@ -21,8 +21,10 @@ import { uebersetzbar } from "@/lib/i18n/sprachen";
  * Nummerierung: MAJOR.MINOR, je Veröffentlichung eine Minor-Stufe höher,
  * eine dritte Stelle nur für Fehlerbehebungen zwischendurch (0.9.1). Kein
  * SemVer im engeren Sinn - es gibt keine öffentliche Schnittstelle, deren
- * Bruch eine Major-Stufe rechtfertigen würde. 1.0 bleibt bewusst frei: als
- * Ansage, nicht als Nebenwirkung des Hochzählens.
+ * Bruch eine Major-Stufe rechtfertigen würde. 1.0 wurde am Tag der
+ * Umsetzung (2026-11-06) als Ansage gesetzt, nicht als Nebenwirkung des
+ * Hochzählens; danach steigt wieder je Veröffentlichung die Minor-Stufe
+ * (1.1, 1.2 ...).
  *
  * Neueste Fassung steht oben. Darauf verlässt sich die Anzeige, und
  * versionshinweise.test.ts wacht darüber.
@@ -60,6 +62,120 @@ export type Versionshinweis = {
 export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
+  {
+    version: "1.2",
+    datum: "2026-11-13",
+    titel: uebersetzbar("Merkzettel fürs nächste Training"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Sagt die Trainerin „das machen wir nächstes Mal“, merkst du es dir mit „Merken“ – am schnellsten diktiert. Dogity erinnert dich vor dem nächsten Training per Push, und beim Eintragen hakst du es ab."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Eine einzelne Übung lässt sich jetzt aus einem eingetragenen Training löschen – der Rest des Trainingstags bleibt."),
+      },
+    ],
+  },
+  {
+    version: "1.1",
+    datum: "2026-11-13",
+    titel: uebersetzbar("Wartungshinweise"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Steht eine längere Wartung an, kündigt Dogity sie vorher in der App und auf der Startseite an. Während der Wartung siehst du einen Hinweis statt einer Fehlermeldung – Einträge werden auf dem Gerät gespeichert und danach nachgeschickt."),
+      },
+    ],
+  },
+  {
+    version: "1.0",
+    datum: "2026-11-08",
+    titel: uebersetzbar("Dogity 1.0"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Fährte: Nach dem Absuchen zeigt Dogity jeden Winkel und jeden Schenkel einzeln – ob der Hund sauber abgebogen oder überschossen ist, wo er gestockt hat und wie lange er für jeden Schenkel gebraucht hat. In der Entwicklung des Hundes siehst du, ob linke, rechte oder spitze Winkel schwerer fallen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Fährte: Nach dem Absuchen hältst du für jeden Gegenstand fest, ob dein Hund ihn verwiesen, aufgenommen oder überlaufen hat – das Material trägst du beim Gegenstand nach. Die Entwicklung des Hundes zeigt die Fundquote je Material."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Fährte: Die Länge steht jetzt auch in Schritten (Schrittlänge in den Einstellungen), den Bodenzustand tippst du beim Legen an, und zum Wetter kommt die Windrichtung – samt Rücken-, Gegen- oder Seitenwind je Schenkel. Eine Fährte lässt sich verdeckt absuchen, und ein versehentlich gesetzter Marker ist beim Legen mit einem Tipp wieder weg."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Dogity ist jetzt in Fassung 1.0: Trainingstagebuch, Fährten und Mantrailing, Prüfungen, Vereinsarbeit und Sachkunde sind im Alltag erprobt. Danke an alle, die seit den ersten Fassungen mitgetestet und Rückmeldungen gegeben haben."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Bewusst schwere Übungsfährten lassen sich aus der Entwicklung des Hundes herausnehmen, ohne sie zu löschen."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Arbeitseinsätze: Sind alle Helfer:innen ohne Konto schon abgehakt, sagt die Auswahl das jetzt auch so."),
+      },
+    ],
+  },
+  {
+    version: "0.50",
+    datum: "2026-11-06",
+    titel: uebersetzbar("Arbeitseinsätze im Verein"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Die Verwaltung eines Vereins kann Arbeitseinsätze eintragen und abhaken, wer geholfen hat – mit Jahresauswertung für Verwaltung und Vorstand. Jedes Mitglied sieht seine eigenen Einsätze. Auch wer Dogity nicht nutzt, lässt sich als Helfer:in ohne Konto abhaken."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Ist bei einem Hund eine Impfung oder ein anderer Gesundheitstermin fällig, siehst du das jetzt schon in der Hundeliste."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("„Dauer ändern“ und „Datum ändern“ im Tagebuch: Das Eingabefeld bleibt auf dem iPhone über der Tastatur, und an Tagen mit Einträgen von dir und deiner Trainer:in ändert die Korrektur der Dauer deinen eigenen Eintrag."),
+      },
+    ],
+  },
+  {
+    version: "0.49",
+    datum: "2026-11-04",
+    titel: uebersetzbar("Angemeldet bleiben"),
+    aenderungen: [
+      {
+        art: "behoben",
+        text: uebersetzbar("Du bleibst zuverlässiger angemeldet: Ging beim Wechsel zwischen Apps oder bei schlechtem Netz die Erneuerung der Anmeldung verloren, musstest du dich neu anmelden – auch auf deinen anderen Geräten. Das passiert nicht mehr; ist die App in mehreren Tabs offen, stören sie sich dabei nicht mehr."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Eine falsch eingetragene Trainingsdauer lässt sich jetzt korrigieren: Tag im Tagebuch aufklappen und „Dauer ändern“ antippen."),
+      },
+    ],
+  },
+  {
+    version: "0.48",
+    datum: "2026-11-01",
+    titel: uebersetzbar("Prüfungstage im Verein"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Vereine können Prüfungen planen: Ausbildungswart:in und Verwaltung legen einen Prüfungstag an und tragen die Teams ein – Mitglieder mit ihrem Hund oder Gäste. In der Meldeliste steht für jedes Team die Prüfungsreife mit Ampel und dem, was noch fehlt – nicht das Trainingstagebuch."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Die Starterliste lässt sich drucken, nach der Prüfung auch die Ergebnisliste. Die Ergebnisse trägt der Verein direkt ein: Ist ein Team bestanden, steht die Prüfung sofort bei den Leistungen des Hundes."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Du erfährst es, wenn dein Hund für eine Prüfung gemeldet wird, die Meldung zurückgenommen oder die Prüfung abgesagt wird und wenn ein Ergebnis eingetragen ist. Auf der Hundeseite steht „Gemeldet“, solange die Prüfung ansteht."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Training und Vorstand sehen bei den Vereinen, wann die nächste Prüfung ist. Die Vereinsübersicht zählt Prüfungen, Teams und bestandene Prüfungen je Monat."),
+      },
+    ],
+  },
   {
     version: "0.47",
     datum: "2026-11-01",

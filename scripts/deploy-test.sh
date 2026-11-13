@@ -36,6 +36,13 @@ git $GIT_HTTP fetch origin
 git checkout master
 git reset --hard origin/master
 
+# Caddy ZUERST neu laden, vor jedem Container-Neustart: Der Caddyfile enthält
+# die Wartungsseite für die Sekunden, in denen Backend oder Frontend neu
+# starten (handle_errors) - am Ende geladen, hätte eine neue Fassung davon erst
+# beim nächsten Deploy gegriffen (so geschehen am 2026-11-12). Scheitert das
+# Laden, bricht der Deploy ab, bevor etwas neu startet; die App läuft weiter.
+"$REPO_DIR/scripts/caddy-neu-laden.sh"
+
 echo "==> Test-Container bauen und starten"
 # Gebaut wird mit --pull, gestartet in einem zweiten Schritt.
 #
@@ -101,11 +108,6 @@ export BUILD_COMMIT="$(git rev-parse --short HEAD)"
 export BUILD_REF="$BUILD_TIME"
 docker compose build --pull frontend-test
 docker compose up -d --force-recreate frontend-test
-
-# Ein geänderter Caddyfile greift sonst erst beim nächsten Handgriff.
-# Scheitert das Laden, bricht der Deploy hier ab - die App läuft dann
-# schon neu, nur Caddy noch mit der alten Datei.
-"$REPO_DIR/scripts/caddy-neu-laden.sh"
 
 echo "==> Abschliessender Rauchtest"
 curl -sS -o /dev/null -w "test-api: HTTP %{http_code}\n" https://api-test.dogity.net/health

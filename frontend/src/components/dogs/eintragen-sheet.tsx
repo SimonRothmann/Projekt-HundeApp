@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, CirclePause, History, Plus, X } from "lucide-react";
+import { Check, ChevronDown, CirclePause, History, Plus, StickyNote, X } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError, istVoruebergehendUnerreichbar } from "@/lib/api";
 import { enqueueRequest } from "@/lib/offline-queue";
@@ -18,6 +18,7 @@ import { Chip } from "@/components/ui/chip";
 import { EintragenFuss } from "@/components/dogs/eintragen-fuss";
 import { EintragenSuche } from "@/components/dogs/eintragen-suche";
 import { EintragenZeilen } from "@/components/dogs/eintragen-zeilen";
+import { MerkenInhalt } from "@/components/dogs/merken-sheet";
 import {
   baueNutzlast,
   datumFuerTag,
@@ -51,6 +52,8 @@ import { aktuellePause } from "@/lib/pausen";
 import { useSprache, useT } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
+import { fuerHeutigesTraining, hakeAn, type Ergaenzt } from "@/lib/merkzettel";
+import { useMerkzettel } from "@/lib/use-merkzettel";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import { useAktuellerStandort } from "@/lib/use-aktueller-standort";
 import {
@@ -59,7 +62,7 @@ import {
   type EintragenVorab,
 } from "@/lib/use-eintragen-daten";
 import { useTastatur } from "@/lib/use-tastatur";
-import type { DogCondition, Dog, Exercise, GroupTrainingSession, TrainingPlanItem, TrainingSession } from "@/lib/types";
+import type { DogCondition, Dog, Exercise, GroupTrainingSession, MerkzettelEintrag, TrainingPlanItem, TrainingSession } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
@@ -85,6 +88,7 @@ export function EintragenSheet({
   termine,
   sportIdsJeHund,
   vorgabePlan,
+  darfMerken = true,
   onSaved,
 }: {
   open: boolean;
@@ -101,6 +105,11 @@ export function EintragenSheet({
   sportIdsJeHund?: Record<string, string[]>;
   /** Eine Planübung, die schon gewählt sein soll (Antippen einer Planzeile). */
   vorgabePlan?: TrainingPlanItem | null;
+  /**
+   * Ob der Merkzettel des Hundes zugänglich ist (nur Besitzer:innen; betreuende Trainer:innen tragen ein,
+   * merken aber nicht). Die Startseiten kennen nur eigene Hunde und lassen es bei ja.
+   */
+  darfMerken?: boolean;
   /** offline = true: nur in die Warteschlange geschrieben - die Seite soll NICHT neu vom Server laden. */
   onSaved: (offline: boolean) => Promise<void>;
 }) {
@@ -140,6 +149,7 @@ export function EintragenSheet({
           termine={termine}
           sportIdsJeHund={sportIdsJeHund}
           vorgabePlan={vorgabePlan ?? null}
+          darfMerken={darfMerken}
           onEntwurf={meldeEntwurf}
           onClose={() => onOpenChange(false)}
           onSaved={onSaved}
@@ -150,7 +160,7 @@ export function EintragenSheet({
   );
 }
 
-type Ansicht = "haupt" | "suche" | "ort";
+type Ansicht = "haupt" | "suche" | "ort" | "merken";
 
 function EintragenInhalt({
   startHund,
@@ -159,6 +169,7 @@ function EintragenInhalt({
   termine,
   sportIdsJeHund,
   vorgabePlan,
+  darfMerken,
   onEntwurf,
   onClose,
   onSaved,
@@ -169,6 +180,7 @@ function EintragenInhalt({
   termine: GroupTrainingSession[] | undefined;
   sportIdsJeHund: Record<string, string[]> | undefined;
   vorgabePlan: TrainingPlanItem | null;
+  darfMerken: boolean;
   /** Meldet der Hülle, ob schon etwas eingetragen ist (dann verwirft ein Tipp daneben das Fenster nicht). */
   onEntwurf: (vorhanden: boolean) => void;
   onClose: () => void;
@@ -190,6 +202,9 @@ function EintragenInhalt({
   const [verfassung, setVerfassung] = useState<DogCondition | null>(null);
   const [notiz, setNotiz] = useState("");
   const [speichert, setSpeichert] = useState(false);
+  // Gemerktes fürs heutige Training: welche Einträge angehakt sind und welche Übungszeilen das Anhaken ergänzt hat.
+  const [angehakt, setAngehakt] = useState<ReadonlySet<string>>(new Set());
+  const [ergaenzt, setErgaenzt] = useState<Ergaenzt>({});
   // Einmal beim Öffnen: "Heute 16:40" soll nicht unter dem Finger weiterzählen.
   const [uhrBeimOeffnen] = useState(() => uhrzeitText());
 
@@ -202,6 +217,9 @@ function EintragenInhalt({
   const [ortWahl, setOrtWahl] = useState<LocationValue | null>(null);
 
   const daten = useEintragenDaten(hundId, vorab, termine, sportIdsJeHund?.[hundId]);
+  // Der Merkzettel des Hundes; ohne Netz bleibt er leer - dann fehlt nur die Karte. Trainer:innen fragen ihn gar nicht erst ab.
+  const merkzettel = useMerkzettel(hundId, darfMerken);
+  const gemerkt = useMemo(() => fuerHeutigesTraining(merkzettel.eintraege), [merkzettel.eintraege]);
   const katalog = useUebungsKatalog(daten.sports);
 
   const datum = datumFuerTag(tag, anderesDatum);
@@ -293,9 +311,29 @@ function EintragenInhalt({
     setOffeneDetails((vorher) => new Set([...vorher].filter((offen) => offen !== schluessel)));
   }
 
+  /**
+   * Hakt einen Eintrag vom Merkzettel an oder ab. Beim Anhaken erscheint seine Übung als Zeile im Fenster -
+   * sichtbar, bevor gespeichert wird - sofern sie nicht schon darin steht.
+   */
+  function hakeEintragAn(eintrag: MerkzettelEintrag, an: boolean) {
+    const jetzt = gemerkt.filter((e) => angehakt.has(e.id));
+    const neu = hakeAn(zeilen, ergaenzt, eintrag, an, jetzt);
+    setZeilen(neu.zeilen);
+    setErgaenzt(neu.ergaenzt);
+    setAngehakt((vorher) => {
+      const menge = new Set(vorher);
+      if (an) menge.add(eintrag.id);
+      else menge.delete(eintrag.id);
+      return menge;
+    });
+  }
+
   function waehleHund(neu: string) {
     setHundId(neu);
     setHundWahl(false);
+    // Der Merkzettel gehört zum Hund.
+    setAngehakt(new Set());
+    setErgaenzt({});
     // Das ausdrücklich gewählte Plan-Ziel gehört zum Plan des vorigen Hundes.
     setZeilen((vorher) => vorher.map((zeile) => ({ ...zeile, vorgabePlan: null, planGeloest: false })));
   }
@@ -316,16 +354,20 @@ function EintragenInhalt({
       return;
     }
 
-    const nutzlast = baueNutzlast({
-      dogId: hundId,
-      datum,
-      dauer,
-      notiz,
-      uhrzeit,
-      ort,
-      verfassung,
-      zeilen: aufgeloest,
-    });
+    const nutzlast = {
+      ...baueNutzlast({
+        dogId: hundId,
+        datum,
+        dauer,
+        notiz,
+        uhrzeit,
+        ort,
+        verfassung,
+        zeilen: aufgeloest,
+      }),
+      // Der Server hakt sie mit dem Training ab - auch aus der Warteschlange, ohne dass das Gerät die Kennung des Trainings kennt.
+      erledigteMerkzettelIds: gemerkt.filter((e) => angehakt.has(e.id)).map((e) => e.id),
+    };
 
     setSpeichert(true);
     try {
@@ -425,6 +467,21 @@ function EintragenInhalt({
           onZurueck={() => setAnsicht("haupt")}
         />
       </>
+    );
+  }
+
+  if (ansicht === "merken") {
+    return (
+      <MerkenInhalt
+        startHund={hundId}
+        hunde={hund ? [hund] : []}
+        vorab={vorab}
+        eintrag={null}
+        onClose={() => setAnsicht("haupt")}
+        onSaved={(offline) => {
+          if (!offline) merkzettel.reload();
+        }}
+      />
     );
   }
 
@@ -535,6 +592,47 @@ function EintragenInhalt({
 
         {daten.offline && <p className="text-sm text-muted-foreground">{t("Offline - nur freie Eingabe")}</p>}
 
+        {gemerkt.length > 0 && (
+          <section className="flex flex-col gap-2 rounded-lg border border-surface-border p-3" aria-labelledby="eintragen-gemerkt">
+            <Abschnittsname id="eintragen-gemerkt">{t("Gemerkt fürs heutige Training")}</Abschnittsname>
+            <ul className="flex flex-col">
+              {gemerkt.map((eintrag) => {
+                const an = angehakt.has(eintrag.id);
+                return (
+                  <li key={eintrag.id}>
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={an}
+                      onClick={() => hakeEintragAn(eintrag, !an)}
+                      className="flex min-h-11 w-full min-w-0 items-start gap-3 rounded-md py-1.5 text-left"
+                    >
+                      <span
+                        className={cn(
+                          "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md border",
+                          an ? "border-primary bg-primary text-primary-foreground" : "border-input",
+                        )}
+                      >
+                        <Check className={cn("size-4", !an && "opacity-0")} aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm [overflow-wrap:anywhere]">{eintrag.text}</span>
+                        {/* Nur, wenn die Übung etwas anderes sagt als der Text (der Text beginnt oft mit ihrem Namen). */}
+                        {eintrag.exerciseName && eintrag.exerciseName !== eintrag.text && (
+                          <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                            {katalogName({ name: eintrag.exerciseName, nameEn: eintrag.exerciseNameEn }, sprache)}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="text-xs text-muted-foreground">{t("Angehakte werden mit dem Training abgehakt, ihre Übung kommt dazu.")}</p>
+          </section>
+        )}
+
         {wochen.length > 0 && (
           <section className="flex flex-col gap-2" aria-labelledby="eintragen-woche">
             <Abschnittsname id="eintragen-woche">{t("Diese Woche")}</Abschnittsname>
@@ -607,6 +705,13 @@ function EintragenInhalt({
           uebungen={uebungen}
           ohneVorschlaege={wochen.length === 0 && !letzte && zuletzt.length === 0}
         />
+
+        {darfMerken && (
+          <Chip className="self-start border-dashed" onClick={() => setAnsicht("merken")}>
+            <StickyNote className="size-4 shrink-0" aria-hidden />
+            {t("Fürs nächste Mal merken")}
+          </Chip>
+        )}
 
         {mehrOffen && (
           <section ref={mehrRef} className="flex flex-col gap-3 rounded-lg border border-surface-border p-3">

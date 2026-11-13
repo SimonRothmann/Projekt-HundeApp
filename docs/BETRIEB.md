@@ -12,6 +12,7 @@ klemmt. Die Sicherung der Datenbank hat eine eigene Seite:
 | 03:00 täglich | Sicherung der Prod-Datenbank nach R2 | `cat /var/backups/dogity/LETZTER_LAUF` |
 | 04:30, nur wenn nötig | Neustart, falls ein Kernel-Update darauf wartet | `uptime`, `uname -r` |
 | 04:00 sonntags | Build-Cache auf 20 GB beschneiden, verwaiste Images entfernen | `docker system df` |
+| alle 30 min | Erreichbarkeit von dogity.net und api.dogity.net (GitHub Actions, Mail bei Ausfall) | Reiter Actions im Repo |
 | laufend | Livepatch schließt Kernel-Lücken ohne Neustart (Ubuntu Pro, seit 2026-09-09) | `canonical-livepatch status` |
 
 Die Konfiguration für Updates und Neustart steht in
@@ -31,10 +32,12 @@ ssh dogity 'sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker
 ```
 
 **Ein geänderter `deploy/caddy/Caddyfile` braucht keinen Handgriff mehr.**
-Beide Deploy-Skripte rufen am Ende `scripts/caddy-neu-laden.sh` auf: Caddy
-prüft die neue Datei und tauscht sie ohne Unterbrechung aus; ist sie
-fehlerhaft, läuft er mit der alten weiter und der Deploy endet mit einer
-Fehlermeldung. Das geht, weil der Ordner `deploy/caddy` eingebunden ist und
+Beide Deploy-Skripte rufen gleich nach dem `git`-Abgleich - vor jedem
+Container-Neustart - `scripts/caddy-neu-laden.sh` auf: Caddy prüft die neue
+Datei und tauscht sie ohne Unterbrechung aus; ist sie fehlerhaft, läuft er mit
+der alten weiter und der Deploy bricht ab, bevor etwas neu startet. Zuerst,
+damit die Wartungsseite für die Neustart-Sekunden schon beim selben Deploy
+greift (bis 2026-11-12 lief das Neuladen am Ende). Das geht, weil der Ordner `deploy/caddy` eingebunden ist und
 nicht die einzelne Datei - die hinge nach `git pull` an der alten Fassung.
 Achtung: Der Caddyfile gilt für alle vier Domains, schon der Test-Deploy
 bringt eine Änderung also auch auf Prod.
@@ -105,6 +108,36 @@ ssh dogity 'cd /opt/dogity && docker compose logs frontend-prod | grep CSP-Repor
 Leer ist der Normalfall. Etwas gefunden heißt: der Browser hat eine
 Ressource blockiert, die die Seite braucht - dann gehört die Regel in
 `next.config.ts` angepasst und neu ausgerollt.
+
+**Abmeldungen nachvollziehen**
+
+Seit Fassung 0.49 schreibt das Backend jede Anmeldung und jede abgelehnte
+Sitzungserneuerung mit festem Präfix `Sitzung:`, Grund und Konto-Id ins Log
+(nie Token, Hash oder E-Mail; Erneuerungen, die klappen, stehen nicht drin).
+Mit `-t` ergänzt Docker den Zeitpunkt je Zeile, der Logger selbst schreibt keinen:
+
+```bash
+ssh dogity 'docker logs -t dogity-backend-prod-1 2>&1 | grep "Sitzung:"'
+```
+
+Gründe: `unbekannter Token`, `abgelaufen`, `abgemeldet (widerrufen ohne
+Nachfolger)`, `Wiederverwendung – alle Sitzungen widerrufen` (Warnung: Der
+Token war schon benutzt, alle Sitzungen des Kontos enden), `verlorene Antwort
+toleriert` (kein Fehler, die Sitzung läuft weiter) und `Konto gesperrt/gelöscht`.
+Die Container-Logs beginnen mit jedem Deploy neu und reichen höchstens
+30 MB zurück - wer eine Abmeldung klären will, schaut vor dem nächsten Deploy
+nach.
+
+**Abgelehnte Anfragen der Drossel (429)**
+
+Seit Fassung 1.0 schreibt das Backend jede von der Drossel abgelehnte Anfrage
+mit festem Präfix `Drossel:`, Methode und Route-Muster ins Log (nie IP, Pfad mit
+Einladungscode, Query-String oder Token). So lässt sich sehen, ob echte
+Nutzer:innen im Vereinsheim-WLAN getroffen werden:
+
+```bash
+ssh dogity 'docker logs -t dogity-backend-prod-1 2>&1 | grep "Drossel:"'
+```
 
 **Stehen Updates an, die niemand einspielt?**
 
@@ -376,6 +409,84 @@ ssh dogity 'cd /opt/dogity && docker compose up -d --wait postgres && docker com
 ```
 
 Prüfen: `SHOW shared_buffers;` liefert `2GB`.
+
+## Wartung
+
+Dogity ist bei jedem Deploy rund 22 Sekunden nicht erreichbar. Wird eine
+Wartung länger (Server-Update, Umzug, Datenbank), gibt es zwei Teile, die
+zusammen arbeiten:
+
+**1. Vorher ankündigen: Admin → System → Wartungshinweis.** Beginn (und
+optional Ende) eintragen, den Schalter „Hinweis anzeigen“ einschalten,
+speichern. Alle sehen dann ein Banner: in der App oben, auf der Startseite und
+auf der Anmeldeseite. Ohne eigenen Text steht dort der Standardsatz („Wartungsarbeiten
+am … von … bis … Uhr – Dogity ist in dieser Zeit kurz nicht erreichbar …“); die
+Vorschau im Formular zeigt ihn. Das Banner lässt sich wegklicken, nach einer
+Änderung des Hinweises erscheint es wieder. Nach dem Ende (oder mit dem Knopf
+„Hinweis ausschalten“) verschwindet es. Bis zu 30 Sekunden darf es dauern, bis
+eine Änderung auf frisch geladenen Seiten ankommt (Zwischenspeicher); bereits
+geöffnete Seiten fragen nur alle 5 Minuten nach, dort kann es entsprechend
+länger dauern - auch bis das Banner nach dem Ende verschwindet.
+
+**2. Währenddessen: Caddy springt von selbst ein.** Ist das Frontend oder das
+Backend nicht erreichbar (Caddy bekommt 502, 503 oder 504 – also auch bei
+jedem Deploy), antwortet Caddy statt der nackten Fehlermeldung:
+
+| Wer | Antwort |
+|---|---|
+| Frontend-Domains (Prod und Test) | Wartungsseite `deploy/caddy/wartung/wartung.html`, Status 503, lädt alle 30 Sekunden neu |
+| API-Domains (Prod und Test) | `{"wartung":true}`, Status 503, Kopfzeile `X-Dogity-Wartung: 1`, mit CORS-Freigabe für das zugehörige Frontend (auch für die Vorab-Anfrage) |
+
+Die App erkennt die Kopfzeile, zeigt das Banner „Wartungsarbeiten laufen“ (nicht
+wegklickbar) und nimmt es bei der nächsten erfolgreichen Antwort zurück. Einträge,
+die in dieser Zeit auf dem Handy entstehen, gehen wie bei jedem Netzausfall in die
+Warteschlange und werden danach nachgeschickt.
+
+Dafür ist nichts einzuschalten: Die Wartungsseite braucht keinen Handgriff und
+gilt für alle vier Domains. Ändert man `deploy/caddy/Caddyfile` oder die Seite,
+prüft `caddy validate --config deploy/caddy/Caddyfile` die Datei vor dem Deploy
+(mit gesetzten Umgebungsvariablen `ACME_EMAIL`, `PROD_DOMAIN`, `PROD_API_DOMAIN`,
+`TEST_DOMAIN`, `TEST_API_DOMAIN`, Dummy-Werte genügen). Die CORS-Domain im
+Snippet `wartung_api` muss zu `Cors__AllowedOrigins__0` der jeweiligen Umgebung
+passen (docker-compose.yml).
+
+Antwortet die Anwendung selbst mit einem Fehler (auch ein 503 des Backends),
+reicht Caddy ihn unverändert durch – die Wartungsseite erscheint nur, wenn
+Caddy den Upstream nicht erreicht.
+
+## Deploy per GitHub Action
+
+Neben `ssh dogity /opt/dogity/scripts/deploy-test.sh` und
+`scripts/promote-to-prod.sh` geht ein Deploy auch ohne Entwicklungsrechner:
+Reiter **Actions → Deploy → Run workflow**, Ziel `test` oder `prod` (auch in der
+GitHub-App). Per Kommandozeile: `gh workflow run deploy.yml -f ziel=test`.
+
+- **Test** startet sofort und ruft `deploy-test.sh` auf.
+- **Prod** wartet auf eine Freigabe: Umgebung `prod` verlangt ein „Approve“ des
+  Betreibers (Mail bzw. Hinweis in der GitHub-App, „Review deployments“). Danach
+  schiebt die Action den master-Stand beim Klick auf „Run workflow“ nach `prod`
+  (nur Fast-Forward, sonst bricht sie ab) und ruft `deploy-prod.sh` auf. Die
+  Zeitregel für Prod (nicht 16–19 Uhr, nicht am Wochenende) gilt weiter.
+- Beide Umgebungen lassen nur Läufe vom Branch `master` zu; zwei Deploys laufen
+  nie gleichzeitig.
+
+**Aufbau.** Der Schlüssel `github-actions-deploy` steht in
+`~/.ssh/authorized_keys` des Benutzers `dogity` mit erzwungenem Befehl:
+
+```
+command="/opt/dogity/scripts/deploy-per-schluessel.sh",restrict ssh-ed25519 AAAA… github-actions-deploy
+```
+
+Wer sich mit ihm anmeldet, kann nur `test` oder `prod` auslösen, keine Shell
+und keine Weiterleitung. Den privaten Teil kennt nur GitHub (Secret
+`DEPLOY_SSH_KEY`); `DEPLOY_HOST` und `DEPLOY_KNOWN_HOSTS` (die Host-Schlüssel der
+VPS) liegen daneben als Secrets.
+
+**Schlüssel tauschen.** Neues Paar erzeugen
+(`ssh-keygen -t ed25519 -N "" -C github-actions-deploy -f deploy`), die Zeile in
+`authorized_keys` ersetzen, `gh secret set DEPLOY_SSH_KEY < deploy`, die lokale
+Datei `deploy` löschen. Ändert sich der Host-Schlüssel der VPS (Neuinstallation),
+`DEPLOY_KNOWN_HOSTS` neu setzen - sonst bricht die Action bewusst ab.
 
 ## Bewusst offen
 

@@ -37,7 +37,7 @@ namespace Dogity.Infrastructure.Persistence.Seed;
 /// Warum ein eigener Seeder und nicht noch mehr im DemoDataSeeder: Der bricht
 /// ab, sobald das Trainer-Konto existiert - auf der Test-Umgebung gibt es die
 /// Demo-Konten seit Juli, jede Erweiterung dort käme nie an. Dieser Seeder
-/// läuft bei JEDEM Start (siehe Program.cs, nur in Development), und jedes
+/// läuft bei JEDEM Start (siehe Program.cs, nur in Development oder mit Demo:Aktiv), und jedes
 /// Szenario prüft für sich, ob seine Daten schon da sind (an festen Texten),
 /// und legt nur Fehlendes an. Termine sind "rollend": bei jedem Start gibt es
 /// wieder künftige. Ebenso die Nachtfährte: Solange niemand sie abgelaufen hat,
@@ -87,6 +87,9 @@ public static class DemoSzenarienSeeder
     public const string NotizGesundheitEntwurmung = "Entwurmung mit Tablette; die nächste wäre vor ein paar Tagen dran gewesen.";
     public const string NotizGesundheitTermin = "Kontrolle und Impfberatung in der Praxis Musterstadt.";
     public const string NotizGesundheitEmma = "Tollwut laut Impfpass, alles in Ordnung.";
+    // Die Prüfungstage der Demo erkennt der Seeder an ihrer Bemerkung (siehe docs/DEMO_DATEN.md).
+    public const string NotizPruefungKommend = "Demo: BH-Prüfung im Vereinsgelände, Meldeschluss eine Woche vorher.";
+    public const string NotizPruefungVergangen = "Demo: Prüfung IBGH 1 im letzten Monat, Ergebnisse eingetragen.";
     public const string NotizMantrailingZiel = "Erste Mantrailing-Prüfung: SV-MT 1.";
     public const string KommentarMantrailing = "Trail durchs Wohngebiet, anderthalb Stunden gelegen, doppelblind.";
     public const string KommentarNachtfaehrte = "Abends gelegt, über Nacht liegen gelassen - morgen früh ablaufen.";
@@ -191,6 +194,8 @@ public static class DemoSzenarienSeeder
                 ("Schweiz", SchweizAsync),
                 // Zuletzt: Es braucht die Ziele aus "Prüfungsziele" (Bello) und "Schweiz" (Sandro).
                 ("Prüfungsreife", PruefungsreifeAsync),
+                // Nach der Prüfungsreife: Die Ampel von Bellos BH-Ziel steht auf der Meldeliste.
+                ("Vereinsprüfung", VereinspruefungAsync),
             })
             {
                 try
@@ -1328,6 +1333,88 @@ public static class DemoSzenarienSeeder
             // Wiedervorlage wie im Leitner-Modell: Box 4 nach 14 Tagen, Box 2 nach 4 (siehe ExerciseMasteryService).
             stand.DueAt = stand.LastTrainedAt.Value.AddDays(sicher ? 14 : 4);
             stand.UpdatedAt = jetzt;
+        }
+
+        // ---------------------------------------------------------------- i2) Vereinsprüfung (Willi Wart)
+
+        /// <summary>
+        /// Zwei Prüfungstage im Demo-Verein, angelegt von Willi Wart (Ausbildungswart) über denselben Dienst wie in der
+        /// App: eine BH-Prüfung in drei Wochen mit Max und Bello (Ampel gelb, siehe "Prüfungsreife") und einem Gast-Team,
+        /// und eine Prüfung (IBGH 1) vor fünf Wochen, bei der Emma bestanden hat - als Leistung bei Emma sichtbar - und ein
+        /// Gast nicht. Erkannt an der Bemerkung; was ein Tester ändert oder löscht, kommt nicht zurück. Der kommende Tag
+        /// ist ROLLEND: Liegt er in der Vergangenheit und hat kein Ergebnis, rückt er wieder auf drei Wochen voraus.
+        /// </summary>
+        private async Task VereinspruefungAsync(CancellationToken ct)
+        {
+            var willi = await userManager.FindByEmailAsync(AusbildungswartEmail);
+            if (willi is null) return;
+
+            var service = services.GetRequiredService<IClubExamService>();
+            var heute = Vereinszeit.Heute();
+            var hunde = await HundeVonAsync(max, ct);
+
+            var kommend = await db.ClubExams.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.ClubId == club.Id && e.Note == NotizPruefungKommend, ct);
+            if (kommend is null)
+            {
+                var (_, bh) = await KatalogAsync("BH", "BH", ct);
+                var bello = hunde.FirstOrDefault(h => h.Name == "Bello");
+                if (bh is null || bello is null) return;
+
+                var neu = await service.CreateAsync(willi.Id, club.Id, new SaveClubExamRequest(
+                    heute.AddDays(21), new TimeOnly(10, 0), "Vereinsgelände Musterstadt", "Richterin Rita Richter",
+                    heute.AddDays(14), NotizPruefungKommend, [bh.Id]), ct);
+                if (!neu.Succeeded)
+                {
+                    logger.LogWarning("Demo-Prüfung konnte nicht angelegt werden: {Fehler}", string.Join("; ", neu.Errors));
+                    return;
+                }
+                foreach (var team in new[]
+                {
+                    new AddClubExamEntryRequest(bh.Id, max.Id, bello.Id, null, null, null),
+                    new AddClubExamEntryRequest(bh.Id, null, null, "Gerd Gast", "Aska", "Hundefreunde Nord, Deutscher Schäferhund"),
+                })
+                {
+                    var eintrag = await service.AddEntryAsync(willi.Id, club.Id, neu.Value!.Id, team, ct);
+                    if (!eintrag.Succeeded)
+                        logger.LogWarning("Demo-Team konnte nicht eingetragen werden: {Fehler}", string.Join("; ", eintrag.Errors));
+                }
+            }
+            else if (kommend.DeletedAt is null && kommend.Status == ClubExamStatus.Planned && kommend.Date < heute
+                && !await db.ClubExamEntries.AnyAsync(e => e.ExamId == kommend.Id && e.Result != ClubExamResult.Open, ct))
+            {
+                kommend.Date = heute.AddDays(21);
+                kommend.RegistrationDeadline = heute.AddDays(14);
+                await db.SaveChangesAsync(ct);
+            }
+
+            if (await db.ClubExams.IgnoreQueryFilters().AnyAsync(e => e.ClubId == club.Id && e.Note == NotizPruefungVergangen, ct)) return;
+
+            var (_, ibgh) = await KatalogAsync("IBGH1", "IBGH1", ct);
+            var emma = hunde.FirstOrDefault(h => h.Name == "Emma");
+            if (ibgh is null || emma is null) return;
+
+            var vergangen = await service.CreateAsync(willi.Id, club.Id, new SaveClubExamRequest(
+                heute.AddDays(-35), new TimeOnly(9, 30), "Vereinsgelände Musterstadt", "Richter Rudolf Richter",
+                null, NotizPruefungVergangen, [ibgh.Id]), ct);
+            if (!vergangen.Succeeded)
+            {
+                logger.LogWarning("Demo-Prüfung (vergangen) konnte nicht angelegt werden: {Fehler}", string.Join("; ", vergangen.Errors));
+                return;
+            }
+            var tag = vergangen.Value!.Id;
+            await service.AddEntryAsync(willi.Id, club.Id, tag, new AddClubExamEntryRequest(ibgh.Id, max.Id, emma.Id, null, null, null), ct);
+            await service.AddEntryAsync(willi.Id, club.Id, tag, new AddClubExamEntryRequest(ibgh.Id, null, null, "Gina Gast", "Nero", "Hundesportverein Süd, Border Collie"), ct);
+
+            var geladen = await service.GetAsync(willi.Id, club.Id, tag, ct);
+            foreach (var eintrag in geladen.Value?.Entries ?? [])
+            {
+                var ergebnis = eintrag.Kind == ClubExamTeamKind.Member
+                    ? new SetClubExamResultRequest(ClubExamResult.Passed, null, "Sicherer Auftritt, nur die Gruppenablenkung war knapp.")
+                    : new SetClubExamResultRequest(ClubExamResult.Failed, null, "Beim Ablegen aus der Bewegung zu spät.");
+                var gesetzt = await service.SetResultAsync(willi.Id, club.Id, tag, eintrag.Id, ergebnis, ct);
+                if (!gesetzt.Succeeded)
+                    logger.LogWarning("Demo-Ergebnis konnte nicht eingetragen werden: {Fehler}", string.Join("; ", gesetzt.Errors));
+            }
         }
 
         // ---------------------------------------------------------------- j) Nachtfährte (Bello)

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { uebersetze } from "@/lib/i18n";
 import { FAEHRTE_GRENZEN } from "../mantrailing";
-import type { GpsWalkPoint, GpsWalkRun, GpsWalkStop } from "@/lib/types";
+import type { GpsWalkPoint, GpsWalkRun, GpsWalkRunCorner, GpsWalkStop } from "@/lib/types";
 import {
   DEVIATION_COLORS,
   MARKER_COLORS,
@@ -12,6 +12,8 @@ import {
   legungDaten,
   leer,
   liveAblaufDaten,
+  winkelDaten,
+  WINKEL_NEUTRAL_FARBE,
   type KartenPunkt,
 } from "./spur-daten";
 
@@ -320,5 +322,70 @@ describe("leer", () => {
     expect(a).toStrictEqual({ type: "FeatureCollection", features: [] });
     expect(a).not.toBe(b);
     expect(a.features).not.toBe(b.features);
+  });
+});
+
+describe("winkelDaten", () => {
+  function winkel(number: number, rest: Partial<GpsWalkRunCorner> = {}): GpsWalkRunCorner {
+    return {
+      number,
+      direction: 1,
+      sharp: false,
+      turnDegrees: 90,
+      latitude: 50 + number / 1000,
+      longitude: 8,
+      reached: true,
+      overshootMeters: 1,
+      overshot: false,
+      holdSeconds: 0,
+      timeAtCornerSeconds: 20,
+      ...rest,
+    };
+  }
+
+  function mitWinkeln(corners: GpsWalkRunCorner[]): GpsWalkRun {
+    return { ...lauf([]), corners };
+  }
+
+  it("setzt die Nummer an die Lage des Winkels, Koordinaten als [lon, lat]", () => {
+    const d = winkelDaten([mitWinkeln([winkel(1), winkel(2)])], t);
+
+    expect(d.features.map((f) => f.properties.nummer)).toStrictEqual(["1", "2"]);
+    expect(d.features[0].geometry.coordinates).toStrictEqual([8, 50.001]);
+  });
+
+  it("färbt nach dem Zustand: sauber grün, überschossen rot, nicht erreicht neutral", () => {
+    const d = winkelDaten(
+      [
+        mitWinkeln([
+          winkel(1),
+          winkel(2, { overshot: true, overshootMeters: 9 }),
+          winkel(3, { reached: false, overshootMeters: null }),
+        ]),
+      ],
+      t,
+    );
+
+    expect(d.features.map((f) => f.properties.farbe)).toStrictEqual([
+      DEVIATION_COLORS.green,
+      DEVIATION_COLORS.red,
+      WINKEL_NEUTRAL_FARBE,
+    ]);
+    expect(d.features[1].properties.text).toBe("Winkel 2 · rechts · überschossen 9 m");
+  });
+
+  it("nimmt den zuletzt gezeigten Ablauf mit Winkeln", () => {
+    const aelter = mitWinkeln([winkel(1)]);
+    const juenger = mitWinkeln([winkel(1, { overshot: true, overshootMeters: 8 })]);
+
+    const d = winkelDaten([aelter, juenger, lauf([])], t);
+
+    expect(d.features).toHaveLength(1);
+    expect(d.features[0].properties.farbe).toBe(DEVIATION_COLORS.red);
+  });
+
+  it("ist ohne Winkel leer - auch bei älteren Ständen ohne das Feld", () => {
+    expect(winkelDaten([], t).features).toStrictEqual([]);
+    expect(winkelDaten([lauf([])], t).features).toStrictEqual([]);
   });
 });

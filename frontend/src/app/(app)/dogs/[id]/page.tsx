@@ -3,13 +3,14 @@
 import { useCallback, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { MODULE, type TrainingPlanItem } from "@/lib/types";
+import { MODULE, type MerkzettelEintrag, type TrainingPlanItem } from "@/lib/types";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { laeuftFaehrte, spurArten } from "@/lib/faehrte";
 import { DogEditForm } from "@/components/dogs/dog-edit-form";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { LeistungenCard } from "@/components/dogs/leistungen-card";
+import { GemeldetHinweis } from "@/components/dogs/gemeldet-hinweis";
 import { DogHeader } from "@/components/dogs/dog-header";
 import { PauseBand } from "@/components/dogs/pause-band";
 import { DogActionBar } from "@/components/dogs/dog-action-bar";
@@ -20,6 +21,8 @@ import { GesundheitTab } from "@/components/dogs/gesundheit-tab";
 import { DogActionsSheet } from "@/components/dogs/dog-actions-sheet";
 import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
+import { MerkenSheet } from "@/components/dogs/merken-sheet";
+import { MerkzettelListe } from "@/components/dogs/merkzettel-liste";
 import { useAuth } from "@/lib/auth-context";
 import { eintragIdAus, leseGesehen } from "@/lib/feedback-gesehen";
 import { adresseMit, aktiveHunde, geltenderReiter, REITER_PARAMETER, ungeseheneRueckmeldungen, verfuegbarerReiter, waehleReiter, zeigeHundeChips, zielStatus, type HundeReiter } from "@/lib/hundeseite";
@@ -29,6 +32,7 @@ import { angeboteneSportarten } from "@/lib/eintragen";
 import { usePreferences } from "@/lib/preferences-context";
 import { useDogAnker } from "@/lib/use-dog-anker";
 import { useDogPage } from "@/lib/use-dog-page";
+import { useMerkzettel } from "@/lib/use-merkzettel";
 import { useSprache, useT } from "@/lib/i18n";
 
 /**
@@ -71,6 +75,15 @@ function DogPage({ id }: { id: string }) {
   const [editing, setEditing] = useState(false);
   const [menuOffen, setMenuOffen] = useState(false);
   const [faehrteOffen, setFaehrteOffen] = useState(false);
+  // Das Merken-Fenster und der Eintrag, der darin geändert wird (null = neuer). Der Merkzettel gehört
+  // der Familie: Betreuende Trainer:innen bekommen ihn nicht (der Server antwortet ihnen mit 404).
+  const [merkenOffen, setMerkenOffen] = useState(false);
+  const [merkenEintrag, setMerkenEintrag] = useState<MerkzettelEintrag | null>(null);
+  const merkzettel = useMerkzettel(id, isOwner);
+  function oeffneMerken(eintrag: MerkzettelEintrag | null) {
+    setMerkenEintrag(eintrag);
+    setMerkenOffen(true);
+  }
   // Zählt die Änderungen, nach denen der Fährten-Verlauf neu zu laden ist (neue
   // Fährte, neuer Ablauf, gelöscht). Ein Zähler statt der Trainingsliste als
   // Auslöser: Die Liste wechselt schon beim Öffnen der Seite mehrmals (Cache,
@@ -139,7 +152,12 @@ function DogPage({ id }: { id: string }) {
   async function handleTrainingSaved(offline: boolean) {
     // Offline gespeicherte Trainings liegen nur in der Warteschlange - ein
     // Server-Reload würde sie nicht enthalten und nur verwirren.
-    if (!offline) await loadAll();
+    if (!offline) {
+      await loadAll();
+      // Beim Eintragen abgehakte Merkzettel-Einträge sind jetzt erledigt - die Liste oben
+      // im Reiter Plan hat einen eigenen Abruf und zeigte sie sonst weiter als offen.
+      merkzettel.reload();
+    }
   }
 
   if (nichtGefunden)
@@ -174,8 +192,10 @@ function DogPage({ id }: { id: string }) {
       <DogActionBar
         zeigtFaehrte={zeigtFaehrte}
         nurTrail={arten.mantrailing && !arten.faehrte}
+        zeigtMerken={isOwner}
         onTraining={() => oeffneEintragen(null)}
         onFaehrte={() => setFaehrteOffen(true)}
+        onMerken={() => oeffneMerken(null)}
       />
 
       <DogStatusLine
@@ -192,6 +212,18 @@ function DogPage({ id }: { id: string }) {
           Innenelement, damit "hidden" nicht von einer Klasse überstimmt wird. */}
       <div role="tabpanel" id={reiterPanelId("plan")} aria-labelledby={reiterTabId("plan")} hidden={reiter !== "plan"}>
         <div className="flex flex-col gap-6">
+          {/* Nur mit offenen Einträgen, und nur für die Familie. */}
+          {isOwner && merkzettel.eintraege && merkzettel.eintraege.length > 0 && (
+            <MerkzettelListe
+              dogId={id}
+              eintraege={merkzettel.eintraege}
+              onMerken={() => oeffneMerken(null)}
+              onBearbeiten={oeffneMerken}
+              onChanged={merkzettel.reload}
+            />
+          )}
+          {/* Nur die Familie: Der Server antwortet betreuenden Trainer:innen mit 404. */}
+          {isOwner && <GemeldetHinweis dogId={id} />}
           <GoalsSection dogId={id} dogName={dog.name} sports={angebotene} goals={goals} onEintragen={oeffneEintragen} onChanged={loadAll} />
           <LeistungenCard goals={goals} onChanged={loadAll} />
         </div>
@@ -229,8 +261,24 @@ function DogPage({ id }: { id: string }) {
         // noch einmal (und widerspricht ihr so nie).
         vorab={{ dogId: id, sports: angebotene, goals, sessions }}
         vorgabePlan={eintragenPlan}
+        darfMerken={isOwner}
         onSaved={handleTrainingSaved}
       />
+
+      {isOwner && (
+        <MerkenSheet
+          open={merkenOffen}
+          onOpenChange={setMerkenOffen}
+          dogId={id}
+          hunde={[dog]}
+          vorab={{ dogId: id, sports: angebotene, goals, sessions }}
+          eintrag={merkenEintrag}
+          // Offline liegt der Eintrag nur in der Warteschlange - ein Neuladen würde ihn nicht zeigen.
+          onSaved={(offline) => {
+            if (!offline) merkzettel.reload();
+          }}
+        />
+      )}
 
       <DogActionsSheet
         dog={dog}

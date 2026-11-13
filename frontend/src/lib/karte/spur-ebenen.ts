@@ -13,6 +13,7 @@ export const SPUR_QUELLEN = [
   "legung-linie",
   "legung-enden",
   "marker",
+  "winkel",
   "ablauf-bewertet",
   "ablauf-unbewertet",
   "ablauf-live",
@@ -31,6 +32,7 @@ export const TIPPBARE_EBENEN = [
   "ablauf-live",
   "halte",
   "marker",
+  "winkel",
   "start",
   "ende",
 ] as const;
@@ -122,6 +124,33 @@ export function spurEbenen(): LayerSpecification[] {
         "circle-stroke-width": 2,
         "circle-stroke-opacity": 0.9,
       },
+    },
+    // Die Nummer jedes Winkels der Legung, klein auf der Linie. Die Schrift liegt als Glyphen
+    // neben dem Kartenstil (public/karte/schriften), auch beim Luftbild.
+    {
+      id: "winkel",
+      type: "circle",
+      source: "winkel",
+      paint: {
+        "circle-radius": 8,
+        "circle-color": FARBE,
+        "circle-opacity": 0.95,
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 2,
+      },
+    },
+    {
+      id: "winkel-nummer",
+      type: "symbol",
+      source: "winkel",
+      layout: {
+        "text-field": ["get", "nummer"],
+        "text-font": ["noto_sans_bold"],
+        "text-size": 11,
+        "text-allow-overlap": true,
+        "text-ignore-placement": true,
+      },
+      paint: { "text-color": "#ffffff" },
     },
     // Start gefüllt, Ende hohl - dieselbe Farbe wie die Linie, statt Grün und
     // Rot: beides sind Ampeltöne und meinten hier gerade NICHT gut und

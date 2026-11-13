@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { rollenVon } from "@/lib/vereinsrollen";
+import { naechstePruefungText } from "@/lib/pruefungen";
 import { VereinsantragSection } from "@/components/clubs/vereinsantrag-section";
 import { MeineGruppenSection } from "@/components/clubs/meine-gruppen-section";
+import { MeineArbeitseinsaetzeKarte } from "@/components/arbeitseinsaetze/meine-karte";
 import type { Club, ClubSummary, ClubMembership, Group } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -13,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, Users } from "lucide-react";
 import { toast } from "sonner";
 
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
 function membershipFor(memberships: ClubMembership[], clubId: string): ClubMembership | undefined {
   // Bei mehrfachen Anfragen (z.B. nach Ablehnung erneut angefragt) zählt
   // die jüngste Zeile.
@@ -24,6 +26,7 @@ function membershipFor(memberships: ClubMembership[], clubId: string): ClubMembe
 
 export default function ClubsPage() {
   const t = useT();
+  const sprache = useSprache();
   const [clubs, setClubs] = useState<ClubSummary[] | null>(null);
   const [memberships, setMemberships] = useState<ClubMembership[]>([]);
   const [groupsByClub, setGroupsByClub] = useState<Record<string, Group[]>>({});
@@ -194,6 +197,12 @@ export default function ClubsPage() {
                       )}
                     </div>
                   )}
+                  {/* Training, Vorstand und die Prüfungsleitung wissen vom nächsten Prüfungstag - ohne Link, die Meldeliste sieht nur die Prüfungsleitung. */}
+                  {meiner?.nextExam && (
+                    <p className="text-sm [overflow-wrap:anywhere]">{naechstePruefungText(t, meiner.nextExam, sprache)}</p>
+                  )}
+                  {/* Jedes Mitglied sieht die eigenen Arbeitseinsätze (nur, wenn es welche gibt). */}
+                  {(isApproved || rollen.length > 0) && <MeineArbeitseinsaetzeKarte clubId={club.id} />}
                   {isApproved ? (
                     <div className="flex items-center gap-2">
                       <Badge>{t("Mitglied")}</Badge>
