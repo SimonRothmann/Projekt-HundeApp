@@ -13,6 +13,28 @@ public readonly record struct EvaluatedStop(
     WalkStopKind Kind,
     string? MarkerLabel);
 
+/// <summary>Ein Schenkel der Fährte mit dem, was der Ablauf darauf gemacht hat (siehe <see cref="GpsWalkRunLeg"/>).</summary>
+public readonly record struct EvaluatedLeg(
+    int Number,
+    double LengthMeters,
+    int? DurationSeconds,
+    double? SpeedMetersPerMinute,
+    double? AvgDeviationMeters);
+
+/// <summary>Ein Winkel der Fährte mit dem Umgang des Ablaufs damit (siehe <see cref="GpsWalkRunCorner"/>).</summary>
+public readonly record struct EvaluatedCorner(
+    int Number,
+    CornerDirection Direction,
+    bool Sharp,
+    double TurnDegrees,
+    double Latitude,
+    double Longitude,
+    bool Reached,
+    double? OvershootMeters,
+    bool Overshot,
+    int HoldSeconds,
+    int? TimeAtCornerSeconds);
+
 /// <summary>Gesamtergebnis der Auswertung eines Ablaufs.</summary>
 public readonly record struct WalkRunEvaluation(
     double AvgDeviationMeters,
@@ -21,7 +43,10 @@ public readonly record struct WalkRunEvaluation(
     int ArticlesFound,
     int ArticlesTotal,
     IReadOnlyList<EvaluatedWalkPoint> Points,
-    IReadOnlyList<EvaluatedStop> Stops);
+    IReadOnlyList<EvaluatedStop> Stops,
+    // Nur Fährte (sonst leer): siehe FaehrtenGeometrie.
+    IReadOnlyList<EvaluatedLeg> Legs,
+    IReadOnlyList<EvaluatedCorner> Corners);
 
 /// <summary>
 /// Grenzen der Auswertung für eine Art der Aufzeichnung: bis <see cref="GreenMaxMeters"/>
@@ -88,6 +113,27 @@ public static class GpsTrackEvaluator
     /// </summary>
     public const long MaxAuswertungsAufwand = 200_000_000;
 
+    /// <summary>
+    /// Stand der Auswertung, wie er am Ablauf steht (<see cref="GpsWalkRun.EvaluationVersion"/>).
+    /// Hochzählen, wenn bestehende Auswertungen neu zu rechnen sind - der Backfill holt dann alle
+    /// Abläufe darunter beim nächsten Start nach. 1 = mit Winkeln und Schenkeln.
+    /// </summary>
+    public const int AktuelleVersion = 1;
+
+    /// <summary>
+    /// Fenster um einen Winkel, in dem ein Ausschlag als Überschießen zählt: ein kleines Stück davor
+    /// (das GPS eilt vor) und weit genug dahinter, um den Hund zu fassen, der geradeaus weiterläuft,
+    /// bevor er sich korrigiert.
+    /// </summary>
+    private const double UeberschiessenDavorMeters = 5.0;
+    private const double UeberschiessenDahinterMeters = 20.0;
+
+    /// <summary>Halbe Breite des Fensters, in dem die Zeit am Winkel gemessen wird (10 m davor bis 10 m dahinter).</summary>
+    private const double ZeitAmWinkelHalbMeters = 10.0;
+
+    /// <summary>Rundungsspielraum beim Vergleich von Stationierungen (Gleitkomma), kein fachlicher Spielraum.</summary>
+    private const double StationEpsilon = 1e-6;
+
     /// <summary>Punkte, die für die Halteerkennung mindestens so weit auseinanderliegen müssen.</summary>
     private static readonly TimeSpan StopMinPointSpacing = TimeSpan.FromMilliseconds(500);
 
@@ -118,7 +164,7 @@ public static class GpsTrackEvaluator
         var articlesTotal = kind == GpsTrackKind.Faehrte ? markers.Count(m => m.MarkerType == GpsMarkerType.Article) : 0;
 
         if (line.Count == 0 || walk.Count == 0)
-            return new WalkRunEvaluation(0, 0, 0, 0, articlesTotal, [], []);
+            return new WalkRunEvaluation(0, 0, 0, 0, articlesTotal, [], [], [], []);
 
         // Auch die Marker zählen: Jeder Gegenstand wird gegen jeden
         // Ablaufpunkt geprüft, und wie viele Marker eine Fährte hat, bestimmt
@@ -148,17 +194,18 @@ public static class GpsTrackEvaluator
         var onTrack = deviations.Count(d => d <= onTrackMeters) * 100.0 / deviations.Length;
 
         // ---- Gegenstände: kam der Hundeführer nah genug heran? ----
-        var articlesFound = markers
-            .Where(m => articlesTotal > 0 && m.MarkerType == GpsMarkerType.Article)
-            .Count(m =>
-            {
-                var mp = Project(m.Latitude, m.Longitude, originLat);
-                return walk.Any(w => Distance(Project(w.Latitude, w.Longitude, originLat), mp) <= MarkerProximityMeters);
-            });
+        var articlesFound = articlesTotal > 0 ? ErreichteGegenstaende(markers, walk, originLat).Count : 0;
 
-        var stops = DetectStops(walk, markers, originLat);
+        // ---- Winkel und Schenkel: nur bei der Fährte ----
+        var geometrie = kind == GpsTrackKind.Faehrte ? FaehrtenGeometrie.Berechnen(line) : null;
+        var winkelEbene = geometrie?.Winkel.Select(w => Project(w.Latitude, w.Longitude, originLat)).ToArray() ?? [];
 
-        return new WalkRunEvaluation(avg, max, onTrack, articlesFound, articlesTotal, evaluated, stops);
+        var stops = DetectStops(walk, markers, winkelEbene, originLat);
+        var (legs, corners) = geometrie is null
+            ? ([], [])
+            : WinkelUndSchenkel(geometrie, walk, deviations, stops, winkelEbene, originLat);
+
+        return new WalkRunEvaluation(avg, max, onTrack, articlesFound, articlesTotal, evaluated, stops, legs, corners);
     }
 
     /// <summary>
@@ -172,6 +219,7 @@ public static class GpsTrackEvaluator
     private static List<EvaluatedStop> DetectStops(
         IReadOnlyList<GpsWalkPoint> alleAblaufpunkte,
         IReadOnlyList<GpsPoint> markers,
+        (double X, double Y)[] winkelEbene,
         double originLat)
     {
         // Höchstens zwei Punkte pro Sekunde. Das Fenster unten wächst, solange
@@ -199,7 +247,7 @@ public static class GpsTrackEvaluator
             var seconds = (int)Math.Round((walk[lastIndex].Timestamp - walk[i].Timestamp).TotalSeconds);
             if (lastIndex > i && seconds >= StopMinDurationSeconds)
             {
-                var (kind, label) = ClassifyStop(anchor, markers, originLat);
+                var (kind, label) = ClassifyStop(anchor, markers, winkelEbene, originLat);
                 stops.Add(new EvaluatedStop(walk[i].Latitude, walk[i].Longitude, seconds, kind, label));
                 i = j; // Fenster abschließen, nicht überlappend erneut zählen
             }
@@ -215,6 +263,7 @@ public static class GpsTrackEvaluator
     private static (WalkStopKind Kind, string? Label) ClassifyStop(
         (double X, double Y) stop,
         IReadOnlyList<GpsPoint> markers,
+        (double X, double Y)[] winkelEbene,
         double originLat)
     {
         GpsPoint? nearest = null;
@@ -230,12 +279,124 @@ public static class GpsTrackEvaluator
         }
 
         if (nearest is null || nearestDistance > MarkerProximityMeters)
-            return (WalkStopKind.Unexplained, null);
+        {
+            // Gegenstand und Leckerli gehen vor; ohne Marker erklärt ein Winkel den Halt: Der Hund
+            // arbeitet ihn aus, das ist fachlich normal und kein Warnsignal.
+            return (winkelEbene.Any(w => Distance(w, stop) <= MarkerProximityMeters)
+                ? WalkStopKind.AtCorner
+                : WalkStopKind.Unexplained, null);
+        }
 
         // Halt am Gegenstand = Verweisen (erwünscht); an Leckerlipot/Verleitung
         // erklärt und neutral.
         var kind = nearest.MarkerType == GpsMarkerType.Article ? WalkStopKind.Indication : WalkStopKind.Explained;
         return (kind, nearest.Label);
+    }
+
+    /// <summary>
+    /// Wertet den Ablauf gegen die Schenkel und Winkel der gelegten Fährte aus. Grundlage ist der
+    /// FORTSCHRITT: Jeder Ablaufpunkt wird auf die vereinfachte Linie projiziert (Stationierung),
+    /// das laufende Maximum gilt - Rauschen und Zurückgehen setzen den Fortschritt nicht zurück.
+    /// </summary>
+    private static (List<EvaluatedLeg> Legs, List<EvaluatedCorner> Corners) WinkelUndSchenkel(
+        FaehrtenGeometrie geometrie,
+        IReadOnlyList<GpsWalkPoint> walk,
+        double[] deviations,
+        IReadOnlyList<EvaluatedStop> stops,
+        (double X, double Y)[] winkelEbene,
+        double originLat)
+    {
+        var fortschritt = new double[walk.Count];
+        var bisher = 0.0;
+        for (var i = 0; i < walk.Count; i++)
+        {
+            var station = geometrie.Stationierung(walk[i].Latitude, walk[i].Longitude);
+            bisher = i == 0 ? station : Math.Max(bisher, station);
+            fortschritt[i] = bisher;
+        }
+
+        // Der erste Ablaufpunkt, dessen Fortschritt die Stationierung erreicht (-1 = nie erreicht).
+        int ErsterBei(double station) => Array.FindIndex(fortschritt, f => f >= station - StationEpsilon);
+
+        int? SekundenZwischen(int von, int bis) =>
+            von < 0 || bis < 0 ? null : (int)Math.Round((walk[bis].Timestamp - walk[von].Timestamp).TotalSeconds);
+
+        var legs = new List<EvaluatedLeg>(geometrie.Schenkel.Count);
+        for (var k = 0; k < geometrie.Schenkel.Count; k++)
+        {
+            var schenkel = geometrie.Schenkel[k];
+            // Am Fährtenende bleibt der Hundeführer meist ein paar Meter vor dem letzten gelegten
+            // Punkt stehen (der Hund liegt am Endgegenstand, die Leine ist lang) - ohne Spielraum
+            // fehlte dem letzten Schenkel fast immer die Dauer.
+            var ende = k == geometrie.Schenkel.Count - 1
+                ? Math.Max(schenkel.StartMeters, schenkel.EndMeters - MarkerProximityMeters)
+                : schenkel.EndMeters;
+            var dauer = SekundenZwischen(ErsterBei(schenkel.StartMeters), ErsterBei(ende));
+
+            // Ein Punkt genau auf dem Winkel gehört noch zum Schenkel davor: Läuft der Hund über den
+            // Winkel hinaus, bleibt sein Fortschritt dort stehen, die Abweichung wächst aber - sie
+            // gehört auf den Schenkel, den er verfehlt hat.
+            var abweichungen = Enumerable.Range(0, walk.Count)
+                .Where(i => (k == 0 || fortschritt[i] > schenkel.StartMeters + StationEpsilon)
+                            && fortschritt[i] <= schenkel.EndMeters + StationEpsilon)
+                .Select(i => deviations[i])
+                .ToList();
+
+            legs.Add(new EvaluatedLeg(
+                schenkel.Number,
+                schenkel.LengthMeters,
+                dauer,
+                // Tempo über die tatsächlich gemessene Strecke (beim letzten Schenkel ohne den Spielraum).
+                dauer is > 0 ? (ende - schenkel.StartMeters) / (dauer.Value / 60.0) : null,
+                abweichungen.Count > 0 ? abweichungen.Average() : null));
+        }
+
+        var erreichtBis = fortschritt[^1];
+        var corners = new List<EvaluatedCorner>(geometrie.Winkel.Count);
+        for (var k = 0; k < geometrie.Winkel.Count; k++)
+        {
+            var winkel = geometrie.Winkel[k];
+            var erreicht = erreichtBis >= winkel.StationMeters - StationEpsilon;
+
+            double? ueberschiessen = null;
+            var ueberschossen = false;
+            if (erreicht)
+            {
+                var imFenster = Enumerable.Range(0, walk.Count)
+                    .Where(i => fortschritt[i] >= winkel.StationMeters - UeberschiessenDavorMeters - StationEpsilon
+                                && fortschritt[i] <= winkel.StationMeters + UeberschiessenDahinterMeters + StationEpsilon)
+                    .Select(i => deviations[i])
+                    .ToList();
+                if (imFenster.Count > 0)
+                {
+                    ueberschiessen = imFenster.Max();
+                    ueberschossen = ueberschiessen > FaehrteToleranz.AmberMaxMeters;
+                }
+            }
+
+            var halt = stops
+                .Where(s => Distance(Project(s.Latitude, s.Longitude, originLat), winkelEbene[k]) <= MarkerProximityMeters)
+                .Sum(s => s.DurationSeconds);
+
+            var zeitAmWinkel = SekundenZwischen(
+                ErsterBei(winkel.StationMeters - ZeitAmWinkelHalbMeters),
+                ErsterBei(winkel.StationMeters + ZeitAmWinkelHalbMeters));
+
+            corners.Add(new EvaluatedCorner(
+                winkel.Number,
+                winkel.Direction,
+                winkel.Sharp,
+                winkel.TurnDegrees,
+                winkel.Latitude,
+                winkel.Longitude,
+                erreicht,
+                ueberschiessen,
+                ueberschossen,
+                halt,
+                zeitAmWinkel));
+        }
+
+        return (legs, corners);
     }
 
     /// <summary>Kürzester Abstand eines Punkts zur Polylinie (Minimum über alle Segmente).</summary>
@@ -266,7 +427,41 @@ public static class GpsTrackEvaluator
         return Distance(p, (a.X + t * dx, a.Y + t * dy));
     }
 
-    private static (double X, double Y) Project(double latitude, double longitude, double originLat)
+    /// <summary>
+    /// Die Gegenstände (Marker der Art Gegenstand), denen der Hundeführer in einem Ablauf auf
+    /// <see cref="MarkerProximityMeters"/> nahe kam - die Regel hinter <c>ArticlesFound</c>, einzeln
+    /// herausgegeben für den GPS-Hinweis neben der Angabe der Hundeführer:in. Aus den Rohpunkten des
+    /// Ablaufs, nicht aus der vereinfachten Anzeige-Linie: Auf einer langen Geraden bliebe sonst nur der
+    /// Anfang und das Ende, und ein Gegenstand dazwischen gälte als nicht erreicht.
+    /// null, wenn der Aufwand über <see cref="MaxAuswertungsAufwand"/> läge - wie bei der Auswertung selbst,
+    /// damit das Lesen eines riesigen Ablaufs nicht teurer wird als dessen Auswertung.
+    /// </summary>
+    public static IReadOnlyList<Guid>? ErreichteGegenstaende(IEnumerable<GpsPoint> gelegt, IEnumerable<GpsWalkPoint> ablauf)
+    {
+        var punkte = gelegt.ToList();
+        var ablaufPunkte = ablauf.ToList();
+        if ((long)ablaufPunkte.Count * punkte.Count > MaxAuswertungsAufwand)
+            return null;
+        // Derselbe Bezugspunkt wie in TryEvaluate: der Anfang der gelegten Linie.
+        var anfang = punkte.Where(p => p.PointType != GpsPointType.Manual).MinBy(p => p.Timestamp);
+        return anfang is null ? [] : ErreichteGegenstaende(punkte, ablaufPunkte, anfang.Latitude);
+    }
+
+    private static List<Guid> ErreichteGegenstaende(IEnumerable<GpsPoint> marker, IEnumerable<GpsWalkPoint> ablauf, double originLat)
+    {
+        var ablaufEbene = ablauf.Select(w => Project(w.Latitude, w.Longitude, originLat)).ToList();
+        return marker
+            .Where(m => m.PointType == GpsPointType.Manual && m.MarkerType == GpsMarkerType.Article)
+            .Where(m =>
+            {
+                var mp = Project(m.Latitude, m.Longitude, originLat);
+                return ablaufEbene.Any(w => Distance(w, mp) <= MarkerProximityMeters);
+            })
+            .Select(m => m.Id)
+            .ToList();
+    }
+
+    internal static (double X, double Y) Project(double latitude, double longitude, double originLat)
     {
         const double earthRadiusMeters = 6371000;
         var lat0Rad = originLat * Math.PI / 180;
@@ -275,6 +470,6 @@ public static class GpsTrackEvaluator
             Y: latitude * Math.PI / 180 * earthRadiusMeters);
     }
 
-    private static double Distance((double X, double Y) a, (double X, double Y) b)
+    internal static double Distance((double X, double Y) a, (double X, double Y) b)
         => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
 }

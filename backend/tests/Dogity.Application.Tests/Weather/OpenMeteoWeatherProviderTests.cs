@@ -20,6 +20,7 @@ public class OpenMeteoWeatherProviderTests
         "temperature_2m": [17.4, 19.1, 21.8],
         "relative_humidity_2m": [61, 55, 48],
         "wind_speed_10m": [6.5, 8.2, 9.9],
+        "wind_direction_10m": [270, 245.4, 359.6],
         "weather_code": [0, 1, 3]
       }
     }
@@ -44,6 +45,33 @@ public class OpenMeteoWeatherProviderTests
         Assert.Equal(55, reading.RelativeHumidity);
         Assert.Equal(8.2, reading.WindSpeedKmh);
         Assert.Equal(1, reading.WeatherCode);
+        Assert.Equal(245, reading.WindDirectionDeg);
+    }
+
+    [Fact]
+    public async Task GetAtAsync_RequestsWindDirection_AndWrapsFullCircleToZero()
+    {
+        string? url = null;
+        var provider = Make(HttpStatusCode.OK, HourlyJson, u => url = u);
+
+        // 12:00 UTC -> 359,6 Grad rundet auf 360, und das ist dieselbe Richtung wie 0.
+        var reading = await provider.GetAtAsync(48.9, 8.5, new DateTimeOffset(2026, 8, 13, 12, 0, 0, TimeSpan.Zero));
+
+        Assert.Contains("wind_direction_10m", url);
+        Assert.Equal(0, reading!.WindDirectionDeg);
+    }
+
+    [Fact]
+    public async Task GetAtAsync_WithoutWindDirectionInResponse_LeavesItEmpty()
+    {
+        var ohneRichtung = HourlyJson.Replace("\"wind_direction_10m\": [270, 245.4, 359.6],", "");
+        var provider = Make(HttpStatusCode.OK, ohneRichtung);
+
+        var reading = await provider.GetAtAsync(48.9, 8.5, new DateTimeOffset(2026, 8, 13, 11, 0, 0, TimeSpan.Zero));
+
+        Assert.NotNull(reading);
+        Assert.Null(reading!.WindDirectionDeg);
+        Assert.Equal(8.2, reading.WindSpeedKmh);
     }
 
     [Fact]

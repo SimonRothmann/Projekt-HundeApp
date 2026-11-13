@@ -11,7 +11,7 @@ let werte: Map<string, string>;
 let ort: { protocol: string; hostname: string; pathname: string; href: string };
 let aufrufe: { url: string; token: string | null }[];
 
-type Antwort = (url: string, token: string | null) => Promise<Response> | Response;
+type Antwort = (url: string, token: string | null, rumpf: { refreshToken?: string }) => Promise<Response> | Response;
 
 const json = (status: number, rumpf: unknown) => new Response(JSON.stringify(rumpf), { status });
 const istErneuerung = (url: string) => url.endsWith("/api/auth/refresh");
@@ -24,7 +24,7 @@ function server(antwort: Antwort) {
       const kopf = (init?.headers ?? {}) as Record<string, string>;
       const token = kopf.Authorization?.replace("Bearer ", "") ?? null;
       aufrufe.push({ url, token });
-      return antwort(url, token);
+      return antwort(url, token, typeof init?.body === "string" ? JSON.parse(init.body) : {});
     }),
   );
 }
@@ -97,6 +97,24 @@ describe("Token-Erneuerung: Erfolg", () => {
     await api.get("/api/dogs");
 
     expect(erneuerungen()).toBe(2);
+  });
+
+  it("ein 401, das erst nach einer fertigen Erneuerung ankommt, erneuert nicht noch einmal", async () => {
+    // Der Aufruf ging mit dem alten Token hinaus; bis seine Ablehnung zurück ist, hat
+    // eine andere Erneuerung (dieser oder ein anderer Tab) schon einen neuen Token abgelegt.
+    server((url, token) => {
+      if (istErneuerung(url)) return json(200, { token: "neuer", refreshToken: "refresh-neuer" });
+      if (token === "alt") {
+        werte.set(TOKEN_KEY, "neu");
+        return json(401, {});
+      }
+      return json(200, { wert: 7 });
+    });
+
+    await expect(api.get<{ wert: number }>("/api/dogs")).resolves.toEqual({ wert: 7 });
+
+    expect(erneuerungen()).toBe(0);
+    expect(aufrufe.map((a) => a.token)).toEqual(["alt", "neu"]);
   });
 
   it("wiederholt nur einmal: ein zweites 401 nach der Erneuerung ist ein Fehler, keine Schleife", async () => {
@@ -174,5 +192,123 @@ describe("Token-Erneuerung: Ausfall", () => {
 
     expect(erneuerungen()).toBe(0);
     expect(ort.href).toBe("http://localhost/dashboard");
+  });
+});
+
+// Mehrere Tabs teilen sich localStorage, aber jeder hat seine eigene Single-Flight. Damit
+// trotzdem nur EIN Tab erneuert, läuft die Erneuerung unter einer browserweiten Sperre (Web
+// Locks); wer sie nach einem anderen Tab bekommt, findet den Refresh-Token schon ersetzt und
+// geht nicht zum Server. Ein Tab ist hier eine eigene Modulinstanz von api.ts.
+describe("Token-Erneuerung: mehrere Tabs", () => {
+  type ApiModul = typeof import("@/lib/api");
+
+  async function neuerTab(): Promise<ApiModul> {
+    vi.resetModules();
+    return import("@/lib/api");
+  }
+
+  /** Eine Sperren-Attrappe wie navigator.locks: ein Halter nach dem anderen, in Reihenfolge der Anfragen. */
+  function sperren() {
+    let kette: Promise<unknown> = Promise.resolve();
+    const gesperrt: string[] = [];
+    return {
+      gesperrt,
+      locks: {
+        request: (name: string, rueckruf: () => Promise<unknown>) => {
+          gesperrt.push(name);
+          const lauf = kette.then(rueckruf);
+          kette = lauf.catch(() => undefined);
+          return lauf;
+        },
+      },
+    };
+  }
+
+  /** Server, der einen Refresh-Token nur einmal annimmt (Rotation) und die Erneuerung festhält, bis beide Tabs im 401 stehen. */
+  function rotierenderServer(freigabe: Promise<void>) {
+    let gueltig = "refresh-alt";
+    server(async (url, token, rumpf) => {
+      if (istErneuerung(url)) {
+        await freigabe;
+        // Ein zweiter Aufruf mit dem alten Token wäre die Wiederverwendung.
+        if (rumpf.refreshToken !== gueltig) return json(401, {});
+        gueltig = "refresh-neu";
+        return json(200, { token: "neu", refreshToken: "refresh-neu" });
+      }
+      return token === "neu" ? json(200, { wert: 1 }) : json(401, {});
+    });
+  }
+
+  it("mit Sperre erneuert nur ein Tab, der andere übernimmt den neuen Token aus dem Speicher", async () => {
+    const { locks, gesperrt } = sperren();
+    vi.stubGlobal("navigator", { locks });
+    let freigeben!: () => void;
+    rotierenderServer(new Promise<void>((weiter) => (freigeben = weiter)));
+    const tab1 = await neuerTab();
+    const tab2 = await neuerTab();
+
+    const beide = Promise.all([tab1.api.get("/api/a"), tab2.api.get("/api/b")]);
+    await vi.waitFor(() => expect(aufrufe.filter((a) => a.token === "alt")).toHaveLength(2));
+    freigeben();
+
+    await expect(beide).resolves.toEqual([{ wert: 1 }, { wert: 1 }]);
+    expect(erneuerungen()).toBe(1);
+    expect(gesperrt).toEqual(["dogity-token-erneuern", "dogity-token-erneuern"]);
+    // Beide Seiten haben mit dem neuen Access-Token wiederholt.
+    expect(aufrufe.filter((a) => a.token === "neu")).toHaveLength(2);
+    expect(werte.get(REFRESH_KEY)).toBe("refresh-neu");
+  });
+
+  it("ohne Web Locks erneuert der Tab wie bisher direkt, ohne Sperre", async () => {
+    vi.stubGlobal("navigator", {});
+    server(erneuernderServer);
+    const tab = await neuerTab();
+
+    await expect(tab.api.get("/api/dogs")).resolves.toEqual({ wert: 42 });
+
+    expect(erneuerungen()).toBe(1);
+    expect(werte.get(REFRESH_KEY)).toBe("refresh-neu");
+  });
+
+  it("mit Sperre und ohne anderen Tab geht die Erneuerung wie bisher zum Server", async () => {
+    const { locks } = sperren();
+    vi.stubGlobal("navigator", { locks });
+    server(erneuernderServer);
+    const tab = await neuerTab();
+
+    await expect(tab.api.get("/api/dogs")).resolves.toEqual({ wert: 42 });
+
+    expect(erneuerungen()).toBe(1);
+    expect(werte.get(REFRESH_KEY)).toBe("refresh-neu");
+  });
+
+  it("mit Sperre beendet ein 401 der Erneuerung die Sitzung wie bisher", async () => {
+    const { locks } = sperren();
+    vi.stubGlobal("navigator", { locks });
+    server((url) => (istErneuerung(url) ? json(401, {}) : json(401, { errors: ["Nicht angemeldet."] })));
+    const tab = await neuerTab();
+
+    await expect(tab.api.get("/api/dogs")).rejects.toMatchObject({ status: 401 });
+
+    expect(werte.size).toBe(0);
+    expect(ort.href).toBe("/login");
+  });
+
+  it("hat ein anderer Tab abgemeldet (Refresh-Token weg), fragt der wartende Tab den Server nicht", async () => {
+    const { locks } = sperren();
+    vi.stubGlobal("navigator", { locks });
+    server((url) => (istErneuerung(url) ? json(200, { token: "neu", refreshToken: "refresh-neu" }) : json(401, {})));
+    const tab = await neuerTab();
+    // Zwischen dem 401 und der Sperre meldet ein anderer Tab ab.
+    const inSperre = locks.request;
+    locks.request = (name, rueckruf) => {
+      werte.delete(REFRESH_KEY);
+      return inSperre(name, rueckruf);
+    };
+
+    await expect(tab.api.get("/api/dogs")).rejects.toMatchObject({ status: 401 });
+
+    expect(erneuerungen()).toBe(0);
+    expect(ort.href).toBe("/login");
   });
 });

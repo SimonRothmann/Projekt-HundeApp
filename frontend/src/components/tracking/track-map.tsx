@@ -23,6 +23,7 @@ import {
   legungDaten,
   leer,
   liveAblaufDaten,
+  winkelDaten,
   type KartenPunkt,
 } from "@/lib/karte/spur-daten";
 import {
@@ -460,7 +461,9 @@ export function TrackMap({
 
   useEffect(() => {
     const d = ablaufDaten(walkRuns, t, spurGrenzen({ kind: artKind }));
-    const teil = { "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, halte: d.halte };
+    // Winkel gibt es nur bei der Fährte.
+    const winkel = istMantrailing({ kind: artKind }) ? leer<never>() : winkelDaten(walkRuns, t);
+    const teil = { "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, halte: d.halte, winkel };
     Object.assign(datenRef.current, teil);
     datenAnwenden(mapRef.current, teil);
   }, [mapReady, walkRuns, t, artKind]);

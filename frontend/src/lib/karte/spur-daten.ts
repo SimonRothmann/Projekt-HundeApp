@@ -3,6 +3,7 @@ import { automatischePunkte, markerPunkte } from "@/lib/geo";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { FAEHRTE_GRENZEN, type SpurGrenzen } from "@/lib/mantrailing";
 import { AMPEL_FARBEN, ampelStufe } from "@/lib/spur-ampel";
+import { winkelBeschriftung, winkelZustand, zustandBeschriftung } from "@/lib/winkel-schenkel";
 
 /**
  * Die Fährte als GeoJSON für die Karte.
@@ -85,12 +86,16 @@ export const MARKER_COLORS = ["orange", "#a855f7", "#0ea5e9", "#94a3b8"] as cons
 
 // Stockungen: unerklärt = Warnsignal (rot), Verweisen am Gegenstand = gut
 // (grün), erklärt/neutral (grau).
-export const STOP_COLORS = ["#dc2626", "#16a34a", "#94a3b8"] as const;
+export const STOP_COLORS = ["#dc2626", "#16a34a", "#94a3b8", "#94a3b8"] as const;
 export const STOP_LABELS = [
   uebersetzbar("Unerklärte Stockung"),
   uebersetzbar("Verweisen"),
   uebersetzbar("Halt (erklärt)"),
+  uebersetzbar("Halt am Winkel"),
 ] as const;
+
+// Winkel, die der Ablauf nicht erreicht hat (oder ohne Ablauf-Zustand): nicht Teil der Ampel.
+export const WINKEL_NEUTRAL_FARBE = "#64748b";
 
 export function leer<G>(): Merkmale<G> {
   return { type: "FeatureCollection", features: [] };
@@ -158,6 +163,31 @@ export function legungDaten(points: KartenPunkt[], live: boolean, t: TextUeberse
       }),
     },
   };
+}
+
+/**
+ * Die Winkel der gelegten Fährte als nummerierte Punkte auf der Linie. Die Lage steht je Ablauf
+ * am Server (alle Abläufe teilen dieselbe Legung); die Farbe richtet sich nach dem Zustand im
+ * zuletzt gezeigten Ablauf - sauber grün, überschossen nach der Ampel, nicht erreicht neutral.
+ * Ohne ausgewerteten Ablauf gibt es keine Winkel zu zeigen.
+ */
+export function winkelDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen: SpurGrenzen = FAEHRTE_GRENZEN): Merkmale<Punkt> {
+  const lauf = [...walkRuns].reverse().find((r) => (r.corners ?? []).length > 0);
+  const features = (lauf?.corners ?? []).map((corner) => {
+    const zustand = winkelZustand(corner);
+    const farbe =
+      zustand === "sauber"
+        ? AMPEL_FARBEN.gruen
+        : zustand === "ueberschossen"
+          ? (deviationColor(corner.overshootMeters ?? Infinity, grenzen) ?? AMPEL_FARBEN.rot)
+          : WINKEL_NEUTRAL_FARBE;
+    return punkt(corner, {
+      farbe,
+      nummer: String(corner.number),
+      text: `${winkelBeschriftung(corner, t)} · ${zustandBeschriftung(corner, t)}`,
+    });
+  });
+  return { type: "FeatureCollection", features };
 }
 
 export type AblaufDaten = {

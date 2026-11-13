@@ -91,6 +91,7 @@ internal static class WetterAuftraege
             track.LaidRelativeHumidity = wetter.RelativeHumidity;
             track.LaidWindSpeedKmh = wetter.WindSpeedKmh;
             track.LaidWeatherCode = wetter.WeatherCode;
+            track.LaidWindDirectionDeg = wetter.WindDirectionDeg;
         }
         else
         {
@@ -98,6 +99,7 @@ internal static class WetterAuftraege
             track.SearchRelativeHumidity = wetter.RelativeHumidity;
             track.SearchWindSpeedKmh = wetter.WindSpeedKmh;
             track.SearchWeatherCode = wetter.WeatherCode;
+            track.SearchWindDirectionDeg = wetter.WindDirectionDeg;
         }
 
         track.WeatherFetchedAt = jetzt;

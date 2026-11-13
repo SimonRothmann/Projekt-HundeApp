@@ -5,6 +5,7 @@ import { LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { useSprache, useT } from "@/lib/i18n";
+import { stundenText } from "@/lib/arbeitseinsaetze";
 import { ortsformat } from "@/lib/ortsformat";
 import type { ClubOverview, ClubOverviewMember } from "@/lib/types";
 import { filtereMitglieder, mitgliedName, monatsLabel } from "@/lib/vereinsuebersicht";
@@ -23,7 +24,8 @@ import { Abschnittsname } from "@/components/dogs/abschnittsname";
  */
 export function ClubOverviewSection({ clubId }: { clubId: string }) {
   const t = useT();
-  const ort = ortsformat(useSprache());
+  const sprache = useSprache();
+  const ort = ortsformat(sprache);
   const [uebersicht, setUebersicht] = useState<ClubOverview | null>(null);
   const [mitglieder, setMitglieder] = useState<ClubOverviewMember[] | null>(null);
   const [fehler, setFehler] = useState(false);
@@ -137,6 +139,60 @@ export function ClubOverviewSection({ clubId }: { clubId: string }) {
                 {t("Termine: stattgefundene und geplante, ohne abgesagte. Zusagen: Summe der Zusagen von Gruppenmitgliedern zu diesen Terminen.")}
               </p>
             </div>
+
+            {/* Prüfungstage nur, wenn es in den sechs Monaten welche gab - sonst bliebe eine Tabelle voller Nullen. */}
+            {uebersicht.months.some((m) => (m.exams ?? 0) > 0) && (
+              <div className="flex flex-col gap-2">
+                <Abschnittsname>{t("Prüfungen, letzte 6 Monate")}</Abschnittsname>
+                <table className="w-full table-fixed text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-muted-foreground">
+                      <th scope="col" className="w-2/5 py-1 pr-2 font-medium">{t("Monat")}</th>
+                      <th scope="col" className="px-1 py-1 text-right font-medium">{t("Prüfungen")}</th>
+                      <th scope="col" className="px-1 py-1 text-right font-medium">{t("Teams")}</th>
+                      <th scope="col" className="py-1 pl-1 text-right font-medium">{t("Bestanden")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {uebersicht.months.map((m) => (
+                      <tr key={`${m.year}-${m.month}`} className="border-t">
+                        <th scope="row" className="py-1.5 pr-2 text-left font-normal">{monatsLabel(m.year, m.month, ort)}</th>
+                        <td className="px-1 py-1.5 text-right tabular-nums">{m.exams ?? 0}</td>
+                        <td className="px-1 py-1.5 text-right tabular-nums">{m.examTeams ?? 0}</td>
+                        <td className="py-1.5 pl-1 text-right tabular-nums">{m.examsPassed ?? 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-xs text-muted-foreground">{t("Prüfungen ohne abgesagte, mit allen Teams darauf. Nur Summen, keine Namen.")}</p>
+              </div>
+            )}
+
+            {/* Arbeitseinsätze nur, wenn es in den sechs Monaten welche gab. */}
+            {uebersicht.months.some((m) => (m.workEvents ?? 0) > 0) && (
+              <div className="flex flex-col gap-2">
+                <Abschnittsname>{t("Arbeitseinsätze, letzte 6 Monate")}</Abschnittsname>
+                <table className="w-full table-fixed text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-muted-foreground">
+                      <th scope="col" className="w-2/5 py-1 pr-2 font-medium">{t("Monat")}</th>
+                      <th scope="col" className="px-1 py-1 text-right font-medium">{t("Einsätze")}</th>
+                      <th scope="col" className="py-1 pl-1 text-right font-medium">{t("Helferstunden")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {uebersicht.months.map((m) => (
+                      <tr key={`${m.year}-${m.month}`} className="border-t">
+                        <th scope="row" className="py-1.5 pr-2 text-left font-normal">{monatsLabel(m.year, m.month, ort)}</th>
+                        <td className="px-1 py-1.5 text-right tabular-nums">{m.workEvents ?? 0}</td>
+                        <td className="py-1.5 pl-1 text-right tabular-nums">{stundenText(m.workMinutes ?? 0, sprache)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-xs text-muted-foreground">{t("Nur Summen, keine Namen. Die Einzelheiten stehen unter Arbeitseinsätze.")}</p>
+              </div>
+            )}
 
             <div className="flex flex-col gap-3">
               <Abschnittsname>{t("Mitglieder")}</Abschnittsname>

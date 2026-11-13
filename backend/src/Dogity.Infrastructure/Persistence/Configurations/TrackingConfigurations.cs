@@ -11,6 +11,7 @@ public class GpsTrackConfiguration : IEntityTypeConfiguration<GpsTrack>
     {
         builder.ToTable("gps_tracks");
         builder.Property(t => t.Surface).HasMaxLength(Textlaengen.Kurzangabe);
+        builder.Property(t => t.GroundCondition).HasMaxLength(Textlaengen.Kurzangabe);
         builder.Property(t => t.Weather).HasMaxLength(Textlaengen.Kurzangabe);
         builder.Property(t => t.Wind).HasMaxLength(Textlaengen.Kurzangabe);
         builder.Property(t => t.Comment).HasMaxLength(Textlaengen.FaehrtenKommentar);
@@ -18,6 +19,8 @@ public class GpsTrackConfiguration : IEntityTypeConfiguration<GpsTrack>
         // Fährten (Vorgabe "Faehrte"); die beiden Schalter starten mit false.
         builder.Property(t => t.Kind).HasConversion<string>().HasMaxLength(20).HasDefaultValue(GpsTrackKind.Faehrte);
         builder.Property(t => t.ScentArticle).HasMaxLength(Textlaengen.Geruchsartikel);
+        // Bestehende Fährten zählen weiter in die Entwicklung.
+        builder.Property(t => t.ExcludeFromStats).HasDefaultValue(false);
         builder.HasIndex(t => t.TrainingSessionId);
     }
 }
@@ -29,6 +32,7 @@ public class GpsPointConfiguration : IEntityTypeConfiguration<GpsPoint>
         builder.ToTable("gps_points");
 
         builder.Property(p => p.Label).HasMaxLength(Textlaengen.MarkerBeschriftung);
+        builder.Property(p => p.Material).HasMaxLength(Textlaengen.GegenstandsMaterial);
 
         builder.HasOne(p => p.Track)
             .WithMany(t => t.Points)
@@ -46,6 +50,8 @@ public class GpsWalkRunConfiguration : IEntityTypeConfiguration<GpsWalkRun>
         builder.ToTable("gps_walk_runs");
         builder.Property(r => r.Comment).HasMaxLength(Textlaengen.FaehrtenKommentar);
         builder.Property(r => r.Indication).HasConversion<string>().HasMaxLength(20);
+        // Bestehende Zeilen gelten als "vor Winkel und Schenkeln" (0); der Backfill rechnet sie nach.
+        builder.Property(r => r.EvaluationVersion).HasDefaultValue(0);
 
         builder.HasOne(r => r.Track)
             .WithMany(t => t.WalkRuns)
@@ -88,5 +94,55 @@ public class GpsWalkStopConfiguration : IEntityTypeConfiguration<GpsWalkStop>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(s => s.WalkRunId);
+    }
+}
+
+public class GpsWalkRunLegConfiguration : IEntityTypeConfiguration<GpsWalkRunLeg>
+{
+    public void Configure(EntityTypeBuilder<GpsWalkRunLeg> builder)
+    {
+        builder.ToTable("gps_walk_run_legs");
+
+        builder.HasOne(l => l.WalkRun)
+            .WithMany(r => r.Legs)
+            .HasForeignKey(l => l.WalkRunId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(l => l.WalkRunId);
+    }
+}
+
+public class GpsWalkRunCornerConfiguration : IEntityTypeConfiguration<GpsWalkRunCorner>
+{
+    public void Configure(EntityTypeBuilder<GpsWalkRunCorner> builder)
+    {
+        builder.ToTable("gps_walk_run_corners");
+        // Als String wie GpsWalkStop.Kind.
+        builder.Property(c => c.Direction).HasConversion<string>().HasMaxLength(20);
+
+        builder.HasOne(c => c.WalkRun)
+            .WithMany(r => r.Corners)
+            .HasForeignKey(c => c.WalkRunId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(c => c.WalkRunId);
+    }
+}
+
+public class GpsWalkRunArticleConfiguration : IEntityTypeConfiguration<GpsWalkRunArticle>
+{
+    public void Configure(EntityTypeBuilder<GpsWalkRunArticle> builder)
+    {
+        builder.ToTable("gps_walk_run_articles");
+        // Als String wie GpsWalkStop.Kind.
+        builder.Property(a => a.Result).HasConversion<string>().HasMaxLength(20);
+
+        builder.HasOne(a => a.WalkRun)
+            .WithMany(r => r.Articles)
+            .HasForeignKey(a => a.WalkRunId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Eine Angabe je Gegenstand und Ablauf.
+        builder.HasIndex(a => new { a.WalkRunId, a.PointId }).IsUnique();
     }
 }

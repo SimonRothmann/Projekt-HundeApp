@@ -1,0 +1,39 @@
+# Prüft alle 30 Minuten, ob Prod erreichbar ist - heute merkt der Betreiber
+# einen Ausfall sonst erst, wenn jemand schreibt.
+#
+# Kostenlos im öffentlichen Repo. Schlägt eine Prüfung fehl, scheitert der Lauf,
+# und GitHub schickt eine Mail an das Konto, das diese Datei zuletzt geändert
+# hat. Die Wiederholungen überbrücken einen Deploy (das Backend ist dabei rund
+# 22 Sekunden weg). Die Testumgebung wird bewusst nicht überwacht.
+#
+# Grenzen: GitHub pausiert geplante Läufe nach 60 Tagen ohne Aktivität im Repo
+# (Reiter Actions -> "Enable workflow" reaktiviert sie), und die Startzeiten
+# schwanken um einige Minuten.
+name: Erreichbarkeit
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  pruefen:
+    name: Prod erreichbar
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Backend (Health)
+        run: |
+          antwort=$(curl -fsS --retry 3 --retry-delay 30 --retry-all-errors --max-time 20 \
+            https://api.dogity.net/health)
+          echo "$antwort"
+          case "$antwort" in
+            *'"status":"ok"'*) ;;
+            *) echo "Health meldet nicht ok." >&2; exit 1 ;;
+          esac
+      - name: Frontend (Startseite)
+        run: |
+          curl -fsS --retry 3 --retry-delay 30 --retry-all-errors --max-time 20 \
+            -o /dev/null https://dogity.net/

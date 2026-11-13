@@ -33,6 +33,15 @@ public interface ITrainingService
     Task<Result<TrainingSessionDto>> MoveTrainingDayAsync(Guid userId, Guid sessionId, DateOnly date, CancellationToken ct = default);
 
     /// <summary>
+    /// Setzt die Dauer des Trainingstags, zu dem die angegebene Einheit gehört.
+    /// <paramref name="minuten"/> ist die Tagessumme, wie das Tagebuch sie zeigt;
+    /// bei mehreren Einheiten bleibt die Aufteilung auf die anderen bestehen.
+    /// Enthält der Tag Einträge, die die Person nicht bearbeiten darf, wird
+    /// nichts geändert - sonst stimmte die Summe nicht mehr.
+    /// </summary>
+    Task<Result<TrainingSessionDto>> SetDayDurationAsync(Guid userId, Guid sessionId, int minuten, CancellationToken ct = default);
+
+    /// <summary>
     /// Trainer-Feedback zu den angegebenen Hunden, auf das noch nicht reagiert
     /// wurde - neuestes zuerst, höchstens eine feste Obergrenze. Berücksichtigt
     /// nur Hunde, die dem Nutzer als Besitzer:in/Mitbesitzer:in gehören (die
@@ -59,6 +68,14 @@ public interface ITrainingService
     /// </summary>
     Task<Result> UpdateExerciseNotesAsync(Guid userId, Guid exerciseId, string? notes, CancellationToken ct = default);
     Task<Result<TrainingSessionDto>> UpdateExerciseAsync(Guid userId, Guid exerciseId, UpdateTrainingExerciseRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Löscht eine einzelne Übung aus einem eingetragenen Training (weich).
+    /// Wer die Einheit bearbeiten darf, darf auch die Übung löschen (wie
+    /// <see cref="UpdateExerciseAsync"/>). Die Einheit selbst bleibt auch dann
+    /// bestehen, wenn es die letzte Übung war. Liefert die aktualisierte Einheit.
+    /// </summary>
+    Task<Result<TrainingSessionDto>> DeleteExerciseAsync(Guid userId, Guid exerciseId, CancellationToken ct = default);
 
     /// <summary>
     /// Der Besitzer antwortet auf das Trainer-Feedback eines Eintrags: Danke/

@@ -84,6 +84,53 @@ export type DogGesundheitStand = {
   nextAppointment: { id: string; title: string; date: string; time: string | null } | null;
 };
 
+// Wann ein Merkzettel-Eintrag drankommen soll - NUMERISCH (siehe Domain.Training.TrainingNoteGoal).
+export const MERKZETTEL_ZIEL = {
+  NaechstesTraining: 0,
+  NaechsteWoche: 1,
+  Datum: 2,
+} as const;
+
+export type MerkzettelZiel = (typeof MERKZETTEL_ZIEL)[keyof typeof MERKZETTEL_ZIEL];
+
+// Woher das erkannte nächste Training stammt - NUMERISCH (siehe Application.Training.TrainingsQuelle).
+export const TRAININGS_QUELLE = {
+  Gruppe: 0,
+  Rhythmus: 1,
+  Tagebuch: 2,
+  Unbekannt: 3,
+} as const;
+
+export type TrainingsQuelle = (typeof TRAININGS_QUELLE)[keyof typeof TRAININGS_QUELLE];
+
+// Ein Eintrag auf dem Merkzettel fürs nächste Training (Backend: TrainingNoteDto). Nur Besitzer:innen
+// und Mitbesitzer:innen bekommen ihn - der Server liefert ihn niemandem sonst.
+export type MerkzettelEintrag = {
+  id: string;
+  dogId: string;
+  text: string;
+  exerciseId: string | null;
+  exerciseName: string | null;
+  exerciseNameEn: string | null;
+  goal: MerkzettelZiel;
+  /** Der Tag, auf den der Eintrag zielt, wie er jetzt gilt (YYYY-MM-DD); null, wenn sich keiner bestimmen lässt. */
+  targetDate: string | null;
+  /** Uhrzeit des erkannten Trainings an diesem Tag ("18:00:00"); null, wenn unbekannt. */
+  targetTime: string | null;
+  doneAt: string | null;
+  doneInTrainingId: string | null;
+  createdAt: string;
+};
+
+// Das nächste Training eines Hundes (Backend: NextTrainingDto) - für "Nächstes Training · Di 18:00".
+export type NaechstesTraining = {
+  /** YYYY-MM-DD; null bei quelle = Unbekannt. */
+  date: string | null;
+  /** "18:00:00"; null, wenn die Uhrzeit nicht bekannt ist. */
+  time: string | null;
+  source: TrainingsQuelle;
+};
+
 // Ein Pausenzeitraum, wie ihn die Planrechnung braucht (Backend: PausenZeitraumDto).
 export type PauseZeitraum = {
   start: string;
@@ -253,6 +300,9 @@ export type TrainingSession = {
   // Fehlt bei älteren Lesecache-Ständen - gilt dann als ja (der Server prüft
   // ohnehin).
   darfBearbeiten?: boolean;
+  // Ob die angemeldete Person die Einheit selbst eingetragen hat (nur in der
+  // Liste vom Server gesetzt; fehlt im älteren Lesecache - gilt dann als nein).
+  vonMir?: boolean;
 };
 
 // Schnelle Reaktion auf Trainer-Feedback. Numerisch wie alle Enums der API.
@@ -498,7 +548,20 @@ export type GroupTrainerOption = {
 // Vereinsübersicht für Vorstand und Verwaltung (siehe ClubOverviewService): nur Zählwerte und Namen, keine E-Mail.
 export type ClubOverviewRole = { role: number; count: number };
 export type ClubOverviewGroup = { id: string; name: string; memberCount: number; trainerCount: number };
-export type ClubOverviewMonth = { year: number; month: number; planned: number; cancelled: number; attendances: number };
+export type ClubOverviewMonth = {
+  year: number;
+  month: number;
+  planned: number;
+  cancelled: number;
+  attendances: number;
+  /** Prüfungstage des Monats (nicht abgesagt), die Teams darauf und davon die bestandenen - nur Summen. */
+  exams?: number;
+  examTeams?: number;
+  examsPassed?: number;
+  /** Arbeitseinsätze des Monats und die Minuten aller Helfer:innen zusammen - nur Summen. */
+  workEvents?: number;
+  workMinutes?: number;
+};
 export type ClubOverview = {
   memberCount: number;
   newMembersLast30Days: number;
@@ -538,6 +601,14 @@ export type Club = {
   isTrainer?: boolean;
   /** Darf die Vereinsübersicht lesen (Vorstand, Verwaltung). */
   canViewOverview?: boolean;
+  /** Darf Prüfungstage führen (Ausbildungswart:in, Verwaltung). */
+  canManageExams?: boolean;
+  /** Der nächste Prüfungstag - nur für Training, Vorstand und die Prüfungsleitung, ohne Meldeliste. */
+  nextExam?: VereinsPruefungHinweis | null;
+  /** Darf Arbeitseinsätze eintragen und abhaken (Verwaltung). */
+  canManageWork?: boolean;
+  /** Darf Arbeitseinsätze und ihre Auswertung lesen (Verwaltung, Vorstand). */
+  canViewWork?: boolean;
 };
 
 // Vereins-Trainingsbibliothek (siehe docs/GROUP_TRAINING_LIBRARY.md).
@@ -952,6 +1023,11 @@ export type GpsPoint = {
   pointType: GpsPointType;
   label: string | null;
   markerType: GpsMarkerType;
+  // Vom Server vergeben. Optional, weil frisch aufgezeichnete Punkte (vor dem Speichern) und ältere
+  // Stände (Read-Cache, Backend vor Fassung 1.0) sie nicht kennen.
+  id?: string;
+  /** Material eines Gegenstands (deutscher Begriff aus lib/gegenstaende.ts); null = nicht angegeben. */
+  material?: string | null;
 };
 
 export type GpsWalkPoint = {
@@ -963,8 +1039,9 @@ export type GpsWalkPoint = {
   deviationMeters: number | null;
 };
 
-// 0 = unerklärt (Warnsignal), 1 = Verweisen am Gegenstand (gut), 2 = erklärt/neutral.
-export type WalkStopKind = 0 | 1 | 2;
+// 0 = unerklärt (Warnsignal), 1 = Verweisen am Gegenstand (gut), 2 = erklärt/neutral,
+// 3 = am Winkel der Fährte (neutral: der Hund arbeitet den Winkel aus).
+export type WalkStopKind = 0 | 1 | 2 | 3;
 
 export type GpsWalkStop = {
   latitude: number;
@@ -972,6 +1049,39 @@ export type GpsWalkStop = {
   durationSeconds: number;
   kind: WalkStopKind;
   markerLabel: string | null;
+};
+
+// Ein Schenkel der gelegten Fährte im Ablauf (nur Fährte). Fehlende Werte sind null:
+// Dauer und Tempo, wenn das Ende des Schenkels nie erreicht wurde.
+export type GpsWalkRunLeg = {
+  number: number;
+  lengthMeters: number;
+  durationSeconds: number | null;
+  speedMetersPerMinute: number | null;
+  avgDeviationMeters: number | null;
+};
+
+// Ein Winkel der gelegten Fährte im Ablauf (nur Fährte). direction: 0 = links, 1 = rechts.
+export type GpsWalkRunCorner = {
+  number: number;
+  direction: 0 | 1;
+  sharp: boolean;
+  turnDegrees: number;
+  latitude: number;
+  longitude: number;
+  reached: boolean;
+  overshootMeters: number | null;
+  overshot: boolean;
+  holdSeconds: number;
+  timeAtCornerSeconds: number | null;
+};
+
+// Was der Hund mit einem Gegenstand gemacht hat: 0 = verwiesen, 1 = aufgenommen, 2 = überlaufen.
+export type GegenstandsErgebnis = 0 | 1 | 2;
+
+export type GpsWalkRunArticle = {
+  pointId: string;
+  result: GegenstandsErgebnis;
 };
 
 export type GpsWalkRun = {
@@ -991,6 +1101,16 @@ export type GpsWalkRun = {
   articlesTotal: number | null;
   evaluatedAt: string | null;
   stops: GpsWalkStop[];
+  // Schenkel und Winkel der Fährte. Optional, weil ältere Stände (Read-Cache, Backend vor
+  // Fassung 1.0) die Felder nicht kennen; beim Mantrailing leer.
+  legs?: GpsWalkRunLeg[];
+  corners?: GpsWalkRunCorner[];
+  // Nur Fährte: die Angaben der Hundeführer:in je Gegenstand (articles; fehlt ein Gegenstand, gibt es keine
+  // Angabe). articlesFound bleibt die GPS-Zahl; articlesConfirmedFound zählt verwiesen + aufgenommen und ist
+  // null ohne jede Angabe. reachedArticleIds: die Gegenstände, denen das Gespann per GPS nahe kam (null: nicht ausgewertet).
+  articles?: GpsWalkRunArticle[];
+  articlesConfirmedFound?: number | null;
+  reachedArticleIds?: string[] | null;
   // Nur Mantrailing: Ergebnis des Laufs. Optional, weil ältere Stände (Read-Cache,
   // Backend vor Fassung 0.46) die Felder nicht kennen.
   /** Person gefunden - bei einem Negativ-Trail: korrekt angezeigt, dass niemand da ist. */
@@ -1006,6 +1126,8 @@ export type GpsTrack = {
   /** Alter der Spur in Minuten; beim Mantrailing das Trailalter (die Oberfläche zeigt Stunden). */
   ageMinutes: number | null;
   surface: string | null;
+  /** Bodenzustand beim Legen (Mehrfachauswahl als Text, nur Fährte). Optional wie die Felder darunter. */
+  groundCondition?: string | null;
   weather: string | null;
   wind: string | null;
   comment: string | null;
@@ -1014,9 +1136,12 @@ export type GpsTrack = {
   // Art der Aufzeichnung: 0 = Fährte, 1 = Mantrailing (ART_* in lib/mantrailing.ts). Wie die
   // Angaben darunter optional - ältere Stände kennen sie nicht und gelten als Fährte.
   kind?: number;
+  /** Beim Mantrailing "Doppelblind", bei der Fährte "Verdeckt absuchen": Beim Absuchen sind Verlauf, Marker und Haptik aus. */
   doubleBlind?: boolean;
   negativeTrail?: boolean;
   scentArticle?: string | null;
+  /** Bewusst schwere Übungsfährte: zählt nicht in die Entwicklung des Hundes. Optional wie die Felder darüber. */
+  excludeFromStats?: boolean;
   // Automatisch ermitteltes Wetter beim Legen und beim Suchen. Fachlich am
   // wichtigsten ist temperatureDeltaC - die Änderung dazwischen bestimmt
   // maßgeblich, wie sich die Geruchsspur hält.
@@ -1028,6 +1153,9 @@ export type GpsTrack = {
   searchRelativeHumidity: number | null;
   searchWindSpeedKmh: number | null;
   searchWeatherCode: number | null;
+  /** Windrichtung in Grad, AUS der der Wind kommt (lib/wind.ts); fehlt bei Fährten, deren Wetter vor Paket F4 geholt wurde. */
+  laidWindDirectionDeg?: number | null;
+  searchWindDirectionDeg?: number | null;
   temperatureDeltaC: number | null;
   weatherFetchedAt: string | null;
 };
@@ -1163,8 +1291,27 @@ export type DogTrackRun = {
   unexplainedStops: number;
 };
 
+// Anteil sauber abgelaufener Winkel einer Gruppe (0 = links, 1 = rechts, 2 = spitz); ein spitzer
+// Winkel zählt in seiner Richtung und bei "spitz". reached = Zahl der erreichten Winkel.
+export type DogTrackCornerGroup = {
+  group: 0 | 1 | 2;
+  reached: number;
+  cleanPercent: number;
+};
+
+// Fundquote eines Materials: rated bewertete Gegenstände, davon foundPercent verwiesen oder aufgenommen.
+export type DogTrackMaterialGroup = {
+  material: string;
+  rated: number;
+  foundPercent: number;
+};
+
 export type DogTrackStats = {
   runs: DogTrackRun[];
+  // Optional: ältere Stände kennen die Fundquote je Material nicht.
+  materialGroups?: DogTrackMaterialGroup[];
+  // Optional: ältere Stände kennen die Winkel nicht.
+  cornerGroups?: DogTrackCornerGroup[];
   // Negativ = Abweichung sinkt = Verbesserung.
   deviationTrend: number | null;
   // Positiv = mehr Zeit auf der Fährte = Verbesserung.
@@ -1565,6 +1712,10 @@ export type UserPreferences = {
   trainerSummaryHour: number;
   /** Erinnerung an ablaufende Impfungen, fällige Entwurmung und Tierarzttermine. Vorgabe: ja. */
   reminderHealth: boolean;
+  /** Erinnerung vor dem Training an den Merkzettel des Hundes. Vorgabe: ja. */
+  reminderTrainingNotes: boolean;
+  /** Schrittlänge in cm (40 bis 120) für die Umrechnung der Fährtenlänge in Schritte, null = Standard (lib/schritte.ts). */
+  stepLengthCm: number | null;
 };
 
 /** Ein wählbarer Geltungsbereich - Spiegel von Application/Sports/CountryDto. */
@@ -1622,4 +1773,169 @@ export type AdminTestpushErgebnis = {
   pushEingerichtet: boolean;
   /** Auf wie vielen eigenen Geräten Push eingeschaltet ist - an die geht die Meldung. */
   geraete: number;
+};
+
+
+// ---- Prüfungen des Vereins (Backend: ClubExamDtos.cs) ----
+
+// Zahlen, keine Namen - die API überträgt Enums numerisch.
+export const PRUEFUNG_STATUS = { Geplant: 0, Fertig: 1, Abgesagt: 2 } as const;
+export type PruefungStatus = (typeof PRUEFUNG_STATUS)[keyof typeof PRUEFUNG_STATUS];
+
+export const PRUEFUNG_ERGEBNIS = { Offen: 0, Bestanden: 1, NichtBestanden: 2, NichtAngetreten: 3 } as const;
+export type PruefungErgebnis = (typeof PRUEFUNG_ERGEBNIS)[keyof typeof PRUEFUNG_ERGEBNIS];
+
+export const TEAM_ART = { Mitglied: 0, Gast: 1, EhemaligesMitglied: 2 } as const;
+export type TeamArt = (typeof TEAM_ART)[keyof typeof TEAM_ART];
+
+/** Eine Ordnung eines Prüfungstags; maxPoints nur im Detail (null = keine Punktwertung). */
+export type PruefungOrdnung = { id: string; name: string; nameEn?: string | null; maxPoints?: number | null };
+
+/** Datum, Ort und Ordnungen des nächsten Prüfungstags (ClubExamHinweisDto). */
+export type VereinsPruefungHinweis = { date: string; location: string; regulations: PruefungOrdnung[] };
+
+export type VereinsPruefungListe = {
+  id: string;
+  date: string;
+  /** "HH:mm:ss" */
+  startTime: string | null;
+  location: string;
+  status: PruefungStatus;
+  teamCount: number;
+  passedCount: number;
+  regulations: PruefungOrdnung[];
+};
+
+export type PruefungReifeUebung = { exerciseId: string; name: string; nameEn?: string | null; isMandatory: boolean; zustand: ReifeZustand };
+
+/** Prüfungsreife für die Prüfungsleitung: Ampel, Zählung, was noch fehlt - sonst nichts (ClubExamReifeDto). */
+export type PruefungReife = { ampel: ReifeAmpel; sicher: number; wackelig: number; offen: number; fehlend: PruefungReifeUebung[] };
+
+export type PruefungTeam = {
+  id: string;
+  regulationId: string;
+  /** Platz in der Starterliste der Ordnung, von 1 an. */
+  startNumber: number;
+  kind: TeamArt;
+  handlerName: string | null;
+  dogName: string | null;
+  breed: string | null;
+  birthday: string | null;
+  /** Verein und Rasse eines Gast-Teams, frei geschrieben. */
+  info: string | null;
+  /** Nur bei Mitglied-Teams ohne Ergebnis und mit laufendem Ziel zur Ordnung. */
+  reife: PruefungReife | null;
+  result: PruefungErgebnis;
+  score: number | null;
+  resultNote: string | null;
+};
+
+export type VereinsPruefung = {
+  id: string;
+  clubId: string;
+  clubName: string;
+  date: string;
+  startTime: string | null;
+  location: string;
+  judgeName: string | null;
+  registrationDeadline: string | null;
+  note: string | null;
+  status: PruefungStatus;
+  offeredRegulations: PruefungOrdnung[];
+  /** Angebotene und die der Teams zusammen. */
+  regulations: PruefungOrdnung[];
+  entries: PruefungTeam[];
+};
+
+export type PruefungKandidat = {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  dogs: { id: string; name: string; breed: string | null; birthday: string | null }[];
+};
+
+/** "Gemeldet: ..." auf der Hundeseite (DogExamRegistrationDto). */
+export type HundMeldung = { entryId: string; date: string; clubName: string; regulation: PruefungOrdnung };
+
+// Arbeitseinsätze des Vereins (ClubWorkService): Verwaltung schreibt, Verwaltung und Vorstand lesen.
+
+export type ArbeitseinsatzListe = {
+  id: string;
+  date: string;
+  title: string;
+  durationMinutes: number;
+  helperCount: number;
+  totalMinutes: number;
+};
+
+/** Eine abgehakte Person; `former`: nicht mehr im Verein (Namen leer, Anzeige "Ehemaliges Mitglied"). */
+export type ArbeitseinsatzHelfer = {
+  /** Id der Teilnahme, nicht der Person. */
+  id: string;
+  userId: string | null;
+  firstName: string;
+  lastName: string;
+  former: boolean;
+  /** Die Minuten, die zählen: die abweichenden, sonst die Dauer des Einsatzes. */
+  minutes: number;
+  /** Die Minuten weichen von der Dauer des Einsatzes ab. */
+  custom: boolean;
+  /** Gesetzt bei einer Person ohne Dogity-Konto (`guest`); dann ist `userId` leer. */
+  guestId: string | null;
+  guest: boolean;
+};
+
+export type Arbeitseinsatz = {
+  id: string;
+  clubId: string;
+  clubName: string;
+  date: string;
+  title: string;
+  note: string | null;
+  durationMinutes: number;
+  participants: ArbeitseinsatzHelfer[];
+};
+
+export type ArbeitseinsatzKandidat = { userId: string; firstName: string; lastName: string };
+
+/** Eine Helfer:in ohne Dogity-Konto, von der Verwaltung angelegt; der Nachname kann leer sein. */
+export type ArbeitseinsatzGast = { id: string; firstName: string; lastName: string };
+
+/** Eine Zeile der Jahresauswertung; in der Sammelzeile der Ehemaligen sind die Namen leer, `guest`: ohne Dogity-Konto. */
+export type ArbeitseinsatzZeile = { firstName: string; lastName: string; eventCount: number; minutes: number; guest?: boolean };
+
+export type ArbeitseinsatzAuswertung = {
+  year: number;
+  /** Jahre mit Einsätzen, das neueste zuerst. */
+  years: number[];
+  eventCount: number;
+  participationCount: number;
+  totalMinutes: number;
+  rows: ArbeitseinsatzZeile[];
+  former: ArbeitseinsatzZeile | null;
+};
+
+export type MeinArbeitseinsatz = { id: string; date: string; title: string; minutes: number };
+
+export type MeineArbeitseinsaetze = { year: number; yearEventCount: number; yearMinutes: number; items: MeinArbeitseinsatz[] };
+
+/** Antwort von GET /api/wartungshinweis; die Schnittstelle liefert 204, solange nichts anzuzeigen ist. */
+export type Wartungshinweis = {
+  /** Eigener Text des Betreibers; null = Standardtext. */
+  text: string | null;
+  beginn: string;
+  ende: string | null;
+  /** Die Wartung hat begonnen. */
+  laeuft: boolean;
+  /** Schlüssel fürs Wegklicken: ein geänderter Hinweis erscheint wieder. */
+  geaendertAm: string;
+};
+
+/** Der gespeicherte Hinweis im Adminbereich (GET/PUT /api/admin/wartungshinweis); alles leer, solange keiner gesetzt wurde. */
+export type WartungshinweisAdmin = {
+  text: string | null;
+  beginn: string | null;
+  ende: string | null;
+  aktiv: boolean;
+  geaendertAm: string | null;
 };

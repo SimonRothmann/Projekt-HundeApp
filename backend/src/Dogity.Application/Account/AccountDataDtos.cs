@@ -28,7 +28,11 @@ public record AccountExportDto(
     IReadOnlyList<TrainingspauseExportDto> Trainingspausen,
     IReadOnlyList<ErinnerungExportDto> ErinnerungenVersendet,
     // Am Ende mit Vorgabe, wie die übrigen später hinzugekommenen Teile: bestehende Aufrufer bleiben gültig.
-    IReadOnlyList<GesundheitseintragExportDto>? Gesundheit = null);
+    IReadOnlyList<GesundheitseintragExportDto>? Gesundheit = null,
+    IReadOnlyList<PruefungsmeldungExportDto>? Pruefungsmeldungen = null,
+    IReadOnlyList<ArbeitseinsatzExportDto>? Arbeitseinsaetze = null,
+    IReadOnlyList<MerkzettelExportDto>? Merkzettel = null,
+    IReadOnlyList<TrainingsrhythmusExportDto>? Trainingsrhythmen = null);
 
 public record KontoExportDto(
     Guid Id,
@@ -49,15 +53,18 @@ public record EinstellungenExportDto(
     bool ErinnerungRueckmeldungen = true,
     IReadOnlyList<string>? RueckmeldungenWochentage = null,
     int RueckmeldungenUhrzeit = 18,
-    bool ErinnerungGesundheit = true);
+    bool ErinnerungGesundheit = true,
+    // Schrittlänge in cm für die Umrechnung der Fährtenlänge in Schritte; null = Standard.
+    int? SchrittlaengeCm = null,
+    bool ErinnerungMerkzettel = true);
 
 /// <summary>
 /// Eine versendete Erinnerung - der Merkzettel gegen Doppelversand. Der Text steht
 /// unter Benachrichtigungen; hier nur, wofür und wann.
 /// </summary>
-/// <param name="Art">"Termin am Vortag", "Fährte nicht abgelaufen", "Offene Rückmeldungen", "Gesundheit: Frist in 14 Tagen", "Gesundheit: Frist heute" oder "Tierarzttermin morgen".</param>
-/// <param name="Bezug">Id des Termins bzw. der Fährte; bei den offenen Rückmeldungen leer.</param>
-/// <param name="Tag">Nur bei den offenen Rückmeldungen: der Tag, für den sie versendet wurde.</param>
+/// <param name="Art">"Termin am Vortag", "Fährte nicht abgelaufen", "Offene Rückmeldungen", "Gesundheit: Frist in 14 Tagen", "Gesundheit: Frist heute", "Tierarzttermin morgen" oder "Merkzettel vor dem Training".</param>
+/// <param name="Bezug">Id des Termins bzw. der Fährte bzw. des Hundes (Merkzettel); bei den offenen Rückmeldungen leer.</param>
+/// <param name="Tag">Bei den offenen Rückmeldungen und dem Merkzettel: der Tag, für den sie versendet wurde.</param>
 public record ErinnerungExportDto(string Art, Guid? Bezug, DateOnly? Tag, DateTimeOffset VersendetAm);
 
 /// <summary>
@@ -112,6 +119,43 @@ public record GesundheitseintragExportDto(
     string? Notiz,
     DateTimeOffset AngelegtAm);
 
+/// <summary>
+/// Ein Eintrag auf dem Merkzettel eines meiner Hunde ("das machen wir nächstes Training"), den ich selbst gemerkt
+/// habe - mit den erledigten.
+/// </summary>
+/// <param name="Uebung">Name der verknüpften Übung aus dem Katalog, falls gewählt.</param>
+/// <param name="Ziel">"Nächstes Training", "Nächste Woche" oder "Datum".</param>
+/// <param name="Datum">Gewählter Tag bzw. Montag der Folgewoche; sonst leer.</param>
+public record MerkzettelExportDto(
+    Guid HundId,
+    string Text,
+    string? Uebung,
+    string Ziel,
+    DateOnly? Datum,
+    DateTimeOffset? ErledigtAm,
+    DateTimeOffset AngelegtAm);
+
+/// <summary>Wann einer meiner Hunde meistens trainiert (Angabe für den Merkzettel).</summary>
+public record TrainingsrhythmusExportDto(Guid HundId, IReadOnlyList<string> Wochentage, int? Uhrzeit);
+
+/// <summary>
+/// Eine Meldung zu einem Prüfungstag des Vereins, die die Prüfungsleitung für einen eigenen Hund eingetragen hat.
+/// Gäste stehen nicht hier: Sie sind Daten der Gäste, nicht dieser Person.
+/// </summary>
+/// <param name="Ergebnis">"offen", "bestanden", "nicht bestanden" oder "nicht angetreten".</param>
+public record PruefungsmeldungExportDto(
+    string Verein,
+    DateOnly Datum,
+    string Ordnung,
+    Guid? HundId,
+    string Ergebnis,
+    int? Punkte,
+    string? Bemerkung);
+
+/// <summary>Eine Teilnahme an einem Arbeitseinsatz des Vereins, die die Verwaltung für diese Person eingetragen hat.</summary>
+/// <param name="Minuten">Die Minuten, die zählen (die abweichenden, sonst die Dauer des Einsatzes).</param>
+public record ArbeitseinsatzExportDto(string Verein, DateOnly Datum, string Titel, int Minuten);
+
 public record TrainingExportDto(
     Guid Id,
     Guid HundId,
@@ -163,7 +207,11 @@ public record FaehrteExportDto(
     bool NegativTrail,
     string? Geruchsartikel,
     IReadOnlyList<GpsPunktExportDto> Punkte,
-    IReadOnlyList<AblaufExportDto> Ablaeufe);
+    IReadOnlyList<AblaufExportDto> Ablaeufe,
+    // Bewusst schwere Übungsfährte: zählt nicht in die Entwicklung des Hundes.
+    bool NichtInDerEntwicklung,
+    // Bodenzustand beim Legen (Mehrfachauswahl als Text).
+    string? Bodenzustand = null);
 
 public record GpsPunktExportDto(
     double Breitengrad,
@@ -171,7 +219,11 @@ public record GpsPunktExportDto(
     DateTimeOffset Zeitpunkt,
     double? GenauigkeitMeter,
     string Art,
-    string? Beschriftung);
+    string? Beschriftung,
+    // Nur bei den Markern der gelegten Fährte: Id (worauf sich Gegenstandsergebnisse im Ablauf
+    // beziehen) und das Material eines Gegenstands.
+    Guid? Id,
+    string? Material);
 
 public record AblaufExportDto(
     Guid Id,
@@ -182,7 +234,11 @@ public record AblaufExportDto(
     // Mantrailing: Ergebnis des Laufs (bei einem Negativ-Trail: korrekt angezeigt).
     bool? PersonGefunden,
     string? Anzeigeverhalten,
-    IReadOnlyList<GpsPunktExportDto> Punkte);
+    IReadOnlyList<GpsPunktExportDto> Punkte,
+    // Fährte: was der Hund mit den Gegenständen gemacht hat (verwiesen, aufgenommen, überlaufen).
+    IReadOnlyList<GegenstandsErgebnisExportDto> Gegenstaende);
+
+public record GegenstandsErgebnisExportDto(Guid PunktId, string Ergebnis);
 
 public record ZielExportDto(
     Guid Id,

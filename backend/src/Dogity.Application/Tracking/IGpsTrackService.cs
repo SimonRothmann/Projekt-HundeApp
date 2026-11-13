@@ -17,8 +17,26 @@ public interface IGpsTrackService
     /// <summary>Ändert die Trail-Angaben einer Mantrailing-Spur (Alter, Doppelblind, Negativ-Trail, Geruchsartikel).</summary>
     Task<Result<GpsTrackDto>> UpdateTrailAsync(Guid userId, Guid trackId, UpdateGpsTrailRequest request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Stellt "Verdeckt absuchen" bei einer Fährte ein (DoubleBlind): nur solange noch kein Ablauf
+    /// existiert, mit den Rechten des Bearbeitens.
+    /// </summary>
+    Task<Result<GpsTrackDto>> UpdateVerdecktAsync(Guid userId, Guid trackId, UpdateGpsVerdecktRequest request, CancellationToken ct = default);
+
     /// <summary>Trägt das Ergebnis eines Mantrailing-Laufs ein (Person gefunden, Anzeigeverhalten).</summary>
     Task<Result<GpsWalkRunDto>> UpdateTrailRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsTrailRunRequest request, CancellationToken ct = default);
+
+    /// <summary>Trägt das Material eines Gegenstands ein oder entfernt es (nur Fährte, nur Marker der Art Gegenstand).</summary>
+    Task<Result<GpsPointDto>> UpdateMarkerAsync(Guid userId, Guid trackId, Guid pointId, UpdateGpsMarkerRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Trägt zu den Gegenständen eines Fährten-Ablaufs ein, ob der Hund sie verwiesen, aufgenommen
+    /// oder überlaufen hat. Nur die genannten Gegenstände ändern sich; null entfernt die Angabe.
+    /// </summary>
+    Task<Result<GpsWalkRunDto>> UpdateWalkRunArticlesAsync(Guid userId, Guid trackId, Guid walkRunId, IReadOnlyList<UpdateGpsWalkRunArticleRequest> request, CancellationToken ct = default);
+
+    /// <summary>Nimmt eine Fährte aus der Entwicklung des Hundes heraus oder wieder hinein.</summary>
+    Task<Result<GpsTrackDto>> UpdateStatsAsync(Guid userId, Guid trackId, UpdateGpsTrackStatsRequest request, CancellationToken ct = default);
 
     /// <summary>
     /// Holt das Wetter zu Lege- und Suchzeitpunkt (neu). Für Bestandsfährten,

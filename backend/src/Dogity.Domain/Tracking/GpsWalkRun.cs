@@ -38,6 +38,13 @@ public class GpsWalkRun : Entity
 
     public DateTimeOffset? EvaluatedAt { get; set; }
 
+    /// <summary>
+    /// Mit welchem Stand der Auswertung (<c>GpsTrackEvaluator.AktuelleVersion</c>) die Werte
+    /// berechnet wurden. 0 = vor Winkel und Schenkeln; der Backfill rechnet alles unter der
+    /// aktuellen Version beim nächsten Start neu.
+    /// </summary>
+    public int EvaluationVersion { get; set; }
+
     // ---- Nur Mantrailing (am Lauf, weil jeder Versuch anders ausgeht) ----
 
     /// <summary>
@@ -53,6 +60,14 @@ public class GpsWalkRun : Entity
     public ICollection<GpsWalkPoint> Points { get; set; } = new List<GpsWalkPoint>();
 
     public ICollection<GpsWalkStop> Stops { get; set; } = new List<GpsWalkStop>();
+
+    // Nur Fährte (siehe FaehrtenGeometrie); beim Mantrailing leer.
+    public ICollection<GpsWalkRunLeg> Legs { get; set; } = new List<GpsWalkRunLeg>();
+
+    public ICollection<GpsWalkRunCorner> Corners { get; set; } = new List<GpsWalkRunCorner>();
+
+    // Nur Fährte: die Angaben der Hundeführer:in je Gegenstand (verwiesen, aufgenommen, überlaufen).
+    public ICollection<GpsWalkRunArticle> Articles { get; set; } = new List<GpsWalkRunArticle>();
 }
 
 /// <summary>
@@ -78,7 +93,12 @@ public enum WalkStopKind
     /// <summary>Halt an einem Gegenstand = Verweisen (erwünscht).</summary>
     Indication,
     /// <summary>Halt an Leckerlipot/Verleitung - erklärt und neutral.</summary>
-    Explained
+    Explained,
+    /// <summary>
+    /// Halt an einem Winkel der Fährte: Der Hund arbeitet den Winkel aus, fachlich normal und
+    /// neutral. Am Ende angehängt, damit gespeicherte Werte gültig bleiben.
+    /// </summary>
+    AtCorner
 }
 
 /// <summary>

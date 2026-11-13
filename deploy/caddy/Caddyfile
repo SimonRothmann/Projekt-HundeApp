@@ -65,22 +65,91 @@
 	}
 }
 
+# Wartung: Ist das Frontend oder das Backend nicht erreichbar (Neustart beim
+# Deploy, längere Wartung), erzeugt Caddy selbst den Fehler 502/503/504 - und
+# antwortet dann mit einer Wartungsseite statt mit der nackten Fehlermeldung.
+# handle_errors greift nur bei solchen von Caddy erzeugten Fehlern; eine Antwort
+# der Anwendung selbst (auch ein 503 des Backends) reicht Caddy unverändert
+# durch. Die Kopfzeilen der Site-Snippets laufen in der Fehlerroute nicht
+# mit und werden hier ausdrücklich erneut eingebunden.
+#
+# Frontend: die statische Seite aus deploy/caddy/wartung (der Ordner ist als
+# Ganzes unter /etc/caddy eingebunden), Status 503, nicht zwischenspeichern.
+(wartung_frontend) {
+	handle_errors {
+		@wartung expression {http.error.status_code} in [502, 503, 504]
+		handle @wartung {
+			import frontend_headers
+			header Retry-After "60"
+			header Cache-Control "no-store"
+			root * /etc/caddy/wartung
+			# Bewusst nicht index.html: file_server leitet Index-Dateien auf das Verzeichnis um.
+			rewrite * /wartung.html
+			file_server {
+				status 503
+			}
+		}
+	}
+}
+
+# API: JSON, das das Frontend erkennt (lib/wartung.ts). Das Frontend liegt auf
+# einer anderen Herkunft als die API - ohne CORS-Kopfzeilen dürfte der Browser
+# die Antwort nicht lesen, und ohne Antwort auf die Vorab-Anfrage (OPTIONS)
+# scheiterte jede schreibende Anfrage schon vorher. Normalerweise antwortet
+# darauf das Backend; es ist ja gerade nicht da. {args[0]} ist die Domain des
+# zugehörigen Frontends und muss zu Cors__AllowedOrigins__0 in docker-compose.yml
+# passen. Erlaubt wird wie im Backend jede Methode und jede angefragte Kopfzeile.
+(wartung_api) {
+	handle_errors {
+		@wartung expression {http.error.status_code} in [502, 503, 504]
+		handle @wartung {
+			import security_headers
+			header {
+				Access-Control-Allow-Origin "https://{args[0]}"
+				Access-Control-Expose-Headers "X-Dogity-Wartung"
+				Vary "Origin"
+				Cache-Control "no-store"
+			}
+			@vorabfrage method OPTIONS
+			handle @vorabfrage {
+				header {
+					Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+					Access-Control-Allow-Headers "{http.request.header.Access-Control-Request-Headers}"
+				}
+				respond 204
+			}
+			handle {
+				header {
+					X-Dogity-Wartung "1"
+					Retry-After "60"
+					Content-Type "application/json"
+				}
+				respond `{"wartung":true}` 503
+			}
+		}
+	}
+}
+
 {$PROD_DOMAIN} {
 	import frontend_headers
+	import wartung_frontend
 	reverse_proxy frontend-prod:3000
 }
 
 {$PROD_API_DOMAIN} {
 	import security_headers
+	import wartung_api {$PROD_DOMAIN}
 	import api_proxy backend-prod:8080
 }
 
 {$TEST_DOMAIN} {
 	import frontend_headers
+	import wartung_frontend
 	reverse_proxy frontend-test:3000
 }
 
 {$TEST_API_DOMAIN} {
 	import security_headers
+	import wartung_api {$TEST_DOMAIN}
 	import api_proxy backend-test:8080
 }

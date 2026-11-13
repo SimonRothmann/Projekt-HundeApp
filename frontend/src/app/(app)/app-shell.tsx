@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/nav/notification-bell";
 import { OfflineSyncListener } from "@/components/offline-sync-listener";
 import { EnvBadge } from "@/components/env-badge";
+import { WartungsBanner } from "@/components/wartungs-banner";
 import { UnterbrocheneAufzeichnungen } from "@/components/tracking/unterbrochene-aufzeichnung";
 import { useT } from "@/lib/i18n";
 
@@ -47,6 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <OfflineSyncListener />
+        <WartungsBanner umgebung="relative z-10 px-4 pt-3 md:px-8 print:hidden" />
         {/* pb-28 (mobil) hält den Inhalt frei von der fixierten BottomNav
             (~64px) inkl. iOS-Safe-Area; Desktop nutzt md:pb-8 (keine BottomNav). */}
         <main className="relative z-10 flex-1 px-4 py-6 pb-28 md:px-8 md:pb-8 print:p-0">

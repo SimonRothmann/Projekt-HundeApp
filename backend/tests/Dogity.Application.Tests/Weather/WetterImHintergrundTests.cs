@@ -20,8 +20,8 @@ namespace Dogity.Application.Tests.Weather;
 public class WetterImHintergrundTests
 {
     private static readonly DateTimeOffset Jetzt = new(2026, 10, 18, 12, 0, 0, TimeSpan.Zero);
-    private static readonly WeatherReading Sonne = new(18.5, 60, 7.2, 0);
-    private static readonly WeatherReading Regen = new(9.5, 90, 12, 63);
+    private static readonly WeatherReading Sonne = new(18.5, 60, 7.2, 0, 250);
+    private static readonly WeatherReading Regen = new(9.5, 90, 12, 63, 40);
 
     private sealed class FesteUhr : TimeProvider
     {
@@ -148,6 +148,8 @@ public class WetterImHintergrundTests
         Assert.Equal(18.5, track.LaidTemperatureC);
         Assert.Equal(60, track.LaidRelativeHumidity);
         Assert.Equal(0, track.LaidWeatherCode);
+        Assert.Equal(250, track.LaidWindDirectionDeg);
+        Assert.Null(track.SearchWindDirectionDeg);
         Assert.Null(track.SearchTemperatureC);
         Assert.Equal(Jetzt, track.WeatherFetchedAt);
     }
@@ -242,6 +244,8 @@ public class WetterImHintergrundTests
         Assert.True(ergebnis.Succeeded);
         Assert.Equal(18.5, ergebnis.Value!.LaidTemperatureC);
         Assert.Equal(9.5, ergebnis.Value.SearchTemperatureC);
+        Assert.Equal(250, ergebnis.Value.LaidWindDirectionDeg);
+        Assert.Equal(40, ergebnis.Value.SearchWindDirectionDeg);
         Assert.Empty(a.Queue.Auftraege);
     }
 

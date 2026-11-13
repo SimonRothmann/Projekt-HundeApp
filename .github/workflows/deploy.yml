@@ -1,0 +1,64 @@
+# Deploy per Knopf: Reiter Actions -> Deploy -> "Run workflow", Ziel test
+# oder prod. Geht vom Handy und ohne den Entwicklungsrechner; die Skripte auf
+# der VPS sind dieselben wie beim Deploy von Hand.
+#
+# Der Schlüssel in DEPLOY_SSH_KEY darf auf der VPS nur
+# scripts/deploy-per-schluessel.sh starten (erzwungener Befehl, siehe dort),
+# keine Shell. Prod läuft über die Umgebung "prod", die eine Freigabe des
+# Betreibers verlangt: Der Lauf wartet, bis jemand in GitHub auf "Approve"
+# tippt. Einrichtung und Secrets: docs/BETRIEB.md, Abschnitt "Deploy per
+# GitHub Action".
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      ziel:
+        description: Umgebung
+        type: choice
+        options: [test, prod]
+        default: test
+
+# Nie zwei Deploys gleichzeitig - beide arbeiten im selben /opt/dogity.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.ziel }}
+    # Nur vom master-Stand aus, wie bei promote-to-prod.sh.
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.ziel }}
+    timeout-minutes: 30
+    permissions:
+      contents: write # nur für prod: den master-Stand nach prod schieben
+    steps:
+      - name: Repository holen (nur prod)
+        if: inputs.ziel == 'prod'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: master nach prod (nur Fast-Forward)
+        if: inputs.ziel == 'prod'
+        # Ein Push, der kein Fast-Forward ist, lehnt GitHub ab - wie
+        # "git merge --ff-only" in promote-to-prod.sh. github.sha ist der
+        # master-Stand beim Klick auf "Run workflow".
+        run: git push origin "${GITHUB_SHA}:refs/heads/prod"
+
+      - name: Deploy auf der VPS
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          ZIEL: ${{ inputs.ziel }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o ServerAliveInterval=30 "dogity@${SSH_HOST}" "$ZIEL"

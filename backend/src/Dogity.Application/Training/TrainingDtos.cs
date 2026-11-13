@@ -86,7 +86,14 @@ public record TrainingSessionDto(
     /// TrainingsRechte): Besitzer:innen immer, Trainer:innen nur selbst
     /// eingetragene. Die Hundeseite blendet danach die Bearbeiten-Knöpfe aus.
     /// </summary>
-    bool DarfBearbeiten = true);
+    bool DarfBearbeiten = true,
+    /// <summary>
+    /// Ob die ansehende Person dieses Training selbst eingetragen hat. Ohne
+    /// fremde Kennungen im Frontend: Es kann damit unter mehreren Einheiten
+    /// eines Tages die eigene ansprechen (z. B. beim Ändern der Dauer). Nur in
+    /// den Lesepfaden (GetByDog, GetById) berechnet, sonst false.
+    /// </summary>
+    bool VonMir = false);
 
 public record SetFeedbackRequest(string Feedback);
 
@@ -202,6 +209,12 @@ public record UpdateSessionContextRequest(
 public record UpdateSessionDateRequest(DateOnly Date);
 
 /// <summary>
+/// Dauer eines Trainingstags korrigieren: die Minuten des GANZEN Tages, so wie
+/// das Tagebuch sie in der Zeile als Summe zeigt.
+/// </summary>
+public record UpdateSessionDurationRequest(int DurationMinutes);
+
+/// <summary>
 /// Ein Ort, an dem schon trainiert wurde. Hundeführer trainieren fast immer an
 /// denselben zwei bis fünf Plätzen - deshalb ist die Liste der letzten Orte in
 /// der Praxis wertvoller als jede Suche: beim zweiten Mal genügt ein Tippen.
@@ -231,4 +244,11 @@ public record CreateTrainingSessionRequest(
     /// - wichtig für die Offline-Warteschlange, da sonst zwei voneinander
     /// abhängige Requests nicht unabhängig nachsynchronisiert werden könnten.
     /// </summary>
-    Guid? Id = null);
+    Guid? Id = null,
+    /// <summary>
+    /// Merkzettel-Einträge des Hundes (<see cref="TrainingNote"/>), die mit diesem Training erledigt sind.
+    /// Sie werden mit dem Training in einem Zug abgehakt - auch aus der Offline-Warteschlange, ohne dass die
+    /// Kennung des Trainings dem Gerät bekannt sein muss. Nur Besitzer:innen haken ab; fremde oder
+    /// bereits erledigte Kennungen werden übergangen.
+    /// </summary>
+    IReadOnlyList<Guid>? ErledigteMerkzettelIds = null);

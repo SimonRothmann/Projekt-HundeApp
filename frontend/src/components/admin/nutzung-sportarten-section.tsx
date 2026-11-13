@@ -10,8 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
  * Sportarten: Trainings der letzten 90 Tage (über die Übungen aus dem
- * Katalog) und Hunde, die die Sportart gewählt haben. Auch ungenutzte stehen
- * drin - sie zeigen, was bisher gar nicht verwendet wird.
+ * Katalog) und Hunde mit einem laufenden Ziel in der Sportart. Auch
+ * ungenutzte stehen drin - sie zeigen, was bisher gar nicht verwendet wird.
  */
 export function NutzungSportartenSection({ sports }: { sports: AdminSportUsage[] }) {
   const t = useT();
@@ -25,7 +25,7 @@ export function NutzungSportartenSection({ sports }: { sports: AdminSportUsage[]
           {t("Sportarten")}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          {t("Trainings der letzten 90 Tage mit mindestens einer Übung aus der Sportart, und Hunde, die die Sportart ausgewählt haben.")}
+          {t("Trainings der letzten 90 Tage mit mindestens einer Übung aus der Sportart, und Hunde mit einem laufenden Ziel in der Sportart.")}
         </p>
       </CardHeader>
       <CardContent>

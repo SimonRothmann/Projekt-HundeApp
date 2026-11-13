@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, ChevronRight, ClipboardList, ListChecks, Building2 } from "lucide-react";
+import { CalendarDays, ChevronRight, ClipboardCheck, ClipboardList, HandHelping, ListChecks, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -107,6 +107,14 @@ export default function TrainerPage() {
             <ul className="divide-y">
               <Werkzeug href="/trainer/group-training" icon={ClipboardList} titel={t("Gruppentraining")} zeile={t("Einheiten und Bausteine")} />
               <Werkzeug href="/trainer/schedule" icon={CalendarDays} titel={t("Terminplanung")} zeile={t("Termine und Serien")} />
+              {/* Nur für die Prüfungsleitung (Ausbildungswart:in, Verwaltung) - der Server entscheidet, die Kachel folgt. */}
+              {clubs.some((c) => c.canManageExams) && (
+                <Werkzeug href="/trainer/pruefungen" icon={ClipboardCheck} titel={t("Prüfungen")} zeile={t("Prüfungstage, Meldeliste und Ergebnisse")} />
+              )}
+              {/* Verwaltung und Vorstand (der Vorstand liest nur) - der Server entscheidet, die Kachel folgt. */}
+              {clubs.some((c) => c.canViewWork) && (
+                <Werkzeug href="/trainer/arbeitseinsaetze" icon={HandHelping} titel={t("Arbeitseinsätze")} zeile={t("Wer wie oft im Verein geholfen hat")} />
+              )}
               <Werkzeug href="/trainer/verein" icon={Building2} titel={t("Verein")} zeile={t("Verein, Mitglieder, eigene Sportarten")} />
             </ul>
           </Card>

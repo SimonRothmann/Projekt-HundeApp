@@ -1,16 +1,25 @@
 using Dogity.Application.Abstractions;
 using Dogity.Domain.Tracking;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Dogity.Application.Tracking;
 
 /// <inheritdoc />
-public class GpsTrackEvaluationBackfill(IApplicationDbContext db) : IGpsTrackEvaluationBackfill
+public class GpsTrackEvaluationBackfill(IApplicationDbContext db, ILogger<GpsTrackEvaluationBackfill> logger)
+    : IGpsTrackEvaluationBackfill
 {
+    /// <summary>
+    /// Nach so vielen Abläufen wird gespeichert: Der Lauf hängt beim Start vor dem Serving, ein
+    /// Abbruch mittendrin soll das Geschaffte behalten, und kein einzelnes SaveChanges soll
+    /// den ganzen Bestand auf einmal schreiben.
+    /// </summary>
+    private const int SpeichernAlle = 50;
+
     public async Task<int> BackfillAsync(CancellationToken ct = default)
     {
         var pendingIds = await db.GpsWalkRuns
-            .Where(r => r.EvaluatedAt == null)
+            .Where(r => r.EvaluatedAt == null || r.EvaluationVersion < GpsTrackEvaluator.AktuelleVersion)
             .Select(r => r.Id)
             .ToListAsync(ct);
 
@@ -45,40 +54,31 @@ public class GpsTrackEvaluationBackfill(IApplicationDbContext db) : IGpsTrackEva
                 kindCache[walkRun.TrackId] = kind;
             }
 
-            if (GpsTrackEvaluator.TryEvaluate(laidPoints, walkRun.Points.ToList(), kind) is not { } evaluation)
+            WalkRunEvaluation? ergebnis;
+            try
             {
-                walkRun.EvaluatedAt = DateTimeOffset.UtcNow;
+                ergebnis = GpsTrackEvaluator.TryEvaluate(laidPoints, walkRun.Points.ToList(), kind);
+            }
+            catch (Exception ex)
+            {
+                // Ein auffälliger Ablauf darf den Start der App nicht verhindern. Die Version bleibt
+                // unverändert, der nächste Start versucht es erneut.
+                logger.LogWarning(ex, "Nachauswertung des Ablaufs {WalkRunId} fehlgeschlagen, übersprungen.", walkRunId);
                 continue;
             }
 
-            var byId = walkRun.Points.ToDictionary(p => p.Id);
-            foreach (var evaluated in evaluation.Points)
+            if (ergebnis is not { } evaluation)
             {
-                if (byId.TryGetValue(evaluated.PointId, out var point))
-                    point.DeviationMeters = evaluated.DeviationMeters;
+                walkRun.EvaluatedAt = DateTimeOffset.UtcNow;
+                walkRun.EvaluationVersion = GpsTrackEvaluator.AktuelleVersion;
+                continue;
             }
 
-            walkRun.AvgDeviationMeters = evaluation.AvgDeviationMeters;
-            walkRun.MaxDeviationMeters = evaluation.MaxDeviationMeters;
-            walkRun.OnTrackPercent = evaluation.OnTrackPercent;
-            walkRun.ArticlesFound = evaluation.ArticlesFound;
-            walkRun.ArticlesTotal = evaluation.ArticlesTotal;
-            walkRun.EvaluatedAt = DateTimeOffset.UtcNow;
-
-            foreach (var stop in evaluation.Stops)
-            {
-                db.GpsWalkStops.Add(new GpsWalkStop
-                {
-                    WalkRunId = walkRun.Id,
-                    Latitude = stop.Latitude,
-                    Longitude = stop.Longitude,
-                    DurationSeconds = stop.DurationSeconds,
-                    Kind = stop.Kind,
-                    MarkerLabel = stop.MarkerLabel
-                });
-            }
+            await WalkRunEvaluationWriter.WriteAsync(db, walkRun, walkRun.Points.ToList(), evaluation, ct);
 
             count++;
+            if (count % SpeichernAlle == 0)
+                await db.SaveChangesAsync(ct);
         }
 
         await db.SaveChangesAsync(ct);

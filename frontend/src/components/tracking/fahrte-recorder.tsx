@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { GpsMarkerType, GpsPoint, GpsTrack } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
-import { Cookie, MapPin, MapPinPlus, Package, Waypoints } from "lucide-react";
+import { Cookie, MapPin, MapPinPlus, Package, Undo2, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -14,9 +14,10 @@ import {
   sicherungLoeschen,
   sicherungSchreiben,
   sicherungSpeichern,
+  markerEntfernen,
   type FaehrtenSicherung,
 } from "@/lib/aufzeichnung-sicherung";
-import { TRAIL_UNTERGRUENDE, UNTERGRUENDE, untergrundUmschalten } from "@/lib/untergrund";
+import { BODENZUSTAENDE, TRAIL_UNTERGRUENDE, UNTERGRUENDE, untergrundUmschalten } from "@/lib/untergrund";
 import { automatischePunkte, markerPunkte, PUNKT_AUTOMATISCH, PUNKT_MARKER } from "@/lib/geo";
 import { ABLAUF_FRIST_STUNDEN_TRAIL } from "@/lib/faehrte";
 import { LEERE_TRAIL_ANGABEN, type TrailAngabenVorLegen } from "@/lib/mantrailing";
@@ -28,6 +29,7 @@ import { genauigkeitsStufe, GPS_PROFIL_LEGEN } from "@/lib/gps-profil";
 import { TrackMap } from "@/components/tracking/track-map";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
+import { GegenstandsMaterial } from "@/components/tracking/gegenstaende";
 import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/components/tracking/unterbrochene-aufzeichnung";
 
 import { useT } from "@/lib/i18n";
@@ -58,6 +60,10 @@ const MARKER_TYPES = [
 // allgemeiner Marker (z. B. für einen Richtungswechsel). Er zählt wie "Sonstiges" und wirkt
 // weder auf Gegenstände noch auf erklärte Halte.
 const TRAIL_MARKER = [{ value: 3, label: uebersetzbar("Marker"), icon: MapPinPlus }] as const;
+
+// So lange nach dem Setzen eines Markers bietet die Aufzeichnung "Zurücknehmen" an. Länger wäre der
+// Knopf im Weg, kürzer erwischte er den Fehlgriff nicht: Zwischen Tippen und Merken liegen ein paar Sekunden.
+const ZURUECKNEHMEN_MS = 10_000;
 
 /**
  * Direkter Einstiegspunkt für die GPS-Fährtenaufzeichnung, ohne vorher ein
@@ -99,6 +105,10 @@ export function FahrteRecorder({
     onAufzeichnung?.(isRecording || ablaufLaeuft);
   }, [isRecording, ablaufLaeuft, onAufzeichnung]);
   const [untergrund, setUntergrund] = useState<string[]>([]);
+  const [bodenzustand, setBodenzustand] = useState<string[]>([]);
+  // Der zuletzt gesetzte Marker, solange er sich zurücknehmen lässt (siehe ZURUECKNEHMEN_MS) - als Objekt,
+  // damit genau er entfernt wird und nicht ein anderer Marker an derselben Stelle.
+  const [zuruecknehmbar, setZuruecknehmbar] = useState<GpsPoint | null>(null);
   // Ob dies ein Trail ist: zunächst die Wahl des Aufrufers, beim Fortsetzen einer unterbrochenen
   // Aufzeichnung aber das, was sie war.
   const [trailModus, setTrailModus] = useState(mantrailing);
@@ -133,8 +143,14 @@ export function FahrteRecorder({
     setUnterbrochen(gesichert?.art === "faehrte" ? gesichert : null);
   }, [schluessel, user]);
 
-  // Jeder neue Punkt, jeder Marker und jede Änderung am Untergrund geht
-  // sofort in die Sicherung.
+  useEffect(() => {
+    if (!zuruecknehmbar) return;
+    const timer = setTimeout(() => setZuruecknehmbar(null), ZURUECKNEHMEN_MS);
+    return () => clearTimeout(timer);
+  }, [zuruecknehmbar]);
+
+  // Jeder neue Punkt, jeder Marker (auch ein zurückgenommener, der dann fehlt) und jede Änderung am
+  // Untergrund geht sofort in die Sicherung.
   useEffect(() => {
     const laufend = laufendRef.current;
     if (!isRecording || !laufend || !user) return;
@@ -143,20 +159,25 @@ export function FahrteRecorder({
       userId: user.userId,
       dogId,
       untergrund,
+      // Der Bodenzustand gehört zur Fährte; ein Trail kennt ihn nicht.
+      ...(trailModus ? {} : { bodenzustand }),
       points,
       ...(trailModus ? { trail: trailAngaben } : {}),
       ...laufend,
     });
-  }, [isRecording, points, untergrund, user, dogId, trailModus, trailAngaben]);
+  }, [isRecording, points, untergrund, bodenzustand, user, dogId, trailModus, trailAngaben]);
 
   function startRecording() {
     laufendRef.current = { trackId: crypto.randomUUID(), begonnen: Date.now(), seite: window.location.pathname };
+    setZuruecknehmbar(null);
     start();
   }
 
   function fortsetzen(gesichert: FaehrtenSicherung) {
     laufendRef.current = { trackId: gesichert.trackId, begonnen: gesichert.begonnen, seite: gesichert.seite };
     setUntergrund(gesichert.untergrund);
+    setBodenzustand(gesichert.bodenzustand ?? []);
+    setZuruecknehmbar(null);
     setTrailModus(gesichert.trail != null);
     setTrailAngaben(gesichert.trail ?? LEERE_TRAIL_ANGABEN);
     setUnterbrochen(null);
@@ -175,7 +196,9 @@ export function FahrteRecorder({
     setIsMarking(true);
     markPoint(
       (point) => {
-        setPoints((prev) => [...prev, { ...point, pointType: PUNKT_MARKER, label: null, markerType: typ }]);
+        const marker: GpsPoint = { ...point, pointType: PUNKT_MARKER, label: null, markerType: typ };
+        setPoints((prev) => [...prev, marker]);
+        setZuruecknehmbar(marker);
         setIsMarking(false);
         toast.success(
           trailModus
@@ -185,6 +208,17 @@ export function FahrteRecorder({
       },
       () => setIsMarking(false),
     );
+  }
+
+  /**
+   * Nimmt den zuletzt gesetzten Marker zurück, solange der Knopf da ist. Ältere Marker bleiben bewusst:
+   * Der Knopf gilt dem Fehlgriff eben, kein Verlauf zum Zurückblättern. Aus der Sicherung verschwindet er
+   * mit dem nächsten Schreiben der Punkte.
+   */
+  function markerZuruecknehmen() {
+    if (!zuruecknehmbar) return;
+    setPoints((prev) => markerEntfernen(prev, zuruecknehmbar));
+    setZuruecknehmbar(null);
   }
 
   /**
@@ -205,12 +239,14 @@ export function FahrteRecorder({
       return;
     stop();
     setPoints([]);
+    setZuruecknehmbar(null);
     laufendRef.current = null;
     sicherungLoeschen(schluessel);
   }
 
   async function stopRecording() {
     stop();
+    setZuruecknehmbar(null);
     const laufend = laufendRef.current;
     laufendRef.current = null;
 
@@ -227,6 +263,7 @@ export function FahrteRecorder({
       userId: user?.userId ?? "",
       dogId,
       untergrund,
+      ...(trailModus ? {} : { bodenzustand }),
       points,
       ...(trailModus ? { trail: trailAngaben } : {}),
       trackId: laufend?.trackId ?? crypto.randomUUID(),
@@ -253,6 +290,7 @@ export function FahrteRecorder({
     speicherErgebnisMelden(ergebnis, t, "faehrte");
     setPoints([]);
     setUntergrund([]);
+    setBodenzustand([]);
     setTrailAngaben(LEERE_TRAIL_ANGABEN);
 
     if (ergebnis.ausgang === "fehler") {
@@ -308,6 +346,19 @@ export function FahrteRecorder({
                 {t("Später")}
               </Button>
             </div>
+            {/* Das Material trägt man hier nach, nicht beim Legen: Dort bleibt es bei einem Tipp je Marker.
+                Zugeklappt, damit "Jetzt ablaufen" oben bleibt; die Fährtendetails bieten dasselbe später. */}
+            {!trailModus && (
+              <GegenstandsMaterial
+                trackId={gelegt.id}
+                punkte={gelegt.points}
+                onGeaendert={(punkt) =>
+                  setGelegt((vorher) =>
+                    vorher && { ...vorher, points: vorher.points.map((p) => (p.id === punkt.id ? { ...p, material: punkt.material } : p)) },
+                  )
+                }
+              />
+            )}
           </div>
         )}
         {!unterbrochen && (
@@ -338,6 +389,27 @@ export function FahrteRecorder({
                 })}
               </div>
             </div>
+            {/* Nur bei der Fährte: Frost und Schnee ändern, wie sich der Geruch hält. */}
+            {!trailModus && (
+              <div className="flex flex-col gap-2">
+                <span id="fahrte-bodenzustand" className="text-sm font-medium">
+                  {t("Bodenzustand (optional)")}{" "}
+                  <span className="font-normal text-muted-foreground">· {t("mehrere möglich")}</span>
+                </span>
+                <div role="group" aria-labelledby="fahrte-bodenzustand" className="flex flex-wrap gap-1.5">
+                  {BODENZUSTAENDE.map((zustand) => (
+                    <Chip
+                      key={zustand}
+                      kompakt
+                      gewaehlt={bodenzustand.includes(zustand)}
+                      onClick={() => setBodenzustand((vorher) => untergrundUmschalten(vorher, zustand, BODENZUSTAENDE))}
+                    >
+                      {t(zustand)}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+            )}
             {trailModus && <TrailLegenFormular werte={trailAngaben} onChange={setTrailAngaben} />}
             <Button onClick={startRecording} disabled={speichert} className="w-full coarse:min-h-11">
               <MapPin className="size-4" />
@@ -374,6 +446,7 @@ export function FahrteRecorder({
         // ohne Hinsehen zu treffen sein. Die Beschriftung bricht um statt
         // abgeschnitten zu werden ("Leckerlipot" muss man draußen ganz lesen
         // können); min-h-16 hält die Tippfläche bei jedem Umbruch >= 44 px.
+        // hyphens-auto: Bei 375 px brach "Gegenstand" sonst ohne Strich mitten im Wort um ("Gegenstan|d").
         <div className={cn("grid gap-2", trailModus ? "grid-cols-1" : "grid-cols-4")}>
           {markerArten.map((markerArt) => (
             <Button
@@ -385,7 +458,7 @@ export function FahrteRecorder({
               className="h-auto min-h-16 flex-col gap-1 px-1 py-1.5 text-xs leading-tight whitespace-normal"
             >
               <markerArt.icon className="size-5 shrink-0" />
-              <span className="w-full min-w-0 text-center break-words">{t(markerArt.label)}</span>
+              <span className="w-full min-w-0 text-center break-words hyphens-auto">{t(markerArt.label)}</span>
             </Button>
           ))}
         </div>
@@ -396,6 +469,21 @@ export function FahrteRecorder({
       onAbbrechen={abbrechen}
     >
       <TrackMap points={points} live fill />
+      {/* Über der Karte statt in der Bedienleiste: Erschiene der Knopf dort, rutschten die Marker-Knöpfe
+          im ungünstigsten Moment unter dem Daumen weg. bottom-12 lässt Maßstab und Quellenangabe der Karte frei. */}
+      {zuruecknehmbar && (
+        <div className="pointer-events-none absolute inset-x-4 bottom-12 z-10 flex justify-center">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={markerZuruecknehmen}
+            className="pointer-events-auto min-h-12 gap-2 px-6 text-base shadow-md"
+          >
+            <Undo2 className="size-5" />
+            {t("Marker zurücknehmen")}
+          </Button>
+        </div>
+      )}
     </AufzeichnungVollbild>
   );
 }

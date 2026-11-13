@@ -1583,8 +1583,8 @@ def main() -> int:
         print(f"{RED}Admin-Anmeldung an {args.api} als {args.admin_email} fehlgeschlagen.{OFF}")
         if args.admin_email == ADMIN[0]:
             print(f"  {DIM}Das ist der Demo-Admin aus dem DemoDataSeeder. Fehlt er, lief der Seeder")
-            print(f"  auf dieser Instanz nicht - dann steht ASPNETCORE_ENVIRONMENT nicht auf")
-            print(f"  Development, oder die Instanz ist noch nicht hochgefahren.{OFF}")
+            print(f"  auf dieser Instanz nicht - dann ist weder Development noch Demo__Aktiv=true")
+            print(f"  gesetzt, oder die Instanz ist noch nicht hochgefahren.{OFF}")
         print("  Mit einem anderen Admin-Zugang:")
         print(f"    {BOLD}DOGITY_ADMIN_PASSWORD=... ./scripts/e2e-test.py --api {args.api} --admin-email ...{OFF}")
         print(f"  {DIM}Der Zugang braucht die Rolle ADMIN (Nutzer anlegen/löschen, Vereine verwalten).{OFF}")

@@ -34,6 +34,11 @@ git $GIT_HTTP fetch origin
 git checkout prod
 git reset --hard origin/prod
 
+# Caddy ZUERST neu laden, vor jedem Container-Neustart (Begründung in
+# deploy-test.sh): Die Wartungsseite für die Neustart-Sekunden steht im
+# Caddyfile. Scheitert das Laden, bricht der Deploy ab, bevor etwas neu startet.
+"$REPO_DIR/scripts/caddy-neu-laden.sh"
+
 echo "==> Prod-Container bauen und starten"
 # Hier steht bewusst KEIN --pull, anders als in deploy-test.sh. Der
 # Test-Deploy zieht die Basis-Images; Prod baut gegen genau die, die dort
@@ -81,11 +86,6 @@ export BUILD_TIME
 export BUILD_COMMIT="$(git rev-parse --short HEAD)"
 export BUILD_REF="$BUILD_TIME"
 docker compose up -d --build --force-recreate frontend-prod
-
-# Ein geänderter Caddyfile greift sonst erst beim nächsten Handgriff.
-# Scheitert das Laden, bricht der Deploy hier ab - die App läuft dann
-# schon neu, nur Caddy noch mit der alten Datei.
-"$REPO_DIR/scripts/caddy-neu-laden.sh"
 
 echo "==> Abschliessender Rauchtest"
 curl -sS -o /dev/null -w "api:    HTTP %{http_code}\n" https://api.dogity.net/health

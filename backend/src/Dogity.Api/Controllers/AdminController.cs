@@ -1,5 +1,6 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Admin;
+using Dogity.Application.Betrieb;
 using Dogity.Application.Community;
 using Dogity.Application.Notifications;
 using Dogity.Application.Sports;
@@ -11,7 +12,7 @@ namespace Dogity.Api.Controllers;
 
 [Authorize(Roles = Roles.Admin)]
 [Route("api/admin")]
-public class AdminController(IAdminService adminService, IAdminUsageService usageService, IClubService clubService, IRegulationImportService importService, IClubRegistrationService registrations, IMailTestService mailTest, IPushTestService pushTest, ILogger<AdminController> logger) : ApiControllerBase
+public class AdminController(IAdminService adminService, IAdminUsageService usageService, IClubService clubService, IRegulationImportService importService, IClubRegistrationService registrations, IMailTestService mailTest, IPushTestService pushTest, IWartungshinweisService wartung, ILogger<AdminController> logger) : ApiControllerBase
 {
     [HttpGet("clubs")]
     public async Task<ActionResult<IReadOnlyList<ClubDto>>> GetClubs(CancellationToken ct)
@@ -88,6 +89,21 @@ public class AdminController(IAdminService adminService, IAdminUsageService usag
         var result = await adminService.GetStatsAsync(ct);
         return FromResult(result);
     }
+
+    /// <summary>Der gespeicherte Wartungshinweis, auch ausgeschaltet oder abgelaufen.</summary>
+    [HttpGet("wartungshinweis")]
+    public async Task<ActionResult<WartungshinweisAdminDto>> GetWartungshinweis(CancellationToken ct) =>
+        FromResult(await wartung.GetGespeicherteAsync(ct));
+
+    /// <summary>Setzt den Wartungshinweis (Text, Beginn, Ende, an/aus).</summary>
+    [HttpPut("wartungshinweis")]
+    public async Task<ActionResult<WartungshinweisAdminDto>> SetWartungshinweis(SetWartungshinweisRequest request, CancellationToken ct) =>
+        FromResult(await wartung.SetzenAsync(request, ct));
+
+    /// <summary>Schaltet den Wartungshinweis aus.</summary>
+    [HttpDelete("wartungshinweis")]
+    public async Task<IActionResult> DisableWartungshinweis(CancellationToken ct) =>
+        FromResult(await wartung.AusschaltenAsync(ct));
 
     /// <summary>Wie und was genutzt wird - nur Zählungen aus vorhandenen Daten, keine Personen.</summary>
     [HttpGet("stats/usage")]

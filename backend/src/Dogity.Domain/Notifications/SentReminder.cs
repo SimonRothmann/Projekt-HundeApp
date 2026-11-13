@@ -21,7 +21,10 @@ public enum ReminderType
     HealthDueToday,
 
     /// <summary>Tierarzttermin am Folgetag, an die Besitzer:innen des Hundes.</summary>
-    HealthVetDayBefore
+    HealthVetDayBefore,
+
+    /// <summary>Gemerktes fürs Training (Merkzettel), vor dem Training am Trainingstag; an die Besitzer:innen des Hundes.</summary>
+    TrainingNote
 }
 
 /// <summary>
@@ -43,7 +46,7 @@ public class SentReminder : Entity
 
     /// <summary>
     /// Worauf sich die Erinnerung bezieht: die Id des Termins bzw. der Fährte bzw.
-    /// des Gesundheitseintrags; bei der Zusammenfassung (kein einzelner Bezug) <see cref="Guid.Empty"/>.
+    /// des Gesundheitseintrags bzw. des Hundes (Merkzettel); bei der Zusammenfassung (kein einzelner Bezug) <see cref="Guid.Empty"/>.
     /// </summary>
     public Guid ReferenceId { get; set; }
 
@@ -52,7 +55,7 @@ public class SentReminder : Entity
     /// werden können (Zusammenfassung), beim Termin der Termintag (ein verschobener
     /// Termin wird erneut erinnert), bei den Gesundheitserinnerungen der Tag der Frist bzw.
     /// des Tierarzttermins (wer das Datum eines Eintrags nachträglich ändert, wird zum neuen
-    /// Datum erneut erinnert); sonst <see cref="KeinTag"/>. Der Schlüssel
+    /// Datum erneut erinnert), beim Merkzettel der Trainingstag; sonst <see cref="KeinTag"/>. Der Schlüssel
     /// ist der Tag und nicht die Stunde: Ändert jemand die Uhrzeit nach dem
     /// Versand, kommt am selben Tag keine zweite.
     /// </summary>

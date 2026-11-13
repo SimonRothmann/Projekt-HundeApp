@@ -26,10 +26,9 @@ siehe Hinweis unten zu `docker compose build`.
 
 - **Prod** läuft mit `ASPNETCORE_ENVIRONMENT=Production`: kein Swagger,
   keine Demo-Daten, CORS nur für `PROD_DOMAIN`.
-- **Test** läuft mit `ASPNETCORE_ENVIRONMENT=Development`: Swagger unter
-  `/swagger`, automatisch befüllte Demo-Accounts (siehe
-  `DemoDataSeeder.cs`), CORS permissiv. Bewusst kein eigener
-  "Staging"-Modus - nutzt den bereits vorhandenen Dev-Pfad.
+- **Test** läuft mit `ASPNETCORE_ENVIRONMENT=Staging` und verhält sich wie
+  Prod (kein Swagger, CORS nur für `TEST_DOMAIN`); nur `Demo__Aktiv=true`
+  befüllt automatisch die Demo-Accounts (siehe `DemoDataSeeder.cs`).
 - Migrationen + Sportarten-/Übungskatalog laufen in **beiden** Umgebungen
   automatisch beim Containerstart (siehe `Program.cs`).
 

@@ -733,6 +733,113 @@ public class TrainingServiceTests
         Assert.False(foreign.Succeeded);
     }
 
+    // ---- Dauer des Trainingstags (SetDayDurationAsync) ----
+
+    private static async Task<Guid> CreateSecondSessionAsync(TrainingService service, Setup setup, DateOnly date, int minuten)
+    {
+        // Zweite Einheit am selben Tag - mit eigener Id, wie eine Fährtenaufnahme.
+        var result = await service.CreateAsync(setup.UserId, new CreateTrainingSessionRequest(
+            setup.DogId, date, minuten, null, [], Id: Guid.NewGuid()));
+        Assert.True(result.Succeeded);
+        return result.Value!.Id;
+    }
+
+    [Fact]
+    public async Task SetDayDuration_OneSession_TakesNewDuration()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var sessionId = await CreateSessionOnAsync(service, setup, DateOnly.FromDateTime(DateTime.Today));
+
+        var result = await service.SetDayDurationAsync(setup.UserId, sessionId, 45);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(45, result.Value!.DurationMinutes);
+        Assert.Equal(45, (await service.GetByIdAsync(setup.UserId, sessionId)).Value!.DurationMinutes);
+    }
+
+    /// <summary>
+    /// Die Tagessumme ist das, was man sieht: die andere Einheit behält ihre
+    /// 20 Minuten, die angesprochene bekommt den Rest.
+    /// </summary>
+    [Fact]
+    public async Task SetDayDuration_TwoSessions_KeepsSplitAndHitsSum()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var sessionId = await CreateSessionOnAsync(service, setup, today);
+        var otherId = await CreateSecondSessionAsync(service, setup, today, 20);
+
+        var result = await service.SetDayDurationAsync(setup.UserId, sessionId, 50);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(30, result.Value!.DurationMinutes);
+        var all = (await service.GetByDogAsync(setup.UserId, setup.DogId)).Value!;
+        Assert.Equal(20, all.Single(s => s.Id == otherId).DurationMinutes);
+        Assert.Equal(50, all.Sum(s => s.DurationMinutes));
+    }
+
+    [Fact]
+    public async Task SetDayDuration_RestBelowOne_FallsBackToZeroForOthers()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var sessionId = await CreateSessionOnAsync(service, setup, today);
+        var otherId = await CreateSecondSessionAsync(service, setup, today, 20);
+
+        // 15 < 20 der anderen Einheit: sie geht auf 0, die angesprochene trägt alles.
+        var result = await service.SetDayDurationAsync(setup.UserId, sessionId, 15);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(15, result.Value!.DurationMinutes);
+        var all = (await service.GetByDogAsync(setup.UserId, setup.DogId)).Value!;
+        Assert.Equal(0, all.Single(s => s.Id == otherId).DurationMinutes);
+        Assert.Equal(15, all.Sum(s => s.DurationMinutes));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    [InlineData(601)]
+    public async Task SetDayDuration_OutOfRange_IsRejectedAndChangesNothing(int minuten)
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var sessionId = await CreateSessionOnAsync(service, setup, DateOnly.FromDateTime(DateTime.Today));
+
+        var result = await service.SetDayDurationAsync(setup.UserId, sessionId, minuten);
+
+        Assert.False(result.Succeeded);
+        Assert.False(result.IsNotFound);
+        Assert.Equal(30, (await service.GetByIdAsync(setup.UserId, sessionId)).Value!.DurationMinutes);
+    }
+
+    [Fact]
+    public async Task SetDayDuration_Limits_AreAccepted()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var sessionId = await CreateSessionOnAsync(service, setup, DateOnly.FromDateTime(DateTime.Today));
+
+        Assert.True((await service.SetDayDurationAsync(setup.UserId, sessionId, 1)).Succeeded);
+        Assert.True((await service.SetDayDurationAsync(setup.UserId, sessionId, TrainingService.MaxDauerMinuten)).Succeeded);
+    }
+
+    [Fact]
+    public async Task SetDayDuration_ForeignUser_GetsNotFound()
+    {
+        var service = MakeService(out var db);
+        var setup = await SetupPlanAsync(db);
+        var sessionId = await CreateSessionOnAsync(service, setup, DateOnly.FromDateTime(DateTime.Today));
+
+        var result = await service.SetDayDurationAsync(Guid.NewGuid(), sessionId, 10);
+
+        Assert.True(result.IsNotFound);
+        Assert.Equal(30, (await service.GetByIdAsync(setup.UserId, sessionId)).Value!.DurationMinutes);
+    }
+
     // --- Nachträgliches Korrigieren einer erfassten Übung -----------------
     // Bis dahin ließ sich nur die Notiz ändern; ein Vertipper in der Bewertung
     // bedeutete: ganzen Trainingstag löschen und neu erfassen.

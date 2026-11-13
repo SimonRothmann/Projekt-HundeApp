@@ -22,6 +22,42 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Dogity.Domain.Betrieb.Wartungshinweis", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Aktiv")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("Beginn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("Ende")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Text")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("wartungshinweise", (string)null);
+                });
+
             modelBuilder.Entity("Dogity.Domain.Community.Club", b =>
                 {
                     b.Property<Guid>("Id")
@@ -56,6 +92,172 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasFilter("\"InviteCode\" IS NOT NULL AND \"InviteCode\" <> ''");
 
                     b.ToTable("clubs", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExam", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClubId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("JudgeName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateOnly?>("RegistrationDeadline")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly?>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId", "Date");
+
+                    b.ToTable("club_exams", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExamEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DogId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ExamId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("GoalCreated")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("GoalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GuestDogName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("GuestHandlerName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("GuestInfo")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("MemberUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RegulationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("ResultByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ResultEnteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ResultNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("Score")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StartOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DogId");
+
+                    b.HasIndex("GoalId");
+
+                    b.HasIndex("MemberUserId");
+
+                    b.HasIndex("RegulationId");
+
+                    b.HasIndex("ExamId", "RegulationId", "StartOrder");
+
+                    b.ToTable("club_exam_entries", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExamRegulation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ExamId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RegulationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RegulationId");
+
+                    b.HasIndex("ExamId", "RegulationId");
+
+                    b.ToTable("club_exam_regulations", (string)null);
                 });
 
             modelBuilder.Entity("Dogity.Domain.Community.ClubMembership", b =>
@@ -197,6 +399,134 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("club_trainers", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubWorkEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClubId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId", "Date");
+
+                    b.ToTable("club_work_events", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubWorkGuest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClubId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("LastName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId");
+
+                    b.ToTable("club_work_guests", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubWorkParticipation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClubWorkEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("GuestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("Minutes")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RecordedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GuestId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ClubWorkEventId", "GuestId")
+                        .IsUnique();
+
+                    b.HasIndex("ClubWorkEventId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("club_work_participations", (string)null);
                 });
 
             modelBuilder.Entity("Dogity.Domain.Community.Group", b =>
@@ -987,6 +1317,38 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.HasIndex("DogId", "StartDate");
 
                     b.ToTable("dog_pauses", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Dogs.DogTrainingRhythm", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Days")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DogId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("Hour")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DogId")
+                        .IsUnique();
+
+                    b.ToTable("dog_training_rhythms", (string)null);
                 });
 
             modelBuilder.Entity("Dogity.Domain.Geography.Country", b =>
@@ -1791,6 +2153,13 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("ReminderTrainingNotes")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int?>("StepLengthCm")
+                        .HasColumnType("integer");
+
                     b.Property<int>("TrainerSummaryDays")
                         .HasColumnType("integer")
                         .HasDefaultValue(64);
@@ -2129,6 +2498,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<int>("MarkerType")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Material")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<int>("PointType")
                         .HasColumnType("integer");
 
@@ -2170,6 +2543,15 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<bool>("DoubleBlind")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("ExcludeFromStats")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("GroundCondition")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -2184,6 +2566,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<int?>("LaidWeatherCode")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LaidWindDirectionDeg")
                         .HasColumnType("integer");
 
                     b.Property<double?>("LaidWindSpeedKmh")
@@ -2206,6 +2591,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<int?>("SearchWeatherCode")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SearchWindDirectionDeg")
                         .HasColumnType("integer");
 
                     b.Property<double?>("SearchWindSpeedKmh")
@@ -2307,6 +2695,11 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("EvaluatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("EvaluationVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Indication")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
@@ -2334,6 +2727,140 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.HasIndex("TrackId");
 
                     b.ToTable("gps_walk_runs", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunArticle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PointId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WalkRunId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WalkRunId", "PointId")
+                        .IsUnique();
+
+                    b.ToTable("gps_walk_run_articles", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunCorner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("HoldSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("OvershootMeters")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("Overshot")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Reached")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Sharp")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("TimeAtCornerSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("TurnDegrees")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WalkRunId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WalkRunId");
+
+                    b.ToTable("gps_walk_run_corners", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunLeg", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<double?>("AvgDeviationMeters")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DurationSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("LengthMeters")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("SpeedMetersPerMinute")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WalkRunId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WalkRunId");
+
+                    b.ToTable("gps_walk_run_legs", (string)null);
                 });
 
             modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkStop", b =>
@@ -2438,6 +2965,58 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.HasIndex("TrainingSessionId");
 
                     b.ToTable("training_exercises", (string)null);
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Training.TrainingNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DogId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DoneAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DoneInTrainingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ExerciseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Goal")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateOnly?>("TargetDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExerciseId");
+
+                    b.HasIndex("DogId", "DoneAt");
+
+                    b.ToTable("training_notes", (string)null);
                 });
 
             modelBuilder.Entity("Dogity.Domain.Training.TrainingSession", b =>
@@ -2784,6 +3363,65 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.ToTable("user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExam", b =>
+                {
+                    b.HasOne("Dogity.Domain.Community.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExamEntry", b =>
+                {
+                    b.HasOne("Dogity.Domain.Dogs.Dog", null)
+                        .WithMany()
+                        .HasForeignKey("DogId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Dogity.Domain.Community.ClubExam", "Exam")
+                        .WithMany("Entries")
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Dogity.Domain.Planning.Goal", null)
+                        .WithMany()
+                        .HasForeignKey("GoalId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Dogity.Domain.Sports.Regulation", "Regulation")
+                        .WithMany()
+                        .HasForeignKey("RegulationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Exam");
+
+                    b.Navigation("Regulation");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExamRegulation", b =>
+                {
+                    b.HasOne("Dogity.Domain.Community.ClubExam", "Exam")
+                        .WithMany("Regulations")
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Dogity.Domain.Sports.Regulation", "Regulation")
+                        .WithMany()
+                        .HasForeignKey("RegulationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Exam");
+
+                    b.Navigation("Regulation");
+                });
+
             modelBuilder.Entity("Dogity.Domain.Community.ClubMembership", b =>
                 {
                     b.HasOne("Dogity.Domain.Community.Club", "Club")
@@ -2804,6 +3442,46 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Club");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubWorkEvent", b =>
+                {
+                    b.HasOne("Dogity.Domain.Community.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubWorkGuest", b =>
+                {
+                    b.HasOne("Dogity.Domain.Community.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubWorkParticipation", b =>
+                {
+                    b.HasOne("Dogity.Domain.Community.ClubWorkEvent", "Event")
+                        .WithMany("Participations")
+                        .HasForeignKey("ClubWorkEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Dogity.Domain.Community.ClubWorkGuest", "Guest")
+                        .WithMany()
+                        .HasForeignKey("GuestId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Event");
+
+                    b.Navigation("Guest");
                 });
 
             modelBuilder.Entity("Dogity.Domain.Community.Group", b =>
@@ -2994,6 +3672,17 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                 });
 
             modelBuilder.Entity("Dogity.Domain.Dogs.DogPause", b =>
+                {
+                    b.HasOne("Dogity.Domain.Dogs.Dog", "Dog")
+                        .WithMany()
+                        .HasForeignKey("DogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dog");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Dogs.DogTrainingRhythm", b =>
                 {
                     b.HasOne("Dogity.Domain.Dogs.Dog", "Dog")
                         .WithMany()
@@ -3234,6 +3923,39 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Navigation("Track");
                 });
 
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunArticle", b =>
+                {
+                    b.HasOne("Dogity.Domain.Tracking.GpsWalkRun", "WalkRun")
+                        .WithMany("Articles")
+                        .HasForeignKey("WalkRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WalkRun");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunCorner", b =>
+                {
+                    b.HasOne("Dogity.Domain.Tracking.GpsWalkRun", "WalkRun")
+                        .WithMany("Corners")
+                        .HasForeignKey("WalkRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WalkRun");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRunLeg", b =>
+                {
+                    b.HasOne("Dogity.Domain.Tracking.GpsWalkRun", "WalkRun")
+                        .WithMany("Legs")
+                        .HasForeignKey("WalkRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WalkRun");
+                });
+
             modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkStop", b =>
                 {
                     b.HasOne("Dogity.Domain.Tracking.GpsWalkRun", "WalkRun")
@@ -3268,6 +3990,24 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Navigation("TrainingPlanItem");
 
                     b.Navigation("TrainingSession");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Training.TrainingNote", b =>
+                {
+                    b.HasOne("Dogity.Domain.Dogs.Dog", "Dog")
+                        .WithMany()
+                        .HasForeignKey("DogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Dogity.Domain.Sports.Exercise", "Exercise")
+                        .WithMany()
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Dog");
+
+                    b.Navigation("Exercise");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -3328,6 +4068,18 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Navigation("Memberships");
 
                     b.Navigation("Trainers");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubExam", b =>
+                {
+                    b.Navigation("Entries");
+
+                    b.Navigation("Regulations");
+                });
+
+            modelBuilder.Entity("Dogity.Domain.Community.ClubWorkEvent", b =>
+                {
+                    b.Navigation("Participations");
                 });
 
             modelBuilder.Entity("Dogity.Domain.Community.Group", b =>
@@ -3423,6 +4175,12 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Dogity.Domain.Tracking.GpsWalkRun", b =>
                 {
+                    b.Navigation("Articles");
+
+                    b.Navigation("Corners");
+
+                    b.Navigation("Legs");
+
                     b.Navigation("Points");
 
                     b.Navigation("Stops");

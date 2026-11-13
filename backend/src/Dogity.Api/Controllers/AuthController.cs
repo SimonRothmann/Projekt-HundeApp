@@ -135,6 +135,9 @@ public class AuthController(
         if (!result.Succeeded)
             return Unauthorized(new { errors = new[] { "E-Mail oder Passwort ist falsch." } });
 
+        // Zeigt, wie oft sich jemand neu anmelden muss (Ablehnungen der
+        // Erneuerung siehe RefreshTokenService).
+        logger.LogInformation("Sitzung: Anmeldung (Konto {KontoId})", user.Id);
         var roles = await userManager.GetRolesAsync(user);
         return Ok(await BuildAuthResponseAsync(user, roles));
     }

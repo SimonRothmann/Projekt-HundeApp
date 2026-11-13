@@ -130,6 +130,30 @@ public class AdminRecentStatsTests
     }
 
     [Fact]
+    public async Task ImVerein_ZaehltAuchRollenOhneMitgliedschaft_JedesKontoEinmal()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var verein = new Club { Name = "Verein" };
+        db.Clubs.Add(verein);
+        var nurRolle = NeuesKonto(lookup, Vor5Tagen);
+        var beides = NeuesKonto(lookup, Vor5Tagen);
+        var alteRolle = NeuesKonto(lookup, Vor40Tagen);
+        var ohneVerein = NeuesKonto(lookup, Vor5Tagen);
+        db.ClubTrainers.AddRange(
+            new ClubTrainer { ClubId = verein.Id, UserId = nurRolle, Role = ClubRole.Vorstand },
+            new ClubTrainer { ClubId = verein.Id, UserId = beides, Role = ClubRole.Training },
+            new ClubTrainer { ClubId = verein.Id, UserId = alteRolle, Role = ClubRole.Verwaltung },
+            // Verein gibt es nicht mehr: zählt nicht.
+            new ClubTrainer { ClubId = Guid.NewGuid(), UserId = ohneVerein, Role = ClubRole.Training });
+        db.ClubMemberships.Add(new ClubMembership { ClubId = verein.Id, UserId = beides, Status = ClubMembershipStatus.Approved });
+        await db.SaveChangesAsync();
+
+        var z = await Holen(dienst);
+
+        Assert.Equal(2, z.InClub);
+    }
+
+    [Fact]
     public async Task ViaClubLink_ZaehltJedenStatusAberNurNeueKonten()
     {
         var (dienst, db, lookup) = Aufsetzen();

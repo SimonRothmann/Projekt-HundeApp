@@ -187,8 +187,11 @@ public class DemoSzenarienSeederTests
 
         // b) Ziele: zwei erreichte (eines ohne, eines mit Punkten), ein aktives mit Plan und Fortschritt, ein überfälliges
         var ziele = await db.Goals.Include(g => g.TrainingPlan).ToListAsync();
-        var erreicht = ziele.Where(g => g.Status == GoalStatus.Achieved).ToList();
+        // Nur die beiden Ziele dieses Szenarios (an ihren Notizen): Emmas Leistung aus der Vereinsprüfung hat keine.
+        var erreicht = ziele.Where(g => g.Status == GoalStatus.Achieved && g.Notes is DemoSzenarienSeeder.NotizBhErreicht or DemoSzenarienSeeder.NotizUprErreicht).ToList();
         Assert.Equal(2, erreicht.Count);
+        // Dazu kommt genau eine: Emmas Leistung aus der Vereinsprüfung. Ein weiteres erreichtes Ziel soll auffallen.
+        Assert.Equal(3, ziele.Count(g => g.Status == GoalStatus.Achieved));
         Assert.Contains(erreicht, g => g.ExamScore is null && g.ExamDate is not null);
         Assert.Contains(erreicht, g => g.ExamScore is { } punkte && punkte is > 0 and < 100);
         var heute = Vereinszeit.Heute();
@@ -1549,6 +1552,108 @@ public class DemoSzenarienSeederTests
         Assert.Equal(heute.AddDays(1), (await pruefDb.DogHealthRecords.SingleAsync(r => r.Note == DemoSzenarienSeeder.NotizGesundheitTollwut)).DueDate);
         Assert.Equal(heute.AddDays(-4), (await pruefDb.DogHealthRecords.SingleAsync(r => r.Note == DemoSzenarienSeeder.NotizGesundheitTermin)).Date);
         Assert.DoesNotContain(await pruefDb.DogHealthRecords.ToListAsync(), r => r.Note == DemoSzenarienSeeder.NotizGesundheitEntwurmung);
+    }
+
+    // ---------------------------------------------------------------- Vereinsprüfung (V4)
+
+    private static async Task<(Guid WilliId, Guid ClubId, ApplicationDbContext Db, IClubExamService Dienst, IServiceScope Scope)> PruefungsAnsichtAsync(IServiceProvider provider)
+    {
+        var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var willi = (await users.FindByEmailAsync(DemoSzenarienSeeder.AusbildungswartEmail))!.Id;
+        var club = await db.Clubs.SingleAsync();
+        return (willi, club.Id, db, scope.ServiceProvider.GetRequiredService<IClubExamService>(), scope);
+    }
+
+    [Fact]
+    public async Task Vereinspruefung_KommendeBhPruefungMitMaxBelloUndGast_VergangeneMitErgebnissen()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var (willi, clubId, db, dienst, scope) = await PruefungsAnsichtAsync(provider);
+        using var _ = scope;
+        var heute = Vereinszeit.Heute();
+        var maxId = (await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync("mitglied1@dogity.test"))!.Id;
+
+        var liste = (await dienst.GetListAsync(willi, clubId)).Value!;
+        Assert.Equal(2, liste.Count);
+        var vergangen = liste.Single(p => p.Date < heute);
+        var kommend = liste.Single(p => p.Date >= heute);
+
+        // Die kommende BH-Prüfung in drei Wochen: Max mit Bello (Ampel gelb) und ein Gast.
+        Assert.Equal(heute.AddDays(21), kommend.Date);
+        var bh = (await dienst.GetAsync(willi, clubId, kommend.Id)).Value!;
+        Assert.Equal(["BH"], bh.Regulations.Select(o => o.Name));
+        var bello = bh.Entries.Single(e => e.Kind == ClubExamTeamKind.Member);
+        Assert.Equal("Bello", bello.DogName);
+        Assert.Equal(Reifeampel.Gelb, bello.Reife!.Ampel);
+        Assert.Equal("Gerd Gast", bh.Entries.Single(e => e.Kind == ClubExamTeamKind.Guest).HandlerName);
+
+        // Die vergangene: Emma hat bestanden (Leistung am Hund), der Gast nicht.
+        Assert.Equal(heute.AddDays(-35), vergangen.Date);
+        Assert.Equal((2, 1), (vergangen.TeamCount, vergangen.PassedCount));
+        Assert.Equal(ClubExamStatus.Done, vergangen.Status);
+        var emma = await db.Dogs.SingleAsync(d => d.Name == "Emma");
+        var leistung = await db.Goals.SingleAsync(g => g.DogId == emma.Id && g.Status == GoalStatus.Achieved && g.ExamDate == heute.AddDays(-35));
+        Assert.Equal("IBGH1", (await db.Regulations.SingleAsync(r => r.Id == leistung.RegulationId)).Name);
+        var gast = (await dienst.GetAsync(willi, clubId, vergangen.Id)).Value!.Entries.Single(e => e.Kind == ClubExamTeamKind.Guest);
+        Assert.Equal(ClubExamResult.Failed, gast.Result);
+
+        // Max wurde benachrichtigt und sieht bei Bello die Meldung.
+        var meldungen = await db.Notifications.Where(n => n.UserId == maxId).Select(n => n.Message).ToListAsync();
+        Assert.Contains(meldungen, m => m.Contains("hat Bello für die BH am") && m.Contains("gemeldet"));
+        Assert.Contains(meldungen, m => m.StartsWith("Ergebnis der IBGH1") && m.Contains("für Emma") && m.EndsWith("bestanden."));
+        var belloHund = await db.Dogs.SingleAsync(d => d.Name == "Bello");
+        var gemeldet = (await dienst.GetForDogAsync(maxId, belloHund.Id)).Value!;
+        Assert.Equal(heute.AddDays(21), Assert.Single(gemeldet).Date);
+    }
+
+    [Fact]
+    public async Task Vereinspruefung_ZweimaligesAusfuehren_LegtNichtsDoppeltAn()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var davor = await ZaehleAsync(provider);
+        int Pruefungen(IServiceScope s) => s.ServiceProvider.GetRequiredService<ApplicationDbContext>().ClubExamEntries.IgnoreQueryFilters().Count();
+        int vorher;
+        using (var scope = provider.CreateScope()) vorher = Pruefungen(scope);
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        Assert.Equal(davor, await ZaehleAsync(provider));
+        using var danach = provider.CreateScope();
+        Assert.Equal(vorher, Pruefungen(danach));
+        Assert.Equal(2, await danach.ServiceProvider.GetRequiredService<ApplicationDbContext>().ClubExams.IgnoreQueryFilters().CountAsync());
+    }
+
+    [Fact]
+    public async Task Vereinspruefung_GeloeschterTag_KommtNichtZurueck_UndDerKommendeRuecktNachVorn()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var heute = Vereinszeit.Heute();
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            // Die kommende Prüfung liegt in der Vergangenheit und hat kein Ergebnis: Sie rückt wieder auf drei Wochen voraus.
+            var kommend = await db.ClubExams.SingleAsync(e => e.Note == DemoSzenarienSeeder.NotizPruefungKommend);
+            kommend.Date = heute.AddDays(-3);
+            // Die vergangene hat ein Tester gelöscht (weich): Sie kommt nicht zurück.
+            var vergangen = await db.ClubExams.SingleAsync(e => e.Note == DemoSzenarienSeeder.NotizPruefungVergangen);
+            vergangen.DeletedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var danach = provider.CreateScope();
+        var pruefDb = danach.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Equal(heute.AddDays(21), (await pruefDb.ClubExams.SingleAsync()).Date);
+        Assert.Equal(2, await pruefDb.ClubExams.IgnoreQueryFilters().CountAsync());
     }
 
     /// <summary>Hält Warnungen des Seeders fest - ein still übergangenes Szenario darf keine auslösen.</summary>

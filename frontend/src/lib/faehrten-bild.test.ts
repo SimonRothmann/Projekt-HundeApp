@@ -286,6 +286,18 @@ describe("faehrtenKennzahlen", () => {
     expect(kz.liegezeitMin).toBe(20);
   });
 
+  it("zeigt die bestätigte Gegenstandszahl, wo es Angaben gibt - sonst die GPS-Zahl", () => {
+    expect(faehrtenKennzahlen(track(), ablauf({ articles: [] })).gefunden).toBe(3);
+    const bestaetigt = ablauf({
+      articles: [
+        { pointId: "a", result: 0 },
+        { pointId: "b", result: 2 },
+      ],
+    });
+    expect(faehrtenKennzahlen(track(), bestaetigt).gefunden).toBe(1);
+    expect(faehrtenKennzahlen(track(), bestaetigt).gesamt).toBe(4);
+  });
+
   it("färbt die Ampel nach der ungerundeten Abweichung", () => {
     // 3,4 m runden auf 3, sind aber über der grünen Schwelle.
     expect(faehrtenKennzahlen(track(), ablauf({ avgDeviationMeters: 3.4 })).ampel).toBe("gelb");

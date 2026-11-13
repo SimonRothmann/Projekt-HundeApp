@@ -12,6 +12,7 @@ import { istMantrailing } from "@/lib/mantrailing";
 import { ortsformat } from "@/lib/ortsformat";
 import { datumKurz } from "@/lib/pruefung";
 import { heuteIso } from "@/lib/kalendertag";
+import { useSchritte } from "@/lib/use-schritte";
 
 export type FaehrteMitHund = OffeneFaehrte & { hund: Dog };
 
@@ -41,6 +42,7 @@ export function HeuteGelegtSection({
   const t = useT();
   const sprache = useSprache();
   const ort = ortsformat(sprache);
+  const schritte = useSchritte();
 
   if (faehrten.length === 0) return null;
 
@@ -69,6 +71,7 @@ export function HeuteGelegtSection({
                     ? t("Trailalter {minuten} Min.", { minuten: f.alterMinuten })
                     : t("Fährtenalter {minuten} Min.", { minuten: f.alterMinuten })}
                   {f.track.lengthMeters ? ` · ${Math.round(f.track.lengthMeters)} m` : ""}
+                  {!istMantrailing(f.track) && schritte(f.track.lengthMeters) ? ` ${schritte(f.track.lengthMeters)}` : ""}
                   {f.track.surface ? ` · ${f.track.surface.split(", ").map((teil) => t(teil)).join(", ")}` : ""}
                 </p>
               </div>

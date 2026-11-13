@@ -11,6 +11,7 @@ import {
   pruefeEintrag,
   schnellwahlen,
   terminText,
+  ueberfaelligZeile,
   uhrzeitFuerServer,
   uhrzeitKurz,
   zustand,
@@ -22,6 +23,7 @@ import {
   GESUNDHEIT_ZUSTAND,
   type DogGesundheitStand,
   type DogHealthRecord,
+  type GesundheitsArt,
 } from "./types";
 
 const tDe = (text: string, werte?: Record<string, string | number>) => uebersetze("de", text, werte);
@@ -315,6 +317,48 @@ describe("hinweiseFuerHund", () => {
       "en",
     );
     expect(hinweise.map((h) => h.text)).toEqual(["Bello: Rabies valid until 10/11", "Bello: Vet appointment tomorrow, 10:30"]);
+  });
+});
+
+describe("ueberfaelligZeile", () => {
+  const stand = (teil: Partial<DogGesundheitStand> = {}): DogGesundheitStand => ({
+    overdue: 0,
+    dueSoon: 0,
+    nextDue: null,
+    nextAppointment: null,
+    ...teil,
+  });
+  const frist = (kind: GesundheitsArt, dueDate: string) => ({
+    id: "x", kind, title: "Tollwut", dueDate, state: GESUNDHEIT_ZUSTAND.Ueberfaellig,
+  });
+
+  it("schweigt ohne Stand und wenn nichts überfällig ist", () => {
+    expect(ueberfaelligZeile(tDe, null, HEUTE)).toBeNull();
+    expect(ueberfaelligZeile(tDe, undefined, HEUTE)).toBeNull();
+    expect(ueberfaelligZeile(tDe, stand({ dueSoon: 2, nextDue: frist(GESUNDHEIT_ART.Impfung, "2026-11-04") }), HEUTE)).toBeNull();
+  });
+
+  it("nennt eine überfällige Frist nach ihrer Art", () => {
+    const eine = (kind: GesundheitsArt) =>
+      ueberfaelligZeile(tDe, stand({ overdue: 1, nextDue: frist(kind, "2026-11-01") }), HEUTE);
+    expect(eine(GESUNDHEIT_ART.Impfung)).toBe("Impfung überfällig");
+    expect(eine(GESUNDHEIT_ART.Entwurmung)).toBe("Entwurmung überfällig");
+    expect(eine(GESUNDHEIT_ART.Sonstiges)).toBe("Gesundheitsfrist überfällig");
+  });
+
+  it("zählt mehrere", () => {
+    expect(ueberfaelligZeile(tDe, stand({ overdue: 3, nextDue: frist(GESUNDHEIT_ART.Impfung, "2026-11-01") }), HEUTE)).toBe(
+      "3 Gesundheitsfristen überfällig",
+    );
+  });
+
+  it("merkt, dass ein Stand von gestern über Nacht überfällig geworden ist", () => {
+    expect(ueberfaelligZeile(tDe, stand({ nextDue: frist(GESUNDHEIT_ART.Impfung, "2026-11-03") }), HEUTE)).toBe("Impfung überfällig");
+  });
+
+  it("gibt es auf Englisch", () => {
+    expect(ueberfaelligZeile(tEn, stand({ overdue: 1, nextDue: frist(GESUNDHEIT_ART.Impfung, "2026-11-01") }), HEUTE)).toBe("Vaccination overdue");
+    expect(ueberfaelligZeile(tEn, stand({ overdue: 2 }), HEUTE)).toBe("2 health deadlines overdue");
   });
 });
 

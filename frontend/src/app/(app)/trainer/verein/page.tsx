@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { ChevronRight, HandHelping } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -114,6 +116,20 @@ export default function TrainerVereinPage() {
       {/* key: Jeder Verein bekommt frische Abschnitte - sonst zeigt die
           Mitgliederliste beim Wechsel noch den vorigen Verein, bis die neue geladen ist. */}
       {club.canViewOverview && <ClubOverviewSection key={`uebersicht-${club.id}`} clubId={club.id} />}
+      {/* Der Vorstand ohne Trainer-Rolle hat kein Trainer-Menü - von hier kommt er zu den Arbeitseinsätzen. */}
+      {club.canViewWork && (
+        <Link
+          href={`/trainer/arbeitseinsaetze?verein=${club.id}&from=${encodeURIComponent(`/trainer/verein?verein=${club.id}`)}`}
+          className="flex min-w-0 items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-accent/30 coarse:min-h-14"
+        >
+          <HandHelping className="size-5 shrink-0 text-primary-text" aria-hidden />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-sm font-medium">{t("Arbeitseinsätze")}</span>
+            <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{t("Wer wie oft im Verein geholfen hat")}</span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </Link>
+      )}
       {club.canManage && <ClubStammdatenSection key={`stammdaten-${club.id}`} club={club} onGespeichert={laden} />}
       {club.canAppointTrainers && (
         <ClubRolesSection

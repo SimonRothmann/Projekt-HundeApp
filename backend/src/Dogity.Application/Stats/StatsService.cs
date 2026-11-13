@@ -4,6 +4,7 @@ using Dogity.Domain.Tracking;
 using Dogity.Domain.Training;
 using Dogity.Application.Common;
 using Dogity.Application.Community;
+using Dogity.Application.Tracking;
 using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
 
@@ -178,24 +179,30 @@ public class StatsService(IApplicationDbContext db, TimeProvider timeProvider) :
             join session in db.TrainingSessions on track.TrainingSessionId equals session.Id
             // Nur Fährten: Ein Mantrailing-Lauf wird mit anderen Grenzen (10/25 m) bewertet, und
             // ein Verlauf, der beides mischt, vergliche Abweichungen, die nicht vergleichbar sind.
+            // Bewusst schwere Übungsfährten (ExcludeFromStats) bleiben draußen - mit allem, was an den
+            // angezeigten Abläufen hängt (Winkel, Fundquote je Material).
             where run.EvaluatedAt != null && session.DogId == dogId && track.Kind == GpsTrackKind.Faehrte
+                && !track.ExcludeFromStats
             orderby session.Date, run.CreatedAt
-            select new DogTrackRunDto(
-                session.Date,
-                run.AvgDeviationMeters!.Value,
-                run.OnTrackPercent!.Value,
-                run.ArticlesFound ?? 0,
-                run.ArticlesTotal ?? 0,
-                run.Stops.Count(s => s.Kind == WalkStopKind.Unexplained)))
+            select new TrackRunRow(
+                run.Id,
+                new DogTrackRunDto(
+                    session.Date,
+                    run.AvgDeviationMeters!.Value,
+                    run.OnTrackPercent!.Value,
+                    run.ArticlesFound ?? 0,
+                    run.ArticlesTotal ?? 0,
+                    run.Stops.Count(s => s.Kind == WalkStopKind.Unexplained))))
             .AsNoTracking()
             .ToListAsync(ct);
 
         if (rows.Count == 0)
-            return Result<DogTrackStatsDto>.Success(new DogTrackStatsDto([], null, null));
+            return Result<DogTrackStatsDto>.Success(new DogTrackStatsDto([], null, null, [], []));
 
         // Anzeige auf die jüngsten 12 Abläufe begrenzen - genug für einen
         // Verlauf, ohne die Karte auf dem Handy zu überfüllen.
-        var recent = rows.Count > 12 ? rows.Skip(rows.Count - 12).ToList() : rows;
+        var recentRows = rows.Count > 12 ? rows.Skip(rows.Count - 12).ToList() : rows;
+        var recent = recentRows.Select(r => r.Run).ToList();
 
         double? deviationTrend = null;
         double? onTrackTrend = null;
@@ -214,8 +221,63 @@ public class StatsService(IApplicationDbContext db, TimeProvider timeProvider) :
             .Select(r => r with { AvgDeviationMeters = Math.Round(r.AvgDeviationMeters, 1), OnTrackPercent = Math.Round(r.OnTrackPercent, 0) })
             .ToList();
 
-        return Result<DogTrackStatsDto>.Success(new DogTrackStatsDto(runs, deviationTrend, onTrackTrend));
+        // Winkel der angezeigten Abläufe. Nur erreichte zählen: Ein Winkel, den der Hund nie sah,
+        // sagt nichts darüber, ob er ihn sauber kann.
+        var recentIds = recentRows.Select(r => r.RunId).ToList();
+        var winkel = await db.GpsWalkRunCorners
+            .Where(c => recentIds.Contains(c.WalkRunId) && c.Reached)
+            .Select(c => new { c.Direction, c.Sharp, c.Overshot })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var gruppen = new List<DogTrackCornerGroupDto>();
+        foreach (var (gruppe, ueberschossen) in new (CornerGroup, List<bool>)[]
+                 {
+                     (CornerGroup.Left, winkel.Where(w => w.Direction == CornerDirection.Left).Select(w => w.Overshot).ToList()),
+                     (CornerGroup.Right, winkel.Where(w => w.Direction == CornerDirection.Right).Select(w => w.Overshot).ToList()),
+                     (CornerGroup.Sharp, winkel.Where(w => w.Sharp).Select(w => w.Overshot).ToList()),
+                 })
+        {
+            if (ueberschossen.Count < MinErreichteWinkel) continue;
+            gruppen.Add(new DogTrackCornerGroupDto(
+                gruppe, ueberschossen.Count, (int)Math.Round(ueberschossen.Count(u => !u) * 100.0 / ueberschossen.Count)));
+        }
+
+        // Fundquote je Material: nur Gegenstände mit Material UND Ergebnis-Angabe (eine Zeile gibt es
+        // nur mit Angabe). Für eine Auswertung auf demselben Zeitraum wie die Winkel: die angezeigten Abläufe.
+        var bewertet = await (
+            from angabe in db.GpsWalkRunArticles
+            join punkt in db.GpsPoints on angabe.PointId equals punkt.Id
+            where recentIds.Contains(angabe.WalkRunId) && punkt.Material != null
+            select new { Material = punkt.Material!, angabe.Result })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var reihenfolge = GegenstandsMaterial.Alle.ToList();
+        var materialien = bewertet
+            .GroupBy(b => b.Material)
+            .Where(g => g.Count() >= MinGegenstaendeJeMaterial)
+            .OrderBy(g => reihenfolge.IndexOf(g.Key))
+            .Select(g => new DogTrackMaterialDto(
+                g.Key, g.Count(), (int)Math.Round(g.Count(b => b.Result != ArticleResult.Missed) * 100.0 / g.Count())))
+            .ToList();
+
+        return Result<DogTrackStatsDto>.Success(new DogTrackStatsDto(runs, deviationTrend, onTrackTrend, gruppen, materialien));
     }
+
+    /// <summary>
+    /// Ab so vielen bewerteten Gegenständen eines Materials zeigt die Entwicklung seine Fundquote.
+    /// Darunter wäre "100 % von 2" eine Aussage, die nichts trägt.
+    /// </summary>
+    public const int MinGegenstaendeJeMaterial = 3;
+
+    /// <summary>
+    /// Ab so vielen erreichten Winkeln zeigt die Entwicklung eine Gruppe (links / rechts / spitz).
+    /// Darunter wäre "100 % von 2" eine Aussage, die nichts trägt.
+    /// </summary>
+    public const int MinErreichteWinkel = 3;
+
+    private record TrackRunRow(Guid RunId, DogTrackRunDto Run);
 
     private record ExerciseRow(string Name, string? NameEn, int Rating, bool Success, DateOnly Date);
 

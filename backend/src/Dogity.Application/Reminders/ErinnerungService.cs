@@ -4,10 +4,12 @@ using Dogity.Application.Community;
 using Dogity.Application.Dogs;
 using Dogity.Application.Notifications;
 using Dogity.Application.Preferences;
+using Dogity.Application.Training;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Notifications;
 using Dogity.Domain.Tracking;
+using Dogity.Domain.Training;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using static Dogity.Application.Common.SqlStates;
@@ -26,7 +28,7 @@ namespace Dogity.Application.Reminders;
 /// bei einer Erinnerung besser als eine doppelte.
 ///
 /// Abgefragt wird nur, was gerade in Frage kommt (Termine des Folgetags, Fährten der letzten
-/// Stunden, Fristen der nächsten 14 Tage, Trainer:innen mit heute fälligem Rhythmus) - außerhalb des Versandfensters (08-22 Uhr)
+/// Stunden, Fristen der nächsten 14 Tage, Trainer:innen mit heute fälligem Rhythmus, offene Merkzettel) - außerhalb des Versandfensters (08-22 Uhr)
 /// wird gar nichts geladen.
 /// </summary>
 public class ErinnerungService(
@@ -58,6 +60,7 @@ public class ErinnerungService(
         gesendet += await Abschnitt("Fährten", () => FaehrtenAsync(jetzt, ct));
         gesendet += await Abschnitt("Rückmeldungen", () => RueckmeldungenAsync(jetzt, ct));
         gesendet += await Abschnitt("Gesundheit", () => GesundheitAsync(jetzt, ct));
+        gesendet += await Abschnitt("Merkzettel", () => MerkzettelAsync(jetzt, ct));
         return gesendet;
     }
 
@@ -394,6 +397,61 @@ public class ErinnerungService(
         return await VersendeAsync(Erinnerungsregeln.GesundheitsErinnerungen(jetzt, adressaten, gesendet), ct);
     }
 
+    // ---- e) Merkzettel fürs Training ----
+
+    private async Task<int> MerkzettelAsync(DateTimeOffset jetzt, CancellationToken ct)
+    {
+        var heute = Vereinszeit.Tag(jetzt);
+        var wocheZurueck = heute.AddDays(-7);
+
+        // Nur Einträge, die heute drankommen können: "Nächstes Training" (der Tag ergibt sich erst aus
+        // dem Rhythmus) und solche mit Tag bis heute; Einträge mit einem Tag in der Zukunft warten.
+        var eintraege = await db.TrainingNotes
+            .Where(n => n.DoneAt == null
+                && (n.Goal == TrainingNoteGoal.NextTraining || (n.TargetDate <= heute && n.TargetDate >= wocheZurueck)))
+            .OrderBy(n => n.CreatedAt)
+            .Select(n => new { n.Id, n.DogId, n.Text, n.Goal, n.TargetDate, n.CreatedAt })
+            .AsNoTracking()
+            .ToListAsync(ct);
+        if (eintraege.Count == 0) return 0;
+
+        // Archivierte Hunde (etwa verstorbene) erinnern nicht mehr; gelöschte blendet der Filter aus.
+        var hundeIds = eintraege.Select(e => e.DogId).Distinct().ToList();
+        var hunde = await db.Dogs
+            .Where(d => hundeIds.Contains(d.Id) && d.ArchivedAt == null)
+            .Select(d => new { d.Id, d.Name })
+            .AsNoTracking()
+            .ToDictionaryAsync(d => d.Id, d => d.Name, ct);
+        if (hunde.Count == 0) return 0;
+
+        var aktiveHundeIds = hunde.Keys.ToList();
+        var besitzer = await db.DogOwners
+            .Where(o => aktiveHundeIds.Contains(o.DogId))
+            .Select(o => new { o.DogId, o.UserId })
+            .AsNoTracking()
+            .ToListAsync(ct);
+        var nutzerIds = besitzer.Select(b => b.UserId).Distinct().ToList();
+        var erlaubt = await ErlaubtAsync(nutzerIds, ReminderType.TrainingNote, ct);
+        var daten = await TrainingsDaten.LadenAsync(db, aktiveHundeIds, nutzerIds, heute, ct);
+
+        var kandidaten = new List<MerkzettelKandidat>();
+        foreach (var b in besitzer)
+        {
+            var seine = eintraege
+                .Where(e => e.DogId == b.DogId)
+                .Select(e => new MerkzettelEintrag(e.Id, e.Text, e.Goal, e.TargetDate, e.CreatedAt))
+                .ToList();
+            if (seine.Count == 0) continue;
+
+            kandidaten.Add(new MerkzettelKandidat(
+                b.UserId, b.DogId, hunde[b.DogId], erlaubt.Contains(b.UserId), seine,
+                daten.Tagebuch(b.DogId), daten.Gruppentermine(b.UserId), daten.Rhythmus(b.DogId)));
+        }
+
+        var gesendet = await GesendeteAsync(ReminderType.TrainingNote, aktiveHundeIds, heute, ct);
+        return await VersendeAsync(Erinnerungsregeln.MerkzettelErinnerungen(jetzt, kandidaten, gesendet), ct);
+    }
+
     // ---- gemeinsam ----
 
     /// <summary>
@@ -404,7 +462,7 @@ public class ErinnerungService(
     {
         var zeilen = await db.UserPreferences
             .Where(p => nutzerIds.Contains(p.UserId))
-            .Select(p => new { p.UserId, p.ReminderSessions, p.ReminderTracks, p.ReminderHealth })
+            .Select(p => new { p.UserId, p.ReminderSessions, p.ReminderTracks, p.ReminderHealth, p.ReminderTrainingNotes })
             .AsNoTracking()
             .ToListAsync(ct);
         var ausgeschaltet = zeilen
@@ -412,6 +470,7 @@ public class ErinnerungService(
             {
                 ReminderType.SessionDayBefore => z.ReminderSessions,
                 ReminderType.TrackNotWalked => z.ReminderTracks,
+                ReminderType.TrainingNote => z.ReminderTrainingNotes,
                 _ => z.ReminderHealth
             }))
             .Select(z => z.UserId)

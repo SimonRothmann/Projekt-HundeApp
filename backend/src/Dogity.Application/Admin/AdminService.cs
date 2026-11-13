@@ -49,7 +49,9 @@ public class AdminService(
     ///   und noch nicht angenommene Einladungen aus) zu einem Hund, der selbst
     ///   nicht gelöscht ist.
     /// - Im Verein: ClubMembership mit Status Approved (nicht abgelehnt, nicht
-    ///   offen, nicht verlassen).
+    ///   offen, nicht verlassen) ODER eine Rolle im Verein (ClubTrainer: auch
+    ///   Gründer:innen und Vorstand, die keine Mitgliedschaftszeile haben -
+    ///   wie im OnboardingService). Nur Vereine, die es noch gibt.
     /// - Mit Prüfungsziel: Ziel (Active oder Achieved, nicht Cancelled) für
     ///   einen Hund, dem das Konto aktiv gehört.
     /// - Über Vereinslink: ClubMembership mit Source InviteLink, in jedem
@@ -81,11 +83,15 @@ public class AdminService(
             .Distinct()
             .CountAsync(ct);
 
-        var imVerein = await db.ClubMemberships
-            .Where(m => neu.Contains(m.UserId) && m.Status == ClubMembershipStatus.Approved)
-            .Select(m => m.UserId)
-            .Distinct()
-            .CountAsync(ct);
+        var alsMitglied = db.ClubMemberships
+            .Where(m => neu.Contains(m.UserId) && m.Status == ClubMembershipStatus.Approved
+                && db.Clubs.Any(c => c.Id == m.ClubId))
+            .Select(m => m.UserId);
+        var mitRolle = db.ClubTrainers
+            .Where(t => neu.Contains(t.UserId) && db.Clubs.Any(c => c.Id == t.ClubId))
+            .Select(t => t.UserId);
+        // Union entfernt doppelte Konten (Rolle UND Mitgliedschaft zählt einmal).
+        var imVerein = await alsMitglied.Union(mitRolle).CountAsync(ct);
 
         var mitZiel = await db.DogOwners
             .Where(o => neu.Contains(o.UserId)
