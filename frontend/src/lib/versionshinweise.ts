@@ -79,7 +79,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
   },
   {
     version: "1.1",
-    datum: "2026-11-08",
+    datum: "2026-11-13",
     titel: uebersetzbar("Wartungshinweise"),
     aenderungen: [
       {
