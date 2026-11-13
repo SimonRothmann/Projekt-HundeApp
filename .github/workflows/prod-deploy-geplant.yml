@@ -1,0 +1,130 @@
+# Prod-Deploy zu einem festen Zeitpunkt: jetzt freigeben, später läuft er von
+# selbst. Für den sofortigen Deploy gibt es deploy.yml.
+#
+# 1. Planen: Actions -> "Prod-Deploy planen" -> Run workflow, Zeitpunkt in
+#    deutscher Zeit (z. B. "2026-11-16 20:30"); per Kommandozeile
+#    gh workflow run prod-deploy-geplant.yml -f zeitpunkt="2026-11-16 20:30".
+#    Der Lauf wartet auf das Approve in der Umgebung "prod" (im Browser, die
+#    GitHub-App kann das nicht). Erst danach steht der Plan: ein Tag
+#    prod-geplant-JJJJMMTTHHMM auf dem master-Stand beim Klick. Ein neuer Plan
+#    ersetzt einen alten; Plan löschen = Tag löschen.
+# 2. Ausführen: Alle 15 Minuten schaut ein Lauf nach, ob ein Plan fällig ist.
+#    Wenn ja, löscht er den Tag, schiebt den geplanten Stand nach prod (nur
+#    Fast-Forward) und ruft deploy-prod.sh auf - wie deploy.yml. GitHub startet
+#    geplante Läufe oft einige Minuten zu spät; der Deploy beginnt also bis zu
+#    rund 30 Minuten nach dem Zeitpunkt.
+#
+# Scheitert der Deploy, ist der Plan verbraucht (Tag schon gelöscht) und
+# GitHub schickt eine Mail; neu planen oder deploy.yml nehmen.
+name: Prod-Deploy planen
+
+on:
+  workflow_dispatch:
+    inputs:
+      zeitpunkt:
+        description: "Wann, deutsche Zeit (JJJJ-MM-TT HH:MM). Prod-Regel: nicht 16-19 Uhr, nicht am Wochenende."
+        required: true
+        type: string
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions: {}
+
+jobs:
+  planen:
+    name: Planen für ${{ inputs.zeitpunkt }}
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment: prod
+    timeout-minutes: 5
+    permissions:
+      contents: write # Tag anlegen
+    steps:
+      - name: Plan als Tag ablegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ZEITPUNKT: ${{ inputs.zeitpunkt }}
+        run: |
+          if ! [[ "$ZEITPUNKT" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}$ ]]; then
+            echo "::error::Zeitpunkt bitte als JJJJ-MM-TT HH:MM angeben."
+            exit 1
+          fi
+          ziel=$(TZ=Europe/Berlin date -d "$ZEITPUNKT" +%Y%m%d%H%M)
+          jetzt=$(TZ=Europe/Berlin date +%Y%m%d%H%M)
+          if [ "$ziel" -le "$jetzt" ]; then
+            echo "::error::$ZEITPUNKT liegt nicht in der Zukunft."
+            exit 1
+          fi
+          for ref in $(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/prod-geplant-" --jq '.[].ref'); do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/$ref"
+            echo "Alten Plan entfernt: $ref"
+          done
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/prod-geplant-$ziel" -f sha="$GITHUB_SHA" > /dev/null
+          echo "Prod-Deploy geplant für $ZEITPUNKT (deutsche Zeit), Stand ${GITHUB_SHA::7}." | tee -a "$GITHUB_STEP_SUMMARY"
+
+  pruefen:
+    name: Fälligen Plan suchen
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # fälligen Tag löschen
+    outputs:
+      sha: ${{ steps.plan.outputs.sha }}
+    steps:
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          plan=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/prod-geplant-" --jq '.[0] // empty | "\(.ref) \(.object.sha)"')
+          if [ -z "$plan" ]; then
+            echo "Nichts geplant."
+            exit 0
+          fi
+          read -r ref sha <<< "$plan"
+          ziel=${ref##*-}
+          jetzt=$(TZ=Europe/Berlin date +%Y%m%d%H%M)
+          if [ "$ziel" -gt "$jetzt" ]; then
+            echo "Geplant für $ziel (deutsche Zeit), Stand ${sha::7} - noch nicht dran."
+            exit 0
+          fi
+          # Zuerst den Plan verbrauchen: Der nächste Lauf in 15 Minuten soll
+          # nicht ein zweites Mal deployen, auch wenn dieser noch läuft.
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/$ref"
+          echo "Fällig: $ref, Stand ${sha::7}."
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+  ausfuehren:
+    name: Deploy prod (geplant)
+    needs: pruefen
+    if: needs.pruefen.outputs.sha != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Dieselbe Gruppe wie deploy.yml: nie zwei Deploys gleichzeitig. Bewusst
+    # erst hier und nicht am 15-Minuten-Lauf, sonst würde der eine wartende
+    # Lauf der Gruppe ersetzen, den jemand von Hand gestartet hat.
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    permissions:
+      contents: write # prod-Branch vorziehen
+    steps:
+      - name: Geplanten Stand nach prod (nur Fast-Forward)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.pruefen.outputs.sha }}
+        # force=false: GitHub lehnt alles ab, was kein Fast-Forward ist.
+        run: gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/prod" -f sha="$SHA" -F force=false > /dev/null
+
+      - name: Deploy auf der VPS
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o ServerAliveInterval=30 "dogity@${SSH_HOST}" prod

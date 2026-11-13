@@ -470,6 +470,19 @@ GitHub-App). Per Kommandozeile: `gh workflow run deploy.yml -f ziel=test`.
 - Beide Umgebungen lassen nur Läufe vom Branch `master` zu; zwei Deploys laufen
   nie gleichzeitig.
 
+**Prod zu einem festen Zeitpunkt** (`.github/workflows/prod-deploy-geplant.yml`):
+Actions → **Prod-Deploy planen** → Run workflow mit Zeitpunkt in deutscher Zeit
+(`2026-11-16 20:30`), oder
+`gh workflow run prod-deploy-geplant.yml -f zeitpunkt="2026-11-16 20:30"`. Der
+Lauf wartet auf das Approve (Umgebung `prod`); danach steht der Plan als Tag
+`prod-geplant-JJJJMMTTHHMM` auf dem master-Stand beim Klick. Alle 15 Minuten
+prüft ein Lauf, ob er fällig ist, und deployt dann genau diesen Stand - wegen der
+Verzögerung geplanter GitHub-Läufe bis zu rund 30 Minuten nach dem Zeitpunkt.
+Ein neuer Plan ersetzt den alten; absagen:
+`git push origin :refs/tags/prod-geplant-JJJJMMTTHHMM`. GitHub schaltet
+geplante Läufe nach 60 Tagen ohne Aktivität im Repo ab (Reiter Actions →
+„Enable workflow“).
+
 **Aufbau.** Der Schlüssel `github-actions-deploy` steht in
 `~/.ssh/authorized_keys` des Benutzers `dogity` mit erzwungenem Befehl:
 
