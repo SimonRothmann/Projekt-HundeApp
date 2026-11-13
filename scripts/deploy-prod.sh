@@ -85,7 +85,11 @@ BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 export BUILD_TIME
 export BUILD_COMMIT="$(git rev-parse --short HEAD)"
 export BUILD_REF="$BUILD_TIME"
-docker compose up -d --build --force-recreate frontend-prod
+# --no-deps: frontend-prod hängt von backend-prod ab (depends_on). Ohne den
+# Schalter erzeugt --force-recreate das gerade erst gestartete Backend ein
+# zweites Mal neu - Prod war dadurch bei jedem Deploy zweimal weg (gesehen
+# am 2026-11-13: Backend neu um 19:26 und wieder um 19:30 UTC).
+docker compose up -d --build --force-recreate --no-deps frontend-prod
 
 echo "==> Abschliessender Rauchtest"
 curl -sS -o /dev/null -w "api:    HTTP %{http_code}\n" https://api.dogity.net/health
