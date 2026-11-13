@@ -454,6 +454,40 @@ Antwortet die Anwendung selbst mit einem Fehler (auch ein 503 des Backends),
 reicht Caddy ihn unverändert durch – die Wartungsseite erscheint nur, wenn
 Caddy den Upstream nicht erreicht.
 
+## Deploy per GitHub Action
+
+Neben `ssh dogity /opt/dogity/scripts/deploy-test.sh` und
+`scripts/promote-to-prod.sh` geht ein Deploy auch ohne Entwicklungsrechner:
+Reiter **Actions → Deploy → Run workflow**, Ziel `test` oder `prod` (auch in der
+GitHub-App). Per Kommandozeile: `gh workflow run deploy.yml -f ziel=test`.
+
+- **Test** startet sofort und ruft `deploy-test.sh` auf.
+- **Prod** wartet auf eine Freigabe: Umgebung `prod` verlangt ein „Approve“ des
+  Betreibers (Mail bzw. Hinweis in der GitHub-App, „Review deployments“). Danach
+  schiebt die Action den master-Stand beim Klick auf „Run workflow“ nach `prod`
+  (nur Fast-Forward, sonst bricht sie ab) und ruft `deploy-prod.sh` auf. Die
+  Zeitregel für Prod (nicht 16–19 Uhr, nicht am Wochenende) gilt weiter.
+- Beide Umgebungen lassen nur Läufe vom Branch `master` zu; zwei Deploys laufen
+  nie gleichzeitig.
+
+**Aufbau.** Der Schlüssel `github-actions-deploy` steht in
+`~/.ssh/authorized_keys` des Benutzers `dogity` mit erzwungenem Befehl:
+
+```
+command="/opt/dogity/scripts/deploy-per-schluessel.sh",restrict ssh-ed25519 AAAA… github-actions-deploy
+```
+
+Wer sich mit ihm anmeldet, kann nur `test` oder `prod` auslösen, keine Shell
+und keine Weiterleitung. Den privaten Teil kennt nur GitHub (Secret
+`DEPLOY_SSH_KEY`); `DEPLOY_HOST` und `DEPLOY_KNOWN_HOSTS` (die Host-Schlüssel der
+VPS) liegen daneben als Secrets.
+
+**Schlüssel tauschen.** Neues Paar erzeugen
+(`ssh-keygen -t ed25519 -N "" -C github-actions-deploy -f deploy`), die Zeile in
+`authorized_keys` ersetzen, `gh secret set DEPLOY_SSH_KEY < deploy`, die lokale
+Datei `deploy` löschen. Ändert sich der Host-Schlüssel der VPS (Neuinstallation),
+`DEPLOY_KNOWN_HOSTS` neu setzen - sonst bricht die Action bewusst ab.
+
 ## Bewusst offen
 
 **SSH-Passwort-Anmeldung.** Steht auf `yes`, Port 22 ist weltweit offen.
