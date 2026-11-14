@@ -176,6 +176,48 @@ Bericht mit Belegen, Gegenprüfung, Vorschlag und Risiko je Befund: [docs/PRUEFU
 - [x] **[niedrig]** (behoben 2026-11-01: `ablaufBeginn` in `lib/faehrte.ts` nimmt den Zeitstempel des ersten Punkts, nur ohne Punkte `createdAt`; `faehrte.test.ts`) Fund auf Test 01.11.: „Ablauf N: gestartet HH:MM“ zeigte den Zeitpunkt des Speicherns statt des Beginns
 - [x] **[niedrig]** (behoben 2026-11-01: `zeigeVereinsweg` in `lib/erststart.ts`, Link nur ohne Mitgliedschaft und ohne offene Anfrage, bei unbekanntem Status wie bisher; `erststart.test.ts`) Fund auf Test 01.11.: Karte „Wie heißt dein Hund?“ bot den Beitrittslink auch Personen an, die schon im Verein sind
 
+## Review 2026-11-14: Aufräumen
+
+Gesamt-Review der App (Performance zuerst, dann Logik und Betrieb). Gelesen wurden die meistgenutzten Wege: Startseite, Hunde, Trainings, Ziele, Fährten, Anmeldung, Offline-Warteschlange, Service Worker, Docker, Caddy, CI. Admin, Sachkunde und die Vereinsmodule nur gestreift, iOS-Safari gar nicht.
+
+Am selben Tag erledigt (gemessen, jeweils vorher → nachher):
+
+- [x] Englisches Wörterbuch (`i18n/en.ts`, 101 KB gzip) hing an jeder Seite. Es wird jetzt erst nachgeladen, wenn Englisch gilt (`ladeEnglisch` in `i18n/index.tsx`). JavaScript beim ersten Aufruf, gzip: Startseite 352 → 252 KB, Anmeldung 330 → 229 KB, Dashboard 465 → 342 KB (inkl. nächster Punkt).
+- [x] Navigation und Fußzeile zogen für die Versionsnummer alle Versionshinweise mit (22 KB gzip). Die Nummer steht jetzt in `lib/aktuelle-version.ts`; `versionshinweise.test.ts` hält sie mit dem obersten Eintrag gleich.
+- [x] Vier Fährten-Abfragen in `GpsTrackService` (Ablauf auswerten, Gegenstände, Trail-Ergebnis, „Wetter laden“) luden mehrere Listen in einer Abfrage - die Zeilenzahl war das Produkt der Listen. Jetzt `AsSplitQuery`. Gegen Postgres 17 gemessen (250 gelegte Punkte; Ablauf 250 Punkte, 4 Halte, 3 Schenkel, 2 Winkel, 2 Gegenstände): Gegenstand antippen 12.000 Zeilen / 136 ms → 262 Zeilen / 5 ms; „Wetter laden“ 3 Mio. Zeilen / 37 s → 513 Zeilen / 9 ms.
+
+Offen - Performance:
+
+- [ ] **[mittel]** Service Worker räumt nie auf (`frontend/public/sw.js`): fester Cache-Name, jede Veröffentlichung legt ihre Build-Dateien zusätzlich aufs Gerät, die alten bleiben. Außerdem wartet jede Navigation ohne Zeitlimit aufs Netz, bevor der Zwischenspeicher greift - bei schwachem Empfang der schlechte Fall.
+- [ ] **[mittel]** `/api/dashboard` lädt und sendet mehr, als die Startseite zeigt (`DashboardService`, `GoalService.GetByDogAsync`): je Hund alle Ziele samt Plänen statt nur der aktiven, und die Spuren der letzten Tage mit allen Punkten und Abläufen.
+- [ ] **[niedrig]** `GoalService.LoadGoalsQuery` lädt Wochen und Plan-Einträge in einer Abfrage - dasselbe Muster wie bei den Fährten, nur kleiner.
+- [ ] **[niedrig]** Kommentar bzw. Ergebnis eines Ablaufs ändern (`UpdateWalkRunAsync`, `UpdateTrailRunAsync`) lädt alle Punkte und schickt sie ungekürzt zurück. `UpdateTrailAsync`, `UpdateVerdecktAsync` und `UpdateStatsAsync` laden nach einem einzelnen Schalter alle Spuren des Trainings neu. Braucht eine Entscheidung, was die Oberfläche aus der Antwort wirklich nimmt.
+- [ ] **[niedrig]** Die öffentliche Startseite lädt weiter alle Versionshinweise (22 KB gzip), weil der Auszug „Letzte Neuerung“ die Liste braucht. Abhilfe wäre die neueste Fassung in einer eigenen Datei - das ändert den Pflegeablauf je Veröffentlichung.
+- [ ] **[niedrig]** Fährte löschen lädt jeden GPS-Punkt und schreibt ihn einzeln zurück (`GpsTrackRemoval.WeichLoeschenAsync`) statt in einem Befehl.
+- [ ] **[niedrig]** `/api/sports` wird an 11 Stellen ohne Zwischenspeicher geholt; die Katalog-Antworten tragen keine Cache-Angaben.
+- [ ] **[niedrig]** Die Glocke fragt alle 60 Sekunden nach, auch im verdeckten Tab (`auth-context.tsx`).
+- [ ] **[niedrig]** Die API liegt auf einer eigenen Domain, der Browser schickt deshalb CORS-Vorabanfragen. Unter derselben Herkunft (`/api`) entfielen sie. Größerer Umbau (Caddy, CSP, Frontend-Konfiguration), Nutzen nicht gemessen.
+- [ ] **[niedrig]** `training_sessions` hat keinen Index auf (Hund, Datum). Erst mit echten Daten messen, ob er fehlt.
+- [ ] **[niedrig]** Nutzerliste im Adminbereich fragt die Rollen je Nutzer einzeln ab (`UserLookupService.ListPagedAsync`).
+
+Offen - Logik und mögliche Fehler:
+
+- [ ] **[hoch]** Offline-Warteschlange: Lehnt der Server einen nachgeschickten Eintrag mit 4xx ab, wird er gelöscht und nur 10 Sekunden gemeldet (`offline-queue.ts`). Das trifft auch eine offline gespeicherte Fährte - ihre Sicherung ist dann schon weg (`aufzeichnung-sicherung.ts`). Braucht einen Entwurf: Wohin wandert ein abgelehnter Eintrag?
+- [ ] **[hoch]** Offline-Warteschlange: Ein Serverfehler (500) hält die Schlange ohne Obergrenze an, alles dahinter bleibt liegen. Bekannter Auslöser: Fährte gespeichert, Antwort verloren, Fährte gelöscht - der zweite Versuch trifft die gelöschte Zeile mit derselben Kennung (`GpsTrackService.CreateAsync` sucht nur unter den nicht gelöschten).
+- [ ] **[mittel]** Nur Fährten tragen eine Kennung vom Gerät. Abläufe, Trainings und Merkzettel können beim Nachschicken doppelt entstehen; bei Abläufen verfälscht das die Statistik.
+- [ ] **[mittel]** Gelöschte GPS-Punkte und Benachrichtigungen bleiben für immer in der Datenbank (nur als gelöscht markiert bzw. ohne Löschlauf). Entscheidung des Betreibers: Wie lange aufbewahren?
+- [ ] **[niedrig]** Eine Drossel-Antwort (429) kommt im Browser als Netzwerkfehler an statt als „zu viele Versuche“, weil die Drossel vor CORS läuft (`Program.cs`).
+- [ ] **[niedrig]** Speichern zwei Geräte gleichzeitig das erste Training eines Tages, entstehen zwei Trainingstage (`TrainingService.CreateAsync` ohne eindeutigen Index); die Oberfläche fasst sie zusammen.
+- [ ] **[niedrig]** Die nächtliche Plan-Neuberechnung läuft beim Start und dann alle 24 Stunden ab Neustart, nicht zu einer festen Uhrzeit.
+
+Offen - Betrieb und Stand der Technik:
+
+- [ ] **[mittel]** Die Backend-Tests laufen auf dem In-Memory-Ersatz von EF, SQL wird nie ausgeführt - deshalb fiel die Zeilenvervielfachung oben nie auf. Eine kleine Testgruppe gegen echtes Postgres in der CI würde das abdecken.
+- [ ] **[mittel]** Die CI baut das Frontend nicht (`next build` fehlt), und ein Deploy verlangt keinen grünen CI-Lauf.
+- [ ] **[niedrig]** Images werden beim Deploy auf dem Server gebaut. Fertige Images aus der CI wären schneller und ließen sich sofort zurückrollen.
+- [ ] **[niedrig]** Das Frontend-Image enthält alle Pakete aus `node_modules` (kein `output: "standalone"`); `docker-compose.yml` setzt keine Speichergrenzen.
+- [ ] **[niedrig]** `.claude/launch.json` startet `next dev` über einen Windows-Pfad - auf dem Mac nicht nutzbar, und mit `next dev` hydratisiert die Seite im Vorschaufenster nicht.
+
 ## Nächste Features (Briefs in docs/)
 
 - [x] **Trainingspause des Hundes** (Wunsch des Betreibers, 2026-10-22; umgesetzt 2026-10-22, Fassung 0.36): verletzt, krank, läufig (nur Hündin), Zeitraum und Notiz; betreuende Trainer:innen sehen nur "Pause bis"; der Plan pausiert mit, Hinweis "Zieldatum verschieben?"; Läufigkeit ohne Automatik bei Gruppenterminen (Absage manuell).
