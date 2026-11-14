@@ -1,7 +1,6 @@
 "use client";
 
-import { createContext, Fragment, useContext, useEffect, useMemo, type ReactNode } from "react";
-import { EN } from "./en";
+import { createContext, Fragment, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { aktuelleSprache, setzeAktuelleSprache } from "./aktuelle-sprache";
 import { bestimmeSprache, VORGABE_SPRACHE, type Sprache } from "./sprachen";
 
@@ -34,6 +33,32 @@ type I18nWert = {
 };
 
 const I18nContext = createContext<I18nWert | undefined>(undefined);
+
+/**
+ * Die englische Fassung (en.ts) ist das größte Stück Text der App - rund
+ * 100 KB gepackt. Sie wird deshalb nicht mit jeder Seite ausgeliefert,
+ * sondern erst nachgeladen, wenn Englisch gilt. Bis sie da ist, bleibt das
+ * Wörterbuch leer, und der Rückfall auf den deutschen Satz greift.
+ */
+let EN: Record<string, string> = {};
+let englischGeladen = false;
+let ladevorgang: Promise<void> | null = null;
+
+export function ladeEnglisch(): Promise<void> {
+  ladevorgang ??= import("./en").then(
+    (modul) => {
+      EN = modul.EN;
+      englischGeladen = true;
+      vorlagen = null;
+    },
+    (fehler: unknown) => {
+      // Der nächste Aufruf versucht es neu - das Netz kann gerade gefehlt haben.
+      ladevorgang = null;
+      throw fehler;
+    },
+  );
+  return ladevorgang;
+}
 
 /**
  * Setzt Platzhalter der Form {name} ein.
@@ -139,7 +164,18 @@ export function uebersetzeAktuell(text: string, werte?: Record<string, string | 
   return uebersetze(aktuelleSprache(), text, werte);
 }
 
-export function I18nProvider({ sprache, children }: { sprache: Sprache; children: ReactNode }) {
+export function I18nProvider({ sprache: gewuenscht, children }: { sprache: Sprache; children: ReactNode }) {
+  // Englisch gilt erst, wenn das Wörterbuch da ist (siehe ladeEnglisch). Bis
+  // dahin bleibt alles deutsch - sonst stünden englische Datumsangaben neben
+  // deutschen Sätzen. Scheitert das Laden, bleibt es bei Deutsch.
+  const [englischDa, setEnglischDa] = useState(englischGeladen);
+  useEffect(() => {
+    if (gewuenscht === "en" && !englischDa) {
+      ladeEnglisch().then(() => setEnglischDa(true), () => {});
+    }
+  }, [gewuenscht, englischDa]);
+  const sprache: Sprache = gewuenscht === "en" && !englischDa ? VORGABE_SPRACHE : gewuenscht;
+
   // Die Sprache gehört auch ins lang-Attribut: Sie steuert Silbentrennung,
   // die Aussprache durch Screenreader und das Übersetzungsangebot des
   // Browsers. Ohne das behauptete die Seite weiterhin, deutsch zu sein.

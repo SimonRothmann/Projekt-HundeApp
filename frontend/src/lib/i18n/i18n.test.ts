@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { EN } from "./en";
 import { mitBausteinen, uebersetze, uebersetzeMeldung } from "./index";
 
@@ -424,5 +424,24 @@ describe("mitBausteinen", () => {
   it("verträgt einen Satz, in dem der Baustein am Anfang oder Ende steht", () => {
     const teile = mitBausteinen("{a} und {b}", { a: "A", b: "B" }) as unknown[];
     expect(teile).toHaveLength(5);
+  });
+});
+
+describe("ladeEnglisch", () => {
+  it("lässt Englisch deutsch, bis das Wörterbuch nachgeladen ist", async () => {
+    // Ein frisches Modul wie beim ersten Seitenaufruf: ohne englische Fassung
+    // (vitest.setup.ts hat sie nur für das bereits geladene Modul geholt).
+    vi.resetModules();
+    const frisch = await import("./index");
+    const meldung = "Das Passwort muss mindestens 8 Zeichen lang sein.";
+
+    expect(frisch.uebersetze("en", "Hund nicht gefunden.")).toBe("Hund nicht gefunden.");
+    expect(frisch.uebersetzeMeldung("en", meldung)).toBe(meldung);
+
+    await frisch.ladeEnglisch();
+
+    expect(frisch.uebersetze("en", "Hund nicht gefunden.")).toBe("Dog not found.");
+    // Auch die Vorlagen mit Platzhaltern - sie dürfen nicht leer gemerkt bleiben.
+    expect(frisch.uebersetzeMeldung("en", meldung)).toBe("The password must be at least 8 characters long.");
   });
 });

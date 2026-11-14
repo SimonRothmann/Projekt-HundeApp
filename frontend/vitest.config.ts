@@ -12,5 +12,6 @@ export default defineConfig({
     // nötig. IndexedDB kommt aus fake-indexeddb (per Import im Test).
     environment: "node",
     include: ["src/**/*.test.ts"],
+    setupFiles: ["./vitest.setup.ts"],
   },
 });
