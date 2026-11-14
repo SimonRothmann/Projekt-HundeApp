@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { BUILD_COMMIT, BUILD_ZEIT, formatiereBuildZeit } from "@/lib/build-info";
-import { AKTUELLE_VERSION } from "@/lib/versionshinweise";
+import { AKTUELLE_VERSION } from "@/lib/aktuelle-version";
 import { cn } from "@/lib/utils";
 import { useSprache, useT } from "@/lib/i18n";
 

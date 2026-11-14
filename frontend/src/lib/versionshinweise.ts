@@ -27,7 +27,9 @@ import { uebersetzbar } from "@/lib/i18n/sprachen";
  * (1.1, 1.2 ...).
  *
  * Neueste Fassung steht oben. Darauf verlässt sich die Anzeige, und
- * versionshinweise.test.ts wacht darüber.
+ * versionshinweise.test.ts wacht darüber. Ihre Nummer steht zusätzlich in
+ * aktuelle-version.ts (dort der Grund) und wird mit jedem neuen Eintrag
+ * nachgezogen.
  */
 
 export type Aenderungsart = "neu" | "verbessert" | "behoben";
@@ -1435,10 +1437,7 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
   },
 ];
 
-/** Die Fassung, die in diesem Build steckt. Siehe Kopfkommentar. */
-export const AKTUELLE_VERSION = VERSIONSHINWEISE[0].version;
-
-/** Datum dieser Fassung als ISO-Datum. */
+/** Datum der neuesten Fassung als ISO-Datum. */
 export const AKTUELLE_VERSION_DATUM = VERSIONSHINWEISE[0].datum;
 
 /**

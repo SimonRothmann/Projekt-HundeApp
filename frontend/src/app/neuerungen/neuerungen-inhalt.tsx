@@ -3,9 +3,9 @@
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-chrome";
 import { VersionStand } from "@/components/version-stand";
 import { Badge } from "@/components/ui/badge";
+import { AKTUELLE_VERSION } from "@/lib/aktuelle-version";
 import {
   AENDERUNGSART_LABEL,
-  AKTUELLE_VERSION,
   formatiereVeroeffentlichung,
   NACHTRAEGLICH_BIS,
   VERSIONSHINWEISE,

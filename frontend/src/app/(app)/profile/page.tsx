@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useProfil } from "@/lib/use-profil";
 import { usePreferences } from "@/lib/preferences-context";
 import { useNeuerungenUngelesen } from "@/lib/neuerungen-gelesen";
-import { AKTUELLE_VERSION } from "@/lib/versionshinweise";
+import { AKTUELLE_VERSION } from "@/lib/aktuelle-version";
 import { bestimmeSchriftgroesse } from "@/lib/schriftgroesse";
 import { useSprache, useT } from "@/lib/i18n";
 import { vorschauDarstellung, vorschauFunktionen, vorschauSportarten } from "@/lib/profil";

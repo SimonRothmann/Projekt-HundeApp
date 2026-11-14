@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  AKTUELLE_VERSION,
-  formatiereVeroeffentlichung,
-  VERSIONSHINWEISE,
-} from "./versionshinweise";
+import { AKTUELLE_VERSION } from "./aktuelle-version";
+import { formatiereVeroeffentlichung, VERSIONSHINWEISE } from "./versionshinweise";
 
 /**
  * Die Liste ist von Hand gepflegt, und die Anzeige verlässt sich auf genau

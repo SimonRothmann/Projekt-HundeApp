@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { leseGelesen, merkeGelesen, merkeGelesenImErststart, sollHinweisZeigen } from "./neuerungen-gelesen";
-import { AKTUELLE_VERSION } from "./versionshinweise";
+import { AKTUELLE_VERSION } from "./aktuelle-version";
 
 describe("sollHinweisZeigen", () => {
   it("zeigt nichts, wenn die laufende Fassung schon gesehen wurde", () => {

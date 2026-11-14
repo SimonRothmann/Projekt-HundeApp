@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { AKTUELLE_VERSION } from "@/lib/versionshinweise";
+import { AKTUELLE_VERSION } from "@/lib/aktuelle-version";
 
 /**
  * Merkt sich je Gerät, welche Fassung schon zur Kenntnis genommen wurde - der
