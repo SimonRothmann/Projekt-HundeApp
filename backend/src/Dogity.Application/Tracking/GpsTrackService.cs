@@ -331,6 +331,8 @@ public class GpsTrackService(
             .Include(r => r.Legs)
             .Include(r => r.Corners)
             .Include(r => r.Articles)
+            // AsSplitQuery: mehrere Listen in einer Abfrage vervielfachen die Zeilen (siehe GetByTrainingSessionAsync).
+            .AsSplitQuery()
             .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
         if (walkRun is null)
             return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
@@ -457,6 +459,8 @@ public class GpsTrackService(
         var walkRun = await db.GpsWalkRuns
             .Include(r => r.Points)
             .Include(r => r.Stops)
+            // AsSplitQuery: mehrere Listen in einer Abfrage vervielfachen die Zeilen (siehe GetByTrainingSessionAsync).
+            .AsSplitQuery()
             .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
         if (walkRun is null)
             return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
@@ -511,6 +515,8 @@ public class GpsTrackService(
             .Include(r => r.Legs)
             .Include(r => r.Corners)
             .Include(r => r.Articles)
+            // AsSplitQuery: mehrere Listen in einer Abfrage vervielfachen die Zeilen (siehe GetByTrainingSessionAsync).
+            .AsSplitQuery()
             .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
         if (walkRun is null)
             return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
@@ -602,6 +608,8 @@ public class GpsTrackService(
             .Include(t => t.WalkRuns).ThenInclude(r => r.Legs)
             .Include(t => t.WalkRuns).ThenInclude(r => r.Corners)
             .Include(t => t.WalkRuns).ThenInclude(r => r.Articles)
+            // AsSplitQuery: mehrere Listen in einer Abfrage vervielfachen die Zeilen (siehe GetByTrainingSessionAsync).
+            .AsSplitQuery()
             .FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
             return Result<GpsTrackDto>.NotFound("Fährte nicht gefunden.");
