@@ -7,7 +7,12 @@ export function PwaRegister() {
     if (!("serviceWorker" in navigator)) return;
 
     if (process.env.NODE_ENV === "production") {
-      navigator.serviceWorker.register("/sw.js?env=production").catch(() => {
+      // Die Build-Kennung steht in der Skript-Adresse: Eine andere Adresse bei
+      // gleichem Scope ist für den Browser ein Update derselben Registrierung
+      // (Push-Abos bleiben erhalten) und lässt den Worker pro Build einen
+      // eigenen Cache anlegen, siehe public/sw.js.
+      const build = encodeURIComponent(process.env.NEXT_PUBLIC_BUILD_COMMIT || "lokal");
+      navigator.serviceWorker.register(`/sw.js?env=production&build=${build}`).catch(() => {
         // Registrierung optional - App funktioniert auch ohne Service Worker,
         // dann eben ohne Offline-App-Shell.
       });

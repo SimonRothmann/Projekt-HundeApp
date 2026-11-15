@@ -188,7 +188,7 @@ Am selben Tag erledigt (gemessen, jeweils vorher → nachher):
 
 Offen - Performance:
 
-- [ ] **[mittel]** Service Worker räumt nie auf (`frontend/public/sw.js`): fester Cache-Name, jede Veröffentlichung legt ihre Build-Dateien zusätzlich aufs Gerät, die alten bleiben. Außerdem wartet jede Navigation ohne Zeitlimit aufs Netz, bevor der Zwischenspeicher greift - bei schwachem Empfang der schlechte Fall.
+- [x] **[mittel]** Service Worker räumte nie auf und Navigationen warteten ohne Zeitlimit aufs Netz. Seit 15.11. ein Cache je Build (Kennung in der Skript-Adresse, `pwa-register.tsx`), behalten werden der aktuelle und der vorige; Navigationen zeigen nach 4 s die gespeicherte Seite; `/offline` samt Skripten wird bei der Installation gespeichert. Lokal mit vier Builds und Test-Proxy (offline, langsam) geprüft.
 - [ ] **[mittel]** `/api/dashboard` sendet mehr, als die Startseite zeigt: die Spuren der letzten Tage mit allen Punkten und Abläufen. (Erledigt am 15.11.: Ziele werden nur noch die aktiven geladen, `GetByDogAsync(nurAktive: true)`.)
 - [x] **[niedrig]** `GoalService.LoadGoalsQuery` lädt Wochen und Plan-Einträge in einer Abfrage - jetzt `AsSplitQuery` (15.11.).
 - [ ] **[niedrig]** Kommentar bzw. Ergebnis eines Ablaufs ändern (`UpdateWalkRunAsync`, `UpdateTrailRunAsync`) lädt alle Punkte und schickt sie ungekürzt zurück. `UpdateTrailAsync`, `UpdateVerdecktAsync` und `UpdateStatsAsync` laden nach einem einzelnen Schalter alle Spuren des Trainings neu. Braucht eine Entscheidung, was die Oberfläche aus der Antwort wirklich nimmt.

@@ -1,14 +1,81 @@
-const CACHE_NAME = "dogity-shell-v5";
+// Build-Kennung (Commit-Hash) aus der Skript-Adresse, siehe pwa-register.tsx.
+// Jede Veröffentlichung bekommt dadurch ihren eigenen Cache (BUILD_CACHE) und
+// räumt beim Aktivieren die alten weg - früher blieben die Build-Dateien,
+// Seiten und RSC-Antworten jeder Fassung für immer auf dem Gerät.
+const BUILD = new URL(self.location.href).searchParams.get("build") || "lokal";
 
-self.addEventListener("install", () => {
+// Dauerhafter Cache: nur die unveränderlichen Kartendateien (siehe
+// isImmutableKartenDatei) und die Verwaltungsliste der Builds. Wer Schriften
+// oder Symbole austauscht, erhöht diese Nummer - dann verschwindet der alte
+// Cache beim Aktivieren.
+const SHELL_CACHE = "dogity-shell-v6";
+// Alles Übrige (Seiten, /_next/static, RSC-Antworten, Icons, Manifest) liegt
+// pro Build getrennt.
+const BUILD_CACHE = "dogity-build-" + BUILD;
+
+// Schlüssel der Verwaltungsliste (JSON-Array der Build-Kennungen, älteste
+// zuerst) im SHELL_CACHE. Bewusst eine eigene Liste: Die Reihenfolge von
+// caches.keys() ist nicht zugesichert.
+const BUILDS_LISTE = "/__dogity-builds";
+
+// Aktueller und vorheriger Build bleiben: Ein noch offener Tab der alten
+// Fassung lädt seine Chunks nach, und offline gespeicherte Seiten der vorigen
+// Fassung finden ihre Chunks im selben Cache.
+const BEHALTENE_BUILDS = 2;
+
+// So lange wartet eine Navigation auf das Netz, bevor die gespeicherte Seite
+// gezeigt wird (schwacher Empfang draußen auf dem Hundeplatz).
+const NAVIGATION_ZEITLIMIT_MS = 4000;
+
+function leseBuilds() {
+  return caches
+    .open(SHELL_CACHE)
+    .then((cache) => cache.match(BUILDS_LISTE))
+    .then((antwort) => (antwort ? antwort.json() : []))
+    .then((liste) => (Array.isArray(liste) ? liste : []))
+    .catch(() => []);
+}
+
+self.addEventListener("install", (event) => {
+  // /offline gehört in jeden Build-Cache, sonst läge der Rückfall nur dort, wo
+  // die Seite je besucht wurde. Ein Fehlschlag (z. B. kein Netz) darf die
+  // Installation nicht scheitern lassen.
+  // Dazu die Dateien, die die Seite lädt: Sonst zeigt sie offline nur den rohen
+  // Text, und ihre Skripte scheitern (ChunkLoadError).
+  event.waitUntil(
+    caches
+      .open(BUILD_CACHE)
+      .then((cache) =>
+        cache
+          .add("/offline")
+          .then(() => cache.match("/offline"))
+          .then((antwort) => antwort.text())
+          .then((html) => {
+            const dateien = [...new Set(html.match(/\/_next\/static\/[^"'\\\s)]+/g) || [])];
+            return Promise.all(dateien.map((datei) => cache.add(datei).catch(() => {})));
+          }),
+      )
+      .catch(() => {}),
+  );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+    leseBuilds()
+      .then((liste) => {
+        const behalten = liste.filter((b) => b !== BUILD).concat(BUILD).slice(-BEHALTENE_BUILDS);
+        return caches
+          .open(SHELL_CACHE)
+          .then((cache) =>
+            cache.put(BUILDS_LISTE, new Response(JSON.stringify(behalten), { headers: { "Content-Type": "application/json" } })),
+          )
+          .then(() => caches.keys())
+          .then((keys) => {
+            const erlaubt = new Set([SHELL_CACHE, ...behalten.map((b) => "dogity-build-" + b)]);
+            return Promise.all(keys.filter((key) => !erlaubt.has(key)).map((key) => caches.delete(key)));
+          });
+      })
       .then(() => self.clients.claim()),
   );
 });
@@ -25,7 +92,7 @@ function isImmutableBuildAsset(url) {
 //   Kartenbibliothek, siehe scripts/maplibre-worker.mjs),
 // - Schriften und Symbole sind ausgelieferte Zeichensätze und Bildbögen.
 // Draußen bei schlechtem Netz sollen sie nicht bei jedem Öffnen der Karte übers
-// Netz gehen. Wer Schriften oder Symbole austauscht, erhöht CACHE_NAME - sonst
+// Netz gehen. Wer Schriften oder Symbole austauscht, erhöht SHELL_CACHE - sonst
 // bleibt die alte Fassung im Cache. Die Stil-JSONs (/karte/stil-*.json) gehören
 // bewusst NICHT dazu, sie laufen wie alles Übrige network-first. Kacheln kommen
 // von fremden Ursprüngen und werden unten ohnehin nicht angefasst.
@@ -53,26 +120,57 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
+    // Netz zuerst, aber nur mit Zeitlimit und nur, wenn es eine gespeicherte
+    // Fassung der Seite gibt. Der Abruf läuft auch nach dem Zeitlimit weiter
+    // und aktualisiert den Cache - waitUntil muss dafür JETZT, synchron im
+    // Handler, gesetzt werden (nach dem Auflösen von respondWith würde es werfen).
+    const netz = fetch(request);
+    event.waitUntil(
+      netz
         .then((response) => {
           // Nur erfolgreiche Antworten cachen - sonst würde z.B. eine 404/5xx
           // als Offline-Fallback konserviert.
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          }
-          return response;
+          if (!response.ok) return undefined;
+          const copy = response.clone();
+          return caches.open(BUILD_CACHE).then((cache) => cache.put(request, copy));
         })
-        .catch(() =>
+        .catch(() => {}),
+    );
+
+    event.respondWith(
+      new Promise((resolve) => {
+        let aufgeloest = false;
+        let timer = null;
+        const antworte = (response) => {
+          if (aufgeloest) return;
+          aufgeloest = true;
+          clearTimeout(timer);
+          resolve(response);
+        };
+
+        // Nach dem Zeitlimit die gespeicherte Seite zeigen; gibt es keine,
+        // weiter aufs Netz warten (kein 503 wegen des Zeitlimits).
+        timer = setTimeout(() => {
+          caches
+            .match(request)
+            .then((gespeichert) => {
+              if (gespeichert) antworte(gespeichert);
+            })
+            .catch(() => {});
+        }, NAVIGATION_ZEITLIMIT_MS);
+
+        netz.then(antworte, () =>
           caches
             .match(request)
             .then((cached) => cached || caches.match("/offline"))
             // Weder Seite noch /offline gecacht (z.B. allererster Aufruf ohne
             // Internet) - respondWith() darf nie mit undefined aufgelöst
             // werden, sonst "Failed to convert value to 'Response'".
-            .then((response) => response || new Response("Offline", { status: 503, statusText: "Offline" })),
-        ),
+            .then((response) => response || new Response("Offline", { status: 503, statusText: "Offline" }))
+            .catch(() => new Response("Offline", { status: 503, statusText: "Offline" }))
+            .then(antworte),
+        );
+      }),
     );
     return;
   }
@@ -86,7 +184,8 @@ self.addEventListener("fetch", (event) => {
           // cachen - sonst bliebe der Fehlzustand für diese URL bestehen.
           if (response.ok) {
             const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+            const ziel = isImmutableKartenDatei(url) ? SHELL_CACHE : BUILD_CACHE;
+            caches.open(ziel).then((cache) => cache.put(request, copy));
           }
           return response;
         });
@@ -99,15 +198,17 @@ self.addEventListener("fetch", (event) => {
   // network-first statt cache-first: diese Dateien sind NICHT inhaltsbasiert
   // benannt, eine veraltete gecachte Antwort würde sonst auf unbestimmte Zeit
   // ausgeliefert, sobald sie einmal im Cache liegt (auch nach einem neuen
-  // Deployment, solange CACHE_NAME unverändert bleibt) - das war die Ursache
+  // Deployment, solange der Build-Cache nicht ersetzt ist) - das war die Ursache
   // für "App zeigt veraltete Inhalte, nur Browserdaten löschen hilft".
-  // Cache dient hier nur als Offline-Fallback, nicht als primäre Quelle.
+  // Cache dient hier nur als Offline-Fallback, nicht als primäre Quelle. Auch
+  // bewusst ohne Zeitlimit: RSC-Antworten einer anderen Fassung würden den
+  // Next-Router verwirren.
   event.respondWith(
     fetch(request)
       .then((response) => {
         if (response.ok) {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          caches.open(BUILD_CACHE).then((cache) => cache.put(request, copy));
         }
         return response;
       })
