@@ -1103,11 +1103,14 @@ public class ClubExamTests
     [InlineData(ClubRole.Mitgliederverwaltung, false, false)]
     public async Task Vereinsliste_ZeigtDenNaechstenTagNurTrainingVorstandUndLeitung(ClubRole rollen, bool sieht, bool verwaltet)
     {
+        // GetMyClubRolesAsync rechnet mit der echten Uhr (Vereinszeit.Heute), nicht mit
+        // FesteUhr - der kommende Tag muss deshalb vom echten Heute aus in der Zukunft liegen.
+        var kommend = Vereinszeit.Heute().AddDays(30);
         var w = await AufbauenAsync();
-        await TagAnlegenAsync(w, Kommend.AddDays(10), w.OhnePunkte.Id);
-        var naechster = await TagAnlegenAsync(w, Kommend, w.Pruefung.Id);
+        await TagAnlegenAsync(w, kommend.AddDays(10), w.OhnePunkte.Id);
+        var naechster = await TagAnlegenAsync(w, kommend, w.Pruefung.Id);
         await TagAnlegenAsync(w, Vergangen);
-        var abgesagt = await TagAnlegenAsync(w, Kommend.AddDays(-5));
+        var abgesagt = await TagAnlegenAsync(w, kommend.AddDays(-5));
         await w.Dienst.CancelAsync(w.Leitung, w.Verein.Id, abgesagt);
         var person = Guid.NewGuid();
         w.Nutzer.Register(person, "p@example.org", "Pia", "Person");
@@ -1124,7 +1127,7 @@ public class ClubExamTests
             return;
         }
         var hinweis = club.NextExam!;
-        Assert.Equal((Kommend, "Vereinsgelände"), (hinweis.Date, hinweis.Location));
+        Assert.Equal((kommend, "Vereinsgelände"), (hinweis.Date, hinweis.Location));
         Assert.Equal([w.Pruefung.Id], hinweis.Regulations.Select(r => r.Id));
         Assert.NotEqual(Guid.Empty, naechster);
     }
