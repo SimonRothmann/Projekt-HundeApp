@@ -7,8 +7,9 @@ import { katalogName } from "@/lib/katalog-name";
 import { ordnungenPfad } from "@/lib/katalog-land";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
 import { usePreferences } from "@/lib/preferences-context";
-import type { PruefungOrdnung, Regulation, Sport } from "@/lib/types";
+import type { PruefungOrdnung, Regulation } from "@/lib/types";
 import { Chip } from "@/components/ui/chip";
+import { ladeSportarten } from "@/lib/sportarten";
 
 /** Eine Prüfungsordnung samt ihrer Sportart - die Auswahl gruppiert danach. */
 export type OrdnungMitSport = PruefungOrdnung & { sportName: string; sportNameEn?: string | null };
@@ -32,7 +33,7 @@ export function useOrdnungen(aktiv: boolean): { ordnungen: OrdnungMitSport[] | n
     let abgebrochen = false;
     (async () => {
       try {
-        const sportarten = await api.get<Sport[]>("/api/sports");
+        const sportarten = await ladeSportarten();
         const jeSport = await Promise.all(sportarten.map((s) => api.get<Regulation[]>(ordnungenPfad(s.id, land))));
         if (abgebrochen) return;
         const liste = sportarten.flatMap((s, i) =>

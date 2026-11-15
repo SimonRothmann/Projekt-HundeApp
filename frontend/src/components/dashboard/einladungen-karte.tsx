@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { sportartenCacheLeeren } from "@/lib/sportarten";
 import type { DashboardGruppeneinladung, DashboardVereinseinladung } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
@@ -76,6 +77,7 @@ export function EinladungenKarte({
     setLaeuft(einladung.schluessel);
     try {
       await api.post(`${einladung.pfad}/${annehmen ? "accept" : "decline"}`);
+      sportartenCacheLeeren();
       toast.success(annehmen ? einladung.zugesagt : t("Einladung abgelehnt."));
       await onChanged();
     } catch (err) {

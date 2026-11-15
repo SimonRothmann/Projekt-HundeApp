@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import { sportartenCacheLeeren } from "@/lib/sportarten";
 import { rollenVon } from "@/lib/vereinsrollen";
 import { naechstePruefungText } from "@/lib/pruefungen";
 import { VereinsantragSection } from "@/components/clubs/vereinsantrag-section";
@@ -101,6 +102,7 @@ export default function ClubsPage() {
     setAntwortClubId(clubId);
     try {
       await api.post(`/api/clubs/${clubId}/invitation/${annehmen ? "accept" : "decline"}`);
+      sportartenCacheLeeren();
       toast.success(annehmen ? t("Einladung angenommen.") : t("Einladung abgelehnt."));
       // Neu laden: Nach dem Annehmen erscheinen die Gruppen des Vereins.
       await loadAll();
@@ -116,6 +118,7 @@ export default function ClubsPage() {
     setLeavingClubId(clubId);
     try {
       await api.delete(`/api/clubs/${clubId}/membership`);
+      sportartenCacheLeeren();
       toast.success(t("Verein verlassen."));
       await loadAll();
     } catch (err) {

@@ -6,6 +6,7 @@ import { angeboteneSportarten } from "@/lib/eintragen";
 import { heuteIso } from "@/lib/kalendertag";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
 import type { Dog, Exercise, Goal, GroupTrainingSession, Sport, TrainingSession } from "@/lib/types";
+import { ladeSportarten } from "@/lib/sportarten";
 
 /**
  * Daten fürs Eintragen-Fenster: Sportarten des Hundes, seine Ziele, seine
@@ -122,7 +123,7 @@ export function useEintragenDaten(
     async function ladeSports() {
       try {
         const [alle, auswahl] = await Promise.all([
-          api.get<Sport[]>("/api/sports"),
+          ladeSportarten(),
           // Fällt die Auswahl aus, gilt "keine Einschränkung" - wie auf der Hundeseite.
           api.get<string[]>(`/api/preferences/dogs/${dogId}/sports`).catch(() => [] as string[]),
         ]);

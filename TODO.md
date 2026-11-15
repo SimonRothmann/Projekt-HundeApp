@@ -189,31 +189,31 @@ Am selben Tag erledigt (gemessen, jeweils vorher → nachher):
 Offen - Performance:
 
 - [ ] **[mittel]** Service Worker räumt nie auf (`frontend/public/sw.js`): fester Cache-Name, jede Veröffentlichung legt ihre Build-Dateien zusätzlich aufs Gerät, die alten bleiben. Außerdem wartet jede Navigation ohne Zeitlimit aufs Netz, bevor der Zwischenspeicher greift - bei schwachem Empfang der schlechte Fall.
-- [ ] **[mittel]** `/api/dashboard` lädt und sendet mehr, als die Startseite zeigt (`DashboardService`, `GoalService.GetByDogAsync`): je Hund alle Ziele samt Plänen statt nur der aktiven, und die Spuren der letzten Tage mit allen Punkten und Abläufen.
-- [ ] **[niedrig]** `GoalService.LoadGoalsQuery` lädt Wochen und Plan-Einträge in einer Abfrage - dasselbe Muster wie bei den Fährten, nur kleiner.
+- [ ] **[mittel]** `/api/dashboard` sendet mehr, als die Startseite zeigt: die Spuren der letzten Tage mit allen Punkten und Abläufen. (Erledigt am 15.11.: Ziele werden nur noch die aktiven geladen, `GetByDogAsync(nurAktive: true)`.)
+- [x] **[niedrig]** `GoalService.LoadGoalsQuery` lädt Wochen und Plan-Einträge in einer Abfrage - jetzt `AsSplitQuery` (15.11.).
 - [ ] **[niedrig]** Kommentar bzw. Ergebnis eines Ablaufs ändern (`UpdateWalkRunAsync`, `UpdateTrailRunAsync`) lädt alle Punkte und schickt sie ungekürzt zurück. `UpdateTrailAsync`, `UpdateVerdecktAsync` und `UpdateStatsAsync` laden nach einem einzelnen Schalter alle Spuren des Trainings neu. Braucht eine Entscheidung, was die Oberfläche aus der Antwort wirklich nimmt.
 - [ ] **[niedrig]** Die öffentliche Startseite lädt weiter alle Versionshinweise (22 KB gzip), weil der Auszug „Letzte Neuerung“ die Liste braucht. Abhilfe wäre die neueste Fassung in einer eigenen Datei - das ändert den Pflegeablauf je Veröffentlichung.
 - [ ] **[niedrig]** Fährte löschen lädt jeden GPS-Punkt und schreibt ihn einzeln zurück (`GpsTrackRemoval.WeichLoeschenAsync`) statt in einem Befehl.
-- [ ] **[niedrig]** `/api/sports` wird an 11 Stellen ohne Zwischenspeicher geholt; die Katalog-Antworten tragen keine Cache-Angaben.
-- [ ] **[niedrig]** Die Glocke fragt alle 60 Sekunden nach, auch im verdeckten Tab (`auth-context.tsx`).
+- [x] **[niedrig]** `/api/sports` wurde an 11 Stellen einzeln geholt. Seit 15.11. teilen sich 6 Stellen `ladeSportarten` (`lib/sportarten.ts`, 5 Minuten gültig, geleert bei An-/Abmelden, Land, Verein, Katalogpflege); `?alle=true` und die Offline-Sportseite bleiben eigen.
+- [x] **[niedrig]** Die Glocke fragte alle 60 Sekunden nach, auch im verdeckten Tab - seit 15.11. nur noch im sichtbaren (`auth-context.tsx`).
 - [ ] **[niedrig]** Die API liegt auf einer eigenen Domain, der Browser schickt deshalb CORS-Vorabanfragen. Unter derselben Herkunft (`/api`) entfielen sie. Größerer Umbau (Caddy, CSP, Frontend-Konfiguration), Nutzen nicht gemessen.
 - [ ] **[niedrig]** `training_sessions` hat keinen Index auf (Hund, Datum). Erst mit echten Daten messen, ob er fehlt.
-- [ ] **[niedrig]** Nutzerliste im Adminbereich fragt die Rollen je Nutzer einzeln ab (`UserLookupService.ListPagedAsync`).
+- [x] **[niedrig]** Nutzerliste im Adminbereich fragte die Rollen je Nutzer einzeln ab - seit 15.11. eine Abfrage je Seite (`UserLookupService.ListPagedAsync`).
 
 Offen - Logik und mögliche Fehler:
 
 - [ ] **[hoch]** Offline-Warteschlange: Lehnt der Server einen nachgeschickten Eintrag mit 4xx ab, wird er gelöscht und nur 10 Sekunden gemeldet (`offline-queue.ts`). Das trifft auch eine offline gespeicherte Fährte - ihre Sicherung ist dann schon weg (`aufzeichnung-sicherung.ts`). Braucht einen Entwurf: Wohin wandert ein abgelehnter Eintrag?
-- [ ] **[hoch]** Offline-Warteschlange: Ein Serverfehler (500) hält die Schlange ohne Obergrenze an, alles dahinter bleibt liegen. Bekannter Auslöser: Fährte gespeichert, Antwort verloren, Fährte gelöscht - der zweite Versuch trifft die gelöschte Zeile mit derselben Kennung (`GpsTrackService.CreateAsync` sucht nur unter den nicht gelöschten).
+- [ ] **[hoch]** Offline-Warteschlange: Ein Serverfehler (500) hält die Schlange ohne Obergrenze an, alles dahinter bleibt liegen. (Der bekannte Auslöser ist seit 15.11. behoben: `GpsTrackService.CreateAsync` antwortet bei einer inzwischen gelöschten Fährte mit 404 „Fährte wurde inzwischen gelöscht.“, die Warteschlange verwirft den Eintrag. Offen bleibt die fehlende Obergrenze.)
 - [ ] **[mittel]** Nur Fährten tragen eine Kennung vom Gerät. Abläufe, Trainings und Merkzettel können beim Nachschicken doppelt entstehen; bei Abläufen verfälscht das die Statistik.
 - [ ] **[mittel]** Gelöschte GPS-Punkte und Benachrichtigungen bleiben für immer in der Datenbank (nur als gelöscht markiert bzw. ohne Löschlauf). Entscheidung des Betreibers: Wie lange aufbewahren?
-- [ ] **[niedrig]** Eine Drossel-Antwort (429) kommt im Browser als Netzwerkfehler an statt als „zu viele Versuche“, weil die Drossel vor CORS läuft (`Program.cs`).
+- [x] **[niedrig]** Eine Drossel-Antwort (429) kam im Browser als Netzwerkfehler an - seit 15.11. läuft CORS vor der Drossel (`Program.cs`).
 - [ ] **[niedrig]** Speichern zwei Geräte gleichzeitig das erste Training eines Tages, entstehen zwei Trainingstage (`TrainingService.CreateAsync` ohne eindeutigen Index); die Oberfläche fasst sie zusammen.
-- [ ] **[niedrig]** Die nächtliche Plan-Neuberechnung läuft beim Start und dann alle 24 Stunden ab Neustart, nicht zu einer festen Uhrzeit.
+- [x] **[niedrig]** Die nächtliche Plan-Neuberechnung lief alle 24 Stunden ab Neustart - seit 15.11. beim Start und dann um 03:00 Uhr Vereinszeit (`PlanRegenerationBackgroundService.NaechsterLauf`).
 
 Offen - Betrieb und Stand der Technik:
 
 - [ ] **[mittel]** Die Backend-Tests laufen auf dem In-Memory-Ersatz von EF, SQL wird nie ausgeführt - deshalb fiel die Zeilenvervielfachung oben nie auf. Eine kleine Testgruppe gegen echtes Postgres in der CI würde das abdecken.
-- [ ] **[mittel]** Die CI baut das Frontend nicht (`next build` fehlt), und ein Deploy verlangt keinen grünen CI-Lauf.
+- [ ] **[mittel]** Ein Deploy verlangt keinen grünen CI-Lauf. (Seit 15.11. baut die CI das Frontend mit `next build`, gegen eine Platzhalter-API - die Katalogseiten bleiben dort leer.)
 - [ ] **[niedrig]** Images werden beim Deploy auf dem Server gebaut. Fertige Images aus der CI wären schneller und ließen sich sofort zurückrollen.
 - [ ] **[niedrig]** Das Frontend-Image enthält alle Pakete aus `node_modules` (kein `output: "standalone"`); `docker-compose.yml` setzt keine Speichergrenzen.
 - [ ] **[niedrig]** `.claude/launch.json` startet `next dev` über einen Windows-Pfad - auf dem Mac nicht nutzbar, und mit `next dev` hydratisiert die Seite im Vorschaufenster nicht.

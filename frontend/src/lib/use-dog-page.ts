@@ -7,6 +7,7 @@ import { clearCachedData, getCachedData, setCachedData } from "@/lib/read-cache"
 import { useT } from "@/lib/i18n";
 import { heuteIso } from "@/lib/kalendertag";
 import type { Dog, DogOwner, Goal, Sport, TrainingSession } from "@/lib/types";
+import { ladeSportarten } from "@/lib/sportarten";
 
 // Initial werden nur die Trainings der letzten 3 Monate geladen (die
 // Historie wächst unbegrenzt) - ältere Monate holt das Tagebuch über
@@ -95,7 +96,7 @@ export function useDogPage(id: string, eintragId: string | null) {
       const [dogData, sessionDataRaw, sportsData, myDogsData, goalData, ownersData] = await Promise.all([
         api.get<Dog>(`/api/dogs/${id}`),
         api.get<TrainingSession[]>(sessionsPath),
-        api.get<Sport[]>("/api/sports"),
+        ladeSportarten(),
         api.get<Dog[]>("/api/dogs"),
         api.get<Goal[]>(`/api/goals?dogId=${id}`),
         api.get<DogOwner[]>(`/api/dogs/${id}/owners`).catch(() => [] as DogOwner[]),

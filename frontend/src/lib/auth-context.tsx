@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { sportartenCacheLeeren } from "@/lib/sportarten";
 import { api, ApiError, REFRESH_KEY, TOKEN_KEY, USER_KEY } from "@/lib/api";
 import { alleSicherungenLoeschen } from "@/lib/aufzeichnung-sicherung";
 import { loescheGesehen } from "@/lib/feedback-gesehen";
@@ -114,7 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUnreadCount();
     // Kein WebSocket/SignalR (siehe Plan) - einfaches Polling reicht für die
     // Vereinsgröße dieser App, analog zum isTrainer-Abruf-Muster oben.
-    const interval = setInterval(fetchUnreadCount, 60_000);
+    // Im verdeckten Tab entfällt der Takt; beim Sichtbarwerden holt der
+    // Listener unten den Stand nach.
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "hidden") fetchUnreadCount();
+    }, 60_000);
 
     // Zusätzlich beim Zurückkehren in die App: Im Hintergrund bremst der
     // Browser den Takt, und die Glocke zeigte sonst noch den alten Stand.
@@ -157,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function persist(response: AuthResponse) {
+    sportartenCacheLeeren();
     setUser(await sitzungSpeichern(response));
   }
 
@@ -214,6 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Einträge bleiben dagegen: Sie gehören der Person (siehe
     // offline-queue.ts) und gehen hinaus, sobald sie sich wieder anmeldet.
     void leseCacheLeeren();
+    sportartenCacheLeeren();
     setUser(null);
     setIsTrainer(null);
     setManagesMembers(null);

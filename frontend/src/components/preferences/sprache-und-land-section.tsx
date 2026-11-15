@@ -12,6 +12,7 @@ import { useSprache, useT } from "@/lib/i18n";
 import { SPRACHE_NAME, SPRACHEN } from "@/lib/i18n/sprachen";
 import { landName, VORGABE_LAND } from "@/lib/i18n/laender";
 import { zeigeLaenderwahl } from "@/lib/profil";
+import { sportartenCacheLeeren } from "@/lib/sportarten";
 
 /**
  * Sprache und Geltungsbereich - zwei Einstellungen, bewusst nebeneinander
@@ -118,7 +119,7 @@ export function SpracheUndLandSection() {
                       key={l.code}
                       gewaehlt={l.code === gewaehltesLand}
                       disabled={speichert}
-                      onClick={() => void speichern(() => api.put("/api/preferences/country", { country: l.code }))}
+                      onClick={() => void speichern(() => api.put("/api/preferences/country", { country: l.code }).then(sportartenCacheLeeren))}
                     >
                       {landName(l.code, sprache)}
                       {l.regulationCount === 0 && (

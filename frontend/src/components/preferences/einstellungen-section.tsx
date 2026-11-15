@@ -18,6 +18,7 @@ import { katalogName } from "@/lib/katalog-name";
 import { sichtbareModule } from "@/lib/profil";
 import { BenachrichtigungenSection } from "@/components/preferences/benachrichtigungen-section";
 import { ErinnerungenSection } from "@/components/preferences/erinnerungen-section";
+import { ladeSportarten } from "@/lib/sportarten";
 
 /** Hook-Teil, den beide Abschnitte teilen: speichern, Einstellungen neu laden, Fehler melden. */
 function useSpeichern() {
@@ -98,8 +99,7 @@ export function SportartenSection() {
   const sprache = useSprache();
 
   function laden() {
-    api
-      .get<Sport[]>("/api/sports")
+    ladeSportarten()
       .then(setSports)
       // Ein Fehler ist keine leere Liste: Die Karte sagte sonst "alle Sportarten", obwohl nur die
       // Liste fehlt.

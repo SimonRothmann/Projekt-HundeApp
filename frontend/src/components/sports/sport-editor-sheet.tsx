@@ -18,6 +18,7 @@ import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
 import { TEXTLAENGE } from "@/lib/textlaengen";
+import { sportartenCacheLeeren } from "@/lib/sportarten";
 /**
  * Sichtbarkeit einer neu angelegten Sportart.
  * - `{ kind: "global" }` legt eine für alle sichtbare Sportart an (nur Admin).
@@ -70,6 +71,7 @@ export function SportEditorSheet({
         description: description.trim() || null,
         clubId: scope.kind === "club" ? scope.clubId : null,
       });
+      sportartenCacheLeeren();
       toast.success(t("Sportart angelegt."));
       onCreated(created);
       onOpenChange(false);

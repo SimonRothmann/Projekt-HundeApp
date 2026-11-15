@@ -13,7 +13,6 @@ import type {
   GroupTrainingSession,
   OffenesFeedback,
   OnboardingStatus,
-  Sport,
   TrainerOpenCounts,
   TrainingPlanItem,
 } from "@/lib/types";
@@ -42,6 +41,7 @@ import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
 import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { useT } from "@/lib/i18n";
 import { heuteIso } from "@/lib/kalendertag";
+import { ladeSportarten } from "@/lib/sportarten";
 
 /** Kompakte Zeile, wie sie die Startseite für Nebensächliches nutzt (Verein, Sachkunde). */
 const ZEILE =
@@ -115,7 +115,7 @@ async function ladeStartdaten(): Promise<Startdaten> {
   const heute = heuteIso();
   const [dashboard, sports, onboarding, termine] = await Promise.all([
     api.get<DashboardDaten>("/api/dashboard"),
-    api.get<Sport[]>("/api/sports"),
+    ladeSportarten(),
     api.get<OnboardingStatus>("/api/onboarding/status").catch(() => null),
     api
       .get<GroupTrainingSession[]>(`/api/group-training/schedule/mine?from=${heute}`)

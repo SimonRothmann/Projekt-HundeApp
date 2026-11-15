@@ -34,6 +34,7 @@ import { TEXTLAENGE } from "@/lib/textlaengen";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
 import { ordnungenPfad, sportartenPfad } from "@/lib/katalog-land";
 import { tagAlsDatum } from "@/lib/kalendertag";
+import { sportartenCacheLeeren } from "@/lib/sportarten";
 const textareaClass =
   "w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/85 dark:focus-visible:ring-ring/60 md:text-sm dark:bg-input/30";
 
@@ -313,6 +314,7 @@ function SportCard({
         nameEn: nameEn.trim() || null,
         description: description.trim() || null,
       });
+      sportartenCacheLeeren();
       toast.success(t("Sportart aktualisiert."));
       setEditing(false);
       onSportSaved();

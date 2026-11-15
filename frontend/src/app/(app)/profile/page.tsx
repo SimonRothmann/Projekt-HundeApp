@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Building2, Database, Palette, SlidersHorizontal, Sparkles, Trophy, Dumbbell } from "lucide-react";
-import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useProfil } from "@/lib/use-profil";
 import { usePreferences } from "@/lib/preferences-context";
@@ -18,6 +17,7 @@ import { ProfilKopf } from "@/components/profile/profil-kopf";
 import { AbmeldenZeile } from "@/components/profile/abmelden-zeile";
 import { SupportButton } from "@/components/support-button";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
+import { ladeSportarten } from "@/lib/sportarten";
 
 /**
  * Das Profil als Einstellungsliste (wie die iOS-Einstellungen): Jede Zeile
@@ -37,8 +37,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     // Nur für die Vorschau "BH, Fährte"; fällt der Abruf aus, fehlt die Vorschau.
-    api
-      .get<Sport[]>("/api/sports")
+    ladeSportarten()
       .then(setSportarten)
       .catch(() => setSportarten(null));
   }, []);
