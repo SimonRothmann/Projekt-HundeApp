@@ -65,6 +65,17 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "1.3",
+    datum: "2026-11-16",
+    titel: uebersetzbar("Eine Fährte, ein Ablauf"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Eine Fährte oder ein Trail lässt sich nur noch einmal ablaufen. Nach dem ersten Ablauf ist die Spur überlaufen, ein zweiter ergäbe keine vergleichbare Auswertung. Abläufe, die schon gespeichert sind, bleiben erhalten."),
+      },
+    ],
+  },
+  {
     version: "1.2",
     datum: "2026-11-13",
     titel: uebersetzbar("Merkzettel fürs nächste Training"),

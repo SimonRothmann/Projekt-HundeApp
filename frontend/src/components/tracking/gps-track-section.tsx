@@ -69,10 +69,11 @@ function formatDuration(ms: number): string {
  * Tagebuchs (FahrteRecorder) - die aufgenommene Fährte erscheint dann als
  * Bestandteil des jeweiligen Trainingstags (siehe SessionHistory).
  *
- * Das erneute Ablaufen hängt an der Fährte, nicht am Kalendertag: Es gibt es
+ * Das Ablaufen hängt an der Fährte, nicht am Kalendertag: Es gibt es
  * bis 24 Stunden nach dem Ende des Legens (siehe kannNochAblaufen) - abends
  * gelegt und nach Mitternacht gesucht ist der Normalfall. Danach ergibt ein
- * Ablauf kein vergleichbares Fährtenalter mehr. Kommentare zu Ablauf-Versuchen
+ * Ablauf kein vergleichbares Fährtenalter mehr. Und nur einmal: Nach dem
+ * ersten Ablauf ist die Spur überlaufen (der Server lehnt einen zweiten ab). Kommentare zu Ablauf-Versuchen
  * bleiben immer bearbeitbar (nachträgliche Notiz, keine Aufzeichnung).
  */
 export function GpsTrackSection({
@@ -277,7 +278,7 @@ export function GpsTrackSection({
                     der Fährte selbst nicht: Wer die Aufzeichnung abschaltet,
                     soll seine bereits gelaufenen Fährten weiter ansehen,
                     auswerten und löschen können. */}
-                {moduleEnabled(MODULE.faehrte) && kannNochAblaufen(track) && (
+                {moduleEnabled(MODULE.faehrte) && track.walkRuns.length === 0 && kannNochAblaufen(track) && (
                   <WalkRunRecorder
                     trackId={track.id}
                     onSaved={async () => {

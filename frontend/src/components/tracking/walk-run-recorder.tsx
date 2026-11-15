@@ -49,8 +49,8 @@ function toWalkPoint(position: GeolocationPosition): GpsWalkPoint {
 }
 
 /**
- * Zeichnet einen Ablauf-Versuch für eine bereits gelegte Fährte auf (siehe
- * TODO.md "Fährte erneut ablaufen können"): separate Aufzeichnung, die als
+ * Zeichnet den Ablauf einer bereits gelegten Fährte auf (siehe
+ * TODO.md "Fährte erneut ablaufen können"; seit 2026-11-15 nur einmal je Fährte): separate Aufzeichnung, die als
  * eigene Linie zum Vergleich mit der gelegten Fährte auf der Karte erscheint
  * (siehe TrackMap), statt die ursprünglichen Punkte zu überschreiben.
  *
@@ -268,7 +268,7 @@ export function WalkRunRecorder({
       <>
         <Button size="sm" variant="outline" disabled={speichert} onClick={() => aufzeichnen()}>
           <Footprints className="size-4" />
-          {label ?? (trail ? t("Trail suchen") : t("Fährte erneut ablaufen"))}
+          {label ?? (trail ? t("Trail suchen") : t("Fährte ablaufen"))}
         </Button>
         {ergebnisFenster}
       </>

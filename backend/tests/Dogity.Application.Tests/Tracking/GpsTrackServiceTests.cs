@@ -326,13 +326,15 @@ public class GpsTrackServiceTests
         var service = new GpsTrackService(db, new FakeWeatherEnrichmentService(), punkteJeTrainingstag: 100);
         var (userId, dogId) = await HundAnlegenAsync(db);
         var t0 = DateTimeOffset.UtcNow;
+        // Zwei Fährten, weil jede nur einmal abgelaufen wird.
         var faehrte = await service.CreateAsync(userId, Aufnahme(dogId, Heute)); // 1 Punkt
+        var andere = await service.CreateAsync(userId, Aufnahme(dogId, Heute)); // 1 Punkt
         var ablauf = (int n) => Enumerable.Range(0, n)
             .Select(i => new CreateGpsWalkPointRequest(48.9, 8.5, t0.AddSeconds(i), 5))
             .ToList();
-        Assert.True((await service.AddWalkRunAsync(userId, faehrte.Value!.Id, new CreateGpsWalkRunRequest(null, null, ablauf(90)))).Succeeded);
+        Assert.True((await service.AddWalkRunAsync(userId, faehrte.Value!.Id, new CreateGpsWalkRunRequest(null, null, ablauf(89)))).Succeeded);
 
-        var result = await service.AddWalkRunAsync(userId, faehrte.Value.Id, new CreateGpsWalkRunRequest(null, null, ablauf(10)));
+        var result = await service.AddWalkRunAsync(userId, andere.Value!.Id, new CreateGpsWalkRunRequest(null, null, ablauf(10)));
         var zweiteFaehrte = await service.CreateAsync(userId, Aufnahme(dogId, Heute) with
         {
             Points = Enumerable.Range(0, 10).Select(i => new CreateGpsPointRequest(48.9, 8.5, t0.AddSeconds(i), 5)).ToList(),
@@ -343,6 +345,25 @@ public class GpsTrackServiceTests
         Assert.False(zweiteFaehrte.Succeeded);
         Assert.Single(db.GpsWalkRuns);
         // Genau bis an die Grenze geht es noch.
-        Assert.True((await service.AddWalkRunAsync(userId, faehrte.Value.Id, new CreateGpsWalkRunRequest(null, null, ablauf(9)))).Succeeded);
+        Assert.True((await service.AddWalkRunAsync(userId, andere.Value.Id, new CreateGpsWalkRunRequest(null, null, ablauf(9)))).Succeeded);
+    }
+
+    [Fact]
+    public async Task AddWalkRun_ZweiterAblaufDerselbenSpur_WirdAbgelehnt()
+    {
+        var db = InMemoryDbContext.Create();
+        var service = new GpsTrackService(db, new FakeWeatherEnrichmentService());
+        var (userId, dogId) = await HundAnlegenAsync(db);
+        var t0 = DateTimeOffset.UtcNow;
+        var faehrte = await service.CreateAsync(userId, Aufnahme(dogId, Heute));
+        var ablauf = new CreateGpsWalkRunRequest(null, null, [new CreateGpsWalkPointRequest(48.9, 8.5, t0, 5)]);
+
+        Assert.True((await service.AddWalkRunAsync(userId, faehrte.Value!.Id, ablauf)).Succeeded);
+        var zweiter = await service.AddWalkRunAsync(userId, faehrte.Value.Id, ablauf);
+
+        Assert.False(zweiter.Succeeded);
+        Assert.False(zweiter.IsNotFound);
+        Assert.Equal("Diese Spur wurde schon abgelaufen.", zweiter.Errors[0]);
+        Assert.Single(db.GpsWalkRuns);
     }
 }

@@ -273,6 +273,12 @@ public class GpsTrackService(
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
             return Result<GpsWalkRunDto>.NotFound("Fährte nicht gefunden.");
 
+        // Eine Spur wird nur einmal abgelaufen: Danach ist sie vom ersten Ablauf
+        // überlaufen, ein zweiter ergäbe keine vergleichbare Auswertung (Entscheidung
+        // des Betreibers 2026-11-15). Ältere Spuren mit mehreren Abläufen bleiben.
+        if (await db.GpsWalkRuns.AnyAsync(r => r.TrackId == trackId, ct))
+            return Result<GpsWalkRunDto>.Failure("Diese Spur wurde schon abgelaufen.");
+
         if (request.Points.Count == 0)
             return Result<GpsWalkRunDto>.Failure("Ein Ablauf-Versuch benötigt mindestens einen GPS-Punkt.");
         if (request.Points.Count > MaxPunkteJeAufzeichnung)
