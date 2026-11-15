@@ -133,6 +133,12 @@ public class GpsTrackService(
                     ? Result<GpsTrackDto>.Success(liste.Value!.First(t => t.Id == vorhandeneId))
                     : Result<GpsTrackDto>.NotFound("Training nicht gefunden.");
             }
+
+            // Wurde die Fährte inzwischen gelöscht, nicht neu anlegen: Dieselbe Id
+            // liegt als weich gelöschte Zeile noch vor (Schlüsselkonflikt), und die
+            // Löschung war gewollt. Die 404 lässt das Frontend den Eintrag verwerfen.
+            if (await db.GpsTracks.IgnoreQueryFilters().AnyAsync(t => t.Id == vorhandeneId, ct))
+                return Result<GpsTrackDto>.NotFound("Fährte wurde inzwischen gelöscht.");
         }
 
         Guid sessionId;

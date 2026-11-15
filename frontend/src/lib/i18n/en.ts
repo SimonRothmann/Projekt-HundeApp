@@ -1998,6 +1998,7 @@ export const EN: Record<string, string> = {
   "Frage nicht gefunden.": "Question not found.",
   "Fragenkatalog nicht gefunden.": "Question catalogue not found.",
   "Fährte nicht gefunden.": "Track not found.",
+  "Fährte wurde inzwischen gelöscht.": "This track has since been deleted.",
   "Für Freitextfragen wird die Selbsteinschätzung erwartet.": "Free-text questions expect a self-assessment.",
   "Für diese Gruppe stehen noch {plannedSessions} Termine im Kalender. Bitte zuerst absagen oder löschen.": "This group still has {plannedSessions} sessions in the calendar. Please cancel or delete them first.",
   "Für diesen Tag lässt sich die Anwesenheit nicht mehr eintragen.": "Attendance can no longer be entered for this day.",

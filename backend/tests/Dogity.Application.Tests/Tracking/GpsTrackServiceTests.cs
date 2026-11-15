@@ -4,6 +4,7 @@ using Dogity.Application.Tracking;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Tracking;
 using Dogity.Domain.Training;
+using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Tests.Tracking;
 
@@ -168,6 +169,27 @@ public class GpsTrackServiceTests
         Assert.Equal(id, wiederholt.Value!.Id);
         Assert.Single(db.GpsTracks);
         Assert.Equal(5, Assert.Single(db.TrainingSessions.Where(s => s.DogId == dogId)).DurationMinutes);
+    }
+
+    [Fact]
+    public async Task CreateTrack_GleicheIdNachLoeschen_IstNotFoundUndLegtNichtNeuAn()
+    {
+        // Die Offline-Warteschlange wiederholt eine Anfrage, deren Fährte inzwischen
+        // gelöscht wurde: kein Schlüsselkonflikt (500), sondern 404, damit das
+        // Frontend den Eintrag verwirft.
+        var db = InMemoryDbContext.Create();
+        var service = new GpsTrackService(db, new FakeWeatherEnrichmentService());
+        var (userId, dogId) = await HundAnlegenAsync(db);
+        var id = Guid.NewGuid();
+        await service.CreateAsync(userId, Aufnahme(dogId, Heute, id: id));
+        Assert.True((await service.DeleteAsync(userId, id)).Succeeded);
+
+        var wiederholt = await service.CreateAsync(userId, Aufnahme(dogId, Heute, id: id));
+
+        Assert.False(wiederholt.Succeeded);
+        Assert.True(wiederholt.IsNotFound);
+        Assert.Single(db.GpsTracks.IgnoreQueryFilters());
+        Assert.Empty(db.GpsTracks);
     }
 
     [Fact]

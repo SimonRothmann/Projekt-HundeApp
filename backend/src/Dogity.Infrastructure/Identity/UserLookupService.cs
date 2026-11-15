@@ -1,10 +1,11 @@
 using Dogity.Application.Abstractions;
+using Dogity.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Infrastructure.Identity;
 
-public class UserLookupService(UserManager<ApplicationUser> userManager, TimeProvider timeProvider, KontoStatus kontoStatus) : IUserLookupService
+public class UserLookupService(UserManager<ApplicationUser> userManager, ApplicationDbContext db, TimeProvider timeProvider, KontoStatus kontoStatus) : IUserLookupService
 {
     public async Task<UserLookupResult?> FindByEmailAsync(string email, CancellationToken ct = default)
     {
@@ -38,13 +39,22 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, TimePro
             .Take(pageSize)
             .ToListAsync(ct);
 
+        // Die Rollen der ganzen Seite in einer Abfrage statt je Nutzer:in eine.
+        var userIds = rawUsers.Select(u => u.Id).ToList();
+        var rollenJeNutzer = (await (
+                from ur in db.UserRoles
+                join r in db.Roles on ur.RoleId equals r.Id
+                where userIds.Contains(ur.UserId)
+                select new { ur.UserId, r.Name })
+            .ToListAsync(ct))
+            .ToLookup(x => x.UserId, x => x.Name!);
+
         var now = timeProvider.GetUtcNow();
         var entries = new List<UserDirectoryEntry>(rawUsers.Count);
         foreach (var user in rawUsers)
         {
-            var roles = await userManager.GetRolesAsync(user);
             var isLockedOut = user.LockoutEnd is not null && user.LockoutEnd > now;
-            entries.Add(new UserDirectoryEntry(user.Id, user.Email!, user.FirstName, user.LastName, roles.ToArray(), isLockedOut));
+            entries.Add(new UserDirectoryEntry(user.Id, user.Email!, user.FirstName, user.LastName, rollenJeNutzer[user.Id].ToArray(), isLockedOut));
         }
         return (entries, totalCount);
     }

@@ -20,13 +20,14 @@ namespace Dogity.Application.Planning;
 /// </summary>
 public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, INotificationService notifications, IExerciseMasteryService mastery) : IGoalService
 {
-    public async Task<Result<IReadOnlyList<GoalDto>>> GetByDogAsync(Guid userId, Guid dogId, CancellationToken ct = default)
+    public async Task<Result<IReadOnlyList<GoalDto>>> GetByDogAsync(Guid userId, Guid dogId, bool nurAktive = false, CancellationToken ct = default)
     {
         if (!await db.HasDogAccessAsync(userId, dogId, ct))
             return Result<IReadOnlyList<GoalDto>>.NotFound("Hund nicht gefunden.");
 
         var goals = await LoadGoalsQuery()
             .Where(g => g.DogId == dogId)
+            .Where(g => !nurAktive || g.Status == GoalStatus.Active)
             .OrderBy(g => g.TargetDate)
             .AsNoTracking()
             .ToListAsync(ct);
@@ -844,7 +845,10 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .ThenInclude(p => p!.WeekConfigs)
             .Include(g => g.TrainingPlan)
             .ThenInclude(p => p!.Items)
-            .ThenInclude(i => i.Exercise);
+            .ThenInclude(i => i.Exercise)
+            // AsSplitQuery: WeekConfigs und Items sind zwei Listen in einer Abfrage und
+            // vervielfachen sich sonst gegenseitig (siehe GpsTrackService.GetByTrainingSessionAsync).
+            .AsSplitQuery();
 
     // Effektive Trainingstage einer Woche: Pro-Woche-Überschreibung, sonst
     // der Plan-Default. Auf [1, 7] begrenzt.

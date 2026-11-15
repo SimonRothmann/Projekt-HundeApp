@@ -57,7 +57,7 @@ public class DashboardService(
             var sportIds = await preferences.GetEffectiveDogSportsAsync(userId, hund.Id, ct);
             if (!sportIds.Succeeded) return Fehler(sportIds);
 
-            var ziele = await goals.GetByDogAsync(userId, hund.Id, ct);
+            var ziele = await goals.GetByDogAsync(userId, hund.Id, nurAktive: true, ct: ct);
             if (!ziele.Succeeded) return Fehler(ziele);
             var aktiveZiele = ziele.Value!
                 .Where(ziel => ziel.Status == GoalStatus.Active && ziel.TrainingPlan is not null)

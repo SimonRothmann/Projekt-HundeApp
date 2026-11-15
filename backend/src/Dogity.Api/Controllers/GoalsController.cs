@@ -9,7 +9,7 @@ public class GoalsController(IGoalService goalService) : ApiControllerBase
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<GoalDto>>> GetByDog([FromQuery] Guid dogId, CancellationToken ct)
     {
-        var result = await goalService.GetByDogAsync(CurrentUserId, dogId, ct);
+        var result = await goalService.GetByDogAsync(CurrentUserId, dogId, ct: ct);
         return FromResult(result);
     }
 

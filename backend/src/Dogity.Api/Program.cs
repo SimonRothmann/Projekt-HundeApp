@@ -316,9 +316,13 @@ app.UseResponseCompression();
 
 app.UseHttpsRedirection();
 
-app.UseRateLimiter();
-
+// CORS vor der Drossel: Die 429 trägt dann schon die Freigabe-Kopfzeilen, und
+// das Frontend kann "zu viele Versuche" lesen statt eines Netzwerkfehlers. Die
+// Drossel-Richtlinien hängen am Endpunkt (EnableRateLimiting) und brauchen nur
+// das Routing, das vorher implizit läuft - die Reihenfolge ändert daran nichts.
 app.UseCors("Frontend");
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
