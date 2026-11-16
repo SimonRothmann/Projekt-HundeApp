@@ -67,6 +67,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function wartendeKopien(): string[] {
+  return Array.from({ length: speicher.length }, (_, i) => speicher.key(i)!).filter((k) => k.startsWith("dogity_aufzeichnung_wartend:"));
+}
+
 function punkt(zeit: string, pointType: GpsPointType = 0): GpsPoint {
   return { latitude: 48.9, longitude: 8.5, timestamp: zeit, accuracy: 5, pointType, label: null, markerType: 0 };
 }
@@ -219,6 +223,11 @@ describe("Anfrage aus einer Sicherung", () => {
     expect((body as { comment: string }).comment).toBe("bei Wind");
     expect((anfrageAusSicherung(ablauf({ kommentar: "  " })).body as { comment: null }).comment).toBeNull();
   });
+
+  it("Ablauf: trägt die Kennung vom Gerät mit, damit ein erneutes Senden keinen zweiten anlegt", () => {
+    expect((anfrageAusSicherung(ablauf({ ablaufId: "lauf-9" })).body as { id?: string }).id).toBe("lauf-9");
+    expect(anfrageAusSicherung(ablauf()).body).not.toHaveProperty("id");
+  });
 });
 
 describe("Marker zurücknehmen", () => {
@@ -300,7 +309,7 @@ describe("Speichern einer Sicherung", () => {
     expect(sicherungenAuflisten("nutzer-a")).toEqual([]);
   });
 
-  it.each([502, 503])("legt sie bei %i in die Warteschlange - der Server startet nur neu", async (status) => {
+  it.each([502, 503, 504])("legt sie bei %i in die Warteschlange - der Server startet nur neu oder antwortet zu langsam", async (status) => {
     vi.mocked(api.post).mockRejectedValue(new ApiError(status, []));
     sicherungSchreiben(faehrte());
     const ergebnis = await sicherungSpeichern(faehrte(), "Fährte");
@@ -309,8 +318,8 @@ describe("Speichern einer Sicherung", () => {
     expect(sicherungenAuflisten("nutzer-a")).toEqual([]);
   });
 
-  it.each([500, 504])("behält sie bei %i - der Server kann sie schon haben", async (status) => {
-    vi.mocked(api.post).mockRejectedValue(new ApiError(status, ["Fehler."]));
+  it("behält sie bei 500 - ein Fehler im Server, den das Nachschicken nicht behebt", async () => {
+    vi.mocked(api.post).mockRejectedValue(new ApiError(500, ["Fehler."]));
     sicherungSchreiben(faehrte());
     const ergebnis = await sicherungSpeichern(faehrte(), "Fährte");
     expect(ergebnis).toEqual({ ausgang: "fehler", meldung: "Fehler." });
@@ -324,6 +333,29 @@ describe("Speichern einer Sicherung", () => {
     sicherungSchreiben(faehrte());
     expect(await sicherungSpeichern(faehrte(), "Fährte")).toEqual({ ausgang: "fehler", meldung: null });
     expect(sicherungenAuflisten("nutzer-a")).toHaveLength(1);
+    // Und keine Kopie für die Warteschlange zurückgelassen.
+    expect(wartendeKopien()).toEqual([]);
+  });
+
+  it("lässt eine Kopie unter eigenem Schlüssel stehen, bis der Server den Eintrag bestätigt hat", async () => {
+    vi.mocked(api.post).mockRejectedValue(new TypeError("Failed to fetch"));
+    sicherungSchreiben(faehrte());
+    await sicherungSpeichern(faehrte(), "Fährte");
+
+    const kopien = wartendeKopien();
+    expect(kopien).toHaveLength(1);
+    // Die Warteschlange kennt den Schlüssel, um die Kopie nach der Bestätigung zu löschen.
+    expect(enqueueRequest).toHaveBeenCalledWith(expect.objectContaining({ sicherung: kopien[0] }));
+    // Sie ist keine "unterbrochene Aufzeichnung" und wird von einer neuen Fährte desselben Hundes nicht überschrieben.
+    expect(sicherungenAuflisten("nutzer-a")).toEqual([]);
+    sicherungSchreiben(faehrte({ trackId: "fährte-2" }));
+    expect(wartendeKopien()).toEqual(kopien);
+  });
+
+  it("nimmt die Kopie beim Abmelden mit", () => {
+    speicher.setItem("dogity_aufzeichnung_wartend:faehrte:fährte-1", "{}");
+    alleSicherungenLoeschen();
+    expect(wartendeKopien()).toEqual([]);
   });
 });
 

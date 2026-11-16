@@ -197,17 +197,17 @@ Offen - Performance:
 - [x] **[niedrig]** `/api/sports` wurde an 11 Stellen einzeln geholt. Seit 15.11. teilen sich 6 Stellen `ladeSportarten` (`lib/sportarten.ts`, 5 Minuten gültig, geleert bei An-/Abmelden, Land, Verein, Katalogpflege); `?alle=true` und die Offline-Sportseite bleiben eigen.
 - [x] **[niedrig]** Die Glocke fragte alle 60 Sekunden nach, auch im verdeckten Tab - seit 15.11. nur noch im sichtbaren (`auth-context.tsx`).
 - [ ] **[niedrig]** Die API liegt auf einer eigenen Domain, der Browser schickt deshalb CORS-Vorabanfragen. Unter derselben Herkunft (`/api`) entfielen sie. Größerer Umbau (Caddy, CSP, Frontend-Konfiguration), Nutzen nicht gemessen.
-- [ ] **[niedrig]** `training_sessions` hat keinen Index auf (Hund, Datum). Erst mit echten Daten messen, ob er fehlt.
+- [x] **[niedrig]** `training_sessions` hatte keinen Index auf (Hund, Datum) - seit 16.11. vorhanden (Migration `AddTrainingAnfragekennungUndTagesIndex`).
 - [x] **[niedrig]** Nutzerliste im Adminbereich fragte die Rollen je Nutzer einzeln ab - seit 15.11. eine Abfrage je Seite (`UserLookupService.ListPagedAsync`).
 
 Offen - Logik und mögliche Fehler:
 
-- [ ] **[hoch]** Offline-Warteschlange: Lehnt der Server einen nachgeschickten Eintrag mit 4xx ab, wird er gelöscht und nur 10 Sekunden gemeldet (`offline-queue.ts`). Das trifft auch eine offline gespeicherte Fährte - ihre Sicherung ist dann schon weg (`aufzeichnung-sicherung.ts`). Braucht einen Entwurf: Wohin wandert ein abgelehnter Eintrag?
-- [ ] **[hoch]** Offline-Warteschlange: Ein Serverfehler (500) hält die Schlange ohne Obergrenze an, alles dahinter bleibt liegen. (Der bekannte Auslöser ist seit 15.11. behoben: `GpsTrackService.CreateAsync` antwortet bei einer inzwischen gelöschten Fährte mit 404 „Fährte wurde inzwischen gelöscht.“, die Warteschlange verwirft den Eintrag. Offen bleibt die fehlende Obergrenze.)
-- [ ] **[mittel]** Nur Fährten tragen eine Kennung vom Gerät. Abläufe, Trainings und Merkzettel können beim Nachschicken doppelt entstehen; bei Abläufen verfälscht das die Statistik.
+- [x] **[hoch]** Offline-Warteschlange: Vom Server abgelehnte Einträge (4xx) gehen nicht mehr verloren. Sie bleiben liegen, erscheinen in einem Hinweis in der App-Hülle mit „Erneut senden“ und „Verwerfen“ (mit Rückfrage), und die Kopie der Aufzeichnung (`aufzeichnung-sicherung.ts`) wird erst nach der Bestätigung des Servers gelöscht (16.11.).
+- [x] **[hoch]** Offline-Warteschlange: Serverfehler (5xx) werden begrenzt wiederholt (30 s, 1, 2, 4, 8 Minuten), danach gilt der Eintrag als „hängt“ (sichtbar im selben Hinweis) und hält nichts mehr auf; abhängige Einträge (Ablauf zur Fährte, Fährte zum Training, Merkzettel-Haken) warten auf ihren Vorgänger. 504 wird beim direkten Speichern wie 502/503 nachgeschickt (16.11.).
+- [x] **[mittel]** Abläufe und Trainings tragen wie Fährten und Merkzettel eine Kennung vom Gerät; der Server legt bei erneutem Senden nichts doppelt an (16.11.).
 - [ ] **[mittel]** Gelöschte GPS-Punkte und Benachrichtigungen bleiben für immer in der Datenbank (nur als gelöscht markiert bzw. ohne Löschlauf). Entscheidung des Betreibers: Wie lange aufbewahren?
 - [x] **[niedrig]** Eine Drossel-Antwort (429) kam im Browser als Netzwerkfehler an - seit 15.11. läuft CORS vor der Drossel (`Program.cs`).
-- [ ] **[niedrig]** Speichern zwei Geräte gleichzeitig das erste Training eines Tages, entstehen zwei Trainingstage (`TrainingService.CreateAsync` ohne eindeutigen Index); die Oberfläche fasst sie zusammen.
+- [x] **[niedrig]** Zwei Geräte, die gleichzeitig das erste Training eines Tages speichern: Ein eindeutiger Index (Hund, Datum) ist nicht möglich - ein Hund hat am Tag mehrere Einheiten (Trainer:innen und Familie getrennt, überlange Notizen). Die Oberfläche fasst sie weiter zusammen; neu ist nur ein normaler Index (Hund, Datum) (16.11.).
 - [x] **[niedrig]** Die nächtliche Plan-Neuberechnung lief alle 24 Stunden ab Neustart - seit 15.11. beim Start und dann um 03:00 Uhr Vereinszeit (`PlanRegenerationBackgroundService.NaechsterLauf`).
 
 Offen - Betrieb und Stand der Technik:

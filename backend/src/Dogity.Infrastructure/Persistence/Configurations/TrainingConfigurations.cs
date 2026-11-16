@@ -20,6 +20,9 @@ public class TrainingSessionConfiguration : IEntityTypeConfiguration<TrainingSes
         builder.Property(t => t.OwnerReaction).HasConversion<string>().HasMaxLength(20);
         builder.Property(t => t.OwnerReply).HasMaxLength(Textlaengen.FeedbackRueckfrage);
         builder.HasIndex(t => new { t.UserId, t.DogId, t.Date });
+        // Die Hundeseite, Statistik und Tagesansicht lesen die Trainings eines Hundes nach Datum (Zeitraum).
+        // Bewusst NICHT eindeutig: Ein Hund kann am selben Tag mehrere Einheiten haben (siehe EinheitDesTagesAsync).
+        builder.HasIndex(t => new { t.DogId, t.Date });
     }
 }
 
@@ -57,6 +60,9 @@ public class TrainingExerciseConfiguration : IEntityTypeConfiguration<TrainingEx
         builder.Property(t => t.Notes).HasMaxLength(Textlaengen.UebungsNotiz);
         builder.Property(t => t.TrainerNote).HasMaxLength(Textlaengen.UebungsNotiz);
         builder.Property(t => t.FreeTextLabel).HasMaxLength(Textlaengen.EigeneUebung);
+
+        // Idempotenz fürs erneute Senden (siehe TrainingExercise.ClientRequestId); Null-Werte zählen nicht als gleich.
+        builder.HasIndex(t => t.ClientRequestId).IsUnique();
 
         builder.HasOne(t => t.TrainingSession)
             .WithMany(s => s.Exercises)

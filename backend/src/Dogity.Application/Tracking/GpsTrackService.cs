@@ -273,6 +273,12 @@ public class GpsTrackService(
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
             return Result<GpsWalkRunDto>.NotFound("Fährte nicht gefunden.");
 
+        // Wiederholte Anfrage aus der Offline-Warteschlange (Antwort ging verloren): Der Ablauf
+        // ist schon da, er wird wie beim ersten Mal beantwortet - sonst scheiterte die Wiederholung
+        // gleich an der Regel "nur einmal abgelaufen" und der Eintrag bliebe als abgelehnt liegen.
+        if (request.Id is { } vorhandeneId && await VorhandenerAblaufAsync(track, vorhandeneId, ct) is { } vorhanden)
+            return vorhanden;
+
         // Eine Spur wird nur einmal abgelaufen: Danach ist sie vom ersten Ablauf
         // überlaufen, ein zweiter ergäbe keine vergleichbare Auswertung (Entscheidung
         // des Betreibers 2026-11-15). Ältere Spuren mit mehreren Abläufen bleiben.
@@ -303,6 +309,8 @@ public class GpsTrackService(
             LengthMeters = request.LengthMeters,
             Comment = request.Comment
         };
+        if (request.Id is { } neueId)
+            walkRun.Id = neueId;
 
         foreach (var point in request.Points)
         {
@@ -317,7 +325,18 @@ public class GpsTrackService(
         }
 
         db.GpsWalkRuns.Add(walkRun);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e) when (request.Id is not null
+            && e.InnerException is DbException { SqlState: EindeutigerIndexVerletzt })
+        {
+            // Dieselbe Kennung zweimal gleichzeitig (Wiederholung, während die erste Antwort noch läuft):
+            // Die andere war schneller, ihr Ablauf ist der eine gültige.
+            if (await VorhandenerAblaufAsync(track, request.Id.Value, ct) is not { } schnellerer) throw;
+            return schnellerer;
+        }
 
         // Auswertung direkt nach dem Speichern - die gelegten Punkte liegen
         // dafür ohnehin schon in der Datenbank.
@@ -329,6 +348,24 @@ public class GpsTrackService(
         await weather.EnqueueTrackAsync(track, ct);
 
         return Result<GpsWalkRunDto>.Success(await ToWalkRunDtoAsync(track, walkRun, ct));
+    }
+
+    /// <summary>Der schon unter dieser Kennung angelegte Ablauf, null wenn es keinen gibt; gehört er zu einer anderen Fährte, ein 404.</summary>
+    private async Task<Result<GpsWalkRunDto>?> VorhandenerAblaufAsync(GpsTrack track, Guid walkRunId, CancellationToken ct)
+    {
+        var vorhanden = await db.GpsWalkRuns
+            .Include(r => r.Points)
+            .Include(r => r.Stops)
+            .Include(r => r.Legs)
+            .Include(r => r.Corners)
+            .Include(r => r.Articles)
+            .AsSplitQuery()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == walkRunId, ct);
+        if (vorhanden is null) return null;
+        return vorhanden.TrackId == track.Id
+            ? Result<GpsWalkRunDto>.Success(await ToWalkRunDtoAsync(track, vorhanden, ct))
+            : Result<GpsWalkRunDto>.NotFound("Fährte nicht gefunden.");
     }
 
     public async Task<Result<GpsWalkRunDto>> EvaluateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, CancellationToken ct = default)

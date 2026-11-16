@@ -367,6 +367,8 @@ function EintragenInhalt({
       }),
       // Der Server hakt sie mit dem Training ab - auch aus der Warteschlange, ohne dass das Gerät die Kennung des Trainings kennt.
       erledigteMerkzettelIds: gemerkt.filter((e) => angehakt.has(e.id)).map((e) => e.id),
+      // Kennung dieser Anfrage: Schickt die Warteschlange sie noch einmal (Antwort ging verloren), legt der Server nichts doppelt an.
+      clientRequestId: crypto.randomUUID(),
     };
 
     setSpeichert(true);

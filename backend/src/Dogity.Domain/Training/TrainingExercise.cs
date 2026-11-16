@@ -55,4 +55,13 @@ public class TrainingExercise : Entity
     /// </summary>
     public Guid? TrainingPlanItemId { get; set; }
     public TrainingPlanItem? TrainingPlanItem { get; set; }
+
+    /// <summary>
+    /// Die Kennung, die das Gerät der Anfrage mitgegeben hat, mit der diese Übung angelegt wurde - nur an
+    /// der ersten Übung der Anfrage gesetzt. Ein erneutes Senden derselben Anfrage (aus der Offline-Warteschlange,
+    /// nach verlorener Antwort) erkennt sie daran wieder und legt nichts doppelt an. Sie hängt an der Übung statt
+    /// am Training, weil eine Anfrage an die Einheit des Tages angehängt werden kann und dann keine eigene hat.
+    /// Null bei älteren Übungen und bei Anfragen ohne Kennung; der eindeutige Index gilt nur für gesetzte Werte.
+    /// </summary>
+    public Guid? ClientRequestId { get; set; }
 }

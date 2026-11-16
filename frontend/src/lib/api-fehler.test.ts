@@ -70,11 +70,11 @@ describe("Vorübergehend unerreichbar", () => {
     expect(istVoruebergehendUnerreichbar(new TypeError("Failed to fetch"))).toBe(true);
   });
 
-  it.each([502, 503])("ja bei %i - der Proxy antwortet, solange das Backend neu startet", (status) => {
+  it.each([502, 503, 504])("ja bei %i - der Proxy antwortet, solange das Backend neu startet oder nicht rechtzeitig antwortet", (status) => {
     expect(istVoruebergehendUnerreichbar(new ApiError(status, []))).toBe(true);
   });
 
-  it.each([500, 504, 400, 401, 404])("nein bei %i - der Server kann es verarbeitet haben oder lehnt ab", (status) => {
+  it.each([500, 400, 401, 404])("nein bei %i - ein Fehler im Server oder eine Ablehnung, die das Nachschicken nicht ändert", (status) => {
     expect(istVoruebergehendUnerreichbar(new ApiError(status, []))).toBe(false);
   });
 });
