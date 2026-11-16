@@ -255,16 +255,16 @@ Cloudflare und bleiben unverändert.
 **Einrichtung, in dieser Reihenfolge:**
 
 1. **DNS bei Cloudflare** (`dogity.net` → DNS → Records):
-   - `A`-Eintrag `mail` → `161.97.135.174`, **"DNS only"** (graue Wolke).
+   - `A`-Eintrag `mail` → `<Server-IP>`, **"DNS only"** (graue Wolke).
      Mails können nicht durch den Cloudflare-Proxy.
    - Den bestehenden SPF-Eintrag (TXT auf `@`) **ändern**, keinen zweiten
      anlegen - es darf nur einen geben:
-     `v=spf1 ip4:161.97.135.174 include:_spf.mx.cloudflare.net ~all`
+     `v=spf1 ip4:<Server-IP> include:_spf.mx.cloudflare.net ~all`
      (der Cloudflare-Teil gehört zur Weiterleitung von info@).
    - DMARC: TXT `_dmarc` → `v=DMARC1; p=none; rua=mailto:info@dogity.net; fo=1`.
      Nach der Testphase auf `p=quarantine` stellen.
 2. **Reverse DNS bei Contabo** (Kundenbereich → Reverse DNS) für
-   `161.97.135.174`: `mail.dogity.net`. Viele Empfänger prüfen, dass IP, Name
+   `<Server-IP>`: `mail.dogity.net`. Viele Empfänger prüfen, dass IP, Name
    und HELO zusammenpassen; ohne das landen Mails im Spam.
 3. **Deploy** (Test genügt): Die Deploy-Skripte bauen und starten den Dienst
    `mail` mit. Beim allerersten Mal, falls das laufende Skript noch die alte
@@ -500,16 +500,3 @@ VPS) liegen daneben als Secrets.
 `authorized_keys` ersetzen, `gh secret set DEPLOY_SSH_KEY < deploy`, die lokale
 Datei `deploy` löschen. Ändert sich der Host-Schlüssel der VPS (Neuinstallation),
 `DEPLOY_KNOWN_HOSTS` neu setzen - sonst bricht die Action bewusst ab.
-
-## Bewusst offen
-
-**SSH-Passwort-Anmeldung.** Steht auf `yes`, Port 22 ist weltweit offen.
-Bewusst so belassen (Stand 2026-09-09), weil die Lage nachgemessen
-entspannter ist, als sie klingt: fail2ban läuft mit `sshd`-Jail und hatte
-zu dem Zeitpunkt 551 Sperren im Log, Root-Login ist aus, die Firewall lässt
-nur 22/80/443 durch - und es hat nie eine erfolgreiche Anmeldung per
-Passwort gegeben, alle liefen über `publickey`. Der Druck ist real (rund
-4.000 Fehlversuche am Tag), läuft aber ins Leere.
-
-Wer es doch abschaltet: vorher sichergehen, dass der Schlüssel greift, und
-die bestehende Sitzung offen lassen.

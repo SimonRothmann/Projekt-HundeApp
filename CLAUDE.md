@@ -11,7 +11,7 @@ KI-Assistenten beim Programmieren), übersetzt und an Dogity angepasst. Die
 englische Originalfassung liegt als Skill unter
 `.claude/skills/karpathy-guidelines/`.
 
-**Das Repo ist öffentlich.** Sicherheitslücken erst beheben, dann beschreiben - keine Angriffswege in Doku, TODO oder Commit-Nachrichten, solange die Lücke offen ist. Keine Geheimnisse, Zugangsdaten oder `.env`-Inhalte einchecken.
+**Das Repo ist öffentlich.** Sicherheitslücken erst beheben, dann beschreiben - keine Angriffswege in Doku, TODO oder Commit-Nachrichten, solange die Lücke offen ist. Keine Geheimnisse, Zugangsdaten oder `.env`-Inhalte einchecken. Ebenso wenig Server-Adressen (IP), private Kontaktdaten, offene Befunde am Server oder Arbeitsnotizen des Assistenten - die führt der Betreiber privat. Die CI lehnt öffentliche IP-Adressen ab (Job "Keine Server-Adressen").
 
 **Abwägung:** Die Grundsätze bremsen zugunsten von Sorgfalt. Bei trivialen
 Aufgaben mit Augenmaß anwenden.

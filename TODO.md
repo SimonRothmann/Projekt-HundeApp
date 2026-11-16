@@ -83,7 +83,7 @@ Zusätzlich: Ein in README.md im Klartext committetes lokales Dev-DB-Passwort wu
 
 Stand master nach diesem Eintrag. Prod = 0.40 (51979f9, verifiziert). Test = 0.40; **0.41 Gesundheit (09da3dd) ist fertig, aber noch nicht auf Test deployt.**
 
-- **Notizen des KI-Assistenten:** `docs/claude-notizen/` (Arbeitsgedächtnis, Stand 2026-10-27; README dort erklärt das Wiedereinspielen).
+- **Notizen des KI-Assistenten:** liegen nur noch lokal beim Betreiber (seit 16.11. nicht mehr im öffentlichen Repo).
 - **Arbeitsweise:** `CLAUDE.md` (vier Grundsätze) + `AI_RULES.md`. Der Betreiber deployt selbst (Test, dann Prod), danach wird lesend geprüft (`ssh dogity`, Postgres im Container, `https://api-test.dogity.net` / `https://api.dogity.net`). Auf Test nur über die Demo-Knöpfe anmelden, nichts eintippen; Testdaten wieder entfernen. Mobile 375 px ohne horizontalen Scroll, zusätzlich iOS-Simulator-Safari. Entwicklung nur außerhalb der Claude-Stoßzeit (werktags 05-11 Uhr Pazifikzeit), außer der Betreiber sagt ausdrücklich anders.
 - **Umsetzen per Sub-Worker:** Workflow-Skript liegt jetzt im Repo unter `scripts/claude/dogity-paket-umsetzen.js` (args: `{paket, spec}` - Spezifikation als Datei schreiben und den Pfad übergeben; Sonnet setzt um, unabhängige Prüfung, Nachbesserung, kein Commit). Prüflauf nach den Grundsätzen: `scripts/claude/dogity-grundsaetze-pruefung.js`. Sub-Worker immer mit `model: 'sonnet'` (sonst erben sie Opus). Danach selbst prüfen (Pflicht-Prüfbefehle), committen, pushen.
 - **Nach dem Test-Deploy von 0.41 prüfen:** Migration AddDogHealth; Bello (Demo "Mitglied 1"): Reiter Gesundheit mit Tollwut bald fällig, Entwurmung überfällig, Tierarzttermin übermorgen; Hinweis auf der Startseite; Bellos BH-Ziel wieder da mit gelber Prüfungsreife und Theoriezeile; Trainer-Konto sieht keine Gesundheitsdaten (404); Formular (2 Datums- + 1 Zeitfeld) im iOS-Simulator-Safari bei 375 px.
@@ -407,50 +407,8 @@ Nicht im Code lösbar - auf dem Server bzw. im Cloudflare-Dashboard:
 - [x] **Caddy neu starten** nach dem nächsten Pull - sonst greift die echte
       Client-IP nicht. Erledigt (2026-10-01); künftig lädt jeder Deploy den
       Caddyfile selbst (scripts/caddy-neu-laden.sh, docs/BETRIEB.md).
-- [ ] **SSH nur mit Schlüssel.** Der Server bietet Passwort-Anmeldung an
-      (`Permission denied (publickey,password)`, auch für root). In
-      `/etc/ssh/sshd_config.d/` `PasswordAuthentication no` und
-      `PermitRootLogin no` setzen, `sudo systemctl reload ssh` - vorher in einer
-      zweiten Sitzung prüfen, dass der Schlüssel-Login geht.
-- [ ] **Server nur über Cloudflare erreichbar machen.** 80/443 antworten auch
-      direkt unter 161.97.135.174 und umgehen damit Cloudflares Schutz. Per
-      Firewall (ufw oder Contabo-Firewall) 80/443 nur aus den Cloudflare-Bereichen
-      zulassen (Liste im Caddyfile). Let's Encrypt funktioniert weiter, die
-      Prüfung läuft ebenfalls über Cloudflare.
-- [ ] **Testumgebung abschirmen.** test.dogity.net ist öffentlich, der
-      Demo-Admin hat ein im Repo stehendes Passwort (Swagger, Entwickler-Fehlerseite
-      und offenes CORS gibt es seit 1.0 dort nicht mehr: Staging).
-      Getrennt von Prod (eigene DB-Rolle), aber jede:r kann dort Admin sein und
-      die Nutzerliste der Testumgebung sehen. Vorschlag: Cloudflare Access
-      (kostenlos) vor test.dogity.net und api-test.dogity.net. Entscheidung
-      offen.
-- [ ] **Postgres einmalig nachziehen** (das Init-Skript läuft nur bei leerem
-      Volume): `REVOKE CONNECT ON DATABASE dogity_prod FROM PUBLIC;` und
-      dasselbe für dogity_test, als postgres-Superuser.
-- [ ] **Serverseitig noch nicht geprüft** (SSH-Agent verweigerte am
-      2026-09-21 die Signatur): Firewall-Status, automatische
-      Sicherheitsupdates (unattended-upgrades), fail2ban, Rechte auf
-      /opt/dogity/.env.
-- [ ] Optional im Cloudflare-Dashboard: E-Mail-Verschleierung, Bot-Prüfskript
-      und Network Error Logging abschalten, wenn nicht gewollt. Die
-      Datenschutzerklärung nennt alle drei mit "kann" - sie bleibt auch danach
-      richtig.
-
-Bewusst so gelassen (bekannt, abgewogen):
-
-- Anmelde-Token im localStorage statt im httpOnly-Cookie. Ein XSS könnte ihn
-  lesen; dagegen stehen CSP ohne fremde Skriptquellen, React-Escaping und keine
-  HTML-Einschübe aus Nutzerdaten. Umstieg auf Cookies wäre wegen der
-  getrennten API-Domain ein größerer Umbau. Die letzte Voraussetzung war bis
-  2026-09-28 verletzt (Marker-Beschriftung per innerHTML in Leaflet-Tooltips);
-  seitdem prüft `frontend/src/lib/html-senken.test.ts` jede Stelle, an der
-  Text als HTML in die Seite geht. Seit 2026-10-12 (MapLibre statt Leaflet)
-  zeigt die Karte Text nur noch über `Popup.setText`; `setHTML` ist dort
-  verboten.
-- `script-src 'unsafe-inline'` (Next.js-Hydration, siehe next.config.ts).
-- Registrierung und Einladen verraten, ob eine E-Mail-Adresse ein Konto hat.
-  Anmelden ist gedrosselt; ohne E-Mail-Versand gibt es keinen besseren Weg.
-- Keine Bestätigung der E-Mail-Adresse bei der Registrierung (kein SMTP).
+- Offene Punkte am Server und in Cloudflare sowie bewusst hingenommene
+  Schwächen führt der Betreiber privat, nicht in diesem öffentlichen Repo.
 
 ## Sicherheitsprüfung (Stand 2026-09-28)
 
@@ -499,18 +457,6 @@ Geschwindigkeit und Bedienbarkeit. Behoben im Code:
       nächste Token-Refresh alle, wiederholbar zur Daueraussperrung. Die
       Admin-Sperre wirkt dagegen jetzt binnen Sekunden statt bis zu 65
       Minuten (Prüfung je Anfrage mit 30 s Merkzeit, beim Sperren sofort).
-
-Auf dem Server nachsehen (nur lesend, für Prod und Test):
-
-- [ ] Wurde die XSS-Lücke schon genutzt?
-      `SELECT count(*) FROM gps_points WHERE "Label" ~ '[<>]';` und
-      `SELECT count(*) FROM gps_walk_stops WHERE "MarkerLabel" ~ '[<>]';` -
-      bei Treffern die Einträge ansehen und den betroffenen Konten die
-      Sitzungen beenden.
-- [ ] Ist die Anmelde-E-Mail des Admin-Kontos die öffentliche
-      Impressum-Adresse? Dann den Admin auf eine nicht veröffentlichte Adresse
-      umstellen - sie ist das lohnendste Ziel für Aussperr- und
-      Einladungsversuche.
 
 Bewusst später (nach Aufwand und Nutzen abgewogen):
 
