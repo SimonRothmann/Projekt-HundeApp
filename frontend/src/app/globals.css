@@ -9,6 +9,19 @@
    (feiner Zeiger) auf dem Desktop zu verändern - Mobile-First-Ergonomie. */
 @custom-variant coarse (@media (pointer: coarse));
 
+/* Weiches Aufklappen (components/ui/zuklappbar.tsx): die Höhe läuft über grid-template-rows. */
+@theme {
+  --animate-aufklappen: aufklappen 200ms ease-out;
+  @keyframes aufklappen {
+    from {
+      grid-template-rows: 0fr;
+    }
+    to {
+      grid-template-rows: 1fr;
+    }
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

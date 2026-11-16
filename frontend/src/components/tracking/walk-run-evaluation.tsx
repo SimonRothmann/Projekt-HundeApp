@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Info } from "lucide-react";
 import type { GpsTrack, GpsWalkRun } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -147,7 +147,7 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
   const unexplained = stops.filter((s) => s.kind === 0).length;
   const trail = istMantrailing(art);
   const bestaetigt = bestaetigteZahlen(run);
-  const zahl = gross ? "rounded-md border border-input px-2.5 py-1.5 text-sm font-medium text-foreground" : "text-xs";
+  const zahl = gross ? "text-sm font-medium text-foreground" : "text-xs";
   const abweichung = t("Ø {meter} m", { meter: Math.round(avg) });
   const kennzahlen = (
     <>
@@ -155,7 +155,7 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
         <span className={zahl}>{t("max {meter} m", { meter: Math.round(run.maxDeviationMeters) })}</span>
       )}
       {run.onTrackPercent != null && (
-        <span className={zahl}>
+        <span className={cn(zahl, gross && "w-full text-xl font-bold")}>
           {trail
             ? t("{prozent} % auf der Spur", { prozent: Math.round(run.onTrackPercent) })
             : t("{prozent} % auf Fährte", { prozent: Math.round(run.onTrackPercent) })}
@@ -212,16 +212,25 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
         </div>
       )}
 
-      <p className="text-[0.7rem] leading-snug">
+      <details className="group text-xs text-muted-foreground">
+        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 [&::-webkit-details-marker]:hidden">
+          <Info className="size-3.5" aria-hidden />
+          {t("Wie wird gemessen?")}
+        </summary>
+        <p className="leading-snug">
         {trail
           ? t("Gemessen wird die Linie des Hundeführers. Beim Mantrailing arbeitet der Hund an langer Leine auch neben der Spur – deshalb gelten hier {gruen} m als nah und {gelb} m als mittlere Abweichung.", {
               gruen: spurGrenzen(art).gruenBis,
               gelb: spurGrenzen(art).gelbBis,
             })
           : t("Gemessen wird die Linie des Hundeführers – der Hund kann bis Leinenlänge abweichen, ohne dass es hier sichtbar wird.")}
-        {unexplained > 0 &&
-          ` ${unexplained === 1 ? t("1 unerklärte Stockung deutet auf Suchen hin.") : t("{n} unerklärte Stockungen deuten auf Suchen hin.", { n: unexplained })}`}
-      </p>
+        </p>
+      </details>
+      {unexplained > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {unexplained === 1 ? t("1 unerklärte Stockung deutet auf Suchen hin.") : t("{n} unerklärte Stockungen deuten auf Suchen hin.", { n: unexplained })}
+        </p>
+      )}
     </div>
   );
 }

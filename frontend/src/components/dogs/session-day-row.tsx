@@ -1,5 +1,6 @@
 "use client";
 
+import { Zuklappbar } from "@/components/ui/zuklappbar";
 import type { ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import type { DogTrackRun, TrainingSession } from "@/lib/types";
@@ -58,7 +59,7 @@ export function SessionDayRow({
         aria-expanded={offen}
         // Nur bei offenem Tag: Zu, gibt es das Element nicht, und der Verweis
         // ginge ins Leere (wie bei den Reitern, siehe group-view-switch).
-        aria-controls={offen ? inhaltId(datum) : undefined}
+        aria-controls={inhaltId(datum)}
         className={cn(
           "flex min-h-16 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-muted/50",
           offen && "border-b bg-primary/6 dark:bg-white/6",
@@ -88,7 +89,9 @@ export function SessionDayRow({
           className={cn("size-4 shrink-0 text-muted-foreground transition-transform", offen && "rotate-180")}
         />
       </button>
-      {offen && <div id={inhaltId(datum)}>{children}</div>}
+      <Zuklappbar offen={offen} id={inhaltId(datum)}>
+        {children}
+      </Zuklappbar>
     </div>
   );
 }

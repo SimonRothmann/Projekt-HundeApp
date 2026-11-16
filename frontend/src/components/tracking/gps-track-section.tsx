@@ -1,5 +1,6 @@
 "use client";
 
+import { Zuklappbar } from "@/components/ui/zuklappbar";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
@@ -395,7 +396,7 @@ function FaehrteEinstellungen({
   const trail = istMantrailing(track);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col">
       <Button
         type="button"
         size="sm"
@@ -407,15 +408,14 @@ function FaehrteEinstellungen({
         {trail ? t("Einstellungen des Trails") : t("Einstellungen der Fährte")}
         <ChevronDown className={cn("size-3.5 transition-transform", offen && "rotate-180")} />
       </Button>
-      {offen && (
-        <>
+      <Zuklappbar offen={offen} className="flex flex-col gap-2">
           {!trail && (
             <div className="divide-y divide-surface-border overflow-hidden rounded-md bg-muted/40">
               {verdecktEinstellbar && (
                 <SchalterZeile
                   an={track.doubleBlind === true}
                   titel={t("Verdeckt absuchen")}
-                  beschreibung={t("Beim Absuchen ist der Verlauf ausgeblendet und das Handy vibriert nicht an Winkeln und Gegenständen – für eine Prüfungssimulation, wenn jemand anderes gelegt hat.")}
+                  beschreibung={t("Verlauf ausgeblendet, kein Vibrieren – für Prüfungssimulationen.")}
                   onChange={onVerdeckt}
                 />
               )}
@@ -437,8 +437,7 @@ function FaehrteEinstellungen({
             <Trash2 className="size-4" />
             {trail ? t("Trail löschen") : t("Fährte löschen")}
           </Button>
-        </>
-      )}
+      </Zuklappbar>
     </div>
   );
 }

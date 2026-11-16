@@ -1,5 +1,6 @@
 "use client";
 
+import { Zuklappbar } from "@/components/ui/zuklappbar";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CalendarClock, CircleCheck, Clock, ChevronDown, Pencil, Plus, Trash2, TriangleAlert } from "lucide-react";
@@ -179,7 +180,7 @@ export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: bool
           ))}
 
           {verlauf.length > 0 && (
-            <section className="flex min-w-0 flex-col gap-2">
+            <section className="flex min-w-0 flex-col">
               <button
                 type="button"
                 aria-expanded={verlaufOffen}
@@ -189,7 +190,7 @@ export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: bool
                 <ChevronDown className={cn("size-4 shrink-0 transition-transform", !verlaufOffen && "-rotate-90")} aria-hidden />
                 <span className="min-w-0 [overflow-wrap:anywhere]">{t("Verlauf ({n})", { n: verlauf.length })}</span>
               </button>
-              {verlaufOffen && (
+              <Zuklappbar offen={verlaufOffen} className="pt-2">
                 <Card size="sm">
                   <CardContent>
                     <ul className="flex flex-col divide-y">
@@ -199,7 +200,7 @@ export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: bool
                     </ul>
                   </CardContent>
                 </Card>
-              )}
+              </Zuklappbar>
             </section>
           )}
         </>

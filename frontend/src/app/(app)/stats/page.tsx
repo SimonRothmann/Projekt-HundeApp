@@ -204,22 +204,22 @@ export default function StatsPage() {
                   <CardTitle className="min-w-0 text-base [overflow-wrap:anywhere]">{dog.dogName}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-3">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <p className="text-muted-foreground text-xs">{t("Trainings gesamt")}</p>
-                      <p className="font-medium">{dog.sessionCount}</p>
+                      <p className="text-2xl font-bold tabular-nums">{dog.sessionCount}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">{t("Letzte 30 Tage")}</p>
-                      <p className="font-medium">{dog.sessionsLast30d}</p>
+                      <p className="text-2xl font-bold tabular-nums">{dog.sessionsLast30d}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">{t("Aktive Ziele")}</p>
-                      <p className="font-medium">{dog.activeGoals}</p>
+                      <p className="text-2xl font-bold tabular-nums">{dog.activeGoals}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">{t("Ø Bewertung (30d)")}</p>
-                      <p className="font-medium">{dog.avgRating30d !== null ? `${zahlText(dog.avgRating30d, sprache)} / 5` : "–"}</p>
+                      <p className="text-2xl font-bold tabular-nums">{dog.avgRating30d !== null ? `${zahlText(dog.avgRating30d, sprache)} / 5` : "–"}</p>
                     </div>
                   </div>
                   {dog.planItemsTotal > 0 && (

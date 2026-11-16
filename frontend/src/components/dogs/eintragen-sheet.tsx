@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, ChevronDown, CirclePause, History, Plus, StickyNote, X } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError, istVoruebergehendUnerreichbar } from "@/lib/api";
+import { kurzeHaptik } from "@/lib/haptik";
 import { enqueueRequest } from "@/lib/offline-queue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -381,6 +382,7 @@ function EintragenInhalt({
         if (ohne === null) throw err;
         gespeichert = await api.post<TrainingSession>("/api/trainings", ohne);
       }
+      kurzeHaptik();
       toast.success(t("Training gespeichert."), {
         action: {
           label: t("Ansehen"),
