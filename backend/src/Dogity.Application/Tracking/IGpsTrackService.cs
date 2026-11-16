@@ -5,6 +5,14 @@ namespace Dogity.Application.Tracking;
 public interface IGpsTrackService
 {
     Task<Result<IReadOnlyList<GpsTrackDto>>> GetByTrainingSessionAsync(Guid userId, Guid trainingSessionId, CancellationToken ct = default);
+    /// <summary>
+    /// Die noch wartenden Spuren der Hunde <paramref name="dogIds"/> (Einheiten von <paramref name="einheitenAb"/>
+    /// bis <paramref name="einheitenBis"/>): ohne Ablauf und noch innerhalb der Frist
+    /// (<see cref="Ablauffristen.NochZuSuchen"/>), nur mit ihrer Legung - ohne Abläufe, Halte, Winkel und
+    /// Gegenstände. Hunde ohne Zugriff bleiben stillschweigend außen vor. Für die Startseite, die so in
+    /// wenigen Abfragen für alle Hunde bekommt, was sonst je Einheit eine volle Fährtenabfrage kostete.
+    /// </summary>
+    Task<Result<IReadOnlyList<WartendeSpurDto>>> GetWartendeAsync(Guid userId, IReadOnlyCollection<Guid> dogIds, DateOnly einheitenAb, DateOnly einheitenBis, DateTimeOffset jetzt, CancellationToken ct = default);
     Task<Result<GpsTrackDto>> CreateAsync(Guid userId, CreateGpsTrackRequest request, CancellationToken ct = default);
     Task<Result<GpsWalkRunDto>> AddWalkRunAsync(Guid userId, Guid trackId, CreateGpsWalkRunRequest request, CancellationToken ct = default);
     /// <summary>

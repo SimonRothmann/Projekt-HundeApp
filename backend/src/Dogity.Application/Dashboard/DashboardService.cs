@@ -20,8 +20,11 @@ namespace Dogity.Application.Dashboard;
 ///
 /// Bewusst aus den bestehenden Diensten zusammengesetzt statt mit eigenen
 /// Abfragen: Zugriffsregeln, die Vererbung der Sportarten und die
-/// Zusammenstellung der Pläne gibt es so weiterhin nur an einer Stelle. Die
-/// Aufrufe laufen nacheinander, weil sich alle Dienste einen DbContext teilen.
+/// Zusammenstellung der Pläne gibt es so weiterhin nur an einer Stelle. Sportarten,
+/// Ziele und wartende Spuren holen die Dienste für alle Hunde auf einmal (in
+/// wenigen Abfragen, nicht je Hund und Einheit); die Spuren ohne Abläufe, Halte
+/// und Winkel. Die Aufrufe laufen nacheinander, weil sich alle Dienste einen
+/// DbContext teilen.
 /// </summary>
 public class DashboardService(
     IDogService dogs,
@@ -47,43 +50,38 @@ public class DashboardService(
         // Tag Luft vor dem Tag, an dem die längste Frist beginnt.
         var einheitenAb = Vereinszeit.Tag(jetzt - Ablauffristen.Trail).AddDays(-1);
         var heute = Vereinszeit.Tag(jetzt);
-        var eintraege = new List<DashboardDogDto>();
+        var aktiveHunde = meineHunde.Value!.Where(h => h.ArchivedAt is null).ToList();
+        var hundeIds = aktiveHunde.Select(h => h.Id).ToList();
 
-        // Jeder Fehler einer Teilabfrage wird wie bei den Hunden weitergereicht: Eine leere
-        // Liste wäre nicht von "nichts da" zu unterscheiden, bei den Sportarten hieße sie
-        // sogar "keine Einschränkung" und die Startseite zeigte alle Module.
-        foreach (var hund in meineHunde.Value!.Where(h => h.ArchivedAt is null))
-        {
-            var sportIds = await preferences.GetEffectiveDogSportsAsync(userId, hund.Id, ct);
-            if (!sportIds.Succeeded) return Fehler(sportIds);
+        // Alles für alle Hunde gemeinsam statt je Hund. Jeder Fehler einer Teilabfrage wird wie bei den
+        // Hunden weitergereicht: Eine leere Liste wäre nicht von "nichts da" zu unterscheiden, bei den
+        // Sportarten hieße sie sogar "keine Einschränkung" und die Startseite zeigte alle Module.
+        var sportIds = await preferences.GetEffectiveSportsForDogsAsync(userId, hundeIds, ct);
+        if (!sportIds.Succeeded) return Fehler(sportIds);
 
-            var ziele = await goals.GetByDogAsync(userId, hund.Id, nurAktive: true, ct: ct);
-            if (!ziele.Succeeded) return Fehler(ziele);
-            var aktiveZiele = ziele.Value!
-                .Where(ziel => ziel.Status == GoalStatus.Active && ziel.TrainingPlan is not null)
-                .ToList();
+        var ziele = await goals.GetActiveWithPlanByDogsAsync(userId, hundeIds, ct);
+        if (!ziele.Succeeded) return Fehler(ziele);
+        var zieleJeHund = ziele.Value!.ToLookup(ziel => ziel.DogId);
 
-            // Die noch suchbaren Spuren (Fährte 24, Trail 48 Stunden nach dem Legen), nicht nur
-            // die von heute: Was abends gelegt wurde, soll nach Mitternacht nicht von der
-            // Startseite verschwinden, solange man es noch ablaufen kann. Nur ohne Ablauf: Mit einem
-            // Ablauf ist die Spur nicht mehr "wartend", und ihre Abläufe wären der größte Teil der Antwort.
-            var faehrten = new List<DashboardSpurDto>();
-            var einheiten = await trainings.GetByDogAsync(userId, hund.Id, einheitenAb, heute, ct);
-            if (!einheiten.Succeeded) return Fehler(einheiten);
-            foreach (var einheit in einheiten.Value!.Where(e => e.HasGpsTrack))
-            {
-                var spuren = await tracks.GetByTrainingSessionAsync(userId, einheit.Id, ct);
-                if (!spuren.Succeeded) return Fehler(spuren);
-                faehrten.AddRange(spuren.Value!
-                    .Where(spur => spur.WalkRuns.Count == 0
-                        && Ablauffristen.NochZuSuchen(Ablauffristen.LegeEnde(spur.Points), spur.Kind, jetzt))
+        // Die noch suchbaren Spuren (Fährte 24, Trail 48 Stunden nach dem Legen), nicht nur
+        // die von heute: Was abends gelegt wurde, soll nach Mitternacht nicht von der
+        // Startseite verschwinden, solange man es noch ablaufen kann. Nur ohne Ablauf: Mit einem
+        // Ablauf ist die Spur nicht mehr "wartend", und ihre Abläufe wären der größte Teil der Antwort.
+        var spuren = await tracks.GetWartendeAsync(userId, hundeIds, einheitenAb, heute, jetzt, ct);
+        if (!spuren.Succeeded) return Fehler(spuren);
+        var spurenJeHund = spuren.Value!.ToLookup(spur => spur.DogId);
+
+        var eintraege = aktiveHunde
+            .Select(hund => new DashboardDogDto(
+                hund,
+                sportIds.Value!.GetValueOrDefault(hund.Id) ?? [],
+                zieleJeHund[hund.Id].ToList(),
+                spurenJeHund[hund.Id]
                     .Select(spur => new DashboardSpurDto(
                         spur.Id, spur.TrainingSessionId, spur.LengthMeters, spur.AgeMinutes, spur.Surface,
-                        spur.Kind, spur.DoubleBlind, spur.NegativeTrail, spur.ScentArticle, spur.Points)));
-            }
-
-            eintraege.Add(new DashboardDogDto(hund, sportIds.Value!, aktiveZiele, faehrten));
-        }
+                        spur.Kind, spur.DoubleBlind, spur.NegativeTrail, spur.ScentArticle, spur.Points))
+                    .ToList()))
+            .ToList();
 
         var offenesFeedback = await trainings.GetOpenFeedbackAsync(userId, eintraege.Select(e => e.Dog.Id).ToList(), ct);
         if (!offenesFeedback.Succeeded) return Fehler(offenesFeedback);

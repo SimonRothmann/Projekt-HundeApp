@@ -213,3 +213,17 @@ public record UpdateGpsWalkRunArticleRequest(Guid PointId, ArticleResult? Result
 
 /// <summary>Ob die Fährte aus der Entwicklung des Hundes herausgenommen ist.</summary>
 public record UpdateGpsTrackStatsRequest(bool ExcludeFromStats);
+
+/// <summary>Eine noch wartende Spur mit ihrer Legung (siehe <see cref="IGpsTrackService.GetWartendeAsync"/>), samt Hund.</summary>
+public record WartendeSpurDto(
+    Guid DogId,
+    Guid Id,
+    Guid TrainingSessionId,
+    double? LengthMeters,
+    int? AgeMinutes,
+    string? Surface,
+    GpsTrackKind Kind,
+    bool DoubleBlind,
+    bool NegativeTrail,
+    string? ScentArticle,
+    IReadOnlyList<GpsPointDto> Points);

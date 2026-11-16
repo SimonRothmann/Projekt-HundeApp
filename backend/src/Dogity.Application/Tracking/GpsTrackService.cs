@@ -115,6 +115,47 @@ public class GpsTrackService(
         return Result<IReadOnlyList<GpsTrackDto>>.Success(tracks.Select(t => ToDto(t, simplify: true)).ToList());
     }
 
+    public async Task<Result<IReadOnlyList<WartendeSpurDto>>> GetWartendeAsync(
+        Guid userId, IReadOnlyCollection<Guid> dogIds, DateOnly einheitenAb, DateOnly einheitenBis, DateTimeOffset jetzt, CancellationToken ct = default)
+    {
+        // Zugriff wie überall über die zentrale Regel; die Einheiten werden gleich in der Abfrage darauf beschränkt.
+        var einheiten = await db.TrainingSessions
+            .Where(s => dogIds.Contains(s.DogId) && s.Date >= einheitenAb && s.Date <= einheitenBis
+                && db.ZugaenglicheHundeIds(userId).Contains(s.DogId))
+            .Select(s => new { s.Id, s.DogId, s.Date })
+            .ToListAsync(ct);
+        if (einheiten.Count == 0)
+            return Result<IReadOnlyList<WartendeSpurDto>>.Success([]);
+        var hundJeEinheit = einheiten.ToDictionary(e => e.Id, e => e.DogId);
+        var tagJeEinheit = einheiten.ToDictionary(e => e.Id, e => e.Date);
+        var einheitIds = hundJeEinheit.Keys.ToList();
+
+        // Grobe Vorauswahl in SQL (längste Frist, damit keine Punkte abgelaufener Spuren geladen werden);
+        // die genaue Frist je Art prüft Ablauffristen danach. Nur eine Collection per Include: keine
+        // Zeilenvervielfachung, daher ohne AsSplitQuery.
+        var fruehestesEnde = jetzt - Ablauffristen.Trail;
+        var spuren = await db.GpsTracks
+            .Where(t => einheitIds.Contains(t.TrainingSessionId)
+                && !db.GpsWalkRuns.Any(r => r.TrackId == t.Id)
+                && t.Points.Where(p => p.PointType != GpsPointType.Manual).Max(p => (DateTimeOffset?)p.Timestamp) >= fruehestesEnde)
+            .Include(t => t.Points)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var wartende = new List<WartendeSpurDto>();
+        // Neueste Einheit zuerst, wie die Einheitenliste, aus der die Startseite die Spuren früher zog.
+        foreach (var t in spuren.OrderByDescending(t => tagJeEinheit[t.TrainingSessionId]))
+        {
+            // Dieselbe Vereinfachung wie auf dem Lesepfad der Fährtenliste - die Antwort bleibt inhaltlich gleich.
+            var punkte = ToDto(t, simplify: true).Points;
+            if (!Ablauffristen.NochZuSuchen(Ablauffristen.LegeEnde(punkte), t.Kind, jetzt)) continue;
+            wartende.Add(new WartendeSpurDto(
+                hundJeEinheit[t.TrainingSessionId], t.Id, t.TrainingSessionId, t.LengthMeters, t.AgeMinutes, t.Surface,
+                t.Kind, t.DoubleBlind, t.NegativeTrail, t.ScentArticle, punkte));
+        }
+        return Result<IReadOnlyList<WartendeSpurDto>>.Success(wartende);
+    }
+
     public async Task<Result<GpsTrackDto>> CreateAsync(Guid userId, CreateGpsTrackRequest request, CancellationToken ct = default)
     {
         // Wiederholte Anfrage aus der Offline-Warteschlange: Die Fährte gibt

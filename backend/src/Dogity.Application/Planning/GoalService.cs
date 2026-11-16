@@ -35,6 +35,18 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         return Result<IReadOnlyList<GoalDto>>.Success(await ToDtosAsync(goals, userId, ct));
     }
 
+    public async Task<Result<IReadOnlyList<GoalDto>>> GetActiveWithPlanByDogsAsync(Guid userId, IReadOnlyCollection<Guid> dogIds, CancellationToken ct = default)
+    {
+        var goals = await LoadGoalsQuery()
+            .Where(g => dogIds.Contains(g.DogId) && db.ZugaenglicheHundeIds(userId).Contains(g.DogId))
+            .Where(g => g.Status == GoalStatus.Active && g.TrainingPlan != null)
+            .OrderBy(g => g.TargetDate)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        return Result<IReadOnlyList<GoalDto>>.Success(await ToDtosAsync(goals, userId, ct));
+    }
+
     public async Task<Result<GoalDto>> GetByIdAsync(Guid userId, Guid goalId, CancellationToken ct = default)
     {
         var goal = await GetOwnedGoalAsync(userId, goalId, ct, track: false);

@@ -151,6 +151,48 @@ public class DashboardServiceTests
     }
 
     [Fact]
+    public async Task SpurenMitAblaufAbgelaufeneUndFremdeHunde_ErscheinenNicht()
+    {
+        var (dienst, db) = Erstelle();
+        var ich = Guid.NewGuid();
+        var hund = Hund(db, ich, "Bello");
+        var wartend = Faehrte(db, ich, hund, Heute, Jetzt.AddHours(-1));
+        var mitAblauf = Faehrte(db, ich, hund, Heute, Jetzt.AddHours(-1));
+        db.GpsWalkRuns.Add(new GpsWalkRun { TrackId = mitAblauf });
+        Faehrte(db, ich, hund, Heute.AddDays(-1), Jetzt.AddHours(-30));
+        // Ein fremder Hund mit wartender Spur - auch eine Spur, die dem Nutzer selbst gehört, aber an einem
+        // Hund hängt, den er nicht (mehr) besitzt, darf nicht auftauchen.
+        var fremder = Hund(db, Guid.NewGuid(), "Nachbarshund");
+        Faehrte(db, Guid.NewGuid(), fremder, Heute, Jetzt.AddHours(-1));
+        Faehrte(db, ich, fremder, Heute, Jetzt.AddHours(-1));
+        await db.SaveChangesAsync();
+
+        var stand = (await dienst.GetAsync(ich)).Value!;
+
+        Assert.Equal(wartend, Assert.Single(Assert.Single(stand.Dogs).TracksToday).Id);
+    }
+
+    [Fact]
+    public async Task SpurenUndZiele_WerdenDenRichtigenHundenZugeordnet()
+    {
+        var (dienst, db) = Erstelle();
+        var ich = Guid.NewGuid();
+        var bello = Hund(db, ich, "Bello");
+        var emma = Hund(db, ich, "Emma");
+        var belloSpur = Faehrte(db, ich, bello, Heute, Jetzt.AddHours(-1));
+        var emmaSpur = Faehrte(db, ich, emma, Heute.AddDays(-1), Jetzt.AddHours(-20));
+        var emmaZiel = Ziel(db, emma, GoalStatus.Active, mitPlan: true);
+        await db.SaveChangesAsync();
+
+        var hunde = (await dienst.GetAsync(ich)).Value!.Dogs.ToDictionary(e => e.Dog.Id);
+
+        Assert.Equal(belloSpur, Assert.Single(hunde[bello].TracksToday).Id);
+        Assert.Empty(hunde[bello].ActiveGoals);
+        Assert.Equal(emmaSpur, Assert.Single(hunde[emma].TracksToday).Id);
+        Assert.Equal(emmaZiel, Assert.Single(hunde[emma].ActiveGoals).Id);
+    }
+
+    [Fact]
     public async Task EineFaehrteGenauAnDerFristgrenze_IstNochSuchbar()
     {
         var (dienst, db) = Erstelle();
@@ -219,10 +261,9 @@ public class DashboardServiceTests
     }
 
     [Theory]
-    [InlineData("preferences", "GetEffectiveDogSportsAsync")]
-    [InlineData("goals", "GetByDogAsync")]
-    [InlineData("trainings", "GetByDogAsync")]
-    [InlineData("tracks", "GetByTrainingSessionAsync")]
+    [InlineData("preferences", "GetEffectiveSportsForDogsAsync")]
+    [InlineData("goals", "GetActiveWithPlanByDogsAsync")]
+    [InlineData("tracks", "GetWartendeAsync")]
     [InlineData("trainings", "GetOpenFeedbackAsync")]
     public async Task EinFehlerEinerTeilabfrage_WirdWeitergereicht_StattAlsLeereListeZuErscheinen(string dienstName, string methode)
     {

@@ -7,6 +7,11 @@ public interface IGoalService
 {
     /// <param name="nurAktive">Nur Ziele mit Status "aktiv" laden (Startseite) statt aller.</param>
     Task<Result<IReadOnlyList<GoalDto>>> GetByDogAsync(Guid userId, Guid dogId, bool nurAktive = false, CancellationToken ct = default);
+    /// <summary>
+    /// Die aktiven Ziele MIT Plan aller Hunde <paramref name="dogIds"/> in wenigen Abfragen (Startseite),
+    /// je Hund nach Zieldatum. Hunde ohne Zugriff bleiben stillschweigend außen vor.
+    /// </summary>
+    Task<Result<IReadOnlyList<GoalDto>>> GetActiveWithPlanByDogsAsync(Guid userId, IReadOnlyCollection<Guid> dogIds, CancellationToken ct = default);
     Task<Result<GoalDto>> GetByIdAsync(Guid userId, Guid goalId, CancellationToken ct = default);
     Task<Result<GoalDto>> CreateAsync(Guid userId, CreateGoalRequest request, CancellationToken ct = default);
     Task<Result<GoalDto>> UpdateStatusAsync(Guid userId, Guid goalId, GoalStatus status, CancellationToken ct = default);

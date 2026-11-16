@@ -58,5 +58,11 @@ public interface IPreferenceService
     /// </summary>
     Task<Result<IReadOnlyList<Guid>>> GetEffectiveDogSportsAsync(Guid userId, Guid dogId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Dasselbe für mehrere Hunde in wenigen Abfragen (Startseite). Hunde ohne Zugriff
+    /// fehlen im Ergebnis, statt einen Fehler für alle zu machen.
+    /// </summary>
+    Task<Result<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>>> GetEffectiveSportsForDogsAsync(Guid userId, IReadOnlyCollection<Guid> dogIds, CancellationToken ct = default);
+
     Task<Result> UpdateDogSportsAsync(Guid userId, Guid dogId, UpdateDogSportsRequest request, CancellationToken ct = default);
 }

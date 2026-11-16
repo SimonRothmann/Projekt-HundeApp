@@ -224,6 +224,19 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
         return Result<IReadOnlyList<Guid>>.Success(wirksame(userId, dogId, hund.UsesOwnSports));
     }
 
+    public async Task<Result<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>>> GetEffectiveSportsForDogsAsync(Guid userId, IReadOnlyCollection<Guid> dogIds, CancellationToken ct = default)
+    {
+        var hunde = await db.Dogs
+            .AsNoTracking()
+            .Where(d => dogIds.Contains(d.Id) && db.ZugaenglicheHundeIds(userId).Contains(d.Id))
+            .Select(d => new { d.Id, d.UsesOwnSports })
+            .ToListAsync(ct);
+
+        var wirksame = await Sportwahl.LadenAsync(db, [userId], hunde.Where(h => h.UsesOwnSports).Select(h => h.Id).ToList(), ct);
+        return Result<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>>.Success(
+            hunde.ToDictionary(h => h.Id, h => wirksame(userId, h.Id, h.UsesOwnSports)));
+    }
+
     public async Task<Result> UpdateDogSportsAsync(Guid userId, Guid dogId, UpdateDogSportsRequest request, CancellationToken ct = default)
     {
         // Ändern darf nur, wer den Hund besitzt - ein zugewiesener Trainer
