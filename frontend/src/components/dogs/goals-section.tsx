@@ -5,7 +5,7 @@ import type { Goal, NextStage, Sport, TrainingPlanItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { Plus, Target } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Target } from "lucide-react";
 import { GoalCreateForm } from "@/components/dogs/goal-create-form";
 import { GoalPlanCard } from "@/components/dogs/goal-plan-card";
 
@@ -63,7 +63,10 @@ export function GoalsSection({
     if (vorauswahl) document.getElementById("ziel-formular")?.scrollIntoView({ behavior: "auto", block: "start" });
   }, [vorauswahl]);
 
-  const sichtbar = goals?.filter((g) => g.status !== 1) ?? [];
+  // Laufende Ziele stehen vorn; beendete (nicht erreichte) darunter in einer zugeklappten Zeile.
+  const laufend = goals?.filter((g) => g.status === 0) ?? [];
+  const beendet = goals?.filter((g) => g.status === 2) ?? [];
+  const [beendeteOffen, setBeendeteOffen] = useState(false);
 
   return (
     // scroll-mt: der Kopfbereich der App klebt oben - ohne den Abstand
@@ -75,7 +78,8 @@ export function GoalsSection({
         action={
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
+            className="text-primary-text"
             onClick={() => {
               setVorauswahl(null);
               setShowForm((v) => !v);
@@ -100,27 +104,62 @@ export function GoalsSection({
       )}
 
       {goals === null ? (
-        <p className="text-muted-foreground">{t("Lädt…")}</p>
-      ) : sichtbar.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
-            <Target className="size-8" />
-            <p>{goals.length === 0 ? t("Noch kein Ziel gesetzt.") : t("Kein aktives Ziel.")}</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {sichtbar.map((goal) => (
-            <GoalPlanCard
-              key={goal.id}
-              goal={goal}
-              dogName={dogName}
-              onEintragen={onEintragen}
-              onChanged={onChanged}
-              onFolgeziel={handleFolgeziel}
-            />
-          ))}
+        <div aria-busy="true" className="flex flex-col gap-3">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-40 rounded-xl bg-card motion-safe:animate-pulse" />
         </div>
+      ) : (
+        <>
+          {laufend.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
+                <Target className="size-8" />
+                <p>{goals.length === 0 ? t("Noch kein Ziel gesetzt.") : t("Kein aktives Ziel.")}</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {laufend.map((goal) => (
+                <GoalPlanCard
+                  key={goal.id}
+                  goal={goal}
+                  dogName={dogName}
+                  onEintragen={onEintragen}
+                  onChanged={onChanged}
+                  onFolgeziel={handleFolgeziel}
+                />
+              ))}
+            </div>
+          )}
+
+          {beendet.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setBeendeteOffen((v) => !v)}
+                aria-expanded={beendeteOffen}
+                className="flex min-h-11 items-center gap-1 self-start rounded-md text-sm text-primary-text underline-offset-4 hover:underline"
+              >
+                {beendeteOffen ? <ChevronDown className="size-4" aria-hidden /> : <ChevronRight className="size-4" aria-hidden />}
+                {t("Abgeschlossene Ziele ({n})", { n: beendet.length })}
+              </button>
+              {beendeteOffen && (
+                <div className="flex flex-col gap-3">
+                  {beendet.map((goal) => (
+                    <GoalPlanCard
+                      key={goal.id}
+                      goal={goal}
+                      dogName={dogName}
+                      onEintragen={onEintragen}
+                      onChanged={onChanged}
+                      onFolgeziel={handleFolgeziel}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
     </div>
   );

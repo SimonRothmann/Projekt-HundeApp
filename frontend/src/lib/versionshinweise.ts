@@ -71,6 +71,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
     aenderungen: [
       {
         art: "verbessert",
+        text: uebersetzbar("Weitere Seiten sind ruhiger: Im Plan stehen abgeschlossene Ziele zugeklappt unter den laufenden, die Woche und ihre Übungen sind eine Liste statt Kästen in Kästen. Bei der Gesundheit hat jeder Bereich eine Karte, Bearbeiten und Löschen liegen hinter den drei Punkten. Die Hundeliste ist eine Liste, die Fährtenbalken in der Statistik sind wie im Tagebuch gefärbt und mit Prozent beschriftet, das Wochendiagramm hat eine Zeitachse, und beim Laden erscheinen graue Platzhalter statt „Lädt…“."),
+      },
+      {
+        art: "verbessert",
         text: uebersetzbar("Der Trainingstag im Tagebuch und die Fährte sind aufgeräumt: weniger Rahmen, bei der Fährte steht die Karte jetzt zuerst. Datum ändern, Dauer ändern, Löschen und Verlassen findest du hinter dem Knopf mit den drei Punkten."),
       },
       {

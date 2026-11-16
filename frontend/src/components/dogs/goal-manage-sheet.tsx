@@ -126,9 +126,9 @@ export function GoalManageSheet({
     <>
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         size="icon"
-        className="size-11 shrink-0"
+        className="size-11 shrink-0 rounded-full text-muted-foreground"
         aria-label={t("Ziel verwalten")}
         aria-haspopup="dialog"
         onClick={oeffnen}

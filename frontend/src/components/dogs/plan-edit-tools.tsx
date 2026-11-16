@@ -231,7 +231,7 @@ export function FreieUebungHinzufuegen({
 
   return (
     <>
-      <Button type="button" size="sm" variant="outline" className="self-start" onClick={() => setOffen((v) => !v)}>
+      <Button type="button" size="sm" variant="ghost" className="self-start text-primary-text" onClick={() => setOffen((v) => !v)}>
         <Plus className="size-4" />
         {t("Übung hinzufügen (freie Woche)")}
       </Button>

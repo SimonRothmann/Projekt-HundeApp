@@ -160,7 +160,11 @@ export default function ClubsPage() {
       <MeineGruppenSection key={gruppenStand} onChanged={loadAll} />
 
       {clubs === null ? (
-        <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
+        <div aria-busy="true" className="flex flex-col gap-4">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-32 rounded-xl bg-card motion-safe:animate-pulse" />
+          <div className="h-32 rounded-xl bg-card motion-safe:animate-pulse" />
+        </div>
       ) : clubs.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("Noch keine Vereine vorhanden.")}</p>
       ) : (

@@ -171,7 +171,15 @@ function DogPage({ id }: { id: string }) {
         </CardContent>
       </Card>
     );
-  if (!dog) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
+  if (!dog)
+    return (
+      <div aria-busy="true" className="flex flex-col gap-4">
+        <span className="sr-only">{t("Lädt…")}</span>
+        <div className="h-20 rounded-xl bg-card motion-safe:animate-pulse" />
+        <div className="h-11 rounded-xl bg-card motion-safe:animate-pulse" />
+        <div className="h-48 rounded-xl bg-card motion-safe:animate-pulse" />
+      </div>
+    );
 
   // Die Pause, die der Hund heute hat (für Trainer:innen ohne Grund - der Server liefert ihn nicht).
   const pause = aktuellePause(dog);

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CircleCheck, CirclePause, Dog as DogIcon, Plus, TriangleAlert } from "lucide-react";
+import { ChevronRight, CircleCheck, CirclePause, Dog as DogIcon, Plus, TriangleAlert } from "lucide-react";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { HundEinladungen } from "@/components/dogs/hund-einladungen";
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
@@ -139,38 +139,51 @@ export default function DogsPage() {
   const geschlechtFehlt = versucht && gender === null;
   const nameFehlt = versucht && name.trim() === "";
 
-  function dogCard(dog: Dog, archived = false) {
+  // Die Hunde einer Gruppe stehen in EINER Karte, je Hund eine Zeile mit Trennlinie.
+  function dogListe(liste: Dog[], archived = false) {
+    return (
+      <div className="flex flex-col divide-y overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+        {liste.map((dog) => dogZeile(dog, archived))}
+      </div>
+    );
+  }
+
+  function dogZeile(dog: Dog, archived: boolean) {
     const pause = aktuellePause(dog);
     // Der Stand kommt nur für Besitzer:innen vom Server; archivierte Hunde melden nichts mehr.
     const ueberfaellig = gesundheitAn && !archived ? ueberfaelligZeile(t, dog.gesundheit) : null;
     return (
-      <Link key={dog.id} href={`/dogs/${dog.id}`}>
-        <Card className={`transition-colors hover:bg-accent/10 ${archived ? "opacity-70" : ""}`}>
-          <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-            <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-base [overflow-wrap:anywhere]">{dog.name}</CardTitle>
-                {archived && <Badge variant="secondary">{t("Archiviert")}</Badge>}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {[dog.breed ?? t("Unbekannte Rasse"), formatDogAge(dog.birthday, new Date(), t)].filter(Boolean).join(" · ")}
-              </p>
-              {pause && (
-                <p className="mt-0.5 flex items-start gap-1.5 text-sm font-medium text-amber-800 dark:text-amber-300">
-                  <CirclePause className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                  <span className="min-w-0 [overflow-wrap:anywhere]">{pausenZeile(t, pause, sprache)}</span>
-                </p>
-              )}
-              {ueberfaellig && (
-                <p className="mt-0.5 flex items-start gap-1.5 text-sm font-medium text-destructive">
-                  <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                  <span className="min-w-0 [overflow-wrap:anywhere]">{ueberfaellig}</span>
-                </p>
-              )}
-            </div>
-          </CardHeader>
-        </Card>
+      <Link
+        key={dog.id}
+        href={`/dogs/${dog.id}`}
+        className={cn(
+          "flex min-h-11 min-w-0 items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60 active:bg-muted",
+          archived && "opacity-70",
+        )}
+      >
+        <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-base font-medium [overflow-wrap:anywhere]">{dog.name}</span>
+            {archived && <Badge variant="secondary">{t("Archiviert")}</Badge>}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {[dog.breed ?? t("Unbekannte Rasse"), formatDogAge(dog.birthday, new Date(), t)].filter(Boolean).join(" · ")}
+          </p>
+          {pause && (
+            <p className="mt-0.5 flex items-start gap-1.5 text-sm font-medium text-amber-800 dark:text-amber-300">
+              <CirclePause className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              <span className="min-w-0 [overflow-wrap:anywhere]">{pausenZeile(t, pause, sprache)}</span>
+            </p>
+          )}
+          {ueberfaellig && (
+            <p className="mt-0.5 flex items-start gap-1.5 text-sm font-medium text-destructive">
+              <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              <span className="min-w-0 [overflow-wrap:anywhere]">{ueberfaellig}</span>
+            </p>
+          )}
+        </div>
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
       </Link>
     );
   }
@@ -291,7 +304,11 @@ export default function DogsPage() {
       )}
 
       {dogs === null || springt ? (
-        <p className="text-muted-foreground">{t("Lädt…")}</p>
+        <div aria-busy="true" className="flex flex-col gap-3">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-20 rounded-xl bg-card motion-safe:animate-pulse" />
+          <div className="h-20 rounded-xl bg-card motion-safe:animate-pulse" />
+        </div>
       ) : dogs.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
@@ -302,9 +319,7 @@ export default function DogsPage() {
       ) : (
         <>
           {activeDogs.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {activeDogs.map((dog) => dogCard(dog))}
-            </div>
+            dogListe(activeDogs)
           ) : (
             <p className="text-sm text-muted-foreground">{t("Alle Hunde sind archiviert.")}</p>
           )}
@@ -312,9 +327,7 @@ export default function DogsPage() {
           {archivedDogs.length > 0 && (
             <div className="flex flex-col gap-3">
               <h2 className="text-sm font-medium text-muted-foreground">{t("Archivierte Hunde")}</h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {archivedDogs.map((dog) => dogCard(dog, true))}
-              </div>
+              {dogListe(archivedDogs, true)}
             </div>
           )}
         </>

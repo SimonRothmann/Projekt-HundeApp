@@ -19,6 +19,7 @@ import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { tagAlsDatum } from "@/lib/kalendertag";
+import { cn } from "@/lib/utils";
 
 const statusLabel: Record<Goal["status"], string> = { 0: uebersetzbar("Aktiv"), 1: uebersetzbar("Erreicht"), 2: uebersetzbar("Beendet") };
 const statusVariant: Record<Goal["status"], "default" | "secondary" | "outline"> = { 0: "default", 1: "secondary", 2: "outline" };
@@ -133,8 +134,8 @@ export function GoalPlanCard({
           <Button
             type="button"
             size="sm"
-            variant={bearbeiten ? "default" : "outline"}
-            className="self-start"
+            variant={bearbeiten ? "default" : "ghost"}
+            className={cn("self-start coarse:min-h-11", !bearbeiten && "text-primary-text")}
             aria-pressed={bearbeiten}
             onClick={() => setBearbeiten((v) => !v)}
           >

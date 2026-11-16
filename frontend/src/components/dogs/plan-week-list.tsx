@@ -17,9 +17,10 @@ import { tagAlsDatum } from "@/lib/kalendertag";
 // Warum der adaptive Generator eine Übung geplant hat (siehe PlanItemReason).
 const reasonLabel: Record<PlanItemReason, string> = { 0: uebersetzbar("Schwäche"), 1: uebersetzbar("Wiederholung"), 2: uebersetzbar("Neu") };
 
-// Dieselbe ruhige Zeile wie die Übungen auf der Startseite (dashboard/ziel-karten.tsx).
+// Dieselbe ruhige Zeile wie die Übungen auf der Startseite (dashboard/ziel-karten.tsx):
+// ohne Rahmen, die Trennlinien zieht die Liste darum (divide-y).
 const ZEILE =
-  "flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg border border-surface-border bg-surface px-3 py-1.5 text-left text-sm transition-colors hover:border-primary/40";
+  "flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left transition-colors hover:bg-muted/60 active:bg-muted";
 
 // Innerhalb einer Woche nach Trainingstag gruppieren (aufsteigend). Wird nur
 // als sichtbare "Tag N"-Struktur genutzt, wenn eine Woche tatsächlich mehr als
@@ -75,7 +76,7 @@ function PlanUebung({
   ].filter(Boolean);
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-1.5 py-2 first:pt-0 last:pb-0">
       <div className="flex items-center gap-1">
         <button
           type="button"
@@ -194,74 +195,78 @@ export function PlanWeekList({
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      {gezeigteWochen.map(([weekNumber, items]) => {
-        const isOpen = effectiveOpenWeeks.has(weekNumber);
-        const isRest = istPausenwoche(items);
-        const { geplant, erledigt } = fortschrittDerWoche(items);
-        return (
-          <div key={weekNumber} className="rounded-lg border border-surface-border">
-            <button
-              type="button"
-              onClick={() => toggleWeek(weekNumber)}
-              aria-expanded={isOpen}
-              className="flex min-h-11 w-full items-center gap-2 px-3 py-2 text-left text-sm text-muted-foreground"
-            >
-              {isOpen ? <ChevronDown className="size-4 shrink-0" aria-hidden /> : <ChevronRight className="size-4 shrink-0" aria-hidden />}
-              {isRest ? (
-                <span className="font-medium">{`${t("Woche {nummer}", { nummer: weekNumber })} · ${t("Pause")}`}</span>
-              ) : (
-                <>
-                  {geplant > 0 && erledigt >= geplant && <Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-500" aria-hidden />}
-                  <span className="shrink-0 font-medium">
-                    {t("Woche {woche} · {erledigt}/{geplant}", { woche: weekNumber, erledigt, geplant })}
-                  </span>
-                  <span className="flex min-w-0 flex-1 gap-1" aria-hidden>
-                    {Array.from({ length: geplant }, (_, i) => (
-                      <span key={i} className={cn("h-1.5 min-w-0 flex-1 rounded-full", i < erledigt ? "bg-primary" : "bg-primary/15")} />
-                    ))}
-                  </span>
-                </>
-              )}
-            </button>
-            {isOpen && (
-              <div className="flex min-w-0 flex-col gap-2 border-t border-surface-border p-2.5">
-                {aktiv && !isRest && <WochenWerkzeuge goal={goal} weekNumber={weekNumber} uebungen={uebungen} onChanged={onChanged} />}
+      <div className="flex min-w-0 flex-col divide-y">
+        {gezeigteWochen.map(([weekNumber, items]) => {
+          const isOpen = effectiveOpenWeeks.has(weekNumber);
+          const isRest = istPausenwoche(items);
+          const { geplant, erledigt } = fortschrittDerWoche(items);
+          return (
+            <div key={weekNumber} className="py-2 first:pt-0 last:pb-0">
+              <button
+                type="button"
+                onClick={() => toggleWeek(weekNumber)}
+                aria-expanded={isOpen}
+                className="flex min-h-11 w-full items-center gap-2 text-left text-sm text-muted-foreground"
+              >
+                {isOpen ? <ChevronDown className="size-4 shrink-0" aria-hidden /> : <ChevronRight className="size-4 shrink-0" aria-hidden />}
                 {isRest ? (
-                  <span className="text-sm text-muted-foreground">{t("Pause")}</span>
+                  <span className="font-medium">{`${t("Woche {nummer}", { nummer: weekNumber })} · ${t("Pause")}`}</span>
                 ) : (
-                  groupByDay(items).map(([dayNumber, dayItems], _dayIdx, dayGroups) => (
-                    <div key={dayNumber} className="flex min-w-0 flex-col gap-1.5">
-                      {dayGroups.length > 1 && (
-                        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                          {t("Tag {nummer}", { nummer: dayNumber })}
-                        </span>
-                      )}
-                      {dayItems.map((item) => (
-                        <PlanUebung
-                          key={item.id}
-                          goal={goal}
-                          item={item}
-                          bearbeiten={aktiv}
-                          uebungen={uebungen}
-                          onEintragen={onEintragen}
-                          onChanged={onChanged}
-                        />
+                  <>
+                    {geplant > 0 && erledigt >= geplant && <Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-500" aria-hidden />}
+                    <span className="shrink-0 font-medium">
+                      {t("Woche {woche} · {erledigt}/{geplant}", { woche: weekNumber, erledigt, geplant })}
+                    </span>
+                    <span className="flex min-w-0 flex-1 gap-1" aria-hidden>
+                      {Array.from({ length: geplant }, (_, i) => (
+                        <span key={i} className={cn("h-1.5 min-w-0 flex-1 rounded-full", i < erledigt ? "bg-primary" : "bg-primary/15")} />
                       ))}
-                    </div>
-                  ))
+                    </span>
+                  </>
                 )}
-              </div>
-            )}
-          </div>
-        );
-      })}
+              </button>
+              {isOpen && (
+                <div className="flex min-w-0 flex-col gap-2">
+                  {aktiv && !isRest && <WochenWerkzeuge goal={goal} weekNumber={weekNumber} uebungen={uebungen} onChanged={onChanged} />}
+                  {isRest ? (
+                    <span className="text-sm text-muted-foreground">{t("Pause")}</span>
+                  ) : (
+                    groupByDay(items).map(([dayNumber, dayItems], _dayIdx, dayGroups) => (
+                      <div key={dayNumber} className="flex min-w-0 flex-col gap-1">
+                        {dayGroups.length > 1 && (
+                          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            {t("Tag {nummer}", { nummer: dayNumber })}
+                          </span>
+                        )}
+                        <div className="flex min-w-0 flex-col divide-y">
+                          {dayItems.map((item) => (
+                            <PlanUebung
+                              key={item.id}
+                              goal={goal}
+                              item={item}
+                              bearbeiten={aktiv}
+                              uebungen={uebungen}
+                              onEintragen={onEintragen}
+                              onChanged={onChanged}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
       {kannVerkuerzen && (
         <Button
           type="button"
           size="sm"
           variant="ghost"
-          className="self-start text-xs text-muted-foreground"
+          className="self-start text-xs text-primary-text coarse:min-h-11"
           onClick={() => setAlleWochenZeigen((v) => !v)}
         >
           {alleWochenZeigen ? <ChevronRight className="size-3.5" /> : <ChevronDown className="size-3.5" />}

@@ -16,6 +16,7 @@ import { FaehrtenTrend, TrendBadge } from "@/components/tracking/faehrten-trend"
 import { useSprache, useT } from "@/lib/i18n";
 import { uebungName } from "@/lib/katalog-name";
 import { zahlText } from "@/lib/ortsformat";
+import { wochenBeschriftungen } from "@/lib/wochenachse";
 
 /**
  * Übungs-Aufschlüsselung eines Hundes: lädt bei Aufklappen die Kennzahlen pro
@@ -134,7 +135,11 @@ export default function StatsPage() {
       </div>
 
       {stats === null ? (
-        <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
+        <div aria-busy="true" className="flex flex-col gap-4">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-48 rounded-xl bg-card motion-safe:animate-pulse" />
+          <div className="h-56 rounded-xl bg-card motion-safe:animate-pulse" />
+        </div>
       ) : ohneTraining ? (
         // Ohne Hund oder ohne ein einziges Training gibt es nichts zu zeigen
         // (auch die Fährten-Entwicklung hängt an Trainings) - statt leerer
@@ -165,20 +170,27 @@ export default function StatsPage() {
               {stats.weeklyActivity.every((w) => w.count === 0) ? (
                 <p className="text-sm text-muted-foreground">{t("Noch keine Trainings erfasst.")}</p>
               ) : (
-                <div className="flex items-end gap-1 h-32">
-                  {stats.weeklyActivity.map((w) => (
-                    <div key={w.week} className="flex flex-col items-center flex-1 gap-1 h-full justify-end">
-                      <span className="text-[10px] text-muted-foreground">{w.count > 0 ? w.count : ""}</span>
-                      <div
-                        className="w-full bg-primary rounded-t transition-all"
-                        style={{ height: `${(w.count / maxWeekCount) * 100}%`, minHeight: w.count > 0 ? "4px" : "0" }}
-                        title={`${w.week}: ${w.count}`}
-                      />
-                      <span className="text-[9px] text-muted-foreground rotate-45 origin-left mt-1 hidden sm:block">
-                        {w.week.slice(-5)}
+                <div className="flex flex-col gap-1">
+                  <div className="flex h-32 items-end gap-1">
+                    {stats.weeklyActivity.map((w) => (
+                      <div key={w.week} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1">
+                        <span className="text-[10px] text-muted-foreground">{w.count > 0 ? w.count : ""}</span>
+                        <div
+                          className="w-full bg-primary rounded-t transition-all"
+                          style={{ height: `${(w.count / maxWeekCount) * 100}%`, minHeight: w.count > 0 ? "4px" : "0" }}
+                          title={`${w.week}: ${w.count}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Zeitachse: nur jede dritte Woche beschriftet, damit bei 375 px nichts überlappt. */}
+                  <div className="flex gap-1 border-t pt-1" aria-hidden>
+                    {wochenBeschriftungen(stats.weeklyActivity).map((nummer, i) => (
+                      <span key={i} className="flex min-w-0 flex-1 justify-center whitespace-nowrap text-[10px] text-muted-foreground">
+                        {nummer !== null ? t("KW {n}", { n: nummer }) : ""}
                       </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -226,13 +238,13 @@ export default function StatsPage() {
                       </div>
                     </div>
                   )}
-                  <FaehrtenTrend dogId={dog.dogId} />
+                  <FaehrtenTrend dogId={dog.dogId} hoechstens={10} />
                   {dog.sessionCount > 0 && (
                     <div className="border-t pt-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 self-start px-2 text-xs text-muted-foreground"
+                        className="h-7 self-start px-2 text-xs text-muted-foreground coarse:min-h-11"
                         onClick={() => toggleDog(dog.dogId)}
                       >
                         {openDogs.has(dog.dogId) ? (

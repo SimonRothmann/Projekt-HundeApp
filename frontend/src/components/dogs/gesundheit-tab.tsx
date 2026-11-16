@@ -14,6 +14,8 @@ import {
 } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
+import { Card, CardContent } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -149,23 +151,31 @@ export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: bool
             {zeilen.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("Nichts Dringendes in den nächsten {tage} Tagen.", { tage: BALD_TAGE })}</p>
             ) : (
-              <ul className="flex flex-col gap-2">
+              // Eine Liste, der Rahmen folgt der dringendsten Zeile (wie auf der Startseite).
+              <ul
+                className={cn(
+                  "flex min-w-0 flex-col divide-y overflow-hidden rounded-lg border",
+                  TON_KLASSEN[zeilen.some((z) => z.ton === "rot") ? "rot" : zeilen.some((z) => z.ton === "gelb") ? "gelb" : "neutral"],
+                )}
+              >
                 {zeilen.map((zeile) => (
-                  <NaechstesKarte key={zeile.id} zeile={zeile} />
+                  <NaechstesZeileEintrag key={zeile.id} zeile={zeile} />
                 ))}
               </ul>
             )}
           </section>
 
           {aktuell.map((gruppe) => (
-            <section key={gruppe.art} className="flex min-w-0 flex-col gap-2" aria-label={t(ART_UEBERSCHRIFT[gruppe.art])}>
-              <h3 className="text-sm font-medium">{t(ART_UEBERSCHRIFT[gruppe.art])}</h3>
-              <ul className="flex flex-col gap-2">
-                {gruppe.eintraege.map((e) => (
-                  <EintragKarte key={e.id} eintrag={e} heute={heute} onBearbeiten={() => setFormular(e)} onLoeschen={() => loeschen(e)} />
-                ))}
-              </ul>
-            </section>
+            <Card key={gruppe.art} size="sm" aria-label={t(ART_UEBERSCHRIFT[gruppe.art])}>
+              <CardContent className="flex min-w-0 flex-col gap-2">
+                <h3 className="text-sm font-medium">{t(ART_UEBERSCHRIFT[gruppe.art])}</h3>
+                <ul className="flex flex-col divide-y">
+                  {gruppe.eintraege.map((e) => (
+                    <EintragZeile key={e.id} eintrag={e} heute={heute} onBearbeiten={() => setFormular(e)} onLoeschen={() => loeschen(e)} />
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
           ))}
 
           {verlauf.length > 0 && (
@@ -174,17 +184,21 @@ export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: bool
                 type="button"
                 aria-expanded={verlaufOffen}
                 onClick={() => setVerlaufOffen((offen) => !offen)}
-                className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-surface-border bg-surface px-3 text-left text-sm font-medium"
+                className="flex min-h-11 items-center gap-1 self-start rounded-md text-sm text-primary-text underline-offset-4 hover:underline"
               >
+                <ChevronDown className={cn("size-4 shrink-0 transition-transform", !verlaufOffen && "-rotate-90")} aria-hidden />
                 <span className="min-w-0 [overflow-wrap:anywhere]">{t("Verlauf ({n})", { n: verlauf.length })}</span>
-                <ChevronDown className={cn("size-4 shrink-0 transition-transform", verlaufOffen && "rotate-180")} aria-hidden />
               </button>
               {verlaufOffen && (
-                <ul className="flex flex-col gap-2">
-                  {verlauf.map((e) => (
-                    <EintragKarte key={e.id} eintrag={e} heute={heute} verlauf onBearbeiten={() => setFormular(e)} onLoeschen={() => loeschen(e)} />
-                  ))}
-                </ul>
+                <Card size="sm">
+                  <CardContent>
+                    <ul className="flex flex-col divide-y">
+                      {verlauf.map((e) => (
+                        <EintragZeile key={e.id} eintrag={e} heute={heute} verlauf onBearbeiten={() => setFormular(e)} onLoeschen={() => loeschen(e)} />
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
               )}
             </section>
           )}
@@ -201,13 +215,13 @@ const TON_KLASSEN: Record<Ton, string> = {
   neutral: "border-surface-border bg-surface",
 };
 
-function NaechstesKarte({ zeile }: { zeile: NaechstesZeile }) {
+function NaechstesZeileEintrag({ zeile }: { zeile: NaechstesZeile }) {
   const t = useT();
   const Zeichen = zeile.ton === "rot" ? TriangleAlert : zeile.ton === "gelb" ? Clock : CalendarClock;
   const wort =
     zeile.ton === "rot" ? t("Überfällig") : zeile.ton === "gelb" ? t("Bald fällig") : t("Tierarzttermin");
   return (
-    <li className={cn("flex min-w-0 items-start gap-2 rounded-lg border px-3 py-2 text-sm", TON_KLASSEN[zeile.ton])}>
+    <li className="flex min-w-0 items-start gap-2 px-3 py-2 text-sm">
       <Zeichen
         className={cn(
           "mt-0.5 size-4 shrink-0",
@@ -253,7 +267,7 @@ function ZustandBadge({ wert }: { wert: GesundheitsZustand }) {
   );
 }
 
-function EintragKarte({
+function EintragZeile({
   eintrag,
   heute,
   verlauf = false,
@@ -273,37 +287,37 @@ function EintragKarte({
   const mitFrist = !verlauf && !istTermin && eintrag.dueDate !== null;
 
   return (
-    <li className="flex min-w-0 flex-col gap-1.5 rounded-lg border border-surface-border bg-surface p-3">
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{eintrag.title}</span>
-        {mitFrist && <ZustandBadge wert={zustand(eintrag.dueDate, heute)} />}
-        {verlauf && <Badge variant="outline">{t(ART_TEXT[eintrag.kind])}</Badge>}
+    <li className="flex min-w-0 items-start gap-1 py-3 first:pt-0 last:pb-0">
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{eintrag.title}</span>
+          {mitFrist && <ZustandBadge wert={zustand(eintrag.dueDate, heute)} />}
+          {verlauf && <Badge variant="outline">{t(ART_TEXT[eintrag.kind])}</Badge>}
+        </div>
+        {istTermin ? (
+          <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{terminText(t, eintrag.date, eintrag.time, sprache)}</p>
+        ) : (
+          <>
+            {eintrag.dueDate !== null && !verlauf && (
+              <p className="text-sm [overflow-wrap:anywhere]">{fristText(t, eintrag.kind, eintrag.dueDate, heute, sprache)}</p>
+            )}
+            <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
+              {verlauf && eintrag.dueDate !== null
+                ? t("Gegeben am {datum}, gültig bis {bis}", { datum: datumKurz(eintrag.date, sprache), bis: datumKurz(eintrag.dueDate, sprache) })
+                : t("Gegeben am {datum}", { datum: datumKurz(eintrag.date, sprache) })}
+            </p>
+          </>
+        )}
+        {eintrag.note && <p className="text-sm [overflow-wrap:anywhere]">{eintrag.note}</p>}
       </div>
-      {istTermin ? (
-        <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{terminText(t, eintrag.date, eintrag.time, sprache)}</p>
-      ) : (
-        <>
-          {eintrag.dueDate !== null && !verlauf && (
-            <p className="text-sm [overflow-wrap:anywhere]">{fristText(t, eintrag.kind, eintrag.dueDate, heute, sprache)}</p>
-          )}
-          <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
-            {verlauf && eintrag.dueDate !== null
-              ? t("Gegeben am {datum}, gültig bis {bis}", { datum: datumKurz(eintrag.date, sprache), bis: datumKurz(eintrag.dueDate, sprache) })
-              : t("Gegeben am {datum}", { datum: datumKurz(eintrag.date, sprache) })}
-          </p>
-        </>
-      )}
-      {eintrag.note && <p className="text-sm [overflow-wrap:anywhere]">{eintrag.note}</p>}
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" variant="ghost" className="coarse:min-h-11" onClick={onBearbeiten}>
-          <Pencil className="size-3.5" aria-hidden />
-          {t("Bearbeiten")}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" className="text-destructive hover:text-destructive coarse:min-h-11" onClick={onLoeschen}>
-          <Trash2 className="size-3.5" aria-hidden />
-          {t("Löschen")}
-        </Button>
-      </div>
+      <AktionenMenue
+        label={t("Aktionen für diesen Eintrag")}
+        className="-my-1"
+        aktionen={[
+          { label: t("Bearbeiten"), icon: Pencil, onSelect: onBearbeiten },
+          { label: t("Löschen"), icon: Trash2, onSelect: onLoeschen, destruktiv: true },
+        ]}
+      />
     </li>
   );
 }

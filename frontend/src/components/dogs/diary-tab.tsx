@@ -71,7 +71,6 @@ export function DiaryTab({
           dogId={dogId}
           mindestens={3}
           hoechstens={10}
-          nachAbweichung
           className="rounded-lg border border-surface-border bg-surface p-3"
           stats={stats}
         />

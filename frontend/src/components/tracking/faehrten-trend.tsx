@@ -122,9 +122,9 @@ const AMPEL_BALKEN: Record<Ampel, string> = {
  * wenn der Hund zu wenige ausgewertete Fährten hat - so bleibt die Karte für
  * Hunde ohne Fährtenarbeit unverändert.
  *
- * Eine Komponente für zwei Orte: die Statistikseite (ab dem ersten Ablauf,
- * einfarbige Balken) und die Hundeseite (ab drei Abläufen, Balken nach
- * Abweichung gefärbt und beschriftet). Die Unterschiede sind Eigenschaften,
+ * Eine Komponente für zwei Orte: die Statistikseite (ab dem ersten Ablauf)
+ * und die Hundeseite (ab drei Abläufen); beide zeigen die Balken nach
+ * Abweichung gefärbt und beschriftet. Die Unterschiede sind Eigenschaften,
  * keine zweite Fassung - Abruf, Trend-Pfeil und Fehlerverhalten sind dieselben.
  *
  * Gemessen wird die Linie des HUNDEFÜHRERS (siehe GpsTrackEvaluator) - daher
@@ -134,7 +134,6 @@ export function FaehrtenTrend({
   dogId,
   mindestens = 1,
   hoechstens,
-  nachAbweichung = false,
   className = "border-t pt-2",
   stats: vorgegeben,
 }: {
@@ -143,8 +142,6 @@ export function FaehrtenTrend({
   mindestens?: number;
   /** Nur die jüngsten so viele Abläufe zeigen; ohne Angabe alle, die der Server liefert. */
   hoechstens?: number;
-  /** Balken nach mittlerer Abweichung färben (Ampel) und mit ganzen Prozent beschriften. */
-  nachAbweichung?: boolean;
   className?: string;
   /**
    * Schon geladene Auswertung des Hundes. Die Hundeseite braucht dieselben
@@ -180,7 +177,6 @@ export function FaehrtenTrend({
   const runs = hoechstens ? stats.runs.slice(-hoechstens) : stats.runs;
   const last = runs[runs.length - 1];
   const datumFormat = ortsformat(sprache);
-  // Ein Satz für beide Darstellungen, damit Tooltips nicht auseinanderlaufen.
   const tooltip = (run: (typeof runs)[number]) =>
     t("{datum}: Ø {meter} m · {prozent} % auf der Fährte", {
       datum: tagAlsDatum(run.date).toLocaleDateString(datumFormat),
@@ -197,42 +193,27 @@ export function FaehrtenTrend({
         </span>
         {stats.deviationTrend !== null && <AbweichungsTrend aenderung={stats.deviationTrend} />}
       </div>
-      {nachAbweichung ? (
-        <>
-          <div className="flex items-end gap-1" title={t("Anteil auf der Fährte je Ablauf")}>
-            {runs.map((run, i) => {
-              const prozent = Math.round(run.onTrackPercent);
-              return (
-                <div
-                  key={i}
-                  className="flex h-20 min-w-0 flex-1 flex-col items-center justify-end gap-0.5"
-                  title={tooltip(run)}
-                >
-                  <span className="text-[10px] leading-none tabular-nums text-muted-foreground">{prozent}%</span>
-                  <div
-                    className={cn("w-full rounded-sm", AMPEL_BALKEN[ampelStufe(run.avgDeviationMeters)])}
-                    style={{ height: `${Math.max(4, Math.round(prozent * 0.56))}px` }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">
-            {t("Höhe: Anteil auf der Fährte · Farbe: mittlere Abweichung")}
-          </p>
-        </>
-      ) : (
-        <div className="flex items-end gap-1" title={t("Anteil auf der Fährte je Ablauf")}>
-          {runs.map((run, i) => (
+      <div className="flex items-end gap-1" title={t("Anteil auf der Fährte je Ablauf")}>
+        {runs.map((run, i) => {
+          const prozent = Math.round(run.onTrackPercent);
+          return (
             <div
               key={i}
-              className="flex-1 rounded-sm bg-primary/70"
-              style={{ height: `${Math.max(4, Math.round(run.onTrackPercent * 0.28))}px` }}
+              className="flex h-20 min-w-0 flex-1 flex-col items-center justify-end gap-0.5"
               title={tooltip(run)}
-            />
-          ))}
-        </div>
-      )}
+            >
+              <span className="text-[10px] leading-none tabular-nums text-muted-foreground">{prozent}%</span>
+              <div
+                className={cn("w-full rounded-sm", AMPEL_BALKEN[ampelStufe(run.avgDeviationMeters)])}
+                style={{ height: `${Math.max(4, Math.round(prozent * 0.56))}px` }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">
+        {t("Höhe: Anteil auf der Fährte · Farbe: mittlere Abweichung")}
+      </p>
       <p className="mt-1 text-xs text-muted-foreground">
         {t("Zuletzt: Ø {meter} m · {prozent} % auf der Fährte", {
           meter: Math.round(last.avgDeviationMeters),
