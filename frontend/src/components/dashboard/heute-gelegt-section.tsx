@@ -8,6 +8,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 
 import { useSprache, useT } from "@/lib/i18n";
+import { alterMinutenText } from "@/lib/alter-minuten";
 import { istMantrailing } from "@/lib/mantrailing";
 import { ortsformat } from "@/lib/ortsformat";
 import { datumKurz } from "@/lib/pruefung";
@@ -68,8 +69,8 @@ export function HeuteGelegtSection({
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {istMantrailing(f.track)
-                    ? t("Trailalter {minuten} Min.", { minuten: f.alterMinuten })
-                    : t("Fährtenalter {minuten} Min.", { minuten: f.alterMinuten })}
+                    ? t("Trailalter {alter}", { alter: alterMinutenText(f.alterMinuten, t) })
+                    : t("Fährtenalter {alter}", { alter: alterMinutenText(f.alterMinuten, t) })}
                   {f.track.lengthMeters ? ` · ${Math.round(f.track.lengthMeters)} m` : ""}
                   {!istMantrailing(f.track) && schritte(f.track.lengthMeters) ? ` ${schritte(f.track.lengthMeters)}` : ""}
                   {f.track.surface ? ` · ${f.track.surface.split(", ").map((teil) => t(teil)).join(", ")}` : ""}

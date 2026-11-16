@@ -7,4 +7,4 @@
  * zwei Stellen - versionshinweise.test.ts hält sie mit dem obersten Eintrag
  * der Liste gleich.
  */
-export const AKTUELLE_VERSION = "1.3";
+export const AKTUELLE_VERSION = "1.4";

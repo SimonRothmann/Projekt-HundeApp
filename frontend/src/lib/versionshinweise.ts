@@ -65,6 +65,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "1.4",
+    datum: "2026-11-16",
+    titel: uebersetzbar("Ruhigere Seiten"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Der Trainingstag im Tagebuch und die Fährte sind aufgeräumt: weniger Rahmen, bei der Fährte steht die Karte jetzt zuerst. Datum ändern, Dauer ändern, Löschen und Verlassen findest du hinter dem Knopf mit den drei Punkten."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Eine Gruppe, in der du Mitglied bist, steht bei den Vereinen nur noch einmal. Einen eigenen Verein beantragst du über einen Link, das Formular klappt erst dann auf."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Auf der Startseite steht das Fährtenalter ab einer Stunde in Stunden und Minuten statt in über tausend Minuten."),
+      },
+    ],
+  },
+  {
     version: "1.3",
     datum: "2026-11-16",
     titel: uebersetzbar("Eine Fährte, ein Ablauf"),

@@ -21,6 +21,9 @@ import { useT } from "@/lib/i18n";
  *
  * Der abgelehnte Antrag bleibt mit Begründung stehen. Ein Antrag, der
  * kommentarlos verschwindet, wirkt wie ein Fehler der App.
+ *
+ * Das Formular brauchen die wenigsten: Es klappt erst auf, wenn man es
+ * will. Wer noch nie einen Antrag gestellt hat, sieht nur einen Link-Knopf.
  */
 export function VereinsantragSection() {
   const t = useT();
@@ -28,6 +31,7 @@ export function VereinsantragSection() {
   const [name, setName] = useState("");
   const [beschreibung, setBeschreibung] = useState("");
   const [sendet, setSendet] = useState(false);
+  const [formularOffen, setFormularOffen] = useState(false);
 
   async function laden() {
     try {
@@ -53,6 +57,7 @@ export function VereinsantragSection() {
       toast.success(t("Antrag gestellt. Ein Administrator prüft ihn."));
       setName("");
       setBeschreibung("");
+      setFormularOffen(false);
       await laden();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Antrag konnte nicht gestellt werden."));
@@ -62,6 +67,18 @@ export function VereinsantragSection() {
   }
 
   const offen = antraege?.some((a) => a.status === CLUB_REGISTRATION_STATUS.offen) ?? false;
+
+  // Bis die Liste da ist, nichts zeigen: sonst spränge die Karte nach dem Laden dazu.
+  if (antraege === null) return null;
+
+  const aufklappKnopf = (
+    <Button type="button" size="sm" variant="ghost" className="self-start text-muted-foreground" onClick={() => setFormularOffen(true)}>
+      {t("Eigenen Verein beantragen")}
+    </Button>
+  );
+
+  // Ohne eigenen Antrag und mit zugeklapptem Formular bleibt nur der Knopf.
+  if (antraege.length === 0 && !formularOffen) return aufklappKnopf;
 
   return (
     <Card>
@@ -75,7 +92,7 @@ export function VereinsantragSection() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {antraege && antraege.length > 0 && (
+        {antraege.length > 0 && (
           <ul className="flex flex-col gap-2">
             {antraege.map((a) => (
               <li
@@ -107,6 +124,8 @@ export function VereinsantragSection() {
           <p className="text-sm text-muted-foreground">
 {t("Dein Antrag wird geprüft. Du bekommst eine Benachrichtigung, sobald entschieden ist.")}
           </p>
+        ) : !formularOffen ? (
+          aufklappKnopf
         ) : (
           <form className="flex flex-col gap-3" onSubmit={beantragen}>
             <div className="flex flex-col gap-2">

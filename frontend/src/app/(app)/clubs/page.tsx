@@ -13,7 +13,8 @@ import type { Club, ClubSummary, ClubMembership, Group } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Users } from "lucide-react";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
+import { Building2, LogOut, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { useSprache, useT } from "@/lib/i18n";
@@ -167,7 +168,9 @@ export default function ClubsPage() {
           {geordnet.map((club) => {
             const membership = membershipFor(memberships, club.id);
             const isApproved = membership?.status === 1;
-            const groups = groupsByClub[club.id] ?? [];
+            // Gruppen, in denen ich Mitglied bin, stehen schon oben unter "Deine Gruppen"
+            // (dieselbe Quelle: aktive Mitgliedschaft) - hier nicht noch einmal.
+            const groups = (groupsByClub[club.id] ?? []).filter((g) => g.myRelation !== 2);
             const rollen = rollenVon(club.roles ?? 0);
             // Gibt es in diesem Verein für meine Rollen etwas zu tun? Der Vorstand allein hat nur die Übersicht - ohne Trainer-Navigation führt dieser Link dorthin.
             const meiner = meineVereine.find((m) => m.id === club.id);
@@ -177,10 +180,24 @@ export default function ClubsPage() {
               <Card key={club.id}>
                 <CardHeader className="flex flex-row items-center gap-3 space-y-0">
                   <Building2 className="size-8 shrink-0 text-primary-text" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <CardTitle className="[overflow-wrap:anywhere]">{club.name}</CardTitle>
                     {club.description && <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{club.description}</p>}
                   </div>
+                  {isApproved && (
+                    <AktionenMenue
+                      label={t("Aktionen für {name}", { name: club.name })}
+                      disabled={leavingClubId === club.id}
+                      aktionen={[
+                        {
+                          label: leavingClubId === club.id ? t("Wird verlassen…") : t("Verein verlassen"),
+                          icon: LogOut,
+                          onSelect: () => handleLeave(club.id, club.name),
+                          destruktiv: true,
+                        },
+                      ]}
+                    />
+                  )}
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                   {rollen.length > 0 && (
@@ -209,14 +226,6 @@ export default function ClubsPage() {
                   {isApproved ? (
                     <div className="flex items-center gap-2">
                       <Badge>{t("Mitglied")}</Badge>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={leavingClubId === club.id}
-                        onClick={() => handleLeave(club.id, club.name)}
-                      >
-                        {leavingClubId === club.id ? t("Wird verlassen…") : t("Verein verlassen")}
-                      </Button>
                     </div>
                   ) : club.isTrainer ? (
                     // Wer eine Rolle hat, hat keine Mitgliedschaftszeile und gehört

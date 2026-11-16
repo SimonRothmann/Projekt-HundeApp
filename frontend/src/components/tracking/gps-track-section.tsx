@@ -20,7 +20,7 @@ import { TrailAngabenZeile, TrailErgebnisZeile } from "@/components/tracking/tra
 import { AblaufErgebnisSheet } from "@/components/tracking/ablauf-ergebnis-sheet";
 import { AblaufGegenstaende, GegenstandsMaterial } from "@/components/tracking/gegenstaende";
 import { istMantrailing } from "@/lib/mantrailing";
-import { CloudSun, Pencil, Route, Trash2 } from "lucide-react";
+import { ChevronDown, CloudSun, Pencil, Route, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useWetterNachladen } from "@/lib/use-wetter-nachladen";
 import { faehrteWetterOffen } from "@/lib/wetter-nachladen";
@@ -28,6 +28,7 @@ import { formatDelta, formatTemperature, weatherIcon, weatherLabel } from "@/lib
 import { WindRichtung } from "@/components/tracking/wind-richtung";
 import { zeigtWindrichtung } from "@/lib/wind";
 import { useSchritte } from "@/lib/use-schritte";
+import { cn } from "@/lib/utils";
 
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
@@ -190,8 +191,21 @@ export function GpsTrackSection({
     return null;
   }
 
+  // Löschen fragt nach; der Server prüft das Recht ohnehin.
+  async function trackLoeschen(track: GpsTrack) {
+    if (!confirm(istMantrailing(track) ? t("Trail wirklich löschen?") : t("Fährte wirklich löschen?"))) return;
+    try {
+      await api.delete(`/api/gps-tracks/${track.id}`);
+      toast.success(istMantrailing(track) ? t("Trail gelöscht.") : t("Fährte gelöscht."));
+      await loadTracks();
+      await onChanged?.();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-surface-border bg-surface p-3">
+    <div className="flex flex-col gap-3">
       <BlockLabel icon={Route}>{tracks.every((track) => istMantrailing(track)) ? t("Trail") : t("Fährte")}</BlockLabel>
 
       {/* Mehrere Fährten: durch eine Linie getrennt und nummeriert, damit
@@ -200,6 +214,9 @@ export function GpsTrackSection({
       <div className="flex flex-col gap-4 [&>*+*]:border-t [&>*+*]:border-surface-border [&>*+*]:pt-4">
         {tracks.map((track, index) => {
           const times = trackTimes(track.points);
+          // Verdeckt absuchen: nur einstellbar, solange noch kein Ablauf existiert (der Server prüft es
+          // ebenso); danach bleibt es als Angabe stehen.
+          const verdecktEinstellbar = darfLoeschen && track.walkRuns.length === 0;
           return (
             <div key={track.id} className="flex flex-col gap-2">
               {tracks.length > 1 && (
@@ -207,6 +224,16 @@ export function GpsTrackSection({
                   {istMantrailing(track) ? t("Trail {nummer}", { nummer: index + 1 }) : t("Fährte {nummer}", { nummer: index + 1 })}
                 </h5>
               )}
+              {/* Die Karte zuerst: Sie ist, wofür man den Block aufschlägt. Der
+                  Recorder meldet seine Live-Punkte über handleLivePoints an sie -
+                  die Reihenfolge im Block spielt dafür keine Rolle. */}
+              <TrackMap
+                points={track.points}
+                walkRuns={track.walkRuns}
+                liveWalkRunPoints={liveWalkPoints[track.id]}
+                art={track}
+              />
+              <TrackLegend walkRuns={track.walkRuns} art={track} />
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                 {times && (
                   // Auch die Endzeit zeigen, nicht nur den Beginn: Fürs
@@ -235,44 +262,14 @@ export function GpsTrackSection({
                 {track.groundCondition && <span>{track.groundCondition.split(", ").map((teil) => t(teil)).join(", ")}</span>}
                 {track.comment && <span>{track.comment}</span>}
                 {track.excludeFromStats && <Badge variant="outline">{t("nicht in der Entwicklung")}</Badge>}
+                {/* Nur Fährte. Auch solange es noch einstellbar ist: Der Schalter steht
+                    zugeklappt unter "Einstellungen", man sähe sonst nicht, dass es an ist. */}
+                {!istMantrailing(track) && track.doubleBlind === true && (
+                  <Badge variant="outline">{t("Verdeckt absuchen")}</Badge>
+                )}
               </div>
               {istMantrailing(track) && <TrailAngabenZeile track={track} />}
               <TrackWeather track={track} onLoaded={loadTracks} />
-              {/* Nur Fährte: Gegenstände und die Entwicklung gibt es beim Mantrailing nicht. Ändern darf, wer
-                  auch löschen darf (beides: die Fährte bearbeiten, siehe darfLoeschen). */}
-              {!istMantrailing(track) && (
-                <>
-                  <GegenstandsMaterial trackId={track.id} punkte={track.points} darfAendern={darfLoeschen} onGeaendert={loadTracks} />
-                  {/* Verdeckt absuchen: nur einstellbar, solange noch kein Ablauf existiert (der Server prüft es
-                      ebenso); danach bleibt es als Angabe stehen. */}
-                  {darfLoeschen && track.walkRuns.length === 0 ? (
-                    <div className="overflow-hidden rounded-md border border-input">
-                      <SchalterZeile
-                        an={track.doubleBlind === true}
-                        titel={t("Verdeckt absuchen")}
-                        beschreibung={t("Beim Absuchen ist der Verlauf ausgeblendet und das Handy vibriert nicht an Winkeln und Gegenständen – für eine Prüfungssimulation, wenn jemand anderes gelegt hat.")}
-                        onChange={(an) => void verdecktUmschalten(track.id, an)}
-                      />
-                    </div>
-                  ) : (
-                    track.doubleBlind === true && (
-                      <span className="flex">
-                        <Badge variant="outline">{t("Verdeckt absuchen")}</Badge>
-                      </span>
-                    )
-                  )}
-                  {darfLoeschen && (
-                    <div className="overflow-hidden rounded-md border border-input">
-                      <SchalterZeile
-                        an={track.excludeFromStats === true}
-                        titel={t("Nicht in die Entwicklung zählen")}
-                        beschreibung={t("Für bewusst schwere Übungsfährten – die Fährte bleibt erhalten.")}
-                        onChange={(an) => void entwicklungUmschalten(track.id, an)}
-                      />
-                    </div>
-                  )}
-                </>
-              )}
               <div className="flex flex-wrap items-center gap-2">
                 {/* Der Einstieg ins Aufzeichnen hängt am Modul, die Anzeige
                     der Fährte selbst nicht: Wer die Aufzeichnung abschaltet,
@@ -291,45 +288,14 @@ export function GpsTrackSection({
                   />
                 )}
                 <FaehrteTeilen track={track} hundeName={hundeName} />
-                {darfLoeschen && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:text-destructive"
-                  onClick={async () => {
-                    if (!confirm(istMantrailing(track) ? t("Trail wirklich löschen?") : t("Fährte wirklich löschen?"))) return;
-                    try {
-                      await api.delete(`/api/gps-tracks/${track.id}`);
-                      toast.success(istMantrailing(track) ? t("Trail gelöscht.") : t("Fährte gelöscht."));
-                      await loadTracks();
-                      await onChanged?.();
-                    } catch (err) {
-                      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
-                    }
-                  }}
-                >
-                  <Trash2 className="size-4" />
-{t("Löschen")}
-                </Button>
-                )}
               </div>
-              <TrackMap
-                points={track.points}
-                walkRuns={track.walkRuns}
-                liveWalkRunPoints={liveWalkPoints[track.id]}
-                art={track}
-              />
-              <TrackLegend walkRuns={track.walkRuns} art={track} />
               {track.walkRuns.length > 0 && (
-                <ul className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+                <ul className="flex flex-col divide-y divide-surface-border text-xs text-muted-foreground">
                   {track.walkRuns.map((run, i) => {
                     const durMs = walkRunDurationMs(run);
                     const started = ablaufBeginn(run);
                     return (
-                      <li
-                        key={run.id}
-                        className="flex flex-col gap-0.5 rounded-lg border border-surface-border bg-background/60 px-2.5 py-2 dark:bg-white/4"
-                      >
+                      <li key={run.id} className="flex flex-col gap-0.5 py-2 first:pt-0 last:pb-0">
                         <span>
                           <span className="font-medium text-foreground">{t("Ablauf {nummer}", { nummer: i + 1 })}</span>:{" "}
                           {t("gestartet {zeit}", { zeit: formatTime(started, ort) })}
@@ -371,6 +337,20 @@ export function GpsTrackSection({
                   })}
                 </ul>
               )}
+              {/* Nur Fährte: Gegenstände und die Entwicklung gibt es beim Mantrailing nicht. Ändern darf, wer
+                  auch löschen darf (beides: die Fährte bearbeiten, siehe darfLoeschen). */}
+              {!istMantrailing(track) && (
+                <GegenstandsMaterial trackId={track.id} punkte={track.points} darfAendern={darfLoeschen} onGeaendert={loadTracks} />
+              )}
+              {darfLoeschen && (
+                <FaehrteEinstellungen
+                  track={track}
+                  verdecktEinstellbar={verdecktEinstellbar}
+                  onVerdeckt={(an) => void verdecktUmschalten(track.id, an)}
+                  onEntwicklung={(an) => void entwicklungUmschalten(track.id, an)}
+                  onLoeschen={() => void trackLoeschen(track)}
+                />
+              )}
             </div>
           );
         })}
@@ -387,6 +367,77 @@ export function GpsTrackSection({
             void loadTracks();
           }}
         />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Die seltenen Handgriffe an einer Fährte, hinter einem Knopf zugeklappt:
+ * Schalter und Löschen sollen nicht neben Karte und Auswertung stehen.
+ * Der Aufrufer zeigt den Bereich nur, wenn er etwas enthält (darfLoeschen).
+ */
+function FaehrteEinstellungen({
+  track,
+  verdecktEinstellbar,
+  onVerdeckt,
+  onEntwicklung,
+  onLoeschen,
+}: {
+  track: GpsTrack;
+  verdecktEinstellbar: boolean;
+  onVerdeckt: (an: boolean) => void;
+  onEntwicklung: (an: boolean) => void;
+  onLoeschen: () => void;
+}) {
+  const t = useT();
+  const [offen, setOffen] = useState(false);
+  const trail = istMantrailing(track);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        className="self-start text-muted-foreground"
+        aria-expanded={offen}
+        onClick={() => setOffen((o) => !o)}
+      >
+        {trail ? t("Einstellungen des Trails") : t("Einstellungen der Fährte")}
+        <ChevronDown className={cn("size-3.5 transition-transform", offen && "rotate-180")} />
+      </Button>
+      {offen && (
+        <>
+          {!trail && (
+            <div className="divide-y divide-surface-border overflow-hidden rounded-md bg-muted/40">
+              {verdecktEinstellbar && (
+                <SchalterZeile
+                  an={track.doubleBlind === true}
+                  titel={t("Verdeckt absuchen")}
+                  beschreibung={t("Beim Absuchen ist der Verlauf ausgeblendet und das Handy vibriert nicht an Winkeln und Gegenständen – für eine Prüfungssimulation, wenn jemand anderes gelegt hat.")}
+                  onChange={onVerdeckt}
+                />
+              )}
+              <SchalterZeile
+                an={track.excludeFromStats === true}
+                titel={t("Nicht in die Entwicklung zählen")}
+                beschreibung={t("Für bewusst schwere Übungsfährten – die Fährte bleibt erhalten.")}
+                onChange={onEntwicklung}
+              />
+            </div>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="self-start text-destructive hover:text-destructive"
+            onClick={onLoeschen}
+          >
+            <Trash2 className="size-4" />
+            {trail ? t("Trail löschen") : t("Fährte löschen")}
+          </Button>
+        </>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { api, ApiError, istVoruebergehendUnerreichbar } from "@/lib/api";
 import type { TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { BlockLabel } from "@/components/ui/block-label";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Input } from "@/components/ui/input";
 import { Check, ListChecks, MessageSquarePlus, Pencil, Timer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -162,7 +163,7 @@ function DayNotes({
   // stand bisher als grauer Fließtext zwischen Kopfdaten und Übungsliste,
   // ohne erkennbar zu einem der beiden zu gehören oder eben nicht.
   return (
-    <div className="flex items-start gap-1 rounded-lg border border-l-2 border-surface-border border-l-primary/70 bg-surface px-2.5 py-2">
+    <div className="flex items-start gap-1 border-l-2 border-l-primary/70 px-2.5 py-1">
       <p className="min-w-0 flex-1 text-sm whitespace-pre-line [overflow-wrap:anywhere]">{anzeige}</p>
       {darfBearbeiten && (
         <Button
@@ -193,14 +194,15 @@ function DayNotes({
  * Server in einem Rutsch, der zieht auch das Wetter neu: der gespeicherte Wert
  * gehörte zum alten Tag (siehe TrainingService.MoveTrainingDayAsync).
  *
- * Als Knopf in der Leiste der aufgeklappten Tageskarte: das Datum selbst steht
- * schon in der Zeile darüber.
+ * Das Eingabefeld erscheint oben in der aufgeklappten Tageskarte, wenn im
+ * ⋯-Menü "Datum ändern" gewählt wird: das Datum selbst steht schon in der
+ * Zeile darüber. Gemountet wird es nur, solange es offen ist - der Wert
+ * kommt so bei jedem Öffnen frisch aus dem Tag.
  */
-function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChanged: () => Promise<void> }) {
+function DayDate({ sessions, onChanged, onClose }: { sessions: TrainingSession[]; onChanged: () => Promise<void>; onClose: () => void }) {
   const t = useT();
   const ort = ortsformat(useSprache());
   const date = sessions[0].date;
-  const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(date);
   const [saving, setSaving] = useState(false);
   const feld = useRef<HTMLInputElement>(null);
@@ -208,14 +210,14 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
   // iOS-Safari schiebt das fokussierte Feld erst beim ersten Tastendruck über
   // die Tastatur; deshalb nach dem Öffnen selbst in den Blick holen.
   useEffect(() => {
-    if (editing) feld.current?.scrollIntoView({ block: "center" });
-  }, [editing]);
+    feld.current?.scrollIntoView({ block: "center" });
+  }, []);
 
   async function save() {
     // Datum weggewischt oder unverändert: einfach zumachen, statt für einen
     // abgebrochenen Versuch eine Fehlermeldung zu zeigen.
     if (!value || value === date) {
-      setEditing(false);
+      onClose();
       return;
     }
     setSaving(true);
@@ -228,33 +230,13 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
       // ein weiter zurück verschobenes Training verschwindet sonst wortlos aus
       // der Liste und sieht wie gelöscht aus.
       toast.success(t("Training auf den {datum} verschoben.", { datum: tagAlsDatum(value).toLocaleDateString(ort) }));
-      setEditing(false);
+      onClose();
       await onChanged();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Datum konnte nicht geändert werden."));
     } finally {
       setSaving(false);
     }
-  }
-
-  if (!editing) {
-    return (
-      <Button
-        size="sm"
-        variant="ghost"
-        className="text-muted-foreground"
-        onClick={() => {
-          // Frisch aus der Einheit füllen: die Hundeseite rendert erst aus
-          // dem Lesecache und reicht die Netzantwort nach - useState hätte
-          // sonst noch den Stand von vorhin.
-          setValue(date);
-          setEditing(true);
-        }}
-      >
-        <Pencil className="size-3.5" />
-        {t("Datum ändern")}
-      </Button>
-    );
   }
 
   return (
@@ -274,7 +256,7 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
         <Check className="size-3.5" />
         {saving ? t("Speichert…") : t("Speichern")}
       </Button>
-      <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+      <Button size="sm" variant="ghost" onClick={onClose}>
 {t("Abbrechen")}
       </Button>
     </div>
@@ -289,13 +271,12 @@ function DayDate({ sessions, onChanged }: { sessions: TrainingSession[]; onChang
  * nennt. Wie sie auf mehrere Einheiten verteilt wird, entscheidet der Server
  * (siehe TrainingService.SetDayDurationAsync).
  *
- * Gleiches Muster wie DayDate: Knopf in der Leiste, der sich zum Eingabefeld
- * öffnet.
+ * Gleiches Muster wie DayDate: Das Eingabefeld erscheint, wenn im ⋯-Menü
+ * "Dauer ändern" gewählt wird.
  */
-function DayDuration({ sessions, onChanged }: { sessions: TrainingSession[]; onChanged: () => Promise<void> }) {
+function DayDuration({ sessions, onChanged, onClose }: { sessions: TrainingSession[]; onChanged: () => Promise<void>; onClose: () => void }) {
   const t = useT();
   const summe = sessions.reduce((n, s) => n + s.durationMinutes, 0);
-  const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(String(summe));
   const [saving, setSaving] = useState(false);
   const feld = useRef<HTMLInputElement>(null);
@@ -305,13 +286,13 @@ function DayDuration({ sessions, onChanged }: { sessions: TrainingSession[]; onC
 
   // Wie bei DayDate: iOS-Safari lässt das Feld sonst unter der Tastatur.
   useEffect(() => {
-    if (editing) feld.current?.scrollIntoView({ block: "center" });
-  }, [editing]);
+    feld.current?.scrollIntoView({ block: "center" });
+  }, []);
 
   async function save() {
     // Leer oder unverändert: einfach zumachen, wie bei DayDate.
     if (value.trim() === "" || minuten === summe) {
-      setEditing(false);
+      onClose();
       return;
     }
     if (ungueltig) return;
@@ -319,31 +300,13 @@ function DayDuration({ sessions, onChanged }: { sessions: TrainingSession[]; onC
     try {
       await api.put(`/api/trainings/${einheitFuerTagesaenderung(sessions).id}/duration`, { durationMinutes: minuten });
       toast.success(t("Dauer gespeichert."));
-      setEditing(false);
+      onClose();
       await onChanged();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Dauer konnte nicht geändert werden."));
     } finally {
       setSaving(false);
     }
-  }
-
-  if (!editing) {
-    return (
-      <Button
-        size="sm"
-        variant="ghost"
-        className="text-muted-foreground"
-        onClick={() => {
-          // Frisch aus dem Tag füllen, nicht aus dem Stand beim Mounten (siehe DayDate).
-          setValue(String(summe));
-          setEditing(true);
-        }}
-      >
-        <Timer className="size-3.5" />
-        {t("Dauer ändern")}
-      </Button>
-    );
   }
 
   return (
@@ -366,7 +329,7 @@ function DayDuration({ sessions, onChanged }: { sessions: TrainingSession[]; onC
         <Check className="size-3.5" />
         {saving ? t("Speichert…") : t("Speichern")}
       </Button>
-      <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+      <Button size="sm" variant="ghost" onClick={onClose}>
         {t("Abbrechen")}
       </Button>
     </div>
@@ -375,7 +338,7 @@ function DayDuration({ sessions, onChanged }: { sessions: TrainingSession[]; onC
 
 /**
  * Die volle Karte eines aufgeklappten Trainingstags: alles, was zum Tag gehört -
- * Datum und Dauer ändern und Tag löschen, Ort/Zeit/Verfassung, Kommentar, Übungen mit
+ * Datum und Dauer ändern und Tag löschen (im ⋯-Menü), Ort/Zeit/Verfassung, Kommentar, Übungen mit
  * Bewertung, Fährten mit Karte und Auswertung, Trainer-Feedback.
  *
  * Wird erst gemountet, wenn der Tag aufgeklappt ist (siehe SessionHistory):
@@ -411,6 +374,8 @@ export function SessionDayCard({
   const gpsSessions = tag.filter((s) => s.hasGpsTrack);
   const feedbackSessions = tag.filter((s) => s.trainerFeedback);
   const kontextEinheit = tag.find(hatKontext) ?? tag[0];
+  // Welches Eingabefeld das ⋯-Menü gerade oben in der Karte geöffnet hat.
+  const [aendern, setAendern] = useState<"datum" | "dauer" | null>(null);
 
   async function deleteDay() {
     if (!confirm(t("Trainingstag wirklich löschen? Alle Übungen und Fährten dieses Tages werden entfernt."))) return;
@@ -450,49 +415,46 @@ export function SessionDayCard({
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Datum und Dauer ändern und löschen gibt es nur im aufgeklappten Tag: in der
-          Zeile wären es winzige Knöpfe neben einer Fläche, die man
+      {/* Datum und Dauer ändern und löschen gibt es nur im aufgeklappten Tag, im
+          ⋯-Menü: in der Zeile wären es winzige Knöpfe neben einer Fläche, die man
           zum Aufklappen antippt. */}
       {/* Nur, wenn alle Einheiten des Tages bearbeitbar sind: Datum und
           Löschen wirken auf den ganzen Tag. Trainer:innen eines betreuten
           Hundes dürfen nur ihre eigenen Einträge ändern (TrainingsRechte),
           bei Einträgen der Familie bekämen sie nur eine Fehlermeldung. */}
-      {tagBearbeitbar && (
-        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <DayDate sessions={tag} onChanged={onChanged} />
-            <DayDuration sessions={tag} onChanged={onChanged} />
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-muted-foreground hover:text-destructive"
-            onClick={deleteDay}
-          >
-            <Trash2 className="size-3.5" />
-            {t("Trainingstag löschen")}
-          </Button>
+      {tagBearbeitbar && aendern === "datum" && <DayDate sessions={tag} onChanged={onChanged} onClose={() => setAendern(null)} />}
+      {tagBearbeitbar && aendern === "dauer" && <DayDuration sessions={tag} onChanged={onChanged} onClose={() => setAendern(null)} />}
+      {/* Ort, Zeit, Wetter, Verfassung sind Angaben ZUM Tag - deshalb ganz oben
+          und nicht zwischen den inhaltlichen Blöcken. Das ⋯-Menü teilt sich
+          die Zeile mit ihnen. */}
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <SessionContextEditor
+            key={`ctx-${kontextEinheit.id}`}
+            session={kontextEinheit}
+            onSaved={onChanged}
+            darfBearbeiten={darfBearbeiten(kontextEinheit, isOwner)}
+          />
         </div>
-      )}
-      {/* Ort, Zeit, Wetter, Verfassung sind Angaben ZUM Tag -
-          deshalb direkt unter der Leiste und nicht zwischen den
-          inhaltlichen Blöcken. */}
-      <SessionContextEditor
-        key={`ctx-${kontextEinheit.id}`}
-        session={kontextEinheit}
-        onSaved={onChanged}
-        darfBearbeiten={darfBearbeiten(kontextEinheit, isOwner)}
-      />
+        {tagBearbeitbar && (
+          <AktionenMenue
+            label={t("Aktionen für diesen Trainingstag")}
+            className="ml-auto"
+            aktionen={[
+              { label: t("Datum ändern"), icon: Pencil, onSelect: () => setAendern("datum") },
+              { label: t("Dauer ändern"), icon: Timer, onSelect: () => setAendern("dauer") },
+              { label: t("Trainingstag löschen"), icon: Trash2, onSelect: deleteDay, destruktiv: true },
+            ]}
+          />
+        )}
+      </div>
       <DayNotes sessions={tag} onChanged={onChanged} darfBearbeiten={tagBearbeitbar} />
       {exercises.length > 0 && (
         <section className="flex flex-col gap-1.5">
           <BlockLabel icon={ListChecks}>{t("Übungen")}</BlockLabel>
-          <ul className="flex flex-col gap-1.5">
+          <ul className="flex flex-col divide-y divide-surface-border">
             {exercises.map(({ ex, bearbeitbar }) => (
-              <li
-                key={ex.id}
-                className="flex flex-col gap-1 rounded-lg border border-surface-border bg-surface px-2.5 py-2"
-              >
+              <li key={ex.id} className="flex flex-col gap-1 py-2 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
                   <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{uebungName(ex, sprache)}</span>
                   <ExerciseRating

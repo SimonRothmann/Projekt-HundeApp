@@ -6,7 +6,8 @@ import type { MyGroupMembership } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Users } from "lucide-react";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
+import { LogOut, Mail, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
@@ -168,7 +169,7 @@ export function MeineGruppenSection({ onChanged }: { onChanged?: () => void }) {
             {gruppen.map((g) => (
               <div
                 key={eintragsKey(g)}
-                className="flex flex-wrap items-center justify-between gap-2 border-t pt-3 first:border-t-0 first:pt-0"
+                className="flex items-center justify-between gap-2 border-t pt-3 first:border-t-0 first:pt-0"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -179,9 +180,18 @@ export function MeineGruppenSection({ onChanged }: { onChanged?: () => void }) {
                   </div>
                   {herkunft(g)}
                 </div>
-                <Button size="sm" variant="ghost" disabled={laeuft === eintragsKey(g)} onClick={() => verlassen(g)}>
-                  {laeuft === eintragsKey(g) ? t("Wird verlassen…") : t("Verlassen")}
-                </Button>
+                <AktionenMenue
+                  label={t("Aktionen für {name}", { name: g.groupName })}
+                  disabled={laeuft === eintragsKey(g)}
+                  aktionen={[
+                    {
+                      label: laeuft === eintragsKey(g) ? t("Wird verlassen…") : t("Verlassen"),
+                      icon: LogOut,
+                      onSelect: () => verlassen(g),
+                      destruktiv: true,
+                    },
+                  ]}
+                />
               </div>
             ))}
           </CardContent>
