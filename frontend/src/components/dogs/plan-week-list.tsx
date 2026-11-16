@@ -1,5 +1,6 @@
 "use client";
 
+import { Zuklappbar } from "@/components/ui/zuklappbar";
 import { useState } from "react";
 import type { Goal, PlanItemReason, TrainingPlanItem } from "@/lib/types";
 import { fortschrittDerWoche, istPausenwoche, planItemName, sichtbareWochen } from "@/lib/trainingsplan";
@@ -225,8 +226,7 @@ export function PlanWeekList({
                   </>
                 )}
               </button>
-              {isOpen && (
-                <div className="flex min-w-0 flex-col gap-2">
+              <Zuklappbar offen={isOpen} className="flex min-w-0 flex-col gap-2">
                   {aktiv && !isRest && <WochenWerkzeuge goal={goal} weekNumber={weekNumber} uebungen={uebungen} onChanged={onChanged} />}
                   {isRest ? (
                     <span className="text-sm text-muted-foreground">{t("Pause")}</span>
@@ -254,8 +254,7 @@ export function PlanWeekList({
                       </div>
                     ))
                   )}
-                </div>
-              )}
+              </Zuklappbar>
             </div>
           );
         })}

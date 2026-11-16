@@ -92,7 +92,7 @@ export function GegenstandsMaterial({
             <Gegenstandsname g={g} t={t} />
             <div role="group" aria-label={t("Material von Gegenstand {nr}", { nr: g.nummer })} className="flex flex-wrap gap-1.5">
               {MATERIALIEN.map((m) => (
-                <Chip key={m} kompakt gewaehlt={g.material === m} disabled={speichert || !darfAendern} onClick={() => void waehlen(g, m)}>
+                <Chip key={m} kompakt haken gewaehlt={g.material === m} disabled={speichert || !darfAendern} onClick={() => void waehlen(g, m)}>
                   {t(m)}
                 </Chip>
               ))}
@@ -143,6 +143,7 @@ export function GegenstandsErgebnisZeilen({
               <Chip
                 key={e.wert}
                 kompakt
+                haken
                 gewaehlt={werte[g.id] === e.wert}
                 disabled={disabled}
                 onClick={() => onWahl(g.id, ergebnisUmschalten(werte[g.id], e.wert))}

@@ -214,7 +214,7 @@ export default function ClubsPage() {
                       {kannVerwaltenOderLesen && (
                         <Link
                           href={`/trainer/verein?verein=${club.id}&from=${encodeURIComponent("/clubs")}`}
-                          className={buttonVariants({ size: "sm", variant: "outline" })}
+                          className={buttonVariants({ size: "sm", variant: "ghost" })}
                         >
                           {kannVerwalten ? t("Verein verwalten") : t("Vereinsübersicht")}
                         </Link>
@@ -238,7 +238,7 @@ export default function ClubsPage() {
                   ) : membership?.status === 0 ? (
                     <Badge variant="secondary">{t("Anfrage ausstehend")}</Badge>
                   ) : membership?.status === 3 ? (
-                    <div className="flex min-w-0 flex-col gap-2 rounded-md border border-l-2 border-primary/25 border-l-primary bg-primary/6 p-3 dark:border-primary/35 dark:bg-primary/12">
+                    <div className="flex min-w-0 flex-col gap-2 border-t pt-3">
                       <p className="text-sm font-medium [overflow-wrap:anywhere]">
                         {t("„{verein}“ lädt dich ein", { verein: club.name })}
                       </p>
@@ -251,7 +251,7 @@ export default function ClubsPage() {
                         </Button>
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="ghost"
                           disabled={antwortClubId === club.id}
                           onClick={() => handleInvitation(club.id, false)}
                         >
@@ -301,7 +301,8 @@ export default function ClubsPage() {
                           ) : (
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant="ghost"
+                              className="text-primary-text"
                               disabled={joiningGroupId === g.id}
                               onClick={() => handleJoinGroup(g.id)}
                             >

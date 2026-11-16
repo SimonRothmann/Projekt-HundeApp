@@ -1,5 +1,6 @@
 "use client";
 
+import { Zuklappbar } from "@/components/ui/zuklappbar";
 import { useEffect, useRef, useState } from "react";
 import type { DogTrackRun, TrainingSession } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -217,11 +218,11 @@ export function SessionHistory({
                 {dayCount === 1 ? t("1 Tag") : t("{anzahl} Tage", { anzahl: dayCount })}
               </Badge>
             </button>
-            {isOpen && (
-              // Im Dark Mode ohne eigenen Grund: dort gilt "höher = heller"
-              // (Material 3, Apple HIG) - die Trainingstage heben sich durch
-              // ihre hellere Kartenfläche ab. Ein abgedunkelter Grund darunter
-              // war genau das "Dunkelblau auf Dunkelgrau auf Schwarz".
+            <Zuklappbar offen={isOpen}>
+              {/* Im Dark Mode ohne eigenen Grund: dort gilt "höher = heller"
+                  (Material 3, Apple HIG) - die Trainingstage heben sich durch
+                  ihre hellere Kartenfläche ab. Ein abgedunkelter Grund darunter
+                  war genau das "Dunkelblau auf Dunkelgrau auf Schwarz". */}
               <div className="flex flex-col gap-2 border-t border-border bg-muted/40 p-3 dark:bg-transparent">
                 {Array.from(days.entries()).map(([date, daySessions]) => {
                   const tagOffen = effectiveDays.has(date);
@@ -246,7 +247,7 @@ export function SessionHistory({
                   );
                 })}
               </div>
-            )}
+            </Zuklappbar>
           </div>
         );
       })}

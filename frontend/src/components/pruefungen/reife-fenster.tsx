@@ -49,11 +49,11 @@ export function ReifeFenster({ team, onOpenChange }: { team: PruefungTeam | null
                 <h3 className="text-sm font-semibold">
                   {t("Das fehlt noch")} <span className="font-normal text-muted-foreground">({reife.fehlend.length})</span>
                 </h3>
-                <ul className="flex flex-col divide-y overflow-hidden rounded-lg border border-surface-border bg-surface">
+                <ul className="flex flex-col divide-y">
                   {reife.fehlend.map((u) => {
                     const { symbol: Zeichen, klassen } = ZUSTAND[u.zustand];
                     return (
-                      <li key={u.exerciseId} className="flex min-w-0 items-start gap-2 px-3 py-2 text-sm">
+                      <li key={u.exerciseId} className="flex min-w-0 items-start gap-2 py-2 text-sm first:pt-0 last:pb-0">
                         <Zeichen className={cn("mt-0.5 size-4 shrink-0", klassen)} aria-hidden />
                         <div className="flex min-w-0 flex-1 flex-col">
                           <span className="font-medium [overflow-wrap:anywhere]">

@@ -90,7 +90,7 @@ export default function TrainerPage() {
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
             <p className="min-w-0 text-sm text-muted-foreground">{t("Vereine konnten nicht geladen werden.")}</p>
-            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
               {t("Erneut versuchen")}
             </Button>
           </CardContent>

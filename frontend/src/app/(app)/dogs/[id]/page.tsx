@@ -18,6 +18,7 @@ import { DogStatusLine } from "@/components/dogs/dog-status-line";
 import { DogTabs, reiterPanelId, reiterTabId } from "@/components/dogs/dog-tabs";
 import { DiaryTab } from "@/components/dogs/diary-tab";
 import { GesundheitTab } from "@/components/dogs/gesundheit-tab";
+import { ueberfaelligZeile } from "@/lib/gesundheit";
 import { DogActionsSheet } from "@/components/dogs/dog-actions-sheet";
 import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
@@ -213,7 +214,13 @@ function DogPage({ id }: { id: string }) {
         onFeedback={() => aendereAdresse({ [REITER_PARAMETER]: "tagebuch", eintrag: neueRueckmeldungen[0].id })}
       />
 
-      <DogTabs reiter={reiter} tage={tageAnzahl(sessions)} zeigtGesundheit={zeigtGesundheit} onChange={wechseln} />
+      <DogTabs
+        reiter={reiter}
+        tage={tageAnzahl(sessions)}
+        zeigtGesundheit={zeigtGesundheit}
+        gesundheitHinweis={zeigtGesundheit ? ueberfaelligZeile(t, dog.gesundheit) : null}
+        onChange={wechseln}
+      />
 
       {/* Beide Reiter bleiben im Baum, der andere ist nur versteckt: Ein offenes
           Ziel-Formular geht beim Hin- und Herschalten nicht verloren. Das display liegt auf dem

@@ -147,7 +147,7 @@ export function MeineGruppenSection({ onChanged }: { onChanged?: () => void }) {
                   <Button size="sm" disabled={laeuft === eintragsKey(g)} onClick={() => annehmen(g)}>
                     {t("Annehmen")}
                   </Button>
-                  <Button size="sm" variant="outline" disabled={laeuft === eintragsKey(g)} onClick={() => ablehnen(g)}>
+                  <Button size="sm" variant="ghost" disabled={laeuft === eintragsKey(g)} onClick={() => ablehnen(g)}>
                     {t("Ablehnen")}
                   </Button>
                 </div>

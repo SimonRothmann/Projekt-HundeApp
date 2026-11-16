@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
  *
  * `tabId` liefert die Id jedes Reiters, auf die das Panel per aria-labelledby
  * verweist. `className` setzt die Spalten, wenn sie nicht gleich breit sein sollen.
+ * `hinweise` setzt an ein Segment einen kleinen Punkt; der Text steht für Screenreader
+ * dabei (der Punkt allein wäre nur Farbe).
  */
 export function SegmentUmschalter<T extends string>({
   ariaLabel,
@@ -19,6 +21,7 @@ export function SegmentUmschalter<T extends string>({
   tabId,
   onChange,
   className,
+  hinweise,
 }: {
   ariaLabel: string;
   wert: T;
@@ -26,6 +29,7 @@ export function SegmentUmschalter<T extends string>({
   tabId: (wert: T) => string;
   onChange: (wert: T) => void;
   className?: string;
+  hinweise?: Partial<Record<T, string>>;
 }) {
   return (
     <div
@@ -44,11 +48,17 @@ export function SegmentUmschalter<T extends string>({
             aria-selected={aktiv}
             onClick={() => onChange(segment)}
             className={cn(
-              "min-h-11 min-w-0 rounded-lg px-2 text-sm font-medium transition-colors",
+              "relative min-h-11 min-w-0 rounded-lg px-2 text-sm font-medium transition-colors",
               aktiv ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >
             <span className="block truncate">{label}</span>
+            {hinweise?.[segment] && (
+              <>
+                <span aria-hidden className="absolute top-1.5 right-1.5 size-2 rounded-full bg-destructive" />
+                <span className="sr-only">{hinweise[segment]}</span>
+              </>
+            )}
           </button>
         );
       })}

@@ -84,7 +84,6 @@ export function GroupMembersView({
     <div className="flex flex-col gap-4">
       <Button
         type="button"
-        variant="outline"
         className="h-11 self-start"
         aria-expanded={formularOffen}
         aria-controls="mitglied-einladen"

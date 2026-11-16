@@ -21,6 +21,7 @@ export function DogTabs({
   reiter,
   tage,
   zeigtGesundheit,
+  gesundheitHinweis,
   onChange,
 }: {
   reiter: HundeReiter;
@@ -28,6 +29,8 @@ export function DogTabs({
   tage: number;
   /** Ob das Segment "Gesundheit" dabei ist (Besitzer:innen, Modul an). */
   zeigtGesundheit: boolean;
+  /** Gesetzt, wenn beim Hund etwas überfällig ist: ein Punkt am Reiter, der Text für Screenreader. */
+  gesundheitHinweis?: string | null;
   onChange: (reiter: HundeReiter) => void;
 }) {
   const t = useT();
@@ -47,6 +50,7 @@ export function DogTabs({
       segmente={segmente}
       tabId={reiterTabId}
       onChange={onChange}
+      hinweise={gesundheitHinweis ? { gesundheit: gesundheitHinweis } : undefined}
       className={zeigtGesundheit ? "grid-cols-[minmax(0,0.65fr)_minmax(0,1.75fr)_minmax(0,1.1fr)]" : undefined}
     />
   );

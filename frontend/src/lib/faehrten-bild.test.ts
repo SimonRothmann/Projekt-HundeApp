@@ -339,7 +339,7 @@ describe("faehrtenGeometrie", () => {
     const g = faehrtenGeometrie(track(), ablauf());
     expect(g?.gelegt).toHaveLength(3);
     expect(g?.marker).toHaveLength(1);
-    expect(g?.marker[0].gegenstand).toBe(true);
+    expect(g?.marker[0].art).toBe(0);
     expect(g?.ablauf?.punkte).toHaveLength(2);
     expect(g?.ablauf?.abweichungen).toEqual([1, 4]);
   });
@@ -355,7 +355,7 @@ describe("faehrtenGeometrie", () => {
       }),
       null,
     );
-    expect(g?.marker[0].gegenstand).toBe(false);
+    expect(g?.marker[0].art).toBe(1);
     expect(g?.ablauf).toBeNull();
   });
 

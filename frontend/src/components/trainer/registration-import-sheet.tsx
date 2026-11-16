@@ -188,7 +188,7 @@ function Inhalt({
       )}
 
       {vorschau && (
-        <div className="flex min-w-0 flex-col gap-2 rounded-lg border bg-muted/40 p-3 text-sm">
+        <div className="flex min-w-0 flex-col gap-2 border-t pt-3 text-sm">
           <p className="font-medium [overflow-wrap:anywhere]">
             {t("{n} neue, {m} schon vorhanden, {k} fehlerhaft", {
               n: vorschau.neu.length,

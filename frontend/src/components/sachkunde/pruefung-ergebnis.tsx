@@ -193,6 +193,7 @@ function FalscheFrageKarte({ eintrag }: { eintrag: FalscheFrage }) {
               <li key={begriff.id} className="min-w-0 [overflow-wrap:anywhere]">
                 <span className="font-medium">{begriff.text}: </span>
                 <span className={stimmt ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}>
+                  {stimmt ? <Check className="mr-1 inline size-3.5 align-[-2px]" aria-hidden /> : <X className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />}
                   {gewaehlt ? schluesselText(frage, gewaehlt) : t("nicht zugeordnet")}
                 </span>
                 {!stimmt && (
@@ -210,6 +211,7 @@ function FalscheFrageKarte({ eintrag }: { eintrag: FalscheFrage }) {
           <div className="min-w-0">
             <dt className="text-xs text-muted-foreground">{t("Deine Antwort")}</dt>
             <dd className="mt-0.5 min-w-0 text-destructive [overflow-wrap:anywhere]">
+              <X className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />
               {antwort.selectedOptionIds.length === 0
                 ? t("nicht beantwortet")
                 : antwort.selectedOptionIds.map((id) => antwortText(frage, id, t)).join(" · ")}
@@ -218,6 +220,7 @@ function FalscheFrageKarte({ eintrag }: { eintrag: FalscheFrage }) {
           <div className="min-w-0">
             <dt className="text-xs text-muted-foreground">{t("Richtige Antwort")}</dt>
             <dd className="mt-0.5 min-w-0 text-emerald-700 [overflow-wrap:anywhere] dark:text-emerald-300">
+              <Check className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />
               {ergebnis.correctOptionIds.map((id) => antwortText(frage, id, t)).join(" · ")}
             </dd>
           </div>

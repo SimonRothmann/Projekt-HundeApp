@@ -43,7 +43,7 @@ export function KatalogListe({ catalogs, basis }: { catalogs: QuizCatalog[]; bas
             {catalog.sections.map((section) => (
               <li
                 key={section.key}
-                className="rounded-full border border-border/60 px-3 py-1 text-xs text-muted-foreground"
+                className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground"
               >
                 {section.name}
                 <span className="ml-1.5 tabular-nums">{section.questionCount}</span>

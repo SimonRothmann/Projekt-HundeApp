@@ -208,7 +208,7 @@ function Formular({ clubId, einsatz, onAbgehakt }: { clubId: string; einsatz: Ar
           )}
 
           {neuOffen ? (
-            <form onSubmit={(e) => void anlegen(e)} className="flex min-w-0 flex-col gap-3 rounded-lg border p-3">
+            <form onSubmit={(e) => void anlegen(e)} className="flex min-w-0 flex-col gap-3 border-t pt-3">
               <div className="flex min-w-0 flex-col gap-2">
                 <Label htmlFor="gast-vorname">{t("Vorname")}</Label>
                 <Input
@@ -239,7 +239,7 @@ function Formular({ clubId, einsatz, onAbgehakt }: { clubId: string; einsatz: Ar
                   <Button type="button" onClick={() => vorhandeneWaehlen(gibtsSchon)} className="coarse:min-h-11">
                     {t("Vorhandene auswählen")}
                   </Button>
-                  <Button type="button" variant="outline" disabled={speichert} onClick={(e) => void anlegen(e, true)} className="coarse:min-h-11">
+                  <Button type="button" variant="ghost" disabled={speichert} onClick={(e) => void anlegen(e, true)} className="coarse:min-h-11">
                     {t("Trotzdem neu anlegen")}
                   </Button>
                 </div>
@@ -255,7 +255,7 @@ function Formular({ clubId, einsatz, onAbgehakt }: { clubId: string; einsatz: Ar
               )}
             </form>
           ) : (
-            <Button type="button" variant="outline" onClick={() => setNeuOffen(true)} className="coarse:min-h-11">
+            <Button type="button" variant="ghost" onClick={() => setNeuOffen(true)} className="coarse:min-h-11">
               {t("Person ohne Konto hinzufügen")}
             </Button>
           )}

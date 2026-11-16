@@ -485,14 +485,15 @@ function Fragenleiste({
               aria-current={i === aktuell ? "step" : undefined}
               aria-label={beantwortet ? t("Frage {n}, beantwortet", { n: i + 1 }) : t("Frage {n}, offen", { n: i + 1 })}
               className={cn(
-                "flex size-9 items-center justify-center rounded-md border text-xs font-medium tabular-nums transition-colors coarse:size-11",
+                "relative flex size-9 items-center justify-center rounded-md text-xs font-medium tabular-nums transition-colors coarse:size-11",
                 beantwortet
-                  ? "border-primary/60 bg-primary/15 text-primary-text"
-                  : "border-input text-muted-foreground hover:border-primary/50",
+                  ? "bg-primary/15 font-semibold text-primary-text"
+                  : "bg-muted text-muted-foreground hover:bg-accent/50",
                 i === aktuell && "ring-2 ring-primary ring-offset-1 ring-offset-background",
               )}
             >
               {i + 1}
+              {beantwortet && <Check className="absolute top-0.5 right-0.5 size-2.5" strokeWidth={3} aria-hidden />}
             </button>
           </li>
         );

@@ -86,7 +86,7 @@ export function MyGroupsSection({
         icon={Users}
         title={t("Meine Gruppen")}
         action={
-          <Button size="sm" variant="outline" onClick={() => setZeigeNeueGruppe((v) => !v)} aria-expanded={zeigeNeueGruppe}>
+          <Button size="sm" variant="ghost" className="text-primary-text" onClick={() => setZeigeNeueGruppe((v) => !v)} aria-expanded={zeigeNeueGruppe}>
             <Plus className="size-4" />
             {t("Neue Gruppe")}
           </Button>

@@ -64,7 +64,7 @@ export function ClubAnfragenKarte({ club }: { club: Club }) {
           </p>
         )}
         {(anzahl === null || (anzahl !== undefined && anzahl > 0)) && (
-          <Link href={href} className={cn(buttonVariants({ variant: "outline" }), "h-11 self-start")}>
+          <Link href={href} className={cn(buttonVariants({ variant: "ghost" }), "h-11 self-start")}>
             {anzahl === null
               ? t("Beitrittsanfragen öffnen")
               : anzahl === 1

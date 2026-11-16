@@ -22,7 +22,7 @@ export function GruppeNichtGeladen({
     return (
       <div className="flex flex-wrap items-center gap-3">
         <p className="min-w-0 break-words text-muted-foreground">{t("Gruppe konnte nicht geladen werden.")}</p>
-        <Button type="button" size="sm" variant="outline" className="coarse:min-h-11" onClick={onNochmal}>
+        <Button type="button" size="sm" variant="ghost" className="coarse:min-h-11" onClick={onNochmal}>
           {t("Erneut versuchen")}
         </Button>
       </div>

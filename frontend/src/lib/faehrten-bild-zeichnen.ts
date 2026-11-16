@@ -7,6 +7,8 @@ import {
   type Einpassung,
   type FaehrtenGeometrie,
 } from "@/lib/faehrten-bild";
+import { MARKER_FORMEN, markerArt } from "@/lib/karte/spur-daten";
+import { zeichneMarkerForm } from "@/lib/karte/spur-ebenen";
 import type { SpurGrenzen } from "@/lib/mantrailing";
 import { ampelFarben, type Ampel } from "@/lib/spur-ampel";
 
@@ -94,6 +96,19 @@ function linie(ctx: CanvasRenderingContext2D, einpassung: Einpassung, punkte: { 
   ctx.stroke();
 }
 
+/** Die Marker der Karte sind auf 24 Einheiten gezeichnet; hier wird die Form auf Bildgröße skaliert. */
+const MARKER_MASSSTAB = 1.8;
+const MARKER_EINHEIT = 24;
+
+/** Zeichnet die Form einer Markerart um (x, y); die Form selbst kommt aus der Karte (zeichneMarkerForm). */
+function zeichneMarker(ctx: CanvasRenderingContext2D, art: number, x: number, y: number, massstab: number) {
+  ctx.save();
+  ctx.translate(x - (MARKER_EINHEIT / 2) * massstab, y - (MARKER_EINHEIT / 2) * massstab);
+  ctx.scale(massstab, massstab);
+  zeichneMarkerForm(ctx, markerArt(art), MARKER_EINHEIT);
+  ctx.restore();
+}
+
 function zeichneKarte(ctx: CanvasRenderingContext2D, eingabe: BildEingabe) {
   const { geometrie, schrift } = eingabe;
 
@@ -126,15 +141,11 @@ function zeichneKarte(ctx: CanvasRenderingContext2D, eingabe: BildEingabe) {
     }
   }
 
-  // Gegenstände und andere Marker: kleine Quadrate mit hellem Rand, damit sie
-  // auf jeder Linienfarbe stehen.
+  // Gegenstände und andere Marker: mit der Form ihrer Art wie auf der Karte
+  // (dunkler Rand, heller Saum), damit sie auf jeder Linienfarbe stehen.
   for (const marker of geometrie.marker) {
     const { x, y } = einpassung.abbilden(marker.p);
-    const seite = 26;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(x - seite / 2 - 4, y - seite / 2 - 4, seite + 8, seite + 8);
-    ctx.fillStyle = marker.gegenstand ? TEXT : "#78716c";
-    ctx.fillRect(x - seite / 2, y - seite / 2, seite, seite);
+    zeichneMarker(ctx, marker.art, x, y, MARKER_MASSSTAB);
   }
 
   // Der Startpunkt ist der erste Punkt der gelegten Fährte.
@@ -176,9 +187,13 @@ function zeichneKarte(ctx: CanvasRenderingContext2D, eingabe: BildEingabe) {
 /** Legende in einer Zeile unten in der Karte; bricht um, wenn sie nicht passt. */
 function zeichneLegende(ctx: CanvasRenderingContext2D, eingabe: BildEingabe, grundlinie: number) {
   const { geometrie, texte, schrift } = eingabe;
-  type Eintrag = { text: string; symbol: "start" | "gegenstand" | "gelegt" | "abgelaufen" };
+  type Eintrag = { text: string; symbol: "start" | "marker" | "gelegt" | "abgelaufen"; art?: number };
   const eintraege: Eintrag[] = [{ text: texte.legende.start, symbol: "start" }];
-  if (geometrie.marker.some((m) => m.gegenstand)) eintraege.push({ text: texte.legende.gegenstand, symbol: "gegenstand" });
+  // Nur die Markerarten, die im Bild vorkommen, in der Reihenfolge der Tabelle.
+  const vorhanden = new Set(geometrie.marker.map((m) => markerArt(m.art)));
+  MARKER_FORMEN.forEach((markerart, art) => {
+    if (vorhanden.has(markerart)) eintraege.push({ text: texte.legende.marker[art], symbol: "marker", art });
+  });
   eintraege.push({ text: texte.legende.gelegt, symbol: "gelegt" });
   if (geometrie.ablauf) eintraege.push({ text: texte.legende.abgelaufen, symbol: "abgelaufen" });
 
@@ -203,9 +218,8 @@ function zeichneLegende(ctx: CanvasRenderingContext2D, eingabe: BildEingabe, gru
       ctx.beginPath();
       ctx.arc(x + 12, mitte, 10, 0, Math.PI * 2);
       ctx.fill();
-    } else if (eintrag.symbol === "gegenstand") {
-      ctx.fillStyle = TEXT;
-      ctx.fillRect(x + 3, mitte - 10, 20, 20);
+    } else if (eintrag.symbol === "marker") {
+      zeichneMarker(ctx, eintrag.art ?? 0, x + 14, mitte, 1.3);
     } else if (eintrag.symbol === "gelegt") {
       ctx.strokeStyle = GELEGT_LINIE;
       ctx.lineWidth = 12;

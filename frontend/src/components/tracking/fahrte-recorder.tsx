@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { kurzeHaptik } from "@/lib/haptik";
 import type { GpsMarkerType, GpsPoint, GpsTrack } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -200,6 +201,7 @@ export function FahrteRecorder({
         setPoints((prev) => [...prev, marker]);
         setZuruecknehmbar(marker);
         setIsMarking(false);
+        kurzeHaptik();
         toast.success(
           trailModus
             ? t("Marker gesetzt.")

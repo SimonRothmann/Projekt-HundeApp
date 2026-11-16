@@ -1,6 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes } from "react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -23,14 +24,18 @@ export function auswahlRahmen(gewaehlt: boolean): string {
  * Die Antippfläche ist mindestens 44 px hoch - bei `kompakt` erst auf
  * Touch-Geräten (grobe Zeiger), für dichte Reihen und Filterleisten, die am
  * Rechner nicht so hoch sein müssen.
+ *
+ * Mit `haken` zeigt ein gewählter Chip zusätzlich ein Häkchen: für Auswahlen,
+ * deren Zustand nicht nur an der Farbe hängen soll (farbsichere Darstellung).
  */
 export function Chip({
   gewaehlt,
   kompakt,
+  haken,
   className,
   children,
   ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { gewaehlt?: boolean; kompakt?: boolean }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { gewaehlt?: boolean; kompakt?: boolean; haken?: boolean }) {
   return (
     <button
       type="button"
@@ -44,6 +49,7 @@ export function Chip({
       )}
       {...rest}
     >
+      {haken && gewaehlt && <Check className="size-3.5 shrink-0" aria-hidden />}
       {children}
     </button>
   );

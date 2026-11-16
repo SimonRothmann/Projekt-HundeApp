@@ -93,11 +93,11 @@ export function VereinsantragSection() {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {antraege.length > 0 && (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col divide-y">
             {antraege.map((a) => (
               <li
                 key={a.id}
-                className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-md border px-3 py-2 text-sm"
+                className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 py-3 text-sm first:pt-0 last:pb-0"
               >
                 <span className="min-w-[10rem] flex-1 [overflow-wrap:anywhere]">
                   {a.name}
