@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
@@ -87,10 +88,11 @@ function VerlaufZeile({
       </span>
       <span
         className={cn(
-          "text-xs font-medium",
+          "inline-flex items-center gap-1 text-xs font-medium",
           versuch.passed ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
         )}
       >
+        {versuch.passed ? <Check className="size-3.5" aria-hidden /> : <X className="size-3.5" aria-hidden />}
         {wort(versuch.passed)}
       </span>
     </li>

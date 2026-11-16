@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, X } from "lucide-react";
 import type { QuizKey } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -90,7 +91,7 @@ export function QuizAssignment({
                       aria-label={k.label ? `${term.text}: ${k.key} – ${k.label}` : `${term.text}: ${k.key}`}
                       onClick={() => onWaehlen(term.id, k.key)}
                       className={cn(
-                        "min-w-10 rounded-md border px-3 py-2 text-sm font-medium transition-colors",
+                        "inline-flex min-w-10 items-center justify-center gap-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors",
                         "coarse:min-h-11 disabled:cursor-default",
                         antwortFarben({
                           gewaehlt: aktiv,
@@ -100,6 +101,8 @@ export function QuizAssignment({
                         }),
                       )}
                     >
+                      {aufgeloest && k.key === term.solutionKey && <Check className="size-3.5 shrink-0" aria-hidden />}
+                      {aufgeloest && aktiv && ergebnis === false && <X className="size-3.5 shrink-0" aria-hidden />}
                       {k.key}
                     </button>
                   );

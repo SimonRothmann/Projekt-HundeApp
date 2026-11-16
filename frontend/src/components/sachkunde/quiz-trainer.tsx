@@ -430,10 +430,11 @@ export function QuizTrainer({ catalog, anfangsModus = "learn" }: { catalog: Quiz
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
               <span
                 className={cn(
-                  "text-sm font-medium",
+                  "inline-flex items-center gap-1.5 text-sm font-medium",
                   auswertung.correct ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
                 )}
               >
+                {auswertung.correct ? <Check className="size-4 shrink-0" aria-hidden /> : <X className="size-4 shrink-0" aria-hidden />}
                 {auswertung.correct ? t("Richtig") : t("Falsch – die Frage kommt gleich noch einmal.")}
               </span>
               <Button size="sm" onClick={weiter} autoFocus>
