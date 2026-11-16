@@ -55,7 +55,7 @@ export function MeineArbeitseinsaetzeKarte({ clubId }: { clubId: string }) {
   const rest = daten.items.slice(VORSCHAU);
 
   return (
-    <section className="flex min-w-0 flex-col gap-2 rounded-md border px-3 py-3">
+    <section className="flex min-w-0 flex-col gap-2 border-t pt-3">
       <h3 className="flex items-center gap-2 text-sm font-medium">
         <HandHelping className="size-4 shrink-0 text-primary-text" aria-hidden />
         {t("Meine Arbeitseinsätze")}

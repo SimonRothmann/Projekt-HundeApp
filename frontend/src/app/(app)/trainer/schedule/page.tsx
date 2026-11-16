@@ -475,7 +475,7 @@ export default function SchedulePage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Label className="text-xs">{t("Inhalt (Übungen in Reihenfolge)")}</Label>
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" size="sm" variant="outline" disabled={generating} onClick={generateContent}>
+                      <Button type="button" size="sm" variant="ghost" disabled={generating} onClick={generateContent}>
                         <Sparkles className="size-3.5" />
                         {generating ? t("Generiere…") : t("Vorschlag generieren")}
                       </Button>
@@ -518,7 +518,7 @@ export default function SchedulePage() {
                     </Select>
                     <div className="flex flex-1 gap-2">
                       <Input className="flex-1" placeholder={t("Freitext-Übung")} value={addFreeText} onChange={(e) => setAddFreeText(e.target.value)} maxLength={500} />
-                      <Button type="button" size="sm" variant="outline" disabled={!addFreeText.trim()} onClick={() => { patch({ content: [...form.content, textDraft(addFreeText.trim())] }); setAddFreeText(""); }}>+</Button>
+                      <Button type="button" size="sm" variant="secondary" disabled={!addFreeText.trim()} onClick={() => { patch({ content: [...form.content, textDraft(addFreeText.trim())] }); setAddFreeText(""); }}>+</Button>
                     </div>
                   </div>
                 </div>

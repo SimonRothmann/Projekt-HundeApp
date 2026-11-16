@@ -115,7 +115,7 @@ export function NextSessionCard({ clubs }: { clubs: Club[] }) {
           {termin.registrationCount > 0 && (
             <Link
               href={`/trainer/${termin.groupId}?ansicht=anmeldungen`}
-              className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+              className={cn(buttonVariants({ size: "sm", variant: "ghost" }))}
             >
               {t("Anwesenheit")}
             </Link>

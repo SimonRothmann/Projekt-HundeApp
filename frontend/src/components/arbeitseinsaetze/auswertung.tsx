@@ -101,7 +101,7 @@ export function Auswertung({ clubId }: { clubId: string }) {
         })}
       </p>
 
-      <Button variant="outline" onClick={() => herunterladen(daten)} disabled={daten.eventCount === 0} className="self-start coarse:min-h-11">
+      <Button variant="ghost" onClick={() => herunterladen(daten)} disabled={daten.eventCount === 0} className="self-start coarse:min-h-11">
         <Download className="size-4" />
         {t("Als CSV speichern")}
       </Button>

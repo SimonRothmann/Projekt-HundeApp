@@ -73,7 +73,7 @@ export default function TrainerGroupPage() {
           href={`/trainer/${groupId}/einstellungen`}
           aria-label={t("Einstellungen")}
           title={t("Einstellungen")}
-          className={cn(buttonVariants({ variant: "outline", size: "icon" }), "size-10 shrink-0")}
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "size-10 shrink-0")}
         >
           <Settings className="size-5" />
         </Link>
@@ -86,7 +86,7 @@ export default function TrainerGroupPage() {
       {anmeldungen.fehler && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm">
           <span className="min-w-0 text-muted-foreground">{t("Anmeldungen konnten nicht geladen werden.")}</span>
-          <Button type="button" size="sm" variant="outline" onClick={() => void anmeldungen.laden()}>
+          <Button type="button" size="sm" variant="ghost" onClick={() => void anmeldungen.laden()}>
             {t("Erneut versuchen")}
           </Button>
         </div>

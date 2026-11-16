@@ -78,7 +78,7 @@ function Formular({ clubId, einsatz, helfer, onGespeichert }: { clubId: string; 
         {speichert ? t("Speichert…") : t("Speichern")}
       </Button>
       {helfer.custom && (
-        <Button type="button" variant="outline" disabled={speichert} onClick={() => void senden(null)} className="coarse:min-h-11">
+        <Button type="button" variant="ghost" disabled={speichert} onClick={() => void senden(null)} className="coarse:min-h-11">
           {t("Wie der Einsatz")}
         </Button>
       )}

@@ -67,11 +67,11 @@ export function GroupRegistrationsSection({
                 <QrIcon className="size-4" />
                 {t("Anmeldelink & QR-Code")}
               </Button>
-              <Button variant="outline" className="h-11" onClick={() => setBearbeiten({ offen: true, zeile: null })}>
+              <Button variant="ghost" className="h-11 text-primary-text" onClick={() => setBearbeiten({ offen: true, zeile: null })}>
                 <Plus className="size-4" />
                 {t("Anmeldung hinzufügen")}
               </Button>
-              <Button variant="outline" className="h-11" onClick={() => setImportOffen(true)}>
+              <Button variant="ghost" className="h-11 text-primary-text" onClick={() => setImportOffen(true)}>
                 <FileUp className="size-4" />
                 {t("Aus Google-Formular importieren")}
               </Button>

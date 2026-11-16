@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { PAUSE_GRUND, type Dog, type DogPause, type PauseGrund } from "@/lib/types";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -88,13 +89,13 @@ export function PausenSection({ dog, onChanged }: { dog: Dog; onChanged: () => P
   const heute = heuteIso();
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-lg border border-surface-border bg-surface p-3">
+    <div className="flex min-w-0 flex-col gap-3">
       <p className="text-sm text-muted-foreground">
         {t("Eine Pause hält den Trainingsplan an. Training eintragen geht trotzdem, zum Beispiel für leichtes Training oder Physio.")}
       </p>
 
       {formular === null ? (
-        <Button type="button" variant="outline" className="min-h-11 w-full" onClick={() => setFormular("neu")}>
+        <Button type="button" variant="ghost" className="min-h-11 w-full text-primary-text" onClick={() => setFormular("neu")}>
           <Plus className="size-4" aria-hidden />
           {t("Pause eintragen")}
         </Button>
@@ -114,7 +115,7 @@ export function PausenSection({ dog, onChanged }: { dog: Dog; onChanged: () => P
         {ladefehler && pausen === null ? (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-muted-foreground">{t("Pausen konnten nicht geladen werden.")}</p>
-            <Button type="button" size="sm" variant="outline" className="coarse:min-h-11" onClick={() => void laden()}>
+            <Button type="button" size="sm" variant="ghost" className="coarse:min-h-11" onClick={() => void laden()}>
               {t("Erneut versuchen")}
             </Button>
           </div>
@@ -123,41 +124,35 @@ export function PausenSection({ dog, onChanged }: { dog: Dog; onChanged: () => P
         ) : pausen.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("Noch keine Pausen eingetragen.")}</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col divide-y">
             {pausen.map((pause) => {
               const stand = pausenStand(pause, heute);
               return (
-                <li key={pause.id} className="flex min-w-0 flex-col gap-2 rounded-md border border-surface-border p-2.5">
-                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="font-medium">{pause.reason !== null ? t(PAUSE_GRUND_TEXT[pause.reason]) : ""}</span>
-                    {stand === "laufend" && <Badge variant="secondary">{t("läuft")}</Badge>}
-                    {stand === "geplant" && <Badge variant="outline">{t("geplant")}</Badge>}
+                <li key={pause.id} className="flex min-w-0 flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="font-medium">{pause.reason !== null ? t(PAUSE_GRUND_TEXT[pause.reason]) : ""}</span>
+                      {stand === "laufend" && <Badge variant="secondary">{t("läuft")}</Badge>}
+                      {stand === "geplant" && <Badge variant="outline">{t("geplant")}</Badge>}
+                    </div>
+                    <AktionenMenue
+                      label={t("Aktionen für {name}", { name: pause.reason !== null ? t(PAUSE_GRUND_TEXT[pause.reason]) : t("Pause") })}
+                      className="coarse:size-11"
+                      aktionen={[
+                        { label: t("Bearbeiten"), icon: Pencil, onSelect: () => setFormular(pause) },
+                        { label: t("Löschen"), icon: Trash2, onSelect: () => void loeschen(pause), destruktiv: true },
+                      ]}
+                    />
                   </div>
                   <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
                     {pausenZeitraumText(t, pause, (iso) => datumKurz(iso, sprache))}
                   </p>
                   {pause.note && <p className="text-sm [overflow-wrap:anywhere]">{pause.note}</p>}
-                  <div className="flex flex-wrap gap-2">
-                    {stand !== "vorbei" && (
-                      <Button type="button" size="sm" variant="outline" className="coarse:min-h-11" onClick={() => beenden(pause)}>
-                        {stand === "laufend" ? t("Pause beenden") : t("Zurücknehmen")}
-                      </Button>
-                    )}
-                    <Button type="button" size="sm" variant="ghost" className="coarse:min-h-11" onClick={() => setFormular(pause)}>
-                      <Pencil className="size-3.5" aria-hidden />
-                      {t("Bearbeiten")}
+                  {stand !== "vorbei" && (
+                    <Button type="button" size="sm" variant="ghost" className="self-start text-primary-text coarse:min-h-11" onClick={() => beenden(pause)}>
+                      {stand === "laufend" ? t("Pause beenden") : t("Zurücknehmen")}
                     </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive coarse:min-h-11"
-                      onClick={() => loeschen(pause)}
-                    >
-                      <Trash2 className="size-3.5" aria-hidden />
-                      {t("Löschen")}
-                    </Button>
-                  </div>
+                  )}
                 </li>
               );
             })}
@@ -233,7 +228,7 @@ function PauseFormular({
   const gruende = waehlbareGruende(dog.gender);
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 rounded-md border border-primary/30 p-3">
+    <div className="flex min-w-0 flex-col gap-4 border-t pt-3">
       <p className="font-medium">{pause ? t("Pause bearbeiten") : t("Pause eintragen")}</p>
 
       <div className="flex min-w-0 flex-col gap-2">

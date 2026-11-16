@@ -329,7 +329,7 @@ export function TrainerReviewSection() {
                             </Button>
                           )}
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             className="min-w-0 flex-1"
                             disabled={arbeitetId === s.sessionId}
                             onClick={() => void fertig(s.sessionId)}

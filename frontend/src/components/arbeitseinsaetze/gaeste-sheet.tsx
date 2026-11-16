@@ -8,6 +8,7 @@ import { filtereKandidaten, helferName } from "@/lib/arbeitseinsaetze";
 import { useT } from "@/lib/i18n";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import type { ArbeitseinsatzGast, ArbeitseinsatzKandidat } from "@/lib/types";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
@@ -131,17 +132,16 @@ function Inhalt({ clubId, onGeaendert }: { clubId: string; onGeaendert: () => Pr
           {gaeste.map((g) => (
             <li key={g.id} className="flex min-w-0 items-center gap-2 py-2">
               <span className="min-w-0 flex-1 font-medium [overflow-wrap:anywhere]">{helferName(t, g)}</span>
-              <div className="flex shrink-0 gap-1">
-                <Button variant="ghost" size="icon" aria-label={t("Ist jetzt in Dogity")} disabled={laeuft} onClick={() => setAktion({ art: "zuordnen", gast: g })} className="coarse:size-11">
-                  <UserCheck className="size-4" />
-                </Button>
-                <Button variant="ghost" size="icon" aria-label={t("Umbenennen")} disabled={laeuft} onClick={() => setAktion({ art: "umbenennen", gast: g })} className="coarse:size-11">
-                  <Pencil className="size-4" />
-                </Button>
-                <Button variant="ghost" size="icon" aria-label={t("Löschen")} disabled={laeuft} onClick={() => void loeschen(g)} className="coarse:size-11">
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
+              <AktionenMenue
+                label={t("Aktionen für {name}", { name: helferName(t, g) })}
+                disabled={laeuft}
+                aktionen={[
+                  { label: t("Ist jetzt in Dogity"), icon: UserCheck, onSelect: () => setAktion({ art: "zuordnen", gast: g }) },
+                  { label: t("Umbenennen"), icon: Pencil, onSelect: () => setAktion({ art: "umbenennen", gast: g }) },
+                  { label: t("Löschen"), icon: Trash2, onSelect: () => void loeschen(g), destruktiv: true },
+                ]}
+                className="coarse:size-11"
+              />
             </li>
           ))}
         </ul>

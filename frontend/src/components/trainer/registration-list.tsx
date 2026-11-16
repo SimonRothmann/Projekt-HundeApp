@@ -96,7 +96,7 @@ export function RegistrationList({
             <QrIcon className="size-4" />
             {t("Anmeldelink & QR-Code")}
           </Button>
-          <Button variant="outline" onClick={onNeu}>
+          <Button onClick={onNeu}>
             <Plus className="size-4" />
             {t("Anmeldung hinzufügen")}
           </Button>
