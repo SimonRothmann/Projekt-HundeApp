@@ -133,7 +133,7 @@ export function DatenschutzEn() {
           punkte={[
             "your learning progress in the theory-test question trainer (Sachkunde) and the results of your practice exams",
             "Notifications within the app",
-            "your settings: language, country, font size, step length, hidden areas, chosen sports, whether important notifications are also sent by email and which reminders you receive (for trainers, with the weekdays and time they chose)",
+            "your settings: language, country, font size, colour-safe display, step length, hidden areas, chosen sports, whether important notifications are also sent by email and which reminders you receive (for trainers, with the weekdays and time they chose)",
             "which reminders have already been sent to you (kind, session or track or day, time) – only as a note so that a reminder does not arrive twice; described in detail in section 7",
             "Devices on which you have switched on push notifications: the device’s address at its manufacturer’s push service, the device’s keys for encryption, a short label such as “iPhone (Safari)” as well as the time of registration and of the last delivery – described in detail in section 7",
           ]}
@@ -194,7 +194,7 @@ export function DatenschutzEn() {
           punkte={[
             "your login token and the associated renewal token – without them you would be logged out on every page change",
             "your name, your email address and your role, so that the app does not first have to load them at startup",
-            "the map type you last chose, the font size and which notice about news you have already seen",
+            "the map type you last chose, the font size, whether colour-safe display is on, and which notice about news you have already seen",
             "if you have switched on push notifications: your device’s address at the push service, so that switching push off can remove it there again",
             "if you choose the language without an account (German or English): this choice, so that it is kept for your next visit – a pure convenience setting that is not sent to the server",
             "most recently loaded dogs, training sessions, goals, statistics and dog pictures as a cache, so that the app starts quickly and shows something even without a connection – it is deleted on logout and when another person logs in; for this, the app remembers the internal ID of the person who last logged in",
@@ -209,7 +209,7 @@ export function DatenschutzEn() {
           consent under Section 25(2) TDDDG. None of it leaves your device towards third parties, and none of it serves
           to measure your behaviour. That is why there is nothing to accept or decline here – a banner would ask about
           something that does not happen. Logging out removes login, cache and ongoing recordings; entries not yet sent, map
-          type, font size, news notice and language choice remain. Clearing the browser data removes everything.
+          type, font size, colour-safe display, news notice and language choice remain. Clearing the browser data removes everything.
         </p>
         <p>
           It is different with the upstream protection service Cloudflare (see section 6): To distinguish automated

@@ -137,7 +137,7 @@ function DatenschutzDe() {
           punkte={[
             "dein Lernfortschritt im Sachkunde-Fragentrainer und die Ergebnisse deiner Übungsprüfungen",
             "Benachrichtigungen innerhalb der App",
-            "deine Einstellungen: Sprache, Land, Schriftgröße, Schrittlänge, ausgeblendete Bereiche, gewählte Sportarten, ob wichtige Benachrichtigungen auch per E-Mail kommen und welche Erinnerungen du bekommst (bei Trainer:innen mit gewählten Wochentagen und Uhrzeit)",
+            "deine Einstellungen: Sprache, Land, Schriftgröße, farbsichere Darstellung, Schrittlänge, ausgeblendete Bereiche, gewählte Sportarten, ob wichtige Benachrichtigungen auch per E-Mail kommen und welche Erinnerungen du bekommst (bei Trainer:innen mit gewählten Wochentagen und Uhrzeit)",
             "welche Erinnerungen dir schon geschickt wurden (Art, Termin bzw. Fährte oder Tag, Zeitpunkt) – nur als Merkzettel, damit eine Erinnerung nicht zweimal kommt; ausführlich in Abschnitt 7",
             "Geräte, auf denen du Push-Benachrichtigungen eingeschaltet hast: die Adresse des Geräts beim Push-Dienst seines Herstellers, die Schlüssel des Geräts zur Verschlüsselung, eine Kurzbezeichnung wie „iPhone (Safari)“ sowie Zeitpunkt der Anmeldung und der letzten Zustellung – ausführlich in Abschnitt 7",
           ]}
@@ -199,7 +199,7 @@ function DatenschutzDe() {
           punkte={[
             "dein Anmelde-Token und der zugehörige Erneuerungs-Token – ohne sie wärst du bei jedem Seitenwechsel abgemeldet",
             "dein Name, deine E-Mail-Adresse und deine Rolle, damit die App sie beim Start nicht erst nachladen muss",
-            "die zuletzt gewählte Kartenart, die Schriftgröße und welchen Neuerungs-Hinweis du schon gesehen hast",
+            "die zuletzt gewählte Kartenart, die Schriftgröße, ob die farbsichere Darstellung an ist, und welchen Neuerungs-Hinweis du schon gesehen hast",
             "wenn du ohne Konto die Sprache wählst (Deutsch oder English): diese Wahl, damit sie beim nächsten Besuch erhalten bleibt – eine reine Komforteinstellung, die nicht an den Server gesendet wird",
             "wenn du Push-Benachrichtigungen eingeschaltet hast: die Adresse deines Geräts beim Push-Dienst, damit das Abmelden sie wieder lösen kann",
             "zuletzt geladene Hunde, Trainings, Ziele, Statistik und Hundebilder als Zwischenspeicher, damit die App schnell startet und auch ohne Verbindung etwas zeigt – beim Abmelden und beim Anmelden einer anderen Person wird er gelöscht; dafür merkt sich die App die interne Kennung der zuletzt angemeldeten Person",
@@ -214,7 +214,7 @@ function DatenschutzDe() {
           Abs. 2 TDDDG ohne Einwilligung zulässig. Nichts davon verlässt dein Gerät in Richtung Dritter, nichts davon
           dient der Messung deines Verhaltens. Deshalb gibt es hier auch nichts zuzustimmen oder abzulehnen – ein
           Banner wäre eine Frage ohne Gegenstand. Abmelden entfernt Anmeldung, Zwischenspeicher und laufende
-          Aufzeichnungen; noch nicht abgeschickte Einträge, Kartenart, Schriftgröße, Neuerungs-Hinweis und Sprachwahl bleiben.
+          Aufzeichnungen; noch nicht abgeschickte Einträge, Kartenart, Schriftgröße, farbsichere Darstellung, Neuerungs-Hinweis und Sprachwahl bleiben.
           Das Löschen der Browserdaten entfernt alles.
         </p>
         <p>
