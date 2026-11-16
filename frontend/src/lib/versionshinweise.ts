@@ -53,6 +53,41 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "1.5",
+    datum: "2026-11-16",
+    titel: uebersetzbar("Verlässlicher und ruhiger"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Weitere Seiten sind ruhiger: die Fenster für Prüfungen, Anmeldungen und Arbeitseinsätze, die Trainingspausen und die Vereinsseite. Zugeklappte Bereiche öffnen sich weich, und auf Android-Handys bestätigt ein kurzes Vibrieren das Speichern eines Trainings und das Setzen eines Markers."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Was bisher nur an der Farbe zu erkennen war, hat jetzt auch ein Zeichen: verwiesene, aufgenommene und überlaufene Gegenstände sowie Richtig und Falsch in der Sachkunde. Das geteilte Fährtenbild zeigt die Marker in derselben Form wie die Karte, und am Reiter „Gesundheit“ erscheint ein Punkt, wenn etwas überfällig ist."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Wichtige Zahlen wie der Anteil auf der Fährte und die Kennzahlen der Statistik stehen größer da."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Einträge, die ohne Netz gespeichert wurden, gehen nicht mehr verloren, wenn der Server sie ablehnt: Ein Hinweis zeigt sie mit „Erneut senden“ und „Verwerfen“. Beim Nachschicken entstehen Abläufe und Trainings nicht mehr doppelt."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Startseite und das Ändern von Fährten laden weniger Daten, und wenn sich bei einer Vereinsveranstaltung viele über dasselbe WLAN anmelden, bremst die App nicht mehr so schnell."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Gelöschte Fährten werden 30 Tage nach dem Löschen endgültig entfernt, Benachrichtigungen 90 Tage nach ihrem Entstehen."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die österreichische Prüfungsordnung für Obedience und Begleithund (ÖPO) steht auf der Ausgabe 2025."),
+      },
+    ],
+  },
+  {
     version: "1.4",
     datum: "2026-11-16",
     titel: uebersetzbar("Ruhigere Seiten"),

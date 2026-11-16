@@ -44,45 +44,37 @@ export type Versionshinweis = {
 
 /** Der oberste Eintrag von VERSIONSHINWEISE (der Test hält beide gleich). */
 export const NEUESTE_VERSION: Versionshinweis = {
-  version: "1.4",
+  version: "1.5",
   datum: "2026-11-16",
-  titel: uebersetzbar("Ruhigere Seiten"),
+  titel: uebersetzbar("Verlässlicher und ruhiger"),
   aenderungen: [
     {
       art: "verbessert",
-      text: uebersetzbar("Weitere Seiten sind ruhiger: Im Plan stehen abgeschlossene Ziele zugeklappt unter den laufenden, die Woche und ihre Übungen sind eine Liste statt Kästen in Kästen. Bei der Gesundheit hat jeder Bereich eine Karte, Bearbeiten und Löschen liegen hinter den drei Punkten. Die Hundeliste ist eine Liste, die Fährtenbalken in der Statistik sind wie im Tagebuch gefärbt und mit Prozent beschriftet, das Wochendiagramm hat eine Zeitachse, und beim Laden erscheinen graue Platzhalter statt „Lädt…“."),
+      text: uebersetzbar("Weitere Seiten sind ruhiger: die Fenster für Prüfungen, Anmeldungen und Arbeitseinsätze, die Trainingspausen und die Vereinsseite. Zugeklappte Bereiche öffnen sich weich, und auf Android-Handys bestätigt ein kurzes Vibrieren das Speichern eines Trainings und das Setzen eines Markers."),
     },
     {
       art: "verbessert",
-      text: uebersetzbar("Auf der Hundeseite steht das Foto deines Hundes jetzt groß neben dem Namen, der Wechsel zu deinen anderen Hunden läuft über runde Bilder darüber, und „Fährte legen“ und „Merken“ stehen ohne Rahmen unter „Training erfassen“."),
+      text: uebersetzbar("Was bisher nur an der Farbe zu erkennen war, hat jetzt auch ein Zeichen: verwiesene, aufgenommene und überlaufene Gegenstände sowie Richtig und Falsch in der Sachkunde. Das geteilte Fährtenbild zeigt die Marker in derselben Form wie die Karte, und am Reiter „Gesundheit“ erscheint ein Punkt, wenn etwas überfällig ist."),
     },
     {
       art: "verbessert",
-      text: uebersetzbar("Die Seiten für Trainer:innen sind ruhiger: Gruppe, Termine, Verein, Prüfungen und Arbeitseinsätze zeigen je Thema eine Karte oder Liste statt Kästen in Kästen, seltene Aktionen wie Entfernen, Löschen und Absagen liegen im ⋯-Menü, und Formulare zum Einladen klappen erst nach einem Tipp auf."),
+      text: uebersetzbar("Wichtige Zahlen wie der Anteil auf der Fährte und die Kennzahlen der Statistik stehen größer da."),
     },
     {
       art: "verbessert",
-      text: uebersetzbar("Der Trainingstag im Tagebuch und die Fährte sind aufgeräumt: weniger Rahmen, bei der Fährte steht die Karte jetzt zuerst. Datum ändern, Dauer ändern, Löschen und Verlassen findest du hinter dem Knopf mit den drei Punkten."),
+      text: uebersetzbar("Einträge, die ohne Netz gespeichert wurden, gehen nicht mehr verloren, wenn der Server sie ablehnt: Ein Hinweis zeigt sie mit „Erneut senden“ und „Verwerfen“. Beim Nachschicken entstehen Abläufe und Trainings nicht mehr doppelt."),
     },
     {
       art: "verbessert",
-      text: uebersetzbar("Eine Gruppe, in der du Mitglied bist, steht bei den Vereinen nur noch einmal. Einen eigenen Verein beantragst du über einen Link, das Formular klappt erst dann auf."),
-    },
-    {
-      art: "verbessert",
-      text: uebersetzbar("Auf der Startseite steht das Fährtenalter ab einer Stunde in Stunden und Minuten statt in über tausend Minuten."),
-    },
-    {
-      art: "verbessert",
-      text: uebersetzbar("Auf der Startseite steht die wartende Fährte jetzt oben und hervorgehoben, mit dem Fährtenalter groß und einem Knopf zum Ablaufen. Fällige Gesundheitstermine stehen gesammelt in einer Karte weiter oben, „Erfassen“ ist bei mehreren Hunden eine Zeile je Hund, Trainer-Feedback ist zugeklappt, bis du es öffnest, und das Ziel zeigt die nächsten zwei Übungen."),
-    },
-    {
-      art: "verbessert",
-      text: uebersetzbar("Auf der Fährtenkarte hat jede Art Punkt jetzt eine eigene Form: Gegenstand als Quadrat, Leckerlipot als Kreis, Verleitung als Dreieck, Marker als Raute. Die Legende unter der Karte zeigt, welche davon auf der Fährte vorkommen."),
+      text: uebersetzbar("Die Startseite und das Ändern von Fährten laden weniger Daten, und wenn sich bei einer Vereinsveranstaltung viele über dasselbe WLAN anmelden, bremst die App nicht mehr so schnell."),
     },
     {
       art: "neu",
-      text: uebersetzbar("Neue Einstellung „Farbsichere Darstellung“ unter Profil → Darstellung & Sprache: Für Rot-Grün-Schwäche zeigen die Ampeln auf Karte, Auswertung und Verlauf Blau, Gelb und Rot statt Grün, Orange und Rot. Sie gilt für dein Konto auf jedem Gerät."),
+      text: uebersetzbar("Gelöschte Fährten werden 30 Tage nach dem Löschen endgültig entfernt, Benachrichtigungen 90 Tage nach ihrem Entstehen."),
+    },
+    {
+      art: "verbessert",
+      text: uebersetzbar("Die österreichische Prüfungsordnung für Obedience und Begleithund (ÖPO) steht auf der Ausgabe 2025."),
     },
   ],
 };
