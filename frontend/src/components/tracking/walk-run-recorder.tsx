@@ -112,7 +112,7 @@ export function WalkRunRecorder({
   // dasselbe für das Legen.
   const [unterbrochen, setUnterbrochen] = useState<AblaufSicherung | null>(null);
   const [speichert, setSpeichert] = useState(false);
-  const laufendRef = useRef<{ begonnen: number; seite: string } | null>(null);
+  const laufendRef = useRef<{ begonnen: number; seite: string; ablaufId: string } | null>(null);
   // Der gerade gespeicherte, ausgewertete Ablauf: solange er gesetzt ist, steht
   // das Ergebnis-Fenster. onSaved kommt erst mit dem Schließen (siehe
   // AblaufErgebnisSheet).
@@ -138,8 +138,9 @@ export function WalkRunRecorder({
     // AudioContext auf iOS suspended und die späteren Alarmtöne bleiben stumm.
     primeHapticsAudio();
     laufendRef.current = fortsetzen
-      ? { begonnen: fortsetzen.begonnen, seite: fortsetzen.seite }
-      : { begonnen: Date.now(), seite: window.location.pathname };
+      ? { begonnen: fortsetzen.begonnen, seite: fortsetzen.seite, ablaufId: fortsetzen.ablaufId ?? crypto.randomUUID() }
+      : // Die Kennung des künftigen Ablaufs: Jedes Speichern derselben Aufzeichnung ist dieselbe Anfrage.
+        { begonnen: Date.now(), seite: window.location.pathname, ablaufId: crypto.randomUUID() };
     if (fortsetzen) {
       setComment(fortsetzen.kommentar);
       setUnterbrochen(null);
@@ -198,6 +199,7 @@ export function WalkRunRecorder({
       trackId,
       kommentar: comment,
       points,
+      ablaufId: laufend?.ablaufId ?? crypto.randomUUID(),
       begonnen: laufend?.begonnen ?? Date.now(),
       seite: laufend?.seite ?? window.location.pathname,
     };

@@ -21,11 +21,17 @@ import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
  * Punkte, gut 75 KB - weit unter dem, was der Speicher fasst.
  *
  * Gelöscht wird eine Sicherung erst, wenn die Aufzeichnung beim Server
- * angekommen ist (oder in der Offline-Warteschlange liegt), oder wenn jemand
- * sie ausdrücklich verwirft. Ein Fehler beim Speichern lässt sie stehen.
+ * angekommen ist oder wenn jemand sie ausdrücklich verwirft. Ein Fehler beim
+ * Speichern lässt sie stehen. Landet die Aufzeichnung in der Offline-
+ * Warteschlange, zieht die Sicherung unter einen eigenen Schlüssel um
+ * (PREFIX_WARTEND): Sie erscheint dann nicht mehr als "unterbrochen", wird von
+ * einer neuen Aufzeichnung nicht überschrieben und fällt erst weg, wenn der
+ * Server den Eintrag bestätigt hat (siehe QueuedRequest.sicherung).
  */
 
 const PREFIX = "dogity_aufzeichnung:";
+// Beginnt absichtlich nicht mit PREFIX: sicherungenAuflisten zeigt diese Kopien nicht an.
+const PREFIX_WARTEND = "dogity_aufzeichnung_wartend:";
 
 type Gemeinsam = {
   /** Wem die Aufzeichnung gehört - auf einem geteilten Gerät sieht sie niemand sonst. */
@@ -60,6 +66,12 @@ export type AblaufSicherung = Gemeinsam & {
   art: "ablauf";
   /** Die gelegte Fährte, zu der dieser Ablauf gehört. */
   trackId: string;
+  /**
+   * Die Kennung des künftigen Ablaufs, beim Start vergeben - wie trackId bei der Fährte: Wiederholtes
+   * Speichern derselben Sicherung ist dieselbe Anfrage, der Server legt keinen zweiten Ablauf an. Fehlt in
+   * Sicherungen älterer Stände (dann geht die Anfrage wie früher ohne Kennung hinaus).
+   */
+  ablaufId?: string;
   kommentar: string;
   points: GpsWalkPoint[];
 };
@@ -150,6 +162,8 @@ export function sicherungenAuflisten(userId: string): AufzeichnungsSicherung[] {
  * Abmelden die lokal gespeicherten Werte entfernt. Nach einer abgelaufenen
  * Sitzung bleiben sie dagegen stehen - das ist kein Abmelden, sondern ein
  * Unfall, und nach der erneuten Anmeldung soll die Fährte noch da sein.
+ * Auch die Kopien wartender Aufzeichnungen gehen: Der Eintrag in der
+ * Warteschlange behält die Aufzeichnung ohnehin.
  */
 export function alleSicherungenLoeschen() {
   const s = speicher();
@@ -158,7 +172,7 @@ export function alleSicherungenLoeschen() {
     const weg: string[] = [];
     for (let i = 0; i < s.length; i++) {
       const schluessel = s.key(i);
-      if (schluessel?.startsWith(PREFIX)) weg.push(schluessel);
+      if (schluessel?.startsWith(PREFIX) || schluessel?.startsWith(PREFIX_WARTEND)) weg.push(schluessel);
     }
     weg.forEach((schluessel) => s.removeItem(schluessel));
   } catch {
@@ -248,6 +262,7 @@ export function anfrageAusSicherung(sicherung: AufzeichnungsSicherung): { path: 
     return {
       path: `/api/gps-tracks/${sicherung.trackId}/walk-runs`,
       body: {
+        ...(sicherung.ablaufId ? { id: sicherung.ablaufId } : {}),
         lengthMeters: estimateLengthMeters(sicherung.points),
         comment: sicherung.kommentar.trim() || null,
         points: sicherung.points,
@@ -309,10 +324,27 @@ export type SpeicherErgebnis =
   | { ausgang: "fehler"; meldung: string | null };
 
 /**
+ * Legt die Kopie einer Sicherung unter dem Schlüssel für Wartende ab; gibt ihn zurück, null wenn der
+ * Speicher gesperrt oder voll ist (dann trägt der Eintrag in der Warteschlange die Aufzeichnung allein).
+ */
+function wartendAblegen(sicherung: AufzeichnungsSicherung): string | null {
+  const schluessel = `${PREFIX_WARTEND}${sicherung.art}:${sicherung.trackId}`;
+  try {
+    const s = speicher();
+    if (!s) return null;
+    s.setItem(schluessel, JSON.stringify(sicherung));
+    return schluessel;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Schickt eine Sicherung an den Server - oder, ohne Netz oder bei kurz
- * nicht erreichbarem Server (502/503), in die Offline-Warteschlange. In
- * beiden Fällen ist sie danach gelöscht.
+ * nicht erreichbarem Server (502/503/504), in die Offline-Warteschlange.
  *
+ * Gelöscht wird sie erst, wenn der Server sie hat: gleich nach der Antwort - oder, aus der
+ * Warteschlange, nach der Bestätigung des Servers (die Kopie zieht dorthin um, siehe oben).
  * Lehnt der Server ab, bleibt sie stehen. Vorher war die Aufzeichnung in
  * diesem Fall verloren: Die Punkte wurden nach der Fehlermeldung verworfen.
  */
@@ -329,9 +361,11 @@ export async function sicherungSpeichern(
       : { ausgang: "gespeichert", faehrte: null, ablauf: istAblauf(antwort) ? antwort : null };
   } catch (err) {
     if (err instanceof ApiError && !istVoruebergehendUnerreichbar(err)) return { ausgang: "fehler", meldung: err.message };
+    const kopie = wartendAblegen(sicherung);
     try {
-      await enqueueRequest({ path, method: "POST", body, label: warteschlangenLabel });
+      await enqueueRequest({ path, method: "POST", body, label: warteschlangenLabel, ...(kopie ? { sicherung: kopie } : {}) });
     } catch {
+      if (kopie) speicher()?.removeItem(kopie);
       return { ausgang: "fehler", meldung: null };
     }
     sicherungLoeschen(schluesselVon(sicherung));

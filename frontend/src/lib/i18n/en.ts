@@ -1888,7 +1888,15 @@ export const EN: Record<string, string> = {
   "{richtig} von {gesamt} richtig.": "{richtig} of {gesamt} correct.",
   "Übungen & Schwerpunkte": "Exercises & focus areas",
   "„Zum Home-Bildschirm“": "“Add to Home Screen”",
-  "„{label}“ konnte nicht synchronisiert werden und wurde verworfen: {fehler}": "“{label}” could not be synced and was discarded: {fehler}",
+  "„{label}“ wurde vom Server abgelehnt: {fehler}": "“{label}” was rejected by the server: {fehler}",
+  "„{label}“ konnte nach mehreren Versuchen nicht gesendet werden: {fehler}": "“{label}” could not be sent after several attempts: {fehler}",
+  "Der Eintrag bleibt gespeichert - oben kannst du ihn erneut senden oder verwerfen.": "The entry stays saved - above you can send it again or discard it.",
+  "„{label}“ endgültig verwerfen? Die Daten gehen verloren.": "Discard “{label}” for good? The data will be lost.",
+  "Ein Eintrag ist nicht übertragen worden.": "One entry has not been transferred.",
+  "{n} Einträge sind nicht übertragen worden.": "{n} entries have not been transferred.",
+  "Der Server hat den Eintrag abgelehnt: {meldung}": "The server rejected the entry: {meldung}",
+  "Der Server antwortet mit einem Fehler, der Eintrag wird nicht mehr von selbst gesendet. {meldung}": "The server answers with an error, the entry is no longer sent automatically. {meldung}",
+  "Erneut senden": "Send again",
   "„{name}“ aus dieser Prüfungsordnung entfernen?": "Remove “{name}” from this exam regulation?",
 
   // Paket E1: Fehlermeldungen des Servers (der deutsche Satz ist der Schlüssel; Werte als {name}, siehe uebersetzeMeldung)

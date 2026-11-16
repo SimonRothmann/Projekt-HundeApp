@@ -251,4 +251,9 @@ public record CreateTrainingSessionRequest(
     /// Kennung des Trainings dem Gerät bekannt sein muss. Nur Besitzer:innen haken ab; fremde oder
     /// bereits erledigte Kennungen werden übergangen.
     /// </summary>
-    IReadOnlyList<Guid>? ErledigteMerkzettelIds = null);
+    IReadOnlyList<Guid>? ErledigteMerkzettelIds = null,
+    /// <summary>
+    /// Vom Gerät vergebene Kennung dieser Anfrage (siehe <see cref="Domain.Training.TrainingExercise.ClientRequestId"/>).
+    /// Anders als <c>Id</c> verhindert sie das Zusammenfassen mit der Einheit des Tages nicht. Ältere Clients kennen sie nicht.
+    /// </summary>
+    Guid? ClientRequestId = null);

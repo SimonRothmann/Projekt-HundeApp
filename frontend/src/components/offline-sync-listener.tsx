@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { listOwnQueuedRequests, nichtGleichzeitig, syncQueuedRequests } from "@/lib/offline-queue";
 import { WifiOff } from "lucide-react";
+import { OfflineEintraegeHinweis } from "@/components/offline-eintraege-hinweis";
 import { toast } from "sonner";
 
 import { uebersetzeAktuell, useT } from "@/lib/i18n";
@@ -25,16 +26,21 @@ export function OfflineSyncListener() {
   // noch Deutsch, weil die Sprache erst nach dem Hydrieren feststeht.
   const [isOffline, setIsOffline] = useState(false);
   const t = useT();
+  // Für "Erneut senden" im Hinweis: derselbe Abgleich wie sonst, ohne ihn neu zu bauen.
+  const abgleich = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     const trySync = nichtGleichzeitig(async () => {
-      const count = await syncQueuedRequests(undefined, (item, error) => {
-        // Dauerhaft aussichtsloser Eintrag (z.B. 404 auf ein inzwischen
-        // gelöschtes Training) wurde aus der Queue verworfen - dem Nutzer
-        // sagen, WAS verloren ging, statt still zu scheitern.
-        toast.error(uebersetzeAktuell("„{label}“ konnte nicht synchronisiert werden und wurde verworfen: {fehler}", { label: item.label, fehler: error.message }), {
-          duration: 10000,
-        });
+      const count = await syncQueuedRequests(undefined, (item, error, art) => {
+        // Abgelehnt (z.B. 404 auf ein inzwischen gelöschtes Training) oder aufgegeben nach Serverfehlern:
+        // Der Eintrag bleibt erhalten und steht im Hinweis zum Erneut-Senden oder Verwerfen. Hier nur
+        // sagen, WAS betroffen ist, statt still zu scheitern.
+        toast.error(
+          art === "abgelehnt"
+            ? uebersetzeAktuell("„{label}“ wurde vom Server abgelehnt: {fehler}", { label: item.label, fehler: error.message })
+            : uebersetzeAktuell("„{label}“ konnte nach mehreren Versuchen nicht gesendet werden: {fehler}", { label: item.label, fehler: error.message }),
+          { description: uebersetzeAktuell("Der Eintrag bleibt gespeichert - oben kannst du ihn erneut senden oder verwerfen."), duration: 10000 },
+        );
       });
       if (count > 0) {
         toast.success(
@@ -44,6 +50,8 @@ export function OfflineSyncListener() {
         );
       }
     });
+
+    abgleich.current = trySync;
 
     // Der billige Blick in die Warteschlange; nur wenn etwas darin liegt,
     // lohnt der Abgleich (und damit eine Anfrage an den Server).
@@ -85,12 +93,19 @@ export function OfflineSyncListener() {
     };
   }, []);
 
-  if (!isOffline) return null;
+  return (
+    <>
+      <OfflineEintraegeHinweis onErneutSenden={() => void abgleich.current?.()} />
+      {isOffline && <OfflineStreifen text={t("Offline – Änderungen werden lokal gespeichert und später synchronisiert.")} />}
+    </>
+  );
+}
 
+function OfflineStreifen({ text }: { text: string }) {
   return (
     <div className="flex items-center justify-center gap-2 bg-amber-500/15 px-4 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
       <WifiOff className="size-3.5" />
-{t("Offline – Änderungen werden lokal gespeichert und später synchronisiert.")}
+      {text}
     </div>
   );
 }

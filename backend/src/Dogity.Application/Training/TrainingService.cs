@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Application.Community;
@@ -7,6 +8,7 @@ using Dogity.Application.Tracking;
 using Dogity.Application.Weather;
 using Dogity.Domain.Training;
 using Microsoft.EntityFrameworkCore;
+using static Dogity.Application.Common.SqlStates;
 
 namespace Dogity.Application.Training;
 
@@ -98,6 +100,12 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         if (!await db.HasDogAccessAsync(userId, request.DogId, ct))
             return Result<TrainingSessionDto>.NotFound("Hund nicht gefunden.");
 
+        // Idempotenz für die Offline-Warteschlange und verlorene Antworten: Wurde diese Anfrage
+        // schon verarbeitet (auch wenn sie nur an die Einheit des Tages angehängt wurde), nichts
+        // ein zweites Mal anlegen - sonst stimmten Dauer und Wiedervorlage nicht mehr.
+        if (request.ClientRequestId is { } kennung && await BereitsVerarbeitetAsync(userId, request.DogId, kennung, ct) is { } bekannt)
+            return bekannt;
+
         if (request.Id is { } existingId)
         {
             // Idempotenz für die Offline-Warteschlange: falls dieselbe
@@ -149,6 +157,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                 : string.IsNullOrWhiteSpace(daySession.Notes) ? newNotes : $"{daySession.Notes}\n{newNotes}";
             if (daySession is not null && Textlaengen.ZuLang(tagesNotiz, Textlaengen.TrainingsNotiz, "") is null)
             {
+                var kennungDerAnfrage = request.ClientRequestId;
                 foreach (var exercise in request.Exercises)
                 {
                     // Explizit über das DbSet hinzufügen (nicht über die
@@ -164,8 +173,10 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                         Difficulty = exercise.Difficulty,
                         Success = exercise.Success,
                         Notes = exercise.Notes,
-                        TrainingPlanItemId = exercise.TrainingPlanItemId
+                        TrainingPlanItemId = exercise.TrainingPlanItemId,
+                        ClientRequestId = kennungDerAnfrage
                     });
+                    kennungDerAnfrage = null;
 
                     // Wiedervorlage-Zustand der Katalog-Übung mitziehen (P2) - wird
                     // vom gemeinsamen SaveChanges unten mitgespeichert.
@@ -214,7 +225,15 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                 if (wetterNeu)
                     ClearWeather(daySession);
 
-                await db.SaveChangesAsync(ct);
+                try
+                {
+                    await db.SaveChangesAsync(ct);
+                }
+                catch (DbUpdateException e) when (request.ClientRequestId is not null && IstDoppelteKennung(e))
+                {
+                    if (await BereitsVerarbeitetAsync(userId, request.DogId, request.ClientRequestId.Value, ct) is not { } schnellere) throw;
+                    return schnellere;
+                }
 
                 if (wetterNeu)
                     weather.EnqueueSession(daySession);
@@ -241,6 +260,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         if (request.Id is { } id)
             session.Id = id;
 
+        var kennungDerErsten = request.ClientRequestId;
         foreach (var exercise in request.Exercises)
         {
             session.Exercises.Add(new TrainingExercise
@@ -252,8 +272,10 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
                 Difficulty = exercise.Difficulty,
                 Success = exercise.Success,
                 Notes = exercise.Notes,
-                TrainingPlanItemId = exercise.TrainingPlanItemId
+                TrainingPlanItemId = exercise.TrainingPlanItemId,
+                ClientRequestId = kennungDerErsten
             });
+            kennungDerErsten = null;
 
             // Wiedervorlage-Zustand der Katalog-Übung mitziehen (P2).
             if (exercise.ExerciseId is { } exId)
@@ -262,7 +284,16 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
         db.TrainingSessions.Add(session);
         await MerkzettelErledigenAsync(userId, request, session.Id, ct);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e) when (request.ClientRequestId is not null && IstDoppelteKennung(e))
+        {
+            // Dieselbe Anfrage zweimal gleichzeitig: Die andere war schneller, ihr Training ist das eine gültige.
+            if (await BereitsVerarbeitetAsync(userId, request.DogId, request.ClientRequestId.Value, ct) is not { } schnellere) throw;
+            return schnellere;
+        }
 
         // Wetter automatisch nachziehen, sofern Ort UND Uhrzeit vorliegen - im
         // Hintergrund, damit das Speichern nicht auf den Wetterdienst wartet.
@@ -271,6 +302,29 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         var created = await GetOwnedSessionAsync(userId, session.Id, ct, track: false);
         // Frisch angelegtes Training kann noch keine Fährte haben.
         return Result<TrainingSessionDto>.Success(ToDto(created!, hasGpsTrack: false));
+    }
+
+    private static bool IstDoppelteKennung(DbUpdateException e) =>
+        e.InnerException is DbException { SqlState: EindeutigerIndexVerletzt };
+
+    /// <summary>
+    /// Das Training, an dem die Anfrage mit dieser Kennung schon hängt; null, wenn sie noch nie ankam. Ist das
+    /// Training inzwischen gelöscht oder gehört es zu einem anderen Hund, ist es ein 404 (nicht neu anlegen: die
+    /// Löschung war gewollt, und die Kennung ist im Index noch belegt).
+    /// </summary>
+    private async Task<Result<TrainingSessionDto>?> BereitsVerarbeitetAsync(Guid userId, Guid dogId, Guid kennung, CancellationToken ct)
+    {
+        // Ohne Filter: Auch eine weich gelöschte Übung hält die Kennung im Index belegt.
+        var einheitId = await db.TrainingExercises.IgnoreQueryFilters()
+            .Where(e => e.ClientRequestId == kennung)
+            .Select(e => (Guid?)e.TrainingSessionId)
+            .FirstOrDefaultAsync(ct);
+        if (einheitId is null) return null;
+
+        var einheit = await GetOwnedSessionAsync(userId, einheitId.Value, ct, track: false);
+        return einheit is null || einheit.DogId != dogId
+            ? Result<TrainingSessionDto>.NotFound("Training nicht gefunden.")
+            : Result<TrainingSessionDto>.Success(ToDto(einheit, await HasGpsTrackAsync(einheit.Id, ct)));
     }
 
     /// <summary>

@@ -56,19 +56,20 @@ export class ApiError extends Error {
 
 /**
  * Ob eine Anfrage nur gerade nicht ankam und sich gefahrlos nachschicken lässt:
- * Netzwerkfehler (alles, was kein ApiError ist) und 502/503 - so antwortet der
- * Proxy, solange das Backend bei einem Update neu startet.
+ * Netzwerkfehler (alles, was kein ApiError ist) und 502/503/504 - so antwortet der
+ * Proxy, solange das Backend bei einem Update neu startet (502/503) oder nicht
+ * rechtzeitig antwortet (504).
  *
- * Bewusst NICHT 500 und NICHT 504: Dort kann der Server die Anfrage schon
- * verarbeitet haben. Ein Training hat keine Id vom Gerät, das Nachschicken
- * ergäbe eine Dublette.
+ * Bewusst NICHT 500: Das ist ein Fehler im Server, den das Nachschicken nicht behebt;
+ * die Person soll ihn sehen und das Fenster mit der Eingabe offen behalten.
  *
- * Restrisiko: Auch ein 502/503 kann entstehen, wenn der Server beim Stopp eine
- * schon angenommene Anfrage abbricht - dann wäre das Nachschicken eine
- * Dublette. Vermeiden ließe es nur eine Client-Id fürs Training (Backend).
+ * Nachgeschickt wird, was der Server wiedererkennt: Fährte, Ablauf, Training und
+ * Merkzettel tragen eine Kennung vom Gerät und werden bei einer zweiten Anfrage nicht
+ * doppelt angelegt. Darum ist auch ein 502/503/504 gefahrlos, bei dem der Server die
+ * Anfrage schon angenommen hatte. Was keine Kennung trägt, gehört nicht in die Schlange.
  */
 export function istVoruebergehendUnerreichbar(err: unknown): boolean {
-  return !(err instanceof ApiError) || err.status === 502 || err.status === 503;
+  return !(err instanceof ApiError) || err.status === 502 || err.status === 503 || err.status === 504;
 }
 
 /**

@@ -17,7 +17,7 @@ namespace Dogity.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.14")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -2915,6 +2915,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ClientRequestId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2960,6 +2963,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClientRequestId")
+                        .IsUnique();
 
                     b.HasIndex("ExerciseId");
 
@@ -3111,6 +3117,8 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DogId", "Condition");
+
+                    b.HasIndex("DogId", "Date");
 
                     b.HasIndex("UserId", "DogId", "Date");
 

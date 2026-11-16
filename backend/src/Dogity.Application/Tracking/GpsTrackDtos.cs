@@ -171,7 +171,10 @@ public record CreateGpsWalkPointRequest(double Latitude, double Longitude, DateT
 public record CreateGpsWalkRunRequest(
     double? LengthMeters,
     string? Comment,
-    IReadOnlyList<CreateGpsWalkPointRequest> Points);
+    IReadOnlyList<CreateGpsWalkPointRequest> Points,
+    // Vom Gerät vergebene Kennung (wie bei der Fährte): Kam die Antwort nicht an, legt das erneute Senden
+    // aus der Offline-Warteschlange keinen zweiten Ablauf an. Ältere Clients kennen das Feld nicht.
+    Guid? Id = null);
 
 public record UpdateGpsWalkRunRequest(string? Comment);
 
