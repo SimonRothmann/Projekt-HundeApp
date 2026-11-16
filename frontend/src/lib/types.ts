@@ -1716,6 +1716,8 @@ export type UserPreferences = {
   reminderTrainingNotes: boolean;
   /** Schrittlänge in cm (40 bis 120) für die Umrechnung der Fährtenlänge in Schritte, null = Standard (lib/schritte.ts). */
   stepLengthCm: number | null;
+  /** Farbsichere Darstellung (Ampel in Blau, Gelb, Rot) für Rot-Grün-Schwäche, siehe lib/farbsicher.ts. Vorgabe: aus. */
+  colorSafe: boolean;
 };
 
 /** Ein wählbarer Geltungsbereich - Spiegel von Application/Sports/CountryDto. */

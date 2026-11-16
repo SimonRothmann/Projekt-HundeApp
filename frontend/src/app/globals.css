@@ -34,6 +34,12 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-ampel-gruen: var(--ampel-gruen);
+  --color-ampel-gelb: var(--ampel-gelb);
+  --color-ampel-rot: var(--ampel-rot);
+  --color-ampel-balken-gruen: var(--ampel-balken-gruen);
+  --color-ampel-balken-gelb: var(--ampel-balken-gelb);
+  --color-ampel-balken-rot: var(--ampel-balken-rot);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-accent-2: var(--accent-2);
@@ -177,6 +183,37 @@
   --sidebar-accent-foreground: oklch(0.93 0.006 280);
   --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: oklch(0.78 0.12 282 / 55%);
+}
+
+/* Die Ampel der Fährte (Text und Balken), siehe lib/spur-ampel.ts. Ohne Modus
+   exakt die bisherigen Töne (emerald, amber, destructive). Mit der
+   "Farbsicheren Darstellung" (data-farben="sicher", lib/farbsicher.ts) die
+   Palette von Paul Tol - Blau, Gelb, Rot -, die auch bei Rot-Grün-Schwäche
+   auseinanderzuhalten ist. Textfarben je Grund: hell dunkler, dunkel heller. */
+:root {
+  --ampel-gruen: oklch(59.6% 0.145 163.225);
+  --ampel-gelb: oklch(66.6% 0.179 58.318);
+  --ampel-rot: var(--destructive);
+  --ampel-balken-gruen: oklch(69.6% 0.17 162.48);
+  --ampel-balken-gelb: oklch(76.9% 0.188 70.08);
+  --ampel-balken-rot: var(--destructive);
+}
+.dark {
+  --ampel-gruen: oklch(69.6% 0.17 162.48);
+  --ampel-gelb: oklch(76.9% 0.188 70.08);
+}
+:root[data-farben="sicher"] {
+  --ampel-gruen: #0077bb;
+  --ampel-gelb: #8c6600;
+  --ampel-rot: #cc3311;
+  --ampel-balken-gruen: #0077bb;
+  --ampel-balken-gelb: #ddaa33;
+  --ampel-balken-rot: #cc3311;
+}
+:root[data-farben="sicher"].dark {
+  --ampel-gruen: #33bbee;
+  --ampel-gelb: #eebb55;
+  --ampel-rot: #ee6644;
 }
 
 @layer base {

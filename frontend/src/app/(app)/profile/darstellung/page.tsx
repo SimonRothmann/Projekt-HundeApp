@@ -3,6 +3,7 @@
 import { useT } from "@/lib/i18n";
 import { ThemeSection } from "@/components/preferences/theme-section";
 import { SchriftgroesseSection } from "@/components/preferences/schriftgroesse-section";
+import { FarbenSection } from "@/components/preferences/farben-section";
 import { SpracheUndLandSection } from "@/components/preferences/sprache-und-land-section";
 
 /**
@@ -17,6 +18,7 @@ export default function DarstellungPage() {
       <h1 className="text-2xl font-semibold tracking-tight">{t("Darstellung & Sprache")}</h1>
       <ThemeSection />
       <SchriftgroesseSection />
+      <FarbenSection />
       <SpracheUndLandSection />
     </div>
   );

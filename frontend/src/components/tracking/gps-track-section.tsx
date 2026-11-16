@@ -233,7 +233,7 @@ export function GpsTrackSection({
                 liveWalkRunPoints={liveWalkPoints[track.id]}
                 art={track}
               />
-              <TrackLegend walkRuns={track.walkRuns} art={track} />
+              <TrackLegend walkRuns={track.walkRuns} art={track} points={track.points} />
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                 {times && (
                   // Auch die Endzeit zeigen, nicht nur den Beginn: Fürs

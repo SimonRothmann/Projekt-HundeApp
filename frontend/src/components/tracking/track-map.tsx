@@ -9,22 +9,27 @@ import { Button } from "@/components/ui/button";
 import { EBENE_GEAENDERT, KARTEN_EBENEN, ebeneMerken, gespeicherteEbene, type KartenEbene } from "@/lib/karten-ebenen";
 import type { GpsWalkRun } from "@/lib/types";
 import { useT } from "@/lib/i18n";
-import { automatischePunkte } from "@/lib/geo";
+import { automatischePunkte, markerPunkte } from "@/lib/geo";
 import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
 import { kartenTexte } from "@/lib/karte/kartentexte";
 import { glaettePeilung, naechsteAusrichtung, rohePeilung, zielPeilung, type Ausrichtung } from "@/lib/karte/peilung";
 import {
-  DEVIATION_COLORS,
+  MARKER_FORMEN,
+  MARKER_LABELS,
+  MARKER_RAND_FARBE,
   TRACK_CASING_COLOR,
   TRACK_LINE_COLOR,
   WALK_RUN_COLORS,
   ablaufDaten,
+  deviationColors,
   kartenGrenzen,
   legungDaten,
   leer,
   liveAblaufDaten,
+  markerArt,
   winkelDaten,
   type KartenPunkt,
+  type MarkerArt,
 } from "@/lib/karte/spur-daten";
 import {
   TIPPBARE_EBENEN,
@@ -693,6 +698,17 @@ function Linienprobe({
   );
 }
 
+/** Das Zeichen eines Markers in der Form und Farbe, die auf der Karte gezeichnet wird (Tabelle MARKER_FORMEN). */
+function Markerprobe({ art }: { art: MarkerArt }) {
+  const punkte = art.umriss === "kreis" ? null : art.umriss.map(([x, y]) => `${x * 24},${y * 24}`).join(" ");
+  const gemeinsam = { fill: art.farbe, stroke: MARKER_RAND_FARBE, strokeWidth: 2.5, strokeLinejoin: "round" as const };
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" className="shrink-0" aria-hidden>
+      {punkte ? <polygon points={punkte} {...gemeinsam} /> : <circle cx="12" cy="12" r="7.2" {...gemeinsam} />}
+    </svg>
+  );
+}
+
 /**
  * Legende zur Karte.
  *
@@ -704,8 +720,21 @@ function Linienprobe({
  *
  * Zeigt nur, was auch wirklich auf der Karte liegt: ohne Ablauf keine Ampel.
  */
-export function TrackLegend({ walkRuns, art }: { walkRuns: GpsWalkRun[]; art?: { kind?: number | null } }) {
+export function TrackLegend({
+  walkRuns,
+  art,
+  points,
+}: {
+  walkRuns: GpsWalkRun[];
+  art?: { kind?: number | null };
+  /** Die Punkte der Fährte: Daraus ergibt sich, welche Markerarten es auf dieser Karte gibt. */
+  points?: KartenPunkt[];
+}) {
   const t = useT();
+  const farben = deviationColors();
+  // Nur Markerarten, die wirklich vorkommen, in der Reihenfolge der Tabelle.
+  const vorhanden = new Set(markerPunkte(points ?? []).map((p) => markerArt(p.markerType)));
+  const markerArten = MARKER_FORMEN.filter((art) => vorhanden.has(art));
   const grenzen = spurGrenzen(art);
   const istBewertet = (run: GpsWalkRun) => run.points.some((p) => p.deviationMeters != null);
   const bewertete = walkRuns.filter(istBewertet);
@@ -721,6 +750,12 @@ export function TrackLegend({ walkRuns, art }: { walkRuns: GpsWalkRun[]; art?: {
         <Linienprobe farbe={TRACK_LINE_COLOR} fassung={TRACK_CASING_COLOR} />
         <span className="font-medium text-foreground">{istMantrailing(art) ? t("Gelegter Trail") : t("Gelegte Fährte")}</span>
       </span>
+      {markerArten.map((markerart) => (
+        <span key={markerart.form} className="flex items-center gap-1.5">
+          <Markerprobe art={markerart} />
+          {t(MARKER_LABELS[MARKER_FORMEN.indexOf(markerart)])}
+        </span>
+      ))}
       {unbewertete.map(({ index }) => (
         <span key={index} className="flex items-center gap-1.5">
           <Linienprobe farbe={WALK_RUN_COLORS[index % WALK_RUN_COLORS.length]} gestrichelt />
@@ -731,15 +766,15 @@ export function TrackLegend({ walkRuns, art }: { walkRuns: GpsWalkRun[]; art?: {
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-medium text-foreground">{t("Ablauf, Abweichung:")}</span>
           <span className="flex items-center gap-1.5">
-            <Linienprobe farbe={DEVIATION_COLORS.green} />
+            <Linienprobe farbe={farben.green} />
             {t("bis {meter} m", { meter: grenzen.gruenBis })}
           </span>
           <span className="flex items-center gap-1.5">
-            <Linienprobe farbe={DEVIATION_COLORS.amber} />
+            <Linienprobe farbe={farben.amber} />
             {t("bis {meter} m", { meter: grenzen.gelbBis })}
           </span>
           <span className="flex items-center gap-1.5">
-            <Linienprobe farbe={DEVIATION_COLORS.red} />
+            <Linienprobe farbe={farben.red} />
             {t("darüber")}
           </span>
         </span>

@@ -2,7 +2,7 @@ import type { GpsWalkRun } from "@/lib/types";
 import { automatischePunkte, markerPunkte } from "@/lib/geo";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { FAEHRTE_GRENZEN, type SpurGrenzen } from "@/lib/mantrailing";
-import { AMPEL_FARBEN, ampelStufe } from "@/lib/spur-ampel";
+import { ampelFarben, ampelStufe } from "@/lib/spur-ampel";
 import { winkelBeschriftung, winkelZustand, zustandBeschriftung } from "@/lib/winkel-schenkel";
 
 /**
@@ -69,10 +69,14 @@ export const TRACK_CASING_COLOR = "#1e1b2e";
 // Ampelfarben für die Abweichung der Ablauf-Linie: die Farbtabelle und die
 // Einstufung der Auswertung (lib/spur-ampel.ts), damit Karte, Auswertung und
 // Fährtenbild nie verschiedene Farben für denselben Ablauf zeigen.
-export const DEVIATION_COLORS = { green: AMPEL_FARBEN.gruen, amber: AMPEL_FARBEN.gelb, red: AMPEL_FARBEN.rot } as const;
+// Eine Funktion statt Konstante: die Palette hängt am Modus "Farbsichere Darstellung".
+export function deviationColors(): { green: string; amber: string; red: string } {
+  const farben = ampelFarben();
+  return { green: farben.gruen, amber: farben.gelb, red: farben.rot };
+}
 
 export function deviationColor(meters: number | null | undefined, grenzen: SpurGrenzen = FAEHRTE_GRENZEN): string | null {
-  return meters == null ? null : AMPEL_FARBEN[ampelStufe(meters, grenzen)];
+  return meters == null ? null : ampelFarben()[ampelStufe(meters, grenzen)];
 }
 
 // Beschriftung manueller Marker nach fachlicher Bedeutung (GpsMarkerType).
@@ -82,11 +86,43 @@ export const MARKER_LABELS = [
   uebersetzbar("Verleitung"),
   uebersetzbar("Marker"),
 ] as const;
-export const MARKER_COLORS = ["orange", "#a855f7", "#0ea5e9", "#94a3b8"] as const;
+
+/**
+ * Form UND Farbe je Markerart - die EINE Tabelle für Karte (spur-ebenen.ts) und
+ * Legende (track-map.tsx). Die Form trägt die Unterscheidung, die Farbe hilft nur:
+ * Bei Rot-Grün-Schwäche werden Gelb, Orange und Grün zu Gelbtönen, Magenta der
+ * Legung zu Blau-Lavendel. Index = markerType (GpsMarkerType), Rückfall = Marker.
+ *
+ * `umriss` in Einheitskoordinaten (0 bis 1, Mitte 0,5), Spitze des Dreiecks oben;
+ * "kreis" als Kreis um die Mitte (Radius 0,3). Größen so gewählt, dass die Formen
+ * optisch gleich groß wirken (das Dreieck braucht mehr Kantenlänge als das Quadrat).
+ */
+export type MarkerForm = "quadrat" | "kreis" | "dreieck" | "raute";
+export type MarkerUmriss = "kreis" | readonly (readonly [number, number])[];
+export type MarkerArt = { form: MarkerForm; farbe: string; umriss: MarkerUmriss };
+
+export const MARKER_FORMEN: readonly MarkerArt[] = [
+  { form: "quadrat", farbe: "#facc15", umriss: [[0.2, 0.2], [0.8, 0.2], [0.8, 0.8], [0.2, 0.8]] },
+  { form: "kreis", farbe: "#ffffff", umriss: "kreis" },
+  { form: "dreieck", farbe: "#f97316", umriss: [[0.5, 0.16], [0.86, 0.84], [0.14, 0.84]] },
+  { form: "raute", farbe: "#94a3b8", umriss: [[0.5, 0.15], [0.85, 0.5], [0.5, 0.85], [0.15, 0.5]] },
+];
+
+/** Dunkler Rand der Marker (und Rand der Legendenzeichen). */
+export const MARKER_RAND_FARBE = "#1c1917";
+
+/** Die Art zu einem markerType; Unbekanntes ist ein Marker. */
+export function markerArt(markerType: number | undefined): MarkerArt {
+  return MARKER_FORMEN[markerType ?? 0] ?? MARKER_FORMEN[3];
+}
 
 // Stockungen: unerklärt = Warnsignal (rot), Verweisen am Gegenstand = gut
-// (grün), erklärt/neutral (grau).
-export const STOP_COLORS = ["#dc2626", "#16a34a", "#94a3b8", "#94a3b8"] as const;
+// (grün), erklärt/neutral (grau) - rot und grün aus der Ampel, also im Modus
+// "Farbsichere Darstellung" Rot und Blau.
+export function stopColors(): readonly [string, string, string, string] {
+  const farben = ampelFarben();
+  return [farben.rot, farben.gruen, "#94a3b8", "#94a3b8"];
+}
 export const STOP_LABELS = [
   uebersetzbar("Unerklärte Stockung"),
   uebersetzbar("Verweisen"),
@@ -155,7 +191,7 @@ export function legungDaten(points: KartenPunkt[], live: boolean, t: TextUeberse
       features: manuell.map((p) => {
         const art = p.markerType ?? 0;
         return punkt(p, {
-          farbe: MARKER_COLORS[art] ?? MARKER_COLORS[3],
+          form: markerArt(art).form,
           // Das Label stammt von Nutzer:innen - es geht als Text weiter und
           // wird als Text angezeigt (setText), nie als HTML.
           text: p.label || t(MARKER_LABELS[art] ?? MARKER_LABELS[3]),
@@ -177,9 +213,9 @@ export function winkelDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen:
     const zustand = winkelZustand(corner);
     const farbe =
       zustand === "sauber"
-        ? AMPEL_FARBEN.gruen
+        ? ampelFarben().gruen
         : zustand === "ueberschossen"
-          ? (deviationColor(corner.overshootMeters ?? Infinity, grenzen) ?? AMPEL_FARBEN.rot)
+          ? (deviationColor(corner.overshootMeters ?? Infinity, grenzen) ?? ampelFarben().rot)
           : WINKEL_NEUTRAL_FARBE;
     return punkt(corner, {
       farbe,
@@ -200,6 +236,7 @@ export type AblaufDaten = {
 
 /** Die abgelaufenen Versuche mit ihren Haltepunkten; die Farben folgen den Grenzen der Art (Fährte oder Mantrailing). */
 export function ablaufDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen: SpurGrenzen = FAEHRTE_GRENZEN): AblaufDaten {
+  const stopFarben = stopColors();
   const bewertet: Merkmal<Linie>[] = [];
   const unbewertet: Merkmal<Linie>[] = [];
   const halte: Merkmal<Punkt>[] = [];
@@ -232,7 +269,7 @@ export function ablaufDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen:
     (run.stops ?? []).forEach((stop) => {
       halte.push(
         punkt(stop, {
-          farbe: STOP_COLORS[stop.kind] ?? STOP_COLORS[2],
+          farbe: stopFarben[stop.kind] ?? stopFarben[2],
           // markerLabel kopiert der Server aus dem Label des nächsten
           // Markers - also ebenso Text von Nutzer:innen.
           text: `${t(STOP_LABELS[stop.kind] ?? uebersetzbar("Halt"))}: ${stop.durationSeconds}s${stop.markerLabel ? ` (${stop.markerLabel})` : ""}`,

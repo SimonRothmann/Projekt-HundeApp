@@ -1,6 +1,7 @@
 import type { Map as KartenObjekt } from "maplibre-gl";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  MARKER_BILD_PRAEFIX,
   SPUR_QUELLEN,
   TIPPBARE_EBENEN,
   datenAnwenden,
@@ -9,7 +10,7 @@ import {
   spurEbenen,
   strichmuster,
 } from "./spur-ebenen";
-import { TRACK_CASING_COLOR, TRACK_LINE_COLOR, leer } from "./spur-daten";
+import { MARKER_FORMEN, TRACK_CASING_COLOR, TRACK_LINE_COLOR, leer } from "./spur-daten";
 
 describe("strichmuster", () => {
   it("rechnet Bildpunkte in Linienbreiten um", () => {
@@ -77,7 +78,17 @@ describe("spurEbenen", () => {
     expect(ebenen.find((e) => e.id === "halte")).toMatchObject({
       paint: { "circle-radius": 9, "circle-opacity": 0, "circle-stroke-width": 3 },
     });
-    expect(ebenen.find((e) => e.id === "marker")).toMatchObject({ paint: { "circle-radius": 7 } });
+  });
+
+  it("zeichnet Marker als Bilder je Form, die sich überlagern dürfen", () => {
+    expect(ebenen.find((e) => e.id === "marker")).toMatchObject({
+      type: "symbol",
+      layout: {
+        "icon-image": ["concat", MARKER_BILD_PRAEFIX, ["get", "form"]],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+      },
+    });
   });
 
   it("zeichnet Start gefüllt und Ende hohl", () => {
@@ -92,8 +103,21 @@ describe("spurEbenen", () => {
   });
 });
 
+/** Ein Dokument, dessen Leinwand alles annimmt: ebenenAnlegen zeichnet die Markerbilder darauf. */
+function falscheLeinwand() {
+  const ctx = new Proxy({ getImageData: (_x: number, _y: number, breite: number, hoehe: number) => ({ width: breite, height: hoehe }) } as Record<string, unknown>, {
+    get: (ziel, name: string) => ziel[name] ?? (() => undefined),
+    set: () => true,
+  });
+  vi.stubGlobal("document", { createElement: () => ({ width: 0, height: 0, getContext: () => ctx }) });
+}
+
+afterEach(() => vi.unstubAllGlobals());
+
 /** Eine Karte, die nur kann, was ebenenAnlegen und datenAnwenden brauchen. */
 function falscheKarte() {
+  falscheLeinwand();
+  const bilder = new Set<string>();
   const quellen = new Map<string, { setData: ReturnType<typeof vi.fn> }>();
   const ebenen = new Set<string>();
   const karte = {
@@ -101,8 +125,10 @@ function falscheKarte() {
     addSource: vi.fn((id: string) => quellen.set(id, { setData: vi.fn() })),
     getLayer: (id: string) => (ebenen.has(id) ? { id } : undefined),
     addLayer: vi.fn((ebene: { id: string }) => ebenen.add(ebene.id)),
+    hasImage: (id: string) => bilder.has(id),
+    addImage: vi.fn((id: string) => bilder.add(id)),
   };
-  return { karte: karte as unknown as KartenObjekt, rohling: karte, quellen, ebenen };
+  return { karte: karte as unknown as KartenObjekt, rohling: karte, quellen, ebenen, bilder };
 }
 
 describe("ebenenAnlegen", () => {
@@ -114,10 +140,18 @@ describe("ebenenAnlegen", () => {
     expect(rohling.addLayer).toHaveBeenCalledTimes(spurEbenen().length);
   });
 
+  it("registriert für jede Markerform ein Bild mit Pixelverhältnis 2", () => {
+    const { karte, rohling, bilder } = falscheKarte();
+    ebenenAnlegen(karte, leererDatensatz());
+    expect([...bilder]).toStrictEqual(MARKER_FORMEN.map((a) => MARKER_BILD_PRAEFIX + a.form));
+    expect(rohling.addImage).toHaveBeenCalledWith(expect.any(String), expect.anything(), { pixelRatio: 2 });
+  });
+
   it("legt nichts doppelt an, wenn es schon da ist", () => {
     const { karte, rohling } = falscheKarte();
     ebenenAnlegen(karte, leererDatensatz());
     ebenenAnlegen(karte, leererDatensatz());
+    expect(rohling.addImage).toHaveBeenCalledTimes(MARKER_FORMEN.length);
     expect(rohling.addSource).toHaveBeenCalledTimes(SPUR_QUELLEN.length);
     expect(rohling.addLayer).toHaveBeenCalledTimes(spurEbenen().length);
   });

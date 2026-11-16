@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { MODULE, type UserPreferences } from "@/lib/types";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
 import { bestimmeSchriftgroesse, wendeSchriftgroesseAn } from "@/lib/schriftgroesse";
+import { wendeFarbsicherAn } from "@/lib/farbsicher";
 import { useAuth } from "@/lib/auth-context";
 import { VORGABE_STUNDE, VORGABE_TAGE } from "@/lib/erinnerungen";
 
@@ -40,6 +41,7 @@ const VORGABE: UserPreferences = {
   trainerSummaryDays: VORGABE_TAGE,
   trainerSummaryHour: VORGABE_STUNDE,
   stepLengthCm: null,
+  colorSafe: false,
 };
 
 const PreferencesContext = createContext<PreferencesValue | undefined>(undefined);
@@ -80,6 +82,12 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     wendeSchriftgroesseAn(bestimmeSchriftgroesse(preferences.fontScale));
   }, [user, preferences.fontScale]);
+
+  // Ebenso die farbsichere Darstellung: Attribut am Wurzelelement, Zwischenspeicher fürs nächste Zeichnen.
+  useEffect(() => {
+    if (!user) return;
+    wendeFarbsicherAn(preferences.colorSafe);
+  }, [user, preferences.colorSafe]);
 
   const value = useMemo<PreferencesValue>(
     () => ({

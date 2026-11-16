@@ -110,9 +110,10 @@ function MaterialQuoten({ gruppen }: { gruppen: DogTrackMaterialGroup[] }) {
 }
 
 const AMPEL_BALKEN: Record<Ampel, string> = {
-  gruen: "bg-emerald-500",
-  gelb: "bg-amber-500",
-  rot: "bg-destructive",
+  // Aus CSS-Variablen (globals.css): im Modus "Farbsichere Darstellung" Blau, Gelb, Rot.
+  gruen: "bg-ampel-balken-gruen",
+  gelb: "bg-ampel-balken-gelb",
+  rot: "bg-ampel-balken-rot",
 };
 
 /**

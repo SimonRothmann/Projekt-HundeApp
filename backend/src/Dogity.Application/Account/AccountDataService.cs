@@ -186,7 +186,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     einstellung.TrainerSummaryHour,
                     einstellung.ReminderHealth,
                     einstellung.StepLengthCm,
-                    einstellung.ReminderTrainingNotes),
+                    einstellung.ReminderTrainingNotes,
+                    einstellung.ColorSafe),
             hunde.Select(hund =>
             {
                 var rolle = besitz.First(b => b.DogId == hund.Id);

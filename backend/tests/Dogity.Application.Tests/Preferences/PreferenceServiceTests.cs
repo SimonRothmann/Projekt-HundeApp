@@ -86,4 +86,21 @@ public class PreferenceServiceTests
         Assert.Equal("en", gelesen.Value!.Locale);
         Assert.Equal(FontScales.Gross, gelesen.Value!.FontScale);
     }
+
+    [Fact]
+    public async Task Farbsichere_Darstellung_ist_aus_bis_sie_eingeschaltet_wird()
+    {
+        var service = Service(out var userId);
+        Assert.False((await service.GetAsync(userId)).Value!.ColorSafe);
+
+        await service.UpdateLocaleAsync(userId, new UpdateLocaleRequest("en"));
+        await service.UpdateColorSafeAsync(userId, new UpdateColorSafeRequest(true));
+
+        var gelesen = await service.GetAsync(userId);
+        Assert.True(gelesen.Value!.ColorSafe);
+        Assert.Equal("en", gelesen.Value.Locale);
+
+        await service.UpdateColorSafeAsync(userId, new UpdateColorSafeRequest(false));
+        Assert.False((await service.GetAsync(userId)).Value!.ColorSafe);
+    }
 }

@@ -1,5 +1,15 @@
 import type { ExpressionSpecification, GeoJSONSource, LayerSpecification, Map as KartenObjekt } from "maplibre-gl";
-import { TRACK_CASING_COLOR, TRACK_LINE_COLOR, leer, type Linie, type Merkmale, type Punkt } from "@/lib/karte/spur-daten";
+import {
+  MARKER_FORMEN,
+  MARKER_RAND_FARBE,
+  TRACK_CASING_COLOR,
+  TRACK_LINE_COLOR,
+  leer,
+  type Linie,
+  type MarkerArt,
+  type Merkmale,
+  type Punkt,
+} from "@/lib/karte/spur-daten";
 
 /**
  * Die eigenen Quellen und Ebenen der Fährtenkarte, über dem Grundstil.
@@ -45,6 +55,12 @@ export const TIPPBARE_EBENEN = [
 export function strichmuster(strich: number, luecke: number, breite: number): [number, number] {
   return [strich / breite, luecke / breite];
 }
+
+/** Kantenlänge eines Markerbilds in Bildpunkten (Pixelverhältnis 2: das Bild hat die doppelte Zahl an Pixeln). */
+const MARKER_BILD_GROESSE = 24;
+const MARKER_BILD_FAKTOR = 2;
+/** Name eines Markerbilds in der Karte: Präfix + Form. */
+export const MARKER_BILD_PRAEFIX = "marker-";
 
 const ABLAUF_BREITE = 4;
 // Die Farbe steht je Merkmal in den Daten (spur-daten.ts), nicht in der Ebene.
@@ -112,17 +128,16 @@ export function spurEbenen(): LayerSpecification[] {
         "circle-stroke-width": 3,
       },
     },
+    // Die Marker als Bilder mit eigener Form je Art (markerBilder): Die Form trägt die
+    // Unterscheidung, die Farbe hilft nur. Die Bilder legt ebenenAnlegen an.
     {
       id: "marker",
-      type: "circle",
+      type: "symbol",
       source: "marker",
-      paint: {
-        "circle-radius": 7,
-        "circle-color": FARBE,
-        "circle-opacity": 0.9,
-        "circle-stroke-color": FARBE,
-        "circle-stroke-width": 2,
-        "circle-stroke-opacity": 0.9,
+      layout: {
+        "icon-image": ["concat", MARKER_BILD_PRAEFIX, ["get", "form"]],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     },
     // Die Nummer jedes Winkels der Legung, klein auf der Linie. Die Schrift liegt als Glyphen
@@ -193,6 +208,41 @@ export function spurEbenen(): LayerSpecification[] {
   ];
 }
 
+/**
+ * Zeichnet eine Markerform mit dunklem Rand und hellem Saum, damit sie auf Luftbild und heller wie
+ * dunkler Karte steht. `groesse` ist die Kantenlänge des Bildes, die Form liegt mit Rand darin.
+ */
+export function zeichneMarkerForm(ctx: CanvasRenderingContext2D, art: MarkerArt, groesse: number): void {
+  ctx.beginPath();
+  if (art.umriss === "kreis") {
+    ctx.arc(groesse / 2, groesse / 2, 0.3 * groesse, 0, Math.PI * 2);
+  } else {
+    art.umriss.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x * groesse, y * groesse) : ctx.lineTo(x * groesse, y * groesse)));
+    ctx.closePath();
+  }
+  ctx.lineJoin = "round";
+  // Der Strich liegt je zur Hälfte innen und außen; die Füllung deckt die innere Hälfte,
+  // sichtbar bleiben außen 2 px dunkler Rand und darum 1,5 px weißer Saum.
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 7;
+  ctx.stroke();
+  ctx.strokeStyle = MARKER_RAND_FARBE;
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.fillStyle = art.farbe;
+  ctx.fill();
+}
+
+function markerBild(art: MarkerArt): ImageData | null {
+  const leinwand = document.createElement("canvas");
+  leinwand.width = leinwand.height = MARKER_BILD_GROESSE * MARKER_BILD_FAKTOR;
+  const ctx = leinwand.getContext("2d");
+  if (!ctx) return null;
+  ctx.scale(MARKER_BILD_FAKTOR, MARKER_BILD_FAKTOR);
+  zeichneMarkerForm(ctx, art, MARKER_BILD_GROESSE);
+  return ctx.getImageData(0, 0, leinwand.width, leinwand.height);
+}
+
 // Die GeoJSON-Form, die setData annimmt - ohne @types/geojson als eigene
 // Abhängigkeit anzufassen.
 type GeoJsonDaten = Exclude<Parameters<GeoJSONSource["setData"]>[0], string>;
@@ -213,6 +263,13 @@ export function leererDatensatz(): SpurDatensatz {
 export function ebenenAnlegen(map: KartenObjekt, daten: SpurDatensatz): void {
   for (const id of SPUR_QUELLEN) {
     if (!map.getSource(id)) map.addSource(id, { type: "geojson", data: daten[id] as GeoJsonDaten });
+  }
+  // Bilder gehen mit dem Stil verloren wie die Ebenen - und werden hier ebenso nur ergänzt.
+  for (const art of MARKER_FORMEN) {
+    const id = MARKER_BILD_PRAEFIX + art.form;
+    if (map.hasImage(id)) continue;
+    const bild = markerBild(art);
+    if (bild) map.addImage(id, bild, { pixelRatio: MARKER_BILD_FAKTOR });
   }
   for (const ebene of spurEbenen()) {
     if (!map.getLayer(ebene.id)) map.addLayer(ebene);

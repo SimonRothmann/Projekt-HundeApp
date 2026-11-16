@@ -36,6 +36,9 @@ public interface IPreferenceService
     /// </summary>
     Task<Result> UpdateEmailNotificationsAsync(Guid userId, UpdateEmailNotificationsRequest request, CancellationToken ct = default);
 
+    /// <summary>Farbsichere Darstellung ein-/ausschalten, siehe <see cref="Dogity.Domain.Preferences.UserPreference.ColorSafe"/>.</summary>
+    Task<Result> UpdateColorSafeAsync(Guid userId, UpdateColorSafeRequest request, CancellationToken ct = default);
+
     /// <summary>
     /// Setzt die Schrittlänge für die Umrechnung der Fährtenlänge in Schritte. Erlaubt sind
     /// 40 bis 120 cm; null stellt den Standard wieder her.

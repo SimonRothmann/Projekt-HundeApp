@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { faerbeSegmente } from "./faehrten-bild";
-import { deviationColor } from "./karte/spur-daten";
+import { deviationColor, stopColors } from "./karte/spur-daten";
 import { ART_FAEHRTE, ART_MANTRAILING, FAEHRTE_GRENZEN, MANTRAILING_GRENZEN, spurGrenzen } from "./mantrailing";
-import { AMPEL_FARBEN, ampelLabel, ampelStufe } from "./spur-ampel";
+import { AMPEL_FARBEN_NORMAL, AMPEL_FARBEN_SICHER, ampelFarben, ampelLabel, ampelStufe } from "./spur-ampel";
+import { wendeFarbsicherAn } from "./farbsicher";
 
 // Eine Einstufung für alle Anzeigen: Auswertung (Wort), Kartenlinie (Farbe) und
 // Fährtenbild (Linienstück) müssen für dieselbe Abweichung dieselbe Stufe nennen.
@@ -21,7 +22,7 @@ describe("Ampel der Abweichung", () => {
   it.each(FAELLE)("stuft Karte, Wort und Bild für $art.kind gleich ein", ({ art, grenzen, werte }) => {
     for (const meter of werte) {
       const stufe = ampelStufe(meter, spurGrenzen(art));
-      expect(deviationColor(meter, grenzen)).toBe(AMPEL_FARBEN[stufe]);
+      expect(deviationColor(meter, grenzen)).toBe(AMPEL_FARBEN_NORMAL[stufe]);
       const stueck = faerbeSegmente([meter, meter], grenzen)[0];
       expect(stueck.stufe).toBe(stufe);
     }
@@ -44,5 +45,60 @@ describe("Ampel der Abweichung", () => {
     expect(ampelLabel(8, { kind: ART_MANTRAILING })).not.toBe(ampelLabel(8, { kind: ART_FAEHRTE }));
     expect(ampelLabel(4)).toBe("mittlere Abweichung");
     expect(ampelLabel(15, { kind: ART_MANTRAILING })).toBe("mittlere Abweichung");
+  });
+});
+
+/** Ein Wurzelelement mit Attributen und ein Speicher, soweit farbsicher.ts sie braucht - ohne DOM-Umgebung. */
+function dokumentMitAttribut(attribute: Record<string, string>) {
+  const speicher = new Map<string, string>();
+  vi.stubGlobal("document", {
+    documentElement: {
+      getAttribute: (name: string) => attribute[name] ?? null,
+      setAttribute: (name: string, wert: string) => void (attribute[name] = wert),
+      removeAttribute: (name: string) => void delete attribute[name],
+    },
+  });
+  vi.stubGlobal("localStorage", {
+    getItem: (k: string) => speicher.get(k) ?? null,
+    setItem: (k: string, v: string) => void speicher.set(k, v),
+    removeItem: (k: string) => void speicher.delete(k),
+  });
+  return speicher;
+}
+
+describe("Farbsichere Darstellung", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("gilt ohne Dokument und ohne Attribut die normale Palette", () => {
+    expect(ampelFarben()).toBe(AMPEL_FARBEN_NORMAL);
+    dokumentMitAttribut({});
+    expect(ampelFarben()).toBe(AMPEL_FARBEN_NORMAL);
+  });
+
+  it("nimmt mit dem Attribut Blau, Gelb und Rot (Tol) für Karte und Linie", () => {
+    dokumentMitAttribut({ "data-farben": "sicher" });
+    expect(ampelFarben()).toBe(AMPEL_FARBEN_SICHER);
+    expect(AMPEL_FARBEN_SICHER).toEqual({ gruen: "#0077BB", gelb: "#DDAA33", rot: "#CC3311" });
+    expect(deviationColor(1)).toBe("#0077BB");
+    expect(deviationColor(4)).toBe("#DDAA33");
+    expect(deviationColor(9)).toBe("#CC3311");
+  });
+
+  it("setzt und entfernt Attribut und Zwischenspeicher", () => {
+    const attribute: Record<string, string> = {};
+    const speicher = dokumentMitAttribut(attribute);
+    wendeFarbsicherAn(true);
+    expect(attribute["data-farben"]).toBe("sicher");
+    expect(speicher.get("dogity.farben")).toBe("sicher");
+    expect(ampelFarben()).toBe(AMPEL_FARBEN_SICHER);
+    wendeFarbsicherAn(false);
+    expect(attribute["data-farben"]).toBeUndefined();
+    expect(speicher.has("dogity.farben")).toBe(false);
+    expect(ampelFarben()).toBe(AMPEL_FARBEN_NORMAL);
+  });
+
+  it("zieht die Farben der Stockungen aus derselben Palette", () => {
+    dokumentMitAttribut({ "data-farben": "sicher" });
+    expect(stopColors().slice(0, 2)).toEqual([AMPEL_FARBEN_SICHER.rot, AMPEL_FARBEN_SICHER.gruen]);
   });
 });

@@ -8,7 +8,7 @@ import {
   type FaehrtenGeometrie,
 } from "@/lib/faehrten-bild";
 import type { SpurGrenzen } from "@/lib/mantrailing";
-import { AMPEL_FARBEN, type Ampel } from "@/lib/spur-ampel";
+import { ampelFarben, type Ampel } from "@/lib/spur-ampel";
 
 /**
  * Zeichnet das Fährtenbild auf eine Canvas-Fläche (Hochformat, 1080 x 1350).
@@ -121,7 +121,7 @@ function zeichneKarte(ctx: CanvasRenderingContext2D, eingabe: BildEingabe) {
     ctx.lineWidth = 9;
     const { punkte, abweichungen } = geometrie.ablauf;
     for (const stueck of faerbeSegmente(abweichungen, eingabe.grenzen)) {
-      ctx.strokeStyle = stueck.stufe ? AMPEL_FARBEN[stueck.stufe] : OHNE_ABWEICHUNG;
+      ctx.strokeStyle = stueck.stufe ? ampelFarben()[stueck.stufe] : OHNE_ABWEICHUNG;
       linie(ctx, einpassung, punkte, stueck.von, stueck.bis);
     }
   }
@@ -217,7 +217,7 @@ function zeichneLegende(ctx: CanvasRenderingContext2D, eingabe: BildEingabe, gru
       // Ampel in drei Stücken: die Farbe bedeutet die Abweichung.
       ctx.lineWidth = 8;
       (["gruen", "gelb", "rot"] as const).forEach((stufe, i) => {
-        ctx.strokeStyle = AMPEL_FARBEN[stufe];
+        ctx.strokeStyle = ampelFarben()[stufe];
         ctx.beginPath();
         ctx.moveTo(x + 2 + i * 13, mitte);
         ctx.lineTo(x + 12 + i * 13, mitte);
@@ -234,7 +234,7 @@ function zeichneLegende(ctx: CanvasRenderingContext2D, eingabe: BildEingabe, gru
 export function zeichneFaehrtenbild(ctx: CanvasRenderingContext2D, eingabe: BildEingabe) {
   const { texte, schrift, ampel } = eingabe;
   const innenBreite = BILD_BREITE - 2 * RAND;
-  const akzent = ampel ? AMPEL_FARBEN[ampel] : TEXT;
+  const akzent = ampel ? ampelFarben()[ampel] : TEXT;
 
   ctx.fillStyle = GRUND;
   ctx.fillRect(0, 0, BILD_BREITE, BILD_HOEHE);

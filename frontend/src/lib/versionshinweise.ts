@@ -83,7 +83,15 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       },
       {
         art: "verbessert",
-        text: uebersetzbar("Auf der Startseite steht die wartende Fährte jetzt oben und hervorgehoben, mit dem Fährtenalter groß und einem Knopf zum Ablaufen. Fällige Gesundheitstermine stehen weiter oben, „Erfassen“ ist bei mehreren Hunden eine Zeile je Hund, und die Übungen im Ziel sind ruhiger."),
+        text: uebersetzbar("Auf der Startseite steht die wartende Fährte jetzt oben und hervorgehoben, mit dem Fährtenalter groß und einem Knopf zum Ablaufen. Fällige Gesundheitstermine stehen gesammelt in einer Karte weiter oben, „Erfassen“ ist bei mehreren Hunden eine Zeile je Hund, Trainer-Feedback ist zugeklappt, bis du es öffnest, und das Ziel zeigt die nächsten zwei Übungen."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Auf der Fährtenkarte hat jede Art Punkt jetzt eine eigene Form: Gegenstand als Quadrat, Leckerlipot als Kreis, Verleitung als Dreieck, Marker als Raute. Die Legende unter der Karte zeigt, welche davon auf der Fährte vorkommen."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Neue Einstellung „Farbsichere Darstellung“ unter Profil → Darstellung & Sprache: Für Rot-Grün-Schwäche zeigen die Ampeln auf Karte, Auswertung und Verlauf Blau, Gelb und Rot statt Grün, Orange und Rot. Sie gilt für dein Konto auf jedem Gerät."),
       },
     ],
   },

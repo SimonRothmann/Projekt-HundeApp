@@ -2116,6 +2116,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("ColorSafe")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Country")
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)");

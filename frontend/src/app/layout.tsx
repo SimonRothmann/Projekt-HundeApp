@@ -16,6 +16,7 @@ import {
   SCHRIFT_SPEICHER,
   VORGABE_SCHRIFT,
 } from "@/lib/schriftgroesse";
+import { FARBEN_ATTRIBUT, FARBEN_SICHER, FARBEN_SPEICHER } from "@/lib/farbsicher";
 
 // "Premium Sleek Modern"-Markenschrift; als CSS-Variable --font-jakarta
 // bereitgestellt und in globals.css an --font-sans/--font-heading gebunden.
@@ -111,7 +112,10 @@ export default function RootLayout({
             __html:
               `try{var s=localStorage.getItem(${JSON.stringify(SCHRIFT_SPEICHER)});` +
               `if(${JSON.stringify(SCHRIFTGROESSEN.filter((g) => g !== VORGABE_SCHRIFT))}.indexOf(s)>-1)` +
-              `document.documentElement.setAttribute(${JSON.stringify(SCHRIFT_ATTRIBUT)},s)}catch(e){}`,
+              `document.documentElement.setAttribute(${JSON.stringify(SCHRIFT_ATTRIBUT)},s)}catch(e){}` +
+              // Ebenso die farbsichere Darstellung (lib/farbsicher.ts).
+              `try{if(localStorage.getItem(${JSON.stringify(FARBEN_SPEICHER)})===${JSON.stringify(FARBEN_SICHER)})` +
+              `document.documentElement.setAttribute(${JSON.stringify(FARBEN_ATTRIBUT)},${JSON.stringify(FARBEN_SICHER)})}catch(e){}`,
           }}
         />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>

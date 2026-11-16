@@ -101,6 +101,13 @@ public class UserPreference : Entity
     /// </summary>
     public int? StepLengthCm { get; set; }
 
+    /// <summary>
+    /// Farbsichere Darstellung für Rot-Grün-Schwäche: Die Ampel der Fährte (Karte,
+    /// Auswertung, Verlauf) erscheint in Blau, Gelb und Rot statt Grün, Orange und Rot.
+    /// Standard: aus. Gehört wie die Schriftgröße zum Nutzer und nicht zum Gerät.
+    /// </summary>
+    public bool ColorSafe { get; set; }
+
     public ICollection<UserDisabledModule> DisabledModules { get; set; } = new List<UserDisabledModule>();
     public ICollection<UserSportSelection> Sports { get; set; } = new List<UserSportSelection>();
 }

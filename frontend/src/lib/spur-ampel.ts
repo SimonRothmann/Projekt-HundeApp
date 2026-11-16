@@ -1,3 +1,4 @@
+import { farbsicherAktiv } from "@/lib/farbsicher";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { FAEHRTE_GRENZEN, istMantrailing, spurGrenzen, type SpurGrenzen } from "@/lib/mantrailing";
 
@@ -18,7 +19,18 @@ export function ampelStufe(abweichungMeter: number, grenzen: SpurGrenzen = FAEHR
 }
 
 /** Die Farben der Ampel für Canvas und Karte (Hex; Tailwind-Klassen stehen bei den Komponenten). */
-export const AMPEL_FARBEN: Record<Ampel, string> = { gruen: "#16a34a", gelb: "#d97706", rot: "#dc2626" };
+export const AMPEL_FARBEN_NORMAL: Record<Ampel, string> = { gruen: "#16a34a", gelb: "#d97706", rot: "#dc2626" };
+
+/** Farbsichere Palette (Paul Tol, für Rot-Grün-Schwäche ausgelegt): Blau, Gelb, Rot - siehe lib/farbsicher.ts. */
+export const AMPEL_FARBEN_SICHER: Record<Ampel, string> = { gruen: "#0077BB", gelb: "#DDAA33", rot: "#CC3311" };
+
+/**
+ * Die Farben der Ampel für Canvas und Karte - je nach Modus "Farbsichere Darstellung" (Attribut am
+ * Wurzelelement, zur Laufzeit abgelesen). Ohne Dokument (Server, Tests) die normale Palette.
+ */
+export function ampelFarben(): Record<Ampel, string> {
+  return farbsicherAktiv() ? AMPEL_FARBEN_SICHER : AMPEL_FARBEN_NORMAL;
+}
 
 /** Das Wort zur Ampel einer Abweichung (Schlüssel für t()): was die Stufe bei dieser Art Spur heißt. */
 export function ampelLabel(abweichungMeter: number, art?: { kind?: number | null } | null): string {

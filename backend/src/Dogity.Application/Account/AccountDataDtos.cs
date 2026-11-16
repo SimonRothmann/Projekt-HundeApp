@@ -56,7 +56,8 @@ public record EinstellungenExportDto(
     bool ErinnerungGesundheit = true,
     // Schrittlänge in cm für die Umrechnung der Fährtenlänge in Schritte; null = Standard.
     int? SchrittlaengeCm = null,
-    bool ErinnerungMerkzettel = true);
+    bool ErinnerungMerkzettel = true,
+    bool FarbsichereDarstellung = false);
 
 /// <summary>
 /// Eine versendete Erinnerung - der Merkzettel gegen Doppelversand. Der Text steht

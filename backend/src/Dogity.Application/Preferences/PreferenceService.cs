@@ -40,7 +40,8 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
                 eintrag.TrainerSummaryHour,
                 eintrag.ReminderHealth,
                 eintrag.StepLengthCm,
-                eintrag.ReminderTrainingNotes));
+                eintrag.ReminderTrainingNotes,
+                eintrag.ColorSafe));
     }
 
     public async Task<Result> UpdateModulesAsync(Guid userId, UpdateModulesRequest request, CancellationToken ct = default)
@@ -154,6 +155,15 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
     {
         var eintrag = await LadenOderAnlegenAsync(userId, ct);
         eintrag.EmailNotifications = request.Enabled;
+        eintrag.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> UpdateColorSafeAsync(Guid userId, UpdateColorSafeRequest request, CancellationToken ct = default)
+    {
+        var eintrag = await LadenOderAnlegenAsync(userId, ct);
+        eintrag.ColorSafe = request.Enabled;
         eintrag.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Result.Success();

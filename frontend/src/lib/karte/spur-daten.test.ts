@@ -3,19 +3,24 @@ import { uebersetze } from "@/lib/i18n";
 import { FAEHRTE_GRENZEN } from "../mantrailing";
 import type { GpsWalkPoint, GpsWalkRun, GpsWalkRunCorner, GpsWalkStop } from "@/lib/types";
 import {
-  DEVIATION_COLORS,
-  MARKER_COLORS,
-  STOP_COLORS,
+  MARKER_FORMEN,
   WALK_RUN_COLORS,
   ablaufDaten,
+  deviationColors,
   kartenGrenzen,
   legungDaten,
   leer,
   liveAblaufDaten,
+  markerArt,
+  stopColors,
   winkelDaten,
   WINKEL_NEUTRAL_FARBE,
   type KartenPunkt,
 } from "./spur-daten";
+
+// Ohne Dokument gilt die normale Palette; der Modus "Farbsichere Darstellung" steht in spur-ampel.test.ts.
+const DEVIATION_COLORS = deviationColors();
+const STOP_COLORS = stopColors();
 
 const t = (text: string, werte?: Record<string, string | number>) => uebersetze("de", text, werte);
 
@@ -98,19 +103,19 @@ describe("legungDaten", () => {
     expect(d.marker.features).toStrictEqual([]);
   });
 
-  it("färbt und beschriftet Marker nach ihrer Art", () => {
+  it("gibt Markern Form und Beschriftung nach ihrer Art", () => {
     const d = legungDaten(
       [0, 1, 2, 3, 9].map((markerType, i) => punkt(50 + i / 1000, 8, { pointType: 1, markerType })),
       false,
       t,
     );
-    expect(d.marker.features.map((f) => f.properties.farbe)).toStrictEqual([
-      MARKER_COLORS[0],
-      MARKER_COLORS[1],
-      MARKER_COLORS[2],
-      MARKER_COLORS[3],
+    expect(d.marker.features.map((f) => f.properties.form)).toStrictEqual([
+      "quadrat",
+      "kreis",
+      "dreieck",
+      "raute",
       // Unbekannte Art: wie "Marker".
-      MARKER_COLORS[3],
+      "raute",
     ]);
     expect(d.marker.features.map((f) => f.properties.text)).toStrictEqual([
       "Gegenstand",
@@ -121,9 +126,19 @@ describe("legungDaten", () => {
     ]);
   });
 
+  it("unterscheidet die Markerarten nach Form und Farbe, mit je eigener Form und Farbe", () => {
+    expect(MARKER_FORMEN.map((a) => a.form)).toStrictEqual(["quadrat", "kreis", "dreieck", "raute"]);
+    expect(MARKER_FORMEN.map((a) => a.farbe)).toStrictEqual(["#facc15", "#ffffff", "#f97316", "#94a3b8"]);
+    expect(new Set(MARKER_FORMEN.map((a) => a.form)).size).toBe(MARKER_FORMEN.length);
+    expect(new Set(MARKER_FORMEN.map((a) => a.farbe)).size).toBe(MARKER_FORMEN.length);
+    expect(markerArt(undefined)).toBe(MARKER_FORMEN[0]);
+    expect(markerArt(2)).toBe(MARKER_FORMEN[2]);
+    expect(markerArt(7)).toBe(MARKER_FORMEN[3]);
+  });
+
   it("nimmt ohne markerType die Art Gegenstand", () => {
     const d = legungDaten([punkt(50, 8, { pointType: 1 })], false, t);
-    expect(d.marker.features[0].properties).toStrictEqual({ farbe: MARKER_COLORS[0], text: "Gegenstand" });
+    expect(d.marker.features[0].properties).toStrictEqual({ form: "quadrat", text: "Gegenstand" });
   });
 
   it("gibt das Label von Nutzer:innen unverändert als Text weiter", () => {

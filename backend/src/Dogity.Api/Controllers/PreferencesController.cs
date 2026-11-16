@@ -54,6 +54,11 @@ public class PreferencesController(IPreferenceService preferences) : ApiControll
     public async Task<IActionResult> UpdateEmailNotifications(UpdateEmailNotificationsRequest request, CancellationToken ct) =>
         FromResult(await preferences.UpdateEmailNotificationsAsync(CurrentUserId, request, ct));
 
+    /// <summary>Farbsichere Darstellung (Ampel in Blau, Gelb, Rot) - Einstellung je Konto wie die Schriftgröße.</summary>
+    [HttpPut("color-safe")]
+    public async Task<IActionResult> UpdateColorSafe(UpdateColorSafeRequest request, CancellationToken ct) =>
+        FromResult(await preferences.UpdateColorSafeAsync(CurrentUserId, request, ct));
+
     /// <summary>
     /// Schrittlänge für die Umrechnung der Fährtenlänge in Schritte. Eigener Endpunkt wie die übrigen
     /// unabhängigen Einstellungen.

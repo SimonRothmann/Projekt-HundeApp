@@ -3,7 +3,9 @@ import { ampelLabel, ampelStufe } from "./spur-ampel";
 import { baueBildTexte, faehrtenKennzahlen, faerbeSegmente } from "./faehrten-bild";
 import { ABLAUF_FRIST_STUNDEN, ABLAUF_FRIST_STUNDEN_TRAIL, kannNochAblaufen, spurArten } from "./faehrte";
 import { uebersetze } from "./i18n";
-import { ablaufDaten, DEVIATION_COLORS, deviationColor } from "./karte/spur-daten";
+import { ablaufDaten, deviationColor, deviationColors } from "./karte/spur-daten";
+
+const DEVIATION_COLORS = deviationColors();
 import { ART_FAEHRTE, ART_MANTRAILING, FAEHRTE_GRENZEN, MANTRAILING_GRENZEN, spurGrenzen } from "./mantrailing";
 import { anfrageAusSicherung, type FaehrtenSicherung } from "./aufzeichnung-sicherung";
 import type { GpsPoint, GpsTrack, GpsWalkRun, Sport } from "./types";

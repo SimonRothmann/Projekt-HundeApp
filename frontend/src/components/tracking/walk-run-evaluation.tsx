@@ -28,9 +28,10 @@ type Spur = { kind?: number | null } & Partial<
 
 // Die Grenzen je Art stehen in lib/mantrailing.ts, die Einstufung in lib/spur-ampel.ts.
 const AMPEL_KLASSE: Record<Ampel, string> = {
-  gruen: "text-emerald-600 dark:text-emerald-500",
-  gelb: "text-amber-600 dark:text-amber-500",
-  rot: "text-destructive",
+  // Aus CSS-Variablen (globals.css): im Modus "Farbsichere Darstellung" Blau, Gelb, Rot.
+  gruen: "text-ampel-gruen",
+  gelb: "text-ampel-gelb",
+  rot: "text-ampel-rot",
 };
 
 function ampelClass(avgMeters: number, art?: Spur): string {
