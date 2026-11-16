@@ -28,28 +28,28 @@ public class GpsTracksController(IGpsTrackService gpsTrackService) : ApiControll
     }
 
     [HttpPut("{id:guid}/walk-runs/{runId:guid}")]
-    public async Task<ActionResult<GpsWalkRunDto>> UpdateWalkRun(Guid id, Guid runId, UpdateGpsWalkRunRequest request, CancellationToken ct)
+    public async Task<ActionResult<GpsWalkRunAngabenDto>> UpdateWalkRun(Guid id, Guid runId, UpdateGpsWalkRunRequest request, CancellationToken ct)
     {
         var result = await gpsTrackService.UpdateWalkRunAsync(CurrentUserId, id, runId, request, ct);
         return FromResultAlsBadRequest(result);
     }
 
     [HttpPut("{id:guid}/trail")]
-    public async Task<ActionResult<GpsTrackDto>> UpdateTrail(Guid id, UpdateGpsTrailRequest request, CancellationToken ct)
+    public async Task<ActionResult<GpsTrackAngabenDto>> UpdateTrail(Guid id, UpdateGpsTrailRequest request, CancellationToken ct)
     {
         var result = await gpsTrackService.UpdateTrailAsync(CurrentUserId, id, request, ct);
         return FromResultAlsBadRequest(result);
     }
 
     [HttpPut("{id:guid}/verdeckt")]
-    public async Task<ActionResult<GpsTrackDto>> UpdateVerdeckt(Guid id, UpdateGpsVerdecktRequest request, CancellationToken ct)
+    public async Task<ActionResult<GpsTrackAngabenDto>> UpdateVerdeckt(Guid id, UpdateGpsVerdecktRequest request, CancellationToken ct)
     {
         var result = await gpsTrackService.UpdateVerdecktAsync(CurrentUserId, id, request, ct);
         return FromResult(result);
     }
 
     [HttpPut("{id:guid}/walk-runs/{runId:guid}/trail")]
-    public async Task<ActionResult<GpsWalkRunDto>> UpdateTrailRun(Guid id, Guid runId, UpdateGpsTrailRunRequest request, CancellationToken ct)
+    public async Task<ActionResult<GpsWalkRunAngabenDto>> UpdateTrailRun(Guid id, Guid runId, UpdateGpsTrailRunRequest request, CancellationToken ct)
     {
         var result = await gpsTrackService.UpdateTrailRunAsync(CurrentUserId, id, runId, request, ct);
         return FromResultAlsBadRequest(result);
@@ -70,7 +70,7 @@ public class GpsTracksController(IGpsTrackService gpsTrackService) : ApiControll
     }
 
     [HttpPut("{id:guid}/stats")]
-    public async Task<ActionResult<GpsTrackDto>> UpdateStats(Guid id, UpdateGpsTrackStatsRequest request, CancellationToken ct)
+    public async Task<ActionResult<GpsTrackAngabenDto>> UpdateStats(Guid id, UpdateGpsTrackStatsRequest request, CancellationToken ct)
     {
         var result = await gpsTrackService.UpdateStatsAsync(CurrentUserId, id, request, ct);
         return FromResult(result);

@@ -65,16 +65,21 @@ public class DashboardService(
 
             // Die noch suchbaren Spuren (Fährte 24, Trail 48 Stunden nach dem Legen), nicht nur
             // die von heute: Was abends gelegt wurde, soll nach Mitternacht nicht von der
-            // Startseite verschwinden, solange man es noch ablaufen kann.
-            var faehrten = new List<GpsTrackDto>();
+            // Startseite verschwinden, solange man es noch ablaufen kann. Nur ohne Ablauf: Mit einem
+            // Ablauf ist die Spur nicht mehr "wartend", und ihre Abläufe wären der größte Teil der Antwort.
+            var faehrten = new List<DashboardSpurDto>();
             var einheiten = await trainings.GetByDogAsync(userId, hund.Id, einheitenAb, heute, ct);
             if (!einheiten.Succeeded) return Fehler(einheiten);
             foreach (var einheit in einheiten.Value!.Where(e => e.HasGpsTrack))
             {
                 var spuren = await tracks.GetByTrainingSessionAsync(userId, einheit.Id, ct);
                 if (!spuren.Succeeded) return Fehler(spuren);
-                faehrten.AddRange(spuren.Value!.Where(spur =>
-                    Ablauffristen.NochZuSuchen(Ablauffristen.LegeEnde(spur.Points), spur.Kind, jetzt)));
+                faehrten.AddRange(spuren.Value!
+                    .Where(spur => spur.WalkRuns.Count == 0
+                        && Ablauffristen.NochZuSuchen(Ablauffristen.LegeEnde(spur.Points), spur.Kind, jetzt))
+                    .Select(spur => new DashboardSpurDto(
+                        spur.Id, spur.TrainingSessionId, spur.LengthMeters, spur.AgeMinutes, spur.Surface,
+                        spur.Kind, spur.DoubleBlind, spur.NegativeTrail, spur.ScentArticle, spur.Points)));
             }
 
             eintraege.Add(new DashboardDogDto(hund, sportIds.Value!, aktiveZiele, faehrten));

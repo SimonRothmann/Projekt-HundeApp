@@ -176,7 +176,7 @@ export function neuesterAusgewerteterAblauf(ablaeufe: GpsWalkRun[]): GpsWalkRun 
  * des Legens bis zum Start des Ablaufs. Neu aufgezeichnete Fährten tragen
  * keine eigene Liegezeit, die Punkte liefern sie aber mit.
  */
-export function liegezeitMinuten(track: GpsTrack, ablauf: GpsWalkRun | null): number | null {
+export function liegezeitMinuten(track: Pick<GpsTrack, "ageMinutes" | "points">, ablauf: GpsWalkRun | null): number | null {
   if (track.ageMinutes != null) return track.ageMinutes;
   const gelegt = automatischePunkte(track.points);
   const letzter = gelegt[gelegt.length - 1];

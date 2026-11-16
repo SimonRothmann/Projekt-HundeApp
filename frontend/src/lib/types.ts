@@ -1636,6 +1636,27 @@ export type OnboardingStatus = {
 
 // ---- Startseite ----
 
+// Die gelegte Spur, wie Recorder und Ergebnis-Fenster sie brauchen: die Legung mit den Angaben, die sie
+// lesen - ohne Abläufe, Wetter, Kommentar und Entwicklungs-Schalter. Die Startseite bekommt nur das
+// (DashboardSpurDto); eine volle GpsTrack passt auch hierher.
+export type AblaufSpur = Pick<
+  GpsTrack,
+  | "id"
+  | "trainingSessionId"
+  | "lengthMeters"
+  | "ageMinutes"
+  | "surface"
+  | "points"
+  | "kind"
+  | "doubleBlind"
+  | "negativeTrail"
+  | "scentArticle"
+>;
+
+// Was der Server nach dem Ändern einer einzelnen Angabe einer Fährte zurückgibt (PUT .../trail, .../verdeckt,
+// .../stats): nur diese Angaben, ohne Punkte und Abläufe. Die Aufrufer legen sie über die geladene Fährte.
+export type GpsTrackAngaben = Pick<GpsTrack, "id" | "ageMinutes" | "doubleBlind" | "negativeTrail" | "scentArticle" | "excludeFromStats">;
+
 // Ein Hund mit allem, was die Startseite von ihm braucht (GET /api/dashboard,
 // siehe DashboardService). Ein Aufruf statt einer Anfrage je Hund und Abschnitt.
 export type DashboardHund = {
@@ -1644,9 +1665,9 @@ export type DashboardHund = {
   sportIds: string[];
   // Aktive Ziele mit Trainingsplan - Quelle für "Diese Woche".
   activeGoals: Goal[];
-  // Noch suchbare Spuren (Fährte 24, Trail 48 Stunden nach dem Legen) samt Abläufen - Quelle für
+  // Noch suchbare Spuren ohne Ablauf (Fährte 24, Trail 48 Stunden nach dem Legen) - Quelle für
   // "Heute gelegt" / "Zuletzt gelegt"; der Name stammt aus der Zeit, als es nur die von heute waren.
-  tracksToday: GpsTrack[];
+  tracksToday: AblaufSpur[];
 };
 
 // Trainer-Feedback, auf das noch nicht reagiert wurde (Danke/Verstanden/

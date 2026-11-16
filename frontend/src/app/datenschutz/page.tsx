@@ -499,6 +499,7 @@ function DatenschutzDe() {
           punkte={[
             "Kontodaten und alles, was daran hängt: bis du das Konto löschst.",
             "Einzelne Einträge – Trainings, Fährten, Hunde, Trainingspausen, Gesundheitseinträge, Einträge auf dem Merkzettel: bis du sie löschst.",
+            "Gelöschte Fährten samt GPS-Punkten, Abläufen und Halten werden 30 Tage nach dem Löschen endgültig entfernt; Benachrichtigungen in der App 90 Tage nach ihrem Entstehen.",
             "Anmeldungen zu einer Gruppe ohne Konto (Abschnitt 9): bis die Trainer:innen sie löschen, spätestens zwölf Monate nach der letzten Anwesenheit, Änderung oder Anmeldung.",
             "Prüfungstage des Vereins mit Meldelisten (Abschnitt 10): bis die Prüfungsleitung sie löscht; Gastdaten mit der Prüfung bzw. dem Team. Die Ergebnisse bleiben ohne Personenbezug für die Zahlen des Vereins.",
             "Arbeitseinsätze des Vereins: bis die Verwaltung dich austrägt oder den Einsatz löscht, spätestens bis zum Ende des zweiten Kalenderjahres nach dem Einsatz (ältere werden automatisch endgültig gelöscht). Verlässt du den Verein oder löschst du dein Konto, bleiben nur die Stunden, ohne Bezug zu dir. Helfer:innen ohne Konto: bis die Verwaltung sie löscht, spätestens wenn ihr letzter Einsatz gelöscht ist.",

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
+import type { GpsPoint, GpsTrack, GpsTrackAngaben, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SchalterZeile } from "@/components/ui/switch";
@@ -143,12 +143,17 @@ export function GpsTrackSection({
     }
   }
 
+  // Der Server antwortet nach einem Schalter nur mit den geänderten Angaben (ohne Punkte und Abläufe):
+  // Sie kommen über die geladene Fährte, statt alle Spuren des Trainings neu zu holen.
+  function angabenUebernehmen(angaben: GpsTrackAngaben) {
+    setTracks((alt) => alt?.map((track) => (track.id === angaben.id ? { ...track, ...angaben } : track)) ?? alt);
+  }
+
   // Eine Übungsfährte aus der Entwicklung des Hundes nehmen oder wieder hineinnehmen. Die Seite kennt
   // Auswertungen, die sich dadurch ändern (Fährten-Trend), und lädt sie neu.
   async function entwicklungUmschalten(trackId: string, ausDerEntwicklung: boolean) {
     try {
-      await api.put(`/api/gps-tracks/${trackId}/stats`, { excludeFromStats: ausDerEntwicklung });
-      await loadTracks();
+      angabenUebernehmen(await api.put<GpsTrackAngaben>(`/api/gps-tracks/${trackId}/stats`, { excludeFromStats: ausDerEntwicklung }));
       await onChanged?.();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Die Einstellung konnte nicht gespeichert werden."));
@@ -159,8 +164,7 @@ export function GpsTrackSection({
   // abgelaufen wurde).
   async function verdecktUmschalten(trackId: string, verdeckt: boolean) {
     try {
-      await api.put(`/api/gps-tracks/${trackId}/verdeckt`, { verdeckt });
-      await loadTracks();
+      angabenUebernehmen(await api.put<GpsTrackAngaben>(`/api/gps-tracks/${trackId}/verdeckt`, { verdeckt }));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Die Einstellung konnte nicht gespeichert werden."));
     }

@@ -1,7 +1,7 @@
 import { automatischePunkte } from "@/lib/geo";
 import { heuteIso, tageBis } from "@/lib/kalendertag";
 import { istMantrailing, MANTRAILING_CODE } from "@/lib/mantrailing";
-import type { GpsTrack, GpsWalkRun, Sport } from "@/lib/types";
+import type { AblaufSpur, GpsTrack, GpsWalkRun, Sport } from "@/lib/types";
 
 /**
  * Sportarten, bei denen eine Spur aufgezeichnet wird: die Fährte und, seit
@@ -47,8 +47,8 @@ export function spurArten(dogSportIds: string[] | null, sports: Sport[]): SpurAr
   return { faehrte, mantrailing };
 }
 
-export type OffeneFaehrte = {
-  track: GpsTrack;
+export type OffeneFaehrte<T extends AblaufSpur = AblaufSpur> = {
+  track: T;
   /** Ende des Legens: letzter automatischer GPS-Punkt. */
   gelegtBis: Date;
   /** Fährtenalter in Minuten - die Größe, in der das Alter im Sport angegeben wird. */
@@ -121,15 +121,18 @@ export function kannNochAblaufen(track: Pick<GpsTrack, "points" | "kind">, jetzt
  * (Ablauffristen im Backend), ein Zwischenspeicher der Startseite kann aber
  * älter sein als die Frist.
  */
-export function nichtAbgelaufeneFaehrten(tracks: GpsTrack[], jetzt: number = Date.now()): OffeneFaehrte[] {
+export function nichtAbgelaufeneFaehrten<T extends AblaufSpur & { walkRuns?: unknown[] }>(
+  tracks: T[],
+  jetzt: number = Date.now(),
+): OffeneFaehrte<T>[] {
   return tracks
-    .filter((track) => track.walkRuns.length === 0 && kannNochAblaufen(track, jetzt))
+    .filter((track) => (track.walkRuns?.length ?? 0) === 0 && kannNochAblaufen(track, jetzt))
     .map((track) => {
       const gelegtBis = legeEnde(track);
       if (!gelegtBis) return null;
       return { track, gelegtBis, alterMinuten: Math.max(0, Math.round((jetzt - gelegtBis.getTime()) / 60000)) };
     })
-    .filter((f): f is OffeneFaehrte => f !== null)
+    .filter((f): f is OffeneFaehrte<T> => f !== null)
     .sort((a, b) => a.gelegtBis.getTime() - b.gelegtBis.getTime());
 }
 

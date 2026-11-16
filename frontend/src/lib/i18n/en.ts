@@ -2103,6 +2103,7 @@ export const EN: Record<string, string> = {
   "Zielwert muss mindestens 1 sein.": "The target value must be at least 1.",
   "Zu diesem Training gibt es noch kein Feedback.": "There is no feedback on this session yet.",
   "Zu viele Fehlversuche. Bitte versuche es in ein paar Minuten erneut.": "Too many failed attempts. Please try again in a few minutes.",
+  "Zu viele Anmeldeversuche mit dieser E-Mail-Adresse. Bitte warte eine Minute.": "Too many sign-in attempts with this email address. Please wait a minute.",
   "Über diesen Antrag wurde bereits entschieden.": "This application has already been decided.",
   "Übung gehört nicht zu diesem Ziel.": "The exercise does not belong to this goal.",
   "Übung gehört nicht zur Sportart dieses Ziels.": "The exercise does not belong to this goal's sport.",

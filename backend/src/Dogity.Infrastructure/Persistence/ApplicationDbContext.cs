@@ -102,6 +102,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<Identity.RefreshToken> RefreshTokens => Set<Identity.RefreshToken>();
 
+    public bool UnterstuetztMassenbefehle => Database.IsRelational();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

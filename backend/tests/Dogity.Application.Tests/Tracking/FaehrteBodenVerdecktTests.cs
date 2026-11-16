@@ -102,8 +102,10 @@ public class FaehrteBodenVerdecktTests
         var verdeckt = await w.Dienst.UpdateVerdecktAsync(w.Nutzer, spur.Id, new UpdateGpsVerdecktRequest(true));
         Assert.True(verdeckt.Succeeded);
         Assert.True(verdeckt.Value!.DoubleBlind);
-        // Die Fährte selbst bleibt unverändert.
-        Assert.Equal(spur.Points.Count, verdeckt.Value.Points.Count);
+        // Die Fährte selbst bleibt unverändert (die Antwort trägt nur die Angaben, nicht die Punkte).
+        var gelesen = (await w.Dienst.GetByTrainingSessionAsync(w.Nutzer, spur.TrainingSessionId)).Value!.Single();
+        Assert.Equal(spur.Points.Count, gelesen.Points.Count);
+        Assert.True(gelesen.DoubleBlind);
 
         var offen = await w.Dienst.UpdateVerdecktAsync(w.Nutzer, spur.Id, new UpdateGpsVerdecktRequest(false));
         Assert.False(offen.Value!.DoubleBlind);

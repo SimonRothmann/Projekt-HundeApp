@@ -1,4 +1,5 @@
 using Dogity.Application.Abstractions;
+using Dogity.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dogity.Application.Tracking;
@@ -12,11 +13,14 @@ namespace Dogity.Application.Tracking;
 /// Training nicht mehr erreichbar, zählten aber in der Admin-Übersicht weiter
 /// als Fährten und hielten ihre GPS-Punkte in der Datenbank.
 ///
-/// Weich und nicht endgültig, wie beim Training selbst - nur beim Löschen des
-/// ganzen Kontos (<c>AccountDataService.PurgeAsync</c>) geht es wirklich weg.
+/// Weich und nicht endgültig, wie beim Training selbst - wirklich weg geht es nach der
+/// Aufbewahrungsfrist (<c>AufbewahrungCleanup</c>) oder beim Löschen des ganzen Kontos
+/// (<c>AccountDataService.PurgeAsync</c>).
 ///
-/// Speichert nicht selbst: Der Aufrufer bündelt es mit seinen übrigen
-/// Änderungen in einem SaveChanges.
+/// Je Tabelle ein Befehl statt jede Zeile einzeln zu laden und zurückzuschreiben: Eine
+/// Fährte bringt tausende Punkte mit. Auf Postgres wirkt er sofort (ExecuteUpdate, ohne
+/// Change Tracker); der In-Memory-Ersatz der Tests kann das nicht und geht über den Change
+/// Tracker - dort speichert erst der Aufrufer (<see cref="IApplicationDbContext.UnterstuetztMassenbefehle"/>).
 /// </summary>
 public static class GpsTrackRemoval
 {
@@ -27,41 +31,34 @@ public static class GpsTrackRemoval
         if (trackIds.Count == 0) return 0;
 
         // IgnoreQueryFilters überall: Eine Fährte kann schon einzeln gelöscht
-        // sein (GpsTrackService.DeleteAsync setzt nur ihr eigenes DeletedAt),
+        // sein (GpsTrackService.DeleteAsync setzte früher nur ihr eigenes DeletedAt),
         // ihre Punkte stehen dann trotzdem noch. Nur was noch kein Datum hat,
         // bekommt eines - ein früherer Löschzeitpunkt bleibt erhalten.
-        var fahrten = await db.GpsTracks.IgnoreQueryFilters().Where(t => trackIds.Contains(t.Id)).ToListAsync(ct);
-        var neu = 0;
-        foreach (var f in fahrten.Where(f => f.DeletedAt is null))
-        {
-            f.DeletedAt = jetzt;
-            neu++;
-        }
+        var neu = await MarkiereAsync(db, db.GpsTracks.IgnoreQueryFilters().Where(t => trackIds.Contains(t.Id)), jetzt, ct);
+        await MarkiereAsync(db, db.GpsPoints.IgnoreQueryFilters().Where(p => trackIds.Contains(p.TrackId)), jetzt, ct);
 
-        foreach (var p in await db.GpsPoints.IgnoreQueryFilters()
-                     .Where(p => trackIds.Contains(p.TrackId) && p.DeletedAt == null).ToListAsync(ct))
-            p.DeletedAt = jetzt;
-
-        var ablaeufe = await db.GpsWalkRuns.IgnoreQueryFilters().Where(w => trackIds.Contains(w.TrackId)).ToListAsync(ct);
-        var ablaufIds = ablaeufe.Select(w => w.Id).ToList();
-        foreach (var w in ablaeufe.Where(w => w.DeletedAt is null))
-            w.DeletedAt = jetzt;
-        foreach (var p in await db.GpsWalkPoints.IgnoreQueryFilters()
-                     .Where(p => ablaufIds.Contains(p.WalkRunId) && p.DeletedAt == null).ToListAsync(ct))
-            p.DeletedAt = jetzt;
-        foreach (var s in await db.GpsWalkStops.IgnoreQueryFilters()
-                     .Where(s => ablaufIds.Contains(s.WalkRunId) && s.DeletedAt == null).ToListAsync(ct))
-            s.DeletedAt = jetzt;
-        foreach (var l in await db.GpsWalkRunLegs.IgnoreQueryFilters()
-                     .Where(l => ablaufIds.Contains(l.WalkRunId) && l.DeletedAt == null).ToListAsync(ct))
-            l.DeletedAt = jetzt;
-        foreach (var c in await db.GpsWalkRunCorners.IgnoreQueryFilters()
-                     .Where(c => ablaufIds.Contains(c.WalkRunId) && c.DeletedAt == null).ToListAsync(ct))
-            c.DeletedAt = jetzt;
-        foreach (var a in await db.GpsWalkRunArticles.IgnoreQueryFilters()
-                     .Where(a => ablaufIds.Contains(a.WalkRunId) && a.DeletedAt == null).ToListAsync(ct))
-            a.DeletedAt = jetzt;
+        var ablaufIds = db.GpsWalkRuns.IgnoreQueryFilters().Where(w => trackIds.Contains(w.TrackId)).Select(w => w.Id);
+        await MarkiereAsync(db, db.GpsWalkRuns.IgnoreQueryFilters().Where(w => trackIds.Contains(w.TrackId)), jetzt, ct);
+        await MarkiereAsync(db, db.GpsWalkPoints.IgnoreQueryFilters().Where(p => ablaufIds.Contains(p.WalkRunId)), jetzt, ct);
+        await MarkiereAsync(db, db.GpsWalkStops.IgnoreQueryFilters().Where(s => ablaufIds.Contains(s.WalkRunId)), jetzt, ct);
+        await MarkiereAsync(db, db.GpsWalkRunLegs.IgnoreQueryFilters().Where(l => ablaufIds.Contains(l.WalkRunId)), jetzt, ct);
+        await MarkiereAsync(db, db.GpsWalkRunCorners.IgnoreQueryFilters().Where(c => ablaufIds.Contains(c.WalkRunId)), jetzt, ct);
+        await MarkiereAsync(db, db.GpsWalkRunArticles.IgnoreQueryFilters().Where(a => ablaufIds.Contains(a.WalkRunId)), jetzt, ct);
 
         return neu;
+    }
+
+    /// <returns>Wie viele Zeilen neu ein Löschdatum bekamen.</returns>
+    private static async Task<int> MarkiereAsync<T>(IApplicationDbContext db, IQueryable<T> zeilen, DateTimeOffset jetzt, CancellationToken ct)
+        where T : Entity
+    {
+        var offen = zeilen.Where(z => z.DeletedAt == null);
+        if (db.UnterstuetztMassenbefehle)
+            return await offen.ExecuteUpdateAsync(s => s.SetProperty(z => z.DeletedAt, jetzt), ct);
+
+        var liste = await offen.ToListAsync(ct);
+        foreach (var z in liste)
+            z.DeletedAt = jetzt;
+        return liste.Count;
     }
 }

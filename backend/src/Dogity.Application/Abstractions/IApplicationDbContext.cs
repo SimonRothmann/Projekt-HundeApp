@@ -95,5 +95,12 @@ public interface IApplicationDbContext
 
     DbSet<Wartungshinweis> Wartungshinweise { get; }
 
+    /// <summary>
+    /// Ob die Datenbank Massenbefehle (ExecuteUpdate/ExecuteDelete) kann: Postgres ja, der
+    /// In-Memory-Ersatz der Tests nein. Wer Massenbefehle nutzt, braucht für den Ersatz einen
+    /// Weg über den Change Tracker (siehe GpsTrackRemoval).
+    /// </summary>
+    bool UnterstuetztMassenbefehle { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -68,6 +68,14 @@ describe("nichtAbgelaufeneFaehrten", () => {
     expect(nichtAbgelaufeneFaehrten(tracks, JETZT)[0].alterMinuten).toBe(40);
   });
 
+  it("nimmt die schlanke Spur der Startseite, die keine Abläufe mitbringt", () => {
+    // /api/dashboard liefert nur noch die Legung (AblaufSpur, ohne walkRuns): Sie gilt als wartend.
+    const schlank: Partial<GpsTrack> = track("a", [punkt("2026-09-10T09:30:00Z")]);
+    delete schlank.walkRuns;
+
+    expect(nichtAbgelaufeneFaehrten([schlank as GpsTrack], JETZT).map((f) => f.track.id)).toEqual(["a"]);
+  });
+
   it("sortiert in Legereihenfolge", () => {
     const tracks = [track("spaet", [punkt("2026-09-10T09:30:00Z")]), track("frueh", [punkt("2026-09-10T08:00:00Z")])];
 

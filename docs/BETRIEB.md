@@ -139,6 +139,23 @@ Nutzer:innen im Vereinsheim-WLAN getroffen werden:
 ssh dogity 'docker logs -t dogity-backend-prod-1 2>&1 | grep "Drossel:"'
 ```
 
+Die Anmeldung hat zwei Grenzen: 30 Versuche je Minute und IP-Adresse (viele hinter
+einem Vereins-WLAN) und 10 je Minute und E-Mail-Adresse (schützt das einzelne Konto).
+Die zweite steht im Log als `Drossel: POST api/auth/login abgelehnt (je E-Mail-Adresse)`,
+nie mit der Adresse. Registrieren, „Passwort vergessen“ und „Passwort zurücksetzen“
+bleiben bei 10 je Minute und IP.
+
+**Aufräumen nach den Aufbewahrungsfristen**
+
+Jede Nacht um 03:30 Uhr Vereinszeit entfernt das Backend gelöschte Fährten (samt
+Punkten und Abläufen) 30 Tage nach dem Löschen und Benachrichtigungen 90 Tage nach
+dem Anlegen endgültig. Das Ergebnis steht mit festem Präfix `Aufräumen:` im Log
+(auch bei 0); einen Lauf beim Start gibt es nicht:
+
+```bash
+ssh dogity 'docker logs -t dogity-backend-prod-1 2>&1 | grep "Aufräumen:"'
+```
+
 **Stehen Updates an, die niemand einspielt?**
 
 ```bash
