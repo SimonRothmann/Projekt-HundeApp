@@ -3,6 +3,7 @@ import { automatischePunkte, estimateLengthMeters, markerPunkte } from "@/lib/ge
 import type { GpsTrack, GpsWalkRun } from "@/lib/types";
 import { formatDelta, formatTemperature } from "@/lib/weather";
 import { FAEHRTE_GRENZEN, istMantrailing, spurGrenzen, type SpurGrenzen } from "@/lib/mantrailing";
+import { MARKER_LABELS } from "@/lib/karte/spur-daten";
 import { ampelLabel, ampelStufe, type Ampel } from "@/lib/spur-ampel";
 
 /**
@@ -223,7 +224,8 @@ export function faehrtenKennzahlen(track: GpsTrack, ablauf: GpsWalkRun | null): 
 export type FaehrtenGeometrie = {
   /** Die gelegte Fährte (nur automatische Punkte), in Legereihenfolge. */
   gelegt: MeterPunkt[];
-  marker: { p: MeterPunkt; gegenstand: boolean }[];
+  /** art = markerType (Index in MARKER_FORMEN); ohne Angabe ein Gegenstand wie auf der Karte. */
+  marker: { p: MeterPunkt; art: number }[];
   /** Der ausgewertete Ablauf samt Abweichung je Punkt - null ohne Ablauf. */
   ablauf: { punkte: MeterPunkt[]; abweichungen: (number | null)[] } | null;
 };
@@ -243,7 +245,7 @@ export function faehrtenGeometrie(track: GpsTrack, ablauf: GpsWalkRun | null): F
 
   return {
     gelegt: inMeter(gelegt, mitte),
-    marker: inMeter(marker, mitte).map((p, i) => ({ p, gegenstand: marker[i].markerType === 0 })),
+    marker: inMeter(marker, mitte).map((p, i) => ({ p, art: marker[i].markerType ?? 0 })),
     ablauf:
       ablauf && ablaufPunkte.length >= 2
         ? { punkte: inMeter(ablaufPunkte, mitte), abweichungen: ablaufPunkte.map((p) => p.deviationMeters ?? null) }
@@ -269,7 +271,8 @@ export type BildTexte = {
   /** Ampelwort unter der Kopfzahl - nur mit ausgewertetem Ablauf. */
   ampelWort: string | null;
   zeilen: string[];
-  legende: { start: string; gegenstand: string; gelegt: string; abgelaufen: string };
+  /** marker: die Namen der Markerarten, Index wie MARKER_FORMEN. */
+  legende: { start: string; marker: string[]; gelegt: string; abgelaufen: string };
   marke: string;
 };
 
@@ -340,7 +343,7 @@ export function baueBildTexte(
     // Beim Mantrailing nennt die Legende die Grenze der Ampel: Die Farben bedeuten dort andere Meter als bei der Fährte.
     legende: {
       start: t("Start"),
-      gegenstand: t("Gegenstand"),
+      marker: MARKER_LABELS.map((label) => t(label)),
       gelegt: t("Gelegt"),
       abgelaufen: trail ? t("Abgelaufen, grün bis {meter} m", { meter: spurGrenzen(track).gruenBis }) : t("Abgelaufen"),
     },
