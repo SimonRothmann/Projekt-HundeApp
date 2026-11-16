@@ -65,6 +65,7 @@ export function WalkRunRecorder({
   onAufzeichnung,
   laidTrackPoints,
   label,
+  hervorgehoben = false,
   track,
 }: {
   trackId: string;
@@ -82,6 +83,8 @@ export function WalkRunRecorder({
   laidTrackPoints?: GpsPoint[];
   /** Beschriftung des Startknopfs - auf der Startseite "Jetzt ablaufen". */
   label?: string;
+  /** Startknopf als gefüllter Hauptknopf, auf dem Handy in voller Breite - auf der Startseite für die wartende Fährte. */
+  hervorgehoben?: boolean;
   /**
    * Die gelegte Spur selbst. Beim Mantrailing (kind) ändern sich Begriffe, Grenzen und das Ergebnis-Fenster;
    * bei einem doppelblinden Trail sieht das Team die gelegte Linie während der Suche nicht und bekommt keine
@@ -266,7 +269,13 @@ export function WalkRunRecorder({
   if (!isRecording) {
     return (
       <>
-        <Button size="sm" variant="outline" disabled={speichert} onClick={() => aufzeichnen()}>
+        <Button
+          size={hervorgehoben ? "lg" : "sm"}
+          variant={hervorgehoben ? "default" : "outline"}
+          className={hervorgehoben ? "w-full coarse:min-h-11 sm:w-auto" : undefined}
+          disabled={speichert}
+          onClick={() => aufzeichnen()}
+        >
           <Footprints className="size-4" />
           {label ?? (trail ? t("Trail suchen") : t("Fährte ablaufen"))}
         </Button>

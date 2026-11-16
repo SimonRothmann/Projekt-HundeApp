@@ -81,6 +81,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "verbessert",
         text: uebersetzbar("Auf der Startseite steht das Fährtenalter ab einer Stunde in Stunden und Minuten statt in über tausend Minuten."),
       },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Auf der Startseite steht die wartende Fährte jetzt oben und hervorgehoben, mit dem Fährtenalter groß und einem Knopf zum Ablaufen. Fällige Gesundheitstermine stehen weiter oben, „Erfassen“ ist bei mehreren Hunden eine Zeile je Hund, und die Übungen im Ziel sind ruhiger."),
+      },
     ],
   },
   {

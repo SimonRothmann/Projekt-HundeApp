@@ -12,11 +12,13 @@ import { useT } from "@/lib/i18n";
  * Fährte legen.
  *
  * Früher waren es zwei große Kacheln (zusammen etwa 390 px hoch), die bei
- * mehreren Hunden jeweils noch die Hunde enthielten. Jetzt ist jeder Handgriff
- * eine Zeile: Mit genau einem Hund ist die ganze Zeile der Knopf; mit mehreren
- * stehen die Hunde als Chips darunter. Beide öffnen ihr Fenster gleich hier
- * auf der Startseite - "Fährte legen" führte früher erst auf die Hundeseite.
- * Chips und Zeilen sind mindestens 44 px hoch.
+ * mehreren Hunden jeweils noch die Hunde enthielten. Jetzt gilt: Mit genau einem
+ * Hund ist jeder Handgriff eine Zeile, die ganz der Knopf ist. Mit mehreren
+ * Hunden gibt es eine Zeile je Hund (Avatar und Name) mit zwei kompakten Knöpfen,
+ * "Training" und - wenn der Hund Fährten läuft - "Fährte" bzw. "Trail"; sonst
+ * standen bei drei Hunden sechs fast gleiche Chips untereinander. Beide öffnen
+ * ihr Fenster gleich hier auf der Startseite - "Fährte legen" führte früher erst
+ * auf die Hundeseite. Knöpfe und Zeilen sind mindestens 44 px hoch.
  */
 export function ErfassenKarte({
   hunde,
@@ -33,36 +35,66 @@ export function ErfassenKarte({
   onFaehrte: (dogId: string) => void;
 }) {
   const t = useT();
+
+  if (hunde.length > 1) {
+    return (
+      <Card size="sm">
+        {/* divide-y zieht die Linie UNTER jede Zeile außer der letzten (Tailwind 4): Der
+            Abstand gehört deshalb oben UND unten an jede Zeile (ABSTAND). */}
+        <CardContent className="flex flex-col gap-2">
+          <p className="text-sm font-semibold">{t("Erfassen")}</p>
+          <ul className="flex flex-col divide-y">
+            {hunde.map((hund) => {
+              const nurTrailHund = nurTrailHundeIds.includes(hund.id);
+              return (
+                <li key={hund.id} className={`flex min-w-0 items-center gap-2 ${ABSTAND}`}>
+                  <DogAvatar dogId={hund.id} hasImage={hund.hasImage} name={hund.name} className="size-8" iconClassName="size-4" />
+                  <span className="min-w-0 flex-1 truncate font-medium">{hund.name}</span>
+                  <KompaktKnopf
+                    icon={NotebookPen}
+                    text={t("Training")}
+                    name={t("Training für {name} erfassen", { name: hund.name })}
+                    onClick={() => onEintragen(hund.id)}
+                  />
+                  {faehrtenHundeIds.includes(hund.id) && (
+                    <KompaktKnopf
+                      icon={Route}
+                      text={nurTrailHund ? t("Trail") : t("Fährte")}
+                      name={nurTrailHund ? t("Trail mit {name} legen", { name: hund.name }) : t("Fährte mit {name} legen", { name: hund.name })}
+                      onClick={() => onFaehrte(hund.id)}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const faehrtenHunde = hunde.filter((h) => faehrtenHundeIds.includes(h.id));
-  // Der Trail-Wortlaut nur, wenn alle Hunde der Zeile nur trailen - sonst steht die Fährte da, und der Trail liegt im Fenster.
-  const nurTrail = faehrtenHunde.length > 0 && faehrtenHunde.every((h) => nurTrailHundeIds.includes(h.id));
+  const nurTrail = faehrtenHunde.length > 0 && nurTrailHundeIds.includes(faehrtenHunde[0].id);
 
   return (
     <Card size="sm">
-      {/* divide-y zieht die Linie UNTER die obere Zeile (Tailwind 4): Der Abstand gehört
-          deshalb oben UND unten an jede Zeile (ABSTAND), sonst klebt die Linie an den
-          Hunde-Chips der ersten Zeile. */}
       <CardContent className="flex flex-col divide-y">
         <Zeile
           icon={NotebookPen}
           titel={t("Training erfassen")}
           beschreibung={hunde.length === 1 ? t("Einheit für {name} eintragen", { name: hunde[0].name }) : null}
-          hunde={hunde}
-          onWaehle={onEintragen}
+          onWaehle={() => onEintragen(hunde[0].id)}
         />
         {faehrtenHunde.length > 0 && (
           <Zeile
             icon={Route}
             titel={nurTrail ? t("Trail legen") : t("Fährte legen")}
             beschreibung={
-              faehrtenHunde.length === 1
-                ? nurTrail
-                  ? t("Trail mit {name} legen", { name: faehrtenHunde[0].name })
-                  : t("Fährte mit {name} legen", { name: faehrtenHunde[0].name })
-                : null
+              nurTrail
+                ? t("Trail mit {name} legen", { name: faehrtenHunde[0].name })
+                : t("Fährte mit {name} legen", { name: faehrtenHunde[0].name })
             }
-            hunde={faehrtenHunde}
-            onWaehle={onFaehrte}
+            onWaehle={() => onFaehrte(faehrtenHunde[0].id)}
           />
         )}
       </CardContent>
@@ -73,69 +105,50 @@ export function ErfassenKarte({
 /** Gleicher Abstand über und unter der Trennlinie zwischen den Zeilen. */
 const ABSTAND = "py-3 first:pt-0 last:pb-0";
 
+function KompaktKnopf({ icon: Icon, text, name, onClick }: { icon: LucideIcon; text: string; name: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-haspopup="dialog"
+      aria-label={name}
+      className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-surface-border bg-surface px-3 text-sm font-medium transition-colors hover:border-primary/50"
+    >
+      <Icon className="size-4 text-primary-text" aria-hidden />
+      {text}
+    </button>
+  );
+}
+
+/** Eine ganze Zeile als Knopf - für genau einen Hund. */
 function Zeile({
   icon: Icon,
   titel,
   beschreibung,
-  hunde,
   onWaehle,
 }: {
   icon: LucideIcon;
   titel: string;
   beschreibung: string | null;
-  hunde: Dog[];
-  onWaehle: (dogId: string) => void;
+  onWaehle: () => void;
 }) {
   // Beide Symbole in derselben Farbe: zwei Akzentfarben nebeneinander lasen
   // sich wie zwei Zustände, es sind aber zwei gleichrangige Wege.
-  const symbol = (
-    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary-text ring-1 ring-primary/20">
-      <Icon className="size-5" />
-    </span>
-  );
-
-  if (hunde.length === 1) {
-    const inhalt = (
-      <>
-        {symbol}
-        <span className="min-w-0 flex-1">
-          <span className="block font-medium">{titel}</span>
-          {beschreibung && <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{beschreibung}</span>}
-        </span>
-        <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
-      </>
-    );
-    const klasse = `group flex min-h-11 w-full min-w-0 items-center gap-3 rounded-lg text-left ${ABSTAND}`;
-    return (
-      <button type="button" onClick={() => onWaehle(hunde[0].id)} aria-haspopup="dialog" className={klasse}>
-        {inhalt}
-      </button>
-    );
-  }
-
   return (
-    <div className={`flex min-w-0 flex-col gap-2 ${ABSTAND}`}>
-      <p className="flex items-center gap-3 font-medium">
-        {symbol}
-        {titel}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {hunde.map((hund) => {
-          const klasse =
-            "inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full border border-surface-border bg-surface py-1 pr-4 pl-1.5 text-sm font-medium transition-colors hover:border-primary/50";
-          const inhalt = (
-            <>
-              <DogAvatar dogId={hund.id} hasImage={hund.hasImage} name={hund.name} className="size-8" iconClassName="size-4" />
-              <span className="truncate">{hund.name}</span>
-            </>
-          );
-          return (
-            <button key={hund.id} type="button" onClick={() => onWaehle(hund.id)} aria-haspopup="dialog" className={klasse}>
-              {inhalt}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onWaehle}
+      aria-haspopup="dialog"
+      className={`group flex min-h-11 w-full min-w-0 items-center gap-3 rounded-lg text-left ${ABSTAND}`}
+    >
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary-text ring-1 ring-primary/20">
+        <Icon className="size-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-medium">{titel}</span>
+        {beschreibung && <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{beschreibung}</span>}
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
+    </button>
   );
 }

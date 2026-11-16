@@ -431,6 +431,10 @@ export default function DashboardPage() {
 
           {heuteGelegt}
 
+          {/* Überfällige Impfungen und Entwurmungen sind dringend: gleich hinter der
+              wartenden Fährte, nicht erst nach den Zielkarten. */}
+          {gesundheitAn && <GesundheitsHinweise hunde={daten.hunde} />}
+
           {/* Nur mit einem Termin in den nächsten 7 Tagen - viele Vereine regeln
               Termine anders, dann bleibt hier alles leer. */}
           <TerminKarte sessions={daten.termine} />
@@ -449,7 +453,6 @@ export default function DashboardPage() {
 
           <ZielKarten eintraege={daten.ziele.karten} sachkundeAn={sachkundeAn} onEintragen={oeffneEintragen} onChanged={neuLaden} />
           <PausenZeilen eintraege={pausenOhneKarte(daten.hunde, daten.ziele.karten)} />
-          {gesundheitAn && <GesundheitsHinweise hunde={daten.hunde} />}
           <AbgelaufeneZiele eintraege={daten.ziele.abgelaufen} onChanged={neuLaden} />
           <OhneZielZeilen hunde={daten.ziele.ohneZiel} />
 

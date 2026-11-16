@@ -127,22 +127,24 @@ function ZielKarte({
 
         <PruefungsreifeKarte goal={goal} onChanged={onChanged} />
 
-        {sichtbar.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onEintragen(hund.id, item)}
-            aria-haspopup="dialog"
-            aria-label={`${planItemName(item, sprache)} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })} · ${t("Eintragen")}`}
-            className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-surface-border bg-surface px-3 py-1.5 text-left transition-colors hover:border-primary/40"
-          >
-            <span className="min-w-0 flex-1 truncate font-medium">{planItemName(item, sprache)}</span>
-            <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-              {item.completedCount}/{item.repetitionsTarget}
-            </span>
-            <Plus className="size-4 shrink-0 text-primary-text" aria-hidden />
-          </button>
-        ))}
+        <div className="flex flex-col divide-y">
+          {sichtbar.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onEintragen(hund.id, item)}
+              aria-haspopup="dialog"
+              aria-label={`${planItemName(item, sprache)} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })} · ${t("Eintragen")}`}
+              className="flex min-h-11 w-full items-center gap-3 py-3 text-left transition-colors first:pt-0 last:pb-0 hover:bg-muted/60 active:bg-muted"
+            >
+              <span className="min-w-0 flex-1 truncate font-medium">{planItemName(item, sprache)}</span>
+              <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                {item.completedCount}/{item.repetitionsTarget}
+              </span>
+              <Plus className="size-4 shrink-0 text-primary-text" aria-hidden />
+            </button>
+          ))}
+        </div>
 
         <div className="flex flex-wrap items-center gap-x-4">
           {(versteckt > 0 || (alleZeigen && offen.length > MAX_UEBUNGEN)) && (
