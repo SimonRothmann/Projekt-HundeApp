@@ -36,9 +36,17 @@ internal static class DemoFaehrtenGeometrie
 
     public static double LaengeMeter { get; } = Laenge();
 
+    /// <summary>
+    /// Ein zusätzlicher Marker auf oder neben der gelegten Linie (Leckerlipot, Verleitung, Marker).
+    /// <paramref name="Seitlich"/>: Abstand rechts der Laufrichtung in Metern (negativ = links);
+    /// <paramref name="Halt"/>: Der Hundeführer bleibt im Ablauf dort kurz stehen.
+    /// </summary>
+    public readonly record struct ZusatzMarker(double Meter, double Seitlich, GpsMarkerType Art, string Name, bool Halt);
+
     /// <param name="abweichung">Streuung der seitlichen Abweichung des Hundeführers in Metern (kleiner = besser).</param>
+    /// <param name="zusatz">Weitere Marker neben den drei Gegenständen (null: keine).</param>
     public static (List<CreateGpsPointRequest> Gelegt, List<CreateGpsWalkPointRequest> Abgelaufen) Erzeuge(
-        int lauf, DateTimeOffset gelegtUm, TimeSpan standzeit, double abweichung)
+        int lauf, DateTimeOffset gelegtUm, TimeSpan standzeit, double abweichung, IReadOnlyList<ZusatzMarker>? zusatz = null)
     {
         var zufall = new Random(SaatVersatz + lauf);
 
@@ -58,6 +66,16 @@ internal static class DemoFaehrtenGeometrie
             gelegt.Add(new CreateGpsPointRequest(
                 lat, lon, gelegtUm.AddSeconds(GegenstandMeter[i] / LaufgeschwindigkeitLegen + 1), 3.0,
                 GpsPointType.Manual, GegenstandNamen[i], GpsMarkerType.Article));
+        }
+
+        for (var i = 0; zusatz is not null && i < zusatz.Count; i++)
+        {
+            var z = zusatz[i];
+            var (x, y, nx, ny) = Position(z.Meter);
+            var (lat, lon) = Umrechnen(x + nx * z.Seitlich, y + ny * z.Seitlich);
+            gelegt.Add(new CreateGpsPointRequest(
+                lat, lon, gelegtUm.AddSeconds(z.Meter / LaufgeschwindigkeitLegen + 1), 3.0,
+                GpsPointType.Manual, z.Name, z.Art));
         }
 
         // ---- Ablauf: der Hundeführer folgt der Spur, mit wandernder seitlicher Abweichung ----
@@ -91,6 +109,11 @@ internal static class DemoFaehrtenGeometrie
             }
             if (lauf == 0 && meterAbgelaufen >= 205 && gehaltenBei.Add(100))
                 haltSekunden = 14;
+            for (var i = 0; zusatz is not null && i < zusatz.Count; i++)
+            {
+                if (zusatz[i].Halt && meterAbgelaufen >= zusatz[i].Meter - 1 && gehaltenBei.Add(200 + i))
+                    haltSekunden = 8;
+            }
 
             if (haltSekunden > 0) continue;
 

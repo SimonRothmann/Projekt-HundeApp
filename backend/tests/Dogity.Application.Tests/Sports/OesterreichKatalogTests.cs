@@ -80,12 +80,12 @@ public class OesterreichKatalogTests
         Assert.Equal(4, sportarten["AGILITY"]);
         Assert.Equal(3, sportarten["HOOPERS"]);
         Assert.Equal(8, sportarten["BSP"]);
-        // Obedience (Paket O1): Beginner und Senior der ÖPO 2022 unter der Sportart OBEDIENCE.
+        // Obedience (Paket O1): Beginner und Senior der ÖPO 2025 unter der Sportart OBEDIENCE.
         Assert.Equal(2, sportarten["OBEDIENCE"]);
         // Rally Obedience (Paket RO1): RO B, RO 1, RO 2, RO 3 und RO S der Prüfungsordnung 2023 unter der Sportart RALLYO.
         Assert.Equal(5, sportarten["RALLYO"]);
         // Gültigkeitsbeginn laut Dokument.
-        Assert.Equal(new DateOnly(2022, 1, 1), ordnungen.Single(o => o.Name.StartsWith("ÖKV BH")).Versions.Single().ValidFrom);
+        Assert.Equal(new DateOnly(2025, 1, 1), ordnungen.Single(o => o.Name.StartsWith("ÖKV BH")).Versions.Single().ValidFrom);
         Assert.Equal(new DateOnly(2026, 1, 1), ordnungen.Single(o => o.Name == "ÖKV Agility LK 1 (A 1)").Versions.Single().ValidFrom);
         Assert.Equal(new DateOnly(2024, 1, 1), ordnungen.Single(o => o.Name == "ÖKV Hoopers 1 (H1)").Versions.Single().ValidFrom);
         Assert.Equal(new DateOnly(2025, 1, 1), ordnungen.Single(o => o.Name == "ÖKV Breitensport VK 1").Versions.Single().ValidFrom);

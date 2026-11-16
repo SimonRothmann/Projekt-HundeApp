@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Dogity.Application.Abstractions;
 using Dogity.Application.Sports;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Domain.Community;
@@ -58,7 +59,7 @@ public partial class ObedienceKatalogTests
             ("Positionen aus der Bewegung", 40), ("Apportieren mit Richtungsanweisung", 30),
             ("Um eine Pylonengruppe/Tonne herumschicken", 20), ("Geruchsidentifizierung", 40), ("Distanzkontrolle", 40), ("Gesamteindruck", 20),
         ]),
-        // ÖPO 2022, S. 28 und 33
+        // ÖPO 2025, S. 28 und 33
         ["ÖKV Obedience Beginner"] = ("AT",
         [
             ("Verhalten gegenüber anderen Hunden", 40), ("Liegen in der Gruppe", 30), ("Freifolge", 40), ("Positionen aus der Bewegung", 30),
@@ -132,7 +133,7 @@ public partial class ObedienceKatalogTests
         // Gültigkeitsbeginn laut Dokument.
         Assert.Equal(new DateOnly(2025, 1, 1), ordnungen.Single(o => o.Name == "FCI-Obedience 3").Versions.Single().ValidFrom);
         Assert.Equal(new DateOnly(2025, 1, 1), ordnungen.Single(o => o.Name == "VDH Obedience Senioren (O-S)").Versions.Single().ValidFrom);
-        Assert.Equal(new DateOnly(2022, 1, 1), ordnungen.Single(o => o.Name == "ÖKV Obedience Senior").Versions.Single().ValidFrom);
+        Assert.Equal(new DateOnly(2025, 1, 1), ordnungen.Single(o => o.Name == "ÖKV Obedience Senior").Versions.Single().ValidFrom);
         Assert.Equal(new DateOnly(2025, 1, 1), ordnungen.Single(o => o.Name == "SKG Obedience Beginners").Versions.Single().ValidFrom);
     }
 
@@ -476,5 +477,37 @@ public partial class ObedienceKatalogTests
         Assert.Null(unveraendert.NameEn);
         Assert.Null((await db.Sports.SingleAsync(s => s.Id == vereinssport.Id)).NameEn);
         Assert.Equal("Obedience", global.NameEn);
+    }
+
+    [Fact]
+    public async Task OepoAusgabe2025_KommtAlsNeueFassungDazu_DieOrdnungBleibtDieselbe()
+    {
+        await using var db = await KatalogAsync();
+        var dienste = Dienste(db);
+        var beginner = await db.Regulations.SingleAsync(r => r.Name == "ÖKV Obedience Beginner");
+
+        // Stand einer bestehenden Datenbank vor der Ausgabe 2025: nur die Fassung 2022,
+        // mit dem alten Hinweis zum Ablegen in der Gruppe.
+        var fassung = await db.RegulationVersions.SingleAsync(v => v.RegulationId == beginner.Id);
+        fassung.VersionLabel = "2022";
+        fassung.ValidFrom = new DateOnly(2022, 1, 1);
+        var gruppe = await db.RegulationExercises
+            .SingleAsync(re => re.RegulationVersionId == fassung.Id && re.Exercise!.Name == "Liegen in der Gruppe");
+        gruppe.ScoringNotes = gruppe.ScoringNotes!.Replace("ca. 10 m", "ca. 15 m");
+        await db.SaveChangesAsync();
+
+        await SportCatalogSeeder.SeedAsync(dienste);
+        db.ChangeTracker.Clear();
+
+        // Dieselbe Ordnung (Ziele hängen an ihr), eine zweite Fassung, die jetzt gilt.
+        Assert.Equal(beginner.Id, (await db.Regulations.SingleAsync(r => r.Name == "ÖKV Obedience Beginner")).Id);
+        var fassungen = await db.RegulationVersions.Where(v => v.RegulationId == beginner.Id).ToListAsync();
+        Assert.Equal(["2022", "2025"], fassungen.Select(v => v.VersionLabel).Order());
+        var aktuell = fassungen.AktuelleFassung(new DateOnly(2026, 11, 16))!;
+        Assert.Equal("2025", aktuell.VersionLabel);
+        var neu = await db.RegulationExercises
+            .SingleAsync(re => re.RegulationVersionId == aktuell.Id && re.Exercise!.Name == "Liegen in der Gruppe");
+        Assert.Contains("ca. 10 m", neu.ScoringNotes);
+        Assert.Equal(9, await db.RegulationExercises.CountAsync(re => re.RegulationVersionId == aktuell.Id));
     }
 }

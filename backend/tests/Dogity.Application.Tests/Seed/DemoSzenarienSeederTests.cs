@@ -1656,6 +1656,103 @@ public class DemoSzenarienSeederTests
         Assert.Equal(2, await pruefDb.ClubExams.IgnoreQueryFilters().CountAsync());
     }
 
+    [Fact]
+    public async Task Hundefotos_FuenfHundeBekommenEinBild_DreiBleibenOhne_UndNichtsWirdDoppelt()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        var vorher = await ZaehleAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        Assert.Equal(vorher, await ZaehleAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var mitBild = await db.DogImages.Include(i => i.Dog).ToListAsync();
+        Assert.Equal(
+            new[] { "Bello", "Emma", "Luna", DemoSzenarienSeeder.LangerHundename, "Rocky" }.Order(),
+            mitBild.Select(i => i.Dog!.Name).Order());
+        Assert.All(mitBild, i =>
+        {
+            Assert.Equal("image/jpeg", i.ContentType);
+            Assert.InRange(i.Data.Length, 1, 60 * 1024);
+            Assert.Equal(new byte[] { 0xFF, 0xD8 }, i.Data[..2]);
+        });
+        // Diese Hunde bleiben ohne Foto: Prüfung des Platzhalters.
+        foreach (var name in new[] { "Wauwau", "Flitzer", "Bläss" })
+            Assert.DoesNotContain(mitBild, i => i.Dog!.Name == name);
+
+        // Der lange Name: Lisas zweiter Hund, so lang, dass er im Kopf der Hundeseite umbrechen muss.
+        var lang = await db.Dogs.SingleAsync(d => d.Name == DemoSzenarienSeeder.LangerHundename);
+        Assert.True(lang.Name.Length >= 30);
+        var lisa = await db.Users.SingleAsync(u => u.Email == "mitglied2@dogity.test");
+        Assert.True(await db.DogOwners.AnyAsync(o => o.DogId == lang.Id && o.UserId == lisa.Id));
+    }
+
+    [Fact]
+    public async Task Hundefotos_EinEigenesFotoBleibt_EinGeloeschterLangerHundKommtNichtZurueck()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var bello = await db.Dogs.SingleAsync(d => d.Name == "Bello");
+            var eigenes = await db.DogImages.SingleAsync(i => i.DogId == bello.Id);
+            eigenes.Data = [0xFF, 0xD8, 0x01, 0x02];
+            var lang = await db.Dogs.SingleAsync(d => d.Name == DemoSzenarienSeeder.LangerHundename);
+            lang.DeletedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var danach = provider.CreateScope();
+        var pruefDb = danach.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var belloBild = await pruefDb.DogImages.SingleAsync(i => i.Dog!.Name == "Bello");
+        Assert.Equal(4, belloBild.Data.Length);
+        Assert.Equal(1, await pruefDb.Dogs.IgnoreQueryFilters().CountAsync(d => d.Name == DemoSzenarienSeeder.LangerHundename));
+    }
+
+    [Fact]
+    public async Task Markerfaehrte_EmmaHatEineFaehrteMitAllenMarkerartenUndEinemAuswertetenAblauf()
+    {
+        await using var provider = BaueDienste();
+        await MitDemoKontenAsync(provider);
+        Assert.Empty(await SzenarienAsync(provider));
+        Assert.Empty(await SzenarienAsync(provider));
+
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var track = await db.GpsTracks.Include(t => t.Points).Include(t => t.WalkRuns).ThenInclude(r => r.Stops)
+            .SingleAsync(t => t.Comment == DemoSzenarienSeeder.KommentarMarkerFaehrte);
+
+        // Der Hund hat ein Foto (Emma), alle vier Markerarten kommen vor.
+        var einheit = await db.TrainingSessions.SingleAsync(s => s.Id == track.TrainingSessionId);
+        Assert.Equal("Emma", (await db.Dogs.SingleAsync(d => d.Id == einheit.DogId)).Name);
+        Assert.True(await db.DogImages.AnyAsync(i => i.DogId == einheit.DogId));
+        var arten = track.Points.Where(p => p.PointType == GpsPointType.Manual).Select(p => p.MarkerType).Distinct().Order().ToArray();
+        Assert.Equal(new[] { GpsMarkerType.Article, GpsMarkerType.TreatPot, GpsMarkerType.Distraction, GpsMarkerType.Other }.Order(), arten);
+        Assert.Equal(3, track.Points.Count(p => p.PointType == GpsPointType.Manual && p.MarkerType == GpsMarkerType.Article));
+
+        // Lage und Maßstab wie die anderen Demo-Fährten: gleiche Gegend, gut 400 m Linie.
+        Assert.Equal(400, track.LengthMeters);
+        Assert.All(track.Points, p =>
+        {
+            Assert.InRange(p.Latitude, 48.77, 48.78);
+            Assert.InRange(p.Longitude, 9.18, 9.19);
+        });
+
+        // Ausgewerteter Ablauf: drei Gegenstände, der Halt am Leckerlipot ist erklärt, nicht unerklärt.
+        var lauf = Assert.Single(track.WalkRuns);
+        Assert.NotNull(lauf.EvaluatedAt);
+        Assert.Equal(3, lauf.ArticlesTotal);
+        Assert.Contains(lauf.Stops, s => s.Kind == WalkStopKind.Explained && s.MarkerLabel == "Leckerli-Pot");
+        Assert.DoesNotContain(lauf.Stops, s => s.Kind == WalkStopKind.Unexplained);
+    }
+
     /// <summary>Hält Warnungen des Seeders fest - ein still übergangenes Szenario darf keine auslösen.</summary>
     private sealed class WarnungsSammler : ILoggerProvider
     {

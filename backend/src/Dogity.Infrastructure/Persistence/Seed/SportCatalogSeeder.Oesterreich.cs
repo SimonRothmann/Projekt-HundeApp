@@ -28,7 +28,7 @@ public static partial class SportCatalogSeeder
     /// <summary>Geltungsbereich der ÖKV-Ordnungen (ISO 3166-1 alpha-2).</summary>
     private const string Oesterreich = FciKatalog.Oesterreich;
 
-    private const string QuelleOepo = "https://oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96PO_2024%20HP.pdf";
+    private const string QuelleOepo = "https://obedience.oekv.at/media/upload/editor/files/%C3%96PO_2025%20HP%20-%20neu%20UMLAUFBESCHLUSS%2018.12.2024.pdf";
     private const string QuelleAgility = "https://www.oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96KV-Agilityreglement_2026_g%C3%BCltig%20ab%201.1.2026.pdf";
     private const string QuelleHoopers = "https://www.oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96KV%20PO%20Hoopers%20Stand%2010-2023.pdf";
     private const string QuelleBreitensport = "https://breitensport.oekv.at/media/upload/editor/files/Breitensport/Allgemeines/BSP_PO_2025.pdf";
@@ -45,8 +45,8 @@ public static partial class SportCatalogSeeder
     }
 
     // -------------------------------------------------------------------
-    // Mensch-Hund-Team-Prüfung / BH-VT (ÖPO, Ausgabe 2022, beschlossen am
-    // 24.11.2021, in Kraft seit 01.01.2022)
+    // Mensch-Hund-Team-Prüfung / BH-VT (ÖPO, Ausgabe 2025, in Kraft seit
+    // 01.01.2025; Ausgabe 2022 beschlossen am 24.11.2021)
     //
     // Anders als die FCI-BH/VT (60 Punkte, bestanden ab 42): 100 Punkte in
     // sechs Übungen, bestanden ab 60 %, und die Punktzahl wird nicht
@@ -71,7 +71,7 @@ public static partial class SportCatalogSeeder
                 "Eine zusätzliche Begegnung, die der Prüfer mit dem Hundehalter nach den örtlichen Gegebenheiten abstimmt: Pferde mit Reitern, öffentliche Verkehrsmittel, Aufzug, Menschen ohne Ausweichmöglichkeit (z. B. Baustelle), Park mit Spielplatz oder Hundezone. Gefragt sind neutrales Verhalten des Hundes und verantwortungsvolles Handeln des Hundehalters."),
         ]);
 
-        await SeedRegulationAsync(db, bh, new RegulationSeed("ÖKV BH/VT (Mensch-Hund-Team-Prüfung)", "2022", new DateOnly(2022, 1, 1),
+        await SeedRegulationAsync(db, bh, new RegulationSeed("ÖKV BH/VT (Mensch-Hund-Team-Prüfung)", "2025", new DateOnly(2025, 1, 1),
         [
             new("Fußarbeit", true, 20, "In der ÖPO „Folgen an der Leine“ (S. 14). Angeleint mindestens 30 m geradeaus, dann mindestens eine Kehrtwendung, ein Richtungswechsel links, einer rechts und ein Tempowechsel (Laufschritt, langsamer Schritt); einmal stehen bleiben, der Hund nimmt selbstständig die Grundstellung ein. Zum Schluss durch eine Gruppe von mindestens vier Personen (ca. 3 m Abstand): eine Person rechts, eine links umgehen, z. B. in Form einer Acht, mindestens einmal darin anhalten."),
             new("Freifolge", false, 10, "In der ÖPO „Frei Folgen“ (S. 14 f.), freiwillig. Nach der Gruppe wird in der Grundstellung abgeleint; der Hund folgt etwa 30 m frei, dann Grundstellung und wieder anleinen. Wird sie nicht gezeigt, ist trotz sonst fehlerfreier Prüfung kein „Ausgezeichnet“ möglich. Entfernt sich der Hund mehr als 3 m und kommt nach fünf Signalen nicht zurück, wird die Prüfung abgebrochen."),
@@ -82,15 +82,15 @@ public static partial class SportCatalogSeeder
             new("Begegnung mit Personengruppe", true, 0, "Verkehrsteil ohne Einzelpunkte (S. 17): Der Gesamteindruck entscheidet. Auf dem Gehweg wird das Team von einem Passanten überholt und geht durch eine aufgelockerte Gruppe von mindestens 6 Personen, von der eine den Hundehalter anspricht und mit Handreichen begrüßt (S. 18). Dazu die Begegnung mit einer Person mit Gehhilfe (S. 19)."),
             new("Verhalten im Verkehr", true, 0, "Verkehrsteil ohne Einzelpunkte (S. 17). Hier zusammengefasst: Radfahrer (überholt von hinten, wendet, kommt entgegen), Autos (ein Motor startet, eine Tür schlägt zu, ein Auto hält und der Fahrer fragt nach dem Weg), Jogger oder Inline-Skater (überholt, kommt entgegen) und eine Person mit Kinderwagen (S. 18 f.). Verlangt ist neutrales Verhalten; Sitz oder Platz auf Signal ist erlaubt."),
             new("Verhalten gegenüber anderen Hunden", true, 0, "Verkehrsteil ohne Einzelpunkte (S. 19). Ein anderer Hund mit Hundehalter überholt und kommt entgegen, Mindestabstand 5 m. Der Hundehalter darf stehen bleiben und dem Hund eine Ruheposition anweisen."),
-            new("Zurücklassen des Hundes", false, 0, "Eine der zusätzlichen Überprüfungen (S. 19): Der Hund wird kurzfristig im Verkehr angeleint allein gelassen; geprüft wird sein Verhalten gegenüber Tieren und Menschen, Maulkorb erforderlich. Von den zusätzlichen Überprüfungen müssen mindestens eine und höchstens zwei absolviert werden."),
-            new("Ortsabhängige Begegnung", false, 0, "Zusätzliche Überprüfung nach den örtlichen Gegebenheiten (S. 19), abgestimmt mit dem Hundehalter: Pferde und Reiter, öffentliche Verkehrsmittel, Aufzug mit anderen Menschen, Menschen ohne Ausweichmöglichkeit, Park mit Spielplatz, Hundezone - teils mit Maulkorb. Mindestens eine, höchstens zwei zusätzliche Überprüfungen sind zu absolvieren."),
+            new("Zurücklassen des Hundes", false, 0, "Alternative Überprüfungsmöglichkeit (S. 19): Der Hund wird kurzfristig im Verkehr angeleint allein gelassen; geprüft wird sein Verhalten gegenüber Tieren und Menschen, Maulkorb erforderlich. Verlangt sind wie bei den verpflichtenden Begegnungen neutrales Verhalten und verantwortungsvolles Handeln des Hundehalters; eine Mindest- oder Höchstzahl nennt die ÖPO seit 2025 nicht mehr."),
+            new("Ortsabhängige Begegnung", false, 0, "Alternative Überprüfungsmöglichkeit nach den örtlichen Gegebenheiten (S. 19), abgestimmt mit dem Hundehalter: Pferde und Reiter, öffentliche Verkehrsmittel, Aufzug mit anderen Menschen, Menschen ohne Ausweichmöglichkeit, Park mit Spielplatz, Hundezone - teils mit Maulkorb. Eine Mindest- oder Höchstzahl nennt die ÖPO seit 2025 nicht mehr."),
         ],
-        Description: "Mensch-Hund-Team-Prüfung (BH/VT, Begleithundeprüfung mit Verhaltensteil) nach der Österreichischen Prüfungsordnung des ÖKV (ÖPO, Ausgabe 2022, in Kraft seit 01.01.2022).\n" +
+        Description: "Mensch-Hund-Team-Prüfung (BH/VT, Begleithundeprüfung mit Verhaltensteil) nach der Österreichischen Prüfungsordnung des ÖKV (ÖPO, Ausgabe 2025, in Kraft seit 01.01.2025).\n" +
             "Gilt als Voraussetzung für alle weiteren Prüfungen nach ÖKV- und FCI-Ordnung (S. 10).\n" +
             "Ablauf: 1. Sachkunde-Nachweis (Vortrag von Dogaudit-geprüften oder ÖKV-anerkannten Personen, oder der Nachweis nach der Hundehalteverordnung des Bundeslandes), 2. Unbefangenheit samt Chipkontrolle, 3. einfache Gehorsamsübungen, 4. Prüfungsteil im öffentlichen Verkehr. Der Verkehrsteil wird nur nach bestandenem Gehorsam geprüft (S. 10 f.).\n" +
             "Gehorsam, 100 Punkte: Folgen an der Leine 20, Folgen ohne Leine 10, Absetzen 10, Ablegen mit Heranrufen 20, Ablegen unter Ablenkung 20, Freilaufen mit Heranrufen 20. Folgen ohne Leine und Freilaufen sind freiwillig; ohne Folgen ohne Leine ist kein „Ausgezeichnet“ möglich (S. 11, 14).\n" +
             "Bestanden mit mindestens 60 % der Punkte, „Ausgezeichnet“ ab 90 %. Bekanntgegeben wird nur das Prädikat, nicht die Punktzahl (S. 11).\n" +
-            "Verkehrsteil (S. 17-19): keine Einzelpunkte, der Gesamteindruck entscheidet. Verlangt ist neutrales Verhalten; bei Aggression oder unbeherrschbarer Angst ist die ganze Prüfung nicht bestanden. Dazu kommen mindestens eine und höchstens zwei zusätzliche Begegnungen nach Ort.\n" +
+            "Verkehrsteil (S. 17-19): keine Einzelpunkte, der Gesamteindruck entscheidet. Verlangt ist neutrales Verhalten; bei Aggression oder unbeherrschbarer Angst ist die ganze Prüfung nicht bestanden. Sieben Begegnungen sind verpflichtend (Personengruppe, Radfahrer, Autos, Jogger oder Inline-Skater, andere Hunde, Kinderwagen, Gehhilfen); dazu kommen alternative Überprüfungen nach Ort, die der Prüfer anpassen kann.\n" +
             "Mindestalter des Hundes: 12 Monate. Vorzulegen: Haftpflichtnachweis, Impfpass mit Chipnummer, Registrierungsnachweis (S. 7, 10).\n" +
             "Unterschied zur FCI-BH/VT: dort 60 Punkte, bestanden ab 42, Mindestalter 15 Monate.",
         Land: Oesterreich,
