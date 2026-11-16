@@ -13,6 +13,19 @@ x-logging: &logging
     max-size: "10m"
     max-file: "3"
 
+# Speichergrenzen der App-Container (mem_limit). Sie sind Leitplanken, keine
+# Sparmaßnahme: Ein Container mit Speicherleck oder außer Kontrolle geratener
+# Abfrage soll sich selbst beenden (und per "restart" neu starten), statt dass
+# der Kernel auf der gemeinsamen VPS (rund 11 GB) ein beliebiges Opfer wählt -
+# im schlimmsten Fall Postgres. Die Werte liegen weit über dem Gemessenen:
+# das Prod-Backend brauchte im Lasttest mit 1.000 gleichzeitigen Sitzungen
+# 330 MB (docs/BETRIEB.md, "Belastbarkeit"), ein Next-Server im Leerlauf
+# 100-200 MB. Zusammen mit Postgres im ungünstigsten Fall (rund 4 GB, siehe
+# unten) bleibt die Summe aller Grenzen bei etwa 8,5 GB. Postgres hat
+# bewusst keine Grenze (shared_buffers=2GB), Caddy braucht keine.
+# Wer eine Grenze anfasst: nach dem Deploy mit "docker stats --no-stream"
+# nachsehen, wie viel die Container tatsächlich belegen.
+
 services:
   postgres:
     image: postgres:17
@@ -58,6 +71,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    mem_limit: 1536m
     logging: *logging
     depends_on:
       postgres:
@@ -117,6 +131,7 @@ services:
         NEXT_PUBLIC_BUILD_TIME: "${BUILD_TIME:-}"
         NEXT_PUBLIC_API_URL: "https://${PROD_API_DOMAIN}"
     restart: unless-stopped
+    mem_limit: 1g
     logging: *logging
     depends_on:
       - backend-prod
@@ -126,6 +141,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    mem_limit: 1g
     logging: *logging
     depends_on:
       postgres:
@@ -176,6 +192,7 @@ services:
         # der Login-Seite. Absichtlich NUR bei frontend-test gesetzt.
         NEXT_PUBLIC_ENV_LABEL: TEST
     restart: unless-stopped
+    mem_limit: 768m
     logging: *logging
     depends_on:
       - backend-test
@@ -188,6 +205,7 @@ services:
     build:
       context: ./deploy/mail
     restart: unless-stopped
+    mem_limit: 256m
     logging: *logging
     hostname: mail
     environment:

@@ -18,6 +18,10 @@ on:
         type: choice
         options: [test, prod]
         default: test
+      ci_ueberspringen:
+        description: "NOTFALL: CI-Prüfung überspringen (sonst muss die CI für diesen Commit grün sein)"
+        type: boolean
+        default: false
 
 # Nie zwei Deploys gleichzeitig - beide arbeiten im selben /opt/dogity.
 concurrency:
@@ -27,8 +31,37 @@ concurrency:
 permissions: {}
 
 jobs:
+  ci:
+    # Ein Deploy verlangt eine grüne CI für genau diesen Commit (github.sha, der
+    # master-Stand beim Klick). Läuft die CI noch, wartet der Job bis zu 25
+    # Minuten; rot oder fehlend bricht ab, bevor irgendetwas auf die VPS geht.
+    # Für den Notfall überspringt der Schalter ci_ueberspringen die Prüfung.
+    name: CI grün?
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read # Läufe der CI lesen
+    steps:
+      - name: Prüfung übersprungen (Notfall-Schalter)
+        if: inputs.ci_ueberspringen
+        run: echo "::warning::CI-Prüfung bewusst übersprungen (ci_ueberspringen)."
+      - name: Skript holen
+        if: ${{ !inputs.ci_ueberspringen }}
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci-pruefen.sh
+          sparse-checkout-cone-mode: false
+      - name: CI für den Commit prüfen
+        if: ${{ !inputs.ci_ueberspringen }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/ci-pruefen.sh "$GITHUB_SHA"
+
   deploy:
     name: Deploy ${{ inputs.ziel }}
+    needs: ci
     # Nur vom master-Stand aus, wie bei promote-to-prod.sh.
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest

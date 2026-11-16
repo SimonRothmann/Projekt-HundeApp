@@ -1,4 +1,14 @@
 import { uebersetzbar } from "@/lib/i18n/sprachen";
+import type { Versionshinweis } from "./neueste-version";
+
+// Typen, Label und Datumsformat stehen in neueste-version.ts (siehe dort, warum).
+export {
+  AENDERUNGSART_LABEL,
+  formatiereVeroeffentlichung,
+  type Aenderung,
+  type Aenderungsart,
+  type Versionshinweis,
+} from "./neueste-version";
 
 /**
  * Versionshinweise - was sich in Dogity geändert hat, in Worten für Nutzer.
@@ -28,32 +38,10 @@ import { uebersetzbar } from "@/lib/i18n/sprachen";
  *
  * Neueste Fassung steht oben. Darauf verlässt sich die Anzeige, und
  * versionshinweise.test.ts wacht darüber. Ihre Nummer steht zusätzlich in
- * aktuelle-version.ts (dort der Grund) und wird mit jedem neuen Eintrag
- * nachgezogen.
+ * aktuelle-version.ts (dort der Grund), und der oberste Eintrag steht
+ * zusätzlich als NEUESTE_VERSION in neueste-version.ts (für den Auszug auf
+ * der Startseite) - beides wird mit jedem neuen Eintrag nachgezogen.
  */
-
-export type Aenderungsart = "neu" | "verbessert" | "behoben";
-
-export const AENDERUNGSART_LABEL: Record<Aenderungsart, string> = {
-  neu: uebersetzbar("Neu"),
-  verbessert: uebersetzbar("Verbessert"),
-  behoben: uebersetzbar("Behoben"),
-};
-
-export type Aenderung = {
-  art: Aenderungsart;
-  text: string;
-};
-
-export type Versionshinweis = {
-  /** "0.9" oder "0.9.1" - siehe Nummerierungsregel oben. */
-  version: string;
-  /** Tag der Veröffentlichung als ISO-Datum (YYYY-MM-DD). */
-  datum: string;
-  /** Eine Zeile, die den Kern der Fassung benennt. Keine Aufzählung. */
-  titel: string;
-  aenderungen: Aenderung[];
-};
 
 /**
  * Alle Einträge bis einschließlich 0.9 sind nachträglich aus der
@@ -1493,22 +1481,3 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
 
 /** Datum der neuesten Fassung als ISO-Datum. */
 export const AKTUELLE_VERSION_DATUM = VERSIONSHINWEISE[0].datum;
-
-/**
- * "3. September 2026" - ausgeschrieben, weil 03.09.2026 sich schlechter liest.
- *
- * Die Uhrzeit 12:00 UTC ist kein Füllwert: Ein reines "2026-09-03" liest
- * JavaScript als Mitternacht UTC, und daraus wird in jeder westlich von
- * Greenwich gelegenen Zeitzone der 2. September. Mittags als Anker liegt von
- * UTC-11 bis UTC+11 sicher im selben Tag. Die feste Zeitzone hält zusätzlich
- * Server-Rendering (Container läuft unter UTC) und Hydration im Browser auf
- * derselben Zeichenkette.
- */
-export function formatiereVeroeffentlichung(isoDatum: string, sprache: string = "de"): string {
-  return new Date(`${isoDatum}T12:00:00Z`).toLocaleDateString(sprache === "en" ? "en-GB" : "de-DE", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Europe/Berlin",
-  });
-}

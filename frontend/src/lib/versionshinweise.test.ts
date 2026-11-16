@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AKTUELLE_VERSION } from "./aktuelle-version";
+import { NEUESTE_VERSION } from "./neueste-version";
 import { formatiereVeroeffentlichung, VERSIONSHINWEISE } from "./versionshinweise";
 
 /**
@@ -49,6 +50,12 @@ describe("VERSIONSHINWEISE", () => {
 
   it("meldet als aktuelle Fassung die oberste", () => {
     expect(AKTUELLE_VERSION).toBe(VERSIONSHINWEISE[0].version);
+  });
+
+  it("hält neueste-version.ts auf dem Stand des obersten Eintrags (der Auszug auf der Startseite)", () => {
+    // Der Auszug lädt nur die kleine Datei, nicht die ganze Liste. Wer einen neuen
+    // Eintrag oben einfügt und NEUESTE_VERSION vergisst, bekommt hier den Hinweis.
+    expect(NEUESTE_VERSION).toStrictEqual(VERSIONSHINWEISE[0]);
   });
 });
 

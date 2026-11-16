@@ -86,6 +86,12 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Eigenständiger Server für das Docker-Image: Next legt unter
+  // .next/standalone nur die Pakete ab, die der Server wirklich lädt, samt
+  // server.js - das Image braucht damit kein vollständiges node_modules mehr
+  // (siehe Dockerfile). `next start` funktioniert weiter wie bisher.
+  output: "standalone",
+
   // Next.js blockt seit v15 standardmäßig Cross-Origin-Zugriffe auf
   // Dev-Server-Assets (JS-Chunks, HMR) - ruft man die App vom Smartphone im
   // selben WLAN über die LAN-IP des Rechners auf, lädt die Seite zwar (das
