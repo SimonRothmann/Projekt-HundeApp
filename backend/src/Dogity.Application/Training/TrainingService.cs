@@ -524,16 +524,19 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
         // Die Fährten gehen mit dem Training: Über das Training erreicht sie
         // niemand mehr, sie würden aber weiter mitgezählt und ihre GPS-Punkte
-        // blieben liegen. Beides in einem SaveChanges.
+        // blieben liegen. Beides in einer Transaktion: Bliebe das Training stehen, während die Fährten
+        // als gelöscht markiert sind, räumte die Aufbewahrungsfrist sie nach 30 Tagen endgültig weg.
         var jetzt = DateTimeOffset.UtcNow;
         var faehrtenIds = await db.GpsTracks.IgnoreQueryFilters()
             .Where(t => t.TrainingSessionId == sessionId)
             .Select(t => t.Id)
             .ToListAsync(ct);
-        await GpsTrackRemoval.WeichLoeschenAsync(db, faehrtenIds, jetzt, ct);
-
-        session.DeletedAt = jetzt;
-        await db.SaveChangesAsync(ct);
+        await db.InTransaktionAsync(async () =>
+        {
+            await GpsTrackRemoval.WeichLoeschenAsync(db, faehrtenIds, jetzt, ct);
+            session.DeletedAt = jetzt;
+            await db.SaveChangesAsync(ct);
+        }, ct);
 
         // Der Wiedervorlage-Zustand trägt das gelöschte Ergebnis sonst weiter
         // in Leitner-Box und Schnitt - der adaptive Generator plante dann gegen

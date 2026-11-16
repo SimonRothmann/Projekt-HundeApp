@@ -633,8 +633,11 @@ public class GpsTrackService(
 
         // Mit Punkten, Abläufen und Stockungen - sonst blieben sie als Rückstand
         // in der Datenbank (siehe GpsTrackRemoval).
-        await GpsTrackRemoval.WeichLoeschenAsync(db, [track.Id], DateTimeOffset.UtcNow, ct);
-        await db.SaveChangesAsync(ct);
+        await db.InTransaktionAsync(async () =>
+        {
+            await GpsTrackRemoval.WeichLoeschenAsync(db, [track.Id], DateTimeOffset.UtcNow, ct);
+            await db.SaveChangesAsync(ct);
+        }, ct);
         return Result.Success();
     }
 

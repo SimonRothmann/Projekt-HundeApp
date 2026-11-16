@@ -102,5 +102,12 @@ public interface IApplicationDbContext
     /// </summary>
     bool UnterstuetztMassenbefehle { get; }
 
+    /// <summary>
+    /// Führt <paramref name="arbeit"/> in einer Datenbank-Transaktion aus: Massenbefehle und das SaveChanges
+    /// des Aufrufers gelten ganz oder gar nicht. Ohne Massenbefehle (In-Memory-Ersatz) läuft sie einfach durch.
+    /// Bei einer Wiederholung durch die Ausführungsstrategie läuft <paramref name="arbeit"/> erneut.
+    /// </summary>
+    Task InTransaktionAsync(Func<Task> arbeit, CancellationToken ct = default);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

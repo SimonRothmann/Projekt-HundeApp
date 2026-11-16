@@ -21,6 +21,7 @@ namespace Dogity.Application.Tracking;
 /// Fährte bringt tausende Punkte mit. Auf Postgres wirkt er sofort (ExecuteUpdate, ohne
 /// Change Tracker); der In-Memory-Ersatz der Tests kann das nicht und geht über den Change
 /// Tracker - dort speichert erst der Aufrufer (<see cref="IApplicationDbContext.UnterstuetztMassenbefehle"/>).
+/// Aufrufer, die danach selbst speichern, legen beides um <see cref="IApplicationDbContext.InTransaktionAsync"/>.
 /// </summary>
 public static class GpsTrackRemoval
 {
