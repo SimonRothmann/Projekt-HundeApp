@@ -39,7 +39,10 @@ export function ErfassenKarte({
 
   return (
     <Card size="sm">
-      <CardContent className="flex flex-col gap-3 divide-y *:not-first:pt-3">
+      {/* divide-y zieht die Linie UNTER die obere Zeile (Tailwind 4): Der Abstand gehört
+          deshalb oben UND unten an jede Zeile (ABSTAND), sonst klebt die Linie an den
+          Hunde-Chips der ersten Zeile. */}
+      <CardContent className="flex flex-col divide-y">
         <Zeile
           icon={NotebookPen}
           titel={t("Training erfassen")}
@@ -66,6 +69,9 @@ export function ErfassenKarte({
     </Card>
   );
 }
+
+/** Gleicher Abstand über und unter der Trennlinie zwischen den Zeilen. */
+const ABSTAND = "py-3 first:pt-0 last:pb-0";
 
 function Zeile({
   icon: Icon,
@@ -99,7 +105,7 @@ function Zeile({
         <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
       </>
     );
-    const klasse = "group flex min-h-11 w-full min-w-0 items-center gap-3 rounded-lg text-left";
+    const klasse = `group flex min-h-11 w-full min-w-0 items-center gap-3 rounded-lg text-left ${ABSTAND}`;
     return (
       <button type="button" onClick={() => onWaehle(hunde[0].id)} aria-haspopup="dialog" className={klasse}>
         {inhalt}
@@ -108,7 +114,7 @@ function Zeile({
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-2">
+    <div className={`flex min-w-0 flex-col gap-2 ${ABSTAND}`}>
       <p className="flex items-center gap-3 font-medium">
         {symbol}
         {titel}
