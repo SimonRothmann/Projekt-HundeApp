@@ -67,14 +67,6 @@ export function feedbackKarte(liste: readonly OffenesFeedback[] | null | undefin
   return { aktuell: offen[0] ?? null, weitere: offen.slice(1) };
 }
 
-/** Ab so vielen Zeichen bietet die Karte "mehr" an (drei Zeilen bei 390 px sind etwa 120 Zeichen). */
-const FEEDBACK_KURZ = 120;
-
-/** Ob ein Feedback mehr als die drei Vorschauzeilen füllen kann - dann gehört ein "mehr" dazu. */
-export function feedbackKuerzbar(text: string): boolean {
-  return text.length > FEEDBACK_KURZ || (text.match(/\n/g)?.length ?? 0) >= 3;
-}
-
 // ---- Ziele ----
 
 export type ZielKartenEintrag = {

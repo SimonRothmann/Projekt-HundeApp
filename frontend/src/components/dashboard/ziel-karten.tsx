@@ -17,10 +17,12 @@ import { useSprache, useT } from "@/lib/i18n";
 import { planItemName } from "@/lib/trainingsplan";
 
 /** Wie viele offene Wochenübungen eine Zielkarte auf der Startseite zeigt, bevor „+n weitere“ kommt. */
-const MAX_UEBUNGEN = 3;
+const MAX_UEBUNGEN = 2;
 
+/** Schmale Zeilen (Pause, Ergebnis fehlt, ohne Ziel) stehen je Abschnitt in EINER Liste, nicht in Einzelkästen. */
+const LISTE = "flex flex-col divide-y overflow-hidden rounded-lg border border-surface-border bg-surface";
 const ZEILE =
-  "flex min-h-11 min-w-0 items-center gap-2 rounded-lg border border-surface-border bg-surface px-3 text-left text-sm transition-colors hover:border-primary/40";
+  "flex min-h-11 w-full min-w-0 items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60 active:bg-muted";
 
 const LINK =
   "inline-flex min-h-11 items-center gap-0.5 rounded-md text-sm text-primary-text underline-offset-4 hover:underline";
@@ -81,8 +83,9 @@ function ZielKarte({
   // geht trotzdem (Erfassen-Karte, "Ganzer Plan").
   const fortschritt = pause ? null : wochenstand;
   const offen = pause ? [] : eintrag.offen;
-  // Höchstens drei Übungen, je eine Zeile: Mit fünf zweizeiligen Kästen pro
-  // Hund war die Startseite schon bei einem Ziel wieder zwei Bildschirme lang.
+  // Höchstens zwei Übungen, je eine Zeile: Mit fünf zweizeiligen Kästen pro
+  // Hund war die Startseite schon bei einem Ziel wieder zwei Bildschirme lang,
+  // und auch drei Zeilen machten sie neben Fährte, Terminen und Feedback zu voll.
   const sichtbar = alleZeigen ? offen : offen.slice(0, MAX_UEBUNGEN);
   const versteckt = offen.length - sichtbar.length;
   const alles = fortschritt !== null && fortschritt.erledigt >= fortschritt.geplant;
@@ -198,7 +201,7 @@ export function PausenZeilen({ eintraege }: { eintraege: { hund: Dog; pause: Dog
   if (eintraege.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-2">
+    <section className={LISTE}>
       {eintraege.map(({ hund, pause }) => (
         <Link key={hund.id} href={`/dogs/${hund.id}`} className={ZEILE}>
           <CirclePause className="size-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
@@ -234,7 +237,7 @@ export function AbgelaufeneZiele({
   if (eintraege.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-2">
+    <section className={LISTE}>
       {eintraege.map(({ hund, goal }) => (
         <ZielAbschliessen
           key={goal.id}
@@ -269,7 +272,7 @@ export function OhneZielZeilen({ hunde }: { hunde: Dog[] }) {
   if (hunde.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-2">
+    <section className={LISTE}>
       {hunde.map((hund) => (
         <Link key={hund.id} href={`/dogs/${hund.id}#trainingsplan`} className={ZEILE}>
           <Target className="size-4 shrink-0 text-muted-foreground" aria-hidden />

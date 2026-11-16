@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   feedbackKarte,
-  feedbackKuerzbar,
   MAX_WEITERE_TERMINE,
   terminUebersicht,
   zeigeSachkundeZeile,
@@ -88,16 +87,6 @@ describe("feedbackKarte", () => {
   });
 });
 
-describe("feedbackKuerzbar", () => {
-  it("bietet bei kurzem Text kein 'mehr' an", () => {
-    expect(feedbackKuerzbar("Schön gearbeitet!")).toBe(false);
-  });
-
-  it("bietet es bei langem Text oder vielen Zeilenumbrüchen an", () => {
-    expect(feedbackKuerzbar("x".repeat(200))).toBe(true);
-    expect(feedbackKuerzbar("a\nb\nc\nd")).toBe(true);
-  });
-});
 
 const hund = (id: string, archiviert = false): Dog => ({
   id, name: id, breed: null, birthday: null, gender: 0, imageUrl: null, notes: null,

@@ -1479,7 +1479,7 @@ export const EN: Record<string, string> = {
   "Weitere Termine ({n})": "More sessions ({n})",
   "Feedback von {trainer} zu {hund}": "Feedback from {trainer} on {hund}",
   "Feedback zu {hund}": "Feedback on {hund}",
-  "mehr": "more",
+  "Lesen & antworten": "Read & reply",
   "weniger": "less",
   "Woche {woche} · {erledigt}/{geplant}": "Week {woche} · {erledigt}/{geplant}",
   "Ganzer Plan": "Full plan",

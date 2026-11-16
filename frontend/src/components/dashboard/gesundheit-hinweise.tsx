@@ -9,9 +9,12 @@ import { useSprache, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const ZEILE =
-  "flex min-h-11 min-w-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:border-primary/40";
+  "flex min-h-11 min-w-0 items-center gap-2 px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/60 active:bg-muted";
 
-/** Rahmen je Ton; das Symbol und der Satz selbst ("abgelaufen", "fällig") tragen die Aussage, nicht die Farbe. */
+/**
+ * Rahmen der Karte nach dem dringendsten Hinweis darin; das Symbol und der Satz selbst
+ * ("abgelaufen", "fällig") tragen die Aussage, nicht die Farbe.
+ */
 const TON_KLASSEN: Record<Ton, string> = {
   rot: "border-destructive/40 bg-destructive/10",
   gelb: "border-amber-500/40 bg-amber-500/10",
@@ -36,13 +39,16 @@ export function GesundheitsHinweise({ hunde }: { hunde: Dog[] }) {
       hinweiseFuerHund(t, hund, heute, sprache).map((hinweis, i) => ({ schluessel: `${hund.id}-${i}`, hundId: hund.id, ...hinweis })),
     );
   if (zeilen.length === 0) return null;
+  // Alle Hinweise in EINER Karte, je Hinweis eine Zeile: Einzelne Kästen
+  // untereinander machten die Startseite unruhig.
+  const ton: Ton = zeilen.some((z) => z.ton === "rot") ? "rot" : zeilen.some((z) => z.ton === "gelb") ? "gelb" : "neutral";
 
   return (
-    <div className="flex min-w-0 flex-col gap-2">
+    <div className={cn("flex min-w-0 flex-col divide-y overflow-hidden rounded-lg border", TON_KLASSEN[ton])}>
       {zeilen.map((zeile) => {
         const Zeichen = zeile.ton === "rot" ? TriangleAlert : zeile.ton === "gelb" ? Clock : CalendarClock;
         return (
-          <Link key={zeile.schluessel} href={`/dogs/${zeile.hundId}?tab=gesundheit`} className={cn(ZEILE, TON_KLASSEN[zeile.ton])}>
+          <Link key={zeile.schluessel} href={`/dogs/${zeile.hundId}?tab=gesundheit`} className={ZEILE}>
             <Zeichen
               className={cn(
                 "size-4 shrink-0",

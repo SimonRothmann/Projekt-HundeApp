@@ -40,14 +40,15 @@ export function ErfassenKarte({
     return (
       <Card size="sm">
         {/* divide-y zieht die Linie UNTER jede Zeile außer der letzten (Tailwind 4): Der
-            Abstand gehört deshalb oben UND unten an jede Zeile (ABSTAND). */}
+            Abstand gehört deshalb oben UND unten an jede Zeile. Knapp, weil die
+            Knöpfe selbst schon 44 px hoch sind. */}
         <CardContent className="flex flex-col gap-2">
           <p className="text-sm font-semibold">{t("Erfassen")}</p>
           <ul className="flex flex-col divide-y">
             {hunde.map((hund) => {
               const nurTrailHund = nurTrailHundeIds.includes(hund.id);
               return (
-                <li key={hund.id} className={`flex min-w-0 items-center gap-2 ${ABSTAND}`}>
+                <li key={hund.id} className="flex min-w-0 items-center gap-1 py-1 first:pt-0 last:pb-0">
                   <DogAvatar dogId={hund.id} hasImage={hund.hasImage} name={hund.name} className="size-8" iconClassName="size-4" />
                   <span className="min-w-0 flex-1 truncate font-medium">{hund.name}</span>
                   <KompaktKnopf
@@ -112,9 +113,9 @@ function KompaktKnopf({ icon: Icon, text, name, onClick }: { icon: LucideIcon; t
       onClick={onClick}
       aria-haspopup="dialog"
       aria-label={name}
-      className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-surface-border bg-surface px-3 text-sm font-medium transition-colors hover:border-primary/50"
+      className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-primary-text transition-colors hover:bg-muted active:bg-muted"
     >
-      <Icon className="size-4 text-primary-text" aria-hidden />
+      <Icon className="size-4" aria-hidden />
       {text}
     </button>
   );
