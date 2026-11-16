@@ -13,6 +13,7 @@ import type {
   GroupTrainingSession,
   OffenesFeedback,
   OnboardingStatus,
+  Sport,
   TrainerOpenCounts,
   TrainingPlanItem,
 } from "@/lib/types";
@@ -42,6 +43,7 @@ import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { useT } from "@/lib/i18n";
 import { heuteIso } from "@/lib/kalendertag";
 import { ladeSportarten } from "@/lib/sportarten";
+import { getCachedData, setCachedData } from "@/lib/read-cache";
 
 /** Kompakte Zeile, wie sie die Startseite für Nebensächliches nutzt (Verein, Sachkunde). */
 const ZEILE =
@@ -93,8 +95,24 @@ type Startdaten = {
  */
 let zwischenstand: { nutzerId: string; daten: Startdaten } | null = null;
 
+/** Die Antworten, aus denen die Startseite besteht - das ist es, was im Lesecache liegt. */
+type Rohdaten = {
+  dashboard: DashboardDaten;
+  sports: Sport[];
+  onboarding: OnboardingStatus | null;
+  termine: GroupTrainingSession[];
+};
+
 /**
- * Alles für die Startseite in einer Welle.
+ * Der Lesecache hält die Antworten statt der fertigen Startseite: Was von der Uhrzeit abhängt (welche Fährte
+ * noch wartet, welche Ziele abgelaufen sind), rechnet berechneStartdaten beim Anzeigen neu. Gebunden an den
+ * Nutzer: Der Cache wird beim Abmelden geleert, die Bindung deckt auch einen Wechsel ohne Abmelden ab.
+ */
+const CACHE_SCHLUESSEL = "dashboard";
+type CacheEintrag = { nutzerId: string; roh: Rohdaten };
+
+/**
+ * Alle Antworten für die Startseite in einer Welle.
  *
  * Vorher kamen erst die Hunde und danach je Hund Sportarten, Ziele, Trainings
  * und Fährten: bei zwei Hunden 13 Anfragen in zwei bis drei Wellen. Auf dem
@@ -109,7 +127,7 @@ let zwischenstand: { nutzerId: string; daten: Startdaten } | null = null;
  * zeigt dann den Fehlerzustand oder behält den letzten Stand. Nur Termine und
  * Erststart-Status dürfen ausfallen: Ohne sie fehlt bloß deren Karte.
  */
-async function ladeStartdaten(): Promise<Startdaten> {
+async function holeRohdaten(): Promise<Rohdaten> {
   // Der Kalendertag auf dem Gerät, nicht der UTC-Tag: Nach Mitternacht läge
   // dieser sonst noch beim gestrigen und zeigte schon vorbeigegangene Termine.
   const heute = heuteIso();
@@ -121,7 +139,10 @@ async function ladeStartdaten(): Promise<Startdaten> {
       .get<GroupTrainingSession[]>(`/api/group-training/schedule/mine?from=${heute}`)
       .catch(() => [] as GroupTrainingSession[]),
   ]);
+  return { dashboard, sports, onboarding, termine };
+}
 
+function berechneStartdaten({ dashboard, sports, onboarding, termine }: Rohdaten): Startdaten {
   const eintraege = dashboard.dogs;
   const jetzt = Date.now();
   const bhSportIds = new Set(sports.filter((sport) => sport.code === "BH").map((sport) => sport.id));
@@ -146,6 +167,22 @@ async function ladeStartdaten(): Promise<Startdaten> {
     einladungen: dashboard.groupInvitations,
     vereinsEinladungen: dashboard.clubInvitations,
   };
+}
+
+/** Holt alles frisch und legt es im Lesecache ab (jedes Neuladen nach einer Aktion hält ihn so aktuell). */
+async function ladeStartdaten(nutzerId: string | null): Promise<Startdaten> {
+  const roh = await holeRohdaten();
+  if (nutzerId) void setCachedData<CacheEintrag>(CACHE_SCHLUESSEL, { nutzerId, roh });
+  return berechneStartdaten(roh);
+}
+
+/** Der letzte gespeicherte Stand dieser Person, oder null. Schon vergangene Termine fallen heraus (das Gerät hat sie nicht frisch vom Server). */
+async function ladeGespeicherteStartdaten(nutzerId: string): Promise<Startdaten | null> {
+  const eintrag = await getCachedData<CacheEintrag>(CACHE_SCHLUESSEL);
+  if (!eintrag || eintrag.nutzerId !== nutzerId) return null;
+  const tagesbeginn = new Date(`${heuteIso()}T00:00:00`).getTime();
+  const { roh } = eintrag;
+  return berechneStartdaten({ ...roh, termine: roh.termine.filter((termin) => new Date(termin.startsAt).getTime() >= tagesbeginn) });
 }
 
 export default function DashboardPage() {
@@ -177,7 +214,7 @@ export default function DashboardPage() {
   // und hätten für einen Fehler beim Neuladen keine passende Meldung.
   async function neuLaden() {
     try {
-      uebernehmen(await ladeStartdaten());
+      uebernehmen(await ladeStartdaten(nutzerId));
     } catch {
       setLadefehler(true);
     }
@@ -188,7 +225,7 @@ export default function DashboardPage() {
   // Eintragen-Fenster für ihn öffnen - ohne Seitenwechsel. Schließt der
   // Nutzer es ohne Speichern, bleibt genau diese Startseite stehen.
   async function ersterHundAngelegt(hund: HundDaten) {
-    const frisch = await ladeStartdaten().catch(() => null);
+    const frisch = await ladeStartdaten(nutzerId).catch(() => null);
     // Kam der Hund im Neuladen nicht an (kurz ohne Netz), tragen wir ihn von
     // Hand ein: Die Karte bliebe sonst stehen, und ein zweiter Druck auf
     // "Weiter" legte ihn doppelt an.
@@ -249,15 +286,28 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let abgebrochen = false;
-    ladeStartdaten().then(
+    // Gespeicherter Stand zuerst (wie Hundeliste und Hundeseite), die frische Antwort ersetzt ihn. Kommt sie
+    // früher als der Speicher, bleibt sie stehen. Ein Fehler beim frischen Abruf wird nur gemeldet, wenn
+    // nichts Gespeichertes zu sehen ist.
+    let frischDa = false;
+    let ausSpeicher = false;
+    if (nutzerId) {
+      void ladeGespeicherteStartdaten(nutzerId).then((gespeichert) => {
+        if (abgebrochen || frischDa || !gespeichert) return;
+        ausSpeicher = true;
+        setDaten((aktuell) => aktuell ?? gespeichert);
+      });
+    }
+    ladeStartdaten(nutzerId).then(
       (frisch) => {
         if (abgebrochen) return;
+        frischDa = true;
         if (nutzerId) zwischenstand = { nutzerId, daten: frisch };
         setDaten(frisch);
         setLadefehler(false);
       },
       () => {
-        if (!abgebrochen) setLadefehler(true);
+        if (!abgebrochen && !ausSpeicher) setLadefehler(true);
       },
     );
     return () => {
