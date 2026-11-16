@@ -46,6 +46,10 @@
     <!-- Englische Texte der FCI-Ordnungen (Paket E4), gelesen von FciTexteEn. -->
     <EmbeddedResource Include="Persistence/Seed/Data/fci-texte-en.json"
                       LogicalName="Dogity.Infrastructure.Persistence.Seed.Data.fci-texte-en.json" />
+    <!-- Gezeichnete Hundefotos der Demo-Szenarien (nur Test-Umgebung), erzeugt von
+         scripts/demo-bilder.py, gelesen vom DemoSzenarienSeeder. -->
+    <EmbeddedResource Include="Persistence/Seed/Data/DemoBilder/*.jpg"
+                      LogicalName="Dogity.Infrastructure.Persistence.Seed.Data.DemoBilder.%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

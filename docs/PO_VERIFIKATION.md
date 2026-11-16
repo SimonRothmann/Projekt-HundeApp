@@ -12,7 +12,7 @@ kleiner.
 | [FCI-Prüfungsordnung, englisch, gültig ab 01.01.2025](https://www.fci.be/medias/UTI-REG-IGP-en-2025-22401.pdf) (FCI-IGP 2025, beschlossen 03.09.2024, 82 Seiten) | **Originalfassung**: englische Namen der FCI-Sportarten, -Ordnungen und -Übungen (seit 2026-10-16) |
 | [VDH, Informationen zur Prüfungsordnung, Stand April 2026](https://www.vdh.de/fileadmin/media/hundesport/Gebrauchshundesport/2026/VDH_Info_PO_Stand_April_3-2026.pdf) | nationale Festlegungen (Mindestalter, Durchführung) |
 | [VDH, Begleithundeprüfung](https://www.vdh.de/hundesport/begleithundpruefung/) | BH-Rahmenbedingungen |
-| [ÖKV, Österreichische Prüfungsordnung (ÖPO), Ausgabe 2022](https://oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96PO_2024%20HP.pdf) (beschlossen 24.11.2021, in Kraft 01.01.2022) | Mensch-Hund-Team-Prüfung (BH/VT) des ÖKV (seit 2026-10-17) |
+| [ÖKV, Österreichische Prüfungsordnung (ÖPO), Ausgabe 2025](https://obedience.oekv.at/media/upload/editor/files/%C3%96PO_2025%20HP%20-%20neu%20UMLAUFBESCHLUSS%2018.12.2024.pdf) (gültig ab 01.01.2025, 37 Seiten; die Datei trägt als Beschlussdatum „18. Dezember 2025“, der Dateiname „Umlaufbeschluss 18.12.2024“ - gemeint ist offenbar 2024; Stand der Prüfung 16.11.2026, laut [obedience.oekv.at](https://obedience.oekv.at/de/reglements/pruefungsordnungen/) die gültige Fassung; Vorgängerausgabe 2022, beschlossen 24.11.2021) | Mensch-Hund-Team-Prüfung (BH/VT) des ÖKV (seit 2026-10-17; auf Ausgabe 2025 umgestellt 2026-11-16) |
 | [ÖKV-Agilityreglement, Ausgabe 2026](https://www.oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96KV-Agilityreglement_2026_g%C3%BCltig%20ab%201.1.2026.pdf) (beschlossen 30.10.2025, gültig ab 01.01.2026) | Agility LK 1-3 und Jumping (ÖKV) |
 | [ÖKV Prüfungsordnung Hoopers, gültig ab 01.01.2024](https://www.oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96KV%20PO%20Hoopers%20Stand%2010-2023.pdf) | Hoopers H1-H3 (ÖKV) |
 | [ÖKV Prüfungsordnung Breitensport, gültig ab 01.01.2025](https://breitensport.oekv.at/media/upload/editor/files/Breitensport/Allgemeines/BSP_PO_2025.pdf) (beschlossen 29.02.2024) | Breitensport VK 1/VK 2, Läufe, CSC, Shorty (ÖKV) |
@@ -22,12 +22,12 @@ kleiner.
 | [FCI, Rules and Guidelines for Obedience Trials for Classes 1, 2 and 3, gültig ab 01.01.2025](https://www.fci.be/medias/OBE-REG-COB-123-20250101-en-19742.pdf) (OBE-REG-COB-123, 96 Seiten, **englisch = Originalsprache**; dieselbe Datei liegt auf tkamo.ch) | FCI-Obedience 1-3: Übungen, Koeffizienten, Noten, Aufstieg; englische Namen und Texte (seit 2026-10-21, Paket O1) |
 | [TKAMO, FCI-Obedience-Reglement, deutsche Übersetzung 2025 (V2)](https://www.tkamo.ch/media/files/FCI_Obedience_TKAMO_Deutsch_2025_V2.pdf) | nur Verständnishilfe, nichts daraus übernommen |
 | [VDH, Prüfungsordnung (PO) Obedience, gültig ab 01.01.2025](https://www.vdh.de/fileadmin/media/hundesport/obedience/2025/VDH_Pruefungsordnung_Obedience_deutsch_1-1-2025.pdf) (124 Seiten; Übersicht auf [vdh.de/hundesport/obedience](https://www.vdh.de/hundesport/obedience/)) | VDH Obedience Beginner (O-B) und Senioren (O-S); deutsche Übungsnamen der FCI-Klassen (seit 2026-10-21) |
-| [ÖKV, Österreichische Prüfungsordnung (ÖPO), Ausgabe 2022 - Datei „ÖPO_2022 HP.pdf“](https://web.archive.org/web/20240618224143/https://www.oekv.at/media/upload/editor/files/%C3%96KV/Leistungsreferat/%C3%96PO_2022%20HP.pdf) (Webarchiv-Abzug vom 18.06.2024, weil oekv.at am 21.10.2026 nicht erreichbar war; dieselbe Ausgabe wie die BH-Quelle oben) | ÖKV Obedience Beginner (S. 28-32) und Senior (S. 33-37), allgemeine Bestimmungen S. 20-27 (seit 2026-10-21) |
+| Dieselbe ÖPO, Ausgabe 2025 (Datei wie in der BH-Zeile oben; die ältere „ÖPO_2022 HP.pdf“ liegt noch auf oekv.at, gilt aber nicht mehr) | ÖKV Obedience Beginner (S. 28-32) und Senior (S. 33-37), allgemeine Bestimmungen S. 20-27 (seit 2026-10-21; gegen das Original geprüft und auf Ausgabe 2025 umgestellt 2026-11-16) |
 | [SKG Wettkampfordnung, Reglement Obedience, gültig ab 01.01.2025](https://www.tkamo.ch/media/files/Obedience_Reglement_2025_DE.pdf) (24 Seiten; Übersicht auf [tkamo.ch/de/obedience/reglemente](https://www.tkamo.ch/de/obedience/reglemente.html)) | SKG Obedience Beginners (Kapitel 6, S. 14-23), Mindestalter (3.3), Qualifikation (4.4) (seit 2026-10-21) |
 | [TKAMO, Weisung „FCI-Prüfungsordnung Obedience“, gültig ab 01.01.2026](https://www.tkamo.ch/media/files/Obedience_Weisung_PO_2026_DE.pdf) (4 Seiten) | nur Hinweis (Schweizer Präzisierungen zu den FCI-Klassen), nicht abgebildet |
 | [FCI, Regulations and Rules for International FCI Rally Obedience Trials, 01.02.2025](https://fci.be/medias/FCI-ROB-REG-2025-en-19918.pdf) (FCI-ROB-REG-2025, 36 Seiten, **englisch = Originalsprache**; zuletzt geändert am 08.01.2025) | FCI Rally Obedience International Class: Schilder 101-422 (Kapitel 5), Bewertung und Abzüge (Kapitel 6) |
 | [VDH, Regelwerk Rally Obedience, gültig ab 01.01.2027](https://www.schaeferhunde.de/fileadmin/Secure/Satzungen_Ordnungen/02-VDH_RO_RW_2027.pdf) (Beschluss 25.09.2026, 81 Seiten; Kopie beim SV, die Datei liegt nicht auf vdh.de) | VDH RO B, RO 1, RO 2, RO 3, RO S (Seiten 12-15 Klassen, 30-63 Schilder, 64-68 Senioren-Auswahl, 69-71 Bewertung); bis 31.12.2026 gilt noch die Fassung von 2017 |
-| [ÖKV, Prüfungsordnung Rally Obedience, genehmigt 31.08.2022, gültig ab 01.01.2023](https://rally-obedience.oekv.at/media/upload/editor/files/Rally-Obedience/Endfassung_RO_PO_2023_20012023.pdf) (75 Seiten; **oekv.at war am 22.10.2026 nicht erreichbar, der Text stammt aus einer Webarchiv-Kopie desselben Dokuments**) | ÖKV RO B, RO 1, RO 2, RO 3, RO S (Seiten 16-18 Klassen, 29-63 Schilder, 69-71 Parcoursanforderungen und Senioren, 73-75 Abzüge) |
+| [ÖKV, Prüfungsordnung Rally Obedience, genehmigt 31.08.2022, gültig ab 01.01.2023](https://rally-obedience.oekv.at/media/upload/editor/files/Rally-Obedience/Endfassung_RO_PO_2023_20012023.pdf) (75 Seiten; am 16.11.2026 direkt von rally-obedience.oekv.at gelesen und gegen den Katalog geprüft; laut Seite „Prüfungsordnungen“ weiter die gültige Fassung) | ÖKV RO B, RO 1, RO 2, RO 3, RO S (Seiten 16-18 Klassen, 29-63 Schilder, 69-71 Parcoursanforderungen und Senioren, 73-75 Abzüge) |
 | [DVG, Prüfungsordnung Mantrailing, gültig ab 06.05.2024](https://dvg-hundesport.de/file/aa81840850cc35dc0151686954f41767.de.0/dvg_po_mantrailing.pdf) (Stand 05.2024, 12 Seiten; **Veröffentlichung nur mit Genehmigung des DVG - im Katalog stehen nur Fakten, keine Textpassagen**) | DVG MT-I, MT-II, MT-III: Prüfungsstufen (S. 6), Bewertung und Punkte (S. 9), Werturteile (S. 10), Zulassung (S. 3) |
 | SV, Prüfungsordnung Personenspürhundesport Mantrailing (SV-PO-MT), Fassung 2026, [Dokument „SV-PO Mantrailing Fassung 2026“](https://www.schaeferhunde.de/index.php?eID=dumpFile&f=6342&t=f&token=7088031d8c791c82cd9357f5df9acb9c5a3c2868) (Download von schaeferhunde.de, geprüft 30.10.2026) | SV-MT 1, 2, 3: Prüfungsstufen (S. 3), Bewertungskriterien je Stufe, Führleine, Geruchsaufnahme |
 
@@ -661,7 +661,7 @@ Sportart `OBEDIENCE` (Name „Obedience“, `NameEn` „Obedience“) mit acht O
 |---|---|---|
 | FCI-Obedience 1, 2, 3 (`NameEn` „FCI Obedience Class 1/2/3“) | null (überall) | FCI-Reglement 2025 |
 | VDH Obedience Beginner (O-B), VDH Obedience Senioren (O-S) | DE | VDH-PO Obedience 2025 |
-| ÖKV Obedience Beginner, ÖKV Obedience Senior | AT | ÖPO 2022 |
+| ÖKV Obedience Beginner, ÖKV Obedience Senior | AT | ÖPO 2025 (bis 16.11.2026 Ausgabe 2022) |
 | SKG Obedience Beginners | CH | SKG-Reglement Obedience 2025 |
 
 22 Übungen, 78 Verknüpfungen. Der Seeder steht in `SportCatalogSeeder.Obedience.cs`;
@@ -762,15 +762,16 @@ bei den fünf nationalen Ordnungen und den drei nationalen Übungen nichts. Ein 
 
 ### Offen / Unstimmigkeiten in den Quellen
 
-- **oekv.at war am 21.10.2026 nicht erreichbar.** Der ÖPO-Text stammt aus dem Webarchiv-Abzug
-  vom 18.06.2024 der Datei „ÖPO_2022 HP.pdf“. Die Datei „ÖPO_2024 HP.pdf“ trägt laut Suchergebnis
-  denselben Text (Ausgabe 2022); `SourceUrl` der ÖKV-Ordnungen ist deshalb dieselbe Adresse wie
-  bei der ÖKV-BH. Nach Erreichbarkeit gegen das Original prüfen.
-- **Die ÖPO 2022 verweist für FCI OB 1-3 noch auf die „FCI PO Obedience 2022“** (S. 20);
-  inzwischen gilt die FCI-Ordnung 2025. Österreichische Anpassungen für die FCI-Klassen (z. B.
-  Mindestalter 15 Monate, S. 21) stehen deshalb nur in den ÖKV-Beschreibungen; ob die ÖPO bei
-  Erscheinen einer neuen Ausgabe weitere ändert, ist offen. Die Entfernung des Vierecks nennt
-  der Beginner-Text (S. 30) nicht (Senior: ca. 15 m).
+- **ÖKV-ÖPO gegen das Original geprüft (2026-11-16).** oekv.at ist erreichbar. Maßgeblich ist die
+  **Ausgabe 2025** (gültig ab 01.01.2025, [obedience.oekv.at](https://obedience.oekv.at/de/reglements/pruefungsordnungen/));
+  der Katalog stand auf der Ausgabe 2022. Abweichungen und Korrekturen siehe unten
+  „Prüfung der ÖKV-Ordnungen gegen die Originale“. `SourceUrl` der drei ÖKV-Ordnungen (BH, Beginner, Senior)
+  zeigt jetzt auf die Datei der Ausgabe 2025; eine in der Datenbank schon gesetzte Quelle wird vom Seeder nie
+  überschrieben (Quellenpflege des Admins), bestehende Zeilen behalten also die alte Adresse, bis sie dort
+  geändert wird.
+- **Die ÖPO 2025 verweist für FCI OB 1-3 auf die „FCI PO Obedience 2025“** (S. 20) und nennt „österreichische
+  Anpassungen“ nur noch im Allgemeinen (Mindestalter 15 Monate, S. 21; Aufstieg nach „Vorzüglich“, S. 21).
+  Die Entfernung des Vierecks nennt der Beginner-Text (S. 30) weiterhin nicht (Senior: ca. 15 m).
 - **VDH-Tabelle S. 19:** Die Überschrift der Beginner-Tabelle trägt das Artefakt „(FCI O-2)“
   und Übung 6 heißt „Abrufen aus dem Quadrat“ (Kapitel und Rundschreiben: „Abrufen“); Übung 7
   heißt in der Tabelle „Sprung über die Hürde“, im Kapitel „Sprung über eine Hürde“. Im Katalog
@@ -970,13 +971,16 @@ VDH-Ordnung laufen bei 375 px ohne horizontalen Scroll.
 
 ### Offen / Unstimmigkeiten in den Quellen
 
-- **oekv.at war am 22.10.2026 nicht erreichbar.** Der ÖKV-Text stammt aus einer Webarchiv-Kopie
-  des Dokuments „Endfassung_RO_PO_2023_20012023.pdf“; `SourceUrl` ist die Adresse des Originals.
-  Nach Erreichbarkeit gegen das Original und gegen eine eventuell neuere Fassung prüfen.
+- **ÖKV-RO gegen das Original geprüft (2026-11-16):** `Endfassung_RO_PO_2023_20012023.pdf` von
+  rally-obedience.oekv.at ist weiterhin die gültige Fassung (75 Seiten, „genehmigt in der ÖKV-Vorstandssitzung
+  am 31.08.22, gültig ab 01. Jänner 2023“); eine neuere Ausgabe gibt es dort nicht. Ergebnis siehe unten
+  „Prüfung der ÖKV-Ordnungen gegen die Originale“.
 - **VDH Anhang 1 (Schilderblätter, S. 20-27) und Anhang 3 (Senioren-Auswahl, S. 64-68) sind nur
   Bilder.** Die Zahl der Schilder stützt sich auf die Beschreibungen in Anhang 2 (S. 30-63); die
-  Senioren-Auswahl (76 Schilder) wurde von den Seiten 64-68 abgelesen und ist nicht gegen eine
-  Textliste geprüft. Auf den Bildern trägt der 210°-Loop rechts die Nummer B-027, im Text heißt B-027
+  Senioren-Auswahl (76 Schilder) wurde von den Seiten 64-68 abgelesen. Eine Textliste dazu gibt es
+  weder in der Datei noch bei vdh.de (geprüft 2026-11-16); stattdessen wurden die Seiten 64-68 am
+  16.11.2026 unabhängig ein zweites Mal gelesen (als Bilder gerendert): 76 Schilder, dieselben Nummern wie
+  im Katalog, bis auf die oben genannte Beschriftung B-027/B-028 des Loops. Auf den Bildern trägt der 210°-Loop rechts die Nummer B-027, im Text heißt B-027
   „Kreisspirale – links“ und der Loop rechts B-028; im Katalog steht die Nummer des Textes.
 - **VDH-Text:** Kapitel 6.2 verweist für die Abzüge auf „Anhang 3 – Tabelle Bewertung der
   Übungen“, die Tabelle steht in Anhang 4 (S. 69-71); mehrere Schildnummern sind uneinheitlich
@@ -1056,3 +1060,45 @@ Mangelhaft unter 70 (bestanden ab 70, laut Auftrag).
   Ausbildungskennzeichen.
 - **Der Prod-Bestand wurde nicht gelesen.** Nach dem Deploy sollten die Sportart `MANTRAILING` (einmal global),
   sechs Ordnungen und 13 Übungen stimmen.
+
+## Prüfung der ÖKV-Ordnungen gegen die Originale (2026-11-16)
+
+Anlass: Die ÖKV-Ordnungen waren aus Webarchiv-Kopien übernommen, weil oekv.at nicht erreichbar war.
+Beide Dokumente liegen jetzt direkt vor (Download in ein eigenes Verzeichnis, nur Text gelesen, nichts davon im
+Repository).
+
+**Quellen:** [obedience.oekv.at, Seite Prüfungsordnungen](https://obedience.oekv.at/de/reglements/pruefungsordnungen/)
+(ÖPO Ausgabe 2025, „Prüfungsordnung ab dem 01.01.2025 gültig!“) und
+[rally-obedience.oekv.at, Seite Prüfungsordnungen](https://rally-obedience.oekv.at/de/reglements/pruefungsordnungen/)
+(Endfassung RO-PO 2023). Die Obedience-Seite des ÖKV nennt fünf Stufen: OB Beginner und OB Senior (ÖPO) sowie
+FCI OB 1-3 (IPO, im Katalog „FCI-Obedience 1-3“).
+
+| Ordnung | Abweichung im Katalog | Korrektur (Quelle) |
+|---|---|---|
+| ÖKV Obedience Beginner / Senior, ÖKV BH/VT (alle ÖPO) | Katalog auf Ausgabe 2022 (Fassung „2022“, gültig 01.01.2022) | Neue Fassung „2025“, gültig ab 01.01.2025; die Fassung „2022“ bleibt als Verlauf (der Katalog nimmt die jüngste gültige Fassung, Ziele hängen an der Ordnung, nicht an der Fassung); Quelle ÖPO 2025, S. 1, 20 |
+| Beginner, Ablegen in der Gruppe | Hundeführer 15 m entfernt | ca. 10 m (S. 28) |
+| Beginner und Senior, Ablegen in der Gruppe | kein Hinweis auf den störenden Hund | Der Hund, der aufsteht und zu einem anderen geht (Kampfgefahr), wird disqualifiziert, die Übung für die anderen wiederholt (S. 29, 33) |
+| Senior, Bringen auf ebener Erde | fremdes Bringholz vom Veranstalter | eigenes Bringholz des Hundeführers (S. 24, 35) |
+| Senior, Grundstellung | nicht erwähnt | Alle Grundstellungen dürfen durchgehend als „Steh“ gezeigt werden, Meldung vor der Prüfung (S. 24) |
+| Beginner und Senior, Beschreibung | „verweist noch auf die FCI-PO 2022“ | verweist auf die FCI-PO 2025 (S. 20) |
+| ÖKV BH/VT, Verkehrsteil | „Zusätzliche Überprüfungen: mindestens eine, höchstens zwei“ | Sieben verpflichtende Begegnungen (Personengruppe, Radfahrer, Autos, Jogger/Inline-Skater, andere Hunde, Kinderwagen, Gehhilfen); die Orts-Begegnungen sind „alternative Überprüfungsmöglichkeiten“ ohne Mindest- oder Höchstzahl (S. 17-19) |
+| ÖKV Rally Obedience Senior (RO S) | Beschreibung nannte die Aufstiegsregel | Die Aufstiegsregel (S. 18) gilt nur für RO B bis RO 3; für RO S ist kein Aufstieg aus RO B nötig (S. 16) |
+| ÖKV Rally Obedience 3 | Übergang in die FCI International Class fehlte | Ergänzt: 3-mal bestanden oder 1-mal „Vorzüglich“ in RO 3; RO-S-Hunde dürfen dort nicht starten (Angabe auf rally-obedience.oekv.at, nicht in der PO selbst) |
+
+**Ohne Abweichung** (Punkt für Punkt gegen das Original): Obedience - Klassen, Übungen und Koeffizienten
+beider Klassen (je 320 Punkte, 9 Übungen), Noten (V 320-256, SG bis 224, G bis 192), Mindestalter (12 Monate, 8 Jahre,
+FCI-Klassen 15 Monate), Zulassung und Aufstieg, Abstände und Strafen der Einzelübungen (S. 28-37). BH/VT - Punkte,
+Prädikate (90 %/60 %), Mindestalter, Voraussetzungen. Rally Obedience - Schildernummern und Anzahl je Klasse
+(RO B B-001 bis B-028, RO 1 1-101 bis 1-123, RO 2 2-201 bis 2-228, RO 3 3-301 bis 3-326; jede im Katalog
+genannte Nummer steht in der PO und umgekehrt), Anzahl Übungsschilder, Zeitlimit, Leine, Futter, Smileys (S. 16),
+Mehrschildübungen je Klasse (S. 25), Anhang 2 (Pflichtübungen je Klasse), Wiederholung (5), höchster Abzug je Übung
+(10), Bestehensgrenze 70 und Wertnoten, Aufstieg und Abstieg, Mindestalter (12/15/18/18 Monate, 8 Jahre), Senioren-
+Auswahl (43 Schilder mit „Senior“), Hürdenhöhen, Abzugstabelle (Anhang 5).
+
+**VDH-Rally-Obedience, Senioren-Auswahl (Anhang 3, S. 64-68):** Es gibt keine Textquelle (die Seiten sind Bilder,
+bei vdh.de liegt nichts Entsprechendes). Zweite, unabhängige Lesung der Bilder: 76 Schilder, deckungsgleich mit
+dem Katalog; einzige Auffälligkeit die schon notierte Beschriftung B-027 statt B-028 beim 210°-Loop.
+
+**Offen:** Die ÖPO 2025 trägt als Beschlussdatum den 18.12.2025, der Dateiname den 18.12.2024; im Katalog
+steht nur das Gültigkeitsdatum 01.01.2025. Die Verkehrsübungen der BH/VT sind im Katalog weiter zusammengefasst
+(Betreiberentscheidung 2026-08-19).

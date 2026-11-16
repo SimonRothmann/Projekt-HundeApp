@@ -1,3 +1,4 @@
+using System.Reflection;
 using Dogity.Application.Community;
 using Dogity.Application.Dogs;
 using Dogity.Application.Learning;
@@ -92,6 +93,9 @@ public static class DemoSzenarienSeeder
     public const string NotizPruefungVergangen = "Demo: Prüfung IBGH 1 im letzten Monat, Ergebnisse eingetragen.";
     public const string NotizMantrailingZiel = "Erste Mantrailing-Prüfung: SV-MT 1.";
     public const string KommentarMantrailing = "Trail durchs Wohngebiet, anderthalb Stunden gelegen, doppelblind.";
+    /// <summary>Lisas zweiter Hund mit sehr langem Namen - prüft den Kopf der Hundeseite und den Hundewechsel.</summary>
+    public const string LangerHundename = "Bella vom Schwarzwaldhof Sonnenschein";
+    public const string KommentarMarkerFaehrte = "Alle Markerarten: Gegenstände, Leckerlipot, Fähnchen am Winkel und eine Verleitung neben der Spur.";
     public const string KommentarNachtfaehrte = "Abends gelegt, über Nacht liegen gelassen - morgen früh ablaufen.";
 
     /// <summary>Der Antrag, den Tom stellt - der Name ist zugleich das Erkennungszeichen.</summary>
@@ -196,6 +200,9 @@ public static class DemoSzenarienSeeder
                 ("Prüfungsreife", PruefungsreifeAsync),
                 // Nach der Prüfungsreife: Die Ampel von Bellos BH-Ziel steht auf der Meldeliste.
                 ("Vereinsprüfung", VereinspruefungAsync),
+                // Ganz am Ende: Der lange Hundename kommt als zweiter Hund zu Lisa, und die Markerfährte braucht Emma.
+                ("Hundefotos", HundefotosAsync),
+                ("Markerfährte", MarkerFaehrteAsync),
             })
             {
                 try
@@ -1479,6 +1486,93 @@ public static class DemoSzenarienSeeder
                 punkt.Timestamp = (punkt.Timestamp + verschiebung).ToUniversalTime();
             einheit.Date = gestern;
             await db.SaveChangesAsync(ct);
+        }
+
+        // ---------------------------------------------------------------- Hundefotos und Sonderfälle
+
+        /// <summary>
+        /// Gezeichnete Hundefotos (siehe scripts/demo-bilder.py, eingebettet unter Data/DemoBilder) für fünf Hunde -
+        /// Bello (dunkler Hintergrund), Emma (kräftige Farbe), Luna (Querformat, heller Hintergrund), Rocky (Hochformat)
+        /// und Lisas zweiten Hund mit sehr langem Namen. Wauwau, Flitzer und Bläss bleiben bewusst ohne Foto.
+        /// Gespeichert wird über denselben Dienst wie in der App. Ein Hund bekommt sein Foto nur, solange er keins hat:
+        /// ein selbst hochgeladenes bleibt. Ein entferntes Demofoto kommt beim nächsten Start wieder (das Entfernen ist
+        /// echtes Löschen, es bleibt kein Zeichen davon). Den langen Namen legt der Seeder nur einmal an: Ein Hund
+        /// dieses Namens bei Lisa, auch ein gelöschter, genügt.
+        /// </summary>
+        private async Task HundefotosAsync(CancellationToken ct)
+        {
+            var hatLangenHund = await db.Dogs.IgnoreQueryFilters().AnyAsync(
+                d => d.Name == LangerHundename && db.DogOwners.IgnoreQueryFilters().Any(o => o.DogId == d.Id && o.UserId == lisa.Id), ct);
+            if (!hatLangenHund)
+                await HundAsync(lisa, await HundeVonAsync(lisa, ct), LangerHundename, "Golden Retriever", DogGender.Female, new DateOnly(2023, 2, 10), ct);
+
+            var dogs = services.GetRequiredService<IDogService>();
+            foreach (var (besitzer, name, datei) in new[]
+            {
+                (max, "Bello", "bello"), (max, "Emma", "emma"), (lisa, "Luna", "luna"),
+                (trainer, "Rocky", "rocky"), (lisa, LangerHundename, "bella"),
+            })
+            {
+                var hund = (await HundeVonAsync(besitzer, ct)).FirstOrDefault(h => h.Name == name);
+                if (hund is null || await db.DogImages.AnyAsync(i => i.DogId == hund.Id, ct)) continue;
+
+                var ergebnis = await dogs.SetImageAsync(besitzer.Id, hund.Id, $"data:image/jpeg;base64,{Convert.ToBase64String(DemoBild(datei))}", ct);
+                if (!ergebnis.Succeeded)
+                    logger.LogWarning("Demofoto {Hund} konnte nicht gespeichert werden: {Fehler}", name, string.Join("; ", ergebnis.Errors));
+            }
+        }
+
+        private static byte[] DemoBild(string datei)
+        {
+            var ressource = $"Dogity.Infrastructure.Persistence.Seed.Data.DemoBilder.{datei}.jpg";
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ressource)
+                ?? throw new InvalidOperationException($"Eingebettete Ressource {ressource} fehlt.");
+            using var puffer = new MemoryStream();
+            stream.CopyTo(puffer);
+            return puffer.ToArray();
+        }
+
+        /// <summary>
+        /// Eine Fährte mit ALLEN Markerarten bei Emma (Hund mit Foto): drei Gegenstände, ein Leckerlipot auf der Linie
+        /// (mit Halt im Ablauf: "Halt (erklärt)"), ein Fähnchen am ersten Winkel (Marker) und eine Verleitung 3 m
+        /// neben der Spur (der Hund läuft vorbei). Lage und Maßstab wie die anderen Demo-Fährten, ein Ablauf wie in
+        /// der App gespeichert und ausgewertet. Entsteht einmal; erkannt am Kommentar (auch gelöscht).
+        /// </summary>
+        private async Task MarkerFaehrteAsync(CancellationToken ct)
+        {
+            var emma = (await HundeVonAsync(max, ct)).FirstOrDefault(h => h.Name == "Emma");
+            if (emma is null) return;
+
+            var vorhanden = await db.GpsTracks.IgnoreQueryFilters().AnyAsync(
+                t => t.Comment == KommentarMarkerFaehrte
+                    && db.TrainingSessions.IgnoreQueryFilters().Any(s => s.Id == t.TrainingSessionId && s.DogId == emma.Id), ct);
+            if (vorhanden) return;
+
+            var tag = Vereinszeit.Heute().AddDays(-9);
+            var gelegtUm = LokalZuUtc(tag, new TimeOnly(16, 0));
+            var (gelegt, abgelaufen) = DemoFaehrtenGeometrie.Erzeuge(5, gelegtUm, TimeSpan.FromMinutes(45), 1.6,
+            [
+                new(60, 0, GpsMarkerType.TreatPot, "Leckerli-Pot", true),
+                new(150, 2, GpsMarkerType.Other, "Fähnchen am Winkel", false),
+                new(205, 3, GpsMarkerType.Distraction, "Verleitung: Wurststück", false),
+            ]);
+
+            // Ohne Wetterabruf wie die anderen Demo-Fährten (siehe FaehrtenAsync).
+            var service = new GpsTrackService(db, new OhneWetter());
+            var track = await service.CreateAsync(max.Id, new CreateGpsTrackRequest(
+                TrainingSessionId: null, LengthMeters: Math.Round(DemoFaehrtenGeometrie.LaengeMeter), AgeMinutes: 45,
+                Surface: "Wiese", Weather: "bedeckt, trocken", Wind: "schwach", Comment: KommentarMarkerFaehrte, Points: gelegt,
+                DogId: emma.Id, Date: tag, DurationMinutes: 45), ct);
+            if (!track.Succeeded)
+            {
+                logger.LogWarning("Demo-Markerfährte konnte nicht angelegt werden: {Fehler}", string.Join("; ", track.Errors));
+                return;
+            }
+
+            var lauf = await service.AddWalkRunAsync(max.Id, track.Value!.Id, new CreateGpsWalkRunRequest(
+                Math.Round(DemoFaehrtenGeometrie.LaengeMeter), null, abgelaufen), ct);
+            if (!lauf.Succeeded)
+                logger.LogWarning("Ablauf der Demo-Markerfährte konnte nicht gespeichert werden: {Fehler}", string.Join("; ", lauf.Errors));
         }
 
         // ---------------------------------------------------------------- Mantrailing
