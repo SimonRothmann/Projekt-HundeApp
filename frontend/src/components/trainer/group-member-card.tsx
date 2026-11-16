@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, CirclePause, Dog as DogIcon, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, CirclePause, Dog as DogIcon, Trash2, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -11,7 +11,7 @@ import { aktuellePause, pausenZeile } from "@/lib/pausen";
 import type { GroupMember, MemberDog } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 
 /**
  * Ein Mitglied der Gruppe: Name und Adresse, aufgeklappt die Hunde mit
@@ -81,13 +81,13 @@ export function GroupMemberCard({
   }
 
   return (
-    <Card className="gap-0 py-0">
+    <li className="min-w-0">
       <div className="flex items-center gap-1 pr-2">
         <button
           type="button"
           aria-expanded={offen}
           onClick={umschalten}
-          className="flex min-h-14 min-w-0 flex-1 items-center justify-between gap-2 px-4 py-3 text-left"
+          className="flex min-h-14 min-w-0 flex-1 items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-muted/60 active:bg-muted"
         >
           <span className="min-w-0">
             <span className="block text-base font-medium [overflow-wrap:anywhere]">{`${member.firstName} ${member.lastName}`}</span>
@@ -95,24 +95,18 @@ export function GroupMemberCard({
           </span>
           {offen ? <ChevronDown className="size-5 shrink-0" /> : <ChevronRight className="size-5 shrink-0" />}
         </button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="shrink-0"
-          aria-label={t("{name} entfernen", { name })}
-          title={t("Mitglied entfernen")}
-          onClick={() => onRemove(member)}
-        >
-          <Trash2 className="size-4" />
-        </Button>
+        <AktionenMenue
+          label={t("Aktionen für {name}", { name })}
+          aktionen={[{ label: t("Mitglied entfernen"), icon: Trash2, onSelect: () => onRemove(member), destruktiv: true }]}
+          className="coarse:size-11"
+        />
       </div>
       {offen && (
-        <CardContent className="pb-4">
+        <div className="px-4 pb-4">
           {!dogs && ladefehler ? (
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-muted-foreground">{t("Hunde konnten nicht geladen werden.")}</p>
-              <Button type="button" size="sm" variant="outline" onClick={() => void ersterAbruf()}>
+              <Button type="button" size="sm" variant="ghost" className="text-primary-text coarse:min-h-11" onClick={() => void ersterAbruf()}>
                 {t("Erneut versuchen")}
               </Button>
             </div>
@@ -121,9 +115,10 @@ export function GroupMemberCard({
           ) : dogs.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("Dieses Mitglied hat noch keine Hunde angelegt.")}</p>
           ) : (
-            <ul className="flex flex-col gap-2">
+            // Die Hunde als Zeilen mit Trennlinien, nicht als Kästen im Kasten.
+            <ul className="flex flex-col divide-y">
               {dogs.map((dog) => (
-                <li key={dog.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2">
+                <li key={dog.id} className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0">
                   <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
                     <DogIcon className="size-4 shrink-0 text-primary-text" />
                     <span className="font-medium [overflow-wrap:anywhere]">{dog.name}</span>
@@ -139,14 +134,6 @@ export function GroupMemberCard({
                   {dog.isTrainerAssigned ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary">{t("Betreut")}</Badge>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-xs text-muted-foreground coarse:min-h-11"
-                        onClick={() => betreuungBeenden(dog.id, dog.name)}
-                      >
-                        {t("Betreuung beenden")}
-                      </Button>
                       <Link
                         // ?from=: sonst führt der Zurück-Button auf der Hundeseite
                         // zu den EIGENEN Hunden statt hierher in die Gruppe zurück.
@@ -155,9 +142,21 @@ export function GroupMemberCard({
                       >
                         {t("Zum Hund")}
                       </Link>
+                      <AktionenMenue
+                        label={t("Aktionen für {name}", { name: dog.name })}
+                        aktionen={[
+                          {
+                            label: t("Betreuung beenden"),
+                            icon: UserMinus,
+                            onSelect: () => betreuungBeenden(dog.id, dog.name),
+                            destruktiv: true,
+                          },
+                        ]}
+                        className="coarse:size-11"
+                      />
                     </div>
                   ) : (
-                    <Button size="sm" variant="outline" className="coarse:min-h-11" onClick={() => betreuen(dog.id)}>
+                    <Button size="sm" variant="ghost" className="text-primary-text coarse:min-h-11" onClick={() => betreuen(dog.id)}>
                       {t("Als Trainer betreuen")}
                     </Button>
                   )}
@@ -165,8 +164,8 @@ export function GroupMemberCard({
               ))}
             </ul>
           )}
-        </CardContent>
+        </div>
       )}
-    </Card>
+    </li>
   );
 }

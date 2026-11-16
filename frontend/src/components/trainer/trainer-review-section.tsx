@@ -198,13 +198,17 @@ export function TrainerReviewSection() {
       </CardHeader>
       <CardContent>
         {sessions === null ? (
-          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
+          <div aria-busy="true">
+            <span className="sr-only">{t("Lädt…")}</span>
+            <div className="h-36 rounded-xl bg-muted motion-safe:animate-pulse" />
+          </div>
         ) : sessions.length === 0 ? (
           <p className="text-sm text-muted-foreground">
 {t("Alles erledigt – im Moment ist nichts mehr zu bewerten.")}
           </p>
         ) : (
           <div className="flex flex-col gap-4">
+            {/* Keine Kästen je Training: Die Trainings eines Hundes stehen mit Trennlinien untereinander. */}
             {Array.from(byDog.entries()).map(([dogId, { dogName, handlerName, sessions: dogSessions }]) => (
               <div key={dogId} className="flex min-w-0 flex-col gap-2">
                 <p className="flex flex-wrap items-baseline gap-x-1.5 text-sm font-semibold">
@@ -214,12 +218,13 @@ export function TrainerReviewSection() {
                   </span>
                 </p>
 
+                <div className="flex flex-col divide-y">
                 {dogSessions.map((s) => {
                   const rated = s.exercises.filter((e) => e.trainerRating !== null).length;
                   const open = openCount(s);
                   const uebernehmbar = kannSelbsteinschaetzungUebernehmen(s);
                   return (
-                    <div key={s.sessionId} className="min-w-0 rounded-md border p-2.5">
+                    <div key={s.sessionId} className="min-w-0 py-3 first:pt-0 last:pb-0">
                       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                         <span className="text-xs text-muted-foreground">
                           {tagAlsDatum(s.date).toLocaleDateString(ortsformat(sprache))} · {t("{n} Min.", { n: s.durationMinutes })}
@@ -287,7 +292,7 @@ export function TrainerReviewSection() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="size-6 shrink-0"
+                              className="size-6 shrink-0 coarse:size-11"
                               onClick={() => startFeedback(s.sessionId, s.trainerFeedback)}
                               title={t("Feedback bearbeiten")}
                             >
@@ -298,7 +303,7 @@ export function TrainerReviewSection() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-7 px-2 text-xs text-muted-foreground"
+                            className="h-7 px-2 text-xs text-primary-text coarse:h-11"
                             onClick={() => startFeedback(s.sessionId, null)}
                           >
                             <MessageSquarePlus className="size-3.5" />
@@ -342,6 +347,7 @@ export function TrainerReviewSection() {
                     </div>
                   );
                 })}
+                </div>
               </div>
             ))}
           </div>

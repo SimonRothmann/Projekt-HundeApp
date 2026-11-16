@@ -75,6 +75,14 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
       },
       {
         art: "verbessert",
+        text: uebersetzbar("Auf der Hundeseite steht das Foto deines Hundes jetzt groß neben dem Namen, der Wechsel zu deinen anderen Hunden läuft über runde Bilder darüber, und „Fährte legen“ und „Merken“ stehen ohne Rahmen unter „Training erfassen“."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Die Seiten für Trainer:innen sind ruhiger: Gruppe, Termine, Verein, Prüfungen und Arbeitseinsätze zeigen je Thema eine Karte oder Liste statt Kästen in Kästen, seltene Aktionen wie Entfernen, Löschen und Absagen liegen im ⋯-Menü, und Formulare zum Einladen klappen erst nach einem Tipp auf."),
+      },
+      {
+        art: "verbessert",
         text: uebersetzbar("Der Trainingstag im Tagebuch und die Fährte sind aufgeräumt: weniger Rahmen, bei der Fährte steht die Karte jetzt zuerst. Datum ändern, Dauer ändern, Löschen und Verlassen findest du hinter dem Knopf mit den drei Punkten."),
       },
       {

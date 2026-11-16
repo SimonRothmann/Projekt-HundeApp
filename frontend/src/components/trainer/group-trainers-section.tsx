@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import type { GroupDetail, GroupTrainerOption } from "@/lib/types";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export function GroupTrainersSection({ groupId, detail, onGeaendert }: { groupId
   const [assigning, setAssigning] = useState(false);
   const [coTrainerEmail, setCoTrainerEmail] = useState("");
   const [addingCoTrainer, setAddingCoTrainer] = useState(false);
+  const [einladenOffen, setEinladenOffen] = useState(false);
 
   useEffect(() => {
     // Zuweisbare Trainer:innen (nur bei Vereinsgruppen) für die Auswahl laden.
@@ -65,6 +67,7 @@ export function GroupTrainersSection({ groupId, detail, onGeaendert }: { groupId
       // Eine Einladung: Trainer:in wird, wer annimmt (unter "Vereine").
       toast.success(t("Einladung verschickt - die Person muss sie noch annehmen."));
       setCoTrainerEmail("");
+      setEinladenOffen(false);
       await onGeaendert();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Trainer:in konnte nicht hinzugefügt werden."));
@@ -85,62 +88,75 @@ export function GroupTrainersSection({ groupId, detail, onGeaendert }: { groupId
 
   return (
     <div className="flex flex-col gap-4">
-      <ul className="flex flex-col gap-1.5">
-        {detail.trainers.map((trainer) => (
-          <li key={trainer.userId} className="flex items-center justify-between gap-2 rounded-md bg-muted/40 px-3 py-2">
-            <div className="min-w-0">
-              <p className="text-sm font-medium [overflow-wrap:anywhere]">
-                {`${trainer.firstName} ${trainer.lastName}`.trim() || trainer.email}
-              </p>
-              {trainer.isInvited ? (
-                <Badge variant="secondary" className="mt-0.5">
-                  {t("eingeladen")}
+      <ul className="flex flex-col divide-y">
+        {detail.trainers.map((trainer) => {
+          const anzeigeName = `${trainer.firstName} ${trainer.lastName}`.trim() || trainer.email;
+          return (
+            <li key={trainer.userId} className="flex items-center justify-between gap-2 py-3 first:pt-0 last:pb-0">
+              <div className="min-w-0">
+                <p className="text-sm font-medium [overflow-wrap:anywhere]">{anzeigeName}</p>
+                {trainer.isInvited ? (
+                  <Badge variant="secondary" className="mt-0.5">
+                    {t("eingeladen")}
+                  </Badge>
+                ) : (
+                  <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{trainer.email}</p>
+                )}
+              </div>
+              {trainer.isLead ? (
+                <Badge variant="secondary" className="shrink-0">
+                  {t("Hauptverantwortlich")}
                 </Badge>
               ) : (
-                <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{trainer.email}</p>
+                <AktionenMenue
+                  label={t("Aktionen für {name}", { name: anzeigeName })}
+                  aktionen={[
+                    {
+                      label: trainer.isInvited ? t("Einladung zurückziehen") : t("Trainer:in entfernen"),
+                      icon: Trash2,
+                      onSelect: () => removeCoTrainer(trainer.userId, trainer.isInvited),
+                      destruktiv: true,
+                    },
+                  ]}
+                  className="coarse:size-11"
+                />
               )}
-            </div>
-            {trainer.isLead ? (
-              <Badge variant="secondary" className="shrink-0">
-                {t("Hauptverantwortlich")}
-              </Badge>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="shrink-0"
-                aria-label={
-                  trainer.isInvited
-                    ? t("Einladung an {email} zurückziehen", { email: trainer.email })
-                    : t("{name} entfernen", { name: `${trainer.firstName} ${trainer.lastName}`.trim() || trainer.email })
-                }
-                title={trainer.isInvited ? t("Einladung zurückziehen") : t("Trainer:in entfernen")}
-                onClick={() => removeCoTrainer(trainer.userId, trainer.isInvited)}
-              >
-                <Trash2 className="size-4 text-muted-foreground" />
-              </Button>
-            )}
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
 
-      <form onSubmit={addCoTrainer} className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <div className="flex flex-col gap-1.5 sm:flex-1">
-          <Label htmlFor="cotrainer-email">{t("Weitere:n Trainer:in einladen")}</Label>
-          <Input
-            id="cotrainer-email"
-            type="email"
-            value={coTrainerEmail}
-            onChange={(e) => setCoTrainerEmail(e.target.value)}
-            placeholder="trainer@example.com"
-          />
-        </div>
-        <Button type="submit" className="h-11" disabled={addingCoTrainer || !coTrainerEmail.trim()}>
-          <UserPlus className="size-4" />
-          {addingCoTrainer ? t("Lädt ein…") : t("Einladen")}
-        </Button>
-      </form>
+      {/* Eingeladen wird selten: Das Formular klappt erst nach dem Tipp auf. */}
+      <Button
+        type="button"
+        variant="ghost"
+        className="h-11 self-start text-primary-text"
+        aria-expanded={einladenOffen}
+        aria-controls="cotrainer-einladen"
+        onClick={() => setEinladenOffen((v) => !v)}
+      >
+        <UserPlus className="size-4" />
+        {t("Weitere:n Trainer:in einladen")}
+      </Button>
+      {einladenOffen && (
+        <form id="cotrainer-einladen" onSubmit={addCoTrainer} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="flex flex-col gap-1.5 sm:flex-1">
+            <Label htmlFor="cotrainer-email">{t("E-Mail-Adresse")}</Label>
+            <Input
+              id="cotrainer-email"
+              type="email"
+              value={coTrainerEmail}
+              onChange={(e) => setCoTrainerEmail(e.target.value)}
+              placeholder="trainer@example.com"
+              autoFocus
+            />
+          </div>
+          <Button type="submit" className="h-11" disabled={addingCoTrainer || !coTrainerEmail.trim()}>
+            <UserPlus className="size-4" />
+            {addingCoTrainer ? t("Lädt ein…") : t("Einladen")}
+          </Button>
+        </form>
+      )}
 
       {clubId ? (
         <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-end">

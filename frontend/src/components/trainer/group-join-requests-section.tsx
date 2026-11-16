@@ -71,9 +71,9 @@ export function GroupJoinRequestsSection({ groups, onAnzahl, onFehler }: Props) 
         <UserCheck className="size-5 shrink-0 text-primary-text" />
         <CardTitle className="min-w-0 text-base">{t("Offene Gruppenanfragen")}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col divide-y">
         {requests.map((r) => (
-          <div key={`${r.groupId}-${r.memberId}`} className="flex items-center justify-between gap-2 py-1 border-b last:border-0">
+          <div key={`${r.groupId}-${r.memberId}`} className="flex items-center justify-between gap-2 py-3 first:pt-0 last:pb-0">
             <div className="min-w-0 text-sm">
               <p className="font-medium [overflow-wrap:anywhere]">
                 {r.firstName} {r.lastName}
@@ -92,7 +92,8 @@ export function GroupJoinRequestsSection({ groups, onAnzahl, onFehler }: Props) 
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
+                className="text-primary-text"
                 disabled={decidingId === r.memberId}
                 onClick={() => decide(r.groupId, r.memberId, false)}
               >

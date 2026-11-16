@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ShieldCheck, UserPlus } from "lucide-react";
+import { ChevronDown, ChevronUp, ShieldCheck, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import type { ClubMemberRequest, ClubTrainerInfo } from "@/lib/types";
 import { aenderbareRollen, darfAbberufen, hatRolle, mitRolle, ROLLE, ROLLEN, rollenVon } from "@/lib/vereinsrollen";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,6 +60,8 @@ export function ClubRolesSection({
   const [wahl, setWahl] = useState("");
   const [mail, setMail] = useState("");
   const [neueRollen, setNeueRollen] = useState<number>(ROLLE.training);
+  const [berufenOffen, setBerufenOffen] = useState(false);
+  const [erklaerungOffen, setErklaerungOffen] = useState(false);
 
   async function laden() {
     try {
@@ -135,6 +138,7 @@ export function ClubRolesSection({
       toast.success(t("Person berufen."));
       setWahl("");
       setMail("");
+      setBerufenOffen(false);
       await nachAenderung();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Berufen fehlgeschlagen."));
@@ -155,40 +159,47 @@ export function ClubRolesSection({
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {personen === null ? (
-          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
+          <div aria-busy="true">
+            <span className="sr-only">{t("Lädt…")}</span>
+            <div className="h-24 rounded-xl bg-muted motion-safe:animate-pulse" />
+          </div>
         ) : personen.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("Noch niemand hat eine Rolle.")}</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col divide-y">
             {personen.map((p) => (
-              <li key={p.userId} className="flex min-w-0 flex-col gap-2 rounded-md border px-3 py-2">
-                <div className="flex min-w-0 flex-col gap-1.5">
-                  <span className="min-w-0 text-sm [overflow-wrap:anywhere]">
-                    {p.firstName} {p.lastName}{p.email ? ` (${p.email})` : ""}
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {rollenVon(p.roles).map((r) => (
-                      <Badge key={r.bit} variant="secondary">
-                        {t(r.name)}
-                      </Badge>
-                    ))}
+              <li key={p.userId} className="flex min-w-0 flex-col gap-2 py-3 first:pt-0 last:pb-0">
+                <div className="flex min-w-0 items-start justify-between gap-2">
+                  <div className="flex min-w-0 flex-col gap-1.5">
+                    <span className="min-w-0 text-sm [overflow-wrap:anywhere]">
+                      {p.firstName} {p.lastName}{p.email ? ` (${p.email})` : ""}
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {rollenVon(p.roles).map((r) => (
+                        <Badge key={r.bit} variant="secondary">
+                          {t(r.name)}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    aria-expanded={bearbeitet === p.userId}
-                    onClick={() => setBearbeitet(bearbeitet === p.userId ? null : p.userId)}
-                  >
-                    {t("Rollen ändern")}
-                  </Button>
                   {darfAbberufen(p.roles, aenderbar) && (
-                    <Button size="sm" variant="outline" disabled={arbeitet === p.userId} onClick={() => abberufen(p)}>
-                      {t("Abberufen")}
-                    </Button>
+                    <AktionenMenue
+                      label={t("Aktionen für {name}", { name: anzeigename(p) })}
+                      disabled={arbeitet === p.userId}
+                      aktionen={[{ label: t("Abberufen"), icon: UserMinus, onSelect: () => abberufen(p), destruktiv: true }]}
+                      className="coarse:size-11"
+                    />
                   )}
                 </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="self-start text-primary-text coarse:min-h-11"
+                  aria-expanded={bearbeitet === p.userId}
+                  onClick={() => setBearbeitet(bearbeitet === p.userId ? null : p.userId)}
+                >
+                  {t("Rollen ändern")}
+                </Button>
                 {bearbeitet === p.userId && (
                   <div className="flex flex-wrap gap-2">
                     {ROLLEN.map((r) =>
@@ -210,8 +221,20 @@ export function ClubRolesSection({
           </ul>
         )}
 
-        <form onSubmit={berufen} className="flex flex-col gap-3 border-t pt-4">
-          <p className="text-sm font-medium">{t("Person berufen")}</p>
+        {/* Berufen wird selten: Das Formular klappt erst nach dem Tipp auf. */}
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-11 self-start text-primary-text"
+          aria-expanded={berufenOffen}
+          aria-controls="person-berufen"
+          onClick={() => setBerufenOffen((v) => !v)}
+        >
+          <UserPlus className="size-4" />
+          {t("Person berufen")}
+        </Button>
+        {berufenOffen && (
+        <form id="person-berufen" onSubmit={berufen} className="flex flex-col gap-3">
           {mitgliederLesbar ? (
             kandidaten.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("Alle Mitglieder haben schon eine Rolle.")}</p>
@@ -260,9 +283,21 @@ export function ClubRolesSection({
             {t("Berufen")}
           </Button>
         </form>
+        )}
 
         <div className="flex flex-col gap-2 border-t pt-4">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t("Was die Rollen dürfen")}</p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="self-start text-primary-text coarse:min-h-11"
+            aria-expanded={erklaerungOffen}
+            onClick={() => setErklaerungOffen((v) => !v)}
+          >
+            {erklaerungOffen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+            {t("Was die Rollen dürfen")}
+          </Button>
+          {erklaerungOffen && (
           <ul className="flex flex-col gap-1.5 text-sm">
             {ROLLEN.map((r) => (
               <li key={r.bit} className="min-w-0 [overflow-wrap:anywhere]">
@@ -270,6 +305,7 @@ export function ClubRolesSection({
               </li>
             ))}
           </ul>
+          )}
         </div>
       </CardContent>
     </Card>

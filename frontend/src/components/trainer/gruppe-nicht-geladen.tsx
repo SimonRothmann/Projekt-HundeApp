@@ -28,9 +28,18 @@ export function GruppeNichtGeladen({
       </div>
     );
   }
+  if (!fehlgeschlagen) {
+    return (
+      <div className="flex flex-col gap-4" aria-busy="true">
+        <span className="sr-only">{t("Lädt…")}</span>
+        <div className="h-12 w-2/3 rounded-xl bg-card motion-safe:animate-pulse" />
+        <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+      </div>
+    );
+  }
   return (
     <p className="break-words text-muted-foreground">
-      {fehlgeschlagen ? t("Diese Gruppe kannst du nicht öffnen: Es gibt sie nicht mehr, oder sie gehört nicht zu deinen Gruppen.") : t("Lädt…")}
+      {t("Diese Gruppe kannst du nicht öffnen: Es gibt sie nicht mehr, oder sie gehört nicht zu deinen Gruppen.")}
     </p>
   );
 }

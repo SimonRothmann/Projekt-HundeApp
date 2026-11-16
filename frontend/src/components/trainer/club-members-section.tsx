@@ -5,6 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import type { Club, ClubInvitation, ClubMemberRequest } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Input } from "@/components/ui/input";
 import { Users, ShieldPlus, ShieldCheck, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +21,7 @@ export function ClubMembersSection({ club, onBefoerdert }: { club: Club; onBefoe
   const [entferneUserId, setEntferneUserId] = useState<string | null>(null);
   const [neueMail, setNeueMail] = useState("");
   const [ladtEin, setLadtEin] = useState(false);
+  const [einladenOffen, setEinladenOffen] = useState(false);
   // Ein Fehlschlag beim Laden lässt sie leer - die Mitgliederliste darunter ist
   // wichtiger als diese Nebenliste.
   const [einladungen, setEinladungen] = useState<ClubInvitation[]>([]);
@@ -72,6 +74,7 @@ export function ClubMembersSection({ club, onBefoerdert }: { club: Club; onBefoe
           : t("{mail} ist eingeladen. Sobald die Person annimmt, ist sie Mitglied.", { mail }),
       );
       setNeueMail("");
+      setEinladenOffen(false);
       // Beide Listen neu laden: Mitglied oder offene Einladung.
       await Promise.all([loadMembers(), loadInvitations()]);
     } catch (err) {
@@ -143,36 +146,53 @@ export function ClubMembersSection({ club, onBefoerdert }: { club: Club; onBefoe
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <form
-          className="flex flex-wrap items-end gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void einladen();
-          }}
+        {/* Eingeladen wird selten: Das Formular klappt erst nach dem Tipp auf. */}
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-11 self-start text-primary-text"
+          aria-expanded={einladenOffen}
+          aria-controls="verein-einladen"
+          onClick={() => setEinladenOffen((v) => !v)}
         >
-          <Input
-            type="email"
-            className="min-w-0 flex-1"
-            placeholder={t("E-Mail-Adresse")}
-            value={neueMail}
-            onChange={(e) => setNeueMail(e.target.value)}
-            disabled={ladtEin}
-          />
-          <Button type="submit" size="sm" disabled={!neueMail.trim() || ladtEin}>
-            <UserPlus className="size-4" />
-            {t("Einladen")}
-          </Button>
-        </form>
+          <UserPlus className="size-4" />
+          {t("Einladen")}
+        </Button>
+        {einladenOffen && (
+          <form
+            id="verein-einladen"
+            className="flex flex-wrap items-end gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void einladen();
+            }}
+          >
+            <Input
+              type="email"
+              className="min-w-0 flex-1"
+              placeholder={t("E-Mail-Adresse")}
+              aria-label={t("E-Mail-Adresse")}
+              value={neueMail}
+              onChange={(e) => setNeueMail(e.target.value)}
+              disabled={ladtEin}
+              autoFocus
+            />
+            <Button type="submit" size="sm" disabled={!neueMail.trim() || ladtEin}>
+              <UserPlus className="size-4" />
+              {t("Einladen")}
+            </Button>
+          </form>
+        )}
 
         {einladungen.length > 0 && (
           <div className="flex flex-col gap-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("Offene Einladungen")}</p>
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col divide-y">
               {einladungen.map((e) => (
                 // Vor der Zusage kennt der Verein nur die eingegebene Adresse.
                 <li
                   key={e.membershipId}
-                  className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-md border px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 py-2.5 first:pt-0 last:pb-0"
                 >
                   <div className="flex min-w-[12rem] flex-1 flex-col gap-0.5">
                     <span className="min-w-0 text-sm [overflow-wrap:anywhere]">{e.invitedEmail}</span>
@@ -181,9 +201,9 @@ export function ClubMembersSection({ club, onBefoerdert }: { club: Club; onBefoe
                     </span>
                   </div>
                   <Button
-                    className="shrink-0"
+                    className="shrink-0 text-primary-text coarse:min-h-11"
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
                     disabled={zieheZurueck === e.membershipId}
                     onClick={() => zurueckziehen(e)}
                   >
@@ -196,64 +216,61 @@ export function ClubMembersSection({ club, onBefoerdert }: { club: Club; onBefoe
         )}
 
         {members === null ? (
-          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
+          <div aria-busy="true">
+            <span className="sr-only">{t("Lädt…")}</span>
+            <div className="h-24 rounded-xl bg-muted motion-safe:animate-pulse" />
+          </div>
         ) : members.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("Noch keine Mitglieder.")}</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {members.map((m) => (
-              // Der Knopf rutscht auf schmalen Geräten unter den Namen.
-              //
-              // min-w-[12rem] ist der Kern: Mit "flex-1" allein (Basis 0)
-              // gibt der Text IMMER nach, der Knopf bleibt daneben stehen -
-              // eine lange Adresse wurde dann in eine 114 px schmale Spalte
-              // gequetscht und mitten im Wort über sechs Zeilen umgebrochen,
-              // die Zeile 158 px hoch. Unterschreitet der Text diese
-              // Mindestbreite, bricht die Zeile stattdessen um.
-              <li
-                key={m.userId}
-                className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-md border px-3 py-2"
-              >
-                <span className="min-w-[12rem] flex-1 text-sm [overflow-wrap:anywhere]">
-                  {m.firstName} {m.lastName} ({m.email})
-                </span>
-                {m.isTrainer ? (
-                  // Wer schon Trainer:in ist, braucht keinen Knopf dafür.
-                  // Statt ihn zu verstecken, wird der Zustand benannt - sonst
-                  // sieht die Zeile bloß unfertig aus.
-                  <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                    <ShieldCheck className="size-4" />
-{t("Trainer:in")}
+          <ul className="flex flex-col divide-y">
+            {members.map((m) => {
+              const name = `${m.firstName} ${m.lastName}`.trim() || m.email;
+              // Wer eine Rolle hat, bleibt, bis ihm die Rollen genommen sind (der Server weist anderes ab).
+              const aktionen = [
+                ...(!m.isTrainer && darfBefoerdern
+                  ? [{ label: t("Zum Trainer machen"), icon: ShieldPlus, onSelect: () => handlePromote(m) }]
+                  : []),
+                ...(!m.hatRolle
+                  ? [{ label: t("Entfernen"), icon: UserMinus, onSelect: () => entfernen(m), destruktiv: true }]
+                  : []),
+              ];
+              return (
+                // Der Marker rutscht auf schmalen Geräten unter den Namen.
+                //
+                // min-w-[12rem] ist der Kern: Mit "flex-1" allein (Basis 0)
+                // gibt der Text IMMER nach, der Marker bleibt daneben stehen -
+                // eine lange Adresse wurde dann in eine 114 px schmale Spalte
+                // gequetscht und mitten im Wort über sechs Zeilen umgebrochen,
+                // die Zeile 158 px hoch. Unterschreitet der Text diese
+                // Mindestbreite, bricht die Zeile stattdessen um.
+                <li
+                  key={m.userId}
+                  className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 py-2 first:pt-0 last:pb-0"
+                >
+                  <span className="min-w-[12rem] flex-1 text-sm [overflow-wrap:anywhere]">
+                    {m.firstName} {m.lastName} ({m.email})
                   </span>
-                ) : (
-                  darfBefoerdern && (
-                    <Button
-                      className="shrink-0"
-                      size="sm"
-                      variant="outline"
-                      disabled={promotingUserId === m.userId}
-                      onClick={() => handlePromote(m)}
-                    >
-                      <ShieldPlus className="size-4" />
-{t("Zum Trainer machen")}
-                    </Button>
-                  )
-                )}
-                {/* Wer eine Rolle hat, bleibt, bis ihm die Rollen genommen sind (der Server weist anderes ab). */}
-                {!m.hatRolle && (
-                  <Button
-                    className="shrink-0"
-                    size="sm"
-                    variant="ghost"
-                    disabled={entferneUserId === m.userId}
-                    onClick={() => entfernen(m)}
-                  >
-                    <UserMinus className="size-4" />
-                    {t("Entfernen")}
-                  </Button>
-                )}
-              </li>
-            ))}
+                  {m.isTrainer && (
+                    // Wer schon Trainer:in ist, braucht keinen Knopf dafür.
+                    // Statt ihn zu verstecken, wird der Zustand benannt - sonst
+                    // sieht die Zeile bloß unfertig aus.
+                    <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                      <ShieldCheck className="size-4" />
+{t("Trainer:in")}
+                    </span>
+                  )}
+                  {aktionen.length > 0 && (
+                    <AktionenMenue
+                      label={t("Aktionen für {name}", { name })}
+                      disabled={promotingUserId === m.userId || entferneUserId === m.userId}
+                      aktionen={aktionen}
+                      className="coarse:size-11"
+                    />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </CardContent>

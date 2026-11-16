@@ -8,6 +8,7 @@ import { PRUEFUNG_ERGEBNIS, TEAM_ART, type PruefungTeam } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AMPEL } from "@/components/dogs/pruefungsreife-karte";
 import { Badge } from "@/components/ui/badge";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Button } from "@/components/ui/button";
 
 const ERGEBNIS_KLASSEN: Record<number, string> = {
@@ -124,16 +125,12 @@ export function TeamZeile({
         >
           <ChevronDown className="size-4" />
         </Button>
-        <Button
-          size="sm"
-          variant="ghost"
+        <AktionenMenue
+          label={t("Aktionen für {name}", { name: teamName(t, team) })}
           disabled={gesperrt}
-          onClick={onAustragen}
-          className="text-destructive hover:text-destructive coarse:min-h-11"
-        >
-          <Trash2 className="size-3.5" />
-          {t("Austragen")}
-        </Button>
+          aktionen={[{ label: t("Austragen"), icon: Trash2, onSelect: onAustragen, destruktiv: true }]}
+          className="coarse:size-11"
+        />
       </div>
     </li>
   );

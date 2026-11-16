@@ -123,7 +123,12 @@ export function LinkVerwaltung({
 
   return (
     <>
-      {code === undefined && <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>}
+      {code === undefined && (
+        <div aria-busy="true">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-24 rounded-xl bg-muted motion-safe:animate-pulse" />
+        </div>
+      )}
 
       {code === null && (
         <Button className="h-11 self-start" disabled={arbeitet} onClick={erzeugen}>
@@ -145,11 +150,11 @@ export function LinkVerwaltung({
                 <Copy className="size-4" />
                 {t("Link kopieren")}
               </Button>
-              <Button variant="outline" onClick={teilen}>
+              <Button variant="ghost" className="text-primary-text" onClick={teilen}>
                 <Share2 className="size-4" />
                 {t("Link teilen")}
               </Button>
-              <Link href={aushangPfad} className={buttonVariants({ variant: "outline" })}>
+              <Link href={aushangPfad} className={buttonVariants({ variant: "ghost", className: "text-primary-text" })}>
                 <Printer className="size-4" />
                 {t("Aushang drucken")}
               </Link>

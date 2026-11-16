@@ -11,6 +11,7 @@ import { datumKurz } from "@/lib/pruefung";
 import { datumLang, gruppiereTeams, hatErgebnisse, uhrzeitText } from "@/lib/pruefungen";
 import { katalogName } from "@/lib/katalog-name";
 import { PRUEFUNG_ERGEBNIS, PRUEFUNG_STATUS, type PruefungTeam, type VereinsPruefung } from "@/lib/types";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -84,7 +85,15 @@ export default function PruefungDetailPage() {
       </Card>
     );
   }
-  if (!pruefung || !vereinId) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
+  if (!pruefung || !vereinId) {
+    return (
+      <div className="flex flex-col gap-4" aria-busy="true">
+        <span className="sr-only">{t("Lädt…")}</span>
+        <div className="h-20 rounded-xl bg-card motion-safe:animate-pulse" />
+        <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+      </div>
+    );
+  }
 
   const basis = `/api/clubs/${vereinId}/exams/${pruefung.id}`;
   const gruppen = gruppiereTeams(pruefung);
@@ -141,17 +150,29 @@ export default function PruefungDetailPage() {
             {t("Team eintragen")}
           </Button>
         )}
-        <Button variant="outline" onClick={() => setBearbeiten(true)} disabled={laeuft} className="coarse:min-h-11">
+        <Button variant="ghost" onClick={() => setBearbeiten(true)} disabled={laeuft} className="text-primary-text coarse:min-h-11">
           <Pencil className="size-4" />
           {t("Bearbeiten")}
         </Button>
         <Link
           href={`/trainer/pruefungen/${pruefung.id}/druck?verein=${vereinId}`}
-          className={buttonVariants({ variant: "outline", className: "coarse:min-h-11" })}
+          className={buttonVariants({ variant: "ghost", className: "text-primary-text coarse:min-h-11" })}
         >
           <Printer className="size-4" />
           {t("Druckansicht")}
         </Link>
+        {/* Absagen und Löschen sind selten: hinter dem ⋯-Menü, die Rückfragen bleiben. */}
+        {(!mitErgebnissen) && (
+          <AktionenMenue
+            label={t("Aktionen für {name}", { name: datumLang(pruefung.date, sprache) })}
+            disabled={laeuft}
+            className="coarse:size-11"
+            aktionen={[
+              ...(!abgesagt ? [{ label: t("Prüfung absagen"), icon: Ban, onSelect: absagen }] : []),
+              { label: t("Prüfung löschen"), icon: Trash2, onSelect: loeschen, destruktiv: true },
+            ]}
+          />
+        )}
       </div>
 
       {gruppen.length === 0 ? (
@@ -189,24 +210,6 @@ export default function PruefungDetailPage() {
             </Card>
           </section>
         ))
-      )}
-
-      {!abgesagt && !mitErgebnissen && (
-        <Button variant="outline" disabled={laeuft} onClick={absagen} className="self-start coarse:min-h-11">
-          <Ban className="size-4" />
-          {t("Prüfung absagen")}
-        </Button>
-      )}
-      {!mitErgebnissen && (
-        <Button
-          variant="ghost"
-          disabled={laeuft}
-          onClick={loeschen}
-          className="self-start text-destructive hover:text-destructive coarse:min-h-11"
-        >
-          <Trash2 className="size-4" />
-          {t("Prüfung löschen")}
-        </Button>
       )}
 
       <PruefungSheet

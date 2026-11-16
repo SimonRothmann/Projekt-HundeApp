@@ -10,6 +10,7 @@ import { useSprache, useT } from "@/lib/i18n";
 import { vereinszeitTag } from "@/lib/kalendertag";
 import { datumLang } from "@/lib/pruefungen";
 import type { Arbeitseinsatz, ArbeitseinsatzHelfer, Club } from "@/lib/types";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -78,7 +79,15 @@ export default function ArbeitseinsatzDetailPage() {
       </Card>
     );
   }
-  if (!einsatz || !vereinId) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
+  if (!einsatz || !vereinId) {
+    return (
+      <div className="flex flex-col gap-4" aria-busy="true">
+        <span className="sr-only">{t("Lädt…")}</span>
+        <div className="h-20 rounded-xl bg-card motion-safe:animate-pulse" />
+        <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+      </div>
+    );
+  }
 
   const basis = `/api/clubs/${vereinId}/work-events/${einsatz.id}`;
   const kannAbhaken = abhakbar(einsatz.date, vereinszeitTag());
@@ -126,14 +135,21 @@ export default function ArbeitseinsatzDetailPage() {
             <UserPlus className="size-4" />
             {t("Helfer:innen hinzufügen")}
           </Button>
-          <Button variant="outline" onClick={() => setBearbeiten(true)} disabled={laeuft} className="coarse:min-h-11">
+          <Button variant="ghost" onClick={() => setBearbeiten(true)} disabled={laeuft} className="text-primary-text coarse:min-h-11">
             <Pencil className="size-4" />
             {t("Bearbeiten")}
           </Button>
-          <Button variant="outline" onClick={() => setGaesteOffen(true)} disabled={laeuft} className="coarse:min-h-11">
+          <Button variant="ghost" onClick={() => setGaesteOffen(true)} disabled={laeuft} className="text-primary-text coarse:min-h-11">
             <Users className="size-4" />
             {t("Personen ohne Konto")}
           </Button>
+          {/* Löschen ist selten: hinter dem ⋯-Menü, die Rückfrage bleibt. */}
+          <AktionenMenue
+            label={t("Aktionen für {name}", { name: einsatz.title })}
+            disabled={laeuft}
+            className="coarse:size-11"
+            aktionen={[{ label: t("Einsatz löschen"), icon: Trash2, onSelect: loeschen, destruktiv: true }]}
+          />
         </div>
       )}
       {darfAendern && !kannAbhaken && (
@@ -164,28 +180,15 @@ export default function ArbeitseinsatzDetailPage() {
                       </span>
                     </div>
                     {darfAendern && (
-                      <div className="flex shrink-0 gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={t("Dauer ändern")}
-                          disabled={laeuft}
-                          onClick={() => setMinutenFuer(h)}
-                          className="coarse:size-11"
-                        >
-                          <Timer className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={t("Austragen")}
-                          disabled={laeuft}
-                          onClick={() => void austragen(h)}
-                          className="coarse:size-11"
-                        >
-                          <UserMinus className="size-4" />
-                        </Button>
-                      </div>
+                      <AktionenMenue
+                        label={t("Aktionen für {name}", { name: helferName(t, h) })}
+                        disabled={laeuft}
+                        className="coarse:size-11"
+                        aktionen={[
+                          { label: t("Dauer ändern"), icon: Timer, onSelect: () => setMinutenFuer(h) },
+                          { label: t("Austragen"), icon: UserMinus, onSelect: () => void austragen(h), destruktiv: true },
+                        ]}
+                      />
                     )}
                   </li>
                 ))}
@@ -194,18 +197,6 @@ export default function ArbeitseinsatzDetailPage() {
           </Card>
         )}
       </section>
-
-      {darfAendern && (
-        <Button
-          variant="ghost"
-          disabled={laeuft}
-          onClick={loeschen}
-          className="self-start text-destructive hover:text-destructive coarse:min-h-11"
-        >
-          <Trash2 className="size-4" />
-          {t("Einsatz löschen")}
-        </Button>
-      )}
 
       <EinsatzSheet
         clubId={vereinId}

@@ -122,13 +122,13 @@ export function GroupMembersView({
         <Card className="gap-0 py-0">
           <ul className="divide-y">
             {detail.invitations.map((invite) => (
-              <li key={invite.userId} className="flex min-w-0 items-center justify-between gap-2 px-4 py-2">
+              <li key={invite.userId} className="flex min-w-0 items-center justify-between gap-2 px-4 py-2.5">
                 {/* Vor der Zusage kennt die Gruppe nur die eingegebene Adresse. */}
                 <div className="flex min-w-0 flex-col items-start gap-1">
                   <p className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">{invite.email}</p>
                   <Badge variant="secondary">{t("eingeladen")}</Badge>
                 </div>
-                <Button size="sm" variant="ghost" className="shrink-0 coarse:min-h-11" onClick={() => handleWithdrawInvitation(invite.userId)}>
+                <Button size="sm" variant="ghost" className="shrink-0 text-primary-text coarse:min-h-11" onClick={() => handleWithdrawInvitation(invite.userId)}>
                   {t("Zurückziehen")}
                 </Button>
               </li>
@@ -144,11 +144,13 @@ export function GroupMembersView({
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-3">
-          {detail.members.map((member) => (
-            <GroupMemberCard key={member.userId} groupId={groupId} member={member} onRemove={handleRemoveMember} />
-          ))}
-        </div>
+        <Card className="gap-0 py-0">
+          <ul className="divide-y">
+            {detail.members.map((member) => (
+              <GroupMemberCard key={member.userId} groupId={groupId} member={member} onRemove={handleRemoveMember} />
+            ))}
+          </ul>
+        </Card>
       )}
     </div>
   );

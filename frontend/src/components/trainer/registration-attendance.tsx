@@ -178,9 +178,13 @@ export function RegistrationAttendance({
         {zeilen.length === 0 ? (
           <p className="py-2 text-center text-sm text-muted-foreground">{t("Noch keine Anmeldungen.")}</p>
         ) : anwesend === null ? (
-          <p className="py-2 text-center text-sm text-muted-foreground">{t("Lädt…")}</p>
+          <div aria-busy="true">
+            <span className="sr-only">{t("Lädt…")}</span>
+            <div className="h-28 rounded-xl bg-muted motion-safe:animate-pulse" />
+          </div>
         ) : (
-          <ul className="flex min-w-0 flex-col gap-2">
+          // Zeilen mit Trennlinien statt Einzelkästen; der Haken (nicht nur die Tönung) zeigt "da".
+          <ul className="flex min-w-0 flex-col divide-y">
             {zeilen.map((r) => {
               const istDa = anwesend.has(r.id);
               return (
@@ -192,8 +196,8 @@ export function RegistrationAttendance({
                     disabled={inZukunft}
                     onClick={() => void umschalten(r)}
                     className={cn(
-                      "flex min-h-14 w-full min-w-0 items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors disabled:opacity-60",
-                      istDa ? "border-primary bg-primary/10" : "border-input hover:bg-muted",
+                      "flex min-h-14 w-full min-w-0 items-center gap-3 px-2 py-2 text-left transition-colors disabled:opacity-60",
+                      istDa ? "bg-primary/10" : "hover:bg-muted/60",
                     )}
                   >
                     <span

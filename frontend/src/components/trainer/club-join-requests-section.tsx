@@ -150,9 +150,9 @@ export function ClubJoinRequestsSection({
         {requests.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("Keine offenen Anfragen.")}</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col divide-y">
             {requests.map((r) => (
-              <li key={r.membershipId} className="flex flex-col gap-3 rounded-md border px-3 py-2">
+              <li key={r.membershipId} className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0">
                 <div className="flex min-w-0 flex-col items-start gap-1">
                   <span className="min-w-0 text-sm [overflow-wrap:anywhere]">
                     {r.firstName} {r.lastName} ({r.email})
@@ -184,7 +184,7 @@ export function ClubJoinRequestsSection({
                   <Button size="sm" onClick={() => handleDecide(r, true)}>
                     {t("Annehmen")}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleDecide(r, false)}>
+                  <Button size="sm" variant="ghost" className="text-primary-text" onClick={() => handleDecide(r, false)}>
                     {t("Ablehnen")}
                   </Button>
                 </div>

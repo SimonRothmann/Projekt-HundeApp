@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, CircleDashed, FileUp, MoreVertical, Pencil, Phone, Plus, QrCode as QrIcon, Trash2 } from "lucide-react";
+import { CheckCircle2, CircleDashed, FileUp, Pencil, Phone, Plus, QrCode as QrIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { telefonLink } from "@/lib/anmeldung";
 import { api, ApiError } from "@/lib/api";
@@ -12,7 +12,7 @@ import { Chip } from "@/components/ui/chip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 
 type Filter = "alle" | "offen";
 
@@ -45,7 +45,6 @@ export function RegistrationList({
   const t = useT();
   const [filter, setFilter] = useState<Filter>("alle");
   const [beschaeftigt, setBeschaeftigt] = useState<string | null>(null);
-  const [menueOffen, setMenueOffen] = useState<string | null>(null);
 
   const offene = registrierungen.filter((r) => r.paidAt === null).length;
   const sichtbar = filter === "offen" ? registrierungen.filter((r) => r.paidAt === null) : registrierungen;
@@ -67,7 +66,6 @@ export function RegistrationList({
   }
 
   async function loeschen(r: GroupRegistration) {
-    setMenueOffen(null);
     if (
       !window.confirm(
         t("Anmeldung von {name} wirklich löschen? Die Angaben und die Anwesenheit werden endgültig entfernt.", { name: r.dogName }),
@@ -94,7 +92,7 @@ export function RegistrationList({
       </CardHeader>
       <CardContent className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={onLink}>
+          <Button variant="ghost" className="text-primary-text" onClick={onLink}>
             <QrIcon className="size-4" />
             {t("Anmeldelink & QR-Code")}
           </Button>
@@ -102,7 +100,7 @@ export function RegistrationList({
             <Plus className="size-4" />
             {t("Anmeldung hinzufügen")}
           </Button>
-          <Button variant="outline" onClick={onImport}>
+          <Button variant="ghost" className="text-primary-text" onClick={onImport}>
             <FileUp className="size-4" />
             {t("Aus Google-Formular importieren")}
           </Button>
@@ -128,12 +126,12 @@ export function RegistrationList({
         ) : sichtbar.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">{t("Keine unbezahlten Anmeldungen.")}</p>
         ) : (
-          <ul className="flex min-w-0 flex-col gap-2">
+          <ul className="flex min-w-0 flex-col divide-y">
             {sichtbar.map((r) => {
               const alter = formatDogAge(r.dogBirthDate, new Date(), t);
               const bezahlt = r.paidAt !== null;
               return (
-                <li key={r.id} className="flex min-w-0 flex-col gap-2 rounded-lg border p-3">
+                <li key={r.id} className="flex min-w-0 flex-col gap-2 py-3 first:pt-0 last:pb-0">
                   <div className="flex min-w-0 items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="font-medium [overflow-wrap:anywhere]">{r.dogName}</p>
@@ -150,36 +148,14 @@ export function RegistrationList({
                       </a>
                       {r.notes && <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{r.notes}</p>}
                     </div>
-                    <Popover open={menueOffen === r.id} onOpenChange={(offen) => setMenueOffen(offen ? r.id : null)}>
-                      <PopoverTrigger
-                        render={
-                          <Button variant="ghost" size="icon" className="shrink-0" aria-label={t("Menü für {name}", { name: r.dogName })} />
-                        }
-                      >
-                        <MoreVertical className="size-4" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-48 p-1">
-                        <Button
-                          variant="ghost"
-                          className="h-10 w-full justify-start gap-2"
-                          onClick={() => {
-                            setMenueOffen(null);
-                            onBearbeiten(r);
-                          }}
-                        >
-                          <Pencil className="size-4" />
-                          {t("Bearbeiten")}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="h-10 w-full justify-start gap-2 text-destructive hover:text-destructive"
-                          onClick={() => void loeschen(r)}
-                        >
-                          <Trash2 className="size-4" />
-                          {t("Löschen")}
-                        </Button>
-                      </PopoverContent>
-                    </Popover>
+                    <AktionenMenue
+                      label={t("Menü für {name}", { name: r.dogName })}
+                      aktionen={[
+                        { label: t("Bearbeiten"), icon: Pencil, onSelect: () => onBearbeiten(r) },
+                        { label: t("Löschen"), icon: Trash2, onSelect: () => void loeschen(r), destruktiv: true },
+                      ]}
+                      className="coarse:size-11"
+                    />
                   </div>
 
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

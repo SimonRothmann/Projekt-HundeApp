@@ -9,7 +9,7 @@ import { useT } from "@/lib/i18n";
 import type { Club, Group } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -95,9 +95,6 @@ export function MyGroupsSection({
 
       {zeigeNeueGruppe && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t("Neue Gruppe")}</CardTitle>
-          </CardHeader>
           <CardContent>
             <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="flex flex-col gap-2 sm:flex-1">
@@ -136,7 +133,10 @@ export function MyGroupsSection({
       )}
 
       {groups === null ? (
-        <p className="text-muted-foreground">{t("Lädt…")}</p>
+        <div aria-busy="true">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-28 rounded-xl bg-card motion-safe:animate-pulse" />
+        </div>
       ) : groups.length === 0 ? (
         <Card>
           <CardContent className="py-6 text-center text-muted-foreground">{t("Noch keine Gruppen angelegt.")}</CardContent>

@@ -63,18 +63,17 @@ export default function TrainerPage() {
       {offen.length > 0 && (
         <section className="flex flex-col gap-3">
           <SectionHeading icon={ListChecks} title={t("Zu erledigen")} />
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-3">
+          {/* EINE Liste statt einzelner Kacheln: Die Zahl vorn, das Wort dahinter - nicht die Farbe trägt die Aussage. */}
+          <div className="flex flex-col divide-y overflow-hidden rounded-lg border border-surface-border bg-surface">
             {offen.map((z) => (
               <Link
                 key={z.art}
                 href={z.href}
-                className="flex min-w-0 flex-col gap-0.5 rounded-xl bg-primary/8 px-3 py-2.5 ring-1 ring-primary/20 transition-colors hover:bg-primary/12 coarse:min-h-14"
+                className="flex min-h-11 min-w-0 items-center gap-3 px-3 py-2 transition-colors hover:bg-muted/60 active:bg-muted"
               >
-                <span className="flex items-center justify-between gap-2">
-                  <span className="font-heading text-2xl font-semibold tabular-nums text-primary-text">{z.anzahl}</span>
-                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                </span>
-                <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">{zaehlerBeschriftung(t, z)}</span>
+                <span className="min-w-8 font-heading text-xl font-semibold tabular-nums text-primary-text">{z.anzahl}</span>
+                <span className="min-w-0 flex-1 text-sm font-medium [overflow-wrap:anywhere]">{zaehlerBeschriftung(t, z)}</span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               </Link>
             ))}
           </div>

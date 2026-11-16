@@ -57,7 +57,15 @@ export default function TrainerVereinPage() {
     setGewaehlt(new URLSearchParams(window.location.search).get("verein") ?? "");
   }, [laden]);
 
-  if (clubs === null) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
+  if (clubs === null) {
+    return (
+      <div className="flex flex-col gap-4" aria-busy="true">
+        <span className="sr-only">{t("Lädt…")}</span>
+        <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+        <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+      </div>
+    );
+  }
 
   if (clubs.length === 0) {
     return (

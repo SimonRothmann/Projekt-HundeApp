@@ -66,7 +66,14 @@ export default function PruefungenPage() {
     void laden();
   }, [laden]);
 
-  if (vereine === null) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
+  if (vereine === null) {
+    return (
+      <div className="flex flex-col gap-4" aria-busy="true">
+        <span className="sr-only">{t("Lädt…")}</span>
+        <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+      </div>
+    );
+  }
 
   if (!verein) {
     return (
@@ -110,7 +117,10 @@ export default function PruefungenPage() {
       )}
 
       {liste === null ? (
-        <p className="text-muted-foreground">{t("Lädt…")}</p>
+        <div aria-busy="true">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+        </div>
       ) : (
         <>
           <section className="flex flex-col gap-3">
@@ -123,13 +133,16 @@ export default function PruefungenPage() {
                 </CardContent>
               </Card>
             ) : (
-              <ul className="flex flex-col gap-3">
-                {kommend.map((p) => (
-                  <li key={p.id}>
-                    <PruefungKarte pruefung={p} href={detailLink(p.id)} sprache={sprache} />
-                  </li>
-                ))}
-              </ul>
+              // EINE Karte, je Prüfung eine Zeile mit Trennlinie.
+              <Card className="gap-0 py-0">
+                <ul className="divide-y">
+                  {kommend.map((p) => (
+                    <li key={p.id}>
+                      <PruefungKarte pruefung={p} href={detailLink(p.id)} sprache={sprache} />
+                    </li>
+                  ))}
+                </ul>
+              </Card>
             )}
           </section>
 
@@ -139,13 +152,15 @@ export default function PruefungenPage() {
                 {t("Vergangene Prüfungen ({n})", { n: vergangen.length })}
                 <ChevronRight className="size-4 shrink-0 transition-transform group-open:rotate-90" aria-hidden />
               </summary>
-              <ul className="mt-3 flex flex-col gap-3">
-                {vergangen.map((p) => (
-                  <li key={p.id}>
-                    <PruefungKarte pruefung={p} href={detailLink(p.id)} sprache={sprache} />
-                  </li>
-                ))}
-              </ul>
+              <Card className="mt-3 gap-0 py-0">
+                <ul className="divide-y">
+                  {vergangen.map((p) => (
+                    <li key={p.id}>
+                      <PruefungKarte pruefung={p} href={detailLink(p.id)} sprache={sprache} />
+                    </li>
+                  ))}
+                </ul>
+              </Card>
             </details>
           )}
         </>
@@ -170,7 +185,7 @@ function PruefungKarte({ pruefung, href, sprache }: { pruefung: VereinsPruefungL
   return (
     <Link
       href={href}
-      className="flex min-w-0 items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-accent/30 coarse:min-h-14"
+      className="flex min-w-0 items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60 active:bg-muted coarse:min-h-14"
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

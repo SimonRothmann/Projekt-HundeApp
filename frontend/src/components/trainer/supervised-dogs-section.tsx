@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { SupervisedDog } from "@/lib/types";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
@@ -67,83 +68,80 @@ export function SupervisedDogsSection({ vorschau }: { vorschau?: number } = {}) 
   const kuerzbar = vorschau !== undefined && dogs !== null && dogs.length > vorschau;
 
   return (
-    <Card>
-      <CardHeader className="items-center">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <PawPrint className="size-5" />
-{t("Betreute Hunde")}
-        </CardTitle>
-        {dogs && (
-          <CardAction>
-            <Badge variant="secondary">{dogs.length}</Badge>
-          </CardAction>
-        )}
-      </CardHeader>
-      <CardContent>
-        {dogs === null ? (
-          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
-        ) : (
-          <ul className="flex flex-col gap-1.5">
+    <section className="flex flex-col gap-3">
+      <SectionHeading
+        icon={PawPrint}
+        title={t("Betreute Hunde")}
+        action={dogs && <Badge variant="secondary">{dogs.length}</Badge>}
+      />
+      {dogs === null ? (
+        <div aria-busy="true">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-28 rounded-xl bg-card motion-safe:animate-pulse" />
+        </div>
+      ) : (
+        <Card className="gap-0 py-0">
+          <ul className="divide-y">
             {sichtbar?.map((dog) => {
               const pause = aktuellePause(dog);
               return (
-              <li key={dog.id}>
-                <Link
-                  // scroll={false}: Next scrollt sonst selbst - und zwar nach
-                  // oben, weil #trainingsplan beim Seitenwechsel noch nicht
-                  // existiert (die Ziele kommen erst per Netzantwort). Den
-                  // Sprung übernimmt die Hundeseite, sobald der Anker da ist.
-                  scroll={false}
-                  href={`/dogs/${dog.id}?from=${encodeURIComponent("/trainer")}#trainingsplan`}
-                  className="flex min-w-0 items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-accent/30 coarse:min-h-11"
-                >
-                  <DogAvatar
-                    dogId={dog.id}
-                    hasImage={dog.hasImage}
-                    name={dog.name}
-                    className="size-9"
-                    iconClassName="size-4"
-                  />
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-sm font-medium">{dog.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {[dog.handlerName, dog.breed].filter(Boolean).join(" · ")}
-                    </span>
-                    {/* Nur der Zeitraum: Den Grund einer Pause bekommt die Trainer:in nie. */}
-                    {pause && (
-                      <span className="flex items-center gap-1 text-xs font-medium text-amber-800 dark:text-amber-300">
-                        <CirclePause className="size-3 shrink-0" aria-hidden />
-                        <span className="min-w-0 truncate">{pausenZeile(t, pause, sprache)}</span>
+                <li key={dog.id}>
+                  <Link
+                    // scroll={false}: Next scrollt sonst selbst - und zwar nach
+                    // oben, weil #trainingsplan beim Seitenwechsel noch nicht
+                    // existiert (die Ziele kommen erst per Netzantwort). Den
+                    // Sprung übernimmt die Hundeseite, sobald der Anker da ist.
+                    scroll={false}
+                    href={`/dogs/${dog.id}?from=${encodeURIComponent("/trainer")}#trainingsplan`}
+                    className="flex min-w-0 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/60 active:bg-muted coarse:min-h-14"
+                  >
+                    <DogAvatar
+                      dogId={dog.id}
+                      hasImage={dog.hasImage}
+                      name={dog.name}
+                      className="size-9"
+                      iconClassName="size-4"
+                    />
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-sm font-medium">{dog.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {[dog.handlerName, dog.breed].filter(Boolean).join(" · ")}
                       </span>
+                      {/* Nur der Zeitraum: Den Grund einer Pause bekommt die Trainer:in nie. */}
+                      {pause && (
+                        <span className="flex items-center gap-1 text-xs font-medium text-amber-800 dark:text-amber-300">
+                          <CirclePause className="size-3 shrink-0" aria-hidden />
+                          <span className="min-w-0 truncate">{pausenZeile(t, pause, sprache)}</span>
+                        </span>
+                      )}
+                    </span>
+                    {/* Ohne aktives Ziel gibt es noch keinen Plan - das ist die
+                        eine Information, die vor dem Antippen zählt. */}
+                    {dog.activeGoalCount === 0 && (
+                      <Badge variant="outline" className="shrink-0 text-xs">
+                        {t("kein Ziel")}
+                      </Badge>
                     )}
-                  </span>
-                  {/* Ohne aktives Ziel gibt es noch keinen Plan - das ist die
-                      eine Information, die vor dem Antippen zählt. */}
-                  {dog.activeGoalCount === 0 && (
-                    <Badge variant="outline" className="shrink-0 text-xs">
-{t("kein Ziel")}
-                    </Badge>
-                  )}
-                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                </Link>
-              </li>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                </li>
               );
             })}
           </ul>
-        )}
-        {kuerzbar && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-1 w-full"
-            onClick={() => setAlleZeigen((v) => !v)}
-            aria-expanded={alleZeigen}
-          >
-            {alleZeigen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-            {alleZeigen ? t("Weniger anzeigen") : t("Alle anzeigen ({n})", { n: dogs?.length ?? 0 })}
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+          {kuerzbar && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full rounded-none border-t text-primary-text coarse:min-h-11"
+              onClick={() => setAlleZeigen((v) => !v)}
+              aria-expanded={alleZeigen}
+            >
+              {alleZeigen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+              {alleZeigen ? t("Weniger anzeigen") : t("Alle anzeigen ({n})", { n: dogs?.length ?? 0 })}
+            </Button>
+          )}
+        </Card>
+      )}
+    </section>
   );
 }

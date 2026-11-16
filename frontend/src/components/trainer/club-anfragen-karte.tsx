@@ -52,7 +52,12 @@ export function ClubAnfragenKarte({ club }: { club: Club }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {anzahl === undefined && <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>}
+        {anzahl === undefined && (
+          <div aria-busy="true">
+            <span className="sr-only">{t("Lädt…")}</span>
+            <div className="h-11 rounded-xl bg-muted motion-safe:animate-pulse" />
+          </div>
+        )}
         {anzahl === 0 && (
           <p className="text-sm text-muted-foreground">
             {t("Keine offenen Beitrittsanfragen. Neue erscheinen hier und auf der Startseite unter „Zu erledigen“.")}

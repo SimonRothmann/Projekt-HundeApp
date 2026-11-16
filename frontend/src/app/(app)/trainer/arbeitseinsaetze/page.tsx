@@ -70,7 +70,14 @@ export default function ArbeitseinsaetzePage() {
     void laden();
   }, [laden]);
 
-  if (vereine === null) return <p className="text-muted-foreground">{t("Lädt…")}</p>;
+  if (vereine === null) {
+    return (
+      <div className="flex flex-col gap-4" aria-busy="true">
+        <span className="sr-only">{t("Lädt…")}</span>
+        <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+      </div>
+    );
+  }
 
   if (!verein) {
     return (
@@ -132,7 +139,10 @@ export default function ArbeitseinsaetzePage() {
       ) : (
         <div role="tabpanel" aria-labelledby="arbeit-ansicht-einsaetze">
           {liste === null ? (
-            <p className="text-muted-foreground">{t("Lädt…")}</p>
+            <div aria-busy="true">
+              <span className="sr-only">{t("Lädt…")}</span>
+              <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+            </div>
           ) : liste.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground">
@@ -141,12 +151,13 @@ export default function ArbeitseinsaetzePage() {
               </CardContent>
             </Card>
           ) : (
-            <ul className="flex flex-col gap-3">
+            <Card className="gap-0 py-0">
+            <ul className="divide-y">
               {liste.map((e) => (
                 <li key={e.id}>
                   <Link
                     href={detailLink(e.id)}
-                    className="flex min-w-0 items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-accent/30 coarse:min-h-14"
+                    className="flex min-w-0 items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60 active:bg-muted coarse:min-h-14"
                   >
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <span className="font-medium [overflow-wrap:anywhere]">{e.title}</span>
@@ -163,6 +174,7 @@ export default function ArbeitseinsaetzePage() {
                 </li>
               ))}
             </ul>
+            </Card>
           )}
         </div>
       )}

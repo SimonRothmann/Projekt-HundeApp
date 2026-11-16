@@ -10,10 +10,14 @@ import { ortsformat } from "@/lib/ortsformat";
 import type { ClubOverview, ClubOverviewMember } from "@/lib/types";
 import { filtereMitglieder, mitgliedName, monatsLabel } from "@/lib/vereinsuebersicht";
 import { rollenVon, ROLLEN } from "@/lib/vereinsrollen";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Abschnittsname } from "@/components/dogs/abschnittsname";
+
+/** So viele Mitglieder stehen zunächst in der Liste, der Rest klappt auf. */
+const MITGLIEDER_VORSCHAU = 8;
 
 /**
  * Die Vereinsübersicht für Vorstand und Verwaltung: Zahlen aus den Vereinsdaten
@@ -55,6 +59,10 @@ export function ClubOverviewSection({ clubId }: { clubId: string }) {
   }, [clubId]);
 
   const treffer = useMemo(() => filtereMitglieder(mitglieder ?? [], suche), [mitglieder, suche]);
+  // Die Mitgliederliste ist lang: Zunächst nur die ersten, der Rest klappt auf (eine Suche zeigt alle Treffer).
+  const [alleZeigen, setAlleZeigen] = useState(false);
+  const kuerzbar = suche.trim() === "" && treffer.length > MITGLIEDER_VORSCHAU;
+  const sichtbar = kuerzbar && !alleZeigen ? treffer.slice(0, MITGLIEDER_VORSCHAU) : treffer;
 
   return (
     <Card>
@@ -71,10 +79,13 @@ export function ClubOverviewSection({ clubId }: { clubId: string }) {
         {fehler ? (
           <p className="text-sm text-muted-foreground">{t("Die Vereinsübersicht konnte nicht geladen werden.")}</p>
         ) : uebersicht === null || mitglieder === null ? (
-          <p className="text-sm text-muted-foreground">{t("Lädt…")}</p>
+          <div aria-busy="true">
+            <span className="sr-only">{t("Lädt…")}</span>
+            <div className="h-28 rounded-xl bg-muted motion-safe:animate-pulse" />
+          </div>
         ) : (
           <>
-            <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
               <Kachel label={t("Mitglieder")} wert={uebersicht.memberCount} />
               <Kachel label={t("Neu in 30 Tagen")} wert={uebersicht.newMembersLast30Days} />
               <Kachel label={t("Offene Anfragen")} wert={uebersicht.pendingRequests} />
@@ -97,9 +108,9 @@ export function ClubOverviewSection({ clubId }: { clubId: string }) {
               {uebersicht.groups.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("Noch keine Gruppen.")}</p>
               ) : (
-                <ul className="flex flex-col gap-2">
+                <ul className="flex flex-col divide-y">
                   {uebersicht.groups.map((g) => (
-                    <li key={g.id} className="flex min-w-0 flex-col gap-0.5 rounded-md border px-3 py-2">
+                    <li key={g.id} className="flex min-w-0 flex-col gap-0.5 py-2 first:pt-0 last:pb-0">
                       <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">{g.name}</span>
                       <span className="text-xs text-muted-foreground">
                         {t("Mitglieder: {mitglieder} · Trainer:innen: {trainer}", { mitglieder: g.memberCount, trainer: g.trainerCount })}
@@ -211,9 +222,9 @@ export function ClubOverviewSection({ clubId }: { clubId: string }) {
                   {treffer.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{t("Keine Treffer.")}</p>
                   ) : (
-                    <ul className="flex flex-col gap-2">
-                      {treffer.map((m) => (
-                        <li key={m.membershipId} className="flex min-w-0 flex-col gap-1.5 rounded-md border px-3 py-2">
+                    <ul className="flex flex-col divide-y">
+                      {sichtbar.map((m) => (
+                        <li key={m.membershipId} className="flex min-w-0 flex-col gap-1.5 py-2.5 first:pt-0 last:pb-0">
                           <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
                             {mitgliedName(m) || t("(unbekannt)")}
                           </span>
@@ -241,6 +252,18 @@ export function ClubOverviewSection({ clubId }: { clubId: string }) {
                       ))}
                     </ul>
                   )}
+                  {kuerzbar && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="self-start text-primary-text coarse:min-h-11"
+                      aria-expanded={alleZeigen}
+                      onClick={() => setAlleZeigen((v) => !v)}
+                    >
+                      {alleZeigen ? t("Weniger anzeigen") : t("Alle anzeigen ({n})", { n: treffer.length })}
+                    </Button>
+                  )}
                 </>
               )}
             </div>
@@ -253,7 +276,7 @@ export function ClubOverviewSection({ clubId }: { clubId: string }) {
 
 function Kachel({ label, wert }: { label: string; wert: number }) {
   return (
-    <div className="flex min-w-0 flex-col rounded-md border px-3 py-2">
+    <div className="flex min-w-0 flex-col">
       {/* Im Quelltext Begriff vor Wert (so liest es ein Screenreader), gezeigt wird die Zahl darüber. */}
       <dt className="order-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">{label}</dt>
       <dd className="order-1 text-2xl font-semibold tabular-nums">{wert}</dd>

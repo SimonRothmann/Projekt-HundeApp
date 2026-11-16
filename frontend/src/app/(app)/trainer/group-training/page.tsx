@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronDown, ChevronRight, ChevronUp, Clock, Copy, Download, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -237,7 +238,7 @@ export default function GroupTrainingPage() {
 
   function exerciseCard(ex: GroupTrainingExercise) {
     return (
-      <div key={ex.id} className="flex items-start justify-between gap-2 rounded-md border p-2.5">
+      <li key={ex.id} className="flex items-start justify-between gap-2 px-4 py-3">
         <div className="min-w-0">
           <p className="text-sm font-medium [overflow-wrap:anywhere]">{ex.title}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
@@ -249,15 +250,15 @@ export default function GroupTrainingPage() {
           </div>
           {ex.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">{ex.description}</p>}
         </div>
-        <div className="flex shrink-0 gap-0.5">
-          <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => editExercise(ex)} aria-label={t("Bearbeiten")}>
-            <Pencil className="size-3.5" />
-          </Button>
-          <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => deleteExercise(ex)} aria-label={t("Löschen")}>
-            <Trash2 className="size-3.5 text-muted-foreground" />
-          </Button>
-        </div>
-      </div>
+        <AktionenMenue
+          label={t("Aktionen für {name}", { name: ex.title })}
+          className="coarse:size-11"
+          aktionen={[
+            { label: t("Bearbeiten"), icon: Pencil, onSelect: () => editExercise(ex) },
+            { label: t("Löschen"), icon: Trash2, onSelect: () => deleteExercise(ex), destruktiv: true },
+          ]}
+        />
+      </li>
     );
   }
 
@@ -275,7 +276,10 @@ export default function GroupTrainingPage() {
       </div>
 
       {clubs === null ? (
-        <p className="text-muted-foreground">{t("Lädt…")}</p>
+        <div className="flex flex-col gap-4" aria-busy="true">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+        </div>
       ) : clubs.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
@@ -303,7 +307,10 @@ export default function GroupTrainingPage() {
           )}
 
           {library === null ? (
-            <p className="text-muted-foreground">{t("Lädt…")}</p>
+            <div className="flex flex-col gap-4" aria-busy="true">
+              <span className="sr-only">{t("Lädt…")}</span>
+              <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+            </div>
           ) : (
             <>
               {library.exercises.length === 0 && library.units.length === 0 && (
@@ -437,7 +444,9 @@ export default function GroupTrainingPage() {
                     {t("Noch keine Bausteine für {stufe}.", { stufe: t(categoryLabel[activeCat]) })}
                   </p>
                 ) : (
-                  catExercises.map(exerciseCard)
+                  <Card className="gap-0 py-0">
+                    <ul className="divide-y">{catExercises.map(exerciseCard)}</ul>
+                  </Card>
                 )}
               </section>
 
@@ -493,28 +502,28 @@ export default function GroupTrainingPage() {
                         {unitForm.exerciseIds.length === 0 ? (
                           <p className="text-xs text-muted-foreground">{t("Noch keine Bausteine gewählt.")}</p>
                         ) : (
-                          <ol className="flex flex-col gap-1.5">
+                          <ol className="flex flex-col divide-y">
                             {unitForm.exerciseIds.map((id, index) => {
                               const ex = exerciseById(id);
                               return (
-                                <li key={`${id}-${index}`} className="flex items-center gap-2 rounded-md border bg-muted/30 p-2">
+                                <li key={`${id}-${index}`} className="flex items-center gap-2 py-1.5 first:pt-0 last:pb-0">
                                   <span className="text-xs text-muted-foreground">{index + 1}.</span>
                                   <span className="min-w-0 flex-1 text-sm [overflow-wrap:anywhere]">
                                     {ex ? ex.title : t("(unbekannt)")}
                                     {ex?.focus && <span className="text-muted-foreground"> · {ex.focus}</span>}
                                   </span>
                                   <div className="flex shrink-0 gap-0.5">
-                                    <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === 0} onClick={() => moveItem(index, -1)} aria-label={t("Nach oben")}>
+                                    <Button type="button" size="icon" variant="ghost" className="size-7 coarse:size-11" disabled={index === 0} onClick={() => moveItem(index, -1)} aria-label={t("Nach oben")}>
                                       <ChevronUp className="size-4" />
                                     </Button>
-                                    <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === unitForm.exerciseIds.length - 1} onClick={() => moveItem(index, 1)} aria-label={t("Nach unten")}>
+                                    <Button type="button" size="icon" variant="ghost" className="size-7 coarse:size-11" disabled={index === unitForm.exerciseIds.length - 1} onClick={() => moveItem(index, 1)} aria-label={t("Nach unten")}>
                                       <ChevronDown className="size-4" />
                                     </Button>
                                     <Button
                                       type="button"
                                       size="icon"
                                       variant="ghost"
-                                      className="size-7"
+                                      className="size-7 coarse:size-11"
                                       onClick={() => setUnitForm({ ...unitForm, exerciseIds: unitForm.exerciseIds.filter((_, i) => i !== index) })}
                                       aria-label={t("Entfernen")}
                                     >
@@ -563,66 +572,71 @@ export default function GroupTrainingPage() {
                     {t("Noch keine Einheiten für {stufe}.", { stufe: t(categoryLabel[activeCat]) })}
                   </p>
                 ) : (
-                  catUnits.map((unit) => {
-                          const isOpen = expanded.has(unit.id);
-                          return (
-                            <Card key={unit.id}>
-                              <CardHeader className="space-y-0 p-3">
-                                <button type="button" onClick={() => toggleExpand(unit.id)} aria-expanded={isOpen} className="flex w-full items-start justify-between gap-2 text-left">
+                  <Card className="gap-0 py-0">
+                    <ul className="divide-y">
+                      {catUnits.map((unit) => {
+                        const isOpen = expanded.has(unit.id);
+                        return (
+                          <li key={unit.id} className="min-w-0">
+                            <div className="flex items-start gap-1 pr-2">
+                              <button type="button" onClick={() => toggleExpand(unit.id)} aria-expanded={isOpen} className="flex min-h-11 min-w-0 flex-1 flex-col gap-1 px-4 py-3 text-left transition-colors hover:bg-muted/60 active:bg-muted">
+                                <span className="flex w-full items-start justify-between gap-2">
                                   <span className="flex min-w-0 items-start gap-1.5">
                                     {isOpen ? <ChevronDown className="mt-0.5 size-4 shrink-0" /> : <ChevronRight className="mt-0.5 size-4 shrink-0" />}
-                                    <CardTitle className="text-sm font-medium break-words [overflow-wrap:anywhere]">{unit.title}</CardTitle>
+                                    <span className="text-sm font-medium break-words [overflow-wrap:anywhere]">{unit.title}</span>
                                   </span>
                                   <Badge variant={categoryVariant[unit.category]} className="shrink-0">{t(categoryLabel[unit.category])}</Badge>
-                                </button>
-                                <p className="mt-1 flex items-center gap-1 pl-5.5 text-xs text-muted-foreground">
+                                </span>
+                                <span className="flex items-center gap-1 pl-5.5 text-xs text-muted-foreground">
                                   <Clock className="size-3" />
                                   {unit.items.length === 1 ? t("1 Übung · {minuten} Min.", { minuten: unit.totalMinutes }) : t("{anzahl} Übungen · {minuten} Min.", { anzahl: unit.items.length, minuten: unit.totalMinutes })}
-                                </p>
-                              </CardHeader>
-                              {isOpen && (
-                                <CardContent className="flex flex-col gap-3 border-t p-3">
-                                  {unit.description && <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{unit.description}</p>}
-                                  <ol className="flex flex-col gap-1.5">
-                                    {unit.items.map((item, idx) => (
-                                      <li key={item.id} className="rounded-md border bg-muted/30 p-2.5">
-                                        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-                                          <span className="text-sm font-medium [overflow-wrap:anywhere]">{idx + 1}. {item.exercise.title}</span>
-                                          <span className="flex items-center gap-1.5">
-                                            {item.exercise.focus && <Badge variant="secondary">{item.exercise.focus}</Badge>}
-                                            {item.exercise.durationMinutes != null && <span className="text-xs text-muted-foreground">{t("{n} Min.", { n: item.exercise.durationMinutes })}</span>}
-                                          </span>
-                                        </div>
-                                        {item.exercise.description && <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{item.exercise.description}</p>}
-                                      </li>
-                                    ))}
-                                  </ol>
-                                  <div className="flex flex-wrap gap-2">
-                                    <Button type="button" size="sm" variant="outline" onClick={() => { setActiveCat(unit.category); setUnitForm({ id: unit.id, category: unit.category, title: unit.title, description: unit.description ?? "", exerciseIds: unit.items.map((i) => i.exerciseId) }); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}>
-                                      <Pencil className="size-3.5" />
-{t("Bearbeiten")}
-                                    </Button>
-                                    <Button type="button" size="sm" variant="outline" onClick={() => duplicateUnit(unit.id)}>
-                                      <Copy className="size-3.5" />
-                                      {t("Duplizieren")}
-                                    </Button>
-                                    <Button type="button" size="sm" variant="ghost" onClick={() => deleteUnit(unit.id, unit.title)}>
-                                      <Trash2 className="size-3.5 text-muted-foreground" />
-{t("Löschen")}
-                                    </Button>
-                                  </div>
-                                </CardContent>
-                              )}
-                            </Card>
-                          );
-                        })
+                                </span>
+                              </button>
+                              <AktionenMenue
+                                label={t("Aktionen für {name}", { name: unit.title })}
+                                className="mt-1 coarse:size-11"
+                                aktionen={[
+                                  {
+                                    label: t("Bearbeiten"),
+                                    icon: Pencil,
+                                    onSelect: () => { setActiveCat(unit.category); setUnitForm({ id: unit.id, category: unit.category, title: unit.title, description: unit.description ?? "", exerciseIds: unit.items.map((i) => i.exerciseId) }); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); },
+                                  },
+                                  { label: t("Duplizieren"), icon: Copy, onSelect: () => duplicateUnit(unit.id) },
+                                  { label: t("Löschen"), icon: Trash2, onSelect: () => deleteUnit(unit.id, unit.title), destruktiv: true },
+                                ]}
+                              />
+                            </div>
+                            {isOpen && (
+                              <div className="flex flex-col gap-3 px-4 pb-4">
+                                {unit.description && <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{unit.description}</p>}
+                                <ol className="flex flex-col divide-y">
+                                  {unit.items.map((item, idx) => (
+                                    <li key={item.id} className="py-2.5 first:pt-0 last:pb-0">
+                                      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+                                        <span className="text-sm font-medium [overflow-wrap:anywhere]">{idx + 1}. {item.exercise.title}</span>
+                                        <span className="flex items-center gap-1.5">
+                                          {item.exercise.focus && <Badge variant="secondary">{item.exercise.focus}</Badge>}
+                                          {item.exercise.durationMinutes != null && <span className="text-xs text-muted-foreground">{t("{n} Min.", { n: item.exercise.durationMinutes })}</span>}
+                                        </span>
+                                      </div>
+                                      {item.exercise.description && <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{item.exercise.description}</p>}
+                                    </li>
+                                  ))}
+                                </ol>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </Card>
                 )}
               </section>
 
               {/* Best-Practice-Katalog nachträglich ergänzen (dezent, am Ende). */}
               {(library.exercises.length > 0 || library.units.length > 0) && (
                 <div>
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto" disabled={importing} onClick={importStarter} title={t("Fehlende Best-Practice-Inhalte ergänzen")}>
+                  <Button variant="ghost" size="sm" className="w-full text-primary-text sm:w-auto coarse:min-h-11" disabled={importing} onClick={importStarter} title={t("Fehlende Best-Practice-Inhalte ergänzen")}>
                     <Download className="size-4" />
                     {importing ? t("Übernehme…") : t("Best-Practice-Katalog ergänzen")}
                   </Button>

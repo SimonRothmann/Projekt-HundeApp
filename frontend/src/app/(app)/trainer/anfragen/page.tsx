@@ -71,7 +71,12 @@ export default function TrainerAnfragenPage() {
       {groups !== null && groups.length > 0 && <GroupJoinRequestsSection groups={groups} onAnzahl={setGruppenAnzahl} onFehler={() => setLadefehler(true)} />}
       {clubs !== null && clubs.length > 0 && <ClubJoinRequestsSection clubs={clubs} onAnzahl={setVereinsAnzahl} onFehler={() => setLadefehler(true)} />}
 
-      {!geladen && <p className="text-muted-foreground">{t("Lädt…")}</p>}
+      {!geladen && (
+        <div aria-busy="true">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-28 rounded-xl bg-card motion-safe:animate-pulse" />
+        </div>
+      )}
       {leer && ladefehler && (
         <Card>
           <CardContent className="py-6 text-center text-muted-foreground">{t("Anfragen konnten nicht geladen werden.")}</CardContent>

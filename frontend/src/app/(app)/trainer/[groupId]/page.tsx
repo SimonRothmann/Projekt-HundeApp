@@ -93,7 +93,10 @@ export default function TrainerGroupPage() {
       )}
 
       {anmeldungen.wirdGeladen && koennteAnmeldungenSein ? (
-        <p className="text-muted-foreground">{t("Lädt…")}</p>
+        <div aria-busy="true">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+        </div>
       ) : (
         <div
           role={liste !== null ? "tabpanel" : undefined}

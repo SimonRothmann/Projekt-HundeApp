@@ -17,8 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronUp, Clock, MapPin, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Ban, ChevronDown, ChevronUp, Clock, MapPin, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SessionCounts } from "@/components/schedule/session-counts";
@@ -355,7 +356,10 @@ export default function SchedulePage() {
       </div>
 
       {clubs === null ? (
-        <p className="text-muted-foreground">{t("Lädt…")}</p>
+        <div className="flex flex-col gap-4" aria-busy="true">
+          <span className="sr-only">{t("Lädt…")}</span>
+          <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+        </div>
       ) : clubs.length === 0 ? (
         <Card><CardContent className="py-10 text-center text-muted-foreground">{t("Die Terminplanung ist für Vereinstrainer:innen. Du bist für keinen Verein als Trainer:in eingetragen.")}</CardContent></Card>
       ) : (
@@ -467,7 +471,7 @@ export default function SchedulePage() {
 
                 {/* Inhalt */}
                 {!(form.mode === "series" && form.autoContent) && (
-                <div className="flex flex-col gap-2 rounded-md border bg-muted/20 p-2.5">
+                <div className="flex flex-col gap-2 border-t pt-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Label className="text-xs">{t("Inhalt (Übungen in Reihenfolge)")}</Label>
                     <div className="flex flex-wrap gap-2">
@@ -487,18 +491,18 @@ export default function SchedulePage() {
                   {form.content.length === 0 ? (
                     <p className="text-xs text-muted-foreground">{t("Noch kein Inhalt – generieren, aus der Bibliothek übernehmen oder unten hinzufügen.")}</p>
                   ) : (
-                    <ol className="flex flex-col gap-1.5">
+                    <ol className="flex flex-col divide-y">
                       {form.content.map((c, index) => (
-                        <li key={c.key} className="flex items-center gap-2 rounded-md border bg-background p-2">
+                        <li key={c.key} className="flex items-center gap-2 py-1.5 first:pt-0 last:pb-0">
                           <span className="text-xs text-muted-foreground">{index + 1}.</span>
                           <span className="min-w-0 flex-1 text-sm [overflow-wrap:anywhere]">
                             {contentLabel(c)}
                             {c.freeText && <Badge variant="outline" className="ml-1">{t("Freitext")}</Badge>}
                           </span>
                           <div className="flex shrink-0 gap-0.5">
-                            <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === 0} onClick={() => moveContent(index, -1)} aria-label={t("Hoch")}><ChevronUp className="size-4" /></Button>
-                            <Button type="button" size="icon" variant="ghost" className="size-7" disabled={index === form.content.length - 1} onClick={() => moveContent(index, 1)} aria-label={t("Runter")}><ChevronDown className="size-4" /></Button>
-                            <Button type="button" size="icon" variant="ghost" className="size-7" onClick={() => patch({ content: form.content.filter((_, i) => i !== index) })} aria-label={t("Entfernen")}><X className="size-4 text-muted-foreground" /></Button>
+                            <Button type="button" size="icon" variant="ghost" className="size-7 coarse:size-11" disabled={index === 0} onClick={() => moveContent(index, -1)} aria-label={t("Hoch")}><ChevronUp className="size-4" /></Button>
+                            <Button type="button" size="icon" variant="ghost" className="size-7 coarse:size-11" disabled={index === form.content.length - 1} onClick={() => moveContent(index, 1)} aria-label={t("Runter")}><ChevronDown className="size-4" /></Button>
+                            <Button type="button" size="icon" variant="ghost" className="size-7 coarse:size-11" onClick={() => patch({ content: form.content.filter((_, i) => i !== index) })} aria-label={t("Entfernen")}><X className="size-4 text-muted-foreground" /></Button>
                           </div>
                         </li>
                       ))}
@@ -548,22 +552,38 @@ export default function SchedulePage() {
 
           {/* Agenda */}
           {sessions === null ? (
-            <p className="text-muted-foreground">{t("Lädt…")}</p>
+            <div aria-busy="true">
+              <span className="sr-only">{t("Lädt…")}</span>
+              <div className="h-36 rounded-xl bg-card motion-safe:animate-pulse" />
+            </div>
           ) : sessions.length === 0 ? (
             <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">{t("Keine kommenden Termine.")}</CardContent></Card>
           ) : (
-            <div className="flex flex-col gap-2">
-              {sessions.map((s) => (
-                <Card key={s.id}>
-                  <CardContent className="flex flex-col gap-2 p-3">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0">
+            // EINE Karte, je Termin eine Zeile mit Trennlinie; Bearbeiten, Absagen und Löschen im ⋯-Menü.
+            <Card className="gap-0 py-0">
+              <ul className="divide-y">
+                {sessions.map((s) => (
+                  <li key={s.id} className="flex flex-col gap-2 px-4 py-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
                         <p className={cn("text-sm font-medium", s.status === 1 && "text-muted-foreground line-through")}>{fmtDate(s.startsAt)} · {fmtTime(s.startsAt)} <span className="text-muted-foreground">({t("{n} Min.", { n: s.durationMinutes })})</span></p>
                         <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{s.groupName}</p>
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                         <Badge variant={categoryVariant[s.category]}>{t(categoryLabel[s.category])}</Badge>
                         {s.status === 1 && <Badge variant="destructive">{t("Abgesagt")}</Badge>}
+                        {/* Termine fremder Gruppen (als Termin-Trainer:in eingetragen) bleiben ohne Menü: der Server ließe sie nicht zu. */}
+                        {s.kannVerwalten && (
+                          <AktionenMenue
+                            label={t("Aktionen für {name}", { name: `${fmtDate(s.startsAt)} ${fmtTime(s.startsAt)}` })}
+                            className="coarse:size-11"
+                            aktionen={[
+                              { label: t("Bearbeiten"), icon: Pencil, onSelect: () => openEdit(s) },
+                              ...(s.status === 0 ? [{ label: t("Absagen"), icon: Ban, onSelect: () => cancelSession(s), destruktiv: true }] : []),
+                              { label: t("Löschen"), icon: Trash2, onSelect: () => deleteSession(s), destruktiv: true },
+                            ]}
+                          />
+                        )}
                       </div>
                     </div>
                     {s.location && <p className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3" />{s.location}</p>}
@@ -579,18 +599,10 @@ export default function SchedulePage() {
                         ))}
                       </ol>
                     )}
-                    {/* Termine fremder Gruppen (als Termin-Trainer:in eingetragen) bleiben ohne Knöpfe: der Server ließe sie nicht zu. */}
-                    {s.kannVerwalten && (
-                      <div className="flex flex-wrap gap-2">
-                        <Button type="button" size="sm" variant="outline" onClick={() => openEdit(s)}><Pencil className="size-3.5" />{t("Bearbeiten")}</Button>
-                        {s.status === 0 && <Button type="button" size="sm" variant="ghost" onClick={() => cancelSession(s)}>{t("Absagen")}</Button>}
-                        <Button type="button" size="sm" variant="ghost" onClick={() => deleteSession(s)}><Trash2 className="size-3.5 text-muted-foreground" />{t("Löschen")}</Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  </li>
+                ))}
+              </ul>
+            </Card>
           )}
         </>
       )}
