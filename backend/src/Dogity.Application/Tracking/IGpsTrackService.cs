@@ -13,18 +13,18 @@ public interface IGpsTrackService
     /// </summary>
     Task<Result<GpsWalkRunDto>> EvaluateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, CancellationToken ct = default);
 
-    Task<Result<GpsWalkRunDto>> UpdateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsWalkRunRequest request, CancellationToken ct = default);
+    Task<Result<GpsWalkRunAngabenDto>> UpdateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsWalkRunRequest request, CancellationToken ct = default);
     /// <summary>Ändert die Trail-Angaben einer Mantrailing-Spur (Alter, Doppelblind, Negativ-Trail, Geruchsartikel).</summary>
-    Task<Result<GpsTrackDto>> UpdateTrailAsync(Guid userId, Guid trackId, UpdateGpsTrailRequest request, CancellationToken ct = default);
+    Task<Result<GpsTrackAngabenDto>> UpdateTrailAsync(Guid userId, Guid trackId, UpdateGpsTrailRequest request, CancellationToken ct = default);
 
     /// <summary>
     /// Stellt "Verdeckt absuchen" bei einer Fährte ein (DoubleBlind): nur solange noch kein Ablauf
     /// existiert, mit den Rechten des Bearbeitens.
     /// </summary>
-    Task<Result<GpsTrackDto>> UpdateVerdecktAsync(Guid userId, Guid trackId, UpdateGpsVerdecktRequest request, CancellationToken ct = default);
+    Task<Result<GpsTrackAngabenDto>> UpdateVerdecktAsync(Guid userId, Guid trackId, UpdateGpsVerdecktRequest request, CancellationToken ct = default);
 
     /// <summary>Trägt das Ergebnis eines Mantrailing-Laufs ein (Person gefunden, Anzeigeverhalten).</summary>
-    Task<Result<GpsWalkRunDto>> UpdateTrailRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsTrailRunRequest request, CancellationToken ct = default);
+    Task<Result<GpsWalkRunAngabenDto>> UpdateTrailRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsTrailRunRequest request, CancellationToken ct = default);
 
     /// <summary>Trägt das Material eines Gegenstands ein oder entfernt es (nur Fährte, nur Marker der Art Gegenstand).</summary>
     Task<Result<GpsPointDto>> UpdateMarkerAsync(Guid userId, Guid trackId, Guid pointId, UpdateGpsMarkerRequest request, CancellationToken ct = default);
@@ -36,7 +36,7 @@ public interface IGpsTrackService
     Task<Result<GpsWalkRunDto>> UpdateWalkRunArticlesAsync(Guid userId, Guid trackId, Guid walkRunId, IReadOnlyList<UpdateGpsWalkRunArticleRequest> request, CancellationToken ct = default);
 
     /// <summary>Nimmt eine Fährte aus der Entwicklung des Hundes heraus oder wieder hinein.</summary>
-    Task<Result<GpsTrackDto>> UpdateStatsAsync(Guid userId, Guid trackId, UpdateGpsTrackStatsRequest request, CancellationToken ct = default);
+    Task<Result<GpsTrackAngabenDto>> UpdateStatsAsync(Guid userId, Guid trackId, UpdateGpsTrackStatsRequest request, CancellationToken ct = default);
 
     /// <summary>
     /// Holt das Wetter zu Lege- und Suchzeitpunkt (neu). Für Bestandsfährten,

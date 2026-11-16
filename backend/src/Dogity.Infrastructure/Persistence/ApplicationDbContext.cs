@@ -102,6 +102,26 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<Identity.RefreshToken> RefreshTokens => Set<Identity.RefreshToken>();
 
+    public bool UnterstuetztMassenbefehle => Database.IsRelational();
+
+    public async Task InTransaktionAsync(Func<Task> arbeit, CancellationToken ct = default)
+    {
+        if (!UnterstuetztMassenbefehle || Database.CurrentTransaction is not null)
+        {
+            await arbeit();
+            return;
+        }
+
+        // Über die Ausführungsstrategie, damit die Transaktion auch mit einer Wiederholungsstrategie
+        // (derzeit nicht eingerichtet) als Ganzes wiederholt wird.
+        await Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            await using var transaktion = await Database.BeginTransactionAsync(ct);
+            await arbeit();
+            await transaktion.CommitAsync(ct);
+        });
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

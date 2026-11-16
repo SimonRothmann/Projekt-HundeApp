@@ -482,6 +482,7 @@ export function DatenschutzEn() {
           punkte={[
             "Account data and everything attached to it: until you delete the account.",
             "Individual entries – training sessions, tracks, dogs, training breaks, health entries, entries on the note pad: until you delete them.",
+            "Deleted tracks, including their GPS points, runs and stops, are removed for good 30 days after deletion; notifications in the app 90 days after they were created.",
             "Sign-ups to a group without an account (section 9): until the trainers delete them, at the latest twelve months after the last attendance, change or sign-up.",
             "Exam days of the club with entry lists (section 10): until the exam organisers delete them; guest data with the exam or the team. The results remain without a personal reference for the club’s figures.",
             "Work sessions of the club: until the administration removes you or deletes the session, at the latest until the end of the second calendar year after the session (older ones are deleted automatically and for good). If you leave the club or delete your account, only the hours remain, without a link to you. Helpers without an account: until the administration deletes them, at the latest once their last session has been deleted.",

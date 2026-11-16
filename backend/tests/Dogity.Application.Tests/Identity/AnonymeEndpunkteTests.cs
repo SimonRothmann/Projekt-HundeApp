@@ -27,7 +27,7 @@ public class AnonymeEndpunkteTests
     private static readonly Dictionary<string, string?> Erwartet = new()
     {
         ["AuthController.Register"] = "auth",
-        ["AuthController.Login"] = "auth",
+        ["AuthController.Login"] = "anmelden",
         ["AuthController.ForgotPassword"] = "auth",
         ["AuthController.ResetPassword"] = "auth",
         ["AuthController.Refresh"] = "refresh",

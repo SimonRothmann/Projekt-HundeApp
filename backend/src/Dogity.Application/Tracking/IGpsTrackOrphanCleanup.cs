@@ -48,8 +48,11 @@ public class GpsTrackOrphanCleanup(IApplicationDbContext db) : IGpsTrackOrphanCl
                 .ToListAsync(ct);
             if (ids.Count == 0) return gesamt;
 
-            gesamt += await GpsTrackRemoval.WeichLoeschenAsync(db, ids, DateTimeOffset.UtcNow, ct);
-            await db.SaveChangesAsync(ct);
+            await db.InTransaktionAsync(async () =>
+            {
+                gesamt += await GpsTrackRemoval.WeichLoeschenAsync(db, ids, DateTimeOffset.UtcNow, ct);
+                await db.SaveChangesAsync(ct);
+            }, ct);
         }
     }
 }

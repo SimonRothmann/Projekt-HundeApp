@@ -69,6 +69,10 @@ builder.Services.AddHostedService<PlanRegenerationBackgroundService>();
 // Glocke + Push, alle zehn Minuten geprüft.
 builder.Services.AddHostedService<ErinnerungBackgroundService>();
 
+// Aufbewahrungsfristen: gelöschte GPS-Daten (30 Tage) und Benachrichtigungen (90 Tage),
+// jede Nacht um 03:30 Uhr.
+builder.Services.AddHostedService<AufbewahrungBackgroundService>();
+
 // Aufbewahrungsfrist der Gruppen-Anmeldungen (12 Monate ohne Aktivität).
 builder.Services.AddHostedService<RegistrationRetentionBackgroundService>();
 
@@ -101,11 +105,16 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+// Zähler je E-Mail-Adresse für die Anmeldung, siehe AnmeldeDrossel.
+builder.Services.AddSingleton(_ => new AnmeldeDrossel());
+
 // IP-basiertes Rate-Limit für die anonymen Auth-Endpoints (Login, Register,
 // Forgot-Password): Identity-Lockout schützt nur pro Konto - ohne Drosselung
 // pro IP bleiben Passwort-Spraying über viele Konten, Massenregistrierung
 // und E-Mail-Versand-Spam über forgot-password möglich. 10 Requests/Minute
-// pro IP reicht für jede legitime Nutzung (auch Familien hinter einem NAT).
+// pro IP reicht für jede legitime Nutzung (auch Familien hinter einem NAT). Nur die
+// Anmeldung selbst hat eine weitere Grenze ("anmelden"), weil sich bei Veranstaltungen
+// viele ein WLAN teilen.
 //
 // Die IP stimmt nur, weil Caddy hinter Cloudflare die echte Client-Adresse
 // weiterreicht (siehe deploy/caddy/Caddyfile, servers-Block). Ohne das zählte
@@ -127,6 +136,17 @@ builder.Services.AddRateLimiter(options =>
             .LogWarning("Drossel: {Methode} {Route} abgelehnt", request.Method, route);
         return ValueTask.CompletedTask;
     };
+    // Anmelden: weiter als "auth", weil sich bei Vereinsveranstaltungen viele ein WLAN (eine IP) teilen.
+    // Das einzelne Konto schützt zusätzlich der Zähler je E-Mail-Adresse (AnmeldeDrossel) und Identity.
+    options.AddPolicy("anmelden", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+            }));
+
     options.AddPolicy("auth", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",

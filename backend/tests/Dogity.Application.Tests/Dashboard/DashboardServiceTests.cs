@@ -134,6 +134,23 @@ public class DashboardServiceTests
     }
 
     [Fact]
+    public async Task EineSchonAbgelaufeneSpur_GehoertNichtZurStartseite_DieWartendeKommtMitIhrerLegung()
+    {
+        var (dienst, db) = Erstelle();
+        var ich = Guid.NewGuid();
+        var hund = Hund(db, ich, "Bello");
+        var wartend = Faehrte(db, ich, hund, Heute, Jetzt.AddHours(-1));
+        var abgelaufen = Faehrte(db, ich, hund, Heute, Jetzt.AddHours(-2));
+        db.GpsWalkRuns.Add(new GpsWalkRun { TrackId = abgelaufen });
+        await db.SaveChangesAsync();
+
+        var spur = Assert.Single(Assert.Single((await dienst.GetAsync(ich)).Value!.Dogs).TracksToday);
+
+        Assert.Equal(wartend, spur.Id);
+        Assert.Single(spur.Points);
+    }
+
+    [Fact]
     public async Task EineFaehrteGenauAnDerFristgrenze_IstNochSuchbar()
     {
         var (dienst, db) = Erstelle();

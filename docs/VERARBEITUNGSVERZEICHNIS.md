@@ -65,7 +65,7 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. b (Kernfunktion, vom Nutzer ausgelöst). Für die Versteckperson beim Mantrailing besteht kein Vertrag: Art. 6 Abs. 1 lit. f – berechtigtes Interesse der aufzeichnenden Person, ihr Training zu dokumentieren; der Eingriff ist gering, weil die Versteckperson den Weg freiwillig mit einem Gerät geht und vorher davon weiß (die Datenschutzerklärung verlangt die Absprache), die Daten gehen nicht über das Konto hinaus und verschwinden mit der Spur; Widerspruch nach Art. 21 über die aufzeichnende Person oder den Betreiber, der die Spur löscht. **Vom Betreiber gegenzulesen** (Alternative: Einwilligung der Versteckperson, Art. 6 Abs. 1 lit. a). |
 | Empfänger | wie 2.2; **keine** Übermittlung an Kartendienste |
 | Drittland | nein |
-| Löschfrist | bis zur Löschung der Fährte bzw. des Kontos |
+| Löschfrist | bis zur Löschung der Fährte bzw. des Kontos; eine gelöschte Fährte (samt Punkten, Abläufen, Halten, Schenkeln, Winkeln und Gegenstandsangaben, bis dahin nur ausgeblendet) wird 30 Tage nach dem Löschen endgültig entfernt (nächtlicher Hintergrunddienst `AufbewahrungBackgroundService`, 03:30 Uhr Vereinszeit; Entscheidung des Betreibers vom 16.11.2026). Sicherungen: siehe Abschnitt 2.6. |
 | Tabellen | `gps_tracks`, `gps_points`, `gps_walk_runs`, `gps_walk_points`, `gps_walk_stops` |
 
 ### 2.4 Verein, Gruppen und Gruppentraining
@@ -133,7 +133,7 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Datenkategorien | je Frage: Lernfach, richtige/falsche Antworten, Zeitpunkte; je abgegebener Übungsprüfung (seit Fassung 0.39): Katalog, Zeitpunkt, erreichte und mögliche Punkte, bestanden ja/nein, Zahl der Fragen und der voll richtigen, Punkte je Themenkomplex, eine zufällige technische Abgabe-Kennung (seit Fassung 0.40, schließt die Doppelabgabe; ohne eigene Bedeutung). Die einzelnen Antworten werden **nicht** gespeichert; falsch beantwortete Fragen wirken wie eine falsche Antwort im Lernmodus (Fehlerspeicher in `quiz_masteries`). Benachrichtigungstexte mit Zeitpunkt und Lesestatus |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. b |
 | Besonderheit | Ohne Anmeldung ist die Übungsprüfung nutzbar, das Ergebnis wird dann nur angezeigt und nicht gespeichert (der Server hält keine Prüfung vor, die Abgabe wird bei Eingang gewertet). Die laufende Prüfung eines Browsers liegt nur im `sessionStorage` des Geräts und verlässt es nicht. „Lernstand zurücksetzen“ löscht die Prüfungsergebnisse **nicht**: Sie sind ein Verlauf, kein Lernstand; sie gehen mit der Kontolöschung. |
-| Löschfrist | bis zur Kontolöschung (endgültig, auch weich Gelöschtes); Teil des Datenexports („Sachkunde“ und „Uebungspruefungen“) |
+| Löschfrist | Lernfortschritt und Übungsprüfungen: bis zur Kontolöschung (endgültig, auch weich Gelöschtes); Teil des Datenexports („Sachkunde“ und „Uebungspruefungen“). Benachrichtigungen (`notifications`): 90 Tage nach dem Anlegen, gelesen oder nicht, werden sie endgültig entfernt (nächtlicher Hintergrunddienst `AufbewahrungBackgroundService`; Entscheidung des Betreibers vom 16.11.2026); bei Kontolöschung sofort. Sicherungen: siehe Abschnitt 2.6. |
 | Tabellen | `quiz_masteries`, `quiz_exam_attempts`, `notifications` |
 
 ### 2.5a Kennzahlen der Plattform (nur Admin)

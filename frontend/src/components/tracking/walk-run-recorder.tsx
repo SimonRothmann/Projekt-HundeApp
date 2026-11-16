@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
+import type { AblaufSpur, GpsPoint, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 import { istMantrailing } from "@/lib/mantrailing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,7 +92,7 @@ export function WalkRunRecorder({
    * abgesucht wird (doubleBlind): Linie, Marker und Haptik sind aus; zu sehen ist der Startpunkt, und
    * bis der Ansatz gefunden ist, Entfernung und Richtung dorthin.
    */
-  track?: GpsTrack;
+  track?: AblaufSpur;
 }) {
   const t = useT();
   const trail = istMantrailing(track);

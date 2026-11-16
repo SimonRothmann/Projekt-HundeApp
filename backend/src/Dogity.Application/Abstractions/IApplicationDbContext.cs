@@ -95,5 +95,19 @@ public interface IApplicationDbContext
 
     DbSet<Wartungshinweis> Wartungshinweise { get; }
 
+    /// <summary>
+    /// Ob die Datenbank Massenbefehle (ExecuteUpdate/ExecuteDelete) kann: Postgres ja, der
+    /// In-Memory-Ersatz der Tests nein. Wer Massenbefehle nutzt, braucht für den Ersatz einen
+    /// Weg über den Change Tracker (siehe GpsTrackRemoval).
+    /// </summary>
+    bool UnterstuetztMassenbefehle { get; }
+
+    /// <summary>
+    /// Führt <paramref name="arbeit"/> in einer Datenbank-Transaktion aus: Massenbefehle und das SaveChanges
+    /// des Aufrufers gelten ganz oder gar nicht. Ohne Massenbefehle (In-Memory-Ersatz) läuft sie einfach durch.
+    /// Bei einer Wiederholung durch die Ausführungsstrategie läuft <paramref name="arbeit"/> erneut.
+    /// </summary>
+    Task InTransaktionAsync(Func<Task> arbeit, CancellationToken ct = default);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

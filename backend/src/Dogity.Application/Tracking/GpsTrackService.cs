@@ -426,44 +426,44 @@ public class GpsTrackService(
         return true;
     }
 
-    public async Task<Result<GpsWalkRunDto>> UpdateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsWalkRunRequest request, CancellationToken ct = default)
+    public async Task<Result<GpsWalkRunAngabenDto>> UpdateWalkRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsWalkRunRequest request, CancellationToken ct = default)
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
-            return Result<GpsWalkRunDto>.NotFound("Fährte nicht gefunden.");
+            return Result<GpsWalkRunAngabenDto>.NotFound("Fährte nicht gefunden.");
 
+        // Ohne die Punkte: Geändert wird nur der Kommentar, und die Antwort trägt nur ihn.
         var walkRun = await db.GpsWalkRuns
-            .Include(r => r.Points)
             .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
         if (walkRun is null)
-            return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
+            return Result<GpsWalkRunAngabenDto>.NotFound("Ablauf-Versuch nicht gefunden.");
 
         // Nur der Kommentar ist editierbar - die GPS-Punkte einer Aufzeichnung
         // sind Messdaten und werden bewusst nicht nachträglich verändert.
         if (Textlaengen.ZuLang(request.Comment, Textlaengen.FaehrtenKommentar, "Der Kommentar") is { } zuLang)
-            return Result<GpsWalkRunDto>.Failure(zuLang);
+            return Result<GpsWalkRunAngabenDto>.Failure(zuLang);
         var comment = request.Comment?.Trim();
         walkRun.Comment = string.IsNullOrEmpty(comment) ? null : comment;
         await db.SaveChangesAsync(ct);
 
-        return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
+        return Result<GpsWalkRunAngabenDto>.Success(ToAngaben(walkRun));
     }
 
     // Rechte der beiden Trail-Routen: Die Angaben zum Trail (Alter, Doppelblind, Negativ, Geruchsartikel)
     // gehören zum Eintrag und ändert nur, wer das Training bearbeiten darf (TrainingsRechte); betreuende
     // Trainer:innen sehen Einträge der Familie nur. Das Ergebnis eines Laufs (Fund, Anzeige) darf, wer den
     // Hund sehen darf - wie der Kommentar eines Ablaufs (UpdateWalkRunAsync).
-    public async Task<Result<GpsTrackDto>> UpdateTrailAsync(Guid userId, Guid trackId, UpdateGpsTrailRequest request, CancellationToken ct = default)
+    public async Task<Result<GpsTrackAngabenDto>> UpdateTrailAsync(Guid userId, Guid trackId, UpdateGpsTrailRequest request, CancellationToken ct = default)
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await DarfEinheitBearbeitenAsync(userId, track.TrainingSessionId, ct))
-            return Result<GpsTrackDto>.NotFound("Fährte nicht gefunden.");
+            return Result<GpsTrackAngabenDto>.NotFound("Fährte nicht gefunden.");
         if (track.Kind != GpsTrackKind.Mantrailing)
-            return Result<GpsTrackDto>.Failure(NurMantrailing);
+            return Result<GpsTrackAngabenDto>.Failure(NurMantrailing);
         if (request.AgeMinutes is < 0 or > MaxTrailAlterMinuten)
-            return Result<GpsTrackDto>.Failure(TrailalterBereich);
+            return Result<GpsTrackAngabenDto>.Failure(TrailalterBereich);
         if (Textlaengen.ZuLang(request.ScentArticle, Textlaengen.Geruchsartikel, "Der Geruchsartikel") is { } zuLang)
-            return Result<GpsTrackDto>.Failure(zuLang);
+            return Result<GpsTrackAngabenDto>.Failure(zuLang);
 
         track.AgeMinutes = request.AgeMinutes;
         track.DoubleBlind = request.DoubleBlind;
@@ -471,48 +471,42 @@ public class GpsTrackService(
         track.ScentArticle = NullWennLeer(request.ScentArticle);
         await db.SaveChangesAsync(ct);
 
-        var liste = await GetByTrainingSessionAsync(userId, track.TrainingSessionId, ct);
-        return Result<GpsTrackDto>.Success(liste.Value!.First(t => t.Id == trackId));
+        return Result<GpsTrackAngabenDto>.Success(ToAngaben(track));
     }
 
-    public async Task<Result<GpsTrackDto>> UpdateVerdecktAsync(Guid userId, Guid trackId, UpdateGpsVerdecktRequest request, CancellationToken ct = default)
+    public async Task<Result<GpsTrackAngabenDto>> UpdateVerdecktAsync(Guid userId, Guid trackId, UpdateGpsVerdecktRequest request, CancellationToken ct = default)
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await DarfEinheitBearbeitenAsync(userId, track.TrainingSessionId, ct))
-            return Result<GpsTrackDto>.NotFound("Fährte nicht gefunden.");
+            return Result<GpsTrackAngabenDto>.NotFound("Fährte nicht gefunden.");
         // Der Trail hat seinen eigenen Weg (UpdateTrailAsync, "Doppelblind" mit den übrigen Trail-Angaben).
         if (track.Kind != GpsTrackKind.Faehrte)
-            return Result<GpsTrackDto>.Failure(NurFaehrte);
+            return Result<GpsTrackAngabenDto>.Failure(NurFaehrte);
         // Nach einem Ablauf wäre die Angabe rückwirkend: Der Ablauf hätte die Fährte gesehen, die jetzt
         // als verdeckt gälte. Ablaufen darf man sie danach erst wieder in einem neuen Versuch.
         if (await db.GpsWalkRuns.AnyAsync(r => r.TrackId == trackId, ct))
-            return Result<GpsTrackDto>.Failure("Verdeckt absuchen lässt sich nur einstellen, solange die Fährte noch nicht abgelaufen wurde.");
+            return Result<GpsTrackAngabenDto>.Failure("Verdeckt absuchen lässt sich nur einstellen, solange die Fährte noch nicht abgelaufen wurde.");
 
         track.DoubleBlind = request.Verdeckt;
         await db.SaveChangesAsync(ct);
 
-        var liste = await GetByTrainingSessionAsync(userId, track.TrainingSessionId, ct);
-        return Result<GpsTrackDto>.Success(liste.Value!.First(t => t.Id == trackId));
+        return Result<GpsTrackAngabenDto>.Success(ToAngaben(track));
     }
 
-    public async Task<Result<GpsWalkRunDto>> UpdateTrailRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsTrailRunRequest request, CancellationToken ct = default)
+    public async Task<Result<GpsWalkRunAngabenDto>> UpdateTrailRunAsync(Guid userId, Guid trackId, Guid walkRunId, UpdateGpsTrailRunRequest request, CancellationToken ct = default)
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
-            return Result<GpsWalkRunDto>.NotFound("Fährte nicht gefunden.");
+            return Result<GpsWalkRunAngabenDto>.NotFound("Fährte nicht gefunden.");
         if (track.Kind != GpsTrackKind.Mantrailing)
-            return Result<GpsWalkRunDto>.Failure(NurMantrailing);
+            return Result<GpsWalkRunAngabenDto>.Failure(NurMantrailing);
         if (request.Indication is { } anzeige && !Enum.IsDefined(anzeige))
-            return Result<GpsWalkRunDto>.Failure("Unbekanntes Anzeigeverhalten.");
+            return Result<GpsWalkRunAngabenDto>.Failure("Unbekanntes Anzeigeverhalten.");
 
         var walkRun = await db.GpsWalkRuns
-            .Include(r => r.Points)
-            .Include(r => r.Stops)
-            // AsSplitQuery: mehrere Listen in einer Abfrage vervielfachen die Zeilen (siehe GetByTrainingSessionAsync).
-            .AsSplitQuery()
             .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
         if (walkRun is null)
-            return Result<GpsWalkRunDto>.NotFound("Ablauf-Versuch nicht gefunden.");
+            return Result<GpsWalkRunAngabenDto>.NotFound("Ablauf-Versuch nicht gefunden.");
 
         walkRun.PersonFound = request.PersonFound;
         // Ein Anzeigeverhalten gibt es nur, wo eine Person gefunden wurde - nicht beim
@@ -520,7 +514,7 @@ public class GpsTrackService(
         walkRun.Indication = request.PersonFound == true && !track.NegativeTrail ? request.Indication : null;
         await db.SaveChangesAsync(ct);
 
-        return Result<GpsWalkRunDto>.Success(ToWalkRunDto(walkRun));
+        return Result<GpsWalkRunAngabenDto>.Success(ToAngaben(walkRun));
     }
 
     // Rechte wie beim Bearbeiten der Fährte (UpdateTrailAsync): Material und Herausnehmen aus der Entwicklung
@@ -618,19 +612,18 @@ public class GpsTrackService(
         return Result<GpsWalkRunDto>.Success(await ToWalkRunDtoAsync(track, walkRun, ct));
     }
 
-    public async Task<Result<GpsTrackDto>> UpdateStatsAsync(Guid userId, Guid trackId, UpdateGpsTrackStatsRequest request, CancellationToken ct = default)
+    public async Task<Result<GpsTrackAngabenDto>> UpdateStatsAsync(Guid userId, Guid trackId, UpdateGpsTrackStatsRequest request, CancellationToken ct = default)
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await DarfEinheitBearbeitenAsync(userId, track.TrainingSessionId, ct))
-            return Result<GpsTrackDto>.NotFound("Fährte nicht gefunden.");
+            return Result<GpsTrackAngabenDto>.NotFound("Fährte nicht gefunden.");
         if (track.Kind != GpsTrackKind.Faehrte)
-            return Result<GpsTrackDto>.Failure(NurFaehrte);
+            return Result<GpsTrackAngabenDto>.Failure(NurFaehrte);
 
         track.ExcludeFromStats = request.ExcludeFromStats;
         await db.SaveChangesAsync(ct);
 
-        var liste = await GetByTrainingSessionAsync(userId, track.TrainingSessionId, ct);
-        return Result<GpsTrackDto>.Success(liste.Value!.First(t => t.Id == trackId));
+        return Result<GpsTrackAngabenDto>.Success(ToAngaben(track));
     }
 
     /// <summary>Ob ein Speichern an einer gleichzeitigen Anfrage gescheitert ist (eindeutiger Index oder Verklemmung, auch verpackt).</summary>
@@ -677,8 +670,11 @@ public class GpsTrackService(
 
         // Mit Punkten, Abläufen und Stockungen - sonst blieben sie als Rückstand
         // in der Datenbank (siehe GpsTrackRemoval).
-        await GpsTrackRemoval.WeichLoeschenAsync(db, [track.Id], DateTimeOffset.UtcNow, ct);
-        await db.SaveChangesAsync(ct);
+        await db.InTransaktionAsync(async () =>
+        {
+            await GpsTrackRemoval.WeichLoeschenAsync(db, [track.Id], DateTimeOffset.UtcNow, ct);
+            await db.SaveChangesAsync(ct);
+        }, ct);
         return Result.Success();
     }
 
@@ -739,6 +735,11 @@ public class GpsTrackService(
             t.LaidWindDirectionDeg,
             t.SearchWindDirectionDeg);
     }
+
+    private static GpsWalkRunAngabenDto ToAngaben(GpsWalkRun r) => new(r.Id, r.Comment, r.PersonFound, r.Indication);
+
+    private static GpsTrackAngabenDto ToAngaben(GpsTrack t) =>
+        new(t.Id, t.AgeMinutes, t.DoubleBlind, t.NegativeTrail, t.ScentArticle, t.ExcludeFromStats);
 
     private static GpsPointDto ToPointDto(GpsPoint p) =>
         new(p.Id, p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, p.PointType, p.Label, p.MarkerType, p.Material);

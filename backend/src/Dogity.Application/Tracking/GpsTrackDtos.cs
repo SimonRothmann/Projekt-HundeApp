@@ -121,6 +121,18 @@ public record GpsTrackDto(
     int? LaidWindDirectionDeg = null,
     int? SearchWindDirectionDeg = null);
 
+/// <summary>
+/// Was ein Ablauf nach dem Ändern von Kommentar oder Trail-Ergebnis zurückgibt: nur die änderbaren Angaben,
+/// ohne Punkte, Halte, Schenkel und Winkel (die Oberfläche lädt die Spuren danach selbst neu oder braucht sie nicht).
+/// </summary>
+public record GpsWalkRunAngabenDto(Guid Id, string? Comment, bool? PersonFound, TrailIndication? Indication);
+
+/// <summary>
+/// Was eine Fährte nach dem Ändern einer einzelnen Angabe (Trail-Angaben, Verdeckt absuchen, Entwicklung)
+/// zurückgibt: die Angaben, die diese Aufrufe ändern können - ohne Punkte und Abläufe.
+/// </summary>
+public record GpsTrackAngabenDto(Guid Id, int? AgeMinutes, bool DoubleBlind, bool NegativeTrail, string? ScentArticle, bool ExcludeFromStats);
+
 public record CreateGpsPointRequest(
     double Latitude,
     double Longitude,

@@ -425,9 +425,11 @@ public class GegenstaendeTests
         var heraus = await w.Dienst.UpdateStatsAsync(w.Nutzer, f.Spur.Id, new UpdateGpsTrackStatsRequest(true));
         Assert.True(heraus.Succeeded);
         Assert.True(heraus.Value!.ExcludeFromStats);
-        // Die Fährte bleibt vollständig erhalten.
-        Assert.Equal(f.Spur.Points.Count, heraus.Value.Points.Count);
-        Assert.Single(heraus.Value.WalkRuns);
+        // Die Fährte bleibt vollständig erhalten (die Antwort trägt nur die Angaben, nicht die Punkte).
+        var gelesen = (await w.Dienst.GetByTrainingSessionAsync(w.Nutzer, f.Spur.TrainingSessionId)).Value!.Single();
+        Assert.True(gelesen.ExcludeFromStats);
+        Assert.Equal(f.Spur.Points.Count, gelesen.Points.Count);
+        Assert.Single(gelesen.WalkRuns);
 
         var hinein = await w.Dienst.UpdateStatsAsync(w.Nutzer, f.Spur.Id, new UpdateGpsTrackStatsRequest(false));
         Assert.False(hinein.Value!.ExcludeFromStats);

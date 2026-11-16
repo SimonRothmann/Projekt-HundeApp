@@ -1,5 +1,6 @@
 using System.Net;
 using Dogity.Api.Contracts;
+using Dogity.Api.Hosting;
 using Dogity.Application.Abstractions;
 using Dogity.Application.Account;
 using Dogity.Application.Notifications;
@@ -25,6 +26,7 @@ public class AuthController(
     IAccountMailService accountMails,
     IPreferenceService preferences,
     IFrontendLinks frontendLinks,
+    AnmeldeDrossel anmeldeDrossel,
     TimeProvider timeProvider,
     ILogger<AuthController> logger) : ControllerBase
 {
@@ -105,9 +107,20 @@ public class AuthController(
         return Ok(await BuildAuthResponseAsync(user, [Roles.User]));
     }
 
+    // Eigene, weitere Grenze je IP als beim Rest von "auth": Bei Vereinsveranstaltungen melden sich viele
+    // über dasselbe WLAN an. Das einzelne Konto schützt der Zähler je E-Mail-Adresse (AnmeldeDrossel).
     [HttpPost("login")]
+    [EnableRateLimiting("anmelden")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)
     {
+        if (!anmeldeDrossel.Darf(request.Email))
+        {
+            // Dasselbe Präfix wie die Ablehnungen der Drossel in Program.cs; nie die Adresse ins Log.
+            logger.LogWarning("Drossel: {Methode} {Route} abgelehnt (je E-Mail-Adresse)", "POST", "api/auth/login");
+            return StatusCode(StatusCodes.Status429TooManyRequests,
+                new { errors = new[] { "Zu viele Anmeldeversuche mit dieser E-Mail-Adresse. Bitte warte eine Minute." } });
+        }
+
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user is null)
             return Unauthorized(new { errors = new[] { "E-Mail oder Passwort ist falsch." } });
