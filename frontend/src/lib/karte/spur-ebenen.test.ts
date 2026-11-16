@@ -32,9 +32,10 @@ describe("spurEbenen", () => {
       "ablauf-unbewertet",
       "ablauf-live",
       "halte",
-      "marker",
       "winkel",
       "winkel-nummer",
+      // Marker über den Winkelnummern: ein Fähnchen genau am Winkel blieb sonst darunter verborgen.
+      "marker",
       "start",
       "ende",
       "position",

@@ -63,6 +63,8 @@ const MARKER_BILD_FAKTOR = 2;
 export const MARKER_BILD_PRAEFIX = "marker-";
 
 const ABLAUF_BREITE = 4;
+/** Winkelnummer als Plakette rechts oberhalb des Knicks, damit ein Marker genau am Winkel sichtbar bleibt. */
+const WINKEL_VERSATZ: [number, number] = [10, -10];
 // Die Farbe steht je Merkmal in den Daten (spur-daten.ts), nicht in der Ebene.
 const FARBE: ExpressionSpecification = ["get", "farbe"];
 
@@ -128,18 +130,6 @@ export function spurEbenen(): LayerSpecification[] {
         "circle-stroke-width": 3,
       },
     },
-    // Die Marker als Bilder mit eigener Form je Art (markerBilder): Die Form trägt die
-    // Unterscheidung, die Farbe hilft nur. Die Bilder legt ebenenAnlegen an.
-    {
-      id: "marker",
-      type: "symbol",
-      source: "marker",
-      layout: {
-        "icon-image": ["concat", MARKER_BILD_PRAEFIX, ["get", "form"]],
-        "icon-allow-overlap": true,
-        "icon-ignore-placement": true,
-      },
-    },
     // Die Nummer jedes Winkels der Legung, klein auf der Linie. Die Schrift liegt als Glyphen
     // neben dem Kartenstil (public/karte/schriften), auch beim Luftbild.
     {
@@ -152,6 +142,7 @@ export function spurEbenen(): LayerSpecification[] {
         "circle-opacity": 0.95,
         "circle-stroke-color": "#ffffff",
         "circle-stroke-width": 2,
+        "circle-translate": WINKEL_VERSATZ,
       },
     },
     {
@@ -165,7 +156,20 @@ export function spurEbenen(): LayerSpecification[] {
         "text-allow-overlap": true,
         "text-ignore-placement": true,
       },
-      paint: { "text-color": "#ffffff" },
+      paint: { "text-color": "#ffffff", "text-translate": WINKEL_VERSATZ },
+    },
+    // Die Marker als Bilder mit eigener Form je Art (markerBilder): Die Form trägt die
+    // Unterscheidung, die Farbe hilft nur. Die Bilder legt ebenenAnlegen an.
+    // Über den Winkelnummern: Ein Fähnchen steht oft genau am Winkel und verschwand sonst darunter.
+    {
+      id: "marker",
+      type: "symbol",
+      source: "marker",
+      layout: {
+        "icon-image": ["concat", MARKER_BILD_PRAEFIX, ["get", "form"]],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+      },
     },
     // Start gefüllt, Ende hohl - dieselbe Farbe wie die Linie, statt Grün und
     // Rot: beides sind Ampeltöne und meinten hier gerade NICHT gut und

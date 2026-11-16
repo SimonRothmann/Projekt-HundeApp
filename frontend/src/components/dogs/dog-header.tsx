@@ -40,7 +40,16 @@ export function DogHeader({
         <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} className="size-20" iconClassName="size-9" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="min-w-0 text-3xl font-bold tracking-tight [overflow-wrap:anywhere]">{dog.name}</h1>
+            {/* Lange Namen (Zuchtnamen) eine Stufe kleiner und mit Silbentrennung statt Umbruch mitten im Wort. */}
+            <h1
+              lang="de"
+              className={cn(
+                "min-w-0 font-bold tracking-tight hyphens-auto [overflow-wrap:break-word]",
+                dog.name.length > 16 ? "text-2xl" : "text-3xl",
+              )}
+            >
+              {dog.name}
+            </h1>
             {dog.archivedAt && <Badge variant="secondary">{t("Archiviert")}</Badge>}
           </div>
           <p className="text-muted-foreground [overflow-wrap:anywhere]">
