@@ -40,6 +40,22 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    # Echtes Postgres für die Tests unter backend/tests/.../Postgres: Alle anderen
+    # Tests laufen gegen EF In-Memory und führen nie SQL aus. Dieselbe
+    # Hauptversion wie auf dem Server (docker-compose.yml: postgres:17). Der
+    # Container ist nur für diesen Lauf da, das Kennwort ohne Wert außerhalb.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -53,6 +69,10 @@ jobs:
         run: dotnet build -c Release -warnaserror
       - name: Testen
         working-directory: backend
+        env:
+          # Ohne diese Variable würden die Postgres-Tests übersprungen; in der CI
+          # lässt das Fehlen sie scheitern (TestSupport/PostgresDatenbank.cs).
+          DOGITY_TEST_POSTGRES: Host=localhost;Port=5432;Username=postgres;Password=ci
         run: dotnet test -c Release --no-build
 
   frontend:

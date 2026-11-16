@@ -14,8 +14,13 @@
 #    geplante Läufe oft einige Minuten zu spät; der Deploy beginnt also bis zu
 #    rund 30 Minuten nach dem Zeitpunkt.
 #
-# Scheitert der Deploy, ist der Plan verbraucht (Tag schon gelöscht) und
-# GitHub schickt eine Mail; neu planen oder deploy.yml nehmen.
+# Vor dem Deploy prüft der Job "CI grün?", dass die CI für genau den geplanten
+# Stand erfolgreich war (läuft sie noch, wartet er bis zu 25 Minuten). Rot oder
+# fehlend: der Lauf scheitert, es wird nichts deployt.
+#
+# Scheitert die CI-Prüfung oder der Deploy, ist der Plan verbraucht (Tag schon
+# gelöscht, sonst käme alle 15 Minuten dieselbe Fehlermail) und GitHub schickt
+# eine Mail; neu planen oder deploy.yml nehmen.
 name: Prod-Deploy planen
 
 on:
@@ -94,9 +99,33 @@ jobs:
           echo "Fällig: $ref, Stand ${sha::7}."
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
+  ci:
+    # Der geplante Stand braucht eine grüne CI. Der Plan ist da schon verbraucht
+    # (Tag gelöscht, siehe oben) - ist die CI rot oder fehlt sie, scheitert dieser
+    # Lauf sichtbar (GitHub schickt die Mail) und es wird NICHT deployt. Neu planen,
+    # sobald die CI grün ist. Läuft sie noch, wartet der Job bis zu 25 Minuten.
+    name: CI grün?
+    needs: pruefen
+    if: needs.pruefen.outputs.sha != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read # Läufe der CI lesen
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci-pruefen.sh
+          sparse-checkout-cone-mode: false
+      - name: CI für den geplanten Stand prüfen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.pruefen.outputs.sha }}
+        run: scripts/ci-pruefen.sh "$SHA"
+
   ausfuehren:
     name: Deploy prod (geplant)
-    needs: pruefen
+    needs: [pruefen, ci]
     if: needs.pruefen.outputs.sha != ''
     runs-on: ubuntu-latest
     timeout-minutes: 30

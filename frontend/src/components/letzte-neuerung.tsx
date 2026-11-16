@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   AENDERUNGSART_LABEL,
   formatiereVeroeffentlichung,
-  VERSIONSHINWEISE,
-} from "@/lib/versionshinweise";
+  NEUESTE_VERSION,
+} from "@/lib/neueste-version";
 import { useSprache, useT } from "@/lib/i18n";
 
 /** So viele Punkte der jüngsten Fassung zeigt der Auszug. */
@@ -25,7 +25,7 @@ const MAX_PUNKTE = 3;
 export function LetzteNeuerung() {
   const t = useT();
   const sprache = useSprache();
-  const neueste = VERSIONSHINWEISE[0];
+  const neueste = NEUESTE_VERSION;
   const auszug = neueste.aenderungen.slice(0, MAX_PUNKTE);
   const rest = neueste.aenderungen.length - auszug.length;
 

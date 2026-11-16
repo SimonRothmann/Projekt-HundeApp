@@ -410,6 +410,61 @@ ssh dogity 'cd /opt/dogity && docker compose up -d --wait postgres && docker com
 
 Prüfen: `SHOW shared_buffers;` liefert `2GB`.
 
+## Speichergrenzen und Frontend-Image
+
+**Grenzen.** `docker-compose.yml` setzt `mem_limit` für die App-Container:
+Backend prod 1,5 GB, Backend test 1 GB, Frontend prod 1 GB, Frontend test
+768 MB, Mail 256 MB. Gemessen wurde weit weniger (Backend 330 MB bei 1.000
+gleichzeitigen Sitzungen, Next-Server 100-200 MB); die Grenzen sind Leitplanken,
+damit ein außer Kontrolle geratener Container sich selbst beendet und neu
+startet, statt dass der Kernel ein beliebiges Opfer wählt - womöglich Postgres.
+Alle Grenzen zusammen plus Postgres im ungünstigsten Fall (rund 4 GB) bleiben
+bei etwa 8,5 GB der 11 GB. Postgres hat bewusst keine. Nach dem ersten Deploy
+mit den Grenzen: `ssh dogity 'docker stats --no-stream'` ansehen; ein
+Container, der oft neu startet (`docker compose ps`), braucht mehr. Beim
+Test-Deploy wird der Mail-Container einmal neu erzeugt (neue Grenze) - Mails
+warten dabei Sekunden in der Warteschlange.
+
+**Frontend-Image.** Next baut mit `output: "standalone"`; das Image enthält
+`server.js`, die dafür nötigen Pakete, `.next/static` und `public/` und startet
+mit `node server.js` statt `npm run start`. Das Image trägt dadurch rund 68 MB
+Anwendungsdateien statt rund 830 MB (vollständiges `node_modules`, `.next`
+samt Build-Zwischenspeicher). Der Service Worker (`public/sw.js`) und die
+Build-Kennung (`NEXT_PUBLIC_BUILD_COMMIT`, im Bundle) sind davon unberührt.
+Lokal bleibt `npm run preview` (`next build && next start`) wie gehabt.
+
+## Fertige Images aus der CI (geprüft, nicht umgesetzt)
+
+Die Idee: die CI baut die Images, legt sie mit Commit-Tag in ghcr.io ab, der
+Deploy zieht sie, und Zurückrollen heißt, einen älteren Commit zu deployen.
+Geprüft am 2026-11-16 und **bewusst gelassen**:
+
+- **Das Frontend lässt sich nicht vorab bauen.** `next build` holt den
+  Prüfungsordnungs-Katalog über `NEXT_PUBLIC_API_URL` von der laufenden API und
+  backt daraus Seiten und Sitemap. Deshalb startet jeder Deploy zuerst das neue
+  Backend und baut erst dann das Frontend (Lehre vom 2026-08-23, siehe
+  `deploy-test.sh`). Ein in der CI gebautes Frontend sähe das Backend von
+  irgendeinem früheren Zeitpunkt - oder es müsste gegen Test beziehungsweise
+  Prod bauen, bevor dort das neue Backend läuft. Beides bricht genau die
+  Reihenfolge, die den Fehler verhindert. Dazu kommt ein Image je Umgebung
+  (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_ENV_LABEL` im Bundle).
+- **Zurückrollen des Backends ist nicht sofort möglich.** Das Backend wendet
+  seine Migrationen beim Start an; ein älteres Image läuft gegen das neuere
+  Schema, das nur die neue Fassung kennt. „Sofort zurück“ stimmte nur ohne
+  Migration im Deploy - ein Versprechen, das man nicht blind geben kann.
+- **Der Gewinn ist klein.** Der Backend-Build ist durch den Docker-Cache auf
+  der VPS meist kurz; die rund 22 Sekunden Ausfall kommen vom Neustart, nicht
+  vom Bauen. Dem stehen eine Registry, ein Einmalschritt auf dem Server
+  (Paket öffentlich stellen oder Anmeldung) und ein zweiter Weg im Deploy
+  gegenüber - mehr bewegliche Teile in der Schicht, die man im Notfall braucht.
+- **Prod-Basis-Images:** `deploy-prod.sh` baut bewusst ohne `--pull` gegen das,
+  was Test gezogen hat. Ein CI-Image hätte seinen eigenen Stand und höbe diese
+  Zwei-Stufen-Logik auf.
+
+Wer es später doch will, beginnt beim Backend allein (ohne Katalog-Abhängigkeit)
+und lässt `deploy-*.sh` das Image zum Commit ziehen und nur bei Fehlen wie heute
+bauen.
+
 ## Wartung
 
 Dogity ist bei jedem Deploy rund 22 Sekunden nicht erreichbar. Wird eine
@@ -482,6 +537,27 @@ Ein neuer Plan ersetzt den alten; absagen:
 `git push origin :refs/tags/prod-geplant-JJJJMMTTHHMM`. GitHub schaltet
 geplante Läufe nach 60 Tagen ohne Aktivität im Repo ab (Reiter Actions →
 „Enable workflow“).
+
+**Grüne CI vor jedem Deploy (seit 2026-11-16).** Beide Workflows haben einen
+Job „CI grün?“ (`scripts/ci-pruefen.sh`), der vor dem Deploy sucht, ob der
+Workflow „CI“ für genau diesen Commit erfolgreich war - egal ob er durch einen
+Push auf master/prod oder durch einen Pull Request entstand. Läuft die CI noch,
+wartet der Job bis zu 25 Minuten; ist sie rot, abgebrochen oder gar nicht da,
+scheitert er mit Meldung und es geht nichts auf die VPS. Bei Prod kommt das
+noch vor der Freigabe (Approve).
+
+- **Notfall:** `gh workflow run deploy.yml -f ziel=prod -f ci_ueberspringen=true`
+  (oder das Häkchen im Formular) überspringt die Prüfung. Die Aktion schreibt
+  eine Warnung ins Protokoll.
+- **Geplanter Prod-Deploy:** Der Plan wird auch bei roter CI verbraucht (der
+  Tag ist weg, sonst käme alle 15 Minuten dieselbe Fehlermail), aber nicht
+  stillschweigend: Der Lauf „Prod-Deploy planen“ scheitert, GitHub schickt die
+  Mail, deployt wird nichts. Dann die CI in Ordnung bringen und neu planen.
+  Ein `cancelled` heißt, ein neuerer Push hat den CI-Lauf dieses Stands
+  ersetzt - den Lauf unter Actions → CI für den Commit neu starten (oder auf
+  einem neueren Stand planen). Die Prüfung gilt für Läufe, die nach dem
+  Einspielen dieser Änderung laufen; sie braucht auf der VPS nichts Neues.
+- Gewartet wird nur auf dem GitHub-Runner; auf dem Server ändert sich nichts.
 
 **Aufbau.** Der Schlüssel `github-actions-deploy` steht in
 `~/.ssh/authorized_keys` des Benutzers `dogity` mit erzwungenem Befehl:
