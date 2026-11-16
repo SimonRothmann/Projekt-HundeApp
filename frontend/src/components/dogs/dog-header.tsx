@@ -12,10 +12,10 @@ import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
- * Kopf der Hundeseite: Name, Rasse und Alter, rechts der Knopf "Verwalten"
- * (Bearbeiten, Drucken, Mitbesitzer, Archivieren, Löschen - siehe
- * DogActionsSheet). Darunter, wer mehr als einen aktiven Hund hat, die Chips
- * zum direkten Wechseln.
+ * Kopf der Hundeseite: Hundefoto (oder Symbol), Name, Rasse und Alter, rechts
+ * der Knopf "Verwalten" (Bearbeiten, Drucken, Mitbesitzer, Archivieren,
+ * Löschen - siehe DogActionsSheet). Darüber, wer mehr als einen aktiven Hund
+ * hat, die runden Avatare zum direkten Wechseln.
  *
  * Der Zurück-Knopf steht darüber und gehört der App-Hülle (SubpageBackButton).
  */
@@ -34,12 +34,13 @@ export function DogHeader({
   const t = useT();
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} />
+    <div className="flex flex-col gap-4">
+      {zeigeHundeChips(meineHunde, gehoertMir) && <DogSwitcher hunde={meineHunde} aktuellId={dog.id} />}
+      <div className="flex items-center gap-4">
+        <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} className="size-20" iconClassName="size-9" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="min-w-0 text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{dog.name}</h1>
+            <h1 className="min-w-0 text-3xl font-bold tracking-tight [overflow-wrap:anywhere]">{dog.name}</h1>
             {dog.archivedAt && <Badge variant="secondary">{t("Archiviert")}</Badge>}
           </div>
           <p className="text-muted-foreground [overflow-wrap:anywhere]">
@@ -48,9 +49,9 @@ export function DogHeader({
         </div>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="size-11 shrink-0"
+          className="size-11 shrink-0 rounded-full text-muted-foreground"
           aria-label={t("Verwalten")}
           aria-haspopup="dialog"
           onClick={onVerwalten}
@@ -58,15 +59,14 @@ export function DogHeader({
           <MoreHorizontal className="size-5" />
         </Button>
       </div>
-      {zeigeHundeChips(meineHunde, gehoertMir) && <DogSwitcher hunde={meineHunde} aktuellId={dog.id} />}
     </div>
   );
 }
 
 /**
- * Chips zum Wechseln zwischen den eigenen Hunden. Umbrechen statt scrollen: ab
- * fünf Hunden würde eine Zeile seitlich wegwischen, und das gibt es in dieser
- * App nirgends.
+ * Runde Avatare mit Namen zum Wechseln zwischen den eigenen Hunden, der
+ * aktuelle mit Ring. Umbrechen statt scrollen: ab fünf Hunden würde eine Zeile
+ * seitlich wegwischen, und das gibt es in dieser App nirgends.
  */
 function DogSwitcher({ hunde, aktuellId }: { hunde: Dog[]; aktuellId: string }) {
   const t = useT();
@@ -74,7 +74,7 @@ function DogSwitcher({ hunde, aktuellId }: { hunde: Dog[]; aktuellId: string }) 
   const suchparameter = useSearchParams();
 
   return (
-    <nav aria-label={t("Hund wechseln")} className="flex flex-wrap gap-2">
+    <nav aria-label={t("Hund wechseln")} className="flex flex-wrap gap-x-3 gap-y-2">
       {aktiveHunde(hunde).map((hund) => {
         const aktuell = hund.id === aktuellId;
         return (
@@ -87,14 +87,20 @@ function DogSwitcher({ hunde, aktuellId }: { hunde: Dog[]; aktuellId: string }) 
             onClick={() => {
               if (!aktuell) router.replace(hundeAdresse(hund.id, suchparameter.toString()));
             }}
-            className={cn(
-              "inline-flex min-h-11 max-w-full min-w-0 items-center rounded-full border px-4 text-sm font-medium transition-colors",
-              aktuell
-                ? "border-primary bg-primary/15 text-primary-text"
-                : "border-input text-muted-foreground hover:border-primary/50 hover:bg-accent/30",
-            )}
+            className="flex min-h-11 w-16 min-w-0 flex-col items-center gap-1"
           >
-            <span className="truncate">{hund.name}</span>
+            <span
+              aria-hidden
+              className={cn(
+                "rounded-full ring-2 ring-offset-2 ring-offset-background transition-colors",
+                aktuell ? "ring-primary" : "ring-transparent",
+              )}
+            >
+              <DogAvatar dogId={hund.id} hasImage={hund.hasImage} name={hund.name} className="size-11" iconClassName="size-5" />
+            </span>
+            <span className={cn("w-full truncate text-center text-xs", aktuell ? "font-medium text-primary-text" : "text-muted-foreground")}>
+              {hund.name}
+            </span>
           </button>
         );
       })}

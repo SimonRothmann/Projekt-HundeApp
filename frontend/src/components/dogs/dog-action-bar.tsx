@@ -1,17 +1,14 @@
 "use client";
 
-import { NotebookPen, Route, StickyNote } from "lucide-react";
+import { NotebookPen, Route, StickyNote, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 
 /**
  * Die Wege, für die man die Hundeseite am häufigsten öffnet: Training erfassen
- * (primär), Fährte legen und - für Besitzer:innen - Merken (Merkzettel fürs nächste
- * Training). Gleich breite Knöpfe, 44 px hoch, in zwei Spalten.
+ * (primär, volle Breite), darunter ohne Rahmen Fährte legen und - für
+ * Besitzer:innen - Merken (Merkzettel fürs nächste Training), alle 44 px hoch.
  * "Fährte legen" nur, wenn das Fährte-Modul an ist und der Hund Fährte läuft.
- * Sind es drei Knöpfe, nimmt "Training erfassen" die erste Zeile ganz: Der Text
- * "Training erfassen" fände bei 375 px in einem Drittel der Breite keinen Platz.
  */
 export function DogActionBar({
   zeigtFaehrte,
@@ -31,26 +28,35 @@ export function DogActionBar({
   onMerken: () => void;
 }) {
   const t = useT();
-  const dreiKnoepfe = zeigtFaehrte && zeigtMerken;
 
   return (
-    <div className={cn("grid gap-2", zeigtFaehrte || zeigtMerken ? "grid-cols-2" : "grid-cols-1")}>
-      <Button className={cn("h-11 min-w-0 text-sm", dreiKnoepfe && "col-span-2")} onClick={onTraining}>
+    <div className="flex flex-col gap-1">
+      <Button className="h-11 min-w-0 text-sm" onClick={onTraining}>
         <NotebookPen className="size-4" />
         <span className="truncate">{t("Training erfassen")}</span>
       </Button>
-      {zeigtFaehrte && (
-        <Button variant="outline" className="h-11 min-w-0 text-sm" onClick={onFaehrte}>
-          <Route className="size-4" />
-          <span className="truncate">{nurTrail ? t("Trail legen") : t("Fährte legen")}</span>
-        </Button>
-      )}
-      {zeigtMerken && (
-        <Button variant="outline" className="h-11 min-w-0 text-sm" onClick={onMerken}>
-          <StickyNote className="size-4" />
-          <span className="truncate">{t("Merken")}</span>
-        </Button>
+      {(zeigtFaehrte || zeigtMerken) && (
+        <div className="flex flex-wrap justify-center gap-x-2">
+          {zeigtFaehrte && (
+            <NebenKnopf icon={Route} text={nurTrail ? t("Trail legen") : t("Fährte legen")} onClick={onFaehrte} />
+          )}
+          {zeigtMerken && <NebenKnopf icon={StickyNote} text={t("Merken")} onClick={onMerken} />}
+        </div>
       )}
     </div>
+  );
+}
+
+/** Nebenweg ohne Rahmen: Text in Primärfarbe mit Symbol, 44 px hoch. */
+function NebenKnopf({ icon: Icon, text, onClick }: { icon: LucideIcon; text: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex min-h-11 min-w-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-primary-text transition-colors hover:bg-muted active:bg-muted"
+    >
+      <Icon className="size-4 shrink-0" aria-hidden />
+      <span className="truncate">{text}</span>
+    </button>
   );
 }
