@@ -1,10 +1,14 @@
 using System.Diagnostics;
 using Dogity.Application.Abstractions;
 using Dogity.Application.Admin;
+using Dogity.Application.Community;
 using Dogity.Application.Dashboard;
 using Dogity.Application.Dogs;
 using Dogity.Application.Notifications;
+using Dogity.Application.Onboarding;
 using Dogity.Application.Planning;
+using Dogity.Application.Preferences;
+using Dogity.Application.Sports;
 using Dogity.Application.Stats;
 using Dogity.Application.Training;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +57,12 @@ public class WarmstartBackgroundService(
         (string Name, Func<Task> Abfrage)[] schritte =
         [
             ("Startseite", () => sp.GetRequiredService<IDashboardService>().GetAsync(nutzer, ct)),
+            ("Einstellungen", () => sp.GetRequiredService<IPreferenceService>().GetAsync(nutzer, ct)),
+            ("Sportarten", () => sp.GetRequiredService<ISportCatalogService>().GetSportsAsync(nutzer, ct: ct)),
+            ("Einstieg", () => sp.GetRequiredService<IOnboardingService>().GetStatusAsync(nutzer, ct)),
+            ("Trainer:in?", () => sp.GetRequiredService<IGroupService>().IsTrainerAsync(nutzer, ct)),
+            ("Gruppentermine", () => sp.GetRequiredService<IGroupTrainingScheduleService>().GetMemberScheduleAsync(nutzer, DateOnly.FromDateTime(DateTime.UtcNow), ct)),
+            ("Ungelesen", () => sp.GetRequiredService<INotificationService>().GetUnreadCountAsync(nutzer, ct)),
             ("Hund", () => sp.GetRequiredService<IDogService>().GetByIdAsync(nutzer, hund, ct)),
             ("Ziele", () => sp.GetRequiredService<IGoalService>().GetByDogAsync(nutzer, hund, ct: ct)),
             ("Trainings", () => sp.GetRequiredService<ITrainingService>().GetByDogAsync(nutzer, hund, ct: ct)),
