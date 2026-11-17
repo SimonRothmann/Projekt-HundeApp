@@ -127,6 +127,9 @@ export function useDogPage(id: string, eintragId: string | null) {
       applyPageData(fresh);
       setFrischGeladen(true);
       await setCachedData(cacheKey, fresh);
+      // Die Hundeliste im Lesecache gleich mit auffrischen: Der Reiter "Hunde" entscheidet
+      // aus ihr, wohin er führt, und soll nach Archivieren oder Mitbesitz-Änderungen nichts Veraltetes kennen.
+      await setCachedData("dogs-list", myDogsData);
     } catch (err) {
       // "Gibt es nicht" ist kein Netzproblem: Dann darf auch kein
       // Zwischenstand stehen bleiben. Vorher zeigte die Seite bei 404 still

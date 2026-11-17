@@ -12,7 +12,8 @@ import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } 
 import { BetreuungenSection } from "@/components/dogs/betreuungen-section";
 import { CoOwnersSection } from "@/components/dogs/co-owners-section";
 import { PausenSection } from "@/components/dogs/pausen-section";
-import { NEUER_HUND } from "@/lib/hundeliste";
+import { HUNDELISTE_IMMER } from "@/lib/hundeliste";
+import { clearCachedData } from "@/lib/read-cache";
 import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,8 @@ export function DogActionsSheet({
   onOpenChange,
   onEdit,
   onChanged,
+  onNeuerHund,
+  archivierte,
 }: {
   dog: Dog;
   isOwner: boolean;
@@ -49,6 +52,10 @@ export function DogActionsSheet({
   /** Öffnet das Bearbeiten des Hundes (das Formular steht auf der Seite). */
   onEdit: () => void;
   onChanged: () => Promise<void>;
+  /** Öffnet das Fenster "Neuer Hund" (die Seite hält es). */
+  onNeuerHund: () => void;
+  /** Wie viele archivierte Hunde die Person hat; die Zeile zum Archiv erscheint nur mit mindestens einem. */
+  archivierte: number;
 }) {
   const t = useT();
   const rueckfrage = useRueckfrage();
@@ -88,6 +95,8 @@ export function DogActionsSheet({
     try {
       await api.delete(`/api/dogs/${dog.id}`);
       toast.success(t("Hund „{name}“ gelöscht.", { name: dog.name }));
+      // Sonst führte der Reiter "Hunde" aus dem Lesecache noch auf den gelöschten Hund.
+      await clearCachedData("dogs-list");
       router.push("/dogs");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
@@ -134,9 +143,23 @@ export function DogActionsSheet({
             {t("Drucken / Exportieren")}
           </Link>
           {isOwner && (
-            <Link href={NEUER_HUND} className={ZEILE}>
+            <button
+              type="button"
+              className={ZEILE}
+              aria-haspopup="dialog"
+              onClick={() => {
+                onOpenChange(false);
+                onNeuerHund();
+              }}
+            >
               <Plus className="size-4 shrink-0" />
               {t("Weiteren Hund anlegen")}
+            </button>
+          )}
+          {isOwner && archivierte > 0 && (
+            <Link href={HUNDELISTE_IMMER} className={ZEILE}>
+              <Archive className="size-4 shrink-0" />
+              {t("Archivierte Hunde ({n})", { n: archivierte })}
             </Link>
           )}
 

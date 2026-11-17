@@ -11,6 +11,7 @@ import {
   pruefeEintrag,
   schnellwahlen,
   terminText,
+  ueberfaelligBanner,
   ueberfaelligZeile,
   uhrzeitFuerServer,
   uhrzeitKurz,
@@ -359,6 +360,52 @@ describe("ueberfaelligZeile", () => {
   it("gibt es auf Englisch", () => {
     expect(ueberfaelligZeile(tEn, stand({ overdue: 1, nextDue: frist(GESUNDHEIT_ART.Impfung, "2026-11-01") }), HEUTE)).toBe("Vaccination overdue");
     expect(ueberfaelligZeile(tEn, stand({ overdue: 2 }), HEUTE)).toBe("2 health deadlines overdue");
+  });
+});
+
+describe("ueberfaelligBanner", () => {
+  const stand = (teil: Partial<DogGesundheitStand> = {}): DogGesundheitStand => ({
+    overdue: 0,
+    dueSoon: 0,
+    nextDue: null,
+    nextAppointment: null,
+    ...teil,
+  });
+  const frist = (kind: GesundheitsArt, title: string, dueDate: string) => ({
+    id: "x", kind, title, dueDate, state: GESUNDHEIT_ZUSTAND.Ueberfaellig,
+  });
+
+  it("schweigt, wenn nichts überfällig ist", () => {
+    expect(ueberfaelligBanner(tDe, null, HEUTE)).toBeNull();
+    expect(ueberfaelligBanner(tDe, stand({ dueSoon: 1, nextDue: frist(GESUNDHEIT_ART.Impfung, "Tollwut", "2026-11-10") }), HEUTE)).toBeNull();
+  });
+
+  it("nennt die früheste überfällige Frist mit Datum", () => {
+    expect(ueberfaelligBanner(tDe, stand({ overdue: 1, nextDue: frist(GESUNDHEIT_ART.Entwurmung, "Entwurmung", "2026-10-25") }), HEUTE)).toBe(
+      "Entwurmung seit 25.10. fällig",
+    );
+    expect(ueberfaelligBanner(tDe, stand({ overdue: 1, nextDue: frist(GESUNDHEIT_ART.Impfung, "Tollwut", "2026-10-25") }), HEUTE)).toBe(
+      "Tollwut seit 25.10. abgelaufen",
+    );
+  });
+
+  it("zählt die weiteren dazu, aber nicht die nur bald fälligen", () => {
+    const nextDue = frist(GESUNDHEIT_ART.Entwurmung, "Entwurmung", "2026-10-25");
+    expect(ueberfaelligBanner(tDe, stand({ overdue: 2, dueSoon: 3, nextDue }), HEUTE)).toBe("Entwurmung seit 25.10. fällig und 1 weitere");
+    expect(ueberfaelligBanner(tDe, stand({ overdue: 3, nextDue }), HEUTE)).toBe("Entwurmung seit 25.10. fällig und 2 weitere");
+  });
+
+  it("merkt, dass ein Stand von gestern über Nacht überfällig geworden ist", () => {
+    expect(ueberfaelligBanner(tDe, stand({ nextDue: frist(GESUNDHEIT_ART.Entwurmung, "Entwurmung", "2026-11-03") }), HEUTE)).toBe(
+      "Entwurmung seit 03.11. fällig",
+    );
+  });
+
+  it("fällt ohne früheste Frist auf die allgemeine Zeile zurück und gibt es auf Englisch", () => {
+    expect(ueberfaelligBanner(tDe, stand({ overdue: 2 }), HEUTE)).toBe("2 Gesundheitsfristen überfällig");
+    expect(ueberfaelligBanner(tEn, stand({ overdue: 1, nextDue: frist(GESUNDHEIT_ART.Entwurmung, "Worming", "2026-10-25") }), HEUTE, "en")).toBe(
+      "Worming due since 25/10",
+    );
   });
 });
 
