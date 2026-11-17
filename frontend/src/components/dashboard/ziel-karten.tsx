@@ -274,7 +274,7 @@ export function OhneZielZeilen({ hunde }: { hunde: Dog[] }) {
   return (
     <section className={LISTE}>
       {hunde.map((hund) => (
-        <Link key={hund.id} href={`/dogs/${hund.id}#trainingsplan`} className={ZEILE}>
+        <Link key={hund.id} href={`/dogs/${hund.id}#ziel-setzen`} className={ZEILE}>
           <Target className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
             <span className="font-medium">{hund.name}</span> <span className="text-muted-foreground">· {t("Prüfungsziel setzen")}</span>

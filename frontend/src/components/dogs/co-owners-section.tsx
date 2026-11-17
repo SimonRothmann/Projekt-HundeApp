@@ -74,7 +74,7 @@ export function CoOwnersSection({
     setLaeuft(o.userId);
     try {
       await api.delete(`/api/dogs/${dogId}/owners/${o.userId}`);
-      toast.success(o.isInvited ? t("Einladung zurückgezogen.") : t("Mitbesitzer entfernt."));
+      toast.success(o.isInvited ? t("Einladung zurückgezogen.") : t("Mitbesitzer:in entfernt."));
       await onChanged();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Fehler beim Entfernen."));
@@ -112,7 +112,7 @@ export function CoOwnersSection({
       <CardHeader className="flex flex-row items-center gap-2 space-y-0">
         <UserPlus className="size-5 shrink-0 text-primary-text" />
         <div className="flex min-w-0 flex-col gap-1">
-          <CardTitle className="text-base">{t("Mitbesitzer")}</CardTitle>
+          <CardTitle className="text-base">{t("Mitbesitzer:in")}</CardTitle>
           <CardDescription>
             {t("Eingeladene werden Mitbesitzer:innen, sobald sie annehmen - dann mit denselben Rechten wie du.")}
           </CardDescription>

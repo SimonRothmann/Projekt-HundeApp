@@ -11,7 +11,9 @@ import {
   verfuegbarerReiter,
   waehleReiter,
   zeigeHundeChips,
+  zeigeHundeLeiste,
   zielStatus,
+  zieldatumSchnellwahlen,
 } from "./hundeseite";
 import { feedbackKennung } from "./feedback-gesehen";
 import type { Dog, Goal, TrainingPlanItem, TrainingSession } from "./types";
@@ -150,13 +152,14 @@ describe("waehleReiter", () => {
 
 describe("ankerWunsch", () => {
   it("ordnet die drei alten Anker zu", () => {
-    expect(ankerWunsch("#trainingsplan")).toEqual({ reiter: "plan", formular: false, faehrte: false });
-    expect(ankerWunsch("#training-erfassen")).toEqual({ reiter: null, formular: true, faehrte: false });
-    expect(ankerWunsch("#faehrte-aufnehmen")).toEqual({ reiter: null, formular: false, faehrte: true });
+    expect(ankerWunsch("#trainingsplan")).toEqual({ reiter: "plan", formular: false, faehrte: false, ziel: false });
+    expect(ankerWunsch("#training-erfassen")).toEqual({ reiter: null, formular: true, faehrte: false, ziel: false });
+    expect(ankerWunsch("#faehrte-aufnehmen")).toEqual({ reiter: null, formular: false, faehrte: true, ziel: false });
   });
 
   it("nimmt das Fragment mit und ohne Raute", () => {
     expect(ankerWunsch("trainingsplan")?.reiter).toBe("plan");
+    expect(ankerWunsch("#ziel-setzen")).toEqual({ reiter: "plan", formular: false, faehrte: false, ziel: true });
   });
 
   it("kennt sonst nichts", () => {
@@ -184,6 +187,20 @@ describe("adresseMit", () => {
   });
 });
 
+describe("Zieldatum-Schnellwahl", () => {
+  it("rechnet ab dem heutigen Tag", () => {
+    expect(zieldatumSchnellwahlen("2026-10-08").map((w) => [w.label, w.datum])).toEqual([
+      ["in 8 Wochen", "2026-12-03"],
+      ["in 12 Wochen", "2026-12-31"],
+      ["in 6 Monaten", "2027-04-08"],
+    ]);
+  });
+
+  it("nimmt bei Monatsende den letzten Tag des Zielmonats", () => {
+    expect(zieldatumSchnellwahlen("2026-08-31")[2].datum).toBe("2027-02-28");
+  });
+});
+
 describe("Hunde-Chips", () => {
   it("zählt nur aktive Hunde", () => {
     expect(aktiveHunde([hund("a"), hund("b", true), hund("c")]).map((d) => d.id)).toEqual(["a", "c"]);
@@ -199,6 +216,17 @@ describe("Hunde-Chips", () => {
 
   it("erscheinen nicht auf der Seite eines fremden Hundes", () => {
     expect(zeigeHundeChips([hund("a"), hund("b")], false)).toBe(false);
+  });
+
+  it("die Leiste mit dem + für einen weiteren Hund gibt es schon mit einem aktiven Hund", () => {
+    expect(zeigeHundeLeiste([hund("a")], true)).toBe(true);
+    expect(zeigeHundeLeiste([hund("a"), hund("b")], true)).toBe(true);
+    expect(zeigeHundeLeiste([hund("a", true)], true)).toBe(false);
+    expect(zeigeHundeLeiste(undefined, true)).toBe(false);
+  });
+
+  it("die Leiste fehlt auf der Seite eines fremden Hundes", () => {
+    expect(zeigeHundeLeiste([hund("a")], false)).toBe(false);
   });
 
   it("führen auf die Seite des anderen Hundes und behalten Reiter und Zurück-Ziel, nicht den Eintrag", () => {

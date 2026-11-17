@@ -83,7 +83,7 @@ function PlanUebung({
           type="button"
           onClick={() => onEintragen(item)}
           aria-haspopup="dialog"
-          aria-label={`${name} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })} · ${t("Eintragen")}`}
+          aria-label={`${t("{name} eintragen", { name })} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })}`}
           className={ZEILE}
         >
           <span className={cn("min-w-0 flex-1 break-words font-medium", item.isComplete && "text-muted-foreground")}>

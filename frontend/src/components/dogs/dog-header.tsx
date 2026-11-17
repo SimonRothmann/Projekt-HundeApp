@@ -1,21 +1,24 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Plus } from "lucide-react";
 import type { Dog } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { formatDogAge } from "@/lib/dog-age";
-import { aktiveHunde, hundeAdresse, zeigeHundeChips } from "@/lib/hundeseite";
+import { aktiveHunde, hundeAdresse, zeigeHundeLeiste } from "@/lib/hundeseite";
+import { NEUER_HUND } from "@/lib/hundeliste";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
  * Kopf der Hundeseite: Hundefoto (oder Symbol), Name, Rasse und Alter, rechts
- * der Knopf "Verwalten" (Bearbeiten, Drucken, Mitbesitzer, Archivieren,
- * Löschen - siehe DogActionsSheet). Darüber, wer mehr als einen aktiven Hund
- * hat, die runden Avatare zum direkten Wechseln.
+ * der Knopf "Verwalten" (Bearbeiten, Drucken, Mitbesitzer:in, Archivieren,
+ * Löschen - siehe DogActionsSheet). Darüber die runden Avatare zum direkten
+ * Wechseln und am Ende ein "+" für einen weiteren Hund - schon bei einem Hund,
+ * damit der Weg dorthin zu finden ist.
  *
  * Der Zurück-Knopf steht darüber und gehört der App-Hülle (SubpageBackButton).
  */
@@ -27,7 +30,7 @@ export function DogHeader({
 }: {
   dog: Dog;
   meineHunde: Dog[];
-  /** Eigener oder mitbesessener Hund - bei einem betreuten fremden Hund gibt es keine Chips. */
+  /** Eigener oder mitbesessener Hund - bei einem betreuten fremden Hund gibt es keine Leiste. */
   gehoertMir: boolean;
   onVerwalten: () => void;
 }) {
@@ -35,7 +38,7 @@ export function DogHeader({
 
   return (
     <div className="flex flex-col gap-4">
-      {zeigeHundeChips(meineHunde, gehoertMir) && <DogSwitcher hunde={meineHunde} aktuellId={dog.id} />}
+      {zeigeHundeLeiste(meineHunde, gehoertMir) && <DogSwitcher hunde={meineHunde} aktuellId={dog.id} />}
       <div className="flex items-center gap-4">
         <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} className="size-20" iconClassName="size-9" />
         <div className="min-w-0 flex-1">
@@ -74,7 +77,7 @@ export function DogHeader({
 
 /**
  * Runde Avatare mit Namen zum Wechseln zwischen den eigenen Hunden, der
- * aktuelle mit Ring. Umbrechen statt scrollen: ab fünf Hunden würde eine Zeile
+ * aktuelle mit Ring, am Ende ein "+" zum Anlegen. Umbrechen statt scrollen: ab fünf Hunden würde eine Zeile
  * seitlich wegwischen, und das gibt es in dieser App nirgends.
  */
 function DogSwitcher({ hunde, aktuellId }: { hunde: Dog[]; aktuellId: string }) {
@@ -113,6 +116,17 @@ function DogSwitcher({ hunde, aktuellId }: { hunde: Dog[]; aktuellId: string }) 
           </button>
         );
       })}
+      <Link href={NEUER_HUND} aria-label={t("Weiteren Hund anlegen")} className="flex min-h-11 w-16 min-w-0 flex-col items-center gap-1">
+        <span
+          aria-hidden
+          className="flex size-11 items-center justify-center rounded-full border border-dashed border-input text-muted-foreground ring-2 ring-transparent ring-offset-2 ring-offset-background"
+        >
+          <Plus className="size-5" />
+        </span>
+        <span aria-hidden className="w-full truncate text-center text-xs text-muted-foreground">
+          {t("Neuer Hund")}
+        </span>
+      </Link>
     </nav>
   );
 }

@@ -29,6 +29,8 @@ export function GoalsSection({
   goals,
   onEintragen,
   onChanged,
+  zielAnstoss = 0,
+  sichtbar = true,
 }: {
   dogId: string;
   dogName: string;
@@ -37,6 +39,10 @@ export function GoalsSection({
   /** Eine Planübung wurde angetippt: das Eintragen-Fenster mit ihr öffnen. */
   onEintragen: (item: TrainingPlanItem) => void;
   onChanged: () => Promise<void>;
+  /** Zählt die Aufforderungen von außen (#ziel-setzen), das Formular "Neues Ziel" zu öffnen. */
+  zielAnstoss?: number;
+  /** Ob der Reiter mit dieser Liste gerade zu sehen ist - in einem versteckten gäbe es nichts zu scrollen. */
+  sichtbar?: boolean;
 }) {
   const t = useT();
   const [showForm, setShowForm] = useState(false);
@@ -45,6 +51,16 @@ export function GoalsSection({
   // den Merkzettel der Prüfungsordnungs-Seite (lib/start-po.ts): Der gilt für
   // Neuanmeldungen, hier ist die Person längst drin.
   const [vorauswahl, setVorauswahl] = useState<NextStage | null>(null);
+  // Wartet noch ein Sprung zum Formular (es ging von außen auf)?
+  const [springen, setSpringen] = useState(false);
+  // Zustand beim Rendern angleichen statt per Effekt (wie auf der Hundeseite).
+  const [gesehenerAnstoss, setGesehenerAnstoss] = useState(zielAnstoss);
+  if (zielAnstoss !== gesehenerAnstoss) {
+    setGesehenerAnstoss(zielAnstoss);
+    setVorauswahl(null);
+    setShowForm(true);
+    setSpringen(true);
+  }
 
   async function handleCreated() {
     setShowForm(false);
@@ -62,6 +78,14 @@ export function GoalsSection({
   useEffect(() => {
     if (vorauswahl) document.getElementById("ziel-formular")?.scrollIntoView({ behavior: "auto", block: "start" });
   }, [vorauswahl]);
+
+  // Dasselbe für das Formular von #ziel-setzen - aber erst, wenn der Reiter sichtbar ist.
+  useEffect(() => {
+    if (!springen || !sichtbar) return;
+    document.getElementById("ziel-formular")?.scrollIntoView({ behavior: "auto", block: "start" });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSpringen(false);
+  }, [springen, sichtbar]);
 
   // Laufende Ziele stehen vorn; beendete (nicht erreichte) darunter in einer zugeklappten Zeile.
   const laufend = goals?.filter((g) => g.status === 0) ?? [];
@@ -99,6 +123,10 @@ export function GoalsSection({
             sports={sports}
             vorauswahl={vorauswahl}
             onCreated={handleCreated}
+            onCancel={() => {
+              setShowForm(false);
+              setVorauswahl(null);
+            }}
           />
         </div>
       )}

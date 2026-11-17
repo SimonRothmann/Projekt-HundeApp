@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Archive, ArchiveRestore, ChevronDown, CirclePause, Eye, Pencil, Printer, Trash2, Users } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronDown, CirclePause, Eye, Pencil, Plus, Printer, Trash2, Users } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { Dog, DogBetreuung, DogOwner } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } 
 import { BetreuungenSection } from "@/components/dogs/betreuungen-section";
 import { CoOwnersSection } from "@/components/dogs/co-owners-section";
 import { PausenSection } from "@/components/dogs/pausen-section";
+import { NEUER_HUND } from "@/lib/hundeliste";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,7 @@ const ZEILE =
 /**
  * Das Menü "Verwalten" der Hundeseite als Sheet: alles, was den Hund selbst
  * betrifft und nicht sein Training - Bearbeiten, Drucken/Exportieren,
- * Trainingspause, Mitbesitzer, Trainer:innen mit Einblick, Archivieren, Endgültig löschen. Früher standen die letzten drei
+ * Trainingspause, Mitbesitzer:in, Trainer:innen mit Einblick, Archivieren, Endgültig löschen. Früher standen die letzten drei
  * als Karten am Seitenende, hinter dem ganzen Tagebuch.
  *
  * Gezeigt wird, was die Person darf: Besitzer:innen (auch Mitbesitzer:innen)
@@ -132,6 +133,12 @@ export function DogActionsSheet({
             <Printer className="size-4 shrink-0" />
             {t("Drucken / Exportieren")}
           </Link>
+          {isOwner && (
+            <Link href={NEUER_HUND} className={ZEILE}>
+              <Plus className="size-4 shrink-0" />
+              {t("Weiteren Hund anlegen")}
+            </Link>
+          )}
 
           {isOwner && (
             <>
@@ -150,7 +157,7 @@ export function DogActionsSheet({
                 onClick={() => setMitbesitzerOffen((v) => !v)}
               >
                 <Users className="size-4 shrink-0" />
-                <span className="min-w-0 flex-1">{t("Mitbesitzer")}</span>
+                <span className="min-w-0 flex-1">{t("Mitbesitzer:in")}</span>
                 <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", mitbesitzerOffen && "rotate-180")} />
               </button>
               {mitbesitzerOffen && (

@@ -50,8 +50,8 @@ export function OnboardingGuide({
           icon={Flag}
           titel={t("Prüfungsziel setzen")}
           hinweis={t("Prüfung und Termin wählen – daraus entsteht der Trainingsplan.")}
-          ziel={`${hundZiel}#trainingsplan`}
-          // scroll={false}: Der Anker #trainingsplan entsteht erst, wenn die
+          ziel={`${hundZiel}#ziel-setzen`}
+          // scroll={false}: Der Anker #ziel-setzen wirkt erst, wenn die
           // Ziele geladen sind - Next würde sonst nach oben springen.
           scroll={false}
         />

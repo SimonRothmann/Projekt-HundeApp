@@ -8,6 +8,13 @@ import type { Dog } from "@/lib/types";
 export const HUNDELISTE_IMMER = "/dogs?liste=1";
 
 /**
+ * Die Hundeliste mit geöffnetem Formular "Neuer Hund": Ziel von "Weiteren Hund
+ * anlegen" auf der Hundeseite (bei genau einem Hund ging der Weg dorthin nur
+ * über "Zurück").
+ */
+export const NEUER_HUND = "/dogs?liste=1&neu=1";
+
+/**
  * Wohin der Reiter "Hunde" führt: bei genau einem aktiven Hund gleich auf
  * dessen Seite, sonst null (die Liste bleibt).
  *

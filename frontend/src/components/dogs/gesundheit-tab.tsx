@@ -3,7 +3,7 @@
 import { Zuklappbar } from "@/components/ui/zuklappbar";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CalendarClock, CircleCheck, Clock, ChevronDown, Pencil, Plus, Trash2, TriangleAlert } from "lucide-react";
+import { CalendarClock, CircleCheck, CirclePause, Clock, ChevronDown, Pencil, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import {
   GESUNDHEIT_ART,
@@ -20,6 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PausenSection } from "@/components/dogs/pausen-section";
 import {
   ARTEN,
   ART_TEXT,
@@ -68,6 +69,7 @@ export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: bool
   // null = kein Formular; "neu" = neuer Eintrag; sonst der Eintrag, der bearbeitet wird.
   const [formular, setFormular] = useState<"neu" | DogHealthRecord | null>(null);
   const [verlaufOffen, setVerlaufOffen] = useState(false);
+  const [pauseOffen, setPauseOffen] = useState(false);
 
   const laden = useCallback(async () => {
     try {
@@ -133,6 +135,25 @@ export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: bool
           onAbbrechen={() => setFormular(null)}
         />
       )}
+
+      {/* Die Trainingspause hat denselben Abschnitt wie "Verwalten": verletzt, krank oder läufig gehört
+          zur Gesundheit, und hier sucht man es zuerst. */}
+      <div className="flex min-w-0 flex-col">
+        <Button
+          type="button"
+          variant="ghost"
+          className="min-h-11 w-full justify-start gap-2 text-primary-text"
+          aria-expanded={pauseOffen}
+          onClick={() => setPauseOffen((offen) => !offen)}
+        >
+          <CirclePause className="size-4 shrink-0" aria-hidden />
+          <span className="min-w-0 flex-1 text-left">{t("Trainingspause eintragen")}</span>
+          <ChevronDown className={cn("size-4 shrink-0 transition-transform", !pauseOffen && "-rotate-90")} aria-hidden />
+        </Button>
+        <Zuklappbar offen={pauseOffen} className="pt-2">
+          <PausenSection dog={dog} onChanged={onChanged} sofortNeu />
+        </Zuklappbar>
+      </div>
 
       {ladefehler && eintraege === null ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
