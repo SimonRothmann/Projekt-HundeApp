@@ -16,6 +16,7 @@ import { ExerciseNotes } from "@/components/dogs/exercise-notes";
 import { ExerciseRating } from "@/components/dogs/exercise-rating";
 import { ExerciseTrainerRating } from "@/components/dogs/exercise-trainer-rating";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { uebungName } from "@/lib/katalog-name";
 import { ortsformat } from "@/lib/ortsformat";
@@ -370,6 +371,7 @@ export function SessionDayCard({
   onUebungHinzufuegen?: () => void;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   // Jede Übung mit dem Recht ihrer Einheit: an einem Tag können Einheiten der
   // Familie und der Trainer:in liegen.
@@ -382,7 +384,7 @@ export function SessionDayCard({
   const [aendern, setAendern] = useState<"datum" | "dauer" | null>(null);
 
   async function deleteDay() {
-    if (!confirm(t("Trainingstag wirklich löschen? Alle Übungen und Fährten dieses Tages werden entfernt."))) return;
+    if (!(await rueckfrage({ titel: t("Trainingstag wirklich löschen?"), text: t("Alle Übungen und Fährten dieses Tages werden entfernt."), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     try {
       for (const s of tag) {
         await api.delete(`/api/trainings/${s.id}`);
@@ -398,7 +400,7 @@ export function SessionDayCard({
   // Fährten, Feedback) bleibt, auch wenn es die letzte Übung war. Löschen
   // wird nicht in die Offline-Warteschlange gelegt - sie kennt nur Neues.
   async function deleteExercise(id: string, name: string) {
-    if (!confirm(t("Übung „{name}“ aus diesem Training löschen?", { name }))) return;
+    if (!(await rueckfrage({ titel: t("Übung „{name}“ aus diesem Training löschen?", { name }), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/trainings/exercises/${id}`);
       toast.success(t("Übung gelöscht."));

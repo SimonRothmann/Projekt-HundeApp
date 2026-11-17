@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,10 +16,11 @@ import { Card, CardContent } from "@/components/ui/card";
  */
 export function GroupDissolveSection({ groupId, groupName }: { groupId: string; groupName: string }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const router = useRouter();
 
   async function aufloesen() {
-    if (!window.confirm(t("Gruppe „{name}“ wirklich auflösen? Mitgliedschaften werden entfernt. Trainings und Hunde bleiben erhalten.", { name: groupName }))) return;
+    if (!(await rueckfrage({ titel: t("Gruppe „{name}“ wirklich auflösen?", { name: groupName }), text: t("Mitgliedschaften werden entfernt. Trainings und Hunde bleiben erhalten."), bestaetigen: t("Auflösen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/groups/${groupId}`);
       toast.success(t("Gruppe aufgelöst."));

@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Plus, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 
 /**
@@ -36,6 +37,7 @@ export function CoOwnersSection({
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const router = useRouter();
   const [ownerEmail, setOwnerEmail] = useState("");
   const [addingOwner, setAddingOwner] = useState(false);
@@ -64,13 +66,15 @@ export function CoOwnersSection({
   }
 
   async function entfernen(o: DogOwner) {
-    const frage = o.isInvited
-      ? t("Einladung an {email} zurückziehen?", { email: o.email })
-      : t("{name} als Mitbesitzer:in entfernen? {hund} verschwindet dann aus der Liste dieser Person.", {
-          name: `${o.firstName} ${o.lastName}`.trim() || o.email,
-          hund: dogName,
+    const ja = o.isInvited
+      ? await rueckfrage({ titel: t("Einladung an {email} zurückziehen?", { email: o.email }), bestaetigen: t("Zurückziehen") })
+      : await rueckfrage({
+          titel: t("{name} als Mitbesitzer:in entfernen?", { name: `${o.firstName} ${o.lastName}`.trim() || o.email }),
+          text: t("{hund} verschwindet dann aus der Liste dieser Person.", { hund: dogName }),
+          bestaetigen: t("Entfernen"),
+          gefaehrlich: true,
         });
-    if (!window.confirm(frage)) return;
+    if (!ja) return;
     setLaeuft(o.userId);
     try {
       await api.delete(`/api/dogs/${dogId}/owners/${o.userId}`);
@@ -86,11 +90,12 @@ export function CoOwnersSection({
   async function austreten() {
     if (!currentUserId) return;
     if (
-      !window.confirm(
-        t("Mitbesitz an {hund} beenden? Du siehst den Hund danach nicht mehr - die anderen Besitzer:innen behalten ihn.", {
-          hund: dogName,
-        }),
-      )
+      !(await rueckfrage({
+        titel: t("Mitbesitz an {hund} beenden?", { hund: dogName }),
+        text: t("Du siehst den Hund danach nicht mehr - die anderen Besitzer:innen behalten ihn."),
+        bestaetigen: t("Beenden"),
+        gefaehrlich: true,
+      }))
     )
       return;
     setLaeuft(currentUserId);

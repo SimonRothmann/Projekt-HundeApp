@@ -4,6 +4,7 @@ import { useState } from "react";
 import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import type { GroupDetail, GroupMember } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ export function GroupMembersView({
   onGeaendert: () => Promise<void>;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   // null = noch nicht angefasst: dann entscheidet, ob es sonst etwas zu sehen gibt.
@@ -60,7 +62,7 @@ export function GroupMembersView({
 
   async function handleRemoveMember(member: GroupMember) {
     const name = `${member.firstName} ${member.lastName}`.trim() || member.email;
-    if (!window.confirm(t("{name} wirklich aus der Gruppe entfernen?", { name }))) return;
+    if (!(await rueckfrage({ titel: t("{name} wirklich aus der Gruppe entfernen?", { name }), bestaetigen: t("Entfernen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/groups/${groupId}/members/${member.userId}`);
       toast.success(t("Mitglied entfernt."));

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import { einladbareGruppen, gewaehlteGruppe } from "@/lib/beitrittsfreigabe";
 
@@ -42,6 +43,7 @@ export function ClubJoinRequestsSection({
   onFehler?: () => void;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const [anfragen, setAnfragen] = useState<Record<string, ClubMemberRequest[]> | null>(null);
   const [selectedClubId, setSelectedClubId] = useState("");
   // Gruppen je Verein, die die Trainer:in verwalten darf - Ziel der Einladung.
@@ -92,7 +94,7 @@ export function ClubJoinRequestsSection({
 
   async function handleDecide(r: ClubMemberRequest, approve: boolean) {
     // Ablehnen lässt sich nicht zurücknehmen und liegt nach dem Annehmen-Knopf: ein Fehltipp kostet sonst eine Anfrage.
-    if (!approve && !window.confirm(t("Beitrittsanfrage von {name} ablehnen?", { name: `${r.firstName} ${r.lastName}`.trim() || r.email }))) return;
+    if (!approve && !(await rueckfrage({ titel: t("Beitrittsanfrage von {name} ablehnen?", { name: `${r.firstName} ${r.lastName}`.trim() || r.email }), bestaetigen: t("Ablehnen") }))) return;
     const membershipId = r.membershipId;
     // Nur beim Annehmen; beim Ablehnen ignoriert der Server die Gruppe ohnehin.
     const verfuegbar = gruppen[selectedClubId] ?? [];

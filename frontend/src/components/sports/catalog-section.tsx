@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { SportEditorSheet, type SportScope } from "@/components/sports/sport-editor-sheet";
 import { ExerciseEditorSheet, type ExerciseScope } from "@/components/sports/exercise-editor-sheet";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
 /**
@@ -35,6 +36,7 @@ export function CatalogSection({
   description: string;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const [allSports, setAllSports] = useState<Sport[] | null>(null);
   const [uncategorized, setUncategorized] = useState<Exercise[]>([]);
@@ -153,7 +155,7 @@ export function CatalogSection({
   }
 
   async function handleDeleteExercise(exercise: Exercise) {
-    if (!confirm(t("Übung „{name}“ wirklich löschen?", { name: exercise.name }))) return;
+    if (!(await rueckfrage({ titel: t("Übung „{name}“ wirklich löschen?", { name: exercise.name }), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/exercises/${exercise.id}`);
       toast.success(t("Übung gelöscht."));

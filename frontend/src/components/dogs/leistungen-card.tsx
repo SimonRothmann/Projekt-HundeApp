@@ -11,6 +11,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Medal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { ErgebnisFelder } from "@/components/dogs/ziel-abschliessen";
 
@@ -27,6 +28,7 @@ import { ErgebnisFelder } from "@/components/dogs/ziel-abschliessen";
  */
 export function LeistungenCard({ goals, onChanged }: { goals: Goal[] | null; onChanged: () => Promise<void> }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const [bearbeitet, setBearbeitet] = useState<Goal | null>(null);
 
@@ -37,7 +39,14 @@ export function LeistungenCard({ goals, onChanged }: { goals: Goal[] | null; onC
     // Hier steht eine bestandene Prüfung auf dem Spiel, nicht nur ein Plan -
     // die Rückfrage sagt das ausdrücklich, damit niemand sie mit "Ergebnis
     // bearbeiten" verwechselt und eine Leistung verliert.
-    if (!window.confirm(t("Diese Leistung samt Prüfungsergebnis und Trainingsplan endgültig löschen? Bereits erfasste Trainingseinträge bleiben im Tagebuch erhalten."))) {
+    if (
+      !(await rueckfrage({
+        titel: t("Diese Leistung samt Prüfungsergebnis und Trainingsplan endgültig löschen?"),
+        text: t("Bereits erfasste Trainingseinträge bleiben im Tagebuch erhalten."),
+        bestaetigen: t("Löschen"),
+        gefaehrlich: true,
+      }))
+    ) {
       return;
     }
     try {

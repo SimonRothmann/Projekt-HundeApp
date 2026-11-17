@@ -33,6 +33,7 @@ import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 import { GegenstandsMaterial } from "@/components/tracking/gegenstaende";
 import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/components/tracking/unterbrochene-aufzeichnung";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
@@ -94,6 +95,7 @@ export function FahrteRecorder({
   onAufzeichnung?: (laeuft: boolean) => void;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const { isRecording, points, setPoints, currentAccuracy, start, stop, markPoint } = useGpsRecorder(
     toAutomaticPoint,
     // Die Fährte braucht höhere Präzision als ein Spaziergang (Begründung im Profil).
@@ -234,13 +236,16 @@ export function FahrteRecorder({
    * Fährte lässt sich nicht wiederholen, ein versehentlicher Abbruch wäre
    * der Verlust des ganzen Trainings.
    */
-  function abbrechen() {
+  async function abbrechen() {
     if (
-      !confirm(
-        trailModus
-          ? t("Aufzeichnung verwerfen? Der bisher aufgezeichnete Trail geht verloren.")
-          : t("Aufzeichnung verwerfen? Die bisher aufgezeichnete Fährte geht verloren."),
-      )
+      !(await rueckfrage({
+        titel: t("Aufzeichnung verwerfen?"),
+        text: trailModus
+          ? t("Der bisher aufgezeichnete Trail geht verloren.")
+          : t("Die bisher aufgezeichnete Fährte geht verloren."),
+        bestaetigen: t("Verwerfen"),
+        gefaehrlich: true,
+      }))
     )
       return;
     stop();

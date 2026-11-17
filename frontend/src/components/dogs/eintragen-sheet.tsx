@@ -769,7 +769,7 @@ function EintragenInhalt({
         {darfMerken && (
           <Chip className="self-start border-dashed" onClick={() => setAnsicht("merken")}>
             <StickyNote className="size-4 shrink-0" aria-hidden />
-            {t("Fürs nächste Mal merken")}
+            {t("Fürs nächste Training merken")}
           </Chip>
         )}
 

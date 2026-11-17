@@ -127,7 +127,7 @@ export function ExerciseTrainerRating({
         <span className="flex items-center gap-1">
           <Input
             className="h-8 min-w-0 flex-1 text-xs"
-            placeholder={t("Notiz des Trainers")}
+            placeholder={t("Notiz der Trainer:in")}
             value={noteValue}
             onChange={(e) => setNoteValue(e.target.value)}
             autoFocus

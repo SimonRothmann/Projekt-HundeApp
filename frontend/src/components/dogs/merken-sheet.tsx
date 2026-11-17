@@ -44,7 +44,7 @@ import { cn } from "@/lib/utils";
  * Offline-Warteschlange und entsteht beim Nachsenden genau einmal. Ändern und Löschen gehen nur online.
  *
  * Zwei Hüllen für denselben Inhalt: ein eigenes Fenster (Hundeseite, Startseite) und eine Ansicht im
- * Eintragen-Fenster ("Fürs nächste Mal merken").
+ * Eintragen-Fenster ("Fürs nächste Training merken").
  */
 export function MerkenSheet({
   open,

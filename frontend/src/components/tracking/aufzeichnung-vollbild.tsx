@@ -179,7 +179,7 @@ export function AufzeichnungVollbild({
           className="flex flex-col gap-3 border-t border-border/60 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
           {aktionen}
-          <HalteKnopf onAusgeloest={onAbschluss} bestaetigungsfrage={abschlussFrage}>
+          <HalteKnopf onAusgeloest={onAbschluss} bestaetigungsfrage={abschlussFrage} bestaetigungsLabel={abschlussLabel}>
             {abschlussLabel}
           </HalteKnopf>
         </div>

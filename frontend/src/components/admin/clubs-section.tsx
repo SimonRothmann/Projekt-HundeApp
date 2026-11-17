@@ -131,7 +131,7 @@ export function ClubsSection() {
     // Endpoint, der eine E-Mail entgegennimmt.
     await mitDetailAktualisierung(
       () => api.post(`/api/admin/clubs/${clubId}/trainers`, { email: userEmail }),
-      t("Mitglied zum Trainer befördert."),
+      t("Mitglied zur Trainer:in befördert."),
       t("Beförderung fehlgeschlagen."),
       clubId,
       true,
@@ -169,7 +169,7 @@ export function ClubsSection() {
                     )}
                     <span className="mt-1 flex flex-wrap gap-1">
                       <Badge variant="secondary">
-                        {club.trainerCount === 1 ? t("1 Trainer") : t("{n} Trainer", { n: club.trainerCount })}
+                        {club.trainerCount === 1 ? t("1 Trainer:in") : t("{n} Trainer:innen", { n: club.trainerCount })}
                       </Badge>
                       <Badge variant="secondary">
                         {club.groupCount === 1 ? t("1 Gruppe") : t("{n} Gruppen", { n: club.groupCount })}
@@ -212,7 +212,7 @@ export function ClubsSection() {
                                 {/* Wer schon Trainer:in ist, braucht die
                                     Beförderung nicht angeboten zu bekommen; wer
                                     eine andere Rolle hat, ändert sie über die
-                                    Rollenkarte des Vereins - "Zum Trainer" ginge
+                                    Rollenkarte des Vereins - "Zur Trainer:in" ginge
                                     daran vorbei. */}
                                 {m.isTrainer ? (
                                   <Badge variant="secondary">{t("Trainer")}</Badge>
@@ -222,9 +222,9 @@ export function ClubsSection() {
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => handlePromoteMember(club.id, m.email)}
-                                    title={t("Zum Trainer befördern")}
+                                    title={t("Zur Trainer:in befördern")}
                                   >
-                                    {t("Zum Trainer")}
+                                    {t("Zur Trainer:in")}
                                   </Button>
                                 )}
                                 <Button

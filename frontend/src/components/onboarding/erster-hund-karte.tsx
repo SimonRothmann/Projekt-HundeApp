@@ -135,7 +135,7 @@ export function ErsterHundKarte({
                 {t("Du hast einen Einladungslink von deinem Verein?")}
               </span>
               <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                {t("Such deinen Verein hier und stell eine Beitrittsanfrage – dein Trainer sieht dann eure Trainings.")}
+                {t("Such deinen Verein hier und stell eine Beitrittsanfrage – deine Trainer:in sieht dann eure Trainings.")}
               </span>
             </span>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />

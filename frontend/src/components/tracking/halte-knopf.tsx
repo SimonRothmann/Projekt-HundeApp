@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 
 /** So lange muss man drücken. Kurz genug für eine Hand, lang genug gegen ein Streifen in der Tasche. */
@@ -25,21 +26,25 @@ const HINWEISDAUER_MS = 2000;
  * ihn bestätigen kann. Halten ist eine Bewegung, und ein kurzes Streifen
  * reicht dafür nicht.
  *
- * Über die Tastatur gibt es kein Halten; dort fragt stattdessen der Dialog.
+ * Über die Tastatur gibt es kein Halten; dort fragt stattdessen die Rückfrage.
  */
 export function HalteKnopf({
   children,
   onAusgeloest,
   bestaetigungsfrage,
+  bestaetigungsLabel,
   className,
 }: {
   children: React.ReactNode;
   onAusgeloest: () => void;
   /** Für die Bedienung per Tastatur, wo es kein Gedrückthalten gibt. */
   bestaetigungsfrage: string;
+  /** Beschriftung des Bestätigen-Knopfs in der Rückfrage (die Handlung). */
+  bestaetigungsLabel: string;
   className?: string;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const [haelt, setHaelt] = useState(false);
   const zeitgeberRef = useRef<number | null>(null);
   // Rückmeldung bei zu kurzem Tippen IM Knopf. Ein Banner (Toast) lag unten
@@ -119,7 +124,10 @@ export function HalteKnopf({
       onContextMenu={(e) => e.preventDefault()}
       onClick={(e) => {
         // detail 0: ausgelöst per Tastatur (Enter/Leertaste), nicht per Zeiger.
-        if (e.detail === 0 && window.confirm(bestaetigungsfrage)) onAusgeloest();
+        if (e.detail !== 0) return;
+        void rueckfrage({ titel: bestaetigungsfrage, bestaetigen: bestaetigungsLabel }).then((ja) => {
+          if (ja) ausloesenRef.current();
+        });
       }}
       className={cn(
         // Aussehen wie Button variant="destructive", Größe wie vorher der

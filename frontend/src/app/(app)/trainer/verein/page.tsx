@@ -215,7 +215,7 @@ export default function TrainerVereinPage() {
           key={`katalog-${club.id}`}
           scope={{ kind: "club", clubId: club.id, clubName: club.name }}
           title={t("Vereinseigener Katalog · {name}", { name: club.name })}
-          description={t("Eigene Sportarten und Übungen dieses Vereins - nur für Mitglieder und Trainer sichtbar.")}
+          description={t("Eigene Sportarten und Übungen dieses Vereins - nur für Mitglieder und Trainer:innen sichtbar.")}
         />
         </div>
       )}

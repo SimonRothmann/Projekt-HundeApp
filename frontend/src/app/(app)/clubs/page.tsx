@@ -17,6 +17,7 @@ import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Building2, LogOut, Users } from "lucide-react";
 import { toast } from "sonner";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 function membershipFor(memberships: ClubMembership[], clubId: string): ClubMembership | undefined {
   // Bei mehrfachen Anfragen (z.B. nach Ablehnung erneut angefragt) zählt
@@ -28,6 +29,7 @@ function membershipFor(memberships: ClubMembership[], clubId: string): ClubMembe
 
 export default function ClubsPage() {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const [clubs, setClubs] = useState<ClubSummary[] | null>(null);
   const [memberships, setMemberships] = useState<ClubMembership[]>([]);
@@ -115,7 +117,7 @@ export default function ClubsPage() {
   }
 
   async function handleLeave(clubId: string, clubName: string) {
-    if (!window.confirm(t("„{name}“ wirklich verlassen?", { name: clubName }))) return;
+    if (!(await rueckfrage({ titel: t("„{name}“ wirklich verlassen?", { name: clubName }), bestaetigen: t("Verlassen") }))) return;
     setLeavingClubId(clubId);
     try {
       await api.delete(`/api/clubs/${clubId}/membership`);

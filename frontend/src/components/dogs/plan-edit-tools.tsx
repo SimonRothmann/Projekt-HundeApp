@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 
 /**
@@ -172,13 +173,13 @@ export function ItemWerkzeuge({
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const name = planItemName(item, sprache) ?? t("(Übung nicht mehr verfügbar)");
 
   async function entfernen() {
-    const frage = t("Übung „{name}“ aus dem Plan entfernen?", { name });
-    const mitEintraegen = item.completedCount > 0 ? ` ${t("Bereits eingetragene Trainings bleiben im Tagebuch erhalten.")}` : "";
-    if (!window.confirm(frage + mitEintraegen)) return;
+    const mitEintraegen = item.completedCount > 0 ? t("Bereits eingetragene Trainings bleiben im Tagebuch erhalten.") : undefined;
+    if (!(await rueckfrage({ titel: t("Übung „{name}“ aus dem Plan entfernen?", { name }), text: mitEintraegen, bestaetigen: t("Entfernen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/goals/${goalId}/plan-items/${item.id}`);
       toast.success(t("Übung aus dem Plan entfernt."));

@@ -14,6 +14,7 @@ import { Sheet, BottomSheetContent, SheetDescription, SheetHeader, SheetTitle } 
 import { CheckCircle2, ChevronDown, MoreHorizontal, Pencil, SlidersHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 
 const ZEILE =
@@ -44,6 +45,7 @@ export function GoalManageSheet({
   onFolgeziel?: (stufe: NextStage) => void;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const [offen, setOffen] = useState(false);
   const [anpassenOffen, setAnpassenOffen] = useState(false);
@@ -91,12 +93,13 @@ export function GoalManageSheet({
   // die ausdrückliche Rückfrage.
   async function beenden() {
     if (
-      !window.confirm(
-        t(
-          "Ziel „{name}“ beenden? Der Plan bleibt hier sichtbar, wird aber nicht mehr fortgeführt und erscheint nicht mehr auf der Startseite. Das Ziel lässt sich danach nur noch löschen.",
-          { name },
+      !(await rueckfrage({
+        titel: t("Ziel „{name}“ beenden?", { name }),
+        text: t(
+          "Der Plan bleibt hier sichtbar, wird aber nicht mehr fortgeführt und erscheint nicht mehr auf der Startseite. Das Ziel lässt sich danach nur noch löschen.",
         ),
-      )
+        bestaetigen: t("Beenden"),
+      }))
     ) {
       return;
     }
@@ -110,7 +113,14 @@ export function GoalManageSheet({
   }
 
   async function loeschen() {
-    if (!window.confirm(t("Ziel inkl. Trainingsplan endgültig löschen? Bereits erfasste Trainingseinträge bleiben im Tagebuch erhalten."))) {
+    if (
+      !(await rueckfrage({
+        titel: t("Ziel inkl. Trainingsplan endgültig löschen?"),
+        text: t("Bereits erfasste Trainingseinträge bleiben im Tagebuch erhalten."),
+        bestaetigen: t("Löschen"),
+        gefaehrlich: true,
+      }))
+    ) {
       return;
     }
     try {

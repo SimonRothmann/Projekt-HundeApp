@@ -45,6 +45,7 @@ import {
 import { datumKurz } from "@/lib/pruefung";
 import { heuteIso } from "@/lib/kalendertag";
 import { TEXTLAENGE } from "@/lib/textlaengen";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +64,7 @@ import { cn } from "@/lib/utils";
  */
 export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: boolean; onChanged: () => Promise<void> }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const [eintraege, setEintraege] = useState<DogHealthRecord[] | null>(null);
   const [ladefehler, setLadefehler] = useState(false);
@@ -95,7 +97,7 @@ export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: bool
   }
 
   async function loeschen(eintrag: DogHealthRecord) {
-    if (!window.confirm(t("Diesen Eintrag wirklich löschen?"))) return;
+    if (!(await rueckfrage({ titel: t("Diesen Eintrag wirklich löschen?"), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/dogs/${dog.id}/gesundheit/${eintrag.id}`);
       toast.success(t("Eintrag gelöscht."));

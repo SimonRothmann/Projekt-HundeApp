@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import { difficultyLabel } from "@/lib/constants";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 import { usePreferences } from "@/lib/preferences-context";
@@ -685,6 +686,7 @@ function RegExerciseRow({
   onChanged: () => void;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const [editing, setEditing] = useState(false);
   const [mandatory, setMandatory] = useState(re.isMandatory);
@@ -723,7 +725,7 @@ function RegExerciseRow({
   }
 
   async function remove() {
-    if (!window.confirm(t("„{name}“ aus dieser Prüfungsordnung entfernen?", { name: uebungName(re, sprache) }))) return;
+    if (!(await rueckfrage({ titel: t("„{name}“ aus dieser Prüfungsordnung entfernen?", { name: uebungName(re, sprache) }), bestaetigen: t("Entfernen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/sports/regulations/${regulationId}/exercises/${re.exerciseId}`);
       toast.success(t("Übung entfernt."));

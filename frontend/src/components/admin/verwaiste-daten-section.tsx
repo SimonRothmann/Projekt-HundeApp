@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArchiveX } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import type { AdminOrphanedData, AdminOrphanedDataPurge } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
  */
 export function VerwaisteDatenSection() {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const [daten, setDaten] = useState<AdminOrphanedData | null>(null);
   const [laeuft, setLaeuft] = useState(false);
 
@@ -42,9 +44,12 @@ export function VerwaisteDatenSection() {
 
   async function loeschen() {
     if (
-      !window.confirm(
-        t("Diese Daten werden endgültig gelöscht. Das lässt sich nicht rückgängig machen. Wirklich löschen?"),
-      )
+      !(await rueckfrage({
+        titel: t("Wirklich löschen?"),
+        text: t("Diese Daten werden endgültig gelöscht. Das lässt sich nicht rückgängig machen."),
+        bestaetigen: t("Löschen"),
+        gefaehrlich: true,
+      }))
     ) {
       return;
     }

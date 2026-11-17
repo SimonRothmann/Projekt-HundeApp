@@ -23,6 +23,7 @@ import {
 import { datumKurz } from "@/lib/pruefung";
 import { heuteIso } from "@/lib/kalendertag";
 import { TEXTLAENGE } from "@/lib/textlaengen";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,7 @@ export function PausenSection({
   sofortNeu?: boolean;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const [pausen, setPausen] = useState<DogPause[] | null>(null);
   const [ladefehler, setLadefehler] = useState(false);
@@ -85,7 +87,7 @@ export function PausenSection({
   }
 
   async function loeschen(pause: DogPause) {
-    if (!window.confirm(t("Diese Pause wirklich löschen?"))) return;
+    if (!(await rueckfrage({ titel: t("Diese Pause wirklich löschen?"), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/dogs/${dog.id}/pausen/${pause.id}`);
       toast.success(t("Pause gelöscht."));

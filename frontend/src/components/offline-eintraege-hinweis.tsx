@@ -13,6 +13,7 @@ import {
   zustandVon,
   type QueuedRequest,
 } from "@/lib/offline-queue";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 
 /**
@@ -24,6 +25,7 @@ import { useT } from "@/lib/i18n";
  */
 export function OfflineEintraegeHinweis({ onErneutSenden }: { onErneutSenden: () => void }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const [eintraege, setEintraege] = useState<QueuedRequest[]>([]);
   const [offen, setOffen] = useState(false);
   // Jede Änderung der Warteschlange in diesem Tab; andere Tabs: beim Zurückkehren in die App.
@@ -54,7 +56,7 @@ export function OfflineEintraegeHinweis({ onErneutSenden }: { onErneutSenden: ()
   if (eintraege.length === 0) return null;
 
   async function verwerfen(item: QueuedRequest) {
-    if (!window.confirm(t("„{label}“ endgültig verwerfen? Die Daten gehen verloren.", { label: item.label }))) return;
+    if (!(await rueckfrage({ titel: t("„{label}“ endgültig verwerfen?", { label: item.label }), text: t("Die Daten gehen verloren."), bestaetigen: t("Verwerfen"), gefaehrlich: true }))) return;
     try {
       await eintragVerwerfen(item.id);
     } catch {

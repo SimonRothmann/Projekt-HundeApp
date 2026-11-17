@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, CirclePause, Dog as DogIcon, Trash2, UserMin
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { aktuellePause, pausenZeile } from "@/lib/pausen";
 import type { GroupMember, MemberDog } from "@/lib/types";
@@ -31,6 +32,7 @@ export function GroupMemberCard({
   onRemove: (member: GroupMember) => void;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const { user } = useAuth();
   const [offen, setOffen] = useState(false);
@@ -59,7 +61,7 @@ export function GroupMemberCard({
   }
 
   async function betreuungBeenden(dogId: string, dogName: string) {
-    if (!window.confirm(t("Betreuung von {name} beenden? Du verlierst damit den Zugriff auf Tagebuch, Ziele und Trainingsplan.", { name: dogName }))) return;
+    if (!(await rueckfrage({ titel: t("Betreuung von {name} beenden?", { name: dogName }), text: t("Du verlierst damit den Zugriff auf Tagebuch, Ziele und Trainingsplan."), bestaetigen: t("Beenden"), gefaehrlich: true }))) return;
     if (!user) return;
     try {
       await api.delete(`/api/groups/${groupId}/trainer-assignments/${user.userId}/${dogId}`);
@@ -157,7 +159,7 @@ export function GroupMemberCard({
                     </div>
                   ) : (
                     <Button size="sm" variant="ghost" className="text-primary-text coarse:min-h-11" onClick={() => betreuen(dog.id)}>
-                      {t("Als Trainer betreuen")}
+                      {t("Als Trainer:in betreuen")}
                     </Button>
                   )}
                 </li>

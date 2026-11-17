@@ -113,7 +113,7 @@ export function StartseiteInhalt() {
       <section className="border-t border-border/60 py-12">
         <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("Loslegen")}</h2>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-          {t("Konto anlegen, Hund eintragen, erstes Training erfassen. Mehr braucht es nicht.")}
+          {t("Konto anlegen, Hund eintragen, erstes Training eintragen. Mehr braucht es nicht.")}
         </p>
         <Link
           href="/register"

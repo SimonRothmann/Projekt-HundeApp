@@ -16,7 +16,7 @@ const MAX_ZEILEN = 3;
 
 /**
  * Am Trainingstag, was für das heutige Training gemerkt ist: "Training heute 18:00" mit den Einträgen und den
- * Knöpfen "Training erfassen" und "Merken". An allen anderen Tagen bleibt die Startseite, wie sie war - die Karte
+ * Knöpfen "Training eintragen" und "Merken". An allen anderen Tagen bleibt die Startseite, wie sie war - die Karte
  * erscheint nur, wenn für einen Hund heute etwas ansteht.
  *
  * Eigener Abruf je Hund statt Teil der Startseiten-Daten: Der Merkzettel gehört nur der Familie, und fällt der
@@ -99,7 +99,7 @@ export function MerkzettelHeuteKarte({
               <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                 <Button className="h-11 min-w-0 text-sm" onClick={() => onEintragen(hund.id)}>
                   <NotebookPen className="size-4" />
-                  <span className="truncate">{t("Training erfassen")}</span>
+                  <span className="truncate">{t("Training eintragen")}</span>
                 </Button>
                 <Button variant="outline" className="h-11 text-sm" onClick={() => onMerken(hund.id)}>
                   <StickyNote className="size-4" />

@@ -14,6 +14,7 @@ import { ChevronDown, ChevronRight, ChevronUp, Clock, Copy, Download, Pencil, Pl
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 const CATS: GroupTrainingCategory[] = [0, 1, 2];
@@ -50,6 +51,7 @@ const emptyUnitForm = (): UnitForm => ({ id: null, category: 0, title: "", descr
 
 export default function GroupTrainingPage() {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const [clubs, setClubs] = useState<Club[] | null>(null);
   const [clubId, setClubId] = useState("");
   const [library, setLibrary] = useState<GroupTrainingLibrary | null>(null);
@@ -66,7 +68,7 @@ export default function GroupTrainingPage() {
   const [activeCat, setActiveCat] = useState<GroupTrainingCategory>(0);
 
   async function importStarter() {
-    if (!window.confirm(t("Best-Practice-Bausteine und Einheiten in diesen Verein übernehmen? Du kannst danach alles frei anpassen oder löschen."))) return;
+    if (!(await rueckfrage({ titel: t("Best-Practice-Bausteine und Einheiten in diesen Verein übernehmen?"), text: t("Du kannst danach alles frei anpassen oder löschen."), bestaetigen: t("Übernehmen") }))) return;
     setImporting(true);
     try {
       const data = await api.post<GroupTrainingLibrary>(`/api/group-training/clubs/${clubId}/import-starter`);
@@ -147,7 +149,7 @@ export default function GroupTrainingPage() {
   }
 
   async function deleteExercise(ex: GroupTrainingExercise) {
-    if (!window.confirm(t("Baustein „{title}“ löschen? Er wird auch aus allen Einheiten entfernt.", { title: ex.title }))) return;
+    if (!(await rueckfrage({ titel: t("Baustein „{title}“ löschen?", { title: ex.title }), text: t("Er wird auch aus allen Einheiten entfernt."), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/group-training/exercises/${ex.id}`);
       toast.success(t("Baustein gelöscht."));
@@ -203,7 +205,7 @@ export default function GroupTrainingPage() {
   }
 
   async function deleteUnit(id: string, title: string) {
-    if (!window.confirm(t("Einheit „{title}“ löschen?", { title }))) return;
+    if (!(await rueckfrage({ titel: t("Einheit „{title}“ löschen?", { title }), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/group-training/units/${id}`);
       toast.success(t("Einheit gelöscht."));
