@@ -9,6 +9,7 @@ import { useT } from "@/lib/i18n";
 import type { Club } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { Chip } from "@/components/ui/chip";
 import { CatalogSection } from "@/components/sports/catalog-section";
 import { ClubAnfragenKarte } from "@/components/trainer/club-anfragen-karte";
 import { ClubInviteSection } from "@/components/trainer/club-invite-section";
@@ -84,6 +85,19 @@ export default function TrainerVereinPage() {
   // Falls eine Rolle (noch) ohne eigene Funktion dazukommt: die Seite sagt es, statt leer zu bleiben.
   const hatAbschnitte = club.canManage || club.canAppointTrainers || club.canManageMembers || club.isTrainer || club.canViewOverview;
 
+  // Sprungleiste: nur die Abschnitte, die diese Rolle sieht. Ab drei lohnt sie
+  // sich - darunter passt alles auf einen Blick. Die Mitgliederliste lag sonst
+  // hinter bis zu sechs anderen Abschnitten.
+  const sprungziele = [
+    club.canViewOverview && { id: "verein-uebersicht", label: t("Übersicht") },
+    club.canManage && { id: "verein-stammdaten", label: t("Stammdaten") },
+    club.canAppointTrainers && { id: "verein-rollen", label: t("Rollen") },
+    club.canManageMembers && { id: "verein-anfragen", label: t("Anfragen") },
+    club.canManageMembers && { id: "verein-einladung", label: t("Einladung") },
+    club.canManageMembers && { id: "verein-mitglieder", label: t("Mitglieder") },
+    club.isTrainer && { id: "verein-katalog", label: t("Katalog") },
+  ].filter((z): z is { id: string; label: string } => z !== false);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -113,6 +127,20 @@ export default function TrainerVereinPage() {
         </div>
       )}
 
+      {sprungziele.length >= 3 && (
+        <nav aria-label={t("Abschnitte")} className="flex flex-wrap gap-2">
+          {sprungziele.map((z) => (
+            <Chip
+              key={z.id}
+              kompakt
+              onClick={() => document.getElementById(z.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            >
+              {z.label}
+            </Chip>
+          ))}
+        </nav>
+      )}
+
       {!hatAbschnitte && (
         <Card>
           <CardContent className="py-6 text-center text-muted-foreground">
@@ -123,7 +151,11 @@ export default function TrainerVereinPage() {
 
       {/* key: Jeder Verein bekommt frische Abschnitte - sonst zeigt die
           Mitgliederliste beim Wechsel noch den vorigen Verein, bis die neue geladen ist. */}
-      {club.canViewOverview && <ClubOverviewSection key={`uebersicht-${club.id}`} clubId={club.id} />}
+      {club.canViewOverview && (
+        <div id="verein-uebersicht" className="scroll-mt-20">
+          <ClubOverviewSection key={`uebersicht-${club.id}`} clubId={club.id} />
+        </div>
+      )}
       {/* Der Vorstand ohne Trainer-Rolle hat kein Trainer-Menü - von hier kommt er zu den Arbeitseinsätzen. */}
       {club.canViewWork && (
         <Link
@@ -138,8 +170,13 @@ export default function TrainerVereinPage() {
           <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </Link>
       )}
-      {club.canManage && <ClubStammdatenSection key={`stammdaten-${club.id}`} club={club} onGespeichert={laden} />}
+      {club.canManage && (
+        <div id="verein-stammdaten" className="scroll-mt-20">
+          <ClubStammdatenSection key={`stammdaten-${club.id}`} club={club} onGespeichert={laden} />
+        </div>
+      )}
       {club.canAppointTrainers && (
+        <div id="verein-rollen" className="scroll-mt-20">
         <ClubRolesSection
           key={`rollen-${club.id}-${rollenStand}`}
           clubId={club.id}
@@ -151,21 +188,36 @@ export default function TrainerVereinPage() {
             await laden();
           }}
         />
+        </div>
       )}
-      {club.canManageMembers && <ClubAnfragenKarte key={`anfragen-${club.id}`} club={club} />}
-      {club.canManageMembers && <ClubInviteSection key={`einladung-${club.id}`} club={club} />}
-      {club.canManageMembers && <ClubMembersSection
-          key={`mitglieder-${club.id}-${mitgliederStand}`}
-          club={club}
-          onBefoerdert={() => setRollenStand((n) => n + 1)}
-        />}
+      {club.canManageMembers && (
+        <div id="verein-anfragen" className="scroll-mt-20">
+          <ClubAnfragenKarte key={`anfragen-${club.id}`} club={club} />
+        </div>
+      )}
+      {club.canManageMembers && (
+        <div id="verein-einladung" className="scroll-mt-20">
+          <ClubInviteSection key={`einladung-${club.id}`} club={club} />
+        </div>
+      )}
+      {club.canManageMembers && (
+        <div id="verein-mitglieder" className="scroll-mt-20">
+          <ClubMembersSection
+            key={`mitglieder-${club.id}-${mitgliederStand}`}
+            club={club}
+            onBefoerdert={() => setRollenStand((n) => n + 1)}
+          />
+        </div>
+      )}
       {club.isTrainer && (
+        <div id="verein-katalog" className="scroll-mt-20">
         <CatalogSection
           key={`katalog-${club.id}`}
           scope={{ kind: "club", clubId: club.id, clubName: club.name }}
           title={t("Vereinseigener Katalog · {name}", { name: club.name })}
           description={t("Eigene Sportarten und Übungen dieses Vereins - nur für Mitglieder und Trainer sichtbar.")}
         />
+        </div>
       )}
     </div>
   );

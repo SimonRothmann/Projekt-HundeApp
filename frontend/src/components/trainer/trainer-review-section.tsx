@@ -279,7 +279,7 @@ export function TrainerReviewSection() {
                             />
                             <div className="flex gap-2 self-start">
                               <Button size="sm" onClick={() => saveFeedback(s.sessionId)} disabled={savingFeedback}>
-{t("Speichern")}
+{t("Speichern & fertig")}
                               </Button>
                               <Button size="sm" variant="ghost" onClick={() => setOpenFeedbackId(null)}>
 {t("Abbrechen")}
@@ -295,6 +295,7 @@ export function TrainerReviewSection() {
                               className="size-6 shrink-0 coarse:size-11"
                               onClick={() => startFeedback(s.sessionId, s.trainerFeedback)}
                               title={t("Feedback bearbeiten")}
+                              aria-label={t("Feedback bearbeiten")}
                             >
                               <Pencil className="size-3" />
                             </Button>
@@ -319,7 +320,6 @@ export function TrainerReviewSection() {
                         <div className="flex flex-wrap gap-2">
                           {uebernehmbar && (
                             <Button
-                              variant="secondary"
                               className="min-w-0 flex-1"
                               disabled={arbeitetId === s.sessionId}
                               onClick={() => void passtSo(s.sessionId)}
@@ -335,7 +335,7 @@ export function TrainerReviewSection() {
                             onClick={() => void fertig(s.sessionId)}
                           >
                             <Check />
-                            {t("Fertig")}
+                            {t("Nur abhaken")}
                           </Button>
                         </div>
                         {uebernehmbar && (
