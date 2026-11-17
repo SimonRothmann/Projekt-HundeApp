@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MoreHorizontal, Plus } from "lucide-react";
 import type { Dog } from "@/lib/types";
@@ -9,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { formatDogAge } from "@/lib/dog-age";
 import { aktiveHunde, hundeAdresse, zeigeHundeLeiste } from "@/lib/hundeseite";
-import { NEUER_HUND } from "@/lib/hundeliste";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -27,18 +25,21 @@ export function DogHeader({
   meineHunde,
   gehoertMir,
   onVerwalten,
+  onNeuerHund,
 }: {
   dog: Dog;
   meineHunde: Dog[];
   /** Eigener oder mitbesessener Hund - bei einem betreuten fremden Hund gibt es keine Leiste. */
   gehoertMir: boolean;
   onVerwalten: () => void;
+  /** Öffnet das Fenster "Neuer Hund" (das "+" in der Leiste). */
+  onNeuerHund: () => void;
 }) {
   const t = useT();
 
   return (
     <div className="flex flex-col gap-4">
-      {zeigeHundeLeiste(meineHunde, gehoertMir) && <DogSwitcher hunde={meineHunde} aktuellId={dog.id} />}
+      {zeigeHundeLeiste(meineHunde, gehoertMir) && <DogSwitcher hunde={meineHunde} aktuellId={dog.id} onNeuerHund={onNeuerHund} />}
       <div className="flex items-center gap-4">
         <DogAvatar dogId={dog.id} hasImage={dog.hasImage} name={dog.name} className="size-20" iconClassName="size-9" />
         <div className="min-w-0 flex-1">
@@ -80,7 +81,7 @@ export function DogHeader({
  * aktuelle mit Ring, am Ende ein "+" zum Anlegen. Umbrechen statt scrollen: ab fünf Hunden würde eine Zeile
  * seitlich wegwischen, und das gibt es in dieser App nirgends.
  */
-function DogSwitcher({ hunde, aktuellId }: { hunde: Dog[]; aktuellId: string }) {
+function DogSwitcher({ hunde, aktuellId, onNeuerHund }: { hunde: Dog[]; aktuellId: string; onNeuerHund: () => void }) {
   const t = useT();
   const router = useRouter();
   const suchparameter = useSearchParams();
@@ -116,7 +117,13 @@ function DogSwitcher({ hunde, aktuellId }: { hunde: Dog[]; aktuellId: string }) 
           </button>
         );
       })}
-      <Link href={NEUER_HUND} aria-label={t("Weiteren Hund anlegen")} className="flex min-h-11 w-16 min-w-0 flex-col items-center gap-1">
+      <button
+        type="button"
+        aria-label={t("Weiteren Hund anlegen")}
+        aria-haspopup="dialog"
+        onClick={onNeuerHund}
+        className="flex min-h-11 w-16 min-w-0 flex-col items-center gap-1"
+      >
         <span
           aria-hidden
           className="flex size-11 items-center justify-center rounded-full border border-dashed border-input text-muted-foreground ring-2 ring-transparent ring-offset-2 ring-offset-background"
@@ -127,7 +134,7 @@ function DogSwitcher({ hunde, aktuellId }: { hunde: Dog[]; aktuellId: string }) 
           {/* "Neuer Hund" passte in 64 px nur abgeschnitten. */}
           {t("Neu")}
         </span>
-      </Link>
+      </button>
     </nav>
   );
 }

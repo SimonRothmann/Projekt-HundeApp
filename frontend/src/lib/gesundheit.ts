@@ -370,3 +370,28 @@ export function ueberfaelligZeile(
     ? t("{art} überfällig", { art: t(ART_TEXT[faellig.kind]) })
     : t("Gesundheitsfrist überfällig");
 }
+
+/**
+ * Der Satz im roten Banner oben auf der Hundeseite, wenn etwas dieses Hundes überfällig ist
+ * ("Entwurmung seit 25.10. fällig und 1 weitere"); sonst null. Gezählt wird wie in
+ * ueberfaelligZeile (gegen heute geprüft, der Lesecache kann von gestern sein). Ohne bekannte
+ * früheste überfällige Frist bleibt es bei der allgemeinen Zeile.
+ */
+export function ueberfaelligBanner(
+  t: Uebersetzer,
+  stand: DogGesundheitStand | null | undefined,
+  heute: string = heuteIso(),
+  sprache: Sprache = "de",
+): string | null {
+  if (!stand) return null;
+  const faellig = stand.nextDue;
+  if (!faellig || tageBis(faellig.dueDate, heute) >= 0) return ueberfaelligZeile(t, stand, heute);
+  const datum = datumTagMonat(faellig.dueDate, sprache);
+  const text =
+    faellig.kind === GESUNDHEIT_ART.Impfung
+      ? t("{titel} seit {datum} abgelaufen", { titel: faellig.title, datum })
+      : t("{titel} seit {datum} fällig", { titel: faellig.title, datum });
+  const weitere = Math.max(stand.overdue, 1) - 1;
+  if (weitere === 0) return text;
+  return weitere === 1 ? t("{text} und 1 weitere", { text }) : t("{text} und {n} weitere", { text, n: weitere });
+}

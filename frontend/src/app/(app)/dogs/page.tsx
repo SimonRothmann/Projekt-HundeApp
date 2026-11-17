@@ -1,24 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
-import { MODULE, type Dog, type DogGender } from "@/lib/types";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MODULE, type Dog } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, CircleCheck, CirclePause, Dog as DogIcon, Plus, TriangleAlert } from "lucide-react";
+import { ChevronRight, CirclePause, Dog as DogIcon, Plus, TriangleAlert } from "lucide-react";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { HundEinladungen } from "@/components/dogs/hund-einladungen";
-import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
-import { GeschlechtWahl } from "@/components/dogs/geschlecht-wahl";
-import { pruefeErstenHund } from "@/lib/erststart";
-import { direktZumHund, HUNDELISTE_IMMER } from "@/lib/hundeliste";
-import { TEXTLAENGE } from "@/lib/textlaengen";
+import { NeuerHundSheet } from "@/components/dogs/neuer-hund-sheet";
+import { direktZumHund, hundeseiteVomReiter, leseZuletztHund } from "@/lib/hundeliste";
 import { formatDogAge } from "@/lib/dog-age";
 import { aktuellePause, pausenZeile } from "@/lib/pausen";
 import { ueberfaelligZeile } from "@/lib/gesundheit";
@@ -27,59 +22,42 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 import { useSprache, useT } from "@/lib/i18n";
+
+/**
+ * Der Reiter "Hunde": führt immer gleich auf die Hundeseite (zuletzt angesehener, sonst erster
+ * aktiver Hund - siehe direktZumHund). Hier bleibt man nur ohne aktiven Hund (Leerzustand zum
+ * Anlegen, wartende Einladungen) oder mit ?liste=1: die Liste als Gesamt- und Archivansicht,
+ * erreichbar über das ⋯-Fenster der Hundeseite.
+ */
 export default function DogsPage() {
   const [dogs, setDogs] = useState<Dog[] | null>(null);
-  // null = automatisch: offen, solange die geladene Liste leer ist (wer noch
-  // keinen Hund hat, ist genau dafür hier). Erst ein Tippen auf den Knopf oder
-  // das Speichern legt es fest.
-  const [formWunsch, setFormWunsch] = useState<boolean | null>(null);
-  const [name, setName] = useState("");
-  const [breed, setBreed] = useState("");
-  // Ohne Vorbelegung: Das Backend nimmt bei fehlender Angabe "Rüde" - eine
-  // Hündin würde sonst unbemerkt falsch angelegt. Gespeichert wird erst nach
-  // einer Auswahl.
-  const [gender, setGender] = useState<DogGender | null>(null);
-  const [versucht, setVersucht] = useState(false);
-  // Der gerade angelegte Hund: Statt still in der Liste zu bleiben, bietet die
-  // Seite den nächsten Schritt an (erstes Training, Hundeseite).
-  const [angelegt, setAngelegt] = useState<Dog | null>(null);
-  // Das Eintragen-Fenster hält seinen Hund selbst fest: Nach dem Speichern
-  // verschwindet der Hinweis, das Fenster soll aber in Ruhe zugehen können.
-  const [eintragenOffen, setEintragenOffen] = useState(false);
-  const [eintragenHund, setEintragenHund] = useState<Dog | null>(null);
-  const [birthday, setBirthday] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  // Wartende Einladungen zum Mitverwalten (null = noch nicht geladen) - sie
-  // stehen nur hier, deshalb bleibt die Liste dann stehen.
-  const [einladungen, setEinladungen] = useState<number | null>(null);
-  const [springt, setSpringt] = useState(false);
-  const entschieden = useRef(false);
+  // null = noch nicht bekannt. window statt useSearchParams: Die Seite wird vorab gebaut, und für
+  // den einen Parameter braucht es keine Suspense-Grenze.
+  const [liste, setListe] = useState<boolean | null>(null);
+  // Offline ohne zwischengespeicherte Hundeseite: dann ist die Liste das Bessere.
+  const [bleibt, setBleibt] = useState(false);
+  const [neuerHundOffen, setNeuerHundOffen] = useState(false);
   const router = useRouter();
   const t = useT();
   const sprache = useSprache();
   const { moduleEnabled } = usePreferences();
   const gesundheitAn = moduleEnabled(MODULE.gesundheit);
 
-  // Bei genau einem aktiven Hund führt der Reiter "Hunde" gleich auf dessen
-  // Seite (siehe direktZumHund). Entschieden wird einmal je Besuch, sobald
-  // Hunde und Einladungen da sind - nicht mehr nach dem Anlegen eines Hundes
-  // hier, dann gilt der Hinweis mit den nächsten Schritten.
+  // Das Ziel steht schon beim Rendern fest, damit die Liste nie aufblitzt: Bis es entschieden ist
+  // (und beim Weiterleiten) stehen Platzhalter da. Der Lesecache der Hunde genügt dafür.
+  const ziel = liste === false && dogs !== null && !bleibt ? direktZumHund(dogs, { zuletzt: leseZuletztHund(), listeGewuenscht: false }) : null;
+  const entscheidet = liste === null || dogs === null || ziel !== null;
+
   useEffect(() => {
-    if (entschieden.current || dogs === null || einladungen === null) return;
-    entschieden.current = true;
-    // window statt useSearchParams: Die Seite wird vorab gebaut, und für den
-    // einen Parameter braucht es keine Suspense-Grenze.
-    const listeGewuenscht = new URLSearchParams(window.location.search).has("liste");
-    const ziel = direktZumHund(dogs, { einladungen, listeGewuenscht });
     if (!ziel) return;
     void (async () => {
-      // Offline nur, wenn die Hundeseite etwas zum Zeigen hat - sonst ist die
-      // Liste aus dem Zwischenspeicher das Bessere.
-      if (!navigator.onLine && !(await getCachedData(`dog-page-${ziel}`))) return;
-      setSpringt(true);
-      router.replace(`/dogs/${ziel}?from=${encodeURIComponent(HUNDELISTE_IMMER)}`);
+      if (!navigator.onLine && !(await getCachedData(`dog-page-${ziel}`))) {
+        setBleibt(true);
+        return;
+      }
+      router.replace(hundeseiteVomReiter(ziel));
     })();
-  }, [dogs, einladungen, router]);
+  }, [ziel, router]);
 
   async function loadDogs() {
     const cached = await getCachedData<Dog[]>("dogs-list");
@@ -98,55 +76,19 @@ export default function DogsPage() {
     // Initialer Datenabruf beim Mount (externe Quelle: REST API).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDogs();
-    // ?neu=1 ("Weiteren Hund anlegen" von der Hundeseite): das Formular steht gleich offen.
-    // window statt useSearchParams, aus demselben Grund wie oben.
-    if (new URLSearchParams(window.location.search).has("neu")) setFormWunsch(true);
+    setListe(new URLSearchParams(window.location.search).has("liste"));
   }, []);
-
-  async function handleCreate(e: FormEvent) {
-    e.preventDefault();
-    setVersucht(true);
-    const eingabe = pruefeErstenHund(name, gender);
-    if (!eingabe.ok) return;
-
-    setIsSubmitting(true);
-    try {
-      const hund = await api.post<Dog>("/api/dogs", {
-        name: eingabe.name,
-        breed: breed || null,
-        birthday: birthday || null,
-        gender: eingabe.geschlecht,
-        imageUrl: null,
-        notes: null,
-      });
-      setName("");
-      setBreed("");
-      setGender(null);
-      setVersucht(false);
-      setBirthday("");
-      setFormWunsch(false);
-      setAngelegt(hund);
-      await loadDogs();
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : t("Hund konnte nicht angelegt werden."));
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
 
   // Archivierte Hunde (z.B. verstorben) getrennt vom aktiven Bestand anzeigen -
   // sie bleiben erreichbar, verstellen aber nicht die tägliche Liste.
   const activeDogs = dogs?.filter((d) => !d.archivedAt) ?? [];
   const archivedDogs = dogs?.filter((d) => d.archivedAt) ?? [];
-  const showForm = formWunsch ?? dogs?.length === 0;
-  const geschlechtFehlt = versucht && gender === null;
-  const nameFehlt = versucht && name.trim() === "";
 
   // Die Hunde einer Gruppe stehen in EINER Karte, je Hund eine Zeile mit Trennlinie.
-  function dogListe(liste: Dog[], archived = false) {
+  function dogListe(hunde: Dog[], archived = false) {
     return (
       <div className="flex flex-col divide-y overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
-        {liste.map((dog) => dogZeile(dog, archived))}
+        {hunde.map((dog) => dogZeile(dog, archived))}
       </div>
     );
   }
@@ -195,123 +137,24 @@ export default function DogsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">{t("Meine Hunde")}</h1>
-        <Button
-          onClick={() => {
-            setFormWunsch(!showForm);
-            setAngelegt(null);
-          }}
-          size="sm"
-        >
+        <Button onClick={() => setNeuerHundOffen(true)} size="sm" aria-haspopup="dialog">
           <Plus className="size-4" />
           {t("Hund hinzufügen")}
         </Button>
       </div>
 
-      <HundEinladungen onAngenommen={loadDogs} onGeladen={setEinladungen} />
+      <HundEinladungen onAngenommen={loadDogs} />
 
-      {angelegt && (
-        <Card className="border-primary/40 bg-primary/5">
-          <CardContent className="flex flex-col gap-3">
-            <p role="status" className="flex min-w-0 items-start gap-2 font-medium">
-              <CircleCheck className="mt-0.5 size-5 shrink-0 text-primary-text" aria-hidden />
-              <span className="min-w-0 [overflow-wrap:anywhere]">{t("{name} ist angelegt.", { name: angelegt.name })}</span>
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button
-                className="h-11 min-w-0 flex-1 text-base"
-                aria-haspopup="dialog"
-                onClick={() => {
-                  setEintragenHund(angelegt);
-                  setEintragenOffen(true);
-                }}
-              >
-                {t("Erstes Training eintragen")}
-              </Button>
-              <Link
-                href={`/dogs/${angelegt.id}`}
-                className={cn(buttonVariants({ variant: "outline" }), "h-11 min-w-0 flex-1 text-base")}
-              >
-                {t("Zum Hund")}
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <NeuerHundSheet
+        open={neuerHundOffen}
+        onOpenChange={setNeuerHundOffen}
+        onAngelegt={(hund) => {
+          toast.success(t("{name} ist angelegt.", { name: hund.name }));
+          router.push(hundeseiteVomReiter(hund.id));
+        }}
+      />
 
-      {eintragenHund && (
-        <EintragenSheet
-          open={eintragenOffen}
-          onOpenChange={setEintragenOffen}
-          dogId={eintragenHund.id}
-          hunde={[eintragenHund]}
-          onSaved={async () => {
-            // Das Training steht - der Hinweis hat seine Aufgabe erfüllt.
-            setAngelegt(null);
-          }}
-        />
-      )}
-
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t("Neuer Hund")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreate} noValidate className="flex flex-col gap-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="name">{t("Name")}</Label>
-                  <Input
-                    id="name"
-                    required
-                    value={name}
-                    maxLength={TEXTLAENGE.hundename}
-                    aria-invalid={nameFehlt || undefined}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                  {nameFehlt && (
-                    <p role="alert" className="text-sm text-destructive">
-                      {t("Wie heißt dein Hund?")}
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="breed">{t("Rasse")}</Label>
-                  <Input id="breed" value={breed} maxLength={TEXTLAENGE.hundeRasse} onChange={(e) => setBreed(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label id="gender">{t("Geschlecht")}</Label>
-                  <GeschlechtWahl wert={gender} onChange={setGender} labelId="gender" ungueltig={geschlechtFehlt} />
-                  {geschlechtFehlt && (
-                    <p role="alert" className="text-sm text-destructive">
-                      {t("Bitte wähle Rüde oder Hündin.")}
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="birthday">{t("Geburtsdatum")}</Label>
-                  <Input id="birthday" type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">
-                    {formatDogAge(birthday, new Date(), t)
-                      ? t("Alter: {alter}", { alter: formatDogAge(birthday, new Date(), t) ?? "" })
-                      : t("Optional - daraus wird das Alter berechnet.")}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? t("Wird gespeichert…") : t("Speichern")}
-                </Button>
-                <Button type="button" variant="ghost" className="coarse:min-h-11" onClick={() => setFormWunsch(false)}>
-                  {t("Abbrechen")}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {dogs === null || springt ? (
+      {entscheidet || dogs === null ? (
         <div aria-busy="true" className="flex flex-col gap-3">
           <span className="sr-only">{t("Lädt…")}</span>
           <div className="h-20 rounded-xl bg-card motion-safe:animate-pulse" />
@@ -319,9 +162,13 @@ export default function DogsPage() {
         </div>
       ) : dogs.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center text-muted-foreground">
             <DogIcon className="size-10" />
             <p>{t("Leg deinen ersten Hund an.")}</p>
+            <Button className="h-11 text-base" aria-haspopup="dialog" onClick={() => setNeuerHundOffen(true)}>
+              <Plus className="size-4" />
+              {t("Hund anlegen")}
+            </Button>
           </CardContent>
         </Card>
       ) : (

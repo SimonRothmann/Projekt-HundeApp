@@ -1,34 +1,58 @@
 import type { Dog } from "@/lib/types";
 
 /**
- * Die Hundeliste, auch wenn sie nur einen Hund enthält. Ziel des Zurück-Knopfs
- * auf der Hundeseite, wenn der Reiter "Hunde" direkt dorthin geführt hat -
- * sonst führte "Zurück" auf /dogs und von dort gleich wieder auf den Hund.
+ * Die Hundeliste als Gesamt- und Archivansicht: Der Reiter "Hunde" führt sonst
+ * immer gleich auf eine Hundeseite. Erreichbar über "Archivierte Hunde" im
+ * ⋯-Fenster der Hundeseite.
  */
 export const HUNDELISTE_IMMER = "/dogs?liste=1";
 
 /**
- * Die Hundeliste mit geöffnetem Formular "Neuer Hund": Ziel von "Weiteren Hund
- * anlegen" auf der Hundeseite (bei genau einem Hund ging der Weg dorthin nur
- * über "Zurück").
+ * ?from= der Hundeseite, wenn der Reiter "Hunde" sie geöffnet hat: Dann ist sie
+ * der Startpunkt des Reiters und hat wie eine Hauptseite kein "Zurück"
+ * (siehe istHundeStartseite in zurueck.ts).
  */
-export const NEUER_HUND = "/dogs?liste=1&neu=1";
+export const REITER_HERKUNFT = "/dogs";
+
+/** Die Hundeseite als Startpunkt des Reiters "Hunde". */
+export function hundeseiteVomReiter(hundId: string): string {
+  return `/dogs/${hundId}?from=${encodeURIComponent(REITER_HERKUNFT)}`;
+}
+
+const ZULETZT_SCHLUESSEL = "dogity-zuletzt-angesehener-hund";
+
+/** Der Hund, dessen Seite zuletzt offen war (nur ein Komfort, nie nötig). */
+export function leseZuletztHund(): string | null {
+  try {
+    return window.localStorage.getItem(ZULETZT_SCHLUESSEL);
+  } catch {
+    return null;
+  }
+}
+
+export function merkeZuletztHund(hundId: string): void {
+  try {
+    window.localStorage.setItem(ZULETZT_SCHLUESSEL, hundId);
+  } catch {
+    // Ohne Speicher führt der Reiter wieder zum ersten Hund - kein Schaden.
+  }
+}
 
 /**
- * Wohin der Reiter "Hunde" führt: bei genau einem aktiven Hund gleich auf
- * dessen Seite, sonst null (die Liste bleibt).
+ * Wohin der Reiter "Hunde" führt: auf die Seite des zuletzt angesehenen Hundes,
+ * sofern er noch aktiv in der eigenen Liste steht (Hund gelöscht, archiviert oder
+ * ein anderes Konto am selben Gerät), sonst auf den ersten aktiven Hund. Null,
+ * wenn es keinen aktiven Hund gibt oder die Liste ausdrücklich verlangt ist
+ * (?liste=1) - dann bleibt die Seite mit Liste bzw. Leerzustand.
  *
- * Die meisten haben einen Hund - die Liste mit einer einzigen Karte war dann
- * nur ein Tipp mehr bei jedem Öffnen. Die Liste bleibt, wenn eine Einladung
- * zum Mitverwalten wartet (die steht nur dort), oder wenn sie ausdrücklich
- * verlangt ist (?liste=1, etwa über "Zurück" von der Hundeseite, um einen
- * zweiten Hund anzulegen oder Archivierte zu sehen).
+ * Wartende Einladungen halten nicht mehr auf: Sie stehen oben auf der Hundeseite.
  */
 export function direktZumHund(
   dogs: readonly Dog[],
-  { einladungen, listeGewuenscht }: { einladungen: number; listeGewuenscht: boolean },
+  { zuletzt, listeGewuenscht }: { zuletzt: string | null; listeGewuenscht: boolean },
 ): string | null {
-  if (listeGewuenscht || einladungen > 0) return null;
+  if (listeGewuenscht) return null;
   const aktive = dogs.filter((d) => !d.archivedAt);
-  return aktive.length === 1 ? aktive[0].id : null;
+  if (aktive.length === 0) return null;
+  return aktive.find((d) => d.id === zuletzt)?.id ?? aktive[0].id;
 }

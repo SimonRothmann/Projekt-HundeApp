@@ -104,6 +104,7 @@ export function CoOwnersSection({
       // Die Seite dieses Hundes gibt es für mich danach nicht mehr - auch
       // nicht im Zwischenspeicher.
       await clearCachedData(`dog-page-${dogId}`);
+      await clearCachedData("dogs-list");
       toast.success(t("Mitbesitz beendet."));
       router.push("/dogs");
     } catch (err) {

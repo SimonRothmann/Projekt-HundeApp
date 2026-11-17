@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { useT } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth-context";
-import { zurueckZiel } from "@/lib/zurueck";
+import { istHundeStartseite, zurueckZiel } from "@/lib/zurueck";
 // Top-Level-Routen (über die Navigation direkt erreichbar) - hier gibt es
 // bewusst KEINEN Zurück-Button.
 const ROOT_PATHS = new Set([
@@ -43,7 +43,11 @@ export function SubpageBackButton() {
   if (!pathname) return null;
 
   const normalized = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
-  if (normalized === "/" || ROOT_PATHS.has(normalized) || normalized.endsWith("/print") || normalized.endsWith("/druck")) return null;
+  // Die Hundeliste (/dogs?liste=1: Archiv und Gesamtansicht) ist die eine Hauptseite mit "Zurück".
+  const hundeliste = normalized === "/dogs" && searchParams?.has("liste");
+  if (normalized === "/" || (ROOT_PATHS.has(normalized) && !hundeliste) || normalized.endsWith("/print") || normalized.endsWith("/druck")) return null;
+  // Über den Reiter "Hunde" geöffnet: die Hundeseite ist dann Startpunkt des Reiters.
+  if (istHundeStartseite(normalized, searchParams?.get("from"))) return null;
 
   // Nur seiteninterne Ziele: ein ?from= aus einem geteilten Link darf nicht von der Seite fortführen.
   const target = zurueckZiel(normalized, searchParams?.get("from"), isTrainer);

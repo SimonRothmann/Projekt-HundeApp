@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { MODULE, type MerkzettelEintrag, type TrainingPlanItem } from "@/lib/types";
+import { toast } from "sonner";
+import { MODULE, type Dog, type MerkzettelEintrag, type TrainingPlanItem } from "@/lib/types";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { laeuftFaehrte, spurArten } from "@/lib/faehrte";
@@ -18,7 +19,11 @@ import { DogStatusLine } from "@/components/dogs/dog-status-line";
 import { DogTabs, reiterPanelId, reiterTabId } from "@/components/dogs/dog-tabs";
 import { DiaryTab } from "@/components/dogs/diary-tab";
 import { GesundheitTab } from "@/components/dogs/gesundheit-tab";
-import { ueberfaelligZeile } from "@/lib/gesundheit";
+import { ueberfaelligBanner, ueberfaelligZeile } from "@/lib/gesundheit";
+import { GesundheitBanner } from "@/components/dogs/gesundheit-banner";
+import { HundEinladungen } from "@/components/dogs/hund-einladungen";
+import { NeuerHundSheet } from "@/components/dogs/neuer-hund-sheet";
+import { hundeseiteVomReiter, merkeZuletztHund } from "@/lib/hundeliste";
 import { DogActionsSheet } from "@/components/dogs/dog-actions-sheet";
 import { DogFaehrteSheet } from "@/components/dogs/dog-faehrte-sheet";
 import { EintragenSheet } from "@/components/dogs/eintragen-sheet";
@@ -78,6 +83,7 @@ function DogPage({ id }: { id: string }) {
   const [editing, setEditing] = useState(false);
   const [menuOffen, setMenuOffen] = useState(false);
   const [faehrteOffen, setFaehrteOffen] = useState(false);
+  const [neuerHundOffen, setNeuerHundOffen] = useState(false);
   // Zählt, wie oft #ziel-setzen das Formular "Neues Ziel" im Plan öffnen wollte.
   const [zielAnstoss, setZielAnstoss] = useState(0);
   // Das Merken-Fenster und der Eintrag, der darin geändert wird (null = neuer). Der Merkzettel gehört
@@ -133,6 +139,13 @@ function DogPage({ id }: { id: string }) {
     { eintrag: eintragId !== null },
   );
 
+  // Der Reiter "Hunde" führt beim nächsten Mal wieder auf diesen Hund - nur eigene, aktive.
+  const hundId = dog?.id;
+  const hundArchiviert = dog?.archivedAt != null;
+  useEffect(() => {
+    if (hundId && isOwner && !hundArchiviert) merkeZuletztHund(hundId);
+  }, [hundId, isOwner, hundArchiviert]);
+
   function aendereAdresse(aenderungen: Record<string, string | null>) {
     router.replace(adresseMit(pathname, suchparameter.toString(), aenderungen), { scroll: false });
   }
@@ -144,6 +157,12 @@ function DogPage({ id }: { id: string }) {
     // Auch ohne neuen Reiter: die Adresse verliert dabei das Fragment.
     aendereAdresse(wunsch.reiter ? { [REITER_PARAMETER]: wunsch.reiter } : {});
   });
+
+  function neuerHundAngelegt(hund: Dog) {
+    toast.success(t("{name} ist angelegt.", { name: hund.name }));
+    // Wie ein Wechsel über die Chips: die Seite des neuen Hundes ist Startpunkt des Reiters "Hunde".
+    router.push(hundeseiteVomReiter(hund.id));
+  }
 
   async function faehrteGeaendert() {
     await loadAll();
@@ -192,13 +211,20 @@ function DogPage({ id }: { id: string }) {
   const pause = aktuellePause(dog);
   const neueRueckmeldungen = ungeseheneRueckmeldungen(sessions, new Set([...gesehenBeiStart, ...jetztGesehen]), isOwner);
   const wechseln = (neu: HundeReiter) => aendereAdresse({ [REITER_PARAMETER]: neu });
+  // Rotes Band mit dem, was überfällig ist: nur Besitzer:innen, nur mit Gesundheitsmodul, nicht bei archivierten Hunden.
+  const banner = zeigtGesundheit && !dog.archivedAt ? ueberfaelligBanner(t, dog.gesundheit, undefined, sprache) : null;
   // Zwischen diesen Hunden wechselt das Eintragen-Fenster: meine aktiven, wenn dies
   // mein Hund ist; sonst (Trainer:in bei einem betreuten Hund) nur dieser.
   const sheetHunde = zeigeHundeChips(myDogs, isOwner) && myDogs.some((h) => h.id === dog.id) ? aktiveHunde(myDogs) : [dog];
 
   return (
     <div className="flex flex-col gap-4">
-      <DogHeader dog={dog} meineHunde={myDogs} gehoertMir={isOwner} onVerwalten={() => setMenuOffen(true)} />
+      {/* Wartende Einladungen zum Mitverwalten: Nach dem Annehmen laden Hund und Chips neu. */}
+      {isOwner && <HundEinladungen onAngenommen={() => void loadAll()} />}
+
+      <DogHeader dog={dog} meineHunde={myDogs} gehoertMir={isOwner} onVerwalten={() => setMenuOffen(true)} onNeuerHund={() => setNeuerHundOffen(true)} />
+
+      {banner && <GesundheitBanner text={banner} onOeffnen={() => wechseln("gesundheit")} />}
 
       {pause && <PauseBand dogId={id} pause={pause} darfBeenden={isOwner} onChanged={loadAll} />}
 
@@ -314,7 +340,10 @@ function DogPage({ id }: { id: string }) {
         onOpenChange={setMenuOffen}
         onEdit={() => setEditing(true)}
         onChanged={loadAll}
+        onNeuerHund={() => setNeuerHundOffen(true)}
+        archivierte={myDogs.filter((h) => h.archivedAt).length}
       />
+      {isOwner && <NeuerHundSheet open={neuerHundOffen} onOpenChange={setNeuerHundOffen} onAngelegt={neuerHundAngelegt} />}
       {zeigtFaehrte && (
         <DogFaehrteSheet dogId={id} arten={arten} open={faehrteOffen} onOpenChange={setFaehrteOffen} onSaved={faehrteGeaendert} />
       )}
