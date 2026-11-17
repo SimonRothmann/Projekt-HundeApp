@@ -130,12 +130,20 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
         return Result.Success();
     }
 
-    public async Task<Result<NextTrainingDto>> GetNextTrainingAsync(Guid userId, Guid dogId, CancellationToken ct = default)
+    public async Task<Result<NextTrainingDto>> GetNextTrainingAsync(
+        Guid userId, Guid dogId, DateOnly? datum = null, TimeOnly? uhrzeit = null, CancellationToken ct = default)
     {
         if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result<NextTrainingDto>.NotFound("Hund nicht gefunden.");
 
-        return Result<NextTrainingDto>.Success(await NaechstesTrainingAsync(userId, dogId, ct));
+        if (datum is not { } tag)
+            return Result<NextTrainingDto>.Success(await NaechstesTrainingAsync(userId, dogId, ct));
+
+        // Vorschau für das Merken mit Datum: dieselbe Rechnung wie beim Speichern und Erinnern.
+        var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        if (tag < heute.AddDays(-MaxTageZurueck) || tag > heute.AddDays(MaxTageVoraus))
+            return Result<NextTrainingDto>.Failure("Das Datum liegt zu weit entfernt.");
+        return Result<NextTrainingDto>.Success(await NaechstesTrainingAsync(userId, dogId, ct, tag, uhrzeit));
     }
 
     public async Task<Result<NextTrainingDto>> SetRhythmAsync(Guid userId, Guid dogId, SaveTrainingRhythmRequest request, CancellationToken ct = default)
@@ -165,13 +173,18 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
         return Result<NextTrainingDto>.Success(await NaechstesTrainingAsync(userId, dogId, ct));
     }
 
-    private async Task<NextTrainingDto> NaechstesTrainingAsync(Guid userId, Guid dogId, CancellationToken ct)
+    private async Task<NextTrainingDto> NaechstesTrainingAsync(
+        Guid userId, Guid dogId, CancellationToken ct, DateOnly? datum = null, TimeOnly? uhrzeit = null)
     {
         var jetzt = timeProvider.GetUtcNow();
         var daten = await TrainingsDaten.LadenAsync(db, [dogId], [userId], Vereinszeit.Tag(jetzt), ct);
-        var naechstes = Trainingsrhythmus.NaechstesTraining(jetzt, daten.Tagebuch(dogId), daten.Gruppentermine(userId), daten.Rhythmus(dogId));
+        var naechstes = datum is null
+            ? Trainingsrhythmus.NaechstesTraining(jetzt, daten.Tagebuch(dogId), daten.Gruppentermine(userId), daten.Rhythmus(dogId))
+            : Trainingsrhythmus.ZielDesEintrags(
+                TrainingNoteGoal.Date, datum, jetzt, jetzt, daten.Tagebuch(dogId), daten.Gruppentermine(userId), daten.Rhythmus(dogId),
+                erinnerung: false, uhrzeit);
         return naechstes is { } termin
-            ? new NextTrainingDto(termin.Tag, termin.Uhrzeit, termin.Quelle)
+            ? new NextTrainingDto(termin.Tag, termin.Uhrzeit, termin.Quelle, Trainingsrhythmus.ErinnerungsZeitpunkt(termin))
             : new NextTrainingDto(null, null, TrainingsQuelle.Unbekannt);
     }
 
@@ -195,12 +208,12 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
             var ziel = n.DoneAt is null
                 ? Trainingsrhythmus.ZielDesEintrags(
                     n.Goal, n.TargetDate, n.CreatedAt, jetzt, daten.Tagebuch(dogId), daten.Gruppentermine(userId), daten.Rhythmus(dogId),
-                    erinnerung: false)
+                    erinnerung: false, n.TargetTime)
                 : null;
             var uebung = n.ExerciseId is { } id && uebungen.TryGetValue(id, out var u) ? u : null;
             return new TrainingNoteDto(
                 n.Id, n.DogId, n.Text, n.ExerciseId, uebung?.Name, uebung?.NameEn, n.Goal,
-                ziel?.Tag, ziel?.Uhrzeit, n.DoneAt, n.DoneInTrainingId, n.CreatedAt);
+                ziel?.Tag, ziel?.Uhrzeit, n.DoneAt, n.DoneInTrainingId, n.CreatedAt, n.TargetTime);
         }).ToList();
     }
 
@@ -212,6 +225,7 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
         // wenn das Ziel neu ist, sonst schöbe jede Korrektur den Eintrag um eine Woche weiter.
         var bleibtNaechsteWoche = eintrag.Goal == TrainingNoteGoal.NextWeek && eintrag.TargetDate is not null;
         eintrag.Goal = request.Goal;
+        eintrag.TargetTime = request.Goal == TrainingNoteGoal.Date ? request.TargetTime : null;
         eintrag.TargetDate = request.Goal switch
         {
             TrainingNoteGoal.Date => request.TargetDate,

@@ -70,8 +70,8 @@ public class MerkzettelServiceTests
 
     private static SaveTrainingNoteRequest Notiz(
         string text = "Fuß rückwärts", TrainingNoteGoal ziel = TrainingNoteGoal.NextTraining, DateOnly? datum = null,
-        Guid? uebung = null, Guid? id = null) =>
-        new(text, uebung, ziel, datum, id);
+        Guid? uebung = null, Guid? id = null, TimeOnly? zeit = null) =>
+        new(text, uebung, ziel, datum, id, zeit);
 
     private static async Task TagebuchAsync(Aufbau a, params (DateOnly Datum, TimeOnly? Zeit)[] tage)
     {
@@ -333,6 +333,56 @@ public class MerkzettelServiceTests
         Assert.Equal((new DateOnly(2026, 11, 10), new TimeOnly(18, 0)), (dto.TargetDate!.Value, dto.TargetTime!.Value));
     }
 
+    // --- Eigene Uhrzeit beim Datum --------------------------------------------------
+
+    [Fact]
+    public async Task EigeneUhrzeit_GiltVorDerErkannten_UndSteht_AlsGewaehlteUhrzeitDa()
+    {
+        var a = await AufbauAsync();
+        await TagebuchAsync(a, (new DateOnly(2026, 10, 21), new TimeOnly(18, 0)), (new DateOnly(2026, 10, 28), new TimeOnly(18, 0)));
+
+        var neu = (await a.Merkzettel.CreateAsync(a.OwnerId, a.DogId,
+            Notiz(ziel: TrainingNoteGoal.Date, datum: new DateOnly(2026, 11, 11), zeit: new TimeOnly(9, 30)))).Value!;
+
+        Assert.Equal(new TimeOnly(9, 30), neu.TargetTime);
+        Assert.Equal(new TimeOnly(9, 30), neu.ChosenTime);
+    }
+
+    [Fact]
+    public async Task EigeneUhrzeit_WirdBeiAnderemZielVerworfen()
+    {
+        var a = await AufbauAsync();
+        var neu = (await a.Merkzettel.CreateAsync(a.OwnerId, a.DogId,
+            Notiz(ziel: TrainingNoteGoal.Date, datum: Heute.AddDays(1), zeit: new TimeOnly(9, 30)))).Value!;
+
+        var geaendert = (await a.Merkzettel.UpdateAsync(a.OwnerId, a.DogId, neu.Id,
+            Notiz(ziel: TrainingNoteGoal.NextTraining, zeit: new TimeOnly(9, 30)))).Value!;
+
+        Assert.Null(geaendert.ChosenTime);
+    }
+
+    [Fact]
+    public async Task Vorschau_MitDatumUndUhrzeit_ErinnerungZweiStundenVorher()
+    {
+        var a = await AufbauAsync();
+
+        var ergebnis = (await a.Merkzettel.GetNextTrainingAsync(a.OwnerId, a.DogId, new DateOnly(2026, 11, 12), new TimeOnly(18, 0))).Value!;
+
+        Assert.Equal(new NextTrainingDto(new DateOnly(2026, 11, 12), new TimeOnly(18, 0), TrainingsQuelle.Unbekannt, new DateTime(2026, 11, 12, 16, 0, 0)), ergebnis);
+    }
+
+    [Fact]
+    public async Task Vorschau_MitDatumOhneUhrzeit_ErinnerungUmNeun_UndZuWeitesDatumIstFehler()
+    {
+        var a = await AufbauAsync();
+
+        var ergebnis = (await a.Merkzettel.GetNextTrainingAsync(a.OwnerId, a.DogId, new DateOnly(2026, 11, 12))).Value!;
+
+        Assert.Null(ergebnis.Time);
+        Assert.Equal(new DateTime(2026, 11, 12, 9, 0, 0), ergebnis.ReminderAt);
+        Assert.False((await a.Merkzettel.GetNextTrainingAsync(a.OwnerId, a.DogId, Heute.AddDays(400))).Succeeded);
+    }
+
     // --- Nächstes Training und Rhythmus --------------------------------------------
 
     [Fact]
@@ -353,7 +403,7 @@ public class MerkzettelServiceTests
 
         var ergebnis = (await a.Merkzettel.GetNextTrainingAsync(a.OwnerId, a.DogId)).Value!;
 
-        Assert.Equal(new NextTrainingDto(new DateOnly(2026, 11, 10), new TimeOnly(18, 30), TrainingsQuelle.Tagebuch), ergebnis);
+        Assert.Equal(new NextTrainingDto(new DateOnly(2026, 11, 10), new TimeOnly(18, 30), TrainingsQuelle.Tagebuch, new DateTime(2026, 11, 10, 16, 30, 0)), ergebnis);
     }
 
     [Fact]
@@ -377,7 +427,7 @@ public class MerkzettelServiceTests
         await TagebuchAsync(a, (new DateOnly(2026, 10, 20), new TimeOnly(18, 0)), (new DateOnly(2026, 10, 27), new TimeOnly(18, 0)));
 
         var gespeichert = await a.Merkzettel.SetRhythmAsync(a.OwnerId, a.DogId, new SaveTrainingRhythmRequest(32, 10)); // Samstag, 10 Uhr
-        Assert.Equal(new NextTrainingDto(new DateOnly(2026, 11, 7), new TimeOnly(10, 0), TrainingsQuelle.Rhythmus), gespeichert.Value);
+        Assert.Equal(new NextTrainingDto(new DateOnly(2026, 11, 7), new TimeOnly(10, 0), TrainingsQuelle.Rhythmus, new DateTime(2026, 11, 7, 8, 0, 0)), gespeichert.Value);
         Assert.Equal(TrainingsQuelle.Rhythmus, (await a.Merkzettel.GetNextTrainingAsync(a.CoOwnerId, a.DogId)).Value!.Source);
 
         await a.Merkzettel.SetRhythmAsync(a.CoOwnerId, a.DogId, new SaveTrainingRhythmRequest(16, null)); // Freitag, ohne Uhrzeit

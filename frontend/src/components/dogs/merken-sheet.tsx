@@ -22,6 +22,7 @@ import {
   baueMerkenNutzlast,
   istGueltigerText,
   istGueltigesZielDatum,
+  erinnerungsText,
   naechstesTrainingText,
   rhythmusNutzlast,
   schalteTag,
@@ -163,6 +164,7 @@ export function MerkenInhalt({
   const [vorbelegt, setVorbelegt] = useState<string | null>(null);
   const [ziel, setZiel] = useState<MerkzettelZiel>(eintrag?.goal ?? MERKZETTEL_ZIEL.NaechstesTraining);
   const [datum, setDatum] = useState(() => eintrag?.goal === MERKZETTEL_ZIEL.Datum && eintrag.targetDate ? eintrag.targetDate : vorgabeZielDatum());
+  const [uhrzeit, setUhrzeit] = useState(() => (eintrag?.goal === MERKZETTEL_ZIEL.Datum ? (eintrag.chosenTime?.slice(0, 5) ?? "") : ""));
   const [ansicht, setAnsicht] = useState<Ansicht>("haupt");
   const [speichert, setSpeichert] = useState(false);
   const feld = useRef<HTMLTextAreaElement>(null);
@@ -185,6 +187,27 @@ export function MerkenInhalt({
     };
   }, [hundId]);
   const aktuellesNaechstes = naechstes?.dogId === hundId ? naechstes.wert : null;
+
+  // Vorschau der Erinnerung für das gewählte Datum (und die Uhrzeit): Der Server rechnet, das Fenster zeigt nur.
+  // Ohne Netz oder bei einem Fehler fehlt die Zeile einfach.
+  const vorschauSchluessel = ziel === MERKZETTEL_ZIEL.Datum && istGueltigesZielDatum(datum) ? `${hundId}|${datum}|${uhrzeit}` : null;
+  const [vorschau, setVorschau] = useState<{ schluessel: string; wert: NaechstesTraining } | null>(null);
+  useEffect(() => {
+    if (!vorschauSchluessel) return;
+    let abgebrochen = false;
+    const abfrage = new URLSearchParams({ datum });
+    if (uhrzeit) abfrage.set("uhrzeit", `${uhrzeit}:00`);
+    api.get<NaechstesTraining>(`/api/dogs/${hundId}/naechstes-training?${abfrage}`).then(
+      (wert) => {
+        if (!abgebrochen) setVorschau({ schluessel: vorschauSchluessel, wert });
+      },
+      () => {},
+    );
+    return () => {
+      abgebrochen = true;
+    };
+  }, [vorschauSchluessel, hundId, datum, uhrzeit]);
+  const erinnerung = vorschau && vorschau.schluessel === vorschauSchluessel ? erinnerungsText(t, sprache, vorschau.wert) : null;
 
   // Einmalig fragen, wann der Hund meistens trainiert - nur, wenn nichts erkannt wurde.
   const [neuUebersprungen, setNeuUebersprungen] = useState<ReadonlySet<string>>(new Set());
@@ -241,6 +264,7 @@ export function MerkenInhalt({
       exerciseId: uebung?.id ?? null,
       ziel,
       datum,
+      uhrzeit,
     });
 
     setSpeichert(true);
@@ -414,6 +438,17 @@ export function MerkenInhalt({
                 onChange={(e) => setDatum(e.target.value)}
                 className="h-11 min-w-0"
               />
+              <Label htmlFor="merken-uhrzeit" className="mt-1 text-xs text-muted-foreground">
+                {t("Training um")}
+              </Label>
+              <Input
+                id="merken-uhrzeit"
+                type="time"
+                value={uhrzeit}
+                onChange={(e) => setUhrzeit(e.target.value)}
+                className="h-11 w-full min-w-0"
+              />
+              {erinnerung && <p className="text-xs text-muted-foreground">{erinnerung}</p>}
             </div>
           )}
         </section>

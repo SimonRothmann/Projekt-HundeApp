@@ -282,6 +282,17 @@ public class TrainingsrhythmusTests
         Trainingsrhythmus.ZielDesEintrags(ziel, datum, angelegt, jetzt, tagebuch ?? ZweiMittwoche, KeineTermine, rhythmus, erinnerung);
 
     [Fact]
+    public void Ziel_Datum_EigeneUhrzeitSchlaegtDieErkannte()
+    {
+        var termin = Trainingsrhythmus.ZielDesEintrags(
+            TrainingNoteGoal.Date, new DateOnly(2026, 11, 11), Jetzt, Jetzt, ZweiMittwoche, KeineTermine, null, erinnerung: false, new TimeOnly(9, 30));
+
+        Assert.Equal(new TimeOnly(9, 30), termin?.Uhrzeit);
+        // Erinnerung zwei Stunden vorher, aber nicht vor 08:00.
+        Assert.Equal(new DateTime(2026, 11, 11, 8, 0, 0), Trainingsrhythmus.ErinnerungsZeitpunkt(termin!.Value));
+    }
+
+    [Fact]
     public void Ziel_NaechsteWoche_ErstesErkanntesTrainingAbMontag()
     {
         var termin = Ziel(TrainingNoteGoal.NextWeek, new DateOnly(2026, 11, 9), Jetzt, Jetzt, erinnerung: false);

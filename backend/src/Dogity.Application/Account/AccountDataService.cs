@@ -63,7 +63,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
         // Übrigen). Die Übung steht als Name da, nicht als Kennung.
         var merkzettel = await db.TrainingNotes
             .Where(n => hundeIds.Contains(n.DogId) && (n.UserId == userId || n.UserId == null))
-            .Select(n => new { n.DogId, n.Text, Uebung = n.Exercise!.Name, n.Goal, n.TargetDate, n.DoneAt, n.CreatedAt })
+            .Select(n => new { n.DogId, n.Text, Uebung = n.Exercise!.Name, n.Goal, n.TargetDate, n.TargetTime, n.DoneAt, n.CreatedAt })
             .AsNoTracking()
             .ToListAsync(ct);
         var rhythmen = await db.DogTrainingRhythms.Where(r => hundeIds.Contains(r.DogId)).AsNoTracking().ToListAsync(ct);
@@ -440,7 +440,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     n.Goal switch { TrainingNoteGoal.NextWeek => "Nächste Woche", TrainingNoteGoal.Date => "Datum", _ => "Nächstes Training" },
                     n.TargetDate,
                     n.DoneAt,
-                    n.CreatedAt))
+                    n.CreatedAt,
+                    n.TargetTime))
                 .ToList(),
             rhythmen
                 .Select(r => new TrainingsrhythmusExportDto(r.DogId, Wochentage(r.Days), r.Hour))

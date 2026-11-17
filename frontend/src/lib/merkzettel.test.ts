@@ -5,6 +5,7 @@ import { uebersetze } from "@/lib/i18n";
 import { katalogZeile, zeilenSchluessel } from "@/lib/eintragen";
 import {
   baueMerkenNutzlast,
+  erinnerungsText,
   fuerHeutigesTraining,
   hakeAn,
   heutigeEintraege,
@@ -26,7 +27,7 @@ const tEn = (text: string, werte?: Record<string, string | number>) => uebersetz
 // Mittwoch, 4.11.2026.
 const HEUTE = "2026-11-04";
 
-const naechstes = (date: string | null, time: string | null, source: TrainingsQuelle = TRAININGS_QUELLE.Tagebuch): NaechstesTraining => ({ date, time, source });
+const naechstes = (date: string | null, time: string | null, source: TrainingsQuelle = TRAININGS_QUELLE.Tagebuch): NaechstesTraining => ({ date, time, source, reminderAt: null });
 
 function eintrag(teil: Partial<MerkzettelEintrag> = {}): MerkzettelEintrag {
   return {
@@ -39,6 +40,7 @@ function eintrag(teil: Partial<MerkzettelEintrag> = {}): MerkzettelEintrag {
     goal: MERKZETTEL_ZIEL.NaechstesTraining,
     targetDate: null,
     targetTime: null,
+    chosenTime: null,
     doneAt: null,
     doneInTrainingId: null,
     createdAt: "2026-11-01T10:00:00Z",
@@ -127,13 +129,19 @@ describe("Eingabe", () => {
   it("Nutzlast: Id vom Gerät, Datum nur beim Ziel Datum", () => {
     expect(
       baueMerkenNutzlast({ id: "abc", text: " Sitz ", exerciseId: "u1", ziel: MERKZETTEL_ZIEL.NaechstesTraining, datum: "2026-11-09" }),
-    ).toEqual({ id: "abc", text: "Sitz", exerciseId: "u1", goal: 0, targetDate: null });
+    ).toEqual({ id: "abc", text: "Sitz", exerciseId: "u1", goal: 0, targetDate: null, targetTime: null });
     expect(
       baueMerkenNutzlast({ id: "abc", text: "Sitz", exerciseId: null, ziel: MERKZETTEL_ZIEL.NaechsteWoche, datum: "2026-11-09" }).targetDate,
     ).toBeNull();
     expect(
       baueMerkenNutzlast({ id: "abc", text: "Sitz", exerciseId: null, ziel: MERKZETTEL_ZIEL.Datum, datum: "2026-11-09" }),
-    ).toEqual({ id: "abc", text: "Sitz", exerciseId: null, goal: 2, targetDate: "2026-11-09" });
+    ).toEqual({ id: "abc", text: "Sitz", exerciseId: null, goal: 2, targetDate: "2026-11-09", targetTime: null });
+    expect(
+      baueMerkenNutzlast({ id: "abc", text: "Sitz", exerciseId: null, ziel: MERKZETTEL_ZIEL.Datum, datum: "2026-11-09", uhrzeit: "18:30" }).targetTime,
+    ).toBe("18:30:00");
+    expect(
+      baueMerkenNutzlast({ id: "abc", text: "Sitz", exerciseId: null, ziel: MERKZETTEL_ZIEL.NaechsteWoche, datum: "2026-11-09", uhrzeit: "18:30" }).targetTime,
+    ).toBeNull();
   });
 });
 
@@ -291,5 +299,24 @@ describe("hakeAn", () => {
     const zeilen = [katalogZeile({ id: "u9", name: "Andere" })];
 
     expect(hakeAn(zeilen, {}, ohneUebung, false, []).zeilen).toEqual(zeilen);
+  });
+});
+
+describe("erinnerungsText", () => {
+  const vorschau = (time: string | null, reminderAt: string | null) =>
+    ({ date: "2026-11-12", time, source: 3, reminderAt }) as NaechstesTraining;
+
+  it("nennt Erinnerung und Trainingszeit - oder dass keine bekannt ist", () => {
+    expect(erinnerungsText(tDe, "de", vorschau("18:00:00", "2026-11-12T16:00:00"), "2026-11-04")).toBe(
+      "Erinnerung Do 12.11. um 16:00 – Training um 18:00",
+    );
+    expect(erinnerungsText(tDe, "de", vorschau(null, "2026-11-12T09:00:00"), "2026-11-11")).toBe(
+      "Erinnerung morgen um 09:00 – für diesen Tag ist keine Trainingszeit bekannt",
+    );
+  });
+
+  it("ohne Antwort keine Zeile", () => {
+    expect(erinnerungsText(tDe, "de", null)).toBeNull();
+    expect(erinnerungsText(tDe, "de", vorschau(null, null))).toBeNull();
   });
 });

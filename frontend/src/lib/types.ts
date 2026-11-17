@@ -117,6 +117,8 @@ export type MerkzettelEintrag = {
   targetDate: string | null;
   /** Uhrzeit des erkannten Trainings an diesem Tag ("18:00:00"); null, wenn unbekannt. */
   targetTime: string | null;
+  /** Die selbst gewählte Uhrzeit beim Ziel "Datum" ("18:00:00"), wie gespeichert; null, wenn keine gewählt wurde. */
+  chosenTime: string | null;
   doneAt: string | null;
   doneInTrainingId: string | null;
   createdAt: string;
@@ -129,6 +131,8 @@ export type NaechstesTraining = {
   /** "18:00:00"; null, wenn die Uhrzeit nicht bekannt ist. */
   time: string | null;
   source: TrainingsQuelle;
+  /** Wann die Erinnerung kommt (Vereinszeit, "2026-11-12T16:00:00"); null ohne Termin. */
+  reminderAt: string | null;
 };
 
 // Ein Pausenzeitraum, wie ihn die Planrechnung braucht (Backend: PausenZeitraumDto).

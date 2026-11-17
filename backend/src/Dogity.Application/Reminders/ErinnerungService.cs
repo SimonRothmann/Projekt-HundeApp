@@ -410,7 +410,7 @@ public class ErinnerungService(
             .Where(n => n.DoneAt == null
                 && (n.Goal == TrainingNoteGoal.NextTraining || (n.TargetDate <= heute && n.TargetDate >= wocheZurueck)))
             .OrderBy(n => n.CreatedAt)
-            .Select(n => new { n.Id, n.DogId, n.Text, n.Goal, n.TargetDate, n.CreatedAt })
+            .Select(n => new { n.Id, n.DogId, n.Text, n.Goal, n.TargetDate, n.TargetTime, n.CreatedAt })
             .AsNoTracking()
             .ToListAsync(ct);
         if (eintraege.Count == 0) return 0;
@@ -439,7 +439,7 @@ public class ErinnerungService(
         {
             var seine = eintraege
                 .Where(e => e.DogId == b.DogId)
-                .Select(e => new MerkzettelEintrag(e.Id, e.Text, e.Goal, e.TargetDate, e.CreatedAt))
+                .Select(e => new MerkzettelEintrag(e.Id, e.Text, e.Goal, e.TargetDate, e.CreatedAt, e.TargetTime))
                 .ToList();
             if (seine.Count == 0) continue;
 

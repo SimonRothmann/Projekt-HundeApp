@@ -36,8 +36,9 @@ public class MerkzettelErinnerungenTests
     // ---------------------------------------------------------------- Regeln
 
     private static MerkzettelEintrag Eintrag(
-        string text = "Fuß rückwärts", TrainingNoteGoal ziel = TrainingNoteGoal.NextTraining, DateOnly? datum = null, DateTimeOffset? angelegt = null) =>
-        new(Guid.NewGuid(), text, ziel, datum, angelegt ?? Utc(1, 10));
+        string text = "Fuß rückwärts", TrainingNoteGoal ziel = TrainingNoteGoal.NextTraining, DateOnly? datum = null, DateTimeOffset? angelegt = null,
+        TimeOnly? zeit = null) =>
+        new(Guid.NewGuid(), text, ziel, datum, angelegt ?? Utc(1, 10), zeit);
 
     private static MerkzettelKandidat Kandidat(
         IEnumerable<MerkzettelEintrag> eintraege, IReadOnlyList<TagebuchTraining>? tagebuch = null,
@@ -60,6 +61,15 @@ public class MerkzettelErinnerungenTests
         Assert.Equal("Today 18:00 - noted for Bello: Fuß rückwärts", En(e));
         Assert.Equal(new ErinnerungsSchluessel(ReminderType.TrainingNote, k.UserId, k.HundId, Heute), e.Schluessel);
         Assert.Equal($"/dogs/{k.HundId}?tab=plan", e.Link);
+    }
+
+    [Fact]
+    public void EigeneUhrzeit_SchlaegtDieErkannte_ErinnerungZweiStundenVorher()
+    {
+        var k = Kandidat([Eintrag(ziel: TrainingNoteGoal.Date, datum: Heute, zeit: new TimeOnly(20, 0))]);
+
+        Assert.Empty(Fuer(Utc(4, 16, 59), k)); // 17:59 Uhr, die erkannte 18:00 gilt nicht
+        Assert.Equal("Heute 20:00 - gemerkt für Bello: Fuß rückwärts", De(Assert.Single(Fuer(Utc(4, 17), k))));
     }
 
     [Fact]

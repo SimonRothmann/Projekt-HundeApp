@@ -134,7 +134,8 @@ public record MerkzettelExportDto(
     string Ziel,
     DateOnly? Datum,
     DateTimeOffset? ErledigtAm,
-    DateTimeOffset AngelegtAm);
+    DateTimeOffset AngelegtAm,
+    TimeOnly? Uhrzeit = null);
 
 /// <summary>Wann einer meiner Hunde meistens trainiert (Angabe für den Merkzettel).</summary>
 public record TrainingsrhythmusExportDto(Guid HundId, IReadOnlyList<string> Wochentage, int? Uhrzeit);

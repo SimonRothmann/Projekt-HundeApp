@@ -3008,6 +3008,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly?>("TargetDate")
                         .HasColumnType("date");
 
+                    b.Property<TimeOnly?>("TargetTime")
+                        .HasColumnType("time without time zone");
+
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(500)

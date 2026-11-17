@@ -72,6 +72,27 @@ export function naechstesTrainingText(
   return t("Nächstes Training · {wann}", { wann: zeitpunktText(t, sprache, naechstes.date, naechstes.time, heute) });
 }
 
+/**
+ * Die Zeile unter dem Datum: wann die Erinnerung kommt, wie der Server sie rechnet (nicht hier nachgerechnet).
+ * Ohne Antwort oder Zeitpunkt null - dann steht keine Zeile da.
+ */
+export function erinnerungsText(
+  t: Uebersetzer,
+  sprache: Sprache,
+  vorschau: NaechstesTraining | null,
+  heute: string = heuteIso(),
+): string | null {
+  if (!vorschau?.reminderAt) return null;
+  const wann = t("Erinnerung {tag} um {uhr}", {
+    tag: zeitpunktText(t, sprache, vorschau.reminderAt.slice(0, 10), null, heute),
+    uhr: vorschau.reminderAt.slice(11, 16),
+  });
+  const training = uhrzeitKurz(vorschau.time);
+  return training
+    ? t("{wann} – Training um {uhr}", { wann, uhr: training })
+    : t("{wann} – für diesen Tag ist keine Trainingszeit bekannt", { wann });
+}
+
 /** Wohin ein Eintrag in der Liste zeigt: "Di 18:00", "Nächstes Training" (noch unbekannt), "Nächste Woche" oder das gewählte Datum. */
 export function zielText(t: Uebersetzer, sprache: Sprache, eintrag: MerkzettelEintrag, heute: string = heuteIso()): string {
   if (eintrag.targetDate) return zeitpunktText(t, sprache, eintrag.targetDate, eintrag.targetTime, heute);
@@ -99,7 +120,7 @@ export function vorgabeZielDatum(heute: string = heuteIso()): string {
 
 /**
  * Der Eintrag, wie ihn POST /api/dogs/{id}/merkzettel erwartet. Die Id vergibt das Gerät: Wiederholt die
- * Offline-Warteschlange die Anfrage, entsteht der Eintrag nicht doppelt. Das Datum geht nur beim Ziel "Datum" mit.
+ * Offline-Warteschlange die Anfrage, entsteht der Eintrag nicht doppelt. Datum und Uhrzeit gehen nur beim Ziel "Datum" mit.
  */
 export function baueMerkenNutzlast(eingabe: {
   id: string;
@@ -107,6 +128,8 @@ export function baueMerkenNutzlast(eingabe: {
   exerciseId: string | null;
   ziel: MerkzettelZiel;
   datum: string;
+  /** "HH:mm" aus dem Zeitfeld; leer = keine eigene Uhrzeit. */
+  uhrzeit?: string;
 }) {
   return {
     id: eingabe.id,
@@ -114,6 +137,7 @@ export function baueMerkenNutzlast(eingabe: {
     exerciseId: eingabe.exerciseId,
     goal: eingabe.ziel,
     targetDate: eingabe.ziel === MERKZETTEL_ZIEL.Datum ? eingabe.datum : null,
+    targetTime: eingabe.ziel === MERKZETTEL_ZIEL.Datum && eingabe.uhrzeit ? `${eingabe.uhrzeit}:00` : null,
   };
 }
 
