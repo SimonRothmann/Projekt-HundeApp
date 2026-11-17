@@ -89,6 +89,10 @@ builder.Services.AddHostedService<PushVersandBackgroundService>();
 // in Dogity.Infrastructure): Speichern wartet nie auf Open-Meteo.
 builder.Services.AddHostedService<WetterNachtragBackgroundService>();
 
+// Abfragen der Hauptseiten einmal nach dem Start ausführen, damit der erste
+// Aufruf nach einem Deploy nicht spürbar langsamer ist.
+builder.Services.AddHostedService<WarmstartBackgroundService>();
+
 // Hinter Caddy (Reverse Proxy im Docker-Netzwerk) sieht Kestrel als
 // RemoteIpAddress nur die Proxy-IP. Für IP-basiertes Rate-Limiting und
 // korrekte Logs die X-Forwarded-*-Header übernehmen. KnownIPNetworks/-Proxies
