@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AblaufSpur, GpsPoint, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
 import { istMantrailing } from "@/lib/mantrailing";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Footprints } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -30,7 +29,6 @@ import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/compon
 import { primeHapticsAudio, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
 
 import { useT } from "@/lib/i18n";
-import { TEXTLAENGE } from "@/lib/textlaengen";
 // Stabile Leerreferenz für den Idle-Fall (keine Aufzeichnung läuft) - siehe
 // onLivePointsChange-Effect. Ein Inline-[] wäre bei jedem Render neu.
 const EMPTY_WALK_POINTS: GpsWalkPoint[] = [];
@@ -103,8 +101,11 @@ export function WalkRunRecorder({
   // Auf der Karte erlaubt ist der Startpunkt der Legung - der Rest nicht.
   const verdeckteKarte = useMemo(() => (ansatz ? [ansatz] : KEINE_PUNKTE), [ansatz]);
   const { isRecording, points, setPoints, currentAccuracy, start: startRecording, stop } = useGpsRecorder(toWalkPoint, GPS_PROFIL_ABLAUF);
-  // Optionaler Kommentar zu diesem Ablauf-Versuch (z.B. "bei Regen", "Hund
-  // hat an Winkel 2 verloren") - wird beim Stoppen mitgespeichert.
+  // Kommentar zu diesem Ablauf-Versuch. Getippt wird er nicht mehr während der
+  // Aufzeichnung (die Tastatur über der Karte war ein Taschen-Ziel), sondern
+  // im Ergebnis-Fenster danach (AblaufErgebnisSheet) bzw. später im Tagebuch.
+  // Hier bleibt nur der Wert einer alten, unterbrochenen Sicherung, damit er
+  // beim Fortsetzen/Speichern nicht verloren geht.
   const [comment, setComment] = useState("");
   const { user } = useAuth();
   const schluessel = ablaufSchluessel(trackId);
@@ -307,14 +308,6 @@ export function WalkRunRecorder({
             </>
           )}
         </>
-      }
-      aktionen={
-        <Input
-          placeholder={t("Kommentar zum Ablauf (optional)")}
-          value={comment}
-          maxLength={TEXTLAENGE.ablaufKommentar}
-          onChange={(e) => setComment(e.target.value)}
-        />
       }
       abschlussLabel={t("Ablauf beenden")}
       abschlussFrage={t("Ablauf beenden und speichern?")}
