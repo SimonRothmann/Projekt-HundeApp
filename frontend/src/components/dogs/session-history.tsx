@@ -13,7 +13,7 @@ import { SessionDayRow } from "@/components/dogs/session-day-row";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 import { feedbackKennung, istNeuesFeedback, markiereGesehen } from "@/lib/feedback-gesehen";
-import { nachTagen, tagPasstZuFilter, type TagesFilter } from "@/lib/tagebuch";
+import { nachTagen, tagPasstZuFilter, tagPasstZuSuche, type TagesFilter } from "@/lib/tagebuch";
 import { useWetterNachladen } from "@/lib/use-wetter-nachladen";
 import { trainingWetterOffen } from "@/lib/wetter-nachladen";
 import { tagAlsDatum } from "@/lib/kalendertag";
@@ -21,6 +21,9 @@ import { tagAlsDatum } from "@/lib/kalendertag";
 // Monatsschlüssel im Format "2026-07" für die Gruppierung - der Anfang des Kalendertags selbst,
 // ohne Umweg über ein Date; toLocaleDateString mit month:"long" liefert die Anzeige-Version
 // ("Juli 2026").
+/** So viele Treffer-Tage klappen bei Filter oder Suche von selbst auf; mehr Karten (mit Fährtenkarten) auf einmal wären zu schwer. */
+const TREFFER_AUTO_OFFEN_MAX = 10;
+
 function monthKey(iso: string): string {
   return iso.slice(0, 7);
 }
@@ -51,6 +54,8 @@ export function SessionHistory({
   fokusEintrag = null,
   dogName,
   filter,
+  suche = "",
+  onUebungHinzufuegen,
   laeufe,
   gesehenBeiStart,
   onGesehen,
@@ -69,6 +74,10 @@ export function SessionHistory({
   fokusEintrag?: string | null;
   /** Welche Tage die Liste zeigt (die Chips über dem Tagebuch). */
   filter: TagesFilter;
+  /** Suchtext über der Liste; leer = keine Suche. Durchsucht werden nur die geladenen Tage. */
+  suche?: string;
+  /** "Übung hinzufügen" in der Tageskarte: öffnet das Eintragen-Fenster auf diesem Tag (JJJJ-MM-TT); ohne: kein Knopf. */
+  onUebungHinzufuegen?: (datum: string) => void;
   /** Ausgewertete Fährten-Abläufe des Hundes - für das Kurzbild einer Fährte; null = noch nicht geladen. */
   laeufe: readonly DogTrackRun[] | null;
   /**
@@ -81,7 +90,8 @@ export function SessionHistory({
   onGesehen?: (kennung: string) => void;
 }) {
   const t = useT();
-  const ort = ortsformat(useSprache());
+  const sprache = useSprache();
+  const ort = ortsformat(sprache);
   // null = Voreinstellung (neuester Monat, plus der des Fokus-Eintrags) - erst
   // der erste Tipp auf einen Monat legt die Auswahl fest. Ein leeres Set als
   // "Voreinstellung" ließ den einzigen offenen Monat nie wieder zuklappen.
@@ -102,6 +112,19 @@ export function SessionHistory({
     setOpenDays(null);
   }
 
+  // Filter oder Suche zeigen die Treffer aufgeklappt (Monat und Tag), sonst
+  // müsste man sich zu jedem durch drei Ebenen tippen. Ändert sich die Auswahl,
+  // gilt wieder diese Voreinstellung - auch hier beim Rendern angeglichen.
+  const suchtext = suche.trim();
+  const treffer = filter !== "alle" || suchtext !== "";
+  const auswahlStand = `${filter}|${suchtext}`;
+  const [auswahl, setAuswahl] = useState(auswahlStand);
+  if (auswahl !== auswahlStand) {
+    setAuswahl(auswahlStand);
+    setOpenMonths(null);
+    setOpenDays(null);
+  }
+
   // Erst nach Monat, darin nach Tag gruppieren. Sessions kommen nach Datum
   // absteigend vom Backend, die Gruppen erben diese Reihenfolge.
   const liste = sessions ?? [];
@@ -111,17 +134,24 @@ export function SessionHistory({
   const fokusSession = fokusEintrag ? (liste.find((s) => s.id === fokusEintrag) ?? null) : null;
   const monthGroups = new Map<string, Map<string, TrainingSession[]>>();
   for (const [date, daySessions] of nachTagen(liste)) {
-    if (!tagPasstZuFilter(filter, daySessions)) continue;
+    if (!tagPasstZuFilter(filter, daySessions) || !tagPasstZuSuche(daySessions, suchtext, sprache)) continue;
     const mKey = monthKey(date);
     const days = monthGroups.get(mKey) ?? new Map<string, TrainingSession[]>();
     days.set(date, daySessions);
     monthGroups.set(mKey, days);
   }
   const orderedKeys = Array.from(monthGroups.keys());
+  const trefferTage = treffer
+    ? Array.from(monthGroups.values()).flatMap((tage) => Array.from(tage.keys())).slice(0, TREFFER_AUTO_OFFEN_MAX)
+    : [];
   const effectiveOpen =
     openMonths ??
-    new Set([...orderedKeys.slice(0, 1), ...(fokusSession ? [monthKey(fokusSession.date)] : [])]);
-  const effectiveDays = openDays ?? new Set(fokusSession ? [fokusSession.date] : []);
+    new Set(
+      treffer
+        ? orderedKeys
+        : [...orderedKeys.slice(0, 1), ...(fokusSession ? [monthKey(fokusSession.date)] : [])],
+    );
+  const effectiveDays = openDays ?? new Set(treffer ? trefferTage : fokusSession ? [fokusSession.date] : []);
 
   // Feedback gilt als gesehen, sobald sein Tag aufgeklappt ist - nicht schon,
   // wenn nur die Zeile zu sehen ist. Nur für Besitzer:innen: die Trainer:in,
@@ -189,6 +219,13 @@ export function SessionHistory({
 
   return (
     <div className="flex flex-col gap-3">
+      {orderedKeys.length === 0 && suchtext !== "" && (
+        <p role="status" className="px-1 text-sm text-muted-foreground">
+          {onLoadOlder
+            ? t("Nichts gefunden. Durchsucht werden nur die geladenen Tage - ältere kannst du unten nachladen.")
+            : t("Nichts gefunden.")}
+        </p>
+      )}
       {orderedKeys.map((mKey) => {
         const days = monthGroups.get(mKey)!;
         const isOpen = effectiveOpen.has(mKey);
@@ -237,6 +274,7 @@ export function SessionHistory({
                         fokusId={fokusSession?.id ?? null}
                         gesehenBeiStart={gesehenBeiStart}
                         onChanged={onChanged}
+                        onUebungHinzufuegen={onUebungHinzufuegen ? () => onUebungHinzufuegen(date) : undefined}
                       />
                     </SessionDayRow>
                   );

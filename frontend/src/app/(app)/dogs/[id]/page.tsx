@@ -73,6 +73,8 @@ function DogPage({ id }: { id: string }) {
   // Das Eintragen-Fenster und die Planübung, mit der es aufging (null = leer).
   const [eintragenOffen, setEintragenOffen] = useState(false);
   const [eintragenPlan, setEintragenPlan] = useState<TrainingPlanItem | null>(null);
+  // Der Tag, auf dem das Fenster aufgeht ("Übung hinzufügen" an einem Tag im Tagebuch); null = heute.
+  const [eintragenDatum, setEintragenDatum] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [menuOffen, setMenuOffen] = useState(false);
   const [faehrteOffen, setFaehrteOffen] = useState(false);
@@ -145,8 +147,9 @@ function DogPage({ id }: { id: string }) {
     setFaehrtenStand((n) => n + 1);
   }
 
-  function oeffneEintragen(plan: TrainingPlanItem | null) {
+  function oeffneEintragen(plan: TrainingPlanItem | null, datum: string | null = null) {
     setEintragenPlan(plan);
+    setEintragenDatum(datum);
     setEintragenOffen(true);
   }
 
@@ -253,6 +256,7 @@ function DogPage({ id }: { id: string }) {
           faehrtenStand={faehrtenStand}
           onChanged={faehrteGeaendert}
           onLoadOlder={showAllHistory ? null : loadOlderSessions}
+          onUebungHinzufuegen={(datum) => oeffneEintragen(null, datum)}
           // Nur im sichtbaren Reiter: Im versteckten gälte das Feedback als
           // gesehen, und die Karte würde in einem 0x0-Container aufgebaut.
           fokusEintrag={frischGeladen && reiter === "tagebuch" ? eintragId : null}
@@ -276,6 +280,7 @@ function DogPage({ id }: { id: string }) {
         // noch einmal (und widerspricht ihr so nie).
         vorab={{ dogId: id, sports: angebotene, goals, sessions }}
         vorgabePlan={eintragenPlan}
+        startDatum={eintragenDatum}
         darfMerken={isOwner}
         onSaved={handleTrainingSaved}
       />

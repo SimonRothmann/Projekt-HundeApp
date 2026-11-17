@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { Search } from "lucide-react";
 import type { TrainingSession } from "@/lib/types";
 import { SessionHistory } from "@/components/dogs/session-history";
 import { FaehrtenTrend } from "@/components/tracking/faehrten-trend";
 import { useT } from "@/lib/i18n";
 import { useFaehrtenStats } from "@/lib/use-faehrten-stats";
-import { geltenderFilter, nachTagen, verfuegbareFilter, type TagesFilter } from "@/lib/tagebuch";
+import { geltenderFilter, nachTagen, SUCHE_AB_TAGEN, verfuegbareFilter, type TagesFilter } from "@/lib/tagebuch";
 import { Chip } from "@/components/ui/chip";
+import { Input } from "@/components/ui/input";
 
 /**
  * Der Reiter "Tagebuch": der Fährten-Verlauf, die Filter und das kompakte
@@ -22,6 +24,7 @@ export function DiaryTab({
   faehrtenStand,
   onChanged,
   onLoadOlder,
+  onUebungHinzufuegen,
   fokusEintrag,
   gesehenBeiStart,
   onGesehen,
@@ -36,6 +39,8 @@ export function DiaryTab({
   faehrtenStand: number;
   onChanged: () => Promise<void>;
   onLoadOlder: (() => Promise<void>) | null;
+  /** "Übung hinzufügen" an einem Tag: öffnet das Eintragen-Fenster der Hundeseite auf diesem Tag (JJJJ-MM-TT). */
+  onUebungHinzufuegen?: (datum: string) => void;
   /** Der Eintrag, auf den ein Link zeigt - null, solange die Seite noch nicht fertig geladen ist. */
   fokusEintrag: string | null;
   gesehenBeiStart: ReadonlySet<string>;
@@ -43,17 +48,22 @@ export function DiaryTab({
 }) {
   const t = useT();
   const [gewaehlt, setGewaehlt] = useState<TagesFilter>("alle");
+  const [suche, setSuche] = useState("");
   // Springt ein Link (oder "Neues Feedback") zu einem Eintrag, zeigt die Liste
   // wieder alle Tage: Der Tag könnte vom Filter ausgeblendet sein, und das
   // Hinscrollen liefe ins Leere. (Zustand während des Renderns angleichen.)
   const [fokusStand, setFokusStand] = useState(fokusEintrag);
   if (fokusEintrag !== fokusStand) {
     setFokusStand(fokusEintrag);
-    if (fokusEintrag) setGewaehlt("alle");
+    if (fokusEintrag) {
+      setGewaehlt("alle");
+      setSuche("");
+    }
   }
   const { stats, bereit } = useFaehrtenStats(dogId, faehrteAn, faehrtenStand);
 
-  const angeboten = verfuegbareFilter(Array.from(nachTagen(sessions).values()));
+  const tage = Array.from(nachTagen(sessions).values());
+  const angeboten = verfuegbareFilter(tage);
   const filter = geltenderFilter(gewaehlt, angeboten);
   const filterLabel: Record<TagesFilter, string> = {
     alle: t("Alle"),
@@ -86,6 +96,22 @@ export function DiaryTab({
         </div>
       )}
 
+      {/* Erst, wenn das Tagebuch lang genug ist, dass man etwas suchen will. Wer gerade
+          sucht, behält das Feld auch dann, wenn ein Löschen die Tage unter die Schwelle drückt. */}
+      {(tage.length >= SUCHE_AB_TAGEN || suche !== "") && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input
+            type="search"
+            value={suche}
+            onChange={(e) => setSuche(e.target.value)}
+            placeholder={t("Tagebuch durchsuchen")}
+            aria-label={t("Tagebuch durchsuchen")}
+            className="h-11 pl-9"
+          />
+        </div>
+      )}
+
       <SessionHistory
         sessions={sessions}
         dogName={dogName}
@@ -97,6 +123,8 @@ export function DiaryTab({
         // wieder wegschieben.
         fokusEintrag={bereit ? fokusEintrag : null}
         filter={filter}
+        suche={suche}
+        onUebungHinzufuegen={onUebungHinzufuegen}
         laeufe={stats?.runs ?? null}
         gesehenBeiStart={gesehenBeiStart}
         onGesehen={onGesehen}

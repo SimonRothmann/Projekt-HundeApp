@@ -39,6 +39,8 @@ export type EintragenDaten = {
   termine: GroupTrainingSession[];
   /** Weder frisch noch aus dem Lesecache zu bekommen: nur freie Eingabe möglich. */
   offline: boolean;
+  /** Ziele oder Einheiten stehen noch aus (und der Abruf ist nicht gescheitert): Vorschläge und Dauer sind noch nicht endgültig. */
+  vorschlaegeLaden: boolean;
 };
 
 /** Was die Hundeseite im Lesecache hält (siehe use-dog-page.ts) - hier nur die Teile, die gebraucht werden. */
@@ -53,6 +55,9 @@ type Geladen = {
   /** Die Sportarten aus dem Lesecache - ungefiltert und nur für den Fall, dass kein frischer Abruf gelingt. */
   cacheSports: Sport[] | null;
   sportsFehlgeschlagen: boolean;
+  /** Abruf gescheitert: Dann wartet das Fenster nicht länger auf Vorschläge. */
+  zieleFehlgeschlagen: boolean;
+  einheitenFehlgeschlagen: boolean;
 };
 
 const leer = (dogId: string): Geladen => ({
@@ -63,6 +68,8 @@ const leer = (dogId: string): Geladen => ({
   termine: null,
   cacheSports: null,
   sportsFehlgeschlagen: false,
+  zieleFehlgeschlagen: false,
+  einheitenFehlgeschlagen: false,
 });
 
 // Stabile Leerwerte: Ein frisches [] je Rendern ließe jede abgeleitete Liste
@@ -142,6 +149,7 @@ export function useEintragenDaten(
         setze({ goals: ziele });
       } catch {
         // Ohne Ziele fehlt nur "Diese Woche" und die Plan-Zuordnung.
+        setze({ zieleFehlgeschlagen: true });
       }
     }
 
@@ -155,6 +163,7 @@ export function useEintragenDaten(
         setze({ sessions: einheiten });
       } catch {
         // Ohne Einheiten fehlen "Zuletzt geübt" und die Vorbelegungen.
+        setze({ einheitenFehlgeschlagen: true });
       }
     }
 
@@ -183,10 +192,14 @@ export function useEintragenDaten(
   );
   const sports =
     mitgebracht?.sports ?? geladen.sports ?? (geladen.sportsFehlgeschlagen ? sportsAusCache : null) ?? KEINE_SPORTARTEN;
+  const goals = mitgebracht?.goals !== undefined ? mitgebracht.goals : geladen.goals;
+  const sessions = mitgebracht?.sessions !== undefined ? mitgebracht.sessions : geladen.sessions;
   return {
     sports,
-    goals: mitgebracht?.goals !== undefined ? mitgebracht.goals : geladen.goals,
-    sessions: mitgebracht?.sessions !== undefined ? mitgebracht.sessions : geladen.sessions,
+    goals,
+    sessions,
+    vorschlaegeLaden:
+      (goals === null && !geladen.zieleFehlgeschlagen) || (sessions === null && !geladen.einheitenFehlgeschlagen),
     termine: termineVonSeite ?? geladen.termine ?? KEINE_TERMINE,
     offline: sports.length === 0 && geladen.sportsFehlgeschlagen,
   };

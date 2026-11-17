@@ -3143,4 +3143,9 @@ export const EN: Record<string, string> = {
   "Einladung": "Invitation",
   "Katalog": "Catalogue",
   "Abschnitte": "Sections",
+  "Entwurf verwerfen?": "Discard draft?",
+  "Weiter bearbeiten": "Keep editing",
+  "Tagebuch durchsuchen": "Search diary",
+  "Nichts gefunden.": "Nothing found.",
+  "Nichts gefunden. Durchsucht werden nur die geladenen Tage - ältere kannst du unten nachladen.": "Nothing found. Only the loaded days are searched - you can load older ones below.",
 };

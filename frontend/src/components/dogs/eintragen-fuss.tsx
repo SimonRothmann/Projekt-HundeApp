@@ -18,6 +18,7 @@ import { useT } from "@/lib/i18n";
  */
 export function EintragenFuss({
   dauer,
+  dauerLaedt = false,
   onDauer,
   kontext,
   hatOrt,
@@ -31,6 +32,8 @@ export function EintragenFuss({
   onSpeichern,
 }: {
   dauer: number;
+  /** Die letzten Einheiten laden noch: Die Dauer steht nicht fest und wird nicht angezeigt (kein Springen von 30 auf 40). */
+  dauerLaedt?: boolean;
   onDauer: (minuten: number) => void;
   /** "Heute 16:40 · Hundeplatz" */
   kontext: string;
@@ -76,11 +79,11 @@ export function EintragenFuss({
       <div className="flex flex-wrap items-center gap-2">
         <Chip
           aria-expanded={dauerOffen}
-          aria-label={`${t("Dauer in Minuten")}: ${Number.isFinite(dauer) ? dauer : "-"}`}
+          aria-label={`${t("Dauer in Minuten")}: ${dauerLaedt || !Number.isFinite(dauer) ? "-" : dauer}`}
           onClick={() => setDauerOffen((offen) => !offen)}
         >
           <Timer className="size-4" aria-hidden />
-          {Number.isFinite(dauer) ? t("{minuten} Min.", { minuten: dauer }) : "-"}
+          {dauerLaedt ? t("{minuten} Min.", { minuten: "…" }) : Number.isFinite(dauer) ? t("{minuten} Min.", { minuten: dauer }) : "-"}
         </Chip>
         <Chip aria-expanded={mehrOffen} onClick={onMehr}>
           <Ellipsis className="size-4" aria-hidden />
@@ -109,7 +112,7 @@ export function EintragenFuss({
         </div>
       )}
 
-      <Button type="button" disabled={speichert} onClick={onSpeichern} className="mt-1 h-12 w-full text-base font-semibold">
+      <Button type="button" disabled={speichert || dauerLaedt} onClick={onSpeichern} className="mt-1 h-12 w-full text-base font-semibold">
         <span className="min-w-0 truncate">
           {speichert
             ? t("Wird gespeichert…")
