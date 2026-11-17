@@ -12,7 +12,7 @@ import { offeneWochenziele, wochenFortschritt } from "@/lib/trainingsplan";
 
 // ---- Gruppentermine ----
 
-/** So weit im Voraus bekommt ein Termin eine eigene Karte; spätere stehen höchstens unter "Weitere Termine". */
+/** So weit im Voraus bekommt ein Termin eine eigene Karte; spätere stehen höchstens als schmale Zeile "Nächster Termin" bzw. unter "Weitere Termine". */
 export const TERMIN_TAGE_VORAUS = 7;
 
 /** Höchstens so viele weitere Termine zeigt die einklappbare Liste (wie der frühere Block "Nächste Gruppentrainings"). */
@@ -24,27 +24,34 @@ const TAG_MS = 24 * 60 * 60 * 1000;
  * Der Termin für die Karte und die Liste dahinter.
  *
  * `naechster` ist der erste nicht abgesagte Termin, der noch nicht begonnen hat
- * und innerhalb von {@link TERMIN_TAGE_VORAUS} Tagen liegt. Gibt es keinen,
- * bleibt die Startseite ganz ohne Terminkarte: Viele Vereine regeln Termine
- * anders, eine leere oder werbende Karte wäre dort nur Platzverschwendung -
- * und `weitere` bleibt dann leer, es hängt an der Karte.
+ * und innerhalb von {@link TERMIN_TAGE_VORAUS} Tagen liegt - er bekommt die Karte.
  *
- * `weitere` sind die übrigen kommenden Termine (abgesagte eingeschlossen, die
- * Liste kennzeichnet sie), in zeitlicher Reihenfolge und gedeckelt.
+ * Liegt keiner so nah, aber später einer, ist `fern` der erste nicht abgesagte
+ * davon: Die Startseite zeigt dann nur eine schmale, ruhige Zeile, die die
+ * Liste aufklappt - sonst hätte ein Mitglied keinen Weg, zuzusagen. `weitere`
+ * ist dann die ganze Liste der kommenden Termine (mit `fern`). Gibt es gar
+ * keinen kommenden, nicht abgesagten Termin, bleibt die Startseite ohne
+ * Terminbereich: Viele Vereine regeln Termine anders, eine leere oder
+ * werbende Karte wäre dort nur Platzverschwendung.
+ *
+ * `weitere` sind sonst die übrigen kommenden Termine (abgesagte eingeschlossen,
+ * die Liste kennzeichnet sie), in zeitlicher Reihenfolge und gedeckelt.
  */
 export function terminUebersicht(
   termine: readonly GroupTrainingSession[],
   jetzt: number = Date.now(),
-): { naechster: GroupTrainingSession | null; weitere: GroupTrainingSession[] } {
+): { naechster: GroupTrainingSession | null; fern: GroupTrainingSession | null; weitere: GroupTrainingSession[] } {
   const kommende = termine
     .filter((t) => new Date(t.startsAt).getTime() > jetzt)
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 
   const grenze = jetzt + TERMIN_TAGE_VORAUS * TAG_MS;
   const naechster = kommende.find((t) => t.status === 0 && new Date(t.startsAt).getTime() <= grenze) ?? null;
-  if (!naechster) return { naechster: null, weitere: [] };
+  if (naechster) return { naechster, fern: null, weitere: kommende.filter((t) => t !== naechster).slice(0, MAX_WEITERE_TERMINE) };
 
-  return { naechster, weitere: kommende.filter((t) => t !== naechster).slice(0, MAX_WEITERE_TERMINE) };
+  const fern = kommende.find((t) => t.status === 0) ?? null;
+  if (!fern) return { naechster: null, fern: null, weitere: [] };
+  return { naechster: null, fern, weitere: kommende.slice(0, MAX_WEITERE_TERMINE) };
 }
 
 // ---- Trainer-Feedback ----
