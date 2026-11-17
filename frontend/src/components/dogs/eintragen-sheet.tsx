@@ -10,7 +10,7 @@ import { enqueueRequest } from "@/lib/offline-queue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { ConditionPicker } from "@/components/dogs/condition-picker";
 import { LocationTimeFields, type LocationValue } from "@/components/dogs/location-time-fields";
@@ -89,6 +89,7 @@ export function EintragenSheet({
   termine,
   sportIdsJeHund,
   vorgabePlan,
+  startDatum = null,
   darfMerken = true,
   onSaved,
 }: {
@@ -106,6 +107,8 @@ export function EintragenSheet({
   sportIdsJeHund?: Record<string, string[]>;
   /** Eine Planübung, die schon gewählt sein soll (Antippen einer Planzeile). */
   vorgabePlan?: TrainingPlanItem | null;
+  /** Der Tag (JJJJ-MM-TT), auf dem das Fenster aufgeht - z. B. "Übung hinzufügen" an einem Tag des Tagebuchs; sonst heute. */
+  startDatum?: string | null;
   /**
    * Ob der Merkzettel des Hundes zugänglich ist (nur Besitzer:innen; betreuende Trainer:innen tragen ein,
    * merken aber nicht). Die Startseiten kennen nur eigene Hunde und lassen es bei ja.
@@ -150,6 +153,7 @@ export function EintragenSheet({
           termine={termine}
           sportIdsJeHund={sportIdsJeHund}
           vorgabePlan={vorgabePlan ?? null}
+          startDatum={startDatum}
           darfMerken={darfMerken}
           onEntwurf={meldeEntwurf}
           onClose={() => onOpenChange(false)}
@@ -161,6 +165,12 @@ export function EintragenSheet({
   );
 }
 
+/** Lässt das Notizfeld mit dem Inhalt wachsen (bis zur Höchsthöhe), statt einzeilig zu quetschen. */
+function waechst(feld: HTMLTextAreaElement) {
+  feld.style.height = "auto";
+  feld.style.height = `${Math.min(feld.scrollHeight, 200)}px`;
+}
+
 type Ansicht = "haupt" | "suche" | "ort" | "merken";
 
 function EintragenInhalt({
@@ -170,6 +180,7 @@ function EintragenInhalt({
   termine,
   sportIdsJeHund,
   vorgabePlan,
+  startDatum,
   darfMerken,
   onEntwurf,
   onClose,
@@ -181,6 +192,7 @@ function EintragenInhalt({
   termine: GroupTrainingSession[] | undefined;
   sportIdsJeHund: Record<string, string[]> | undefined;
   vorgabePlan: TrainingPlanItem | null;
+  startDatum: string | null;
   darfMerken: boolean;
   /** Meldet der Hülle, ob schon etwas eingetragen ist (dann verwirft ein Tipp daneben das Fenster nicht). */
   onEntwurf: (vorhanden: boolean) => void;
@@ -193,8 +205,11 @@ function EintragenInhalt({
 
   const [hundId, setHundId] = useState(startHund);
   const [hundWahl, setHundWahl] = useState(false);
-  const [tag, setTag] = useState<Tag>("heute");
-  const [anderesDatum, setAnderesDatum] = useState(() => plusTage(heuteIso(), -2));
+  // Mit Startdatum (Tag aus dem Tagebuch) geht das Fenster auf genau diesem Tag auf.
+  const [tag, setTag] = useState<Tag>(() =>
+    startDatum === null || startDatum === heuteIso() ? "heute" : startDatum === plusTage(heuteIso(), -1) ? "gestern" : "anderer",
+  );
+  const [anderesDatum, setAnderesDatum] = useState(() => startDatum ?? plusTage(heuteIso(), -2));
   const [zeilen, setZeilen] = useState<EintragZeile[]>(() => (vorgabePlan ? [zeileAusPlanItem(vorgabePlan)] : []));
   const [bewertung, setBewertung] = useState<Bewertung>(VORGABE_BEWERTUNG);
   const [offeneDetails, setOffeneDetails] = useState<ReadonlySet<string>>(new Set());
@@ -203,6 +218,10 @@ function EintragenInhalt({
   const [verfassung, setVerfassung] = useState<DogCondition | null>(null);
   const [notiz, setNotiz] = useState("");
   const [speichert, setSpeichert] = useState(false);
+  // Die Rückfrage "Entwurf verwerfen?" nach einem Tipp auf das X.
+  const [verwerfenFrage, setVerwerfenFrage] = useState(false);
+  // Die Vorschläge laden zu lange: Dann wartet das Fenster nicht länger darauf (schlechtes Netz auf dem Platz).
+  const [ungeduldig, setUngeduldig] = useState(false);
   // Gemerktes fürs heutige Training: welche Einträge angehakt sind und welche Übungszeilen das Anhaken ergänzt hat.
   const [angehakt, setAngehakt] = useState<ReadonlySet<string>>(new Set());
   const [ergaenzt, setErgaenzt] = useState<Ergaenzt>({});
@@ -224,6 +243,9 @@ function EintragenInhalt({
   const katalog = useUebungsKatalog(daten.sports);
 
   const datum = datumFuerTag(tag, anderesDatum);
+  // Solange die letzten Einheiten fehlen, steht die Dauer noch nicht fest: Sie wird nicht als 30 gezeigt, um dann auf 40 zu springen.
+  const laedt = daten.vorschlaegeLaden && !ungeduldig;
+  const dauerLaedt = laedt && dauerWahl === null;
   const dauer = dauerWahl ?? vorbelegteDauer(daten.sessions);
   const uhrzeit = uhrzeitWahl ?? (tag === "heute" ? uhrBeimOeffnen : "");
   const vorOrt = useMemo(
@@ -247,9 +269,16 @@ function EintragenInhalt({
     if (mehrOffen) mehrRef.current?.scrollIntoView({ block: "nearest" });
   }, [mehrOffen]);
 
+  const hatEntwurf = zeilen.length > 0 || notiz !== "" || verfassung !== null;
   useEffect(() => {
-    onEntwurf(zeilen.length > 0 || notiz !== "");
-  }, [onEntwurf, zeilen.length, notiz]);
+    onEntwurf(hatEntwurf);
+  }, [onEntwurf, hatEntwurf]);
+
+  useEffect(() => {
+    if (!daten.vorschlaegeLaden) return;
+    const timer = setTimeout(() => setUngeduldig(true), 5000);
+    return () => clearTimeout(timer);
+  }, [daten.vorschlaegeLaden, hundId]);
 
   const gewaehlt = useMemo(() => new Set(zeilen.map(zeilenSchluessel)), [zeilen]);
   const wochen = useMemo(() => wochenChips(daten.goals), [daten.goals]);
@@ -332,6 +361,7 @@ function EintragenInhalt({
   function waehleHund(neu: string) {
     setHundId(neu);
     setHundWahl(false);
+    setUngeduldig(false);
     // Der Merkzettel gehört zum Hund.
     setAngehakt(new Set());
     setErgaenzt({});
@@ -436,15 +466,36 @@ function EintragenInhalt({
   const hund = hunde.find((h) => h.id === hundId);
   const kannWechseln = hunde.length > 1 && hunde.some((h) => h.id === hundId);
 
+  // Das X verwirft einen Entwurf nicht stillschweigend: erst die Rückfrage im Fenster selbst.
   const titel = (
-    <SheetHeader className="shrink-0 flex-row items-center justify-between gap-2 p-4 pb-2">
-      <SheetTitle className="text-lg">
-        {ansicht === "suche" ? t("Übung wählen") : ansicht === "ort" ? t("Ort & Uhrzeit") : t("Training eintragen")}
-      </SheetTitle>
-      <SheetClose render={<Button variant="ghost" size="icon" className="size-11 shrink-0" aria-label={t("Schließen")} />}>
-        <X className="size-5" />
-      </SheetClose>
-    </SheetHeader>
+    <>
+      <SheetHeader className="shrink-0 flex-row items-center justify-between gap-2 p-4 pb-2">
+        <SheetTitle className="text-lg">
+          {ansicht === "suche" ? t("Übung wählen") : ansicht === "ort" ? t("Ort & Uhrzeit") : t("Training eintragen")}
+        </SheetTitle>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-11 shrink-0"
+          aria-label={t("Schließen")}
+          onClick={() => (hatEntwurf ? setVerwerfenFrage(true) : onClose())}
+        >
+          <X className="size-5" />
+        </Button>
+      </SheetHeader>
+      {verwerfenFrage && (
+        <div role="alert" className="flex shrink-0 flex-wrap items-center gap-2 px-4 pb-2">
+          <p className="min-w-0 flex-1 text-sm font-medium">{t("Entwurf verwerfen?")}</p>
+          <Button type="button" variant="ghost" className="min-h-11" onClick={() => setVerwerfenFrage(false)} autoFocus>
+            {t("Weiter bearbeiten")}
+          </Button>
+          <Button type="button" variant="destructive" className="min-h-11" onClick={onClose}>
+            {t("Verwerfen")}
+          </Button>
+        </div>
+      )}
+    </>
   );
 
   if (ansicht === "suche") {
@@ -637,6 +688,9 @@ function EintragenInhalt({
           </section>
         )}
 
+        {/* Feste Höhe, solange Ziele und letzte Einheiten laden: nichts darunter rutscht, wenn die Chips kommen. */}
+        {laedt && <div role="status" className="h-24 shrink-0 animate-pulse rounded-lg bg-muted" aria-label={t("Lädt…")} />}
+
         {wochen.length > 0 && (
           <section className="flex flex-col gap-2" aria-labelledby="eintragen-woche">
             <Abschnittsname id="eintragen-woche">{t("Diese Woche")}</Abschnittsname>
@@ -708,6 +762,8 @@ function EintragenInhalt({
           onEntferne={entferneZeile}
           uebungen={uebungen}
           ohneVorschlaege={wochen.length === 0 && !letzte && zuletzt.length === 0}
+          vorschlaegeLaden={laedt}
+          verfassung={<ConditionPicker value={verfassung} onChange={setVerfassung} disabled={speichert} />}
         />
 
         {darfMerken && (
@@ -718,27 +774,26 @@ function EintragenInhalt({
         )}
 
         {mehrOffen && (
-          <section ref={mehrRef} className="flex flex-col gap-3 rounded-lg border border-surface-border p-3">
-            <div className="flex flex-col gap-2">
-              <Label>{t("Verfassung (optional)")}</Label>
-              <ConditionPicker value={verfassung} onChange={setVerfassung} disabled={speichert} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="eintragen-notiz">{t("Notizen zum ganzen Training")}</Label>
-              <Input
-                id="eintragen-notiz"
-                value={notiz}
-                maxLength={TEXTLAENGE.trainingsNotiz}
-                className="h-11"
-                onChange={(e) => setNotiz(e.target.value)}
-              />
-            </div>
+          <section ref={mehrRef} className="flex flex-col gap-2">
+            <Label htmlFor="eintragen-notiz">{t("Notizen zum ganzen Training")}</Label>
+            <textarea
+              id="eintragen-notiz"
+              rows={2}
+              value={notiz}
+              maxLength={TEXTLAENGE.trainingsNotiz}
+              className="max-h-[200px] min-h-16 w-full min-w-0 resize-none rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/85 md:text-sm dark:bg-input/30 dark:focus-visible:ring-ring/50"
+              onChange={(e) => {
+                setNotiz(e.target.value);
+                waechst(e.target);
+              }}
+            />
           </section>
         )}
       </div>
 
       <EintragenFuss
         dauer={dauer}
+        dauerLaedt={dauerLaedt}
         onDauer={setDauerWahl}
         kontext={kontext}
         hatOrt={hatOrt}

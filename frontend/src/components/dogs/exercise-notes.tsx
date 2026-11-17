@@ -141,6 +141,7 @@ export function ExerciseNotes({
               setEditing(true);
             }}
             title={t("Notiz bearbeiten")}
+            aria-label={t("Notiz bearbeiten")}
           >
             <Pencil className="size-3" />
           </Button>
@@ -166,6 +167,7 @@ export function ExerciseNotes({
             setEditing(true);
           }}
           title={t("Notiz bearbeiten")}
+          aria-label={t("Notiz bearbeiten")}
         >
           <Pencil className="size-3" />
         </Button>

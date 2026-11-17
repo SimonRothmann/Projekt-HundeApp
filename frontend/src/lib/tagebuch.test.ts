@@ -9,6 +9,7 @@ import {
   tageAnzahl,
   tagKurz,
   tagPasstZuFilter,
+  tagPasstZuSuche,
   tagesKurzbild,
   verfuegbareFilter,
 } from "./tagebuch";
@@ -210,6 +211,47 @@ describe("darfBearbeiten / ganzerTagBearbeitbar", () => {
     expect(ganzerTagBearbeitbar([einheit({ darfBearbeiten: true }), einheit()], true)).toBe(true);
     expect(ganzerTagBearbeitbar([einheit({ darfBearbeiten: true }), einheit()], false)).toBe(false);
     expect(ganzerTagBearbeitbar([einheit({ darfBearbeiten: true }), einheit({ darfBearbeiten: false })], true)).toBe(false);
+  });
+});
+
+describe("tagPasstZuSuche", () => {
+  const tag = [
+    einheit({
+      notes: "Viel Ablenkung durch Radfahrer",
+      locationName: "Hundeplatz Süd",
+      exercises: [{ ...uebung("Fußarbeit", 4), exerciseNameEn: "Heelwork", notes: "Tempo wechseln" }],
+    }),
+  ];
+
+  it("lässt bei leerer Suche jeden Tag durch", () => {
+    expect(tagPasstZuSuche(tag, "")).toBe(true);
+    expect(tagPasstZuSuche(tag, "   ")).toBe(true);
+  });
+
+  it("findet Übungsname, Übungsnotiz, Tages-Kommentar und Ort", () => {
+    expect(tagPasstZuSuche(tag, "fußarbeit")).toBe(true);
+    expect(tagPasstZuSuche(tag, "tempo")).toBe(true);
+    expect(tagPasstZuSuche(tag, "radfahrer")).toBe(true);
+    expect(tagPasstZuSuche(tag, "hundeplatz")).toBe(true);
+  });
+
+  it("ignoriert Groß-/Kleinschreibung und Umlautpunkte", () => {
+    expect(tagPasstZuSuche(tag, "FUßARBEIT")).toBe(true);
+    expect(tagPasstZuSuche(tag, "sud")).toBe(true);
+  });
+
+  it("verlangt alle Wörter, auch über Felder verteilt", () => {
+    expect(tagPasstZuSuche(tag, "fußarbeit radfahrer")).toBe(true);
+    expect(tagPasstZuSuche(tag, "fußarbeit schwimmen")).toBe(false);
+  });
+
+  it("sucht den englischen Namen in englischer Oberfläche", () => {
+    expect(tagPasstZuSuche(tag, "heelwork", "en")).toBe(true);
+  });
+
+  it("findet nichts, was nicht am Tag steht", () => {
+    expect(tagPasstZuSuche(tag, "agility")).toBe(false);
+    expect(tagPasstZuSuche([einheit()], "x")).toBe(false);
   });
 });
 

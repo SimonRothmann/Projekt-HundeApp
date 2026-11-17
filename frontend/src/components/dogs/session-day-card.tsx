@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { BlockLabel } from "@/components/ui/block-label";
 import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Input } from "@/components/ui/input";
-import { Check, ListChecks, MessageSquarePlus, Pencil, Timer, Trash2 } from "lucide-react";
+import { Check, ListChecks, MessageSquarePlus, Pencil, Plus, Timer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { GpsTrackSection } from "@/components/tracking/gps-track-section";
 import { SessionContextEditor } from "@/components/dogs/session-context-editor";
@@ -175,6 +175,7 @@ function DayNotes({
             setEditing(true);
           }}
           title={t("Tages-Kommentar bearbeiten")}
+          aria-label={t("Tages-Kommentar bearbeiten")}
         >
           <Pencil className="size-3" />
         </Button>
@@ -353,6 +354,7 @@ export function SessionDayCard({
   fokusId,
   gesehenBeiStart,
   onChanged,
+  onUebungHinzufuegen,
 }: {
   /** Alle Einheiten dieses Trainingstags. */
   tag: TrainingSession[];
@@ -364,6 +366,8 @@ export function SessionDayCard({
   /** Welches Feedback beim Öffnen der Seite schon gesehen war (für "Neu"). */
   gesehenBeiStart: ReadonlySet<string>;
   onChanged: () => Promise<void>;
+  /** Öffnet das Eintragen-Fenster auf diesem Tag; der Server führt es mit dem bestehenden Tag zusammen. Ohne: kein Knopf. */
+  onUebungHinzufuegen?: () => void;
 }) {
   const t = useT();
   const sprache = useSprache();
@@ -479,6 +483,12 @@ export function SessionDayCard({
             ))}
           </ul>
         </section>
+      )}
+      {tagBearbeitbar && onUebungHinzufuegen && (
+        <Button size="sm" variant="ghost" className="self-start" onClick={onUebungHinzufuegen}>
+          <Plus className="size-4" />
+          {t("Übung hinzufügen")}
+        </Button>
       )}
       {/* Bereits aufgezeichnete Fährten bleiben sichtbar, auch wenn das Modul
           aus ist: Sie gehören zum Tagebuch, und wer die Aufzeichnung

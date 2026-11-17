@@ -92,6 +92,7 @@ export function ExerciseRating({
             variant="ghost"
             className="size-6"
             title={t("Bewertung ändern")}
+            aria-label={t("Bewertung ändern")}
             onClick={() => {
               setValue(rating);
               setOk(success);
@@ -108,6 +109,7 @@ export function ExerciseRating({
             variant="ghost"
             className="size-6 text-muted-foreground hover:text-destructive"
             title={t("Übung löschen")}
+            aria-label={t("Übung löschen")}
             onClick={onDelete}
           >
             <Trash2 className="size-3" />

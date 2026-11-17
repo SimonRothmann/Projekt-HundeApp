@@ -3135,4 +3135,9 @@ export const EN: Record<string, string> = {
   "Farbsichere Darstellung": "Colour-safe display",
   "Für Rot-Grün-Schwäche: Ampeln auf Karte, Auswertung und Verlauf in Blau, Gelb und Rot statt Grün, Orange und Rot.": "For red-green colour blindness: traffic lights on the map, evaluation and history in blue, yellow and red instead of green, orange and red.",
   "Gilt für dein Konto auf jedem Gerät.": "Applies to your account on every device.",
+  "Entwurf verwerfen?": "Discard draft?",
+  "Weiter bearbeiten": "Keep editing",
+  "Tagebuch durchsuchen": "Search diary",
+  "Nichts gefunden.": "Nothing found.",
+  "Nichts gefunden. Durchsucht werden nur die geladenen Tage - ältere kannst du unten nachladen.": "Nothing found. Only the loaded days are searched - you can load older ones below.",
 };

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,8 @@ export function EintragenZeilen({
   onEntferne,
   uebungen,
   ohneVorschlaege = false,
+  vorschlaegeLaden = false,
+  verfassung,
 }: {
   zeilen: readonly AufgeloesteZeile[];
   bewertung: Bewertung;
@@ -54,11 +57,16 @@ export function EintragenZeilen({
   uebungen: ReadonlyMap<string, Exercise>;
   /** Weder Plan noch frühere Einheiten: Es gibt oben keine Chips, nur „Andere Übung“. */
   ohneVorschlaege?: boolean;
+  /** Die Vorschläge laden noch: Der Leertext käme zu früh und würde wieder verschwinden. */
+  vorschlaegeLaden?: boolean;
+  /** Die Verfassung des Hundes (fließt in die Statistik): steht direkt unter "Wie lief es?". */
+  verfassung: ReactNode;
 }) {
   const t = useT();
   const sprache = useSprache();
 
   if (zeilen.length === 0) {
+    if (vorschlaegeLaden) return null;
     return (
       <p className="rounded-lg border border-dashed px-3 py-3 text-sm text-muted-foreground">
         {ohneVorschlaege
@@ -94,6 +102,11 @@ export function EintragenZeilen({
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <p className="text-sm font-medium">{t("Verfassung (optional)")}</p>
+        {verfassung}
       </div>
 
       <ul className="flex flex-col gap-2">

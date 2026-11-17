@@ -208,3 +208,37 @@ export function verfuegbareFilter(tage: readonly (readonly TrainingSession[])[])
 export function geltenderFilter(gewaehlt: TagesFilter, angeboten: readonly TagesFilter[]): TagesFilter {
   return angeboten.includes(gewaehlt) ? gewaehlt : "alle";
 }
+
+// ---- Suche ----
+
+/** Ab so vielen Trainingstagen zeigt das Tagebuch ein Suchfeld - darunter findet man auch so alles. */
+export const SUCHE_AB_TAGEN = 5;
+
+/** Groß-/Kleinschreibung und Akzente sind beim Suchen egal (ä findet a, wie auf dem Handy getippt). */
+function suchForm(text: string): string {
+  return text
+    .toLocaleLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+}
+
+/**
+ * Ob der Tag zur Suche passt: Übungsname (in der Sprache der Oberfläche und der
+ * gespeicherte Name), Übungsnotiz, Tages-Kommentar und Ort. Eine leere Suche
+ * lässt jeden Tag durch. Mehrere Wörter müssen alle vorkommen (irgendwo am Tag).
+ */
+export function tagPasstZuSuche(tag: readonly TrainingSession[], suche: string, sprache: Sprache = "de"): boolean {
+  const woerter = suchForm(suche).split(/\s+/).filter(Boolean);
+  if (woerter.length === 0) return true;
+  const heu = suchForm(
+    tag
+      .flatMap((s) => [
+        s.notes,
+        s.locationName,
+        ...s.exercises.flatMap((e) => [uebungName(e, sprache), e.exerciseName, e.notes]),
+      ])
+      .filter((text): text is string => !!text)
+      .join("\n"),
+  );
+  return woerter.every((wort) => heu.includes(wort));
+}
