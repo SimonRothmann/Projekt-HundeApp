@@ -50,7 +50,7 @@ public sealed record GesundheitsAdressat(
 
 /// <summary>Ein offener Eintrag auf dem Merkzettel eines Hundes, soweit die Erinnerung ihn braucht.</summary>
 public sealed record MerkzettelEintrag(
-    Guid Id, string Text, TrainingNoteGoal Ziel, DateOnly? ZielDatum, DateTimeOffset Angelegt);
+    Guid Id, string Text, TrainingNoteGoal Ziel, DateOnly? ZielDatum, DateTimeOffset Angelegt, TimeOnly? ZielUhrzeit = null);
 
 /// <summary>
 /// Eine Besitzer:in und ein Hund mit offenem Merkzettel - eine Zeile je Person und Hund - samt dem, woraus sich
@@ -330,7 +330,7 @@ public static class Erinnerungsregeln
             foreach (var e in k.Eintraege.OrderBy(e => e.Angelegt))
             {
                 var ziel = Trainingsrhythmus.ZielDesEintrags(
-                    e.Ziel, e.ZielDatum, e.Angelegt, jetzt, k.Tagebuch, k.Gruppentermine, k.Rhythmus, erinnerung: true);
+                    e.Ziel, e.ZielDatum, e.Angelegt, jetzt, k.Tagebuch, k.Gruppentermine, k.Rhythmus, erinnerung: true, e.ZielUhrzeit);
                 if (ziel is not { } termin || termin.Tag != heute) continue;
                 heutige.Add((e, termin));
             }

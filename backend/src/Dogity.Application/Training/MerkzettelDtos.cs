@@ -12,6 +12,7 @@ namespace Dogity.Application.Training;
 /// (rutscht nach dem Trainingstag von selbst weiter); null, wenn es sich nicht bestimmen lässt.
 /// </param>
 /// <param name="TargetTime">Uhrzeit des erkannten Trainings an diesem Tag; null, wenn unbekannt.</param>
+/// <param name="ChosenTime">Die selbst gewählte Uhrzeit, wie gespeichert (zum Vorbelegen beim Bearbeiten); <paramref name="TargetTime"/> ist die wirksame.</param>
 /// <param name="ExerciseName">Name der Katalog-Übung, falls verknüpft.</param>
 public record TrainingNoteDto(
     Guid Id,
@@ -25,7 +26,8 @@ public record TrainingNoteDto(
     TimeOnly? TargetTime,
     DateTimeOffset? DoneAt,
     Guid? DoneInTrainingId,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    TimeOnly? ChosenTime = null);
 
 /// <summary>
 /// Anlegen und Ändern haben dieselben Felder. <paramref name="TargetDate"/> gilt nur bei
@@ -37,15 +39,17 @@ public record SaveTrainingNoteRequest(
     Guid? ExerciseId,
     TrainingNoteGoal Goal,
     DateOnly? TargetDate,
-    Guid? Id = null);
+    Guid? Id = null,
+    TimeOnly? TargetTime = null);
 
 public record SetTrainingNoteDoneRequest(bool Done);
 
 /// <summary>
 /// Das nächste Training eines Hundes für die Beschriftung "Nächstes Training · Di 18:00".
 /// <paramref name="Date"/> ist null bei <see cref="TrainingsQuelle.Unbekannt"/>.
+/// <paramref name="ReminderAt"/> ist der Zeitpunkt der Merkzettel-Erinnerung (Vereinszeit); null ohne Termin.
 /// </summary>
-public record NextTrainingDto(DateOnly? Date, TimeOnly? Time, TrainingsQuelle Source);
+public record NextTrainingDto(DateOnly? Date, TimeOnly? Time, TrainingsQuelle Source, DateTime? ReminderAt = null);
 
 /// <summary>Wann ein Hund meistens trainiert: Wochentage als Bitmaske (Mo = 1 ... So = 64), Stunde wahlweise (0 bis 23).</summary>
 public record SaveTrainingRhythmRequest(int Days, int? Hour);

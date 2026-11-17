@@ -26,7 +26,7 @@ public interface IMerkzettelService
     Task<Result> DeleteAsync(Guid userId, Guid dogId, Guid noteId, CancellationToken ct = default);
 
     /// <summary>Das nächste Training für die Beschriftung des Ziels "Nächstes Training".</summary>
-    Task<Result<NextTrainingDto>> GetNextTrainingAsync(Guid userId, Guid dogId, CancellationToken ct = default);
+    Task<Result<NextTrainingDto>> GetNextTrainingAsync(Guid userId, Guid dogId, DateOnly? datum = null, TimeOnly? uhrzeit = null, CancellationToken ct = default);
 
     /// <summary>Speichert den angegebenen Rhythmus des Hundes ("Wann trainierst du meistens?") und liefert das daraus folgende nächste Training.</summary>
     Task<Result<NextTrainingDto>> SetRhythmAsync(Guid userId, Guid dogId, SaveTrainingRhythmRequest request, CancellationToken ct = default);

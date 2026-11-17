@@ -216,10 +216,10 @@ public class DogsController(IDogService dogService, IDogPauseService pauseServic
     public async Task<IActionResult> DeleteMerkzettelEintrag(Guid id, Guid eintragId, CancellationToken ct) =>
         FromResult(await merkzettelService.DeleteAsync(CurrentUserId, id, eintragId, ct));
 
-    /// <summary>Das nächste Training des Hundes (Gruppentermin, angegebener Rhythmus oder Muster aus dem Tagebuch) für die Beschriftung beim Merken.</summary>
+    /// <summary>Das nächste Training des Hundes (Gruppentermin, angegebener Rhythmus oder Muster aus dem Tagebuch) für die Beschriftung beim Merken. Mit <c>datum</c> (und <c>uhrzeit</c>) die Vorschau für ein gewähltes Datum.</summary>
     [HttpGet("{id:guid}/naechstes-training")]
-    public async Task<ActionResult<NextTrainingDto>> GetNaechstesTraining(Guid id, CancellationToken ct) =>
-        FromResult(await merkzettelService.GetNextTrainingAsync(CurrentUserId, id, ct));
+    public async Task<ActionResult<NextTrainingDto>> GetNaechstesTraining(Guid id, DateOnly? datum, TimeOnly? uhrzeit, CancellationToken ct) =>
+        FromResult(await merkzettelService.GetNextTrainingAsync(CurrentUserId, id, datum, uhrzeit, ct));
 
     /// <summary>"Wann trainierst du meistens?": speichert den Rhythmus des Hundes und liefert das daraus folgende nächste Training.</summary>
     [HttpPut("{id:guid}/trainingsrhythmus")]

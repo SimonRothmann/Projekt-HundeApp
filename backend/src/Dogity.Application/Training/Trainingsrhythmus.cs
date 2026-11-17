@@ -91,7 +91,7 @@ public static class Trainingsrhythmus
     /// <summary>
     /// Der Tag (und die Uhrzeit, wenn bekannt), auf den ein Merkzettel-Eintrag zielt:
     /// <list type="bullet">
-    /// <item>Datum: der gewählte Tag, mit der Uhrzeit des erkannten Trainings an diesem Tag.</item>
+    /// <item>Datum: der gewählte Tag, mit der selbst gewählten Uhrzeit (<paramref name="zielUhrzeit"/>), sonst der des erkannten Trainings an diesem Tag.</item>
     /// <item>Nächste Woche: das erste erkannte Training in der Woche ab dem Montag <paramref name="zielDatum"/> (sonst
     /// dieser Montag ohne Uhrzeit; fehlt <paramref name="zielDatum"/>, der Montag nach dem Anlegen).</item>
     /// <item>Nächstes Training: das nächste erkannte, das noch nicht begonnen hat (<see cref="BevorstehendesTraining"/>).
@@ -105,13 +105,14 @@ public static class Trainingsrhythmus
     public static TrainingsTermin? ZielDesEintrags(
         Domain.Training.TrainingNoteGoal ziel, DateOnly? zielDatum, DateTimeOffset angelegt, DateTimeOffset jetzt,
         IReadOnlyList<TagebuchTraining> tagebuch, IReadOnlyList<DateTimeOffset> gruppentermine, GespeicherterRhythmus? rhythmus,
-        bool erinnerung)
+        bool erinnerung, TimeOnly? zielUhrzeit = null)
     {
         var heute = Vereinszeit.Tag(jetzt);
         switch (ziel)
         {
             case Domain.Training.TrainingNoteGoal.Date:
                 if (zielDatum is not { } tag) return null;
+                if (zielUhrzeit is { } gewaehlt) return new TrainingsTermin(tag, gewaehlt, TrainingsQuelle.Unbekannt);
                 return ErstesTrainingAb(tag, heute, tagebuch, gruppentermine, rhythmus) is { } amTag && amTag.Tag == tag
                     ? amTag
                     : new TrainingsTermin(tag, null, TrainingsQuelle.Unbekannt);

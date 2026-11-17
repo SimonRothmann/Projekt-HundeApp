@@ -48,6 +48,9 @@ public class TrainingNote : Entity
     /// <summary>Der Tag bei <see cref="TrainingNoteGoal.Date"/>, bei <see cref="TrainingNoteGoal.NextWeek"/> der Montag der Folgewoche; sonst leer.</summary>
     public DateOnly? TargetDate { get; set; }
 
+    /// <summary>Die selbst gewählte Trainingsuhrzeit (Vereinszeit) bei <see cref="TrainingNoteGoal.Date"/>; sie gilt vor der erkannten. Sonst leer.</summary>
+    public TimeOnly? TargetTime { get; set; }
+
     /// <summary>Wann der Eintrag abgehakt wurde; null = offen.</summary>
     public DateTimeOffset? DoneAt { get; set; }
 
