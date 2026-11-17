@@ -98,6 +98,9 @@ export default function DogsPage() {
     // Initialer Datenabruf beim Mount (externe Quelle: REST API).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDogs();
+    // ?neu=1 ("Weiteren Hund anlegen" von der Hundeseite): das Formular steht gleich offen.
+    // window statt useSearchParams, aus demselben Grund wie oben.
+    if (new URLSearchParams(window.location.search).has("neu")) setFormWunsch(true);
   }, []);
 
   async function handleCreate(e: FormEvent) {
@@ -295,9 +298,14 @@ export default function DogsPage() {
                   </p>
                 </div>
               </div>
-              <Button type="submit" className="self-start" disabled={isSubmitting}>
-                {isSubmitting ? t("Wird gespeichert…") : t("Speichern")}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? t("Wird gespeichert…") : t("Speichern")}
+                </Button>
+                <Button type="button" variant="ghost" className="coarse:min-h-11" onClick={() => setFormWunsch(false)}>
+                  {t("Abbrechen")}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>

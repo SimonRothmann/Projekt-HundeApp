@@ -3,6 +3,8 @@ import type { Sprache } from "@/lib/i18n";
 import { fruehestesZiel, laufendeZiele, pruefungsName, tageBisPruefung } from "@/lib/pruefung";
 import { wochenFortschritt } from "@/lib/trainingsplan";
 import { istNeuesFeedback } from "@/lib/feedback-gesehen";
+import { heuteIso, plusMonate, plusTage } from "@/lib/kalendertag";
+import { uebersetzbar } from "@/lib/i18n/sprachen";
 
 /**
  * Entscheidungen der Hundeseite als reine Funktionen: welcher Reiter offen ist,
@@ -95,6 +97,8 @@ export type AnkerWunsch = {
   formular: boolean;
   /** Das Fenster "Fährte legen" öffnen. */
   faehrte: boolean;
+  /** Das Formular "Neues Ziel" im Plan aufklappen. */
+  ziel: boolean;
 };
 
 /**
@@ -105,12 +109,15 @@ export type AnkerWunsch = {
 export function ankerWunsch(hash: string | null | undefined): AnkerWunsch | null {
   switch ((hash ?? "").replace(/^#/, "")) {
     case "trainingsplan":
-      return { reiter: "plan", formular: false, faehrte: false };
+      return { reiter: "plan", formular: false, faehrte: false, ziel: false };
+    case "ziel-setzen":
+      // "Prüfungsziel setzen" von der Startseite und vom Erststart: gleich das Formular, nicht nur der Reiter.
+      return { reiter: "plan", formular: false, faehrte: false, ziel: true };
     case "training-erfassen":
       // Das Fenster liegt über jedem Reiter; ein Wechsel im Hintergrund wäre nur ein Sprung.
-      return { reiter: null, formular: true, faehrte: false };
+      return { reiter: null, formular: true, faehrte: false, ziel: false };
     case "faehrte-aufnehmen":
-      return { reiter: null, formular: false, faehrte: true };
+      return { reiter: null, formular: false, faehrte: true, ziel: false };
     default:
       return null;
   }
@@ -150,6 +157,15 @@ export function zeigeHundeChips(hunde: readonly Dog[] | null | undefined, gehoer
   return gehoertMir && aktiveHunde(hunde).length > 1;
 }
 
+/**
+ * Ob die Leiste im Kopf erscheint: schon mit einem aktiven Hund, damit das "+"
+ * für einen weiteren Hund zu finden ist (die Chips zum Wechseln selbst
+ * brauchen zwei). Nur bei eigenen oder mitbesessenen Hunden.
+ */
+export function zeigeHundeLeiste(hunde: readonly Dog[] | null | undefined, gehoertMir: boolean): boolean {
+  return gehoertMir && aktiveHunde(hunde).length > 0;
+}
+
 /** Adresse der Seite eines anderen Hundes: Reiter und Zurück-Ziel bleiben, ein Eintrag nicht. */
 export function hundeAdresse(hundId: string, suchparameter: string): string {
   const parameter = new URLSearchParams(suchparameter);
@@ -159,6 +175,22 @@ export function hundeAdresse(hundId: string, suchparameter: string): string {
     if (wert !== null) behalten.set(name, wert);
   }
   return adresseMit(`/dogs/${hundId}`, behalten.toString(), {});
+}
+
+// ---- Zieldatum ----
+
+export type ZieldatumWahl = { label: string; datum: string };
+
+/**
+ * Schnellwahl fürs Zieldatum neben dem Datumsfeld: wer "in drei Monaten" meint,
+ * muss nicht im Kalender blättern. Setzt das Datum nur; es bleibt änderbar.
+ */
+export function zieldatumSchnellwahlen(heute: string = heuteIso()): ZieldatumWahl[] {
+  return [
+    { label: uebersetzbar("in 8 Wochen"), datum: plusTage(heute, 56) },
+    { label: uebersetzbar("in 12 Wochen"), datum: plusTage(heute, 84) },
+    { label: uebersetzbar("in 6 Monaten"), datum: plusMonate(heute, 6) },
+  ];
 }
 
 // ---- Statuszeile ----

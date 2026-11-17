@@ -13,6 +13,7 @@ import { findeStartPo, leseStartPo, loescheStartPo } from "@/lib/start-po";
 import { ordnungenImLand, ordnungenPfad, SPORTARTEN_ALLE } from "@/lib/katalog-land";
 import { usePreferences } from "@/lib/preferences-context";
 import { VORGABE_LAND } from "@/lib/i18n/laender";
+import { zieldatumSchnellwahlen } from "@/lib/hundeseite";
 
 import { useSprache, useT } from "@/lib/i18n";
 import { katalogName, katalogText } from "@/lib/katalog-name";
@@ -31,11 +32,14 @@ export function GoalCreateForm({
   sports,
   vorauswahl = null,
   onCreated,
+  onCancel,
 }: {
   dogId: string;
   sports: Sport[];
   vorauswahl?: NextStage | null;
   onCreated: () => Promise<void>;
+  /** Schließt das Formular, ohne etwas anzulegen. */
+  onCancel: () => void;
 }) {
   const t = useT();
   const sprache = useSprache();
@@ -214,15 +218,6 @@ export function GoalCreateForm({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="size-4 accent-primary"
-              checked={isCustom}
-              onChange={(e) => setIsCustom(e.target.checked)}
-            />
-            <span>{t("Individueller Plan (ohne Prüfungsziel) – leere Wochen, Übungen manuell festlegen")}</span>
-          </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label>{t("Sportart")}</Label>
@@ -248,6 +243,18 @@ export function GoalCreateForm({
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
               />
+              <div className="flex flex-wrap gap-2">
+                {zieldatumSchnellwahlen().map((wahl) => (
+                  <button
+                    key={wahl.label}
+                    type="button"
+                    onClick={() => setTargetDate(wahl.datum)}
+                    className="min-h-11 min-w-0 rounded-full border border-input px-3 text-sm text-muted-foreground transition-colors hover:bg-muted"
+                  >
+                    {t(wahl.label)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           {!isCustom && regulations.length > 0 && (
@@ -266,7 +273,7 @@ export function GoalCreateForm({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-{t("Der Plan enthält genau die Übungen dieser Prüfung. Ohne Prüfung trainieren: oben „Individueller Plan“ wählen.")}
+{t("Der Plan enthält genau die Übungen dieser Prüfung. Ohne Prüfung trainieren: unten „Individueller Plan“ wählen.")}
               </p>
               {selectedRegulation && katalogText(selectedRegulation.description, selectedRegulation.descriptionEn, sprache) && (
                 <div className="rounded-md bg-primary/5 px-3 py-2.5">
@@ -280,7 +287,18 @@ export function GoalCreateForm({
             <Label htmlFor="goalNotes">{t("Notizen")}</Label>
             <Input id="goalNotes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
-          <Button type="submit" className="self-start" disabled={isSubmitting || pruefungFehlt}>
+          {/* Am Ende, weil die meisten ein Prüfungsziel setzen; die ganze Zeile ist antippbar. */}
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              className="size-5 shrink-0 accent-primary"
+              checked={isCustom}
+              onChange={(e) => setIsCustom(e.target.checked)}
+            />
+            <span className="min-w-0">{t("Individueller Plan (ohne Prüfungsziel) – leere Wochen, Übungen manuell festlegen")}</span>
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="submit" disabled={isSubmitting || pruefungFehlt}>
             {isSubmitting
               ? isCustom
                 ? t("Wird angelegt…")
@@ -288,7 +306,11 @@ export function GoalCreateForm({
               : isCustom
                 ? t("Individuellen Plan anlegen")
                 : t("Ziel anlegen & Plan generieren")}
-          </Button>
+            </Button>
+            <Button type="button" variant="ghost" className="coarse:min-h-11" onClick={onCancel}>
+              {t("Abbrechen")}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

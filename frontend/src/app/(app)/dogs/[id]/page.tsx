@@ -40,13 +40,13 @@ import { useSprache, useT } from "@/lib/i18n";
  * Hundeseite: Kopf, zwei Aktionen, Statuszeile und zwei Reiter - "Plan" (Ziele)
  * und "Tagebuch" (Fährten-Verlauf, kompakte Tageszeilen) - dazu für Besitzer:innen
  * "Gesundheit" (Impfungen, Entwurmung, Tierarzttermine) als dritter Reiter. Training eintragen,
- * Verwalten (Bearbeiten, Drucken, Mitbesitzer, Archivieren, Löschen) und
+ * Verwalten (Bearbeiten, Drucken, Mitbesitzer:in, Archivieren, Löschen) und
  * "Fährte legen" öffnen als Sheets. Die Logik lebt in den Bausteinen unter
  * components/dogs und in lib/use-dog-page.ts.
  *
  * Reiter und Eintrag stehen in der Adresse (?tab=, ?eintrag=): Zurück, Neuladen
  * und Links aus Benachrichtigungen führen dorthin, wo man war. Die alten Anker
- * (#trainingsplan, #training-erfassen, #faehrte-aufnehmen) setzt useDogAnker um.
+ * (#trainingsplan, #ziel-setzen, #training-erfassen, #faehrte-aufnehmen) setzt useDogAnker um.
  */
 export default function DogDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -78,6 +78,8 @@ function DogPage({ id }: { id: string }) {
   const [editing, setEditing] = useState(false);
   const [menuOffen, setMenuOffen] = useState(false);
   const [faehrteOffen, setFaehrteOffen] = useState(false);
+  // Zählt, wie oft #ziel-setzen das Formular "Neues Ziel" im Plan öffnen wollte.
+  const [zielAnstoss, setZielAnstoss] = useState(0);
   // Das Merken-Fenster und der Eintrag, der darin geändert wird (null = neuer). Der Merkzettel gehört
   // der Familie: Betreuende Trainer:innen bekommen ihn nicht (der Server antwortet ihnen mit 404).
   const [merkenOffen, setMerkenOffen] = useState(false);
@@ -138,6 +140,7 @@ function DogPage({ id }: { id: string }) {
   useDogAnker(dog !== null, (wunsch) => {
     if (wunsch.formular) oeffneEintragen(null);
     if (wunsch.faehrte && zeigtFaehrte) setFaehrteOffen(true);
+    if (wunsch.ziel) setZielAnstoss((n) => n + 1);
     // Auch ohne neuen Reiter: die Adresse verliert dabei das Fragment.
     aendereAdresse(wunsch.reiter ? { [REITER_PARAMETER]: wunsch.reiter } : {});
   });
@@ -213,6 +216,8 @@ function DogPage({ id }: { id: string }) {
       <DogStatusLine
         ziel={zielStatus(goals, Date.now(), sprache)}
         neuesFeedback={neueRueckmeldungen.length > 0}
+        // Die Statistik zeigt nur eigene Hunde, und erst wenn es etwas zu zeigen gibt.
+        statistikHref={isOwner && tageAnzahl(sessions) > 0 ? `/stats#hund-${id}` : null}
         onZiel={() => wechseln("plan")}
         onFeedback={() => aendereAdresse({ [REITER_PARAMETER]: "tagebuch", eintrag: neueRueckmeldungen[0].id })}
       />
@@ -242,7 +247,7 @@ function DogPage({ id }: { id: string }) {
           )}
           {/* Nur die Familie: Der Server antwortet betreuenden Trainer:innen mit 404. */}
           {isOwner && <GemeldetHinweis dogId={id} />}
-          <GoalsSection dogId={id} dogName={dog.name} sports={angebotene} goals={goals} onEintragen={oeffneEintragen} onChanged={loadAll} />
+          <GoalsSection dogId={id} dogName={dog.name} sports={angebotene} goals={goals} onEintragen={oeffneEintragen} onChanged={loadAll} zielAnstoss={zielAnstoss} sichtbar={reiter === "plan"} />
           <LeistungenCard goals={goals} onChanged={loadAll} />
         </div>
       </div>

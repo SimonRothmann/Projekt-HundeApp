@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
 import type { DashboardStats, DogExerciseStat } from "@/lib/types";
@@ -90,7 +90,12 @@ export default function StatsPage() {
   const t = useT();
   const sprache = useSprache();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [openDogs, setOpenDogs] = useState<Set<string>>(new Set());
+  // #hund-{id} (Link von der Hundeseite): Karte des Hundes mit aufgeklappten Übungen.
+  const [sprungHund] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : (/^#hund-(.+)$/.exec(window.location.hash)?.[1] ?? null),
+  );
+  const gesprungen = useRef(false);
+  const [openDogs, setOpenDogs] = useState<Set<string>>(() => new Set(sprungHund ? [sprungHund] : []));
 
   function toggleDog(dogId: string) {
     setOpenDogs((prev) => {
@@ -122,6 +127,13 @@ export default function StatsPage() {
     // anders heissen wuerde.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sobald die Karten stehen, einmal zur gewünschten springen (der Server kennt das Fragment nicht).
+  useEffect(() => {
+    if (stats === null || sprungHund === null || gesprungen.current) return;
+    gesprungen.current = true;
+    document.getElementById(`hund-${sprungHund}`)?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, [stats, sprungHund]);
 
   // Weder Hund noch Training: Die Wochen- und Hundekarten wären nur Nullen.
   const ohneTraining = stats !== null && stats.perDog.every((dog) => dog.sessionCount === 0);
@@ -198,7 +210,8 @@ export default function StatsPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {stats.perDog.map((dog) => (
-              <Card key={dog.dogId}>
+              // scroll-mt: der Kopfbereich der App klebt oben.
+              <Card key={dog.dogId} id={`hund-${dog.dogId}`} className="scroll-mt-20">
                 <CardHeader className="flex flex-row items-center gap-3 space-y-0">
                   <Dog className="size-6 shrink-0 text-primary-text" />
                   <CardTitle className="min-w-0 text-base [overflow-wrap:anywhere]">{dog.dogName}</CardTitle>

@@ -27,7 +27,7 @@ import { useSprache, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
- * Die Trainingspause im Verwalten-Menü des Hundes: eintragen (verletzt, krank,
+ * Die Trainingspause im Verwalten-Menü des Hundes (und im Reiter Gesundheit): eintragen (verletzt, krank,
  * bei Hündinnen läufig), laufende Pause beenden und der Verlauf vergangener
  * Pausen zum Bearbeiten und Löschen. Nur für Besitzer:innen - die Hundeseite
  * zeigt die Zeile gar nicht erst, wenn man den Hund nur betreut.
@@ -35,13 +35,22 @@ import { cn } from "@/lib/utils";
  * Eine Pause hält den Trainingsplan an (siehe docs/SMART_TRAINING_PLAN.md,
  * "Pausen"). Gesperrt wird nichts: Training eintragen geht weiter.
  */
-export function PausenSection({ dog, onChanged }: { dog: Dog; onChanged: () => Promise<void> }) {
+export function PausenSection({
+  dog,
+  onChanged,
+  sofortNeu = false,
+}: {
+  dog: Dog;
+  onChanged: () => Promise<void>;
+  /** Das Formular für eine neue Pause steht gleich offen (wer "Trainingspause eintragen" getippt hat, will genau das). */
+  sofortNeu?: boolean;
+}) {
   const t = useT();
   const sprache = useSprache();
   const [pausen, setPausen] = useState<DogPause[] | null>(null);
   const [ladefehler, setLadefehler] = useState(false);
   // null = kein Formular; "neu" = neue Pause; sonst die Pause, die bearbeitet wird.
-  const [formular, setFormular] = useState<"neu" | DogPause | null>(null);
+  const [formular, setFormular] = useState<"neu" | DogPause | null>(sofortNeu ? "neu" : null);
 
   const laden = useCallback(async () => {
     try {
