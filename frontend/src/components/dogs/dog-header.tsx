@@ -124,7 +124,8 @@ function DogSwitcher({ hunde, aktuellId }: { hunde: Dog[]; aktuellId: string }) 
           <Plus className="size-5" />
         </span>
         <span aria-hidden className="w-full truncate text-center text-xs text-muted-foreground">
-          {t("Neuer Hund")}
+          {/* "Neuer Hund" passte in 64 px nur abgeschnitten. */}
+          {t("Neu")}
         </span>
       </Link>
     </nav>

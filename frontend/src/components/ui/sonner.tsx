@@ -1,16 +1,20 @@
 "use client"
 
 import { useTheme } from "next-themes"
+import { useAufzeichnungOffen } from "@/lib/aufzeichnung-offen"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
+  // Während einer GPS-Aufzeichnung oben: unten liegen Marker und Beenden (siehe lib/aufzeichnung-offen.ts).
+  const aufzeichnung = useAufzeichnungOffen()
 
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      position={aufzeichnung ? "top-center" : undefined}
       icons={{
         success: (
           <CircleCheckIcon className="size-4" />

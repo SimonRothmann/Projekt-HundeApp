@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { HalteKnopf } from "@/components/tracking/halte-knopf";
 import { EntsperrSchieber } from "@/components/tracking/entsperr-schieber";
 import { useWakeLock } from "@/lib/use-wake-lock";
+import { aufzeichnungGeoeffnet } from "@/lib/aufzeichnung-offen";
 import { SPERRE_NACH_MS } from "@/lib/aufnahme-sperre";
 import { kurzeHaptik } from "@/lib/haptik";
 
@@ -55,6 +56,8 @@ export function AufzeichnungVollbild({
 }) {
   const t = useT();
   useWakeLock(true);
+  // Meldungen solange oben zeigen, nicht über Markern und Beenden.
+  useEffect(() => aufzeichnungGeoeffnet(), []);
 
   // Auto-Sperre: Das Handy steckt zwischendurch in der Tasche, und der
   // Bildschirm bleibt an. Nach SPERRE_NACH_MS ohne Berührung - und sofort,

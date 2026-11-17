@@ -28,8 +28,17 @@ export function EntsperrSchieber({ onEntsperrt }: { onEntsperrt: () => void }) {
     const spur = spurRef.current;
     const griff = griffRef.current;
     if (!spur || !griff) return;
-    griff.setPointerCapture(e.pointerId);
     start.current = { x: e.clientX, id: e.pointerId, spur: spur.clientWidth, griff: griff.offsetWidth };
+    // Fangen ist nur eine Hilfe, damit der Finger auch außerhalb der Spur zählt.
+    // Wirft der Browser dabei (etwa wenn der Zeiger schon nicht mehr aktiv ist),
+    // darf das Entsperren nicht daran scheitern - sonst säße man mitten in der
+    // Aufzeichnung in der Sperre fest. Bewegen und Loslassen hört deshalb die
+    // Spur, nicht nur der Griff.
+    try {
+      griff.setPointerCapture(e.pointerId);
+    } catch {
+      // ohne Fangen weiter
+    }
     setWeg(Math.max(0, spur.clientWidth - griff.offsetWidth));
     setZieht(true);
   }
@@ -56,6 +65,9 @@ export function EntsperrSchieber({ onEntsperrt }: { onEntsperrt: () => void }) {
       ref={spurRef}
       className="relative flex h-14 w-full touch-none items-center justify-center overflow-hidden rounded-full bg-muted text-sm font-medium text-muted-foreground select-none [-webkit-touch-callout:none]"
       onContextMenu={(e) => e.preventDefault()}
+      onPointerMove={bewegen}
+      onPointerUp={(e) => beenden(e, false)}
+      onPointerCancel={(e) => beenden(e, true)}
     >
       <span className="pl-14 pr-4">{t("Zum Entsperren wischen")}</span>
       <ChevronRight aria-hidden className="absolute right-4 size-5 opacity-60" />
@@ -64,9 +76,6 @@ export function EntsperrSchieber({ onEntsperrt }: { onEntsperrt: () => void }) {
         type="button"
         aria-label={t("Entsperren")}
         onPointerDown={beginnen}
-        onPointerMove={bewegen}
-        onPointerUp={(e) => beenden(e, false)}
-        onPointerCancel={(e) => beenden(e, true)}
         onContextMenu={(e) => e.preventDefault()}
         onClick={(e) => {
           // detail 0: per Tastatur (Enter/Leertaste), nicht per Zeiger.
