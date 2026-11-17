@@ -3136,4 +3136,11 @@ export const EN: Record<string, string> = {
   "Farbsichere Darstellung": "Colour-safe display",
   "Für Rot-Grün-Schwäche: Ampeln auf Karte, Auswertung und Verlauf in Blau, Gelb und Rot statt Grün, Orange und Rot.": "For red-green colour blindness: traffic lights on the map, evaluation and history in blue, yellow and red instead of green, orange and red.",
   "Gilt für dein Konto auf jedem Gerät.": "Applies to your account on every device.",
+  "Speichern & fertig": "Save & done",
+  "Nur abhaken": "Just tick off",
+  "Übersicht": "Overview",
+  "Stammdaten": "Club details",
+  "Einladung": "Invitation",
+  "Katalog": "Catalogue",
+  "Abschnitte": "Sections",
 };

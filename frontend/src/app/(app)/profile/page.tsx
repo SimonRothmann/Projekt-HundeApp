@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { Building2, Database, Palette, SlidersHorizontal, Sparkles, Trophy, Dumbbell } from "lucide-react";
+import { Building2, Database, GraduationCap, Palette, SlidersHorizontal, Sparkles, Trophy, Dumbbell } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useProfil } from "@/lib/use-profil";
 import { usePreferences } from "@/lib/preferences-context";
@@ -55,6 +55,12 @@ export default function ProfilePage() {
       <ListenGruppe>
         <ListenZeile href="/clubs" icon={Building2} titel={t("Mein Verein")} untertitel={t("Vereine finden, beitreten und verwalten")} />
         <ListenZeile href="/sports" icon={Trophy} titel={t("Sportarten")} untertitel={t("Prüfungsordnungen & Übungen entdecken")} />
+        {/* Die Startseite zeigt die Zeile nur, solange keine BH-Karte den Link
+            trägt; im Profil steht sie immer, wenn das Modul an ist - hier
+            sucht man sie, wenn die Startseite sie nicht zeigt. */}
+        {moduleEnabled(MODULE.sachkunde) && (
+          <ListenZeile href="/lernen" icon={GraduationCap} titel={t("Sachkunde üben")} untertitel={t("Sachkunde üben wie beim Führerschein")} />
+        )}
         <ListenZeile
           href="/profile/sportarten"
           icon={Dumbbell}
