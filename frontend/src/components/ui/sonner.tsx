@@ -15,6 +15,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
       position={aufzeichnung ? "top-center" : undefined}
+      // Unter der Kopfzeile des Vollbilds, sonst lägen sie über "Sperren" und "Abbrechen".
+      offset={aufzeichnung ? { top: "calc(env(safe-area-inset-top) + 76px)" } : undefined}
+      mobileOffset={aufzeichnung ? { top: "calc(env(safe-area-inset-top) + 76px)" } : undefined}
       icons={{
         success: (
           <CircleCheckIcon className="size-4" />
