@@ -119,7 +119,7 @@ export function ExerciseEditorSheet({
           <SheetDescription>
             {scope.kind === "global"
               ? t("Wird für alle Nutzer sichtbar (globaler VDH-Katalog).")
-              : t("Nur für Mitglieder und Trainer des Vereins „{name}“ sichtbar.", { name: scope.clubName })}
+              : t("Nur für Mitglieder und Trainer:innen des Vereins „{name}“ sichtbar.", { name: scope.clubName })}
             {" "}{t("Sportart ist optional – sportartübergreifende Übungen laufen ohne Zuordnung.")}
           </SheetDescription>
         </SheetHeader>

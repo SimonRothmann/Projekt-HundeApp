@@ -137,7 +137,7 @@ function ZielKarte({
               type="button"
               onClick={() => onEintragen(hund.id, item)}
               aria-haspopup="dialog"
-              aria-label={`${planItemName(item, sprache)} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })} · ${t("Eintragen")}`}
+              aria-label={`${planItemName(item, sprache)} · ${t("{erledigt}/{ziel}× erledigt", { erledigt: item.completedCount, ziel: item.repetitionsTarget })} · ${t("Training eintragen")}`}
               className="flex min-h-11 w-full items-center gap-3 py-3 text-left transition-colors first:pt-0 last:pb-0 hover:bg-muted/60 active:bg-muted"
             >
               <span className="min-w-0 flex-1 truncate font-medium">{planItemName(item, sprache)}</span>

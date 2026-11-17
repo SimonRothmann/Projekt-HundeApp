@@ -6,6 +6,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { PreferencesProvider } from "@/lib/preferences-context";
 import { SprachProvider } from "@/lib/i18n/provider";
 import { Toaster } from "@/components/ui/sonner";
+import { RueckfrageProvider } from "@/components/ui/rueckfrage";
 import { PwaRegister } from "@/components/pwa-register";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { ChunkErrorReloader } from "@/components/chunk-error-reloader";
@@ -124,7 +125,7 @@ export default function RootLayout({
               {/* Innerhalb der Einstellungen, weil die Sprache von dort
                   kommt - und um alles herum, weil sie überall gilt. */}
               <SprachProvider>
-                {children}
+                <RueckfrageProvider>{children}</RueckfrageProvider>
                 <Toaster />
                 <PwaRegister />
                 <PwaInstallPrompt />

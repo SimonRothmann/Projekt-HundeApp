@@ -13,6 +13,7 @@ import { BetreuungenSection } from "@/components/dogs/betreuungen-section";
 import { CoOwnersSection } from "@/components/dogs/co-owners-section";
 import { PausenSection } from "@/components/dogs/pausen-section";
 import { NEUER_HUND } from "@/lib/hundeliste";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +51,7 @@ export function DogActionsSheet({
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const router = useRouter();
   const [mitbesitzerOffen, setMitbesitzerOffen] = useState(false);
   const [pauseOffen, setPauseOffen] = useState(false);
@@ -76,15 +78,13 @@ export function DogActionsSheet({
   }, [open, isOwner, ladeBetreuungen]);
 
   async function deleteDog() {
-    // Doppelte Bestätigung: Hunde-Löschen entfernt Trainings, Fährten, Ziele
-    // und Trainerzuweisungen mit - deutlich schwerwiegender als das Löschen
-    // einer einzelnen Session, deshalb zusätzlich Name-Bestätigung.
-    if (!confirm(t("Hund „{name}“ wirklich löschen? Alle Trainings, Fährten, Ziele und Trainerzuweisungen werden entfernt.", { name: dog.name }))) return;
-    const confirmName = prompt(t("Zum Bestätigen bitte den Namen des Hundes eingeben: „{name}“", { name: dog.name }));
-    if (confirmName?.trim() !== dog.name) {
-      if (confirmName !== null) toast.error(t("Name stimmt nicht - Löschen abgebrochen."));
+    // Hunde-Löschen entfernt Trainings, Fährten, Ziele und Trainerzuweisungen
+    // mit - deutlich schwerwiegender als das Löschen einer einzelnen Session,
+    // deshalb muss zusätzlich der Name eingetippt werden.
+    if (
+      !(await rueckfrage({ titel: t("Hund „{name}“ wirklich löschen?", { name: dog.name }), text: t("Alle Trainings, Fährten, Ziele und Trainerzuweisungen werden entfernt."), bestaetigen: t("Endgültig löschen"), gefaehrlich: true, eingabe: { label: t("Zum Bestätigen den Namen des Hundes eingeben: „{name}“", { name: dog.name }), muss: dog.name } }))
+    )
       return;
-    }
     try {
       await api.delete(`/api/dogs/${dog.id}`);
       toast.success(t("Hund „{name}“ gelöscht.", { name: dog.name }));
@@ -97,7 +97,7 @@ export function DogActionsSheet({
   async function setArchived(archived: boolean) {
     // Archivieren blendet den Hund nur aus (reversibel, Daten bleiben) - daher
     // nur beim Archivieren eine leichte Rückfrage, das Aufheben ist harmlos.
-    if (archived && !confirm(t("Hund „{name}“ archivieren? Er wird aus deiner aktiven Liste ausgeblendet, alle Daten bleiben erhalten.", { name: dog.name }))) return;
+    if (archived && !(await rueckfrage({ titel: t("Hund „{name}“ archivieren?", { name: dog.name }), text: t("Er wird aus deiner aktiven Liste ausgeblendet, alle Daten bleiben erhalten."), bestaetigen: t("Archivieren") }))) return;
     try {
       await api.put(`/api/dogs/${dog.id}/archive`, { archived });
       toast.success(archived ? t("„{name}“ archiviert.", { name: dog.name }) : t("„{name}“ wieder aktiviert.", { name: dog.name }));

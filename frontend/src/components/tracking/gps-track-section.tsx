@@ -31,6 +31,7 @@ import { zeigtWindrichtung } from "@/lib/wind";
 import { useSchritte } from "@/lib/use-schritte";
 import { cn } from "@/lib/utils";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 // Für Zeitangaben in der Fährten-Übersicht: nur automatische Trackpunkte,
@@ -102,6 +103,7 @@ export function GpsTrackSection({
   onChanged?: () => Promise<void>;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const ort = ortsformat(useSprache());
   const schritte = useSchritte();
   const [tracks, setTracks] = useState<GpsTrack[] | null>(null);
@@ -198,7 +200,7 @@ export function GpsTrackSection({
 
   // Löschen fragt nach; der Server prüft das Recht ohnehin.
   async function trackLoeschen(track: GpsTrack) {
-    if (!confirm(istMantrailing(track) ? t("Trail wirklich löschen?") : t("Fährte wirklich löschen?"))) return;
+    if (!(await rueckfrage({ titel: istMantrailing(track) ? t("Trail wirklich löschen?") : t("Fährte wirklich löschen?"), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/gps-tracks/${track.id}`);
       toast.success(istMantrailing(track) ? t("Trail gelöscht.") : t("Fährte gelöscht."));

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronLeft, ChevronRight, KeyRound, Lock, Trash2, Unlock } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import type { AdminUser, AdminUserPage } from "@/lib/types";
@@ -32,6 +33,7 @@ const ENTPRELLEN_MS = 300;
  */
 export function NutzerSection({ fokusId = null }: { fokusId?: string | null }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const router = useRouter();
   const [eingabe, setEingabe] = useState("");
   const [begriff, setBegriff] = useState("");
@@ -121,7 +123,7 @@ export function NutzerSection({ fokusId = null }: { fokusId?: string | null }) {
   }
 
   async function handleDeleteUser(user: AdminUser) {
-    if (!window.confirm(t("{name} wirklich endgültig löschen?", { name: anzeigeName(user) }))) return;
+    if (!(await rueckfrage({ titel: t("{name} wirklich endgültig löschen?", { name: anzeigeName(user) }), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/admin/users/${user.id}`);
       toast.success(t("Nutzer gelöscht."));

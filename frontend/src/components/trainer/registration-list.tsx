@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { telefonLink } from "@/lib/anmeldung";
 import { api, ApiError } from "@/lib/api";
 import { formatDogAge } from "@/lib/dog-age";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import type { GroupRegistration } from "@/lib/types";
 import { Chip } from "@/components/ui/chip";
@@ -43,6 +44,7 @@ export function RegistrationList({
   onLink: () => void;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const [filter, setFilter] = useState<Filter>("alle");
   const [beschaeftigt, setBeschaeftigt] = useState<string | null>(null);
 
@@ -53,7 +55,7 @@ export function RegistrationList({
     const bezahlt = r.paidAt === null;
     // Die Rücknahme ist die gefährliche Richtung: Wer sich vertippt, würde
     // sonst eine Zahlung "vergessen". Das Setzen braucht keine Rückfrage.
-    if (!bezahlt && !window.confirm(t("„Bezahlt“ für {name} zurücknehmen?", { name: r.dogName }))) return;
+    if (!bezahlt && !(await rueckfrage({ titel: t("„Bezahlt“ für {name} zurücknehmen?", { name: r.dogName }), bestaetigen: t("Zurücknehmen") }))) return;
     setBeschaeftigt(r.id);
     try {
       const neu = await api.put<GroupRegistration>(`/api/groups/${groupId}/registrations/${r.id}/paid`, { paid: bezahlt });
@@ -67,9 +69,12 @@ export function RegistrationList({
 
   async function loeschen(r: GroupRegistration) {
     if (
-      !window.confirm(
-        t("Anmeldung von {name} wirklich löschen? Die Angaben und die Anwesenheit werden endgültig entfernt.", { name: r.dogName }),
-      )
+      !(await rueckfrage({
+        titel: t("Anmeldung von {name} wirklich löschen?", { name: r.dogName }),
+        text: t("Die Angaben und die Anwesenheit werden endgültig entfernt."),
+        bestaetigen: t("Löschen"),
+        gefaehrlich: true,
+      }))
     )
       return;
     setBeschaeftigt(r.id);

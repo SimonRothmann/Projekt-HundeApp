@@ -25,7 +25,7 @@ export function SectionHeading({
 }: {
   icon: LucideIcon
   title: ReactNode
-  /** Knopf am rechten Rand, z.B. "Training erfassen". */
+  /** Knopf am rechten Rand, z.B. "Training eintragen". */
   action?: ReactNode
   id?: string
   className?: string

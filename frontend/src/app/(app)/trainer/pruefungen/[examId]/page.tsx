@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Ban, Pencil, Printer, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { datumKurz } from "@/lib/pruefung";
 import { datumLang, gruppiereTeams, hatErgebnisse, uhrzeitText } from "@/lib/pruefungen";
@@ -28,6 +29,7 @@ import { TeamZeile } from "@/components/pruefungen/team-zeile";
  */
 export default function PruefungDetailPage() {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const router = useRouter();
   const { examId } = useParams<{ examId: string }>();
@@ -103,13 +105,13 @@ export default function PruefungDetailPage() {
   const hoechstens = (regulationId: string) => pruefung.regulations.find((o) => o.id === regulationId)?.maxPoints;
 
   async function absagen() {
-    if (!window.confirm(t("Die Prüfung absagen? Die Familien der gemeldeten Mitglieder-Teams bekommen eine Nachricht."))) return;
+    if (!(await rueckfrage({ titel: t("Die Prüfung absagen?"), text: t("Die Familien der gemeldeten Mitglieder-Teams bekommen eine Nachricht."), bestaetigen: t("Absagen") }))) return;
     await ausfuehren(() => api.post(`${basis}/cancel`), t("Prüfung abgesagt."), t("Prüfung konnte nicht abgesagt werden."));
   }
 
   async function loeschen() {
     // Ohne Teams gibt es nichts zu verlieren; mit Teams fragt die Seite nach.
-    if (pruefung!.entries.length > 0 && !window.confirm(t("Die Prüfung samt Meldeliste löschen? Die Familien der gemeldeten Mitglieder-Teams bekommen eine Nachricht."))) return;
+    if (pruefung!.entries.length > 0 && !(await rueckfrage({ titel: t("Die Prüfung samt Meldeliste löschen?"), text: t("Die Familien der gemeldeten Mitglieder-Teams bekommen eine Nachricht."), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     setLaeuft(true);
     try {
       await api.delete(basis);
@@ -122,8 +124,8 @@ export default function PruefungDetailPage() {
   }
 
   async function austragen(team: PruefungTeam) {
-    const warnung = team.result === PRUEFUNG_ERGEBNIS.Bestanden ? t("Das Team austragen? Die Leistung beim Hund wird dann wieder entfernt.") : t("Das Team austragen?");
-    if (!window.confirm(warnung)) return;
+    const warnung = team.result === PRUEFUNG_ERGEBNIS.Bestanden ? t("Die Leistung beim Hund wird dann wieder entfernt.") : undefined;
+    if (!(await rueckfrage({ titel: t("Das Team austragen?"), text: warnung, bestaetigen: t("Austragen") }))) return;
     await ausfuehren(() => api.delete(`${basis}/entries/${team.id}`), t("Team ausgetragen."), t("Team konnte nicht ausgetragen werden."));
   }
 

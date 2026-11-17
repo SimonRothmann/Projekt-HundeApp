@@ -5,6 +5,7 @@ import { Pencil, Trash2, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { filtereKandidaten, helferName } from "@/lib/arbeitseinsaetze";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 import type { ArbeitseinsatzGast, ArbeitseinsatzKandidat } from "@/lib/types";
@@ -52,6 +53,7 @@ export function GaesteSheet({
 
 function Inhalt({ clubId, onGeaendert }: { clubId: string; onGeaendert: () => Promise<void> }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const basis = `/api/clubs/${clubId}/work-events/guests`;
   const [gaeste, setGaeste] = useState<ArbeitseinsatzGast[] | null>(null);
   const [fehler, setFehler] = useState(false);
@@ -79,7 +81,7 @@ function Inhalt({ clubId, onGeaendert }: { clubId: string; onGeaendert: () => Pr
   }
 
   async function loeschen(gast: ArbeitseinsatzGast) {
-    if (!window.confirm(t("{name} samt allen Einsätzen endgültig löschen?", { name: helferName(t, gast) }))) return;
+    if (!(await rueckfrage({ titel: t("{name} samt allen Einsätzen endgültig löschen?", { name: helferName(t, gast) }), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     setLaeuft(true);
     try {
       await api.delete(`${basis}/${gast.id}`);
@@ -194,6 +196,7 @@ function Umbenennen({ url, gast, onFertig }: { url: string; gast: Arbeitseinsatz
 
 function Zuordnen({ clubId, url, gast, onFertig }: { clubId: string; url: string; gast: ArbeitseinsatzGast; onFertig: (geaendert: boolean) => Promise<void> }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const [kandidaten, setKandidaten] = useState<ArbeitseinsatzKandidat[] | null>(null);
   const [fehler, setFehler] = useState(false);
   const [suche, setSuche] = useState("");
@@ -217,11 +220,15 @@ function Zuordnen({ clubId, url, gast, onFertig }: { clubId: string; url: string
 
   async function zuordnen() {
     if (!gewaehlt) return;
-    const frage = t("Alle Einsätze von {gast} gehen auf {mitglied} über, die Person ohne Konto wird danach gelöscht. Fortfahren?", {
-      gast: helferName(t, gast),
-      mitglied: helferName(t, gewaehlt),
-    });
-    if (!window.confirm(frage)) return;
+    if (
+      !(await rueckfrage({
+        titel: t("Einsätze von {gast} auf {mitglied} übertragen?", { gast: helferName(t, gast), mitglied: helferName(t, gewaehlt) }),
+        text: t("Alle Einsätze gehen auf das Mitglied über, die Person ohne Konto wird danach gelöscht."),
+        bestaetigen: t("Zuordnen"),
+        gefaehrlich: true,
+      }))
+    )
+      return;
     setSpeichert(true);
     try {
       await api.post(url, { userId: gewaehlt.userId });

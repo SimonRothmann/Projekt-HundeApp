@@ -114,7 +114,7 @@ export function GoalPlanCard({
         {goal.planManagedByTrainer && (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-muted px-3 py-2 text-xs">
             <UserCog className="size-3.5 shrink-0 text-muted-foreground" />
-            <span className="min-w-0">{t("Dein Trainer betreut diesen Plan – er wird nicht mehr automatisch angepasst.")}</span>
+            <span className="min-w-0">{t("Deine Trainer:in betreut diesen Plan – er wird nicht mehr automatisch angepasst.")}</span>
             <Button type="button" size="sm" variant="ghost" className="text-xs" disabled={switchingAuto} onClick={enableAutoRegeneration}>
               {switchingAuto ? t("Schaltet um…") : t("Automatik wieder einschalten")}
             </Button>

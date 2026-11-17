@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, ShieldCheck, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import type { ClubMemberRequest, ClubTrainerInfo } from "@/lib/types";
 import { aenderbareRollen, darfAbberufen, hatRolle, mitRolle, ROLLE, ROLLEN, rollenVon } from "@/lib/vereinsrollen";
@@ -51,6 +52,7 @@ export function ClubRolesSection({
   onGeaendert?: () => void | Promise<void>;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const aenderbar = aenderbareRollen({ canManage, canAppointTrainers }, istAdmin);
   const [personen, setPersonen] = useState<ClubTrainerInfo[] | null>(null);
   const [mitglieder, setMitglieder] = useState<ClubMemberRequest[]>([]);
@@ -110,7 +112,7 @@ export function ClubRolesSection({
   }
 
   async function abberufen(p: ClubTrainerInfo) {
-    if (!window.confirm(t("{name} alle Rollen im Verein entziehen?", { name: anzeigename(p) }))) return;
+    if (!(await rueckfrage({ titel: t("{name} alle Rollen im Verein entziehen?", { name: anzeigename(p) }), bestaetigen: t("Entziehen"), gefaehrlich: true }))) return;
     setArbeitet(p.userId);
     try {
       await api.delete(`/api/clubs/${clubId}/trainers/${p.userId}`);

@@ -10,11 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Users, ShieldPlus, ShieldCheck, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 
 export function ClubMembersSection({ club, onBefoerdert }: { club: Club; onBefoerdert?: () => void }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const ort = ortsformat(useSprache());
   const [members, setMembers] = useState<ClubMemberRequest[] | null>(null);
   const [promotingUserId, setPromotingUserId] = useState<string | null>(null);
@@ -85,7 +87,7 @@ export function ClubMembersSection({ club, onBefoerdert }: { club: Club; onBefoe
   }
 
   async function zurueckziehen(einladung: ClubInvitation) {
-    if (!window.confirm(t("Einladung an {mail} zurückziehen?", { mail: einladung.invitedEmail }))) return;
+    if (!(await rueckfrage({ titel: t("Einladung an {mail} zurückziehen?", { mail: einladung.invitedEmail }), bestaetigen: t("Zurückziehen") }))) return;
     setZieheZurueck(einladung.membershipId);
     try {
       await api.delete(`/api/clubs/${club.id}/invitations/${einladung.membershipId}`);
@@ -105,13 +107,13 @@ export function ClubMembersSection({ club, onBefoerdert }: { club: Club; onBefoe
   async function handlePromote(m: ClubMemberRequest) {
     // Die Rolle lässt sich hier nicht wieder entziehen - deshalb vorher fragen.
     const name = `${m.firstName} ${m.lastName}`.trim() || m.email;
-    if (!window.confirm(t("{name} zum Trainer machen?", { name }))) return;
+    if (!(await rueckfrage({ titel: t("{name} zur Trainer:in machen?", { name }), bestaetigen: t("Zur Trainer:in machen") }))) return;
     const userId = m.userId;
     setPromotingUserId(userId);
     try {
       await api.post(`/api/clubs/${club.id}/members/${userId}/promote`);
-      toast.success(t("Mitglied ist jetzt Trainer."));
-      // Neu laden, sonst bietet die Zeile weiter "Zum Trainer machen" an,
+      toast.success(t("Mitglied ist jetzt Trainer:in."));
+      // Neu laden, sonst bietet die Zeile weiter "Zur Trainer:in machen" an,
       // obwohl die Person es gerade geworden ist.
       await loadMembers();
       onBefoerdert?.();
@@ -124,7 +126,7 @@ export function ClubMembersSection({ club, onBefoerdert }: { club: Club; onBefoe
 
   async function entfernen(m: ClubMemberRequest) {
     const name = `${m.firstName} ${m.lastName}`.trim() || m.email;
-    if (!window.confirm(t("{name} aus dem Verein entfernen?", { name }))) return;
+    if (!(await rueckfrage({ titel: t("{name} aus dem Verein entfernen?", { name }), bestaetigen: t("Entfernen"), gefaehrlich: true }))) return;
     setEntferneUserId(m.userId);
     try {
       await api.delete(`/api/clubs/${club.id}/members/${m.userId}`);
@@ -229,7 +231,7 @@ export function ClubMembersSection({ club, onBefoerdert }: { club: Club; onBefoe
               // Wer eine Rolle hat, bleibt, bis ihm die Rollen genommen sind (der Server weist anderes ab).
               const aktionen = [
                 ...(!m.isTrainer && darfBefoerdern
-                  ? [{ label: t("Zum Trainer machen"), icon: ShieldPlus, onSelect: () => handlePromote(m) }]
+                  ? [{ label: t("Zur Trainer:in machen"), icon: ShieldPlus, onSelect: () => handlePromote(m) }]
                   : []),
                 ...(!m.hatRolle
                   ? [{ label: t("Entfernen"), icon: UserMinus, onSelect: () => entfernen(m), destruktiv: true }]

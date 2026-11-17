@@ -496,7 +496,7 @@ export default function DashboardPage() {
 
           {erfassen}
 
-          {/* Unter "Erfassen", damit der Hauptweg oben bleibt - aber vor den
+          {/* Unter "Eintragen", damit der Hauptweg oben bleibt - aber vor den
               Zielen, damit ihn alle sehen, ohne zu scrollen. Nicht im Erststart:
               Dort geht es erst einmal um den ersten Hund. */}
           <PushHinweisKarte />

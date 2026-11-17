@@ -10,6 +10,7 @@ import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { LogOut, Mail, Users } from "lucide-react";
 import { toast } from "sonner";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 
 /**
@@ -27,6 +28,7 @@ import { useT } from "@/lib/i18n";
  */
 export function MeineGruppenSection({ onChanged }: { onChanged?: () => void }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const [eintraege, setEintraege] = useState<MyGroupMembership[] | null>(null);
   const [laeuft, setLaeuft] = useState<string | null>(null);
 
@@ -83,13 +85,13 @@ export function MeineGruppenSection({ onChanged }: { onChanged?: () => void }) {
     return ausfuehren(eintragsKey(g), () => api.post(`${einladungsPfad(g)}/decline`), t("Einladung abgelehnt."));
   }
 
-  function verlassen(g: MyGroupMembership) {
+  async function verlassen(g: MyGroupMembership) {
     if (
-      !window.confirm(
-        t("{gruppe} verlassen? Die Trainer:innen dieser Gruppe betreuen deine Hunde danach nicht mehr.", {
-          gruppe: g.groupName,
-        }),
-      )
+      !(await rueckfrage({
+        titel: t("{gruppe} verlassen?", { gruppe: g.groupName }),
+        text: t("Die Trainer:innen dieser Gruppe betreuen deine Hunde danach nicht mehr."),
+        bestaetigen: t("Verlassen"),
+      }))
     )
       return;
     return ausfuehren(eintragsKey(g), () => api.delete(`/api/groups/${g.groupId}/membership`), t("Gruppe verlassen."));

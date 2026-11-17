@@ -6,6 +6,7 @@ import { Pencil, Timer, Trash2, UserMinus, UserPlus, Users } from "lucide-react"
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { abhakbar, dauerText, helferName } from "@/lib/arbeitseinsaetze";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { vereinszeitTag } from "@/lib/kalendertag";
 import { datumLang } from "@/lib/pruefungen";
@@ -26,6 +27,7 @@ import { MinutenSheet } from "@/components/arbeitseinsaetze/minuten-sheet";
  */
 export default function ArbeitseinsatzDetailPage() {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const router = useRouter();
   const { eventId } = useParams<{ eventId: string }>();
@@ -93,7 +95,7 @@ export default function ArbeitseinsatzDetailPage() {
   const kannAbhaken = abhakbar(einsatz.date, vereinszeitTag());
 
   async function austragen(helfer: ArbeitseinsatzHelfer) {
-    if (!window.confirm(t("{name} austragen?", { name: helferName(t, helfer) }))) return;
+    if (!(await rueckfrage({ titel: t("{name} austragen?", { name: helferName(t, helfer) }), bestaetigen: t("Austragen") }))) return;
     setLaeuft(true);
     try {
       await api.delete(`${basis}/participants/${helfer.id}`);
@@ -108,7 +110,7 @@ export default function ArbeitseinsatzDetailPage() {
 
   async function loeschen() {
     // Ohne Helfer:innen gibt es nichts zu verlieren; mit ihnen fragt die Seite nach.
-    if (einsatz!.participants.length > 0 && !window.confirm(t("Den Einsatz samt abgehakter Helfer:innen löschen?"))) return;
+    if (einsatz!.participants.length > 0 && !(await rueckfrage({ titel: t("Den Einsatz samt abgehakter Helfer:innen löschen?"), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     setLaeuft(true);
     try {
       await api.delete(basis);

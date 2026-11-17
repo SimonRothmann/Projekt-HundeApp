@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { SessionCounts } from "@/components/schedule/session-counts";
 
 import { einladbareGruppen } from "@/lib/beitrittsfreigabe";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { ortsformat } from "@/lib/ortsformat";
@@ -83,6 +84,7 @@ const emptyForm = (): Form => ({
 
 export default function SchedulePage() {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const ort = ortsformat(useSprache());
   const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(ort, { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
   const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(ort, { hour: "2-digit", minute: "2-digit" });
@@ -325,7 +327,7 @@ export default function SchedulePage() {
   }
 
   async function cancelSession(s: GroupTrainingSession) {
-    if (!window.confirm(t("Termin am {datum} absagen? Mitglieder sehen die Absage.", { datum: fmtDate(s.startsAt) }))) return;
+    if (!(await rueckfrage({ titel: t("Termin am {datum} absagen?", { datum: fmtDate(s.startsAt) }), text: t("Mitglieder sehen die Absage."), bestaetigen: t("Absagen") }))) return;
     try {
       await api.post(`/api/group-training/schedule/sessions/${s.id}/cancel`);
       toast.success(t("Termin abgesagt."));
@@ -335,7 +337,7 @@ export default function SchedulePage() {
     }
   }
   async function deleteSession(s: GroupTrainingSession) {
-    if (!window.confirm(t("Termin am {datum} endgültig löschen?", { datum: fmtDate(s.startsAt) }))) return;
+    if (!(await rueckfrage({ titel: t("Termin am {datum} endgültig löschen?", { datum: fmtDate(s.startsAt) }), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/group-training/schedule/sessions/${s.id}`);
       toast.success(t("Termin gelöscht."));

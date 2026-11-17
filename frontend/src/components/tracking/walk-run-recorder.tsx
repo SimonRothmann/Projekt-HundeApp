@@ -29,6 +29,7 @@ import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbil
 import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/components/tracking/unterbrochene-aufzeichnung";
 import { primeHapticsAudio, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
 
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import { TEXTLAENGE } from "@/lib/textlaengen";
 // Stabile Leerreferenz für den Idle-Fall (keine Aufzeichnung läuft) - siehe
@@ -95,6 +96,7 @@ export function WalkRunRecorder({
   track?: AblaufSpur;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const trail = istMantrailing(track);
   const verdeckt = track?.doubleBlind === true;
   const sichtbareLegung = verdeckt ? undefined : laidTrackPoints;
@@ -174,8 +176,8 @@ export function WalkRunRecorder({
    * Ablauf verwerfen - nur nach Rückfrage, wie beim Legen. Ein
    * versehentlicher Abbruch mitten im Suchen kostet den ganzen Versuch.
    */
-  function abbrechen() {
-    if (!confirm(t("Ablauf verwerfen? Die bisher aufgezeichnete Strecke geht verloren."))) return;
+  async function abbrechen() {
+    if (!(await rueckfrage({ titel: t("Ablauf verwerfen?"), text: t("Die bisher aufgezeichnete Strecke geht verloren."), bestaetigen: t("Verwerfen"), gefaehrlich: true }))) return;
     stop();
     setPoints([]);
     laufendRef.current = null;

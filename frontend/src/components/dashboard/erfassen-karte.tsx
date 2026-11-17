@@ -43,7 +43,7 @@ export function ErfassenKarte({
             Abstand gehört deshalb oben UND unten an jede Zeile. Knapp, weil die
             Knöpfe selbst schon 44 px hoch sind. */}
         <CardContent className="flex flex-col gap-2">
-          <p className="text-sm font-semibold">{t("Erfassen")}</p>
+          <p className="text-sm font-semibold">{t("Eintragen")}</p>
           <ul className="flex flex-col divide-y">
             {hunde.map((hund) => {
               const nurTrailHund = nurTrailHundeIds.includes(hund.id);
@@ -54,7 +54,7 @@ export function ErfassenKarte({
                   <KompaktKnopf
                     icon={NotebookPen}
                     text={t("Training")}
-                    name={t("Training für {name} erfassen", { name: hund.name })}
+                    name={t("Training für {name} eintragen", { name: hund.name })}
                     onClick={() => onEintragen(hund.id)}
                   />
                   {faehrtenHundeIds.includes(hund.id) && (
@@ -82,7 +82,7 @@ export function ErfassenKarte({
       <CardContent className="flex flex-col divide-y">
         <Zeile
           icon={NotebookPen}
-          titel={t("Training erfassen")}
+          titel={t("Training eintragen")}
           beschreibung={hunde.length === 1 ? t("Einheit für {name} eintragen", { name: hunde[0].name }) : null}
           onWaehle={() => onEintragen(hunde[0].id)}
         />

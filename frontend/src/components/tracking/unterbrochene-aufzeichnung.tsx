@@ -19,6 +19,7 @@ import {
   type AufzeichnungsSicherung,
   type SpeicherErgebnis,
 } from "@/lib/aufzeichnung-sicherung";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { ortsformat } from "@/lib/ortsformat";
 
@@ -52,6 +53,7 @@ export function UnterbrocheneAufzeichnungKarte({
   onVerwerfen: () => void;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const ort = ortsformat(useSprache());
   const marker = markerAnzahl(sicherung);
   const faehrte = sicherung.art === "faehrte";
@@ -102,8 +104,8 @@ export function UnterbrocheneAufzeichnungKarte({
           size="sm"
           variant="ghost"
           disabled={beschaeftigt}
-          onClick={() => {
-            if (confirm(t("Aufzeichnung verwerfen? Die gesicherten Punkte gehen verloren."))) onVerwerfen();
+          onClick={async () => {
+            if (await rueckfrage({ titel: t("Aufzeichnung verwerfen?"), text: t("Die gesicherten Punkte gehen verloren."), bestaetigen: t("Verwerfen"), gefaehrlich: true })) onVerwerfen();
           }}
           className="text-destructive hover:text-destructive coarse:min-h-11"
         >

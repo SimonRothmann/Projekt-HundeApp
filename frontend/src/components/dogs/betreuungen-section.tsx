@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import type { DogBetreuung } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { datumKurz } from "@/lib/pruefung";
 
@@ -29,15 +30,20 @@ export function BetreuungenSection({
   onChanged: () => Promise<void>;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   const [laeuft, setLaeuft] = useState<string | null>(null);
 
   async function beenden(b: DogBetreuung) {
-    const frage = t(
-      "Betreuung von {hund} durch {name} beenden? {name} sieht danach Tagebuch, Ziele und Fährten von {hund} nicht mehr.",
-      { hund: dogName, name: b.trainerName },
-    );
-    if (!window.confirm(frage)) return;
+    if (
+      !(await rueckfrage({
+        titel: t("Betreuung von {hund} durch {name} beenden?", { hund: dogName, name: b.trainerName }),
+        text: t("{name} sieht danach Tagebuch, Ziele und Fährten von {hund} nicht mehr.", { hund: dogName, name: b.trainerName }),
+        bestaetigen: t("Beenden"),
+        gefaehrlich: true,
+      }))
+    )
+      return;
     setLaeuft(b.trainerId);
     try {
       await api.delete(`/api/dogs/${dogId}/betreuungen/${b.trainerId}`);

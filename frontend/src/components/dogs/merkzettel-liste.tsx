@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { BlockLabel } from "@/components/ui/block-label";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
 import { zielText } from "@/lib/merkzettel";
@@ -30,6 +31,7 @@ export function MerkzettelListe({
   onChanged: () => void;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   const sprache = useSprache();
   // Die Einträge, die gerade zum Server unterwegs sind: kein zweiter Tipp, bis die Antwort da ist.
   const [beschaeftigt, setBeschaeftigt] = useState<ReadonlySet<string>>(new Set());
@@ -62,8 +64,8 @@ export function MerkzettelListe({
     });
   }
 
-  function loeschen(eintrag: MerkzettelEintrag) {
-    if (!window.confirm(t("Diesen Eintrag wirklich löschen?"))) return Promise.resolve();
+  async function loeschen(eintrag: MerkzettelEintrag) {
+    if (!(await rueckfrage({ titel: t("Diesen Eintrag wirklich löschen?"), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     return mitSperre(eintrag.id, async () => {
       await api.delete(`/api/dogs/${dogId}/merkzettel/${eintrag.id}`);
       toast.success(t("Eintrag gelöscht."));

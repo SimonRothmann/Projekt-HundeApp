@@ -33,7 +33,7 @@ export function DogActionBar({
     <div className="flex flex-col gap-1">
       <Button className="h-11 min-w-0 text-sm" onClick={onTraining}>
         <NotebookPen className="size-4" />
-        <span className="truncate">{t("Training erfassen")}</span>
+        <span className="truncate">{t("Training eintragen")}</span>
       </Button>
       {(zeigtFaehrte || zeigtMerken) && (
         <div className="flex flex-wrap justify-center gap-x-2">

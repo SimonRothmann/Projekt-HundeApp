@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Copy, Link2Off, Printer, QrCode as QrIcon, RefreshCw, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
 import { kopiereText, teileLink } from "@/lib/zwischenablage";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -49,6 +50,7 @@ export function LinkVerwaltung({
   texte: LinkTexte;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
   // undefined = wird geladen, null = es gibt keinen (oder abgeschalteten) Link.
   const [code, setCode] = useState<string | null | undefined>(undefined);
   const [arbeitet, setArbeitet] = useState(false);
@@ -90,12 +92,12 @@ export function LinkVerwaltung({
   async function neuErzeugen() {
     // Der alte Link ist danach tot: Aushänge und verschickte Nachrichten
     // laufen ins Leere. Das soll nie aus Versehen passieren.
-    if (!window.confirm(t("Neuen Link erzeugen? Der bisherige Link und sein QR-Code werden sofort ungültig."))) return;
+    if (!(await rueckfrage({ titel: t("Neuen Link erzeugen?"), text: t("Der bisherige Link und sein QR-Code werden sofort ungültig."), bestaetigen: t("Neu erzeugen"), gefaehrlich: true }))) return;
     await erzeugen();
   }
 
   async function abschalten() {
-    if (!window.confirm(texte.abschaltenFrage)) return;
+    if (!(await rueckfrage({ titel: texte.abschaltenFrage, bestaetigen: t("Abschalten"), gefaehrlich: true }))) return;
     setArbeitet(true);
     try {
       await api.delete(pfad);
