@@ -107,7 +107,7 @@ export function NextSessionCard({ clubs }: { clubs: Club[] }) {
 
         <div className="flex flex-wrap gap-2">
           <Link
-            href={`/trainer/schedule?verein=${termin.clubId}`}
+            href={`/trainer/schedule?verein=${termin.clubId}&termin=${termin.id}`}
             className={cn(buttonVariants({ size: "sm" }))}
           >
             {t("Vorbereiten")}

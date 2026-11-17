@@ -1491,6 +1491,7 @@ export const EN: Record<string, string> = {
   "Du kommst nicht": "You're not coming",
   "ändern": "change",
   "Weitere Termine ({n})": "More sessions ({n})",
+  "Nächster Termin: {datum} · {gruppe}": "Next session: {datum} · {gruppe}",
   "Feedback von {trainer} zu {hund}": "Feedback from {trainer} on {hund}",
   "Feedback zu {hund}": "Feedback on {hund}",
   "Lesen & antworten": "Read & reply",

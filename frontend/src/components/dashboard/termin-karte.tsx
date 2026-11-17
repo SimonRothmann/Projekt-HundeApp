@@ -26,6 +26,11 @@ function wochentagUndUhrzeit(iso: string, ort: string): string {
   return `${tag} ${d.toLocaleTimeString(ort, { hour: "2-digit", minute: "2-digit" })}`;
 }
 
+/** "Sa 28.11." - für die schmale Zeile, wenn der nächste Termin weiter als eine Woche entfernt ist. */
+function tagUndDatum(iso: string, ort: string): string {
+  return new Date(iso).toLocaleDateString(ort, { weekday: "short", day: "2-digit", month: "2-digit" });
+}
+
 /** Die Übungen des Termins als eine Zeile ("Fußarbeit · Sitz · Platz"). */
 const planZeile = (s: GroupTrainingSession) => s.items.map((i) => (i.exercise ? i.exercise.title : i.freeText)).join(" · ");
 
@@ -33,7 +38,10 @@ const planZeile = (s: GroupTrainingSession) => s.items.map((i) => (i.exercise ? 
  * Der nächste Gruppentermin der eigenen Gruppen (siehe
  * docs/GROUP_TRAINING_SCHEDULE.md) - nur, wenn innerhalb der nächsten 7 Tage
  * einer ansteht. Viele Vereine regeln Termine anders; ohne Termin erscheint
- * nichts, keine leere und keine werbende Karte.
+ * nichts, keine leere und keine werbende Karte. Liegt der nächste Termin
+ * weiter weg, bleibt nur eine schmale Zeile "Nächster Termin: Sa 28.11. ·
+ * Gruppe", die die Liste der kommenden Termine aufklappt - damit auch dann
+ * jemand zusagen kann, ohne dass die Startseite dafür Platz hergibt.
  *
  * Offen: Tag und Uhrzeit, Gruppe, Ort, der Plan als eine Zeile und die beiden
  * Antwortknöpfe. Beantwortet: nur eine Zeile - "ändern" klappt die Knöpfe
@@ -52,10 +60,37 @@ export function TerminKarte({ sessions }: { sessions: GroupTrainingSession[] }) 
   const [weitereOffen, setWeitereOffen] = useState(false);
 
   const uebersicht = terminUebersicht(sessions);
-  if (!uebersicht.naechster) return null;
+  if (!uebersicht.naechster && !uebersicht.fern) return null;
+
+  const weitere = uebersicht.weitere.map(angezeigt);
+  const weitereListe = (
+    <div className="mt-1 flex flex-col gap-2">
+      {weitere.map((s) => (
+        <TerminZeile key={s.id} termin={s} ort={ort} sendet={sendet === s.id} onAntwort={(kommt) => antworten(s, kommt)} />
+      ))}
+    </div>
+  );
+
+  if (!uebersicht.naechster) {
+    return (
+      <div>
+        <button
+          type="button"
+          aria-expanded={weitereOffen}
+          onClick={() => setWeitereOffen((offen) => !offen)}
+          className="flex min-h-9 w-full items-center justify-between gap-2 rounded-md px-1 text-left text-sm text-muted-foreground coarse:min-h-11"
+        >
+          <span className="min-w-0 [overflow-wrap:anywhere]">
+            {t("Nächster Termin: {datum} · {gruppe}", { datum: tagUndDatum(uebersicht.fern!.startsAt, ort), gruppe: uebersicht.fern!.groupName })}
+          </span>
+          <ChevronDown className={cn("size-4 shrink-0 transition-transform", weitereOffen && "rotate-180")} aria-hidden />
+        </button>
+        {weitereOffen && weitereListe}
+      </div>
+    );
+  }
 
   const termin = angezeigt(uebersicht.naechster);
-  const weitere = uebersicht.weitere.map(angezeigt);
   const beantwortet = termin.myResponse !== null;
   const knoepfeSichtbar = kannAntworten(termin) && (!beantwortet || aendern);
   const plan = planZeile(termin);
@@ -80,6 +115,7 @@ export function TerminKarte({ sessions }: { sessions: GroupTrainingSession[] }) 
                 {termin.myResponse ? t("Du kommst") : t("Du kommst nicht")}
               </span>
             </p>
+            {termin.myResponse && <KalenderKnopf termin={termin} kompakt />}
             <button
               type="button"
               aria-expanded={aendern}
@@ -99,15 +135,17 @@ export function TerminKarte({ sessions }: { sessions: GroupTrainingSession[] }) 
                 </span>
               </p>
             </div>
-            {termin.location && (
-              <p className="flex items-center gap-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                <MapPin className="size-3 shrink-0" aria-hidden />
-                {termin.location}
-              </p>
-            )}
-            {plan && <p className="line-clamp-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{plan}</p>}
           </>
         )}
+
+        {/* Ort und Plan bleiben auch nach der Antwort stehen: Wer zugesagt hat, will wissen, wohin. */}
+        {termin.location && (
+          <p className="flex items-center gap-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+            <MapPin className="size-3 shrink-0" aria-hidden />
+            {termin.location}
+          </p>
+        )}
+        {plan && <p className="line-clamp-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{plan}</p>}
 
         {knoepfeSichtbar && (
           <div className="flex flex-wrap items-center gap-2">
@@ -127,13 +165,7 @@ export function TerminKarte({ sessions }: { sessions: GroupTrainingSession[] }) 
               {t("Weitere Termine ({n})", { n: weitere.length })}
               <ChevronDown className={cn("size-4 shrink-0 transition-transform", weitereOffen && "rotate-180")} aria-hidden />
             </button>
-            {weitereOffen && (
-              <div className="mt-1 flex flex-col gap-2">
-                {weitere.map((s) => (
-                  <TerminZeile key={s.id} termin={s} ort={ort} sendet={sendet === s.id} onAntwort={(kommt) => antworten(s, kommt)} />
-                ))}
-              </div>
-            )}
+            {weitereOffen && weitereListe}
           </div>
         )}
       </CardContent>

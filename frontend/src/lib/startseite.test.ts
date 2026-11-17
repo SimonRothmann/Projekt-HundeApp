@@ -26,10 +26,34 @@ describe("terminUebersicht", () => {
     expect(weitere.map((t) => t.id)).toEqual(["spaeter"]);
   });
 
-  it("zeigt ohne Termin in 7 Tagen gar nichts - auch keine späteren", () => {
-    const liste = [termin("fern", "2026-10-20T18:00:00")];
-    expect(terminUebersicht(liste, JETZT)).toEqual({ naechster: null, weitere: [] });
-    expect(terminUebersicht([], JETZT)).toEqual({ naechster: null, weitere: [] });
+  it("gibt ohne Termin in 7 Tagen den ersten späteren als fern und die Liste dazu", () => {
+    const liste = [termin("noch-fern", "2026-10-25T18:00:00"), termin("fern", "2026-10-20T18:00:00")];
+    const { naechster, fern, weitere } = terminUebersicht(liste, JETZT);
+    expect(naechster).toBeNull();
+    expect(fern?.id).toBe("fern");
+    expect(weitere.map((t) => t.id)).toEqual(["fern", "noch-fern"]);
+  });
+
+  it("lässt ganz ohne kommende Termine alles leer", () => {
+    expect(terminUebersicht([], JETZT)).toEqual({ naechster: null, fern: null, weitere: [] });
+    expect(terminUebersicht([termin("vorbei", "2026-10-08T08:00:00")], JETZT)).toEqual({ naechster: null, fern: null, weitere: [] });
+  });
+
+  it("hat keinen fernen Termin, wenn alle kommenden abgesagt sind", () => {
+    const liste = [termin("a", "2026-10-20T18:00:00", 1), termin("b", "2026-10-09T18:00:00", 1)];
+    expect(terminUebersicht(liste, JETZT)).toEqual({ naechster: null, fern: null, weitere: [] });
+  });
+
+  it("überspringt bei fern abgesagte, führt sie aber in der Liste", () => {
+    const liste = [termin("abgesagt", "2026-10-20T18:00:00", 1), termin("geplant", "2026-10-21T18:00:00")];
+    const { fern, weitere } = terminUebersicht(liste, JETZT);
+    expect(fern?.id).toBe("geplant");
+    expect(weitere.map((t) => t.id)).toEqual(["abgesagt", "geplant"]);
+  });
+
+  it("deckelt auch die Liste bei fernen Terminen", () => {
+    const liste = Array.from({ length: 10 }, (_, i) => termin(`t${i}`, `2026-10-${String(20 + i).padStart(2, "0")}T18:00:00`));
+    expect(terminUebersicht(liste, JETZT).weitere).toHaveLength(MAX_WEITERE_TERMINE);
   });
 
   it("überspringt abgesagte Termine für die Karte, führt sie aber unter weitere (zeitlich einsortiert)", () => {
@@ -41,8 +65,10 @@ describe("terminUebersicht", () => {
     expect(andersrum.weitere.map((t) => t.id)).toEqual(["abgesagt"]);
   });
 
-  it("zeigt nichts, wenn in 7 Tagen nur abgesagte Termine liegen", () => {
-    expect(terminUebersicht([termin("a", "2026-10-09T18:00:00", 1), termin("b", "2026-10-20T18:00:00")], JETZT).naechster).toBeNull();
+  it("hat keine Karte, wenn in 7 Tagen nur abgesagte Termine liegen - der spätere wird fern", () => {
+    const { naechster, fern } = terminUebersicht([termin("a", "2026-10-09T18:00:00", 1), termin("b", "2026-10-20T18:00:00")], JETZT);
+    expect(naechster).toBeNull();
+    expect(fern?.id).toBe("b");
   });
 
   it("ignoriert Termine, die schon begonnen haben", () => {

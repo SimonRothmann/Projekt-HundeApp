@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import type {
@@ -102,6 +102,8 @@ export default function SchedulePage() {
   const [mineOnly, setMineOnly] = useState(false);
 
   const [form, setForm] = useState<Form | null>(null);
+  // Von "Vorbereiten" auf der Karte "Nächster Termin" (?termin=): dieser Termin öffnet nach dem ersten Laden zum Bearbeiten - einmal.
+  const oeffneTerminRef = useRef<string | null>(null);
   const [addBausteinId, setAddBausteinId] = useState("");
   const [addFreeText, setAddFreeText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -119,7 +121,15 @@ export default function SchedulePage() {
     if (filterGroup) params.set("groupId", filterGroup);
     if (mineOnly) params.set("mineOnly", "true");
     try {
-      setSessions(await api.get<GroupTrainingSession[]>(`/api/group-training/schedule/clubs/${clubId}?${params}`));
+      const liste = await api.get<GroupTrainingSession[]>(`/api/group-training/schedule/clubs/${clubId}?${params}`);
+      setSessions(liste);
+      const gesucht = oeffneTerminRef.current;
+      if (gesucht) {
+        oeffneTerminRef.current = null;
+        // Nicht gefunden oder nicht verwaltbar: es bleibt bei der Liste.
+        const s = liste.find((x) => x.id === gesucht);
+        if (s?.kannVerwalten) openEdit(s);
+      }
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Termine konnten nicht geladen werden."));
     }
@@ -136,7 +146,9 @@ export default function SchedulePage() {
       // fällt auf den ersten zurück.
       let gewuenscht: string | null = null;
       try {
-        gewuenscht = new URLSearchParams(window.location.search).get("verein");
+        const adresse = new URLSearchParams(window.location.search);
+        gewuenscht = adresse.get("verein");
+        oeffneTerminRef.current = adresse.get("termin");
       } catch {
         // Ohne lesbare Adresse bleibt es beim ersten Verein.
       }
@@ -383,7 +395,8 @@ export default function SchedulePage() {
           )}
 
           {form && (
-            <Card>
+            // overflow-visible: Die Karte schneidet sonst ab, und die Leiste unten bliebe nicht am Bildschirmrand haften.
+            <Card className="overflow-visible">
               <CardHeader className="p-3">
                 <CardTitle className="text-base">{form.editingId ? t("Termin bearbeiten") : t("Neuer Termin")}</CardTitle>
               </CardHeader>
@@ -399,7 +412,7 @@ export default function SchedulePage() {
                   <div className="flex flex-col gap-1">
                     <Label className="text-xs">{t("Gruppe")}</Label>
                     <Select value={form.groupId} onValueChange={(v) => patch({ groupId: v ?? "" })}>
-                      <SelectTrigger className="w-52"><SelectValue placeholder={t("Gruppe…")} /></SelectTrigger>
+                      <SelectTrigger className="w-52 max-w-full"><SelectValue placeholder={t("Gruppe…")} /></SelectTrigger>
                       <SelectContent>{groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
@@ -415,10 +428,10 @@ export default function SchedulePage() {
                 {clubTrainers.length > 0 && (
                   <div className="flex flex-col gap-1">
                     <Label className="text-xs">{t("Zuständige Trainer:innen")}</Label>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <div className="flex flex-wrap gap-x-3">
                       {clubTrainers.map((trainer) => (
-                        <label key={trainer.userId} className="flex items-center gap-1.5 text-sm">
-                          <input type="checkbox" className="size-4 accent-primary" checked={form.trainerIds.includes(trainer.userId)} onChange={(e) => toggleTrainer(trainer.userId, e.target.checked)} />
+                        <label key={trainer.userId} className="flex min-h-9 items-center gap-2 text-sm coarse:min-h-11">
+                          <input type="checkbox" className="size-5 shrink-0 accent-primary" checked={form.trainerIds.includes(trainer.userId)} onChange={(e) => toggleTrainer(trainer.userId, e.target.checked)} />
                           {trainer.firstName} {trainer.lastName}{user?.userId === trainer.userId ? t(" (du)") : ""}
                         </label>
                       ))}
@@ -463,8 +476,8 @@ export default function SchedulePage() {
                 )}
 
                 {form.mode === "series" && (
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" className="size-4 accent-primary" checked={form.autoContent} onChange={(e) => patch({ autoContent: e.target.checked })} />
+                  <label className="flex min-h-9 items-center gap-2 text-sm coarse:min-h-11">
+                    <input type="checkbox" className="size-5 shrink-0 accent-primary" checked={form.autoContent} onChange={(e) => patch({ autoContent: e.target.checked })} />
 {t("Inhalt je Termin automatisch generieren (abwechslungsreicher Mix)")}
                   </label>
                 )}
@@ -481,7 +494,7 @@ export default function SchedulePage() {
                       </Button>
                       {library && library.units.filter((u) => u.category === form.category).length > 0 && (
                         <Select value="" onValueChange={(v) => v && applyUnit(v)}>
-                          <SelectTrigger className="h-8 w-44"><SelectValue placeholder={t("Einheit übernehmen…")} /></SelectTrigger>
+                          <SelectTrigger className="w-44 max-w-full"><SelectValue placeholder={t("Einheit übernehmen…")} /></SelectTrigger>
                           <SelectContent>{library.units.filter((u) => u.category === form.category).map((u) => <SelectItem key={u.id} value={u.id}>{u.title}</SelectItem>)}</SelectContent>
                         </Select>
                       )}
@@ -511,7 +524,7 @@ export default function SchedulePage() {
 
                   <div className="flex flex-wrap gap-2">
                     <Select value={addBausteinId} onValueChange={(v) => { if (v) { patch({ content: [...form.content, exDraft(v)] }); } setAddBausteinId(""); }}>
-                      <SelectTrigger className="h-8 flex-1 min-w-40"><SelectValue placeholder={t("Baustein hinzufügen…")} /></SelectTrigger>
+                      <SelectTrigger className="min-w-40 flex-1"><SelectValue placeholder={t("Baustein hinzufügen…")} /></SelectTrigger>
                       <SelectContent className="max-h-[60vh] touch-pan-y overscroll-contain">
                         {(library?.exercises ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{t(categoryLabel[e.category])} · {e.title}</SelectItem>)}
                       </SelectContent>
@@ -524,7 +537,8 @@ export default function SchedulePage() {
                 </div>
                 )}
 
-                <div className="flex gap-2">
+                {/* Feste Leiste unten: Speichern bleibt im Daumenbereich, auch wenn das Formular lang wird. Auf dem Handy über der unteren Navigation (~4,5 rem hoch plus Safe-Area), am Desktop am Rand. */}
+                <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 -mx-3 -mb-3 flex gap-2 rounded-b-xl border-t bg-card px-3 py-2 md:bottom-0">
                   <Button type="button" disabled={saving || (form.mode === "series" && !form.editingId && serieTermine === 0)} onClick={submit}>{saving ? t("Speichert…") : form.editingId ? t("Speichern") : form.mode === "series" ? t("Serie anlegen") : t("Anlegen")}</Button>
                   <Button type="button" variant="ghost" onClick={() => setForm(null)}>{t("Abbrechen")}</Button>
                 </div>
