@@ -121,6 +121,10 @@ export function FahrteRecorder({
   // man sie im Tagebuch wieder heraussuchen muss. Offline gespeichert gibt es
   // noch keine Id - dann erinnert später die Startseite ("Zuletzt gelegt").
   const [gelegt, setGelegt] = useState<GpsTrack | null>(null);
+  // Nach dem Speichern zeigt das Fenster nur die Ergebniskarte; das Startformular
+  // erst auf ausdrücklichen Wunsch (sonst startete ein zweiter Tipp aus Versehen
+  // eine zweite Aufzeichnung).
+  const [weitere, setWeitere] = useState(false);
   const { user } = useAuth();
   const schluessel = faehrtenSchluessel(dogId);
   // Eine nicht beendete Aufzeichnung dieses Hundes (siehe
@@ -300,7 +304,10 @@ export function FahrteRecorder({
       return;
     }
     setUnterbrochen(null);
-    if (ergebnis.ausgang === "gespeichert") setGelegt(ergebnis.faehrte);
+    if (ergebnis.ausgang === "gespeichert") {
+      setGelegt(ergebnis.faehrte);
+      setWeitere(false);
+    }
     await onSaved();
   }
 
@@ -345,8 +352,13 @@ export function FahrteRecorder({
                 }}
               />
               <Button type="button" size="sm" variant="ghost" onClick={() => setGelegt(null)}>
-                {t("Später")}
+                {t("Fertig")}
               </Button>
+              {!weitere && (
+                <Button type="button" size="sm" variant="ghost" onClick={() => setWeitere(true)}>
+                  {trailModus ? t("Weiteren Trail legen") : t("Weitere Fährte legen")}
+                </Button>
+              )}
             </div>
             {/* Das Material trägt man hier nach, nicht beim Legen: Dort bleibt es bei einem Tipp je Marker.
                 Zugeklappt, damit "Jetzt ablaufen" oben bleibt; die Fährtendetails bieten dasselbe später. */}
@@ -363,7 +375,7 @@ export function FahrteRecorder({
             )}
           </div>
         )}
-        {!unterbrochen && (
+        {!unterbrochen && (!gelegt || weitere) && (
           <>
             {/* Antippen statt Tippen: Getippter Text vor dem Start löste auf
                 dem iPhone beim Legen "Eingabe widerrufen" aus (siehe

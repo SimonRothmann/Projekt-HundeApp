@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 
 /** So lange muss man drücken. Kurz genug für eine Hand, lang genug gegen ein Streifen in der Tasche. */
 const HALTEDAUER_MS = 1000;
+/** So lange steht "Länger halten" statt "gedrückt halten" im Knopf. */
+const HINWEISDAUER_MS = 2000;
 
 /**
  * Ein Knopf, der erst nach einer Sekunde Gedrückthalten auslöst.
@@ -41,6 +42,12 @@ export function HalteKnopf({
   const t = useT();
   const [haelt, setHaelt] = useState(false);
   const zeitgeberRef = useRef<number | null>(null);
+  // Rückmeldung bei zu kurzem Tippen IM Knopf. Ein Banner (Toast) lag unten
+  // genau über dem Knopf und fing die nächste Berührung ab - das Beenden
+  // verzögerte sich. Nichts darf den Knopf überdecken.
+  const [zuKurz, setZuKurz] = useState(false);
+  const hinweisZeitgeberRef = useRef<number | null>(null);
+  const knopfRef = useRef<HTMLButtonElement>(null);
   // Immer die neueste Fassung aufrufen, nicht die vom Moment des Drückens:
   // Während der einen Sekunde Halten kommen noch GPS-Punkte hinzu, und die
   // alte Fassung würde ohne sie speichern.
@@ -52,6 +59,7 @@ export function HalteKnopf({
   useEffect(
     () => () => {
       if (zeitgeberRef.current !== null) window.clearTimeout(zeitgeberRef.current);
+      if (hinweisZeitgeberRef.current !== null) window.clearTimeout(hinweisZeitgeberRef.current);
     },
     [],
   );
@@ -75,13 +83,32 @@ export function HalteKnopf({
     window.clearTimeout(zeitgeberRef.current);
     zeitgeberRef.current = null;
     setHaelt(false);
-    // Eine Meldung, keine Sammlung: Wer mehrmals zu kurz tippt, sieht sie
-    // einmal statt übereinandergestapelt.
-    if (zuFrueh) toast(t("Zum Beenden gedrückt halten."), { id: "halte-knopf" });
+    if (!zuFrueh) return;
+    setZuKurz(true);
+    if (hinweisZeitgeberRef.current !== null) window.clearTimeout(hinweisZeitgeberRef.current);
+    hinweisZeitgeberRef.current = window.setTimeout(() => {
+      hinweisZeitgeberRef.current = null;
+      setZuKurz(false);
+    }, HINWEISDAUER_MS);
+    // Kurzes Wackeln, nicht bei "Bewegung reduzieren".
+    if (!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      knopfRef.current?.animate?.(
+        [
+          { transform: "translateX(0)" },
+          { transform: "translateX(-5px)" },
+          { transform: "translateX(5px)" },
+          { transform: "translateX(-3px)" },
+          { transform: "translateX(3px)" },
+          { transform: "translateX(0)" },
+        ],
+        { duration: 300 },
+      );
+    }
   }
 
   return (
     <button
+      ref={knopfRef}
       type="button"
       onPointerDown={beginnen}
       onPointerUp={() => loslassen(true)}
@@ -113,7 +140,12 @@ export function HalteKnopf({
         }}
       />
       <span className="relative">{children}</span>
-      <span className="relative text-xs font-normal opacity-80">{t("gedrückt halten")}</span>
+      <span
+        aria-live="polite"
+        className={cn("relative text-xs", zuKurz ? "font-semibold opacity-100" : "font-normal opacity-80")}
+      >
+        {zuKurz ? t("Länger halten") : t("gedrückt halten")}
+      </span>
     </button>
   );
 }
