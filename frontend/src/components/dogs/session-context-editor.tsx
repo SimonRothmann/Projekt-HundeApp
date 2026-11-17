@@ -120,11 +120,11 @@ export function SessionContextEditor({
             {conditionLabel(session.condition)}
           </span>
         )}
-        {/* Als umrandeter Knopf statt als Geist: ohne Rahmen und ohne Symbol
-            sah "Ort, Zeit & Verfassung" wie eine weitere graue Textzeile aus
+        {/* Ohne Rahmen, aber mit Symbol und in der Akzentfarbe: Grau und ohne
+            Symbol sah "Ort, Zeit & Verfassung" wie eine weitere Textzeile aus
             und nicht wie etwas, das man antippen kann. */}
         {darfBearbeiten && (
-          <Button type="button" size="sm" variant="outline" className="h-6 gap-1 px-2 text-xs" onClick={openEditor}>
+          <Button type="button" size="sm" variant="ghost" className="h-6 gap-1 px-2 text-xs text-primary-text" onClick={openEditor}>
             <MapPin className="size-3" />
             {/* Ausdrücklich gegen null geprüft: "motiviert" ist die 0, und die
                 wäre in einer Wahrheitsprüfung falsch. */}

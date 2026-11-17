@@ -50,7 +50,7 @@ export function KalenderKnopf({
       <Button
         type="button"
         size="icon"
-        variant="outline"
+        variant="ghost"
         // Am Telefon so groß wie die Knöpfe daneben: Es ist der einzige Kalender-Export.
         className={cn("shrink-0 coarse:size-11", className)}
         aria-label={t("Zum Kalender")}
@@ -62,7 +62,7 @@ export function KalenderKnopf({
     );
 
   return (
-    <Button type="button" size="sm" variant="outline" className={className} onClick={uebergeben}>
+    <Button type="button" size="sm" variant="ghost" className={className} onClick={uebergeben}>
       <CalendarPlus className="size-4" />
       {t("Zum Kalender")}
     </Button>

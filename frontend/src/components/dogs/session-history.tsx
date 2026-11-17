@@ -195,15 +195,14 @@ export function SessionHistory({
         const firstDate = days.keys().next().value as string;
         const dayCount = days.size;
         return (
-          // Der Monat ist die oberste Ebene der Liste und bekommt deshalb eine
-          // eigene Fläche: eingefärbte Kopfzeile, ruhiger Grund darunter. So
-          // ist auf einen Blick zu sehen, welche Trainingstage zusammengehören.
-          <div key={mKey} className="overflow-hidden rounded-xl border border-border">
+          // Der Monat ist eine Überschrift über den Karten der Trainingstage,
+          // kein eigener Kasten um sie herum (kein Kasten im Kasten).
+          <div key={mKey}>
             <button
               type="button"
               onClick={() => toggleMonth(mKey)}
               aria-expanded={isOpen}
-              className="flex w-full items-center justify-between gap-2 bg-secondary px-3 py-3 text-left transition-colors hover:bg-secondary/70 coarse:min-h-11"
+              className="flex w-full items-center justify-between gap-2 py-2 text-left coarse:min-h-11"
             >
               <span className="flex min-w-0 items-center gap-2 font-heading font-semibold tracking-tight capitalize">
                 {isOpen ? (
@@ -219,11 +218,7 @@ export function SessionHistory({
               </Badge>
             </button>
             <Zuklappbar offen={isOpen}>
-              {/* Im Dark Mode ohne eigenen Grund: dort gilt "höher = heller"
-                  (Material 3, Apple HIG) - die Trainingstage heben sich durch
-                  ihre hellere Kartenfläche ab. Ein abgedunkelter Grund darunter
-                  war genau das "Dunkelblau auf Dunkelgrau auf Schwarz". */}
-              <div className="flex flex-col gap-2 border-t border-border bg-muted/40 p-3 dark:bg-transparent">
+              <div className="flex flex-col gap-2 pt-1">
                 {Array.from(days.entries()).map(([date, daySessions]) => {
                   const tagOffen = effectiveDays.has(date);
                   return (
@@ -252,7 +247,7 @@ export function SessionHistory({
         );
       })}
       {onLoadOlder && (
-        <Button variant="outline" size="sm" className="self-center" onClick={handleLoadOlder} disabled={loadingOlder}>
+        <Button variant="ghost" size="sm" className="self-center" onClick={handleLoadOlder} disabled={loadingOlder}>
           <History className="size-4" />
           {loadingOlder ? t("Lädt…") : t("Ältere Trainings anzeigen")}
         </Button>
