@@ -198,6 +198,8 @@ export default function DashboardPage() {
   // Das (Neu-)Laden ist gescheitert: ohne Daten der Fehlerzustand mit "Erneut versuchen", mit Daten
   // bleibt der letzte Stand stehen und ein Hinweis sagt, dass er nicht aktuell ist.
   const [ladefehler, setLadefehler] = useState(false);
+  // Zählt nur Neuladen nach einer Aktion - nicht den Wechsel vom gespeicherten zum frischen Stand beim Öffnen.
+  const [neuGeladen, setNeuGeladen] = useState(0);
 
   function uebernehmen(neu: Startdaten) {
     if (nutzerId) zwischenstand = { nutzerId, daten: neu };
@@ -215,6 +217,7 @@ export default function DashboardPage() {
   async function neuLaden() {
     try {
       uebernehmen(await ladeStartdaten(nutzerId));
+      setNeuGeladen((n) => n + 1);
     } catch {
       setLadefehler(true);
     }
@@ -492,7 +495,7 @@ export default function DashboardPage() {
           <FeedbackKarte eintraege={daten.feedback} onChanged={neuLaden} />
 
           {/* Nur am Trainingstag mit etwas Gemerktem - sonst nichts Neues auf der Startseite. */}
-          <MerkzettelHeuteKarte hunde={daten.hunde} stand={daten} onEintragen={oeffneEintragen} onMerken={oeffneMerken} />
+          <MerkzettelHeuteKarte hunde={daten.hunde} stand={neuGeladen} onEintragen={oeffneEintragen} onMerken={oeffneMerken} />
 
           {erfassen}
 

@@ -62,6 +62,8 @@ export default function DogsPage() {
   async function loadDogs() {
     const cached = await getCachedData<Dog[]>("dogs-list");
     if (cached) setDogs(cached);
+    // Leitet schon der gespeicherte Stand weiter, holt die Hundeseite die Liste ohnehin frisch.
+    if (cached && !new URLSearchParams(window.location.search).has("liste") && direktZumHund(cached, { zuletzt: leseZuletztHund(), listeGewuenscht: false })) return;
 
     try {
       const data = await api.get<Dog[]>("/api/dogs");
@@ -143,7 +145,8 @@ export default function DogsPage() {
         </Button>
       </div>
 
-      <HundEinladungen onAngenommen={loadDogs} />
+      {/* Beim Weiterleiten nicht abrufen: Die Hundeseite zeigt die Einladungen selbst. */}
+      {!entscheidet && <HundEinladungen onAngenommen={loadDogs} />}
 
       <NeuerHundSheet
         open={neuerHundOffen}

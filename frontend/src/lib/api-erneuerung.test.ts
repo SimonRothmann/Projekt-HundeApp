@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, api, REFRESH_KEY, TOKEN_KEY, USER_KEY } from "@/lib/api";
+import { ApiError, api, REFRESH_KEY, TOKEN_KEY, USER_KEY, tokenAbgelaufen } from "@/lib/api";
 
 // Die Token-Erneuerung hält die Sitzung am Leben: ein 401 mit Token heißt "Access-Token
 // abgelaufen", einmal erneuern und wiederholen. Nur ein ausdrückliches "kenne ich nicht"
@@ -310,5 +310,28 @@ describe("Token-Erneuerung: mehrere Tabs", () => {
 
     expect(erneuerungen()).toBe(0);
     expect(ort.href).toBe("/login");
+  });
+});
+
+/** Ein JWT, der nur `exp` (Sekunden) trägt - mehr liest das Frontend nicht. */
+const jwt = (exp: number) => `kopf.${Buffer.from(JSON.stringify({ exp })).toString("base64url")}.sig`;
+
+describe("Token-Erneuerung: vorab bei abgelaufenem Token", () => {
+  it("erkennt den Ablauf am exp; ohne lesbares exp gilt der Token als gültig", () => {
+    const jetzt = 1_800_000_000_000;
+    expect(tokenAbgelaufen(jwt(jetzt / 1000 - 60), jetzt)).toBe(true);
+    expect(tokenAbgelaufen(jwt(jetzt / 1000 + 5), jetzt)).toBe(true); // läuft in den nächsten 10 s ab
+    expect(tokenAbgelaufen(jwt(jetzt / 1000 + 600), jetzt)).toBe(false);
+    expect(tokenAbgelaufen("alt", jetzt)).toBe(false);
+  });
+
+  it("erneuert vor dem ersten Abruf, schickt den alten Token nie und erneuert bei parallelen Abrufen nur einmal", async () => {
+    werte.set(TOKEN_KEY, jwt(Math.floor(Date.now() / 1000) - 60));
+    server(erneuernderServer);
+
+    await Promise.all([api.get("/api/dogs"), api.get("/api/preferences")]);
+
+    expect(erneuerungen()).toBe(1);
+    expect(aufrufe.filter((a) => !istErneuerung(a.url)).map((a) => a.token)).toEqual(["neu", "neu"]);
   });
 });

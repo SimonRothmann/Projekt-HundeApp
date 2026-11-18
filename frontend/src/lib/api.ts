@@ -236,8 +236,29 @@ async function erneuereMitGespeichertemToken(): Promise<Erneuerung> {
  * und zwei Kopien davon würden mit demselben Refresh-Token rotieren und die
  * Wiederverwendungserkennung des Backends auslösen.
  */
+/**
+ * Ob der Access-Token laut seinem `exp` abgelaufen ist (oder in den nächsten 10 s abläuft). Nicht lesbar
+ * = nein: Dann bleibt es beim Weg über das 401.
+ */
+export function tokenAbgelaufen(token: string, jetztMs = Date.now()): boolean {
+  try {
+    const nutzlast = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof nutzlast.exp === "number" && nutzlast.exp * 1000 < jetztMs + 10_000;
+  } catch {
+    return false;
+  }
+}
+
 async function send(path: string, init?: RequestInit, isRetry = false): Promise<Response> {
-  const token = getToken();
+  let token = getToken();
+  // Nach einer Pause ist der Access-Token meist abgelaufen: gleich erneuern, statt jeden Abruf der
+  // Seite erst in ein 401 laufen zu lassen (eine Rundreise mehr je Seitenaufruf).
+  if (token && !isRetry && tokenAbgelaufen(token)) {
+    refreshInFlight ??= tryRefreshToken().finally(() => {
+      refreshInFlight = null;
+    });
+    if ((await refreshInFlight) === "erneuert") token = getToken();
+  }
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(init?.headers as Record<string, string> | undefined),
