@@ -49,7 +49,7 @@ export function VereinsantragSection() {
 
   // Das Formular steht unter der Vereinsliste: beim Öffnen dorthin scrollen.
   useEffect(() => {
-    if (formularOffen && antraege !== null) kastenRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    if (formularOffen && antraege !== null) kastenRef.current?.scrollIntoView({ block: "start" }); // ohne "smooth": das blieb auf Test ganz ohne Wirkung
   }, [formularOffen, antraege]);
 
   async function laden() {
