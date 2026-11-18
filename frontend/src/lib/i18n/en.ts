@@ -3206,4 +3206,9 @@ export const EN: Record<string, string> = {
   "Ein rotes Banner auf der Hundeseite zeigt überfällige Gesundheitstermine des Hundes; ein Tipp darauf öffnet „Gesundheit“.": "A red banner on the dog page shows the dog's overdue health dates; tapping it opens “Health”.",
   "Merken mit Datum: Gib wahlweise an, wann das Training ist – die Erinnerung kommt dann zwei Stunden vorher. Unter dem Datum steht, wann Dogity erinnert.": "Notes with a date: optionally enter when the training is – the reminder then comes two hours before. Below the date you see when Dogity will remind you.",
   "Einen eigenen Verein gründest du jetzt über den Link oben auf der Seite „Vereine“ – vorher lag der Knopf ganz unten unter der Vereinsliste.": "You now found your own club via the link at the top of the “Clubs” page – the button used to sit at the very bottom below the club list.",
+  "{n} Marker": "{n} markers",
+  "Marker über Uhr oder Kopfhörer": "Markers via watch or headphones",
+  "⏭ Weiter setzt einen Marker. Musik pausiert während der Aufnahme.": "⏭ Next sets a marker. Music pauses while recording.",
+  "⏭ Weiter = Gegenstand, ⏮ Zurück = Leckerlipot. Musik pausiert während der Aufnahme.": "⏭ Next = article, ⏮ Previous = treat spot. Music pauses while recording.",
+  "Neu zum Ausprobieren: Beim Fährtelegen kannst du Marker über die Mediensteuerung von Uhr oder Kopfhörer setzen – „Weiter“ für einen Gegenstand, „Zurück“ für einen Leckerlipot. Einzuschalten im Fenster „Fährte legen“; Musik pausiert solange.": "New to try: when laying a track you can set markers via the media controls of your watch or headphones – “Next” for an article, “Previous” for a treat spot. Switch it on in the “Lay track” window; music pauses meanwhile.",
 };

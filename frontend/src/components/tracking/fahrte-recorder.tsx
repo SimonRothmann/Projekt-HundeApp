@@ -25,6 +25,7 @@ import { LEERE_TRAIL_ANGABEN, type TrailAngabenVorLegen } from "@/lib/mantrailin
 import { TrailLegenFormular } from "@/components/tracking/trail-angaben";
 import { cn } from "@/lib/utils";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
+import { medienMarkerAn, setzeMedienMarker, useMedienMarker } from "@/lib/use-medien-marker";
 import { GENAUIGKEIT_KLASSE } from "@/components/tracking/genauigkeit-klasse";
 import { genauigkeitsStufe, GPS_PROFIL_LEGEN } from "@/lib/gps-profil";
 import { TrackMap } from "@/components/tracking/track-map";
@@ -119,6 +120,7 @@ export function FahrteRecorder({
   const markerArten = trailModus ? TRAIL_MARKER : MARKER_TYPES;
   const untergruende = trailModus ? TRAIL_UNTERGRUENDE : UNTERGRUENDE;
   const [isMarking, setIsMarking] = useState(false);
+  const [medienMarker, setMedienMarker] = useState(medienMarkerAn);
   // Die eben gelegte Fährte: bietet direkt danach das Ablaufen an, statt dass
   // man sie im Tagebuch wieder heraussuchen muss. Offline gespeichert gibt es
   // noch keine Id - dann erinnert später die Startseite ("Zuletzt gelegt").
@@ -174,13 +176,23 @@ export function FahrteRecorder({
     });
   }, [isRecording, points, untergrund, bodenzustand, user, dogId, trailModus, trailAngaben]);
 
+  const markerZahl = points.filter((p) => p.pointType === PUNKT_MARKER).length;
+  const medien = useMedienMarker(isRecording, {
+    weiter: () => !isMarking && markObject(trailModus ? 3 : 0),
+    zurueck: trailModus ? undefined : () => !isMarking && markObject(1),
+    titel: trailModus ? t("Trail legen") : t("Fährte legen"),
+    zeile: t("{n} Marker", { n: markerZahl }),
+  });
+
   function startRecording() {
+    medien.starten();
     laufendRef.current = { trackId: crypto.randomUUID(), begonnen: Date.now(), seite: window.location.pathname };
     setZuruecknehmbar(null);
     start();
   }
 
   function fortsetzen(gesichert: FaehrtenSicherung) {
+    medien.starten();
     laufendRef.current = { trackId: gesichert.trackId, begonnen: gesichert.begonnen, seite: gesichert.seite };
     setUntergrund(gesichert.untergrund);
     setBodenzustand(gesichert.bodenzustand ?? []);
@@ -430,6 +442,25 @@ export function FahrteRecorder({
               </div>
             )}
             {trailModus && <TrailLegenFormular werte={trailAngaben} onChange={setTrailAngaben} />}
+            <label className="flex min-h-11 items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-5 shrink-0 accent-primary"
+                checked={medienMarker}
+                onChange={(e) => {
+                  setMedienMarker(e.target.checked);
+                  setzeMedienMarker(e.target.checked);
+                }}
+              />
+              <span className="flex min-w-0 flex-col">
+                <span>{t("Marker über Uhr oder Kopfhörer")}</span>
+                <span className="text-xs text-muted-foreground">
+                  {trailModus
+                    ? t("⏭ Weiter setzt einen Marker. Musik pausiert während der Aufnahme.")
+                    : t("⏭ Weiter = Gegenstand, ⏮ Zurück = Leckerlipot. Musik pausiert während der Aufnahme.")}
+                </span>
+              </span>
+            </label>
             <Button onClick={startRecording} disabled={speichert} className="w-full coarse:min-h-11">
               <MapPin className="size-4" />
               {t("Legen starten")}

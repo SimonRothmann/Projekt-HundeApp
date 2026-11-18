@@ -64,6 +64,10 @@ export const NEUESTE_VERSION: Versionshinweis = {
       art: "verbessert",
       text: uebersetzbar("Einen eigenen Verein gründest du jetzt über den Link oben auf der Seite „Vereine“ – vorher lag der Knopf ganz unten unter der Vereinsliste."),
     },
+    {
+      art: "neu",
+      text: uebersetzbar("Neu zum Ausprobieren: Beim Fährtelegen kannst du Marker über die Mediensteuerung von Uhr oder Kopfhörer setzen – „Weiter“ für einen Gegenstand, „Zurück“ für einen Leckerlipot. Einzuschalten im Fenster „Fährte legen“; Musik pausiert solange."),
+    },
   ],
 };
 
