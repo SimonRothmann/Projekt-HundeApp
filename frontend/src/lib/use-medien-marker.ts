@@ -41,7 +41,8 @@ export function useMedienMarker(
   function starten() {
     if (!medienMarkerAn() || !("mediaSession" in navigator)) return;
     tonRef.current ??= Object.assign(new Audio("/stille.wav"), { loop: true });
-    void tonRef.current.play().catch(() => {
+    // Mindestens einige Sekunden lang: Kürzere Töne führen iOS und Android nicht als Wiedergabe ("Jetzt läuft").
+    void tonRef.current.play().then(() => (navigator.mediaSession.playbackState = "playing")).catch(() => {
       // Ohne Ton keine Mediensteuerung - die Knöpfe am Handy gehen weiter.
     });
   }
@@ -58,6 +59,7 @@ export function useMedienMarker(
       for (const aktion of ["nexttrack", "previoustrack", "pause", "play"] as const) sitzung.setActionHandler(aktion, null);
       tonRef.current?.pause();
       sitzung.metadata = null;
+      sitzung.playbackState = "none";
     };
   }, [aktiv]);
 
