@@ -6,7 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { sportartenCacheLeeren } from "@/lib/sportarten";
 import { rollenVon } from "@/lib/vereinsrollen";
 import { naechstePruefungText } from "@/lib/pruefungen";
-import { VereinsantragSection } from "@/components/clubs/vereinsantrag-section";
+import { VEREIN_GRUENDEN, VereinsantragSection } from "@/components/clubs/vereinsantrag-section";
 import { MeineGruppenSection } from "@/components/clubs/meine-gruppen-section";
 import { MeineArbeitseinsaetzeKarte } from "@/components/arbeitseinsaetze/meine-karte";
 import type { Club, ClubSummary, ClubMembership, Group } from "@/lib/types";
@@ -157,6 +157,11 @@ export default function ClubsPage() {
         <p className="text-muted-foreground">
 {t("Tritt einem Verein bei - der Verein gibt deine Anfrage frei.")}
         </p>
+        {/* Vorher nur als grauer Knopf unter der ganzen Vereinsliste - kaum zu finden. */}
+        <a href={`#${VEREIN_GRUENDEN}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary-text">
+          <Building2 className="size-4 shrink-0" aria-hidden />
+          {t("Dein Verein fehlt? Verein gründen")}
+        </a>
       </div>
 
       <MeineGruppenSection key={gruppenStand} onChanged={loadAll} />

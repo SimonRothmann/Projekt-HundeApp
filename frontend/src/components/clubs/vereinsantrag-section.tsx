@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { CLUB_REGISTRATION_STATUS, type ClubRegistration } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,13 +25,32 @@ import { useT } from "@/lib/i18n";
  * Das Formular brauchen die wenigsten: Es klappt erst auf, wenn man es
  * will. Wer noch nie einen Antrag gestellt hat, sieht nur einen Link-Knopf.
  */
+/** Anker des Formulars: Der Link oben auf /clubs und "/clubs#verein-gruenden" öffnen es direkt. */
+export const VEREIN_GRUENDEN = "verein-gruenden";
+
 export function VereinsantragSection() {
   const t = useT();
   const [antraege, setAntraege] = useState<ClubRegistration[] | null>(null);
   const [name, setName] = useState("");
   const [beschreibung, setBeschreibung] = useState("");
   const [sendet, setSendet] = useState(false);
-  const [formularOffen, setFormularOffen] = useState(false);
+  const [formularOffen, setFormularOffen] = useState(
+    () => typeof window !== "undefined" && window.location.hash === `#${VEREIN_GRUENDEN}`,
+  );
+  const kastenRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const pruefen = () => {
+      if (window.location.hash === `#${VEREIN_GRUENDEN}`) setFormularOffen(true);
+    };
+    window.addEventListener("hashchange", pruefen);
+    return () => window.removeEventListener("hashchange", pruefen);
+  }, []);
+
+  // Das Formular steht unter der Vereinsliste: beim Öffnen dorthin scrollen.
+  useEffect(() => {
+    if (formularOffen && antraege !== null) kastenRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [formularOffen, antraege]);
 
   async function laden() {
     try {
@@ -77,11 +96,11 @@ export function VereinsantragSection() {
     </Button>
   );
 
-  // Ohne eigenen Antrag und mit zugeklapptem Formular bleibt nur der Knopf.
-  if (antraege.length === 0 && !formularOffen) return aufklappKnopf;
+  // Ohne eigenen Antrag und mit zugeklapptem Formular nichts: Der Einstieg steht oben auf der Seite.
+  if (antraege.length === 0 && !formularOffen) return null;
 
   return (
-    <Card>
+    <Card ref={kastenRef} id={VEREIN_GRUENDEN} className="scroll-mt-20">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Building2 className="size-5" />

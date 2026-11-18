@@ -53,7 +53,7 @@ export default function ProfilePage() {
           Wer noch keinem Verein angehört, sieht die Beitrittskarte weiterhin
           auf der Startseite. */}
       <ListenGruppe>
-        <ListenZeile href="/clubs" icon={Building2} titel={t("Mein Verein")} untertitel={t("Vereine finden, beitreten und verwalten")} />
+        <ListenZeile href="/clubs" icon={Building2} titel={t("Mein Verein")} untertitel={t("Vereine finden, beitreten, gründen und verwalten")} />
         <ListenZeile href="/sports" icon={Trophy} titel={t("Sportarten")} untertitel={t("Prüfungsordnungen & Übungen entdecken")} />
         {/* Die Startseite zeigt die Zeile nur, solange keine BH-Karte den Link
             trägt; im Profil steht sie immer, wenn das Modul an ist - hier

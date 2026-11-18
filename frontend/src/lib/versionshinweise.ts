@@ -69,6 +69,10 @@ export const VERSIONSHINWEISE: Versionshinweis[] = [
         art: "neu",
         text: uebersetzbar("Merken mit Datum: Gib wahlweise an, wann das Training ist – die Erinnerung kommt dann zwei Stunden vorher. Unter dem Datum steht, wann Dogity erinnert."),
       },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Einen eigenen Verein gründest du jetzt über den Link oben auf der Seite „Vereine“ – vorher lag der Knopf ganz unten unter der Vereinsliste."),
+      },
     ],
   },
   {

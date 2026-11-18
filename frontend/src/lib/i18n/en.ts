@@ -331,7 +331,8 @@ export const EN: Record<string, string> = {
   "Start (gelegt)": "Start (laid)",
   "Stoppelfeld": "Stubble field",
   "Untergrund (optional)": "Surface (optional)",
-  "Vereine finden, beitreten und verwalten": "Find, join and manage clubs",
+  "Vereine finden, beitreten, gründen und verwalten": "Find, join, found and manage clubs",
+  "Dein Verein fehlt? Verein gründen": "Your club is missing? Found a club",
   "Wald": "Forest",
   "Weniger Tippen, weniger Scrollen": "Less tapping, less scrolling",
   "Wiese": "Meadow",
@@ -3204,4 +3205,5 @@ export const EN: Record<string, string> = {
   "Der Reiter „Hunde“ öffnet direkt den zuletzt angesehenen Hund. Einen weiteren Hund legst du über „+“ in einem Fenster an, Einladungen zum Mitverwalten stehen oben auf der Hundeseite, und archivierte Hunde findest du unter „Verwalten“.": "The “Dogs” tab opens the dog you last looked at. You add another dog via “+” in a window, invitations to co-manage appear at the top of the dog page, and archived dogs are under “Manage”.",
   "Ein rotes Banner auf der Hundeseite zeigt überfällige Gesundheitstermine des Hundes; ein Tipp darauf öffnet „Gesundheit“.": "A red banner on the dog page shows the dog's overdue health dates; tapping it opens “Health”.",
   "Merken mit Datum: Gib wahlweise an, wann das Training ist – die Erinnerung kommt dann zwei Stunden vorher. Unter dem Datum steht, wann Dogity erinnert.": "Notes with a date: optionally enter when the training is – the reminder then comes two hours before. Below the date you see when Dogity will remind you.",
+  "Einen eigenen Verein gründest du jetzt über den Link oben auf der Seite „Vereine“ – vorher lag der Knopf ganz unten unter der Vereinsliste.": "You now found your own club via the link at the top of the “Clubs” page – the button used to sit at the very bottom below the club list.",
 };
