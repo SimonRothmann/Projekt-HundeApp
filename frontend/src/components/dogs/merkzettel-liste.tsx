@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Pencil, Plus, StickyNote, Trash2 } from "lucide-react";
+import { BellRing, Check, Pencil, Plus, StickyNote, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,15 @@ export function MerkzettelListe({
     });
   }
 
+  // Push-Test: dieselbe Erinnerung wie vor dem Training, jetzt sofort - zeigt, ob sie auf Handy oder Uhr ankommt.
+  function erinnerungTesten() {
+    return mitSperre("test", async () => {
+      const mitPush = await api.post<boolean>(`/api/dogs/${dogId}/merkzettel/test-erinnerung`);
+      if (mitPush) toast.success(t("Erinnerung geschickt - sie kommt gleich als Push."));
+      else toast.info(t("Erinnerung steht in der Glocke. Für Push schalte sie unter Profil → Funktionen auf diesem Gerät ein."));
+    });
+  }
+
   return (
     <section className="flex min-w-0 flex-col gap-2 rounded-xl border border-surface-border bg-surface p-3" aria-label={t("Merkzettel")}>
       <div className="flex items-center justify-between gap-2">
@@ -136,6 +145,17 @@ export function MerkzettelListe({
           );
         })}
       </ul>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        className="min-h-11 self-start text-muted-foreground"
+        disabled={beschaeftigt.has("test")}
+        onClick={() => void erinnerungTesten()}
+      >
+        <BellRing className="size-4" aria-hidden />
+        {t("Erinnerung testen")}
+      </Button>
     </section>
   );
 }

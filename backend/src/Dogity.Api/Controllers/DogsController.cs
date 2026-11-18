@@ -1,6 +1,7 @@
 using Dogity.Application.Dogs;
 using Dogity.Application.Training;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dogity.Api.Controllers;
 
@@ -203,6 +204,12 @@ public class DogsController(IDogService dogService, IDogPauseService pauseServic
     [HttpPost("{id:guid}/merkzettel")]
     public async Task<ActionResult<TrainingNoteDto>> CreateMerkzettelEintrag(Guid id, SaveTrainingNoteRequest request, CancellationToken ct) =>
         FromResult(await merkzettelService.CreateAsync(CurrentUserId, id, request, ct));
+
+    /// <summary>Die Erinnerung zum Merkzettel jetzt schicken (Push-Test). Gedrosselt wie Einladungen, damit niemand Pushs am Stück auslöst.</summary>
+    [HttpPost("{id:guid}/merkzettel/test-erinnerung")]
+    [EnableRateLimiting("invite")]
+    public async Task<ActionResult<bool>> TestMerkzettelErinnerung(Guid id, CancellationToken ct) =>
+        FromResult(await merkzettelService.TestErinnerungAsync(CurrentUserId, id, ct));
 
     [HttpPut("{id:guid}/merkzettel/{eintragId:guid}")]
     public async Task<ActionResult<TrainingNoteDto>> UpdateMerkzettelEintrag(Guid id, Guid eintragId, SaveTrainingNoteRequest request, CancellationToken ct) =>

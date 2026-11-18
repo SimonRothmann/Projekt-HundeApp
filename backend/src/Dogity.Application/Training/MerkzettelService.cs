@@ -2,6 +2,7 @@ using System.Data.Common;
 using Dogity.Application.Abstractions;
 using Dogity.Application.Common;
 using Dogity.Application.Community;
+using Dogity.Application.Notifications;
 using Dogity.Application.Reminders;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Training;
@@ -11,7 +12,7 @@ using static Dogity.Application.Common.SqlStates;
 namespace Dogity.Application.Training;
 
 /// <inheritdoc />
-public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvider) : IMerkzettelService
+public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvider, INotificationService notifications) : IMerkzettelService
 {
     // Ein Datum weit in der Vergangenheit ist ein Tippfehler; ein wenig Spielraum bleibt für einen Eintrag,
     // der offline gemerkt und erst später synchronisiert wurde.
@@ -30,6 +31,24 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
             .ToListAsync(ct);
 
         return Result<IReadOnlyList<TrainingNoteDto>>.Success(await ToDtosAsync(userId, dogId, eintraege, ct));
+    }
+
+    public async Task<Result<bool>> TestErinnerungAsync(Guid userId, Guid dogId, CancellationToken ct = default)
+    {
+        if (!await db.IstBesitzerAsync(userId, dogId, ct))
+            return Result<bool>.NotFound("Hund nicht gefunden.");
+
+        var texte = await db.TrainingNotes
+            .Where(n => n.DogId == dogId && n.DoneAt == null)
+            .OrderBy(n => n.CreatedAt)
+            .Select(n => n.Text)
+            .ToListAsync(ct);
+        if (texte.Count == 0)
+            return Result<bool>.Failure("Auf dem Merkzettel steht nichts.");
+
+        var hund = await db.Dogs.Where(d => d.Id == dogId).Select(d => d.Name).FirstAsync(ct);
+        await notifications.CreateAsync(userId, Erinnerungsregeln.MerkzettelProbe(hund, texte), $"/dogs/{dogId}?tab=plan", ct);
+        return Result<bool>.Success(await db.PushSubscriptions.AnyAsync(s => s.UserId == userId, ct));
     }
 
     public async Task<Result<TrainingNoteDto>> CreateAsync(Guid userId, Guid dogId, SaveTrainingNoteRequest request, CancellationToken ct = default)

@@ -13,6 +13,12 @@ public interface IMerkzettelService
     Task<Result<IReadOnlyList<TrainingNoteDto>>> GetAsync(Guid userId, Guid dogId, CancellationToken ct = default);
 
     /// <summary>
+    /// Schickt der Person die Merkzettel-Erinnerung sofort (Glocke und Push), zum Prüfen, ob sie ankommt.
+    /// Liefert, ob für sie überhaupt ein Gerät für Push angemeldet ist.
+    /// </summary>
+    Task<Result<bool>> TestErinnerungAsync(Guid userId, Guid dogId, CancellationToken ct = default);
+
+    /// <summary>
     /// Legt einen Eintrag an. Mit <see cref="SaveTrainingNoteRequest.Id"/> idempotent: Gibt es den Eintrag schon,
     /// kommt er unverändert zurück.
     /// </summary>

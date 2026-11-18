@@ -349,6 +349,10 @@ public static class Erinnerungsregeln
         return ergebnis;
     }
 
+    /// <summary>Die Merkzettel-Erinnerung zum Ausprobieren: derselbe Satz wie am Trainingstag, ohne Uhrzeit, aus allen offenen Einträgen.</summary>
+    public static Meldung MerkzettelProbe(string hund, IReadOnlyList<string> texte) =>
+        MerkzettelMeldung(hund, null, Kuerzen(texte[0], MerkzettelTextZeichen), texte.Count - 1);
+
     // Ganze Sätze je Fall (mit und ohne Uhrzeit, mit und ohne weitere Einträge): Die Wortstellung ist je Sprache anders.
     private static Meldung MerkzettelMeldung(string hund, TimeOnly? uhrzeit, string text, int weitere)
     {

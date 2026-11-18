@@ -63,7 +63,7 @@ public class MerkzettelServiceTests
 
         return new Aufbau(
             db,
-            new MerkzettelService(db, uhr),
+            new MerkzettelService(db, uhr, new FakeNotificationService()),
             new TrainingService(db, new FakeNotificationService(), new FakeUserLookupService(), new ExerciseMasteryService(db), new FakeWeatherEnrichmentService(), uhr),
             ownerId, coOwnerId, trainerId, Guid.NewGuid(), flitzer.Id, bello.Id, uebung.Id);
     }
@@ -569,5 +569,31 @@ public class MerkzettelServiceTests
         await a.Trainings.CreateAsync(a.OwnerId, TrainingMit(a.DogId, [], id: Guid.NewGuid()));
 
         Assert.Null((await a.Db.TrainingNotes.SingleAsync()).DoneAt);
+    }
+
+    // --- Push-Test ------------------------------------------------------------
+
+    [Fact]
+    public async Task TestErinnerung_SchicktBesitzerinDenGebuendeltenSatz_FremdeBekommen404_LeerIstFehler()
+    {
+        var a = await AufbauAsync();
+        var benachrichtigungen = new FakeNotificationService();
+        var dienst = new MerkzettelService(a.Db, new FesteUhr(Jetzt), benachrichtigungen);
+
+        Assert.False((await dienst.TestErinnerungAsync(a.OwnerId, a.DogId)).Succeeded);
+        await a.Merkzettel.CreateAsync(a.OwnerId, a.DogId, Notiz("Fuß rückwärts"));
+        await a.Merkzettel.CreateAsync(a.OwnerId, a.DogId, Notiz("Box"));
+
+        var ergebnis = await dienst.TestErinnerungAsync(a.OwnerId, a.DogId);
+        Assert.True(ergebnis.Succeeded);
+        Assert.False(ergebnis.Value); // kein Gerät angemeldet
+        var (userId, text, link) = Assert.Single(benachrichtigungen.Created);
+        Assert.Equal(a.OwnerId, userId);
+        Assert.Equal("Heute Training - gemerkt für Flitzer: Fuß rückwärts · +1 weitere", text);
+        Assert.Equal($"/dogs/{a.DogId}?tab=plan", link);
+
+        Assert.True((await dienst.TestErinnerungAsync(a.FremdeId, a.DogId)).IsNotFound);
+        Assert.True((await dienst.TestErinnerungAsync(a.TrainerId, a.DogId)).IsNotFound);
+        Assert.Single(benachrichtigungen.Created);
     }
 }
