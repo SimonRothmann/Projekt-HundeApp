@@ -62,10 +62,12 @@ export function DogStatusLine({
       {statistikHref && (
         <Link
           href={statistikHref}
-          className="ml-auto flex min-h-11 shrink-0 items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+          aria-label={t("Statistik")}
+          className="ml-auto flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
         >
           <BarChart className="size-4" aria-hidden />
-          {t("Statistik")}
+          {/* Neben Ziel und Feedback nur das Symbol: Mit Text schnitt die Zielzeile bei 375 px ab ("noch 49 Ta…"). */}
+          {!ziel && !neuesFeedback && t("Statistik")}
         </Link>
       )}
     </div>

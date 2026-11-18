@@ -542,20 +542,10 @@ GitHub-App). Per Kommandozeile: `gh workflow run deploy.yml -f ziel=test`.
 - Beide Umgebungen lassen nur Läufe vom Branch `master` zu; zwei Deploys laufen
   nie gleichzeitig.
 
-**Prod zu einem festen Zeitpunkt** (`.github/workflows/prod-deploy-geplant.yml`):
-Actions → **Prod-Deploy planen** → Run workflow mit Zeitpunkt in deutscher Zeit
-(`2026-11-16 20:30`), oder
-`gh workflow run prod-deploy-geplant.yml -f zeitpunkt="2026-11-16 20:30"`. Der
-Lauf wartet auf das Approve (Umgebung `prod`); danach steht der Plan als Tag
-`prod-geplant-JJJJMMTTHHMM` auf dem master-Stand beim Klick. Alle 15 Minuten
-prüft ein Lauf, ob er fällig ist, und deployt dann genau diesen Stand - wegen der
-Verzögerung geplanter GitHub-Läufe bis zu rund 30 Minuten nach dem Zeitpunkt.
-Ein neuer Plan ersetzt den alten; absagen:
-`git push origin :refs/tags/prod-geplant-JJJJMMTTHHMM`. GitHub schaltet
-geplante Läufe nach 60 Tagen ohne Aktivität im Repo ab (Reiter Actions →
-„Enable workflow“).
+**Prod zu einem festen Zeitpunkt** gibt es nicht mehr (Workflow am 2026-11-18 entfernt): GitHub führte
+den Zeitplan oft 4–7 Stunden zu spät aus. Prod wird direkt deployt, wenn der Zeitpunkt passt.
 
-**Grüne CI vor jedem Deploy (seit 2026-11-16).** Beide Workflows haben einen
+**Grüne CI vor jedem Deploy (seit 2026-11-16).** Der Deploy-Workflow hat einen
 Job „CI grün?“ (`scripts/ci-pruefen.sh`), der vor dem Deploy sucht, ob der
 Workflow „CI“ für genau diesen Commit erfolgreich war - egal ob er durch einen
 Push auf master/prod oder durch einen Pull Request entstand. Läuft die CI noch,
@@ -566,14 +556,6 @@ noch vor der Freigabe (Approve).
 - **Notfall:** `gh workflow run deploy.yml -f ziel=prod -f ci_ueberspringen=true`
   (oder das Häkchen im Formular) überspringt die Prüfung. Die Aktion schreibt
   eine Warnung ins Protokoll.
-- **Geplanter Prod-Deploy:** Der Plan wird auch bei roter CI verbraucht (der
-  Tag ist weg, sonst käme alle 15 Minuten dieselbe Fehlermail), aber nicht
-  stillschweigend: Der Lauf „Prod-Deploy planen“ scheitert, GitHub schickt die
-  Mail, deployt wird nichts. Dann die CI in Ordnung bringen und neu planen.
-  Ein `cancelled` heißt, ein neuerer Push hat den CI-Lauf dieses Stands
-  ersetzt - den Lauf unter Actions → CI für den Commit neu starten (oder auf
-  einem neueren Stand planen). Die Prüfung gilt für Läufe, die nach dem
-  Einspielen dieser Änderung laufen; sie braucht auf der VPS nichts Neues.
 - Gewartet wird nur auf dem GitHub-Runner; auf dem Server ändert sich nichts.
 
 **Aufbau.** Der Schlüssel `github-actions-deploy` steht in

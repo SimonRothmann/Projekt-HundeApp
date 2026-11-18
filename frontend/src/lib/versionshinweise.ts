@@ -53,6 +53,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "1.7",
+    datum: "2026-11-18",
+    titel: uebersetzbar("Schneller beim Hund"),
+    aenderungen: [
+      {
+        art: "verbessert",
+        text: uebersetzbar("Der Reiter „Hunde“ öffnet direkt den zuletzt angesehenen Hund. Einen weiteren Hund legst du über „+“ in einem Fenster an, Einladungen zum Mitverwalten stehen oben auf der Hundeseite, und archivierte Hunde findest du unter „Verwalten“."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Ein rotes Banner auf der Hundeseite zeigt überfällige Gesundheitstermine des Hundes; ein Tipp darauf öffnet „Gesundheit“."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Merken mit Datum: Gib wahlweise an, wann das Training ist – die Erinnerung kommt dann zwei Stunden vorher. Unter dem Datum steht, wann Dogity erinnert."),
+      },
+    ],
+  },
+  {
     version: "1.6",
     datum: "2026-11-17",
     titel: uebersetzbar("Weniger tippen, sicher in der Tasche"),
