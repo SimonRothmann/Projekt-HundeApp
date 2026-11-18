@@ -1,9 +1,14 @@
 import { useEffect, useRef } from "react";
+import { isTestEnv } from "@/components/env-badge";
 
 /** Gerätebezogener Schalter: Uhr oder Kopfhörer gehören zu diesem Handy, nicht zum Konto. */
 export const MEDIEN_MARKER_KEY = "dogity-medien-marker";
 
+// shortcut: nur auf Test - auf der Apple Watch erschien noch keine Wiedergabe; freigeben, wenn es dort geht.
+export const medienMarkerVerfuegbar = isTestEnv;
+
 export function medienMarkerAn(): boolean {
+  if (!medienMarkerVerfuegbar) return false;
   try {
     return window.localStorage.getItem(MEDIEN_MARKER_KEY) === "1";
   } catch {

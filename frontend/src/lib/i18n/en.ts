@@ -3214,5 +3214,5 @@ export const EN: Record<string, string> = {
   "Marker über Uhr oder Kopfhörer": "Markers via watch or headphones",
   "⏭ Weiter setzt einen Marker. Musik pausiert während der Aufnahme.": "⏭ Next sets a marker. Music pauses while recording.",
   "⏭ Weiter = Gegenstand, ⏮ Zurück = Leckerlipot. Musik pausiert während der Aufnahme.": "⏭ Next = article, ⏮ Previous = treat spot. Music pauses while recording.",
-  "Neu zum Ausprobieren: Beim Fährtelegen kannst du Marker über die Mediensteuerung von Uhr oder Kopfhörer setzen – „Weiter“ für einen Gegenstand, „Zurück“ für einen Leckerlipot. Einzuschalten im Fenster „Fährte legen“; Musik pausiert solange.": "New to try: when laying a track you can set markers via the media controls of your watch or headphones – “Next” for an article, “Previous” for a treat spot. Switch it on in the “Lay track” window; music pauses meanwhile.",
+  "Im Merkzettel eines Hundes schickt „Erinnerung testen“ die Erinnerung sofort – so siehst du, ob sie als Push auf deinem Handy ankommt.": "In a dog's note list, “Test reminder” sends the reminder right away – so you can see whether it arrives as a push notification on your phone.",
 };

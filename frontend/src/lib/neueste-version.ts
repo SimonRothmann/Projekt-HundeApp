@@ -66,7 +66,7 @@ export const NEUESTE_VERSION: Versionshinweis = {
     },
     {
       art: "neu",
-      text: uebersetzbar("Neu zum Ausprobieren: Beim Fährtelegen kannst du Marker über die Mediensteuerung von Uhr oder Kopfhörer setzen – „Weiter“ für einen Gegenstand, „Zurück“ für einen Leckerlipot. Einzuschalten im Fenster „Fährte legen“; Musik pausiert solange."),
+      text: uebersetzbar("Im Merkzettel eines Hundes schickt „Erinnerung testen“ die Erinnerung sofort – so siehst du, ob sie als Push auf deinem Handy ankommt."),
     },
   ],
 };
