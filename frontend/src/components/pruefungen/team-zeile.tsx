@@ -12,8 +12,8 @@ import { AktionenMenue } from "@/components/ui/aktionen-menue";
 import { Button } from "@/components/ui/button";
 
 const ERGEBNIS_KLASSEN: Record<number, string> = {
-  [PRUEFUNG_ERGEBNIS.Bestanden]: "border-emerald-600/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
-  [PRUEFUNG_ERGEBNIS.NichtBestanden]: "border-red-600/40 bg-red-500/10 text-red-800 dark:text-red-300",
+  [PRUEFUNG_ERGEBNIS.Bestanden]: "border-erfolg/40 bg-erfolg/10 text-erfolg-text",
+  [PRUEFUNG_ERGEBNIS.NichtBestanden]: "border-destructive/40 bg-destructive/10 text-destructive",
   [PRUEFUNG_ERGEBNIS.NichtAngetreten]: "border-surface-border bg-surface text-muted-foreground",
   [PRUEFUNG_ERGEBNIS.Offen]: "border-input text-foreground",
 };

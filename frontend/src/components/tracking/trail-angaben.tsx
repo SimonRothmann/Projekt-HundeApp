@@ -180,7 +180,7 @@ export function TrailErgebnisZeile({ negativ, run }: { negativ: boolean; run: Pi
 
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-xs">
-      <span className={cn("font-medium", run.personFound ? "text-emerald-600 dark:text-emerald-500" : "text-destructive")}>{gefunden}</span>
+      <span className={cn("font-medium", run.personFound ? "text-erfolg-text" : "text-destructive")}>{gefunden}</span>
       {anzeige && <Angabe>{t("Anzeige: {verhalten}", { verhalten: t(anzeige) })}</Angabe>}
     </div>
   );

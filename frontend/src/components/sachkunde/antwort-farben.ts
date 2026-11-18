@@ -18,7 +18,7 @@ export function antwortFarben({
   falsch: boolean;
 }): string {
   if (!aufgeloest) return auswahlRahmen(gewaehlt);
-  if (richtig) return "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+  if (richtig) return "border-erfolg/60 bg-erfolg/10 text-erfolg-text";
   if (falsch) return "border-destructive/60 bg-destructive/10 text-destructive";
   return "border-border/40 opacity-60";
 }

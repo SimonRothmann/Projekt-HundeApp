@@ -56,7 +56,7 @@ export function QuizAssignment({
   return (
     <div className="mt-4 flex flex-col gap-3">
       {beschriftet && (
-        <ul className="flex flex-col gap-1 rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5 text-sm">
+        <ul className="flex flex-col gap-1 rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm">
           {keys.map((k) => (
             <li key={k.key} className="min-w-0 [overflow-wrap:anywhere]">
               <span className="font-semibold">{k.key}</span> {k.label}

@@ -17,7 +17,7 @@ const ZEILE =
  */
 const TON_KLASSEN: Record<Ton, string> = {
   rot: "border-destructive/40 bg-destructive/10",
-  gelb: "border-amber-500/40 bg-amber-500/10",
+  gelb: "border-warnung/40 bg-warnung/10",
   neutral: "border-surface-border bg-surface",
 };
 
@@ -53,7 +53,7 @@ export function GesundheitsHinweise({ hunde }: { hunde: Dog[] }) {
               className={cn(
                 "size-4 shrink-0",
                 zeile.ton === "rot" && "text-destructive",
-                zeile.ton === "gelb" && "text-amber-700 dark:text-amber-300",
+                zeile.ton === "gelb" && "text-warnung-text",
                 zeile.ton === "neutral" && "text-primary-text",
               )}
               aria-hidden

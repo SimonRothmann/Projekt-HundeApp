@@ -17,7 +17,7 @@ export function EnvBadge({ className = "" }: { className?: string }) {
   if (!label) return null;
   return (
     <span
-      className={`inline-flex items-center rounded-md bg-red-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm ${className}`}
+      className={`inline-flex items-center rounded-md bg-destructive px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm ${className}`}
       aria-label={t("Umgebung: {label}", { label })}
     >
       {label}

@@ -170,7 +170,7 @@ export function Anmeldeformular({ code }: { code: string }) {
 
             {aktuell.art === "angemeldet" && (
               <div className="flex flex-col items-center gap-3 text-center">
-                <CheckCircle2 className="size-10 text-emerald-600 dark:text-emerald-500" />
+                <CheckCircle2 className="size-10 text-erfolg-text" />
                 <p className="min-w-0 font-medium [overflow-wrap:anywhere]">
                   {t("Danke, {vorname}! Du bist für die {gruppe} angemeldet. Der Verein meldet sich bei dir.", {
                     vorname: aktuell.vorname,

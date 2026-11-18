@@ -158,7 +158,7 @@ export function PlanAddForm({
 
   const tage = trainingstageDerWoche(goal, woche);
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-md border bg-muted/30 p-3">
+    <div className="flex min-w-0 flex-col gap-3 rounded-md border border-surface-border bg-surface p-3">
       <UebungFelder
         frei={frei}
         onFrei={setFrei}
@@ -247,7 +247,7 @@ export function PlanItemEditForm({
 
   const tage = trainingstageDerWoche(goal, woche);
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-md border bg-muted/40 p-2.5">
+    <div className="flex min-w-0 flex-col gap-2 rounded-md border border-surface-border bg-surface p-2.5">
       <UebungFelder
         frei={frei}
         onFrei={setFrei}

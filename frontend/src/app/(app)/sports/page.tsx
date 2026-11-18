@@ -333,12 +333,12 @@ function SportCard({
         onClick={onToggle}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <Trophy className={sport.clubId ? "size-6 shrink-0 text-amber-500" : "size-6 shrink-0 text-primary-text"} />
+          <Trophy className={sport.clubId ? "size-6 shrink-0 text-warnung" : "size-6 shrink-0 text-primary-text"} />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base [overflow-wrap:anywhere]">{katalogName(sport, sprache)}</CardTitle>
               {sport.clubId && (
-                <Badge variant="outline" className="border-amber-500/40 text-amber-700">
+                <Badge variant="outline" className="border-warnung/40 text-warnung-text">
 {t("Verein")}
                 </Badge>
               )}
@@ -737,7 +737,7 @@ function RegExerciseRow({
 
   if (canEdit && editing) {
     return (
-      <li className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3 text-sm">
+      <li className="flex flex-col gap-3 rounded-md border border-surface-border bg-surface p-3 text-sm">
         <span className="font-medium [overflow-wrap:anywhere]">{uebungName(re, sprache)}</span>
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex items-center gap-1.5">
@@ -948,7 +948,7 @@ function ExerciseRow({
 
   if (canEdit && editing) {
     return (
-      <li className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3">
+      <li className="flex flex-col gap-3 rounded-md border border-surface-border bg-surface p-3">
         <div className="flex flex-col gap-1.5">
           <Label className="text-xs">{t("Name")}</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
@@ -1012,7 +1012,7 @@ function ExerciseRow({
         <div className="flex min-w-0 items-center gap-2">
           <span className="font-medium [overflow-wrap:anywhere]">{katalogName(exercise, sprache)}</span>
           {exercise.clubId && (
-            <Badge variant="outline" className="border-amber-500/40 text-amber-700">
+            <Badge variant="outline" className="border-warnung/40 text-warnung-text">
 {t("Verein")}
             </Badge>
           )}

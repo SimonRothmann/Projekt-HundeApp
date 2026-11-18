@@ -95,7 +95,7 @@ function PlanUebung({
           </span>
           {!bearbeiten &&
             (item.isComplete ? (
-              <Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-500" aria-hidden />
+              <Check className="size-4 shrink-0 text-erfolg-text" aria-hidden />
             ) : (
               <Plus className="size-4 shrink-0 text-primary-text" aria-hidden />
             ))}
@@ -214,7 +214,7 @@ export function PlanWeekList({
                   <span className="font-medium">{`${t("Woche {nummer}", { nummer: weekNumber })} · ${t("Pause")}`}</span>
                 ) : (
                   <>
-                    {geplant > 0 && erledigt >= geplant && <Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-500" aria-hidden />}
+                    {geplant > 0 && erledigt >= geplant && <Check className="size-4 shrink-0 text-erfolg-text" aria-hidden />}
                     <span className="shrink-0 font-medium">
                       {t("Woche {woche} · {erledigt}/{geplant}", { woche: weekNumber, erledigt, geplant })}
                     </span>

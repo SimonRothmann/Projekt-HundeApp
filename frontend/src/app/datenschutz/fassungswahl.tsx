@@ -28,7 +28,7 @@ export function Fassungswahl({ deutsch, englisch }: { deutsch: ReactNode; englis
 
   return (
     <>
-      <div className="mt-8 flex flex-col items-start gap-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-8 flex flex-col items-start gap-3 rounded-lg border border-surface-border bg-surface p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="min-w-0 break-words text-foreground">
           {t("Das ist eine Übersetzung zu deiner Orientierung. Rechtlich verbindlich ist die deutsche Fassung.")}
         </p>

@@ -54,7 +54,7 @@ export function PruefungEinstieg({ catalog, onOeffnen }: { catalog: QuizCatalog;
           <span
             className={cn(
               "font-medium",
-              letztes.passed ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
+              letztes.passed ? "text-erfolg-text" : "text-destructive",
             )}
           >
             {wort(letztes.passed)}

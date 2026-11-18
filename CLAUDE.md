@@ -2,7 +2,8 @@
 
 Arbeitsweise für KI-Assistenten in diesem Repo. Die Projektregeln stehen in
 [AI_RULES.md](AI_RULES.md) und [CODING_GUIDELINES.md](CODING_GUIDELINES.md) -
-sie gehen vor, wo sie etwas Genaueres sagen.
+sie gehen vor, wo sie etwas Genaueres sagen. Für alles an der Oberfläche gilt
+[DESIGN.md](DESIGN.md): Farben nach Rolle, Schrift, Bausteine, Do's and Don'ts.
 
 Die vier Grundsätze unten sind die Leitlinien aus
 [andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills)

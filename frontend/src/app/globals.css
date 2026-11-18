@@ -47,6 +47,10 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-erfolg: var(--erfolg);
+  --color-erfolg-text: var(--erfolg-text);
+  --color-warnung: var(--warnung);
+  --color-warnung-text: var(--warnung-text);
   --color-ampel-gruen: var(--ampel-gruen);
   --color-ampel-gelb: var(--ampel-gelb);
   --color-ampel-rot: var(--ampel-rot);
@@ -102,18 +106,25 @@
   --accent-foreground: oklch(0.25 0.05 235);
   --accent-2: oklch(0.67 0.27 330); /* fuchsia (Verläufe/Highlights) */
   /* Abgesetzte Fläche INNERHALB einer Karte (Übung, Fährte, Kommentar) -
-     siehe DESIGN_SYSTEM.md "Gliederung einer Seite". */
+     siehe DESIGN.md "Gliederung einer Seite". */
   --surface: oklch(0.968 0.008 255 / 75%);
   --surface-border: oklch(0.922 0.014 255);
   /* Rot als Text und als Fläche mit weißer Schrift: 6,15:1 auf Weiß, 5,98:1
      für weiße Schrift (vorher 4,41:1 bzw. 4,29:1). */
   --destructive: oklch(0.52 0.21 22);
+  /* Status wie bei Primär: Fläche/Rand (--erfolg, --warnung, mit /10 bzw. /40)
+     und ein eigener Ton für Text und Symbol (-text), siehe DESIGN.md "Farben".
+     Text: 5,4:1 (grün) bzw. 7,1:1 (gelb) auf Weiß, alt emerald-600 nur 3,7:1. */
+  --erfolg: oklch(0.596 0.145 163.2); /* emerald-600 */
+  --erfolg-text: oklch(0.508 0.118 165.6); /* emerald-700 */
+  --warnung: oklch(0.769 0.188 70.08); /* amber-500 */
+  --warnung-text: oklch(0.473 0.137 46.2); /* amber-800 */
   --border: oklch(0.922 0.014 255); /* slate-200 */
   /* Rand von Eingaben und Knöpfen (WCAG 1.4.11, >= 3:1): 3,36:1 auf Karte,
      3,22:1 auf Seite. Trennlinien und Karten (--border) bleiben leise. */
   --input: oklch(0.64 0.025 262);
   /* Deckend: die Fokusringe der Bausteine mischen ihn mit /85 (hell) bzw.
-     /50-/60 (dunkel), siehe DESIGN_SYSTEM.md "Kontrast". */
+     /50-/60 (dunkel), siehe DESIGN.md "Kontrast". */
   --ring: oklch(0.52 0.24 277);
   --chart-1: oklch(0.52 0.24 277); /* indigo */
   --chart-2: oklch(0.72 0.13 205); /* cyan */
@@ -138,7 +149,7 @@
 }
 
 .dark {
-  /* Dark Mode, 3. Fassung 2026-09-10 (siehe DESIGN_SYSTEM.md "Dark Mode").
+  /* Dark Mode, 3. Fassung 2026-09-10 (siehe DESIGN.md "Ebenen und Tiefe" und "Kontrast").
 
      1. Fassung: tiefes Navy (#080c16), Karten kaum abgesetzt, weiße
         Knopfschrift auf Indigo nur 3,86:1.
@@ -175,6 +186,10 @@
   --surface: oklch(1 0 0 / 6%);
   --surface-border: oklch(1 0 0 / 14%);
   --destructive: oklch(0.7 0.18 25);
+  --erfolg: oklch(0.696 0.17 162.5); /* emerald-500 */
+  --erfolg-text: oklch(0.765 0.177 163.2); /* emerald-400 */
+  --warnung: oklch(0.769 0.188 70.08); /* amber-500 */
+  --warnung-text: oklch(0.879 0.169 91.6); /* amber-300 */
   --border: oklch(1 0 0 / 13%);
   --input: oklch(1 0 0 / 36%);
   --ring: oklch(0.78 0.12 282 / 55%);
@@ -344,8 +359,8 @@
 }
 
 @layer components {
-  /* Dezente Elevation + Hover-Lift für alle Cards (siehe DESIGN_SYSTEM.md
-     "Cards: Hauptdarstellung") - ein zentraler Ort statt Anpassung jeder
+  /* Dezente Elevation + Hover-Lift für alle Cards (siehe DESIGN.md
+     "Ebenen und Tiefe") - ein zentraler Ort statt Anpassung jeder
      einzelnen Card-Verwendung. Setzt --tw-shadow statt box-shadow direkt,
      da Card zusätzlich "ring-1" nutzt und Tailwinds ring-Utility ebenfalls
      box-shadow komponiert - eine direkte box-shadow-Deklaration würde den

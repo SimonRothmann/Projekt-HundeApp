@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/dashboard",
     display: "standalone",
     // An die Apple-orientierte Palette in globals.css angelehnt (siehe
-    // DESIGN_SYSTEM.md "Farben"): Systemblau als Markenfarbe, neutrales,
+    // DESIGN.md "Bekannte Lücken"): Systemblau als Markenfarbe, neutrales,
     // fast weißes Grau als Hintergrund statt der vorherigen Sand/Waldgrün-Töne.
     background_color: "#f7f8fa",
     theme_color: "#3d86f0",

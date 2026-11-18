@@ -89,7 +89,7 @@ function VerlaufZeile({
       <span
         className={cn(
           "inline-flex items-center gap-1 text-xs font-medium",
-          versuch.passed ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
+          versuch.passed ? "text-erfolg-text" : "text-destructive",
         )}
       >
         {versuch.passed ? <Check className="size-3.5" aria-hidden /> : <X className="size-3.5" aria-hidden />}

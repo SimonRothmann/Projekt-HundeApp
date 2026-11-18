@@ -175,7 +175,7 @@ export function GoalManageSheet({
                   <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", anpassenOffen && "rotate-180")} aria-hidden />
                 </button>
                 {anpassenOffen && (
-                  <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-3">
+                  <div className="flex flex-wrap items-end gap-3 rounded-md border border-surface-border bg-surface p-3">
                     <div className="flex flex-col gap-1">
                       <Label className="text-xs">{t("Übungen/Woche")}</Label>
                       <Input type="number" min={1} max={12} className="w-20" value={wochenUebungen} onChange={(e) => setWochenUebungen(Number(e.target.value))} />

@@ -27,8 +27,8 @@ const masteryLabel: Record<number, string> = { 0: uebersetzbar("neu"), 1: uebers
 const masteryClass: Record<number, string> = {
   0: "text-muted-foreground",
   1: "text-destructive",
-  2: "text-amber-600 dark:text-amber-500",
-  3: "text-emerald-600 dark:text-emerald-500",
+  2: "text-warnung-text",
+  3: "text-erfolg-text",
 };
 
 /**

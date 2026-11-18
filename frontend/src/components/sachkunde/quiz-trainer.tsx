@@ -283,7 +283,7 @@ export function QuizTrainer({ catalog, anfangsModus = "learn" }: { catalog: Quiz
       {progress && <Lernstand progress={progress} />}
 
       {!angemeldet && (
-        <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="rounded-md border border-surface-border bg-surface px-3 py-2 text-xs text-muted-foreground">
           {mitBausteinen(
             t("Du übst ohne Anmeldung – dein Lernstand wird nicht gespeichert. {anmelden}, damit falsche Fragen gezielt wiederkommen."),
             {
@@ -431,7 +431,7 @@ export function QuizTrainer({ catalog, anfangsModus = "learn" }: { catalog: Quiz
               <span
                 className={cn(
                   "inline-flex items-center gap-1.5 text-sm font-medium",
-                  auswertung.correct ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
+                  auswertung.correct ? "text-erfolg-text" : "text-destructive",
                 )}
               >
                 {auswertung.correct ? <Check className="size-4 shrink-0" aria-hidden /> : <X className="size-4 shrink-0" aria-hidden />}
@@ -545,7 +545,7 @@ function SelbstKarte({
         </Button>
       ) : (
         <>
-          <p className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5 text-sm [overflow-wrap:anywhere]">
+          <p className="rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm [overflow-wrap:anywhere]">
             {solution}
           </p>
           {!auswertung && (

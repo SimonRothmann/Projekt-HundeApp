@@ -49,13 +49,13 @@ export function PruefungsErgebnis({
       <div
         className={cn(
           "min-w-0 rounded-xl border p-5 text-center",
-          ergebnis.passed ? "border-emerald-500/40 bg-emerald-500/10" : "border-destructive/40 bg-destructive/5",
+          ergebnis.passed ? "border-erfolg/40 bg-erfolg/10" : "border-destructive/40 bg-destructive/5",
         )}
       >
         <p
           className={cn(
             "flex items-center justify-center gap-2 text-2xl font-extrabold tracking-tight text-balance",
-            ergebnis.passed ? "text-emerald-700 dark:text-emerald-300" : "text-destructive",
+            ergebnis.passed ? "text-erfolg-text" : "text-destructive",
           )}
         >
           {ergebnis.passed ? <Check className="size-6 shrink-0" /> : <X className="size-6 shrink-0" />}
@@ -115,7 +115,7 @@ export function PruefungsErgebnis({
             : t("Das Ergebnis konnte nicht gespeichert werden.")}
         </p>
       ) : (
-        <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="rounded-md border border-surface-border bg-surface px-3 py-2 text-xs text-muted-foreground">
           {mitBausteinen(
             t("Ohne Anmeldung wird dein Ergebnis nicht gespeichert. {anmelden}, damit falsche Fragen im Fehlerspeicher landen und gezielt wiederkommen."),
             {
@@ -192,7 +192,7 @@ function FalscheFrageKarte({ eintrag }: { eintrag: FalscheFrage }) {
             return (
               <li key={begriff.id} className="min-w-0 [overflow-wrap:anywhere]">
                 <span className="font-medium">{begriff.text}: </span>
-                <span className={stimmt ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}>
+                <span className={stimmt ? "text-erfolg-text" : "text-destructive"}>
                   {stimmt ? <Check className="mr-1 inline size-3.5 align-[-2px]" aria-hidden /> : <X className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />}
                   {gewaehlt ? schluesselText(frage, gewaehlt) : t("nicht zugeordnet")}
                 </span>
@@ -219,7 +219,7 @@ function FalscheFrageKarte({ eintrag }: { eintrag: FalscheFrage }) {
           </div>
           <div className="min-w-0">
             <dt className="text-xs text-muted-foreground">{t("Richtige Antwort")}</dt>
-            <dd className="mt-0.5 min-w-0 text-emerald-700 [overflow-wrap:anywhere] dark:text-emerald-300">
+            <dd className="mt-0.5 min-w-0 text-erfolg-text [overflow-wrap:anywhere]">
               <Check className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />
               {ergebnis.correctOptionIds.map((id) => antwortText(frage, id, t)).join(" · ")}
             </dd>

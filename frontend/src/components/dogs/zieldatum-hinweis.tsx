@@ -67,8 +67,8 @@ export function ZieldatumHinweis({
 
   return (
     <>
-      <div className="flex flex-col gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
-        <p className="flex min-w-0 items-start gap-2 text-amber-800 dark:text-amber-300">
+      <div className="flex flex-col gap-2 rounded-md border border-warnung/40 bg-warnung/10 px-3 py-2 text-sm">
+        <p className="flex min-w-0 items-start gap-2 text-warnung-text">
           <CalendarClock className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span className="min-w-0 [overflow-wrap:anywhere]">
             {anlass === "pause"

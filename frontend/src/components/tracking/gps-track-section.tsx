@@ -416,7 +416,7 @@ function FaehrteEinstellungen({
       </Button>
       <Zuklappbar offen={offen} className="flex flex-col gap-2">
           {!trail && (
-            <div className="divide-y divide-surface-border overflow-hidden rounded-md bg-muted/40">
+            <div className="divide-y divide-surface-border overflow-hidden rounded-md bg-surface">
               {verdecktEinstellbar && (
                 <SchalterZeile
                   an={track.doubleBlind === true}

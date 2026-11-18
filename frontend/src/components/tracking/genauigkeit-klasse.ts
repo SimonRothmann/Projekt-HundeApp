@@ -6,7 +6,7 @@ import type { GenauigkeitsStufe } from "@/lib/gps-profil";
  * der Leiste nicht untergeht.
  */
 export const GENAUIGKEIT_KLASSE: Record<GenauigkeitsStufe, string> = {
-  gut: "font-semibold text-green-700 dark:text-green-400",
-  mittel: "font-semibold text-amber-700 dark:text-amber-400",
+  gut: "font-semibold text-erfolg-text",
+  mittel: "font-semibold text-warnung-text",
   schlecht: "font-semibold text-destructive",
 };

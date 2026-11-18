@@ -33,21 +33,21 @@ type Symbol = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 export const AMPEL: Record<ReifeAmpel, { symbol: Symbol; klassen: string }> = {
   [REIFE_AMPEL.Gruen]: {
     symbol: CircleCheck,
-    klassen: "border-emerald-600/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+    klassen: "border-erfolg/40 bg-erfolg/10 text-erfolg-text",
   },
   [REIFE_AMPEL.Gelb]: {
     symbol: TriangleAlert,
-    klassen: "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300",
+    klassen: "border-warnung/40 bg-warnung/10 text-warnung-text",
   },
   [REIFE_AMPEL.Rot]: {
     symbol: CircleX,
-    klassen: "border-red-600/40 bg-red-500/10 text-red-800 dark:text-red-300",
+    klassen: "border-destructive/40 bg-destructive/10 text-destructive",
   },
 };
 
 export const ZUSTAND: Record<ReifeZustand, { symbol: Symbol; klassen: string }> = {
-  [REIFE_ZUSTAND.Sicher]: { symbol: CircleCheck, klassen: "text-emerald-700 dark:text-emerald-400" },
-  [REIFE_ZUSTAND.Wackelig]: { symbol: TriangleAlert, klassen: "text-amber-700 dark:text-amber-400" },
+  [REIFE_ZUSTAND.Sicher]: { symbol: CircleCheck, klassen: "text-erfolg-text" },
+  [REIFE_ZUSTAND.Wackelig]: { symbol: TriangleAlert, klassen: "text-warnung-text" },
   [REIFE_ZUSTAND.Offen]: { symbol: CircleDashed, klassen: "text-muted-foreground" },
 };
 
@@ -150,7 +150,7 @@ function Ansicht({ goal }: { goal: Goal }) {
       <div className="flex min-w-0 flex-col gap-1 text-sm">
         <p className="font-medium [overflow-wrap:anywhere]">{zeitText(t, reife)}</p>
         {reife.pausiert && (
-          <p className="flex min-w-0 items-start gap-2 text-amber-800 dark:text-amber-300">
+          <p className="flex min-w-0 items-start gap-2 text-warnung-text">
             <CirclePause className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span className="min-w-0 [overflow-wrap:anywhere]">
               {t("Der Hund pausiert gerade. Die Pausentage zählen nicht als Trainingszeit und lassen eine Übung nicht verfallen.")}

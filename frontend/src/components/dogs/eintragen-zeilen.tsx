@@ -128,7 +128,7 @@ export function EintragenZeilen({
                   {plan && (
                     <p className="flex min-w-0 flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
                       <Check
-                        className={cn("size-3.5 shrink-0", plan.gezaehlt ? "text-emerald-600 dark:text-emerald-500" : "text-muted-foreground")}
+                        className={cn("size-3.5 shrink-0", plan.gezaehlt ? "text-erfolg-text" : "text-muted-foreground")}
                         aria-hidden
                       />
                       <span className="min-w-0 [overflow-wrap:anywhere]">

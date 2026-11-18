@@ -75,7 +75,7 @@ export function OfflineEintraegeHinweis({ onErneutSenden }: { onErneutSenden: ()
 
   return (
     <div className="relative z-10 px-4 pt-3 md:px-8 print:hidden">
-      <div role="status" className="rounded-lg border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-300">
+      <div role="status" className="rounded-lg border border-warnung/40 bg-warnung/10 text-sm text-warnung-text">
         <button
           type="button"
           onClick={() => setOffen((o) => !o)}
@@ -91,7 +91,7 @@ export function OfflineEintraegeHinweis({ onErneutSenden }: { onErneutSenden: ()
           <ChevronDown className={`size-4 shrink-0 transition-transform ${offen ? "rotate-180" : ""}`} aria-hidden />
         </button>
         {offen && (
-          <ul className="divide-y divide-amber-500/25 border-t border-amber-500/25 px-3">
+          <ul className="divide-y divide-warnung/25 border-t border-warnung/25 px-3">
             {eintraege.map((item) => (
               <li key={item.id} className="flex flex-col gap-2 py-3">
                 <div className="min-w-0">

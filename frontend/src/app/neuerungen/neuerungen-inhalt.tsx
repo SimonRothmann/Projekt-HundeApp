@@ -53,7 +53,7 @@ export function NeuerungenInhalt() {
           {/* Der technische Stand gehört nach oben, nicht ins Kleingedruckte:
               Wer diese Seite aufruft, will meist genau eine Frage beantwortet
               haben - ist meine Änderung schon draußen? */}
-          <div className="mt-6 rounded-lg border border-border/60 bg-muted/40 px-4 py-3">
+          <div className="mt-6 rounded-lg border border-surface-border bg-surface px-4 py-3">
             <VersionStand verlinkt={false} className="text-sm" />
           </div>
         </section>

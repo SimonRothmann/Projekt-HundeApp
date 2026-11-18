@@ -181,7 +181,7 @@ function BildVorschau({ track, hundeName }: { track: GpsTrack; hundeName?: strin
           Bildes nicht springt. Höhe begrenzt, damit Schalter und Knöpfe auf
           einem kleinen Telefon ohne Scrollen erreichbar bleiben. */}
       <div
-        className="mx-auto overflow-hidden rounded-lg border bg-muted/30"
+        className="mx-auto overflow-hidden rounded-lg border border-surface-border bg-surface"
         style={{ aspectRatio: `${BILD_BREITE} / ${BILD_HOEHE}`, width: `min(100%, ${(52 * BILD_BREITE) / BILD_HOEHE}vh)` }}
       >
         {bild ? (

@@ -25,7 +25,7 @@ export function WartungsBannerAnzeige({ text, onSchliessen }: { text: string; on
   return (
     <div
       role="status"
-      className="flex min-w-0 items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300"
+      className="flex min-w-0 items-start gap-2.5 rounded-lg border border-warnung/40 bg-warnung/10 px-3 py-2 text-sm text-warnung-text"
     >
       <Wrench className="mt-0.5 size-4 shrink-0" aria-hidden />
       <p className="min-w-0 flex-1 break-words">{text}</p>
@@ -35,7 +35,7 @@ export function WartungsBannerAnzeige({ text, onSchliessen }: { text: string; on
           type="button"
           onClick={onSchliessen}
           aria-label={t("Hinweis schließen")}
-          className="-my-2.5 -mr-2 flex size-11 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-amber-500/15"
+          className="-my-2.5 -mr-2 flex size-11 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-warnung/15"
         >
           <X className="size-4" aria-hidden />
         </button>

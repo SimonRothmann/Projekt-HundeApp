@@ -109,7 +109,7 @@ export function SupervisedDogsSection({ vorschau }: { vorschau?: number } = {}) 
                       </span>
                       {/* Nur der Zeitraum: Den Grund einer Pause bekommt die Trainer:in nie. */}
                       {pause && (
-                        <span className="flex items-center gap-1 text-xs font-medium text-amber-800 dark:text-amber-300">
+                        <span className="flex items-center gap-1 text-xs font-medium text-warnung-text">
                           <CirclePause className="size-3 shrink-0" aria-hidden />
                           <span className="min-w-0 truncate">{pausenZeile(t, pause, sprache)}</span>
                         </span>

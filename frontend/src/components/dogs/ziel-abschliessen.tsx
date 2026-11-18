@@ -213,7 +213,7 @@ export function ZielAbschliessen({
             <>
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="size-5 shrink-0 text-emerald-600 dark:text-emerald-500" />
+                  <CheckCircle2 className="size-5 shrink-0 text-erfolg-text" />
                   {t("Geschafft!")}
                 </SheetTitle>
                 <SheetDescription className="[overflow-wrap:anywhere]">

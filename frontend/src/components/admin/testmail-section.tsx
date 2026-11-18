@@ -57,7 +57,7 @@ export function TestmailSection() {
   }
 
   const farbe =
-    anzeige?.art === "angenommen" ? "text-emerald-700 dark:text-emerald-400" : anzeige?.art === "abgelehnt" ? "text-destructive" : "text-muted-foreground";
+    anzeige?.art === "angenommen" ? "text-erfolg-text" : anzeige?.art === "abgelehnt" ? "text-destructive" : "text-muted-foreground";
 
   return (
     <Card>

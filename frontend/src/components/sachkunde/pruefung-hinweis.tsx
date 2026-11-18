@@ -13,7 +13,7 @@ import { PUNKTE_JE_ANTWORT } from "@/lib/sachkunde-pruefung";
 export function PruefungHinweis({ prozent }: { prozent: number }) {
   const t = useT();
   return (
-    <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+    <p className="rounded-md border border-surface-border bg-surface px-3 py-2 text-xs text-muted-foreground">
       {t(
         "Übungsprüfung – keine offizielle Prüfung. Gewertet nach der verbreiteten Regel: {punkte} Punkte je richtige Antwort, {punkte} Punkte Abzug je falsch angekreuzte, bestanden ab {prozent} %. Dein Verband oder Verein kann anders werten.",
         { punkte: PUNKTE_JE_ANTWORT, prozent },

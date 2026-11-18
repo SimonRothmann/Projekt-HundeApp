@@ -107,7 +107,7 @@ function ZielKarte({
 
         {fortschritt && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {alles && <Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-500" aria-hidden />}
+            {alles && <Check className="size-4 shrink-0 text-erfolg-text" aria-hidden />}
             <span className="shrink-0">
               {t("Woche {woche} · {erledigt}/{geplant}", {
                 woche: fortschritt.woche,
@@ -183,7 +183,7 @@ function PausenZeile({ pause }: { pause: DogPause }) {
   const t = useT();
   const sprache = useSprache();
   return (
-    <p className="flex items-start gap-2 text-sm font-medium text-amber-800 dark:text-amber-300">
+    <p className="flex items-start gap-2 text-sm font-medium text-warnung-text">
       <CirclePause className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span className="min-w-0 [overflow-wrap:anywhere]">{pausenZeile(t, pause, sprache)}</span>
     </p>
@@ -204,7 +204,7 @@ export function PausenZeilen({ eintraege }: { eintraege: { hund: Dog; pause: Dog
     <section className={LISTE}>
       {eintraege.map(({ hund, pause }) => (
         <Link key={hund.id} href={`/dogs/${hund.id}`} className={ZEILE}>
-          <CirclePause className="size-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
+          <CirclePause className="size-4 shrink-0 text-warnung-text" aria-hidden />
           <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
             <span className="font-medium">{hund.name}</span>{" "}
             <span className="text-muted-foreground">· {pausenZeile(t, pause, sprache)}</span>

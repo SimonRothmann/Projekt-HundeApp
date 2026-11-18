@@ -46,7 +46,7 @@ const stopLabel: Record<number, string> = {
 };
 const stopClass: Record<number, string> = {
   0: "border-destructive/40 text-destructive",
-  1: "border-emerald-500/40 text-emerald-600 dark:text-emerald-500",
+  1: "border-erfolg/40 text-erfolg-text",
   2: "border-border text-muted-foreground",
   3: "border-border text-muted-foreground",
 };

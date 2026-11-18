@@ -146,7 +146,7 @@ export function LinkVerwaltung({
           </div>
 
           <div className="flex min-w-0 flex-col gap-2">
-            <p className="min-w-0 rounded-md border bg-muted/40 px-3 py-2 text-xs [overflow-wrap:anywhere]">{link}</p>
+            <p className="min-w-0 rounded-md border border-surface-border bg-surface px-3 py-2 text-xs [overflow-wrap:anywhere]">{link}</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="ghost" className="text-primary-text" onClick={kopieren}>
                 <Copy className="size-4" />

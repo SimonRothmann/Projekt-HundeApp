@@ -127,7 +127,7 @@ export function GroupMemberCard({
                     {dog.breed && <span className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{dog.breed}</span>}
                     {/* Nur bei betreuten Hunden und nur der Zeitraum (der Server liefert nicht mehr). */}
                     {aktuellePause(dog) && (
-                      <span className="flex items-center gap-1 text-sm font-medium text-amber-800 dark:text-amber-300">
+                      <span className="flex items-center gap-1 text-sm font-medium text-warnung-text">
                         <CirclePause className="size-3.5 shrink-0" aria-hidden />
                         <span className="min-w-0 [overflow-wrap:anywhere]">{pausenZeile(t, aktuellePause(dog)!, sprache)}</span>
                       </span>

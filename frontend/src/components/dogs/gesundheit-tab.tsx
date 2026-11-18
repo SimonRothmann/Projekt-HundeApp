@@ -235,7 +235,7 @@ export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: bool
 /** Farben je Ton: dazu immer Symbol und Wort, die Farbe allein sagt nichts. */
 const TON_KLASSEN: Record<Ton, string> = {
   rot: "border-destructive/40 bg-destructive/10",
-  gelb: "border-amber-500/40 bg-amber-500/10",
+  gelb: "border-warnung/40 bg-warnung/10",
   neutral: "border-surface-border bg-surface",
 };
 
@@ -250,7 +250,7 @@ function NaechstesZeileEintrag({ zeile }: { zeile: NaechstesZeile }) {
         className={cn(
           "mt-0.5 size-4 shrink-0",
           zeile.ton === "rot" && "text-destructive",
-          zeile.ton === "gelb" && "text-amber-700 dark:text-amber-300",
+          zeile.ton === "gelb" && "text-warnung-text",
         )}
         aria-hidden
       />
@@ -277,7 +277,7 @@ function ZustandBadge({ wert }: { wert: GesundheitsZustand }) {
   }
   if (wert === GESUNDHEIT_ZUSTAND.Bald) {
     return (
-      <Badge variant="outline" className="border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-300">
+      <Badge variant="outline" className="border-warnung/50 bg-warnung/10 text-warnung-text">
         <Clock aria-hidden />
         {t("Bald fällig")}
       </Badge>

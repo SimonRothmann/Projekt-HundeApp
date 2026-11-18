@@ -118,7 +118,7 @@ export default function DogsPage() {
             {[dog.breed ?? t("Unbekannte Rasse"), formatDogAge(dog.birthday, new Date(), t)].filter(Boolean).join(" · ")}
           </p>
           {pause && (
-            <p className="mt-0.5 flex items-start gap-1.5 text-sm font-medium text-amber-800 dark:text-amber-300">
+            <p className="mt-0.5 flex items-start gap-1.5 text-sm font-medium text-warnung-text">
               <CirclePause className="mt-0.5 size-3.5 shrink-0" aria-hidden />
               <span className="min-w-0 [overflow-wrap:anywhere]">{pausenZeile(t, pause, sprache)}</span>
             </p>

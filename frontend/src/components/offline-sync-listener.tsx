@@ -103,7 +103,7 @@ export function OfflineSyncListener() {
 
 function OfflineStreifen({ text }: { text: string }) {
   return (
-    <div className="flex items-center justify-center gap-2 bg-amber-500/15 px-4 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+    <div className="flex items-center justify-center gap-2 bg-warnung/15 px-4 py-1.5 text-xs font-medium text-warnung-text">
       <WifiOff className="size-3.5" />
       {text}
     </div>

@@ -264,7 +264,7 @@ export function SachkundeSection() {
                             </Badge>
                           )}
                           {hatFlags && (
-                            <Badge variant="outline" className="border-amber-500/60 text-xs text-amber-600 dark:text-amber-400">
+                            <Badge variant="outline" className="border-warnung/60 text-xs text-warnung-text">
 {t("auffällig")}
                             </Badge>
                           )}
@@ -391,7 +391,7 @@ function artName(kind: AdminQuizQuestion["kind"]): string {
 
 function Hinweise({ flags }: { flags: string[] }) {
   return (
-    <p className="flex flex-wrap items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-700 dark:text-amber-300">
+    <p className="flex flex-wrap items-center gap-1.5 rounded-md border border-warnung/40 bg-warnung/10 px-2.5 py-1.5 text-xs text-warnung-text">
       <AlertTriangle className="size-3.5 shrink-0" />
       {flags.join(" · ")}
     </p>

@@ -115,7 +115,7 @@ export function EintragenSuche({
               return (
                 <button key={uebung.id} type="button" className={ZEILE} onClick={() => onWaehle(uebung)}>
                   <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{katalogName(uebung, sprache)}</span>
-                  {schonDa && <Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-500" aria-label={t("schon gewählt")} />}
+                  {schonDa && <Check className="size-4 shrink-0 text-erfolg-text" aria-label={t("schon gewählt")} />}
                 </button>
               );
             })}

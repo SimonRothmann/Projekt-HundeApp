@@ -18,7 +18,7 @@ export function TrendBadge({ trend }: { trend: number | null }) {
   if (trend === null || Math.abs(trend) < 0.25) return <span className="text-muted-foreground">{t("→ stabil")}</span>;
   if (trend > 0)
     return (
-      <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400">
+      <span className="flex items-center gap-0.5 text-erfolg-text">
         <TrendingUp className="size-3.5" /> +{zahlText(trend, sprache)}
       </span>
     );
@@ -48,7 +48,7 @@ function AbweichungsTrend({ aenderung }: { aenderung: number }) {
     );
   if (aenderung < 0)
     return (
-      <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400" title={titel}>
+      <span className="flex items-center gap-0.5 text-erfolg-text" title={titel}>
         <TrendingUp className="size-3.5 shrink-0" /> {t("{meter} m näher an der Fährte", { meter })}
       </span>
     );

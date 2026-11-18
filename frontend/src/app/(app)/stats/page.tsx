@@ -60,7 +60,7 @@ function DogExercises({ dogId }: { dogId: string }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="rounded-md bg-muted/60 px-2 py-1.5 text-xs">
+      <div className="rounded-md bg-surface px-2 py-1.5 text-xs">
         <span className="font-medium">{t("Fokus-Empfehlung:")} </span>
         <span>
           {uebungName(focus, sprache)} (Ø {zahlText(focus.avgRating, sprache)} ★, {t("{prozent} % erfolgreich", { prozent: Math.round(focus.successRate * 100) })})

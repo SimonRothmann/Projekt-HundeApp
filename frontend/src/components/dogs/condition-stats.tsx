@@ -60,7 +60,7 @@ export function ConditionStats({ dogId }: { dogId: string }) {
   return (
     <div className="flex flex-col gap-3">
       {stats.sessionsWithCondition === 0 ? (
-        <p className="rounded-md bg-muted/60 px-2 py-1.5 text-xs text-muted-foreground">
+        <p className="rounded-md bg-surface px-2 py-1.5 text-xs text-muted-foreground">
 {t("Noch keine Verfassung eingetragen. Ein Tipp beim Eintragen eines Trainings genügt – danach steht hier, wie sich motiviert, abgelenkt, müde und gestresst auf die Bewertungen auswirken.")}
         </p>
       ) : (
@@ -154,7 +154,7 @@ function hinweis(
   if (abstand < 0.5 || schwaechste.sessionCount < 3) return null;
 
   return (
-    <p className="rounded-md bg-muted/60 px-2 py-1.5 text-xs">
+    <p className="rounded-md bg-surface px-2 py-1.5 text-xs">
       {t("{tage} fällt die Bewertung im Schnitt um {abstand} ★ niedriger aus als nach einer Pause.", {
         tage: t(dichteName(schwaechste.precedingTrainingDays)),
         abstand: zahlText(abstand, sprache),
