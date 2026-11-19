@@ -396,6 +396,7 @@ export const EN: Record<string, string> = {
   "Funktionen und Sportarten lassen sich im Profil ab- und anwählen - je Nutzer und je Hund. Wer keine Fährte läuft, bekommt sie auch nicht mehr angeboten. Voreingestellt ist weiterhin alles sichtbar.": "Features and sports can be switched on and off in your profile – per person and per dog. If you do not do tracking, it is no longer offered to you. Everything stays visible by default.",
   "Fußarbeit, Sitz aus Bewegung, ...": "Heelwork, sit from motion, ...",
   "Fährte": "Track",
+  "Apple Watch zeigt nichts? Auf der Uhr: Einstellungen → Allgemein → Automatisch starten → Audio-Apps einschalten.": "Nothing on your Apple Watch? On the watch: Settings → General → Auto-Launch → turn on Audio Apps.",
   "{n} Fährten": "{n} tracks",
   "Fährte & GPS": "Tracking & GPS",
   "Fährte ablaufen": "Run the track",

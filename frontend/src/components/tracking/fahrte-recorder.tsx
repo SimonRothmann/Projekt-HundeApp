@@ -459,6 +459,12 @@ export function FahrteRecorder({
                     ? t("⏭ Weiter setzt einen Marker. Musik pausiert während der Aufnahme.")
                     : t("⏭ Weiter = Gegenstand, ⏮ Zurück = Leckerlipot. Musik pausiert während der Aufnahme.")}
                 </span>
+                {/* Ohne diese Uhr-Einstellung erscheint "Jetzt läuft" nicht von selbst (im Feld geprüft). */}
+                {medienMarker && (
+                  <span className="text-xs text-muted-foreground">
+                    {t("Apple Watch zeigt nichts? Auf der Uhr: Einstellungen → Allgemein → Automatisch starten → Audio-Apps einschalten.")}
+                  </span>
+                )}
               </span>
             </label>}
             <Button onClick={startRecording} disabled={speichert} className="w-full coarse:min-h-11">
