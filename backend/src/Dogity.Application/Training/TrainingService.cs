@@ -67,14 +67,14 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             .OrderBy(t => t.CreatedAt)
             .Select(t => new { t.TrainingSessionId, t.LengthMeters, t.Surface })
             .ToListAsync(ct);
-        var firstTrackBySession = tracks
+        var tracksBySession = tracks
             .GroupBy(t => t.TrainingSessionId)
-            .ToDictionary(g => g.Key, g => g.First());
+            .ToDictionary(g => g.Key, g => (Erste: g.First(), Anzahl: g.Count()));
 
         var istBesitzer = await db.IstBesitzerAsync(userId, dogId, ct);
         return Result<IReadOnlyList<TrainingSessionDto>>.Success(
-            sessions.Select(s => firstTrackBySession.TryGetValue(s.Id, out var track)
-                ? ToDto(s, hasGpsTrack: true, track.LengthMeters, track.Surface, darfBearbeiten: TrainingsRechte.DarfBearbeiten(s.UserId, userId, istBesitzer), vonMir: s.UserId == userId)
+            sessions.Select(s => tracksBySession.TryGetValue(s.Id, out var track)
+                ? ToDto(s, hasGpsTrack: true, track.Erste.LengthMeters, track.Erste.Surface, darfBearbeiten: TrainingsRechte.DarfBearbeiten(s.UserId, userId, istBesitzer), vonMir: s.UserId == userId, trackCount: track.Anzahl)
                 : ToDto(s, hasGpsTrack: false, darfBearbeiten: TrainingsRechte.DarfBearbeiten(s.UserId, userId, istBesitzer), vonMir: s.UserId == userId)).ToList());
     }
 
@@ -1075,7 +1075,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
     // darfBearbeiten: Wer ein Training gerade geändert oder angelegt hat, darf es
     // bearbeiten - nur die Lesepfade (GetByDog, GetById) müssen es ausrechnen.
     // vonMir ebenso; die Antworten der Schreibpfade nutzt das Frontend dafür nicht.
-    private static TrainingSessionDto ToDto(TrainingSession s, bool hasGpsTrack, double? trackLengthMeters = null, string? trackSurface = null, bool darfBearbeiten = true, bool vonMir = false) => new(
+    private static TrainingSessionDto ToDto(TrainingSession s, bool hasGpsTrack, double? trackLengthMeters = null, string? trackSurface = null, bool darfBearbeiten = true, bool vonMir = false, int trackCount = 0) => new(
         s.Id,
         s.DogId,
         s.Date,
@@ -1112,5 +1112,6 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
         trackLengthMeters,
         trackSurface,
         darfBearbeiten,
-        vonMir);
+        vonMir,
+        trackCount);
 }

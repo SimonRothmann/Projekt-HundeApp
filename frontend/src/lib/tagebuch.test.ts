@@ -117,6 +117,16 @@ describe("tagesKurzbild", () => {
     expect(tagesKurzbild(tag, null, t)).toBe("250 m · Sand");
   });
 
+  it("nennt bei mehreren Fährten nur die Zahl, nicht Länge und Auswertung einer davon", () => {
+    // Zwei Fährten in einer Einheit (der Normalfall: derselbe Tag wird zusammengeführt) ...
+    const eineEinheit = [einheit({ hasGpsTrack: true, trackCount: 2, trackLengthMeters: 400, exercises: [uebung("Sitz", 3)] })];
+    expect(tagesKurzbild(eineEinheit, lauf("2026-09-25", 1.2, 97.6), t)).toBe("2 Fährten · Sitz ★★★");
+    // ... oder in zwei Einheiten, auch ohne trackCount (älterer Lesecache).
+    expect(tagesKurzbild([einheit({ hasGpsTrack: true }), einheit({ hasGpsTrack: true })], null, t)).toBe("2 Fährten");
+    // Eine Fährte bleibt wie bisher.
+    expect(tagesKurzbild([einheit({ hasGpsTrack: true, trackCount: 1, trackLengthMeters: 400 })], lauf("2026-09-25", 1.2, 97.6), t)).toBe("400 m · Ø 1 m · 98 %");
+  });
+
   it("lässt eine Fährte ohne bekannte Länge beim Wort Fährte", () => {
     expect(tagesKurzbild([einheit({ hasGpsTrack: true, trackLengthMeters: null, trackSurface: " " })], null, t)).toBe("Fährte");
   });

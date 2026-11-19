@@ -93,7 +93,12 @@ public record TrainingSessionDto(
     /// eines Tages die eigene ansprechen (z. B. beim Ändern der Dauer). Nur in
     /// den Lesepfaden (GetByDog, GetById) berechnet, sonst false.
     /// </summary>
-    bool VonMir = false);
+    bool VonMir = false,
+    /// <summary>
+    /// Zahl der Fährten dieses Trainings - mehrere Fährten eines Tages landen in
+    /// derselben Einheit. Nur in der Liste (GetByDog) gefüllt, sonst 0.
+    /// </summary>
+    int TrackCount = 0);
 
 public record SetFeedbackRequest(string Feedback);
 

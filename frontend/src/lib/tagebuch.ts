@@ -79,7 +79,7 @@ const NOTIZ_MAX = 60;
  * Die Fährte kommt zuerst, weil sie der Grund ist, einen Tag aufzuschlagen:
  * ihre Länge (ohne Länge das Wort "Fährte"), dann die Auswertung des Ablaufs
  * (Ø Abweichung, Anteil auf der Spur) und, solange es noch keine gibt, der
- * Untergrund. Danach die erste Übung mit ihren Sternen und die Zahl der
+ * Untergrund. Bei mehreren Fährten nur ihre Zahl ("2 Fährten"). Danach die erste Übung mit ihren Sternen und die Zahl der
  * übrigen. Ohne beides die erste Zeile der Notiz, sonst der Ort - ein Tag ohne
  * Inhalt soll trotzdem etwas heißen.
  *
@@ -96,7 +96,12 @@ export function tagesKurzbild(
 ): string {
   const teile: string[] = [];
 
-  if (tag.some((s) => s.hasGpsTrack)) {
+  const faehrten = tag.reduce((summe, s) => summe + (s.trackCount ?? (s.hasGpsTrack ? 1 : 0)), 0);
+  if (faehrten > 1) {
+    // Mehrere Fährten: nur ihre Zahl. Länge und Auswertung gehören zu je einer
+    // davon und stünden sonst wie das Ergebnis des ganzen Tages da.
+    teile.push(t("{n} Fährten", { n: faehrten }));
+  } else if (faehrten === 1) {
     const laenge = tag.find((s) => s.trackLengthMeters)?.trackLengthMeters;
     teile.push(laenge ? t("{meter} m", { meter: Math.round(laenge) }) : t("Fährte"));
     if (lauf) {

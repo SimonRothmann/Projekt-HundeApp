@@ -172,9 +172,11 @@ public class TrainingServiceTests
         var mit = result.Value!.Single(s => s.Id == withTrack.Id);
         Assert.Equal(400, mit.TrackLengthMeters);
         Assert.Equal("Wiese", mit.TrackSurface);
+        Assert.Equal(2, mit.TrackCount);
         var ohne = result.Value!.Single(s => s.Id == withoutTrack.Id);
         Assert.Null(ohne.TrackLengthMeters);
         Assert.Null(ohne.TrackSurface);
+        Assert.Equal(0, ohne.TrackCount);
     }
 
     [Fact]
