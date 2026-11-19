@@ -343,6 +343,8 @@ dass die Ausnahmen ein Ablaufdatum haben.
 - [ ] **TypeScript 7.** Wartet auf `typescript-eslint` mit Unterstützung für
   TS >= 7.1 (das Projekt steht auf 6, dem empfohlenen Zwischenschritt).
   Geprüft 2026-10-16: typescript-eslint 8.71 erlaubt TypeScript < 6.1 - weiter warten.
+  Geprüft 2026-11-19: TypeScript 7.0.2 ist stabil, 7.1 in der Beta; typescript-eslint 8.73
+  erlaubt weiter nur TypeScript < 6.1 - weiter warten.
 
 ## Roadmap: Technische Schulden × Features (Audit 2026-07-16)
 
