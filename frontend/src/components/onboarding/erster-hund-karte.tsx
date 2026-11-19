@@ -22,6 +22,8 @@ import { ladeSportarten } from "@/lib/sportarten";
 
 /** Die häufigen Sportarten, die zuerst gezeigt werden; der Rest steht hinter "Weitere Sportarten". */
 const HAEUFIGE_SPORTARTEN = ["BH", "BHCH", "IGP1", "AGILITY", "OBEDIENCE", "RALLYO", "HOOPERS", "MANTRAILING", "FAERTE", "BSP", "THS"];
+/** Kurzform für Chips, deren Katalogname bei 375 px zweizeilig umbräche. */
+const KURZNAME: Record<string, string> = { IGP1: "IGP" };
 
 /**
  * Der erste Handgriff der App: "Wie heißt dein Hund?".
@@ -146,9 +148,10 @@ export function ErsterHundKarte({
 
           {sportarten.length > 0 && (
             <div className="flex flex-col gap-2">
-              <Label id="erster-hund-sport">
-                {t("Welchen Sport macht ihr?")} <span className="font-normal text-muted-foreground">{t("(optional, mehrere möglich)")}</span>
-              </Label>
+              <div className="flex flex-col gap-0.5">
+                <Label id="erster-hund-sport">{t("Welchen Sport macht ihr?")}</Label>
+                <p className="text-xs text-muted-foreground">{t("(optional, mehrere möglich)")}</p>
+              </div>
               <div role="group" aria-labelledby="erster-hund-sport" className="flex flex-wrap gap-1.5">
                 {sichtbar.map((sport) => {
                   const gewaehlt = sportIds.includes(sport.id);
@@ -162,7 +165,7 @@ export function ErsterHundKarte({
                       className="shrink-0"
                     >
                       {gewaehlt && <Check className="size-4 shrink-0" />}
-                      {katalogName(sport, sprache)}
+                      {KURZNAME[sport.code] ?? katalogName(sport, sprache)}
                     </Chip>
                   );
                 })}
