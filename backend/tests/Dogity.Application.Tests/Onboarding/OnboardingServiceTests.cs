@@ -31,6 +31,24 @@ public class OnboardingServiceTests
     }
 
     [Fact]
+    public async Task GeloeschterHund_ZaehltNicht()
+    {
+        var db = InMemoryDbContext.Create();
+        var dienst = new OnboardingService(db, new FakeUserLookupService());
+        var nutzerId = Guid.NewGuid();
+        var aufbau = new Aufbau(db);
+        var hund = aufbau.Hund(nutzerId, "Bella");
+        await aufbau.Speichern();
+        (await db.Dogs.FindAsync(hund))!.DeletedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync();
+
+        var stand = (await dienst.GetStatusAsync(nutzerId)).Value!;
+
+        Assert.False(stand.HasDog);
+        Assert.Null(stand.FirstDogId);
+    }
+
+    [Fact]
     public async Task MitHund_TraegtDerErsteHundDieVerweise()
     {
         var (dienst, nutzerId, aufbau) = Erstelle();

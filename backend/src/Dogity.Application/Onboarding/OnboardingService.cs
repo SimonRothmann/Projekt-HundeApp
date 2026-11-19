@@ -19,8 +19,10 @@ public class OnboardingService(IApplicationDbContext db, IUserLookupService user
         // Schritten: Ein DbContext verträgt keine parallelen Abfragen. Vorher
         // waren es zwölf Roundtrips für eine Antwort von rund 270 Byte - und
         // das bei jedem Aufbau des Dashboards. Zusammengefasst bleiben fünf.
+        // Gelöschte Hunde zählen nicht: Ihr Besitz-Eintrag bleibt stehen (der Filter auf
+        // DogOwners kennt den Hund nicht), sonst käme "Wie heißt dein Hund?" nie wieder.
         var hunde = await db.DogOwners
-            .Where(o => o.UserId == userId)
+            .Where(o => o.UserId == userId && o.Dog!.DeletedAt == null)
             .OrderBy(o => o.CreatedAt)
             .Select(o => new { o.DogId })
             .ToListAsync(ct);
