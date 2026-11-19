@@ -25,7 +25,7 @@ import { LEERE_TRAIL_ANGABEN, type TrailAngabenVorLegen } from "@/lib/mantrailin
 import { TrailLegenFormular } from "@/components/tracking/trail-angaben";
 import { cn } from "@/lib/utils";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
-import { medienMarkerAn, medienMarkerVerfuegbar, setzeMedienMarker, useMedienMarker } from "@/lib/use-medien-marker";
+import { medienMarkerAn, setzeMedienMarker, useMedienMarker } from "@/lib/use-medien-marker";
 import { GENAUIGKEIT_KLASSE } from "@/components/tracking/genauigkeit-klasse";
 import { genauigkeitsStufe, GPS_PROFIL_LEGEN } from "@/lib/gps-profil";
 import { TrackMap } from "@/components/tracking/track-map";
@@ -442,7 +442,7 @@ export function FahrteRecorder({
               </div>
             )}
             {trailModus && <TrailLegenFormular werte={trailAngaben} onChange={setTrailAngaben} />}
-            {medienMarkerVerfuegbar && <label className="flex min-h-11 items-start gap-3 text-sm">
+            <label className="flex min-h-11 items-start gap-3 text-sm">
               <input
                 type="checkbox"
                 className="mt-0.5 size-5 shrink-0 accent-primary"
@@ -466,7 +466,7 @@ export function FahrteRecorder({
                   </span>
                 )}
               </span>
-            </label>}
+            </label>
             <Button onClick={startRecording} disabled={speichert} className="w-full coarse:min-h-11">
               <MapPin className="size-4" />
               {t("Legen starten")}
