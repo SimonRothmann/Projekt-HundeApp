@@ -213,6 +213,37 @@
   --sidebar-ring: oklch(0.78 0.12 282 / 55%);
 }
 
+/* "Kontrast erhöhen" (iOS/macOS: Bedienungshilfen, Windows: Kontrastdesign)
+   meldet prefers-contrast: more. Apple verlangt dafür eigene, deutlich
+   kräftigere Varianten (HIG Color/Accessibility): Nebentext, Ränder, Flächen
+   und Statustext rücken weiter vom Grund ab. Werte siehe DESIGN.md "Kontrast".
+   :root:not(.dark) statt :root, damit hell die dunklen Werte nicht überschreibt;
+   die farbsicheren Regeln unten stehen danach und gewinnen. */
+@media (prefers-contrast: more) {
+  :root:not(.dark) {
+    --muted-foreground: oklch(0.372 0.044 257); /* slate-700, 10,3:1 */
+    --border: oklch(0.704 0.04 256.8); /* slate-400 */
+    --input: oklch(0.446 0.043 257); /* slate-600, 7,6:1 */
+    --surface: oklch(0.968 0.007 248);
+    --surface-border: oklch(0.704 0.04 256.8);
+    --primary-text: oklch(0.457 0.24 277); /* indigo-700, 8,1:1 */
+    --destructive: oklch(0.45 0.2 25); /* 7,8:1, auch weiße Schrift darauf */
+    --erfolg-text: oklch(0.432 0.095 166.9); /* emerald-800, 7,6:1 */
+    --warnung-text: oklch(0.414 0.112 45.9); /* amber-900, 9,1:1 */
+  }
+  :root.dark {
+    --foreground: oklch(0.985 0 0);
+    --muted-foreground: oklch(0.87 0.01 280); /* 11:1 auf Karte */
+    --border: oklch(1 0 0 / 28%);
+    --input: oklch(1 0 0 / 55%); /* 5,8:1 */
+    --surface: oklch(1 0 0 / 10%);
+    --surface-border: oklch(1 0 0 / 30%);
+    --primary-text: oklch(0.85 0.09 282); /* 10:1 */
+    --erfolg-text: oklch(0.845 0.143 165); /* emerald-300, 10,7:1 */
+    --warnung-text: oklch(0.924 0.12 95.7); /* amber-200, 13:1 */
+  }
+}
+
 /* Die Ampel der Fährte (Text und Balken), siehe lib/spur-ampel.ts. Ohne Modus
    exakt die bisherigen Töne (emerald, amber, destructive). Mit der
    "Farbsicheren Darstellung" (data-farben="sicher", lib/farbsicher.ts) die
@@ -231,6 +262,9 @@
   --ampel-gelb: oklch(76.9% 0.188 70.08);
 }
 :root[data-farben="sicher"] {
+  /* Erfolg wird mit der Ampel blau, sonst bliebe Erfolg/Fehler ein Rot-Grün-Paar. */
+  --erfolg: #0077bb;
+  --erfolg-text: #006699; /* 6,3:1 auf Weiß, 5,5:1 auf erfolg/10 */
   --ampel-gruen: #0077bb;
   --ampel-gelb: #8c6600;
   --ampel-rot: #cc3311;
@@ -239,6 +273,8 @@
   --ampel-balken-rot: #cc3311;
 }
 :root[data-farben="sicher"].dark {
+  --erfolg: #33bbee;
+  --erfolg-text: #33bbee; /* 7,3:1 auf Karte */
   --ampel-gruen: #33bbee;
   --ampel-gelb: #eebb55;
   --ampel-rot: #ee6644;

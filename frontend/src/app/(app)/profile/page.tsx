@@ -31,7 +31,7 @@ export default function ProfilePage() {
   const { isTrainer } = useAuth();
   const { profil } = useProfil();
   const { preferences, moduleEnabled } = usePreferences();
-  const { resolvedTheme } = useTheme();
+  const { theme } = useTheme();
   const neuerungenUngelesen = useNeuerungenUngelesen();
   const [sportarten, setSportarten] = useState<Sport[] | null>(null);
 
@@ -76,7 +76,7 @@ export default function ProfilePage() {
           href="/profile/darstellung"
           icon={Palette}
           titel={t("Darstellung & Sprache")}
-          vorschau={vorschauDarstellung(resolvedTheme, bestimmeSchriftgroesse(preferences.fontScale), sprache, t)}
+          vorschau={vorschauDarstellung(theme, bestimmeSchriftgroesse(preferences.fontScale), sprache, t)}
         />
         <ListenZeile
           href="/profile/funktionen"

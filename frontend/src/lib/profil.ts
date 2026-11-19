@@ -82,19 +82,21 @@ export function vorschauSportarten(
   return t("{namen} +{n}", { namen: namen.slice(0, 2).join(", "), n: namen.length - 2 });
 }
 
-/** Name des Farbschemas. Alles außer "light" ist dunkel: Dunkel ist die Vorgabe der App. */
-export function themeName(aufgeloest: string | undefined, t: Uebersetzer): string {
-  return aufgeloest === "light" ? t("Hell") : t("Dunkel");
+/** Name der gewählten Darstellung. Ohne Wahl ("system" oder noch nichts gespeichert) folgt die App dem Gerät. */
+export function themeName(gewaehlt: string | undefined, t: Uebersetzer): string {
+  if (gewaehlt === "light") return t("Hell");
+  if (gewaehlt === "dark") return t("Dunkel");
+  return t("Automatisch");
 }
 
 /** "Dunkel · Normal · Deutsch" */
 export function vorschauDarstellung(
-  aufgeloestesTheme: string | undefined,
+  gewaehltesTheme: string | undefined,
   schrift: Schriftgroesse,
   sprache: Sprache,
   t: Uebersetzer,
 ): string {
-  return [themeName(aufgeloestesTheme, t), t(SCHRIFT_NAME[schrift]), SPRACHE_NAME[sprache]].join(" · ");
+  return [themeName(gewaehltesTheme, t), t(SCHRIFT_NAME[schrift]), SPRACHE_NAME[sprache]].join(" · ");
 }
 
 /**

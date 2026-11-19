@@ -70,10 +70,11 @@ describe("vorschauDarstellung", () => {
   it("fügt Farbschema, Schrift und Sprache zusammen", () => {
     expect(vorschauDarstellung("dark", "normal", "de", de)).toBe("Dunkel · Normal · Deutsch");
     expect(vorschauDarstellung("light", "sehr-gross", "en", en)).toBe("Light · Extra large · English");
+    expect(vorschauDarstellung("system", "normal", "de", de)).toBe("Automatisch · Normal · Deutsch");
   });
 
-  it("nimmt dunkel an, solange das Schema nicht bekannt ist", () => {
-    expect(themeName(undefined, de)).toBe("Dunkel");
+  it("folgt dem Gerät, solange nichts gewählt ist", () => {
+    expect(themeName(undefined, de)).toBe("Automatisch");
   });
 });
 

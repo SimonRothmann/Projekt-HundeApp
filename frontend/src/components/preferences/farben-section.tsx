@@ -36,7 +36,7 @@ export function FarbenSection() {
           {t("Farben")}
         </CardTitle>
         <CardDescription>
-          {t("Für Rot-Grün-Schwäche: Ampeln auf Karte, Auswertung und Verlauf in Blau, Gelb und Rot statt Grün, Orange und Rot.")}
+          {t("Für Rot-Grün-Schwäche: Ampeln auf Karte, Auswertung und Verlauf in Blau, Gelb und Rot statt Grün, Orange und Rot, Erfolg in Blau statt Grün.")}
         </CardDescription>
       </CardHeader>
 

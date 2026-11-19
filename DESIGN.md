@@ -91,7 +91,9 @@ an der Leine, manchmal mit Handschuhen. Daraus folgt fast alles:
   Grund, Farbe nur, wenn sie etwas bedeutet. Weiche Übergänge (200 ms), keine
   Spielerei.
 - **Hell und dunkel gleichwertig.** Beide Modi sind gemessen, keiner ist
-  „abgeleitet“.
+  „abgeleitet“. Vorgabe ist „Automatisch“: Die App folgt der Einstellung des
+  Geräts wie eine native App (Apple HIG Dark Mode). Hell oder Dunkel fest
+  wählt man im Profil oder mit dem Knopf oben, gespeichert im Gerät.
 
 Referenzen für das Gefühl: Apple Fitness und Health (Ruhe, Status in Farbe),
 Linear und Radix (zwei Töne je Akzent, getöntes Grau), Strava und Garmin
@@ -149,6 +151,16 @@ Rot-Grün-Schwäche unterscheidbar). Was eine Bewertung als Farbe zeigt, nutzt
 die Ampel. Was nur einen Zustand meldet, nutzt Erfolg, Warnung oder Fehler.
 Farbe trägt nie allein: Immer steht ein Symbol oder ein Wort dabei.
 
+**Farbsichere Darstellung** gilt auch für `erfolg`: Mit dem Modus wird Erfolg
+blau (#0077bb, Text #006699, dunkel #33bbee), sonst stünden Erfolg und
+Fehler als Rot-Grün-Paar nebeneinander (Fragentrainer, Ergebnisse).
+
+**Schwierige Paare** (Apple HIG Accessibility): Rot/Grün und Blau/Orange
+unterscheiden viele Menschen mit Farbschwäche nicht. Wo zwei solche Töne
+direkt nebeneinander etwas unterscheiden, kommt immer ein Symbol oder Wort
+dazu (✓/✗, Beschriftung). Neue Diagrammreihen nutzen die `chart`-Töne und
+eine Legende mit Wort.
+
 ### Kontrast
 - Text mindestens 4,5:1, besser 7:1.
 - Ränder von Eingaben, Fokusringe und bedeutungstragende Grafik mindestens
@@ -161,6 +173,14 @@ Farbe trägt nie allein: Immer steht ein Symbol oder ein Wort dabei.
 - Nicht per `opacity` ausgrauen, was man lesen muss, denn das drückt die
   Schrift unter 4,5:1. Ein abgesagter Termin bekommt `line-through
   text-muted-foreground` und ein `Badge variant="destructive"`.
+
+**Kontrast erhöhen.** Ist am Gerät „Kontrast erhöhen“ an
+(`prefers-contrast: more`), legt `globals.css` kräftigere Werte über die
+Tokens, wie Apple es für eigene Farben verlangt: Nebentext hell slate-700
+(10:1) und dunkel 11:1, Eingaberänder 7,6:1 bzw. 5,8:1, Statustext und
+`primary-text` über 7:1, Kartenränder und Flächen deutlich sichtbar. Neue
+Tokens bekommen dort ebenfalls eine Variante. Die farbsicheren Werte gehen
+vor.
 
 Gemessene Paare (OKLCH → sRGB → WCAG):
 
@@ -316,6 +336,8 @@ nicht nachbauen.
 - Einen Primärknopf pro Ansicht, der Rest ruhiger.
 - Jede antippbare Fläche mit mindestens 44 px auf Touch.
 - Status immer mit Symbol oder Wort, nie Farbe allein.
+- Neue Farb-Tokens auch für „Kontrast erhöhen“ und die farbsichere
+  Darstellung durchdenken.
 - Jede Änderung bei 375 px prüfen, hell und dunkel, Chromium und Safari.
 - Vorhandene Bausteine nutzen und neue Varianten in den Baustein selbst
   legen.
@@ -328,6 +350,7 @@ nicht nachbauen.
 - Keine waagerechte Scrollleiste, keine festen Breiten über 375 px.
 - Kein `opacity` auf Lesbares, kein `confirm()`, kein `alert()`.
 - Cyan und Fuchsia nicht als Status oder auf Knöpfen.
+- Rot/Grün oder Blau/Orange nicht als einziges Unterscheidungsmerkmal.
 - Keine Aktionen in der unteren Leiste.
 - Keine neuen Schriften und keine Gewichte über 600 in der App.
 

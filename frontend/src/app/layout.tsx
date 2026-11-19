@@ -119,7 +119,7 @@ export default function RootLayout({
               `document.documentElement.setAttribute(${JSON.stringify(FARBEN_ATTRIBUT)},${JSON.stringify(FARBEN_SICHER)})}catch(e){}`,
           }}
         />
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <PreferencesProvider>
               {/* Innerhalb der Einstellungen, weil die Sprache von dort
