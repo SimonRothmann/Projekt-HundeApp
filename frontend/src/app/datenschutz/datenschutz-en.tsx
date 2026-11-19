@@ -128,6 +128,13 @@ export function DatenschutzEn() {
             "Details that someone enters in a group’s sign-up form, and the trainers’ ticks for them – described in detail in section 9",
           ]}
         />
+        <p className="font-medium text-foreground">Trying the app (guest access)</p>
+        <p>
+          Anyone who uses the app via “Try the app” gets a temporary guest account with made-up sample data; no email
+          address and no name are collected for it. The guest account and all data created in it are permanently
+          deleted automatically after four hours; no emails are sent to guest accounts. To prevent abuse, the IP
+          address is briefly processed in memory to limit requests.
+        </p>
         <p className="font-medium text-foreground">Other</p>
         <Liste
           punkte={[
@@ -481,6 +488,7 @@ export function DatenschutzEn() {
         <Liste
           punkte={[
             "Account data and everything attached to it: until you delete the account.",
+            "Guest access (“Try the app”) with everything created in it: four hours, then permanently deleted automatically.",
             "Individual entries – training sessions, tracks, dogs, training breaks, health entries, entries on the note pad: until you delete them.",
             "Deleted tracks, including their GPS points, runs and stops, are removed for good 30 days after deletion; notifications in the app 90 days after they were created.",
             "Sign-ups to a group without an account (section 9): until the trainers delete them, at the latest twelve months after the last attendance, change or sign-up.",

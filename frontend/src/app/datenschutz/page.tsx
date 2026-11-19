@@ -132,6 +132,14 @@ function DatenschutzDe() {
             "Angaben, die jemand im Anmeldeformular einer Gruppe einträgt, und die Haken der Trainer:innen dazu – ausführlich in Abschnitt 9",
           ]}
         />
+        <p className="font-medium text-foreground">App ausprobieren (Gastzugang)</p>
+        <p>
+          Wer die App über „App ausprobieren“ nutzt, bekommt ein vorübergehendes Gastkonto mit erfundenen
+          Beispieldaten, für das keine E-Mail-Adresse und kein Name erhoben werden. Gastkonto und alle darin angelegten
+          Daten werden nach vier Stunden automatisch endgültig gelöscht; es werden keine E-Mails an Gastkonten
+          verschickt. Zum Schutz vor Missbrauch wird die IP-Adresse kurzzeitig im Arbeitsspeicher für die Begrenzung
+          der Anfragen verarbeitet.
+        </p>
         <p className="font-medium text-foreground">Sonstiges</p>
         <Liste
           punkte={[
@@ -498,6 +506,7 @@ function DatenschutzDe() {
         <Liste
           punkte={[
             "Kontodaten und alles, was daran hängt: bis du das Konto löschst.",
+            "Gastzugang („App ausprobieren“) mit allem, was darin angelegt wurde: vier Stunden, dann automatisch endgültig gelöscht.",
             "Einzelne Einträge – Trainings, Fährten, Hunde, Trainingspausen, Gesundheitseinträge, Einträge auf dem Merkzettel: bis du sie löschst.",
             "Gelöschte Fährten samt GPS-Punkten, Abläufen und Halten werden 30 Tage nach dem Löschen endgültig entfernt; Benachrichtigungen in der App 90 Tage nach ihrem Entstehen.",
             "Anmeldungen zu einer Gruppe ohne Konto (Abschnitt 9): bis die Trainer:innen sie löschen, spätestens zwölf Monate nach der letzten Anwesenheit, Änderung oder Anmeldung.",

@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-11-07 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-11-19 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -39,6 +39,19 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 | Löschfrist | bis zur Kontolöschung; Refresh-Tokens spätestens nach 60 Tagen, bei Kontolöschung sofort und endgültig (kein bloßer Widerruf; Altbestand gelöschter Konten wird beim Start bereinigt) |
 | Tabellen | `users`, `user_roles`, `refresh_tokens` |
 | Speicherung im Browser | Wer ohne Konto die Oberflächensprache wählt (Deutsch/English), dessen Browser merkt sich die Wahl im lokalen Speicher unter `dogity.sprache`. Reine Komforteinstellung: bleibt auf dem Gerät, wird nicht an den Server gesendet und wird beim Abmelden nicht entfernt. Rechtsgrundlage wie bei den übrigen Komforteinträgen im Browser (Kartenart, Schriftgröße): § 25 Abs. 2 TDDDG (zur Bereitstellung des ausdrücklich gewünschten Dienstes erforderlich), keine Einwilligung nötig. Löschung: Löschen der Browserdaten. |
+
+### 2.1a Gastzugang („App ausprobieren“)
+
+| | |
+|---|---|
+| Zweck | Interessent:innen die App mit Beispieldaten zeigen, ohne Registrierung |
+| Betroffene | Besucher:innen der Website, die „App ausprobieren“ wählen |
+| Datenkategorien | Gastkonto ohne Name und E-Mail (erzeugte Platzhalteradresse), erfundene Beispieldaten, alles, was der Gast selbst einträgt; IP-Adresse nur kurzzeitig im Arbeitsspeicher zur Begrenzung der Anfragen |
+| Rechtsgrundlage | Art. 6 Abs. 1 lit. b (ausdrücklich gewünschte Nutzung), lit. f (Missbrauchsabwehr) |
+| Empfänger | Hosting-Dienstleister (Auftragsverarbeiter); keine Mails an Gastkonten |
+| Drittland | nein |
+| Löschfrist | vier Stunden nach Anlage automatisch und endgültig, samt erfundenem Verein und dessen Mitgliedern |
+| Tabellen | `users` (`GuestUntil`), `clubs` (`GuestUntil`) und alle Tabellen der Kontodaten |
 
 ### 2.2 Hunde und Trainingstagebuch
 
