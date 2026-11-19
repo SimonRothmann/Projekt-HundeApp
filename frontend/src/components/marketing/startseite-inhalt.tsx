@@ -4,6 +4,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SupportButton } from "@/components/support-button";
+import { GastZugangKnopf } from "@/components/gast-zugang-knopf";
 import { LetzteNeuerung } from "@/components/letzte-neuerung";
 import { useT } from "@/lib/i18n";
 import { FAQ, FEATURES } from "@/components/marketing/startseite-daten";
@@ -38,6 +39,7 @@ export function StartseiteInhalt() {
           >
             {t("Prüfungsordnungen ansehen")}
           </Link>
+          <GastZugangKnopf />
         </div>
       </section>
 

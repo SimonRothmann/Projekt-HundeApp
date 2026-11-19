@@ -1198,6 +1198,8 @@ export type Profile = {
   lastName: string;
   email: string;
   avatarUrl: string | null;
+  // Nur beim Gastzugang ("App ausprobieren"): wann er samt allen Daten gelöscht wird (ISO).
+  guestUntil?: string | null;
 };
 
 // Ein vom Trainer zu bewertendes Training eines betreuten Hundes: Gesamt-

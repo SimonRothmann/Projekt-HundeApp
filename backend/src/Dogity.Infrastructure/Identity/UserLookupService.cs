@@ -7,11 +7,18 @@ namespace Dogity.Infrastructure.Identity;
 
 public class UserLookupService(UserManager<ApplicationUser> userManager, ApplicationDbContext db, TimeProvider timeProvider, KontoStatus kontoStatus) : IUserLookupService
 {
-    public async Task<UserLookupResult?> FindByEmailAsync(string email, CancellationToken ct = default)
+    public async Task<UserLookupResult?> FindByEmailAsync(string email, Guid actorId, CancellationToken ct = default)
     {
         var user = await userManager.FindByEmailAsync(email);
-        return user is null ? null : new UserLookupResult(user.Id, user.Email!, user.FirstName, user.LastName);
+        if (user is null || (user.GuestUntil is not null) != await IsGuestAsync(actorId, ct)) return null;
+        return new UserLookupResult(user.Id, user.Email!, user.FirstName, user.LastName);
     }
+
+    public Task<bool> IsGuestAsync(Guid userId, CancellationToken ct = default) =>
+        userManager.Users.AnyAsync(u => u.Id == userId && u.GuestUntil != null, ct);
+
+    public async Task<IReadOnlyList<Guid>> ListGuestUserIdsAsync(CancellationToken ct = default) =>
+        await userManager.Users.Where(u => u.GuestUntil != null).Select(u => u.Id).ToListAsync(ct);
 
     public async Task<IReadOnlyDictionary<Guid, UserLookupResult>> FindByIdsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default)
     {
@@ -21,17 +28,17 @@ public class UserLookupService(UserManager<ApplicationUser> userManager, Applica
             .ToDictionaryAsync(r => r.UserId, ct);
     }
 
-    public Task<int> CountAsync(CancellationToken ct = default) => userManager.Users.CountAsync(ct);
+    public Task<int> CountAsync(CancellationToken ct = default) => userManager.Users.CountAsync(u => u.GuestUntil == null, ct);
 
     public async Task<IReadOnlyList<Guid>> ListUserIdsCreatedSinceAsync(DateTimeOffset since, CancellationToken ct = default) =>
-        await userManager.Users.Where(u => u.CreatedAt >= since).Select(u => u.Id).ToListAsync(ct);
+        await userManager.Users.Where(u => u.GuestUntil == null && u.CreatedAt >= since).Select(u => u.Id).ToListAsync(ct);
 
     public async Task<IReadOnlyList<Guid>> ListAllUserIdsAsync(CancellationToken ct = default) =>
         await userManager.Users.Select(u => u.Id).ToListAsync(ct);
 
     public async Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, string? suche, CancellationToken ct = default)
     {
-        var treffer = NutzerSuche.Filtern(userManager.Users, suche);
+        var treffer = NutzerSuche.Filtern(userManager.Users.Where(u => u.GuestUntil == null), suche);
         var totalCount = await treffer.CountAsync(ct);
         var rawUsers = await treffer
             .OrderBy(u => u.Email)

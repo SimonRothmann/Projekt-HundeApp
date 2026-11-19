@@ -25,6 +25,7 @@ public class AuthController(
     IRefreshTokenService refreshTokens,
     IAccountMailService accountMails,
     IPreferenceService preferences,
+    GastkontoService gastkonten,
     IFrontendLinks frontendLinks,
     AnmeldeDrossel anmeldeDrossel,
     TimeProvider timeProvider,
@@ -105,6 +106,22 @@ public class AuthController(
         }
 
         return Ok(await BuildAuthResponseAsync(user, [Roles.User]));
+    }
+
+    /// <summary>
+    /// Gastzugang zum Ausprobieren ohne Anmeldung (siehe docs/GASTZUGANG.md): ein eigenes Konto mit Beispieldaten,
+    /// nach wenigen Stunden samt allem gelöscht. Die Antwort ist wie beim Login.
+    /// </summary>
+    [HttpPost("guest")]
+    [EnableRateLimiting("gast")]
+    public async Task<ActionResult<AuthResponse>> Guest(GuestRequest? request, CancellationToken ct)
+    {
+        var user = await gastkonten.AnlegenAsync(request?.Locale, ct);
+        if (user is null)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { errors = new[] { "Gerade sind sehr viele Gäste unterwegs - bitte später nochmal versuchen." } });
+
+        return Ok(await BuildAuthResponseAsync(user, [Roles.User, Roles.Trainer]));
     }
 
     // Eigene, weitere Grenze je IP als beim Rest von "auth": Bei Vereinsveranstaltungen melden sich viele

@@ -28,6 +28,8 @@ public class AnonymeEndpunkteTests
     {
         ["AuthController.Register"] = "auth",
         ["AuthController.Login"] = "anmelden",
+        // Gastzugang: legt Konto, Hund, Verlauf und einen Verein an - enger als "auth", dazu eine Obergrenze gleichzeitiger Gäste.
+        ["AuthController.Guest"] = "gast",
         ["AuthController.ForgotPassword"] = "auth",
         ["AuthController.ResetPassword"] = "auth",
         ["AuthController.Refresh"] = "refresh",

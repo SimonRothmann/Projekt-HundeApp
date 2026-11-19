@@ -20,6 +20,12 @@ public class Club : Entity
     /// </summary>
     public string? InviteCode { get; set; }
 
+    /// <summary>
+    /// Gesetzt nur beim erfundenen Verein eines Gastzugangs (bis wann er besteht); null = echter Verein.
+    /// Gast-Vereine tauchen in keiner Liste und keiner Statistik echter Nutzer:innen auf.
+    /// </summary>
+    public DateTimeOffset? GuestUntil { get; set; }
+
     public ICollection<Group> Groups { get; set; } = new List<Group>();
     public ICollection<ClubTrainer> Trainers { get; set; } = new List<ClubTrainer>();
     public ICollection<ClubMembership> Memberships { get; set; } = new List<ClubMembership>();

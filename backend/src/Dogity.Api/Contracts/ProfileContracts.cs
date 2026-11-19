@@ -1,6 +1,7 @@
 namespace Dogity.Api.Contracts;
 
-public record ProfileDto(string FirstName, string LastName, string Email, string? AvatarUrl);
+/// <param name="GuestUntil">Nur bei einem Gastzugang: bis wann er besteht (siehe docs/GASTZUGANG.md).</param>
+public record ProfileDto(string FirstName, string LastName, string Email, string? AvatarUrl, DateTimeOffset? GuestUntil);
 
 public record UpdateProfileRequest(string FirstName, string LastName, string? AvatarUrl);
 

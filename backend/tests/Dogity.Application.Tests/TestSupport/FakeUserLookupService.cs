@@ -13,6 +13,14 @@ public class FakeUserLookupService : IUserLookupService
 
     private readonly Dictionary<Guid, DateTimeOffset> _createdAt = [];
 
+    /// <summary>Die Gastzugänge unter den registrierten Konten (siehe docs/GASTZUGANG.md).</summary>
+    public HashSet<Guid> Gaeste { get; } = [];
+
+    public Task<bool> IsGuestAsync(Guid userId, CancellationToken ct = default) => Task.FromResult(Gaeste.Contains(userId));
+
+    public Task<IReadOnlyList<Guid>> ListGuestUserIdsAsync(CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<Guid>>(Gaeste.ToList());
+
     /// <param name="createdAt">Anlegedatum des Kontos; ohne Angabe: jetzt.</param>
     public void Register(Guid id, string email, string firstName = "", string lastName = "", DateTimeOffset? createdAt = null)
     {
@@ -21,7 +29,7 @@ public class FakeUserLookupService : IUserLookupService
     }
 
     public Task<IReadOnlyList<Guid>> ListUserIdsCreatedSinceAsync(DateTimeOffset since, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<Guid>>(_users.Keys.Where(id => _createdAt[id] >= since).ToList());
+        Task.FromResult<IReadOnlyList<Guid>>(_users.Keys.Where(id => !Gaeste.Contains(id) && _createdAt[id] >= since).ToList());
 
     /// <summary>Setzen, um den Ausfall der Konto-Liste nachzustellen.</summary>
     public bool AuflistenSchlaegtFehl { get; set; }
@@ -36,11 +44,11 @@ public class FakeUserLookupService : IUserLookupService
         return _users.Keys.ToList();
     }
 
-    public Task<UserLookupResult?> FindByEmailAsync(string email, CancellationToken ct = default)
+    public Task<UserLookupResult?> FindByEmailAsync(string email, Guid actorId, CancellationToken ct = default)
     {
         var hit = _users.FirstOrDefault(kvp => kvp.Value.Email == email);
         return Task.FromResult<UserLookupResult?>(
-            hit.Key == default ? null : new UserLookupResult(hit.Key, hit.Value.Email, hit.Value.FirstName, hit.Value.LastName));
+            hit.Key == default || Gaeste.Contains(hit.Key) != Gaeste.Contains(actorId) ? null : new UserLookupResult(hit.Key, hit.Value.Email, hit.Value.FirstName, hit.Value.LastName));
     }
 
     public virtual Task<IReadOnlyDictionary<Guid, UserLookupResult>> FindByIdsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default)
@@ -51,13 +59,13 @@ public class FakeUserLookupService : IUserLookupService
         return Task.FromResult<IReadOnlyDictionary<Guid, UserLookupResult>>(result);
     }
 
-    public Task<int> CountAsync(CancellationToken ct = default) => Task.FromResult(_users.Count);
+    public Task<int> CountAsync(CancellationToken ct = default) => Task.FromResult(_users.Keys.Count(id => !Gaeste.Contains(id)));
 
     public Task<(IReadOnlyList<UserDirectoryEntry> Users, int TotalCount)> ListPagedAsync(int page, int pageSize, string? suche, CancellationToken ct = default)
     {
         // Dieselbe Semantik wie NutzerSuche in Infrastructure (dort getestet).
         var begriff = suche?.Trim().ToLowerInvariant();
-        var all = _users.Select(kvp =>
+        var all = _users.Where(kvp => !Gaeste.Contains(kvp.Key)).Select(kvp =>
             new UserDirectoryEntry(kvp.Key, kvp.Value.Email, kvp.Value.FirstName, kvp.Value.LastName, [], false))
             .Where(u => string.IsNullOrEmpty(begriff)
                 || (Guid.TryParse(begriff, out var gesucht)

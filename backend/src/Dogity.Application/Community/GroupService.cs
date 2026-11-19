@@ -275,7 +275,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (string.IsNullOrWhiteSpace(request.Email))
             return Result.Failure("E-Mail-Adresse ist erforderlich.");
 
-        var user = await userLookup.FindByEmailAsync(request.Email.Trim(), ct);
+        var user = await userLookup.FindByEmailAsync(request.Email.Trim(), userId, ct);
         if (user is null)
             return Result.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
 
@@ -383,7 +383,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         if (group is null)
             return Result.NotFound("Gruppe nicht gefunden.");
 
-        var user = await userLookup.FindByEmailAsync(request.Email, ct);
+        var user = await userLookup.FindByEmailAsync(request.Email, trainerId, ct);
         if (user is null)
             return Result.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
 
@@ -778,6 +778,11 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     {
         var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct);
         if (group is null)
+            return Result.NotFound("Gruppe nicht gefunden.");
+
+        // Gast und Gruppe eines echten Vereins (oder umgekehrt): wie "gibt es nicht".
+        var imGastVerein = await db.Clubs.AnyAsync(c => c.Id == group.ClubId && c.GuestUntil != null, ct);
+        if (imGastVerein != await userLookup.IsGuestAsync(userId, ct))
             return Result.NotFound("Gruppe nicht gefunden.");
 
         // Wer die Gruppe ohnehin betreut, braucht keinen Beitritt - vorher

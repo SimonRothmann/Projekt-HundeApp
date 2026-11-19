@@ -216,7 +216,9 @@ public class AdminUsageService(
         var seit30 = jetzt.AddDays(-30);
         var seit90 = jetzt.AddDays(-90);
 
-        var konten = (await userLookup.ListAllUserIdsAsync(ct)).ToHashSet();
+        // Ohne Gastzugänge: Alles ist über die Konten zugeordnet - was Gästen gehört, fällt dabei heraus.
+        var gaeste = (await userLookup.ListGuestUserIdsAsync(ct)).ToHashSet();
+        var konten = (await userLookup.ListAllUserIdsAsync(ct)).Where(id => !gaeste.Contains(id)).ToHashSet();
         var neu = (await userLookup.ListUserIdsCreatedSinceAsync(seit30, ct)).ToHashSet();
         var besitzer = (await db.DogOwners.Select(o => new { o.DogId, o.UserId }).ToListAsync(ct))
             .ToLookup(o => o.DogId, o => o.UserId);

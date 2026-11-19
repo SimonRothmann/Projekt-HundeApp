@@ -31,8 +31,13 @@ export default function KontoPage() {
           vorschau={`${user.firstName} ${user.lastName}`}
           onClick={() => profil && setOffen("name")}
         />
-        <ListenZeile titel={t("E-Mail")} vorschau={user.email} onClick={() => setOffen("email")} />
-        <ListenZeile titel={t("Passwort")} vorschau="••••••••" onClick={() => setOffen("passwort")} />
+        {/* Ein Gastzugang hat weder echte Adresse noch Passwort. */}
+        {!profil?.guestUntil && (
+          <>
+            <ListenZeile titel={t("E-Mail")} vorschau={user.email} onClick={() => setOffen("email")} />
+            <ListenZeile titel={t("Passwort")} vorschau="••••••••" onClick={() => setOffen("passwort")} />
+          </>
+        )}
       </ListenGruppe>
 
       {profil && (

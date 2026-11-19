@@ -1,5 +1,6 @@
 using System.Data.Common;
 using Dogity.Application.Abstractions;
+using Dogity.Application.Account;
 using Dogity.Application.Common;
 using Dogity.Domain.Community;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,10 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
     {
         var group = await db.GetManageableGroupAsync(callerId, groupId, ct);
         if (group is null) return Result<GroupRegistrationLinkDto>.NotFound(GruppeNichtGefunden);
+
+        // Der Anmeldelink wäre von außen erreichbar - in einem Gast-Verein gibt es keinen.
+        if (await db.Clubs.AnyAsync(c => c.Id == group.ClubId && c.GuestUntil != null, ct))
+            return Result<GroupRegistrationLinkDto>.Failure(Gastkonto.NichtImDemoModus);
 
         // Dieselbe Code-Erzeugung wie beim Vereinslink - ein Code ist ein Code.
         group.RegistrationCode = ClubInviteCode.Erzeugen();

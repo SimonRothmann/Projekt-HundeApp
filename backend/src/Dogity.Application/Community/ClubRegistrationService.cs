@@ -1,4 +1,5 @@
 using Dogity.Application.Abstractions;
+using Dogity.Application.Account;
 using Dogity.Application.Common;
 using Dogity.Application.Notifications;
 using Dogity.Domain.Community;
@@ -23,6 +24,9 @@ public class ClubRegistrationService(
 
     public async Task<Result<ClubRegistrationDto>> RequestAsync(Guid userId, CreateClubRegistrationRequest request, CancellationToken ct = default)
     {
+        if (await userLookup.IsGuestAsync(userId, ct))
+            return Result<ClubRegistrationDto>.Failure(Gastkonto.NichtImDemoModus);
+
         var name = request.Name?.Trim();
         if (string.IsNullOrWhiteSpace(name))
             return Result<ClubRegistrationDto>.Failure("Name des Vereins ist erforderlich.");
@@ -35,7 +39,7 @@ public class ClubRegistrationService(
         // Gibt es den Verein schon, ist der Antrag sinnlos - dann will die
         // Person vermutlich beitreten, nicht gründen. Das gleich zu sagen
         // spart ihr das Warten auf eine Ablehnung.
-        var vorhanden = await db.Clubs.AnyAsync(c => c.Name.ToLower() == name.ToLower(), ct);
+        var vorhanden = await db.Clubs.AnyAsync(c => c.GuestUntil == null && c.Name.ToLower() == name.ToLower(), ct);
         if (vorhanden)
             return Result<ClubRegistrationDto>.Failure(
                 "Diesen Verein gibt es bereits. Stelle stattdessen eine Beitrittsanfrage.");

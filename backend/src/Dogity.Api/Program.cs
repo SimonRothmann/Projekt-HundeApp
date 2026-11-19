@@ -79,6 +79,9 @@ builder.Services.AddHostedService<RegistrationRetentionBackgroundService>();
 // Aufbewahrungsfrist der Arbeitseinsätze (drittletztes Kalenderjahr).
 builder.Services.AddHostedService<ClubWorkRetentionBackgroundService>();
 
+// Gastzugänge ("App ausprobieren"): abgelaufene Konten und Gast-Vereine restlos löschen.
+builder.Services.AddHostedService<GastkontoBackgroundService>();
+
 // Versand von Mails und Push-Nachrichten außerhalb des Requests (Warteschlangen
 // in Dogity.Infrastructure). Auch ohne SMTP/VAPID registriert: Dann
 // protokolliert bzw. verwirft der Dienst nur, es ändert sich nichts an der Anwendung.
@@ -158,6 +161,17 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = 10,
                 Window = TimeSpan.FromMinutes(1),
+            }));
+
+    // Gastzugang anlegen (anonym): Jeder Aufruf erzeugt Konto, Hund, Verlauf und einen ganzen Verein -
+    // deutlich enger als "auth", je IP und Stunde. Dazu gilt eine Obergrenze gleichzeitiger Gäste (Gastkonto.MaxAktiv).
+    options.AddPolicy("gast", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
+                Window = TimeSpan.FromHours(1),
             }));
 
     // Eigener, weiterer Topf für Token-Erneuerung und Abmelden. Beides lief

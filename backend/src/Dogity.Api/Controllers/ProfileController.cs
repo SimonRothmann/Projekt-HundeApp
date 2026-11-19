@@ -43,7 +43,7 @@ public class ProfileController(
         var user = await userManager.FindByIdAsync(CurrentUserId.ToString());
         if (user is null) return NotFound();
 
-        return Ok(new ProfileDto(user.FirstName, user.LastName, user.Email!, user.AvatarUrl));
+        return Ok(new ProfileDto(user.FirstName, user.LastName, user.Email!, user.AvatarUrl, user.GuestUntil));
     }
 
     [HttpPut]
@@ -74,7 +74,7 @@ public class ProfileController(
         if (!result.Succeeded)
             return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
 
-        return Ok(new ProfileDto(user.FirstName, user.LastName, user.Email!, user.AvatarUrl));
+        return Ok(new ProfileDto(user.FirstName, user.LastName, user.Email!, user.AvatarUrl, user.GuestUntil));
     }
 
     [HttpPut("email")]
@@ -82,6 +82,7 @@ public class ProfileController(
     {
         var user = await userManager.FindByIdAsync(CurrentUserId.ToString());
         if (user is null) return NotFound();
+        if (user.GuestUntil is not null) return BadRequest(new { errors = new[] { Gastkonto.NichtImDemoModus } });
 
         if (!await AktuellesPasswortStimmtAsync(user, request.CurrentPassword))
             return BadRequest(new { errors = new[] { "Aktuelles Passwort ist falsch." } });
@@ -108,6 +109,7 @@ public class ProfileController(
     {
         var user = await userManager.FindByIdAsync(CurrentUserId.ToString());
         if (user is null) return NotFound();
+        if (user.GuestUntil is not null) return BadRequest(new { errors = new[] { Gastkonto.NichtImDemoModus } });
 
         if (!await AktuellesPasswortStimmtAsync(user, request.CurrentPassword))
             return BadRequest(new { errors = new[] { "Aktuelles Passwort ist falsch." } });
@@ -155,6 +157,7 @@ public class ProfileController(
     {
         var user = await userManager.FindByIdAsync(CurrentUserId.ToString());
         if (user is null) return NotFound();
+        if (user.GuestUntil is not null) return BadRequest(new { errors = new[] { Gastkonto.NichtImDemoModus } });
 
         if (!await AktuellesPasswortStimmtAsync(user, request.CurrentPassword))
             return BadRequest(new { errors = new[] { "Aktuelles Passwort ist falsch." } });

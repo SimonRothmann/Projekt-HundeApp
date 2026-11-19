@@ -34,6 +34,8 @@ type AuthContextValue = {
     emailBenachrichtigungen?: boolean,
     locale?: string,
   ) => Promise<void>;
+  // Gastzugang zum Ausprobieren: legt serverseitig ein Konto mit Beispieldaten an (siehe docs/GASTZUGANG.md).
+  loginAlsGast: (locale?: string) => Promise<void>;
   updateUser: (patch: Partial<Pick<AuthUser, "firstName" | "lastName" | "email">>) => void;
   logout: () => void;
 };
@@ -193,6 +195,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await persist(response);
   }
 
+  async function loginAlsGast(locale?: string) {
+    const response = await api.post<AuthResponse>("/api/auth/guest", { locale });
+    await persist(response);
+  }
+
   function logout() {
     // Refresh-Token serverseitig widerrufen (nur dieses Gerät), damit ein
     // evtl. noch kopierter Token nach dem Logout wertlos ist. Fire-and-forget:
@@ -239,6 +246,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshUnreadNotificationCount,
         login,
         register,
+        loginAlsGast,
         updateUser,
         logout,
       }}

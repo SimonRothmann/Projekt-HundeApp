@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using Dogity.Application.Account;
 using Dogity.Application.Notifications;
 using Microsoft.Extensions.Logging;
 
@@ -37,6 +38,10 @@ public class MailQueue(ILogger<MailQueue> logger) : IMailQueue
 
     public bool Enqueue(MailNachricht mail)
     {
+        // Gastzugänge (und ihre erfundenen Mitglieder) haben keine echte Adresse: nie eine Mail dorthin.
+        // Als angenommen gemeldet - die Glocke in der App ist die Quelle, nichts ging "verloren".
+        if (Gastkonto.IstGastAdresse(mail.An)) return true;
+
         var angenommen = _kanal.Writer.TryWrite(mail);
         if (!angenommen && !_voll)
             logger.LogWarning("Mail-Warteschlange voll ({Kapazitaet}): Mails werden verworfen.", Kapazitaet);

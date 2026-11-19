@@ -46,7 +46,7 @@ export default function ProfilePage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t("Profil")}</h1>
 
-      <ProfilKopf avatarUrl={profil?.avatarUrl ?? null} />
+      <ProfilKopf avatarUrl={profil?.avatarUrl ?? null} istGast={!!profil?.guestUntil} />
 
       {/* Verein und Sportarten: aus der unteren Leiste hierher gezogen. Beides
           öffnet man selten; die Leiste bleibt so bei höchstens fünf Zielen.

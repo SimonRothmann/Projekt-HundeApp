@@ -17,7 +17,7 @@ const ROLLEN_NAME: Record<string, string> = {
 };
 
 /** Die oberste Zeile des Profils: wer bin ich - und der Weg zu den Kontodaten. */
-export function ProfilKopf({ avatarUrl }: { avatarUrl: string | null }) {
+export function ProfilKopf({ avatarUrl, istGast = false }: { avatarUrl: string | null; istGast?: boolean }) {
   const t = useT();
   const { user } = useAuth();
   if (!user) return null;
@@ -38,7 +38,8 @@ export function ProfilKopf({ avatarUrl }: { avatarUrl: string | null }) {
           <span className="block text-base font-semibold break-words">
             {user.firstName} {user.lastName}
           </span>
-          <span className="block text-sm break-all text-muted-foreground">{user.email}</span>
+          {/* Die Adresse eines Gastzugangs ist erfunden und sagt nichts. */}
+          {!istGast && <span className="block text-sm break-all text-muted-foreground">{user.email}</span>}
           <span className="mt-1.5 flex flex-wrap gap-1.5">
             {user.roles.map((role) => (
               <Badge key={role} variant="secondary">

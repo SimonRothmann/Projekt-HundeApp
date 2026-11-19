@@ -218,7 +218,7 @@ public class DogService(
         if (!await db.DogOwners.AnyAsync(o => o.DogId == dogId && o.UserId == userId && o.Role == DogOwnerRole.Owner, ct))
             return Result.NotFound("Hund nicht gefunden oder keine Berechtigung.");
 
-        var target = await userLookup.FindByEmailAsync(request.Email, ct);
+        var target = await userLookup.FindByEmailAsync(request.Email, userId, ct);
         if (target is null)
             return Result.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
 

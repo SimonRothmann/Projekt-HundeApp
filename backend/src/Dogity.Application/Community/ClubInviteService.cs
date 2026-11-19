@@ -1,4 +1,5 @@
 using Dogity.Application.Abstractions;
+using Dogity.Application.Account;
 using Dogity.Application.Common;
 using Dogity.Domain.Community;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,10 @@ public class ClubInviteService(IApplicationDbContext db, IClubService clubs) : I
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
         if (club is null)
             return Result<ClubInviteLinkDto>.NotFound("Verein nicht gefunden.");
+
+        // Ein Einladungslink wäre von außen erreichbar - im Gast-Verein gibt es keinen.
+        if (club.GuestUntil is not null)
+            return Result<ClubInviteLinkDto>.Failure(Gastkonto.NichtImDemoModus);
 
         club.InviteCode = ClubInviteCode.Erzeugen();
         club.UpdatedAt = DateTimeOffset.UtcNow;

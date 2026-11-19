@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<IUserLookupService, UserLookupService>();
         services.AddMemoryCache();
         services.AddScoped<KontoStatus>();
+        services.AddScoped<GastkontoService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IRegulationPdfParser, RegulationPdfParser>();
 

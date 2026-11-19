@@ -9,6 +9,8 @@ namespace Dogity.Api.Contracts;
 /// bis die Person sie im Profil ändert. Fehlt sie oder ist unbekannt: nichts wird gespeichert.
 /// </param>
 public record RegisterRequest(string Email, string Password, string FirstName, string LastName, bool? EmailBenachrichtigungen = null, string? Locale = null);
+/// <param name="Locale">Die Oberflächensprache ("de"/"en"), wie bei <see cref="RegisterRequest"/>.</param>
+public record GuestRequest(string? Locale = null);
 public record LoginRequest(string Email, string Password);
 public record AuthResponse(string Token, string RefreshToken, Guid UserId, string Email, string FirstName, string LastName, string[] Roles);
 public record ForgotPasswordRequest(string Email);

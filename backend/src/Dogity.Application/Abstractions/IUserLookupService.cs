@@ -13,18 +13,31 @@ public record UserDirectoryEntry(Guid UserId, string Email, string FirstName, st
 /// </summary>
 public interface IUserLookupService
 {
-    Task<UserLookupResult?> FindByEmailAsync(string email, CancellationToken ct = default);
+    /// <summary>
+    /// Findet das Konto zu einer E-Mail-Adresse - für die Person <paramref name="actorId"/>, die es sucht.
+    /// Gastkonten und echte Konten sehen einander nie: Gehört das Konto zur anderen Seite, ist die Antwort
+    /// dieselbe wie bei einer unbekannten Adresse (null) - so verrät sie nicht, ob es die Adresse gibt.
+    /// </summary>
+    Task<UserLookupResult?> FindByEmailAsync(string email, Guid actorId, CancellationToken ct = default);
+
+    /// <summary>Ob das Konto ein Gastzugang ist (siehe <c>Gastkonto</c>). Ein unbekanntes Konto ist keiner.</summary>
+    Task<bool> IsGuestAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>Die Ids aller Gastkonten (auch der erfundenen Mitglieder) - die Admin-Auswertungen schließen sie aus.</summary>
+    Task<IReadOnlyList<Guid>> ListGuestUserIdsAsync(CancellationToken ct = default);
+
     Task<IReadOnlyDictionary<Guid, UserLookupResult>> FindByIdsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default);
+    /// <summary>Die Zahl der Konten ohne Gastzugänge.</summary>
     Task<int> CountAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Die Ids der Konten, die seit <paramref name="since"/> angelegt wurden.
+    /// Die Ids der Konten (ohne Gastzugänge), die seit <paramref name="since"/> angelegt wurden.
     /// Nur Ids, keine Personen: Die Admin-Kennzahlen zählen, sie zeigen niemanden.
     /// </summary>
     Task<IReadOnlyList<Guid>> ListUserIdsCreatedSinceAsync(DateTimeOffset since, CancellationToken ct = default);
 
     /// <summary>
-    /// Die Ids ALLER Konten. Nur Ids, keine Personen - die Bereinigung der Daten
+    /// Die Ids ALLER Konten, auch der Gastzugänge. Nur Ids, keine Personen - die Bereinigung der Daten
     /// gelöschter Konten braucht die Menge der Konten, die es noch gibt, und
     /// sonst nichts. Wirft bei einem Fehler, statt eine leere Liste zu liefern:
     /// Aus "keine Konten" würde dort "alles ist verwaist".
@@ -32,7 +45,7 @@ public interface IUserLookupService
     Task<IReadOnlyList<Guid>> ListAllUserIdsAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Eine Seite der Nutzerliste, sortiert nach E-Mail. <paramref name="suche"/>
+    /// Eine Seite der Nutzerliste (ohne Gastzugänge), sortiert nach E-Mail. <paramref name="suche"/>
     /// filtert ohne Rücksicht auf Groß-/Kleinschreibung auf E-Mail, Vor- und
     /// Nachname (Teilstück genügt; auch "Vorname Nachname" zusammen); eine Guid
     /// findet genau dieses Konto. Leer oder null heißt: alle. <c>TotalCount</c> zählt nur die Treffer.

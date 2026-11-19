@@ -25,13 +25,16 @@ public class AdminService(
 
     public async Task<Result<AdminStatsDto>> GetStatsAsync(CancellationToken ct = default)
     {
+        // Gastzugänge (siehe docs/GASTZUGANG.md) zählen nirgends mit: nicht ihre Konten (userLookup),
+        // nicht ihre Hunde, Trainings und Fährten, nicht die Gruppen ihrer Gast-Vereine.
+        var gaeste = await userLookup.ListGuestUserIdsAsync(ct);
         var stats = new AdminStatsDto(
             await userLookup.CountAsync(ct),
-            await db.Dogs.CountAsync(ct),
-            await db.Groups.CountAsync(ct),
-            await db.TrainingSessions.CountAsync(ct),
-            await db.GpsTracks.CountAsync(ct),
-            await GetRecentStatsAsync(ct));
+            await db.Dogs.CountAsync(d => !db.DogOwners.Any(o => o.DogId == d.Id && gaeste.Contains(o.UserId)), ct),
+            await db.Groups.CountAsync(g => !db.Clubs.Any(c => c.Id == g.ClubId && c.GuestUntil != null), ct),
+            await db.TrainingSessions.CountAsync(s => !gaeste.Contains(s.UserId), ct),
+            await db.GpsTracks.CountAsync(t => !db.TrainingSessions.Any(s => s.Id == t.TrainingSessionId && gaeste.Contains(s.UserId)), ct),
+            await GetRecentStatsAsync(gaeste, ct));
 
         return Result<AdminStatsDto>.Success(stats);
     }
@@ -72,7 +75,7 @@ public class AdminService(
     /// und ließen die Zahl sonst über die Zahl aller Konten wachsen
     /// ("30 von 5").
     /// </summary>
-    private async Task<AdminRecentStatsDto> GetRecentStatsAsync(CancellationToken ct)
+    private async Task<AdminRecentStatsDto> GetRecentStatsAsync(IReadOnlyList<Guid> gaeste, CancellationToken ct)
     {
         var since = DateTimeOffset.UtcNow.AddDays(-ZeitraumTage);
         var neu = await userLookup.ListUserIdsCreatedSinceAsync(since, ct);
@@ -116,7 +119,7 @@ public class AdminService(
             .Join(db.TrainingSessions, t => t.TrainingSessionId, s => s.Id, (t, s) => s.UserId);
         var aktiveIds = await ausTrainings.Union(ausFaehrten).ToListAsync(ct);
         var vorhanden = await userLookup.FindByIdsAsync(aktiveIds, ct);
-        var aktiv = aktiveIds.Count(vorhanden.ContainsKey);
+        var aktiv = aktiveIds.Count(id => vorhanden.ContainsKey(id) && !gaeste.Contains(id));
 
         return new AdminRecentStatsDto(neu.Count, mitHund, imVerein, mitZiel, ueberLink, aktiv);
     }

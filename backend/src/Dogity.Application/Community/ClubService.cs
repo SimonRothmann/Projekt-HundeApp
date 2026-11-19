@@ -10,7 +10,9 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 {
     public async Task<Result<IReadOnlyList<ClubDto>>> GetClubsAsync(CancellationToken ct = default)
     {
+        // Ohne Gast-Vereine: Die Admin-Liste zeigt nur echte Vereine.
         var clubs = await db.Clubs
+            .Where(c => c.GuestUntil == null)
             .Select(c => new ClubDto(c.Id, c.Name, c.Description, c.Trainers.Count(t => (t.Role & ClubRollen.Trainer) != 0), c.Groups.Count))
             .ToListAsync(ct);
 
@@ -128,7 +130,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         var darf = await PruefeRollenwechselAsync(callerId, isAdmin, clubId, 0, request.Role, ct);
         if (!darf.Succeeded) return darf;
 
-        var user = await userLookup.FindByEmailAsync(request.Email, ct);
+        var user = await userLookup.FindByEmailAsync(request.Email, callerId, ct);
         if (user is null)
             return Result.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
 
@@ -419,7 +421,7 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
         if (!isAdmin && !await db.CanManageMembersAsync(callerId, clubId, ct))
             return Result<AddClubMemberResultDto>.NotFound("Verein nicht gefunden.");
 
-        var user = await userLookup.FindByEmailAsync(request.Email, ct);
+        var user = await userLookup.FindByEmailAsync(request.Email, callerId, ct);
         if (user is null)
             return Result<AddClubMemberResultDto>.Failure("Kein Benutzer mit dieser E-Mail-Adresse gefunden.");
 
@@ -601,7 +603,10 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
 
     public async Task<Result<IReadOnlyList<ClubSummaryDto>>> GetBrowsableClubsAsync(Guid userId, CancellationToken ct = default)
     {
+        // Echte Nutzer:innen sehen nur echte Vereine, ein Gast nur den eigenen Gast-Verein.
+        var istGast = await userLookup.IsGuestAsync(userId, ct);
         var zeilen = await db.Clubs
+            .Where(c => istGast ? c.GuestUntil != null && c.Trainers.Any(t => t.UserId == userId) : c.GuestUntil == null)
             .Select(c => new
             {
                 c.Id,
@@ -633,7 +638,8 @@ public class ClubService(IApplicationDbContext db, IUserLookupService userLookup
     public async Task<Result<ClubMembershipDto>> RequestJoinAsync(Guid userId, Guid clubId, ClubMembershipSource source = ClubMembershipSource.Directory, CancellationToken ct = default)
     {
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
-        if (club is null)
+        // Gast und echter Verein (oder umgekehrt): wie "gibt es nicht".
+        if (club is null || (club.GuestUntil is not null) != await userLookup.IsGuestAsync(userId, ct))
             return Result<ClubMembershipDto>.NotFound("Verein nicht gefunden.");
 
         var existing = await db.ClubMemberships

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Caching.Memory;
 namespace Dogity.Infrastructure.Identity;
 
 /// <summary>
-/// Ob ein Konto mit gültigem Access-Token noch arbeiten darf: Es gibt es noch,
+/// Ob ein Konto mit gültigem Access-Token noch arbeiten darf: Es gibt es noch (und ist kein abgelaufener Gastzugang),
 /// und der Admin hat es nicht gesperrt.
 ///
 /// Vorher prüfte das nur die Token-Erneuerung. Ein gesperrtes Konto arbeitete
@@ -33,9 +33,12 @@ public class KontoStatus(UserManager<ApplicationUser> userManager, IMemoryCache 
 
         var konto = await userManager.Users
             .Where(u => u.Id == userId)
-            .Select(u => new { u.LockoutEnd })
+            .Select(u => new { u.LockoutEnd, u.GuestUntil })
             .FirstOrDefaultAsync(ct);
-        nutzbar = konto is not null && Sperren.Bestimme(konto.LockoutEnd, timeProvider.GetUtcNow()) != Sperrart.Dauerhaft;
+        var jetzt = timeProvider.GetUtcNow();
+        // Ein abgelaufener Gastzugang gilt wie gelöscht, auch bevor der Hintergrunddienst ihn entfernt hat.
+        nutzbar = konto is not null && Sperren.Bestimme(konto.LockoutEnd, jetzt) != Sperrart.Dauerhaft
+            && !(konto.GuestUntil <= jetzt);
 
         cache.Set(Schluessel(userId), nutzbar, Merkdauer);
         return nutzbar;

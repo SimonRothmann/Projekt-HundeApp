@@ -220,6 +220,8 @@ Offen - Betrieb und Stand der Technik:
 
 ## Nächste Features (Briefs in docs/)
 
+- [ ] **Gastzugang „App ausprobieren“** (Betreiber, 2026-11-19; umgesetzt, nicht committet/deployt; `docs/GASTZUGANG.md`): Gastkonto mit Hund, Verlauf und erfundenem Verein (Gast = Trainer:in mit Verwaltung), nach 4 Stunden restlos gelöscht, von echten Konten und allen Statistiken abgeschottet (Migration AddGastzugang). Offen vor Prod: OK des Betreibers für Datenschutzerklärung und Verarbeitungsverzeichnis (Textvorschlag liegt beim Auftrag), Eintrag in `versionshinweise.ts` zum Veröffentlichungszeitpunkt, Prüfung im echten Safari (Simulator).
+
 - [x] **Marker von der Uhr aus** (Betreiber, 2026-11-18; für alle freigeschaltet 2026-11-19, 3b21008 - auf der Apple Watch nur mit „Automatisch starten → Audio-Apps“, Hinweis am Schalter; Wear OS ungeprüft): Eigene Uhr-Apps sind verworfen (Aufwand zu hoch). Gewünscht ist nur, während der Fährtenaufnahme Gegenstand/Leckerlipot leichtgewichtig von der Uhr zu markieren. Einziger Weg ohne native App: Medien-Steuerung (Media Session API) - die Aufnahme meldet sich als "Wiedergabe", "Weiter"/"Zurück" auf der Uhr (Apple Watch "Jetzt läuft", Wear OS Mediensteuerung) setzen einen Marker. Nur an echten Geräten prüfbar; Nebenwirkung: stille Audiospur, unterbricht Musik/Podcast.
 
 - [x] **Trainingspause des Hundes** (Wunsch des Betreibers, 2026-10-22; umgesetzt 2026-10-22, Fassung 0.36): verletzt, krank, läufig (nur Hündin), Zeitraum und Notiz; betreuende Trainer:innen sehen nur "Pause bis"; der Plan pausiert mit, Hinweis "Zieldatum verschieben?"; Läufigkeit ohne Automatik bei Gruppenterminen (Absage manuell).

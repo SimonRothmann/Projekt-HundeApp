@@ -41,7 +41,10 @@ public class WarmstartBackgroundService(
         Guid nutzer = Guid.Empty, hund = Guid.Empty;
         try
         {
+            // Nicht von einem Gastzugang: Er ist nach Stunden weg, und seine Daten sind keine echten.
+            var gaeste = await sp.GetRequiredService<IUserLookupService>().ListGuestUserIdsAsync(ct);
             var training = await db.TrainingSessions.AsNoTracking()
+                .Where(t => !gaeste.Contains(t.UserId))
                 .OrderByDescending(t => t.Date)
                 .Select(t => new { t.UserId, t.DogId })
                 .FirstOrDefaultAsync(ct);

@@ -208,7 +208,7 @@ public class RefreshTokenService(
 
     public Task<int> CountAccountsWithTokenSinceAsync(DateTimeOffset since, CancellationToken ct = default) =>
         db.RefreshTokens
-            .Where(t => t.CreatedAt >= since && db.Users.Any(u => u.Id == t.UserId))
+            .Where(t => t.CreatedAt >= since && db.Users.Any(u => u.Id == t.UserId && u.GuestUntil == null))
             .Select(t => t.UserId)
             .Distinct()
             .CountAsync(ct);

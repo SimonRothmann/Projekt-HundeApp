@@ -21,4 +21,10 @@ public class ApplicationUser : IdentityUser<Guid>
     /// Wegklicken auf dem Telefon auch am Rechner gilt.
     /// </summary>
     public DateTimeOffset? OnboardingDismissedAt { get; set; }
+
+    /// <summary>
+    /// Bis wann dieses Konto ein Gastzugang ("App ausprobieren", siehe docs/GASTZUGANG.md)
+    /// ist; danach löscht der Hintergrunddienst es samt allem, was dranhängt. null = normales Konto.
+    /// </summary>
+    public DateTimeOffset? GuestUntil { get; set; }
 }

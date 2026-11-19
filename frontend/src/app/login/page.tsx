@@ -16,6 +16,7 @@ import { SupportButton } from "@/components/support-button";
 import { AuthKopfzeile } from "@/components/auth-back-link";
 import { WartungsBanner } from "@/components/wartungs-banner";
 import { RechtlicheLinks } from "@/components/rechtliche-links";
+import { GastZugangKnopf } from "@/components/gast-zugang-knopf";
 
 // Nur für die Test-/Dev-Datenbank (DemoDataSeeder, siehe TODO.md) - existiert
 // nicht in Production. Aktiv wenn NEXT_PUBLIC_ENV_LABEL=TEST beim Build war;
@@ -130,6 +131,7 @@ function LoginForm() {
           {t("Registrieren")}
         </Link>
       </p>
+      <GastZugangKnopf className="mt-4 w-full" />
       {isTestEnv && (
         <div className="mt-6 border-t pt-4">
           <p className="mb-2 text-center text-xs text-muted-foreground">
