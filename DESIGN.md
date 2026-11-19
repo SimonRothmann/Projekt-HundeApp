@@ -348,10 +348,6 @@ Prompt-Bausteine:
 
 ## Bekannte Lücken
 
-- **App-Symbol und PWA-Farbe:** `public/icon.svg` und `manifest.ts`
-  (`theme_color #3d86f0`) sind noch Systemblau aus der Zeit vor dem Indigo,
-  `layout.tsx` meldet `themeColor #0b0f1a` (Navy der ersten dunklen Fassung).
-  Ob das Symbol Indigo wird, entscheidet der Betreiber.
 - **Spendenknopf** (`support-button.tsx`): Ko-fi-Rot als fremde Markenfarbe,
   bewusst so belassen.
 - **Karte und Teilbild** (`track-map.tsx`, `opengraph-image.tsx`,
