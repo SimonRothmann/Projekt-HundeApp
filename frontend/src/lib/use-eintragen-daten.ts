@@ -5,8 +5,12 @@ import { api } from "@/lib/api";
 import { angeboteneSportarten } from "@/lib/eintragen";
 import { heuteIso } from "@/lib/kalendertag";
 import { getCachedData, setCachedData } from "@/lib/read-cache";
-import type { Dog, Exercise, Goal, GroupTrainingSession, Sport, TrainingSession } from "@/lib/types";
+import type { Dog, Exercise, Goal, GroupTrainingSession, Regulation, RegulationDetail, Sport, TrainingSession } from "@/lib/types";
 import { ladeSportarten } from "@/lib/sportarten";
+import { einstiegsOrdnung } from "@/lib/einstieg";
+import { ordnungenPfad } from "@/lib/katalog-land";
+import { VORGABE_LAND } from "@/lib/i18n/laender";
+import { usePreferences } from "@/lib/preferences-context";
 
 /**
  * Daten fürs Eintragen-Fenster: Sportarten des Hundes, seine Ziele, seine
@@ -244,4 +248,52 @@ export function useUebungsKatalog(sports: readonly Sport[]): Record<string, Exer
   }, [schluessel]);
 
   return katalog;
+}
+
+export type EinstiegsGruppe = { sportId: string; pruefung: Regulation; exerciseIds: string[] };
+
+/** So viele Sportarten und Übungen je Prüfung bietet das erste Training an. */
+const EINSTIEG_SPORTARTEN = 2;
+export const EINSTIEG_UEBUNGEN = 8;
+
+/**
+ * Die Übungen der Einstiegsprüfung (lib/einstieg.ts) für die ersten zwei
+ * Sportarten des Hundes - nur, wenn `aktiv` (das Fenster hat sonst keinen
+ * Vorschlag) und der Hund Sportarten hat; ohne Auswahl bliebe es Raten.
+ * Fällt ein Abruf aus, fehlt die Gruppe still: Die Suche bleibt der Weg.
+ */
+export function useEinstiegsUebungen(dogId: string, sports: readonly Sport[], aktiv: boolean): EinstiegsGruppe[] {
+  const { preferences } = usePreferences();
+  const land = preferences.country ?? VORGABE_LAND;
+  const [ergebnis, setErgebnis] = useState<{ schluessel: string; gruppen: EinstiegsGruppe[] } | null>(null);
+  const eigene = sports.filter((sport) => sport.clubId === null);
+  // Am Schlüssel statt am Array (siehe useUebungsKatalog).
+  const schluessel = `${dogId}|${land}|${eigene.map((sport) => `${sport.id}:${sport.code}`).join(",")}`;
+
+  useEffect(() => {
+    if (!aktiv || eigene.length === 0) return;
+    let abgebrochen = false;
+    void (async () => {
+      try {
+        const auswahl = await api.get<string[]>(`/api/preferences/dogs/${dogId}/sports`);
+        const gruppen: EinstiegsGruppe[] = [];
+        for (const sport of eigene.filter((s) => auswahl.includes(s.id)).slice(0, EINSTIEG_SPORTARTEN)) {
+          const ordnungen = await api.get<Regulation[]>(ordnungenPfad(sport.id, land));
+          const pruefung = einstiegsOrdnung(sport.code, ordnungen);
+          if (!pruefung) continue;
+          const detail = await api.get<RegulationDetail>(`/api/sports/regulations/${pruefung.id}`);
+          gruppen.push({ sportId: sport.id, pruefung, exerciseIds: detail.exercises.map((e) => e.exerciseId) });
+        }
+        if (!abgebrochen) setErgebnis({ schluessel, gruppen });
+      } catch {
+        // Offline oder Serverfehler: keine Vorschläge, "Andere Übung" bleibt.
+      }
+    })();
+    return () => {
+      abgebrochen = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `eigene` steckt im Schlüssel
+  }, [aktiv, schluessel]);
+
+  return aktiv && ergebnis?.schluessel === schluessel ? ergebnis.gruppen : [];
 }

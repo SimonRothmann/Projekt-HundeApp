@@ -4,7 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { ArrowLeft, Check, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { eigeneUebungAngebot, inhaltsSchluessel, sucheUebungen, type KatalogGruppe } from "@/lib/eintragen";
+import { eigeneUebungAngebot, inhaltsSchluessel, sucheMitRueckfall, type KatalogGruppe } from "@/lib/eintragen";
 import { useSprache, useT } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
 import { TEXTLAENGE } from "@/lib/textlaengen";
@@ -49,8 +49,8 @@ export function EintragenSuche({
     () => sports.filter((sport) => katalog[sport.id]).map((sport) => ({ sport, uebungen: katalog[sport.id] })),
     [sports, katalog],
   );
-  const treffer = useMemo(() => sucheUebungen(gruppen, suche), [gruppen, suche]);
-  const angebot = eigeneUebungAngebot(suche, treffer);
+  const { treffer, aehnlich } = useMemo(() => sucheMitRueckfall(gruppen, suche), [gruppen, suche]);
+  const angebot = eigeneUebungAngebot(suche, treffer, aehnlich);
   const anzahl = treffer.reduce((summe, gruppe) => summe + gruppe.uebungen.length, 0);
   // Mit nur einer Sportart sind Gruppenköpfe Wiederholung - der Hund hat dann
   // eben diese eine, und sie steht schon im Kopf der Übungsliste.

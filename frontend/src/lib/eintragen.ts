@@ -277,14 +277,95 @@ export function trifftSuche(text: string, suche: string): boolean {
   });
 }
 
-/** Die Übungen, die zur Suche passen, in ihren Sportarten; Sportarten ohne Treffer fallen weg. */
+type Uebungstext = Pick<Exercise, "name" | "nameEn" | "category">;
+
+/**
+ * Wie gut eine Übung zur Suche passt (kleiner = besser): 0 Name gleich der
+ * Suche, 1 Name beginnt damit, 2 jedes Suchwort beginnt ein Wort des Namens,
+ * 3 die Suchwörter kommen im Namen vor, 4 Treffer nur über Englisch/Kategorie.
+ */
+function rang(uebung: Uebungstext, suche: string): number {
+  const woerter = suche.trim().split(/\s+/).filter(Boolean);
+  const gesucht = suchformen(woerter.join(" "));
+  const namen = suchformen(uebung.name);
+  return Math.min(
+    ...[0, 1].map((i) => {
+      const name = namen[i];
+      const wortAnfaenge = name.split(/\s+/);
+      const w = woerter.map((wort) => suchformen(wort)[i]);
+      if (name === gesucht[i]) return 0;
+      if (name.startsWith(gesucht[i])) return 1;
+      if (w.every((wort) => wortAnfaenge.some((a) => a.startsWith(wort)))) return 2;
+      if (w.every((wort) => name.includes(wort))) return 3;
+      return 4;
+    }),
+  );
+}
+
+/**
+ * Die Übungen, die zur Suche passen, in ihren Sportarten; Sportarten ohne
+ * Treffer fallen weg. Innerhalb der Sportart nach {@link rang} (gleiche Stufe
+ * behält die Katalogreihenfolge), die Sportarten nach ihrem besten Treffer.
+ * Ohne Suche bleibt alles, wie es ist.
+ */
 export function sucheUebungen(katalog: readonly KatalogGruppe[], suche: string): KatalogGruppe[] {
-  return katalog
-    .map((gruppe) => ({
-      sport: gruppe.sport,
-      uebungen: gruppe.uebungen.filter((uebung) => trifftSuche(`${uebung.name} ${uebung.nameEn ?? ""} ${uebung.category ?? ""}`, suche)),
-    }))
+  const mitSuche = suche.trim() !== "";
+  const gruppen = katalog
+    .map((gruppe) => {
+      const treffer = gruppe.uebungen
+        .filter((uebung) => trifftSuche(`${uebung.name} ${uebung.nameEn ?? ""} ${uebung.category ?? ""}`, suche))
+        .map((uebung) => ({ uebung, rang: mitSuche ? rang(uebung, suche) : 0 }));
+      if (mitSuche) treffer.sort((a, b) => a.rang - b.rang);
+      return { gruppe: { sport: gruppe.sport, uebungen: treffer.map((t) => t.uebung) }, beste: treffer[0]?.rang ?? 0 };
+    })
+    .filter(({ gruppe }) => gruppe.uebungen.length > 0);
+  if (mitSuche) gruppen.sort((a, b) => a.beste - b.beste);
+  return gruppen.map(({ gruppe }) => gruppe);
+}
+
+/** Bearbeitungsabstand höchstens 1: Einfügen, Löschen, Ersetzen oder Vertauschen zweier Nachbarn. */
+function hoechstensEinsAbweichend(a: string, b: string): boolean {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (i === a.length && i === b.length) return true;
+  const restA = a.slice(i + 1);
+  const restB = b.slice(i + 1);
+  return (
+    restA === restB || // ersetzt
+    a.slice(i + 1) === b.slice(i) || // in a eingefügt
+    a.slice(i) === b.slice(i + 1) || // in b eingefügt
+    (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2)) // vertauscht
+  );
+}
+
+function trifftAehnlich(uebung: Uebungstext, suche: string): boolean {
+  const woerter = suche.trim().split(/\s+/).filter(Boolean);
+  const text = `${uebung.name} ${uebung.nameEn ?? ""}`;
+  return [0, 1].some((i) => {
+    const namenswoerter = suchformen(text)[i].split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+    return woerter.every((wort) => {
+      const w = suchformen(wort)[i];
+      // Kurze Wörter müssen exakt passen: eine Abweichung wäre dort schon ein anderes Wort.
+      return w.length < 5 ? suchformen(text)[i].includes(w) : namenswoerter.some((n) => hoechstensEinsAbweichend(w, n));
+    });
+  });
+}
+
+/**
+ * Wie {@link sucheUebungen}; trifft nichts, gibt es als Rückfall die Übungen,
+ * deren Wörter höchstens einen Tippfehler entfernt sind (`aehnlich`).
+ */
+export function sucheMitRueckfall(
+  katalog: readonly KatalogGruppe[],
+  suche: string,
+): { treffer: KatalogGruppe[]; aehnlich: boolean } {
+  const treffer = sucheUebungen(katalog, suche);
+  if (treffer.length > 0 || suche.trim() === "") return { treffer, aehnlich: false };
+  const aehnlich = katalog
+    .map((gruppe) => ({ sport: gruppe.sport, uebungen: gruppe.uebungen.filter((u) => trifftAehnlich(u, suche)) }))
     .filter((gruppe) => gruppe.uebungen.length > 0);
+  return { treffer: aehnlich, aehnlich: aehnlich.length > 0 };
 }
 
 /**
@@ -295,10 +376,12 @@ export function sucheUebungen(katalog: readonly KatalogGruppe[], suche: string):
  * "Spaziergang mit Leine" im Katalog findet, soll trotzdem einen Weg zu seiner
  * eigenen Bezeichnung behalten (das war im alten Formular immer möglich).
  * Heißt eine Katalog-Übung genau so, wird nichts angeboten - die ist gemeint.
+ * Auch oben, wenn es nur Ähnlichkeitstreffer (Tippfehler-Rückfall) gibt.
  */
 export function eigeneUebungAngebot(
   suche: string,
   treffer: readonly KatalogGruppe[],
+  aehnlich = false,
 ): { text: string; oben: boolean } | null {
   const text = suche.trim();
   if (!text) return null;
@@ -307,7 +390,7 @@ export function eigeneUebungAngebot(
     gruppe.uebungen.some((uebung) => suchformen(uebung.name)[0] === gesucht || (!!uebung.nameEn && suchformen(uebung.nameEn)[0] === gesucht)),
   );
   if (gleichnamig) return null;
-  return { text, oben: treffer.length === 0 };
+  return { text, oben: treffer.length === 0 || aehnlich };
 }
 
 /**

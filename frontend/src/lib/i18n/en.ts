@@ -1609,6 +1609,11 @@ export const EN: Record<string, string> = {
   "„Sachkunde üben“ öffnet jetzt in der App, mit der unteren Leiste, statt auf einer eigenen Seite. Öffnest du angemeldet einen Sachkunde-Link, landest du ebenfalls dort.":
     "“Practise theory” now opens inside the app, with the bottom bar, instead of on a separate page. If you open a theory link while logged in, you end up there too.",
   "Wie heißt dein Hund?": "What is your dog's name?",
+  "Welchen Sport macht ihr?": "Which sport do you do?",
+  "(optional, mehrere möglich)": "(optional, several possible)",
+  "Weitere Sportarten": "More sports",
+  "Sportarten konnten nicht gespeichert werden - du kannst sie im Profil wählen.": "Sports could not be saved - you can choose them in your profile.",
+  "Für den Einstieg: {pruefung}": "To get started: {pruefung}",
   "Weiter": "Continue",
   "Bitte wähle Rüde oder Hündin.": "Please choose male or female.",
   "Du hast einen Einladungslink von deinem Verein?": "Got an invitation link from your club?",

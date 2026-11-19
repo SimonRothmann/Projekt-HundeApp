@@ -16,6 +16,7 @@ import {
   letzteUebungsdauer,
   loeseZeilenAuf,
   sammelWerte,
+  sucheMitRueckfall,
   sucheUebungen,
   trifftSuche,
   uhrzeitText,
@@ -394,6 +395,44 @@ describe("Übungssuche", () => {
   it("bietet nichts an, wenn der Name genau einer Katalog-Übung entspricht oder nichts getippt ist", () => {
     expect(eigeneUebungAngebot("fussarbeit", sucheUebungen(katalog, "fussarbeit"))).toBeNull();
     expect(eigeneUebungAngebot("   ", sucheUebungen(katalog, "   "))).toBeNull();
+  });
+
+  describe("Rangfolge und Tippfehler", () => {
+    const rangKatalog = [
+      { sport: sport("a", "A"), uebungen: [ex("1", "Fuß mit Sitz"), ex("2", "Sitzen aus der Bewegung"), ex("3", "Sitz")] },
+      { sport: sport("b", "B"), uebungen: [ex("4", "Absitzen"), ex("5", "Sitz und Platz")] },
+    ];
+
+    it("ordnet in der Sportart: gleich, Anfang, Wortanfang, Vorkommen", () => {
+      const treffer = sucheUebungen(rangKatalog, "sitz");
+      expect(treffer[0].uebungen.map((u) => u.id)).toEqual(["3", "2", "1"]);
+      expect(treffer[1].uebungen.map((u) => u.id)).toEqual(["5", "4"]);
+    });
+
+    it("sortiert die Sportarten nach ihrem besten Treffer, stabil", () => {
+      const k = [rangKatalog[0], { sport: sport("c", "C"), uebungen: [ex("6", "Sitz")] }, rangKatalog[1]];
+      expect(sucheUebungen(k, "sitz").map((g) => g.sport.id)).toEqual(["a", "c", "b"]);
+      const umgekehrt = [rangKatalog[1], rangKatalog[0]];
+      expect(sucheUebungen(umgekehrt, "sitz").map((g) => g.sport.id)).toEqual(["a", "b"]);
+    });
+
+    it("findet bei einem Tippfehler (ab 5 Zeichen) als Rückfall", () => {
+      const r = sucheMitRueckfall(katalog, "fussarbiet");
+      expect(r.aehnlich).toBe(true);
+      expect(r.treffer[0].uebungen.map((u) => u.name)).toEqual(["Fußarbeit"]);
+      expect(eigeneUebungAngebot("fussarbiet", r.treffer, r.aehnlich)).toEqual({ text: "fussarbiet", oben: true });
+    });
+
+    it("verlangt bei kurzen Wörtern exakte Treffer", () => {
+      const sitz = [{ sport: sport("a", "A"), uebungen: [ex("1", "Sitz")] }];
+      expect(sucheMitRueckfall(sitz, "sutz")).toEqual({ treffer: [], aehnlich: false });
+    });
+
+    it("greift nicht, wenn es echte Treffer gibt", () => {
+      const r = sucheMitRueckfall(katalog, "fuss");
+      expect(r.aehnlich).toBe(false);
+      expect(r.treffer.map((g) => g.sport.id)).toEqual(["igp"]);
+    });
   });
 
   it("wendet die Auswahl der Sportarten des Hundes an - leer heißt keine Einschränkung", () => {

@@ -1,20 +1,27 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ChevronRight, Dog as DogIcon } from "lucide-react";
+import { Check, ChevronRight, Dog as DogIcon } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { pruefeErstenHund, zeigeVereinsweg } from "@/lib/erststart";
 import { TEXTLAENGE } from "@/lib/textlaengen";
-import type { Dog, DogGender, OnboardingStatus } from "@/lib/types";
+import type { Dog, DogGender, OnboardingStatus, Sport } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GeschlechtWahl } from "@/components/dogs/geschlecht-wahl";
 import { AusblendenKnopf } from "@/components/onboarding/ausblenden-knopf";
-import { useT } from "@/lib/i18n";
+import { useSprache, useT } from "@/lib/i18n";
+import { katalogName } from "@/lib/katalog-name";
+import { usePreferences } from "@/lib/preferences-context";
+import { ladeSportarten } from "@/lib/sportarten";
+
+/** Die häufigen Sportarten, die zuerst gezeigt werden; der Rest steht hinter "Weitere Sportarten". */
+const HAEUFIGE_SPORTARTEN = ["BH", "BHCH", "IGP1", "AGILITY", "OBEDIENCE", "RALLYO", "HOOPERS", "MANTRAILING", "FAERTE", "BSP", "THS"];
 
 /**
  * Der erste Handgriff der App: "Wie heißt dein Hund?".
@@ -22,8 +29,9 @@ import { useT } from "@/lib/i18n";
  * Steht auf der Startseite, solange es keinen Hund gibt, und ersetzt dort den
  * früheren Weg über die Hundeliste (Knopf, Seitenwechsel, Formular mit vier
  * Feldern, danach wieder zurück). Gefragt wird nur, was der Rest der App
- * braucht: Name und Geschlecht. Rasse und Geburtstag lassen sich später unter
- * "Bearbeiten" auf der Hundeseite ergänzen.
+ * braucht: Name und Geschlecht - dazu freiwillig der Sport, damit schon das
+ * erste Training passende Übungen vorschlägt. Rasse und Geburtstag lassen sich
+ * später unter "Bearbeiten" auf der Hundeseite ergänzen.
  *
  * Kein autoFocus: iOS risse sonst beim Laden die Tastatur hoch, bevor man auch
  * nur die Karte gesehen hat.
@@ -43,12 +51,27 @@ export function ErsterHundKarte({
   onDismissed: () => void;
 }) {
   const t = useT();
+  const sprache = useSprache();
+  const { preferences, reload } = usePreferences();
+  const [sportarten, setSportarten] = useState<Sport[]>([]);
+  const [sportIds, setSportIds] = useState<string[]>([]);
+  const [alleSportarten, setAlleSportarten] = useState(false);
   const [name, setName] = useState("");
   const [geschlecht, setGeschlecht] = useState<DogGender | null>(null);
   // Erst nach dem ersten Versuch zu speichern zeigen wir, was fehlt - vorher
   // wäre jedes leere Feld schon ein Vorwurf.
   const [versucht, setVersucht] = useState(false);
   const [laeuft, setLaeuft] = useState(false);
+
+  // Lädt die Liste nicht, fällt die Frage still weg - der Hund lässt sich trotzdem anlegen.
+  useEffect(() => {
+    ladeSportarten()
+      .then((liste) => setSportarten(liste.filter((sport) => sport.clubId === null)))
+      .catch(() => {});
+  }, []);
+  const haeufige = sportarten.filter((sport) => HAEUFIGE_SPORTARTEN.includes(sport.code));
+  const weitere = sportarten.filter((sport) => !HAEUFIGE_SPORTARTEN.includes(sport.code));
+  const sichtbar = alleSportarten ? [...haeufige, ...weitere] : haeufige;
 
   const eingabe = pruefeErstenHund(name, geschlecht);
   const fehler = versucht && !eingabe.ok ? eingabe.fehler : null;
@@ -68,6 +91,14 @@ export function ErsterHundKarte({
         imageUrl: null,
         notes: null,
       });
+      if (sportIds.length > 0) {
+        try {
+          await api.put("/api/preferences/sports", { sportIds: [...new Set([...preferences.sportIds, ...sportIds])] });
+          await reload();
+        } catch {
+          toast.error(t("Sportarten konnten nicht gespeichert werden - du kannst sie im Profil wählen."));
+        }
+      }
       await onAngelegt(hund);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("Hund konnte nicht angelegt werden."));
@@ -112,6 +143,37 @@ export function ErsterHundKarte({
               ungueltig={fehler === "geschlecht"}
             />
           </div>
+
+          {sportarten.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <Label id="erster-hund-sport">
+                {t("Welchen Sport macht ihr?")} <span className="font-normal text-muted-foreground">{t("(optional, mehrere möglich)")}</span>
+              </Label>
+              <div role="group" aria-labelledby="erster-hund-sport" className="flex flex-wrap gap-1.5">
+                {sichtbar.map((sport) => {
+                  const gewaehlt = sportIds.includes(sport.id);
+                  return (
+                    <Chip
+                      key={sport.id}
+                      kompakt
+                      gewaehlt={gewaehlt}
+                      disabled={laeuft}
+                      onClick={() => setSportIds((ids) => (gewaehlt ? ids.filter((id) => id !== sport.id) : [...ids, sport.id]))}
+                      className="shrink-0"
+                    >
+                      {gewaehlt && <Check className="size-4 shrink-0" />}
+                      {katalogName(sport, sprache)}
+                    </Chip>
+                  );
+                })}
+              </div>
+              {!alleSportarten && weitere.length > 0 && (
+                <Button type="button" variant="ghost" size="sm" className="self-start coarse:min-h-11" onClick={() => setAlleSportarten(true)}>
+                  {t("Weitere Sportarten")}
+                </Button>
+              )}
+            </div>
+          )}
 
           {fehler && (
             <p id="erster-hund-fehler" role="alert" className="text-sm text-destructive">

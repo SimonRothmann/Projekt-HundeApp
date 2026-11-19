@@ -59,6 +59,8 @@ import { TEXTLAENGE } from "@/lib/textlaengen";
 import { useAktuellerStandort } from "@/lib/use-aktueller-standort";
 import {
   useEintragenDaten,
+  EINSTIEG_UEBUNGEN,
+  useEinstiegsUebungen,
   useUebungsKatalog,
   type EintragenVorab,
 } from "@/lib/use-eintragen-daten";
@@ -292,6 +294,8 @@ function EintragenInhalt({
     for (const liste of Object.values(katalog)) for (const uebung of liste) karte.set(uebung.id, uebung);
     return karte;
   }, [katalog]);
+  const ohneVorschlaege = wochen.length === 0 && !letzte && zuletzt.length === 0;
+  const einstieg = useEinstiegsUebungen(hundId, daten.sports, ohneVorschlaege && !laedt);
 
   // ---- Zeilen ----
 
@@ -739,6 +743,29 @@ function EintragenInhalt({
           </section>
         )}
 
+        {einstieg.map(({ sportId, pruefung, exerciseIds }) => {
+          const liste = exerciseIds
+            .map((id) => uebungen.get(id))
+            .filter((u): u is Exercise => !!u && u.sportId === sportId)
+            .slice(0, EINSTIEG_UEBUNGEN);
+          return liste.length === 0 ? null : (
+            <section key={sportId} className="flex flex-col gap-2" aria-labelledby={`eintragen-einstieg-${sportId}`}>
+              <Abschnittsname id={`eintragen-einstieg-${sportId}`}>{t("Für den Einstieg: {pruefung}", { pruefung: katalogName(pruefung, sprache) })}</Abschnittsname>
+              <div className="flex flex-wrap gap-2">
+                {liste.map((uebung) => (
+                  <Chip
+                    key={uebung.id}
+                    gewaehlt={gewaehlt.has(inhaltsSchluessel(uebung.id, uebung.name))}
+                    onClick={() => schalte(inhaltsSchluessel(uebung.id, uebung.name), () => katalogZeile(uebung))}
+                  >
+                    {katalogName(uebung, sprache)}
+                  </Chip>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+
         <Chip className="self-start border-dashed" onClick={() => setAnsicht("suche")}>
           <Plus className="size-4 shrink-0" aria-hidden />
           {t("Andere Übung")}
@@ -761,7 +788,7 @@ function EintragenInhalt({
           onNeutral={(schluessel) => aendereZeile(schluessel, { eigeneWerte: null })}
           onEntferne={entferneZeile}
           uebungen={uebungen}
-          ohneVorschlaege={wochen.length === 0 && !letzte && zuletzt.length === 0}
+          ohneVorschlaege={ohneVorschlaege}
           vorschlaegeLaden={laedt}
           verfassung={<ConditionPicker value={verfassung} onChange={setVerfassung} disabled={speichert} />}
         />
