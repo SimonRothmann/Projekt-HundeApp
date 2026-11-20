@@ -74,7 +74,7 @@ export function DatenschutzEn() {
           punkte={[
             "Name, breed, date of birth, sex, notes and – if you upload one – a photo",
             "Training breaks of the dog, if you enter them: the reason (injured, sick or – for bitches – in heat), start and end or “until further notice”, a short note and who entered the break",
-            "Health entries of the dog, if you enter them: vaccinations, deworming, parasite protection, vet appointments and other entries with a title (such as “rabies”), date, for appointments the time, “valid until” or “next due”, a short note and who created the entry. This is information about the animal and not health data about people within the meaning of Art. 9 GDPR; it is still visible only to you and the co-owners (section 8). There is no photo of the vaccination record – Dogity stores no files for it",
+            "Health entries of the dog, if you enter them: vaccinations, deworming, parasite protection, vet appointments and other entries with a title (such as “rabies”), date, for appointments the time, “valid until” or “next due”, a short note and who created the entry; also the dog’s weight in kilograms with the date, if you enter it. This is information about the animal and not health data about people within the meaning of Art. 9 GDPR; it is still visible only to you and the co-owners (section 8). There is no photo of the vaccination record – Dogity stores no files for it",
             "Note pad for the next training session, if you note something: a short text (for example what the trainer announced for next time), optionally an exercise from the catalogue, the target (“next training session”, “next week” or a date), whether and when the entry was ticked off and who noted it. In addition, if you give them, the days and the time your dog usually trains",
           ]}
         />
@@ -133,14 +133,15 @@ export function DatenschutzEn() {
           Anyone who uses the app via “Try the app” gets a temporary guest account with made-up sample data; no email
           address and no name are collected for it. The guest account and all data created in it are permanently
           deleted automatically after four hours; no emails are sent to guest accounts. To prevent abuse, the IP
-          address is briefly processed in memory to limit requests.
+          address is briefly processed in memory to limit requests. How many guest accounts were created on a day and how
+          many guests registered afterwards is counted by Dogity only as a daily total – with no link to any person.
         </p>
         <p className="font-medium text-foreground">Other</p>
         <Liste
           punkte={[
             "your learning progress in the theory-test question trainer (Sachkunde) and the results of your practice exams",
             "Notifications within the app",
-            "your settings: language, country, font size, colour-safe display, step length, hidden areas, chosen sports, whether important notifications are also sent by email and which reminders you receive (for trainers, with the weekdays and time they chose)",
+            "your settings: language, country, time zone (Dogity takes it from your device so that days, deadlines and reminders match your local time), font size, colour-safe display, step length, hidden areas, chosen sports, whether important notifications are also sent by email and which reminders you receive (for trainers, with the weekdays and time they chose)",
             "which reminders have already been sent to you (kind, session or track or day, time) – only as a note so that a reminder does not arrive twice; described in detail in section 7",
             "Devices on which you have switched on push notifications: the device’s address at its manufacturer’s push service, the device’s keys for encryption, a short label such as “iPhone (Safari)” as well as the time of registration and of the last delivery – described in detail in section 7",
           ]}
@@ -195,13 +196,14 @@ export function DatenschutzEn() {
 
       <Abschnitt titel="5. Storage on your device – why there is no cookie banner">
         <p>
-          Dogity itself sets no cookies. The app places a few values in your browser’s local storage, and only these:
+          Dogity sets only the two sign-in cookies (first item) and otherwise places a few values in your browser’s local
+          storage, and only these:
         </p>
         <Liste
           punkte={[
-            "your login token and the associated renewal token – without them you would be logged out on every page change",
+            "two technically necessary cookies for signing in, holding your sign-in keys – scripts in the browser cannot read them, and they are sent only to Dogity; one is valid for about an hour, the other until you log out, at most 60 days; without them you would be logged out on every page change. In addition, the app keeps in local storage until when the session is valid",
             "your name, your email address and your role, so that the app does not first have to load them at startup",
-            "the map type you last chose, the font size, whether colour-safe display is on, and which notice about news you have already seen",
+            "the map type you last chose, the guide level you last chose per dog when laying a track, the font size, whether colour-safe display is on, and which notice about news you have already seen",
             "if you have switched on push notifications: your device’s address at the push service, so that switching push off can remove it there again",
             "if you choose the language without an account (German or English): this choice, so that it is kept for your next visit – a pure convenience setting that is not sent to the server",
             "most recently loaded dogs, training sessions, goals, statistics and dog pictures as a cache, so that the app starts quickly and shows something even without a connection – it is deleted on logout and when another person logs in; for this, the app remembers the internal ID of the person who last logged in",
@@ -216,7 +218,7 @@ export function DatenschutzEn() {
           consent under Section 25(2) TDDDG. None of it leaves your device towards third parties, and none of it serves
           to measure your behaviour. That is why there is nothing to accept or decline here – a banner would ask about
           something that does not happen. Logging out removes login, cache and ongoing recordings; entries not yet sent, map
-          type, font size, colour-safe display, news notice and language choice remain. Clearing the browser data removes everything.
+          type, guide level, font size, colour-safe display, news notice and language choice remain. Clearing the browser data removes everything.
         </p>
         <p>
           It is different with the upstream protection service Cloudflare (see section 6): To distinguish automated
@@ -361,7 +363,7 @@ export function DatenschutzEn() {
             "Trainers of a group that you have joined yourself or whose invitation you have accepted can look after your dogs. They then see their training sessions, goals and tracks and can give feedback. You are notified as soon as someone looks after one of your dogs; if you leave the group, the supervision ends. You can also end it yourself at any time: Under “Manage” on the dog you see which trainers have insight, and you end the supervision there with a tap. The trainer is notified and no longer sees the dog afterwards.",
             "Acceptances of group sessions: The trainers of the group, the training officer and the administration of the club, and the trainers assigned to the session see by name who accepted or declined. The other members of your group only see numbers, such as “5 acceptances”. If you decline, the trainers of the session receive a notification with your first name.",
             "Training breaks of your dog are seen by you and the co-owners with reason, period and note. Trainers who look after the dog see only that it is on a break and until when – not the reason and not the note. The training plan they see stands still during that time; for that reason they also see the periods of earlier breaks that fall within the plan, but never the history with reasons. Nobody else sees any of this. The server ensures this, not just the display.",
-            "Health entries of your dog (vaccinations, deworming, parasite protection, vet appointments) are seen only by you and the co-owners. Trainers who look after the dog see none of it – not even that such entries exist. Nobody else sees them either. The server ensures this, not just the display.",
+            "Health entries of your dog (vaccinations, deworming, parasite protection, vet appointments, weight) are seen only by you and the co-owners. Trainers who look after the dog see none of it – not even that such entries exist. Nobody else sees them either. The server ensures this, not just the display.",
             "The note pad for your dog’s next training session is seen and changed only by you and the co-owners. Trainers who look after the dog and everybody else see none of it. The server ensures this, not just the display.",
             "Your reply to a trainer’s feedback (“Thanks”, “Understood”, “Question”) is seen by the trainer who gave it and by the owners of the dog; it triggers a notification for the trainer. If the trainer writes new feedback, your reply is reset.",
             "Within a club the roles see different amounts, but never your training diary: Trainers see their groups and the members of those groups. The training officer and the administration see all groups of the club and the entry lists of the exam days (section 10). Membership management and the administration see the member list with name and email address, the join requests – including whether they came through the club’s invitation link – and the invitations. The board and the administration see name, group membership, roles and member-since date of the members as well as aggregated figures for the club (members, groups, sessions, acceptances and exams as totals) – no training diaries and no email addresses.",
@@ -403,7 +405,11 @@ export function DatenschutzEn() {
           The trainers of the group as well as the training officer and the administration of the club to which the group belongs – nobody else. Other members
           of the group, other people who signed up and visitors to the page also do not see the details. Anyone who
           opens the form sees only the name of the club and of the group. When there is a new sign-up, the trainers of
-          the group receive a notification in the app that contains the dog’s call name and breed.
+          the group receive a notification in the app that contains the dog’s call name and breed. If a dog moves to
+          another group of the same club (for example from the puppy group to the young dog group), the trainers can
+          transfer the sign-up there. The trainers of the new group then see the details and receive a notification with
+          the call name and breed; the previous group no longer sees them. “Paid” and the attendance of the previous group
+          are dropped.
         </p>
         <p className="font-medium text-foreground">Legal basis</p>
         <p>

@@ -78,7 +78,7 @@ function DatenschutzDe() {
           punkte={[
             "Name, Rasse, Geburtstag, Geschlecht, Notizen und – wenn du eines hochlädst – ein Foto",
             "Trainingspausen des Hundes, wenn du sie einträgst: der Grund (verletzt, krank oder – bei Hündinnen – läufig), Beginn und Ende oder „bis auf Weiteres“, eine kurze Notiz und wer die Pause eingetragen hat",
-            "Gesundheitseinträge des Hundes, wenn du sie einträgst: Impfungen, Entwurmung, Parasitenschutz, Tierarzttermine und Sonstiges mit Titel (etwa „Tollwut“), Datum, bei Terminen die Uhrzeit, „gültig bis“ bzw. „nächste fällig“, einer kurzen Notiz und wer den Eintrag angelegt hat. Das sind Angaben über das Tier und keine Gesundheitsdaten von Menschen im Sinne des Art. 9 DSGVO; sie sind trotzdem nur für dich und die Mitbesitzer:innen sichtbar (Abschnitt 8). Ein Foto des Impfpasses gibt es nicht – Dogity speichert keine Dateien dazu",
+            "Gesundheitseinträge des Hundes, wenn du sie einträgst: Impfungen, Entwurmung, Parasitenschutz, Tierarzttermine und Sonstiges mit Titel (etwa „Tollwut“), Datum, bei Terminen die Uhrzeit, „gültig bis“ bzw. „nächste fällig“, einer kurzen Notiz und wer den Eintrag angelegt hat; außerdem das Gewicht des Hundes in Kilogramm mit Datum, wenn du es einträgst. Das sind Angaben über das Tier und keine Gesundheitsdaten von Menschen im Sinne des Art. 9 DSGVO; sie sind trotzdem nur für dich und die Mitbesitzer:innen sichtbar (Abschnitt 8). Ein Foto des Impfpasses gibt es nicht – Dogity speichert keine Dateien dazu",
             "Merkzettel fürs nächste Training, wenn du etwas merkst: ein kurzer Text (zum Beispiel, was die Trainerin fürs nächste Mal angesagt hat), optional eine Übung aus dem Katalog, das Ziel („nächstes Training“, „nächste Woche“ oder ein Datum), ob und wann der Eintrag abgehakt wurde und wer ihn gemerkt hat. Dazu, wenn du sie angibst, die Tage und die Uhrzeit, an denen dein Hund meistens trainiert",
           ]}
         />
@@ -138,14 +138,15 @@ function DatenschutzDe() {
           Beispieldaten, für das keine E-Mail-Adresse und kein Name erhoben werden. Gastkonto und alle darin angelegten
           Daten werden nach vier Stunden automatisch endgültig gelöscht; es werden keine E-Mails an Gastkonten
           verschickt. Zum Schutz vor Missbrauch wird die IP-Adresse kurzzeitig im Arbeitsspeicher für die Begrenzung
-          der Anfragen verarbeitet.
+          der Anfragen verarbeitet. Wie viele Gastzugänge an einem Tag angelegt wurden und wie viele Gäste sich danach
+          registriert haben, zählt Dogity nur als Summe je Tag – ohne Bezug zu einer Person.
         </p>
         <p className="font-medium text-foreground">Sonstiges</p>
         <Liste
           punkte={[
             "dein Lernfortschritt im Sachkunde-Fragentrainer und die Ergebnisse deiner Übungsprüfungen",
             "Benachrichtigungen innerhalb der App",
-            "deine Einstellungen: Sprache, Land, Schriftgröße, farbsichere Darstellung, Schrittlänge, ausgeblendete Bereiche, gewählte Sportarten, ob wichtige Benachrichtigungen auch per E-Mail kommen und welche Erinnerungen du bekommst (bei Trainer:innen mit gewählten Wochentagen und Uhrzeit)",
+            "deine Einstellungen: Sprache, Land, Zeitzone (übernimmt Dogity von deinem Gerät, damit Tage, Fristen und Erinnerungen zu deiner Ortszeit passen), Schriftgröße, farbsichere Darstellung, Schrittlänge, ausgeblendete Bereiche, gewählte Sportarten, ob wichtige Benachrichtigungen auch per E-Mail kommen und welche Erinnerungen du bekommst (bei Trainer:innen mit gewählten Wochentagen und Uhrzeit)",
             "welche Erinnerungen dir schon geschickt wurden (Art, Termin bzw. Fährte oder Tag, Zeitpunkt) – nur als Merkzettel, damit eine Erinnerung nicht zweimal kommt; ausführlich in Abschnitt 7",
             "Geräte, auf denen du Push-Benachrichtigungen eingeschaltet hast: die Adresse des Geräts beim Push-Dienst seines Herstellers, die Schlüssel des Geräts zur Verschlüsselung, eine Kurzbezeichnung wie „iPhone (Safari)“ sowie Zeitpunkt der Anmeldung und der letzten Zustellung – ausführlich in Abschnitt 7",
           ]}
@@ -200,14 +201,14 @@ function DatenschutzDe() {
 
       <Abschnitt titel="5. Speicherung auf deinem Gerät – warum es kein Cookie-Banner gibt">
         <p>
-          Dogity selbst setzt keine Cookies. Die App legt einige Werte im lokalen Speicher deines Browsers ab, und
-          zwar nur diese:
+          Dogity setzt nur die zwei Cookies für die Anmeldung (erster Punkt) und legt sonst einige Werte im lokalen
+          Speicher deines Browsers ab, und zwar nur diese:
         </p>
         <Liste
           punkte={[
-            "dein Anmelde-Token und der zugehörige Erneuerungs-Token – ohne sie wärst du bei jedem Seitenwechsel abgemeldet",
+            "zur Anmeldung zwei technisch notwendige Cookies mit deinen Anmelde-Schlüsseln – Skripte im Browser können sie nicht lesen, sie gehen nur an Dogity; das eine gilt etwa eine Stunde, das andere bis zum Abmelden, höchstens 60 Tage; ohne sie wärst du bei jedem Seitenwechsel abgemeldet. Dazu merkt sich die App im lokalen Speicher, bis wann die Sitzung gilt",
             "dein Name, deine E-Mail-Adresse und deine Rolle, damit die App sie beim Start nicht erst nachladen muss",
-            "die zuletzt gewählte Kartenart, die Schriftgröße, ob die farbsichere Darstellung an ist, und welchen Neuerungs-Hinweis du schon gesehen hast",
+            "die zuletzt gewählte Kartenart, beim Fährtelegen die zuletzt gewählte Leitfaden-Stufe je Hund, die Schriftgröße, ob die farbsichere Darstellung an ist, und welchen Neuerungs-Hinweis du schon gesehen hast",
             "wenn du ohne Konto die Sprache wählst (Deutsch oder English): diese Wahl, damit sie beim nächsten Besuch erhalten bleibt – eine reine Komforteinstellung, die nicht an den Server gesendet wird",
             "wenn du Push-Benachrichtigungen eingeschaltet hast: die Adresse deines Geräts beim Push-Dienst, damit das Abmelden sie wieder lösen kann",
             "zuletzt geladene Hunde, Trainings, Ziele, Statistik und Hundebilder als Zwischenspeicher, damit die App schnell startet und auch ohne Verbindung etwas zeigt – beim Abmelden und beim Anmelden einer anderen Person wird er gelöscht; dafür merkt sich die App die interne Kennung der zuletzt angemeldeten Person",
@@ -222,7 +223,7 @@ function DatenschutzDe() {
           Abs. 2 TDDDG ohne Einwilligung zulässig. Nichts davon verlässt dein Gerät in Richtung Dritter, nichts davon
           dient der Messung deines Verhaltens. Deshalb gibt es hier auch nichts zuzustimmen oder abzulehnen – ein
           Banner wäre eine Frage ohne Gegenstand. Abmelden entfernt Anmeldung, Zwischenspeicher und laufende
-          Aufzeichnungen; noch nicht abgeschickte Einträge, Kartenart, Schriftgröße, farbsichere Darstellung, Neuerungs-Hinweis und Sprachwahl bleiben.
+          Aufzeichnungen; noch nicht abgeschickte Einträge, Kartenart, Leitfaden-Stufe, Schriftgröße, farbsichere Darstellung, Neuerungs-Hinweis und Sprachwahl bleiben.
           Das Löschen der Browserdaten entfernt alles.
         </p>
         <p>
@@ -378,7 +379,7 @@ function DatenschutzDe() {
             "Trainer:innen einer Gruppe, der du selbst beigetreten bist oder deren Einladung du angenommen hast, können deine Hunde betreuen. Sie sehen dann deren Trainings, Ziele und Fährten und können Rückmeldung geben. Du wirst benachrichtigt, sobald jemand einen deiner Hunde betreut; verlässt du die Gruppe, endet die Betreuung. Du kannst sie auch jederzeit selbst beenden: Unter „Verwalten“ beim Hund siehst du, welche Trainer:innen Einblick haben, und beendest die Betreuung dort mit einem Tipp. Die Trainer:in wird benachrichtigt und sieht den Hund danach nicht mehr.",
             "Zusagen zu Gruppenterminen: Die Trainer:innen der Gruppe, Ausbildungswart:in und Verwaltung des Vereins sowie die dem Termin zugeordneten Trainer:innen sehen mit Namen, wer zu- oder abgesagt hat. Die anderen Mitglieder deiner Gruppe sehen nur Zahlen, etwa „5 Zusagen“. Sagst du ab, bekommen die Trainer:innen des Termins eine Benachrichtigung mit deinem Vornamen.",
             "Trainingspausen deines Hundes sehen du und die Mitbesitzer:innen mit Grund, Zeitraum und Notiz. Trainer:innen, die den Hund betreuen, sehen nur, dass er pausiert und bis wann – nicht den Grund und nicht die Notiz. Der Trainingsplan, den sie sehen, hält in dieser Zeit an; deshalb sehen sie darin auch die Zeiträume früherer Pausen, die in den Plan fallen, aber nie den Verlauf mit Gründen. Alle anderen sehen nichts davon. Das stellt der Server sicher, nicht nur die Anzeige.",
-            "Gesundheitseinträge deines Hundes (Impfungen, Entwurmung, Parasitenschutz, Tierarzttermine) sehen nur du und die Mitbesitzer:innen. Trainer:innen, die den Hund betreuen, sehen nichts davon – auch nicht, dass es solche Einträge gibt. Alle anderen sehen ebenfalls nichts. Das stellt der Server sicher, nicht nur die Anzeige.",
+            "Gesundheitseinträge deines Hundes (Impfungen, Entwurmung, Parasitenschutz, Tierarzttermine, Gewicht) sehen nur du und die Mitbesitzer:innen. Trainer:innen, die den Hund betreuen, sehen nichts davon – auch nicht, dass es solche Einträge gibt. Alle anderen sehen ebenfalls nichts. Das stellt der Server sicher, nicht nur die Anzeige.",
             "Den Merkzettel fürs nächste Training deines Hundes sehen und ändern nur du und die Mitbesitzer:innen. Trainer:innen, die den Hund betreuen, und alle anderen sehen nichts davon. Das stellt der Server sicher, nicht nur die Anzeige.",
             "Deine Antwort auf das Feedback einer Trainer:in (Danke, Verstanden, Rückfrage) sehen die Trainer:in, die es gegeben hat, und die Besitzer:innen des Hundes; sie löst bei der Trainer:in eine Benachrichtigung aus. Schreibt die Trainer:in neues Feedback, wird deine Antwort zurückgesetzt.",
             "Im Verein sehen die Rollen unterschiedlich viel, nie jedoch dein Trainingstagebuch: Trainer:innen sehen ihre Gruppen und deren Mitglieder. Ausbildungswart:in und Verwaltung sehen alle Gruppen des Vereins und die Meldelisten der Prüfungstage (Abschnitt 10). Die Mitgliederverwaltung und die Verwaltung sehen die Mitgliederliste mit Name und E-Mail-Adresse, die Beitrittsanfragen – darunter, ob sie über den Einladungslink des Vereins kamen – und die Einladungen. Der Vorstand und die Verwaltung sehen Name, Gruppenzugehörigkeit, Rollen und Mitglied-seit-Datum der Mitglieder sowie zusammengefasste Zahlen des Vereins (Mitglieder, Gruppen, Termine, Zusagen und Prüfungen als Summen) – keine Trainingstagebücher und keine E-Mail-Adressen.",
@@ -421,6 +422,10 @@ function DatenschutzDe() {
           Auch andere Mitglieder der Gruppe, andere Angemeldete und Besucher:innen der Seite sehen die Angaben nicht.
           Wer das Formular öffnet, sieht nur den Namen des Vereins und der Gruppe. Bei einer neuen Anmeldung erhalten
           die Trainer:innen der Gruppe eine Benachrichtigung in der App, in der Rufname und Rasse des Hundes stehen.
+          Wechselt ein Hund in eine andere Gruppe desselben Vereins (etwa von der Welpen- in die Junghundegruppe),
+          können die Trainer:innen die Anmeldung dorthin übernehmen. Dann sehen die Trainer:innen der neuen Gruppe die
+          Angaben und erhalten eine Benachrichtigung mit Rufname und Rasse; die bisherige Gruppe sieht sie nicht mehr.
+          „Bezahlt“ und die Anwesenheiten der bisherigen Gruppe entfallen.
         </p>
         <p className="font-medium text-foreground">Rechtsgrundlage</p>
         <p>
