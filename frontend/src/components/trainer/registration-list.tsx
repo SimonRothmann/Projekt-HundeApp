@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, CircleDashed, FileUp, Pencil, Phone, Plus, QrCode as QrIcon, Trash2 } from "lucide-react";
+import { ArrowRightLeft, CheckCircle2, CircleDashed, FileUp, Pencil, Phone, Plus, QrCode as QrIcon, Trash2, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { telefonLink } from "@/lib/anmeldung";
 import { api, ApiError } from "@/lib/api";
@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AktionenMenue } from "@/components/ui/aktionen-menue";
 
-type Filter = "alle" | "offen";
+type Filter = "alle" | "offen" | "waechst";
 
 /**
  * Die Anmeldungen einer Gruppe als Liste: neueste oben, "bezahlt" als Umschalter,
@@ -30,6 +30,7 @@ export function RegistrationList({
   onGeaendert,
   onNeu,
   onBearbeiten,
+  onUebernehmen,
   onImport,
   onLink,
 }: {
@@ -39,6 +40,8 @@ export function RegistrationList({
   onGeaendert: (id: string, neu: GroupRegistration | null) => void;
   onNeu: () => void;
   onBearbeiten: (r: GroupRegistration) => void;
+  /** Öffnet die Auswahl der Gruppe, in die die Anmeldung wechselt. */
+  onUebernehmen: (r: GroupRegistration) => void;
   onImport: () => void;
   /** Öffnet Anmeldelink und QR-Code. */
   onLink: () => void;
@@ -49,7 +52,13 @@ export function RegistrationList({
   const [beschaeftigt, setBeschaeftigt] = useState<string | null>(null);
 
   const offene = registrierungen.filter((r) => r.paidAt === null).length;
-  const sichtbar = filter === "offen" ? registrierungen.filter((r) => r.paidAt === null) : registrierungen;
+  const herauswachsend = registrierungen.filter((r) => r.growsOut).length;
+  const sichtbar =
+    filter === "offen"
+      ? registrierungen.filter((r) => r.paidAt === null)
+      : filter === "waechst"
+        ? registrierungen.filter((r) => r.growsOut)
+        : registrierungen;
 
   async function bezahltUmschalten(r: GroupRegistration) {
     const bezahlt = r.paidAt === null;
@@ -117,6 +126,8 @@ export function RegistrationList({
               [
                 ["alle", t("Alle ({n})", { n: registrierungen.length })],
                 ["offen", t("Unbezahlt ({n})", { n: offene })],
+                // Nur, wenn die Gruppe ein Höchstalter hat und jemand herauswächst.
+                ...(herauswachsend > 0 || filter === "waechst" ? ([["waechst", t("Wächst heraus ({n})", { n: herauswachsend })]] as const) : []),
               ] as const
             ).map(([wert, label]) => (
               <Chip key={wert} kompakt gewaehlt={filter === wert} onClick={() => setFilter(wert)}>
@@ -129,7 +140,9 @@ export function RegistrationList({
         {registrierungen.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">{t("Noch keine Anmeldungen.")}</p>
         ) : sichtbar.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">{t("Keine unbezahlten Anmeldungen.")}</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            {filter === "waechst" ? t("Niemand wächst gerade heraus.") : t("Keine unbezahlten Anmeldungen.")}
+          </p>
         ) : (
           <ul className="flex min-w-0 flex-col divide-y">
             {sichtbar.map((r) => {
@@ -157,6 +170,7 @@ export function RegistrationList({
                       label={t("Menü für {name}", { name: r.dogName })}
                       aktionen={[
                         { label: t("Bearbeiten"), icon: Pencil, onSelect: () => onBearbeiten(r) },
+                        { label: t("In andere Gruppe übernehmen"), icon: ArrowRightLeft, onSelect: () => onUebernehmen(r) },
                         { label: t("Löschen"), icon: Trash2, onSelect: () => void loeschen(r), destruktiv: true },
                       ]}
                       className="coarse:size-11"
@@ -178,6 +192,12 @@ export function RegistrationList({
                       </Badge>
                     </button>
                     <span className="text-sm text-muted-foreground">{t("{n}× da", { n: r.attendanceCount })}</span>
+                    {r.growsOut && (
+                      <Badge variant="outline" className="h-6 gap-1 border-warnung/40 bg-warnung/10 px-2.5 text-xs text-warnung-text">
+                        <TrendingUp />
+                        {t("wächst heraus")}
+                      </Badge>
+                    )}
                   </div>
                 </li>
               );

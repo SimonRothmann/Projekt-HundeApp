@@ -106,7 +106,7 @@ public class VereinsgrenzenTests
             new GroupService(db, nutzer, rollen, meldungen, TimeProvider.System),
             new GroupTrainingScheduleService(db, nutzer, meldungen),
             new GroupTrainingService(db),
-            new GroupRegistrationService(db),
+            new GroupRegistrationService(db, meldungen),
             new DogService(db, nutzer, meldungen),
             new TrainingService(db, meldungen, nutzer, mastery, new FakeWeatherEnrichmentService(), TimeProvider.System),
             new GoalService(db, TimeProvider.System, meldungen, mastery),

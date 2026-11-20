@@ -69,6 +69,7 @@ public static partial class Uebersetzung
         ["Dein Beitritt zur Gruppe \"{gruppe}\" wurde angenommen."] = "Your request to join the group \"{gruppe}\" was accepted.",
         ["Dein Beitritt zur Gruppe \"{gruppe}\" wurde abgelehnt."] = "Your request to join the group \"{gruppe}\" was declined.",
         ["Neue Anmeldung für {gruppe}: {hund} ({rasse})."] = "New registration for {gruppe}: {hund} ({rasse}).",
+        ["Übernommen aus {quelle} in {gruppe}: {hund} ({rasse})."] = "Moved from {quelle} to {gruppe}: {hund} ({rasse}).",
         ["{name} hat für {gruppe} am {datum} abgesagt."] = "{name} can't make it to {gruppe} on {datum}.",
         ["Ein Mitglied hat für {gruppe} am {datum} abgesagt."] = "A member can't make it to {gruppe} on {datum}.",
         ["Das Training {gruppe} am {datum} fällt aus."] = "The {gruppe} training on {datum} is cancelled.",

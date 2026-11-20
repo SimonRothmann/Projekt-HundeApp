@@ -44,6 +44,20 @@ public static partial class GroupRegistrationRules
     /// <summary>Wiederholte Formular-Anmeldung innerhalb dieser Frist zählt als doppelt.</summary>
     public static readonly TimeSpan DoppeltFrist = TimeSpan.FromDays(30);
 
+    /// <summary>Grenzen für <see cref="Dogity.Domain.Community.Group.MaxAgeWeeks"/>.</summary>
+    public const int MinHoechstalterWochen = 8;
+    public const int MaxHoechstalterWochen = 104;
+
+    /// <summary>So viele Tage vor Erreichen des Höchstalters gilt ein Hund schon als "wächst heraus".</summary>
+    public const int HerauswachsenVorlaufTage = 14;
+
+    /// <summary>
+    /// Ob der Hund das Höchstalter der Gruppe erreicht hat oder in den nächsten
+    /// <see cref="HerauswachsenVorlaufTage"/> Tagen erreicht. Ohne Grenze nie.
+    /// </summary>
+    public static bool WaechstHeraus(DateOnly wurftag, int? hoechstalterWochen, DateOnly heute) =>
+        hoechstalterWochen is { } w && wurftag.AddDays(w * 7) <= heute.AddDays(HerauswachsenVorlaufTage);
+
     /// <summary>Ältestes zulässiges Alter des Hundes bei der Anmeldung, in Jahren.</summary>
     private const int MaxHundeAlterJahre = 2;
 

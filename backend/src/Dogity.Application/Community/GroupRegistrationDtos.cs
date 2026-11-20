@@ -37,7 +37,8 @@ public record GroupRegistrationRequest(
     string? Phone,
     string? Notes);
 
-/// <param name="Source">Numerisch wie alle Aufzählungen der API: 0 = Formular, 1 = Import, 2 = von Hand.</param>
+/// <param name="Source">Numerisch wie alle Aufzählungen der API: 0 = Formular, 1 = Import, 2 = von Hand, 3 = aus anderer Gruppe übernommen.</param>
+/// <param name="GrowsOut">Der Hund ist laut Wurftag über dem Höchstalter der Gruppe oder wird es in den nächsten 14 Tagen.</param>
 public record GroupRegistrationDto(
     Guid Id,
     string FirstName,
@@ -50,7 +51,13 @@ public record GroupRegistrationDto(
     DateTimeOffset RegisteredAt,
     DateTimeOffset? PaidAt,
     string? Notes,
-    int AttendanceCount);
+    int AttendanceCount,
+    bool GrowsOut);
+
+/// <summary>Eine Gruppe des Vereins, in die sich eine Anmeldung übernehmen lässt.</summary>
+public record RegistrationTransferTargetDto(Guid Id, string Name);
+
+public record TransferRegistrationRequest(Guid TargetGroupId);
 
 public record SetRegistrationPaidRequest(bool Paid);
 

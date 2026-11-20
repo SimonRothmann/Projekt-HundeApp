@@ -12,6 +12,7 @@ import { RegistrationEditSheet } from "@/components/trainer/registration-edit-sh
 import { RegistrationFormSheet } from "@/components/trainer/registration-form-sheet";
 import { RegistrationImportSheet } from "@/components/trainer/registration-import-sheet";
 import { RegistrationList } from "@/components/trainer/registration-list";
+import { RegistrationTransferSheet } from "@/components/trainer/registration-transfer-sheet";
 
 /**
  * Ansicht "Anmeldungen" einer Gruppe (Welpengruppe & Co.): Anwesenheit je
@@ -48,6 +49,7 @@ export function GroupRegistrationsSection({
 }) {
   const t = useT();
   const [bearbeiten, setBearbeiten] = useState<{ offen: boolean; zeile: GroupRegistration | null }>({ offen: false, zeile: null });
+  const [uebernehmen, setUebernehmen] = useState<GroupRegistration | null>(null);
   const [importOffen, setImportOffen] = useState(false);
   const [linkOffen, setLinkOffen] = useState(false);
 
@@ -87,6 +89,7 @@ export function GroupRegistrationsSection({
             onGeaendert={ersetzen}
             onNeu={() => setBearbeiten({ offen: true, zeile: null })}
             onBearbeiten={(zeile) => setBearbeiten({ offen: true, zeile })}
+            onUebernehmen={setUebernehmen}
             onImport={() => setImportOffen(true)}
             onLink={() => setLinkOffen(true)}
           />
@@ -99,6 +102,12 @@ export function GroupRegistrationsSection({
         offen={bearbeiten.offen}
         onOffenChange={(offen) => setBearbeiten((b) => ({ ...b, offen }))}
         onGespeichert={laden}
+      />
+      <RegistrationTransferSheet
+        groupId={groupId}
+        registrierung={uebernehmen}
+        onOffenChange={(offen) => !offen && setUebernehmen(null)}
+        onUebernommen={(id) => ersetzen(id, null)}
       />
       <RegistrationImportSheet
         groupId={groupId}

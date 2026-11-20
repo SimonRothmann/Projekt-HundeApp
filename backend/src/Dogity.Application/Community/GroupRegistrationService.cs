@@ -2,13 +2,14 @@ using System.Data.Common;
 using Dogity.Application.Abstractions;
 using Dogity.Application.Account;
 using Dogity.Application.Common;
+using Dogity.Application.Notifications;
 using Dogity.Domain.Community;
 using Microsoft.EntityFrameworkCore;
 using static Dogity.Application.Common.SqlStates;
 
 namespace Dogity.Application.Community;
 
-public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistrationService
+public class GroupRegistrationService(IApplicationDbContext db, INotificationService notifications) : IGroupRegistrationService
 {
     // Dieselbe Meldung für "gibt es nicht" und "darfst du nicht": dass die
     // Gruppe oder die Anmeldung existiert, geht Fremde nichts an.
@@ -62,7 +63,8 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
 
     public async Task<Result<IReadOnlyList<GroupRegistrationDto>>> ListAsync(Guid callerId, Guid groupId, CancellationToken ct = default)
     {
-        if (await db.GetManageableGroupAsync(callerId, groupId, ct) is null)
+        var group = await db.GetManageableGroupAsync(callerId, groupId, ct);
+        if (group is null)
             return Result<IReadOnlyList<GroupRegistrationDto>>.NotFound(GruppeNichtGefunden);
 
         var zeilen = await db.GroupRegistrations
@@ -80,12 +82,13 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
             .ToDictionaryAsync(x => x.Id, x => x.Anzahl, ct);
 
         return Result<IReadOnlyList<GroupRegistrationDto>>.Success(
-            zeilen.Select(r => ToDto(r, anwesenheiten.GetValueOrDefault(r.Id))).ToList());
+            zeilen.Select(r => ToDto(r, anwesenheiten.GetValueOrDefault(r.Id), group.MaxAgeWeeks)).ToList());
     }
 
     public async Task<Result<GroupRegistrationDto>> CreateAsync(Guid callerId, Guid groupId, GroupRegistrationRequest request, CancellationToken ct = default)
     {
-        if (await db.GetManageableGroupAsync(callerId, groupId, ct) is null)
+        var group = await db.GetManageableGroupAsync(callerId, groupId, ct);
+        if (group is null)
             return Result<GroupRegistrationDto>.NotFound(GruppeNichtGefunden);
 
         var heute = Vereinszeit.Heute();
@@ -108,13 +111,13 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
         Uebernehmen(zeile, eingabe);
         db.GroupRegistrations.Add(zeile);
         await db.SaveChangesAsync(ct);
-        return Result<GroupRegistrationDto>.Success(ToDto(zeile, 0));
+        return Result<GroupRegistrationDto>.Success(ToDto(zeile, 0, group.MaxAgeWeeks));
     }
 
     public async Task<Result<GroupRegistrationDto>> UpdateAsync(Guid callerId, Guid groupId, Guid registrationId, GroupRegistrationRequest request, CancellationToken ct = default)
     {
-        var zeile = await FindeAsync(callerId, groupId, registrationId, ct);
-        if (zeile is null) return Result<GroupRegistrationDto>.NotFound(AnmeldungNichtGefunden);
+        var gefunden = await FindeMitGruppeAsync(callerId, groupId, registrationId, ct);
+        if (gefunden is not var (zeile, group)) return Result<GroupRegistrationDto>.NotFound(AnmeldungNichtGefunden);
 
         // Gegen den Tag der Anmeldung geprüft, nicht gegen heute: Sonst ließe
         // sich bei einer Anmeldung von vor zwei Jahren nicht einmal mehr die
@@ -128,7 +131,7 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
         Uebernehmen(zeile, eingabe);
         zeile.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
-        return Result<GroupRegistrationDto>.Success(ToDto(zeile, await ZaehleAnwesenheitAsync(zeile.Id, ct)));
+        return Result<GroupRegistrationDto>.Success(ToDto(zeile, await ZaehleAnwesenheitAsync(zeile.Id, ct), group.MaxAgeWeeks));
     }
 
     public async Task<Result> DeleteAsync(Guid callerId, Guid groupId, Guid registrationId, CancellationToken ct = default)
@@ -143,8 +146,8 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
 
     public async Task<Result<GroupRegistrationDto>> SetPaidAsync(Guid callerId, Guid groupId, Guid registrationId, bool paid, CancellationToken ct = default)
     {
-        var zeile = await FindeAsync(callerId, groupId, registrationId, ct);
-        if (zeile is null) return Result<GroupRegistrationDto>.NotFound(AnmeldungNichtGefunden);
+        var gefunden = await FindeMitGruppeAsync(callerId, groupId, registrationId, ct);
+        if (gefunden is not var (zeile, group)) return Result<GroupRegistrationDto>.NotFound(AnmeldungNichtGefunden);
 
         var jetzt = DateTimeOffset.UtcNow;
         // Schon im gewünschten Zustand (zweites Gerät, Doppeltipp): Wer zuerst
@@ -164,7 +167,67 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
             await db.SaveChangesAsync(ct);
         }
 
-        return Result<GroupRegistrationDto>.Success(ToDto(zeile, await ZaehleAnwesenheitAsync(zeile.Id, ct)));
+        return Result<GroupRegistrationDto>.Success(ToDto(zeile, await ZaehleAnwesenheitAsync(zeile.Id, ct), group.MaxAgeWeeks));
+    }
+
+    public async Task<Result<IReadOnlyList<RegistrationTransferTargetDto>>> GetTransferTargetsAsync(Guid callerId, Guid groupId, CancellationToken ct = default)
+    {
+        var group = await db.GetManageableGroupAsync(callerId, groupId, ct);
+        if (group is null) return Result<IReadOnlyList<RegistrationTransferTargetDto>>.NotFound(GruppeNichtGefunden);
+        if (group.ClubId is null) return Result<IReadOnlyList<RegistrationTransferTargetDto>>.Success([]);
+
+        var ziele = await db.Groups
+            .Where(g => g.ClubId == group.ClubId && g.Id != groupId)
+            .OrderBy(g => g.Name)
+            .Select(g => new RegistrationTransferTargetDto(g.Id, g.Name))
+            .AsNoTracking()
+            .ToListAsync(ct);
+        return Result<IReadOnlyList<RegistrationTransferTargetDto>>.Success(ziele);
+    }
+
+    public async Task<Result> TransferAsync(Guid callerId, Guid groupId, Guid registrationId, Guid targetGroupId, CancellationToken ct = default)
+    {
+        var gefunden = await FindeMitGruppeAsync(callerId, groupId, registrationId, ct);
+        if (gefunden is not var (zeile, quelle)) return Result.NotFound(AnmeldungNichtGefunden);
+
+        // Nur Gruppen desselben Vereins: Die Angaben bleiben so im Verein, dem die Person sie anvertraut hat.
+        var ziel = quelle.ClubId is null || targetGroupId == groupId
+            ? null
+            : await db.Groups.FirstOrDefaultAsync(g => g.Id == targetGroupId && g.ClubId == quelle.ClubId, ct);
+        if (ziel is null) return Result.NotFound("Zielgruppe nicht gefunden.");
+
+        var hoechstensJeGruppe = GroupRegistrationRules.MaxProGruppe;
+        if (await db.GroupRegistrations.CountAsync(r => r.GroupId == ziel.Id, ct) >= hoechstensJeGruppe)
+            return Result.Failure($"Mehr als {hoechstensJeGruppe} Anmeldungen je Gruppe sind nicht möglich.");
+
+        // Anwesenheit der alten Gruppe gehört zu deren Terminen; auch weich entfernte Haken weg.
+        var haken = await db.GroupRegistrationAttendances.IgnoreQueryFilters()
+            .Where(a => a.RegistrationId == registrationId)
+            .ToListAsync(ct);
+        db.GroupRegistrationAttendances.RemoveRange(haken);
+
+        var jetzt = DateTimeOffset.UtcNow;
+        zeile.GroupId = ziel.Id;
+        zeile.Source = GroupRegistrationSource.Uebernommen;
+        zeile.RegisteredAt = jetzt;
+        // Die Kursgebühr gilt je Gruppe.
+        zeile.PaidAt = null;
+        zeile.PaidByUserId = null;
+        zeile.UpdatedAt = jetzt;
+        await db.SaveChangesAsync(ct);
+
+        var text = Meldung.Von(
+            "Übernommen aus {quelle} in {gruppe}: {hund} ({rasse}).",
+            ("quelle", quelle.Name), ("gruppe", ziel.Name), ("hund", zeile.DogName), ("rasse", zeile.DogBreed));
+        var empfaenger = await db.GruppenTrainerinnen()
+            .Where(p => p.GroupId == ziel.Id && p.UserId != callerId)
+            .Select(p => p.UserId)
+            .Distinct()
+            .ToListAsync(ct);
+        foreach (var id in empfaenger)
+            await notifications.CreateAsync(id, text, $"/trainer/{ziel.Id}?ansicht=anmeldungen", ct);
+
+        return Result.Success();
     }
 
     public async Task<Result<IReadOnlyList<AttendanceDayDto>>> GetAttendanceDaysAsync(Guid callerId, Guid groupId, CancellationToken ct = default)
@@ -350,6 +413,15 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
         return await db.GroupRegistrations.FirstOrDefaultAsync(r => r.Id == registrationId && r.GroupId == groupId, ct);
     }
 
+    /// <summary>Wie <see cref="FindeAsync"/>, dazu die Gruppe (für das Höchstalter in der Antwort).</summary>
+    private async Task<(GroupRegistration Zeile, Group Gruppe)?> FindeMitGruppeAsync(Guid callerId, Guid groupId, Guid registrationId, CancellationToken ct)
+    {
+        var group = await db.GetManageableGroupAsync(callerId, groupId, ct);
+        if (group is null) return null;
+        var zeile = await db.GroupRegistrations.FirstOrDefaultAsync(r => r.Id == registrationId && r.GroupId == groupId, ct);
+        return zeile is null ? null : (zeile, group);
+    }
+
     /// <summary>Der Termin der Gruppe an diesem Tag (Vereinszeit), falls es einen gibt - der früheste, ohne abgesagte.</summary>
     private async Task<Guid?> FindeTerminAsync(Guid groupId, DateOnly date, CancellationToken ct)
     {
@@ -377,7 +449,8 @@ public class GroupRegistrationService(IApplicationDbContext db) : IGroupRegistra
         zeile.Notes = eingabe.Notes;
     }
 
-    private static GroupRegistrationDto ToDto(GroupRegistration r, int anwesenheiten) =>
+    private static GroupRegistrationDto ToDto(GroupRegistration r, int anwesenheiten, int? hoechstalterWochen) =>
         new(r.Id, r.FirstName, r.LastName, r.DogName, r.DogBreed, r.DogBirthDate, r.Phone, r.Source,
-            r.RegisteredAt, r.PaidAt, r.Notes, anwesenheiten);
+            r.RegisteredAt, r.PaidAt, r.Notes, anwesenheiten,
+            GroupRegistrationRules.WaechstHeraus(r.DogBirthDate, hoechstalterWochen, Vereinszeit.Heute()));
 }

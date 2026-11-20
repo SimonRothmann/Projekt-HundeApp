@@ -34,11 +34,11 @@ export default function TrainerGruppeEinstellungenPage() {
       </div>
 
       <section className="flex flex-col gap-3">
-        <SectionHeading icon={Pencil} title={t("Name & Beschreibung")} />
+        <SectionHeading icon={Pencil} title={t("Name, Beschreibung & Höchstalter")} />
         <Card>
           <CardContent>
             {/* key: Nach dem Speichern oder Neuladen beginnt das Formular mit dem Stand des Servers. */}
-            <GroupEditForm key={`${detail.group.name}|${detail.group.description ?? ""}`} group={detail.group} onGespeichert={laden} />
+            <GroupEditForm key={`${detail.group.name}|${detail.group.description ?? ""}|${detail.group.maxAgeWeeks ?? ""}`} group={detail.group} onGespeichert={laden} />
           </CardContent>
         </Card>
       </section>

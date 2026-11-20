@@ -43,7 +43,7 @@ public record AnmeldeAufbau(
         db.ClubTrainers.Add(new ClubTrainer { ClubId = verein.Id, UserId = vereinsTrainerin, Role = ClubRole.Ausbildungswart });
         await db.SaveChangesAsync();
         return new AnmeldeAufbau(
-            db, new GroupRegistrationService(db), new GroupRegistrationFormService(db, meldungen), meldungen,
+            db, new GroupRegistrationService(db, meldungen), new GroupRegistrationFormService(db, meldungen), meldungen,
             verein, gruppe, leitung, co, vereinsTrainerin, Guid.NewGuid());
     }
 

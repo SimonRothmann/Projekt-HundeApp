@@ -74,6 +74,16 @@ public class GroupRegistrationsController(
     public async Task<ActionResult<GroupRegistrationDto>> SetPaid(Guid id, Guid registrationId, SetRegistrationPaidRequest request, CancellationToken ct) =>
         FromResult(await registrations.SetPaidAsync(CurrentUserId, id, registrationId, request.Paid, ct));
 
+    /// <summary>Gruppen desselben Vereins, in die sich eine Anmeldung übernehmen lässt.</summary>
+    [HttpGet("{id:guid}/registrations/transfer-targets")]
+    public async Task<ActionResult<IReadOnlyList<RegistrationTransferTargetDto>>> GetTransferTargets(Guid id, CancellationToken ct) =>
+        FromResult(await registrations.GetTransferTargetsAsync(CurrentUserId, id, ct));
+
+    /// <summary>Anmeldung in eine andere Gruppe des Vereins übernehmen.</summary>
+    [HttpPost("{id:guid}/registrations/{registrationId:guid}/transfer")]
+    public async Task<IActionResult> Transfer(Guid id, Guid registrationId, TransferRegistrationRequest request, CancellationToken ct) =>
+        FromResult(await registrations.TransferAsync(CurrentUserId, id, registrationId, request.TargetGroupId, ct));
+
     /// <summary>Tage mit Termin der Gruppe (letzte vier bis nächste zwei Wochen) für die Tagesauswahl.</summary>
     [HttpGet("{id:guid}/registrations/days")]
     public async Task<ActionResult<IReadOnlyList<AttendanceDayDto>>> GetDays(Guid id, CancellationToken ct) =>

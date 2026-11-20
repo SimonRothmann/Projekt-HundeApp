@@ -33,6 +33,17 @@ public interface IGroupRegistrationService
     /// <summary>Setzt "bezahlt" (PaidAt = jetzt, PaidByUserId = Aufrufer:in) oder nimmt es zurück. Idempotent.</summary>
     Task<Result<GroupRegistrationDto>> SetPaidAsync(Guid callerId, Guid groupId, Guid registrationId, bool paid, CancellationToken ct = default);
 
+    /// <summary>Die anderen Gruppen desselben Vereins, in die sich eine Anmeldung übernehmen lässt.</summary>
+    Task<Result<IReadOnlyList<RegistrationTransferTargetDto>>> GetTransferTargetsAsync(Guid callerId, Guid groupId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Verschiebt die Anmeldung in eine andere Gruppe desselben Vereins (Welpen ->
+    /// Junghunde): neue Gruppe, Anmeldetag jetzt, Herkunft "übernommen", "bezahlt"
+    /// zurückgesetzt, Anwesenheit der alten Gruppe gelöscht, Notiz bleibt. Die
+    /// Trainer:innen der Zielgruppe erfahren es in der App.
+    /// </summary>
+    Task<Result> TransferAsync(Guid callerId, Guid groupId, Guid registrationId, Guid targetGroupId, CancellationToken ct = default);
+
     /// <summary>Tage mit Termin der Gruppe: letzte vier bis nächste zwei Wochen (Vereinszeit), ohne abgesagte.</summary>
     Task<Result<IReadOnlyList<AttendanceDayDto>>> GetAttendanceDaysAsync(Guid callerId, Guid groupId, CancellationToken ct = default);
 

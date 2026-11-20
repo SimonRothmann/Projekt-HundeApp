@@ -11,7 +11,10 @@ public enum GroupRegistrationSource
     Import,
 
     /// <summary>Von einer Trainer:in von Hand eingetragen.</summary>
-    Manual
+    Manual,
+
+    /// <summary>Aus einer anderen Gruppe des Vereins übernommen (Welpen -> Junghunde).</summary>
+    Uebernommen
 }
 
 /// <summary>

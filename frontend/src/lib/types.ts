@@ -534,6 +534,8 @@ export type Group = {
   memberCount: number;
   trainerName: string | null;
   myRelation: GroupRelation;
+  /** Höchstalter der Hunde in Wochen (Welpengruppe); null = keine Grenze. */
+  maxAgeWeeks: number | null;
 };
 
 // Offenes bei einer Trainer:in (Backend: TrainerOpenCountsDto) - nur Zahlen,
@@ -955,7 +957,7 @@ export type GroupRegistrationLink = { code: string };
 export type GroupRegistrationForm = { clubName: string | null; groupName: string };
 
 /** Herkunft einer Anmeldung (numerisch wie alle Aufzählungen der API). */
-export type GroupRegistrationSource = 0 | 1 | 2; // 0 = Formular, 1 = Import, 2 = von Hand
+export type GroupRegistrationSource = 0 | 1 | 2 | 3; // 0 = Formular, 1 = Import, 2 = von Hand, 3 = aus anderer Gruppe übernommen
 
 /**
  * Eine Anmeldung zu einer Gruppe (z. B. Welpengruppe). Die Angemeldeten haben
@@ -976,6 +978,8 @@ export type GroupRegistration = {
   paidAt: string | null;
   notes: string | null;
   attendanceCount: number;
+  /** Laut Wurftag über dem Höchstalter der Gruppe oder in 14 Tagen so weit. */
+  growsOut: boolean;
 };
 
 /** Ein Tag mit Termin der Gruppe, für die Tagesauswahl der Anwesenheit. */

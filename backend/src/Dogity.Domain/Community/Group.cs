@@ -30,6 +30,12 @@ public class Group : Entity
     /// </summary>
     public string? RegistrationCode { get; set; }
 
+    /// <summary>
+    /// Höchstalter der Hunde in Wochen (Welpengruppe); null = keine Grenze. In der
+    /// Anmeldeliste wird markiert, wer herauswächst (siehe GroupRegistrationRules.WaechstHeraus).
+    /// </summary>
+    public int? MaxAgeWeeks { get; set; }
+
     public ICollection<GroupMember> Members { get; set; } = new List<GroupMember>();
 
     /// <summary>Weitere Trainer:innen neben <see cref="TrainerId"/>.</summary>

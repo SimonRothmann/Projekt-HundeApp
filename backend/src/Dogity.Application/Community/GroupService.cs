@@ -32,6 +32,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
                 g.Description,
                 g.TrainerId,
                 g.ClubId,
+                g.MaxAgeWeeks,
                 MemberCount = g.Members.Count(m => m.Status == GroupMemberStatus.Active)
             })
             .AsNoTracking()
@@ -39,7 +40,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 
         var trainerLookup = await userLookup.FindByIdsAsync(rows.Select(r => r.TrainerId).Distinct().ToList(), ct);
         var groups = rows
-            .Select(r => new GroupDto(r.Id, r.Name, r.Description, r.TrainerId, r.ClubId, r.MemberCount, TrainerDisplayName(trainerLookup, r.TrainerId)))
+            .Select(r => new GroupDto(r.Id, r.Name, r.Description, r.TrainerId, r.ClubId, r.MemberCount, TrainerDisplayName(trainerLookup, r.TrainerId), MaxAgeWeeks: r.MaxAgeWeeks))
             .ToList();
 
         return Result<IReadOnlyList<GroupDto>>.Success(groups);
@@ -120,7 +121,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
             new GroupTrainerDto(t.UserId, EingeladeneAdresse(t.UserId, t.InvitedEmail), "", "", IsLead: false, IsInvited: true)));
 
         var dto = new GroupDetailDto(
-            new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, members.Count, TrainerDisplayName(memberLookup, group.TrainerId)),
+            new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, members.Count, TrainerDisplayName(memberLookup, group.TrainerId), MaxAgeWeeks: group.MaxAgeWeeks),
             members,
             trainers,
             invited.Select(m => new GroupMemberDto(m.UserId, EingeladeneAdresse(m.UserId, m.InvitedEmail), "", "", m.Role, m.JoinedAt)).ToList());
@@ -157,6 +158,9 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
     {
         if (string.IsNullOrWhiteSpace(request.Name))
             return Result<GroupDto>.Failure("Name ist erforderlich.");
+        var (min, max) = (GroupRegistrationRules.MinHoechstalterWochen, GroupRegistrationRules.MaxHoechstalterWochen);
+        if (request.MaxAgeWeeks < min || request.MaxAgeWeeks > max)
+            return Result<GroupDto>.Failure($"Das Höchstalter muss zwischen {min} und {max} Wochen liegen.");
 
         var group = await GetManageableGroupAsync(userId, groupId, ct);
         if (group is null)
@@ -164,11 +168,12 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
 
         group.Name = request.Name.Trim();
         group.Description = Texte.NullIfBlank(request.Description);
+        group.MaxAgeWeeks = request.MaxAgeWeeks;
         await db.SaveChangesAsync(ct);
 
         var memberCount = await db.GroupMembers.CountAsync(m => m.GroupId == groupId && m.Status == GroupMemberStatus.Active, ct);
         var trainerLookup = await userLookup.FindByIdsAsync(new[] { group.TrainerId }, ct);
-        return Result<GroupDto>.Success(new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, memberCount, TrainerDisplayName(trainerLookup, group.TrainerId)));
+        return Result<GroupDto>.Success(new GroupDto(group.Id, group.Name, group.Description, group.TrainerId, group.ClubId, memberCount, TrainerDisplayName(trainerLookup, group.TrainerId), MaxAgeWeeks: group.MaxAgeWeeks));
     }
 
     /// <summary>

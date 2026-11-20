@@ -26,7 +26,9 @@ public record GroupDto(
     Guid? ClubId,
     int MemberCount,
     string? TrainerName = null,
-    GroupRelation MyRelation = GroupRelation.None);
+    GroupRelation MyRelation = GroupRelation.None,
+    /// <summary>Höchstalter der Hunde in Wochen (Welpengruppe); null = keine Grenze.</summary>
+    int? MaxAgeWeeks = null);
 
 public record GroupMemberDto(Guid UserId, string Email, string FirstName, string LastName, GroupMemberRole Role, DateTimeOffset JoinedAt);
 
@@ -82,7 +84,7 @@ public record MyGroupMembershipDto(
 
 public record CreateGroupRequest(string Name, string? Description, Guid? ClubId = null);
 
-public record UpdateGroupRequest(string Name, string? Description);
+public record UpdateGroupRequest(string Name, string? Description, int? MaxAgeWeeks = null);
 
 public record AssignGroupTrainerRequest(Guid TrainerId);
 

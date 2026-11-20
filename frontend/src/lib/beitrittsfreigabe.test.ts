@@ -3,7 +3,7 @@ import { einladbareGruppen, gewaehlteGruppe, vorauswahlGruppe } from "./beitritt
 import type { Group, GroupRelation } from "./types";
 
 function gruppe(id: string, myRelation: GroupRelation): Group {
-  return { id, name: id, description: null, trainerId: "t", clubId: "c", memberCount: 0, trainerName: null, myRelation };
+  return { id, name: id, description: null, trainerId: "t", clubId: "c", memberCount: 0, trainerName: null, myRelation, maxAgeWeeks: null };
 }
 
 describe("einladbareGruppen", () => {
