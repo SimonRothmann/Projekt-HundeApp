@@ -63,6 +63,7 @@ public class DogHealthRecordConfiguration : IEntityTypeConfiguration<DogHealthRe
         builder.Property(r => r.Kind).HasConversion<string>().HasMaxLength(20);
         builder.Property(r => r.Title).HasMaxLength(Textlaengen.GesundheitTitel).IsRequired();
         builder.Property(r => r.Note).HasMaxLength(Textlaengen.GesundheitNotiz);
+        builder.Property(r => r.WeightKg).HasPrecision(4, 1);
 
         builder.HasOne(r => r.Dog)
             .WithMany()

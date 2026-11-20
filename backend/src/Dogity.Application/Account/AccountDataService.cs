@@ -401,6 +401,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                         DogHealthKind.Deworming => "Entwurmung",
                         DogHealthKind.ParasiteProtection => "Parasitenschutz",
                         DogHealthKind.VetAppointment => "Tierarzttermin",
+                        DogHealthKind.Weight => "Gewicht",
                         _ => "Sonstiges"
                     },
                     r.Title,
@@ -408,7 +409,8 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                     r.Time,
                     r.DueDate,
                     r.Note,
-                    r.CreatedAt))
+                    r.CreatedAt,
+                    r.WeightKg))
                 .ToList(),
             pruefungsmeldungen
                 .OrderByDescending(m => m.Date)

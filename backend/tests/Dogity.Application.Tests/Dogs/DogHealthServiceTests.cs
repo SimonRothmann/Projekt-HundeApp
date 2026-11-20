@@ -407,4 +407,73 @@ public class DogHealthServiceTests
         Assert.Null(liste.Single(d => d.Id == a.DogId).Gesundheit);
         Assert.Equal(0, liste.Single(d => d.Id == a.BelloId).Gesundheit!.Overdue);
     }
+
+    // --- Gewicht ---------------------------------------------------------------
+
+    private static SaveDogHealthRecordRequest Gewicht(decimal? kg, DateOnly? datum = null) =>
+        new(DogHealthKind.Weight, "egal", datum ?? Heute, null, null, null, kg);
+
+    [Theory]
+    [InlineData(0.4)]
+    [InlineData(150.1)]
+    [InlineData(null)]
+    public async Task Gewicht_AusserhalbDesBereichsOderOhneWert_WirdAbgelehnt(double? kg)
+    {
+        var a = await AufbauAsync();
+
+        var ergebnis = await a.Gesundheit.CreateAsync(a.OwnerId, a.DogId, Gewicht(kg is null ? null : (decimal)kg));
+
+        Assert.False(ergebnis.Succeeded);
+    }
+
+    [Fact]
+    public async Task Gewicht_MitUhrzeitOderAblaufdatum_WirdAbgelehnt()
+    {
+        var a = await AufbauAsync();
+
+        var mitUhrzeit = Gewicht(24.3m) with { Time = new TimeOnly(10, 0) };
+        var mitFrist = Gewicht(24.3m) with { DueDate = Heute.AddDays(5) };
+
+        Assert.False((await a.Gesundheit.CreateAsync(a.OwnerId, a.DogId, mitUhrzeit)).Succeeded);
+        Assert.False((await a.Gesundheit.CreateAsync(a.OwnerId, a.DogId, mitFrist)).Succeeded);
+    }
+
+    [Fact]
+    public async Task Gewicht_TitelIstFest_UndAufEineNachkommastelleGerundet()
+    {
+        var a = await AufbauAsync();
+
+        var eintrag = (await a.Gesundheit.CreateAsync(a.OwnerId, a.DogId, Gewicht(24.34m))).Value!;
+
+        Assert.Equal(("Gewicht", 24.3m), (eintrag.Title, eintrag.WeightKg));
+        Assert.Null(eintrag.DueDate);
+    }
+
+    [Fact]
+    public async Task Gewicht_ZaehltNichtAlsFaellig()
+    {
+        var a = await AufbauAsync();
+        await a.Gesundheit.CreateAsync(a.OwnerId, a.DogId, Gewicht(24.3m));
+
+        var liste = (await a.Hunde.GetMyDogsAsync(a.OwnerId)).Value!;
+        var eintraege = (await a.Gesundheit.GetAsync(a.OwnerId, a.DogId)).Value!;
+        var roh = a.Db.DogHealthRecords.ToList();
+
+        Assert.Null(liste.Single(d => d.Id == a.DogId).Gesundheit);
+        Assert.Empty(Gesundheitsstand.Zusammenfassungen(roh, Heute));
+        Assert.Empty(Gesundheitsstand.Aktuelle(roh));
+        Assert.Single(eintraege);
+    }
+
+    [Fact]
+    public async Task Gewicht_Trainerin_BekommtNichtGefunden()
+    {
+        var a = await AufbauAsync();
+        var eintrag = (await a.Gesundheit.CreateAsync(a.OwnerId, a.DogId, Gewicht(24.3m))).Value!;
+
+        Assert.True((await a.Gesundheit.GetAsync(a.TrainerId, a.DogId)).IsNotFound);
+        Assert.True((await a.Gesundheit.CreateAsync(a.TrainerId, a.DogId, Gewicht(25m))).IsNotFound);
+        Assert.True((await a.Gesundheit.UpdateAsync(a.TrainerId, a.DogId, eintrag.Id, Gewicht(25m))).IsNotFound);
+        Assert.True((await a.Gesundheit.DeleteAsync(a.TrainerId, a.DogId, eintrag.Id)).IsNotFound);
+    }
 }

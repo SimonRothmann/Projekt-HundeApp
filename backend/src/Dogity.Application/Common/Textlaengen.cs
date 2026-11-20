@@ -42,6 +42,8 @@ public static class Textlaengen
     public const int PausenNotiz = 500;
     /// <summary>DogHealthRecord.Title: Titel eines Gesundheitseintrags (Impfung, Entwurmung, Tierarzttermin ...).</summary>
     public const int GesundheitTitel = 100;
+    /// <summary>Fester Titel der Gewichtseinträge (DogHealthKind.Weight); die Oberfläche blendet das Feld aus.</summary>
+    public const string GewichtTitel = "Gewicht";
     /// <summary>DogHealthRecord.Note: Notiz zu einem Gesundheitseintrag.</summary>
     public const int GesundheitNotiz = 500;
     /// <summary>TrainingNote.Text: ein Eintrag auf dem Merkzettel fürs nächste Training.</summary>

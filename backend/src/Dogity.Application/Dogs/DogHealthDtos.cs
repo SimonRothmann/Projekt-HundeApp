@@ -9,6 +9,7 @@ namespace Dogity.Application.Dogs;
 /// <param name="Date">Gegeben am bzw. Tag des Tierarzttermins.</param>
 /// <param name="Time">Nur beim Tierarzttermin, dort optional.</param>
 /// <param name="DueDate">Gültig bis bzw. nächste fällig (einschließlich); beim Tierarzttermin leer.</param>
+/// <param name="WeightKg">Nur bei <see cref="DogHealthKind.Weight"/>.</param>
 /// <param name="IsCurrent">
 /// Ob der Eintrag zu "Aktuell" gehört: der jüngste je Art und Titel, bei Tierarztterminen
 /// ein Termin heute oder später. Alles andere ist Verlauf.
@@ -21,7 +22,8 @@ public record DogHealthRecordDto(
     TimeOnly? Time,
     DateOnly? DueDate,
     string? Note,
-    bool IsCurrent);
+    bool IsCurrent,
+    decimal? WeightKg = null);
 
 /// <summary>Anlegen und Ändern eines Eintrags haben dieselben Felder.</summary>
 public record SaveDogHealthRecordRequest(
@@ -30,7 +32,8 @@ public record SaveDogHealthRecordRequest(
     DateOnly Date,
     TimeOnly? Time,
     DateOnly? DueDate,
-    string? Note);
+    string? Note,
+    decimal? WeightKg = null);
 
 /// <summary>
 /// Der Fälligkeitsstand eines Hundes in einem Blick - dort mitgeliefert, wo Besitzer:innen ihre

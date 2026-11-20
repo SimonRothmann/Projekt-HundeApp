@@ -40,11 +40,11 @@ public static class Gesundheitsstand
     /// Die aktuellen Einträge: je Art und Titel (Groß-/Kleinschreibung und Rand-Leerzeichen
     /// zählen nicht) der jüngste nach Datum, bei gleichem Datum der zuletzt angelegte. So
     /// beendet eine erneuerte Impfung die Frist der alten, ohne dass jemand die alte anfasst.
-    /// Tierarzttermine gehören nicht dazu - sie haben keine Frist, die sich erneuern ließe.
+    /// Tierarzttermine und Wägungen gehören nicht dazu - sie haben keine Frist, die sich erneuern ließe.
     /// </summary>
     public static IReadOnlyList<DogHealthRecord> Aktuelle(IEnumerable<DogHealthRecord> eintraege) =>
         eintraege
-            .Where(e => e.Kind != DogHealthKind.VetAppointment)
+            .Where(e => e.Kind is not (DogHealthKind.VetAppointment or DogHealthKind.Weight))
             .GroupBy(e => (e.DogId, e.Kind, Titel: Schluessel(e.Title)))
             .Select(g => g.OrderByDescending(e => e.Date).ThenByDescending(e => e.CreatedAt).ThenByDescending(e => e.Id).First())
             .ToList();

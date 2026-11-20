@@ -35,7 +35,7 @@ Filter des Hundes mitzieht).
 | Feld | Bedeutung |
 | --- | --- |
 | `DogId` | der Hund (Cascade) |
-| `Kind` | `Vaccination`, `Deworming`, `ParasiteProtection`, `VetAppointment`, `Other` - als Text gespeichert wie `DogPause.Reason`; im JSON numerisch wie alle Enums der API |
+| `Kind` | `Vaccination`, `Deworming`, `ParasiteProtection`, `VetAppointment`, `Other`, `Weight` (siehe „Gewicht“) - als Text gespeichert wie `DogPause.Reason`; im JSON numerisch wie alle Enums der API |
 | `Title` | Pflicht, höchstens 100 Zeichen; bei Impfungen schlägt die Oberfläche Tollwut, SHPPi, Leptospirose, Zwingerhusten, Borreliose vor (frei änderbar) |
 | `Date` | gegeben am bzw. Tag des Termins |
 | `Time` | nur beim Tierarzttermin, dort optional |
@@ -66,6 +66,17 @@ noch da sein):
 **Gesundheitsstand am Hund.** `DogDto.Gesundheit` (`DogHealthSummaryDto`: Anzahl überfällig, Anzahl bald fällig, der Eintrag mit der frühesten
 Frist, der nächste Termin) wird dort mitgeliefert, wo Besitzer:innen ihre Hunde ohnehin laden: `GET /api/dogs` (damit auch `/api/dashboard`)
 und `GET /api/dogs/{id}`. Eine einzige Abfrage für alle Hunde (`HealthSummariesAsync`), kein N+1; für Trainer:innen immer `null`.
+
+## Gewicht (Paket GW1, 2026-11-20)
+
+Auftrag des Betreibers: eine Gewichtskurve im Reiter „Gesundheit“. Sie nutzt dieselbe Entität und dieselben Endpunkte, mit eigener Art.
+
+- `DogHealthKind.Weight` (am Ende der Enum, Text gespeichert wie die anderen) und das Feld `WeightKg` (`numeric(4,1)`, Migration `AddDogWeight`). Pflicht nur beim Gewicht, sonst `null`.
+- Regeln im Service (Frontend spiegelt sie in `lib/gewicht.ts`): 0,5 bis 150 kg, auf eine Nachkommastelle gerundet; der Titel ist serverseitig fest „Gewicht“ (die Oberfläche zeigt kein Titelfeld); weder Uhrzeit noch `DueDate`; Datum wie bei den übrigen Einträgen.
+- **Keine Frist:** Wägungen sind nicht Teil von „Aktuell“ (`Gesundheitsstand.Aktuelle` lässt sie aus), also auch nicht von „Als Nächstes“, überfällig/bald fällig, rotem Banner, Hinweis auf der Startseite oder Erinnerungen. Sie haben kein `DueDate`.
+- **Rechte** wie alle Gesundheitseinträge: nur Besitzer:innen und Mitbesitzer:innen, Trainer:innen bekommen 404.
+- **Oberfläche:** Abschnitt „Gewicht“ (`gewicht-section.tsx`) mit letztem Wert und Veränderung zum vorigen Eintrag, Linienkurve ab zwei Einträgen (selbst gezeichnetes SVG, x nach Datum, y über den Wertebereich mit Luft, nicht ab 0), „Gewicht eintragen“ (Datum Vorgabe heute, kg mit Komma) und aufklappbare Liste aller Einträge zum Ändern/Löschen. Die Wägungen stehen nicht im Verlauf der übrigen Einträge.
+- **Datenexport:** `GesundheitseintragExportDto.GewichtKg`, Art „Gewicht“. Die Kontolöschung greift wie bei den übrigen Einträgen. Die Druckansicht zeigt keine Gesundheit und bleibt unverändert.
 
 ## Erinnerungen
 

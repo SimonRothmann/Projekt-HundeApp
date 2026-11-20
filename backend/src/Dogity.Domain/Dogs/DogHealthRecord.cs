@@ -10,7 +10,10 @@ public enum DogHealthKind
 
     /// <summary>Ein Tierarzttermin - der einzige Eintrag mit Uhrzeit und ohne Fälligkeit.</summary>
     VetAppointment,
-    Other
+    Other,
+
+    /// <summary>Eine Wägung - kein Merkzettel mit Frist, sondern ein Punkt auf der Gewichtskurve.</summary>
+    Weight
 }
 
 /// <summary>
@@ -48,6 +51,9 @@ public class DogHealthRecord : Entity
     /// Am Tag selbst gilt der Schutz noch. Beim Tierarzttermin immer leer.
     /// </summary>
     public DateOnly? DueDate { get; set; }
+
+    /// <summary>Gewicht in kg, eine Nachkommastelle; nur bei <see cref="DogHealthKind.Weight"/> (dort Pflicht), sonst null.</summary>
+    public decimal? WeightKg { get; set; }
 
     public string? Note { get; set; }
 

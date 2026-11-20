@@ -107,7 +107,7 @@ public record TrainingspauseExportDto(
 /// Parasitenschutz, Tierarzttermin oder Sonstiges. Daten über das Tier, die Besitzer:innen
 /// selbst eingetragen haben.
 /// </summary>
-/// <param name="Art">"Impfung", "Entwurmung", "Parasitenschutz", "Tierarzttermin" oder "Sonstiges".</param>
+/// <param name="Art">"Impfung", "Entwurmung", "Parasitenschutz", "Tierarzttermin", "Gewicht" oder "Sonstiges".</param>
 /// <param name="Datum">Gegeben am bzw. Tag des Termins.</param>
 /// <param name="GueltigBis">Gültig bis bzw. nächste fällig; beim Tierarzttermin leer.</param>
 public record GesundheitseintragExportDto(
@@ -118,7 +118,8 @@ public record GesundheitseintragExportDto(
     TimeOnly? Uhrzeit,
     DateOnly? GueltigBis,
     string? Notiz,
-    DateTimeOffset AngelegtAm);
+    DateTimeOffset AngelegtAm,
+    decimal? GewichtKg = null);
 
 /// <summary>
 /// Ein Eintrag auf dem Merkzettel eines meiner Hunde ("das machen wir nächstes Training"), den ich selbst gemerkt

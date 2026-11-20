@@ -12,7 +12,7 @@ namespace Dogity.Application.Dogs;
 public static class DogHealthQueries
 {
     public static DogHealthRecordDto ToDto(DogHealthRecord r, bool aktuell) =>
-        new(r.Id, r.Kind, r.Title, r.Date, r.Time, r.DueDate, r.Note, aktuell);
+        new(r.Id, r.Kind, r.Title, r.Date, r.Time, r.DueDate, r.Note, aktuell, r.WeightKg);
 
     public static async Task<Dictionary<Guid, DogHealthSummaryDto>> HealthSummariesAsync(
         this IApplicationDbContext db, IReadOnlyCollection<Guid> dogIds, DateOnly heute, CancellationToken ct = default)

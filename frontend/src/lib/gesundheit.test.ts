@@ -41,6 +41,7 @@ function eintrag(teil: Partial<DogHealthRecord> = {}): DogHealthRecord {
     time: null,
     dueDate: "2029-01-01",
     note: null,
+    weightKg: null,
     isCurrent: true,
     ...teil,
   };

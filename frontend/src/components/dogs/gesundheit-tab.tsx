@@ -20,6 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GewichtSection } from "@/components/dogs/gewicht-section";
 import { PausenSection } from "@/components/dogs/pausen-section";
 import {
   ARTEN,
@@ -156,6 +157,8 @@ export function GesundheitTab({ dog, aktiv, onChanged }: { dog: Dog; aktiv: bool
           <PausenSection dog={dog} onChanged={onChanged} sofortNeu />
         </Zuklappbar>
       </div>
+
+      {eintraege !== null && <GewichtSection dog={dog} eintraege={eintraege} onChanged={nachAenderung} />}
 
       {ladefehler && eintraege === null ? (
         <div className="flex flex-wrap items-center justify-between gap-2">

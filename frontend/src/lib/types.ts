@@ -45,6 +45,7 @@ export const GESUNDHEIT_ART = {
   Parasitenschutz: 2,
   Tierarzttermin: 3,
   Sonstiges: 4,
+  Gewicht: 5,
 } as const;
 
 export type GesundheitsArt = (typeof GESUNDHEIT_ART)[keyof typeof GESUNDHEIT_ART];
@@ -71,6 +72,8 @@ export type DogHealthRecord = {
   /** Gültig bis bzw. nächste fällig (YYYY-MM-DD, einschließlich); beim Tierarzttermin null. */
   dueDate: string | null;
   note: string | null;
+  /** Gewicht in kg; nur bei Art Gewicht, sonst null. */
+  weightKg: number | null;
   /** Gehört zu "Aktuell" (der jüngste je Art und Titel, bei Terminen: heute oder später); sonst Verlauf. */
   isCurrent: boolean;
 };

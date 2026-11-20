@@ -54,6 +54,7 @@ export const ART_TEXT: Record<GesundheitsArt, string> = {
   [GESUNDHEIT_ART.Parasitenschutz]: uebersetzbar("Parasitenschutz"),
   [GESUNDHEIT_ART.Tierarzttermin]: uebersetzbar("Tierarzttermin"),
   [GESUNDHEIT_ART.Sonstiges]: uebersetzbar("Sonstiges"),
+  [GESUNDHEIT_ART.Gewicht]: uebersetzbar("Gewicht"),
 };
 
 /** Überschrift je Art im Bereich "Aktuell" (Mehrzahl). */
@@ -63,9 +64,10 @@ export const ART_UEBERSCHRIFT: Record<GesundheitsArt, string> = {
   [GESUNDHEIT_ART.Parasitenschutz]: uebersetzbar("Parasitenschutz"),
   [GESUNDHEIT_ART.Tierarzttermin]: uebersetzbar("Tierarzttermine"),
   [GESUNDHEIT_ART.Sonstiges]: uebersetzbar("Sonstiges"),
+  [GESUNDHEIT_ART.Gewicht]: uebersetzbar("Gewicht"),
 };
 
-/** Die Arten in der Reihenfolge der Auswahl und der Liste. */
+/** Die Arten in der Reihenfolge der Auswahl und der Liste. Das Gewicht hat seinen eigenen Abschnitt (lib/gewicht.ts). */
 export const ARTEN: readonly GesundheitsArt[] = [
   GESUNDHEIT_ART.Impfung,
   GESUNDHEIT_ART.Entwurmung,
@@ -90,6 +92,7 @@ export const TITEL_VORSCHLAEGE: Record<GesundheitsArt, string[]> = {
   [GESUNDHEIT_ART.Parasitenschutz]: [uebersetzbar("Zecken und Flöhe")],
   [GESUNDHEIT_ART.Tierarzttermin]: [uebersetzbar("Kontrolle"), uebersetzbar("Impfung"), uebersetzbar("Untersuchung")],
   [GESUNDHEIT_ART.Sonstiges]: [],
+  [GESUNDHEIT_ART.Gewicht]: [],
 };
 
 /** Der Titel, der nach einem Wechsel der Art vorbelegt wird, solange noch nichts getippt wurde. */
@@ -278,7 +281,7 @@ export function gliedere(eintraege: readonly DogHealthRecord[]): { aktuell: Grup
       .filter((e) => e.isCurrent && e.kind === art)
       .sort((a, b) => (art === GESUNDHEIT_ART.Tierarzttermin ? a.date.localeCompare(b.date) : (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"))),
   })).filter((g) => g.eintraege.length > 0);
-  const verlauf = eintraege.filter((e) => !e.isCurrent).sort((a, b) => b.date.localeCompare(a.date));
+  const verlauf = eintraege.filter((e) => !e.isCurrent && e.kind !== GESUNDHEIT_ART.Gewicht).sort((a, b) => b.date.localeCompare(a.date));
   return { aktuell, verlauf };
 }
 

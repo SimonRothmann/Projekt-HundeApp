@@ -14,6 +14,8 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
     private const int MaxJahreZurueck = 25;
     private const int MaxJahreVoraus = 2;
     private const int MaxFristJahre = 10;
+    private const decimal MinGewichtKg = 0.5m;
+    private const decimal MaxGewichtKg = 150m;
 
     public async Task<Result<IReadOnlyList<DogHealthRecordDto>>> GetAsync(Guid userId, Guid dogId, CancellationToken ct = default)
     {
@@ -88,10 +90,12 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
     private static void Uebernehme(DogHealthRecord eintrag, SaveDogHealthRecordRequest request)
     {
         eintrag.Kind = request.Kind;
-        eintrag.Title = request.Title.Trim();
+        var gewicht = request.Kind == DogHealthKind.Weight;
+        eintrag.Title = gewicht ? Textlaengen.GewichtTitel : request.Title.Trim();
         eintrag.Date = request.Date;
         eintrag.Time = request.Time;
         eintrag.DueDate = request.DueDate;
+        eintrag.WeightKg = gewicht ? decimal.Round(request.WeightKg!.Value, 1) : null;
         eintrag.Note = Texte.NullIfBlank(request.Note);
     }
 
@@ -114,11 +118,22 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
         if (!Enum.IsDefined(request.Kind))
             return "Bitte eine Art für den Eintrag wählen.";
 
-        if (string.IsNullOrWhiteSpace(request.Title))
+        var istGewicht = request.Kind == DogHealthKind.Weight;
+        if (!istGewicht && string.IsNullOrWhiteSpace(request.Title))
             return "Bitte einen Titel angeben.";
-        var zuLang = Textlaengen.ZuLang(request.Title, Textlaengen.GesundheitTitel, "Der Titel")
+        var zuLang = (istGewicht ? null : Textlaengen.ZuLang(request.Title, Textlaengen.GesundheitTitel, "Der Titel"))
             ?? Textlaengen.ZuLang(request.Note, Textlaengen.GesundheitNotiz, "Die Notiz");
         if (zuLang is not null) return zuLang;
+
+        if (istGewicht)
+        {
+            if (request.WeightKg is not { } kg)
+                return "Bitte ein Gewicht angeben.";
+            if (kg < MinGewichtKg || kg > MaxGewichtKg)
+                return "Das Gewicht muss zwischen 0,5 und 150 kg liegen.";
+            if (request.Time is not null || request.DueDate is not null)
+                return "Ein Gewichtseintrag hat weder Uhrzeit noch Ablaufdatum.";
+        }
 
         var heute = Heute();
         if (request.Date < heute.AddYears(-MaxJahreZurueck) || request.Date > heute.AddYears(MaxJahreVoraus))
