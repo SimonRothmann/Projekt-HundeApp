@@ -99,13 +99,27 @@ export function fehlerAusAntwort(body: unknown, status: number): string[] {
   return [`HTTP ${status}`];
 }
 
-export const TOKEN_KEY = "dogity_token";
+// Die Schlüssel der Anmeldung liegen in HttpOnly-Cookies (von der API gesetzt, hier nie lesbar); der
+// Browser schickt sie mit `credentials: "include"` mit. Im localStorage steht nur, was kein Geheimnis ist.
 export const USER_KEY = "dogity_user";
+/** Bis wann der Access-Token laut API gilt (ISO-Zeit): Daran erkennt das Vorab-Erneuern den Ablauf. */
+export const ZUGRIFF_BIS_KEY = "dogity_zugriff_bis";
+/** Gesetzt, solange ein Abmelden den Server noch nicht erreicht hat (offline); der nächste Start holt es nach. */
+export const ABGEMELDET_KEY = "dogity_abgemeldet";
+// Die alten Ablageorte der Schlüssel. Nur noch zum Übernehmen und Löschen bestehender Sitzungen
+// (siehe erneuereMitCookie); nichts schreibt sie mehr.
+export const TOKEN_KEY = "dogity_token";
 export const REFRESH_KEY = "dogity_refresh";
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+/** Kopf, den die API bei ändernden Anfragen mit Cookies verlangt (siehe backend KopfBeiCookies). */
+const ANFRAGE_KOPF = { "X-Dogity": "1" };
+
+function angemeldet(): boolean {
+  return typeof window !== "undefined" && window.localStorage.getItem(USER_KEY) !== null;
+}
+
+function zugriffBis(): string | null {
+  return window.localStorage.getItem(ZUGRIFF_BIS_KEY);
 }
 
 // Läuft gerade eine GPS-Aufzeichnung, wartet die Abmeldung, bis sie endet.
@@ -132,7 +146,7 @@ export function aufzeichnungBeendet() {
   }
 }
 
-// Räumt eine ungültig gewordene Session auf (abgelaufenes/invalides JWT und
+// Räumt eine ungültig gewordene Session auf (abgelaufener Access-Token und
 // toter Refresh-Token) und schickt zum Login. Ohne das bleibt die App nach
 // Tokenablauf in einem kaputten Zustand stecken (alte Nutzerdaten im State,
 // jeder weitere Request schlägt mit 401 fehl) - Nutzer empfinden das als
@@ -146,6 +160,7 @@ function handleExpiredSession() {
   window.localStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
   window.localStorage.removeItem(REFRESH_KEY);
+  window.localStorage.removeItem(ZUGRIFF_BIS_KEY);
   if (!window.location.pathname.startsWith("/login")) {
     // Der harte Seitenwechsel ist hier der Zweck, nicht ein Versehen.
     //
@@ -168,7 +183,7 @@ function handleExpiredSession() {
 // Erkennung des Backends auslösen und den Nutzer fälschlich ausloggen.
 /**
  * Ausgang einer Token-Erneuerung.
- * - "erneuert": neuer Token liegt im localStorage bereit.
+ * - "erneuert": der Server hat neue Cookies gesetzt, `ZUGRIFF_BIS_KEY` ist aktualisiert.
  * - "abgelaufen": der Server kennt die Sitzung nicht mehr - abmelden.
  * - "unerreichbar": Netz weg, Drosselung (429) oder Serverfehler. Die Sitzung
  *   kann noch gültig sein; abmelden wäre hier falsch.
@@ -177,36 +192,42 @@ type Erneuerung = "erneuert" | "abgelaufen" | "unerreichbar";
 
 let refreshInFlight: Promise<Erneuerung> | null = null;
 
-// Browserweite Sperre: Alle Tabs und Fenster teilen sich localStorage und
-// damit den Refresh-Token. Die Single-Flight oben gilt nur je Tab - ohne die
-// Sperre erneuerten zwei Tabs gleichzeitig mit demselben Token.
+// Browserweite Sperre: Alle Tabs und Fenster teilen sich die Cookies und damit den
+// Refresh-Token. Die Single-Flight oben gilt nur je Tab - ohne die Sperre
+// erneuerten zwei Tabs gleichzeitig mit demselben Token, und die
+// Wiederverwendungs-Erkennung des Servers widerriefe alle Sitzungen.
 const ERNEUERUNGS_SPERRE = "dogity-token-erneuern";
 
 // Erneuert höchstens einmal je Token über alle Tabs: Wer die Sperre bekommt,
-// liest den Refresh-Token neu. Hat ein anderer Tab ihn inzwischen ersetzt, liegt
-// auch der neue Access-Token schon im localStorage - dann nicht zum Server.
+// liest den Stand von `ZUGRIFF_BIS_KEY` neu. Hat ein anderer Tab ihn inzwischen
+// geändert, ist schon erneuert - dann nicht zum Server.
 // Ohne Web Locks (alter Browser) bleibt es bei der Erneuerung je Tab.
 async function tryRefreshToken(): Promise<Erneuerung> {
-  if (typeof navigator === "undefined" || !navigator.locks) return erneuereMitGespeichertemToken();
-  const vorher = window.localStorage.getItem(REFRESH_KEY);
+  if (typeof navigator === "undefined" || !navigator.locks) return erneuereMitCookie();
+  const vorher = zugriffBis();
   return navigator.locks.request(ERNEUERUNGS_SPERRE, async () => {
-    const jetzt = window.localStorage.getItem(REFRESH_KEY);
-    if (vorher && jetzt && jetzt !== vorher) return "erneuert";
-    return erneuereMitGespeichertemToken();
+    const jetzt = zugriffBis();
+    if (jetzt && jetzt !== vorher) return "erneuert";
+    return erneuereMitCookie();
   });
 }
 
-// Holt mit dem gespeicherten Refresh-Token einen neuen Access-Token. Bewusst
-// ein roher fetch (nicht request()), damit ein 401 hier NICHT rekursiv wieder
-// einen Refresh anstößt.
-async function erneuereMitGespeichertemToken(): Promise<Erneuerung> {
-  const refreshToken = window.localStorage.getItem(REFRESH_KEY);
-  if (!refreshToken) return "abgelaufen";
+// Lässt den Server den Refresh-Token aus dem Cookie erneuern. Bewusst ein roher fetch (nicht
+// request()), damit ein 401 hier NICHT rekursiv wieder einen Refresh anstößt.
+//
+// Übernahme bestehender Sitzungen: Liegt der Refresh-Token noch im localStorage (Anmeldung aus der
+// Zeit vor den Cookies), geht er einmal im Rumpf mit; die Antwort setzt dann die Cookies, und die
+// alten Schlüssel werden gelöscht. Der Rumpf-Weg kann nach einigen Wochen entfallen (TODO.md).
+async function erneuereMitCookie(): Promise<Erneuerung> {
+  // Hat ein anderer Tab inzwischen abgemeldet, gibt es nichts mehr zu erneuern.
+  if (!angemeldet()) return "abgelaufen";
+  const alterToken = window.localStorage.getItem(REFRESH_KEY);
   try {
     const res = await fetch(`${resolveApiUrl()}/api/auth/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...ANFRAGE_KOPF },
+      body: JSON.stringify(alterToken ? { refreshToken: alterToken } : {}),
     });
     // Nur ein ausdrückliches "kenne ich nicht" beendet die Sitzung. Vorher
     // tat das JEDE Ablehnung - auch ein 429, wenn die Drosselung der
@@ -215,9 +236,10 @@ async function erneuereMitGespeichertemToken(): Promise<Erneuerung> {
     // gültig war.
     if (res.status === 401 || res.status === 400) return "abgelaufen";
     if (!res.ok) return "unerreichbar";
-    const data = (await res.json()) as { token: string; refreshToken: string };
-    window.localStorage.setItem(TOKEN_KEY, data.token);
-    window.localStorage.setItem(REFRESH_KEY, data.refreshToken);
+    const data = (await res.json()) as { accessExpiresAt: string };
+    window.localStorage.setItem(ZUGRIFF_BIS_KEY, data.accessExpiresAt);
+    window.localStorage.removeItem(TOKEN_KEY);
+    window.localStorage.removeItem(REFRESH_KEY);
     return "erneuert";
   } catch {
     // Netzwerkfehler (offline): kein Logout - der ursprüngliche Aufruf läuft
@@ -227,7 +249,41 @@ async function erneuereMitGespeichertemToken(): Promise<Erneuerung> {
 }
 
 /**
- * Ein Aufruf inklusive Token und Token-Erneuerung - liefert die rohe Antwort.
+ * Sagt dem Server, dass dieses Gerät sich abmeldet: Er widerruft den Refresh-Token aus dem Cookie und
+ * löscht beide Cookies. Gelingt es nicht (offline), bleibt `ABGEMELDET_KEY` gesetzt, und der nächste
+ * Start holt es mit abmeldungNachholen() nach.
+ */
+export async function abmeldungSenden(): Promise<void> {
+  try {
+    window.localStorage.setItem(ABGEMELDET_KEY, "1");
+    const res = await fetch(`${resolveApiUrl()}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...ANFRAGE_KOPF },
+      body: "{}",
+    });
+    if (res.ok) window.localStorage.removeItem(ABGEMELDET_KEY);
+  } catch {
+    // Offline: Der Merker bleibt.
+  }
+}
+
+/** Beim Start vor allem anderen: Eine offline begonnene Abmeldung dem Server jetzt mitteilen. */
+export async function abmeldungNachholen(): Promise<void> {
+  if (window.localStorage.getItem(ABGEMELDET_KEY)) await abmeldungSenden();
+}
+
+/**
+ * Ob der Access-Token laut `ZUGRIFF_BIS_KEY` abgelaufen ist (oder in den nächsten 10 s abläuft). Ohne
+ * lesbare Zeit = nein: Dann bleibt es beim Weg über das 401.
+ */
+export function zugriffAbgelaufen(bis: string | null, jetztMs = Date.now()): boolean {
+  const ms = bis ? Date.parse(bis) : NaN;
+  return !Number.isNaN(ms) && ms < jetztMs + 10_000;
+}
+
+/**
+ * Ein Aufruf inklusive Cookies und Token-Erneuerung - liefert die rohe Antwort.
  *
  * Getrennt von request(), weil nicht jeder Aufruf einen JSON-Rumpf auswertet:
  * der bedingte Abruf der Hundebilder lebt gerade davon, dass der Server mit
@@ -236,36 +292,25 @@ async function erneuereMitGespeichertemToken(): Promise<Erneuerung> {
  * und zwei Kopien davon würden mit demselben Refresh-Token rotieren und die
  * Wiederverwendungserkennung des Backends auslösen.
  */
-/**
- * Ob der Access-Token laut seinem `exp` abgelaufen ist (oder in den nächsten 10 s abläuft). Nicht lesbar
- * = nein: Dann bleibt es beim Weg über das 401.
- */
-export function tokenAbgelaufen(token: string, jetztMs = Date.now()): boolean {
-  try {
-    const nutzlast = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-    return typeof nutzlast.exp === "number" && nutzlast.exp * 1000 < jetztMs + 10_000;
-  } catch {
-    return false;
-  }
-}
-
 async function send(path: string, init?: RequestInit, isRetry = false): Promise<Response> {
-  let token = getToken();
+  const istAngemeldet = angemeldet();
   // Nach einer Pause ist der Access-Token meist abgelaufen: gleich erneuern, statt jeden Abruf der
-  // Seite erst in ein 401 laufen zu lassen (eine Rundreise mehr je Seitenaufruf).
-  if (token && !isRetry && tokenAbgelaufen(token)) {
+  // Seite erst in ein 401 laufen zu lassen (eine Rundreise mehr je Seitenaufruf). Ebenso, solange der
+  // Refresh-Token noch im localStorage liegt: Das ist die Übernahme einer Sitzung aus der Zeit vor den Cookies.
+  if (istAngemeldet && !isRetry && (window.localStorage.getItem(REFRESH_KEY) || zugriffAbgelaufen(zugriffBis()))) {
     refreshInFlight ??= tryRefreshToken().finally(() => {
       refreshInFlight = null;
     });
-    if ((await refreshInFlight) === "erneuert") token = getToken();
+    await refreshInFlight;
   }
+  const bisVorher = zugriffBis();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...ANFRAGE_KOPF,
     ...(init?.headers as Record<string, string> | undefined),
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${resolveApiUrl()}${path}`, { ...init, headers });
+  const res = await fetch(`${resolveApiUrl()}${path}`, { ...init, headers, credentials: "include" });
 
   // Antwortet der Proxy während einer Wartung, zeigt die App das Banner "Wartung läuft".
   // Ausgewertet wird nur, ändert nichts am Weg der Antwort: Die Offline-Warteschlange
@@ -273,17 +318,17 @@ async function send(path: string, init?: RequestInit, isRetry = false): Promise<
   // der Proxy sie mit Access-Control-Expose-Headers freigibt.
   wartungMelden(res.status, res.headers.get(WARTUNGS_KOPFZEILE));
 
-  // 401 mit vorhandenem Token = abgelaufener Access-Token: EINMAL versuchen,
+  // 401 bei angemeldeter Person = abgelaufener Access-Token: EINMAL versuchen,
   // ihn per Refresh-Token zu erneuern und den Request zu wiederholen. Erst
   // wenn auch das scheitert, wird die Session aufgeräumt. (Ein 401 ohne
-  // Token - z.B. falsches Passwort beim Login - ist dagegen eine normale
+  // Anmeldung - z.B. falsches Passwort beim Login - ist dagegen eine normale
   // Formular-Fehlermeldung und löst keinen Refresh aus.)
-  if (res.status === 401 && token && !isRetry) {
+  if (res.status === 401 && istAngemeldet && !isRetry) {
     // Hat inzwischen jemand erneuert (eine Erneuerung in diesem Tab, die
-    // schon fertig ist, oder ein anderer Tab), liegt ein neuer Access-Token
-    // bereit: nur wiederholen. Eine weitere Erneuerung wäre unnötig - jede
+    // schon fertig ist, oder ein anderer Tab), gelten schon neue Cookies:
+    // nur wiederholen. Eine weitere Erneuerung wäre unnötig - jede
     // ist eine Gelegenheit, dass ihre Antwort verloren geht.
-    if (getToken() !== token) return send(path, init, true);
+    if (zugriffBis() !== bisVorher) return send(path, init, true);
     refreshInFlight ??= tryRefreshToken().finally(() => {
       refreshInFlight = null;
     });
@@ -337,7 +382,7 @@ export const api = {
    *
    * Gebraucht für die Hundeprofilbilder: Die wiegen als Data-URI rund 64 KB
    * und lassen sich vom Browser nicht zwischenspeichern (eigene Herkunft,
-   * Authorization-Kopfzeile, JSON-Rumpf). Ohne den bedingten Abruf lud jede
+   * Anmelde-Cookie, JSON-Rumpf). Ohne den bedingten Abruf lud jede
    * Liste, in der ein Hund vorkommt, sein Bild bei jedem Aufbau erneut.
    */
   getConditional: async <T>(path: string, etag: string | null): Promise<BedingteAntwort<T>> => {

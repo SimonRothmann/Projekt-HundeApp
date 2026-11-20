@@ -391,7 +391,8 @@ Ausgelöst durch die Nutzerfrage "wie verhindern wir, dass Nutzer, die 3x/Woche 
 
 ### Zurückgestellt (Nice-to-have, bewusst NICHT auf der Roadmap)
 
-- Cookie-Auth + Refresh-Token-Rotation (JWT-Härtung Stufe 2): bricht `api.ts`, 401-Handling, Offline-Queue und Dev-CORS gleichzeitig - erst vor einer öffentlichen Beta mit Fremdnutzern angehen. CSP + SecurityStamp senken das Risiko bis dahin ausreichend.
+- ~~Cookie-Auth + Refresh-Token-Rotation (JWT-Härtung Stufe 2)~~ - erledigt (Paket CA1): Die Schlüssel liegen in HttpOnly-Cookies, siehe docs/BETRIEB.md "Wo die Anmelde-Schlüssel liegen".
+- Rumpf-Weg bei `POST /api/auth/refresh` entfernen (ab ca. Januar 2027): Er übernimmt nur noch Sitzungen, deren Refresh-Token vor CA1 im localStorage lag (`RefreshTokenRequest.RefreshToken`, Übernahme in `api.ts`, Rumpf-Token bei `PUT /api/profile/password`).
 - ~~Test-Env von `Development` auf eigenes `Staging`-Environment umstellen~~ - erledigt 1.0: `ASPNETCORE_ENVIRONMENT=Staging`, Demo-Seeder über `Demo__Aktiv`, CORS auf `TEST_DOMAIN`, kein Swagger.
 - PDF-Export: Druckansicht `/dogs/[id]/print` + Browser-Print deckt den Bedarf.
 - ~~Exercises-Endpoint-Query-Parameter~~ - erledigt 2026-10-16 (siehe Performance-Backlog oben).

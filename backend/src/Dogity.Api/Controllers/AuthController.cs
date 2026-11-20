@@ -28,6 +28,7 @@ public class AuthController(
     GastkontoService gastkonten,
     IFrontendLinks frontendLinks,
     AnmeldeDrossel anmeldeDrossel,
+    AnmeldeCookies cookies,
     TimeProvider timeProvider,
     ILogger<AuthController> logger) : ControllerBase
 {
@@ -175,31 +176,41 @@ public class AuthController(
 
     [HttpPost("refresh")]
     [EnableRateLimiting("refresh")]
-    public async Task<ActionResult<AuthResponse>> Refresh(RefreshTokenRequest request)
+    public async Task<ActionResult<AuthResponse>> Refresh(RefreshTokenRequest? request)
     {
         // Rotation: der vorgelegte Refresh-Token wird entwertet und ein neuer
         // ausgestellt. Bei Wiedervorlage eines bereits verbrauchten Tokens
         // widerruft der Service alle Tokens des Nutzers (Reuse-Erkennung); bei
         // gelöschtem oder gesperrtem Konto verweigert er die Erneuerung.
-        var rotation = await refreshTokens.RefreshAsync(request.RefreshToken);
+        // Der Rumpf-Weg gilt nur für Sitzungen aus der Zeit vor den Cookies und kann
+        // entfallen (TODO.md); sonst kommt der Token aus dem Cookie.
+        var vorgelegt = LiesRefreshToken(request);
+        var rotation = string.IsNullOrEmpty(vorgelegt) ? new RefreshRotationResult(false) : await refreshTokens.RefreshAsync(vorgelegt);
         var user = rotation.Succeeded ? await userManager.FindByIdAsync(rotation.UserId.ToString()) : null;
         if (user is null)
             return Unauthorized(new { errors = new[] { "Sitzung abgelaufen. Bitte neu anmelden." } });
         var roles = await userManager.GetRolesAsync(user);
         var accessToken = jwtTokenGenerator.GenerateToken(user.Id, user.Email!, roles.ToArray());
-        return Ok(new AuthResponse(accessToken, rotation.NewRawToken!, user.Id, user.Email!, user.FirstName, user.LastName, roles.ToArray()));
+        var bis = cookies.Setze(Response, accessToken, rotation.NewRawToken!);
+        return Ok(new AuthResponse(user.Id, user.Email!, user.FirstName, user.LastName, roles.ToArray(), bis));
     }
 
     [HttpPost("logout")]
     [EnableRateLimiting("refresh")]
-    public async Task<IActionResult> Logout(RefreshTokenRequest request)
+    public async Task<IActionResult> Logout(RefreshTokenRequest? request)
     {
         // Nur den Refresh-Token dieses Geräts widerrufen - andere Sitzungen
         // (weitere Geräte) bleiben bestehen. Kein Auth nötig: der Besitz des
         // Tokens genügt, und ein ungültiger Token ist einfach ein No-Op.
-        await refreshTokens.RevokeAsync(request.RefreshToken);
+        var vorgelegt = LiesRefreshToken(request);
+        if (!string.IsNullOrEmpty(vorgelegt))
+            await refreshTokens.RevokeAsync(vorgelegt);
+        cookies.Loesche(Response);
         return NoContent();
     }
+
+    private string? LiesRefreshToken(RefreshTokenRequest? request) =>
+        !string.IsNullOrEmpty(request?.RefreshToken) ? request.RefreshToken : Request.Cookies[AnmeldeCookies.Erneuerung];
 
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
@@ -250,6 +261,7 @@ public class AuthController(
         var roleArray = roles.ToArray();
         var token = jwtTokenGenerator.GenerateToken(user.Id, user.Email!, roleArray);
         var refreshToken = await refreshTokens.IssueAsync(user.Id);
-        return new AuthResponse(token, refreshToken, user.Id, user.Email!, user.FirstName, user.LastName, roleArray);
+        var bis = cookies.Setze(Response, token, refreshToken);
+        return new AuthResponse(user.Id, user.Email!, user.FirstName, user.LastName, roleArray, bis);
     }
 }

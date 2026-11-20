@@ -18,11 +18,22 @@ public class FakeRefreshTokenService : IRefreshTokenService
     public Task<RefreshRotationResult> RotateAsync(string rawToken, CancellationToken ct = default)
         => Task.FromResult(new RefreshRotationResult(false));
 
+    /// <summary>Was RefreshAsync antwortet, und welchen Roh-Token es zuletzt vorgelegt bekam.</summary>
+    public RefreshRotationResult RefreshErgebnis { get; set; } = new(false);
+    public string? ZuletztVorgelegt { get; private set; }
+    public List<string> Widerrufen { get; } = [];
+
     public Task<RefreshRotationResult> RefreshAsync(string rawToken, CancellationToken ct = default)
-        => Task.FromResult(new RefreshRotationResult(false));
+    {
+        ZuletztVorgelegt = rawToken;
+        return Task.FromResult(RefreshErgebnis);
+    }
 
     public Task RevokeAsync(string rawToken, CancellationToken ct = default)
-        => Task.CompletedTask;
+    {
+        Widerrufen.Add(rawToken);
+        return Task.CompletedTask;
+    }
 
     public Task RevokeAllForUserAsync(Guid userId, CancellationToken ct = default)
     {

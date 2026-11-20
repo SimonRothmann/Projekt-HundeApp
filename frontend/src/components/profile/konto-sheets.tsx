@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
-import { api, ApiError, REFRESH_KEY } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useT } from "@/lib/i18n";
 import type { Profile } from "@/lib/types";
@@ -205,13 +205,9 @@ function PasswortFormular({ onSchliessen }: { onSchliessen: () => void }) {
     e.preventDefault();
     setSpeichert(true);
     try {
-      // Der Refresh-Token dieses Geräts geht mit: Alle ANDEREN Sitzungen
-      // enden mit dem Wechsel, diese bleibt bestehen.
-      await api.put("/api/profile/password", {
-        currentPassword,
-        newPassword,
-        refreshToken: window.localStorage.getItem(REFRESH_KEY),
-      });
+      // Alle ANDEREN Sitzungen enden mit dem Wechsel, diese bleibt bestehen:
+      // Der Server gibt diesem Gerät dafür einen neuen Refresh-Token (Cookie).
+      await api.put("/api/profile/password", { currentPassword, newPassword });
       toast.success(t("Passwort geändert. Andere Geräte wurden abgemeldet."));
       onSchliessen();
     } catch (err) {

@@ -148,6 +148,13 @@ public static class DependencyInjection
                 // und der Admin darf es nicht gesperrt haben (siehe KontoStatus).
                 options.Events = new JwtBearerEvents
                 {
+                    // Ohne Authorization-Kopf gilt der Access-Token aus dem Cookie (das Frontend
+                    // schickt keinen Kopf mehr); der Kopf bleibt für Tests und Übergang erlaubt.
+                    OnMessageReceived = context =>
+                    {
+                        context.Token = AnmeldeCookies.ZugriffstokenAusCookie(context.Request);
+                        return Task.CompletedTask;
+                    },
                     OnTokenValidated = async context =>
                     {
                         var id = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);

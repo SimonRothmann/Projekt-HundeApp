@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { REFRESH_KEY, TOKEN_KEY, USER_KEY } from "@/lib/api";
+import { ABGEMELDET_KEY, REFRESH_KEY, TOKEN_KEY, USER_KEY, ZUGRIFF_BIS_KEY } from "@/lib/api";
 import type { AuthResponse } from "@/lib/types";
 
 // Meldet sich jemand anderes an als zuletzt, dürfen Zwischenspeicher und Push der vorigen Person
@@ -17,7 +17,7 @@ import { sitzungSpeichern } from "@/lib/sitzung";
 let werte: Map<string, string>;
 
 function antwort(userId: string): AuthResponse {
-  return { token: `jwt-${userId}`, refreshToken: `refresh-${userId}`, userId, email: `${userId}@example.org`, firstName: "Ida", lastName: "Test", roles: ["User"] };
+  return { userId, email: `${userId}@example.org`, firstName: "Ida", lastName: "Test", roles: ["User"], accessExpiresAt: `bis-${userId}` };
 }
 
 beforeEach(() => {
@@ -38,22 +38,31 @@ afterEach(() => {
 });
 
 describe("sitzungSpeichern", () => {
-  it("legt Token und Nutzer ab und gibt den Nutzer ohne Token zurück", async () => {
+  it("legt Nutzer und Ablaufzeit ab und gibt den Nutzer ohne Ablaufzeit zurück", async () => {
     const nutzer = await sitzungSpeichern(antwort("a"));
 
     expect(nutzer).toEqual({ userId: "a", email: "a@example.org", firstName: "Ida", lastName: "Test", roles: ["User"] });
-    expect(werte.get(TOKEN_KEY)).toBe("jwt-a");
-    expect(werte.get(REFRESH_KEY)).toBe("refresh-a");
+    expect(werte.get(ZUGRIFF_BIS_KEY)).toBe("bis-a");
     expect(JSON.parse(werte.get(USER_KEY)!)).toEqual(nutzer);
+  });
+
+  it("räumt alte Schlüssel und einen offenen Abmelde-Merker der vorigen Sitzung weg", async () => {
+    werte.set(TOKEN_KEY, "alt");
+    werte.set(REFRESH_KEY, "alt");
+    werte.set(ABGEMELDET_KEY, "1");
+
+    await sitzungSpeichern(antwort("a"));
+
+    expect([...werte.keys()].sort()).toEqual(["dogity_letzte_person", USER_KEY, ZUGRIFF_BIS_KEY].sort());
   });
 
   it("leert bei einer anderen Person Zwischenspeicher und Push, vor dem Ablegen der neuen Sitzung", async () => {
     await sitzungSpeichern(antwort("a"));
     leseCacheLeeren.mockClear();
     pushLokalLoesen.mockClear();
-    let tokenBeimLeeren: string | undefined;
+    let ablaufBeimLeeren: string | undefined;
     leseCacheLeeren.mockImplementationOnce(async () => {
-      tokenBeimLeeren = werte.get(TOKEN_KEY);
+      ablaufBeimLeeren = werte.get(ZUGRIFF_BIS_KEY);
     });
 
     await sitzungSpeichern(antwort("b"));
@@ -61,8 +70,8 @@ describe("sitzungSpeichern", () => {
     expect(leseCacheLeeren).toHaveBeenCalledOnce();
     expect(pushLokalLoesen).toHaveBeenCalledOnce();
     // Abgewartet, bevor die neue Sitzung gilt: die ersten Seiten lesen den Speicher erst danach.
-    expect(tokenBeimLeeren).toBe("jwt-a");
-    expect(werte.get(TOKEN_KEY)).toBe("jwt-b");
+    expect(ablaufBeimLeeren).toBe("bis-a");
+    expect(werte.get(ZUGRIFF_BIS_KEY)).toBe("bis-b");
   });
 
   it("lässt bei derselben Person alles stehen (abgelaufene Sitzung, erneute Anmeldung)", async () => {
@@ -98,6 +107,6 @@ describe("sitzungSpeichern", () => {
     await sitzungSpeichern(antwort("a"));
 
     expect(leseCacheLeeren).toHaveBeenCalledTimes(2);
-    expect(werte.get(TOKEN_KEY)).toBe("jwt-a");
+    expect(werte.get(ZUGRIFF_BIS_KEY)).toBe("bis-a");
   });
 });

@@ -115,6 +115,12 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // Zähler je E-Mail-Adresse für die Anmeldung, siehe AnmeldeDrossel.
 builder.Services.AddSingleton(_ => new AnmeldeDrossel());
 
+// Die Anmelde-Cookies (Namen und Attribute an einer Stelle), siehe AnmeldeCookies.
+builder.Services.AddSingleton(sp => new AnmeldeCookies(
+    !builder.Environment.IsDevelopment(),
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<JwtSettings>>(),
+    sp.GetRequiredService<TimeProvider>()));
+
 // IP-basiertes Rate-Limit für die anonymen Auth-Endpoints (Login, Register,
 // Forgot-Password): Identity-Lockout schützt nur pro Konto - ohne Drosselung
 // pro IP bleiben Passwort-Spraying über viele Konten, Massenregistrierung
@@ -260,6 +266,10 @@ builder.Services.AddCors(options =>
         // Browser deckeln den Wert selbst (Chrome zwei Stunden, Safari kürzer).
         policy.SetPreflightMaxAge(TimeSpan.FromHours(2));
 
+        // Die Anmeldung liegt in Cookies: Der Browser schickt sie nur mit, wenn die Antwort
+        // der API Anmeldedaten ausdrücklich erlaubt (AllowAnyHeader deckt X-Dogity ab).
+        policy.AllowCredentials();
+
         if (builder.Environment.IsDevelopment())
         {
             // Bewusst permissiv in Development: erlaubt z.B. das Testen von
@@ -361,6 +371,9 @@ app.UseHttpsRedirection();
 // Drossel-Richtlinien hängen am Endpunkt (EnableRateLimiting) und brauchen nur
 // das Routing, das vorher implizit läuft - die Reihenfolge ändert daran nichts.
 app.UseCors("Frontend");
+
+// Nach CORS, damit die 403 die Freigabe-Kopfzeilen trägt (siehe KopfBeiCookies).
+app.UseKopfBeiCookies();
 
 app.UseRateLimiter();
 

@@ -1,4 +1,4 @@
-import { REFRESH_KEY, TOKEN_KEY, USER_KEY } from "@/lib/api";
+import { ABGEMELDET_KEY, REFRESH_KEY, TOKEN_KEY, USER_KEY, ZUGRIFF_BIS_KEY } from "@/lib/api";
 import { pushLokalLoesen } from "@/lib/push";
 import { leseCacheLeeren } from "@/lib/read-cache";
 import type { AuthResponse } from "@/lib/types";
@@ -17,7 +17,7 @@ function letztePerson(): string | null {
 }
 
 /**
- * Hält eine neue Anmeldung auf dem Gerät fest (Token, Nutzer) und räumt auf, wenn jemand
+ * Hält eine neue Anmeldung auf dem Gerät fest (Nutzer, Ablaufzeit; die Schlüssel setzt der Server als Cookies) und räumt auf, wenn jemand
  * anderes als zuletzt kommt. Herausgelöst aus dem AuthProvider, damit der Personenwechsel
  * ohne React testbar ist.
  */
@@ -46,8 +46,12 @@ export async function sitzungSpeichern(response: AuthResponse): Promise<AuthUser
     lastName: response.lastName,
     roles: response.roles,
   };
-  window.localStorage.setItem(TOKEN_KEY, response.token);
-  window.localStorage.setItem(REFRESH_KEY, response.refreshToken);
+  window.localStorage.setItem(ZUGRIFF_BIS_KEY, response.accessExpiresAt);
   window.localStorage.setItem(USER_KEY, JSON.stringify(authUser));
+  // Die neue Anmeldung gilt: ein noch offenes Abmelden von vorhin darf sie nicht beim nächsten Start beenden,
+  // und Schlüssel aus der Zeit vor den Cookies sind überholt.
+  window.localStorage.removeItem(ABGEMELDET_KEY);
+  window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_KEY);
   return authUser;
 }

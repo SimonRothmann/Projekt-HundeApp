@@ -66,7 +66,7 @@ export function DogAvatar({
         // spart die rund 64 KB, die ein Profilbild als Data-URI wiegt - und
         // zwar bei JEDEM Aufbau jeder Liste, in der der Hund vorkommt.
         // Zwischenspeichern kann der Browser die Antwort nicht selbst: eigene
-        // Herkunft, Authorization-Kopfzeile, JSON-Rumpf.
+        // Herkunft, Anmelde-Cookie, JSON-Rumpf.
         const antwort = await api.getConditional<{ dataUrl: string }>(
           `/api/dogs/${dogId}/image`,
           cached?.etag ?? null,

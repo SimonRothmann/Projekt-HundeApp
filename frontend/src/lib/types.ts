@@ -1,14 +1,12 @@
 export type AuthResponse = {
-  token: string;
-  // Langlebiger Refresh-Token: der Client holt damit lautlos einen neuen
-  // Access-Token (token), wenn dieser abläuft - so bleibt man eingeloggt,
-  // ohne sich neu anmelden zu müssen (siehe api.ts, Roadmap 6).
-  refreshToken: string;
   userId: string;
   email: string;
   firstName: string;
   lastName: string;
   roles: string[];
+  // Bis wann der Access-Token gilt (ISO-Zeit). Die Schlüssel selbst liegen in HttpOnly-Cookies und
+  // kommen nie im Rumpf an; das Frontend erneuert damit vorab (siehe api.ts).
+  accessExpiresAt: string;
 };
 
 export type DogGender = 0 | 1; // 0 = Male, 1 = Female (siehe Domain.Dogs.DogGender)

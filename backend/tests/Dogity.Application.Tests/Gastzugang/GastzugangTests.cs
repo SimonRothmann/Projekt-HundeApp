@@ -17,11 +17,13 @@ using Dogity.Infrastructure.Email;
 using Dogity.Infrastructure.Identity;
 using Dogity.Infrastructure.Persistence;
 using Dogity.Infrastructure.Persistence.Seed;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Dogity.Application.Tests.Gastzugang;
 
@@ -152,12 +154,17 @@ public class GastzugangTests
         var controller = new AuthController(
             sp.GetRequiredService<UserManager<ApplicationUser>>(), null!, new TestJwt(), new FakeRefreshTokenService(), null!,
             sp.GetRequiredService<Application.Preferences.IPreferenceService>(), sp.GetRequiredService<GastkontoService>(),
-            sp.GetRequiredService<IFrontendLinks>(), new AnmeldeDrossel(), TimeProvider.System, NullLogger<AuthController>.Instance);
+            sp.GetRequiredService<IFrontendLinks>(), new AnmeldeDrossel(), new AnmeldeCookies(true, Options.Create(new JwtSettings()), TimeProvider.System), TimeProvider.System, NullLogger<AuthController>.Instance)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
 
         var antwort = Assert.IsType<OkObjectResult>((await controller.Guest(new GuestRequest("de"), default)).Result);
         var auth = Assert.IsType<AuthResponse>(antwort.Value);
-        Assert.False(string.IsNullOrEmpty(auth.Token));
-        Assert.False(string.IsNullOrEmpty(auth.RefreshToken));
+        // Die Schlüssel stehen in den Cookies, nicht im Rumpf (Einzelheiten: AnmeldeCookiesTests).
+        var cookies = controller.Response.Headers.SetCookie.ToString();
+        Assert.Contains($"{AnmeldeCookies.Zugriff}=jwt-", cookies);
+        Assert.Contains($"{AnmeldeCookies.Erneuerung}=fake-refresh-", cookies);
         Assert.Contains(Roles.Trainer, auth.Roles);
 
         // Obergrenze: Sind schon so viele Gast-Vereine aktiv, wird kein weiterer Gast angelegt.
@@ -178,7 +185,10 @@ public class GastzugangTests
         var controller = new AuthController(
             sp.GetRequiredService<UserManager<ApplicationUser>>(), null!, new TestJwt(), new FakeRefreshTokenService(), null!,
             sp.GetRequiredService<Application.Preferences.IPreferenceService>(), sp.GetRequiredService<GastkontoService>(),
-            sp.GetRequiredService<IFrontendLinks>(), new AnmeldeDrossel(), TimeProvider.System, NullLogger<AuthController>.Instance);
+            sp.GetRequiredService<IFrontendLinks>(), new AnmeldeDrossel(), new AnmeldeCookies(true, Options.Create(new JwtSettings()), TimeProvider.System), TimeProvider.System, NullLogger<AuthController>.Instance)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
         var admin = sp.GetRequiredService<IAdminService>();
 
         Assert.Equal(new AdminGastzugangDto(0, 0, 0, 0), (await admin.GetStatsAsync()).Value!.Gastzugang);

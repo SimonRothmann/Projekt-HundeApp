@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api, aufzeichnungBeendet, aufzeichnungGestartet, REFRESH_KEY, TOKEN_KEY } from "@/lib/api";
+import { api, aufzeichnungBeendet, aufzeichnungGestartet, USER_KEY, ZUGRIFF_BIS_KEY } from "@/lib/api";
 
 // Die Glocke fragt auch während einer Aufzeichnung jede Minute beim Server
 // nach. Läuft dabei die Sitzung ab, darf die Weiterleitung zur Anmeldung die
@@ -10,8 +10,8 @@ let ort: { protocol: string; hostname: string; pathname: string; href: string };
 
 beforeEach(() => {
   werte = new Map([
-    [TOKEN_KEY, "abgelaufenes-jwt"],
-    [REFRESH_KEY, "widerrufener-refresh-token"],
+    [USER_KEY, "{}"],
+    [ZUGRIFF_BIS_KEY, "2020-01-01T00:00:00.000Z"],
   ]);
   ort = { protocol: "http:", hostname: "localhost", pathname: "/dogs/hund-1", href: "http://localhost/dogs/hund-1" };
   vi.stubGlobal("window", {
@@ -38,7 +38,7 @@ describe("Abgelaufene Sitzung", () => {
   it("leitet ohne Aufzeichnung sofort zur Anmeldung", async () => {
     await api.get("/api/notifications/unread-count").catch(() => {});
     expect(ort.href).toBe("/login");
-    expect(werte.has(TOKEN_KEY)).toBe(false);
+    expect(werte.has(USER_KEY)).toBe(false);
   });
 
   it("wartet während einer Aufzeichnung, bis sie endet", async () => {
@@ -48,7 +48,7 @@ describe("Abgelaufene Sitzung", () => {
 
     aufzeichnungBeendet();
     expect(ort.href).toBe("/login");
-    expect(werte.has(TOKEN_KEY)).toBe(false);
+    expect(werte.has(USER_KEY)).toBe(false);
   });
 
   it("leitet nach dem Beenden nicht weiter, wenn die Sitzung in Ordnung war", () => {

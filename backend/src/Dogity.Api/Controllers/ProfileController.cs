@@ -22,6 +22,7 @@ public class ProfileController(
     SignInManager<ApplicationUser> signInManager,
     IAccountDataService accountData,
     IRefreshTokenService refreshTokens,
+    AnmeldeCookies cookies,
     KontoStatus kontoStatus) : ApiControllerBase
 {
     /// <summary>
@@ -120,7 +121,18 @@ public class ProfileController(
 
         // Alle anderen Geräte abmelden. Wer das Passwort wechselt, weil es
         // jemand mitbekommen hat, will genau das - und sonst schadet es nicht.
-        await refreshTokens.RevokeAllExceptAsync(user.Id, request.RefreshToken, ct);
+        // Der Refresh-Token dieses Geräts liegt im Cookie und geht nur an /api/auth, nicht hierher:
+        // Alle widerrufen und diesem Gerät einen neuen geben. Den Rumpf-Token kennen nur noch
+        // Sitzungen aus der Zeit vor den Cookies.
+        if (!string.IsNullOrEmpty(request.RefreshToken))
+        {
+            await refreshTokens.RevokeAllExceptAsync(user.Id, request.RefreshToken, ct);
+        }
+        else
+        {
+            await refreshTokens.RevokeAllForUserAsync(user.Id, ct);
+            cookies.SetzeErneuerung(Response, await refreshTokens.IssueAsync(user.Id, ct));
+        }
         return NoContent();
     }
 

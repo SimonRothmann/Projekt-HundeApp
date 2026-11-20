@@ -130,6 +130,7 @@ export const EN: Record<string, string> = {
   "Als App installieren – für die beste Erfahrung offline.": "Install as an app – for the best experience offline.",
   "Als Trainer:in betreuen": "Take on as trainer",
   "Alter: {alter}": "Age: {alter}",
+  "Anfrage abgelehnt. Bitte die App neu laden.": "Request rejected. Please reload the app.",
   "Anfrage ausstehend": "Request pending",
   "Anfrage fehlgeschlagen.": "Request failed.",
   "Anfrage stellen – der Verein gibt sie frei.": "Send a request – the club approves it.",

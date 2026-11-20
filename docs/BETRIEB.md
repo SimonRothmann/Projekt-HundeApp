@@ -109,6 +109,28 @@ Leer ist der Normalfall. Etwas gefunden heißt: der Browser hat eine
 Ressource blockiert, die die Seite braucht - dann gehört die Regel in
 `next.config.ts` angepasst und neu ausgerollt.
 
+**Wo die Anmelde-Schlüssel liegen**
+
+Die Anmeldung läuft über zwei Cookies, die die API setzt (`AnmeldeCookies`, ohne
+Domain-Attribut, also je Host getrennt; Secure immer außer in Development):
+
+| Cookie | Inhalt | Attribute |
+| --- | --- | --- |
+| `dogity_at` | Access-Token (JWT) | HttpOnly, SameSite=Lax, Path=/, Laufzeit wie das JWT |
+| `dogity_rt` | Refresh-Token | HttpOnly, SameSite=Strict, Path=/api/auth, Laufzeit wie der Refresh-Token |
+
+Der Antwort-Rumpf von Anmeldung, Registrierung, Gastzugang und Erneuerung enthält
+keine Schlüssel, nur die Nutzerdaten und `accessExpiresAt` (fürs Vorab-Erneuern
+im Frontend). Das Frontend schickt jeden Aufruf mit `credentials: "include"` und
+dem Kopf `X-Dogity: 1`; ändernde Anfragen mit Cookie und ohne diesen Kopf (und
+ohne Authorization-Kopf) beantwortet die API mit 403. Ein Authorization-Kopf
+bleibt erlaubt. Im localStorage stehen nur noch `dogity_user` und die Ablaufzeit.
+
+Übergang: Sitzungen aus der Zeit davor (`dogity_refresh` im localStorage) werden
+bei der ersten Anfrage übernommen - `refresh` nimmt den Token einmal im Rumpf an,
+setzt die Cookies, das Frontend löscht die alten Schlüssel. Dieser Weg kann nach
+einigen Wochen entfallen (TODO.md).
+
 **Abmeldungen nachvollziehen**
 
 Seit Fassung 0.49 schreibt das Backend jede Anmeldung und jede abgelehnte

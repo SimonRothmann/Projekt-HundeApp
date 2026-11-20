@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { sportartenCacheLeeren } from "@/lib/sportarten";
-import { api, ApiError, REFRESH_KEY, TOKEN_KEY, USER_KEY } from "@/lib/api";
+import { abmeldungNachholen, abmeldungSenden, api, ApiError, REFRESH_KEY, TOKEN_KEY, USER_KEY, ZUGRIFF_BIS_KEY } from "@/lib/api";
 import { alleSicherungenLoeschen } from "@/lib/aufzeichnung-sicherung";
 import { loescheGesehen } from "@/lib/feedback-gesehen";
 import { abrufFaellig } from "@/lib/glocke";
@@ -56,15 +56,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
-    const storedUser = window.localStorage.getItem(USER_KEY);
-    const storedToken = window.localStorage.getItem(TOKEN_KEY);
-    if (storedUser && storedToken) {
-      // Einmaliges Auslesen von localStorage beim Mount (externe Quelle) - keine
-      // Render-Kaskade, da isLoading im selben Effect-Durchlauf gesetzt wird.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Eine offline begonnene Abmeldung geht dem Server zuerst zu: Sonst widerriefe sie später eine
+    // neue Anmeldung. Angemeldet ist, wer seine Nutzerdaten hier hat (die Schlüssel liegen in Cookies).
+    abmeldungNachholen().finally(() => {
+      const storedUser = window.localStorage.getItem(USER_KEY);
+      if (storedUser) setUser(JSON.parse(storedUser));
+      setIsLoading(false);
+    });
   }, []);
 
   useEffect(() => {
@@ -209,18 +207,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // evtl. noch kopierter Token nach dem Logout wertlos ist. Fire-and-forget:
     // der lokale Logout darf nicht an einem Netzwerkfehler hängen.
     // Das Gerät gehört danach niemandem mehr: Push für diese Person hier beenden.
-    // VOR dem Löschen des Tokens, die Anfrage liest ihn sofort (siehe
+    // VOR dem Abmelden beim Server, die Anfrage braucht noch die Cookies (siehe
     // pushBeimAbmeldenEntfernen).
     pushBeimAbmeldenEntfernen();
-    const refreshToken = window.localStorage.getItem(REFRESH_KEY);
-    if (refreshToken) {
-      api.post("/api/auth/logout", { refreshToken }).catch(() => {
-        // Offline/Fehler: lokaler Logout genügt, der Token läuft ohnehin ab.
-      });
-    }
+    // Der Server widerruft den Token aus dem Cookie und löscht die Cookies. Offline bleibt ein Merker,
+    // und der nächste Start holt es nach.
+    void abmeldungSenden();
     window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(USER_KEY);
     window.localStorage.removeItem(REFRESH_KEY);
+    window.localStorage.removeItem(ZUGRIFF_BIS_KEY);
     alleSicherungenLoeschen();
     // Die gemerkte Prüfung vom Start gehört zur Person, nicht zum Gerät.
     loescheStartPo();

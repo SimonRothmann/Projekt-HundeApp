@@ -16,7 +16,15 @@ public record RegisterRequest(string Email, string Password, string FirstName, s
 /// <param name="Locale">Die Oberflächensprache ("de"/"en"), wie bei <see cref="RegisterRequest"/>.</param>
 public record GuestRequest(string? Locale = null);
 public record LoginRequest(string Email, string Password);
-public record AuthResponse(string Token, string RefreshToken, Guid UserId, string Email, string FirstName, string LastName, string[] Roles);
+/// <summary>
+/// Die Schlüssel stehen nicht im Rumpf, sondern in HttpOnly-Cookies (siehe AnmeldeCookies).
+/// <paramref name="AccessExpiresAt"/> verrät dem Frontend nur, wann es vorab erneuern soll.
+/// </summary>
+public record AuthResponse(Guid UserId, string Email, string FirstName, string LastName, string[] Roles, DateTimeOffset AccessExpiresAt);
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Email, string Token, string NewPassword);
-public record RefreshTokenRequest(string RefreshToken);
+/// <summary>
+/// Der Refresh-Token kommt aus dem Cookie. Der Rumpf-Weg gilt nur für Sitzungen, die noch im
+/// localStorage liegen (Übernahme, siehe TODO.md).
+/// </summary>
+public record RefreshTokenRequest(string? RefreshToken = null);
