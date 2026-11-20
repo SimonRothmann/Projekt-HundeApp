@@ -2,12 +2,24 @@
 
 import { useEffect, useRef, useState } from "react";
 import { kurzeHaptik } from "@/lib/haptik";
-import type { GpsMarkerType, GpsPoint, GpsTrack } from "@/lib/types";
+import type { Goal, GpsMarkerType, GpsPoint, GpsTrack } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
-import { Cookie, MapPin, MapPinPlus, Package, Undo2, Waypoints } from "lucide-react";
+import { Check, Cookie, MapPin, MapPinPlus, Package, Undo2, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { api } from "@/lib/api";
+import { usePreferences } from "@/lib/preferences-context";
+import {
+  FAEHRTE_LEITFAEDEN,
+  leitfadenFortschritt,
+  leitfadenGemerkt,
+  leitfadenMerken,
+  leitfadenNachId,
+  leitfadenZeile,
+  vorgabeLeitfaden,
+} from "@/lib/faehrte-leitfaden";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   faehrtenSchluessel,
   sicherungAnzeigen,
@@ -19,7 +31,7 @@ import {
   type FaehrtenSicherung,
 } from "@/lib/aufzeichnung-sicherung";
 import { BODENZUSTAENDE, TRAIL_UNTERGRUENDE, UNTERGRUENDE, untergrundUmschalten } from "@/lib/untergrund";
-import { automatischePunkte, markerPunkte, PUNKT_AUTOMATISCH, PUNKT_MARKER } from "@/lib/geo";
+import { automatischePunkte, estimateLengthMeters, markerPunkte, PUNKT_AUTOMATISCH, PUNKT_MARKER } from "@/lib/geo";
 import { ABLAUF_FRIST_STUNDEN_TRAIL } from "@/lib/faehrte";
 import { LEERE_TRAIL_ANGABEN, type TrailAngabenVorLegen } from "@/lib/mantrailing";
 import { TrailLegenFormular } from "@/components/tracking/trail-angaben";
@@ -67,6 +79,8 @@ const TRAIL_MARKER = [{ value: 3, label: uebersetzbar("Marker"), icon: MapPinPlu
 // So lange nach dem Setzen eines Markers bietet die Aufzeichnung "Zurücknehmen" an. Länger wäre der
 // Knopf im Weg, kürzer erwischte er den Fehlgriff nicht: Zwischen Tippen und Merken liegen ein paar Sekunden.
 const ZURUECKNEHMEN_MS = 10_000;
+
+const KEIN_LEITFADEN = "keiner";
 
 /**
  * Direkter Einstiegspunkt für die GPS-Fährtenaufzeichnung, ohne vorher ein
@@ -117,6 +131,25 @@ export function FahrteRecorder({
   // Aufzeichnung aber das, was sie war.
   const [trailModus, setTrailModus] = useState(mantrailing);
   const [trailAngaben, setTrailAngaben] = useState<TrailAngabenVorLegen>(LEERE_TRAIL_ANGABEN);
+  // Leitfaden (Paket FL1): "undefined" = nicht gewählt, dann gilt die Vorgabe (aktives Ziel, sonst die
+  // zuletzt gewählte Stufe dieses Hundes auf diesem Gerät); null = ausdrücklich keiner.
+  const [leitfadenWahl, setLeitfadenWahl] = useState<string | null | undefined>(undefined);
+  const [ziele, setZiele] = useState<Pick<Goal, "status" | "regulationName" | "targetDate">[]>([]);
+  const [gemerkt, setGemerkt] = useState<string | null>(null);
+  const { preferences } = usePreferences();
+  useEffect(() => {
+    if (mantrailing) return;
+    // Gemerkte Stufe aus dem localStorage (externe Quelle), nur beim Mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGemerkt(leitfadenGemerkt(dogId));
+    // Ohne Ziele fehlt nur die Vorbelegung.
+    api.get<Goal[]>(`/api/goals?dogId=${dogId}`).then(setZiele, () => {});
+  }, [dogId, mantrailing]);
+  const leitfaden = trailModus
+    ? null
+    : leitfadenWahl !== undefined
+      ? leitfadenNachId(leitfadenWahl)
+      : vorgabeLeitfaden(ziele, gemerkt);
   const markerArten = trailModus ? TRAIL_MARKER : MARKER_TYPES;
   const untergruende = trailModus ? TRAIL_UNTERGRUENDE : UNTERGRUENDE;
   const [isMarking, setIsMarking] = useState(false);
@@ -185,6 +218,7 @@ export function FahrteRecorder({
   });
 
   function startRecording() {
+    if (!trailModus) leitfadenMerken(dogId, leitfaden?.id ?? null);
     medien.starten();
     laufendRef.current = { trackId: crypto.randomUUID(), begonnen: Date.now(), seite: window.location.pathname };
     setZuruecknehmbar(null);
@@ -197,6 +231,7 @@ export function FahrteRecorder({
     setUntergrund(gesichert.untergrund);
     setBodenzustand(gesichert.bodenzustand ?? []);
     setZuruecknehmbar(null);
+    setLeitfadenWahl(leitfadenGemerkt(dogId));
     setTrailModus(gesichert.trail != null);
     setTrailAngaben(gesichert.trail ?? LEERE_TRAIL_ANGABEN);
     setUnterbrochen(null);
@@ -330,6 +365,14 @@ export function FahrteRecorder({
 
   const autoPunkte = automatischePunkte(points).length;
   const markerAnzahl = markerPunkte(points).length;
+  const fortschritt = leitfaden
+    ? leitfadenFortschritt(
+        leitfaden,
+        estimateLengthMeters(points),
+        preferences.stepLengthCm,
+        markerPunkte(points).filter((p) => p.markerType === 0).length,
+      )
+    : null;
 
   // Nicht am Aufzeichnen: Untergrund wählen und starten. Die Hundeseite zeigt
   // das im Fenster "Fährte legen" (Titel und Rahmen kommen von dort).
@@ -441,6 +484,30 @@ export function FahrteRecorder({
                 </div>
               </div>
             )}
+            {!trailModus && (
+              <div className="flex flex-col gap-2">
+                <span id="fahrte-leitfaden" className="text-sm font-medium">
+                  {t("Leitfaden (optional)")}
+                </span>
+                <Select
+                  value={leitfaden?.id ?? KEIN_LEITFADEN}
+                  onValueChange={(v) => setLeitfadenWahl(v && v !== KEIN_LEITFADEN ? v : null)}
+                >
+                  <SelectTrigger aria-labelledby="fahrte-leitfaden">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={KEIN_LEITFADEN}>{t("Keiner")}</SelectItem>
+                    {FAEHRTE_LEITFAEDEN.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {leitfaden && <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{leitfadenZeile(leitfaden, t)}</p>}
+              </div>
+            )}
             {trailModus && <TrailLegenFormular werte={trailAngaben} onChange={setTrailAngaben} />}
             <label className="flex min-h-11 items-start gap-3 text-sm">
               <input
@@ -503,6 +570,17 @@ export function FahrteRecorder({
         // abgeschnitten zu werden ("Leckerlipot" muss man draußen ganz lesen
         // können); min-h-16 hält die Tippfläche bei jedem Umbruch >= 44 px.
         // hyphens-auto: Bei 375 px brach "Gegenstand" sonst ohne Strich mitten im Wort um ("Gegenstan|d").
+        <>
+        {leitfaden && fortschritt && (
+          <p className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm tabular-nums">
+            <FortschrittTeil erreicht={fortschritt.schritteErreicht}>
+              {t("≈ {ist} / {soll} Schritte", { ist: fortschritt.schritteIst, soll: leitfaden.schritte })}
+            </FortschrittTeil>
+            <FortschrittTeil erreicht={fortschritt.gegenstaendeErreicht}>
+              {t("Gegenstände {ist} / {soll}", { ist: fortschritt.gegenstaendeIst, soll: leitfaden.gegenstaende })}
+            </FortschrittTeil>
+          </p>
+        )}
         <div className={cn("grid gap-2", trailModus ? "grid-cols-1" : "grid-cols-4")}>
           {markerArten.map((markerArt) => (
             <Button
@@ -518,6 +596,7 @@ export function FahrteRecorder({
             </Button>
           ))}
         </div>
+        </>
       }
       abschlussLabel={t("Legen beenden")}
       abschlussFrage={trailModus ? t("Legen beenden und den Trail speichern?") : t("Legen beenden und die Fährte speichern?")}
@@ -541,5 +620,15 @@ export function FahrteRecorder({
         </div>
       )}
     </AufzeichnungVollbild>
+  );
+}
+
+/** Ziel erreicht: Häkchen und Erfolgsfarbe - das Symbol trägt es auch ohne Farbe. */
+function FortschrittTeil({ erreicht, children }: { erreicht: boolean; children: React.ReactNode }) {
+  return (
+    <span className={cn("inline-flex items-center gap-1", erreicht && "font-medium text-erfolg-text")}>
+      {erreicht && <Check className="size-4 shrink-0" aria-hidden />}
+      {children}
+    </span>
   );
 }

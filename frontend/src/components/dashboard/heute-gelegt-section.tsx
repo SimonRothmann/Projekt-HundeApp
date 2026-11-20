@@ -1,6 +1,7 @@
 "use client";
 
-import { Footprints } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Footprints } from "lucide-react";
 import type { Dog } from "@/lib/types";
 import { tageSeitLegen, type OffeneFaehrte } from "@/lib/faehrte";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { ortsformat } from "@/lib/ortsformat";
 import { datumKurz } from "@/lib/pruefung";
 import { heuteIso } from "@/lib/kalendertag";
 import { useSchritte } from "@/lib/use-schritte";
+import { leitfadenGemerkt, leitfadenNachId, liegezeitRest } from "@/lib/faehrte-leitfaden";
 
 export type FaehrteMitHund = OffeneFaehrte & { hund: Dog };
 
@@ -81,6 +83,7 @@ export function HeuteGelegtSection({
                   <span className="text-2xl font-bold tabular-nums">{alterMinutenText(f.alterMinuten, t)}</span>
                   <span className="text-sm text-muted-foreground">{istMantrailing(f.track) ? t("Trailalter") : t("Fährtenalter")}</span>
                 </p>
+                {!istMantrailing(f.track) && <LiegezeitZeile dogId={f.hund.id} alterMinuten={f.alterMinuten} />}
                 {(f.track.lengthMeters || f.track.surface) && (
                   <p className="text-sm text-muted-foreground">
                     {[
@@ -107,5 +110,31 @@ export function HeuteGelegtSection({
         );
       })}
     </section>
+  );
+}
+
+/** Zur beim Legen gewählten Stufe (nur auf diesem Gerät gemerkt): ist die Mindest-Liegezeit schon um? */
+function LiegezeitZeile({ dogId, alterMinuten }: { dogId: string; alterMinuten: number }) {
+  const t = useT();
+  const [stufe, setStufe] = useState<string | null>(null);
+  useEffect(() => {
+    // Gemerkte Stufe aus dem localStorage (externe Quelle).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStufe(leitfadenGemerkt(dogId));
+  }, [dogId]);
+  const leitfaden = leitfadenNachId(stufe);
+  if (!leitfaden) return null;
+  const rest = liegezeitRest(leitfaden, alterMinuten);
+  return (
+    <p className={rest === 0 ? "flex items-center gap-1 text-sm font-medium text-erfolg-text" : "text-sm text-muted-foreground"}>
+      {rest === 0 ? (
+        <>
+          <Check className="size-4 shrink-0" aria-hidden />
+          {t("{stufe}: Liegezeit erreicht", { stufe: leitfaden.name })}
+        </>
+      ) : (
+        t("{stufe}: noch {rest}", { stufe: leitfaden.name, rest: alterMinutenText(rest, t) })
+      )}
+    </p>
   );
 }
