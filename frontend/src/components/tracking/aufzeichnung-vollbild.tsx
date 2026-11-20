@@ -33,6 +33,7 @@ import { useT } from "@/lib/i18n";
 export function AufzeichnungVollbild({
   titel,
   status,
+  statusZusatz,
   aktionen,
   abschlussLabel,
   abschlussFrage,
@@ -43,6 +44,8 @@ export function AufzeichnungVollbild({
   titel: string;
   /** Kurze Statuszeile, z.B. GPS-Genauigkeit und Punktzahl. */
   status?: React.ReactNode;
+  /** Zweite Zeile unter dem Status, bricht um: bleibt auch bei Sperre sichtbar (die Bedienleiste wird verdeckt). */
+  statusZusatz?: React.ReactNode;
   /** Zusätzliche Knöpfe über dem Abschluss, z.B. Marker setzen. */
   aktionen?: React.ReactNode;
   abschlussLabel: string;
@@ -146,6 +149,7 @@ export function AufzeichnungVollbild({
         <div className="flex min-w-0 flex-col">
           <span className="truncate text-sm font-semibold">{titel}</span>
           {status && <span className="truncate text-xs text-muted-foreground">{status}</span>}
+          {statusZusatz && <span className="text-xs text-muted-foreground">{statusZusatz}</span>}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={sperren}>

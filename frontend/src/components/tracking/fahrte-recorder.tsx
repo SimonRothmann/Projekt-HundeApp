@@ -563,6 +563,18 @@ export function FahrteRecorder({
           )}
         </>
       }
+      statusZusatz={
+        leitfaden && fortschritt && (
+          <span className="flex flex-wrap gap-x-3 gap-y-0.5 tabular-nums">
+            <FortschrittTeil erreicht={fortschritt.schritteErreicht}>
+              {t("≈ {ist} / {soll} Schritte", { ist: fortschritt.schritteIst, soll: leitfaden.schritte })}
+            </FortschrittTeil>
+            <FortschrittTeil erreicht={fortschritt.gegenstaendeErreicht}>
+              {t("Gegenstände {ist} / {soll}", { ist: fortschritt.gegenstaendeIst, soll: leitfaden.gegenstaende })}
+            </FortschrittTeil>
+          </span>
+        )
+      }
       aktionen={
         // Ein Knopf je Markerart, nebeneinander im Daumenbereich. h-16 statt
         // der üblichen Knopfhöhe: Das Ziel muss mit einer Hand, im Stehen,
@@ -570,17 +582,6 @@ export function FahrteRecorder({
         // abgeschnitten zu werden ("Leckerlipot" muss man draußen ganz lesen
         // können); min-h-16 hält die Tippfläche bei jedem Umbruch >= 44 px.
         // hyphens-auto: Bei 375 px brach "Gegenstand" sonst ohne Strich mitten im Wort um ("Gegenstan|d").
-        <>
-        {leitfaden && fortschritt && (
-          <p className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm tabular-nums">
-            <FortschrittTeil erreicht={fortschritt.schritteErreicht}>
-              {t("≈ {ist} / {soll} Schritte", { ist: fortschritt.schritteIst, soll: leitfaden.schritte })}
-            </FortschrittTeil>
-            <FortschrittTeil erreicht={fortschritt.gegenstaendeErreicht}>
-              {t("Gegenstände {ist} / {soll}", { ist: fortschritt.gegenstaendeIst, soll: leitfaden.gegenstaende })}
-            </FortschrittTeil>
-          </p>
-        )}
         <div className={cn("grid gap-2", trailModus ? "grid-cols-1" : "grid-cols-4")}>
           {markerArten.map((markerArt) => (
             <Button
@@ -596,7 +597,6 @@ export function FahrteRecorder({
             </Button>
           ))}
         </div>
-        </>
       }
       abschlussLabel={t("Legen beenden")}
       abschlussFrage={trailModus ? t("Legen beenden und den Trail speichern?") : t("Legen beenden und die Fährte speichern?")}
@@ -627,7 +627,7 @@ export function FahrteRecorder({
 function FortschrittTeil({ erreicht, children }: { erreicht: boolean; children: React.ReactNode }) {
   return (
     <span className={cn("inline-flex items-center gap-1", erreicht && "font-medium text-erfolg-text")}>
-      {erreicht && <Check className="size-4 shrink-0" aria-hidden />}
+      {erreicht && <Check className="size-3.5 shrink-0" aria-hidden />}
       {children}
     </span>
   );

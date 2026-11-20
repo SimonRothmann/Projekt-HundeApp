@@ -49,8 +49,8 @@ export function AktionenMenue({
       >
         <MoreHorizontal className="size-4" />
       </PopoverTrigger>
-      {/* Mindestens 14rem, längere Einträge („In andere Gruppe übernehmen“) machen das Menü breiter statt überzustehen. */}
-      <PopoverContent className="w-auto min-w-56 max-w-[calc(100vw-2rem)] p-1">
+      {/* Mindestens 14rem, längere Einträge („In andere Gruppe übernehmen“) machen das Menü breiter statt überzustehen, kürzere lassen es schmal (w-max statt Knopfbreite). */}
+      <PopoverContent className="w-max min-w-56 max-w-[calc(100vw-2rem)] p-1">
         {aktionen.map(({ label: text, icon: Icon, onSelect, destruktiv }) => (
           <Button
             key={text}
