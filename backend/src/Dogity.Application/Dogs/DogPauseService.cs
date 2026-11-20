@@ -26,7 +26,7 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
         if (!istBesitzer && !await db.HasDogAccessAsync(userId, dogId, ct))
             return Result<IReadOnlyList<DogPauseDto>>.NotFound("Hund nicht gefunden.");
 
-        var heute = Heute();
+        var heute = await db.HeuteAsync(userId, timeProvider, ct);
         var pausen = await db.DogPauses
             .Where(p => p.DogId == dogId && (istBesitzer || p.EndDate == null || p.EndDate >= heute))
             .OrderByDescending(p => p.StartDate)
@@ -42,7 +42,7 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
         if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result<DogPauseDto>.NotFound("Hund nicht gefunden.");
 
-        var fehler = await PruefeAsync(dogId, request, ignoriereId: null, ct);
+        var fehler = await PruefeAsync(userId, dogId, request, ignoriereId: null, ct);
         if (fehler is not null) return Result<DogPauseDto>.Failure(fehler);
 
         var pause = new DogPause
@@ -69,7 +69,7 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
         if (pause is null)
             return Result<DogPauseDto>.NotFound("Pause nicht gefunden.");
 
-        var fehler = await PruefeAsync(dogId, request, ignoriereId: pauseId, ct);
+        var fehler = await PruefeAsync(userId, dogId, request, ignoriereId: pauseId, ct);
         if (fehler is not null) return Result<DogPauseDto>.Failure(fehler);
 
         pause.Reason = request.Reason;
@@ -91,7 +91,7 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
         if (pause is null)
             return Result.NotFound("Pause nicht gefunden.");
 
-        var heute = Heute();
+        var heute = await db.HeuteAsync(userId, timeProvider, ct);
         if (pause.EndDate is { } ende && ende < heute)
             return Result.Failure("Diese Pause ist schon zu Ende.");
 
@@ -126,10 +126,8 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
         return Result.Success();
     }
 
-    private DateOnly Heute() => Vereinszeit.Tag(timeProvider.GetUtcNow());
-
     /// <summary>Die Fehlermeldung zur Eingabe, sonst null.</summary>
-    private async Task<string?> PruefeAsync(Guid dogId, SaveDogPauseRequest request, Guid? ignoriereId, CancellationToken ct)
+    private async Task<string?> PruefeAsync(Guid userId, Guid dogId, SaveDogPauseRequest request, Guid? ignoriereId, CancellationToken ct)
     {
         if (!Enum.IsDefined(request.Reason))
             return "Bitte einen Grund für die Pause wählen.";
@@ -141,7 +139,7 @@ public class DogPauseService(IApplicationDbContext db, TimeProvider timeProvider
                 return "Läufigkeit gibt es nur bei Hündinnen.";
         }
 
-        var heute = Heute();
+        var heute = await db.HeuteAsync(userId, timeProvider, ct);
         if (request.StartDate < heute.AddYears(-MaxJahreZurueck) || request.StartDate > heute.AddYears(MaxJahreVoraus))
             return "Der Beginn der Pause liegt zu weit entfernt.";
 

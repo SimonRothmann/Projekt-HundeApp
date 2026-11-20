@@ -2,7 +2,7 @@ import type { Goal, PauseZeitraum, TrainingPlanItem } from "@/lib/types";
 import type { Sprache } from "@/lib/i18n";
 import { katalogName } from "@/lib/katalog-name";
 import { tageBisPruefung } from "@/lib/pruefung";
-import { heuteIso, tageBis, vereinszeitTag } from "@/lib/kalendertag";
+import { heuteIso, tageBis } from "@/lib/kalendertag";
 import { pausentageZwischen } from "@/lib/pausen";
 
 /**
@@ -76,7 +76,7 @@ function planwocheAmTag(planBeginn: string, tag: string, pausen: readonly PauseZ
 }
 
 // Bestimmt die Trainingswoche an einem Kalendertag: Woche 1 beginnt mit dem Tag der
-// Plan-Erstellung (generatedAt, als Tag in Vereinszeit), jede weitere angebrochene 7-Tage-Woche
+// Plan-Erstellung (generatedAt, als Tag der Person in ihrer Gerätezone), jede weitere angebrochene 7-Tage-Woche
 // zählt eins hoch. Ergebnis wird auf die tatsächlich vorhandenen Wochennummern begrenzt (vor
 // Planstart -> erste Woche, nach Planende -> letzte Woche). Fällt auf die erste Woche zurück,
 // wenn kein/ungültiges Startdatum vorliegt.
@@ -99,7 +99,7 @@ function planwocheAmKalendertag(
   const start = generatedAt ? Date.parse(generatedAt) : NaN;
   if (Number.isNaN(start)) return weekNumbers[0];
 
-  const byDate = planwocheAmTag(vereinszeitTag(start), tag, pausen);
+  const byDate = planwocheAmTag(heuteIso(start), tag, pausen);
   const clamped = Math.min(Math.max(byDate, minWeek), maxWeek);
   // Bei (seltenen) Lücken die nächste vorhandene Wochennummer wählen.
   return weekNumbers.includes(clamped)
@@ -107,7 +107,7 @@ function planwocheAmKalendertag(
     : (weekNumbers.filter((n) => n >= clamped).sort((a, b) => a - b)[0] ?? maxWeek);
 }
 
-// Die laufende Woche: die Planwoche am heutigen Kalendertag (Vereinszeit, wie im Server).
+// Die laufende Woche: die Planwoche am heutigen Kalendertag der Person (Gerätezone, die der Server als Ortszeit nutzt).
 // Aus GoalPlanCard hierher gezogen, weil die Startseite ("Diese Woche") dieselbe Woche meinen
 // muss wie der Plan auf der Hundeseite.
 export function computeCurrentWeek(
@@ -116,7 +116,7 @@ export function computeCurrentWeek(
   jetzt: number = Date.now(),
   pausen?: readonly PauseZeitraum[],
 ): number | undefined {
-  return planwocheAmKalendertag(weeks, generatedAt, vereinszeitTag(jetzt), pausen);
+  return planwocheAmKalendertag(weeks, generatedAt, heuteIso(jetzt), pausen);
 }
 
 /**
@@ -166,10 +166,8 @@ function istZaehlbaresDatum(datum: string, jetzt: number): boolean {
  * Vor dem Planstart gibt es noch keine Woche; die Planwoche gäbe dort die
  * erste zurück und ein Training von vor dem Plan würde dieser zugerechnet.
  *
- * Die Planwoche rechnet in Vereinszeit (wie der Server), das Trainingsdatum und "heute"
- * (istZaehlbaresDatum) mit dem Gerätetag. Außerhalb von Mitteleuropa kann ein Training "von
- * heute" deshalb rund um den Wochenwechsel der Nachbarwoche zugerechnet werden; das gilt auch
- * für passendesPlanItem und gewaehltesPlanItem und ist so gewollt (Serverregel zählt).
+ * Planwoche, Trainingsdatum und "heute" rechnen alle im Tag der Person (Gerätezone, die der Server
+ * als Ortszeit der Person nutzt).
  */
 function tagInLaufenderWoche(
   goal: Goal,
@@ -178,7 +176,7 @@ function tagInLaufenderWoche(
 ): boolean {
   const generatedAt = goal.trainingPlan?.generatedAt;
   const start = generatedAt ? Date.parse(generatedAt) : NaN;
-  if (!Number.isNaN(start) && tag < vereinszeitTag(start)) return false;
+  if (!Number.isNaN(start) && tag < heuteIso(start)) return false;
   return planwocheAmKalendertag(laufend.wochen, generatedAt, tag, goal.planPausen) === laufend.woche;
 }
 

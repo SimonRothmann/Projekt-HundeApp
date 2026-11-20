@@ -93,7 +93,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
 
     public async Task<Result<TrainingSessionDto>> CreateAsync(Guid userId, CreateTrainingSessionRequest request, CancellationToken ct = default)
     {
-        var validationError = Validate(request, Vereinszeit.Tag(timeProvider.GetUtcNow()));
+        var validationError = Validate(request, await db.HeuteAsync(userId, timeProvider, ct));
         if (validationError is not null)
             return Result<TrainingSessionDto>.Failure(validationError);
 
@@ -465,7 +465,7 @@ public class TrainingService(IApplicationDbContext db, INotificationService noti
             return Result<TrainingSessionDto>.Failure("Datum ist erforderlich.");
         // Dieselbe Grenze wie beim Anlegen (Validate): sonst ließe sich ein
         // Training über das Verschieben doch in die Zukunft legen.
-        if (date > Vereinszeit.Tag(timeProvider.GetUtcNow()))
+        if (date > await db.HeuteAsync(userId, timeProvider, ct))
             return Result<TrainingSessionDto>.Failure("Das Datum darf nicht in der Zukunft liegen.");
 
         if (session.Date != date)

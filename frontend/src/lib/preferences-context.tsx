@@ -8,6 +8,7 @@ import { bestimmeSchriftgroesse, wendeSchriftgroesseAn } from "@/lib/schriftgroe
 import { wendeFarbsicherAn } from "@/lib/farbsicher";
 import { useAuth } from "@/lib/auth-context";
 import { VORGABE_STUNDE, VORGABE_TAGE } from "@/lib/erinnerungen";
+import { geraeteZeitzone, mussMelden } from "@/lib/zeitzone";
 
 /**
  * Die persönlichen Einstellungen an einer Stelle, damit nicht jede
@@ -42,6 +43,7 @@ const VORGABE: UserPreferences = {
   trainerSummaryHour: VORGABE_STUNDE,
   stepLengthCm: null,
   colorSafe: false,
+  timeZone: null,
 };
 
 const PreferencesContext = createContext<PreferencesValue | undefined>(undefined);
@@ -54,7 +56,19 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     try {
       // Über die Vorgabe gelegt: Fehlt dem Stand vom Server ein Feld (Wechsel zwischen zwei
       // Fassungen), gilt dort die Vorgabe statt "undefined".
-      setPreferences({ ...VORGABE, ...(await api.get<UserPreferences>("/api/preferences")) });
+      const geladen = { ...VORGABE, ...(await api.get<UserPreferences>("/api/preferences")) };
+      setPreferences(geladen);
+
+      // Die Zeitzone des Geräts melden, wenn sie vom Gespeicherten abweicht: Der Server rechnet "heute" und
+      // die Erinnerungszeiten der Person in ihr. Nur nach einem geglückten Abruf (sonst "abweichend" bei
+      // jedem Netzfehler) und still - offline oder bei einem Fehler klappt es beim nächsten Start.
+      const zone = geraeteZeitzone();
+      if (mussMelden(geladen.timeZone, zone)) {
+        api
+          .put("/api/preferences/time-zone", { timeZone: zone })
+          .then(() => setPreferences((p) => ({ ...p, timeZone: zone })))
+          .catch(() => {});
+      }
     } catch {
       // Einstellungen sind Beiwerk: Fällt der Abruf aus (offline, Serverfehler),
       // bleibt es bei "alles an" statt bei einer halben App.

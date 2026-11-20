@@ -108,6 +108,13 @@ public class UserPreference : Entity
     /// </summary>
     public bool ColorSafe { get; set; }
 
+    /// <summary>
+    /// Zeitzone des Geräts als IANA-Kennung ("America/New_York"), vom Frontend gemeldet. Null =
+    /// Vereinszeit (Europe/Berlin): Konten ohne Meldung rechnen wie bisher. "Heute", Wochen,
+    /// Erinnerungs- und Ruhezeiten zählen in dieser Zone (siehe Ortszeit).
+    /// </summary>
+    public string? TimeZone { get; set; }
+
     public ICollection<UserDisabledModule> DisabledModules { get; set; } = new List<UserDisabledModule>();
     public ICollection<UserSportSelection> Sports { get; set; } = new List<UserSportSelection>();
 }

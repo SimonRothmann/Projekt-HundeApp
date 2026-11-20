@@ -40,6 +40,12 @@ public interface IPreferenceService
     Task<Result> UpdateColorSafeAsync(Guid userId, UpdateColorSafeRequest request, CancellationToken ct = default);
 
     /// <summary>
+    /// Merkt sich die Zeitzone des Geräts (IANA-Kennung) - siehe <see cref="Dogity.Domain.Preferences.UserPreference.TimeZone"/>.
+    /// Unbekannte Kennungen werden abgelehnt; leer stellt die Vereinszeit wieder her.
+    /// </summary>
+    Task<Result> UpdateTimeZoneAsync(Guid userId, UpdateTimeZoneRequest request, CancellationToken ct = default);
+
+    /// <summary>
     /// Setzt die Schrittlänge für die Umrechnung der Fährtenlänge in Schritte. Erlaubt sind
     /// 40 bis 120 cm; null stellt den Standard wieder her.
     /// </summary>

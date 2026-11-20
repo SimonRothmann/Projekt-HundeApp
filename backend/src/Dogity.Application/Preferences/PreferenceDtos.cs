@@ -18,6 +18,7 @@ namespace Dogity.Application.Preferences;
 /// <param name="ReminderTrainingNotes">Erinnerung vor dem Training an den Merkzettel des Hundes. Vorgabe: ja.</param>
 /// <param name="StepLengthCm">Schrittlänge in cm (40 bis 120) für die Umrechnung der Fährtenlänge in Schritte, null = Standard (75).</param>
 /// <param name="ColorSafe">Farbsichere Darstellung (Ampel in Blau, Gelb, Rot) für Rot-Grün-Schwäche. Vorgabe: aus.</param>
+/// <param name="TimeZone">Zeitzone des Geräts (IANA-Kennung), null = Vereinszeit (Europe/Berlin).</param>
 public record UserPreferenceDto(
     string? Locale,
     string? Country,
@@ -33,7 +34,8 @@ public record UserPreferenceDto(
     bool ReminderHealth = true,
     int? StepLengthCm = null,
     bool ReminderTrainingNotes = true,
-    bool ColorSafe = false);
+    bool ColorSafe = false,
+    string? TimeZone = null);
 
 public record UpdateModulesRequest(IReadOnlyList<string> DisabledModules);
 public record UpdateSportsRequest(IReadOnlyList<Guid> SportIds);
@@ -42,6 +44,9 @@ public record UpdateCountryRequest(string? Country);
 public record UpdateFontScaleRequest(string? FontScale);
 public record UpdateEmailNotificationsRequest(bool Enabled);
 public record UpdateColorSafeRequest(bool Enabled);
+
+/// <summary>Zeitzone des Geräts als IANA-Kennung; null oder leer setzt auf die Vereinszeit zurück.</summary>
+public record UpdateTimeZoneRequest(string? TimeZone);
 
 /// <summary>Schrittlänge in cm, 40 bis 120; null setzt auf den Standard (75 cm) zurück.</summary>
 public record UpdateStepLengthRequest(int? StepLengthCm);

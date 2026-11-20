@@ -2189,6 +2189,10 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<int?>("StepLengthCm")
                         .HasColumnType("integer");
 
+                    b.Property<string>("TimeZone")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<int>("TrainerSummaryDays")
                         .HasColumnType("integer")
                         .HasDefaultValue(64);

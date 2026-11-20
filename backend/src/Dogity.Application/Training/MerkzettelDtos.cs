@@ -47,7 +47,7 @@ public record SetTrainingNoteDoneRequest(bool Done);
 /// <summary>
 /// Das nächste Training eines Hundes für die Beschriftung "Nächstes Training · Di 18:00".
 /// <paramref name="Date"/> ist null bei <see cref="TrainingsQuelle.Unbekannt"/>.
-/// <paramref name="ReminderAt"/> ist der Zeitpunkt der Merkzettel-Erinnerung (Vereinszeit); null ohne Termin.
+/// <paramref name="ReminderAt"/> ist der Zeitpunkt der Merkzettel-Erinnerung (Wanduhr der Person); null ohne Termin.
 /// </summary>
 public record NextTrainingDto(DateOnly? Date, TimeOnly? Time, TrainingsQuelle Source, DateTime? ReminderAt = null);
 

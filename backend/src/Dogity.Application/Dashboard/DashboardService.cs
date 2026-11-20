@@ -42,14 +42,15 @@ public class DashboardService(
         if (!meineHunde.Succeeded)
             return Result<DashboardDto>.Failure([.. meineHunde.Errors]);
 
-        // Der Kalendertag der Vereinszeit, wie ihn auch der Fährtenrecorder für
-        // die Einheit nimmt - zwischen 0 und 2 Uhr ist es in UTC noch gestern.
+        // Der Kalendertag der Person (ihre gemeldete Zone, sonst Vereinszeit), wie ihn auch der
+        // Fährtenrecorder für die Einheit nimmt - zwischen 0 und 2 Uhr ist es in UTC noch gestern.
         var jetzt = timeProvider.GetUtcNow();
+        var zone = Ortszeit.Zone((await preferences.GetAsync(userId, ct)).Value?.TimeZone);
         // Eine noch suchbare Spur kann an einer Einheit der letzten Tage hängen: Ein Trail
         // liegt 48 Stunden, und das Legen kann über Mitternacht hinaus dauern - daher ein
         // Tag Luft vor dem Tag, an dem die längste Frist beginnt.
-        var einheitenAb = Vereinszeit.Tag(jetzt - Ablauffristen.Trail).AddDays(-1);
-        var heute = Vereinszeit.Tag(jetzt);
+        var einheitenAb = Ortszeit.Tag(jetzt - Ablauffristen.Trail, zone).AddDays(-1);
+        var heute = Ortszeit.Tag(jetzt, zone);
         var aktiveHunde = meineHunde.Value!.Where(h => h.ArchivedAt is null).ToList();
         var hundeIds = aktiveHunde.Select(h => h.Id).ToList();
 

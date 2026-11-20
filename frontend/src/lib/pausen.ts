@@ -2,7 +2,7 @@ import type { Dog, DogGender, DogPause, Goal, PauseGrund } from "@/lib/types";
 import { PAUSE_GRUND } from "@/lib/types";
 import type { Sprache } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
-import { heuteIso, plusJahre, plusTage, tagesnummer, vereinszeitTag } from "@/lib/kalendertag";
+import { heuteIso, plusJahre, plusTage, tagesnummer } from "@/lib/kalendertag";
 import { ortsformat } from "@/lib/ortsformat";
 
 /**
@@ -209,7 +209,7 @@ export function vorschlagZieldatum(
   const zurueckfall = plusTage(goal.targetDate, 14);
   if (!plan || plan.items.length === 0) return zurueckfall;
 
-  const beginn = vereinszeitTag(new Date(plan.generatedAt).getTime());
+  const beginn = heuteIso(new Date(plan.generatedAt).getTime());
   const letzteWoche = Math.max(...plan.items.map((item) => item.weekNumber));
   const pausentage = pausentageZwischen(goal.planPausen ?? [], beginn, goal.targetDate, heute);
   const aktiveTage = tagesnummer(goal.targetDate) - tagesnummer(beginn) - pausentage;

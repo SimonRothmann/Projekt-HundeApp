@@ -22,7 +22,7 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
         if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result<IReadOnlyList<DogHealthRecordDto>>.NotFound("Hund nicht gefunden.");
 
-        var heute = Heute();
+        var heute = await db.HeuteAsync(userId, timeProvider, ct);
         var eintraege = await db.DogHealthRecords
             .Where(r => r.DogId == dogId)
             .OrderByDescending(r => r.Date)
@@ -41,7 +41,8 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
         if (!await db.IstBesitzerAsync(userId, dogId, ct))
             return Result<DogHealthRecordDto>.NotFound("Hund nicht gefunden.");
 
-        var fehler = Pruefe(request);
+        var heute = await db.HeuteAsync(userId, timeProvider, ct);
+        var fehler = Pruefe(request, heute);
         if (fehler is not null) return Result<DogHealthRecordDto>.Failure(fehler);
 
         var eintrag = new DogHealthRecord { DogId = dogId, CreatedByUserId = userId };
@@ -49,7 +50,7 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
         db.DogHealthRecords.Add(eintrag);
         await db.SaveChangesAsync(ct);
 
-        return Result<DogHealthRecordDto>.Success(await ToDtoAsync(eintrag, ct));
+        return Result<DogHealthRecordDto>.Success(await ToDtoAsync(eintrag, heute, ct));
     }
 
     public async Task<Result<DogHealthRecordDto>> UpdateAsync(Guid userId, Guid dogId, Guid recordId, SaveDogHealthRecordRequest request, CancellationToken ct = default)
@@ -61,14 +62,15 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
         if (eintrag is null)
             return Result<DogHealthRecordDto>.NotFound("Eintrag nicht gefunden.");
 
-        var fehler = Pruefe(request);
+        var heute = await db.HeuteAsync(userId, timeProvider, ct);
+        var fehler = Pruefe(request, heute);
         if (fehler is not null) return Result<DogHealthRecordDto>.Failure(fehler);
 
         Uebernehme(eintrag, request);
         eintrag.UpdatedAt = timeProvider.GetUtcNow();
         await db.SaveChangesAsync(ct);
 
-        return Result<DogHealthRecordDto>.Success(await ToDtoAsync(eintrag, ct));
+        return Result<DogHealthRecordDto>.Success(await ToDtoAsync(eintrag, heute, ct));
     }
 
     public async Task<Result> DeleteAsync(Guid userId, Guid dogId, Guid recordId, CancellationToken ct = default)
@@ -85,8 +87,6 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
         return Result.Success();
     }
 
-    private DateOnly Heute() => Vereinszeit.Tag(timeProvider.GetUtcNow());
-
     private static void Uebernehme(DogHealthRecord eintrag, SaveDogHealthRecordRequest request)
     {
         eintrag.Kind = request.Kind;
@@ -100,10 +100,10 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
     }
 
     /// <summary>Der Eintrag mit der Kennzeichnung "aktuell", die erst der Blick auf die übrigen Einträge des Hundes ergibt.</summary>
-    private async Task<DogHealthRecordDto> ToDtoAsync(DogHealthRecord eintrag, CancellationToken ct)
+    private async Task<DogHealthRecordDto> ToDtoAsync(DogHealthRecord eintrag, DateOnly heute, CancellationToken ct)
     {
         if (eintrag.Kind == DogHealthKind.VetAppointment)
-            return DogHealthQueries.ToDto(eintrag, eintrag.Date >= Heute());
+            return DogHealthQueries.ToDto(eintrag, eintrag.Date >= heute);
 
         var geschwister = await db.DogHealthRecords
             .Where(r => r.DogId == eintrag.DogId && r.Kind == eintrag.Kind)
@@ -113,7 +113,7 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
     }
 
     /// <summary>Die Fehlermeldung zur Eingabe, sonst null.</summary>
-    private string? Pruefe(SaveDogHealthRecordRequest request)
+    private string? Pruefe(SaveDogHealthRecordRequest request, DateOnly heute)
     {
         if (!Enum.IsDefined(request.Kind))
             return "Bitte eine Art für den Eintrag wählen.";
@@ -135,7 +135,6 @@ public class DogHealthService(IApplicationDbContext db, TimeProvider timeProvide
                 return "Ein Gewichtseintrag hat weder Uhrzeit noch Ablaufdatum.";
         }
 
-        var heute = Heute();
         if (request.Date < heute.AddYears(-MaxJahreZurueck) || request.Date > heute.AddYears(MaxJahreVoraus))
             return "Das Datum liegt zu weit entfernt.";
 

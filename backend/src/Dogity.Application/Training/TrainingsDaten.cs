@@ -33,13 +33,15 @@ public sealed class TrainingsDaten
 
     public static async Task<TrainingsDaten> LadenAsync(
         IApplicationDbContext db, IReadOnlyCollection<Guid> hundeIds, IReadOnlyCollection<Guid> userIds, DateOnly heute,
-        CancellationToken ct = default)
+        CancellationToken ct = default, DateOnly? spaetesterTag = null)
     {
         var daten = new TrainingsDaten();
 
+        // Für mehrere Personen in verschiedenen Zonen (Erinnerungsdienst) ist `spaetesterTag` der späteste Tag, der irgendwo gilt.
+        var tagebuchBis = spaetesterTag ?? heute;
         var seit = heute.AddDays(-7 * Trainingsrhythmus.TagebuchWochen);
         var trainings = await db.TrainingSessions
-            .Where(s => hundeIds.Contains(s.DogId) && s.Date >= seit && s.Date <= heute)
+            .Where(s => hundeIds.Contains(s.DogId) && s.Date >= seit && s.Date <= tagebuchBis)
             .Select(s => new { s.DogId, s.Date, s.StartTime })
             .AsNoTracking()
             .ToListAsync(ct);

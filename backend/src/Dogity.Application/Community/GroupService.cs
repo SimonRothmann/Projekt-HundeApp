@@ -598,7 +598,7 @@ public class GroupService(IApplicationDbContext db, IUserLookupService userLooku
         // Die Pause (nur der Zeitraum) sieht nur, wer den Hund betreut - das
         // ist der Einblick, den die Familie dieser Trainer:in gewährt hat.
         var betreute = dogs.Where(d => d.IsTrainerAssigned).Select(d => d.Id).ToList();
-        var pausen = await db.ActivePausesAsync(betreute, Vereinszeit.Tag(timeProvider.GetUtcNow()), ct);
+        var pausen = await db.ActivePausesAsync(betreute, await db.HeuteAsync(trainerId, timeProvider, ct), ct);
 
         return Result<IReadOnlyList<MemberDogDto>>.Success(dogs
             .Select(d => new MemberDogDto(

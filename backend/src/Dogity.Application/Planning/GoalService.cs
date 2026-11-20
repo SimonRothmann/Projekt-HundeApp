@@ -58,7 +58,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
     public async Task<Result<GoalDto>> CreateAsync(Guid userId, CreateGoalRequest request, CancellationToken ct = default)
     {
-        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var today = await db.HeuteAsync(userId, timeProvider, ct);
         if (request.TargetDate <= today)
             return Result<GoalDto>.Failure("Zieldatum muss in der Zukunft liegen.");
 
@@ -146,7 +146,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         if (goal.Status != GoalStatus.Active)
             return Result<GoalDto>.Failure("Nur ein aktives Ziel lässt sich abschließen.");
 
-        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var today = await db.HeuteAsync(userId, timeProvider, ct);
 
         if (!request.Passed)
         {
@@ -155,7 +155,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             if (request.NewTargetDate is not { } newTarget || newTarget <= today)
                 return Result<GoalDto>.Failure("Das neue Prüfungsdatum muss in der Zukunft liegen.");
 
-            await MoveTargetDateAsync(goal, newTarget, today, ct);
+            await MoveTargetDateAsync(goal, newTarget, today, await db.ZoneAsync(userId, ct), ct);
             return await GetByIdAsync(userId, goalId, ct);
         }
 
@@ -179,7 +179,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         if (goal.Status != GoalStatus.Achieved)
             return Result<GoalDto>.Failure("Ein Ergebnis gibt es nur für erreichte Ziele.");
 
-        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var today = await db.HeuteAsync(userId, timeProvider, ct);
         var maxPoints = await GetMaxPointsAsync(goal, ct);
         var note = request.Note?.Trim();
         if (ValidateExamResult(request.ExamDate, request.Score, note, maxPoints, today) is { } error)
@@ -272,11 +272,12 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         if (goal.Status != GoalStatus.Active)
             return Result<GoalDto>.Failure("Nur bei einem aktiven Ziel lässt sich das Zieldatum verschieben.");
 
-        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var zone = await db.ZoneAsync(userId, ct);
+        var today = Ortszeit.Tag(timeProvider.GetUtcNow(), zone);
         if (newTargetDate <= today)
             return Result<GoalDto>.Failure("Zieldatum muss in der Zukunft liegen.");
 
-        await MoveTargetDateAsync(goal, newTargetDate, today, ct);
+        await MoveTargetDateAsync(goal, newTargetDate, today, zone, ct);
         return await GetByIdAsync(userId, goalId, ct);
     }
 
@@ -311,7 +312,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     // einer Trainer:in geführte legt die Person selbst an, siehe Goal.IsCustom
     // und PlanManagedByTrainerId), ab der laufenden Woche (vergangene Wochen
     // bleiben leer, computeCurrentWeek im Frontend kommt mit Lücken zurecht).
-    private async Task MoveTargetDateAsync(Goal goal, DateOnly newTargetDate, DateOnly today, CancellationToken ct)
+    private async Task MoveTargetDateAsync(Goal goal, DateOnly newTargetDate, DateOnly today, TimeZoneInfo zone, CancellationToken ct)
     {
         goal.TargetDate = newTargetDate;
         goal.UpdatedAt = timeProvider.GetUtcNow();
@@ -324,7 +325,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
         // Wochenanker wie RegenerateDuePlansAsync: Wochen seit Goal.CreatedAt,
         // ohne die Tage, an denen der Hund pausiert (siehe Trainingspausen).
-        var created = Vereinszeit.Tag(goal.CreatedAt);
+        var created = Ortszeit.Tag(goal.CreatedAt, zone);
         var pausen = await PausenAsync(goal.DogId, ct);
         var currentWeek = Trainingspausen.Planwoche(created, today, pausen);
         var targetWeek = Trainingspausen.Planwoche(created, newTargetDate, Trainingspausen.Bekannte(pausen, today));
@@ -333,7 +334,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         var firstNewWeek = Math.Max(lastPlannedWeek + 1, currentWeek);
         var lastNewWeek = Math.Min(targetWeek, firstNewWeek + MaxPlanExtensionWeeks - 1);
         for (var week = firstNewWeek; week <= lastNewWeek; week++)
-            await RegenerateWeekCoreAsync(goal, week, ct);
+            await RegenerateWeekCoreAsync(goal, week, zone, ct);
 
         await db.SaveChangesAsync(ct);
     }
@@ -541,7 +542,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         if (goal.IsCustom)
             return Result<GoalDto>.Failure("Ein individueller Plan wird nicht automatisch generiert.");
 
-        await RegenerateWeekCoreAsync(goal, weekNumber, ct);
+        await RegenerateWeekCoreAsync(goal, weekNumber, await db.ZoneAsync(userId, ct), ct);
         return await GetByIdAsync(userId, goalId, ct);
     }
 
@@ -551,9 +552,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         if (goal is null)
             return Result<PruefungsreifeDto>.NotFound("Ziel nicht gefunden.");
 
-        var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var heute = await db.HeuteAsync(userId, timeProvider, ct);
         var pausen = await db.PauseZeitraeumeAsync([goal.DogId], ct);
-        var reife = await PruefungsreifeLader.LadeAsync(db, [goal], heute, pausen, userId, ct);
+        var reife = await PruefungsreifeLader.LadeAsync(db, [goal], heute, pausen, userId, ct, await db.ZoneAsync(userId, ct));
 
         return reife.TryGetValue(goal.Id, out var dto)
             ? Result<PruefungsreifeDto>.Success(dto)
@@ -580,7 +581,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             .AsNoTracking()
             .ToDictionaryAsync(m => m.ExerciseId, ct);
 
-        var plannedThisWeek = PlannedThisWeekExerciseIds(goal, await PausenAsync(goal.DogId, ct));
+        var plannedThisWeek = PlannedThisWeekExerciseIds(goal, await PausenAsync(goal.DogId, ct), await db.ZoneAsync(userId, ct));
 
         var list = pool
             .Select(c =>
@@ -622,13 +623,13 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
 
     // Übungen der laufenden Planwoche (gleicher Wochen-Anker wie
     // RegenerateDuePlansAsync: volle Wochen seit Goal.CreatedAt).
-    private HashSet<Guid> PlannedThisWeekExerciseIds(Goal goal, IReadOnlyCollection<PausenZeitraum> pausen)
+    private HashSet<Guid> PlannedThisWeekExerciseIds(Goal goal, IReadOnlyCollection<PausenZeitraum> pausen, TimeZoneInfo zone)
     {
         if (goal.TrainingPlan is not { } plan || plan.Items.Count == 0)
             return [];
 
-        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
-        var created = Vereinszeit.Tag(goal.CreatedAt);
+        var today = Ortszeit.Tag(timeProvider.GetUtcNow(), zone);
+        var created = Ortszeit.Tag(goal.CreatedAt, zone);
         var maxWeek = plan.Items.Max(i => i.WeekNumber);
         var currentWeek = Math.Clamp(Trainingspausen.Planwoche(created, today, pausen), 1, Math.Max(1, maxWeek));
 
@@ -711,7 +712,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             if (goal.TrainingPlan.Items.Any(i => i.WeekNumber == targetWeek && i.IsRestWeek))
                 continue;
 
-            await RegenerateWeekCoreAsync(goal, targetWeek, ct);
+            await RegenerateWeekCoreAsync(goal, targetWeek, Vereinszeit.Zone, ct);
             await NotifyOwnersOfAutoRegenerationAsync(goal, targetWeek, ct);
             count++;
         }
@@ -744,7 +745,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     // nicht-individuelles Ziel mit Plan). Erhält manuelle/Trainer-Items und
     // Auto-Items mit geloggtem Fortschritt, ersetzt nur fortschrittslose
     // Auto-Items durch eine frische, mastery-basierte Auswahl.
-    private async Task RegenerateWeekCoreAsync(Goal goal, int weekNumber, CancellationToken ct)
+    private async Task RegenerateWeekCoreAsync(Goal goal, int weekNumber, TimeZoneInfo zone, CancellationToken ct)
     {
         var weekItems = goal.TrainingPlan!.Items
             .Where(i => i.WeekNumber == weekNumber && !i.IsRestWeek)
@@ -770,9 +771,9 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
             item.DeletedAt = DateTimeOffset.UtcNow;
 
         var preservedExerciseIds = preserved.Where(i => i.ExerciseId is not null).Select(i => i.ExerciseId!.Value).ToHashSet();
-        var candidates = await BuildAdaptiveCandidatesAsync(goal, preservedExerciseIds, ct);
+        var candidates = await BuildAdaptiveCandidatesAsync(goal, preservedExerciseIds, zone, ct);
 
-        var today = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var today = Ortszeit.Tag(timeProvider.GetUtcNow(), zone);
         var remainingSlots = Math.Max(0, goal.WeeklyExerciseCount - preserved.Count);
         if (remainingSlots > 0 && candidates.Count > 0)
         {
@@ -810,7 +811,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
     // Sportart (wie bei der Erstgenerierung) angereichert um den Mastery-Zustand
     // je Übung des Hundes; bereits verplante (erhaltene) Übungen werden
     // ausgeschlossen.
-    private async Task<List<AdaptiveCandidate>> BuildAdaptiveCandidatesAsync(Goal goal, HashSet<Guid> excludeExerciseIds, CancellationToken ct)
+    private async Task<List<AdaptiveCandidate>> BuildAdaptiveCandidatesAsync(Goal goal, HashSet<Guid> excludeExerciseIds, TimeZoneInfo zone, CancellationToken ct)
     {
         var pool = await ResolvePlanCandidatesAsync(goal.SportId, goal.RegulationId, ct);
         var mandatory = pool.Where(c => c.IsMandatory).ToList();
@@ -826,7 +827,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         // Wochen überfällig", und der Generator hielte den Hund für heillos im
         // Rückstand - obwohl in der Zeit keine Planzeit verging.
         var pausen = await PausenAsync(goal.DogId, ct);
-        var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var heute = Ortszeit.Tag(timeProvider.GetUtcNow(), zone);
         DateOnly? Faelligkeit(DateTimeOffset? faellig) =>
             faellig is { } f ? Trainingspausen.FaelligkeitNachPausen(DateOnly.FromDateTime(f.UtcDateTime), heute, pausen) : null;
 
@@ -956,11 +957,12 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         var nextStages = await GetNextStagesAsync(goals, regulationNames, ct);
         var exerciseNames = await GetDeletedExerciseNamesAsync(goals, ct);
         var pausen = await db.PauseZeitraeumeAsync(goals.Select(g => g.DogId).Distinct().ToList(), ct);
-        var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var zone = await db.ZoneAsync(betrachter, ct);
+        var heute = Ortszeit.Tag(timeProvider.GetUtcNow(), zone);
         // Für alle Ziele zusammen geladen (kein N+1); die Theorie bekommt nur, wer den Hund besitzt.
-        var reife = await PruefungsreifeLader.LadeAsync(db, goals, heute, pausen, betrachter, ct);
+        var reife = await PruefungsreifeLader.LadeAsync(db, goals, heute, pausen, betrachter, ct, zone);
         return goals.Select(g => ToDto(g, sportNames, regulationNames, logsByPlanItem, maxPoints, nextStages, exerciseNames,
-            pausen.GetValueOrDefault(g.DogId) ?? [], heute, reife.GetValueOrDefault(g.Id))).ToList();
+            pausen.GetValueOrDefault(g.DogId) ?? [], heute, zone, reife.GetValueOrDefault(g.Id))).ToList();
     }
 
     // Namen von Katalog-Übungen, die inzwischen weich gelöscht sind: Der
@@ -1134,6 +1136,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         IReadOnlyDictionary<Guid, Katalogname> deletedExerciseNames,
         IReadOnlyList<PausenZeitraum> pausen,
         DateOnly heute,
+        TimeZoneInfo zone,
         PruefungsreifeDto? reife)
     {
         var sportName = sportNames.GetValueOrDefault(g.SportId);
@@ -1181,7 +1184,7 @@ public class GoalService(IApplicationDbContext db, TimeProvider timeProvider, IN
         // Die Pausen, die den Plan betreffen (Beginn vor dem Zieldatum, Ende nicht
         // vor dem Planbeginn) - nur Zeiträume, ohne Grund und Notiz. Das
         // Frontend rechnet damit dieselbe Planwoche wie der Server.
-        var planBeginn = Vereinszeit.Tag(g.CreatedAt);
+        var planBeginn = Ortszeit.Tag(g.CreatedAt, zone);
         var planPausen = pausen
             .Where(p => p.Start <= g.TargetDate && (p.Ende is null || p.Ende >= planBeginn))
             .OrderBy(p => p.Start)

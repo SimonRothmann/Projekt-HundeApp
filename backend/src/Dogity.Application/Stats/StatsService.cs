@@ -19,9 +19,9 @@ public class StatsService(IApplicationDbContext db, TimeProvider timeProvider) :
             .Select(o => o.DogId)
             .ToListAsync(ct);
 
-        // Stichtage nach der Vereinszeit: Die Tage der Einheiten sind Kalendertage
+        // Stichtage in der Zone der Person: Die Tage der Einheiten sind Kalendertage
         // der Person, nicht UTC-Tage.
-        var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var heute = await db.HeuteAsync(userId, timeProvider, ct);
 
         if (dogIds.Count == 0)
             return Result<DashboardStatsDto>.Success(new DashboardStatsDto(BuildEmptyWeeks(heute), []));

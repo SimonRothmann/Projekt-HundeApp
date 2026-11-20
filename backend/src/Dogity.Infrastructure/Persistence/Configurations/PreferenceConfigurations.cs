@@ -1,3 +1,4 @@
+using Dogity.Application.Common;
 using Dogity.Domain.Preferences;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -11,6 +12,7 @@ public class UserPreferenceConfiguration : IEntityTypeConfiguration<UserPreferen
         builder.ToTable("user_preferences");
         builder.Property(p => p.Locale).HasMaxLength(10);
         builder.Property(p => p.Country).HasMaxLength(2);
+        builder.Property(p => p.TimeZone).HasMaxLength(Ortszeit.ZoneMaxLaenge);
 
         // Vorgabe "ja": Bestehende Zeilen bekommen mit der Migration true - wer
         // vorher nichts eingestellt hat, hat auch nichts abgelehnt.

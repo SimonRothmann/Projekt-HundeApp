@@ -41,7 +41,8 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
                 eintrag.ReminderHealth,
                 eintrag.StepLengthCm,
                 eintrag.ReminderTrainingNotes,
-                eintrag.ColorSafe));
+                eintrag.ColorSafe,
+                eintrag.TimeZone));
     }
 
     public async Task<Result> UpdateModulesAsync(Guid userId, UpdateModulesRequest request, CancellationToken ct = default)
@@ -164,6 +165,25 @@ public class PreferenceService(IApplicationDbContext db) : IPreferenceService
     {
         var eintrag = await LadenOderAnlegenAsync(userId, ct);
         eintrag.ColorSafe = request.Enabled;
+        eintrag.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> UpdateTimeZoneAsync(Guid userId, UpdateTimeZoneRequest request, CancellationToken ct = default)
+    {
+        var zone = request.TimeZone?.Trim();
+
+        // Abgelehnt statt still verworfen: Eine unbekannte Kennung ließe "heute" und die Ruhezeiten
+        // unbemerkt in der Vereinszeit rechnen. Auch keine Sonderzeichen: Die Kennung landet in der Datenbank.
+        if (!string.IsNullOrEmpty(zone))
+        {
+            if (zone.Length > Ortszeit.ZoneMaxLaenge) return Result.Failure("Die Zeitzone ist zu lang.");
+            if (!Ortszeit.Bekannt(zone)) return Result.Failure("Diese Zeitzone ist unbekannt.");
+        }
+
+        var eintrag = await LadenOderAnlegenAsync(userId, ct);
+        eintrag.TimeZone = string.IsNullOrEmpty(zone) ? null : zone;
         eintrag.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Result.Success();

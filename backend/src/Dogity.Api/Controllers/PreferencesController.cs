@@ -1,5 +1,7 @@
 using Dogity.Application.Preferences;
+using Dogity.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dogity.Api.Controllers;
@@ -11,7 +13,7 @@ namespace Dogity.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/preferences")]
-public class PreferencesController(IPreferenceService preferences) : ApiControllerBase
+public class PreferencesController(IPreferenceService preferences, UserManager<ApplicationUser> userManager) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<UserPreferenceDto>> Get(CancellationToken ct) =>
@@ -58,6 +60,17 @@ public class PreferencesController(IPreferenceService preferences) : ApiControll
     [HttpPut("color-safe")]
     public async Task<IActionResult> UpdateColorSafe(UpdateColorSafeRequest request, CancellationToken ct) =>
         FromResult(await preferences.UpdateColorSafeAsync(CurrentUserId, request, ct));
+
+    /// <summary>Zeitzone des Geräts, vom Frontend nach der Anmeldung gemeldet - "heute" und Ruhezeiten rechnen danach.</summary>
+    [HttpPut("time-zone")]
+    public async Task<IActionResult> UpdateTimeZone(UpdateTimeZoneRequest request, CancellationToken ct)
+    {
+        // Ein Gastkonto bleibt in Vereinszeit: Sein Demo-Verein und die Beispieldaten sind darauf gerechnet.
+        var user = await userManager.FindByIdAsync(CurrentUserId.ToString());
+        if (user?.GuestUntil is not null) return NoContent();
+
+        return FromResult(await preferences.UpdateTimeZoneAsync(CurrentUserId, request, ct));
+    }
 
     /// <summary>
     /// Schrittlänge für die Umrechnung der Fährtenlänge in Schritte. Eigener Endpunkt wie die übrigen

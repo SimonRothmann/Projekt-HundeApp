@@ -66,7 +66,10 @@ public sealed record MerkzettelKandidat(
 /// sich Mitternacht, Ruhezeit und Zeitumstellung ohne Datenbank prüfen; der
 /// <see cref="ErinnerungService"/> besorgt die Daten und versendet.
 ///
-/// Alle Uhrzeiten sind Vereinszeit (<see cref="Vereinszeit"/>), egal wo der Server läuft.
+/// Uhrzeiten und Tage sind Ortszeit der Person, die erinnert wird (<see cref="Ortszeit"/>; ohne
+/// gemeldete Zone die <see cref="Vereinszeit"/>), egal wo der Server läuft. Nur der Gruppentermin selbst
+/// gehört dem Verein: Sein Tag und seine Uhrzeit bleiben Vereinszeit, die Ruhezeit gilt beim Empfänger.
+/// Die Zone je Person kommt als <c>zoneVon</c> herein; ohne sie gilt für alle die Vereinszeit.
 /// </summary>
 public static class Erinnerungsregeln
 {
@@ -116,23 +119,26 @@ public static class Erinnerungsregeln
     public static bool FaehrteAngeboten(IReadOnlyCollection<Guid> sportIds, IReadOnlySet<Guid> faehrtenSportIds) =>
         sportIds.Count == 0 || sportIds.Any(faehrtenSportIds.Contains);
 
-    public static bool ImVersandfenster(DateTimeOffset jetzt)
+    public static bool ImVersandfenster(DateTimeOffset jetzt, TimeZoneInfo? zone = null)
     {
-        var stunde = Vereinszeit.Lokal(jetzt).Hour;
+        var stunde = Ortszeit.Lokal(jetzt, zone ?? Vereinszeit.Zone).Hour;
         return stunde is >= ErsteStunde and <= LetzteStunde;
     }
 
+    private static TimeZoneInfo ZoneDer(Func<Guid, TimeZoneInfo>? zoneVon, Guid userId) => zoneVon?.Invoke(userId) ?? Vereinszeit.Zone;
+
     /// <summary>
-    /// Termin am Folgetag (in Vereinszeit), ab 18 Uhr. Mit Zusage heißt es "du hast
+    /// Termin am Folgetag (in Vereinszeit, der Termin gehört dem Verein), ab 18 Uhr Vereinszeit, nur in der Ruhezeit-freien Zeit des Empfängers (08-22 Uhr). Mit Zusage heißt es "du hast
     /// zugesagt", ohne Antwort "kommst du?", nach einer Absage kommt nichts. Ein
     /// abgesagter Termin löst nichts aus (die Absage des Termins ging schon als Meldung raus).
     /// Der Merkzettel gilt je Person, Termin und Termintag: Wird ein Termin nach dem Versand
     /// auf einen anderen Tag verschoben, kommt vor dem neuen Tag erneut eine Erinnerung.
     /// </summary>
     public static IReadOnlyList<FaelligeErinnerung> TerminErinnerungen(
-        DateTimeOffset jetzt, IEnumerable<TerminAdressat> adressaten, IReadOnlySet<ErinnerungsSchluessel> gesendet)
+        DateTimeOffset jetzt, IEnumerable<TerminAdressat> adressaten, IReadOnlySet<ErinnerungsSchluessel> gesendet,
+        Func<Guid, TimeZoneInfo>? zoneVon = null)
     {
-        if (!ImVersandfenster(jetzt) || Vereinszeit.Lokal(jetzt).Hour < TerminAbStunde) return [];
+        if (Vereinszeit.Lokal(jetzt).Hour < TerminAbStunde) return [];
 
         var folgetag = Vereinszeit.Tag(jetzt).AddDays(1);
         var ergebnis = new List<FaelligeErinnerung>();
@@ -141,6 +147,7 @@ public static class Erinnerungsregeln
         foreach (var a in adressaten)
         {
             if (!a.Erlaubt || a.Abgesagt || a.Antwort == TerminAntwort.Abgesagt) continue;
+            if (!ImVersandfenster(jetzt, ZoneDer(zoneVon, a.UserId))) continue;
             if (Vereinszeit.Tag(a.Beginn) != folgetag) continue;
 
             var schluessel = new ErinnerungsSchluessel(ReminderType.SessionDayBefore, a.UserId, a.TerminId, folgetag);
@@ -172,18 +179,20 @@ public static class Erinnerungsregeln
     /// Datum nachträglich geändert, kommt vor dem neuen Datum erneut eine Erinnerung.
     /// </summary>
     public static IReadOnlyList<FaelligeErinnerung> GesundheitsErinnerungen(
-        DateTimeOffset jetzt, IEnumerable<GesundheitsAdressat> adressaten, IReadOnlySet<ErinnerungsSchluessel> gesendet)
+        DateTimeOffset jetzt, IEnumerable<GesundheitsAdressat> adressaten, IReadOnlySet<ErinnerungsSchluessel> gesendet,
+        Func<Guid, TimeZoneInfo>? zoneVon = null)
     {
-        if (!ImVersandfenster(jetzt)) return [];
-
-        var heute = Vereinszeit.Tag(jetzt);
-        var vortagAb = Vereinszeit.Lokal(jetzt).Hour >= TerminAbStunde;
         var ergebnis = new List<FaelligeErinnerung>();
         var schonDabei = new HashSet<ErinnerungsSchluessel>();
 
         foreach (var a in adressaten)
         {
             if (!a.Erlaubt) continue;
+            var zone = ZoneDer(zoneVon, a.UserId);
+            if (!ImVersandfenster(jetzt, zone)) continue;
+
+            var heute = Ortszeit.Tag(jetzt, zone);
+            var vortagAb = Ortszeit.Lokal(jetzt, zone).Hour >= TerminAbStunde;
             var link = $"/dogs/{a.HundId}?tab=gesundheit";
 
             if (a.Art == DogHealthKind.VetAppointment)
@@ -230,13 +239,14 @@ public static class Erinnerungsregeln
     /// läuft - weil der Tick sie bei jedem Lauf neu prüft, gibt es dafür keine Sonderfall-Logik.
     /// </summary>
     public static IReadOnlyList<FaelligeErinnerung> FaehrtenErinnerungen(
-        DateTimeOffset jetzt, IEnumerable<FaehrteKandidat> kandidaten, IReadOnlySet<ErinnerungsSchluessel> gesendet)
+        DateTimeOffset jetzt, IEnumerable<FaehrteKandidat> kandidaten, IReadOnlySet<ErinnerungsSchluessel> gesendet,
+        Func<Guid, TimeZoneInfo>? zoneVon = null)
     {
-        if (!ImVersandfenster(jetzt)) return [];
-
         var ergebnis = new List<FaelligeErinnerung>();
         foreach (var k in kandidaten)
         {
+            var zone = ZoneDer(zoneVon, k.UserId);
+            if (!ImVersandfenster(jetzt, zone)) continue;
             if (!k.Erlaubt || k.Abgelaufen || k.HundPausiert || k.LegeEnde is not { } ende) continue;
 
             var vergangen = jetzt - ende;
@@ -245,7 +255,7 @@ public static class Erinnerungsregeln
             var schluessel = new ErinnerungsSchluessel(ReminderType.TrackNotWalked, k.UserId, k.FaehrteId, SentReminder.KeinTag);
             if (gesendet.Contains(schluessel)) continue;
 
-            var fristEnde = Vereinszeit.Lokal(ende + FaehrteFrist);
+            var fristEnde = Ortszeit.Lokal(ende + FaehrteFrist, zone);
             var meldung = Meldung.Von(
                 "Die Fährte von {hund} ist noch nicht abgelaufen. Du kannst sie noch bis {datum}, {zeit} Uhr ablaufen.",
                 ("hund", k.Hund),
@@ -263,18 +273,21 @@ public static class Erinnerungsregeln
     /// <see cref="RueckmeldungsErinnerung"/>, wenn die Anzahl bekannt ist.
     /// </summary>
     public static IReadOnlyList<TrainerKandidat> FaelligeTrainer(
-        DateTimeOffset jetzt, IEnumerable<TrainerKandidat> kandidaten, IReadOnlySet<ErinnerungsSchluessel> gesendet)
+        DateTimeOffset jetzt, IEnumerable<TrainerKandidat> kandidaten, IReadOnlySet<ErinnerungsSchluessel> gesendet,
+        Func<Guid, TimeZoneInfo>? zoneVon = null)
     {
-        if (!ImVersandfenster(jetzt)) return [];
-
-        var lokal = Vereinszeit.Lokal(jetzt);
-        var heute = DateOnly.FromDateTime(lokal);
-        var bit = TagesBit(lokal.DayOfWeek);
-
         return kandidaten
             .Where(k => k.Erlaubt)
-            .Where(k => (Tage(k) & bit) != 0 && lokal.Hour >= Stunde(k))
-            .Where(k => !gesendet.Contains(TrainerSchluessel(k.UserId, heute)))
+            .Where(k =>
+            {
+                var zone = ZoneDer(zoneVon, k.UserId);
+                if (!ImVersandfenster(jetzt, zone)) return false;
+
+                var lokal = Ortszeit.Lokal(jetzt, zone);
+                var heute = DateOnly.FromDateTime(lokal);
+                return (Tage(k) & TagesBit(lokal.DayOfWeek)) != 0 && lokal.Hour >= Stunde(k)
+                    && !gesendet.Contains(TrainerSchluessel(k.UserId, heute));
+            })
             .ToList();
     }
 
@@ -289,14 +302,14 @@ public static class Erinnerungsregeln
     /// Die Zusammenfassung offener Rückmeldungen; null bei keinem offenen Training. Feedback
     /// ist freiwillig - der Satz stellt fest, was ansteht, und drängt nicht.
     /// </summary>
-    public static FaelligeErinnerung? RueckmeldungsErinnerung(DateTimeOffset jetzt, Guid userId, int anzahl)
+    public static FaelligeErinnerung? RueckmeldungsErinnerung(DateTimeOffset jetzt, Guid userId, int anzahl, TimeZoneInfo? zone = null)
     {
         if (anzahl <= 0) return null;
 
         var meldung = anzahl == 1
             ? Meldung.Von("Ein Training wartet auf deine Rückmeldung.")
             : Meldung.Von("{n} Trainings warten auf deine Rückmeldung.", ("n", anzahl));
-        return new FaelligeErinnerung(TrainerSchluessel(userId, Vereinszeit.Tag(jetzt)), meldung, "/trainer/bewerten");
+        return new FaelligeErinnerung(TrainerSchluessel(userId, Ortszeit.Tag(jetzt, zone ?? Vereinszeit.Zone)), meldung, "/trainer/bewerten");
     }
 
     /// <summary>So viele Zeichen vom ersten Merkzettel-Eintrag stehen in der Erinnerung; der Rest käme nicht in die Glocke und nicht auf den Sperrbildschirm.</summary>
@@ -310,18 +323,20 @@ public static class Erinnerungsregeln
     /// werden am nächsten Training erneut erinnert, am selben Tag nie zweimal.
     /// </summary>
     public static IReadOnlyList<FaelligeErinnerung> MerkzettelErinnerungen(
-        DateTimeOffset jetzt, IEnumerable<MerkzettelKandidat> kandidaten, IReadOnlySet<ErinnerungsSchluessel> gesendet)
+        DateTimeOffset jetzt, IEnumerable<MerkzettelKandidat> kandidaten, IReadOnlySet<ErinnerungsSchluessel> gesendet,
+        Func<Guid, TimeZoneInfo>? zoneVon = null)
     {
-        if (!ImVersandfenster(jetzt)) return [];
-
-        var lokal = Vereinszeit.Lokal(jetzt);
-        var heute = DateOnly.FromDateTime(lokal);
         var ergebnis = new List<FaelligeErinnerung>();
         var schonDabei = new HashSet<ErinnerungsSchluessel>();
 
         foreach (var k in kandidaten)
         {
             if (!k.Erlaubt || k.Eintraege.Count == 0) continue;
+
+            var zone = ZoneDer(zoneVon, k.UserId);
+            if (!ImVersandfenster(jetzt, zone)) continue;
+            var lokal = Ortszeit.Lokal(jetzt, zone);
+            var heute = DateOnly.FromDateTime(lokal);
 
             var schluessel = new ErinnerungsSchluessel(ReminderType.TrainingNote, k.UserId, k.HundId, heute);
             if (gesendet.Contains(schluessel) || !schonDabei.Add(schluessel)) continue;
@@ -330,7 +345,7 @@ public static class Erinnerungsregeln
             foreach (var e in k.Eintraege.OrderBy(e => e.Angelegt))
             {
                 var ziel = Trainingsrhythmus.ZielDesEintrags(
-                    e.Ziel, e.ZielDatum, e.Angelegt, jetzt, k.Tagebuch, k.Gruppentermine, k.Rhythmus, erinnerung: true, e.ZielUhrzeit);
+                    e.Ziel, e.ZielDatum, e.Angelegt, jetzt, k.Tagebuch, k.Gruppentermine, k.Rhythmus, erinnerung: true, e.ZielUhrzeit, zone);
                 if (ziel is not { } termin || termin.Tag != heute) continue;
                 heutige.Add((e, termin));
             }

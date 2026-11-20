@@ -1,4 +1,5 @@
 using Dogity.Application.Abstractions;
+using Dogity.Application.Common;
 using Dogity.Application.Community;
 using Dogity.Application.Preferences;
 using Dogity.Domain.Geography;
@@ -35,8 +36,10 @@ public static class PruefungsreifeLader
         DateOnly heute,
         IReadOnlyDictionary<Guid, List<PausenZeitraum>> pausenJeHund,
         Guid? betrachter,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        TimeZoneInfo? zone = null)
     {
+        zone ??= Vereinszeit.Zone;
         var ergebnis = new Dictionary<Guid, PruefungsreifeDto>();
         var relevant = ziele.Where(Pruefungsreife.Gilt).ToList();
         if (relevant.Count == 0) return ergebnis;
@@ -92,7 +95,7 @@ public static class PruefungsreifeLader
                         m?.SessionCount ?? 0,
                         m?.Box ?? 1,
                         m?.RecentAvgRating ?? 0,
-                        m?.LastTrainedAt is { } zuletzt ? Vereinszeit.Tag(zuletzt) : null);
+                        m?.LastTrainedAt is { } zuletzt ? Ortszeit.Tag(zuletzt, zone) : null);
                 })
                 .ToList();
 

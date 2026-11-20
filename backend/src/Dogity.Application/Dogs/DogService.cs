@@ -22,7 +22,8 @@ public class DogService(
 {
     private readonly TimeProvider zeit = timeProvider ?? TimeProvider.System;
 
-    private DateOnly Heute() => Vereinszeit.Tag(zeit.GetUtcNow());
+    // "Heute" zählt in der Zone der Person, die fragt (Ortszeit).
+    private Task<DateOnly> HeuteAsync(Guid userId, CancellationToken ct) => db.HeuteAsync(userId, zeit, ct);
 
     public async Task<Result<IReadOnlyList<DogDto>>> GetMyDogsAsync(Guid userId, CancellationToken ct = default)
     {
@@ -41,8 +42,8 @@ public class DogService(
 
         // Meine Hunde: Ich bin Besitzer:in (oder Mitbesitzer:in) und sehe die
         // Pause mit Grund und Notiz.
-        var pausen = await db.ActivePausesAsync(dogIds, Heute(), ct);
-        var gesundheit = await db.HealthSummariesAsync(dogIds, Heute(), ct);
+        var pausen = await db.ActivePausesAsync(dogIds, await HeuteAsync(userId, ct), ct);
+        var gesundheit = await db.HealthSummariesAsync(dogIds, await HeuteAsync(userId, ct), ct);
         return Result<IReadOnlyList<DogDto>>.Success(
             dogs.Select(d => ToDto(d, withImage.Contains(d.Id), pausen.GetValueOrDefault(d.Id), zeigeDetails: true, gesundheit.GetValueOrDefault(d.Id))).ToList());
     }
@@ -77,7 +78,7 @@ public class DogService(
             handlers.TryGetValue(id, out var info) ? $"{info.FirstName} {info.LastName}".Trim() : "(unbekannt)";
 
         // Als Trainer:in nur der Zeitraum: Grund und Notiz gehören der Familie.
-        var pausen = await db.ActivePausesAsync(visible.Select(r => r.Dog!.Id).Distinct().ToList(), Heute(), ct);
+        var pausen = await db.ActivePausesAsync(visible.Select(r => r.Dog!.Id).Distinct().ToList(), await HeuteAsync(trainerId, ct), ct);
         var dtos = visible
             .Select(r => new SupervisedDogDto(
                 r.Dog!.Id, r.Dog.Name, r.Dog.Breed, r.HasImage, HandlerName(r.MemberId), r.ActiveGoalCount,
@@ -653,8 +654,8 @@ public class DogService(
     private async Task<DogDto> ToDtoAsync(Dog dog, Guid userId, CancellationToken ct)
     {
         var istBesitzer = await db.IstBesitzerAsync(userId, dog.Id, ct);
-        var pausen = await db.ActivePausesAsync([dog.Id], Heute(), ct);
-        var gesundheit = istBesitzer ? (await db.HealthSummariesAsync([dog.Id], Heute(), ct)).GetValueOrDefault(dog.Id) : null;
+        var pausen = await db.ActivePausesAsync([dog.Id], await HeuteAsync(userId, ct), ct);
+        var gesundheit = istBesitzer ? (await db.HealthSummariesAsync([dog.Id], await HeuteAsync(userId, ct), ct)).GetValueOrDefault(dog.Id) : null;
         return ToDto(dog, await HasImageAsync(dog.Id, ct), pausen.GetValueOrDefault(dog.Id), istBesitzer, gesundheit);
     }
 

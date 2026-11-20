@@ -17,8 +17,9 @@ const VEREINSZEIT = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Berlin"
 
 /**
  * Der Kalendertag eines Zeitpunkts in der Vereinszeit (Europe/Berlin) - der Tag, in dem der Server
- * rechnet (Vereinszeit.Tag). Für Regeln, die Frontend und Server gleich auslegen müssen (Planwoche);
- * was die Person am Gerät als "heute" sieht, bleibt `heuteIso`.
+ * für Vereinssachen rechnet (Vereinszeit.Tag): Arbeitseinsätze, Termine, Prüfungen. Was der Person
+ * gehört ("heute", Plan, Gesundheit, Training), rechnet mit `heuteIso` im Tag der Gerätezone -
+ * so wie der Server dort die gemeldete Zone der Person nimmt (Ortszeit).
  */
 export function vereinszeitTag(zeitpunkt: number = Date.now()): string {
   const teile = VEREINSZEIT.formatToParts(zeitpunkt);

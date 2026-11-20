@@ -1,3 +1,4 @@
+using Dogity.Application.Common;
 using Dogity.Application.Community;
 using Dogity.Application.Reminders;
 
@@ -12,13 +13,13 @@ public enum TrainingsQuelle
     Unbekannt
 }
 
-/// <summary>Ein Trainingstag aus dem Tagebuch: Datum und - falls eingetragen - die Startzeit (Vereinszeit).</summary>
+/// <summary>Ein Trainingstag aus dem Tagebuch: Datum und - falls eingetragen - die Startzeit (Wanduhr der Person).</summary>
 public readonly record struct TagebuchTraining(DateOnly Datum, TimeOnly? StartTime);
 
 /// <summary>Der selbst angegebene Rhythmus eines Hundes (<see cref="Domain.Dogs.DogTrainingRhythm"/>): Tage als Bitmaske, Stunde wahlweise.</summary>
 public readonly record struct GespeicherterRhythmus(int Tage, int? Stunde);
 
-/// <summary>Ein (erwartetes) Training: Tag und, wenn bekannt, die Uhrzeit - beides Vereinszeit.</summary>
+/// <summary>Ein (erwartetes) Training: Tag und, wenn bekannt, die Uhrzeit - beides in der Ortszeit der Person (ohne Angabe: Vereinszeit).</summary>
 public readonly record struct TrainingsTermin(DateOnly Tag, TimeOnly? Uhrzeit, TrainingsQuelle Quelle)
 {
     public DateTime? Beginn => Uhrzeit is { } uhrzeit ? Tag.ToDateTime(uhrzeit) : null;
@@ -56,11 +57,12 @@ public static class Trainingsrhythmus
     /// </summary>
     public static TrainingsTermin? NaechstesTraining(
         DateTimeOffset jetzt, IEnumerable<TagebuchTraining> tagebuch, IEnumerable<DateTimeOffset> gruppentermine,
-        GespeicherterRhythmus? rhythmus = null)
+        GespeicherterRhythmus? rhythmus = null, TimeZoneInfo? zone = null)
     {
-        var lokal = Vereinszeit.Lokal(jetzt);
+        zone ??= Vereinszeit.Zone;
+        var lokal = Ortszeit.Lokal(jetzt, zone);
         return Waehle(DateOnly.FromDateTime(lokal), DateOnly.FromDateTime(lokal), tagebuch, gruppentermine, rhythmus,
-            t => ErinnerungsZeitpunkt(t) >= lokal);
+            t => ErinnerungsZeitpunkt(t) >= lokal, zone);
     }
 
     /// <summary>
@@ -71,12 +73,13 @@ public static class Trainingsrhythmus
     /// </summary>
     public static TrainingsTermin? BevorstehendesTraining(
         DateTimeOffset jetzt, IEnumerable<TagebuchTraining> tagebuch, IEnumerable<DateTimeOffset> gruppentermine,
-        GespeicherterRhythmus? rhythmus = null)
+        GespeicherterRhythmus? rhythmus = null, TimeZoneInfo? zone = null)
     {
-        var lokal = Vereinszeit.Lokal(jetzt);
+        zone ??= Vereinszeit.Zone;
+        var lokal = Ortszeit.Lokal(jetzt, zone);
         var heute = DateOnly.FromDateTime(lokal);
         return Waehle(heute, heute, tagebuch, gruppentermine, rhythmus,
-            t => t.Beginn is { } beginn ? beginn >= lokal : t.Tag >= heute);
+            t => t.Beginn is { } beginn ? beginn >= lokal : t.Tag >= heute, zone);
     }
 
     /// <summary>
@@ -85,8 +88,8 @@ public static class Trainingsrhythmus
     /// </summary>
     public static TrainingsTermin? ErstesTrainingAb(
         DateOnly ab, DateOnly heute, IEnumerable<TagebuchTraining> tagebuch, IEnumerable<DateTimeOffset> gruppentermine,
-        GespeicherterRhythmus? rhythmus = null, DateOnly? bis = null) =>
-        Waehle(heute, ab, tagebuch, gruppentermine, rhythmus, t => bis is not { } ende || t.Tag <= ende);
+        GespeicherterRhythmus? rhythmus = null, DateOnly? bis = null, TimeZoneInfo? zone = null) =>
+        Waehle(heute, ab, tagebuch, gruppentermine, rhythmus, t => bis is not { } ende || t.Tag <= ende, zone ?? Vereinszeit.Zone);
 
     /// <summary>
     /// Der Tag (und die Uhrzeit, wenn bekannt), auf den ein Merkzettel-Eintrag zielt:
@@ -105,35 +108,36 @@ public static class Trainingsrhythmus
     public static TrainingsTermin? ZielDesEintrags(
         Domain.Training.TrainingNoteGoal ziel, DateOnly? zielDatum, DateTimeOffset angelegt, DateTimeOffset jetzt,
         IReadOnlyList<TagebuchTraining> tagebuch, IReadOnlyList<DateTimeOffset> gruppentermine, GespeicherterRhythmus? rhythmus,
-        bool erinnerung, TimeOnly? zielUhrzeit = null)
+        bool erinnerung, TimeOnly? zielUhrzeit = null, TimeZoneInfo? zone = null)
     {
-        var heute = Vereinszeit.Tag(jetzt);
+        zone ??= Vereinszeit.Zone;
+        var heute = Ortszeit.Tag(jetzt, zone);
         switch (ziel)
         {
             case Domain.Training.TrainingNoteGoal.Date:
                 if (zielDatum is not { } tag) return null;
                 if (zielUhrzeit is { } gewaehlt) return new TrainingsTermin(tag, gewaehlt, TrainingsQuelle.Unbekannt);
-                return ErstesTrainingAb(tag, heute, tagebuch, gruppentermine, rhythmus) is { } amTag && amTag.Tag == tag
+                return ErstesTrainingAb(tag, heute, tagebuch, gruppentermine, rhythmus, zone: zone) is { } amTag && amTag.Tag == tag
                     ? amTag
                     : new TrainingsTermin(tag, null, TrainingsQuelle.Unbekannt);
 
             case Domain.Training.TrainingNoteGoal.NextWeek:
-                return AbMontag(zielDatum ?? MontagDerFolgewoche(Vereinszeit.Tag(angelegt)), heute, tagebuch, gruppentermine, rhythmus);
+                return AbMontag(zielDatum ?? MontagDerFolgewoche(Ortszeit.Tag(angelegt, zone)), heute, tagebuch, gruppentermine, rhythmus, zone);
 
             default:
-                var naechstes = BevorstehendesTraining(jetzt, tagebuch, gruppentermine, rhythmus);
-                if (naechstes is { } termin && Vereinszeit.Lokal(angelegt) > ErinnerungsZeitpunkt(termin))
-                    naechstes = ErstesTrainingAb(termin.Tag.AddDays(1), heute, tagebuch, gruppentermine, rhythmus);
+                var naechstes = BevorstehendesTraining(jetzt, tagebuch, gruppentermine, rhythmus, zone);
+                if (naechstes is { } termin && Ortszeit.Lokal(angelegt, zone) > ErinnerungsZeitpunkt(termin))
+                    naechstes = ErstesTrainingAb(termin.Tag.AddDays(1), heute, tagebuch, gruppentermine, rhythmus, zone: zone);
                 if (naechstes is not null || !erinnerung) return naechstes;
-                return AbMontag(MontagDerFolgewoche(Vereinszeit.Tag(angelegt)), heute, tagebuch, gruppentermine, rhythmus);
+                return AbMontag(MontagDerFolgewoche(Ortszeit.Tag(angelegt, zone)), heute, tagebuch, gruppentermine, rhythmus, zone);
         }
     }
 
     private static TrainingsTermin AbMontag(
         DateOnly montag, DateOnly heute, IReadOnlyList<TagebuchTraining> tagebuch, IReadOnlyList<DateTimeOffset> gruppentermine,
-        GespeicherterRhythmus? rhythmus) =>
+        GespeicherterRhythmus? rhythmus, TimeZoneInfo zone) =>
         // Nur Montag bis Sonntag: Ein Gruppentermin 14 Tage später wäre nicht mehr "nächste Woche".
-        ErstesTrainingAb(montag, heute, tagebuch, gruppentermine, rhythmus, montag.AddDays(6))
+        ErstesTrainingAb(montag, heute, tagebuch, gruppentermine, rhythmus, montag.AddDays(6), zone)
         ?? new TrainingsTermin(montag, null, TrainingsQuelle.Unbekannt);
 
     /// <summary>Der Montag der Woche nach der von <paramref name="tag"/>.</summary>
@@ -162,10 +166,10 @@ public static class Trainingsrhythmus
     /// </summary>
     private static TrainingsTermin? Waehle(
         DateOnly heute, DateOnly von, IEnumerable<TagebuchTraining> tagebuch, IEnumerable<DateTimeOffset> gruppentermine,
-        GespeicherterRhythmus? rhythmus, Func<TrainingsTermin, bool> zaehlt)
+        GespeicherterRhythmus? rhythmus, Func<TrainingsTermin, bool> zaehlt, TimeZoneInfo zone)
     {
         var gruppe = gruppentermine
-            .Select(Vereinszeit.Lokal)
+            .Select(t => Ortszeit.Lokal(t, zone))
             .Select(l => new TrainingsTermin(DateOnly.FromDateTime(l), TimeOnly.FromDateTime(l), TrainingsQuelle.Gruppe))
             .Where(t => t.Tag >= von && t.Tag <= von.AddDays(GruppenVorlaufTage) && zaehlt(t));
         if (Erster(gruppe) is { } gruppenTermin) return gruppenTermin;

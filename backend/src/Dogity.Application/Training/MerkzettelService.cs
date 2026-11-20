@@ -61,13 +61,13 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
         if (request.Id is { } id && await VorhandenerEintragAsync(userId, dogId, id, ct) is { } vorhanden)
             return vorhanden;
 
-        var fehler = await PruefeAsync(request, ct);
+        var fehler = await PruefeAsync(userId, request, ct);
         if (fehler is not null) return Result<TrainingNoteDto>.Failure(fehler);
 
         // CreatedAt von der Uhr des Dienstes: Wann gemerkt wurde, entscheidet über das Ziel "Nächstes Training".
         var eintrag = new TrainingNote { DogId = dogId, UserId = userId, CreatedAt = timeProvider.GetUtcNow() };
         if (request.Id is { } neueId) eintrag.Id = neueId;
-        Uebernehme(eintrag, request);
+        Uebernehme(eintrag, request, await db.ZoneAsync(userId, ct));
         db.TrainingNotes.Add(eintrag);
         try
         {
@@ -108,10 +108,10 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
         if (eintrag is null)
             return Result<TrainingNoteDto>.NotFound("Eintrag nicht gefunden.");
 
-        var fehler = await PruefeAsync(request, ct);
+        var fehler = await PruefeAsync(userId, request, ct);
         if (fehler is not null) return Result<TrainingNoteDto>.Failure(fehler);
 
-        Uebernehme(eintrag, request);
+        Uebernehme(eintrag, request, await db.ZoneAsync(userId, ct));
         eintrag.UpdatedAt = timeProvider.GetUtcNow();
         await db.SaveChangesAsync(ct);
 
@@ -159,7 +159,7 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
             return Result<NextTrainingDto>.Success(await NaechstesTrainingAsync(userId, dogId, ct));
 
         // Vorschau für das Merken mit Datum: dieselbe Rechnung wie beim Speichern und Erinnern.
-        var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
+        var heute = await db.HeuteAsync(userId, timeProvider, ct);
         if (tag < heute.AddDays(-MaxTageZurueck) || tag > heute.AddDays(MaxTageVoraus))
             return Result<NextTrainingDto>.Failure("Das Datum liegt zu weit entfernt.");
         return Result<NextTrainingDto>.Success(await NaechstesTrainingAsync(userId, dogId, ct, tag, uhrzeit));
@@ -196,12 +196,13 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
         Guid userId, Guid dogId, CancellationToken ct, DateOnly? datum = null, TimeOnly? uhrzeit = null)
     {
         var jetzt = timeProvider.GetUtcNow();
-        var daten = await TrainingsDaten.LadenAsync(db, [dogId], [userId], Vereinszeit.Tag(jetzt), ct);
+        var zone = await db.ZoneAsync(userId, ct);
+        var daten = await TrainingsDaten.LadenAsync(db, [dogId], [userId], Ortszeit.Tag(jetzt, zone), ct);
         var naechstes = datum is null
-            ? Trainingsrhythmus.NaechstesTraining(jetzt, daten.Tagebuch(dogId), daten.Gruppentermine(userId), daten.Rhythmus(dogId))
+            ? Trainingsrhythmus.NaechstesTraining(jetzt, daten.Tagebuch(dogId), daten.Gruppentermine(userId), daten.Rhythmus(dogId), zone)
             : Trainingsrhythmus.ZielDesEintrags(
                 TrainingNoteGoal.Date, datum, jetzt, jetzt, daten.Tagebuch(dogId), daten.Gruppentermine(userId), daten.Rhythmus(dogId),
-                erinnerung: false, uhrzeit);
+                erinnerung: false, uhrzeit, zone);
         return naechstes is { } termin
             ? new NextTrainingDto(termin.Tag, termin.Uhrzeit, termin.Quelle, Trainingsrhythmus.ErinnerungsZeitpunkt(termin))
             : new NextTrainingDto(null, null, TrainingsQuelle.Unbekannt);
@@ -213,7 +214,8 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
     private async Task<List<TrainingNoteDto>> ToDtosAsync(Guid userId, Guid dogId, IReadOnlyList<TrainingNote> eintraege, CancellationToken ct)
     {
         var jetzt = timeProvider.GetUtcNow();
-        var heute = Vereinszeit.Tag(jetzt);
+        var zone = await db.ZoneAsync(userId, ct);
+        var heute = Ortszeit.Tag(jetzt, zone);
         var daten = await TrainingsDaten.LadenAsync(db, [dogId], [userId], heute, ct);
 
         var uebungIds = eintraege.Where(n => n.ExerciseId is not null).Select(n => n.ExerciseId!.Value).Distinct().ToList();
@@ -227,7 +229,7 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
             var ziel = n.DoneAt is null
                 ? Trainingsrhythmus.ZielDesEintrags(
                     n.Goal, n.TargetDate, n.CreatedAt, jetzt, daten.Tagebuch(dogId), daten.Gruppentermine(userId), daten.Rhythmus(dogId),
-                    erinnerung: false, n.TargetTime)
+                    erinnerung: false, n.TargetTime, zone)
                 : null;
             var uebung = n.ExerciseId is { } id && uebungen.TryGetValue(id, out var u) ? u : null;
             return new TrainingNoteDto(
@@ -236,7 +238,7 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
         }).ToList();
     }
 
-    private void Uebernehme(TrainingNote eintrag, SaveTrainingNoteRequest request)
+    private void Uebernehme(TrainingNote eintrag, SaveTrainingNoteRequest request, TimeZoneInfo zone)
     {
         eintrag.Text = request.Text.Trim();
         eintrag.ExerciseId = request.ExerciseId;
@@ -248,16 +250,16 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
         eintrag.TargetDate = request.Goal switch
         {
             TrainingNoteGoal.Date => request.TargetDate,
-            // Den Montag der Folgewoche legt der Server fest: Er rechnet nach Vereinszeit, nicht nach der Uhr des Geräts.
+            // Den Montag der Folgewoche legt der Server fest: Er rechnet in der gemeldeten Zone der Person, nicht nach der Uhr des Geräts.
             TrainingNoteGoal.NextWeek => bleibtNaechsteWoche
                 ? eintrag.TargetDate
-                : Trainingsrhythmus.MontagDerFolgewoche(Vereinszeit.Tag(timeProvider.GetUtcNow())),
+                : Trainingsrhythmus.MontagDerFolgewoche(Ortszeit.Tag(timeProvider.GetUtcNow(), zone)),
             _ => null
         };
     }
 
     /// <summary>Die Fehlermeldung zur Eingabe, sonst null.</summary>
-    private async Task<string?> PruefeAsync(SaveTrainingNoteRequest request, CancellationToken ct)
+    private async Task<string?> PruefeAsync(Guid userId, SaveTrainingNoteRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Text))
             return "Bitte etwas zum Merken eintragen.";
@@ -269,7 +271,7 @@ public class MerkzettelService(IApplicationDbContext db, TimeProvider timeProvid
 
         if (request.Goal == TrainingNoteGoal.Date)
         {
-            var heute = Vereinszeit.Tag(timeProvider.GetUtcNow());
+            var heute = await db.HeuteAsync(userId, timeProvider, ct);
             if (request.TargetDate is not { } tag)
                 return "Bitte ein Datum wählen.";
             if (tag < heute.AddDays(-MaxTageZurueck) || tag > heute.AddDays(MaxTageVoraus))

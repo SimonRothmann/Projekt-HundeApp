@@ -57,7 +57,9 @@ public record EinstellungenExportDto(
     // Schrittlänge in cm für die Umrechnung der Fährtenlänge in Schritte; null = Standard.
     int? SchrittlaengeCm = null,
     bool ErinnerungMerkzettel = true,
-    bool FarbsichereDarstellung = false);
+    bool FarbsichereDarstellung = false,
+    // Zeitzone des Geräts (IANA-Kennung); null = Vereinszeit (Europe/Berlin).
+    string? Zeitzone = null);
 
 /// <summary>
 /// Eine versendete Erinnerung - der Merkzettel gegen Doppelversand. Der Text steht

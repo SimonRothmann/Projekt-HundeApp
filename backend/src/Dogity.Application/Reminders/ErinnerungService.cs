@@ -1,5 +1,6 @@
 using System.Data.Common;
 using Dogity.Application.Abstractions;
+using Dogity.Application.Common;
 using Dogity.Application.Community;
 using Dogity.Application.Dogs;
 using Dogity.Application.Notifications;
@@ -52,7 +53,7 @@ public class ErinnerungService(
         var jetzt = time.GetUtcNow();
 
         await Abschnitt("Aufräumen", () => AufraeumenAsync(jetzt, ct));
-        if (!Erinnerungsregeln.ImVersandfenster(jetzt)) return 0;
+        if (!Erinnerungsregeln.ImVersandfenster(jetzt) && !await IrgendwoImVersandfensterAsync(jetzt, ct)) return 0;
 
         // Jeder Abschnitt für sich: Ein Fehler bei den Fährten soll die Termine nicht mitnehmen.
         var gesendet = 0;
@@ -63,6 +64,15 @@ public class ErinnerungService(
         gesendet += await Abschnitt("Merkzettel", () => MerkzettelAsync(jetzt, ct));
         return gesendet;
     }
+
+    /// <summary>
+    /// Ob jemand mit gemeldeter Zone gerade im Versandfenster liegt, obwohl in Vereinszeit Ruhezeit ist.
+    /// Die Zonen sind eine kurze Liste (je Zone eine Zeile), die Abfrage ist billig; den genauen Entscheid je Person
+    /// treffen <see cref="Erinnerungsregeln"/>.
+    /// </summary>
+    private async Task<bool> IrgendwoImVersandfensterAsync(DateTimeOffset jetzt, CancellationToken ct) =>
+        (await db.UserPreferences.Where(p => p.TimeZone != null).Select(p => p.TimeZone!).Distinct().AsNoTracking().ToListAsync(ct))
+            .Any(z => Erinnerungsregeln.ImVersandfenster(jetzt, Ortszeit.Zone(z)));
 
     private async Task<int> Abschnitt(string name, Func<Task<int>> lauf)
     {
@@ -155,8 +165,8 @@ public class ErinnerungService(
             }
         }
 
-        var gesendet = await GesendeteAsync(ReminderType.SessionDayBefore, terminIds, folgetag, ct);
-        return await VersendeAsync(Erinnerungsregeln.TerminErinnerungen(jetzt, adressaten, gesendet), ct);
+        var gesendet = await GesendeteAsync(ReminderType.SessionDayBefore, terminIds, [folgetag], ct);
+        return await VersendeAsync(Erinnerungsregeln.TerminErinnerungen(jetzt, adressaten, gesendet, await db.ZonenAsync(nutzerIds, ct)), ct);
     }
 
     // ---- b) Fährte noch nicht abgelaufen ----
@@ -201,9 +211,12 @@ public class ErinnerungService(
             .Select(d => new { d.Id, d.Name, d.UsesOwnSports })
             .AsNoTracking()
             .ToDictionaryAsync(d => d.Id, ct);
-        var pausen = await db.ActivePausesAsync(hundeIds, Vereinszeit.Tag(jetzt), ct);
-
         var legerinnen = trainings.Values.Select(s => s.UserId).Distinct().ToList();
+        // "Pausiert heute" gilt am Tag der Person, die erinnert würde.
+        var zoneVon = await db.ZonenAsync(legerinnen, ct);
+        var pausiert = new Dictionary<DateOnly, HashSet<Guid>>();
+        foreach (var tag in legerinnen.Select(l => Ortszeit.Tag(jetzt, zoneVon(l))).Distinct())
+            pausiert[tag] = (await db.ActivePausesAsync(hundeIds, tag, ct)).Keys.ToHashSet();
         // Wer den Hund (noch) sehen darf (DogAccessQueries) - sonst führte der Link ins Leere,
         // etwa nach dem Austritt als Mitbesitzer:in.
         var zugang = new HashSet<(Guid UserId, Guid DogId)>();
@@ -223,14 +236,14 @@ public class ErinnerungService(
             kandidaten.Add(new FaehrteKandidat(
                 f.Id, training.Id, training.DogId, hund.Name, training.UserId, ende,
                 Abgelaufen: false, // oben schon nach "keine Abläufe" gefiltert
-                HundPausiert: pausen.ContainsKey(training.DogId),
+                HundPausiert: pausiert[Ortszeit.Tag(jetzt, zoneVon(training.UserId))].Contains(training.DogId),
                 Erlaubt: erlaubt.Contains(training.UserId)
                     && zugang.Contains((training.UserId, training.DogId))
                     && faehrteAngeboten(training.UserId, training.DogId, hund.UsesOwnSports)));
         }
 
-        var gesendet = await GesendeteAsync(ReminderType.TrackNotWalked, kandidaten.Select(k => k.FaehrteId).ToList(), SentReminder.KeinTag, ct);
-        return await VersendeAsync(Erinnerungsregeln.FaehrtenErinnerungen(jetzt, kandidaten, gesendet), ct);
+        var gesendet = await GesendeteAsync(ReminderType.TrackNotWalked, kandidaten.Select(k => k.FaehrteId).ToList(), [SentReminder.KeinTag], ct);
+        return await VersendeAsync(Erinnerungsregeln.FaehrtenErinnerungen(jetzt, kandidaten, gesendet, zoneVon), ct);
     }
 
     /// <summary>
@@ -267,9 +280,10 @@ public class ErinnerungService(
 
     private async Task<int> RueckmeldungenAsync(DateTimeOffset jetzt, CancellationToken ct)
     {
+        // Wochentag und Stunde in Vereinszeit grenzen die Abfrage nur für Personen ohne gemeldete Zone ein; wer eine
+        // gemeldet hat, wird immer geladen und von Erinnerungsregeln.FaelligeTrainer in der eigenen Zone geprüft.
         var lokal = Vereinszeit.Lokal(jetzt);
         var tagesBit = Erinnerungsregeln.TagesBit(lokal.DayOfWeek);
-        var heute = DateOnly.FromDateTime(lokal);
         var stunde = lokal.Hour;
         // Ohne Einstellungszeile gelten die Vorgaben (Sonntag, 18 Uhr) - ob die heute zutreffen, steht schon hier fest.
         var vorgabeFaellig = tagesBit == Erinnerungsregeln.VorgabeTage && stunde >= Erinnerungsregeln.VorgabeStunde;
@@ -281,7 +295,7 @@ public class ErinnerungService(
         var betreuungen = await db.TrainerAssignments
             .Where(a => db.UserPreferences.Any(p =>
                     p.UserId == a.TrainerId && p.ReminderTrainerSummary
-                    && (p.TrainerSummaryDays & tagesBit) != 0 && p.TrainerSummaryHour <= stunde)
+                    && (p.TimeZone != null || ((p.TrainerSummaryDays & tagesBit) != 0 && p.TrainerSummaryHour <= stunde)))
                 || (vorgabeFaellig && !db.UserPreferences.Any(p => p.UserId == a.TrainerId)))
             .Select(a => new { a.TrainerId, a.DogId })
             .AsNoTracking()
@@ -301,13 +315,15 @@ public class ErinnerungService(
                 : new TrainerKandidat(id, true, Erinnerungsregeln.VorgabeTage, Erinnerungsregeln.VorgabeStunde))
             .ToList();
 
+        var zoneVon = await db.ZonenAsync(trainerIds, ct);
+        var tage = trainerIds.Select(id => Ortszeit.Tag(jetzt, zoneVon(id))).Distinct().ToList();
         var gesendet = (await db.SentReminders
-                .Where(r => r.Type == ReminderType.TrainerFeedbackSummary && r.DayKey == heute && trainerIds.Contains(r.UserId))
+                .Where(r => r.Type == ReminderType.TrainerFeedbackSummary && tage.Contains(r.DayKey) && trainerIds.Contains(r.UserId))
                 .Select(r => new ErinnerungsSchluessel(r.Type, r.UserId, r.ReferenceId, r.DayKey))
                 .ToListAsync(ct))
             .ToHashSet();
 
-        var faellig = Erinnerungsregeln.FaelligeTrainer(jetzt, kandidaten, gesendet);
+        var faellig = Erinnerungsregeln.FaelligeTrainer(jetzt, kandidaten, gesendet, zoneVon);
 
         var erinnerungen = new List<FaelligeErinnerung>();
         foreach (var trainer in faellig)
@@ -315,7 +331,7 @@ public class ErinnerungService(
             var hunde = betreuungen.Where(b => b.TrainerId == trainer.UserId).Select(b => b.DogId).Distinct().ToList();
             // Dieselbe Zählung wie die Zahl auf der Trainer-Übersicht und die Liste dahinter.
             var anzahl = await db.TrainingSessionsToRate(hunde).CountAsync(ct);
-            if (Erinnerungsregeln.RueckmeldungsErinnerung(jetzt, trainer.UserId, anzahl) is { } e) erinnerungen.Add(e);
+            if (Erinnerungsregeln.RueckmeldungsErinnerung(jetzt, trainer.UserId, anzahl, zoneVon(trainer.UserId)) is { } e) erinnerungen.Add(e);
         }
         return await VersendeAsync(erinnerungen, ct);
     }
@@ -324,15 +340,14 @@ public class ErinnerungService(
 
     private async Task<int> GesundheitAsync(DateTimeOffset jetzt, CancellationToken ct)
     {
-        var heute = Vereinszeit.Tag(jetzt);
-        var folgetag = heute.AddDays(1);
-        var vorlaufEnde = heute.AddDays(Erinnerungsregeln.GesundheitVorlaufTage);
-        // Der Vortags-Termin kommt erst ab 18 Uhr; vorher muss er nicht einmal geladen werden.
-        var terminFaellig = Vereinszeit.Lokal(jetzt).Hour >= Erinnerungsregeln.TerminAbStunde;
+        // Der Tag gilt je Person in ihrer Zone: Die Abfrage umfasst die Tage, die gerade irgendwo gelten,
+        // Erinnerungsregeln.GesundheitsErinnerungen entscheidet danach je Person.
+        var (frueh, spaet) = Ortszeit.TagSpanne(jetzt);
+        var vorlaufEnde = spaet.AddDays(Erinnerungsregeln.GesundheitVorlaufTage);
 
         var kandidaten = await db.DogHealthRecords
-            .Where(r => (r.Kind == DogHealthKind.VetAppointment && terminFaellig && r.Date == folgetag)
-                || (r.Kind != DogHealthKind.VetAppointment && r.DueDate >= heute && r.DueDate <= vorlaufEnde))
+            .Where(r => (r.Kind == DogHealthKind.VetAppointment && r.Date >= frueh.AddDays(1) && r.Date <= spaet.AddDays(1))
+                || (r.Kind != DogHealthKind.VetAppointment && r.DueDate >= frueh && r.DueDate <= vorlaufEnde))
             .Select(r => new { r.Id, r.DogId, r.Kind, r.Title, r.Date, r.Time, r.DueDate })
             .AsNoTracking()
             .ToListAsync(ct);
@@ -394,21 +409,22 @@ public class ErinnerungService(
                 .ToListAsync(ct))
             .ToHashSet();
 
-        return await VersendeAsync(Erinnerungsregeln.GesundheitsErinnerungen(jetzt, adressaten, gesendet), ct);
+        return await VersendeAsync(Erinnerungsregeln.GesundheitsErinnerungen(jetzt, adressaten, gesendet, await db.ZonenAsync(nutzerIds, ct)), ct);
     }
 
     // ---- e) Merkzettel fürs Training ----
 
     private async Task<int> MerkzettelAsync(DateTimeOffset jetzt, CancellationToken ct)
     {
-        var heute = Vereinszeit.Tag(jetzt);
-        var wocheZurueck = heute.AddDays(-7);
+        // "Heute" gilt je Person in ihrer Zone: Die Abfrage umfasst die Tage, die gerade irgendwo gelten.
+        var (frueh, spaet) = Ortszeit.TagSpanne(jetzt);
+        var wocheZurueck = frueh.AddDays(-7);
 
         // Nur Einträge, die heute drankommen können: "Nächstes Training" (der Tag ergibt sich erst aus
         // dem Rhythmus) und solche mit Tag bis heute; Einträge mit einem Tag in der Zukunft warten.
         var eintraege = await db.TrainingNotes
             .Where(n => n.DoneAt == null
-                && (n.Goal == TrainingNoteGoal.NextTraining || (n.TargetDate <= heute && n.TargetDate >= wocheZurueck)))
+                && (n.Goal == TrainingNoteGoal.NextTraining || (n.TargetDate <= spaet && n.TargetDate >= wocheZurueck)))
             .OrderBy(n => n.CreatedAt)
             .Select(n => new { n.Id, n.DogId, n.Text, n.Goal, n.TargetDate, n.TargetTime, n.CreatedAt })
             .AsNoTracking()
@@ -432,7 +448,8 @@ public class ErinnerungService(
             .ToListAsync(ct);
         var nutzerIds = besitzer.Select(b => b.UserId).Distinct().ToList();
         var erlaubt = await ErlaubtAsync(nutzerIds, ReminderType.TrainingNote, ct);
-        var daten = await TrainingsDaten.LadenAsync(db, aktiveHundeIds, nutzerIds, heute, ct);
+        var daten = await TrainingsDaten.LadenAsync(db, aktiveHundeIds, nutzerIds, frueh, ct, spaet);
+        var zoneVon = await db.ZonenAsync(nutzerIds, ct);
 
         var kandidaten = new List<MerkzettelKandidat>();
         foreach (var b in besitzer)
@@ -448,8 +465,9 @@ public class ErinnerungService(
                 daten.Tagebuch(b.DogId), daten.Gruppentermine(b.UserId), daten.Rhythmus(b.DogId)));
         }
 
-        var gesendet = await GesendeteAsync(ReminderType.TrainingNote, aktiveHundeIds, heute, ct);
-        return await VersendeAsync(Erinnerungsregeln.MerkzettelErinnerungen(jetzt, kandidaten, gesendet), ct);
+        var tage = nutzerIds.Select(id => Ortszeit.Tag(jetzt, zoneVon(id))).Distinct().ToList();
+        var gesendet = await GesendeteAsync(ReminderType.TrainingNote, aktiveHundeIds, tage, ct);
+        return await VersendeAsync(Erinnerungsregeln.MerkzettelErinnerungen(jetzt, kandidaten, gesendet, zoneVon), ct);
     }
 
     // ---- gemeinsam ----
@@ -479,9 +497,9 @@ public class ErinnerungService(
     }
 
     private async Task<IReadOnlySet<ErinnerungsSchluessel>> GesendeteAsync(
-        ReminderType typ, IReadOnlyCollection<Guid> bezugIds, DateOnly tag, CancellationToken ct) =>
+        ReminderType typ, IReadOnlyCollection<Guid> bezugIds, IReadOnlyCollection<DateOnly> tage, CancellationToken ct) =>
         (await db.SentReminders
-            .Where(r => r.Type == typ && r.DayKey == tag && bezugIds.Contains(r.ReferenceId))
+            .Where(r => r.Type == typ && tage.Contains(r.DayKey) && bezugIds.Contains(r.ReferenceId))
             .Select(r => new ErinnerungsSchluessel(r.Type, r.UserId, r.ReferenceId, r.DayKey))
             .ToListAsync(ct))
         .ToHashSet();

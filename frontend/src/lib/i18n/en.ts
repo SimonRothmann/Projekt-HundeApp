@@ -298,6 +298,7 @@ export const EN: Record<string, string> = {
   "Gelegt bis {uhrzeit}": "Laid until {uhrzeit}",
   "Gestern gelegt bis {uhrzeit}": "Laid yesterday until {uhrzeit}",
   "Gelegt am {datum} bis {uhrzeit}": "Laid on {datum} until {uhrzeit}",
+  "Zeitzone: {zone} (von deinem Gerät)": "Time zone: {zone} (from your device)",
   "Zuletzt gelegt": "Laid recently",
   "Spuren bleiben sichtbar": "Tracks stay visible",
   "Gelegte Fährten und Trails bleiben auf der Startseite stehen, solange du sie noch suchen kannst: eine Fährte bis 24 Stunden, ein Trail bis 48 Stunden nach dem Legen. Über Nacht verschwanden sie vorher. Der Abschnitt heißt dann „Zuletzt gelegt“ und sagt dazu, wann die Spur gelegt wurde.":
@@ -3044,6 +3045,8 @@ export const EN: Record<string, string> = {
   "Standard": "Default",
   "Die Schrittlänge muss zwischen {min} und {max} cm liegen.": "The step length must be between {min} and {max} cm.",
   "Die Schrittlänge muss zwischen 40 und 120 cm liegen.": "The step length must be between 40 and 120 cm.",
+  "Die Zeitzone ist zu lang.": "The time zone is too long.",
+  "Diese Zeitzone ist unbekannt.": "This time zone is unknown.",
   "Ohne Angabe rechnet Dogity mit {cm} cm.": "Without an entry, Dogity uses {cm} cm.",
   "Bodenzustand (optional)": "Ground condition (optional)",
   "Der Bodenzustand": "The ground condition",

@@ -1764,6 +1764,8 @@ export type UserPreferences = {
   stepLengthCm: number | null;
   /** Farbsichere Darstellung (Ampel in Blau, Gelb, Rot) für Rot-Grün-Schwäche, siehe lib/farbsicher.ts. Vorgabe: aus. */
   colorSafe: boolean;
+  /** Zeitzone des Geräts (IANA-Kennung), vom Gerät gemeldet; null = noch nicht gemeldet, es gilt Europe/Berlin. */
+  timeZone: string | null;
 };
 
 /** Ein wählbarer Geltungsbereich - Spiegel von Application/Sports/CountryDto. */
