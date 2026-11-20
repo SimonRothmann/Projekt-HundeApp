@@ -1,6 +1,12 @@
 namespace Dogity.Application.Admin;
 
-public record AdminStatsDto(int UserCount, int DogCount, int GroupCount, int TrainingSessionCount, int GpsTrackCount, AdminRecentStatsDto Last30Days);
+public record AdminStatsDto(int UserCount, int DogCount, int GroupCount, int TrainingSessionCount, int GpsTrackCount, AdminRecentStatsDto Last30Days, AdminGastzugangDto Gastzugang);
+
+/// <summary>
+/// "App ausprobieren" (Gastzugang): angelegte Gäste und daraus Registrierte, die letzten 7 bzw. 30 Tage
+/// (heute eingeschlossen, in Vereinszeit). Nur Zahlen, keine Personen.
+/// </summary>
+public record AdminGastzugangDto(int Created7, int Registered7, int Created30, int Registered30);
 
 /// <summary>
 /// Die letzten 30 Tage - nur Zählungen, keine Personen.

@@ -32,6 +32,8 @@ function RegisterForm() {
   // wird ignoriert - nichts davon wird je Teil einer Weiterleitung.
   const einladung = einladungscodeAus(suchparameter.get("einladung"));
   const pruefungsordnung = poSlugAus(suchparameter.get("po"));
+  // Vom Knopf "Eigenes Konto anlegen" im Gast-Banner: Der Server zählt solche Registrierungen (nur eine Zahl).
+  const vonGast = suchparameter.get("von") === "gast";
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -48,7 +50,7 @@ function RegisterForm() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await register(email, password, firstName, lastName, perMail, sprache);
+      await register(email, password, firstName, lastName, perMail, sprache, vonGast);
       // Erst nach dem Anlegen des Kontos: Bricht die Registrierung ab, soll
       // nichts vom Wunsch hängen bleiben.
       if (pruefungsordnung) merkeStartPo(pruefungsordnung);

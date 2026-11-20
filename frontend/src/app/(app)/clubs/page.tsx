@@ -19,6 +19,7 @@ import { toast } from "sonner";
 
 import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useSprache, useT } from "@/lib/i18n";
+import { useProfil } from "@/lib/use-profil";
 function membershipFor(memberships: ClubMembership[], clubId: string): ClubMembership | undefined {
   // Bei mehrfachen Anfragen (z.B. nach Ablehnung erneut angefragt) zählt
   // die jüngste Zeile.
@@ -31,6 +32,7 @@ export default function ClubsPage() {
   const t = useT();
   const rueckfrage = useRueckfrage();
   const sprache = useSprache();
+  const { profil } = useProfil();
   const [clubs, setClubs] = useState<ClubSummary[] | null>(null);
   const [memberships, setMemberships] = useState<ClubMembership[]>([]);
   const [groupsByClub, setGroupsByClub] = useState<Record<string, Group[]>>({});
@@ -158,10 +160,12 @@ export default function ClubsPage() {
 {t("Tritt einem Verein bei - der Verein gibt deine Anfrage frei.")}
         </p>
         {/* Vorher nur als grauer Knopf unter der ganzen Vereinsliste - kaum zu finden. */}
-        <a href={`#${VEREIN_GRUENDEN}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary-text">
-          <Building2 className="size-4 shrink-0" aria-hidden />
-          {t("Dein Verein fehlt? Verein gründen")}
-        </a>
+        {!profil?.guestUntil && (
+          <a href={`#${VEREIN_GRUENDEN}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary-text">
+            <Building2 className="size-4 shrink-0" aria-hidden />
+            {t("Dein Verein fehlt? Verein gründen")}
+          </a>
+        )}
       </div>
 
       <MeineGruppenSection key={gruppenStand} onChanged={loadAll} />

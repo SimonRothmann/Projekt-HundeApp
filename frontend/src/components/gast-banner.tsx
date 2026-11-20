@@ -39,7 +39,7 @@ export function GastBanner({ umgebung }: { umgebung?: string }) {
             // Harter Seitenwechsel: Der App-Rahmen schickt eine abgemeldete Person per router.replace nach
             // /login, und der gewönne gegen ein router.push("/register").
             // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-            window.location.assign("/register");
+            window.location.assign("/register?von=gast");
           }}
         >
           {t("Eigenes Konto anlegen")}

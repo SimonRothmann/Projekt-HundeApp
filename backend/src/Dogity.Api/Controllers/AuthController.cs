@@ -60,6 +60,7 @@ public class AuthController(
             return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
 
         await userManager.AddToRoleAsync(user, Roles.User);
+        if (request.FromGuest) await gastkonten.ZaehleRegistrierungAsync();
 
         // Konto und Einstellung entstehen nicht in einer Einheit. Scheitert das
         // Speichern der Abwahl, soll die Registrierung trotzdem gelingen: Ein 500

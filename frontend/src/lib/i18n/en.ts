@@ -3258,4 +3258,10 @@ export const EN: Record<string, string> = {
   "Gegenstände {ist} / {soll}": "Articles {ist} / {soll}",
   "{stufe}: Liegezeit erreicht": "{stufe}: aging time reached",
   "{stufe}: noch {rest}": "{stufe}: {rest} to go",
+  "Letzte 7 Tage": "Last 7 days",
+  "App ausprobieren": "Try the app",
+  "Gäste, die die App ohne Anmeldung ausprobiert haben, und daraus Registrierte (über den Knopf im Gast-Banner).": "Guests who tried the app without signing up, and how many of them registered (via the button in the guest banner).",
+  "Zeitraum": "Period",
+  "Gäste": "Guests",
+  "davon registriert": "of those registered",
 };

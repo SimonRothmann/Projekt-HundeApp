@@ -9,6 +9,7 @@ using Dogity.Application.Dogs;
 using Dogity.Application.Notifications;
 using Dogity.Application.Tests.TestSupport;
 using Dogity.Application.Weather;
+using Dogity.Domain.Betrieb;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Training;
@@ -166,6 +167,55 @@ public class GastzugangTests
         var voll = Assert.IsType<ObjectResult>((await controller.Guest(new GuestRequest("de"), default)).Result);
         Assert.Equal(503, voll.StatusCode);
         Assert.Null(await sp.GetRequiredService<GastkontoService>().AnlegenAsync("de"));
+    }
+
+    [Fact]
+    public async Task Zaehler_AnlegenZaehltJeTag_RegistrierungAusDemBannerNurBeiErfolg()
+    {
+        var (provider, _) = await BaueAsync();
+        using var scope = provider.CreateScope();
+        var sp = scope.ServiceProvider;
+        var controller = new AuthController(
+            sp.GetRequiredService<UserManager<ApplicationUser>>(), null!, new TestJwt(), new FakeRefreshTokenService(), null!,
+            sp.GetRequiredService<Application.Preferences.IPreferenceService>(), sp.GetRequiredService<GastkontoService>(),
+            sp.GetRequiredService<IFrontendLinks>(), new AnmeldeDrossel(), TimeProvider.System, NullLogger<AuthController>.Instance);
+        var admin = sp.GetRequiredService<IAdminService>();
+
+        Assert.Equal(new AdminGastzugangDto(0, 0, 0, 0), (await admin.GetStatsAsync()).Value!.Gastzugang);
+
+        await GastAsync(sp);
+        await GastAsync(sp);
+        Assert.Equal(new AdminGastzugangDto(2, 0, 2, 0), (await admin.GetStatsAsync()).Value!.Gastzugang);
+
+        // Ohne Banner: zählt nicht. Aus dem Banner: zählt einmal. Scheitert die Registrierung (E-Mail vergeben): zählt nicht.
+        Assert.IsType<OkObjectResult>((await controller.Register(new RegisterRequest("a@beispiel.de", "Passwort123", "A", "B"))).Result);
+        Assert.IsType<OkObjectResult>((await controller.Register(new RegisterRequest("b@beispiel.de", "Passwort123", "A", "B", FromGuest: true))).Result);
+        Assert.IsType<ConflictObjectResult>((await controller.Register(new RegisterRequest("b@beispiel.de", "Passwort123", "A", "B", FromGuest: true))).Result);
+        Assert.IsType<BadRequestObjectResult>((await controller.Register(new RegisterRequest("c@beispiel.de", "kurz", "A", "B", FromGuest: true))).Result);
+        Assert.Equal(new AdminGastzugangDto(2, 1, 2, 1), (await admin.GetStatsAsync()).Value!.Gastzugang);
+
+        // Die Zeile hat nur Tag und Zahlen - keine Person.
+        var tag = Assert.Single(await sp.GetRequiredService<ApplicationDbContext>().GastzugangTage.ToListAsync());
+        Assert.Equal(Vereinszeit.Heute(), tag.Day);
+    }
+
+    [Fact]
+    public async Task Zaehler_SiebenTageUndDreissigTage_AelteresFaelltHeraus()
+    {
+        var (provider, _) = await BaueAsync();
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var heute = Vereinszeit.Heute();
+        db.GastzugangTage.AddRange(
+            new GastzugangTag { Day = heute, Created = 1, Registered = 1 },
+            new GastzugangTag { Day = heute.AddDays(-6), Created = 10, Registered = 2 },
+            new GastzugangTag { Day = heute.AddDays(-7), Created = 100, Registered = 20 },
+            new GastzugangTag { Day = heute.AddDays(-29), Created = 1000, Registered = 200 },
+            new GastzugangTag { Day = heute.AddDays(-30), Created = 10000, Registered = 2000 });
+        await db.SaveChangesAsync();
+
+        var z = (await scope.ServiceProvider.GetRequiredService<IAdminService>().GetStatsAsync()).Value!.Gastzugang;
+        Assert.Equal(new AdminGastzugangDto(11, 3, 1111, 223), z);
     }
 
     [Fact]

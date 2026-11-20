@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import type { AdminStats } from "@/lib/types";
+import { GastzugangKarte } from "@/components/admin/gastzugang-karte";
 import { KennzahlenKarte } from "@/components/admin/kennzahlen-karte";
 import { Letzte30TageSection } from "@/components/admin/letzte-30-tage-section";
 import { NutzungBereich } from "@/components/admin/nutzung-bereich";
@@ -54,6 +55,7 @@ export default function AdminStatistikPage() {
         <>
           <KennzahlenKarte stats={stats} />
           <Letzte30TageSection stats={stats} />
+          <GastzugangKarte zahlen={stats.gastzugang} />
         </>
       )}
       <NutzungBereich />

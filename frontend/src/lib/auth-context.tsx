@@ -33,6 +33,7 @@ type AuthContextValue = {
     lastName: string,
     emailBenachrichtigungen?: boolean,
     locale?: string,
+    vonGast?: boolean,
   ) => Promise<void>;
   // Gastzugang zum Ausprobieren: legt serverseitig ein Konto mit Beispieldaten an (siehe docs/GASTZUGANG.md).
   loginAlsGast: (locale?: string) => Promise<void>;
@@ -183,6 +184,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Die Oberflächensprache beim Registrieren: Der Server merkt sie sich und schreibt
     // Mails und Push von Anfang an in ihr (die Willkommensmail eingeschlossen).
     locale?: string,
+    // Die Registrierung kam aus dem Gast-Banner; der Server zählt sie nur (Admin-Statistik "App ausprobieren").
+    vonGast?: boolean,
   ) {
     const response = await api.post<AuthResponse>("/api/auth/register", {
       email,
@@ -191,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastName,
       emailBenachrichtigungen,
       locale,
+      fromGuest: vonGast || undefined,
     });
     await persist(response);
   }

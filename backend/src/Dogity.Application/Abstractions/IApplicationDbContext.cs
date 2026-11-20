@@ -94,6 +94,7 @@ public interface IApplicationDbContext
     DbSet<SentReminder> SentReminders { get; }
 
     DbSet<Wartungshinweis> Wartungshinweise { get; }
+    DbSet<GastzugangTag> GastzugangTage { get; }
 
     /// <summary>
     /// Ob die Datenbank Massenbefehle (ExecuteUpdate/ExecuteDelete) kann: Postgres ja, der

@@ -800,6 +800,15 @@ export type AdminStats = {
   trainingSessionCount: number;
   gpsTrackCount: number;
   last30Days: AdminRecentStats;
+  gastzugang: AdminGastzugang;
+};
+
+/** "App ausprobieren": angelegte Gäste und daraus Registrierte, 7 und 30 Tage - nur Zahlen (siehe AdminGastzugangDto). */
+export type AdminGastzugang = {
+  created7: number;
+  registered7: number;
+  created30: number;
+  registered30: number;
 };
 
 /** Zählungen der letzten 30 Tage - keine Personen (siehe AdminRecentStatsDto). */

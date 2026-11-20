@@ -13,3 +13,13 @@ public class WartungshinweisConfiguration : IEntityTypeConfiguration<Wartungshin
         builder.Property(h => h.Text).HasMaxLength(Textlaengen.WartungshinweisText);
     }
 }
+
+public class GastzugangTagConfiguration : IEntityTypeConfiguration<GastzugangTag>
+{
+    public void Configure(EntityTypeBuilder<GastzugangTag> builder)
+    {
+        builder.ToTable("guest_access_days");
+        builder.HasKey(t => t.Day);
+        builder.Property(t => t.Day).ValueGeneratedNever();
+    }
+}

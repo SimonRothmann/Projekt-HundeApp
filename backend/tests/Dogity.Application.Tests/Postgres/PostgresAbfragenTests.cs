@@ -10,8 +10,10 @@ using Dogity.Domain.Dogs;
 using Dogity.Domain.Planning;
 using Dogity.Domain.Sports;
 using Dogity.Domain.Tracking;
+using Dogity.Infrastructure.Identity;
 using Dogity.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dogity.Application.Tests.Postgres;
 
@@ -74,6 +76,23 @@ public class PostgresAbfragenTests(PostgresDatenbank postgres) : IClassFixture<P
         Assert.Empty(await db.Database.GetPendingMigrationsAsync());
         // Eine Modelländerung ohne Migration fiele sonst erst beim Deploy auf (oder gar nicht).
         Assert.False(db.Database.HasPendingModelChanges());
+    }
+
+    [PostgresFact]
+    public async Task Gastzugang_Zaehler_GleichzeitigeRegistrierungenZaehlenAlle()
+    {
+        // Das SQL (INSERT ... ON CONFLICT) läuft nur auf Postgres; gleichzeitige Aufrufe dürfen keine Zählung verlieren.
+        await Task.WhenAll(Enumerable.Range(0, 8).Select(async _ =>
+        {
+            await using var db = postgres.NeuerKontext();
+            var dienst = new GastkontoService(db, null!, null!, null!, null!, null!, null!, null!, null!, null!, new FesteUhr(), NullLogger<GastkontoService>.Instance);
+            await dienst.ZaehleRegistrierungAsync();
+        }));
+
+        await using var lesen = postgres.NeuerKontext();
+        var zeile = await lesen.GastzugangTage.SingleAsync(t => t.Day == Tag);
+        Assert.Equal(8, zeile.Registered);
+        Assert.Equal(0, zeile.Created);
     }
 
     [PostgresFact]

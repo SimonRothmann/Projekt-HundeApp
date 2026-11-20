@@ -6,6 +6,7 @@ using Dogity.Application.Preferences;
 using Dogity.Application.Tracking;
 using Dogity.Application.Training;
 using Dogity.Application.Weather;
+using Dogity.Domain.Betrieb;
 using Dogity.Domain.Community;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Tracking;
@@ -67,29 +68,76 @@ public class GastkontoService(
         var bis = jetzt + Gastkonto.Laufzeit;
         var konten = new List<Guid>();
         var club = new Club { Name = VereinsName, Description = "Erfundener Verein zum Ausprobieren.", GuestUntil = bis };
+        ApplicationUser? gast = null;
         try
         {
-            var gast = await NeuesKontoAsync("Gast", "", bis, [Roles.User, Roles.Trainer], ct);
-            konten.Add(gast.Id);
-            gast.OnboardingDismissedAt = jetzt;
-            await userManager.UpdateAsync(gast);
+            // Eine Transaktion für das Ganze: Sonst wäre jedes der gut dreißig SaveChanges (Konten, Trainings,
+            // Fährte, Gruppe ...) ein eigener Commit, und das Anlegen dauerte auf dem Server Sekunden.
+            await db.InTransaktionAsync(async () =>
+            {
+                gast = await NeuesKontoAsync("Gast", "", bis, [Roles.User, Roles.Trainer], ct);
+                konten.Add(gast.Id);
+                gast.OnboardingDismissedAt = jetzt;
+                await userManager.UpdateAsync(gast);
 
-            await preferences.SetRegistrationLocaleAsync(gast.Id, locale, ct);
-            await preferences.UpdateCountryAsync(gast.Id, new UpdateCountryRequest("DE"), ct);
+                await preferences.SetRegistrationLocaleAsync(gast.Id, locale, ct);
+                await preferences.UpdateCountryAsync(gast.Id, new UpdateCountryRequest("DE"), ct);
 
-            db.Clubs.Add(club);
-            db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = gast.Id, Role = ClubRole.Training | ClubRole.Verwaltung });
-            await db.SaveChangesAsync(ct);
+                db.Clubs.Add(club);
+                db.ClubTrainers.Add(new ClubTrainer { ClubId = club.Id, UserId = gast.Id, Role = ClubRole.Training | ClubRole.Verwaltung });
+                await db.SaveChangesAsync(ct);
 
-            await HundUndVerlaufAsync(gast, ct);
-            await MitgliederAsync(gast, club, bis, konten, ct);
-            return gast;
+                await HundUndVerlaufAsync(gast, ct);
+                // Die rund 700 Punkte der Fährte müssen danach nicht bei jedem weiteren Speichern auf Änderungen
+                // geprüft werden; alles Folgende arbeitet mit Ids.
+                db.ChangeTracker.Clear();
+                await MitgliederAsync(gast, club, bis, konten, ct);
+            });
         }
         catch
         {
-            // Kein halbfertiger Gast: Was bis hierher entstand, geht gleich wieder.
+            // Kein halbfertiger Gast: Was bis hierher entstand, geht gleich wieder. Die Transaktion ist
+            // zurückgerollt; bleibt trotzdem etwas stehen, räumt es der Rückbau weg.
+            db.ChangeTracker.Clear();
             await EntferneAsync(konten, [club.Id], CancellationToken.None);
             throw;
+        }
+
+        await ZaehleAsync(registriert: false);
+        return gast;
+    }
+
+    /// <summary>
+    /// Zählt eine Registrierung, die aus dem Gast-Banner kam (siehe <see cref="GastzugangTag"/>). Ein Fehler
+    /// beim Zählen darf die Registrierung nicht kippen.
+    /// </summary>
+    public Task ZaehleRegistrierungAsync() => ZaehleAsync(registriert: true);
+
+    private async Task ZaehleAsync(bool registriert)
+    {
+        try
+        {
+            var tag = Vereinszeit.Tag(timeProvider.GetUtcNow());
+            if (db.UnterstuetztMassenbefehle)
+            {
+                // Atomar in einem Befehl: zwei gleichzeitige Gäste zählen beide, kein Lesen-Ändern-Schreiben-Wettlauf.
+                var (c, r) = registriert ? (0, 1) : (1, 0);
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"""
+                     INSERT INTO guest_access_days ("Day", "Created", "Registered") VALUES ({tag}, {c}, {r})
+                     ON CONFLICT ("Day") DO UPDATE SET "Created" = guest_access_days."Created" + {c}, "Registered" = guest_access_days."Registered" + {r}
+                     """);
+                return;
+            }
+
+            // In-Memory-Ersatz der Tests: kennt weder rohes SQL noch Wettläufe.
+            var zeile = await db.GastzugangTage.FindAsync(tag) ?? db.GastzugangTage.Add(new GastzugangTag { Day = tag }).Entity;
+            if (registriert) zeile.Registered++; else zeile.Created++;
+            await db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Der Zähler der Gastzugänge konnte nicht erhöht werden.");
         }
     }
 

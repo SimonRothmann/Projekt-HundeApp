@@ -99,6 +99,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<SentReminder> SentReminders => Set<SentReminder>();
 
     public DbSet<Wartungshinweis> Wartungshinweise => Set<Wartungshinweis>();
+    public DbSet<GastzugangTag> GastzugangTage => Set<GastzugangTag>();
 
     public DbSet<Identity.RefreshToken> RefreshTokens => Set<Identity.RefreshToken>();
 

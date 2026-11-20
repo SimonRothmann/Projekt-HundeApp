@@ -1,6 +1,8 @@
 using Dogity.Application.Abstractions;
 using Dogity.Application.Account;
 using Dogity.Application.Common;
+using Dogity.Application.Community;
+using Dogity.Domain.Betrieb;
 using Dogity.Domain.Community;
 using Dogity.Domain.Planning;
 using Microsoft.EntityFrameworkCore;
@@ -34,9 +36,19 @@ public class AdminService(
             await db.Groups.CountAsync(g => !db.Clubs.Any(c => c.Id == g.ClubId && c.GuestUntil != null), ct),
             await db.TrainingSessions.CountAsync(s => !gaeste.Contains(s.UserId), ct),
             await db.GpsTracks.CountAsync(t => !db.TrainingSessions.Any(s => s.Id == t.TrainingSessionId && gaeste.Contains(s.UserId)), ct),
-            await GetRecentStatsAsync(gaeste, ct));
+            await GetRecentStatsAsync(gaeste, ct),
+            await GetGastzugangAsync(ct));
 
         return Result<AdminStatsDto>.Success(stats);
+    }
+
+    /// <summary>Summen aus <c>guest_access_days</c> (reine Zähler, siehe <see cref="GastzugangTag"/>).</summary>
+    private async Task<AdminGastzugangDto> GetGastzugangAsync(CancellationToken ct)
+    {
+        var heute = Vereinszeit.Heute();
+        var tage = await db.GastzugangTage.Where(t => t.Day > heute.AddDays(-30)).ToListAsync(ct);
+        var woche = tage.Where(t => t.Day > heute.AddDays(-7)).ToList();
+        return new AdminGastzugangDto(woche.Sum(t => t.Created), woche.Sum(t => t.Registered), tage.Sum(t => t.Created), tage.Sum(t => t.Registered));
     }
 
     /// <summary>

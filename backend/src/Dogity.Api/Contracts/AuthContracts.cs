@@ -8,7 +8,11 @@ namespace Dogity.Api.Contracts;
 /// Die Oberflächensprache beim Registrieren ("de"/"en"). Sie gilt für Mails und Push,
 /// bis die Person sie im Profil ändert. Fehlt sie oder ist unbekannt: nichts wird gespeichert.
 /// </param>
-public record RegisterRequest(string Email, string Password, string FirstName, string LastName, bool? EmailBenachrichtigungen = null, string? Locale = null);
+/// <param name="FromGuest">
+/// Die Registrierung kam aus dem Gast-Banner ("Eigenes Konto anlegen"). Sie wird dann nur gezählt
+/// (Admin-Statistik "App ausprobieren"); an der Registrierung selbst ändert das nichts.
+/// </param>
+public record RegisterRequest(string Email, string Password, string FirstName, string LastName, bool? EmailBenachrichtigungen = null, string? Locale = null, bool FromGuest = false);
 /// <param name="Locale">Die Oberflächensprache ("de"/"en"), wie bei <see cref="RegisterRequest"/>.</param>
 public record GuestRequest(string? Locale = null);
 public record LoginRequest(string Email, string Password);

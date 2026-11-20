@@ -12,6 +12,7 @@ import { Building2, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 import { useT } from "@/lib/i18n";
+import { useProfil } from "@/lib/use-profil";
 /**
  * Einen Verein beantragen - und den Stand des eigenen Antrags sehen.
  *
@@ -30,6 +31,7 @@ export const VEREIN_GRUENDEN = "verein-gruenden";
 
 export function VereinsantragSection() {
   const t = useT();
+  const { profil } = useProfil();
   const [antraege, setAntraege] = useState<ClubRegistration[] | null>(null);
   const [name, setName] = useState("");
   const [beschreibung, setBeschreibung] = useState("");
@@ -88,7 +90,8 @@ export function VereinsantragSection() {
   const offen = antraege?.some((a) => a.status === CLUB_REGISTRATION_STATUS.offen) ?? false;
 
   // Bis die Liste da ist, nichts zeigen: sonst spränge die Karte nach dem Laden dazu.
-  if (antraege === null) return null;
+  // Im Gastzugang gar nicht: Der Server lehnt Vereinsanträge dort ab ("Im Demo-Modus nicht möglich").
+  if (antraege === null || profil?.guestUntil) return null;
 
   const aufklappKnopf = (
     <Button type="button" size="sm" variant="ghost" className="self-start text-muted-foreground" onClick={() => setFormularOffen(true)}>

@@ -164,13 +164,15 @@ builder.Services.AddRateLimiter(options =>
             }));
 
     // Gastzugang anlegen (anonym): Jeder Aufruf erzeugt Konto, Hund, Verlauf und einen ganzen Verein -
-    // deutlich enger als "auth", je IP und Stunde. Dazu gilt eine Obergrenze gleichzeitiger Gäste (Gastkonto.MaxAktiv).
+    // deutlich enger als "auth", je IP und Stunde. 20 statt 3: Bei einem Schnuppertraining oder Vereinsabend
+    // probieren viele über dasselbe WLAN (eine IP) die App aus. Die Last begrenzt ohnehin die Obergrenze
+    // gleichzeitiger Gäste (Gastkonto.MaxAktiv).
     options.AddPolicy("gast", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 3,
+                PermitLimit = 20,
                 Window = TimeSpan.FromHours(1),
             }));
 

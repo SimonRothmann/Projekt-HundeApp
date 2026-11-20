@@ -22,6 +22,22 @@ namespace Dogity.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Dogity.Domain.Betrieb.GastzugangTag", b =>
+                {
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Created")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Registered")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Day");
+
+                    b.ToTable("guest_access_days", (string)null);
+                });
+
             modelBuilder.Entity("Dogity.Domain.Betrieb.Wartungshinweis", b =>
                 {
                     b.Property<Guid>("Id")
