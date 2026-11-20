@@ -121,7 +121,7 @@ export function NextSessionCard({ clubs }: { clubs: Club[] }) {
             </Link>
           )}
           {/* Nur das Symbol: Mit drei beschrifteten Knöpfen bräche die Zeile bei 390 px um. */}
-          <KalenderKnopf termin={termin} kompakt />
+          <KalenderKnopf termin={termin} kompakt className="size-7" />
         </div>
       </CardContent>
     </Card>
