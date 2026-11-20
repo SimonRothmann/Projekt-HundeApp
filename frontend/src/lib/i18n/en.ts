@@ -3285,4 +3285,10 @@ export const EN: Record<string, string> = {
   "Zeitraum": "Period",
   "Gäste": "Guests",
   "davon registriert": "of those registered",
+  "Gewicht im Reiter „Gesundheit“: Trag das Gewicht deines Hundes ein und sieh den Verlauf als Kurve.": "Weight in the “Health” tab: enter your dog’s weight and see how it develops as a curve.",
+  "Fährte legen mit Leitfaden: Wähl die Prüfungsstufe (z. B. IGP 1) – Dogity zeigt die Vorgaben und zählt beim Legen Schritte und Gegenstände mit, auch bei gesperrtem Bildschirm. Auf der Startseite steht, wann die Liegezeit erreicht ist.": "Laying a track with a guide: choose the exam level (e.g. IGP 1) – Dogity shows the requirements and counts steps and articles while you lay the track, even with the screen locked. The home page shows when the track has aged long enough.",
+  "Für Trainer:innen: Gruppen können ein Höchstalter haben. Hunde, die herauswachsen, sind in der Anmeldeliste markiert und lassen sich mit einem Tipp in eine andere Gruppe des Vereins übernehmen.": "For trainers: groups can have a maximum age. Dogs that are outgrowing the group are marked in the sign-up list and can be moved to another group of the club with one tap.",
+  "Dogity rechnet in der Zeitzone deines Geräts: Wer außerhalb von Mitteleuropa trainiert, bekommt den richtigen Tag für Training, Plan und Erinnerungen – und keine Mitteilungen mitten in der Nacht.": "Dogity now works in your device’s time zone: if you train outside Central Europe, you get the right day for training, plan and reminders – and no notifications in the middle of the night.",
+  "Sicherere Anmeldung: Deine Anmelde-Schlüssel liegen jetzt in geschützten Cookies, die keine Skripte lesen können. Du musst dich nicht neu anmelden.": "Safer sign-in: your sign-in keys are now kept in protected cookies that no script can read. You do not need to sign in again.",
+  "Gewicht und Fährten-Leitfaden": "Weight and track guide",
 };

@@ -53,6 +53,33 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "1.8",
+    datum: "2026-11-20",
+    titel: uebersetzbar("Gewicht und Fährten-Leitfaden"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Gewicht im Reiter „Gesundheit“: Trag das Gewicht deines Hundes ein und sieh den Verlauf als Kurve."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Fährte legen mit Leitfaden: Wähl die Prüfungsstufe (z. B. IGP 1) – Dogity zeigt die Vorgaben und zählt beim Legen Schritte und Gegenstände mit, auch bei gesperrtem Bildschirm. Auf der Startseite steht, wann die Liegezeit erreicht ist."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Für Trainer:innen: Gruppen können ein Höchstalter haben. Hunde, die herauswachsen, sind in der Anmeldeliste markiert und lassen sich mit einem Tipp in eine andere Gruppe des Vereins übernehmen."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Dogity rechnet in der Zeitzone deines Geräts: Wer außerhalb von Mitteleuropa trainiert, bekommt den richtigen Tag für Training, Plan und Erinnerungen – und keine Mitteilungen mitten in der Nacht."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Sicherere Anmeldung: Deine Anmelde-Schlüssel liegen jetzt in geschützten Cookies, die keine Skripte lesen können. Du musst dich nicht neu anmelden."),
+      },
+    ],
+  },
+  {
     version: "1.7",
     datum: "2026-11-18",
     titel: uebersetzbar("Schneller beim Hund"),
