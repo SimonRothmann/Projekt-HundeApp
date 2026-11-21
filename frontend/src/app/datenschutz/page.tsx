@@ -192,7 +192,7 @@ function DatenschutzDe() {
             "Arbeitseinsätze des Vereins: Art. 6 Abs. 1 lit. f DSGVO – berechtigtes Interesse des Vereins ist, die Mithilfe seiner Mitglieder festzuhalten und anzuerkennen; eine Pflicht dazu gibt es nicht. Du kannst nach Art. 21 DSGVO widersprechen (Abschnitt 12), dann trägt die Verwaltung dich aus. Dasselbe gilt auch für Helfer:innen ohne Konto.",
             "E-Mails (Willkommen, Passwort zurücksetzen, Einladungen und Entscheidungen über Beitrittsanfragen): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu Konto und Vereinsfunktionen. Ob du die Mails zu Einladungen und Entscheidungen bekommst, wählst du schon bei der Registrierung (vorausgewählt); abbestellen kannst du sie jederzeit über den Link in der Mail, ohne Anmeldung, oder unter Profil → Funktionen.",
             "Push-Benachrichtigungen: Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TDDDG – sie beginnen erst, wenn du sie auf einem Gerät selbst einschaltest und der Browser oder das Betriebssystem dich um Erlaubnis gefragt hat. Du kannst sie jederzeit in der App ausschalten oder die Erlaubnis im Gerät zurücknehmen.",
-            "Erinnerungen (Termin am Vortag, Fährte noch nicht abgelaufen, Gesundheit des Hundes, Merkzettel fürs Training, offene Rückmeldungen): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu den Funktionen, die du nutzt; du kannst jede einzeln unter Profil → Funktionen abschalten. Kommen sie als Push, gilt zusätzlich die Einwilligung zu Push von oben.",
+            "Erinnerungen (Termin am Vortag, Fährte noch nicht abgelaufen, Gesundheit des Hundes, Merkzettel fürs Training, offene Rückmeldungen, einmaliger Anstoß zum ersten Training): Art. 6 Abs. 1 lit. b DSGVO – sie gehören zu den Funktionen, die du nutzt; die ersten fünf kannst du einzeln unter Profil → Funktionen abschalten. Kommen sie als Push, gilt zusätzlich die Einwilligung zu Push von oben.",
             "Schutz vor Missbrauch, Fehlersuche und Sicherheit des Betriebs: Art. 6 Abs. 1 lit. f DSGVO. Mein berechtigtes Interesse ist, dass der Dienst erreichbar bleibt und Konten nicht übernommen werden.",
             "Das Auslesen deines Standorts erlaubst du im Browser ausdrücklich und kannst die Erlaubnis jederzeit zurücknehmen.",
           ]}
@@ -335,7 +335,7 @@ function DatenschutzDe() {
         </p>
         <p className="font-medium text-foreground">Erinnerungen (vom Server)</p>
         <p>
-          Dogity schickt fünf Arten von Erinnerungen von sich aus, als Meldung in der Glocke und – wo du Push
+          Dogity schickt sechs Arten von Erinnerungen von sich aus, als Meldung in der Glocke und – wo du Push
           eingeschaltet hast – als Push: am Vortag an einen Gruppentermin (wenn du Mitglied der Gruppe bist und nicht
           abgesagt hast), an eine gelegte Fährte, die noch nicht abgelaufen wurde (etwa drei Stunden nach dem Legen,
           solange der Ablauf noch möglich ist und dein Hund nicht in einer Trainingspause ist), an die Gesundheit
@@ -343,9 +343,12 @@ function DatenschutzDe() {
           Tierarzttermin am Vortag ab 18 Uhr – an dich und die Mitbesitzer:innen), an das, was du auf dem Merkzettel fürs
           nächste Training notiert hast (am Trainingstag, zwei Stunden vorher – an dich und die Mitbesitzer:innen; wann dein Hund trainiert, erkennt Dogity an deinen Gruppenterminen, deiner Angabe oder deinem
           Tagebuch), und – nur bei
-          Trainer:innen – eine Zusammenfassung, wie viele Trainings auf eine Rückmeldung warten. Jede davon schaltest du
-          einzeln unter Profil → Funktionen ab; bei der Zusammenfassung wählen Trainer:innen außerdem Wochentage und
-          Uhrzeit. Erinnerungen kommen nur zwischen 8 und 22 Uhr deutscher Zeit und nie per E-Mail. Damit eine
+          Trainer:innen – eine Zusammenfassung, wie viele Trainings auf eine Rückmeldung warten. Außerdem einmalig einen
+          Anstoß zum ersten Training: drei Tage nach deinem ersten Hund ab 18 Uhr, wenn bis dahin für keinen deiner Hunde
+          ein Training eingetragen ist. Die ersten fünf schaltest du einzeln unter Profil → Funktionen ab; bei der
+          Zusammenfassung wählen Trainer:innen außerdem Wochentage und Uhrzeit. Der einmalige Anstoß hat keinen eigenen
+          Schalter; als Push lässt er sich über die Push-Einstellung abschalten. Erinnerungen kommen nur zwischen 8 und
+          22 Uhr deiner Ortszeit und nie per E-Mail. Damit eine
           Erinnerung nicht doppelt kommt, merkt sich der Server, welche er dir schon geschickt hat: Art, Termin bzw.
           Fährte oder Tag und Zeitpunkt, ohne den Text. Diese Merkzettel werden nach 60 Tagen gelöscht, spätestens mit
           deinem Konto. Ein Dritter erfährt dabei nichts, außer dem Push-Dienst, was für Push ohnehin gilt (siehe

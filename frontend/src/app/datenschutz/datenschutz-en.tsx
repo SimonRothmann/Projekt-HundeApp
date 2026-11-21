@@ -187,7 +187,7 @@ export function DatenschutzEn() {
             "Work sessions of the club: Art. 6(1)(f) GDPR – the club’s legitimate interest is to record and recognise the help of its members; there is no obligation to take part. You can object under Art. 21 GDPR (section 12), then the administration removes you. The same applies to helpers without an account.",
             "Emails (welcome, password reset, invitations and decisions on join requests): Art. 6(1)(b) GDPR – they belong to the account and club functions. Whether you receive the emails about invitations and decisions, you choose at registration (preselected); you can unsubscribe at any time via the link in the email, without signing in, or under Profile → Features.",
             "Push notifications: Art. 6(1)(a) GDPR and Section 25(1) TDDDG (the German Telecommunications Digital Services Data Protection Act) – they only begin once you have switched them on yourself on a device and the browser or operating system has asked you for permission. You can switch them off in the app at any time or withdraw the permission in the device.",
-            "Reminders (session the day before, track not yet walked, health of the dog, note pad for training, open feedback): Art. 6(1)(b) GDPR – they belong to the functions you use; you can switch off each one individually under Profile → Features. If they arrive as push, your consent to push from above applies in addition.",
+            "Reminders (session the day before, track not yet walked, health of the dog, note pad for training, open feedback, one-time nudge towards the first training session): Art. 6(1)(b) GDPR – they belong to the functions you use; you can switch off the first five individually under Profile → Features. If they arrive as push, your consent to push from above applies in addition.",
             "Protection against abuse, troubleshooting and operational security: Art. 6(1)(f) GDPR. My legitimate interest is that the service stays available and accounts are not taken over.",
             "You expressly allow your browser to read your location and can withdraw this permission at any time.",
           ]}
@@ -324,15 +324,17 @@ export function DatenschutzEn() {
         </p>
         <p className="font-medium text-foreground">Reminders (from the server)</p>
         <p>
-          Dogity sends five kinds of reminders on its own, as a message in the bell and – where you have switched on
+          Dogity sends six kinds of reminders on its own, as a message in the bell and – where you have switched on
           push – as a push message: the day before, for a group session (if you are a member of the group and have not
           declined), for a laid track that has not been walked yet (about three hours after laying, as long as walking
           it is still possible and your dog is not on a training break), for your dog’s health (14 days before a
           deadline you entered, such as a vaccination, and on the day itself, and for a vet appointment on the day
           before from 6 pm – to you and the co-owners), for what you noted on the note pad for the next training session (on the day of the training, two hours before – to you and the co-owners; Dogity recognises when your dog trains from your group sessions, your entry or your diary), and – for trainers only – a summary of how many
-          training sessions are waiting for feedback. You switch off each of them individually under Profile → Features;
-          for the summary, trainers also choose the weekdays and the time. Reminders only come between 8 am and 10 pm
-          German time and never by email. So that a reminder does not arrive twice, the server remembers which ones it
+          training sessions are waiting for feedback. In addition, once, a nudge towards the first training session: three
+          days after your first dog, from 6 pm, if no training has been entered for any of your dogs by then. You switch
+          off the first five individually under Profile → Features; for the summary, trainers also choose the weekdays and
+          the time. The one-time nudge has no switch of its own; as a push message it can be switched off via the push
+          setting. Reminders only come between 8 am and 10 pm in your local time and never by email. So that a reminder does not arrive twice, the server remembers which ones it
           has already sent you: kind, session or track or day, and time, without the text. These notes are deleted
           after 60 days, at the latest with your account. Nobody else learns anything from this, apart from the push
           service, which applies to push anyway (see below).
