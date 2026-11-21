@@ -15,6 +15,7 @@ import {
   letzteEinheit,
   letzteUebungsdauer,
   loeseZeilenAuf,
+  neuererCacheTeil,
   sammelWerte,
   sucheMitRueckfall,
   sucheUebungen,
@@ -703,5 +704,25 @@ describe("vorbelegterOrt", () => {
   it("liefert null ohne Einheiten und Termine", () => {
     expect(vorbelegterOrt(null, undefined, heute, JETZT)).toBeNull();
     expect(vorbelegterOrt([], [], heute, JETZT)).toBeNull();
+  });
+});
+
+
+describe("neuererCacheTeil", () => {
+  const seite = { daten: ["seite"], cachedAt: 100 };
+  const fenster = { daten: ["fenster"], cachedAt: 200 };
+
+  it("nimmt die einzige vorhandene Quelle", () => {
+    expect(neuererCacheTeil(seite, null)).toEqual(["seite"]);
+    expect(neuererCacheTeil(null, fenster)).toEqual(["fenster"]);
+  });
+
+  it("nimmt bei zwei Quellen die neuere", () => {
+    expect(neuererCacheTeil(seite, fenster)).toEqual(["fenster"]);
+    expect(neuererCacheTeil({ ...seite, cachedAt: 300 }, fenster)).toEqual(["seite"]);
+  });
+
+  it("liefert null ohne Quelle", () => {
+    expect(neuererCacheTeil(null, null)).toBeNull();
   });
 });

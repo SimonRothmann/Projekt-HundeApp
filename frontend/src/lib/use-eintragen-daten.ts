@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import { angeboteneSportarten } from "@/lib/eintragen";
+import { angeboteneSportarten, neuererCacheTeil, type CacheTeil } from "@/lib/eintragen";
 import { heuteIso } from "@/lib/kalendertag";
-import { getCachedData, setCachedData } from "@/lib/read-cache";
+import { getCachedData, getCachedEntry, setCachedData } from "@/lib/read-cache";
 import type { Dog, Exercise, Goal, GroupTrainingSession, Regulation, RegulationDetail, Sport, TrainingSession } from "@/lib/types";
 import { ladeSportarten } from "@/lib/sportarten";
 import { einstiegsOrdnung } from "@/lib/einstieg";
@@ -22,8 +22,9 @@ import { usePreferences } from "@/lib/preferences-context";
  * fehlt es: Dann holt der Hook genau das, was nicht mitgebracht wird, über die
  * vorhandenen Endpunkte.
  *
- * Offline: erst der Lesecache der Hundeseite (`dog-page-<id>`), danach - wenn
- * auch der fehlt - bleibt alles leer, und das Fenster funktioniert mit freier
+ * Offline: erst der Lesecache - je Teil (Ziele, Einheiten) die neuere Quelle
+ * aus der Hundeseite (`dog-page-<id>`) und aus diesem Fenster (`eintragen-<id>`,
+ * wird nach jedem frischen Abruf hier geschrieben). Fehlt auch der, bleibt alles leer, und das Fenster funktioniert mit freier
  * Eingabe weiter (siehe `offline`).
  */
 
@@ -49,6 +50,9 @@ export type EintragenDaten = {
 
 /** Was die Hundeseite im Lesecache hält (siehe use-dog-page.ts) - hier nur die Teile, die gebraucht werden. */
 type HundeseitenCache = { dog?: Dog; sports: Sport[]; goals: Goal[]; sessions: TrainingSession[] };
+
+/** Was dieses Fenster selbst im Lesecache ablegt (`eintragen-<id>`). */
+type EintragenCache = { goals?: Goal[]; sessions?: TrainingSession[] };
 
 type Geladen = {
   dogId: string;
@@ -114,18 +118,37 @@ export function useEintragenDaten(
       if (!abgebrochen) setGeladen((vorher) => (vorher.dogId === dogId ? { ...vorher, ...teil } : vorher));
     };
 
+    // Nacheinander schreiben: Ziele und Einheiten kommen gleichzeitig an und teilen sich einen Eintrag.
+    let schreiben: Promise<void> = Promise.resolve();
+    const merke = (teil: EintragenCache) => {
+      schreiben = schreiben.then(async () => {
+        const alt = await getCachedData<EintragenCache>(`eintragen-${dogId}`);
+        await setCachedData(`eintragen-${dogId}`, { ...alt, ...teil });
+      });
+    };
+
     async function ladeCache() {
-      const seite = await getCachedData<HundeseitenCache>(`dog-page-${dogId}`);
+      const [seiteEintrag, fensterEintrag] = await Promise.all([
+        getCachedEntry<HundeseitenCache>(`dog-page-${dogId}`),
+        getCachedEntry<EintragenCache>(`eintragen-${dogId}`),
+      ]);
       if (abgebrochen) return;
-      if (seite) {
+      const seite = seiteEintrag?.data;
+      const fenster = fensterEintrag?.data;
+      const teil = <T,>(eintrag: { cachedAt: number } | null, daten: T | undefined): CacheTeil<T> =>
+        eintrag && daten !== undefined ? { daten, cachedAt: eintrag.cachedAt } : null;
+      const ziele = neuererCacheTeil(teil(seiteEintrag, seite?.goals), teil(fensterEintrag, fenster?.goals));
+      const einheiten = neuererCacheTeil(teil(seiteEintrag, seite?.sessions), teil(fensterEintrag, fenster?.sessions));
+      if (seite || ziele || einheiten) {
         // Frisches gewinnt: Der Cache antwortet meist schneller, aber nicht immer.
         // Die Sportarten des Cache sind die ganze Liste, nicht die Auswahl des
         // Hundes: Sie kommen nur zum Zug, wenn der frische Abruf ausbleibt
         // (siehe unten) - sonst liefe die Suche kurz über die ganze, nicht auf den Hund eingegrenzte Liste.
-        if (brauchtSports) setze({ cacheSports: seite.sports });
-        if (brauchtGoals && !frisch.goals) setze({ goals: seite.goals });
-        if (brauchtSessions && !frisch.sessions) setze({ sessions: seite.sessions });
-      } else if (brauchtSports) {
+        if (brauchtSports && seite) setze({ cacheSports: seite.sports });
+        if (brauchtGoals && !frisch.goals && ziele) setze({ goals: ziele });
+        if (brauchtSessions && !frisch.sessions && einheiten) setze({ sessions: einheiten });
+      }
+      if (brauchtSports && !seite) {
         const sportListe = await getCachedData<Sport[]>("/api/sports");
         if (sportListe) setze({ cacheSports: sportListe });
       }
@@ -151,6 +174,7 @@ export function useEintragenDaten(
         const ziele = await api.get<Goal[]>(`/api/goals?dogId=${dogId}`);
         frisch.goals = true;
         setze({ goals: ziele });
+        merke({ goals: ziele });
       } catch {
         // Ohne Ziele fehlt nur "Diese Woche" und die Plan-Zuordnung.
         setze({ zieleFehlgeschlagen: true });
@@ -165,6 +189,7 @@ export function useEintragenDaten(
         if (einheiten.length === 0) einheiten = await api.get<TrainingSession[]>(`/api/trainings?dogId=${dogId}`);
         frisch.sessions = true;
         setze({ sessions: einheiten });
+        merke({ sessions: einheiten });
       } catch {
         // Ohne Einheiten fehlen "Zuletzt geübt" und die Vorbelegungen.
         setze({ einheitenFehlgeschlagen: true });

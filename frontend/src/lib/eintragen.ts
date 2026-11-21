@@ -601,3 +601,13 @@ export function baueNutzlast(eingabe: TrainingsEingabe) {
       })),
   };
 }
+
+/** Ein Teil (Ziele oder Einheiten) aus dem Lesecache samt Schreibzeitpunkt; null = nicht vorhanden. */
+export type CacheTeil<T> = { daten: T; cachedAt: number } | null;
+
+/** Von zwei Lesecache-Quellen die neuere; bei Gleichstand die erste. */
+export function neuererCacheTeil<T>(a: CacheTeil<T>, b: CacheTeil<T>): T | null {
+  if (!a) return b ? b.daten : null;
+  if (!b) return a.daten;
+  return b.cachedAt > a.cachedAt ? b.daten : a.daten;
+}

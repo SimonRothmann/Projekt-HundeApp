@@ -49,6 +49,24 @@ export async function getCachedData<T>(key: string): Promise<T | null> {
   }
 }
 
+/** Wie `getCachedData`, aber mit dem Zeitpunkt des Schreibens - für den Vergleich zweier Quellen. */
+export async function getCachedEntry<T>(key: string): Promise<{ data: T; cachedAt: number } | null> {
+  try {
+    const db = await openDb();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => {
+        const entry = req.result as CacheEntry<T> | undefined;
+        resolve(entry ? { data: entry.data, cachedAt: entry.cachedAt } : null);
+      };
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Einen Eintrag verwerfen. Gebraucht, wenn sich etwas geändert hat, das der
  * Cache nicht von selbst merkt - etwa ein ausgetauschtes Hundebild: der
