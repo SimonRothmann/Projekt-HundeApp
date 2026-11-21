@@ -112,6 +112,7 @@ public static partial class Uebersetzung
         ["Heute {zeit} - gemerkt für {hund}: {text} · +{n} weitere"] = "Today {zeit} - noted for {hund}: {text} · +{n} more",
         ["Heute Training - gemerkt für {hund}: {text}"] = "Training today - noted for {hund}: {text}",
         ["Heute Training - gemerkt für {hund}: {text} · +{n} weitere"] = "Training today - noted for {hund}: {text} · +{n} more",
+        ["Zeit fürs erste Training mit {hund}? Eintragen dauert nur ein paar Sekunden – die Übungen sind schon vorgeschlagen."] = "Time for your first training with {hund}? Logging it only takes a few seconds – the exercises are already suggested.",
 
         // Prüfungen des Vereins (ClubExamService) - gehen an die Besitzer:innen des gemeldeten Hundes
         ["{verein} hat {hund} für die {ordnung} am {datum} gemeldet. Die Prüfungsleitung sieht dafür die Prüfungsreife."] = "{verein} has entered {hund} for the {ordnung} on {datum}. The exam organisers can see the exam readiness for it.",

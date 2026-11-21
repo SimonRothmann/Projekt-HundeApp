@@ -38,6 +38,42 @@ erst nach dem ersten Training, nur solange noch kein Weg gegangen wurde und nur
 in den ersten sieben Tagen danach (`GABELUNG_TAGE`) — eine Frage der Anzeige,
 nicht des Fortschritts.
 
+## Hund da, aber noch kein Training
+
+Eine Auswertung zeigte: Viele Konten legen den Hund an und tragen nie ein
+Training ein; die meisten kommen nach dem Anmeldetag nicht wieder. Deshalb gibt
+es einen dritten Zustand, **`erstesTraining`** (`erststartZustand`): Hund da,
+noch kein Training, nicht ausgeblendet - **unabhängig davon, ob schon eine Gruppe
+besteht** (der Server-Entscheid `isComplete` gilt hier bewusst nicht: Wer nur in
+der Gruppe ist, hat sein Training noch nicht eingetragen).
+
+Die Karte (`ErstesTrainingKarte`) hat eine Hauptaktion: das Eintragen-Fenster
+des ältesten Hundes, in dem die Übungen der Einstiegsprüfung schon
+vorgeschlagen sind (`lib/einstieg.ts`). Darunter, nur ohne Ziel und mit bekannter
+Profil-Sportart, der Vorschlag "{Einstiegsprüfung} als Ziel in 12 Wochen?"
+(`zielvorschlag`): ein Tipp legt Ziel und Plan an (Zieldatum heute + 84 Tage,
+später änderbar), danach steht der Hinweis "Ziel gesetzt" mit dem Weg zum Plan.
+Ausblendbar wie die übrigen Karten; sie verschwindet mit dem ersten Training,
+dann folgt (falls zutreffend) die Gabelung.
+
+### Der Anstoß nach drei Tagen
+
+Wer drei Tage nach dem ersten Hund noch kein Training hat, bekommt **einmal**
+eine Erinnerung (Glocke und Push, keine Mail): "Zeit fürs erste Training mit
+{Hund}? ..." mit Link auf die Startseite. Sie folgt dem Muster der übrigen
+Erinnerungen (`ErinnerungService`, `Erinnerungsregeln.ErstesTrainingErinnerungen`,
+`sent_reminders`):
+
+- ab dem dritten Kalendertag nach dem ersten Hund (früheste aktive
+  `dog_owners`-Zeile), ab 18 Uhr Ortszeit der Person, Ruhezeit 8-22 Uhr;
+- nur einmal je Konto (Kennung ohne Bezug und Tag); längstens bis zum 30. Tag -
+  so greift der Anstoß beim ersten Lauf nach dem Deploy auch für Konten, deren
+  erster Hund 3 bis 30 Tage alt ist, ältere nicht;
+- "kein Training" gilt über alle eigenen, nicht gelöschten und nicht archivierten
+  Hunde, Einträge von Mitbesitzer:innen zählen mit;
+- nicht an Tagen, an denen der Hund pausiert; nie für Gastkonten;
+- kein eigener Schalter; Push lässt sich wie bisher insgesamt abschalten.
+
 ## Trainer:innen gehören dazu
 
 Wer einem Verein als Trainer:in zugewiesen wird, bekommt **keine

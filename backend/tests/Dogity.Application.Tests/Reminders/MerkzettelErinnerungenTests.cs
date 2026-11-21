@@ -318,7 +318,7 @@ public class MerkzettelErinnerungenTests
         foreach (var t in MittwochAchtzehn)
             db.TrainingSessions.Add(new Domain.Training.TrainingSession { UserId = besitzerin, DogId = hund.Id, Date = t.Datum, StartTime = t.StartTime, DurationMinutes = 60 });
         await db.SaveChangesAsync();
-        return new Szene(db, meldungen, uhr, new ErinnerungService(db, meldungen, uhr, NullLogger<ErinnerungService>.Instance), hund, besitzerin, mitbesitzer, trainerin);
+        return new Szene(db, meldungen, uhr, new ErinnerungService(db, meldungen, uhr, new FakeUserLookupService(), NullLogger<ErinnerungService>.Instance), hund, besitzerin, mitbesitzer, trainerin);
     }
 
     private static async Task<TrainingNote> NotizAsync(
@@ -362,7 +362,7 @@ public class MerkzettelErinnerungenTests
         Assert.Equal(2, await s.Dienst.VersendeFaelligeAsync());
         s.Uhr.Jetzt = Utc(4, 15, 40);
         Assert.Equal(0, await s.Dienst.VersendeFaelligeAsync());
-        var neu = new ErinnerungService(s.Db, s.Meldungen, s.Uhr, NullLogger<ErinnerungService>.Instance);
+        var neu = new ErinnerungService(s.Db, s.Meldungen, s.Uhr, new FakeUserLookupService(), NullLogger<ErinnerungService>.Instance);
         Assert.Equal(0, await neu.VersendeFaelligeAsync());
 
         Assert.Equal(2, await s.Db.SentReminders.CountAsync(r => r.Type == ReminderType.TrainingNote));

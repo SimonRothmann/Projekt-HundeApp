@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { OnboardingStatus } from "@/lib/types";
-import { erststartZustand, GABELUNG_TAGE, pruefeErstenHund, zeigeVereinsweg } from "@/lib/erststart";
+import type { Regulation, Sport } from "@/lib/types";
+import { erststartZustand, erstesTrainingHund, GABELUNG_TAGE, pruefeErstenHund, zeigeVereinsweg, zielvorschlag } from "@/lib/erststart";
 
 const JETZT = Date.parse("2026-09-30T12:00:00Z");
 const TAG = 24 * 60 * 60 * 1000;
@@ -38,8 +39,16 @@ describe("erststartZustand", () => {
     expect(erststartZustand(stand({ hasDog: false, isDismissed: true }), JETZT)).toBeNull();
   });
 
-  it("zeigt mit Hund, aber ohne Training die normale Startseite", () => {
-    expect(erststartZustand(stand(), JETZT)).toBeNull();
+  it("zeigt mit Hund, aber ohne Training die Karte fürs erste Training", () => {
+    expect(erststartZustand(stand(), JETZT)).toBe("erstesTraining");
+  });
+
+  it("zeigt sie auch, wenn schon eine Gruppe besteht (Erststart laut Server erledigt)", () => {
+    expect(erststartZustand(stand({ isComplete: true, hasGroupMembership: true }), JETZT)).toBe("erstesTraining");
+  });
+
+  it("lässt sich die Karte fürs erste Training wegklicken", () => {
+    expect(erststartZustand(stand({ isDismissed: true }), JETZT)).toBeNull();
   });
 
   it("zeigt direkt nach dem ersten Training die Gabelung", () => {
@@ -116,5 +125,52 @@ describe("zeigeVereinsweg", () => {
 
   it("bietet ihn nicht an, wenn die Beitrittsanfrage schon gestellt ist", () => {
     expect(zeigeVereinsweg(stand({ hasDog: false, hasPendingClubRequest: true }))).toBe(false);
+  });
+});
+
+describe("erstesTrainingHund", () => {
+  const hunde = [
+    { id: "alt", archivedAt: "2026-01-01" },
+    { id: "zwei", archivedAt: null },
+    { id: "hund-1", archivedAt: null },
+  ];
+
+  it("nimmt den ältesten Hund des Servers, sofern nicht archiviert", () => {
+    expect(erstesTrainingHund(stand(), hunde)?.id).toBe("hund-1");
+  });
+
+  it("fällt auf den ersten nicht archivierten zurück", () => {
+    expect(erstesTrainingHund(stand({ firstDogId: "alt" }), hunde)?.id).toBe("zwei");
+    expect(erstesTrainingHund(stand({ firstDogId: null }), hunde)?.id).toBe("zwei");
+  });
+
+  it("liefert null ohne aktiven Hund", () => {
+    expect(erstesTrainingHund(stand(), [hunde[0]])).toBeNull();
+  });
+});
+
+describe("zielvorschlag", () => {
+  const sport = (id: string, code: string) => ({ id, code, name: code, description: null, clubId: null }) as Sport;
+  const ordnung = (id: string, seedKey: string) => ({ id, name: seedKey, seedKey }) as unknown as Regulation;
+  const sportarten = [sport("bh", "BH"), sport("ag", "AGILITY"), sport("ls", "LEER")];
+  const ordnungen = {
+    bh: [ordnung("bh2", "VT"), ordnung("bh1", "BH")],
+    ag: [ordnung("ag1", "Agility 0 (A0)")],
+    ls: [],
+  };
+
+  it("nimmt die Einstiegsprüfung der ersten Profil-Sportart", () => {
+    expect(zielvorschlag(["ag", "bh"], sportarten, ordnungen)?.ordnung.id).toBe("ag1");
+    expect(zielvorschlag(["bh"], sportarten, ordnungen)?.ordnung.id).toBe("bh1");
+  });
+
+  it("überspringt Sportarten ohne Ordnung", () => {
+    expect(zielvorschlag(["ls", "ag"], sportarten, ordnungen)?.sport.id).toBe("ag");
+  });
+
+  it("schlägt nichts vor ohne Sportart oder ohne Ordnung", () => {
+    expect(zielvorschlag([], sportarten, ordnungen)).toBeNull();
+    expect(zielvorschlag(["ls"], sportarten, ordnungen)).toBeNull();
+    expect(zielvorschlag(["unbekannt"], sportarten, ordnungen)).toBeNull();
   });
 });

@@ -264,7 +264,7 @@ public class GesundheitsErinnerungenTests
         db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = besitzerin, Role = DogOwnerRole.Owner });
         db.DogOwners.Add(new DogOwner { DogId = hund.Id, UserId = mitbesitzer, Role = DogOwnerRole.Owner });
         db.SaveChanges();
-        return new Szene(db, meldungen, uhr, new ErinnerungService(db, meldungen, uhr, NullLogger<ErinnerungService>.Instance), hund, besitzerin, mitbesitzer);
+        return new Szene(db, meldungen, uhr, new ErinnerungService(db, meldungen, uhr, new FakeUserLookupService(), NullLogger<ErinnerungService>.Instance), hund, besitzerin, mitbesitzer);
     }
 
     private static async Task<DogHealthRecord> EintragAsync(
@@ -306,7 +306,7 @@ public class GesundheitsErinnerungenTests
         Assert.Equal(2, await s.Dienst.VersendeFaelligeAsync());
         s.Uhr.Jetzt = Utc(4, 9, 40);
         Assert.Equal(0, await s.Dienst.VersendeFaelligeAsync());
-        var neu = new ErinnerungService(s.Db, s.Meldungen, s.Uhr, NullLogger<ErinnerungService>.Instance);
+        var neu = new ErinnerungService(s.Db, s.Meldungen, s.Uhr, new FakeUserLookupService(), NullLogger<ErinnerungService>.Instance);
         Assert.Equal(0, await neu.VersendeFaelligeAsync());
 
         Assert.Equal(2, s.Meldungen.Created.Count);

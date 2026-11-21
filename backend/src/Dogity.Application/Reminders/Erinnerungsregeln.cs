@@ -60,6 +60,9 @@ public sealed record MerkzettelKandidat(
     Guid UserId, Guid HundId, string Hund, bool Erlaubt, IReadOnlyList<MerkzettelEintrag> Eintraege,
     IReadOnlyList<TagebuchTraining> Tagebuch, IReadOnlyList<DateTimeOffset> Gruppentermine, GespeicherterRhythmus? Rhythmus);
 
+/// <summary>Eine Person mit ihrem ersten Hund (früheste aktive Besitzzeile), der noch kein Training hat.</summary>
+public sealed record ErstesTrainingKandidat(Guid UserId, Guid HundId, string Hund, DateTimeOffset ErsterHundAm, bool HundPausiert);
+
 /// <summary>
 /// Wann welche Erinnerung fällig ist - als reine Funktionen: Zeitpunkt und Daten
 /// hinein, Liste fälliger Erinnerungen heraus, kein Datenbankzugriff. So lassen
@@ -118,6 +121,15 @@ public static class Erinnerungsregeln
     /// </summary>
     public static bool FaehrteAngeboten(IReadOnlyCollection<Guid> sportIds, IReadOnlySet<Guid> faehrtenSportIds) =>
         sportIds.Count == 0 || sportIds.Any(faehrtenSportIds.Contains);
+
+    /// <summary>Ab dieser Stunde (Ortszeit) kommt der Anstoß zum ersten Training.</summary>
+    public const int ErstesTrainingAbStunde = 18;
+
+    /// <summary>Frühestens so viele Kalendertage nach dem ersten Hund kommt der Anstoß ...</summary>
+    public const int ErstesTrainingNachTagen = 3;
+
+    /// <summary>... und nur bis zu so vielen: Wer länger ohne Training ist, wird nicht mehr angestoßen. Muss unter der Aufbewahrung von SentReminder (60 Tage) bleiben, sonst käme er nach dem Aufräumen erneut.</summary>
+    public const int ErstesTrainingBisTagen = 30;
 
     public static bool ImVersandfenster(DateTimeOffset jetzt, TimeZoneInfo? zone = null)
     {
@@ -360,6 +372,36 @@ public static class Erinnerungsregeln
             var erster = Kuerzen(heutige[0].Eintrag.Text, MerkzettelTextZeichen);
             var weitere = heutige.Count - 1;
             ergebnis.Add(new FaelligeErinnerung(schluessel, MerkzettelMeldung(k.Hund, uhrzeit, erster, weitere), $"/dogs/{k.HundId}?tab=plan"));
+        }
+        return ergebnis;
+    }
+
+    /// <summary>
+    /// Der einmalige Anstoß zum ersten Training: ab dem dritten Kalendertag nach dem ersten Hund (längstens 30 Tage),
+    /// ab 18 Uhr Ortszeit der Person und nur im Versandfenster (08-22 Uhr); nicht bei Trainingspause des Hundes.
+    /// Die Kennung ist je Konto fest (kein Bezug, kein Tag): Auch ein späterer Hund löst nichts erneut aus.
+    /// </summary>
+    public static IReadOnlyList<FaelligeErinnerung> ErstesTrainingErinnerungen(
+        DateTimeOffset jetzt, IEnumerable<ErstesTrainingKandidat> kandidaten, IReadOnlySet<ErinnerungsSchluessel> gesendet,
+        Func<Guid, TimeZoneInfo>? zoneVon = null)
+    {
+        var ergebnis = new List<FaelligeErinnerung>();
+        foreach (var k in kandidaten)
+        {
+            var zone = ZoneDer(zoneVon, k.UserId);
+            if (!ImVersandfenster(jetzt, zone) || Ortszeit.Lokal(jetzt, zone).Hour < ErstesTrainingAbStunde) continue;
+            if (k.HundPausiert) continue;
+
+            var tage = Ortszeit.Tag(jetzt, zone).DayNumber - Ortszeit.Tag(k.ErsterHundAm, zone).DayNumber;
+            if (tage is < ErstesTrainingNachTagen or > ErstesTrainingBisTagen) continue;
+
+            var schluessel = new ErinnerungsSchluessel(ReminderType.FirstTraining, k.UserId, Guid.Empty, SentReminder.KeinTag);
+            if (gesendet.Contains(schluessel)) continue;
+
+            ergebnis.Add(new FaelligeErinnerung(
+                schluessel,
+                Meldung.Von("Zeit fürs erste Training mit {hund}? Eintragen dauert nur ein paar Sekunden – die Übungen sind schon vorgeschlagen.", ("hund", k.Hund)),
+                "/dashboard"));
         }
         return ergebnis;
     }

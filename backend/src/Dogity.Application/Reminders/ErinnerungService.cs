@@ -29,13 +29,14 @@ namespace Dogity.Application.Reminders;
 /// bei einer Erinnerung besser als eine doppelte.
 ///
 /// Abgefragt wird nur, was gerade in Frage kommt (Termine des Folgetags, Fährten der letzten
-/// Stunden, Fristen der nächsten 14 Tage, Trainer:innen mit heute fälligem Rhythmus, offene Merkzettel) - außerhalb des Versandfensters (08-22 Uhr)
+/// Stunden, Fristen der nächsten 14 Tage, Trainer:innen mit heute fälligem Rhythmus, offene Merkzettel, Konten mit erstem Hund vor 3 bis 30 Tagen) - außerhalb des Versandfensters (08-22 Uhr)
 /// wird gar nichts geladen.
 /// </summary>
 public class ErinnerungService(
     IApplicationDbContext db,
     INotificationService notifications,
     TimeProvider time,
+    IUserLookupService userLookup,
     ILogger<ErinnerungService> logger) : IErinnerungService
 {
     /// <summary>Wie lange ein Eintrag in SentReminder gebraucht wird: länger als jede Erinnerung gültig ist.</summary>
@@ -62,6 +63,7 @@ public class ErinnerungService(
         gesendet += await Abschnitt("Rückmeldungen", () => RueckmeldungenAsync(jetzt, ct));
         gesendet += await Abschnitt("Gesundheit", () => GesundheitAsync(jetzt, ct));
         gesendet += await Abschnitt("Merkzettel", () => MerkzettelAsync(jetzt, ct));
+        gesendet += await Abschnitt("Erstes Training", () => ErstesTrainingAsync(jetzt, ct));
         return gesendet;
     }
 
@@ -468,6 +470,70 @@ public class ErinnerungService(
         var tage = nutzerIds.Select(id => Ortszeit.Tag(jetzt, zoneVon(id))).Distinct().ToList();
         var gesendet = await GesendeteAsync(ReminderType.TrainingNote, aktiveHundeIds, tage, ct);
         return await VersendeAsync(Erinnerungsregeln.MerkzettelErinnerungen(jetzt, kandidaten, gesendet, zoneVon), ct);
+    }
+
+    // ---- f) Anstoß zum ersten Training ----
+
+    private async Task<int> ErstesTrainingAsync(DateTimeOffset jetzt, CancellationToken ct)
+    {
+        // Der erste Hund liegt 3 bis 30 Kalendertage zurück (je nach Zone der Person); die Abfrage ist ein Tag großzügiger,
+        // Erinnerungsregeln.ErstesTrainingErinnerungen entscheidet danach je Person. Der früheste Besitz zählt über ALLE
+        // aktiven Zeilen der Person: Wer vor Monaten schon einen Hund hatte, ist kein Erstkontakt mehr.
+        var von = jetzt - TimeSpan.FromDays(Erinnerungsregeln.ErstesTrainingBisTagen + 1);
+        var bis = jetzt - TimeSpan.FromDays(Erinnerungsregeln.ErstesTrainingNachTagen - 1);
+        // Nur angenommener Besitz: Eine offene Einladung zum Mitbesitz ist noch kein Hund.
+        var erste = await db.DogOwners
+            .Where(o => o.Status == DogOwnerStatus.Active)
+            .GroupBy(o => o.UserId)
+            .Select(g => new { UserId = g.Key, Am = g.Min(o => o.CreatedAt) })
+            .Where(e => e.Am >= von && e.Am <= bis)
+            .AsNoTracking()
+            .ToListAsync(ct);
+        if (erste.Count == 0) return 0;
+
+        var gaeste = (await userLookup.ListGuestUserIdsAsync(ct)).ToHashSet();
+        var nutzerIds = erste.Select(e => e.UserId).Where(id => !gaeste.Contains(id)).ToList();
+        if (nutzerIds.Count == 0) return 0;
+
+        // Eigene, nicht gelöschte (Filter) und nicht archivierte Hunde, der älteste Besitz zuerst.
+        var besitz = (await db.DogOwners
+                .Where(o => nutzerIds.Contains(o.UserId) && o.Status == DogOwnerStatus.Active && o.Dog!.ArchivedAt == null)
+                .OrderBy(o => o.CreatedAt)
+                .Select(o => new { o.UserId, o.DogId, Name = o.Dog!.Name })
+                .AsNoTracking()
+                .ToListAsync(ct))
+            .GroupBy(o => o.UserId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // "Kein Training" gilt über alle Hunde der Person - auch Einträge von Mitbesitzer:innen zählen.
+        var hundeIds = besitz.Values.SelectMany(b => b.Select(o => o.DogId)).Distinct().ToList();
+        var mitTraining = (await db.TrainingSessions
+                .Where(s => hundeIds.Contains(s.DogId))
+                .Select(s => s.DogId)
+                .Distinct()
+                .ToListAsync(ct))
+            .ToHashSet();
+
+        var zoneVon = await db.ZonenAsync(nutzerIds, ct);
+        var pausiert = new Dictionary<DateOnly, HashSet<Guid>>();
+        foreach (var tag in nutzerIds.Select(id => Ortszeit.Tag(jetzt, zoneVon(id))).Distinct())
+            pausiert[tag] = (await db.ActivePausesAsync(hundeIds, tag, ct)).Keys.ToHashSet();
+
+        var kandidaten = new List<ErstesTrainingKandidat>();
+        foreach (var e in erste)
+        {
+            if (!besitz.TryGetValue(e.UserId, out var hunde) || hunde.Any(h => mitTraining.Contains(h.DogId))) continue;
+            var hund = hunde[0];
+            kandidaten.Add(new ErstesTrainingKandidat(
+                e.UserId, hund.DogId, hund.Name, e.Am, pausiert[Ortszeit.Tag(jetzt, zoneVon(e.UserId))].Contains(hund.DogId)));
+        }
+
+        var gesendet = (await db.SentReminders
+                .Where(r => r.Type == ReminderType.FirstTraining && nutzerIds.Contains(r.UserId))
+                .Select(r => new ErinnerungsSchluessel(r.Type, r.UserId, r.ReferenceId, r.DayKey))
+                .ToListAsync(ct))
+            .ToHashSet();
+        return await VersendeAsync(Erinnerungsregeln.ErstesTrainingErinnerungen(jetzt, kandidaten, gesendet, zoneVon), ct);
     }
 
     // ---- gemeinsam ----

@@ -20,6 +20,7 @@ import type {
 import { Button } from "@/components/ui/button";
 import { OnboardingGuide } from "@/components/onboarding/onboarding-guide";
 import { ErsterHundKarte } from "@/components/onboarding/erster-hund-karte";
+import { ErstesTrainingKarte } from "@/components/onboarding/erstes-training-karte";
 import { erststartZustand } from "@/lib/erststart";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
@@ -465,6 +466,16 @@ export default function DashboardPage() {
 
           {erststartKarte === "hund" ? (
             <ErsterHundKarte status={daten.onboarding} onAngelegt={ersterHundAngelegt} onDismissed={erststartWegklicken} />
+          ) : erststartKarte === "erstesTraining" ? (
+            daten.onboarding && (
+              <ErstesTrainingKarte
+                status={daten.onboarding}
+                hunde={daten.hunde}
+                onEintragen={oeffneEintragen}
+                onChanged={neuLaden}
+                onDismissed={erststartWegklicken}
+              />
+            )
           ) : (
             daten.onboarding && <OnboardingGuide status={daten.onboarding} onDismissed={erststartWegklicken} />
           )}
@@ -473,6 +484,9 @@ export default function DashboardPage() {
 
           {heuteGelegt}
           {erfassen}
+
+          {/* Der Anstoß zum ersten Training (nach drei Tagen) kommt nur als Push an, wer nicht wiederkommt. */}
+          {erststartKarte === "erstesTraining" && <PushHinweisKarte />}
 
           <FeedbackKarte eintraege={daten.feedback} onChanged={neuLaden} />
           <AbgelaufeneZiele eintraege={daten.ziele.abgelaufen} onChanged={neuLaden} />

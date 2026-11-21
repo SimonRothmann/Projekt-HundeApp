@@ -37,7 +37,7 @@ public class ErinnerungServiceTests
         var db = InMemoryDbContext.Create();
         var meldungen = new FakeNotificationService();
         var uhr = new Uhr(jetzt ?? Utc(22, 16, 30));
-        return new Szene(db, meldungen, uhr, new ErinnerungService(db, meldungen, uhr, NullLogger<ErinnerungService>.Instance));
+        return new Szene(db, meldungen, uhr, new ErinnerungService(db, meldungen, uhr, new FakeUserLookupService(), NullLogger<ErinnerungService>.Instance));
     }
 
     private static List<(Guid UserId, string Message, string? LinkPath)> Gesendet(Szene s) => s.Meldungen.Created;
@@ -104,7 +104,7 @@ public class ErinnerungServiceTests
         s.Uhr.Jetzt = Utc(22, 16, 40);
         Assert.Equal(0, await s.Dienst.VersendeFaelligeAsync());
         // Auch ein neuer Dienst auf derselben Datenbank (Neustart): der Merkzettel steht in der Datenbank.
-        var neu = new ErinnerungService(s.Db, s.Meldungen, s.Uhr, NullLogger<ErinnerungService>.Instance);
+        var neu = new ErinnerungService(s.Db, s.Meldungen, s.Uhr, new FakeUserLookupService(), NullLogger<ErinnerungService>.Instance);
         Assert.Equal(0, await neu.VersendeFaelligeAsync());
 
         Assert.Single(Gesendet(s));
@@ -395,7 +395,7 @@ public class ErinnerungServiceTests
             db, lookup, new FakeNotificationChannels { EmailAktiv = true, PushPublicKey = "pub-key" },
             TestLinks.Mit(), TestAbmeldeToken.Neu(), mails, pushs, NullLogger<NotificationService>.Instance);
         var uhr = new Uhr(Utc(22, 10, 30));
-        var dienst = new ErinnerungService(db, echt, uhr, NullLogger<ErinnerungService>.Instance);
+        var dienst = new ErinnerungService(db, echt, uhr, new FakeUserLookupService(), NullLogger<ErinnerungService>.Instance);
         var s = new Szene(db, new FakeNotificationService(), uhr, dienst);
 
         var f = await FaehrteAsync(s, Utc(22, 7));
@@ -554,7 +554,7 @@ public class ErinnerungServiceTests
         // Der Versand selbst wirft: Der Dienst fängt das je Abschnitt ab (und loggt), der Lauf endet normal.
         var db = InMemoryDbContext.Create();
         var uhr = new Uhr(Utc(22, 16, 30));
-        var dienst = new ErinnerungService(db, new WirftNotificationService(), uhr, NullLogger<ErinnerungService>.Instance);
+        var dienst = new ErinnerungService(db, new WirftNotificationService(), uhr, new FakeUserLookupService(), NullLogger<ErinnerungService>.Instance);
         var s = new Szene(db, new FakeNotificationService(), uhr, dienst);
         var (gruppe, _) = await TerminAsync(s, Utc(23, 16));
         await MitgliedAsync(s, gruppe);

@@ -385,6 +385,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                         ReminderType.HealthDueToday => "Gesundheit: Frist heute",
                         ReminderType.HealthVetDayBefore => "Tierarzttermin morgen",
                         ReminderType.TrainingNote => "Merkzettel vor dem Training",
+                        ReminderType.FirstTraining => "Erstes Training",
                         _ => "Offene Rückmeldungen"
                     },
                     r.ReferenceId == Guid.Empty ? null : r.ReferenceId,

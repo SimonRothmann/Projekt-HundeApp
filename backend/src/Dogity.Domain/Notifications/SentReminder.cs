@@ -24,7 +24,10 @@ public enum ReminderType
     HealthVetDayBefore,
 
     /// <summary>Gemerktes fürs Training (Merkzettel), vor dem Training am Trainingstag; an die Besitzer:innen des Hundes.</summary>
-    TrainingNote
+    TrainingNote,
+
+    /// <summary>Einmaliger Anstoß, drei Tage nach dem ersten Hund noch ohne Training; je Konto nur einmal.</summary>
+    FirstTraining
 }
 
 /// <summary>
@@ -46,7 +49,7 @@ public class SentReminder : Entity
 
     /// <summary>
     /// Worauf sich die Erinnerung bezieht: die Id des Termins bzw. der Fährte bzw.
-    /// des Gesundheitseintrags bzw. des Hundes (Merkzettel); bei der Zusammenfassung (kein einzelner Bezug) <see cref="Guid.Empty"/>.
+    /// des Gesundheitseintrags bzw. des Hundes (Merkzettel); beim Anstoß zum ersten Training und bei der Zusammenfassung (kein einzelner Bezug) <see cref="Guid.Empty"/>.
     /// </summary>
     public Guid ReferenceId { get; set; }
 

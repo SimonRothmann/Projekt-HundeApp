@@ -1,21 +1,22 @@
-import type { DogGender, OnboardingStatus } from "@/lib/types";
+import type { DogGender, OnboardingStatus, Regulation, Sport } from "@/lib/types";
+import { einstiegsOrdnung } from "@/lib/einstieg";
 
 /**
  * Was der Erststart auf der Startseite gerade zeigt - als reine Funktion, damit
  * die Regel ohne Browser prüfbar ist (Muster wie startseite.ts).
  *
- * Es gibt nur zwei Momente:
+ * Es gibt drei Momente:
  * - **hund**: noch kein Hund. Die Karte "Wie heißt dein Hund?" legt ihn an und
  *   öffnet gleich danach das Eintragen-Fenster - ohne Seitenwechsel.
+ * - **erstesTraining**: Hund da, aber noch kein Training (egal ob schon in einer
+ *   Gruppe). Eine ruhige Karte mit einem Hauptknopf "Erstes Training eintragen"
+ *   und - wenn es passt - dem Vorschlag eines Ziels. Kein Leitfaden, der verfolgt:
+ *   Sie lässt sich ausblenden und verschwindet mit dem ersten Training.
  * - **gabelung**: das erste Training ist gespeichert. EINMAL fragt die Karte
  *   "Gut gemacht! Wie geht es weiter?" nach den zwei Wegen (Prüfungsziel oder
  *   Verein).
- *
- * Alles dazwischen (Hund da, Training noch nicht) ist die normale Startseite
- * mit ihrer Eintragen-Karte: Wer das Fenster ohne Speichern schließt, soll
- * nicht von einem Leitfaden verfolgt werden.
  */
-export type ErststartZustand = "hund" | "gabelung" | null;
+export type ErststartZustand = "hund" | "erstesTraining" | "gabelung" | null;
 
 /**
  * So lange nach dem ersten Training gilt die Gabelung. "Einmalig" heißt hier:
@@ -31,6 +32,10 @@ export function erststartZustand(status: OnboardingStatus | null, jetzt: number 
   if (status === null || status.isDismissed) return null;
 
   if (!status.hasDog) return "hund";
+
+  // Vor dem isComplete-Entscheid: Wer schon in einer Gruppe ist (Erststart "erledigt"), aber noch nie selbst
+  // ein Training eingetragen hat, ist genau der, den die Karte erreichen soll.
+  if (!status.hasTraining) return "erstesTraining";
 
   // Ob der Erststart erledigt ist, entscheidet der Server (isComplete: Hund und Training oder
   // Gruppe, siehe docs/ERSTSTART.md) - keine zweite Auslegung hier. Das Frontend regelt nur noch,
@@ -84,3 +89,36 @@ export function pruefeErstenHund(name: string, geschlecht: DogGender | null): Er
   if (geschlecht === null) return { ok: false, fehler: "geschlecht" };
   return { ok: true, name: bereinigt, geschlecht };
 }
+
+/**
+ * Der Hund der Karte "Erstes Training eintragen": der älteste (firstDogId des Servers), sonst der erste
+ * nicht archivierte. Null ohne einen solchen.
+ */
+export function erstesTrainingHund<T extends { id: string; archivedAt?: string | null }>(
+  status: OnboardingStatus,
+  hunde: readonly T[],
+): T | null {
+  const aktive = hunde.filter((hund) => !hund.archivedAt);
+  return aktive.find((hund) => hund.id === status.firstDogId) ?? aktive[0] ?? null;
+}
+
+/**
+ * Das Ziel, das die Karte vorschlägt: die Einstiegsprüfung der ersten Profil-Sportart, für die es eine Ordnung gibt
+ * (Reihenfolge der Auswahl im Profil). Null ohne gewählte Sportart oder ohne Ordnung - dann zeigt die Karte nur
+ * das Eintragen. `ordnungen` sind die für die Person sichtbaren Ordnungen je Sportart-Id.
+ */
+export function zielvorschlag(
+  profilSportIds: readonly string[],
+  sportarten: readonly Sport[],
+  ordnungen: Readonly<Record<string, readonly Regulation[]>>,
+): { sport: Sport; ordnung: Regulation } | null {
+  for (const id of profilSportIds) {
+    const sport = sportarten.find((s) => s.id === id);
+    const ordnung = sport ? einstiegsOrdnung(sport.code, ordnungen[id] ?? []) : null;
+    if (sport && ordnung) return { sport, ordnung };
+  }
+  return null;
+}
+
+/** Wie weit das Ziel der Karte gedeiht: Zieldatum ist heute + so viele Tage (12 Wochen). */
+export const ZIELVORSCHLAG_TAGE = 84;
