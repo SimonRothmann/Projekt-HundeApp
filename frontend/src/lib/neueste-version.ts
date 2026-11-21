@@ -44,29 +44,21 @@ export type Versionshinweis = {
 
 /** Der oberste Eintrag von VERSIONSHINWEISE (der Test hält beide gleich). */
 export const NEUESTE_VERSION: Versionshinweis = {
-  version: "1.8",
-  datum: "2026-11-20",
-  titel: uebersetzbar("Gewicht und Fährten-Leitfaden"),
+  version: "1.9",
+  datum: "2026-11-23",
+  titel: uebersetzbar("Leichter Einstieg"),
   aenderungen: [
     {
       art: "neu",
-      text: uebersetzbar("Gewicht im Reiter „Gesundheit“: Trag das Gewicht deines Hundes ein und sieh den Verlauf als Kurve."),
+      text: uebersetzbar("Hund angelegt, aber noch nicht trainiert? Die Startseite zeigt jetzt „Erstes Training eintragen“ mit passenden Übungen – und schlägt die Einstiegsprüfung als Ziel in 12 Wochen vor, mit einem Tipp angelegt."),
     },
     {
       art: "neu",
-      text: uebersetzbar("Fährte legen mit Leitfaden: Wähl die Prüfungsstufe (z. B. IGP 1) – Dogity zeigt die Vorgaben und zählt beim Legen Schritte und Gegenstände mit, auch bei gesperrtem Bildschirm. Auf der Startseite steht, wann die Liegezeit erreicht ist."),
+      text: uebersetzbar("Drei Tage nach dem ersten Hund erinnert Dogity einmal ans erste Training, falls noch keins eingetragen ist – als Mitteilung in der Glocke und per Push."),
     },
     {
-      art: "neu",
-      text: uebersetzbar("Für Trainer:innen: Gruppen können ein Höchstalter haben. Hunde, die herauswachsen, sind in der Anmeldeliste markiert und lassen sich mit einem Tipp in eine andere Gruppe des Vereins übernehmen."),
-    },
-    {
-      art: "verbessert",
-      text: uebersetzbar("Dogity rechnet in der Zeitzone deines Geräts: Wer außerhalb von Mitteleuropa trainiert, bekommt den richtigen Tag für Training, Plan und Erinnerungen – und keine Mitteilungen mitten in der Nacht."),
-    },
-    {
-      art: "verbessert",
-      text: uebersetzbar("Sicherere Anmeldung: Deine Anmelde-Schlüssel liegen jetzt in geschützten Cookies, die keine Skripte lesen können. Du musst dich nicht neu anmelden."),
+      art: "behoben",
+      text: uebersetzbar("Training eintragen ohne Netz: Die Vorschläge „Diese Woche“ und „Zuletzt geübt“ sind jetzt auch offline da."),
     },
   ],
 };

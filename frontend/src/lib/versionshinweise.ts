@@ -53,6 +53,25 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "1.9",
+    datum: "2026-11-23",
+    titel: uebersetzbar("Leichter Einstieg"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Hund angelegt, aber noch nicht trainiert? Die Startseite zeigt jetzt „Erstes Training eintragen“ mit passenden Übungen – und schlägt die Einstiegsprüfung als Ziel in 12 Wochen vor, mit einem Tipp angelegt."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Drei Tage nach dem ersten Hund erinnert Dogity einmal ans erste Training, falls noch keins eingetragen ist – als Mitteilung in der Glocke und per Push."),
+      },
+      {
+        art: "behoben",
+        text: uebersetzbar("Training eintragen ohne Netz: Die Vorschläge „Diese Woche“ und „Zuletzt geübt“ sind jetzt auch offline da."),
+      },
+    ],
+  },
+  {
     version: "1.8",
     datum: "2026-11-20",
     titel: uebersetzbar("Gewicht und Fährten-Leitfaden"),
