@@ -21,6 +21,7 @@ import {
   TRACK_LINE_COLOR,
   WALK_RUN_COLORS,
   ablaufDaten,
+  LUECKE_FARBE,
   deviationColors,
   kartenGrenzen,
   legungDaten,
@@ -468,7 +469,7 @@ export function TrackMap({
     const d = ablaufDaten(walkRuns, t, spurGrenzen({ kind: artKind }));
     // Winkel gibt es nur bei der Fährte.
     const winkel = istMantrailing({ kind: artKind }) ? leer<never>() : winkelDaten(walkRuns, t);
-    const teil = { "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, halte: d.halte, winkel };
+    const teil = { "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, "ablauf-luecke": d.luecken, halte: d.halte, winkel };
     Object.assign(datenRef.current, teil);
     datenAnwenden(mapRef.current, teil);
   }, [mapReady, walkRuns, t, artKind]);
@@ -478,7 +479,7 @@ export function TrackMap({
     // Mit Richtungspfeil zeichnet ein Marker die Position, kein Punkt. Den
     // Pfeil gibt es erst mit bekannter Laufrichtung (siehe unten).
     const mitPfeil = showPositionArrow && smoothedHeadingRef.current !== null;
-    const teil = { "ablauf-live": d.linie, position: mitPfeil ? leer<never>() : d.position };
+    const teil = { "ablauf-live": d.linie, "ablauf-luecke-live": d.luecken, position: mitPfeil ? leer<never>() : d.position };
     Object.assign(datenRef.current, teil);
     datenAnwenden(mapRef.current, teil);
   }, [mapReady, liveWalkRunPoints, walkRuns.length, showPositionArrow, t]);
@@ -744,6 +745,8 @@ export function TrackLegend({
     .map((run, index) => ({ run, index }))
     .filter(({ run }) => run.points.length > 0 && !istBewertet(run));
 
+  const mitLuecke = walkRuns.some((run) => run.points.some((p) => p.afterGap));
+
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
@@ -777,6 +780,12 @@ export function TrackLegend({
             <Linienprobe farbe={farben.red} />
             {t("darüber")}
           </span>
+        </span>
+      )}
+      {mitLuecke && (
+        <span className="flex items-center gap-1.5">
+          <Linienprobe farbe={LUECKE_FARBE} gestrichelt />
+          {t("keine Aufzeichnung")}
         </span>
       )}
     </div>

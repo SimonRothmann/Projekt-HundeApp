@@ -27,6 +27,8 @@ export const SPUR_QUELLEN = [
   "ablauf-bewertet",
   "ablauf-unbewertet",
   "ablauf-live",
+  "ablauf-luecke",
+  "ablauf-luecke-live",
   "halte",
   "position",
 ] as const;
@@ -40,6 +42,8 @@ export const TIPPBARE_EBENEN = [
   "ablauf-bewertet",
   "ablauf-unbewertet",
   "ablauf-live",
+  "ablauf-luecke",
+  "ablauf-luecke-live",
   "halte",
   "marker",
   "winkel",
@@ -119,6 +123,19 @@ export function spurEbenen(): LayerSpecification[] {
         "line-dasharray": strichmuster(3, 4, ABLAUF_BREITE),
       },
     },
+    // Stücke ohne Aufzeichnung: grau gestrichelt statt Ampel- oder Versuchsfarbe (Lückenregel: lib/ablauf-luecken.ts).
+    ...["ablauf-luecke", "ablauf-luecke-live"].map(
+      (id): LayerSpecification => ({
+        id,
+        type: "line",
+        source: id,
+        paint: {
+          "line-color": FARBE,
+          "line-width": ABLAUF_BREITE,
+          "line-dasharray": strichmuster(2, 5, ABLAUF_BREITE),
+        },
+      }),
+    ),
     {
       id: "halte",
       type: "circle",

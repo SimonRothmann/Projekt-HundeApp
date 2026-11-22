@@ -115,12 +115,15 @@ export function GegenstandsErgebnisZeilen({
   liste,
   werte,
   erreicht,
+  ohneAufzeichnung,
   disabled,
   onWahl,
 }: {
   liste: readonly Gegenstand[];
   werte: Readonly<Record<string, GegenstandsErgebnis | null | undefined>>;
   erreicht?: readonly string[] | null;
+  /** Nicht erreichte Gegenstände, die in einer Lücke der Aufzeichnung liegen: kein "nicht erreicht", denn der Hund war wohl dort. */
+  ohneAufzeichnung?: readonly string[] | null;
   disabled?: boolean;
   onWahl: (id: string, ergebnis: GegenstandsErgebnis | null) => void;
 }) {
@@ -134,7 +137,11 @@ export function GegenstandsErgebnisZeilen({
             {g.material && <span className="[overflow-wrap:anywhere]">· {t(g.material)}</span>}
             {erreicht && (
               <span className="text-xs text-muted-foreground">
-                {erreicht.includes(g.id) ? t("GPS: erreicht") : t("GPS: nicht erreicht")}
+                {erreicht.includes(g.id)
+                  ? t("GPS: erreicht")
+                  : ohneAufzeichnung?.includes(g.id)
+                    ? t("GPS: keine Aufzeichnung")
+                    : t("GPS: nicht erreicht")}
               </span>
             )}
           </div>
@@ -203,6 +210,7 @@ export function AblaufGegenstaende({
         liste={liste}
         werte={werte}
         erreicht={run.reachedArticleIds}
+        ohneAufzeichnung={run.unrecordedArticleIds}
         disabled={speichert || !darfAendern}
         onWahl={(id, ergebnis) => void waehlen(id, ergebnis)}
       />

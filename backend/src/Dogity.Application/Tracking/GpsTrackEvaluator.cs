@@ -98,6 +98,15 @@ public static class GpsTrackEvaluator
     /// </summary>
     public const double MarkerProximityMeters = 8.0;
 
+    /// <summary>
+    /// Lücke im Ablauf: zwischen zwei aufeinanderfolgenden Punkten mehr als diese Zeit UND mehr als
+    /// diese Strecke (Bildschirm aus, das GPS lieferte nichts). Stehen am Gegenstand ergibt Zeit ohne
+    /// Strecke, langsames Gehen Strecke ohne Zeit - beides ist keine Lücke. Dieselbe Regel und dieselben
+    /// Werte im Frontend (LUECKE_MIN_SEKUNDEN/LUECKE_MIN_METER in lib/ablauf-luecken.ts).
+    /// </summary>
+    public const int LueckeMinSekunden = 30;
+    public const double LueckeMinMeter = 5.0;
+
     /// <summary>Ein Halt: Netto-Verschiebung unter diesem Wert über mindestens <see cref="StopMinDurationSeconds"/>.</summary>
     public const double StopMaxDisplacementMeters = 3.0;
     public const int StopMinDurationSeconds = 10;
@@ -445,6 +454,60 @@ public static class GpsTrackEvaluator
         // Derselbe Bezugspunkt wie in TryEvaluate: der Anfang der gelegten Linie.
         var anfang = punkte.Where(p => p.PointType != GpsPointType.Manual).MinBy(p => p.Timestamp);
         return anfang is null ? [] : ErreichteGegenstaende(punkte, ablaufPunkte, anfang.Latitude);
+    }
+
+    /// <summary>
+    /// Die Indizes der Ablaufpunkte (nach Zeit sortiert), vor denen eine Lücke liegt
+    /// (siehe <see cref="LueckeMinSekunden"/>). Immer auf den vollständigen Punkten zu rechnen: Auf
+    /// vereinfachten Punkten sähe langsames gerades Gehen wie eine Lücke aus.
+    /// </summary>
+    public static List<int> LueckenAnfaenge(IReadOnlyList<GpsWalkPoint> sortiert)
+    {
+        var result = new List<int>();
+        for (var i = 1; i < sortiert.Count; i++)
+        {
+            var a = sortiert[i - 1];
+            var b = sortiert[i];
+            if ((b.Timestamp - a.Timestamp).TotalSeconds > LueckeMinSekunden
+                && Distance(Project(a.Latitude, a.Longitude, a.Latitude), Project(b.Latitude, b.Longitude, a.Latitude)) > LueckeMinMeter)
+                result.Add(i);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Gegenstände "ohne Aufzeichnung": vom GPS nicht erreicht (<paramref name="erreicht"/>) und auf der
+    /// gelegten Spur zwischen den Projektionen der beiden Endpunkte einer Lücke gelegen - der Hund kam
+    /// dort wohl vorbei, das Gerät hat es nur nicht aufgezeichnet.
+    /// </summary>
+    public static IReadOnlyList<Guid> NichtAufgezeichneteGegenstaende(
+        IEnumerable<GpsPoint> gelegt, IEnumerable<GpsWalkPoint> ablauf, IReadOnlyList<Guid> erreicht)
+    {
+        var punkte = gelegt.ToList();
+        var walk = ablauf.OrderBy(p => p.Timestamp).ToList();
+        var luecken = LueckenAnfaenge(walk);
+        var offen = punkte
+            .Where(m => m.PointType == GpsPointType.Manual && m.MarkerType == GpsMarkerType.Article && !erreicht.Contains(m.Id))
+            .ToList();
+        var linie = punkte.Where(p => p.PointType != GpsPointType.Manual).OrderBy(p => p.Timestamp).ToList();
+        if (luecken.Count == 0 || offen.Count == 0 || linie.Count < 2)
+            return [];
+
+        var geometrie = FaehrtenGeometrie.Berechnen(linie);
+        var spannen = luecken.Select(i =>
+        {
+            var a = geometrie.Stationierung(walk[i - 1].Latitude, walk[i - 1].Longitude);
+            var b = geometrie.Stationierung(walk[i].Latitude, walk[i].Longitude);
+            return (Von: Math.Min(a, b), Bis: Math.Max(a, b));
+        }).ToList();
+        return offen
+            .Where(m =>
+            {
+                var station = geometrie.Stationierung(m.Latitude, m.Longitude);
+                return spannen.Any(sp => station >= sp.Von && station <= sp.Bis);
+            })
+            .Select(m => m.Id)
+            .ToList();
     }
 
     private static List<Guid> ErreichteGegenstaende(IEnumerable<GpsPoint> marker, IEnumerable<GpsWalkPoint> ablauf, double originLat)

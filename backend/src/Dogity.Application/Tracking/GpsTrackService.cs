@@ -838,7 +838,7 @@ public class GpsTrackService(
     private static GpsWalkRunDto ToWalkRunDto(GpsWalkRun r, bool simplify = false, IEnumerable<GpsPoint>? laidPoints = null)
     {
         var ordered = r.Points.OrderBy(p => p.Timestamp).ToList();
-        var points = simplify ? GpsTrackSimplifier.Simplify(ordered) : ordered;
+        var reached = laidPoints is null || r.EvaluatedAt is null ? null : GpsTrackEvaluator.ErreichteGegenstaende(laidPoints, r.Points);
 
         return new(
             r.Id,
@@ -846,7 +846,7 @@ public class GpsTrackService(
             r.CreatedAt,
             r.LengthMeters,
             r.Comment,
-            points.Select(p => new GpsWalkPointDto(p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, p.DeviationMeters)).ToList(),
+            ToWalkPointDtos(ordered, simplify),
             r.AvgDeviationMeters,
             r.MaxDeviationMeters,
             r.OnTrackPercent,
@@ -872,6 +872,27 @@ public class GpsTrackService(
                 : r.Articles.Count(a => a.Result is ArticleResult.Indicated or ArticleResult.PickedUp),
             // Nur für ausgewertete Abläufe (und nicht über der Aufwandsgrenze): sonst gibt es keinen
             // GPS-Hinweis, und die Oberfläche blendet ihn aus.
-            ReachedArticleIds: laidPoints is null || r.EvaluatedAt is null ? null : GpsTrackEvaluator.ErreichteGegenstaende(laidPoints, r.Points));
+            ReachedArticleIds: reached,
+            UnrecordedArticleIds: reached is null ? null : GpsTrackEvaluator.NichtAufgezeichneteGegenstaende(laidPoints!, r.Points, reached));
+    }
+
+    /// <summary>
+    /// Die Ablaufpunkte fürs Ausliefern. Lücken werden auf den vollständigen Punkten erkannt und je
+    /// Stück getrennt vereinfacht: So bleibt jeder Lücken-Endpunkt erhalten, und die Lücke steht als
+    /// AfterGap am Punkt, statt aus vereinfachten Strecken erraten zu werden.
+    /// </summary>
+    private static List<GpsWalkPointDto> ToWalkPointDtos(List<GpsWalkPoint> ordered, bool simplify)
+    {
+        var result = new List<GpsWalkPointDto>(ordered.Count);
+        var start = 0;
+        foreach (var ende in GpsTrackEvaluator.LueckenAnfaenge(ordered).Append(ordered.Count))
+        {
+            var stueck = ordered.GetRange(start, ende - start);
+            IReadOnlyList<GpsWalkPoint> punkte = simplify ? GpsTrackSimplifier.Simplify(stueck) : stueck;
+            result.AddRange(punkte.Select((p, i) => new GpsWalkPointDto(
+                p.Latitude, p.Longitude, p.Timestamp, p.Accuracy, p.DeviationMeters, AfterGap: start > 0 && i == 0)));
+            start = ende;
+        }
+        return result;
     }
 }

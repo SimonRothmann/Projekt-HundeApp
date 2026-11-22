@@ -31,6 +31,8 @@ describe("spurEbenen", () => {
       "ablauf-bewertet",
       "ablauf-unbewertet",
       "ablauf-live",
+      "ablauf-luecke",
+      "ablauf-luecke-live",
       "halte",
       "winkel",
       "winkel-nummer",

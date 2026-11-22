@@ -169,6 +169,8 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
               gefunden: bestaetigt?.gefunden ?? run.articlesFound ?? 0,
               gesamt: run.articlesTotal,
             })}
+            {(run.unrecordedArticleIds?.length ?? 0) > 0 &&
+              ` · ${t("{n} ohne Aufzeichnung", { n: run.unrecordedArticleIds?.length ?? 0 })}`}
           </span>
           {bestaetigt && (
             <span className="min-w-0 text-xs text-muted-foreground [overflow-wrap:anywhere]">{aufschluesselung(bestaetigt, t)}</span>

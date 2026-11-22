@@ -1,5 +1,6 @@
 import type { GpsWalkRun } from "@/lib/types";
 import { automatischePunkte, markerPunkte } from "@/lib/geo";
+import { istLuecke, lueckeDauerText, lueckeSekunden, stueckeAnLuecken } from "@/lib/ablauf-luecken";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { FAEHRTE_GRENZEN, type SpurGrenzen } from "@/lib/mantrailing";
 import { ampelFarben, ampelStufe } from "@/lib/spur-ampel";
@@ -23,6 +24,8 @@ export type KartenPunkt = {
   pointType?: number;
   label?: string | null;
   markerType?: number;
+  /** Nur Ablaufpunkte: für die Lückenregel der laufenden Aufzeichnung. */
+  timestamp?: string;
 };
 
 /** Die Übersetzungsfunktion aus useT() - hier nur als Form, ohne React. */
@@ -130,6 +133,9 @@ export const STOP_LABELS = [
   uebersetzbar("Halt am Winkel"),
 ] as const;
 
+/** Lückenstücke (keine Aufzeichnung) im Ablauf: grau gestrichelt, nicht in der Ampel- oder Versuchsfarbe. */
+export const LUECKE_FARBE = "#94a3b8";
+
 // Winkel, die der Ablauf nicht erreicht hat (oder ohne Ablauf-Zustand): nicht Teil der Ampel.
 export const WINKEL_NEUTRAL_FARBE = "#64748b";
 
@@ -231,25 +237,43 @@ export type AblaufDaten = {
   bewertet: Merkmale<Linie>;
   /** Ganze Linie je Ablauf, in der Zyklusfarbe (wird gestrichelt gezeichnet). */
   unbewertet: Merkmale<Linie>;
+  /** Stücke ohne Aufzeichnung (vom Server als afterGap getragen). */
+  luecken: Merkmale<Linie>;
   halte: Merkmale<Punkt>;
 };
+
+function lueckenText(dauerSekunden: number, t: TextUebersetzer): string {
+  return t("Keine Aufzeichnung ({dauer})", { dauer: lueckeDauerText(dauerSekunden, (n) => t("{n} Min.", { n })) });
+}
 
 /** Die abgelaufenen Versuche mit ihren Haltepunkten; die Farben folgen den Grenzen der Art (Fährte oder Mantrailing). */
 export function ablaufDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen: SpurGrenzen = FAEHRTE_GRENZEN): AblaufDaten {
   const stopFarben = stopColors();
   const bewertet: Merkmal<Linie>[] = [];
   const unbewertet: Merkmal<Linie>[] = [];
+  const luecken: Merkmal<Linie>[] = [];
   const halte: Merkmal<Punkt>[] = [];
 
   walkRuns.forEach((run, index) => {
     if (run.points.length === 0) return;
     const ausweichfarbe = WALK_RUN_COLORS[index % WALK_RUN_COLORS.length];
     const koordinaten = run.points.map(position);
+    // Nur das Feld des Servers: auf den vereinfachten Punkten ließe sich keine Lücke zuverlässig erkennen.
+    const lueckeVor = (i: number) => run.points[i].afterGap === true;
+    const lueckenMerkmal = (i: number) =>
+      linie([koordinaten[i - 1], koordinaten[i]], {
+        farbe: LUECKE_FARBE,
+        text: lueckenText(lueckeSekunden(run.points[i - 1], run.points[i]), t),
+      });
 
     if (run.points.some((p) => p.deviationMeters != null)) {
       // Je Segment die Farbe des schlechteren der beiden Endpunkte - so ist
       // auf einen Blick sichtbar, WO das Team abgekommen ist.
       for (let i = 0; i < koordinaten.length - 1; i++) {
+        if (lueckeVor(i + 1)) {
+          luecken.push(lueckenMerkmal(i + 1));
+          continue;
+        }
         const schlechter = Math.max(run.points[i].deviationMeters ?? 0, run.points[i + 1].deviationMeters ?? 0);
         bewertet.push(
           linie([koordinaten[i], koordinaten[i + 1]], {
@@ -259,9 +283,18 @@ export function ablaufDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen:
         );
       }
     } else {
-      unbewertet.push(
-        ...linienMerkmale(koordinaten, { farbe: ausweichfarbe, text: t("Ablauf-Versuch {nr}", { nr: index + 1 }) }),
-      );
+      // Index des ersten Punkts des Stücks in run.points (ein Lückenstück beginnt beim letzten Punkt davor).
+      let naechster = 0;
+      for (const stueck of stueckeAnLuecken(run.points, lueckeVor)) {
+        if (stueck.luecke) {
+          luecken.push(lueckenMerkmal(naechster));
+          continue;
+        }
+        unbewertet.push(
+          ...linienMerkmale(stueck.punkte.map(position), { farbe: ausweichfarbe, text: t("Ablauf-Versuch {nr}", { nr: index + 1 }) }),
+        );
+        naechster += stueck.punkte.length;
+      }
     }
 
     // Erkannte Halte als Ringe: zeigen die Stellen, an denen der Hund
@@ -281,12 +314,15 @@ export function ablaufDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen:
   return {
     bewertet: { type: "FeatureCollection", features: bewertet },
     unbewertet: { type: "FeatureCollection", features: unbewertet },
+    luecken: { type: "FeatureCollection", features: luecken },
     halte: { type: "FeatureCollection", features: halte },
   };
 }
 
 export type LiveAblaufDaten = {
   linie: Merkmale<Linie>;
+  /** Lückenstücke nach der Regel auf den rohen Punkten (lib/ablauf-luecken.ts). */
+  luecken: Merkmale<Linie>;
   /** Die eigene Position als Punkt; leer, solange es keinen Punkt gibt. */
   position: Merkmale<Punkt>;
   /** Farbe des laufenden Versuchs - auch für den Richtungspfeil. */
@@ -306,17 +342,21 @@ export function liveAblaufDaten(
   t: TextUebersetzer,
 ): LiveAblaufDaten {
   const farbe = WALK_RUN_COLORS[anzahlAblaeufe % WALK_RUN_COLORS.length];
-  const koordinaten = (liveWalkRunPoints ?? []).map(position);
+  const roh = liveWalkRunPoints ?? [];
+  const koordinaten = roh.map(position);
+  const mitZeit = (p: KartenPunkt) => ({ latitude: p.latitude, longitude: p.longitude, timestamp: p.timestamp ?? "" });
+  const stuecke = stueckeAnLuecken(roh, (i) => roh[i - 1].timestamp != null && roh[i].timestamp != null && istLuecke(mitZeit(roh[i - 1]), mitZeit(roh[i])));
+  const live = stuecke
+    .filter((s) => !s.luecke)
+    .flatMap((s) => linienMerkmale(s.punkte.map(position), { farbe, text: t("Ablauf-Versuch {nr} (läuft)", { nr: anzahlAblaeufe + 1 }) }));
+  const luecken = stuecke
+    .filter((s) => s.luecke)
+    .map((s) => linie(s.punkte.map(position), { farbe: LUECKE_FARBE, text: lueckenText(lueckeSekunden(mitZeit(s.punkte[0]), mitZeit(s.punkte[1])), t) }));
   const letzter = koordinaten.length > 0 ? koordinaten[koordinaten.length - 1] : null;
 
   return {
-    linie: {
-      type: "FeatureCollection",
-      features: linienMerkmale(koordinaten, {
-        farbe,
-        text: t("Ablauf-Versuch {nr} (läuft)", { nr: anzahlAblaeufe + 1 }),
-      }),
-    },
+    linie: { type: "FeatureCollection", features: live },
+    luecken: { type: "FeatureCollection", features: luecken },
     position: {
       type: "FeatureCollection",
       features: letzter ? [{ type: "Feature", properties: { farbe }, geometry: { type: "Point", coordinates: letzter } }] : [],

@@ -18,8 +18,11 @@ public record GpsPointDto(
 /// <summary>
 /// DeviationMeters: senkrechter Abstand zur gelegten Fährte (null = noch nicht
 /// ausgewertet). Die Karte färbt die Ablauf-Linie abschnittsweise danach ein.
+/// AfterGap: Vor diesem Punkt liegt eine Lücke (siehe GpsTrackEvaluator.LueckeMinSekunden) - auf den
+/// vollständigen Punkten ermittelt und ausdrücklich getragen, weil die Vereinfachung beim Ausliefern
+/// sonst langsames gerades Gehen wie eine Lücke aussehen ließe.
 /// </summary>
-public record GpsWalkPointDto(double Latitude, double Longitude, DateTimeOffset Timestamp, double? Accuracy, double? DeviationMeters);
+public record GpsWalkPointDto(double Latitude, double Longitude, DateTimeOffset Timestamp, double? Accuracy, double? DeviationMeters, bool AfterGap = false);
 
 /// <summary>Ein erkannter Halt während des Ablaufs (siehe GpsWalkStop).</summary>
 public record GpsWalkStopDto(
@@ -81,7 +84,9 @@ public record GpsWalkRunDto(
     int? ArticlesConfirmedFound,
     // Die Gegenstände, denen das Gespann per GPS auf 8 m nahe kam (die Regel hinter ArticlesFound) -
     // als Hinweis neben der Angabe der Hundeführer:in, nicht als Ergebnis.
-    IReadOnlyList<Guid>? ReachedArticleIds);
+    IReadOnlyList<Guid>? ReachedArticleIds,
+    // Davon die Gegenstände, die in einer Lücke der Aufzeichnung liegen (null wie ReachedArticleIds).
+    IReadOnlyList<Guid>? UnrecordedArticleIds = null);
 
 public record GpsTrackDto(
     Guid Id,

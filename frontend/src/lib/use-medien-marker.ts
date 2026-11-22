@@ -25,12 +25,15 @@ export function setzeMedienMarker(an: boolean) {
  * Damit Handy und Uhr Dogity als laufende Wiedergabe führen, spielt eine stille Tonspur in Schleife - das
  * unterbricht Musik oder Podcast, solange aufgezeichnet wird.
  *
- * `starten()` muss direkt im Tipp auf "Legen starten" laufen: iOS spielt Ton nur nach einer Berührung.
+ * Beim Ablaufen hält die Tonspur ebenso die Seite wach (ohne Tasten: `weiter` entfällt) - mit dunklem Bildschirm
+ * liefert der Browser sonst keine Positionen.
+ *
+ * `starten()` muss direkt im Tipp auf "Legen starten" bzw. "Fährte ablaufen" laufen: iOS spielt Ton nur nach einer Berührung.
  * shortcut: nur "Weiter" und "Zurück" (zwei Markerarten) - mehr Tasten hat die Mediensteuerung nicht.
  */
 export function useMedienMarker(
   aktiv: boolean,
-  { weiter, zurueck, titel, zeile }: { weiter: () => void; zurueck?: () => void; titel: string; zeile: string },
+  { weiter, zurueck, titel, zeile }: { weiter?: () => void; zurueck?: () => void; titel: string; zeile: string },
 ) {
   const tonRef = useRef<HTMLAudioElement | null>(null);
   const aktionen = useRef({ weiter, zurueck });
@@ -50,7 +53,8 @@ export function useMedienMarker(
   useEffect(() => {
     if (!aktiv || !tonRef.current || !("mediaSession" in navigator)) return;
     const sitzung = navigator.mediaSession;
-    sitzung.setActionHandler("nexttrack", () => aktionen.current.weiter());
+    // Ohne Aktion (Ablauf: dort gibt es keine Marker) bleibt die Taste unbelegt.
+    sitzung.setActionHandler("nexttrack", aktionen.current.weiter ? () => aktionen.current.weiter?.() : null);
     sitzung.setActionHandler("previoustrack", aktionen.current.zurueck ? () => aktionen.current.zurueck?.() : null);
     // Pause auf der Uhr hielte die Tonspur an und mit ihr die Steuerung: ignorieren.
     sitzung.setActionHandler("pause", () => {});

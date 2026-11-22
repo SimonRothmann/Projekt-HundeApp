@@ -136,6 +136,8 @@ export function formatiereMassstab(meter: number): string {
 export type Linienstueck = {
   /** null: für dieses Stück gibt es keine Abweichung. */
   stufe: Ampel | null;
+  /** Lückenstück (keine Aufzeichnung): wird grau gestrichelt gezeichnet, nicht in der Ampelfarbe. */
+  luecke?: true;
   /** Indizes der Punkte, beide einschließlich. */
   von: number;
   bis: number;
@@ -149,14 +151,23 @@ export type Linienstueck = {
  * werden. Aufeinanderfolgende Stücke gleicher Farbe werden zu einer Linie
  * zusammengefasst; das gibt saubere Ecken statt einer Kette einzelner Striche.
  */
-export function faerbeSegmente(abweichungen: (number | null | undefined)[], grenzen: SpurGrenzen = FAEHRTE_GRENZEN): Linienstueck[] {
+export function faerbeSegmente(
+  abweichungen: (number | null | undefined)[],
+  grenzen: SpurGrenzen = FAEHRTE_GRENZEN,
+  /** luecken[i]: vor Punkt i liegt eine Lücke (afterGap des Servers). */
+  luecken: boolean[] = [],
+): Linienstueck[] {
   const stuecke: Linienstueck[] = [];
   for (let i = 0; i < abweichungen.length - 1; i++) {
+    if (luecken[i + 1]) {
+      stuecke.push({ stufe: null, luecke: true, von: i, bis: i + 1 });
+      continue;
+    }
     const a = abweichungen[i];
     const b = abweichungen[i + 1];
     const stufe = a == null && b == null ? null : ampelStufe(Math.max(a ?? 0, b ?? 0), grenzen);
     const letztes = stuecke[stuecke.length - 1];
-    if (letztes && letztes.stufe === stufe) letztes.bis = i + 1;
+    if (letztes && !letztes.luecke && letztes.stufe === stufe) letztes.bis = i + 1;
     else stuecke.push({ stufe, von: i, bis: i + 1 });
   }
   return stuecke;
@@ -227,7 +238,7 @@ export type FaehrtenGeometrie = {
   /** art = markerType (Index in MARKER_FORMEN); ohne Angabe ein Gegenstand wie auf der Karte. */
   marker: { p: MeterPunkt; art: number }[];
   /** Der ausgewertete Ablauf samt Abweichung je Punkt - null ohne Ablauf. */
-  ablauf: { punkte: MeterPunkt[]; abweichungen: (number | null)[] } | null;
+  ablauf: { punkte: MeterPunkt[]; abweichungen: (number | null)[]; luecken: boolean[] } | null;
 };
 
 /**
@@ -248,7 +259,7 @@ export function faehrtenGeometrie(track: GpsTrack, ablauf: GpsWalkRun | null): F
     marker: inMeter(marker, mitte).map((p, i) => ({ p, art: marker[i].markerType ?? 0 })),
     ablauf:
       ablauf && ablaufPunkte.length >= 2
-        ? { punkte: inMeter(ablaufPunkte, mitte), abweichungen: ablaufPunkte.map((p) => p.deviationMeters ?? null) }
+        ? { punkte: inMeter(ablaufPunkte, mitte), abweichungen: ablaufPunkte.map((p) => p.deviationMeters ?? null), luecken: ablaufPunkte.map((p) => p.afterGap === true) }
         : null,
   };
 }
@@ -272,7 +283,7 @@ export type BildTexte = {
   ampelWort: string | null;
   zeilen: string[];
   /** marker: die Namen der Markerarten, Index wie MARKER_FORMEN. */
-  legende: { start: string; marker: string[]; gelegt: string; abgelaufen: string };
+  legende: { start: string; marker: string[]; gelegt: string; abgelaufen: string; ohneAufzeichnung: string };
   marke: string;
 };
 
@@ -345,6 +356,7 @@ export function baueBildTexte(
       start: t("Start"),
       marker: MARKER_LABELS.map((label) => t(label)),
       gelegt: t("Gelegt"),
+      ohneAufzeichnung: t("keine Aufzeichnung"),
       abgelaufen: trail ? t("Abgelaufen, grün bis {meter} m", { meter: spurGrenzen(track).gruenBis }) : t("Abgelaufen"),
     },
     marke: "Dogity",

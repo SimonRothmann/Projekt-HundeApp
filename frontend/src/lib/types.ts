@@ -1058,6 +1058,8 @@ export type GpsWalkPoint = {
   accuracy: number | null;
   // Senkrechter Abstand zur gelegten Fährte (null = nicht ausgewertet).
   deviationMeters: number | null;
+  // Vor diesem Punkt liegt eine Lücke der Aufzeichnung (vom Server auf den vollständigen Punkten ermittelt, siehe lib/ablauf-luecken.ts).
+  afterGap?: boolean;
 };
 
 // 0 = unerklärt (Warnsignal), 1 = Verweisen am Gegenstand (gut), 2 = erklärt/neutral,
@@ -1132,6 +1134,8 @@ export type GpsWalkRun = {
   articles?: GpsWalkRunArticle[];
   articlesConfirmedFound?: number | null;
   reachedArticleIds?: string[] | null;
+  // Davon die Gegenstände in einer Lücke der Aufzeichnung: "GPS: keine Aufzeichnung" statt "nicht erreicht".
+  unrecordedArticleIds?: string[] | null;
   // Nur Mantrailing: Ergebnis des Laufs. Optional, weil ältere Stände (Read-Cache,
   // Backend vor Fassung 0.46) die Felder nicht kennen.
   /** Person gefunden - bei einem Negativ-Trail: korrekt angezeigt, dass niemand da ist. */

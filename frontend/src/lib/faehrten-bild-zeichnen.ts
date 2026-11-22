@@ -31,6 +31,7 @@ const GEDAEMPFT = "#57534e";
 const KARTENGRUND = "#f0eee7";
 const GELEGT_LINIE = "#b4b0a6";
 const OHNE_ABWEICHUNG = "#64748b";
+const LUECKE_LINIE = "#94a3b8";
 const MARKE_FARBE = "#4f46e5";
 
 const KARTE = { x: RAND, y: 240, breite: BILD_BREITE - 2 * RAND, hoehe: 640 };
@@ -134,10 +135,12 @@ function zeichneKarte(ctx: CanvasRenderingContext2D, eingabe: BildEingabe) {
 
   if (geometrie.ablauf) {
     ctx.lineWidth = 9;
-    const { punkte, abweichungen } = geometrie.ablauf;
-    for (const stueck of faerbeSegmente(abweichungen, eingabe.grenzen)) {
-      ctx.strokeStyle = stueck.stufe ? ampelFarben()[stueck.stufe] : OHNE_ABWEICHUNG;
+    const { punkte, abweichungen, luecken } = geometrie.ablauf;
+    for (const stueck of faerbeSegmente(abweichungen, eingabe.grenzen, luecken)) {
+      ctx.strokeStyle = stueck.luecke ? LUECKE_LINIE : stueck.stufe ? ampelFarben()[stueck.stufe] : OHNE_ABWEICHUNG;
+      if (stueck.luecke) ctx.setLineDash([2, 18]);
       linie(ctx, einpassung, punkte, stueck.von, stueck.bis);
+      ctx.setLineDash([]);
     }
   }
 
@@ -187,7 +190,7 @@ function zeichneKarte(ctx: CanvasRenderingContext2D, eingabe: BildEingabe) {
 /** Legende in einer Zeile unten in der Karte; bricht um, wenn sie nicht passt. */
 function zeichneLegende(ctx: CanvasRenderingContext2D, eingabe: BildEingabe, grundlinie: number) {
   const { geometrie, texte, schrift } = eingabe;
-  type Eintrag = { text: string; symbol: "start" | "marker" | "gelegt" | "abgelaufen"; art?: number };
+  type Eintrag = { text: string; symbol: "start" | "marker" | "gelegt" | "abgelaufen" | "luecke"; art?: number };
   const eintraege: Eintrag[] = [{ text: texte.legende.start, symbol: "start" }];
   // Nur die Markerarten, die im Bild vorkommen, in der Reihenfolge der Tabelle.
   const vorhanden = new Set(geometrie.marker.map((m) => markerArt(m.art)));
@@ -196,6 +199,7 @@ function zeichneLegende(ctx: CanvasRenderingContext2D, eingabe: BildEingabe, gru
   });
   eintraege.push({ text: texte.legende.gelegt, symbol: "gelegt" });
   if (geometrie.ablauf) eintraege.push({ text: texte.legende.abgelaufen, symbol: "abgelaufen" });
+  if (geometrie.ablauf?.luecken.some(Boolean)) eintraege.push({ text: texte.legende.ohneAufzeichnung, symbol: "luecke" });
 
   ctx.font = `500 28px ${schrift}`;
   ctx.textAlign = "left";
@@ -226,6 +230,14 @@ function zeichneLegende(ctx: CanvasRenderingContext2D, eingabe: BildEingabe, gru
       ctx.beginPath();
       ctx.moveTo(x + 4, mitte);
       ctx.lineTo(x + 28, mitte);
+      ctx.stroke();
+    } else if (eintrag.symbol === "luecke") {
+      ctx.strokeStyle = LUECKE_LINIE;
+      ctx.lineWidth = 8;
+      ctx.setLineDash([2, 12]);
+      ctx.beginPath();
+      ctx.moveTo(x + 2, mitte);
+      ctx.lineTo(x + 38, mitte);
       ctx.stroke();
     } else {
       // Ampel in drei Stücken: die Farbe bedeutet die Abweichung.

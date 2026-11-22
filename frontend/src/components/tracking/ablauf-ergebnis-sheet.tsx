@@ -187,6 +187,7 @@ export function AblaufErgebnisSheet({
                 liste={liste}
                 werte={ergebnisse}
                 erreicht={run.reachedArticleIds}
+                ohneAufzeichnung={run.unrecordedArticleIds}
                 onWahl={(id, ergebnis) => setErgebnisse((vorher) => ({ ...vorher, [id]: ergebnis }))}
               />
             </div>

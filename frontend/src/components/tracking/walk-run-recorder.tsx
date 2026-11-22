@@ -17,6 +17,8 @@ import {
   type AblaufSicherung,
 } from "@/lib/aufzeichnung-sicherung";
 import { useGpsRecorder } from "@/lib/use-gps-recorder";
+import { useMedienMarker } from "@/lib/use-medien-marker";
+import { istLuecke, lueckeDauerText, lueckeSekunden } from "@/lib/ablauf-luecken";
 import { GENAUIGKEIT_KLASSE } from "@/components/tracking/genauigkeit-klasse";
 import { genauigkeitsStufe, GPS_PROFIL_ABLAUF } from "@/lib/gps-profil";
 import { TrackMap } from "@/components/tracking/track-map";
@@ -140,6 +142,7 @@ export function WalkRunRecorder({
     // Muss aus dem Klick-Handler synchron passieren, sonst bleibt der
     // AudioContext auf iOS suspended und die späteren Alarmtöne bleiben stumm.
     primeHapticsAudio();
+    medien.starten();
     laufendRef.current = fortsetzen
       ? { begonnen: fortsetzen.begonnen, seite: fortsetzen.seite, ablaufId: fortsetzen.ablaufId ?? crypto.randomUUID() }
       : // Die Kennung des künftigen Ablaufs: Jedes Speichern derselben Aufzeichnung ist dieselbe Anfrage.
@@ -161,6 +164,34 @@ export function WalkRunRecorder({
     // Update-Loop im Aufrufer auslöst.
     onLivePointsChange?.(trackId, isRecording ? points : EMPTY_WALK_POINTS);
   }, [points, isRecording, onLivePointsChange, trackId]);
+
+  // Titel und Zeile stehen fest (nicht bei jedem Punkt neu): Die Tonspur hält nur die Seite wach.
+  const medien = useMedienMarker(isRecording, {
+    titel: trail ? t("Trail suchen") : t("Fährte ablaufen"),
+    zeile: t("Aufzeichnung läuft"),
+  });
+
+  // Einmal je Lücke ein Hinweis, sobald nach ihr wieder ein Punkt kommt. Beim Fortsetzen einer Sicherung
+  // zählt die Pause bis zum ersten neuen Punkt ebenso als Lücke (gleiche Regel wie beim Zeichnen).
+  const lueckenGemeldet = useRef(-1);
+  useEffect(() => {
+    if (!isRecording) {
+      lueckenGemeldet.current = -1;
+      return;
+    }
+    const n = points.length;
+    // Beim Start (auch beim Fortsetzen) gelten die vorhandenen Punkte als gesehen.
+    if (lueckenGemeldet.current < 0) lueckenGemeldet.current = n;
+    if (n < 2 || n <= lueckenGemeldet.current) return;
+    lueckenGemeldet.current = n;
+    const [davor, jetzt] = [points[n - 2], points[n - 1]];
+    if (istLuecke(davor, jetzt))
+      toast.info(
+        t("{dauer} ohne GPS (Bildschirm aus?) – dieses Stück ist gestrichelt.", {
+          dauer: lueckeDauerText(lueckeSekunden(davor, jetzt), (min) => t("{n} Min.", { n: min })),
+        }),
+      );
+  }, [isRecording, points, t]);
 
   const hinweis = ansatz ? ansatzHinweis(points, ansatz) : null;
 
