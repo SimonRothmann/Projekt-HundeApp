@@ -64,6 +64,10 @@ export const NEUESTE_VERSION: Versionshinweis = {
       art: "behoben",
       text: uebersetzbar("Training eintragen ohne Netz: Die Vorschläge „Diese Woche“ und „Zuletzt geübt“ sind jetzt auch offline da."),
     },
+    {
+      art: "behoben",
+      text: uebersetzbar("Fährte ablaufen mit ausgeschaltetem Bildschirm: Ist „Marker über Uhr oder Kopfhörer“ an, zeichnet Dogity jetzt wie beim Legen weiter auf. Stücke ohne GPS zeigt die Karte gestrichelt, Gegenstände dort heißen „GPS: keine Aufzeichnung“ statt „nicht erreicht“."),
+    },
   ],
 };
 
