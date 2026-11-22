@@ -3305,6 +3305,7 @@ export const EN: Record<string, string> = {
   "Gewicht und Fährten-Leitfaden": "Weight and track guide",
   "Hund angelegt, aber noch nicht trainiert? Die Startseite zeigt jetzt „Erstes Training eintragen“ mit passenden Übungen – und schlägt die Einstiegsprüfung als Ziel in 12 Wochen vor, mit einem Tipp angelegt.": "Added a dog but not trained yet? The home page now shows “Enter your first training” with suitable exercises – and suggests the entry exam as a goal in 12 weeks, set up with one tap.",
   "Drei Tage nach dem ersten Hund erinnert Dogity einmal ans erste Training, falls noch keins eingetragen ist – als Mitteilung in der Glocke und per Push.": "Three days after your first dog, Dogity reminds you once about your first training session if none has been entered yet – as a message in the bell and by push.",
+  "Fährte und Trail: Einen falsch gesetzten Marker kannst du nach dem Speichern wieder löschen – unter „Einstellungen der Fährte“. Ein schon gelaufener Ablauf wird dann neu ausgewertet.": "Track and trail: You can now delete a marker set by mistake after saving – under “Track settings”. A run you have already done is then re-evaluated.",
   "Training eintragen ohne Netz: Die Vorschläge „Diese Woche“ und „Zuletzt geübt“ sind jetzt auch offline da.": "Entering training without signal: the suggestions “This week” and “Recently practised” are now available offline too.",
   "Leichter Einstieg": "An easier start",
 };
