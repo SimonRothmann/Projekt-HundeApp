@@ -10,6 +10,7 @@ import {
   ergebnisUmschalten,
   gegenstaende,
   MATERIALIEN,
+  markerListe,
   materialUmschalten,
 } from "./gegenstaende";
 
@@ -126,5 +127,26 @@ describe("bestaetigteZahlen", () => {
     // Ohne gelegte Gegenstände gibt es nichts zu bestätigen.
     expect(bestaetigteZahlen({ articlesTotal: 0, articles: [angabe("a", 0)] })).toBeNull();
     expect(bestaetigteZahlen({ articlesTotal: null, articles: [angabe("a", 0)] })).toBeNull();
+  });
+});
+
+describe("markerListe", () => {
+  it("führt alle Marker mit Id in Legereihenfolge, nummeriert nur bei mehreren derselben Art", () => {
+    const punkte = [
+      marker("g2", 30),
+      marker("pot1", 20, { markerType: 1 }),
+      marker("gps", 5, { pointType: 0 }),
+      marker("g1", 10, { label: "Handschuh" }),
+      marker("pot2", 40, { markerType: 1 }),
+      marker("v", 50, { markerType: 2 }),
+      marker(undefined, 60),
+    ];
+    expect(markerListe(punkte).map((m) => [m.id, m.art, m.nummer, m.label])).toEqual([
+      ["g1", 0, 1, "Handschuh"],
+      ["pot1", 1, 1, null],
+      ["g2", 0, 2, null],
+      ["pot2", 1, 2, null],
+      ["v", 2, null, null],
+    ]);
   });
 });

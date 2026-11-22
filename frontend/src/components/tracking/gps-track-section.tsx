@@ -12,6 +12,8 @@ import { TrackMap, TrackLegend } from "@/components/tracking/track-map";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 import { ablaufBeginn, kannNochAblaufen } from "@/lib/faehrte";
 import { automatischePunkte } from "@/lib/geo";
+import { markerListe } from "@/lib/gegenstaende";
+import { MARKER_LABELS } from "@/lib/karte/spur-daten";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
 import { WalkRunComment } from "@/components/tracking/walk-run-comment";
@@ -356,6 +358,10 @@ export function GpsTrackSection({
                   onVerdeckt={(an) => void verdecktUmschalten(track.id, an)}
                   onEntwicklung={(an) => void entwicklungUmschalten(track.id, an)}
                   onLoeschen={() => void trackLoeschen(track)}
+                  onMarkerGeloescht={async () => {
+                    await loadTracks();
+                    await onChanged?.();
+                  }}
                 />
               )}
             </div>
@@ -390,16 +396,44 @@ function FaehrteEinstellungen({
   onVerdeckt,
   onEntwicklung,
   onLoeschen,
+  onMarkerGeloescht,
 }: {
   track: GpsTrack;
   verdecktEinstellbar: boolean;
   onVerdeckt: (an: boolean) => void;
   onEntwicklung: (an: boolean) => void;
   onLoeschen: () => void;
+  onMarkerGeloescht: () => Promise<void>;
 }) {
   const t = useT();
+  const rueckfrage = useRueckfrage();
+  const ort = ortsformat(useSprache());
   const [offen, setOffen] = useState(false);
   const trail = istMantrailing(track);
+  const marker = markerListe(track.points);
+
+  function markerName(m: (typeof marker)[number]): string {
+    const name = m.art === 0
+      ? t("Gegenstand {nr}", { nr: m.nummer ?? 0 })
+      : m.nummer == null ? t(MARKER_LABELS[m.art]) : `${t(MARKER_LABELS[m.art])} ${m.nummer}`;
+    return m.label ? `${name} · ${m.label}` : name;
+  }
+
+  async function markerLoeschen(m: (typeof marker)[number]) {
+    const name = markerName(m);
+    const text = [
+      trail ? t("{name} wird aus dem Trail entfernt.", { name }) : t("{name} wird aus der Fährte entfernt.", { name }),
+      track.walkRuns.length > 0 ? t("Der Ablauf wird neu ausgewertet.") : null,
+    ].filter(Boolean).join(" ");
+    if (!(await rueckfrage({ titel: t("Marker löschen?"), text, bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
+    try {
+      await api.delete(`/api/gps-tracks/${track.id}/markers/${m.id}`);
+      toast.success(t("Marker gelöscht."));
+      await onMarkerGeloescht();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("Löschen fehlgeschlagen."));
+    }
+  }
 
   return (
     <div className="flex flex-col">
@@ -431,6 +465,31 @@ function FaehrteEinstellungen({
                 beschreibung={t("Für bewusst schwere Übungsfährten – die Fährte bleibt erhalten.")}
                 onChange={onEntwicklung}
               />
+            </div>
+          )}
+          {marker.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium">{t("Marker")}</span>
+              <ul className="flex flex-col">
+                {marker.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 break-words text-sm">
+                      {markerName(m)}
+                      <span className="text-muted-foreground"> · {formatTime(new Date(m.zeit), ort)}</span>
+                    </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="shrink-0 text-destructive hover:text-destructive coarse:size-11"
+                      aria-label={t("{name} löschen", { name: markerName(m) })}
+                      onClick={() => void markerLoeschen(m)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
           <Button

@@ -122,3 +122,32 @@ export function aufschluesselung(zahlen: GegenstandsZahlen, t: (text: string, we
     .filter((teil) => teil !== null)
     .join(", ");
 }
+
+export type MarkerEintrag = {
+  id: string;
+  /** Die Markerart wie GpsPoint.markerType (0 Gegenstand, 1 Leckerlipot, 2 Verleitung, 3 Marker). */
+  art: number;
+  /** Gegenstand: Nummer wie bei den Gegenständen; andere Arten: Nummer nur, wenn es mehrere derselben Art gibt. */
+  nummer: number | null;
+  label: string | null;
+  zeit: string;
+};
+
+/** Alle von Hand gesetzten Marker mit Id in Legereihenfolge - die Liste zum Löschen einzelner Marker. */
+export function markerListe(punkte: readonly GpsPoint[]): MarkerEintrag[] {
+  const nummerDesGegenstands = new Map(gegenstaende(punkte).map((g) => [g.id, g.nummer]));
+  const marker = punkte
+    .filter((p) => istMarker(p) && p.id != null)
+    .map((p, index) => ({ p, index, art: p.markerType >= 0 && p.markerType <= 3 ? p.markerType : 3 }))
+    .sort((a, b) => a.p.timestamp.localeCompare(b.p.timestamp) || a.index - b.index);
+  const jeArt = new Map<number, number>();
+  for (const { art } of marker) jeArt.set(art, (jeArt.get(art) ?? 0) + 1);
+  const gezaehlt = new Map<number, number>();
+  return marker.map(({ p, art }) => {
+    const lfd = (gezaehlt.get(art) ?? 0) + 1;
+    gezaehlt.set(art, lfd);
+    const id = p.id as string;
+    const nummer = art === 0 ? (nummerDesGegenstands.get(id) ?? lfd) : (jeArt.get(art) ?? 0) > 1 ? lfd : null;
+    return { id, art, nummer, label: p.label, zeit: p.timestamp };
+  });
+}

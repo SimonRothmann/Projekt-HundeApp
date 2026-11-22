@@ -585,6 +585,50 @@ public class GpsTrackService(
         return Result<GpsPointDto>.Success(ToPointDto(punkt));
     }
 
+    public async Task<Result> DeleteMarkerAsync(Guid userId, Guid trackId, Guid pointId, CancellationToken ct = default)
+    {
+        var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
+        if (track is null || !await DarfEinheitBearbeitenAsync(userId, track.TrainingSessionId, ct))
+            return Result.NotFound("Fährte nicht gefunden.");
+
+        var punkt = await db.GpsPoints.FirstOrDefaultAsync(p => p.Id == pointId && p.TrackId == trackId, ct);
+        if (punkt is null || punkt.PointType != GpsPointType.Manual)
+            return Result.NotFound("Marker nicht gefunden.");
+
+        var laeufe = await db.GpsWalkRuns
+            .Where(r => r.TrackId == trackId)
+            .Include(r => r.Points)
+            .Include(r => r.Stops)
+            .Include(r => r.Legs)
+            .Include(r => r.Corners)
+            .Include(r => r.Articles)
+            .AsSplitQuery()
+            .ToListAsync(ct);
+
+        try
+        {
+            // Eine Transaktion, damit nie ein Marker fehlt, dessen Abläufe noch mit ihm ausgewertet sind.
+            await db.InTransaktionAsync(async () =>
+            {
+                // Die Angaben je Gegenstand haben keinen FK auf den Punkt und blieben sonst verwaist.
+                db.GpsWalkRunArticles.RemoveRange(laeufe.SelectMany(r => r.Articles).Where(a => a.PointId == pointId));
+                db.GpsPoints.Remove(punkt);
+                await db.SaveChangesAsync(ct);
+
+                // Erst nach dem Speichern: Die Auswertung liest die gelegten Punkte aus der Datenbank.
+                foreach (var lauf in laeufe)
+                    await EvaluateAndPersistAsync(lauf, track.Kind, ct);
+                await db.SaveChangesAsync(ct);
+            }, ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Zweiter gleichzeitiger Aufruf: Der Marker ist schon weg.
+            return Result.NotFound("Marker nicht gefunden.");
+        }
+        return Result.Success();
+    }
+
     public async Task<Result<GpsWalkRunDto>> UpdateWalkRunArticlesAsync(Guid userId, Guid trackId, Guid walkRunId, IReadOnlyList<UpdateGpsWalkRunArticleRequest> request, CancellationToken ct = default)
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);

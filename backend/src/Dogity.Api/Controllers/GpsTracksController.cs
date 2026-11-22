@@ -62,6 +62,13 @@ public class GpsTracksController(IGpsTrackService gpsTrackService) : ApiControll
         return FromResult(result);
     }
 
+    [HttpDelete("{id:guid}/markers/{pointId:guid}")]
+    public async Task<IActionResult> DeleteMarker(Guid id, Guid pointId, CancellationToken ct)
+    {
+        var result = await gpsTrackService.DeleteMarkerAsync(CurrentUserId, id, pointId, ct);
+        return FromResult(result);
+    }
+
     [HttpPut("{id:guid}/walk-runs/{runId:guid}/articles")]
     public async Task<ActionResult<GpsWalkRunDto>> UpdateWalkRunArticles(Guid id, Guid runId, IReadOnlyList<UpdateGpsWalkRunArticleRequest> request, CancellationToken ct)
     {

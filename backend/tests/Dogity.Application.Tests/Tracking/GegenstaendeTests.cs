@@ -451,4 +451,68 @@ public class GegenstaendeTests
         Assert.False(mantrailing.Succeeded);
         Assert.False(w.Db.GpsTracks.Any(t => t.ExcludeFromStats));
     }
+
+    // ---- Marker löschen ----
+
+    [Fact]
+    public async Task MarkerLoeschen_EntferntDenPunktUndSeineAngabe_AndereBleiben_GesamtzahlSinkt()
+    {
+        var w = await AufbauenAsync();
+        var f = await FaehrteMitLaufAsync(w);
+        await w.Dienst.UpdateWalkRunArticlesAsync(w.Nutzer, f.Spur.Id, f.Lauf.Id,
+        [
+            new UpdateGpsWalkRunArticleRequest(f.Gegenstaende[0].Id, ArticleResult.Indicated),
+            new UpdateGpsWalkRunArticleRequest(f.Gegenstaende[1].Id, ArticleResult.Missed),
+        ]);
+        Assert.Equal(3, f.Lauf.ArticlesTotal);
+
+        var ergebnis = await w.Dienst.DeleteMarkerAsync(w.Nutzer, f.Spur.Id, f.Gegenstaende[0].Id);
+
+        Assert.True(ergebnis.Succeeded);
+        Assert.False(w.Db.GpsPoints.Any(p => p.Id == f.Gegenstaende[0].Id));
+        var angabe = Assert.Single(w.Db.GpsWalkRunArticles);
+        Assert.Equal(f.Gegenstaende[1].Id, angabe.PointId);
+        Assert.Equal(2, w.Db.GpsWalkRuns.Single().ArticlesTotal);
+    }
+
+    [Fact]
+    public async Task MarkerLoeschen_AutomatischerPunktUndPunktEinerAnderenSpur_NichtGefunden()
+    {
+        var w = await AufbauenAsync();
+        var f = await FaehrteMitLaufAsync(w);
+        var andere = (await w.Dienst.CreateAsync(w.Nutzer, Legung(w.Hund))).Value!;
+        var automatisch = f.Spur.Points.First(p => p.PointType != GpsPointType.Manual);
+
+        Assert.True((await w.Dienst.DeleteMarkerAsync(w.Nutzer, f.Spur.Id, automatisch.Id)).IsNotFound);
+        Assert.True((await w.Dienst.DeleteMarkerAsync(w.Nutzer, andere.Id, f.Gegenstaende[0].Id)).IsNotFound);
+        Assert.True(w.Db.GpsPoints.Any(p => p.Id == automatisch.Id));
+        Assert.True(w.Db.GpsPoints.Any(p => p.Id == f.Gegenstaende[0].Id));
+    }
+
+    [Fact]
+    public async Task MarkerLoeschen_ZweiterAufrufUndFremdeUndLesendeTrainerin_NichtGefunden()
+    {
+        var w = await AufbauenAsync();
+        var f = await FaehrteMitLaufAsync(w);
+        var trainerin = Guid.NewGuid();
+        w.Db.TrainerAssignments.Add(new TrainerAssignment { DogId = w.Hund, TrainerId = trainerin, MemberId = w.Nutzer, StartDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1) });
+        await w.Db.SaveChangesAsync();
+        var id = f.Leckerlipot.Id;
+
+        Assert.True((await w.Dienst.DeleteMarkerAsync(Guid.NewGuid(), f.Spur.Id, id)).IsNotFound);
+        Assert.True((await w.Dienst.DeleteMarkerAsync(trainerin, f.Spur.Id, id)).IsNotFound);
+        Assert.True((await w.Dienst.DeleteMarkerAsync(w.Nutzer, f.Spur.Id, id)).Succeeded);
+        Assert.True((await w.Dienst.DeleteMarkerAsync(w.Nutzer, f.Spur.Id, id)).IsNotFound);
+    }
+
+    [Fact]
+    public async Task MarkerLoeschen_BeimTrailMoeglich()
+    {
+        var w = await AufbauenAsync();
+        var trail = await FaehrteMitLaufAsync(w, GpsTrackKind.Mantrailing);
+        var markerId = trail.Spur.Points.First(p => p.PointType == GpsPointType.Manual).Id;
+
+        Assert.True((await w.Dienst.DeleteMarkerAsync(w.Nutzer, trail.Spur.Id, markerId)).Succeeded);
+        Assert.False(w.Db.GpsPoints.Any(p => p.Id == markerId));
+    }
 }

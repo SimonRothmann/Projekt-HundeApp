@@ -38,6 +38,12 @@ public interface IGpsTrackService
     Task<Result<GpsPointDto>> UpdateMarkerAsync(Guid userId, Guid trackId, Guid pointId, UpdateGpsMarkerRequest request, CancellationToken ct = default);
 
     /// <summary>
+    /// Löscht einen manuellen Marker einer gespeicherten Spur (Fährte oder Trail) samt den Angaben je
+    /// Gegenstand und wertet vorhandene Abläufe neu aus. Automatische Punkte sind nicht löschbar.
+    /// </summary>
+    Task<Result> DeleteMarkerAsync(Guid userId, Guid trackId, Guid pointId, CancellationToken ct = default);
+
+    /// <summary>
     /// Trägt zu den Gegenständen eines Fährten-Ablaufs ein, ob der Hund sie verwiesen, aufgenommen
     /// oder überlaufen hat. Nur die genannten Gegenstände ändern sich; null entfernt die Angabe.
     /// </summary>
