@@ -57,6 +57,10 @@ export const NEUESTE_VERSION: Versionshinweis = {
       text: uebersetzbar("Drei Tage nach dem ersten Hund erinnert Dogity einmal ans erste Training, falls noch keins eingetragen ist – als Mitteilung in der Glocke und per Push."),
     },
     {
+      art: "neu",
+      text: uebersetzbar("Fährte und Trail: Einen falsch gesetzten Marker kannst du nach dem Speichern wieder löschen – unter „Einstellungen der Fährte“. Ein schon gelaufener Ablauf wird dann neu ausgewertet."),
+    },
+    {
       art: "behoben",
       text: uebersetzbar("Training eintragen ohne Netz: Die Vorschläge „Diese Woche“ und „Zuletzt geübt“ sind jetzt auch offline da."),
     },
