@@ -1,7 +1,9 @@
 import { api, ApiError, istVoruebergehendUnerreichbar } from "@/lib/api";
 import { estimateLengthMeters, markerPunkte } from "@/lib/geo";
 import { enqueueRequest } from "@/lib/offline-queue";
-import { ART_MANTRAILING, type TrailAngabenVorLegen } from "@/lib/mantrailing";
+import { type TrailAngabenVorLegen } from "@/lib/mantrailing";
+import { ART_MANTRAILING, ART_SCHWEISS } from "@/lib/spurart";
+import type { SchweissAngabenVorLegen } from "@/lib/schweiss";
 import { heuteIso } from "@/lib/kalendertag";
 import { untergrundAlsText } from "@/lib/untergrund";
 import type { GpsPoint, GpsTrack, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
@@ -60,6 +62,11 @@ export type FaehrtenSicherung = Gemeinsam & {
    * "dies ist ein Trail"; bei einer Fährte (und bei Sicherungen älterer Stände) fehlt es.
    */
   trail?: TrailAngabenVorLegen;
+  /**
+   * Nur bei der Schweißfährte: die vor dem Legen gewählten Angaben. Ihr Vorhandensein heißt "dies ist eine
+   * Schweißfährte"; bei den anderen Arten (und in Sicherungen älterer Stände) fehlt es.
+   */
+  schweiss?: SchweissAngabenVorLegen;
 };
 
 export type AblaufSicherung = Gemeinsam & {
@@ -303,6 +310,16 @@ export function anfrageAusSicherung(sicherung: AufzeichnungsSicherung): { path: 
             doubleBlind: sicherung.trail.doubleBlind,
             negativeTrail: sicherung.trail.negativeTrail,
             scentArticle: sicherung.trail.scentArticle.trim() || null,
+          }
+        : {}),
+      // Nur bei der Schweißfährte, und nur, was gewählt ist - alles ist freiwillig.
+      ...(sicherung.schweiss
+        ? {
+            kind: ART_SCHWEISS,
+            ...(sicherung.schweiss.verfahren ? { verfahren: sicherung.schweiss.verfahren } : {}),
+            ...(sicherung.schweiss.wildart ? { wildart: sicherung.schweiss.wildart } : {}),
+            ...(sicherung.schweiss.schweissMl != null ? { schweissMl: sicherung.schweiss.schweissMl } : {}),
+            ...(sicherung.schweiss.stehzeitStunden != null ? { stehzeitStunden: sicherung.schweiss.stehzeitStunden } : {}),
           }
         : {}),
     },

@@ -88,8 +88,19 @@ public static class GpsTrackEvaluator
     /// </summary>
     public static readonly SpurToleranz MantrailingToleranz = new(10.0, 10.0, 25.0);
 
-    public static SpurToleranz ToleranzFuer(GpsTrackKind kind) =>
-        kind == GpsTrackKind.Mantrailing ? MantrailingToleranz : FaehrteToleranz;
+    /// <summary>
+    /// Schweißfährte: bis 10 m grün, bis 30 m gelb. Der Hund arbeitet am mindestens 6 m langen
+    /// Riemen und darf neben der Linie suchen (Wundbetten, Wind). Gegenstück im Frontend:
+    /// <c>spurGrenzen</c> in lib/mantrailing.ts.
+    /// </summary>
+    public static readonly SpurToleranz SchweissToleranz = new(10.0, 10.0, 30.0);
+
+    public static SpurToleranz ToleranzFuer(GpsTrackKind kind) => kind switch
+    {
+        GpsTrackKind.Mantrailing => MantrailingToleranz,
+        GpsTrackKind.Schweissfaehrte => SchweissToleranz,
+        _ => FaehrteToleranz
+    };
 
     /// <summary>
     /// Radius, in dem ein Marker als erreicht bzw. ein Halt als erklärt gilt -
@@ -205,8 +216,8 @@ public static class GpsTrackEvaluator
         // ---- Gegenstände: kam der Hundeführer nah genug heran? ----
         var articlesFound = articlesTotal > 0 ? ErreichteGegenstaende(markers, walk, originLat).Count : 0;
 
-        // ---- Winkel und Schenkel: nur bei der Fährte ----
-        var geometrie = kind == GpsTrackKind.Faehrte ? FaehrtenGeometrie.Berechnen(line) : null;
+        // ---- Winkel und Schenkel: bei der Fährte und der Schweißfährte (Haken), nicht beim Trail ----
+        var geometrie = kind != GpsTrackKind.Mantrailing ? FaehrtenGeometrie.Berechnen(line) : null;
         var winkelEbene = geometrie?.Winkel.Select(w => Project(w.Latitude, w.Longitude, originLat)).ToArray() ?? [];
 
         var stops = DetectStops(walk, markers, winkelEbene, originLat);
@@ -296,9 +307,9 @@ public static class GpsTrackEvaluator
                 : WalkStopKind.Unexplained, null);
         }
 
-        // Halt am Gegenstand = Verweisen (erwünscht); an Leckerlipot/Verleitung
-        // erklärt und neutral.
-        var kind = nearest.MarkerType == GpsMarkerType.Article ? WalkStopKind.Indication : WalkStopKind.Explained;
+        // Halt am Gegenstand, Wundbett oder Verweiserpunkt = Verweisen (erwünscht); an
+        // Leckerlipot/Verleitung erklärt und neutral.
+        var kind = nearest.MarkerType is GpsMarkerType.Article or GpsMarkerType.WoundBed or GpsMarkerType.IndicatorPoint ? WalkStopKind.Indication : WalkStopKind.Explained;
         return (kind, nearest.Label);
     }
 

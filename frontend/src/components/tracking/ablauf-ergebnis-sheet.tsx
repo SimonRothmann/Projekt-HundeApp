@@ -16,6 +16,7 @@ import { ergebnisAenderungen, ergebnisseJeGegenstand, gegenstaende } from "@/lib
 import { istWischNachUnten, kommentarAenderung } from "@/lib/ablauf-ergebnis";
 import { liegezeitMinuten } from "@/lib/faehrten-bild";
 import { istMantrailing, trailAenderungen, trailalterVorschlag } from "@/lib/mantrailing";
+import { istSchweiss } from "@/lib/spurart";
 import { toast } from "sonner";
 import { useSprache, useT } from "@/lib/i18n";
 import { TEXTLAENGE } from "@/lib/textlaengen";
@@ -52,7 +53,7 @@ export function AblaufErgebnisSheet({
 }: {
   trackId: string;
   run: GpsWalkRun;
-  /** Die Spur des Laufs; beim Mantrailing (kind) kommen Ergebnis und Trailalter dazu. */
+  /** Die Spur des Laufs; beim Mantrailing (kind) kommen Ergebnis und Trailalter dazu, bei der Schweißfährte entfallen die Gegenstände. */
   track?: AblaufSpur;
   /** Die gelegte Fährte für die Karte; ohne sie gibt es keine Karte. */
   laidTrackPoints?: GpsPoint[];
@@ -63,10 +64,11 @@ export function AblaufErgebnisSheet({
   const [kommentar, setKommentar] = useState(run.comment ?? "");
   const [speichert, setSpeichert] = useState(false);
   const trail = istMantrailing(track);
+  const schweiss = istSchweiss(track);
   const [gefunden, setGefunden] = useState<boolean | null>(run.personFound ?? null);
   const [anzeige, setAnzeige] = useState<number | null>(run.indication ?? null);
   // Die Gegenstände der gelegten Fährte (nur Fährte) und die Wahl je Gegenstand.
-  const liste = useMemo(() => (trail ? [] : gegenstaende(track?.points ?? laidTrackPoints ?? [])), [trail, track?.points, laidTrackPoints]);
+  const liste = useMemo(() => (trail || schweiss ? [] : gegenstaende(track?.points ?? laidTrackPoints ?? [])), [trail, schweiss, track?.points, laidTrackPoints]);
   const [ergebnisse, setErgebnisse] = useState<Record<string, GegenstandsErgebnis | null>>(() => ergebnisseJeGegenstand(run.articles));
   // Das Alter der Spur, sonst die Zeit vom Ende des Legens bis zum Start dieses Laufs.
   const [alterText, setAlterText] = useState(() => (track ? trailalterVorschlag(liegezeitMinuten(track, run), sprache) : ""));
@@ -151,7 +153,7 @@ export function AblaufErgebnisSheet({
           }}
         >
           <span aria-hidden className="mx-auto mb-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
-          <SheetTitle>{trail ? t("Trail gesucht") : t("Fährte abgelaufen")}</SheetTitle>
+          <SheetTitle>{trail ? t("Trail gesucht") : schweiss ? t("Schweißfährte gearbeitet") : t("Fährte abgelaufen")}</SheetTitle>
         </SheetHeader>
         <div className="flex min-w-0 flex-col gap-4 px-4">
           {ausgewertet ? (

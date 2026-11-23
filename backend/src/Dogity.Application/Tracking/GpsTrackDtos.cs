@@ -124,7 +124,12 @@ public record GpsTrackDto(
     string? GroundCondition = null,
     // Windrichtung in Grad, AUS der der Wind kommt (null bei Fährten, deren Wetter vor Paket F4 geholt wurde).
     int? LaidWindDirectionDeg = null,
-    int? SearchWindDirectionDeg = null);
+    int? SearchWindDirectionDeg = null,
+    // Nur Schweißfährte: Verfahren, Wildart, Schweißmenge (ml) und Mindest-Stehzeit (Stunden).
+    string? Verfahren = null,
+    string? Wildart = null,
+    int? SchweissMl = null,
+    int? StehzeitStunden = null);
 
 /// <summary>
 /// Was ein Ablauf nach dem Ändern von Kommentar oder Trail-Ergebnis zurückgibt: nur die änderbaren Angaben,
@@ -181,7 +186,12 @@ public record CreateGpsTrackRequest(
     bool NegativeTrail = false,
     string? ScentArticle = null,
     // Bodenzustand beim Legen (nur Fährte); ältere Clients kennen das Feld nicht.
-    string? GroundCondition = null);
+    string? GroundCondition = null,
+    // Nur Schweißfährte (alles freiwillig); ältere Clients kennen die Felder nicht.
+    string? Verfahren = null,
+    string? Wildart = null,
+    int? SchweissMl = null,
+    int? StehzeitStunden = null);
 
 public record CreateGpsWalkPointRequest(double Latitude, double Longitude, DateTimeOffset Timestamp, double? Accuracy);
 
@@ -231,4 +241,9 @@ public record WartendeSpurDto(
     bool DoubleBlind,
     bool NegativeTrail,
     string? ScentArticle,
-    IReadOnlyList<GpsPointDto> Points);
+    IReadOnlyList<GpsPointDto> Points,
+    // Nur Schweißfährte: die Angaben, die das Ergebnis-Fenster und die Stehzeit-Anzeige brauchen.
+    string? Verfahren = null,
+    string? Wildart = null,
+    int? SchweissMl = null,
+    int? StehzeitStunden = null);

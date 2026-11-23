@@ -13,7 +13,8 @@ import {
   neuesterAusgewerteterAblauf,
 } from "@/lib/faehrten-bild";
 import { BILD_BREITE, BILD_HOEHE, zeichneFaehrtenbild } from "@/lib/faehrten-bild-zeichnen";
-import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
+import { spurGrenzen } from "@/lib/mantrailing";
+import { spurArt } from "@/lib/spurart";
 import { ampelStufe } from "@/lib/spur-ampel";
 import { useSprache, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -43,11 +44,19 @@ export function FaehrteTeilen({ track, hundeName }: { track: GpsTrack; hundeName
       <Sheet open={offen} onOpenChange={setOffen}>
         <BottomSheetContent>
           <SheetHeader>
-            <SheetTitle>{istMantrailing(track) ? t("Trail als Bild teilen") : t("Fährte als Bild teilen")}</SheetTitle>
+            <SheetTitle>
+              {spurArt(track) === "trail"
+                ? t("Trail als Bild teilen")
+                : spurArt(track) === "schweiss"
+                  ? t("Schweißfährte als Bild teilen")
+                  : t("Fährte als Bild teilen")}
+            </SheetTitle>
             <SheetDescription>
-              {istMantrailing(track)
+              {spurArt(track) === "trail"
                 ? t("Ohne Karte und ohne Koordinaten: Niemand sieht, wo der Trail lag.")
-                : t("Ohne Karte und ohne Koordinaten: Niemand sieht, wo die Fährte lag.")}
+                : spurArt(track) === "schweiss"
+                  ? t("Ohne Karte und ohne Koordinaten: Niemand sieht, wo die Schweißfährte lag.")
+                  : t("Ohne Karte und ohne Koordinaten: Niemand sieht, wo die Fährte lag.")}
             </SheetDescription>
           </SheetHeader>
           {/* Erst beim Öffnen eingehängt: Das Bild wird nur gezeichnet, wenn
@@ -131,7 +140,7 @@ function BildVorschau({ track, hundeName }: { track: GpsTrack; hundeName?: strin
 
         // Der Dateiname nennt keinen Hundenamen: Wer ihn im Bild ausblendet,
         // will ihn auch nicht im Dateinamen der Nachricht wiederfinden.
-        const datei = new File([blob], `dogity-${istMantrailing(track) ? "trail" : "faehrte"}-${legedatumFuerDatei(track)}.png`, { type: "image/png" });
+        const datei = new File([blob], `dogity-${{ trail: "trail", schweiss: "schweissfaehrte", faehrte: "faehrte" }[spurArt(track)]}-${legedatumFuerDatei(track)}.png`, { type: "image/png" });
         const url = URL.createObjectURL(blob);
         const alt = urlRef.current;
         urlRef.current = url;

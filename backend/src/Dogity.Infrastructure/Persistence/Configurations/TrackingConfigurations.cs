@@ -19,6 +19,8 @@ public class GpsTrackConfiguration : IEntityTypeConfiguration<GpsTrack>
         // Fährten (Vorgabe "Faehrte"); die beiden Schalter starten mit false.
         builder.Property(t => t.Kind).HasConversion<string>().HasMaxLength(20).HasDefaultValue(GpsTrackKind.Faehrte);
         builder.Property(t => t.ScentArticle).HasMaxLength(Textlaengen.Geruchsartikel);
+        builder.Property(t => t.Verfahren).HasMaxLength(Textlaengen.Kurzangabe);
+        builder.Property(t => t.Wildart).HasMaxLength(Textlaengen.Kurzangabe);
         // Bestehende Fährten zählen weiter in die Entwicklung.
         builder.Property(t => t.ExcludeFromStats).HasDefaultValue(false);
         builder.HasIndex(t => t.TrainingSessionId);

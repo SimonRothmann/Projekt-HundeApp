@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AblaufSpur, GpsPoint, GpsWalkPoint, GpsWalkRun } from "@/lib/types";
-import { istMantrailing } from "@/lib/mantrailing";
+import { spurArt } from "@/lib/spurart";
 import { Button } from "@/components/ui/button";
 import { Footprints } from "lucide-react";
 import { toast } from "sonner";
@@ -87,7 +87,7 @@ export function WalkRunRecorder({
   /** Startknopf als gefüllter Hauptknopf, auf dem Handy in voller Breite - auf der Startseite für die wartende Fährte. */
   hervorgehoben?: boolean;
   /**
-   * Die gelegte Spur selbst. Beim Mantrailing (kind) ändern sich Begriffe, Grenzen und das Ergebnis-Fenster;
+   * Die gelegte Spur selbst. Beim Mantrailing und der Schweißfährte (kind) ändern sich Begriffe, Grenzen und das Ergebnis-Fenster;
    * bei einem doppelblinden Trail sieht das Team die gelegte Linie während der Suche nicht und bekommt keine
    * Vibration an Abbiegungen - beides verriete den Verlauf. Dasselbe gilt für eine Fährte, die verdeckt
    * abgesucht wird (doubleBlind): Linie, Marker und Haptik sind aus; zu sehen ist der Startpunkt, und
@@ -97,7 +97,9 @@ export function WalkRunRecorder({
 }) {
   const t = useT();
   const rueckfrage = useRueckfrage();
-  const trail = istMantrailing(track);
+  const art = spurArt(track);
+  const trail = art === "trail";
+  const schweiss = art === "schweiss";
   const verdeckt = track?.doubleBlind === true;
   const sichtbareLegung = verdeckt ? undefined : laidTrackPoints;
   // Nur die Fährte sucht ihren Ansatz; der Trail beginnt dort, wo die Suche anfängt (unverändert).
@@ -167,7 +169,7 @@ export function WalkRunRecorder({
 
   // Titel und Zeile stehen fest (nicht bei jedem Punkt neu): Die Tonspur hält nur die Seite wach.
   const medien = useMedienMarker(isRecording, {
-    titel: trail ? t("Trail suchen") : t("Fährte ablaufen"),
+    titel: trail ? t("Trail suchen") : schweiss ? t("Schweißfährte arbeiten") : t("Fährte ablaufen"),
     zeile: t("Aufzeichnung läuft"),
   });
 
@@ -198,8 +200,9 @@ export function WalkRunRecorder({
   // Vibriere 10 Schritte (~8 m) vor jedem markierten Gegenstand und vor
   // jeder erkannten Abbiegung der Legung. sessionKey = trackId+isRecording:
   // beim Neustart der Aufnahme wird die "schon-vibriert"-Menge zurückgesetzt.
+  // Nicht bei der Schweißfährte: Die Vibration vor Wundbett und Verweiserpunkt verriete, wo der Hund verweisen soll.
   useWalkRunHaptics(
-    sichtbareLegung,
+    schweiss ? undefined : sichtbareLegung,
     isRecording && points.length > 0 ? points[points.length - 1] : null,
     `${trackId}:${isRecording ? "on" : "off"}`,
   );
@@ -313,7 +316,7 @@ export function WalkRunRecorder({
           onClick={() => aufzeichnen()}
         >
           <Footprints className="size-4" />
-          {label ?? (trail ? t("Trail suchen") : t("Fährte ablaufen"))}
+          {label ?? (trail ? t("Trail suchen") : schweiss ? t("Fährte arbeiten") : t("Fährte ablaufen"))}
         </Button>
         {ergebnisFenster}
       </>
@@ -325,7 +328,7 @@ export function WalkRunRecorder({
   // Fährte hat er als Prop, die entstehende Linie sind seine eigenen Punkte.
   return (
     <AufzeichnungVollbild
-      titel={trail ? t("Trail suchen") : t("Fährte ablaufen")}
+      titel={trail ? t("Trail suchen") : schweiss ? t("Schweißfährte arbeiten") : t("Fährte ablaufen")}
       status={
         <>
           {t("{punkte} Punkte", { punkte: points.length })}

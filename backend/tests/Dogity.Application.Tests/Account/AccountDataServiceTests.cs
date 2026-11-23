@@ -118,6 +118,30 @@ public class AccountDataServiceTests
     }
 
     [Fact]
+    public async Task Export_EnthaeltDieAngabenDerSchweissfaehrte()
+    {
+        var (dienst, db, lookup) = Aufsetzen();
+        var nutzer = Guid.NewGuid();
+        lookup.Register(nutzer, "ich@test.de", "Max", "Muster");
+        HundMitAllem(db, nutzer, "Bello");
+        var spur = db.GpsTracks.Local.Single();
+        spur.Kind = GpsTrackKind.Schweissfaehrte;
+        spur.Verfahren = "Fährtenschuh";
+        spur.Wildart = "Schwarzwild";
+        spur.SchweissMl = 100;
+        spur.StehzeitStunden = 40;
+        await db.SaveChangesAsync();
+
+        var export = Assert.Single((await dienst.ExportAsync(nutzer)).Value!.Faehrten);
+
+        Assert.Equal("Schweissfaehrte", export.Spurart);
+        Assert.Equal("Fährtenschuh", export.Verfahren);
+        Assert.Equal("Schwarzwild", export.Wildart);
+        Assert.Equal(100, export.SchweissMl);
+        Assert.Equal(40, export.StehzeitStunden);
+    }
+
+    [Fact]
     public async Task Export_EnthaeltDasPruefungsergebnisDesZiels()
     {
         var (dienst, db, lookup) = Aufsetzen();

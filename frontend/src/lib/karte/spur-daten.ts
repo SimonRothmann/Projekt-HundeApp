@@ -88,19 +88,21 @@ export const MARKER_LABELS = [
   uebersetzbar("Leckerlipot"),
   uebersetzbar("Verleitung"),
   uebersetzbar("Marker"),
+  uebersetzbar("Wundbett"),
+  uebersetzbar("Verweiserpunkt"),
 ] as const;
 
 /**
  * Form UND Farbe je Markerart - die EINE Tabelle für Karte (spur-ebenen.ts) und
  * Legende (track-map.tsx). Die Form trägt die Unterscheidung, die Farbe hilft nur:
  * Bei Rot-Grün-Schwäche werden Gelb, Orange und Grün zu Gelbtönen, Magenta der
- * Legung zu Blau-Lavendel. Index = markerType (GpsMarkerType), Rückfall = Marker.
+ * Legung zu Blau-Lavendel. Index = markerType (GpsMarkerType), Rückfall = Marker (Index 3).
  *
  * `umriss` in Einheitskoordinaten (0 bis 1, Mitte 0,5), Spitze des Dreiecks oben;
  * "kreis" als Kreis um die Mitte (Radius 0,3). Größen so gewählt, dass die Formen
  * optisch gleich groß wirken (das Dreieck braucht mehr Kantenlänge als das Quadrat).
  */
-export type MarkerForm = "quadrat" | "kreis" | "dreieck" | "raute";
+export type MarkerForm = "quadrat" | "kreis" | "dreieck" | "raute" | "sechseck" | "stern";
 export type MarkerUmriss = "kreis" | readonly (readonly [number, number])[];
 export type MarkerArt = { form: MarkerForm; farbe: string; umriss: MarkerUmriss };
 
@@ -109,6 +111,9 @@ export const MARKER_FORMEN: readonly MarkerArt[] = [
   { form: "kreis", farbe: "#ffffff", umriss: "kreis" },
   { form: "dreieck", farbe: "#f97316", umriss: [[0.5, 0.16], [0.86, 0.84], [0.14, 0.84]] },
   { form: "raute", farbe: "#94a3b8", umriss: [[0.5, 0.15], [0.85, 0.5], [0.5, 0.85], [0.15, 0.5]] },
+  // Schweißfährte: Wundbett (Sechseck) und Verweiserpunkt (Stern) - Formen, die keine der anderen Arten hat.
+  { form: "sechseck", farbe: "#f43f5e", umriss: [[0.3, 0.14], [0.7, 0.14], [0.9, 0.5], [0.7, 0.86], [0.3, 0.86], [0.1, 0.5]] },
+  { form: "stern", farbe: "#38bdf8", umriss: [[0.5, 0.08], [0.62, 0.38], [0.92, 0.5], [0.62, 0.62], [0.5, 0.92], [0.38, 0.62], [0.08, 0.5], [0.38, 0.38]] },
 ];
 
 /** Dunkler Rand der Marker (und Rand der Legendenzeichen). */

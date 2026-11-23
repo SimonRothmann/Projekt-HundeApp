@@ -125,7 +125,7 @@ export function aufschluesselung(zahlen: GegenstandsZahlen, t: (text: string, we
 
 export type MarkerEintrag = {
   id: string;
-  /** Die Markerart wie GpsPoint.markerType (0 Gegenstand, 1 Leckerlipot, 2 Verleitung, 3 Marker). */
+  /** Die Markerart wie GpsPoint.markerType (0 Gegenstand, 1 Leckerlipot, 2 Verleitung, 3 Marker, 4 Wundbett, 5 Verweiserpunkt). */
   art: number;
   /** Gegenstand: Nummer wie bei den Gegenständen; andere Arten: Nummer nur, wenn es mehrere derselben Art gibt. */
   nummer: number | null;
@@ -138,7 +138,7 @@ export function markerListe(punkte: readonly GpsPoint[]): MarkerEintrag[] {
   const nummerDesGegenstands = new Map(gegenstaende(punkte).map((g) => [g.id, g.nummer]));
   const marker = punkte
     .filter((p) => istMarker(p) && p.id != null)
-    .map((p, index) => ({ p, index, art: p.markerType >= 0 && p.markerType <= 3 ? p.markerType : 3 }))
+    .map((p, index) => ({ p, index, art: p.markerType >= 0 && p.markerType <= 5 ? p.markerType : 3 }))
     .sort((a, b) => a.p.timestamp.localeCompare(b.p.timestamp) || a.index - b.index);
   const jeArt = new Map<number, number>();
   for (const { art } of marker) jeArt.set(art, (jeArt.get(art) ?? 0) + 1);

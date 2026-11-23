@@ -3,6 +3,7 @@ import { automatischePunkte, estimateLengthMeters, markerPunkte } from "@/lib/ge
 import type { GpsTrack, GpsWalkRun } from "@/lib/types";
 import { formatDelta, formatTemperature } from "@/lib/weather";
 import { FAEHRTE_GRENZEN, istMantrailing, spurGrenzen, type SpurGrenzen } from "@/lib/mantrailing";
+import { istSchweiss } from "@/lib/spurart";
 import { MARKER_LABELS } from "@/lib/karte/spur-daten";
 import { ampelLabel, ampelStufe, type Ampel } from "@/lib/spur-ampel";
 
@@ -312,11 +313,12 @@ export function baueBildTexte(
   const kz = faehrtenKennzahlen(track, ablauf);
   const tag = legedatum(track);
   const trail = istMantrailing(track);
+  const schweiss = istSchweiss(track);
 
   let kopfzahl: string;
   let laengeInZeilen = true;
   if (kz.aufFaehrtePercent != null) {
-    kopfzahl = trail
+    kopfzahl = trail || schweiss
       ? t("{prozent} % auf der Spur", { prozent: kz.aufFaehrtePercent })
       : t("{prozent} % auf der Fährte", { prozent: kz.aufFaehrtePercent });
   } else if (kz.mittlereAbweichungM != null) {
@@ -325,7 +327,7 @@ export function baueBildTexte(
     kopfzahl = t("Länge {meter} m", { meter: kz.laengeM });
     laengeInZeilen = false;
   } else {
-    kopfzahl = trail ? t("Gelegter Trail") : t("Gelegte Fährte");
+    kopfzahl = trail ? t("Gelegter Trail") : schweiss ? t("Gelegte Schweißfährte") : t("Gelegte Fährte");
   }
 
   const zeilen: string[] = [];
@@ -344,20 +346,30 @@ export function baueBildTexte(
   }
 
   return {
-    titel: hundeName ? (trail ? t("{hund} · Trail", { hund: hundeName }) : t("{hund} · Fährte", { hund: hundeName })) : trail ? t("Trail") : t("Fährte"),
+    titel: hundeName
+      ? trail
+        ? t("{hund} · Trail", { hund: hundeName })
+        : schweiss
+          ? t("{hund} · Schweißfährte", { hund: hundeName })
+          : t("{hund} · Fährte", { hund: hundeName })
+      : trail
+        ? t("Trail")
+        : schweiss
+          ? t("Schweißfährte")
+          : t("Fährte"),
     datum: tag
       ? tag.toLocaleDateString(sprache === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long", year: "numeric" })
       : null,
     kopfzahl,
     ampelWort: ablauf?.avgDeviationMeters != null ? t(ampelLabel(ablauf.avgDeviationMeters, track)) : null,
     zeilen,
-    // Beim Mantrailing nennt die Legende die Grenze der Ampel: Die Farben bedeuten dort andere Meter als bei der Fährte.
+    // Beim Mantrailing und der Schweißfährte nennt die Legende die Grenze der Ampel: Die Farben bedeuten dort andere Meter als bei der Fährte.
     legende: {
       start: t("Start"),
       marker: MARKER_LABELS.map((label) => t(label)),
       gelegt: t("Gelegt"),
       ohneAufzeichnung: t("keine Aufzeichnung"),
-      abgelaufen: trail ? t("Abgelaufen, grün bis {meter} m", { meter: spurGrenzen(track).gruenBis }) : t("Abgelaufen"),
+      abgelaufen: trail || schweiss ? t("Abgelaufen, grün bis {meter} m", { meter: spurGrenzen(track).gruenBis }) : t("Abgelaufen"),
     },
     marke: "Dogity",
   };

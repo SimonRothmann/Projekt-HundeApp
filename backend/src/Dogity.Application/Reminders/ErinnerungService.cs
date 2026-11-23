@@ -43,11 +43,11 @@ public class ErinnerungService(
     private static readonly TimeSpan Aufbewahrung = TimeSpan.FromDays(60);
 
     /// <summary>
-    /// Fährten, deren Anlegen länger als so lange zurückliegt, kommen nicht mehr in Frage: Frist 24 Stunden
-    /// plus Sicherheit für eine Aufnahme, die erst später gespeichert wurde. Nur zum Eingrenzen der Abfrage;
+    /// Fährten, deren Anlegen länger als so lange zurückliegt, kommen nicht mehr in Frage: Frist 72 Stunden
+    /// (Schweißfährte, die längste) plus Sicherheit für eine Aufnahme, die erst später gespeichert wurde. Nur zum Eingrenzen der Abfrage;
     /// die Frist selbst prüft <see cref="Erinnerungsregeln"/> am letzten Punkt.
     /// </summary>
-    private static readonly TimeSpan FaehrtenRueckblick = TimeSpan.FromHours(30);
+    private static readonly TimeSpan FaehrtenRueckblick = TimeSpan.FromHours(78);
 
     public async Task<int> VersendeFaelligeAsync(CancellationToken ct = default)
     {
@@ -176,14 +176,14 @@ public class ErinnerungService(
     private async Task<int> FaehrtenAsync(DateTimeOffset jetzt, CancellationToken ct)
     {
         var seit = jetzt - FaehrtenRueckblick;
-        var fruehestesEnde = jetzt - Erinnerungsregeln.FaehrteFrist;
+        var fruehestesEnde = jetzt - Tracking.Ablauffristen.Schweissfaehrte;
         var spaetestesEnde = jetzt - Erinnerungsregeln.FaehrteNach;
 
-        // Nur Fährten: Ein Trail wird nach Stunden gesucht, nicht nach der Frist von 3 bis 24 Stunden,
-        // und die Meldung spräche von einer Fährte.
+        // Nur Fährten und Schweißfährten: Ein Trail wird nach Stunden gesucht, nicht nach einer Frist
+        // von 3 Stunden an, und die Meldung spräche von einer Fährte.
         var faehrten = await db.GpsTracks
-            .Where(t => t.CreatedAt >= seit && !t.WalkRuns.Any() && t.Kind == GpsTrackKind.Faehrte)
-            .Select(t => new { t.Id, t.TrainingSessionId })
+            .Where(t => t.CreatedAt >= seit && !t.WalkRuns.Any() && t.Kind != GpsTrackKind.Mantrailing)
+            .Select(t => new { t.Id, t.TrainingSessionId, t.Kind, t.StehzeitStunden })
             .AsNoTracking()
             .ToListAsync(ct);
         if (faehrten.Count == 0) return 0;
@@ -241,10 +241,11 @@ public class ErinnerungService(
                 HundPausiert: pausiert[Ortszeit.Tag(jetzt, zoneVon(training.UserId))].Contains(training.DogId),
                 Erlaubt: erlaubt.Contains(training.UserId)
                     && zugang.Contains((training.UserId, training.DogId))
-                    && faehrteAngeboten(training.UserId, training.DogId, hund.UsesOwnSports)));
+                    && faehrteAngeboten(training.UserId, training.DogId, hund.UsesOwnSports),
+                Art: f.Kind, StehzeitStunden: f.StehzeitStunden));
         }
 
-        var gesendet = await GesendeteAsync(ReminderType.TrackNotWalked, kandidaten.Select(k => k.FaehrteId).ToList(), [SentReminder.KeinTag], ct);
+        var gesendet = await GesendeteAsync(ReminderType.TrackNotWalked, kandidaten.Select(k => k.FaehrteId).ToList(), [SentReminder.KeinTag, SentReminder.ZweiteStufe], ct);
         return await VersendeAsync(Erinnerungsregeln.FaehrtenErinnerungen(jetzt, kandidaten, gesendet, zoneVon), ct);
     }
 

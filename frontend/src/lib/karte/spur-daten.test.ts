@@ -126,9 +126,19 @@ describe("legungDaten", () => {
     ]);
   });
 
+  it("kennt Wundbett und Verweiserpunkt der Schweißfährte mit eigener Form und Beschriftung", () => {
+    const d = legungDaten(
+      [4, 5].map((markerType, i) => punkt(50 + i / 1000, 8, { pointType: 1, markerType })),
+      false,
+      t,
+    );
+    expect(d.marker.features.map((f) => f.properties.form)).toStrictEqual(["sechseck", "stern"]);
+    expect(d.marker.features.map((f) => f.properties.text)).toStrictEqual(["Wundbett", "Verweiserpunkt"]);
+  });
+
   it("unterscheidet die Markerarten nach Form und Farbe, mit je eigener Form und Farbe", () => {
-    expect(MARKER_FORMEN.map((a) => a.form)).toStrictEqual(["quadrat", "kreis", "dreieck", "raute"]);
-    expect(MARKER_FORMEN.map((a) => a.farbe)).toStrictEqual(["#facc15", "#ffffff", "#f97316", "#94a3b8"]);
+    expect(MARKER_FORMEN.map((a) => a.form)).toStrictEqual(["quadrat", "kreis", "dreieck", "raute", "sechseck", "stern"]);
+    expect(MARKER_FORMEN.map((a) => a.farbe)).toStrictEqual(["#facc15", "#ffffff", "#f97316", "#94a3b8", "#f43f5e", "#38bdf8"]);
     expect(new Set(MARKER_FORMEN.map((a) => a.form)).size).toBe(MARKER_FORMEN.length);
     expect(new Set(MARKER_FORMEN.map((a) => a.farbe)).size).toBe(MARKER_FORMEN.length);
     expect(markerArt(undefined)).toBe(MARKER_FORMEN[0]);

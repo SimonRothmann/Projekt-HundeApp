@@ -1,6 +1,7 @@
 import { automatischePunkte } from "@/lib/geo";
 import { heuteIso, tageBis } from "@/lib/kalendertag";
 import { istMantrailing, MANTRAILING_CODE } from "@/lib/mantrailing";
+import { istSchweiss, SCHWEISS_CODE, spurArt, type SpurArtName } from "@/lib/spurart";
 import type { AblaufSpur, GpsTrack, GpsWalkRun, Sport } from "@/lib/types";
 
 /**
@@ -10,7 +11,7 @@ import type { AblaufSpur, GpsTrack, GpsWalkRun, Sport } from "@/lib/types";
  * "Fußarbeit"), Codes bleiben. Dieselbe Liste führt das Backend
  * (Erinnerungsregeln.FaehrtenSportCodes) - beim Ändern beide Stellen anfassen.
  */
-export const FAEHRTEN_SPORTARTEN = ["FAERTE", "FPR", "IGP1", "IGP2", "IGP3", "GPR", "STOEPR", MANTRAILING_CODE];
+export const FAEHRTEN_SPORTARTEN = ["FAERTE", "FPR", "IGP1", "IGP2", "IGP3", "GPR", "STOEPR", MANTRAILING_CODE, SCHWEISS_CODE];
 
 /**
  * Ob einem Hund das Fährtelegen angeboten wird.
@@ -29,22 +30,35 @@ export function laeuftFaehrte(dogSportIds: string[] | null, sports: Sport[]): bo
   );
 }
 
-/** Welche Spuren ein Hund legen kann: Fährte, Trail (Mantrailing) oder beides. */
-export type SpurArten = { faehrte: boolean; mantrailing: boolean };
+/** Welche Spuren ein Hund legen kann: Fährte, Trail (Mantrailing), Schweißfährte (Jagd) - jede Kombination. */
+export type SpurArten = { faehrte: boolean; mantrailing: boolean; schweiss: boolean };
+
+/**
+ * Wie die Knöpfe "… legen" heißen, wenn nur ein Wort Platz hat: die Art, die der Hund legen kann - bei mehreren
+ * die Fährte, bei Trail UND Schweißfährte ohne Fährte der Trail (im Fenster wählt man dann).
+ */
+export function hauptSpurArt(arten: SpurArten): SpurArtName {
+  if (arten.faehrte) return "faehrte";
+  if (arten.schweiss && !arten.mantrailing) return "schweiss";
+  return arten.mantrailing ? "trail" : "faehrte";
+}
 
 /**
  * Fährte und Trail getrennt: Die Fährte wie in {@link laeuftFaehrte} - ohne
- * Einschränkung, oder mit einer Fährten-Sportart dabei. Der Trail nur, wenn
- * Mantrailing AUSDRÜCKLICH gewählt ist; bei leerer Auswahl ("alles") bleibt es
- * bei der Fährte, sonst bekäme jeder Hund einen Trail angeboten, der nie trailt.
+ * Einschränkung, oder mit einer Fährten-Sportart dabei. Trail und
+ * Schweißfährte nur, wenn Mantrailing bzw. die Jagd AUSDRÜCKLICH gewählt ist; bei leerer Auswahl
+ * ("alles") bleibt es bei der Fährte, sonst bekäme jeder Hund einen Trail angeboten, der nie trailt.
+ * Die Jagd allein bringt keine Sport-Fährte mit (die kennt Gegenstände, die Jagd nicht).
  */
 export function spurArten(dogSportIds: string[] | null, sports: Sport[]): SpurArten {
   const gewaehlt = sports.filter((s) => dogSportIds?.includes(s.id));
   const mantrailing = gewaehlt.some((s) => istMantrailing(s));
   const keineEinschraenkung = dogSportIds === null || dogSportIds.length === 0;
+  const schweiss = gewaehlt.some((s) => istSchweiss(s));
   const faehrte =
-    keineEinschraenkung || gewaehlt.some((s) => !istMantrailing(s) && FAEHRTEN_SPORTARTEN.includes(s.code));
-  return { faehrte, mantrailing };
+    keineEinschraenkung ||
+    gewaehlt.some((s) => !istMantrailing(s) && !istSchweiss(s) && FAEHRTEN_SPORTARTEN.includes(s.code));
+  return { faehrte, mantrailing, schweiss };
 }
 
 export type OffeneFaehrte<T extends AblaufSpur = AblaufSpur> = {
@@ -85,7 +99,7 @@ export function ablaufBeginn(ablauf: Pick<GpsWalkRun, "points" | "createdAt">): 
  * So lange nach dem Ende des Legens kann eine Fährte noch abgelaufen werden
  * (Ablauffristen im Backend; backend-kopplung.test.ts prüft beide Zahlen).
  */
-export const ABLAUF_FRIST_STUNDEN = 24;
+export const ABLAUF_FRIST_STUNDEN = 4;
 
 /**
  * Und ein Trail: Er liegt bis zu 24 Stunden (SV-MT 3, ca. 24 h; DVG MT-III mindestens 15 h),
@@ -93,22 +107,27 @@ export const ABLAUF_FRIST_STUNDEN = 24;
  */
 export const ABLAUF_FRIST_STUNDEN_TRAIL = 48;
 
+/** Und eine Schweißfährte: Sie steht je nach Leitfaden 14 bis 40 Stunden und soll danach noch gearbeitet werden können. */
+export const ABLAUF_FRIST_STUNDEN_SCHWEISS = 72;
+
+/** Die Frist einer Spur in Stunden, je nach Art. */
+export function ablaufFristStunden(track: { kind?: number | null }): number {
+  const art = spurArt(track);
+  if (art === "trail") return ABLAUF_FRIST_STUNDEN_TRAIL;
+  return art === "schweiss" ? ABLAUF_FRIST_STUNDEN_SCHWEISS : ABLAUF_FRIST_STUNDEN;
+}
+
 /**
- * Ob eine Fährte (noch) abgelaufen werden kann: bis 24 Stunden nach dem Ende
- * des Legens - unabhängig vom Kalendertag.
- *
- * Abends gelegt und am nächsten Morgen gesucht ist im Fährtensport der
- * Normalfall (Übernachtfährte); ein Stichtag um Mitternacht würde genau das
- * sperren. Nach einem Tag ist die Fährte dagegen so alt, dass ein Ablauf kein
- * Fährtenalter mehr beschreibt, das sich vergleichen ließe. Ohne Zeitstempel
- * (Fährte ohne automatische Punkte) lässt sich die Frist nicht prüfen: nein.
- * Beim Trail gilt die längere Frist (siehe {@link ABLAUF_FRIST_STUNDEN_TRAIL}).
+ * Ob eine Spur (noch) abgelaufen werden kann: eine Sportfährte bis 4 Stunden nach dem Ende
+ * des Legens (die längste Liegezeit im Leitfaden sind 180 Minuten) - unabhängig vom Kalendertag.
+ * Ohne Zeitstempel (Fährte ohne automatische Punkte) lässt sich die Frist nicht prüfen: nein.
+ * Trail und Schweißfährte haben längere Fristen (siehe {@link ABLAUF_FRIST_STUNDEN_TRAIL} und
+ * {@link ABLAUF_FRIST_STUNDEN_SCHWEISS}).
  */
 export function kannNochAblaufen(track: Pick<GpsTrack, "points" | "kind">, jetzt: number = Date.now()): boolean {
   const ende = legeEnde(track);
   if (!ende) return false;
-  const frist = istMantrailing(track) ? ABLAUF_FRIST_STUNDEN_TRAIL : ABLAUF_FRIST_STUNDEN;
-  return jetzt - ende.getTime() <= frist * 60 * 60 * 1000;
+  return jetzt - ende.getTime() <= ablaufFristStunden(track) * 60 * 60 * 1000;
 }
 
 /**

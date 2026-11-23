@@ -92,25 +92,25 @@ describe("kannNochAblaufen", () => {
     expect(kannNochAblaufen(gelegt, ENDE + stunden(1))).toBe(true);
   });
 
-  it("erlaubt den Ablauf über Mitternacht hinweg (23 Stunden nach dem Legen)", () => {
-    // Abends gelegt, am nächsten Tag gesucht: Der Kalendertag wechselt, die Frist nicht.
-    expect(kannNochAblaufen(gelegt, ENDE + stunden(23))).toBe(true);
+  it("erlaubt den Ablauf bis 4 Stunden nach dem Legen, unabhängig vom Kalendertag", () => {
+    // 21:00 gelegt, 01:00 gesucht: Der Kalendertag wechselt, die Frist nicht.
+    expect(kannNochAblaufen(gelegt, ENDE + stunden(4))).toBe(true);
   });
 
-  it("sperrt den Ablauf nach 25 Stunden", () => {
-    expect(kannNochAblaufen(gelegt, ENDE + stunden(25))).toBe(false);
+  it("sperrt den Ablauf nach 5 Stunden", () => {
+    expect(kannNochAblaufen(gelegt, ENDE + stunden(5))).toBe(false);
   });
 
   it("zählt ab dem Ende des Legens, nicht ab dem Beginn", () => {
     const lang = track("b", [punkt("2026-09-10T08:00:00Z"), punkt("2026-09-10T09:00:00Z")]);
-    // 24 h nach dem Beginn, aber nur 23 h nach dem Ende
-    expect(kannNochAblaufen(lang, Date.parse("2026-09-11T08:00:00Z"))).toBe(true);
-    expect(kannNochAblaufen(lang, Date.parse("2026-09-11T09:00:01Z"))).toBe(false);
+    // 5 h nach dem Beginn, aber nur 4 h nach dem Ende
+    expect(kannNochAblaufen(lang, Date.parse("2026-09-10T13:00:00Z"))).toBe(true);
+    expect(kannNochAblaufen(lang, Date.parse("2026-09-10T13:00:01Z"))).toBe(false);
   });
 
   it("übergeht spätere Marker", () => {
     const mitMarker = track("c", [punkt("2026-09-10T09:00:00Z"), punkt("2026-09-11T08:00:00Z", 1)]);
-    expect(kannNochAblaufen(mitMarker, Date.parse("2026-09-11T10:00:00Z"))).toBe(false);
+    expect(kannNochAblaufen(mitMarker, Date.parse("2026-09-10T13:00:01Z"))).toBe(false);
   });
 
   it("lehnt eine Fährte ohne automatische Punkte ab", () => {

@@ -11,6 +11,7 @@ import type { GpsWalkRun } from "@/lib/types";
 import { useT } from "@/lib/i18n";
 import { automatischePunkte, markerPunkte } from "@/lib/geo";
 import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
+import { istSchweiss } from "@/lib/spurart";
 import { kartenTexte } from "@/lib/karte/kartentexte";
 import { glaettePeilung, naechsteAusrichtung, rohePeilung, zielPeilung, type Ausrichtung } from "@/lib/karte/peilung";
 import {
@@ -467,7 +468,7 @@ export function TrackMap({
 
   useEffect(() => {
     const d = ablaufDaten(walkRuns, t, spurGrenzen({ kind: artKind }));
-    // Winkel gibt es nur bei der Fährte.
+    // Winkel gibt es bei der Fährte und der Schweißfährte (Haken), nicht beim Trail.
     const winkel = istMantrailing({ kind: artKind }) ? leer<never>() : winkelDaten(walkRuns, t);
     const teil = { "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, "ablauf-luecke": d.luecken, halte: d.halte, winkel };
     Object.assign(datenRef.current, teil);
@@ -751,7 +752,7 @@ export function TrackLegend({
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
         <Linienprobe farbe={TRACK_LINE_COLOR} fassung={TRACK_CASING_COLOR} />
-        <span className="font-medium text-foreground">{istMantrailing(art) ? t("Gelegter Trail") : t("Gelegte Fährte")}</span>
+        <span className="font-medium text-foreground">{istMantrailing(art) ? t("Gelegter Trail") : istSchweiss(art) ? t("Gelegte Schweißfährte") : t("Gelegte Fährte")}</span>
       </span>
       {markerArten.map((markerart) => (
         <span key={markerart.form} className="flex items-center gap-1.5">

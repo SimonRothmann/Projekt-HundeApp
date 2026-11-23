@@ -12,7 +12,10 @@ namespace Dogity.Domain.Tracking;
 public enum GpsTrackKind
 {
     Faehrte,
-    Mantrailing
+    Mantrailing,
+
+    /// <summary>Schweißfährte der Jagd (Nachsuche): lange Liegezeit, Wundbetten, am Riemen gearbeitet.</summary>
+    Schweissfaehrte
 }
 
 /// <summary>
@@ -68,6 +71,20 @@ public class GpsTrack : Entity
 
     /// <summary>Womit der Hund den Geruch aufgenommen hat (Kleidungsstück, Gegenstand ...), kurzer Freitext.</summary>
     public string? ScentArticle { get; set; }
+
+    // ---- Nur Schweißfährte (Kind = Schweissfaehrte), alles freiwillig ----
+
+    /// <summary>Wie die Schweißfährte gelegt wurde: Tupf, Tropf oder Fährtenschuh (deutscher Begriff aus fester Liste).</summary>
+    public string? Verfahren { get; set; }
+
+    /// <summary>Wildart, deren Fährte nachgestellt wurde (deutscher Begriff aus fester Liste).</summary>
+    public string? Wildart { get; set; }
+
+    /// <summary>Verwendete Schweißmenge in Millilitern (0 bis 1000).</summary>
+    public int? SchweissMl { get; set; }
+
+    /// <summary>Mindest-Stehzeit des gewählten Leitfadens in Stunden (1 bis 72): ab dann soll die Fährte gearbeitet werden.</summary>
+    public int? StehzeitStunden { get; set; }
 
     // ---- Automatisch ermitteltes Wetter (siehe IWeatherProvider) ----
     // Zwei Zeitpunkte, weil bei der Fährte gerade die VERÄNDERUNG zwischen

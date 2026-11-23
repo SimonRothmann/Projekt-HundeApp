@@ -115,13 +115,16 @@ public class DashboardServiceTests
         var (dienst, db) = Erstelle();
         var ich = Guid.NewGuid();
         var hund = Hund(db, ich, "Bello");
-        // Fährte: 24 Stunden nach dem Legen. Abends gelegt (vor 15 Stunden) bleibt sie auch nach Mitternacht.
-        var gesternAbend = Faehrte(db, ich, hund, Heute.AddDays(-1), Jetzt.AddHours(-15));
+        // Fährte: 4 Stunden nach dem Legen. Abends gelegt (vor 3 Stunden) bleibt sie auch nach Mitternacht.
+        var gesternAbend = Faehrte(db, ich, hund, Heute.AddDays(-1), Jetzt.AddHours(-3));
         var heute = Faehrte(db, ich, hund, Heute, Jetzt.AddHours(-1));
-        Faehrte(db, ich, hund, Heute.AddDays(-1), Jetzt.AddHours(-25));
+        Faehrte(db, ich, hund, Heute.AddDays(-1), Jetzt.AddHours(-5));
         // Trail: 48 Stunden.
         var trail = Faehrte(db, ich, hund, Heute.AddDays(-1), Jetzt.AddHours(-30), GpsTrackKind.Mantrailing);
         Faehrte(db, ich, hund, Heute.AddDays(-2), Jetzt.AddHours(-49), GpsTrackKind.Mantrailing);
+        // Schweißfährte: 72 Stunden.
+        var schweiss = Faehrte(db, ich, hund, Heute.AddDays(-2), Jetzt.AddHours(-60), GpsTrackKind.Schweissfaehrte);
+        Faehrte(db, ich, hund, Heute.AddDays(-3), Jetzt.AddHours(-73), GpsTrackKind.Schweissfaehrte);
         // Ohne Zeitstempel lässt sich die Frist nicht prüfen.
         Faehrte(db, ich, hund, Heute);
         // Eine Einheit ohne Fährte am selben Tag bringt keinen Eintrag.
@@ -130,7 +133,7 @@ public class DashboardServiceTests
 
         var stand = (await dienst.GetAsync(ich)).Value!;
 
-        Assert.Equivalent(new[] { gesternAbend, heute, trail }, Assert.Single(stand.Dogs).TracksToday.Select(t => t.Id));
+        Assert.Equivalent(new[] { gesternAbend, heute, trail, schweiss }, Assert.Single(stand.Dogs).TracksToday.Select(t => t.Id));
     }
 
     [Fact]
@@ -180,7 +183,7 @@ public class DashboardServiceTests
         var bello = Hund(db, ich, "Bello");
         var emma = Hund(db, ich, "Emma");
         var belloSpur = Faehrte(db, ich, bello, Heute, Jetzt.AddHours(-1));
-        var emmaSpur = Faehrte(db, ich, emma, Heute.AddDays(-1), Jetzt.AddHours(-20));
+        var emmaSpur = Faehrte(db, ich, emma, Heute.AddDays(-1), Jetzt.AddHours(-3));
         var emmaZiel = Ziel(db, emma, GoalStatus.Active, mitPlan: true);
         await db.SaveChangesAsync();
 

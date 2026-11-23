@@ -9,6 +9,7 @@ import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { aufschluesselung, bestaetigteZahlen } from "@/lib/gegenstaende";
 import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
+import { istSchweiss } from "@/lib/spurart";
 import { ampelLabel, ampelStufe, type Ampel } from "@/lib/spur-ampel";
 import {
   abschnittsZeilen,
@@ -146,6 +147,7 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
   const stops = run.stops ?? [];
   const unexplained = stops.filter((s) => s.kind === 0).length;
   const trail = istMantrailing(art);
+  const schweiss = istSchweiss(art);
   const bestaetigt = bestaetigteZahlen(run);
   const zahl = gross ? "text-sm font-medium text-foreground" : "text-xs";
   const abweichung = t("Ø {meter} m", { meter: Math.round(avg) });
@@ -156,7 +158,7 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
       )}
       {run.onTrackPercent != null && (
         <span className={cn(zahl, gross && "w-full text-xl font-bold")}>
-          {trail
+          {trail || schweiss
             ? t("{prozent} % auf der Spur", { prozent: Math.round(run.onTrackPercent) })
             : t("{prozent} % auf Fährte", { prozent: Math.round(run.onTrackPercent) })}
         </span>
@@ -225,7 +227,12 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
               gruen: spurGrenzen(art).gruenBis,
               gelb: spurGrenzen(art).gelbBis,
             })
-          : t("Gemessen wird die Linie des Hundeführers – der Hund kann bis Leinenlänge abweichen, ohne dass es hier sichtbar wird.")}
+          : schweiss
+            ? t("Gemessen wird die Linie des Hundeführers. Bei der Schweißfährte arbeitet der Hund am langen Riemen auch neben der Linie – deshalb gelten hier {gruen} m als nah und {gelb} m als mittlere Abweichung.", {
+                gruen: spurGrenzen(art).gruenBis,
+                gelb: spurGrenzen(art).gelbBis,
+              })
+            : t("Gemessen wird die Linie des Hundeführers – der Hund kann bis Leinenlänge abweichen, ohne dass es hier sichtbar wird.")}
         </p>
       </details>
       {unexplained > 0 && (
