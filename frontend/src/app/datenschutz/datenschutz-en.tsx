@@ -98,6 +98,7 @@ export function DatenschutzEn() {
             "evaluations calculated from this: deviation, articles found, hesitations",
             "in mantrailing: the path of the person being searched for, recorded with the device they carry and stored in your account – that is, the location data of another person",
             "in mantrailing also details about the trail (trail age, double blind, negative trail, scent article as a short text) and, for each search, whether the person was found and how the dog indicated them",
+            "for blood tracks (hunting) also details about the laying: method (dab, drip or track shoe), game species, amount of blood in millilitres and minimum standing time in hours",
           ]}
         />
         <p className="font-medium text-foreground">Club and groups</p>

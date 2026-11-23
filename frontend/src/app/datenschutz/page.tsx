@@ -102,6 +102,7 @@ function DatenschutzDe() {
             "daraus errechnete Auswertungen: Abweichung, gefundene Gegenstände, Stockungen",
             "beim Mantrailing: die Laufspur der Versteckperson, aufgezeichnet mit dem Gerät, das sie trägt, und in deinem Konto gespeichert – also die Standortdaten einer weiteren Person",
             "beim Mantrailing außerdem Angaben zum Trail (Trailalter, doppelblind, Negativ-Trail, Geruchsartikel als kurzer Text) und je Suche, ob die Person gefunden wurde und wie der Hund sie angezeigt hat",
+            "bei der Schweißfährte (Jagd) außerdem Angaben zum Legen: Verfahren (Tupf-, Tropfverfahren oder Fährtenschuh), Wildart, Schweißmenge in Millilitern und Mindest-Stehzeit in Stunden",
           ]}
         />
         <p className="font-medium text-foreground">Verein und Gruppen</p>
