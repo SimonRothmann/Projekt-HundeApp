@@ -1580,6 +1580,7 @@ public static partial class SportCatalogSeeder
         var obedience = await SeedObedienceAsync(db);
         var rally = await SeedRallyObedienceAsync(db);
         await SeedMantrailingAsync(db);
+        await SeedJagdAsync(db);
 
         // Als Sicherheitsnetz bei jedem Start - idempotent, findet auf einer
         // bereits bereinigten Datenbank nichts.
