@@ -855,7 +855,10 @@ public class GpsTrackService(
             t.Verfahren,
             t.Wildart,
             t.SchweissMl,
-            t.StehzeitStunden);
+            t.StehzeitStunden,
+            t.StandRegenMm,
+            t.StandTempMinC,
+            t.StandTempMaxC);
     }
 
     private static GpsWalkRunAngabenDto ToAngaben(GpsWalkRun r) => new(r.Id, r.Comment, r.PersonFound, r.Indication);

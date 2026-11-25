@@ -10,6 +10,9 @@ public record WeatherReading(
     /// <summary>Windrichtung in Grad, aus der der Wind kommt (Open-Meteo wind_direction_10m), 0 bis 359.</summary>
     int? WindDirectionDeg = null);
 
+/// <summary>Niederschlag und Temperaturspanne über einen Zeitraum an einem Ort (Stundenwerte zusammengefasst).</summary>
+public record WeatherPeriod(double RainMm, double TemperatureMinC, double TemperatureMaxC);
+
 /// <summary>
 /// Liefert Wetterdaten zu Ort und Zeitpunkt - für die Fährte der springende
 /// Punkt: die Temperaturänderung zwischen Legen und Suchen bestimmt
@@ -24,4 +27,11 @@ public record WeatherReading(
 public interface IWeatherProvider
 {
     Task<WeatherReading?> GetAtAsync(double latitude, double longitude, DateTimeOffset instant, CancellationToken ct = default);
+
+    /// <summary>
+    /// Niederschlagssumme und niedrigste/höchste Temperatur zwischen zwei Zeitpunkten (Stehzeit einer
+    /// Schweißfährte bzw. Liegezeit eines Trails). Wie <see cref="GetAtAsync"/>: bei Nichterreichbarkeit
+    /// oder lückenhafter Antwort <c>null</c>.
+    /// </summary>
+    Task<WeatherPeriod?> GetPeriodAsync(double latitude, double longitude, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default);
 }

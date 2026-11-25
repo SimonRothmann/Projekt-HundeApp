@@ -2635,6 +2635,15 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<double?>("SearchWindSpeedKmh")
                         .HasColumnType("double precision");
 
+                    b.Property<double?>("StandRegenMm")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("StandTempMaxC")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("StandTempMinC")
+                        .HasColumnType("double precision");
+
                     b.Property<int?>("StehzeitStunden")
                         .HasColumnType("integer");
 

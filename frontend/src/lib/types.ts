@@ -1195,6 +1195,10 @@ export type GpsTrack = {
   searchWindDirectionDeg?: number | null;
   temperatureDeltaC: number | null;
   weatherFetchedAt: string | null;
+  /** Nur Schweißfährte und Trail: Regensumme (mm) und niedrigste/höchste Temperatur zwischen Legen und erstem Ablauf. */
+  standRegenMm?: number | null;
+  standTempMinC?: number | null;
+  standTempMaxC?: number | null;
 };
 
 // Treffer der Ortssuche (Open-Meteo Geocoding, siehe WeatherController).

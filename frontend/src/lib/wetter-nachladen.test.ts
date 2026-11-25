@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { GpsPoint, GpsTrack, GpsWalkRun, TrainingSession } from "@/lib/types";
 import {
   faehrteWetterOffen,
+  stehzeitWetterOffen,
   schreibzugriffMelden,
   trainingWetterOffen,
   WETTER_FRISCH_MS,
@@ -119,5 +120,33 @@ describe("faehrteWetterOffen", () => {
     expect(faehrteWetterOffen(spur([punkt(1)], null))).toBe(false);
     expect(faehrteWetterOffen(spur([], null))).toBe(false);
     expect(faehrteWetterOffen(spur([punkt(1)], null, null, [lauf(3)]))).toBe(false);
+  });
+});
+
+describe("stehzeitWetterOffen", () => {
+  const ZEIT = Date.UTC(2026, 10, 24, 8, 0, 0);
+  const punktUm = (minuten: number): GpsPoint => ({ pointType: 0, timestamp: new Date(ZEIT + minuten * 60_000).toISOString() }) as GpsPoint;
+  const laufUm = (minuten: number): GpsWalkRun => ({ points: [{ timestamp: new Date(ZEIT + minuten * 60_000).toISOString() }] }) as unknown as GpsWalkRun;
+  const spur = (kind: number | undefined, laeufe: GpsWalkRun[], standTempMinC: number | null = null) => ({
+    points: [punktUm(0), punktUm(10)],
+    walkRuns: laeufe,
+    kind,
+    standTempMinC,
+  });
+
+  it("steht aus bei Schweißfährte und Trail mit Ablauf nach mehr als einer Stunde", () => {
+    expect(stehzeitWetterOffen(spur(2, [laufUm(600)]))).toBe(true);
+    expect(stehzeitWetterOffen(spur(1, [laufUm(600)]))).toBe(true);
+  });
+
+  it("steht nicht aus bei der Sportfährte, ohne Ablauf oder unter einer Stunde", () => {
+    expect(stehzeitWetterOffen(spur(0, [laufUm(600)]))).toBe(false);
+    expect(stehzeitWetterOffen(spur(undefined, [laufUm(600)]))).toBe(false);
+    expect(stehzeitWetterOffen(spur(2, []))).toBe(false);
+    expect(stehzeitWetterOffen(spur(2, [laufUm(65)]))).toBe(false);
+  });
+
+  it("steht nicht mehr aus, wenn der Wert da ist - auch bei 0 Grad", () => {
+    expect(stehzeitWetterOffen(spur(2, [laufUm(600)], 0))).toBe(false);
   });
 });

@@ -108,6 +108,12 @@ public class GpsTrack : Entity
     public int? SearchWeatherCode { get; set; }
     public int? SearchWindDirectionDeg { get; set; }
 
+    // Nur Schweißfährte und Trail: Wetter über die Stehzeit/Liegezeit, vom Ende des Legens bis zum
+    // Beginn des ersten Ablaufs (Regen und Kälte wirken hier stärker als die zwei Einzelwerte oben).
+    public double? StandRegenMm { get; set; }
+    public double? StandTempMinC { get; set; }
+    public double? StandTempMaxC { get; set; }
+
     public DateTimeOffset? WeatherFetchedAt { get; set; }
 
     /// <summary>

@@ -526,6 +526,9 @@ public class DemoSzenarienSeederTests
             Aufrufe++;
             return Task.FromResult<WeatherReading?>(null);
         }
+
+        public Task<WeatherPeriod?> GetPeriodAsync(double latitude, double longitude, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default) =>
+            Task.FromResult<WeatherPeriod?>(null);
     }
 
     private sealed class LeereWetterQueue : IWetterQueue

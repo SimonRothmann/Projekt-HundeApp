@@ -29,8 +29,8 @@ import { SchweissAngabenZeile, SchweissStueckZeile } from "@/components/tracking
 import { ChevronDown, CloudSun, Pencil, Route, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useWetterNachladen } from "@/lib/use-wetter-nachladen";
-import { faehrteWetterOffen } from "@/lib/wetter-nachladen";
-import { formatDelta, formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
+import { faehrteWetterOffen, stehzeitWetterOffen } from "@/lib/wetter-nachladen";
+import { formatDelta, formatTemperature, stehzeitWetterText, weatherIcon, weatherLabel } from "@/lib/weather";
 import { WindRichtung } from "@/components/tracking/wind-richtung";
 import { zeigtWindrichtung } from "@/lib/wind";
 import { useSchritte } from "@/lib/use-schritte";
@@ -191,7 +191,7 @@ export function GpsTrackSection({
   // das ein neuer Anlass.
   useWetterNachladen(
     tracks
-      ?.filter(faehrteWetterOffen)
+      ?.filter((track) => faehrteWetterOffen(track) || stehzeitWetterOffen(track))
       .map((track) => `${track.id}:${track.laidTemperatureC == null ? "legen" : "suchen"}`)
       .join(",") || null,
     loadTracks,
@@ -567,6 +567,7 @@ function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Pr
   }
 
   const wetter = weatherLabel(track.laidWeatherCode);
+  const stehzeit = stehzeitWetterText(t, sprache, istMantrailing(track), track.standRegenMm, track.standTempMinC, track.standTempMaxC);
 
   // Lose Prüfung (== null): ältere Backend-Stände/Cache kennen die Felder nicht.
   if (track.laidTemperatureC == null) {
@@ -596,6 +597,16 @@ function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Pr
       {zeigtWindrichtung(track.laidWindDirectionDeg, track.laidWindSpeedKmh) && <WindRichtung grad={track.laidWindDirectionDeg} />}
       {zeigtWindrichtung(track.searchWindDirectionDeg, track.searchWindSpeedKmh) && (
         <WindRichtung grad={track.searchWindDirectionDeg} beimSuchen />
+      )}
+      {stehzeit ? (
+        <span className="basis-full">{stehzeit}</span>
+      ) : (
+        stehzeitWetterOffen(track) && (
+          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" disabled={loading} onClick={fetchWeather}>
+            <CloudSun className="size-3" />
+            {loading ? t("Lädt Wetter…") : t("Wetter laden")}
+          </Button>
+        )
       )}
     </div>
   );

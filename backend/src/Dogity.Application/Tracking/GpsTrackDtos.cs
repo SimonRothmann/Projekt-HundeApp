@@ -137,7 +137,11 @@ public record GpsTrackDto(
     string? Verfahren = null,
     string? Wildart = null,
     int? SchweissMl = null,
-    int? StehzeitStunden = null);
+    int? StehzeitStunden = null,
+    // Nur Schweißfährte und Trail: Wetter über die Stehzeit/Liegezeit (Regensumme, niedrigste und höchste Temperatur).
+    double? StandRegenMm = null,
+    double? StandTempMinC = null,
+    double? StandTempMaxC = null);
 
 /// <summary>
 /// Was ein Ablauf nach dem Ändern von Kommentar oder Trail-Ergebnis zurückgibt: nur die änderbaren Angaben,
