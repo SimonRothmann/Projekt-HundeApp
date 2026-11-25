@@ -46,10 +46,10 @@ public class DashboardService(
         // Fährtenrecorder für die Einheit nimmt - zwischen 0 und 2 Uhr ist es in UTC noch gestern.
         var jetzt = timeProvider.GetUtcNow();
         var zone = Ortszeit.Zone((await preferences.GetAsync(userId, ct)).Value?.TimeZone);
-        // Eine noch suchbare Spur kann an einer Einheit der letzten Tage hängen: Ein Trail
-        // liegt 48 Stunden, und das Legen kann über Mitternacht hinaus dauern - daher ein
+        // Eine noch suchbare Spur kann an einer Einheit der letzten Tage hängen: Eine Schweißfährte
+        // darf bis 72 Stunden nach dem Legen gearbeitet werden, und das Legen kann über Mitternacht hinaus dauern - daher ein
         // Tag Luft vor dem Tag, an dem die längste Frist beginnt.
-        var einheitenAb = Ortszeit.Tag(jetzt - Ablauffristen.Trail, zone).AddDays(-1);
+        var einheitenAb = Ortszeit.Tag(jetzt - Ablauffristen.Schweissfaehrte, zone).AddDays(-1);
         var heute = Ortszeit.Tag(jetzt, zone);
         var aktiveHunde = meineHunde.Value!.Where(h => h.ArchivedAt is null).ToList();
         var hundeIds = aktiveHunde.Select(h => h.Id).ToList();
@@ -64,7 +64,7 @@ public class DashboardService(
         if (!ziele.Succeeded) return Fehler(ziele);
         var zieleJeHund = ziele.Value!.ToLookup(ziel => ziel.DogId);
 
-        // Die noch suchbaren Spuren (Fährte 24, Trail 48 Stunden nach dem Legen), nicht nur
+        // Die noch suchbaren Spuren (Fährte 4, Trail 48, Schweißfährte 72 Stunden nach dem Legen), nicht nur
         // die von heute: Was abends gelegt wurde, soll nach Mitternacht nicht von der
         // Startseite verschwinden, solange man es noch ablaufen kann. Nur ohne Ablauf: Mit einem
         // Ablauf ist die Spur nicht mehr "wartend", und ihre Abläufe wären der größte Teil der Antwort.
@@ -80,7 +80,8 @@ public class DashboardService(
                 spurenJeHund[hund.Id]
                     .Select(spur => new DashboardSpurDto(
                         spur.Id, spur.TrainingSessionId, spur.LengthMeters, spur.AgeMinutes, spur.Surface,
-                        spur.Kind, spur.DoubleBlind, spur.NegativeTrail, spur.ScentArticle, spur.Points))
+                        spur.Kind, spur.DoubleBlind, spur.NegativeTrail, spur.ScentArticle, spur.Points,
+                        spur.Verfahren, spur.Wildart, spur.SchweissMl, spur.StehzeitStunden))
                     .ToList()))
             .ToList();
 

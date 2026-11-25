@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { nichtAbgelaufeneFaehrten, tageSeitLegen } from "./faehrte";
 import { ART_MANTRAILING } from "./mantrailing";
+import { ART_SCHWEISS } from "./spurart";
 import type { GpsPoint, GpsTrack } from "./types";
 
 // Der Kalendertag hängt an der Zeitzone des Geräts - der Test legt sie selbst fest.
@@ -20,10 +21,17 @@ describe("nichtAbgelaufeneFaehrten: Frist", () => {
   const ENDE = "2026-10-30T21:00:00Z";
   const ende = Date.parse(ENDE);
 
-  it("zeigt die Fährte über Mitternacht hinweg, bis 24 Stunden nach dem Legen", () => {
-    const f = nichtAbgelaufeneFaehrten([spur("a", ENDE)], ende + stunden(23));
+  it("zeigt die Fährte bis 4 Stunden nach dem Legen", () => {
+    const f = nichtAbgelaufeneFaehrten([spur("a", ENDE)], ende + stunden(3));
     expect(f.map((x) => x.track.id)).toEqual(["a"]);
-    expect(nichtAbgelaufeneFaehrten([spur("a", ENDE)], ende + stunden(25))).toEqual([]);
+    expect(nichtAbgelaufeneFaehrten([spur("a", ENDE)], ende + stunden(5))).toEqual([]);
+  });
+
+  it("zeigt die Schweißfährte über Nacht und mehrere Tage, bis 72 Stunden nach dem Legen", () => {
+    const schweiss = spur("s", ENDE, ART_SCHWEISS);
+    expect(nichtAbgelaufeneFaehrten([schweiss], ende + stunden(40)).map((x) => x.track.id)).toEqual(["s"]);
+    expect(nichtAbgelaufeneFaehrten([schweiss], ende + stunden(71)).map((x) => x.track.id)).toEqual(["s"]);
+    expect(nichtAbgelaufeneFaehrten([schweiss], ende + stunden(73))).toEqual([]);
   });
 
   it("zeigt den Trail bis 48 Stunden nach dem Legen", () => {

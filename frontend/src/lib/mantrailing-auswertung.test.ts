@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { ampelLabel, ampelStufe } from "./spur-ampel";
 import { baueBildTexte, faehrtenKennzahlen, faerbeSegmente } from "./faehrten-bild";
-import { ABLAUF_FRIST_STUNDEN, ABLAUF_FRIST_STUNDEN_TRAIL, kannNochAblaufen, spurArten } from "./faehrte";
+import { ABLAUF_FRIST_STUNDEN, ABLAUF_FRIST_STUNDEN_SCHWEISS, ABLAUF_FRIST_STUNDEN_TRAIL, kannNochAblaufen, spurArten } from "./faehrte";
+import { ART_SCHWEISS } from "./spurart";
 import { uebersetze } from "./i18n";
 import { ablaufDaten, deviationColor, deviationColors } from "./karte/spur-daten";
 
@@ -144,18 +145,21 @@ describe("Fährtenbild beim Trail", () => {
 
 describe("Spuren eines Hundes", () => {
   const sport = (id: string, code: string): Sport => ({ id, code, name: code, description: null, clubId: null });
-  const SPORTS = [sport("bh", "BH"), sport("faehrte", "FAERTE"), sport("mt", "MANTRAILING")];
+  const SPORTS = [sport("bh", "BH"), sport("faehrte", "FAERTE"), sport("mt", "MANTRAILING"), sport("jagd", "JAGD")];
 
-  it("ohne Auswahl nur die Fährte - ein Trail nur auf ausdrückliche Wahl", () => {
-    expect(spurArten(null, SPORTS)).toEqual({ faehrte: true, mantrailing: false });
-    expect(spurArten([], SPORTS)).toEqual({ faehrte: true, mantrailing: false });
+  it("ohne Auswahl nur die Fährte - Trail und Schweißfährte nur auf ausdrückliche Wahl", () => {
+    expect(spurArten(null, SPORTS)).toEqual({ faehrte: true, mantrailing: false, schweiss: false });
+    expect(spurArten([], SPORTS)).toEqual({ faehrte: true, mantrailing: false, schweiss: false });
   });
 
-  it("trennt Fährte und Trail nach den gewählten Sportarten", () => {
-    expect(spurArten(["mt"], SPORTS)).toEqual({ faehrte: false, mantrailing: true });
-    expect(spurArten(["faehrte"], SPORTS)).toEqual({ faehrte: true, mantrailing: false });
-    expect(spurArten(["faehrte", "mt"], SPORTS)).toEqual({ faehrte: true, mantrailing: true });
-    expect(spurArten(["bh"], SPORTS)).toEqual({ faehrte: false, mantrailing: false });
+  it("trennt Fährte, Trail und Schweißfährte nach den gewählten Sportarten", () => {
+    expect(spurArten(["mt"], SPORTS)).toEqual({ faehrte: false, mantrailing: true, schweiss: false });
+    expect(spurArten(["faehrte"], SPORTS)).toEqual({ faehrte: true, mantrailing: false, schweiss: false });
+    expect(spurArten(["faehrte", "mt"], SPORTS)).toEqual({ faehrte: true, mantrailing: true, schweiss: false });
+    expect(spurArten(["bh"], SPORTS)).toEqual({ faehrte: false, mantrailing: false, schweiss: false });
+    // Die Jagd allein bringt keine Sport-Fährte mit.
+    expect(spurArten(["jagd"], SPORTS)).toEqual({ faehrte: false, mantrailing: false, schweiss: true });
+    expect(spurArten(["jagd", "faehrte", "mt"], SPORTS)).toEqual({ faehrte: true, mantrailing: true, schweiss: true });
   });
 });
 
@@ -163,11 +167,14 @@ describe("Frist zum Suchen", () => {
   const gelegt = (kind: number) => spur(kind, { points: [punkt("2026-10-30T10:00:00Z")] });
   const nach = (stunden: number) => Date.parse("2026-10-30T10:00:00Z") + stunden * 3_600_000;
 
-  it("Fährte 24 Stunden, Trail 48", () => {
+  it("Fährte 4 Stunden, Trail 48, Schweißfährte 72", () => {
     expect(kannNochAblaufen(gelegt(ART_FAEHRTE), nach(ABLAUF_FRIST_STUNDEN))).toBe(true);
     expect(kannNochAblaufen(gelegt(ART_FAEHRTE), nach(ABLAUF_FRIST_STUNDEN + 1))).toBe(false);
     expect(kannNochAblaufen(gelegt(ART_MANTRAILING), nach(ABLAUF_FRIST_STUNDEN + 1))).toBe(true);
     expect(kannNochAblaufen(gelegt(ART_MANTRAILING), nach(ABLAUF_FRIST_STUNDEN_TRAIL + 1))).toBe(false);
+    expect(kannNochAblaufen(gelegt(ART_SCHWEISS), nach(ABLAUF_FRIST_STUNDEN_TRAIL + 1))).toBe(true);
+    expect(kannNochAblaufen(gelegt(ART_SCHWEISS), nach(ABLAUF_FRIST_STUNDEN_SCHWEISS))).toBe(true);
+    expect(kannNochAblaufen(gelegt(ART_SCHWEISS), nach(ABLAUF_FRIST_STUNDEN_SCHWEISS + 1))).toBe(false);
   });
 });
 

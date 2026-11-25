@@ -7,7 +7,7 @@ Die Pflicht trifft auch kleine Verantwortliche: Die Ausnahme in Art. 30 Abs. 5
 DSGVO gilt nur für Verarbeitungen, die *gelegentlich* erfolgen. Ein dauerhaft
 betriebenes Konto- und Tagebuchsystem ist das Gegenteil davon.
 
-**Stand:** 2026-11-21 · **Nächste Prüfung:** bei jeder Änderung an den
+**Stand:** 2026-11-25 · **Nächste Prüfung:** bei jeder Änderung an den
 verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 
 ---
@@ -74,7 +74,7 @@ verarbeiteten Daten (neue Felder, neuer Dienst, neuer Empfänger)
 |---|---|
 | Zweck | Aufzeichnen der gelegten Fährte bzw. des Mantrailing-Trails und des Ablaufs, Auswertung von Abweichung, Gegenständen und Stockungen |
 | Betroffene | Registrierte Nutzer:innen; beim Mantrailing zusätzlich die Versteckperson (weitere Person, die kein Konto haben muss) |
-| Datenkategorien | GPS-Punkte (Koordinaten, Zeitstempel, Genauigkeit), Markierungen, errechnete Auswertungen; bei der Fährte der Bodenzustand beim Legen (Auswahl aus trocken, feucht, nass, gefroren, Schnee) und „Verdeckt absuchen“ (ja/nein, dieselbe Angabe wie „Doppelblind“); beim Mantrailing: Art der Aufzeichnung, Trailalter (Minuten, am Trail), Doppelblind und Negativ-Trail (ja/nein), Geruchsartikel (Freitext, höchstens 100 Zeichen), je Lauf „Person gefunden“ (ja/nein) und Anzeigeverhalten |
+| Datenkategorien | GPS-Punkte (Koordinaten, Zeitstempel, Genauigkeit), Markierungen, errechnete Auswertungen; bei der Fährte der Bodenzustand beim Legen (Auswahl aus trocken, feucht, nass, gefroren, Schnee) und „Verdeckt absuchen“ (ja/nein, dieselbe Angabe wie „Doppelblind“); beim Mantrailing: Art der Aufzeichnung, Trailalter (Minuten, am Trail), Doppelblind und Negativ-Trail (ja/nein), Geruchsartikel (Freitext, höchstens 100 Zeichen), je Lauf „Person gefunden“ (ja/nein) und Anzeigeverhalten; bei der Schweißfährte (Jagd): Art der Aufzeichnung, Markierungen Wundbett und Verweiserpunkt, Verfahren (Tupf, Tropf oder Fährtenschuh), Wildart (Auswahl aus fester Liste), Schweißmenge (ml) und Mindest-Stehzeit (Stunden), alles freiwillig |
 | Besonderheit | Bewegungsprofil mit Metergenauigkeit – die eingriffsintensivste Verarbeitung der App. Start nur durch den Nutzer, zusätzlich durch die Browser-Standortfreigabe geschützt. Keine Hintergrundaufzeichnung. Mantrailing (seit Fassung 0.46): Die Laufspur der Versteckperson wird mit dem Gerät aufgezeichnet, das sie trägt, und im Konto der aufzeichnenden Person gespeichert – Standortdaten einer weiteren Person; die Datenschutzerklärung weist darauf hin und rät, vorher mit ihr zu sprechen. Die Spur ist nur für dieselben Personen sichtbar wie jede Fährte (Besitzer:innen, Mitbesitzer:innen, zugeordnete Trainer:innen) und verschwindet mit ihr. Die Angaben zum Trail sind keine besonderen Kategorien (Art. 9) und keine Daten der Versteckperson, sie beschreiben das Training. |
 | Rechtsgrundlage | Art. 6 Abs. 1 lit. b (Kernfunktion, vom Nutzer ausgelöst). Für die Versteckperson beim Mantrailing besteht kein Vertrag: Art. 6 Abs. 1 lit. f – berechtigtes Interesse der aufzeichnenden Person, ihr Training zu dokumentieren; der Eingriff ist gering, weil die Versteckperson den Weg freiwillig mit einem Gerät geht und vorher davon weiß (die Datenschutzerklärung verlangt die Absprache), die Daten gehen nicht über das Konto hinaus und verschwinden mit der Spur; Widerspruch nach Art. 21 über die aufzeichnende Person oder den Betreiber, der die Spur löscht. **Vom Betreiber gegenzulesen** (Alternative: Einwilligung der Versteckperson, Art. 6 Abs. 1 lit. a). |
 | Empfänger | wie 2.2; **keine** Übermittlung an Kartendienste |
@@ -272,7 +272,7 @@ wird bewusst nicht öffentlich genannt (Entscheidung des Betreibers
 | OpenStreetMap Foundation | Vektorkacheln der Karte (Standardansicht); das Gerät zeichnet die Karte selbst, Schriften und Symbole liefert Dogity | IP-Adresse und Kartenausschnitt, direkt vom Gerät | UK (Angemessenheitsbeschluss) |
 | Esri | Luftbild-Kacheln, nur bei aktiv gewähltem Luftbild | IP-Adresse und Kartenausschnitt, direkt vom Gerät | **USA** |
 | komoot GmbH (Photon) | Ortssuche | Suchbegriff, ggf. Umkreis-Koordinaten – **vom Server**, ohne Nutzer-IP | nein |
-| Open-Meteo | Wetter zu Ort und Zeitpunkt | Koordinaten und Datum – **vom Server**, ohne Nutzer-IP | nein |
+| Open-Meteo | Wetter zu Ort und Zeitpunkt; bei Schweißfährte und Trail Regen und Temperatur für den Zeitraum zwischen Legen und Suchen | Koordinaten und Datum bzw. Zeitraum – **vom Server**, ohne Nutzer-IP | nein |
 | Push-Dienste der Geräte-/Browserhersteller: Apple (`*.push.apple.com`), Google (`fcm.googleapis.com`), Mozilla (`*.push.services.mozilla.com`), Microsoft (`*.notify.windows.com`) | Zustellung von Push-Nachrichten an Geräte, die Push eingeschaltet haben (Abschnitt 2.5c); der Dienst gehört zu dem Gerät/Browser, das die Person nutzt, und wird von diesem ausgewählt – Dogity schickt an die Adresse, die das Gerät nennt | Geräteadresse (Endpoint), Zeitpunkt und Größe der Nachricht; der Inhalt ist Ende-zu-Ende verschlüsselt und für den Dienst nicht lesbar – **vom Server** | Apple, Google, Microsoft: **USA möglich**; Mozilla: weltweit |
 | Ko-fi | nur ausgehender Verweis | nichts, solange der Link nicht angeklickt wird | USA (erst nach Klick) |
 

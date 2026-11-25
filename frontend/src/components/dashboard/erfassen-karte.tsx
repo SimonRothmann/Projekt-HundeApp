@@ -3,6 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { ChevronRight, NotebookPen, Route } from "lucide-react";
 import type { Dog } from "@/lib/types";
+import type { SpurArtName } from "@/lib/spurart";
 import { Card, CardContent } from "@/components/ui/card";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { useT } from "@/lib/i18n";
@@ -23,14 +24,14 @@ import { useT } from "@/lib/i18n";
 export function ErfassenKarte({
   hunde,
   faehrtenHundeIds,
-  nurTrailHundeIds = [],
+  spurArtJeHund = {},
   onEintragen,
   onFaehrte,
 }: {
   hunde: Dog[];
   faehrtenHundeIds: string[];
-  /** Hunde, die trailen, aber keine Fährte laufen: "Trail legen" statt "Fährte legen". */
-  nurTrailHundeIds?: string[];
+  /** Was der Hund legt (hauptSpurArt): "Trail legen" bzw. "Schweißfährte legen" statt "Fährte legen". Fehlt ein Hund: Fährte. */
+  spurArtJeHund?: Record<string, SpurArtName>;
   onEintragen: (dogId: string) => void;
   onFaehrte: (dogId: string) => void;
 }) {
@@ -46,7 +47,7 @@ export function ErfassenKarte({
           <p className="text-sm font-semibold">{t("Eintragen")}</p>
           <ul className="flex flex-col divide-y">
             {hunde.map((hund) => {
-              const nurTrailHund = nurTrailHundeIds.includes(hund.id);
+              const art = spurArtJeHund[hund.id] ?? "faehrte";
               return (
                 <li key={hund.id} className="flex min-w-0 items-center gap-1 py-1 first:pt-0 last:pb-0">
                   <DogAvatar dogId={hund.id} hasImage={hund.hasImage} name={hund.name} className="size-8" iconClassName="size-4" />
@@ -60,8 +61,14 @@ export function ErfassenKarte({
                   {faehrtenHundeIds.includes(hund.id) && (
                     <KompaktKnopf
                       icon={Route}
-                      text={nurTrailHund ? t("Trail") : t("Fährte")}
-                      name={nurTrailHund ? t("Trail mit {name} legen", { name: hund.name }) : t("Fährte mit {name} legen", { name: hund.name })}
+                      text={art === "trail" ? t("Trail") : art === "schweiss" ? t("Schweißfährte") : t("Fährte")}
+                      name={
+                        art === "trail"
+                          ? t("Trail mit {name} legen", { name: hund.name })
+                          : art === "schweiss"
+                            ? t("Schweißfährte mit {name} legen", { name: hund.name })
+                            : t("Fährte mit {name} legen", { name: hund.name })
+                      }
                       onClick={() => onFaehrte(hund.id)}
                     />
                   )}
@@ -75,7 +82,7 @@ export function ErfassenKarte({
   }
 
   const faehrtenHunde = hunde.filter((h) => faehrtenHundeIds.includes(h.id));
-  const nurTrail = faehrtenHunde.length > 0 && nurTrailHundeIds.includes(faehrtenHunde[0].id);
+  const art = (faehrtenHunde.length > 0 && spurArtJeHund[faehrtenHunde[0].id]) || "faehrte";
 
   return (
     <Card size="sm">
@@ -89,11 +96,13 @@ export function ErfassenKarte({
         {faehrtenHunde.length > 0 && (
           <Zeile
             icon={Route}
-            titel={nurTrail ? t("Trail legen") : t("Fährte legen")}
+            titel={art === "trail" ? t("Trail legen") : art === "schweiss" ? t("Schweißfährte legen") : t("Fährte legen")}
             beschreibung={
-              nurTrail
+              art === "trail"
                 ? t("Trail mit {name} legen", { name: faehrtenHunde[0].name })
-                : t("Fährte mit {name} legen", { name: faehrtenHunde[0].name })
+                : art === "schweiss"
+                  ? t("Schweißfährte mit {name} legen", { name: faehrtenHunde[0].name })
+                  : t("Fährte mit {name} legen", { name: faehrtenHunde[0].name })
             }
             onWaehle={() => onFaehrte(faehrtenHunde[0].id)}
           />

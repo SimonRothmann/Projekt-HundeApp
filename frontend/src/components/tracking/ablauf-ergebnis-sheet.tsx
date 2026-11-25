@@ -12,10 +12,13 @@ import { WalkRunEvaluation } from "@/components/tracking/walk-run-evaluation";
 import { ablaufKommentarSpeichern } from "@/components/tracking/walk-run-comment";
 import { TrailErgebnisFormular } from "@/components/tracking/trail-angaben";
 import { GegenstandsErgebnisZeilen } from "@/components/tracking/gegenstaende";
-import { ergebnisAenderungen, ergebnisseJeGegenstand, gegenstaende } from "@/lib/gegenstaende";
+import { SchweissStueckFormular } from "@/components/tracking/schweiss-angaben";
+import { stueckAenderung, VERFAHREN_FAEHRTENSCHUH } from "@/lib/schweiss";
+import { betten, ergebnisAenderungen, ergebnisseJeGegenstand, gegenstaende } from "@/lib/gegenstaende";
 import { istWischNachUnten, kommentarAenderung } from "@/lib/ablauf-ergebnis";
 import { liegezeitMinuten } from "@/lib/faehrten-bild";
 import { istMantrailing, trailAenderungen, trailalterVorschlag } from "@/lib/mantrailing";
+import { istSchweiss } from "@/lib/spurart";
 import { toast } from "sonner";
 import { useSprache, useT } from "@/lib/i18n";
 import { TEXTLAENGE } from "@/lib/textlaengen";
@@ -52,7 +55,7 @@ export function AblaufErgebnisSheet({
 }: {
   trackId: string;
   run: GpsWalkRun;
-  /** Die Spur des Laufs; beim Mantrailing (kind) kommen Ergebnis und Trailalter dazu. */
+  /** Die Spur des Laufs; beim Mantrailing (kind) kommen Ergebnis und Trailalter dazu, bei der Schweißfährte entfallen die Gegenstände. */
   track?: AblaufSpur;
   /** Die gelegte Fährte für die Karte; ohne sie gibt es keine Karte. */
   laidTrackPoints?: GpsPoint[];
@@ -63,10 +66,15 @@ export function AblaufErgebnisSheet({
   const [kommentar, setKommentar] = useState(run.comment ?? "");
   const [speichert, setSpeichert] = useState(false);
   const trail = istMantrailing(track);
+  const schweiss = istSchweiss(track);
   const [gefunden, setGefunden] = useState<boolean | null>(run.personFound ?? null);
   const [anzeige, setAnzeige] = useState<number | null>(run.indication ?? null);
   // Die Gegenstände der gelegten Fährte (nur Fährte) und die Wahl je Gegenstand.
-  const liste = useMemo(() => (trail ? [] : gegenstaende(track?.points ?? laidTrackPoints ?? [])), [trail, track?.points, laidTrackPoints]);
+  // Bei der Schweißfährte die Betten (Wundbetten, Verweiserpunkte).
+  const liste = useMemo(() => {
+    const punkte = track?.points ?? laidTrackPoints ?? [];
+    return trail ? [] : schweiss ? betten(punkte) : gegenstaende(punkte);
+  }, [trail, schweiss, track?.points, laidTrackPoints]);
   const [ergebnisse, setErgebnisse] = useState<Record<string, GegenstandsErgebnis | null>>(() => ergebnisseJeGegenstand(run.articles));
   // Das Alter der Spur, sonst die Zeit vom Ende des Legens bis zum Start dieses Laufs.
   const [alterText, setAlterText] = useState(() => (track ? trailalterVorschlag(liegezeitMinuten(track, run), sprache) : ""));
@@ -89,12 +97,14 @@ export function AblaufErgebnisSheet({
       return;
     }
     const gegenstandsAenderung = aufgegeben.current || liste.length === 0 ? [] : ergebnisAenderungen(run.articles, ergebnisse);
-    if (aenderung || trailAenderung?.ergebnis || trailAenderung?.trail || gegenstandsAenderung.length > 0) {
+    const stueck = aufgegeben.current || !schweiss ? null : stueckAenderung(run, { gefunden, verhalten: anzeige });
+    if (aenderung || trailAenderung?.ergebnis || trailAenderung?.trail || gegenstandsAenderung.length > 0 || stueck) {
       setSpeichert(true);
       try {
         if (aenderung) await ablaufKommentarSpeichern(trackId, run.id, kommentar);
         if (gegenstandsAenderung.length > 0) await api.put(`/api/gps-tracks/${trackId}/walk-runs/${run.id}/articles`, gegenstandsAenderung);
         if (trailAenderung?.ergebnis) await api.put(`/api/gps-tracks/${trackId}/walk-runs/${run.id}/trail`, trailAenderung.ergebnis);
+        if (stueck) await api.put(`/api/gps-tracks/${trackId}/walk-runs/${run.id}/trail`, stueck);
         if (trailAenderung?.trail) {
           try {
             await api.put(`/api/gps-tracks/${trackId}/trail`, trailAenderung.trail);
@@ -151,7 +161,7 @@ export function AblaufErgebnisSheet({
           }}
         >
           <span aria-hidden className="mx-auto mb-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
-          <SheetTitle>{trail ? t("Trail gesucht") : t("Fährte abgelaufen")}</SheetTitle>
+          <SheetTitle>{trail ? t("Trail gesucht") : schweiss ? t("Schweißfährte gearbeitet") : t("Fährte abgelaufen")}</SheetTitle>
         </SheetHeader>
         <div className="flex min-w-0 flex-col gap-4 px-4">
           {ausgewertet ? (
@@ -177,9 +187,15 @@ export function AblaufErgebnisSheet({
             />
           )}
 
+          {schweiss && (
+            <SchweissStueckFormular gefunden={gefunden} verhalten={anzeige} gpsEnde={run.endReached} onGefunden={setGefunden} onVerhalten={setAnzeige} />
+          )}
+
           {liste.length > 0 && (
             <div className="flex min-w-0 flex-col gap-1">
-              <span className="text-sm font-medium">{t("Was hat dein Hund mit den Gegenständen gemacht?")}</span>
+              <span className="text-sm font-medium">
+                {schweiss ? t("Was hat dein Hund mit den Betten gemacht?") : t("Was hat dein Hund mit den Gegenständen gemacht?")}
+              </span>
               <span className="text-xs text-muted-foreground">
                 {t("Optional – du kannst es auch später in den Fährtendetails eintragen.")}
               </span>
@@ -188,6 +204,7 @@ export function AblaufErgebnisSheet({
                 werte={ergebnisse}
                 erreicht={run.reachedArticleIds}
                 ohneAufzeichnung={run.unrecordedArticleIds}
+                tropfbett={track?.verfahren === VERFAHREN_FAEHRTENSCHUH}
                 onWahl={(id, ergebnis) => setErgebnisse((vorher) => ({ ...vorher, [id]: ergebnis }))}
               />
             </div>

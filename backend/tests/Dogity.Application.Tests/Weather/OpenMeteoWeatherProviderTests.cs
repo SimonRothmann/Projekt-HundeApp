@@ -32,6 +32,52 @@ public class OpenMeteoWeatherProviderTests
         return new OpenMeteoWeatherProvider(new HttpClient(handler), NullLogger<OpenMeteoWeatherProvider>.Instance);
     }
 
+    private const string PeriodJson = """
+    {
+      "hourly": {
+        "time": ["2026-08-13T09:00","2026-08-13T10:00","2026-08-13T11:00","2026-08-13T12:00","2026-08-13T13:00"],
+        "temperature_2m": [2.0, 4.5, 3.0, 9.0, 12.0],
+        "precipitation": [1.0, 0.0, 1.2, 3.0, 5.0]
+      }
+    }
+    """;
+
+    [Fact]
+    public async Task GetPeriodAsync_SumsRainAndTakesMinMax_OnlyForHoursInTheWindow()
+    {
+        string? url = null;
+        var provider = Make(HttpStatusCode.OK, PeriodJson, u => url = u);
+
+        // 10:20 bis 12:40. Temperatur: Stundenwerte 10, 11, 12 (die Stunde des Starts zählt mit, 13:00 liegt
+        // nach dem Ende). Regen gilt für die Stunde vor dem Zeitstempel: 11:00 (10-11), 12:00 (11-12) und
+        // 13:00 (12-13, überschneidet das Ende) zählen, 10:00 (9-10, vor dem Start) nicht.
+        var period = await provider.GetPeriodAsync(48.9, 8.5,
+            new DateTimeOffset(2026, 8, 13, 10, 20, 0, TimeSpan.Zero), new DateTimeOffset(2026, 8, 13, 12, 40, 0, TimeSpan.Zero));
+
+        Assert.Contains("precipitation", url);
+        Assert.NotNull(period);
+        Assert.Equal(9.2, period!.RainMm);
+        Assert.Equal(3.0, period.TemperatureMinC);
+        Assert.Equal(9.0, period.TemperatureMaxC);
+    }
+
+    [Fact]
+    public async Task GetPeriodAsync_WithoutHoursInWindow_OnError_OrOldDate_BehavesLikeGetAt()
+    {
+        var leer = await Make(HttpStatusCode.OK, PeriodJson).GetPeriodAsync(48.9, 8.5,
+            new DateTimeOffset(2026, 8, 14, 0, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 8, 14, 5, 0, 0, TimeSpan.Zero));
+        Assert.Null(leer);
+
+        var fehler = await Make(HttpStatusCode.InternalServerError, "").GetPeriodAsync(48.9, 8.5,
+            DateTimeOffset.UtcNow.AddHours(-5), DateTimeOffset.UtcNow);
+        Assert.Null(fehler);
+
+        string? alt = null;
+        await Make(HttpStatusCode.OK, PeriodJson, u => alt = u).GetPeriodAsync(48.9, 8.5,
+            DateTimeOffset.UtcNow.AddDays(-200), DateTimeOffset.UtcNow.AddDays(-199));
+        Assert.Contains("archive-api", alt);
+    }
+
     [Fact]
     public async Task GetAtAsync_PicksNearestHour_AndParsesAllValues()
     {

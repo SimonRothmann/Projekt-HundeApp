@@ -2617,6 +2617,9 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<int?>("SchweissMl")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("SearchRelativeHumidity")
                         .HasColumnType("integer");
 
@@ -2632,6 +2635,18 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<double?>("SearchWindSpeedKmh")
                         .HasColumnType("double precision");
 
+                    b.Property<double?>("StandRegenMm")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("StandTempMaxC")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("StandTempMinC")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("StehzeitStunden")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Surface")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -2642,12 +2657,20 @@ namespace Dogity.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Verfahren")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("Weather")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
                     b.Property<DateTimeOffset?>("WeatherFetchedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Wildart")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Wind")
                         .HasMaxLength(100)

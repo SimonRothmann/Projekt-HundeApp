@@ -1,5 +1,6 @@
 "use client";
 
+import type { SpurArtName } from "@/lib/spurart";
 import { NotebookPen, Route, StickyNote, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
@@ -12,15 +13,15 @@ import { useT } from "@/lib/i18n";
  */
 export function DogActionBar({
   zeigtFaehrte,
-  nurTrail = false,
+  spurArt = "faehrte",
   zeigtMerken,
   onTraining,
   onFaehrte,
   onMerken,
 }: {
   zeigtFaehrte: boolean;
-  /** Der Hund trailt (Mantrailing), läuft aber keine Fährte: Der Knopf heißt dann "Trail legen". */
-  nurTrail?: boolean;
+  /** Was der Hund legt (hauptSpurArt): Der Knopf heißt "Fährte legen", "Trail legen" oder "Schweißfährte legen". */
+  spurArt?: SpurArtName;
   /** Ob "Merken" dabei ist (Besitzer:innen; der Merkzettel gehört der Familie, nicht den Trainer:innen). */
   zeigtMerken: boolean;
   onTraining: () => void;
@@ -38,7 +39,7 @@ export function DogActionBar({
       {(zeigtFaehrte || zeigtMerken) && (
         <div className="flex flex-wrap justify-center gap-x-2">
           {zeigtFaehrte && (
-            <NebenKnopf icon={Route} text={nurTrail ? t("Trail legen") : t("Fährte legen")} onClick={onFaehrte} />
+            <NebenKnopf icon={Route} text={spurArt === "trail" ? t("Trail legen") : spurArt === "schweiss" ? t("Schweißfährte legen") : t("Fährte legen")} onClick={onFaehrte} />
           )}
           {zeigtMerken && <NebenKnopf icon={StickyNote} text={t("Merken")} onClick={onMerken} />}
         </div>

@@ -5,16 +5,16 @@ namespace Dogity.Application.Tracking;
 /// <summary>
 /// Wie lange eine gelegte Spur noch gesucht werden kann - die EINE Stelle im
 /// Backend für die Fristen und für das Ende des Legens. Das Frontend führt
-/// dieselben Zahlen (ABLAUF_FRIST_STUNDEN und ABLAUF_FRIST_STUNDEN_TRAIL in
+/// dieselben Zahlen (ABLAUF_FRIST_STUNDEN, ..._TRAIL und ..._SCHWEISS in
 /// lib/faehrte.ts, dort auch kannNochAblaufen); beim Ändern beide Stellen anfassen.
 /// </summary>
 public static class Ablauffristen
 {
     /// <summary>
-    /// Eine Fährte: bis 24 Stunden nach dem Ende des Legens, unabhängig vom
-    /// Kalendertag - abends gelegt und morgens gesucht ist der Normalfall.
+    /// Eine Sportfährte: bis 4 Stunden nach dem Ende des Legens, unabhängig vom
+    /// Kalendertag. Die längste Liegezeit im Leitfaden sind 180 Minuten.
     /// </summary>
-    public static readonly TimeSpan Faehrte = TimeSpan.FromHours(24);
+    public static readonly TimeSpan Faehrte = TimeSpan.FromHours(4);
 
     /// <summary>
     /// Ein Trail: Er liegt bis zu 24 Stunden, danach folgt die Suche - mit nur
@@ -22,7 +22,18 @@ public static class Ablauffristen
     /// </summary>
     public static readonly TimeSpan Trail = TimeSpan.FromHours(48);
 
-    public static TimeSpan Fuer(GpsTrackKind art) => art == GpsTrackKind.Mantrailing ? Trail : Faehrte;
+    /// <summary>
+    /// Eine Schweißfährte: bis 72 Stunden nach dem Ende des Legens - sie steht je nach Leitfaden
+    /// 14 bis 40 Stunden und soll danach noch gearbeitet werden können.
+    /// </summary>
+    public static readonly TimeSpan Schweissfaehrte = TimeSpan.FromHours(72);
+
+    public static TimeSpan Fuer(GpsTrackKind art) => art switch
+    {
+        GpsTrackKind.Mantrailing => Trail,
+        GpsTrackKind.Schweissfaehrte => Schweissfaehrte,
+        _ => Faehrte
+    };
 
     /// <summary>
     /// Ende des Legens: der Zeitstempel des letzten AUTOMATISCHEN Punkts.

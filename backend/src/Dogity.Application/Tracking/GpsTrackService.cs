@@ -48,6 +48,7 @@ public class GpsTrackService(
 
     private const string VerdecktNachDemLegen = "Verdeckt absuchen stellst du nach dem Legen in den Fährtendetails ein.";
     private const string NurMantrailing = "Diese Angaben gibt es nur beim Mantrailing.";
+    private const string NurSchweissfaehrte = "Diese Angaben gibt es nur bei der Schweißfährte.";
     private const string NurFaehrte = "Diese Angabe gibt es nur bei der Fährte.";
     private const string TrailalterBereich = "Das Trailalter muss zwischen 0 und 168 Stunden liegen.";
 
@@ -133,7 +134,7 @@ public class GpsTrackService(
         // Grobe Vorauswahl in SQL (längste Frist, damit keine Punkte abgelaufener Spuren geladen werden);
         // die genaue Frist je Art prüft Ablauffristen danach. Nur eine Collection per Include: keine
         // Zeilenvervielfachung, daher ohne AsSplitQuery.
-        var fruehestesEnde = jetzt - Ablauffristen.Trail;
+        var fruehestesEnde = jetzt - Ablauffristen.Schweissfaehrte;
         var spuren = await db.GpsTracks
             .Where(t => einheitIds.Contains(t.TrainingSessionId)
                 && !db.GpsWalkRuns.Any(r => r.TrackId == t.Id)
@@ -151,7 +152,8 @@ public class GpsTrackService(
             if (!Ablauffristen.NochZuSuchen(Ablauffristen.LegeEnde(punkte), t.Kind, jetzt)) continue;
             wartende.Add(new WartendeSpurDto(
                 hundJeEinheit[t.TrainingSessionId], t.Id, t.TrainingSessionId, t.LengthMeters, t.AgeMinutes, t.Surface,
-                t.Kind, t.DoubleBlind, t.NegativeTrail, t.ScentArticle, punkte));
+                t.Kind, t.DoubleBlind, t.NegativeTrail, t.ScentArticle, punkte,
+                t.Verfahren, t.Wildart, t.SchweissMl, t.StehzeitStunden));
         }
         return Result<IReadOnlyList<WartendeSpurDto>>.Success(wartende);
     }
@@ -248,13 +250,27 @@ public class GpsTrackService(
             return Result<GpsTrackDto>.Failure("Unbekannte Art der Aufzeichnung.");
         if (request.Kind == GpsTrackKind.Faehrte && request.DoubleBlind)
             return Result<GpsTrackDto>.Failure(VerdecktNachDemLegen);
-        if (request.Kind == GpsTrackKind.Faehrte
+        if (request.Kind != GpsTrackKind.Mantrailing
             && (request.NegativeTrail || !string.IsNullOrWhiteSpace(request.ScentArticle)))
             return Result<GpsTrackDto>.Failure(NurMantrailing);
         if (request.Kind == GpsTrackKind.Mantrailing && request.AgeMinutes is < 0 or > MaxTrailAlterMinuten)
             return Result<GpsTrackDto>.Failure(TrailalterBereich);
         if (Textlaengen.ZuLang(request.ScentArticle, Textlaengen.Geruchsartikel, "Der Geruchsartikel") is { } artikelZuLang)
             return Result<GpsTrackDto>.Failure(artikelZuLang);
+
+        var verfahren = NullWennLeer(request.Verfahren);
+        var wildart = NullWennLeer(request.Wildart);
+        if (request.Kind != GpsTrackKind.Schweissfaehrte
+            && (verfahren is not null || wildart is not null || request.SchweissMl is not null || request.StehzeitStunden is not null))
+            return Result<GpsTrackDto>.Failure(NurSchweissfaehrte);
+        if (verfahren is not null && !Schweissangaben.Verfahren.Contains(verfahren))
+            return Result<GpsTrackDto>.Failure("Unbekanntes Verfahren.");
+        if (wildart is not null && !Schweissangaben.Wildarten.Contains(wildart))
+            return Result<GpsTrackDto>.Failure("Unbekannte Wildart.");
+        if (request.SchweissMl is < 0 or > Schweissangaben.MaxMl)
+            return Result<GpsTrackDto>.Failure("Die Schweißmenge muss zwischen 0 und 1000 ml liegen.");
+        if (request.StehzeitStunden is < 1 or > Schweissangaben.MaxStehzeitStunden)
+            return Result<GpsTrackDto>.Failure("Die Stehzeit muss zwischen 1 und 72 Stunden liegen.");
 
         // Erst nach allen Prüfungen: Eine abgelehnte Anfrage soll weder eine
         // leere Einheit hinterlassen noch die Dauer einer bestehenden ändern.
@@ -269,15 +285,19 @@ public class GpsTrackService(
             LengthMeters = request.LengthMeters,
             AgeMinutes = request.AgeMinutes,
             Surface = request.Surface,
-            // Der Bodenzustand gehört zur Fährte; ein Trail kennt ihn nicht.
-            GroundCondition = request.Kind == GpsTrackKind.Faehrte ? NullWennLeer(request.GroundCondition) : null,
+            // Der Bodenzustand gehört zur Fährte und Schweißfährte; ein Trail kennt ihn nicht.
+            GroundCondition = request.Kind != GpsTrackKind.Mantrailing ? NullWennLeer(request.GroundCondition) : null,
             Weather = request.Weather,
             Wind = request.Wind,
             Comment = request.Comment,
             Kind = request.Kind,
             DoubleBlind = request.DoubleBlind,
             NegativeTrail = request.NegativeTrail,
-            ScentArticle = NullWennLeer(request.ScentArticle)
+            ScentArticle = NullWennLeer(request.ScentArticle),
+            Verfahren = verfahren,
+            Wildart = wildart,
+            SchweissMl = request.SchweissMl,
+            StehzeitStunden = request.StehzeitStunden
         };
         if (request.Id is { } neueId)
             track.Id = neueId;
@@ -521,7 +541,7 @@ public class GpsTrackService(
         if (track is null || !await DarfEinheitBearbeitenAsync(userId, track.TrainingSessionId, ct))
             return Result<GpsTrackAngabenDto>.NotFound("Fährte nicht gefunden.");
         // Der Trail hat seinen eigenen Weg (UpdateTrailAsync, "Doppelblind" mit den übrigen Trail-Angaben).
-        if (track.Kind != GpsTrackKind.Faehrte)
+        if (track.Kind is not (GpsTrackKind.Faehrte or GpsTrackKind.Schweissfaehrte))
             return Result<GpsTrackAngabenDto>.Failure(NurFaehrte);
         // Nach einem Ablauf wäre die Angabe rückwirkend: Der Ablauf hätte die Fährte gesehen, die jetzt
         // als verdeckt gälte. Ablaufen darf man sie danach erst wieder in einem neuen Versuch.
@@ -539,10 +559,14 @@ public class GpsTrackService(
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
             return Result<GpsWalkRunAngabenDto>.NotFound("Fährte nicht gefunden.");
-        if (track.Kind != GpsTrackKind.Mantrailing)
+        // Die Schweißfährte nutzt dieselben Felder: "Zum Stück gekommen" und das Verhalten am Stück.
+        if (track.Kind is not (GpsTrackKind.Mantrailing or GpsTrackKind.Schweissfaehrte))
             return Result<GpsWalkRunAngabenDto>.Failure(NurMantrailing);
         if (request.Indication is { } anzeige && !Enum.IsDefined(anzeige))
             return Result<GpsWalkRunAngabenDto>.Failure("Unbekanntes Anzeigeverhalten.");
+        // Am Stück gibt es nur Totverbellen (Barking) und Totverweisen (ReturnIndication).
+        if (track.Kind == GpsTrackKind.Schweissfaehrte && request.Indication is not (null or TrailIndication.Barking or TrailIndication.ReturnIndication))
+            return Result<GpsWalkRunAngabenDto>.Failure("Am Stück gibt es nur Totverbellen und Totverweisen.");
 
         var walkRun = await db.GpsWalkRuns
             .FirstOrDefaultAsync(r => r.Id == walkRunId && r.TrackId == trackId, ct);
@@ -634,7 +658,7 @@ public class GpsTrackService(
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == trackId, ct);
         if (track is null || !await HasSessionAccessAsync(userId, track.TrainingSessionId, ct))
             return Result<GpsWalkRunDto>.NotFound("Fährte nicht gefunden.");
-        if (track.Kind != GpsTrackKind.Faehrte)
+        if (track.Kind is not (GpsTrackKind.Faehrte or GpsTrackKind.Schweissfaehrte))
             return Result<GpsWalkRunDto>.Failure(NurFaehrte);
 
         var walkRun = await db.GpsWalkRuns
@@ -652,15 +676,24 @@ public class GpsTrackService(
         if (request.Any(a => a is null))
             return Result<GpsWalkRunDto>.Failure("Eine Angabe fehlt.");
 
-        // Alles oder nichts: Eine fremde Id oder ein Marker, der kein Gegenstand ist, lehnt die ganze Anfrage ab.
-        var gegenstandIds = await db.GpsPoints
-            .Where(p => p.TrackId == trackId && p.PointType == GpsPointType.Manual && p.MarkerType == GpsMarkerType.Article)
+        // Alles oder nichts: Eine fremde Id oder ein Marker, der kein Gegenstand (bei der Schweißfährte: Bett) ist,
+        // lehnt die ganze Anfrage ab.
+        var schweiss = track.Kind == GpsTrackKind.Schweissfaehrte;
+        var gegenstandIds = (await db.GpsPoints
+                .Where(p => p.TrackId == trackId && p.PointType == GpsPointType.Manual)
+                .ToListAsync(ct))
+            .Where(p => GpsTrackEvaluator.IstZiel(p, track.Kind))
             .Select(p => p.Id)
-            .ToListAsync(ct);
+            .ToList();
         if (request.Any(a => !gegenstandIds.Contains(a.PointId)))
-            return Result<GpsWalkRunDto>.Failure("Die Angabe gehört zu keinem Gegenstand dieser Fährte.");
+            return Result<GpsWalkRunDto>.Failure(schweiss
+                ? "Die Angabe gehört zu keinem Bett dieser Fährte."
+                : "Die Angabe gehört zu keinem Gegenstand dieser Fährte.");
         if (request.Any(a => a.Result is { } ergebnis && !Enum.IsDefined(ergebnis)))
             return Result<GpsWalkRunDto>.Failure("Unbekanntes Ergebnis.");
+        // Ein Bett wird verwiesen oder überlaufen, nicht aufgenommen.
+        if (schweiss && request.Any(a => a.Result == ArticleResult.PickedUp))
+            return Result<GpsWalkRunDto>.Failure("Ein Bett wird verwiesen oder überlaufen, nicht aufgenommen.");
 
         // Je Gegenstand zählt die letzte Angabe der Anfrage.
         foreach (var angabe in request.GroupBy(a => a.PointId).Select(g => g.Last()))
@@ -800,7 +833,7 @@ public class GpsTrackService(
             t.Comment,
             points.Select(ToPointDto).ToList(),
             t.WalkRuns.OrderBy(r => r.CreatedAt)
-                .Select(r => ToWalkRunDto(r, simplify, t.Kind == GpsTrackKind.Faehrte ? t.Points : null)).ToList(),
+                .Select(r => ToWalkRunDto(r, t.Kind, simplify, t.Kind != GpsTrackKind.Mantrailing ? t.Points : null)).ToList(),
             t.LaidTemperatureC,
             t.LaidRelativeHumidity,
             t.LaidWindSpeedKmh,
@@ -818,7 +851,14 @@ public class GpsTrackService(
             t.ExcludeFromStats,
             t.GroundCondition,
             t.LaidWindDirectionDeg,
-            t.SearchWindDirectionDeg);
+            t.SearchWindDirectionDeg,
+            t.Verfahren,
+            t.Wildart,
+            t.SchweissMl,
+            t.StehzeitStunden,
+            t.StandRegenMm,
+            t.StandTempMinC,
+            t.StandTempMaxC);
     }
 
     private static GpsWalkRunAngabenDto ToAngaben(GpsWalkRun r) => new(r.Id, r.Comment, r.PersonFound, r.Indication);
@@ -831,14 +871,18 @@ public class GpsTrackService(
 
     /// <summary>Wie <see cref="ToWalkRunDto"/> für einen einzelnen Ablauf, samt GPS-Hinweis zu den Gegenständen der Fährte.</summary>
     private async Task<GpsWalkRunDto> ToWalkRunDtoAsync(GpsTrack track, GpsWalkRun run, CancellationToken ct) =>
-        ToWalkRunDto(run, laidPoints: track.Kind == GpsTrackKind.Faehrte
+        ToWalkRunDto(run, track.Kind, laidPoints: track.Kind != GpsTrackKind.Mantrailing
             ? await db.GpsPoints.Where(p => p.TrackId == track.Id).AsNoTracking().ToListAsync(ct)
             : null);
 
-    private static GpsWalkRunDto ToWalkRunDto(GpsWalkRun r, bool simplify = false, IEnumerable<GpsPoint>? laidPoints = null)
+    private static GpsWalkRunDto ToWalkRunDto(GpsWalkRun r, GpsTrackKind kind, bool simplify = false, IEnumerable<GpsPoint>? laidPoints = null)
     {
         var ordered = r.Points.OrderBy(p => p.Timestamp).ToList();
-        var reached = laidPoints is null || r.EvaluatedAt is null ? null : GpsTrackEvaluator.ErreichteGegenstaende(laidPoints, r.Points);
+        var reached = laidPoints is null || r.EvaluatedAt is null ? null : GpsTrackEvaluator.ErreichteGegenstaende(laidPoints, r.Points, kind);
+        // Rückrufe und Ende gibt es nur bei der Schweißfährte, berechnet wie die GPS-Hinweise (kein DB-Feld).
+        var rueckrufe = kind == GpsTrackKind.Schweissfaehrte && laidPoints is not null && r.EvaluatedAt is not null
+            ? GpsTrackEvaluator.Rueckrufe(laidPoints, r.Points)
+            : null;
 
         return new(
             r.Id,
@@ -873,7 +917,12 @@ public class GpsTrackService(
             // Nur für ausgewertete Abläufe (und nicht über der Aufwandsgrenze): sonst gibt es keinen
             // GPS-Hinweis, und die Oberfläche blendet ihn aus.
             ReachedArticleIds: reached,
-            UnrecordedArticleIds: reached is null ? null : GpsTrackEvaluator.NichtAufgezeichneteGegenstaende(laidPoints!, r.Points, reached));
+            UnrecordedArticleIds: reached is null ? null : GpsTrackEvaluator.NichtAufgezeichneteGegenstaende(laidPoints!, r.Points, reached, kind),
+            Recalls: rueckrufe?.Count,
+            RecallPoints: rueckrufe?.Select(x => new GpsRecallPointDto(x.Latitude, x.Longitude)).ToList(),
+            EndReached: kind == GpsTrackKind.Schweissfaehrte && laidPoints is not null && r.EvaluatedAt is not null
+                ? GpsTrackEvaluator.EndeErreicht(laidPoints, r.Points)
+                : null);
     }
 
     /// <summary>

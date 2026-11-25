@@ -48,6 +48,9 @@ public class WetterQueueTests
             if (Interlocked.Increment(ref _aufrufe) == 1) throw new HttpRequestException("Open-Meteo hängt.");
             return Task.FromResult<WeatherReading?>(null);
         }
+
+        public Task<WeatherPeriod?> GetPeriodAsync(double latitude, double longitude, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default) =>
+            Task.FromResult<WeatherPeriod?>(null);
     }
 
     [Fact]

@@ -11,6 +11,7 @@ import type { GpsWalkRun } from "@/lib/types";
 import { useT } from "@/lib/i18n";
 import { automatischePunkte, markerPunkte } from "@/lib/geo";
 import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
+import { istSchweiss } from "@/lib/spurart";
 import { kartenTexte } from "@/lib/karte/kartentexte";
 import { glaettePeilung, naechsteAusrichtung, rohePeilung, zielPeilung, type Ausrichtung } from "@/lib/karte/peilung";
 import {
@@ -27,6 +28,9 @@ import {
   legungDaten,
   leer,
   liveAblaufDaten,
+  flaecheDaten,
+  rueckrufDaten,
+  RUECKRUF_FORM,
   markerArt,
   winkelDaten,
   type KartenPunkt,
@@ -150,8 +154,11 @@ export function TrackMap({
   liveWalkRunPoints,
   fill = false,
   art,
+  flaeche = null,
 }: {
   points: KartenPunkt[];
+  /** Verdeckt arbeitende Schweißfährte: das Quadrat um den Anschuss (Ring als [lon, lat]) statt der Legung. */
+  flaeche?: [number, number][] | null;
   walkRuns?: GpsWalkRun[];
   /** Die Spur der Abläufe: beim Mantrailing färben die weiteren Grenzen (10/25 m) die Ablauflinie. */
   art?: { kind?: number | null };
@@ -467,12 +474,18 @@ export function TrackMap({
 
   useEffect(() => {
     const d = ablaufDaten(walkRuns, t, spurGrenzen({ kind: artKind }));
-    // Winkel gibt es nur bei der Fährte.
-    const winkel = istMantrailing({ kind: artKind }) ? leer<never>() : winkelDaten(walkRuns, t);
-    const teil = { "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, "ablauf-luecke": d.luecken, halte: d.halte, winkel };
+    // Winkel gibt es bei der Fährte und der Schweißfährte (Haken), nicht beim Trail.
+    const winkel = istMantrailing({ kind: artKind }) ? leer<never>() : winkelDaten(walkRuns, t, spurGrenzen({ kind: artKind }), istSchweiss({ kind: artKind }));
+    const teil = { rueckruf: rueckrufDaten(walkRuns, t), "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, "ablauf-luecke": d.luecken, halte: d.halte, winkel };
     Object.assign(datenRef.current, teil);
     datenAnwenden(mapRef.current, teil);
   }, [mapReady, walkRuns, t, artKind]);
+
+  useEffect(() => {
+    const teil = { pruefflaeche: flaecheDaten(flaeche) };
+    Object.assign(datenRef.current, teil);
+    datenAnwenden(mapRef.current, teil);
+  }, [mapReady, flaeche]);
 
   useEffect(() => {
     const d = liveAblaufDaten(liveWalkRunPoints, walkRuns.length, t);
@@ -746,12 +759,13 @@ export function TrackLegend({
     .filter(({ run }) => run.points.length > 0 && !istBewertet(run));
 
   const mitLuecke = walkRuns.some((run) => run.points.some((p) => p.afterGap));
+  const mitRueckruf = walkRuns.some((run) => (run.recallPoints?.length ?? 0) > 0);
 
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
         <Linienprobe farbe={TRACK_LINE_COLOR} fassung={TRACK_CASING_COLOR} />
-        <span className="font-medium text-foreground">{istMantrailing(art) ? t("Gelegter Trail") : t("Gelegte Fährte")}</span>
+        <span className="font-medium text-foreground">{istMantrailing(art) ? t("Gelegter Trail") : istSchweiss(art) ? t("Gelegte Schweißfährte") : t("Gelegte Fährte")}</span>
       </span>
       {markerArten.map((markerart) => (
         <span key={markerart.form} className="flex items-center gap-1.5">
@@ -780,6 +794,12 @@ export function TrackLegend({
             <Linienprobe farbe={farben.red} />
             {t("darüber")}
           </span>
+        </span>
+      )}
+      {mitRueckruf && (
+        <span className="flex items-center gap-1.5">
+          <Markerprobe art={RUECKRUF_FORM} />
+          {t("Rückruf")}
         </span>
       )}
       {mitLuecke && (

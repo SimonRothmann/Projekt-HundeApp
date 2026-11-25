@@ -48,3 +48,25 @@ export function formatDelta(delta: number | null | undefined, sprache: Sprache =
   const sign = delta > 0 ? "+" : "";
   return `${sign}${zahlText(delta, sprache)} K`;
 }
+
+/**
+ * Wetter über die Stehzeit (Schweißfährte) bzw. Liegezeit (Trail) als eine Zeile,
+ * z. B. "Während der Stehzeit: 4,2 mm Regen · 3 bis 9 °C". Null, solange nichts da ist.
+ */
+export function stehzeitWetterText(
+  t: (text: string, werte?: Record<string, string | number>) => string,
+  sprache: Sprache,
+  trail: boolean,
+  regenMm: number | null | undefined,
+  minC: number | null | undefined,
+  maxC: number | null | undefined,
+): string | null {
+  if (regenMm == null || minC == null || maxC == null) return null;
+  // "+ 0" macht aus -0 (gerundet aus -0,3) eine 0.
+  const von = zahlText(Math.round(minC) + 0, sprache, 0);
+  const bis = zahlText(Math.round(maxC) + 0, sprache, 0);
+  const regen = regenMm > 0 ? t("{n} mm Regen", { n: zahlText(regenMm, sprache) }) : t("kein Regen");
+  const temperatur = von === bis ? `${von} °C` : t("{von} bis {bis} °C", { von, bis });
+  const wetter = `${regen} · ${temperatur}`;
+  return trail ? t("Während der Liegezeit: {wetter}", { wetter }) : t("Während der Stehzeit: {wetter}", { wetter });
+}

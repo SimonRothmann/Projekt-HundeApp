@@ -2,9 +2,11 @@ import type { ExpressionSpecification, GeoJSONSource, LayerSpecification, Map as
 import {
   MARKER_FORMEN,
   MARKER_RAND_FARBE,
+  RUECKRUF_FORM,
   TRACK_CASING_COLOR,
   TRACK_LINE_COLOR,
   leer,
+  type Flaeche,
   type Linie,
   type MarkerArt,
   type Merkmale,
@@ -23,6 +25,8 @@ export const SPUR_QUELLEN = [
   "legung-linie",
   "legung-enden",
   "marker",
+  "rueckruf",
+  "pruefflaeche",
   "winkel",
   "ablauf-bewertet",
   "ablauf-unbewertet",
@@ -46,6 +50,7 @@ export const TIPPBARE_EBENEN = [
   "ablauf-luecke-live",
   "halte",
   "marker",
+  "rueckruf",
   "winkel",
   "start",
   "ende",
@@ -80,6 +85,20 @@ export function spurEbenen(): LayerSpecification[] {
     // Legung unter dem Ablauf. 9 px waren auf Test gut sichtbar, aber
     // breiter als nötig; 7 px lassen beidseits des Ablaufs noch einen
     // klaren Saum.
+    // Die Anschussfläche des verdeckten Arbeitens: unter allem anderen, nur Umriss und leichte Füllung.
+    {
+      id: "pruefflaeche-fuellung",
+      type: "fill",
+      source: "pruefflaeche",
+      paint: { "fill-color": TRACK_LINE_COLOR, "fill-opacity": 0.15 },
+    },
+    {
+      id: "pruefflaeche",
+      type: "line",
+      source: "pruefflaeche",
+      layout: { "line-join": "round" },
+      paint: { "line-color": TRACK_LINE_COLOR, "line-width": 3, "line-dasharray": strichmuster(6, 4, 3) },
+    },
     {
       id: "legung-fassung",
       type: "line",
@@ -188,6 +207,17 @@ export function spurEbenen(): LayerSpecification[] {
         "icon-ignore-placement": true,
       },
     },
+    // Rückrufe der Schweißfährte (eigene Form, Paket SF2).
+    {
+      id: "rueckruf",
+      type: "symbol",
+      source: "rueckruf",
+      layout: {
+        "icon-image": ["concat", MARKER_BILD_PRAEFIX, ["get", "form"]],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+      },
+    },
     // Start gefüllt, Ende hohl - dieselbe Farbe wie die Linie, statt Grün und
     // Rot: beides sind Ampeltöne und meinten hier gerade NICHT gut und
     // schlecht, sondern Anfang und Ende der Legung.
@@ -269,7 +299,7 @@ function markerBild(art: MarkerArt): ImageData | null {
 type GeoJsonDaten = Exclude<Parameters<GeoJSONSource["setData"]>[0], string>;
 
 /** Alle Quellen mit ihren aktuellen Daten. */
-export type SpurDatensatz = Record<SpurQuelle, Merkmale<Linie> | Merkmale<Punkt>>;
+export type SpurDatensatz = Record<SpurQuelle, Merkmale<Linie> | Merkmale<Punkt> | Merkmale<Flaeche>>;
 
 export function leererDatensatz(): SpurDatensatz {
   return Object.fromEntries(SPUR_QUELLEN.map((id) => [id, leer()])) as SpurDatensatz;
@@ -286,7 +316,7 @@ export function ebenenAnlegen(map: KartenObjekt, daten: SpurDatensatz): void {
     if (!map.getSource(id)) map.addSource(id, { type: "geojson", data: daten[id] as GeoJsonDaten });
   }
   // Bilder gehen mit dem Stil verloren wie die Ebenen - und werden hier ebenso nur ergänzt.
-  for (const art of MARKER_FORMEN) {
+  for (const art of [...MARKER_FORMEN, RUECKRUF_FORM]) {
     const id = MARKER_BILD_PRAEFIX + art.form;
     if (map.hasImage(id)) continue;
     const bild = markerBild(art);

@@ -24,7 +24,7 @@ import { ErstesTrainingKarte } from "@/components/onboarding/erstes-training-kar
 import { erststartZustand } from "@/lib/erststart";
 import { usePreferences } from "@/lib/preferences-context";
 import { MODULE } from "@/lib/types";
-import { laeuftFaehrte, nichtAbgelaufeneFaehrten, spurArten, type SpurArten } from "@/lib/faehrte";
+import { hauptSpurArt, laeuftFaehrte, nichtAbgelaufeneFaehrten, spurArten, type SpurArten } from "@/lib/faehrte";
 import { merkeGelesenImErststart } from "@/lib/neuerungen-gelesen";
 import { pausenOhneKarte, zeigeSachkundeZeile, zielAufteilung } from "@/lib/startseite";
 import { fuerStartseite } from "@/lib/trainer-offen";
@@ -387,9 +387,7 @@ export default function DashboardPage() {
       <ErfassenKarte
         hunde={daten.hunde}
         faehrtenHundeIds={faehrteAn ? daten.faehrtenHundeIds : []}
-        nurTrailHundeIds={Object.entries(daten.spurArtenJeHund)
-          .filter(([, a]) => a.mantrailing && !a.faehrte)
-          .map(([id]) => id)}
+        spurArtJeHund={Object.fromEntries(Object.entries(daten.spurArtenJeHund).map(([id, a]) => [id, hauptSpurArt(a)]))}
         onEintragen={oeffneEintragen} onFaehrte={oeffneFaehrte} />
     ) : null;
 

@@ -44,7 +44,22 @@ internal static class WetterAuftraege
             .Select(p => (DateTimeOffset?)p.Timestamp)
             .FirstOrDefaultAsync(ct);
         if (suchzeitpunkt is { } gesucht)
+        {
             auftraege.Add(new(WetterZiel.FaehrteGesucht, track.Id, start.Latitude, start.Longitude, AufSekunden(gesucht)));
+
+            // Schweißfährte und Trail stehen Stunden bis Tage: Regen und Kälte dazwischen zählen mehr als die
+            // zwei Einzelwerte. Die Sportfährte (bis 4 h) braucht das nicht; unter einer Stunde lohnt es nicht.
+            if (track.Kind != GpsTrackKind.Faehrte)
+            {
+                var ende = track.Points.Count > 0
+                    ? track.Points.Where(p => p.PointType != GpsPointType.Manual).Max(p => p.Timestamp)
+                    : await db.GpsPoints
+                        .Where(p => p.TrackId == track.Id && p.PointType != GpsPointType.Manual)
+                        .MaxAsync(p => p.Timestamp, ct);
+                if (gesucht - ende >= TimeSpan.FromHours(1))
+                    auftraege.Add(new(WetterZiel.FaehrteStehzeit, track.Id, start.Latitude, start.Longitude, AufSekunden(ende), AufSekunden(gesucht)));
+            }
+        }
 
         return auftraege;
     }
@@ -80,6 +95,7 @@ internal static class WetterAuftraege
     {
         WetterZiel.FaehrteGelegt => track.LaidTemperatureC is null,
         WetterZiel.FaehrteGesucht => track.SearchTemperatureC is null,
+        WetterZiel.FaehrteStehzeit => track.StandTempMinC is null,
         _ => false
     };
 
@@ -102,6 +118,14 @@ internal static class WetterAuftraege
             track.SearchWindDirectionDeg = wetter.WindDirectionDeg;
         }
 
+        track.WeatherFetchedAt = jetzt;
+    }
+
+    public static void Eintragen(GpsTrack track, WeatherPeriod zeitraum, DateTimeOffset jetzt)
+    {
+        track.StandRegenMm = zeitraum.RainMm;
+        track.StandTempMinC = zeitraum.TemperatureMinC;
+        track.StandTempMaxC = zeitraum.TemperatureMaxC;
         track.WeatherFetchedAt = jetzt;
     }
 

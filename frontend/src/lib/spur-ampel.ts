@@ -1,11 +1,12 @@
 import { farbsicherAktiv } from "@/lib/farbsicher";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { FAEHRTE_GRENZEN, istMantrailing, spurGrenzen, type SpurGrenzen } from "@/lib/mantrailing";
+import { istSchweiss } from "@/lib/spurart";
 
 /**
  * Die Ampel der Abweichung eines Ablaufs - die EINE Einstufung für Auswertung,
  * Kartenlinie, Fährtenbild und Verlauf. Die Grenzen je Art (Fährte 3/6 m,
- * Mantrailing 10/25 m) stehen in lib/mantrailing.ts (`spurGrenzen`); alles
+ * Mantrailing 10/25 m, Schweißfährte 10/30 m) stehen in lib/mantrailing.ts (`spurGrenzen`); alles
  * andere bildet nur die Stufe auf Klasse, Wort oder Farbe ab.
  */
 
@@ -35,6 +36,6 @@ export function ampelFarben(): Record<Ampel, string> {
 /** Das Wort zur Ampel einer Abweichung (Schlüssel für t()): was die Stufe bei dieser Art Spur heißt. */
 export function ampelLabel(abweichungMeter: number, art?: { kind?: number | null } | null): string {
   const stufe = ampelStufe(abweichungMeter, spurGrenzen(art));
-  if (stufe === "gruen") return istMantrailing(art) ? uebersetzbar("nah an der Spur") : uebersetzbar("eng an der Fährte");
+  if (stufe === "gruen") return istMantrailing(art) || istSchweiss(art) ? uebersetzbar("nah an der Spur") : uebersetzbar("eng an der Fährte");
   return stufe === "gelb" ? uebersetzbar("mittlere Abweichung") : uebersetzbar("deutlich abgekommen");
 }

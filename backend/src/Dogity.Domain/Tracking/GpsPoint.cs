@@ -26,7 +26,16 @@ public enum GpsMarkerType
     Article,
     TreatPot,
     Distraction,
-    Other
+    Other,
+
+    /// <summary>Wundbett der Schweißfährte: Stelle, an der sich das Stück niedergetan hat.</summary>
+    WoundBed,
+
+    /// <summary>
+    /// Verweiserpunkt (Schweißfährte, Tupf/Tropf) bzw. Tropfbett (Fährtenschuh): kleine
+    /// Schweißstelle, die der Hund verweisen soll.
+    /// </summary>
+    IndicatorPoint
 }
 
 /// <summary>

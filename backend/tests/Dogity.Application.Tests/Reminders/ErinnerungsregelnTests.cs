@@ -1,6 +1,7 @@
 using Dogity.Application.Common;
 using Dogity.Application.Reminders;
 using Dogity.Domain.Notifications;
+using Dogity.Domain.Tracking;
 
 namespace Dogity.Application.Tests.Reminders;
 
@@ -214,12 +215,54 @@ public class ErinnerungsregelnTests
 
         var e = Assert.Single(Erinnerungsregeln.FaehrtenErinnerungen(Utc(22, 10), [kandidat], NichtsGesendet));
 
-        Assert.Equal("Die Fährte von Bello ist noch nicht abgelaufen. Du kannst sie noch bis 23.10.2026, 09:00 Uhr ablaufen.", De(e));
-        Assert.Equal("The track for Bello has not been walked yet. You can still walk it until 09:00 on 23 Oct 2026.", En(e));
+        Assert.Equal("Die Fährte von Bello ist noch nicht abgelaufen. Du kannst sie noch bis 22.10.2026, 13:00 Uhr ablaufen.", De(e));
+        Assert.Equal("The track for Bello has not been walked yet. You can still walk it until 13:00 on 22 Oct 2026.", En(e));
         Assert.Equal($"/dogs/{kandidat.HundId}?eintrag={kandidat.TrainingId}", e.Link);
         Assert.Equal(ReminderType.TrackNotWalked, e.Schluessel.Typ);
         Assert.Equal(kandidat.FaehrteId, e.Schluessel.BezugId);
         Assert.Equal(SentReminder.KeinTag, e.Schluessel.Tag);
+    }
+
+    private static FaehrteKandidat Schweissfaehrte(DateTimeOffset ende, int? stehzeitStunden) =>
+        new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Bello", Guid.NewGuid(), ende, false, false, true,
+            GpsTrackKind.Schweissfaehrte, stehzeitStunden);
+
+    [Fact]
+    public void Schweissfaehrte_ErsteStufeAbStehzeit_OhneAngabe14Stunden_ZweiteStufeSechsStundenVorFristende()
+    {
+        // Ende 19:00 Uhr (17:00 UTC) am 22.; Fristende 72 Stunden = 18:00 Uhr am 25. (Winterzeit seit der Nacht davor).
+        var mitStehzeit = Schweissfaehrte(Utc(22, 17), 20);
+        Assert.Empty(Erinnerungsregeln.FaehrtenErinnerungen(Utc(23, 12, 59), [mitStehzeit], NichtsGesendet)); // 19:59 Stunden
+        var erste = Assert.Single(Erinnerungsregeln.FaehrtenErinnerungen(Utc(23, 13), [mitStehzeit], NichtsGesendet));
+        Assert.Equal("Die Schweißfährte von Bello hat ihre Stehzeit erreicht. Du kannst sie noch bis 25.10.2026, 18:00 Uhr arbeiten.", De(erste));
+        Assert.Equal("The blood track for Bello has reached its standing time. You can still work it until 18:00 on 25 Oct 2026.", En(erste));
+        Assert.Equal(SentReminder.KeinTag, erste.Schluessel.Tag);
+
+        var ohneAngabe = Schweissfaehrte(Utc(22, 17), null);
+        Assert.Empty(Erinnerungsregeln.FaehrtenErinnerungen(Utc(23, 6, 59), [ohneAngabe], NichtsGesendet));
+        Assert.Single(Erinnerungsregeln.FaehrtenErinnerungen(Utc(23, 7), [ohneAngabe], NichtsGesendet)); // 14 Stunden
+
+        // Zweite Stufe: ab 66 Stunden, mit eigenem Schlüssel - die erste Stufe sperrt sie nicht.
+        var gesendet = new HashSet<ErinnerungsSchluessel> { erste.Schluessel };
+        var zweite = Assert.Single(Erinnerungsregeln.FaehrtenErinnerungen(Utc(25, 11, 10), [mitStehzeit], gesendet));
+        Assert.Equal("Die Schweißfährte von Bello kann nur noch bis 25.10.2026, 18:00 Uhr gearbeitet werden.", De(zweite));
+        Assert.Equal(SentReminder.ZweiteStufe, zweite.Schluessel.Tag);
+        Assert.NotEqual(erste.Schluessel, zweite.Schluessel);
+
+        // Beide gesendet, oder nach dem Fristende: nichts mehr.
+        gesendet.Add(zweite.Schluessel);
+        Assert.Empty(Erinnerungsregeln.FaehrtenErinnerungen(Utc(25, 11, 10), [mitStehzeit], gesendet));
+        Assert.Empty(Erinnerungsregeln.FaehrtenErinnerungen(Utc(25, 17, 1), [mitStehzeit], NichtsGesendet));
+    }
+
+    [Fact]
+    public void Schweissfaehrte_ErsteStufeNieGekommen_ZweiteStufeErsetztSie()
+    {
+        // Mit 40 Stunden Stehzeit und erst kurz vor Fristende im Fenster: nur eine Meldung, die zweite Stufe.
+        var kandidat = Schweissfaehrte(Utc(22, 17), 40);
+        var e = Assert.Single(Erinnerungsregeln.FaehrtenErinnerungen(Utc(25, 15), [kandidat], NichtsGesendet)); // 70 Stunden
+
+        Assert.Equal(SentReminder.ZweiteStufe, e.Schluessel.Tag);
     }
 
     [Fact]
@@ -231,27 +274,27 @@ public class ErinnerungsregelnTests
     {
         var kandidat = Faehrte(Utc(22, 7));
 
-        Assert.Single(Erinnerungsregeln.FaehrtenErinnerungen(Utc(23, 7), [kandidat], NichtsGesendet)); // genau 24 Stunden
-        Assert.Empty(Erinnerungsregeln.FaehrtenErinnerungen(Utc(23, 7, 1), [kandidat], NichtsGesendet));
+        Assert.Single(Erinnerungsregeln.FaehrtenErinnerungen(Utc(22, 11), [kandidat], NichtsGesendet)); // genau 4 Stunden
+        Assert.Empty(Erinnerungsregeln.FaehrtenErinnerungen(Utc(22, 11, 1), [kandidat], NichtsGesendet));
     }
 
     [Fact]
-    public void Faehrte_InDerRuhezeitFaellig_KommtAmNaechstenMorgenWennDieFristLaeuft()
+    public void Schweissfaehrte_InDerRuhezeitFaellig_KommtAmNaechstenMorgenWennDieFristLaeuft()
     {
-        // Ende 19:00 Uhr (17:00 UTC), fällig ab 22:00 Uhr - Ruhezeit. Um 22:30 Uhr nichts,
-        // am nächsten Morgen um 08:10 Uhr (06:10 UTC) sind es 13 Stunden: die Frist läuft noch.
-        var kandidat = Faehrte(Utc(22, 17));
+        // Ende 19:00 Uhr (17:00 UTC), Stehzeit 14 Stunden: fällig ab 09:00 Uhr am nächsten Morgen (Frist 72 Stunden).
+        var kandidat = Schweissfaehrte(Utc(22, 17), 14);
 
         Assert.Empty(Erinnerungsregeln.FaehrtenErinnerungen(Utc(22, 20, 30), [kandidat], NichtsGesendet));
-        Assert.Single(Erinnerungsregeln.FaehrtenErinnerungen(Utc(23, 6, 10), [kandidat], NichtsGesendet));
+        Assert.Empty(Erinnerungsregeln.FaehrtenErinnerungen(Utc(23, 6, 10), [kandidat], NichtsGesendet)); // erst 13 Stunden
+        Assert.Single(Erinnerungsregeln.FaehrtenErinnerungen(Utc(23, 7, 10), [kandidat], NichtsGesendet));
     }
 
     [Fact]
     public void Faehrte_InDerRuhezeitFaellig_WirdNichtNachgeholtWennDieFristVorbeiIst()
     {
-        // Ende 07:00 Uhr: fällig 10:00 Uhr (im Fenster). Wäre der Lauf ausgefallen, käme sie am
-        // nächsten Morgen um 08:10 Uhr nach 25 Stunden - zu spät, die Fährte lässt sich nicht mehr ablaufen.
-        Assert.Empty(Erinnerungsregeln.FaehrtenErinnerungen(Utc(23, 6, 10), [Faehrte(Utc(22, 5))], NichtsGesendet));
+        // Ende 07:00 Uhr: fällig 10:00 Uhr (im Fenster), Frist 4 Stunden. Wäre der Lauf ausgefallen, käme sie
+        // um 12:00 Uhr nicht mehr - zu spät, die Fährte lässt sich nicht mehr ablaufen.
+        Assert.Empty(Erinnerungsregeln.FaehrtenErinnerungen(Utc(22, 11, 1), [Faehrte(Utc(22, 5))], NichtsGesendet));
     }
 
     [Fact]
