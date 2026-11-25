@@ -1,6 +1,7 @@
 "use client";
 
 import { useT } from "@/lib/i18n";
+import { InstagramHinweis } from "@/components/instagram-hinweis";
 import { LetzteNeuerung } from "@/components/letzte-neuerung";
 import { NeuerungenGesehen } from "@/components/neuerungen-gesehen";
 import { VersionStand } from "@/components/version-stand";
@@ -27,6 +28,7 @@ export default function ProfilNeuerungenPage() {
           </CardContent>
         </Card>
       </NeuerungenGesehen>
+      <InstagramHinweis />
     </div>
   );
 }

@@ -30,6 +30,8 @@ export const AENDERUNGSART_LABEL: Record<Aenderungsart, string> = {
 export type Aenderung = {
   art: Aenderungsart;
   text: string;
+  /** Optional: der ganze Punkt führt auf diese Adresse (neuer Tab). */
+  link?: string;
 };
 
 export type Versionshinweis = {
@@ -44,29 +46,14 @@ export type Versionshinweis = {
 
 /** Der oberste Eintrag von VERSIONSHINWEISE (der Test hält beide gleich). */
 export const NEUESTE_VERSION: Versionshinweis = {
-  version: "1.9",
-  datum: "2026-11-23",
-  titel: uebersetzbar("Leichter Einstieg"),
+  version: "1.10",
+  datum: "2026-11-25",
+  titel: uebersetzbar("Dogity auf Instagram"),
   aenderungen: [
     {
       art: "neu",
-      text: uebersetzbar("Hund angelegt, aber noch nicht trainiert? Die Startseite zeigt jetzt „Erstes Training eintragen“ mit passenden Übungen – und schlägt die Einstiegsprüfung als Ziel in 12 Wochen vor, mit einem Tipp angelegt."),
-    },
-    {
-      art: "neu",
-      text: uebersetzbar("Drei Tage nach dem ersten Hund erinnert Dogity einmal ans erste Training, falls noch keins eingetragen ist – als Mitteilung in der Glocke und per Push."),
-    },
-    {
-      art: "neu",
-      text: uebersetzbar("Fährte und Trail: Einen falsch gesetzten Marker kannst du nach dem Speichern wieder löschen – unter „Einstellungen der Fährte“. Ein schon gelaufener Ablauf wird dann neu ausgewertet."),
-    },
-    {
-      art: "behoben",
-      text: uebersetzbar("Training eintragen ohne Netz: Die Vorschläge „Diese Woche“ und „Zuletzt geübt“ sind jetzt auch offline da."),
-    },
-    {
-      art: "behoben",
-      text: uebersetzbar("Fährte ablaufen mit ausgeschaltetem Bildschirm: Ist „Marker über Uhr oder Kopfhörer“ an, zeichnet Dogity jetzt wie beim Legen weiter auf. Stücke ohne GPS zeigt die Karte gestrichelt, Gegenstände dort heißen „GPS: keine Aufzeichnung“ statt „nicht erreicht“."),
+      text: uebersetzbar("Dogity ist jetzt auf Instagram: @dogityapp, mit Trainingstipps, Neuerungen und Ayla."),
+      link: "https://www.instagram.com/dogityapp/",
     },
   ],
 };

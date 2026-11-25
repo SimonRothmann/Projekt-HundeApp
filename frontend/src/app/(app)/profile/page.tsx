@@ -12,6 +12,7 @@ import { bestimmeSchriftgroesse } from "@/lib/schriftgroesse";
 import { useSprache, useT } from "@/lib/i18n";
 import { vorschauDarstellung, vorschauFunktionen, vorschauSportarten } from "@/lib/profil";
 import { MODULE, type Sport } from "@/lib/types";
+import { InstagramSymbol, INSTAGRAM_URL } from "@/components/ui/instagram-symbol";
 import { ListenGruppe, ListenZeile } from "@/components/profile/einstellungs-liste";
 import { ProfilKopf } from "@/components/profile/profil-kopf";
 import { AbmeldenZeile } from "@/components/profile/abmelden-zeile";
@@ -97,6 +98,13 @@ export default function ProfilePage() {
           vorschau={t("Version {v}", { v: AKTUELLE_VERSION })}
           punkt={neuerungenUngelesen}
           punktText={t("Neu")}
+        />
+        <ListenZeile
+          href={INSTAGRAM_URL}
+          extern
+          icon={InstagramSymbol}
+          titel={t("Dogity auf Instagram")}
+          untertitel={t("Tipps, Neuerungen und Ayla")}
         />
       </ListenGruppe>
 

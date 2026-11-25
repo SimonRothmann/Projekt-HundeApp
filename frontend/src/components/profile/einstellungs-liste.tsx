@@ -1,6 +1,6 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import type { ComponentType, ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -35,6 +35,7 @@ const ZEILE =
  */
 export function ListenZeile({
   href,
+  extern,
   onClick,
   icon: Icon,
   titel,
@@ -46,8 +47,10 @@ export function ListenZeile({
   pfeil = true,
 }: {
   href?: string;
+  /** Link auf eine fremde Seite: öffnet im neuen Tab. */
+  extern?: boolean;
   onClick?: () => void;
-  icon?: LucideIcon;
+  icon?: ComponentType<{ className?: string }>;
   titel: string;
   untertitel?: string;
   vorschau?: string;
@@ -78,6 +81,13 @@ export function ListenZeile({
     </>
   );
 
+  if (href && extern) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={ZEILE}>
+        {inhalt}
+      </a>
+    );
+  }
   if (href) {
     return (
       <Link href={href} className={ZEILE}>

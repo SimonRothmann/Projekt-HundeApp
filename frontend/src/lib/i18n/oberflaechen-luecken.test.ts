@@ -44,6 +44,7 @@ const BEWUSST_DEUTSCH: { pfad: string; grund: string }[] = [
 /** Zeichenketten, die kein zu übersetzender Satz sind. */
 const ERLAUBTE_LITERALE = new Set([
   "Dogity", // Markenname
+  "Instagram", // Markenname
   "OK", // in beiden Sprachen gleich
   "m", "s", // Einheiten (Meter, Sekunden)
   "GRUND", // Beispielcode im Sportarten-Editor, kein Satz

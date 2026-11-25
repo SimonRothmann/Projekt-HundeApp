@@ -45,7 +45,20 @@ export function LetzteNeuerung() {
             <Badge variant="outline" className="mt-0.5 shrink-0">
               {t(AENDERUNGSART_LABEL[aenderung.art])}
             </Badge>
-            <span className="min-w-0 text-sm text-muted-foreground [overflow-wrap:anywhere]">{t(aenderung.text)}</span>
+            <span className="min-w-0 text-sm text-muted-foreground [overflow-wrap:anywhere]">
+              {aenderung.link ? (
+                <a
+                  href={aenderung.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary-text hover:underline"
+                >
+                  {t(aenderung.text)}
+                </a>
+              ) : (
+                t(aenderung.text)
+              )}
+            </span>
           </li>
         ))}
         {/* Der Rest gehört in die Liste, die er abschneidet - nicht in den

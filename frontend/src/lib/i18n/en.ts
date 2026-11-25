@@ -3315,4 +3315,8 @@ export const EN: Record<string, string> = {
   "Fährte ablaufen mit ausgeschaltetem Bildschirm: Ist „Marker über Uhr oder Kopfhörer“ an, zeichnet Dogity jetzt wie beim Legen weiter auf. Stücke ohne GPS zeigt die Karte gestrichelt, Gegenstände dort heißen „GPS: keine Aufzeichnung“ statt „nicht erreicht“.": "Running a track with the screen off: If “Markers via watch or headphones” is on, Dogity now keeps recording, just like when laying. The map shows stretches without GPS as dashed lines, and items there read “GPS: no recording” instead of “not reached”.",
   "Training eintragen ohne Netz: Die Vorschläge „Diese Woche“ und „Zuletzt geübt“ sind jetzt auch offline da.": "Entering training without signal: the suggestions “This week” and “Recently practised” are now available offline too.",
   "Leichter Einstieg": "An easier start",
+  "Dogity auf Instagram": "Dogity on Instagram",
+  "Tipps, Neuerungen und Ayla": "Tips, updates and Ayla",
+  "Neuigkeiten auch auf Instagram": "Updates on Instagram too",
+  "Dogity ist jetzt auf Instagram: @dogityapp, mit Trainingstipps, Neuerungen und Ayla.": "Dogity is now on Instagram: @dogityapp, with training tips, updates and Ayla.",
 };

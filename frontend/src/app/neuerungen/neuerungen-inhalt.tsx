@@ -1,5 +1,6 @@
 "use client";
 
+import { InstagramHinweis } from "@/components/instagram-hinweis";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-chrome";
 import { VersionStand } from "@/components/version-stand";
 import { Badge } from "@/components/ui/badge";
@@ -81,7 +82,18 @@ export function NeuerungenInhalt() {
                       {t(AENDERUNGSART_LABEL[aenderung.art])}
                     </Badge>
                     <span className="min-w-0 text-sm text-muted-foreground [overflow-wrap:anywhere]">
-                      {t(aenderung.text)}
+                      {aenderung.link ? (
+                        <a
+                          href={aenderung.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-text hover:underline"
+                        >
+                          {t(aenderung.text)}
+                        </a>
+                      ) : (
+                        t(aenderung.text)
+                      )}
                     </span>
                   </li>
                 ))}
@@ -94,6 +106,7 @@ export function NeuerungenInhalt() {
           <p className="text-sm text-muted-foreground">
             {t("Die Einträge bis einschließlich Version {v} sind nachträglich aus der Entwicklungsgeschichte zusammengetragen. Die Daten stimmen, die Einteilung in Fassungen ist im Nachhinein gezogen. Ab der nächsten Fassung entsteht jeder Eintrag zusammen mit der Änderung selbst.", { v: NACHTRAEGLICH_BIS })}
           </p>
+          <InstagramHinweis />
           <p className="mt-3 text-sm text-muted-foreground">
             {t("{app} ist kostenlos und werbefrei. Rückmeldungen und Wünsche sind willkommen.", { app: SITE.name })}
           </p>

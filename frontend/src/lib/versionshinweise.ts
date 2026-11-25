@@ -53,6 +53,18 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "1.10",
+    datum: "2026-11-25",
+    titel: uebersetzbar("Dogity auf Instagram"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Dogity ist jetzt auf Instagram: @dogityapp, mit Trainingstipps, Neuerungen und Ayla."),
+        link: "https://www.instagram.com/dogityapp/",
+      },
+    ],
+  },
+  {
     version: "1.9",
     datum: "2026-11-23",
     titel: uebersetzbar("Leichter Einstieg"),

@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SITE } from "@/lib/seo";
 import { MarketingAuthLinks, MarketingFooterAuthLinks } from "@/components/marketing/marketing-auth-links";
+import { InstagramSymbol, INSTAGRAM_URL } from "@/components/ui/instagram-symbol";
 import { VersionStand } from "@/components/version-stand";
 import { SprachUmschalter } from "@/components/sprach-umschalter";
 import { useT } from "@/lib/i18n";
@@ -68,6 +69,16 @@ export function MarketingFooter() {
           <Link href="/neuerungen" className="hover:text-foreground">
             {t("Neuerungen")}
           </Link>
+          <a
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("Dogity auf Instagram")}
+            className="inline-flex items-center gap-1.5 hover:text-foreground"
+          >
+            <InstagramSymbol className="size-4 shrink-0" />
+            Instagram
+          </a>
           {/* Pflichtangaben. Sie müssen von jeder Seite aus in höchstens zwei
               Schritten erreichbar sein (§ 5 DDG: "leicht erkennbar, unmittelbar
               erreichbar und ständig verfügbar") - deshalb stehen sie hier und
