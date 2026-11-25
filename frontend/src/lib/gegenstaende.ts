@@ -33,7 +33,9 @@ export const GEGENSTANDS_ERGEBNISSE: readonly { wert: GegenstandsErgebnis; label
 const ERGEBNIS_UEBERLAUFEN: GegenstandsErgebnis = 2;
 
 export type Gegenstand = {
-  /** Gegenstand 1, 2, 3 ... in Legereihenfolge. */
+  /** Die Markerart (0 Gegenstand, 4 Wundbett, 5 Verweiserpunkt bzw. Tropfbett); Betten werden verwiesen oder überlaufen, nie aufgenommen; bei Gegenständen fehlt es. */
+  art?: number;
+  /** Gegenstand 1, 2, 3 ... in Legereihenfolge (Betten: je Art gezählt). */
   nummer: number;
   /** Id des Markers; ohne sie (noch nicht gespeichert, älterer Stand) lässt sich nichts eintragen. */
   id: string;
@@ -51,6 +53,23 @@ export function gegenstaende(punkte: readonly GpsPoint[]): Gegenstand[] {
     .map((p, index) => ({ p, index }))
     .sort((a, b) => a.p.timestamp.localeCompare(b.p.timestamp) || a.index - b.index)
     .map(({ p }, i) => ({ nummer: i + 1, id: p.id as string, label: p.label, material: p.material ?? null }));
+}
+
+/**
+ * Die Betten einer Schweißfährte (Wundbetten und Verweiserpunkte bzw. Tropfbetten, Paket SF2) in Legereihenfolge,
+ * je Art gezählt. Wie die Gegenstände der Fährte: Hier trägt die Hundeführer:in ein, ob der Hund sie verwiesen hat.
+ */
+export function betten(punkte: readonly GpsPoint[]): Gegenstand[] {
+  const gezaehlt = new Map<number, number>();
+  return punkte
+    .filter((p) => istMarker(p) && (p.markerType === 4 || p.markerType === 5) && p.id != null)
+    .map((p, index) => ({ p, index }))
+    .sort((a, b) => a.p.timestamp.localeCompare(b.p.timestamp) || a.index - b.index)
+    .map(({ p }) => {
+      const nummer = (gezaehlt.get(p.markerType) ?? 0) + 1;
+      gezaehlt.set(p.markerType, nummer);
+      return { art: p.markerType, nummer, id: p.id as string, label: p.label, material: null };
+    });
 }
 
 /** Material wählen oder erneut antippen = abwählen (null). Es gilt höchstens eine Wahl. */

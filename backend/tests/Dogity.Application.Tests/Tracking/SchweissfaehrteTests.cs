@@ -93,14 +93,15 @@ public class SchweissfaehrteTests
     }
 
     [Fact]
-    public void Betten_ZaehlenNichtAlsGegenstaende()
+    public void Betten_ZaehlenSeitSf2AlsZiele_GegenstaendeNicht()
     {
-        var lauf = new Lauf(0, 0).Gehe(0, 100).Gehe(60, 100).Gehe(60, 180);
+        var lauf = new Lauf(0, 0).Gehe(0, 60);
 
-        var ergebnis = Auswerten(lauf, GpsTrackKind.Schweissfaehrte, [Marker(0, 40, GpsMarkerType.WoundBed), Marker(0, 80, GpsMarkerType.IndicatorPoint)]);
+        var ergebnis = Auswerten(lauf, GpsTrackKind.Schweissfaehrte,
+            [Marker(0, 40, GpsMarkerType.WoundBed), Marker(0, 80, GpsMarkerType.IndicatorPoint), Marker(0, 50, GpsMarkerType.Article)]);
 
-        Assert.Equal(0, ergebnis.ArticlesTotal);
-        Assert.Equal(0, ergebnis.ArticlesFound);
+        Assert.Equal(2, ergebnis.ArticlesTotal);
+        Assert.Equal(1, ergebnis.ArticlesFound); // das Bett bei 80 m liegt mehr als 8 m vom letzten Punkt (60 m)
     }
 
     // ---- Angaben im Dienst ----
@@ -203,11 +204,11 @@ public class SchweissfaehrteTests
     }
 
     [Fact]
-    public async Task Anlegen_SchweissfaehrteOhneVerdecktUndOhneTrailAngaben()
+    public async Task Anlegen_SchweissfaehrteOhneTrailAngaben_MitVerdecktErlaubt()
     {
         var (dienst, db, user, hund) = await AufbauenAsync();
 
-        Assert.False((await dienst.CreateAsync(user, Legen(hund) with { DoubleBlind = true })).Succeeded);
+        Assert.True((await dienst.CreateAsync(user, Legen(hund) with { DoubleBlind = true })).Value!.DoubleBlind);
         Assert.False((await dienst.CreateAsync(user, Legen(hund) with { NegativeTrail = true })).Succeeded);
         Assert.False((await dienst.CreateAsync(user, Legen(hund) with { ScentArticle = "Mütze" })).Succeeded);
     }

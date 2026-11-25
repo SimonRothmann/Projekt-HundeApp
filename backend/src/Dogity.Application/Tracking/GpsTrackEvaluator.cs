@@ -136,9 +136,10 @@ public static class GpsTrackEvaluator
     /// <summary>
     /// Stand der Auswertung, wie er am Ablauf steht (<see cref="GpsWalkRun.EvaluationVersion"/>).
     /// Hochzählen, wenn bestehende Auswertungen neu zu rechnen sind - der Backfill holt dann alle
-    /// Abläufe darunter beim nächsten Start nach. 1 = mit Winkeln und Schenkeln.
+    /// Abläufe darunter beim nächsten Start nach. 1 = mit Winkeln und Schenkeln, 2 = die Betten der
+    /// Schweißfährte zählen als Ziele (ArticlesFound/ArticlesTotal).
     /// </summary>
-    public const int AktuelleVersion = 1;
+    public const int AktuelleVersion = 2;
 
     /// <summary>
     /// Fenster um einen Winkel, in dem ein Ausschlag als Überschießen zählt: ein kleines Stück davor
@@ -180,8 +181,9 @@ public static class GpsTrackEvaluator
         var markers = laidPoints.Where(p => p.PointType == GpsPointType.Manual).ToList();
         var walk = walkPoints.OrderBy(p => p.Timestamp).ToList();
 
-        // Gegenstände gibt es nur bei der Fährte - beim Mantrailing wird nichts gezählt.
-        var articlesTotal = kind == GpsTrackKind.Faehrte ? markers.Count(m => m.MarkerType == GpsMarkerType.Article) : 0;
+        // Gezählt wird, was der Hund verweisen soll: bei der Fährte die Gegenstände, bei der Schweißfährte
+        // die Betten - beim Mantrailing nichts.
+        var articlesTotal = markers.Count(m => IstZiel(m, kind));
 
         if (line.Count == 0 || walk.Count == 0)
             return new WalkRunEvaluation(0, 0, 0, 0, articlesTotal, [], [], [], []);
@@ -214,7 +216,7 @@ public static class GpsTrackEvaluator
         var onTrack = deviations.Count(d => d <= onTrackMeters) * 100.0 / deviations.Length;
 
         // ---- Gegenstände: kam der Hundeführer nah genug heran? ----
-        var articlesFound = articlesTotal > 0 ? ErreichteGegenstaende(markers, walk, originLat).Count : 0;
+        var articlesFound = articlesTotal > 0 ? ErreichteGegenstaende(markers, walk, originLat, kind).Count : 0;
 
         // ---- Winkel und Schenkel: bei der Fährte und der Schweißfährte (Haken), nicht beim Trail ----
         var geometrie = kind != GpsTrackKind.Mantrailing ? FaehrtenGeometrie.Berechnen(line) : null;
@@ -456,7 +458,8 @@ public static class GpsTrackEvaluator
     /// null, wenn der Aufwand über <see cref="MaxAuswertungsAufwand"/> läge - wie bei der Auswertung selbst,
     /// damit das Lesen eines riesigen Ablaufs nicht teurer wird als dessen Auswertung.
     /// </summary>
-    public static IReadOnlyList<Guid>? ErreichteGegenstaende(IEnumerable<GpsPoint> gelegt, IEnumerable<GpsWalkPoint> ablauf)
+    public static IReadOnlyList<Guid>? ErreichteGegenstaende(
+        IEnumerable<GpsPoint> gelegt, IEnumerable<GpsWalkPoint> ablauf, GpsTrackKind kind = GpsTrackKind.Faehrte)
     {
         var punkte = gelegt.ToList();
         var ablaufPunkte = ablauf.ToList();
@@ -464,7 +467,7 @@ public static class GpsTrackEvaluator
             return null;
         // Derselbe Bezugspunkt wie in TryEvaluate: der Anfang der gelegten Linie.
         var anfang = punkte.Where(p => p.PointType != GpsPointType.Manual).MinBy(p => p.Timestamp);
-        return anfang is null ? [] : ErreichteGegenstaende(punkte, ablaufPunkte, anfang.Latitude);
+        return anfang is null ? [] : ErreichteGegenstaende(punkte, ablaufPunkte, anfang.Latitude, kind);
     }
 
     /// <summary>
@@ -492,13 +495,14 @@ public static class GpsTrackEvaluator
     /// dort wohl vorbei, das Gerät hat es nur nicht aufgezeichnet.
     /// </summary>
     public static IReadOnlyList<Guid> NichtAufgezeichneteGegenstaende(
-        IEnumerable<GpsPoint> gelegt, IEnumerable<GpsWalkPoint> ablauf, IReadOnlyList<Guid> erreicht)
+        IEnumerable<GpsPoint> gelegt, IEnumerable<GpsWalkPoint> ablauf, IReadOnlyList<Guid> erreicht,
+        GpsTrackKind kind = GpsTrackKind.Faehrte)
     {
         var punkte = gelegt.ToList();
         var walk = ablauf.OrderBy(p => p.Timestamp).ToList();
         var luecken = LueckenAnfaenge(walk);
         var offen = punkte
-            .Where(m => m.PointType == GpsPointType.Manual && m.MarkerType == GpsMarkerType.Article && !erreicht.Contains(m.Id))
+            .Where(m => IstZiel(m, kind) && !erreicht.Contains(m.Id))
             .ToList();
         var linie = punkte.Where(p => p.PointType != GpsPointType.Manual).OrderBy(p => p.Timestamp).ToList();
         if (luecken.Count == 0 || offen.Count == 0 || linie.Count < 2)
@@ -521,11 +525,116 @@ public static class GpsTrackEvaluator
             .ToList();
     }
 
-    private static List<Guid> ErreichteGegenstaende(IEnumerable<GpsPoint> marker, IEnumerable<GpsWalkPoint> ablauf, double originLat)
+    /// <summary>
+    /// Ob ein Marker ein Ziel ist, das der Hund verweisen soll: bei der Fährte ein Gegenstand, bei der
+    /// Schweißfährte ein Wundbett oder Verweiserpunkt (Paket SF2), beim Mantrailing keiner.
+    /// </summary>
+    public static bool IstZiel(GpsPoint marker, GpsTrackKind kind) =>
+        marker.PointType == GpsPointType.Manual && kind switch
+        {
+            GpsTrackKind.Faehrte => marker.MarkerType == GpsMarkerType.Article,
+            GpsTrackKind.Schweissfaehrte => marker.MarkerType is GpsMarkerType.WoundBed or GpsMarkerType.IndicatorPoint,
+            _ => false
+        };
+
+    /// <summary>
+    /// Ein Rückruf der Schweißfährte: Position des Ablaufpunkts, an dem er fiel.
+    /// </summary>
+    public readonly record struct Rueckruf(double Latitude, double Longitude);
+
+    /// <summary>
+    /// Ab dieser Abweichung von der gelegten Linie gilt das Gespann als abgekommen (die Gelb-Grenze der
+    /// Schweißfährte, <see cref="SchweissToleranz"/>) - und erst wieder als auf der Fährte, wenn es
+    /// höchstens so weit abweicht. Gegenstück im Frontend: <c>RUECKRUF_ABWEICHUNG_METER</c> in lib/rueckruf.ts.
+    /// </summary>
+    public const double RueckrufAbweichungMeters = 30.0;
+
+    /// <summary>
+    /// Legt das Gespann abgekommen mehr als diese Strecke zurück, zählt ein Rückruf (die Richter rufen
+    /// bei längstens 80 bis 100 m zurück; hier die untere Grenze). Gegenstück im Frontend:
+    /// <c>RUECKRUF_WEG_METER</c> in lib/rueckruf.ts.
+    /// </summary>
+    public const double RueckrufWegMeters = 80.0;
+
+    /// <summary>
+    /// Die Rückrufe eines Ablaufs auf einer Schweißfährte (Regel siehe lib/rueckruf.ts, dort wie hier
+    /// dieselbe): Gezählt wird erst, nachdem der Anschuss (der erste automatische Punkt der Legung) auf
+    /// <see cref="MarkerProximityMeters"/> gefunden war - die Suche danach zählt nicht. Danach summiert
+    /// sich der Weg der Teilstrecken, die abgekommen enden; Lückenstücke zählen nicht als Weg. Ein
+    /// weiterer Rückruf fällt erst nach einer Rückkehr auf die Fährte. Aus den vollständigen Punkten,
+    /// nicht aus der Anzeige-Linie. null, wenn der Aufwand über <see cref="MaxAuswertungsAufwand"/> läge.
+    /// </summary>
+    public static IReadOnlyList<Rueckruf>? Rueckrufe(IEnumerable<GpsPoint> gelegt, IEnumerable<GpsWalkPoint> ablauf)
+    {
+        var line = GpsTrackSimplifier.Simplify(gelegt
+            .Where(p => p.PointType != GpsPointType.Manual)
+            .OrderBy(p => p.Timestamp)
+            .ToList());
+        var walk = ablauf.OrderBy(p => p.Timestamp).ToList();
+        if (line.Count == 0 || walk.Count == 0)
+            return [];
+        if ((long)walk.Count * line.Count > MaxAuswertungsAufwand)
+            return null;
+
+        var originLat = line[0].Latitude;
+        var linePlane = line.Select(p => Project(p.Latitude, p.Longitude, originLat)).ToArray();
+        var anschuss = linePlane[0];
+        var nachLuecke = LueckenAnfaenge(walk).ToHashSet();
+
+        var rueckrufe = new List<Rueckruf>();
+        var gefunden = false;
+        var weg = 0.0;
+        var bereit = true; // erst nach einer Rückkehr auf die Fährte zählt der nächste Rückruf
+        (double X, double Y)? vorher = null;
+        for (var i = 0; i < walk.Count; i++)
+        {
+            var punkt = Project(walk[i].Latitude, walk[i].Longitude, originLat);
+            if (!gefunden)
+            {
+                gefunden = Distance(punkt, anschuss) <= MarkerProximityMeters;
+                vorher = punkt;
+                continue;
+            }
+
+            if (DistanceToPolyline(punkt, linePlane) <= RueckrufAbweichungMeters)
+            {
+                weg = 0;
+                bereit = true;
+            }
+            else if (!nachLuecke.Contains(i) && vorher is { } v)
+            {
+                weg += Distance(v, punkt);
+                if (bereit && weg > RueckrufWegMeters)
+                {
+                    rueckrufe.Add(new Rueckruf(walk[i].Latitude, walk[i].Longitude));
+                    bereit = false;
+                }
+            }
+            vorher = punkt;
+        }
+        return rueckrufe;
+    }
+
+    /// <summary>
+    /// Ob das Gespann das Ende der Legung erreichte: ein Ablaufpunkt auf <see cref="EndeNaheMeters"/> am
+    /// letzten automatischen Punkt. Gegenstück zu "zum Stück gekommen" als GPS-Hinweis.
+    /// </summary>
+    public static bool EndeErreicht(IEnumerable<GpsPoint> gelegt, IEnumerable<GpsWalkPoint> ablauf)
+    {
+        var ende = gelegt.Where(p => p.PointType != GpsPointType.Manual).MaxBy(p => p.Timestamp);
+        if (ende is null) return false;
+        var e = Project(ende.Latitude, ende.Longitude, ende.Latitude);
+        return ablauf.Any(w => Distance(Project(w.Latitude, w.Longitude, ende.Latitude), e) <= EndeNaheMeters);
+    }
+
+    /// <summary>Radius um das Ende der Legung, in dem das Stück als erreicht gilt.</summary>
+    public const double EndeNaheMeters = 10.0;
+
+    private static List<Guid> ErreichteGegenstaende(IEnumerable<GpsPoint> marker, IEnumerable<GpsWalkPoint> ablauf, double originLat, GpsTrackKind kind)
     {
         var ablaufEbene = ablauf.Select(w => Project(w.Latitude, w.Longitude, originLat)).ToList();
         return marker
-            .Where(m => m.PointType == GpsPointType.Manual && m.MarkerType == GpsMarkerType.Article)
+            .Where(m => IstZiel(m, kind))
             .Where(m =>
             {
                 var mp = Project(m.Latitude, m.Longitude, originLat);

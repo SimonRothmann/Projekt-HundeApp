@@ -13,8 +13,18 @@ import {
   schweissLeitfadenZeile,
   schweissMlAusText,
   stehzeitErreichtAb,
+  stueckAenderung,
   vorgabeSchweissLeitfaden,
 } from "./schweiss";
+
+describe("Ergebnis am Stück (SF2)", () => {
+  it("meldet nur Änderungen und streicht das Verhalten ohne Stück", () => {
+    expect(stueckAenderung({ personFound: null }, { gefunden: null, verhalten: null })).toBeNull();
+    expect(stueckAenderung({ personFound: null }, { gefunden: true, verhalten: 0 })).toEqual({ personFound: true, indication: 0 });
+    expect(stueckAenderung({ personFound: true, indication: 0 }, { gefunden: true, verhalten: 0 })).toBeNull();
+    expect(stueckAenderung({ personFound: true, indication: 4 }, { gefunden: false, verhalten: 4 })).toEqual({ personFound: false, indication: null });
+  });
+});
 import { ART_SCHWEISS, istSchweiss, spurArt } from "./spurart";
 import type { GpsPoint } from "./types";
 

@@ -25,7 +25,7 @@ import { AblaufGegenstaende, GegenstandsMaterial } from "@/components/tracking/g
 import { istMantrailing } from "@/lib/mantrailing";
 import { spurArt } from "@/lib/spurart";
 import { VERFAHREN_FAEHRTENSCHUH } from "@/lib/schweiss";
-import { SchweissAngabenZeile } from "@/components/tracking/schweiss-angaben";
+import { SchweissAngabenZeile, SchweissStueckZeile } from "@/components/tracking/schweiss-angaben";
 import { ChevronDown, CloudSun, Pencil, Route, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useWetterNachladen } from "@/lib/use-wetter-nachladen";
@@ -292,6 +292,7 @@ export function GpsTrackSection({
                 {art === "faehrte" && track.doubleBlind === true && (
                   <Badge variant="outline">{t("Verdeckt absuchen")}</Badge>
                 )}
+                {art === "schweiss" && track.doubleBlind === true && <Badge variant="outline">{t("Wie auf der Prüfung")}</Badge>}
               </div>
               {art === "trail" && <TrailAngabenZeile track={track} />}
               {art === "schweiss" && <SchweissAngabenZeile track={track} />}
@@ -331,20 +332,22 @@ export function GpsTrackSection({
                         <WalkRunEvaluation run={run} art={track} />
                         {/* Ohne darfAendern: Die Ergebnisse je Gegenstand folgen dem Ablauf-Kommentar
                             (Server: HasSessionAccess), nicht dem Löschrecht. */}
-                        {art === "faehrte" && (
+                        {(art === "faehrte" || art === "schweiss") && (
                           <AblaufGegenstaende
                             trackId={track.id}
                             punkte={track.points}
                             run={run}
+                            schweiss={art === "schweiss"}
+                            tropfbett={track.verfahren === VERFAHREN_FAEHRTENSCHUH}
                             onSaved={async () => {
                               await loadTracks();
                               await onChanged?.();
                             }}
                           />
                         )}
-                        {art === "trail" && (
+                        {(art === "trail" || art === "schweiss") && (
                           <span className="flex flex-wrap items-center gap-1.5">
-                            <TrailErgebnisZeile negativ={track.negativeTrail === true} run={run} />
+                            {art === "trail" ? <TrailErgebnisZeile negativ={track.negativeTrail === true} run={run} /> : <SchweissStueckZeile run={run} />}
                             <Button
                               type="button"
                               size="sm"
@@ -473,22 +476,28 @@ function FaehrteEinstellungen({
         <ChevronDown className={cn("size-3.5 transition-transform", offen && "rotate-180")} />
       </Button>
       <Zuklappbar offen={offen} className="flex flex-col gap-2">
-          {art === "faehrte" && (
+          {(art === "faehrte" || (art === "schweiss" && verdecktEinstellbar)) && (
             <div className="divide-y divide-surface-border overflow-hidden rounded-md bg-surface">
               {verdecktEinstellbar && (
                 <SchalterZeile
                   an={track.doubleBlind === true}
-                  titel={t("Verdeckt absuchen")}
-                  beschreibung={t("Verlauf ausgeblendet, kein Vibrieren – für Prüfungssimulationen.")}
+                  titel={art === "schweiss" ? t("Wie auf der Prüfung") : t("Verdeckt absuchen")}
+                  beschreibung={
+                    art === "schweiss"
+                      ? t("Verlauf ausgeblendet; den Anschuss suchst du selbst in einer Fläche von 30 × 30 m.")
+                      : t("Verlauf ausgeblendet, kein Vibrieren – für Prüfungssimulationen.")
+                  }
                   onChange={onVerdeckt}
                 />
               )}
-              <SchalterZeile
-                an={track.excludeFromStats === true}
-                titel={t("Nicht in die Entwicklung zählen")}
-                beschreibung={t("Für bewusst schwere Übungsfährten – die Fährte bleibt erhalten.")}
-                onChange={onEntwicklung}
-              />
+              {art === "faehrte" && (
+                <SchalterZeile
+                  an={track.excludeFromStats === true}
+                  titel={t("Nicht in die Entwicklung zählen")}
+                  beschreibung={t("Für bewusst schwere Übungsfährten – die Fährte bleibt erhalten.")}
+                  onChange={onEntwicklung}
+                />
+              )}
             </div>
           )}
           {marker.length > 0 && (

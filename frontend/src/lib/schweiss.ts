@@ -180,3 +180,27 @@ export function schweissLeitfadenMerken(dogId: string, id: string | null): void 
     // Ohne Speicher bleibt es bei der Vorgabe aus dem Ziel.
   }
 }
+
+/** Das Verhalten am Stück (TrailIndication im Backend): Totverbellen = Verbellen (0), Totverweisen = Rückverweisen (4). */
+export const STUECK_VERHALTEN = [
+  { value: 0, label: uebersetzbar("Totverbellen") },
+  { value: 4, label: uebersetzbar("Totverweisen") },
+] as const;
+
+export function stueckVerhaltenLabel(wert: number | null | undefined): string | null {
+  return STUECK_VERHALTEN.find((v) => v.value === wert)?.label ?? null;
+}
+
+/**
+ * Was beim Schließen des Ergebnis-Fensters an den Server geht, wenn sich "Zum Stück gekommen" oder das Verhalten
+ * am Stück gegenüber dem Gespeicherten geändert hat (sonst null). Das Verhalten gilt nur bei "Zum Stück gekommen".
+ */
+export function stueckAenderung(
+  run: { personFound?: boolean | null; indication?: number | null },
+  eingabe: { gefunden: boolean | null; verhalten: number | null },
+): { personFound: boolean | null; indication: number | null } | null {
+  const verhalten = eingabe.gefunden === true ? eingabe.verhalten : null;
+  return eingabe.gefunden !== (run.personFound ?? null) || verhalten !== (run.indication ?? null)
+    ? { personFound: eingabe.gefunden, indication: verhalten }
+    : null;
+}

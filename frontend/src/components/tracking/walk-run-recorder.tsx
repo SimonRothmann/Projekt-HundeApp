@@ -28,7 +28,9 @@ import { ansatzHinweis, ansatzPunkt } from "@/lib/ansatz";
 import { rohePeilung } from "@/lib/karte/peilung";
 import { AufzeichnungVollbild } from "@/components/tracking/aufzeichnung-vollbild";
 import { speicherErgebnisMelden, UnterbrocheneAufzeichnungKarte } from "@/components/tracking/unterbrochene-aufzeichnung";
-import { primeHapticsAudio, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
+import { anschussSignal, primeHapticsAudio, rueckrufSignal, useWalkRunHaptics } from "@/lib/use-walk-run-haptics";
+import { anschussFlaeche } from "@/lib/anschussflaeche";
+import { MAX_RUECKRUFE, NEUER_RUECKRUF_ZUSTAND, rueckrufFortsetzen, rueckrufLinie, type RueckrufZustand } from "@/lib/rueckruf";
 
 import { useRueckfrage } from "@/components/ui/rueckfrage";
 import { useT } from "@/lib/i18n";
@@ -103,9 +105,19 @@ export function WalkRunRecorder({
   const verdeckt = track?.doubleBlind === true;
   const sichtbareLegung = verdeckt ? undefined : laidTrackPoints;
   // Nur die Fährte sucht ihren Ansatz; der Trail beginnt dort, wo die Suche anfängt (unverändert).
-  const ansatz = verdeckt && !trail ? ansatzPunkt(laidTrackPoints ?? []) : null;
+  const ansatz = verdeckt && art === "faehrte" ? ansatzPunkt(laidTrackPoints ?? []) : null;
   // Auf der Karte erlaubt ist der Startpunkt der Legung - der Rest nicht.
   const verdeckteKarte = useMemo(() => (ansatz ? [ansatz] : KEINE_PUNKTE), [ansatz]);
+  // Die Schweißfährte zeigt verdeckt statt des Startpunkts nur eine Fläche von 30 x 30 m um den Anschuss
+  // (leicht versetzt, Paket SF2); keine Entfernung oder Richtung dorthin.
+  const anschuss = verdeckt && schweiss ? ansatzPunkt(laidTrackPoints ?? []) : null;
+  const flaeche = useMemo(() => (anschuss ? anschussFlaeche(anschuss, trackId) : null), [anschuss, trackId]);
+  // Die Linie der Legung für die Rückrufregel: sie hat das Gerät, auch wenn die Karte sie verbirgt.
+  const rueckrufLinieDerLegung = useMemo(() => (schweiss ? rueckrufLinie(laidTrackPoints ?? []) : []), [schweiss, laidTrackPoints]);
+  const [rueckrufe, setRueckrufe] = useState(0);
+  const rueckrufRef = useRef<RueckrufZustand>(NEUER_RUECKRUF_ZUSTAND);
+  // Bis zu dieser Punktzahl (beim Fortsetzen einer Sicherung) wird nichts mehr gemeldet.
+  const ruhigBisRef = useRef(0);
   const { isRecording, points, setPoints, currentAccuracy, start: startRecording, stop } = useGpsRecorder(toWalkPoint, GPS_PROFIL_ABLAUF);
   // Kommentar zu diesem Ablauf-Versuch. Getippt wird er nicht mehr während der
   // Aufzeichnung (die Tastatur über der Karte war ein Taschen-Ziel), sondern
@@ -153,6 +165,8 @@ export function WalkRunRecorder({
       setComment(fortsetzen.kommentar);
       setUnterbrochen(null);
     }
+    rueckrufRef.current = NEUER_RUECKRUF_ZUSTAND;
+    ruhigBisRef.current = fortsetzen?.points.length ?? 0;
     startRecording(fortsetzen?.points);
   }
 
@@ -194,6 +208,34 @@ export function WalkRunRecorder({
         }),
       );
   }, [isRecording, points, t]);
+
+  // Rückrufe live (nur Schweißfährte, auch verdeckt): dieselbe Regel wie in der Auswertung (lib/rueckruf.ts).
+  useEffect(() => {
+    if (!schweiss) return;
+    if (!isRecording) {
+      rueckrufRef.current = NEUER_RUECKRUF_ZUSTAND;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRueckrufe(0);
+      return;
+    }
+    const vorher = rueckrufRef.current;
+    const neu = rueckrufFortsetzen(vorher, rueckrufLinieDerLegung, points);
+    rueckrufRef.current = neu;
+    const hoerbar = neu.verarbeitet > ruhigBisRef.current;
+    if (hoerbar && verdeckt && neu.anschussGefunden && !vorher.anschussGefunden) {
+      anschussSignal();
+      toast.success(t("Anschuss gefunden"));
+    }
+    if (neu.stellen.length !== vorher.stellen.length) {
+      setRueckrufe(neu.stellen.length);
+      if (hoerbar && neu.stellen.length > vorher.stellen.length) {
+        rueckrufSignal();
+        const nr = neu.stellen.length;
+        const text = t("Rückruf {n}: Ihr seid von der Fährte abgekommen.", { n: nr });
+        toast.warning(nr > MAX_RUECKRUFE ? `${text} ${t("– damit wäre die Prüfung nicht bestanden")}` : text);
+      }
+    }
+  }, [schweiss, verdeckt, isRecording, points, rueckrufLinieDerLegung, t]);
 
   const hinweis = ansatz ? ansatzHinweis(points, ansatz) : null;
 
@@ -343,6 +385,12 @@ export function WalkRunRecorder({
               </span>
             </>
           )}
+          {schweiss && rueckrufe > 0 && (
+            <>
+              {" · "}
+              <span className="font-medium text-destructive">{t("Rückrufe: {n}", { n: rueckrufe })}</span>
+            </>
+          )}
         </>
       }
       abschlussLabel={t("Ablauf beenden")}
@@ -350,7 +398,7 @@ export function WalkRunRecorder({
       onAbschluss={stopRecording}
       onAbbrechen={abbrechen}
     >
-      <TrackMap points={sichtbareLegung ?? verdeckteKarte} liveWalkRunPoints={points} art={track} fill />
+      <TrackMap points={sichtbareLegung ?? verdeckteKarte} liveWalkRunPoints={points} art={track} flaeche={flaeche} fill />
       {hinweis && <AnsatzHinweis hinweis={hinweis} laufrichtung={rohePeilung(points)} />}
     </AufzeichnungVollbild>
   );

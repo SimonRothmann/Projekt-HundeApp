@@ -86,7 +86,15 @@ public record GpsWalkRunDto(
     // als Hinweis neben der Angabe der Hundeführer:in, nicht als Ergebnis.
     IReadOnlyList<Guid>? ReachedArticleIds,
     // Davon die Gegenstände, die in einer Lücke der Aufzeichnung liegen (null wie ReachedArticleIds).
-    IReadOnlyList<Guid>? UnrecordedArticleIds = null);
+    IReadOnlyList<Guid>? UnrecordedArticleIds = null,
+    // Nur Schweißfährte (Paket SF2, sonst null): Zahl der Rückrufe und wo sie fielen, berechnet aus den
+    // vollständigen Punkten (kein gespeichertes Feld); EndReached: ein Ablaufpunkt lag am Ende der Legung.
+    int? Recalls = null,
+    IReadOnlyList<GpsRecallPointDto>? RecallPoints = null,
+    bool? EndReached = null);
+
+/// <summary>Die Stelle, an der ein Rückruf fiel (siehe GpsTrackEvaluator.Rueckrufe).</summary>
+public record GpsRecallPointDto(double Latitude, double Longitude);
 
 public record GpsTrackDto(
     Guid Id,
@@ -212,8 +220,8 @@ public record UpdateGpsWalkRunRequest(string? Comment);
 public record UpdateGpsTrailRequest(int? AgeMinutes, bool DoubleBlind, bool NegativeTrail, string? ScentArticle);
 
 /// <summary>
-/// "Verdeckt absuchen" bei der Fährte (DoubleBlind): Beim Absuchen sind Verlauf, Marker und Haptik
-/// ausgeblendet. Lässt sich nur setzen, solange noch kein Ablauf existiert.
+/// "Verdeckt absuchen" bei der Fährte und der Schweißfährte (DoubleBlind): Beim Absuchen sind Verlauf,
+/// Marker und Haptik ausgeblendet. Lässt sich nur setzen, solange noch kein Ablauf existiert.
 /// </summary>
 public record UpdateGpsVerdecktRequest(bool Verdeckt);
 

@@ -10,6 +10,7 @@ import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { aufschluesselung, bestaetigteZahlen } from "@/lib/gegenstaende";
 import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
 import { istSchweiss } from "@/lib/spurart";
+import { RueckrufZeile } from "@/components/tracking/schweiss-angaben";
 import { ampelLabel, ampelStufe, type Ampel } from "@/lib/spur-ampel";
 import {
   abschnittsZeilen,
@@ -167,10 +168,9 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
         // Mit Angaben der Hundeführer:in zählen die bestätigten Gegenstände, sonst die GPS-Zahl wie bisher.
         <>
           <span className={zahl}>
-            {t("{gefunden}/{gesamt} Gegenstände", {
-              gefunden: bestaetigt?.gefunden ?? run.articlesFound ?? 0,
-              gesamt: run.articlesTotal,
-            })}
+            {schweiss
+              ? t("{gefunden}/{gesamt} Betten", { gefunden: bestaetigt?.gefunden ?? run.articlesFound ?? 0, gesamt: run.articlesTotal })
+              : t("{gefunden}/{gesamt} Gegenstände", { gefunden: bestaetigt?.gefunden ?? run.articlesFound ?? 0, gesamt: run.articlesTotal })}
             {(run.unrecordedArticleIds?.length ?? 0) > 0 &&
               ` · ${t("{n} ohne Aufzeichnung", { n: run.unrecordedArticleIds?.length ?? 0 })}`}
           </span>
@@ -201,6 +201,8 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
           {kennzahlen}
         </div>
       )}
+
+      {schweiss && <RueckrufZeile anzahl={run.recalls} className={gross ? "text-sm font-medium text-foreground" : "text-xs"} />}
 
       <WinkelUndSchenkel run={run} gross={gross} art={art} />
 

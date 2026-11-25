@@ -8,6 +8,7 @@ import { DAUER_MAX } from "./eintragen";
 import { ALLE_TAGE, ERSTE_STUNDE, GESUNDHEIT_VORLAUF_TAGE, LETZTE_STUNDE, VORGABE_STUNDE, VORGABE_TAGE } from "./erinnerungen";
 import { ABLAUF_FRIST_STUNDEN, ABLAUF_FRIST_STUNDEN_SCHWEISS, ABLAUF_FRIST_STUNDEN_TRAIL, FAEHRTEN_SPORTARTEN } from "./faehrte";
 import { BALD_TAGE, MAX_FRIST_JAHRE, MAX_JAHRE_VORAUS as GESUNDHEIT_VORAUS, MAX_JAHRE_ZURUECK as GESUNDHEIT_ZURUECK } from "./gesundheit";
+import { ANSCHUSS_RADIUS_METER, RUECKRUF_ABWEICHUNG_METER, RUECKRUF_WEG_METER } from "./rueckruf";
 import { MAX_SCHWEISS_ML, MAX_STEHZEIT_STUNDEN, SCHWEISS_VERFAHREN, SCHWEISS_WILDARTEN } from "./schweiss";
 import { FAEHRTE_GRENZEN, MANTRAILING_GRENZEN, MAX_TRAILALTER_STUNDEN, SCHWEISS_GRENZEN } from "./mantrailing";
 import { MAX_DAUER_JAHRE, MAX_JAHRE_VORAUS as PAUSE_VORAUS, MAX_JAHRE_ZURUECK as PAUSE_ZURUECK } from "./pausen";
@@ -87,6 +88,14 @@ describe("Frontend und Backend meinen dieselben Zahlen", () => {
     expect([...SCHWEISS_WILDARTEN]).toEqual(liste("Wildarten"));
     expect(MAX_SCHWEISS_ML).toBe(zahl(datei, "MaxMl"));
     expect(MAX_STEHZEIT_STUNDEN).toBe(zahl(datei, "MaxStehzeitStunden"));
+  });
+
+  it("Rückruf der Schweißfährte: Abweichung, Weg und Anschuss-Radius (GpsTrackEvaluator)", () => {
+    const datei = "Tracking/GpsTrackEvaluator.cs";
+    expect(RUECKRUF_ABWEICHUNG_METER).toBe(zahl(datei, "RueckrufAbweichungMeters"));
+    expect(RUECKRUF_ABWEICHUNG_METER).toBe(SCHWEISS_GRENZEN.gelbBis);
+    expect(RUECKRUF_WEG_METER).toBe(zahl(datei, "RueckrufWegMeters"));
+    expect(ANSCHUSS_RADIUS_METER).toBe(zahl(datei, "MarkerProximityMeters"));
   });
 
   it("Trailalter höchstens eine Woche (GpsTrackService)", () => {

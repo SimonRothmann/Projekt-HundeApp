@@ -11,9 +11,13 @@ import {
   SCHWEISS_VERFAHREN,
   SCHWEISS_WILDARTEN,
   schweissLeitfadenZeile,
+  STUECK_VERHALTEN,
+  stueckVerhaltenLabel,
   type SchweissLeitfaden,
 } from "@/lib/schweiss";
-import type { GpsTrack } from "@/lib/types";
+import type { GpsTrack, GpsWalkRun } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { mitRueckrufenDurchgefallen } from "@/lib/rueckruf";
 
 const KEIN_LEITFADEN = "keiner";
 
@@ -130,5 +134,84 @@ export function SchweissAngabenZeile({ track }: { track: Pick<GpsTrack, "verfahr
       {track.schweissMl != null && <Angabe>{t("{n} ml Schweiß", { n: track.schweissMl })}</Angabe>}
       {track.stehzeitStunden != null && <Angabe>{t("Stehzeit {n} Std.", { n: track.stehzeitStunden })}</Angabe>}
     </div>
+  );
+}
+
+/**
+ * Das Ergebnis am Stück (Paket SF2): Zum Stück gekommen ja/nein und, wenn ja, Totverbellen oder Totverweisen.
+ * `gpsEnde`: ob das Gespann das Ende der Legung erreichte - nur ein Hinweis neben der Angabe der Hundeführer:in.
+ */
+export function SchweissStueckFormular({
+  gefunden,
+  verhalten,
+  gpsEnde,
+  onGefunden,
+  onVerhalten,
+}: {
+  gefunden: boolean | null;
+  verhalten: number | null;
+  gpsEnde?: boolean | null;
+  onGefunden: (gefunden: boolean | null) => void;
+  onVerhalten: (verhalten: number | null) => void;
+}) {
+  const t = useT();
+  return (
+    <div className="flex min-w-0 flex-col gap-3">
+      <div className="flex flex-col gap-2">
+        <span className="flex flex-wrap items-baseline gap-x-2 text-sm font-medium">
+          {t("Zum Stück gekommen")}
+          {gpsEnde != null && (
+            <span className="text-xs font-normal text-muted-foreground">{gpsEnde ? t("GPS: Ende erreicht") : t("GPS: Ende nicht erreicht")}</span>
+          )}
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          <Chip kompakt gewaehlt={gefunden === true} onClick={() => onGefunden(gefunden === true ? null : true)}>
+            {t("Ja")}
+          </Chip>
+          <Chip kompakt gewaehlt={gefunden === false} onClick={() => onGefunden(gefunden === false ? null : false)}>
+            {t("Nein")}
+          </Chip>
+        </div>
+      </div>
+      {gefunden === true && (
+        <div className="flex flex-col gap-2">
+          <span className="text-sm text-muted-foreground">{t("Verhalten am Stück")}</span>
+          <div className="flex flex-wrap gap-1.5">
+            {STUECK_VERHALTEN.map((v) => (
+              <Chip kompakt key={v.value} gewaehlt={verhalten === v.value} onClick={() => onVerhalten(verhalten === v.value ? null : v.value)}>
+                {t(v.label)}
+              </Chip>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Das Ergebnis am Stück, schreibgeschützt. Leer, solange nichts eingetragen ist. */
+export function SchweissStueckZeile({ run }: { run: Pick<GpsWalkRun, "personFound" | "indication"> }) {
+  const t = useT();
+  if (run.personFound == null) return null;
+  const verhalten = stueckVerhaltenLabel(run.indication);
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+      <span className={cn("font-medium", run.personFound ? "text-erfolg-text" : "text-destructive")}>
+        {run.personFound ? t("Zum Stück gekommen") : t("Nicht zum Stück gekommen")}
+      </span>
+      {verhalten && <Angabe>{t(verhalten)}</Angabe>}
+    </div>
+  );
+}
+
+/** Die Rückrufe eines Ablaufs: Zahl, bei mehr als zwei der Hinweis auf "nicht bestanden". Nichts, wenn sie nicht berechnet sind. */
+export function RueckrufZeile({ anzahl, className }: { anzahl: number | null | undefined; className?: string }) {
+  const t = useT();
+  if (anzahl == null) return null;
+  return (
+    <span className={cn("min-w-0 [overflow-wrap:anywhere]", className)}>
+      {anzahl === 0 ? t("keine Rückrufe") : t("Rückrufe: {n}", { n: anzahl })}
+      {mitRueckrufenDurchgefallen(anzahl) && <span className="text-destructive"> · {t("nicht bestanden (mehr als zwei Rückrufe)")}</span>}
+    </span>
   );
 }

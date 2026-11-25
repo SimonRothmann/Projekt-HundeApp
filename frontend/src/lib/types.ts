@@ -1143,6 +1143,11 @@ export type GpsWalkRun = {
   personFound?: boolean | null;
   /** Anzeigeverhalten (siehe ANZEIGEVERHALTEN in lib/mantrailing.ts); null = nicht angegeben. */
   indication?: number | null;
+  // Nur Schweißfährte (Paket SF2; sonst fehlend oder null): Zahl der Rückrufe und wo sie fielen, vom Server aus
+  // den vollständigen Punkten berechnet; endReached: ein Ablaufpunkt lag am Ende der Legung ("GPS: Ende erreicht").
+  recalls?: number | null;
+  recallPoints?: { latitude: number; longitude: number }[] | null;
+  endReached?: boolean | null;
 };
 
 export type GpsTrack = {

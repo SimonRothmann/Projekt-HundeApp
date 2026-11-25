@@ -28,6 +28,9 @@ import {
   legungDaten,
   leer,
   liveAblaufDaten,
+  flaecheDaten,
+  rueckrufDaten,
+  RUECKRUF_FORM,
   markerArt,
   winkelDaten,
   type KartenPunkt,
@@ -151,8 +154,11 @@ export function TrackMap({
   liveWalkRunPoints,
   fill = false,
   art,
+  flaeche = null,
 }: {
   points: KartenPunkt[];
+  /** Verdeckt arbeitende Schweißfährte: das Quadrat um den Anschuss (Ring als [lon, lat]) statt der Legung. */
+  flaeche?: [number, number][] | null;
   walkRuns?: GpsWalkRun[];
   /** Die Spur der Abläufe: beim Mantrailing färben die weiteren Grenzen (10/25 m) die Ablauflinie. */
   art?: { kind?: number | null };
@@ -470,10 +476,16 @@ export function TrackMap({
     const d = ablaufDaten(walkRuns, t, spurGrenzen({ kind: artKind }));
     // Winkel gibt es bei der Fährte und der Schweißfährte (Haken), nicht beim Trail.
     const winkel = istMantrailing({ kind: artKind }) ? leer<never>() : winkelDaten(walkRuns, t);
-    const teil = { "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, "ablauf-luecke": d.luecken, halte: d.halte, winkel };
+    const teil = { rueckruf: rueckrufDaten(walkRuns, t), "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, "ablauf-luecke": d.luecken, halte: d.halte, winkel };
     Object.assign(datenRef.current, teil);
     datenAnwenden(mapRef.current, teil);
   }, [mapReady, walkRuns, t, artKind]);
+
+  useEffect(() => {
+    const teil = { pruefflaeche: flaecheDaten(flaeche) };
+    Object.assign(datenRef.current, teil);
+    datenAnwenden(mapRef.current, teil);
+  }, [mapReady, flaeche]);
 
   useEffect(() => {
     const d = liveAblaufDaten(liveWalkRunPoints, walkRuns.length, t);
@@ -747,6 +759,7 @@ export function TrackLegend({
     .filter(({ run }) => run.points.length > 0 && !istBewertet(run));
 
   const mitLuecke = walkRuns.some((run) => run.points.some((p) => p.afterGap));
+  const mitRueckruf = walkRuns.some((run) => (run.recallPoints?.length ?? 0) > 0);
 
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
@@ -781,6 +794,12 @@ export function TrackLegend({
             <Linienprobe farbe={farben.red} />
             {t("darüber")}
           </span>
+        </span>
+      )}
+      {mitRueckruf && (
+        <span className="flex items-center gap-1.5">
+          <Markerprobe art={RUECKRUF_FORM} />
+          {t("Rückruf")}
         </span>
       )}
       {mitLuecke && (

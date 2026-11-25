@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { Chip } from "@/components/ui/chip";
 import { useT } from "@/lib/i18n";
 import {
+  betten,
   ergebnisseJeGegenstand,
   ergebnisUmschalten,
   GEGENSTANDS_ERGEBNISSE,
@@ -33,11 +34,18 @@ function Aufklapper({ titel, rechts, offen, children }: { titel: string; rechts?
   );
 }
 
+/** "Gegenstand 1", bei Betten "Wundbett 1" / "Verweiserpunkt 2" (beim Fährtenschuh "Tropfbett 2"). */
+function bezeichnung(g: Gegenstand, t: ReturnType<typeof useT>, tropfbett: boolean): string {
+  if (g.art === 4) return t("Wundbett {nr}", { nr: g.nummer });
+  if (g.art === 5) return tropfbett ? t("Tropfbett {nr}", { nr: g.nummer }) : t("Verweiserpunkt {nr}", { nr: g.nummer });
+  return t("Gegenstand {nr}", { nr: g.nummer });
+}
+
 /** "Gegenstand 1" mit dem Label des Markers dahinter, falls er eines hat. */
-function Gegenstandsname({ g, t }: { g: Gegenstand; t: ReturnType<typeof useT> }) {
+function Gegenstandsname({ g, t, tropfbett = false }: { g: Gegenstand; t: ReturnType<typeof useT>; tropfbett?: boolean }) {
   return (
     <span className="min-w-0 font-medium [overflow-wrap:anywhere]">
-      {t("Gegenstand {nr}", { nr: g.nummer })}
+      {bezeichnung(g, t, tropfbett)}
       {g.label ? ` · ${g.label}` : ""}
     </span>
   );
@@ -117,8 +125,11 @@ export function GegenstandsErgebnisZeilen({
   erreicht,
   ohneAufzeichnung,
   disabled,
+  tropfbett = false,
   onWahl,
 }: {
+  /** Beim Fährtenschuh heißt der Verweiserpunkt Tropfbett. */
+  tropfbett?: boolean;
   liste: readonly Gegenstand[];
   werte: Readonly<Record<string, GegenstandsErgebnis | null | undefined>>;
   erreicht?: readonly string[] | null;
@@ -133,7 +144,7 @@ export function GegenstandsErgebnisZeilen({
       {liste.map((g) => (
         <li key={g.id} className="flex min-w-0 flex-col gap-1.5 py-2">
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-            <Gegenstandsname g={g} t={t} />
+            <Gegenstandsname g={g} t={t} tropfbett={tropfbett} />
             {g.material && <span className="[overflow-wrap:anywhere]">· {t(g.material)}</span>}
             {erreicht && (
               <span className="text-xs text-muted-foreground">
@@ -145,8 +156,9 @@ export function GegenstandsErgebnisZeilen({
               </span>
             )}
           </div>
-          <div role="group" aria-label={t("Ergebnis von Gegenstand {nr}", { nr: g.nummer })} className="flex flex-wrap gap-1.5">
-            {GEGENSTANDS_ERGEBNISSE.map((e) => (
+          <div role="group" aria-label={t("Ergebnis von {name}", { name: bezeichnung(g, t, tropfbett) })} className="flex flex-wrap gap-1.5">
+            {/* Ein Bett wird verwiesen oder überlaufen, nicht aufgenommen. */}
+            {GEGENSTANDS_ERGEBNISSE.filter((e) => g.art == null || e.wert !== 1).map((e) => (
               <Chip
                 key={e.wert}
                 kompakt
@@ -174,8 +186,13 @@ export function AblaufGegenstaende({
   punkte,
   run,
   darfAendern = true,
+  schweiss = false,
+  tropfbett = false,
   onSaved,
 }: {
+  /** Schweißfährte: die Betten statt der Gegenstände. */
+  schweiss?: boolean;
+  tropfbett?: boolean;
   trackId: string;
   punkte: readonly GpsPoint[];
   run: GpsWalkRun;
@@ -184,7 +201,7 @@ export function AblaufGegenstaende({
 }) {
   const t = useT();
   const [speichert, setSpeichert] = useState(false);
-  const liste = gegenstaende(punkte);
+  const liste = schweiss ? betten(punkte) : gegenstaende(punkte);
   if (liste.length === 0) return null;
 
   const werte = ergebnisseJeGegenstand(run.articles);
@@ -203,7 +220,7 @@ export function AblaufGegenstaende({
 
   return (
     <Aufklapper
-      titel={t("Ergebnis je Gegenstand")}
+      titel={schweiss ? t("Ergebnis je Bett") : t("Ergebnis je Gegenstand")}
       rechts={t("{angegeben} von {gesamt} angegeben", { angegeben: Object.keys(werte).length, gesamt: liste.length })}
     >
       <GegenstandsErgebnisZeilen
@@ -211,6 +228,7 @@ export function AblaufGegenstaende({
         werte={werte}
         erreicht={run.reachedArticleIds}
         ohneAufzeichnung={run.unrecordedArticleIds}
+        tropfbett={tropfbett}
         disabled={speichert || !darfAendern}
         onWahl={(id, ergebnis) => void waehlen(id, ergebnis)}
       />
