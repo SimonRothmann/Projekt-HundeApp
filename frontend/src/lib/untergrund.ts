@@ -34,18 +34,8 @@ export const TRAIL_UNTERGRUENDE: readonly string[] = [
   uebersetzbar("Feldweg"),
 ];
 
-/** Untergründe beim Legen einer Schweißfährte: im Revier, meist im Wald. */
-export const SCHWEISS_UNTERGRUENDE: readonly string[] = [
-  uebersetzbar("Laubwald"),
-  uebersetzbar("Nadelwald"),
-  uebersetzbar("Dickung"),
-  uebersetzbar("Kahlschlag"),
-  uebersetzbar("Wiese"),
-  uebersetzbar("Feld"),
-];
-
 /**
- * Zustand des Bodens beim Legen (Fährte und Schweißfährte), gleiche Mechanik wie der Untergrund: Mehrfachauswahl zum
+ * Zustand des Bodens beim Legen (nur Fährte), gleiche Mechanik wie der Untergrund: Mehrfachauswahl zum
  * Antippen, gespeichert als deutscher Text in GpsTrack.GroundCondition. Frost und Schnee ändern, wie sich
  * der Geruch hält - deshalb gehört die Angabe zur Fährte. Mit untergrundUmschalten und untergrundAlsText
  * zu verwenden (Liste als dritter Parameter).

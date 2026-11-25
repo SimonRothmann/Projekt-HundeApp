@@ -3,14 +3,13 @@
 import { useEffect, useState } from "react";
 import { Check, Footprints } from "lucide-react";
 import type { Dog } from "@/lib/types";
-import { ablaufFristStunden, tageSeitLegen, type OffeneFaehrte } from "@/lib/faehrte";
-import { spurArt } from "@/lib/spurart";
-import { stehzeitErreichtAb } from "@/lib/schweiss";
+import { tageSeitLegen, type OffeneFaehrte } from "@/lib/faehrte";
 import { Card, CardContent } from "@/components/ui/card";
 import { WalkRunRecorder } from "@/components/tracking/walk-run-recorder";
 
 import { useSprache, useT } from "@/lib/i18n";
 import { alterMinutenText } from "@/lib/alter-minuten";
+import { istMantrailing } from "@/lib/mantrailing";
 import { ortsformat } from "@/lib/ortsformat";
 import { datumKurz } from "@/lib/pruefung";
 import { heuteIso } from "@/lib/kalendertag";
@@ -21,7 +20,7 @@ export type FaehrteMitHund = OffeneFaehrte & { hund: Dog };
 
 /**
  * Gelegte Fährten und Trails, die noch nicht abgelaufen sind und sich noch
- * ablaufen lassen (Fährte 4, Trail 48, Schweißfährte 72 Stunden nach dem Legen) - mit Fährtenalter
+ * ablaufen lassen (Fährte 24, Trail 48 Stunden nach dem Legen) - mit Fährtenalter
  * und dem Knopf zum Ablaufen. Es ist die Hauptkarte der Startseite: primärfarben
  * getönt, mit dem Fährtenalter groß und einem gefüllten Knopf. Steht etwas von
  * gestern dabei (Übernachtfährte, Trail), heißt die Kopfzeile "Zuletzt gelegt"
@@ -58,12 +57,6 @@ export function HeuteGelegtSection({
       {faehrten.map((f) => {
         const uhrzeit = f.gelegtBis.toLocaleTimeString(ort, { hour: "2-digit", minute: "2-digit" });
         const tage = tageSeitLegen(f.gelegtBis);
-        const art = spurArt(f.track);
-        // Tag und Uhrzeit eines Zeitpunkts ("23.11.2026, 14:00") für die Stehzeit der Schweißfährte.
-        const tagUndUhr = (zeitpunkt: Date) =>
-          `${datumKurz(heuteIso(zeitpunkt.getTime()), sprache)}, ${zeitpunkt.toLocaleTimeString(ort, { hour: "2-digit", minute: "2-digit" })}`;
-        const stehzeitAb = art === "schweiss" ? stehzeitErreichtAb(f.gelegtBis, f.track.stehzeitStunden) : null;
-        const stehzeitErreicht = stehzeitAb !== null && f.alterMinuten >= (f.track.stehzeitStunden ?? 0) * 60;
         return (
           <Card
             key={f.track.id}
@@ -88,35 +81,14 @@ export function HeuteGelegtSection({
               <div className="min-w-0">
                 <p className="flex flex-wrap items-baseline gap-x-2">
                   <span className="text-2xl font-bold tabular-nums">{alterMinutenText(f.alterMinuten, t)}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {art === "trail" ? t("Trailalter") : art === "schweiss" ? t("Schweißfährtenalter") : t("Fährtenalter")}
-                  </span>
+                  <span className="text-sm text-muted-foreground">{istMantrailing(f.track) ? t("Trailalter") : t("Fährtenalter")}</span>
                 </p>
-                {art === "faehrte" && <LiegezeitZeile dogId={f.hund.id} alterMinuten={f.alterMinuten} />}
-                {art === "schweiss" && (
-                  <>
-                    {stehzeitAb && (
-                      <p className={stehzeitErreicht ? "flex items-center gap-1 text-sm font-medium text-erfolg-text" : "text-sm text-muted-foreground"}>
-                        {stehzeitErreicht ? (
-                          <>
-                            <Check className="size-4 shrink-0" aria-hidden />
-                            {t("Stehzeit erreicht")}
-                          </>
-                        ) : (
-                          t("Stehzeit erreicht ab {zeit}", { zeit: tagUndUhr(stehzeitAb) })
-                        )}
-                      </p>
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {t("Arbeiten bis {zeit}", { zeit: tagUndUhr(new Date(f.gelegtBis.getTime() + ablaufFristStunden(f.track) * 3600_000)) })}
-                    </p>
-                  </>
-                )}
+                {!istMantrailing(f.track) && <LiegezeitZeile dogId={f.hund.id} alterMinuten={f.alterMinuten} />}
                 {(f.track.lengthMeters || f.track.surface) && (
                   <p className="text-sm text-muted-foreground">
                     {[
                       f.track.lengthMeters
-                        ? `${Math.round(f.track.lengthMeters)} m${art === "faehrte" && schritte(f.track.lengthMeters) ? ` ${schritte(f.track.lengthMeters)}` : ""}`
+                        ? `${Math.round(f.track.lengthMeters)} m${!istMantrailing(f.track) && schritte(f.track.lengthMeters) ? ` ${schritte(f.track.lengthMeters)}` : ""}`
                         : null,
                       f.track.surface ? f.track.surface.split(", ").map((teil) => t(teil)).join(", ") : null,
                     ]
@@ -129,7 +101,7 @@ export function HeuteGelegtSection({
                 trackId={f.track.id}
                 laidTrackPoints={f.track.points}
                 track={f.track}
-                label={art === "trail" ? t("Jetzt suchen") : art === "schweiss" ? t("Jetzt arbeiten") : t("Jetzt ablaufen")}
+                label={istMantrailing(f.track) ? t("Jetzt suchen") : t("Jetzt ablaufen")}
                 hervorgehoben
                 onSaved={onChanged}
               />

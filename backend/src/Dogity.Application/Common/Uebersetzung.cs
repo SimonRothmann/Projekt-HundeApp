@@ -100,8 +100,6 @@ public static partial class Uebersetzung
         ["Morgen {zeit}: {gruppe} - du hast zugesagt."] = "Tomorrow {zeit}: {gruppe} - you have confirmed.",
         ["Morgen {zeit}: {gruppe} - kommst du?"] = "Tomorrow {zeit}: {gruppe} - are you coming?",
         ["Die Fährte von {hund} ist noch nicht abgelaufen. Du kannst sie noch bis {datum}, {zeit} Uhr ablaufen."] = "The track for {hund} has not been walked yet. You can still walk it until {zeit} on {datum}.",
-        ["Die Schweißfährte von {hund} hat ihre Stehzeit erreicht. Du kannst sie noch bis {datum}, {zeit} Uhr arbeiten."] = "The blood track for {hund} has reached its standing time. You can still work it until {zeit} on {datum}.",
-        ["Die Schweißfährte von {hund} kann nur noch bis {datum}, {zeit} Uhr gearbeitet werden."] = "The blood track for {hund} can only be worked until {zeit} on {datum}.",
         ["Ein Training wartet auf deine Rückmeldung."] = "One training session is waiting for your feedback.",
         ["{n} Trainings warten auf deine Rückmeldung."] = "{n} training sessions are waiting for your feedback.",
         ["{hund}: Die Impfung {titel} ist bis {datum} gültig."] = "{hund}: The {titel} vaccination is valid until {datum}.",

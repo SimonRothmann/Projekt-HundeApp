@@ -1,4 +1,3 @@
-import { legeEnde } from "@/lib/faehrte";
 import { automatischePunkte } from "@/lib/geo";
 import type { GpsTrack, TrainingSession } from "@/lib/types";
 
@@ -78,19 +77,4 @@ export function faehrteWetterOffen(
   if (spur.laidTemperatureC == null) return true;
   // Das Suchen-Wetter fragt der Server nach dem ersten Punkt eines Ablaufs.
   return spur.searchTemperatureC == null && (spur.walkRuns ?? []).some((lauf) => lauf.points.length > 0);
-}
-
-/**
- * Schweißfährte oder Trail mit Ablauf, bei der das Wetter über die Stehzeit noch fehlt. Der Server fragt es
- * nur ab, wenn zwischen Ende des Legens und Beginn des ersten Ablaufs mindestens eine Stunde liegt -
- * dieselbe Grenze gilt hier, sonst bliebe der Knopf bei kurzen Standzeiten für immer stehen.
- */
-export function stehzeitWetterOffen(
-  spur: Pick<GpsTrack, "points" | "walkRuns" | "kind" | "standTempMinC">,
-): boolean {
-  if (spur.kind == null || spur.kind === 0 || spur.standTempMinC != null) return false;
-  const ende = legeEnde(spur);
-  const ablaeufe = (spur.walkRuns ?? []).flatMap((lauf) => lauf.points.map((p) => new Date(p.timestamp).getTime()));
-  if (!ende || ablaeufe.length === 0) return false;
-  return Math.min(...ablaeufe) - ende.getTime() >= 3_600_000;
 }

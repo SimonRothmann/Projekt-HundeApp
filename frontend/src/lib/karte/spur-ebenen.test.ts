@@ -10,7 +10,7 @@ import {
   spurEbenen,
   strichmuster,
 } from "./spur-ebenen";
-import { MARKER_FORMEN, RUECKRUF_FORM, TRACK_CASING_COLOR, TRACK_LINE_COLOR, leer } from "./spur-daten";
+import { MARKER_FORMEN, TRACK_CASING_COLOR, TRACK_LINE_COLOR, leer } from "./spur-daten";
 
 describe("strichmuster", () => {
   it("rechnet Bildpunkte in Linienbreiten um", () => {
@@ -26,9 +26,6 @@ describe("spurEbenen", () => {
 
   it("zeichnet in der vorgesehenen Reihenfolge", () => {
     expect(ids).toStrictEqual([
-      // Anschussfläche (SF2) ganz unten, unter der Legung.
-      "pruefflaeche-fuellung",
-      "pruefflaeche",
       "legung-fassung",
       "legung",
       "ablauf-bewertet",
@@ -41,7 +38,6 @@ describe("spurEbenen", () => {
       "winkel-nummer",
       // Marker über den Winkelnummern: ein Fähnchen genau am Winkel blieb sonst darunter verborgen.
       "marker",
-      "rueckruf",
       "start",
       "ende",
       "position",
@@ -150,7 +146,7 @@ describe("ebenenAnlegen", () => {
   it("registriert für jede Markerform ein Bild mit Pixelverhältnis 2", () => {
     const { karte, rohling, bilder } = falscheKarte();
     ebenenAnlegen(karte, leererDatensatz());
-    expect([...bilder]).toStrictEqual([...MARKER_FORMEN, RUECKRUF_FORM].map((a) => MARKER_BILD_PRAEFIX + a.form));
+    expect([...bilder]).toStrictEqual(MARKER_FORMEN.map((a) => MARKER_BILD_PRAEFIX + a.form));
     expect(rohling.addImage).toHaveBeenCalledWith(expect.any(String), expect.anything(), { pixelRatio: 2 });
   });
 
@@ -158,7 +154,7 @@ describe("ebenenAnlegen", () => {
     const { karte, rohling } = falscheKarte();
     ebenenAnlegen(karte, leererDatensatz());
     ebenenAnlegen(karte, leererDatensatz());
-    expect(rohling.addImage).toHaveBeenCalledTimes(MARKER_FORMEN.length + 1);
+    expect(rohling.addImage).toHaveBeenCalledTimes(MARKER_FORMEN.length);
     expect(rohling.addSource).toHaveBeenCalledTimes(SPUR_QUELLEN.length);
     expect(rohling.addLayer).toHaveBeenCalledTimes(spurEbenen().length);
   });

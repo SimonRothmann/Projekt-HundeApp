@@ -98,7 +98,6 @@ export function DatenschutzEn() {
             "evaluations calculated from this: deviation, articles found, hesitations",
             "in mantrailing: the path of the person being searched for, recorded with the device they carry and stored in your account – that is, the location data of another person",
             "in mantrailing also details about the trail (trail age, double blind, negative trail, scent article as a short text) and, for each search, whether the person was found and how the dog indicated them",
-            "for blood tracks (hunting) also details about the laying: method (dab, drip or track shoe), game species, amount of blood in millilitres and minimum standing time in hours",
           ]}
         />
         <p className="font-medium text-foreground">Club and groups</p>
@@ -296,10 +295,9 @@ export function DatenschutzEn() {
         <p className="font-medium text-foreground">Place search and weather (from the server, not from your device)</p>
         <p>
           If you search for a training place, Dogity’s server queries the service{" "}
-          <span className="text-foreground">Photon</span> (komoot GmbH, Berlin). For the weather when laying and
-          searching a track and – for blood tracks and trails – for rain and temperature in the time in between, it
-          queries <span className="text-foreground">Open-Meteo</span>. In both cases only the request itself goes out –
-          search term or coordinates and time or period respectively. Your IP address and your name are
+          <span className="text-foreground">Photon</span> (komoot GmbH, Berlin). For the temperature when laying and
+          searching a track, it queries <span className="text-foreground">Open-Meteo</span>. In both cases only the
+          request itself goes out – search term or coordinates and time respectively. Your IP address and your name are
           not transmitted; the services only see Dogity’s server.
         </p>
         <p className="font-medium text-foreground">Emails</p>

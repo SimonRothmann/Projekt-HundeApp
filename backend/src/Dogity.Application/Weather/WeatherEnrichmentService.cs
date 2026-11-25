@@ -64,14 +64,6 @@ public class WeatherEnrichmentService(IApplicationDbContext db, IWeatherProvider
 
         foreach (var auftrag in auftraege)
         {
-            if (auftrag.Ziel == WetterZiel.FaehrteStehzeit && auftrag.Ende is { } ende)
-            {
-                var zeitraum = await weather.GetPeriodAsync(auftrag.Breite, auftrag.Laenge, auftrag.Zeitpunkt, ende, ct);
-                if (zeitraum is not null)
-                    WetterAuftraege.Eintragen(track, zeitraum, DateTimeOffset.UtcNow);
-                continue;
-            }
-
             var wetter = await weather.GetAtAsync(auftrag.Breite, auftrag.Laenge, auftrag.Zeitpunkt, ct);
             if (wetter is not null)
                 WetterAuftraege.Eintragen(track, auftrag.Ziel, wetter, DateTimeOffset.UtcNow);

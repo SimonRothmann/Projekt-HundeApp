@@ -23,14 +23,11 @@ import { TrailAngabenZeile, TrailErgebnisZeile } from "@/components/tracking/tra
 import { AblaufErgebnisSheet } from "@/components/tracking/ablauf-ergebnis-sheet";
 import { AblaufGegenstaende, GegenstandsMaterial } from "@/components/tracking/gegenstaende";
 import { istMantrailing } from "@/lib/mantrailing";
-import { spurArt } from "@/lib/spurart";
-import { VERFAHREN_FAEHRTENSCHUH } from "@/lib/schweiss";
-import { SchweissAngabenZeile, SchweissStueckZeile } from "@/components/tracking/schweiss-angaben";
 import { ChevronDown, CloudSun, Pencil, Route, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useWetterNachladen } from "@/lib/use-wetter-nachladen";
-import { faehrteWetterOffen, stehzeitWetterOffen } from "@/lib/wetter-nachladen";
-import { formatDelta, formatTemperature, stehzeitWetterText, weatherIcon, weatherLabel } from "@/lib/weather";
+import { faehrteWetterOffen } from "@/lib/wetter-nachladen";
+import { formatDelta, formatTemperature, weatherIcon, weatherLabel } from "@/lib/weather";
 import { WindRichtung } from "@/components/tracking/wind-richtung";
 import { zeigtWindrichtung } from "@/lib/wind";
 import { useSchritte } from "@/lib/use-schritte";
@@ -191,7 +188,7 @@ export function GpsTrackSection({
   // das ein neuer Anlass.
   useWetterNachladen(
     tracks
-      ?.filter((track) => faehrteWetterOffen(track) || stehzeitWetterOffen(track))
+      ?.filter(faehrteWetterOffen)
       .map((track) => `${track.id}:${track.laidTemperatureC == null ? "legen" : "suchen"}`)
       .join(",") || null,
     loadTracks,
@@ -205,12 +202,10 @@ export function GpsTrackSection({
 
   // Löschen fragt nach; der Server prüft das Recht ohnehin.
   async function trackLoeschen(track: GpsTrack) {
-    const art = spurArt(track);
-    const frage = art === "trail" ? t("Trail wirklich löschen?") : art === "schweiss" ? t("Schweißfährte wirklich löschen?") : t("Fährte wirklich löschen?");
-    if (!(await rueckfrage({ titel: frage, bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
+    if (!(await rueckfrage({ titel: istMantrailing(track) ? t("Trail wirklich löschen?") : t("Fährte wirklich löschen?"), bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
     try {
       await api.delete(`/api/gps-tracks/${track.id}`);
-      toast.success(art === "trail" ? t("Trail gelöscht.") : art === "schweiss" ? t("Schweißfährte gelöscht.") : t("Fährte gelöscht."));
+      toast.success(istMantrailing(track) ? t("Trail gelöscht.") : t("Fährte gelöscht."));
       await loadTracks();
       await onChanged?.();
     } catch (err) {
@@ -220,13 +215,7 @@ export function GpsTrackSection({
 
   return (
     <div className="flex flex-col gap-3">
-      <BlockLabel icon={Route}>
-        {tracks.every((track) => spurArt(track) === "trail")
-          ? t("Trail")
-          : tracks.every((track) => spurArt(track) === "schweiss")
-            ? t("Schweißfährte")
-            : t("Fährte")}
-      </BlockLabel>
+      <BlockLabel icon={Route}>{tracks.every((track) => istMantrailing(track)) ? t("Trail") : t("Fährte")}</BlockLabel>
 
       {/* Mehrere Fährten: durch eine Linie getrennt und nummeriert, damit
           Karte, Wetter und Abläufe erkennbar zur jeweils eigenen Fährte
@@ -237,16 +226,11 @@ export function GpsTrackSection({
           // Verdeckt absuchen: nur einstellbar, solange noch kein Ablauf existiert (der Server prüft es
           // ebenso); danach bleibt es als Angabe stehen.
           const verdecktEinstellbar = darfLoeschen && track.walkRuns.length === 0;
-          const art = spurArt(track);
           return (
             <div key={track.id} className="flex flex-col gap-2">
               {tracks.length > 1 && (
                 <h5 className="text-sm font-semibold">
-                  {art === "trail"
-                    ? t("Trail {nummer}", { nummer: index + 1 })
-                    : art === "schweiss"
-                      ? t("Schweißfährte {nummer}", { nummer: index + 1 })
-                      : t("Fährte {nummer}", { nummer: index + 1 })}
+                  {istMantrailing(track) ? t("Trail {nummer}", { nummer: index + 1 }) : t("Fährte {nummer}", { nummer: index + 1 })}
                 </h5>
               )}
               {/* Die Karte zuerst: Sie ist, wofür man den Block aufschlägt. Der
@@ -274,10 +258,10 @@ export function GpsTrackSection({
                   </span>
                 )}
                 {track.lengthMeters && (
-                  // Bei der Fährte dahinter die Länge in Schritten - Trail und Schweißfährte rechnen in Metern.
+                  // Bei der Fährte dahinter die Länge in Schritten - der Trail rechnet nicht in Schritten.
                   <span>
                     {Math.round(track.lengthMeters)} m
-                    {art === "faehrte" && schritte(track.lengthMeters) ? ` ${schritte(track.lengthMeters)}` : ""}
+                    {!istMantrailing(track) && schritte(track.lengthMeters) ? ` ${schritte(track.lengthMeters)}` : ""}
                   </span>
                 )}
                 {/* Gespeichert ist der deutsche Begriff, angezeigt wird er in
@@ -289,13 +273,11 @@ export function GpsTrackSection({
                 {track.excludeFromStats && <Badge variant="outline">{t("nicht in der Entwicklung")}</Badge>}
                 {/* Nur Fährte. Auch solange es noch einstellbar ist: Der Schalter steht
                     zugeklappt unter "Einstellungen", man sähe sonst nicht, dass es an ist. */}
-                {art === "faehrte" && track.doubleBlind === true && (
+                {!istMantrailing(track) && track.doubleBlind === true && (
                   <Badge variant="outline">{t("Verdeckt absuchen")}</Badge>
                 )}
-                {art === "schweiss" && track.doubleBlind === true && <Badge variant="outline">{t("Wie auf der Prüfung")}</Badge>}
               </div>
-              {art === "trail" && <TrailAngabenZeile track={track} />}
-              {art === "schweiss" && <SchweissAngabenZeile track={track} />}
+              {istMantrailing(track) && <TrailAngabenZeile track={track} />}
               <TrackWeather track={track} onLoaded={loadTracks} />
               <div className="flex flex-wrap items-center gap-2">
                 {/* Der Einstieg ins Aufzeichnen hängt am Modul, die Anzeige
@@ -332,22 +314,20 @@ export function GpsTrackSection({
                         <WalkRunEvaluation run={run} art={track} />
                         {/* Ohne darfAendern: Die Ergebnisse je Gegenstand folgen dem Ablauf-Kommentar
                             (Server: HasSessionAccess), nicht dem Löschrecht. */}
-                        {(art === "faehrte" || art === "schweiss") && (
+                        {!istMantrailing(track) && (
                           <AblaufGegenstaende
                             trackId={track.id}
                             punkte={track.points}
                             run={run}
-                            schweiss={art === "schweiss"}
-                            tropfbett={track.verfahren === VERFAHREN_FAEHRTENSCHUH}
                             onSaved={async () => {
                               await loadTracks();
                               await onChanged?.();
                             }}
                           />
                         )}
-                        {(art === "trail" || art === "schweiss") && (
+                        {istMantrailing(track) && (
                           <span className="flex flex-wrap items-center gap-1.5">
-                            {art === "trail" ? <TrailErgebnisZeile negativ={track.negativeTrail === true} run={run} /> : <SchweissStueckZeile run={run} />}
+                            <TrailErgebnisZeile negativ={track.negativeTrail === true} run={run} />
                             <Button
                               type="button"
                               size="sm"
@@ -368,7 +348,7 @@ export function GpsTrackSection({
               )}
               {/* Nur Fährte: Gegenstände und die Entwicklung gibt es beim Mantrailing nicht. Ändern darf, wer
                   auch löschen darf (beides: die Fährte bearbeiten, siehe darfLoeschen). */}
-              {art === "faehrte" && (
+              {!istMantrailing(track) && (
                 <GegenstandsMaterial trackId={track.id} punkte={track.points} darfAendern={darfLoeschen} onGeaendert={loadTracks} />
               )}
               {darfLoeschen && (
@@ -430,26 +410,19 @@ function FaehrteEinstellungen({
   const ort = ortsformat(useSprache());
   const [offen, setOffen] = useState(false);
   const trail = istMantrailing(track);
-  const art = spurArt(track);
   const marker = markerListe(track.points);
 
   function markerName(m: (typeof marker)[number]): string {
-    // Beim Fährtenschuh heißt der Verweiserpunkt Tropfbett (wie beim Legen).
-    const art = m.art === 5 && track.verfahren === VERFAHREN_FAEHRTENSCHUH ? t("Tropfbett") : t(MARKER_LABELS[m.art]);
     const name = m.art === 0
       ? t("Gegenstand {nr}", { nr: m.nummer ?? 0 })
-      : m.nummer == null ? art : `${art} ${m.nummer}`;
+      : m.nummer == null ? t(MARKER_LABELS[m.art]) : `${t(MARKER_LABELS[m.art])} ${m.nummer}`;
     return m.label ? `${name} · ${m.label}` : name;
   }
 
   async function markerLoeschen(m: (typeof marker)[number]) {
     const name = markerName(m);
     const text = [
-      trail
-        ? t("{name} wird aus dem Trail entfernt.", { name })
-        : art === "schweiss"
-          ? t("{name} wird aus der Schweißfährte entfernt.", { name })
-          : t("{name} wird aus der Fährte entfernt.", { name }),
+      trail ? t("{name} wird aus dem Trail entfernt.", { name }) : t("{name} wird aus der Fährte entfernt.", { name }),
       track.walkRuns.length > 0 ? t("Der Ablauf wird neu ausgewertet.") : null,
     ].filter(Boolean).join(" ");
     if (!(await rueckfrage({ titel: t("Marker löschen?"), text, bestaetigen: t("Löschen"), gefaehrlich: true }))) return;
@@ -472,32 +445,26 @@ function FaehrteEinstellungen({
         aria-expanded={offen}
         onClick={() => setOffen((o) => !o)}
       >
-        {trail ? t("Einstellungen des Trails") : art === "schweiss" ? t("Einstellungen der Schweißfährte") : t("Einstellungen der Fährte")}
+        {trail ? t("Einstellungen des Trails") : t("Einstellungen der Fährte")}
         <ChevronDown className={cn("size-3.5 transition-transform", offen && "rotate-180")} />
       </Button>
       <Zuklappbar offen={offen} className="flex flex-col gap-2">
-          {(art === "faehrte" || (art === "schweiss" && verdecktEinstellbar)) && (
+          {!trail && (
             <div className="divide-y divide-surface-border overflow-hidden rounded-md bg-surface">
               {verdecktEinstellbar && (
                 <SchalterZeile
                   an={track.doubleBlind === true}
-                  titel={art === "schweiss" ? t("Wie auf der Prüfung") : t("Verdeckt absuchen")}
-                  beschreibung={
-                    art === "schweiss"
-                      ? t("Verlauf ausgeblendet; den Anschuss suchst du selbst in einer Fläche von 30 × 30 m.")
-                      : t("Verlauf ausgeblendet, kein Vibrieren – für Prüfungssimulationen.")
-                  }
+                  titel={t("Verdeckt absuchen")}
+                  beschreibung={t("Verlauf ausgeblendet, kein Vibrieren – für Prüfungssimulationen.")}
                   onChange={onVerdeckt}
                 />
               )}
-              {art === "faehrte" && (
-                <SchalterZeile
-                  an={track.excludeFromStats === true}
-                  titel={t("Nicht in die Entwicklung zählen")}
-                  beschreibung={t("Für bewusst schwere Übungsfährten – die Fährte bleibt erhalten.")}
-                  onChange={onEntwicklung}
-                />
-              )}
+              <SchalterZeile
+                an={track.excludeFromStats === true}
+                titel={t("Nicht in die Entwicklung zählen")}
+                beschreibung={t("Für bewusst schwere Übungsfährten – die Fährte bleibt erhalten.")}
+                onChange={onEntwicklung}
+              />
             </div>
           )}
           {marker.length > 0 && (
@@ -533,7 +500,7 @@ function FaehrteEinstellungen({
             onClick={onLoeschen}
           >
             <Trash2 className="size-4" />
-            {trail ? t("Trail löschen") : art === "schweiss" ? t("Schweißfährte löschen") : t("Fährte löschen")}
+            {trail ? t("Trail löschen") : t("Fährte löschen")}
           </Button>
       </Zuklappbar>
     </div>
@@ -567,7 +534,6 @@ function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Pr
   }
 
   const wetter = weatherLabel(track.laidWeatherCode);
-  const stehzeit = stehzeitWetterText(t, sprache, istMantrailing(track), track.standRegenMm, track.standTempMinC, track.standTempMaxC);
 
   // Lose Prüfung (== null): ältere Backend-Stände/Cache kennen die Felder nicht.
   if (track.laidTemperatureC == null) {
@@ -597,16 +563,6 @@ function TrackWeather({ track, onLoaded }: { track: GpsTrack; onLoaded: () => Pr
       {zeigtWindrichtung(track.laidWindDirectionDeg, track.laidWindSpeedKmh) && <WindRichtung grad={track.laidWindDirectionDeg} />}
       {zeigtWindrichtung(track.searchWindDirectionDeg, track.searchWindSpeedKmh) && (
         <WindRichtung grad={track.searchWindDirectionDeg} beimSuchen />
-      )}
-      {stehzeit ? (
-        <span className="basis-full">{stehzeit}</span>
-      ) : (
-        stehzeitWetterOffen(track) && (
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" disabled={loading} onClick={fetchWeather}>
-            <CloudSun className="size-3" />
-            {loading ? t("Lädt Wetter…") : t("Wetter laden")}
-          </Button>
-        )
       )}
     </div>
   );

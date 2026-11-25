@@ -1,8 +1,4 @@
 import { uebersetzbar } from "@/lib/i18n/sprachen";
-import { ART_FAEHRTE, ART_MANTRAILING, istSchweiss } from "@/lib/spurart";
-
-// Die Art der Aufzeichnung steht seit Paket SF1 in lib/spurart.ts; hier bleiben die alten Namen erreichbar.
-export { ART_FAEHRTE, ART_MANTRAILING };
 
 /**
  * Mantrailing als Art der GPS-Aufzeichnung (Paket M1).
@@ -15,6 +11,10 @@ export { ART_FAEHRTE, ART_MANTRAILING };
 
 /** Sportart-Code - wie SportCatalogSeeder.MantrailingCode im Backend. */
 export const MANTRAILING_CODE = "MANTRAILING";
+
+/** GpsTrack.kind: die Art der Aufzeichnung (GpsTrackKind im Backend, als Zahl). */
+export const ART_FAEHRTE = 0;
+export const ART_MANTRAILING = 1;
 
 /**
  * Ob etwas Mantrailing ist: ein Sportart-Code, eine Sportart oder eine
@@ -32,20 +32,17 @@ export function istMantrailing(wovon: string | { code: string } | { kind?: numbe
 export type SpurGrenzen = { gruenBis: number; gelbBis: number };
 
 /**
- * Fährte 3/6 m, Mantrailing 10/25 m, Schweißfährte 10/30 m. Der Hund arbeitet beim Mantrailing an
+ * Fährte 3/6 m, Mantrailing 10/25 m. Der Hund arbeitet beim Mantrailing an
  * langer Leine und sucht den Geruch auch neben der Laufspur - eng an der Linie
  * wie bei der Fährte ist dort nicht das Ziel. Dieselben Zahlen stehen im
- * Backend (GpsTrackEvaluator.FaehrteToleranz, MantrailingToleranz und SchweissToleranz); der Test
+ * Backend (GpsTrackEvaluator.FaehrteToleranz und MantrailingToleranz); der Test
  * backend-kopplung.test.ts hält beide Seiten zusammen.
  */
 export const FAEHRTE_GRENZEN: SpurGrenzen = { gruenBis: 3, gelbBis: 6 };
 export const MANTRAILING_GRENZEN: SpurGrenzen = { gruenBis: 10, gelbBis: 25 };
-/** Schweißfährte: Der Hund arbeitet am mindestens 6 m langen Riemen und darf neben der Linie suchen. */
-export const SCHWEISS_GRENZEN: SpurGrenzen = { gruenBis: 10, gelbBis: 30 };
 
 /** Die Grenzen für eine Spur (oder deren Art); ohne Angabe die der Fährte. */
 export function spurGrenzen(art?: { kind?: number | null } | null): SpurGrenzen {
-  if (istSchweiss(art)) return SCHWEISS_GRENZEN;
   return istMantrailing(art) ? MANTRAILING_GRENZEN : FAEHRTE_GRENZEN;
 }
 

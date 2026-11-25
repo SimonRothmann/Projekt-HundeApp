@@ -83,10 +83,6 @@ describe("Beschriftungen", () => {
     expect(winkelBeschriftung(winkel(2, { direction: 0, sharp: true }), t)).toBe("Winkel 2 · links · spitz");
   });
 
-  it("heißt bei der Schweißfährte Haken", () => {
-    expect(winkelBeschriftung(winkel(1), t, true)).toBe("Haken 1 · rechts");
-  });
-
   it("nennt den Zustand, beim Überschießen mit ganzen Metern", () => {
     expect(zustandBeschriftung(winkel(1), t)).toBe("sauber");
     expect(zustandBeschriftung(winkel(1, { overshot: true, overshootMeters: 8.6 }), t)).toBe("überschossen 9 m");

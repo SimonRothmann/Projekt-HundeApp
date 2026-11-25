@@ -47,10 +47,10 @@ export function dauerText(sekunden: number): string {
   return `${Math.floor(ganz / 60)}:${String(ganz % 60).padStart(2, "0")}`;
 }
 
-/** "Winkel 1 · rechts · spitz" - die Beschriftung eines Winkels in Liste und Karte; bei der Schweißfährte heißt er Haken. */
-export function winkelBeschriftung(corner: GpsWalkRunCorner, t: TextUebersetzer, haken = false): string {
+/** "Winkel 1 · rechts · spitz" - die Beschriftung eines Winkels in Liste und Karte. */
+export function winkelBeschriftung(corner: GpsWalkRunCorner, t: TextUebersetzer): string {
   const richtung = corner.direction === 0 ? t("links") : t("rechts");
-  return [haken ? t("Haken {nr}", { nr: corner.number }) : t("Winkel {nr}", { nr: corner.number }), richtung, ...(corner.sharp ? [t("spitz")] : [])].join(" · ");
+  return [t("Winkel {nr}", { nr: corner.number }), richtung, ...(corner.sharp ? [t("spitz")] : [])].join(" · ");
 }
 
 /** Wie der Ablauf mit dem Winkel umging: sauber, überschossen (mit Meterzahl) oder nicht erreicht. */

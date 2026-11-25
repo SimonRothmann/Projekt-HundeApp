@@ -1034,8 +1034,7 @@ export type GpsPointType = 0 | 1; // 0 = Automatic, 1 = Manual (siehe Domain.Tra
 // Fachliche Bedeutung eines manuellen Markers (siehe Domain.Tracking.GpsMarkerType).
 // Entscheidet, wie ein Halt an dieser Stelle gewertet wird: am Gegenstand ist er
 // ein erwünschtes Verweisen, am Leckerlipot/an einer Verleitung erklärt+neutral.
-// Bei der Schweißfährte: Wundbett und Verweiserpunkt (Tropfbett) - ein Halt dort ist Verweisen.
-export type GpsMarkerType = 0 | 1 | 2 | 3 | 4 | 5; // Gegenstand | Leckerlipot | Verleitung | Sonstiges | Wundbett | Verweiserpunkt
+export type GpsMarkerType = 0 | 1 | 2 | 3; // Gegenstand | Leckerlipot | Verleitung | Sonstiges
 
 export type GpsPoint = {
   latitude: number;
@@ -1143,11 +1142,6 @@ export type GpsWalkRun = {
   personFound?: boolean | null;
   /** Anzeigeverhalten (siehe ANZEIGEVERHALTEN in lib/mantrailing.ts); null = nicht angegeben. */
   indication?: number | null;
-  // Nur Schweißfährte (Paket SF2; sonst fehlend oder null): Zahl der Rückrufe und wo sie fielen, vom Server aus
-  // den vollständigen Punkten berechnet; endReached: ein Ablaufpunkt lag am Ende der Legung ("GPS: Ende erreicht").
-  recalls?: number | null;
-  recallPoints?: { latitude: number; longitude: number }[] | null;
-  endReached?: boolean | null;
 };
 
 export type GpsTrack = {
@@ -1164,7 +1158,7 @@ export type GpsTrack = {
   comment: string | null;
   points: GpsPoint[];
   walkRuns: GpsWalkRun[];
-  // Art der Aufzeichnung: 0 = Fährte, 1 = Mantrailing, 2 = Schweißfährte (ART_* in lib/spurart.ts). Wie die
+  // Art der Aufzeichnung: 0 = Fährte, 1 = Mantrailing (ART_* in lib/mantrailing.ts). Wie die
   // Angaben darunter optional - ältere Stände kennen sie nicht und gelten als Fährte.
   kind?: number;
   /** Beim Mantrailing "Doppelblind", bei der Fährte "Verdeckt absuchen": Beim Absuchen sind Verlauf, Marker und Haptik aus. */
@@ -1173,12 +1167,6 @@ export type GpsTrack = {
   scentArticle?: string | null;
   /** Bewusst schwere Übungsfährte: zählt nicht in die Entwicklung des Hundes. Optional wie die Felder darüber. */
   excludeFromStats?: boolean;
-  // Nur Schweißfährte (alles freiwillig): Verfahren und Wildart (deutscher Begriff aus lib/spurart.ts),
-  // Schweißmenge in ml und Mindest-Stehzeit des Leitfadens in Stunden.
-  verfahren?: string | null;
-  wildart?: string | null;
-  schweissMl?: number | null;
-  stehzeitStunden?: number | null;
   // Automatisch ermitteltes Wetter beim Legen und beim Suchen. Fachlich am
   // wichtigsten ist temperatureDeltaC - die Änderung dazwischen bestimmt
   // maßgeblich, wie sich die Geruchsspur hält.
@@ -1195,10 +1183,6 @@ export type GpsTrack = {
   searchWindDirectionDeg?: number | null;
   temperatureDeltaC: number | null;
   weatherFetchedAt: string | null;
-  /** Nur Schweißfährte und Trail: Regensumme (mm) und niedrigste/höchste Temperatur zwischen Legen und erstem Ablauf. */
-  standRegenMm?: number | null;
-  standTempMinC?: number | null;
-  standTempMaxC?: number | null;
 };
 
 // Treffer der Ortssuche (Open-Meteo Geocoding, siehe WeatherController).
@@ -1694,10 +1678,6 @@ export type AblaufSpur = Pick<
   | "doubleBlind"
   | "negativeTrail"
   | "scentArticle"
-  | "verfahren"
-  | "wildart"
-  | "schweissMl"
-  | "stehzeitStunden"
 >;
 
 // Was der Server nach dem Ändern einer einzelnen Angabe einer Fährte zurückgibt (PUT .../trail, .../verdeckt,
@@ -1712,7 +1692,7 @@ export type DashboardHund = {
   sportIds: string[];
   // Aktive Ziele mit Trainingsplan - Quelle für "Diese Woche".
   activeGoals: Goal[];
-  // Noch suchbare Spuren ohne Ablauf (Fährte 4, Trail 48, Schweißfährte 72 Stunden nach dem Legen) - Quelle für
+  // Noch suchbare Spuren ohne Ablauf (Fährte 24, Trail 48 Stunden nach dem Legen) - Quelle für
   // "Heute gelegt" / "Zuletzt gelegt"; der Name stammt aus der Zeit, als es nur die von heute waren.
   tracksToday: AblaufSpur[];
 };

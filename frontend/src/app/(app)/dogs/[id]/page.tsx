@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { MODULE, type Dog, type MerkzettelEintrag, type TrainingPlanItem } from "@/lib/types";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { hauptSpurArt, laeuftFaehrte, spurArten } from "@/lib/faehrte";
+import { laeuftFaehrte, spurArten } from "@/lib/faehrte";
 import { DogEditForm } from "@/components/dogs/dog-edit-form";
 import { GoalsSection } from "@/components/dogs/goals-section";
 import { LeistungenCard } from "@/components/dogs/leistungen-card";
@@ -232,7 +232,7 @@ function DogPage({ id }: { id: string }) {
 
       <DogActionBar
         zeigtFaehrte={zeigtFaehrte}
-        spurArt={hauptSpurArt(arten)}
+        nurTrail={arten.mantrailing && !arten.faehrte}
         zeigtMerken={isOwner}
         onTraining={() => oeffneEintragen(null)}
         onFaehrte={() => setFaehrteOffen(true)}

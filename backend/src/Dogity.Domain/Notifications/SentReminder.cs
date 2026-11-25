@@ -8,7 +8,7 @@ public enum ReminderType
     /// <summary>Termin einer Gruppe am Folgetag, an Mitglieder.</summary>
     SessionDayBefore,
 
-    /// <summary>Eine gelegte Fährte wurde noch nicht abgelaufen, die Frist (je Art, siehe Ablauffristen) läuft noch.</summary>
+    /// <summary>Eine gelegte Fährte wurde noch nicht abgelaufen, die 24-Stunden-Frist läuft noch.</summary>
     TrackNotWalked,
 
     /// <summary>Zusammenfassung offener Rückmeldungen, an Trainer:innen.</summary>
@@ -43,12 +43,6 @@ public class SentReminder : Entity
 {
     /// <summary>Wert von <see cref="DayKey"/> bei Erinnerungen, die je Bezug nur einmal kommen.</summary>
     public static readonly DateOnly KeinTag = DateOnly.MinValue;
-
-    /// <summary>
-    /// Wert von <see cref="DayKey"/> der zweiten Stufe einer Erinnerung, die je Bezug zweimal kommt
-    /// (Schweißfährte: Stehzeit erreicht, dann kurz vor Fristende) - der Schlüssel unterscheidet die Stufen.
-    /// </summary>
-    public static readonly DateOnly ZweiteStufe = DateOnly.MinValue.AddDays(1);
 
     public Guid UserId { get; set; }
     public ReminderType Type { get; set; }

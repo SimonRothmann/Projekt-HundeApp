@@ -6,7 +6,6 @@ using Dogity.Application.Training;
 using Dogity.Application.Weather;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Sports;
-using Dogity.Domain.Tracking;
 using Dogity.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -35,15 +34,6 @@ public class WetterImHintergrundTests
         public int Aufrufe { get; private set; }
         public Func<DateTimeOffset, WeatherReading?> Antwort { get; set; } = _ => Sonne;
         public bool Wirft { get; set; }
-        public WeatherPeriod? Zeitraum { get; set; } = new(4.2, 3, 9);
-        public List<(DateTimeOffset Von, DateTimeOffset Bis)> Zeitraeume { get; } = [];
-
-        public Task<WeatherPeriod?> GetPeriodAsync(double latitude, double longitude, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
-        {
-            Zeitraeume.Add((from, to));
-            if (Wirft) throw new HttpRequestException("Open-Meteo hängt.");
-            return Task.FromResult(Zeitraum);
-        }
 
         public Task<WeatherReading?> GetAtAsync(double latitude, double longitude, DateTimeOffset instant, CancellationToken ct = default)
         {
@@ -257,103 +247,6 @@ public class WetterImHintergrundTests
         Assert.Equal(250, ergebnis.Value.LaidWindDirectionDeg);
         Assert.Equal(40, ergebnis.Value.SearchWindDirectionDeg);
         Assert.Empty(a.Queue.Auftraege);
-    }
-
-    // ------------------------------------------------------------ Stehzeit
-
-    private static CreateGpsTrackRequest MitArt(CreateGpsTrackRequest r, GpsTrackKind art) => r with { Kind = art };
-
-    private static async Task<GpsTrackDto> SpurMitAblaufAsync(Aufsetzen a, GpsTrackKind art, TimeSpan bisZumAblauf)
-    {
-        var start = Jetzt.AddDays(-2);
-        var track = (await a.Fahrten.CreateAsync(a.Nutzer, MitArt(Aufsetzen.FaehrteMitPunkten(a.HundId, start), art))).Value!;
-        a.Queue.Auftraege.Clear();
-        Assert.True((await a.Fahrten.AddWalkRunAsync(a.Nutzer, track.Id, Aufsetzen.Ablauf(start.Add(bisZumAblauf)))).Succeeded);
-        return track;
-    }
-
-    [Theory]
-    [InlineData(GpsTrackKind.Schweissfaehrte)]
-    [InlineData(GpsTrackKind.Mantrailing)]
-    public async Task ErsterAblauf_ReihtDieStehzeitEin_AbEndeDesLegensBisBeginnDesAblaufs(GpsTrackKind art)
-    {
-        var a = new Aufsetzen();
-        var start = Jetzt.AddDays(-2);
-        await SpurMitAblaufAsync(a, art, TimeSpan.FromHours(20));
-
-        var auftrag = Assert.Single(a.Queue.Auftraege, x => x.Ziel == WetterZiel.FaehrteStehzeit);
-        // Legen endet mit dem letzten automatischen Punkt (+10 min), nicht mit dem späteren Marker (+40 min).
-        Assert.Equal(start.AddMinutes(10), auftrag.Zeitpunkt);
-        Assert.Equal(start.AddHours(20), auftrag.Ende);
-        Assert.Equal(48.9, auftrag.Breite);
-    }
-
-    [Fact]
-    public async Task Sportfaehrte_BekommtKeineStehzeit()
-    {
-        var a = new Aufsetzen();
-        await SpurMitAblaufAsync(a, GpsTrackKind.Faehrte, TimeSpan.FromHours(3));
-
-        Assert.DoesNotContain(a.Queue.Auftraege, x => x.Ziel == WetterZiel.FaehrteStehzeit);
-    }
-
-    [Fact]
-    public async Task StehzeitUnterEinerStunde_WirdNichtAbgefragt()
-    {
-        var a = new Aufsetzen();
-        // Legen endet +10 min, Ablauf +65 min: 55 min dazwischen.
-        await SpurMitAblaufAsync(a, GpsTrackKind.Schweissfaehrte, TimeSpan.FromMinutes(65));
-
-        Assert.DoesNotContain(a.Queue.Auftraege, x => x.Ziel == WetterZiel.FaehrteStehzeit);
-    }
-
-    [Fact]
-    public async Task Nachtrag_TraegtDieStehzeitEin_UndEinZweiterAuftragUeberschreibtNichts()
-    {
-        var a = new Aufsetzen();
-        var track = await SpurMitAblaufAsync(a, GpsTrackKind.Schweissfaehrte, TimeSpan.FromHours(20));
-        var auftrag = Assert.Single(a.Queue.Auftraege, x => x.Ziel == WetterZiel.FaehrteStehzeit);
-
-        Assert.True(await a.Nachtrag.NachtragenAsync(auftrag));
-
-        var gespeichert = await a.Db.GpsTracks.SingleAsync(t => t.Id == track.Id);
-        Assert.Equal(4.2, gespeichert.StandRegenMm);
-        Assert.Equal(3, gespeichert.StandTempMinC);
-        Assert.Equal(9, gespeichert.StandTempMaxC);
-        Assert.Equal((auftrag.Zeitpunkt, auftrag.Ende!.Value), Assert.Single(a.Wetterdienst.Zeitraeume));
-
-        a.Wetterdienst.Zeitraum = new WeatherPeriod(0, -5, -1);
-        Assert.False(await a.Nachtrag.NachtragenAsync(auftrag));
-        Assert.Equal(4.2, (await a.Db.GpsTracks.SingleAsync(t => t.Id == track.Id)).StandRegenMm);
-    }
-
-    [Fact]
-    public async Task StehzeitOhneAntwortOderMitFehler_BleibtLeer()
-    {
-        var a = new Aufsetzen();
-        var track = await SpurMitAblaufAsync(a, GpsTrackKind.Schweissfaehrte, TimeSpan.FromHours(20));
-        var auftrag = Assert.Single(a.Queue.Auftraege, x => x.Ziel == WetterZiel.FaehrteStehzeit);
-
-        a.Wetterdienst.Zeitraum = null;
-        Assert.False(await a.Nachtrag.NachtragenAsync(auftrag));
-        a.Wetterdienst.Wirft = true;
-        Assert.False(await a.Nachtrag.NachtragenAsync(auftrag));
-
-        Assert.Null((await a.Db.GpsTracks.SingleAsync(t => t.Id == track.Id)).StandRegenMm);
-    }
-
-    [Fact]
-    public async Task WetterLadenPerKnopf_FuelltAuchDieStehzeit()
-    {
-        var a = new Aufsetzen();
-        var track = await SpurMitAblaufAsync(a, GpsTrackKind.Schweissfaehrte, TimeSpan.FromHours(20));
-
-        var ergebnis = await a.Fahrten.RefreshWeatherAsync(a.Nutzer, track.Id);
-
-        Assert.True(ergebnis.Succeeded);
-        Assert.Equal(4.2, ergebnis.Value!.StandRegenMm);
-        Assert.Equal(3, ergebnis.Value.StandTempMinC);
-        Assert.Equal(9, ergebnis.Value.StandTempMaxC);
     }
 
     // ------------------------------------------------------------ Training

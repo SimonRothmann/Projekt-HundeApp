@@ -11,7 +11,7 @@ namespace Dogity.Application.Dashboard;
 //   leer heißt "keine Einschränkung". Das Frontend entscheidet damit, ob es
 //   "Fährte legen" anbietet (lib/faehrte.ts).
 // - ActiveGoals: aktive Ziele mit Trainingsplan - die Quelle für "Diese Woche".
-// - TracksToday: die noch suchbaren und noch nicht abgelaufenen Spuren (Fährte bis 4, Trail bis 48, Schweißfährte bis 72
+// - TracksToday: die noch suchbaren und noch nicht abgelaufenen Spuren (Fährte bis 24, Trail bis 48
 //   Stunden nach dem Ende des Legens, siehe Ablauffristen) - die Quelle für "Heute gelegt". Der Name
 //   stammt aus der Zeit, als es nur die von heute waren.
 public record DashboardDogDto(
@@ -33,11 +33,7 @@ public record DashboardSpurDto(
     bool DoubleBlind,
     bool NegativeTrail,
     string? ScentArticle,
-    IReadOnlyList<GpsPointDto> Points,
-    string? Verfahren = null,
-    string? Wildart = null,
-    int? SchweissMl = null,
-    int? StehzeitStunden = null);
+    IReadOnlyList<GpsPointDto> Points);
 
 // Eine offene Einladung in eine Trainingsgruppe (als Mitglied), die die Person
 // auf der Startseite mit einem Tipp annehmen oder ablehnen kann.

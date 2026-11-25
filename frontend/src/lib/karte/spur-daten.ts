@@ -36,7 +36,6 @@ export type Eigenschaften = Record<string, string | number>;
 export type Merkmal<G> = { type: "Feature"; properties: Eigenschaften; geometry: G };
 export type Linie = { type: "LineString"; coordinates: Position[] };
 export type Punkt = { type: "Point"; coordinates: Position };
-export type Flaeche = { type: "Polygon"; coordinates: Position[][] };
 export type Merkmale<G> = { type: "FeatureCollection"; features: Merkmal<G>[] };
 
 // Eigene Farbe pro Ablauf-Versuch, damit mehrere Wiederholungen auf der
@@ -89,21 +88,19 @@ export const MARKER_LABELS = [
   uebersetzbar("Leckerlipot"),
   uebersetzbar("Verleitung"),
   uebersetzbar("Marker"),
-  uebersetzbar("Wundbett"),
-  uebersetzbar("Verweiserpunkt"),
 ] as const;
 
 /**
  * Form UND Farbe je Markerart - die EINE Tabelle für Karte (spur-ebenen.ts) und
  * Legende (track-map.tsx). Die Form trägt die Unterscheidung, die Farbe hilft nur:
  * Bei Rot-Grün-Schwäche werden Gelb, Orange und Grün zu Gelbtönen, Magenta der
- * Legung zu Blau-Lavendel. Index = markerType (GpsMarkerType), Rückfall = Marker (Index 3).
+ * Legung zu Blau-Lavendel. Index = markerType (GpsMarkerType), Rückfall = Marker.
  *
  * `umriss` in Einheitskoordinaten (0 bis 1, Mitte 0,5), Spitze des Dreiecks oben;
  * "kreis" als Kreis um die Mitte (Radius 0,3). Größen so gewählt, dass die Formen
  * optisch gleich groß wirken (das Dreieck braucht mehr Kantenlänge als das Quadrat).
  */
-export type MarkerForm = "quadrat" | "kreis" | "dreieck" | "raute" | "sechseck" | "stern" | "kreuz";
+export type MarkerForm = "quadrat" | "kreis" | "dreieck" | "raute";
 export type MarkerUmriss = "kreis" | readonly (readonly [number, number])[];
 export type MarkerArt = { form: MarkerForm; farbe: string; umriss: MarkerUmriss };
 
@@ -112,20 +109,7 @@ export const MARKER_FORMEN: readonly MarkerArt[] = [
   { form: "kreis", farbe: "#ffffff", umriss: "kreis" },
   { form: "dreieck", farbe: "#f97316", umriss: [[0.5, 0.16], [0.86, 0.84], [0.14, 0.84]] },
   { form: "raute", farbe: "#94a3b8", umriss: [[0.5, 0.15], [0.85, 0.5], [0.5, 0.85], [0.15, 0.5]] },
-  // Schweißfährte: Wundbett (Sechseck) und Verweiserpunkt (Stern) - Formen, die keine der anderen Arten hat.
-  { form: "sechseck", farbe: "#f43f5e", umriss: [[0.3, 0.14], [0.7, 0.14], [0.9, 0.5], [0.7, 0.86], [0.3, 0.86], [0.1, 0.5]] },
-  { form: "stern", farbe: "#38bdf8", umriss: [[0.5, 0.08], [0.62, 0.38], [0.92, 0.5], [0.62, 0.62], [0.5, 0.92], [0.38, 0.62], [0.08, 0.5], [0.38, 0.38]] },
 ];
-
-/**
- * Das Zeichen eines Rückrufs (Schweißfährte, Paket SF2): ein Kreuz, eine Form, die kein Marker hat. Nicht in
- * MARKER_FORMEN, denn dort ist der Index der markerType.
- */
-export const RUECKRUF_FORM: MarkerArt = {
-  form: "kreuz",
-  farbe: "#ef4444",
-  umriss: [[0.38, 0.1], [0.62, 0.1], [0.62, 0.38], [0.9, 0.38], [0.9, 0.62], [0.62, 0.62], [0.62, 0.9], [0.38, 0.9], [0.38, 0.62], [0.1, 0.62], [0.1, 0.38], [0.38, 0.38]],
-};
 
 /** Dunkler Rand der Marker (und Rand der Legendenzeichen). */
 export const MARKER_RAND_FARBE = "#1c1917";
@@ -229,7 +213,7 @@ export function legungDaten(points: KartenPunkt[], live: boolean, t: TextUeberse
  * zuletzt gezeigten Ablauf - sauber grün, überschossen nach der Ampel, nicht erreicht neutral.
  * Ohne ausgewerteten Ablauf gibt es keine Winkel zu zeigen.
  */
-export function winkelDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen: SpurGrenzen = FAEHRTE_GRENZEN, haken = false): Merkmale<Punkt> {
+export function winkelDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen: SpurGrenzen = FAEHRTE_GRENZEN): Merkmale<Punkt> {
   const lauf = [...walkRuns].reverse().find((r) => (r.corners ?? []).length > 0);
   const features = (lauf?.corners ?? []).map((corner) => {
     const zustand = winkelZustand(corner);
@@ -242,7 +226,7 @@ export function winkelDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen:
     return punkt(corner, {
       farbe,
       nummer: String(corner.number),
-      text: `${winkelBeschriftung(corner, t, haken)} · ${zustandBeschriftung(corner, t)}`,
+      text: `${winkelBeschriftung(corner, t)} · ${zustandBeschriftung(corner, t)}`,
     });
   });
   return { type: "FeatureCollection", features };
@@ -379,22 +363,6 @@ export function liveAblaufDaten(
     },
     farbe,
     letzter,
-  };
-}
-
-/** Die Stellen, an denen ein Rückruf fiel (vom Server berechnet, nur Schweißfährte). */
-export function rueckrufDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer): Merkmale<Punkt> {
-  const features = walkRuns.flatMap((run, i) =>
-    (run.recallPoints ?? []).map((p, k) => punkt(p, { form: RUECKRUF_FORM.form, text: t("Rückruf {n} (Ablauf {nr})", { n: k + 1, nr: i + 1 }) })),
-  );
-  return { type: "FeatureCollection", features };
-}
-
-/** Das Quadrat um den Anschuss beim verdeckten Arbeiten; leer ohne Fläche. */
-export function flaecheDaten(ring: Position[] | null): Merkmale<Flaeche> {
-  return {
-    type: "FeatureCollection",
-    features: ring ? [{ type: "Feature", properties: { text: "30 × 30 m" }, geometry: { type: "Polygon", coordinates: [ring] } }] : [],
   };
 }
 

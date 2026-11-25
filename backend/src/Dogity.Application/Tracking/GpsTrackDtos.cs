@@ -86,15 +86,7 @@ public record GpsWalkRunDto(
     // als Hinweis neben der Angabe der Hundeführer:in, nicht als Ergebnis.
     IReadOnlyList<Guid>? ReachedArticleIds,
     // Davon die Gegenstände, die in einer Lücke der Aufzeichnung liegen (null wie ReachedArticleIds).
-    IReadOnlyList<Guid>? UnrecordedArticleIds = null,
-    // Nur Schweißfährte (Paket SF2, sonst null): Zahl der Rückrufe und wo sie fielen, berechnet aus den
-    // vollständigen Punkten (kein gespeichertes Feld); EndReached: ein Ablaufpunkt lag am Ende der Legung.
-    int? Recalls = null,
-    IReadOnlyList<GpsRecallPointDto>? RecallPoints = null,
-    bool? EndReached = null);
-
-/// <summary>Die Stelle, an der ein Rückruf fiel (siehe GpsTrackEvaluator.Rueckrufe).</summary>
-public record GpsRecallPointDto(double Latitude, double Longitude);
+    IReadOnlyList<Guid>? UnrecordedArticleIds = null);
 
 public record GpsTrackDto(
     Guid Id,
@@ -132,16 +124,7 @@ public record GpsTrackDto(
     string? GroundCondition = null,
     // Windrichtung in Grad, AUS der der Wind kommt (null bei Fährten, deren Wetter vor Paket F4 geholt wurde).
     int? LaidWindDirectionDeg = null,
-    int? SearchWindDirectionDeg = null,
-    // Nur Schweißfährte: Verfahren, Wildart, Schweißmenge (ml) und Mindest-Stehzeit (Stunden).
-    string? Verfahren = null,
-    string? Wildart = null,
-    int? SchweissMl = null,
-    int? StehzeitStunden = null,
-    // Nur Schweißfährte und Trail: Wetter über die Stehzeit/Liegezeit (Regensumme, niedrigste und höchste Temperatur).
-    double? StandRegenMm = null,
-    double? StandTempMinC = null,
-    double? StandTempMaxC = null);
+    int? SearchWindDirectionDeg = null);
 
 /// <summary>
 /// Was ein Ablauf nach dem Ändern von Kommentar oder Trail-Ergebnis zurückgibt: nur die änderbaren Angaben,
@@ -198,12 +181,7 @@ public record CreateGpsTrackRequest(
     bool NegativeTrail = false,
     string? ScentArticle = null,
     // Bodenzustand beim Legen (nur Fährte); ältere Clients kennen das Feld nicht.
-    string? GroundCondition = null,
-    // Nur Schweißfährte (alles freiwillig); ältere Clients kennen die Felder nicht.
-    string? Verfahren = null,
-    string? Wildart = null,
-    int? SchweissMl = null,
-    int? StehzeitStunden = null);
+    string? GroundCondition = null);
 
 public record CreateGpsWalkPointRequest(double Latitude, double Longitude, DateTimeOffset Timestamp, double? Accuracy);
 
@@ -224,8 +202,8 @@ public record UpdateGpsWalkRunRequest(string? Comment);
 public record UpdateGpsTrailRequest(int? AgeMinutes, bool DoubleBlind, bool NegativeTrail, string? ScentArticle);
 
 /// <summary>
-/// "Verdeckt absuchen" bei der Fährte und der Schweißfährte (DoubleBlind): Beim Absuchen sind Verlauf,
-/// Marker und Haptik ausgeblendet. Lässt sich nur setzen, solange noch kein Ablauf existiert.
+/// "Verdeckt absuchen" bei der Fährte (DoubleBlind): Beim Absuchen sind Verlauf, Marker und Haptik
+/// ausgeblendet. Lässt sich nur setzen, solange noch kein Ablauf existiert.
 /// </summary>
 public record UpdateGpsVerdecktRequest(bool Verdeckt);
 
@@ -253,9 +231,4 @@ public record WartendeSpurDto(
     bool DoubleBlind,
     bool NegativeTrail,
     string? ScentArticle,
-    IReadOnlyList<GpsPointDto> Points,
-    // Nur Schweißfährte: die Angaben, die das Ergebnis-Fenster und die Stehzeit-Anzeige brauchen.
-    string? Verfahren = null,
-    string? Wildart = null,
-    int? SchweissMl = null,
-    int? StehzeitStunden = null);
+    IReadOnlyList<GpsPointDto> Points);

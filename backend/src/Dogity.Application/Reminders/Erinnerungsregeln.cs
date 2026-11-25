@@ -4,7 +4,6 @@ using Dogity.Application.Community;
 using Dogity.Application.Training;
 using Dogity.Domain.Dogs;
 using Dogity.Domain.Notifications;
-using Dogity.Domain.Tracking;
 using Dogity.Domain.Training;
 
 namespace Dogity.Application.Reminders;
@@ -34,12 +33,9 @@ public sealed record TerminAdressat(
 /// <summary>Eine gelegte Fährte samt dem, was für die Erinnerung nötig ist.</summary>
 /// <param name="LegeEnde">Zeit des letzten automatischen Punkts (wie legeEnde im Frontend), null ohne Punkte.</param>
 /// <param name="Abgelaufen">Ob schon ein Ablauf gespeichert ist.</param>
-/// <param name="Art">Fährte oder Schweißfährte (der Trail erinnert nicht).</param>
-/// <param name="StehzeitStunden">Nur Schweißfährte: Mindest-Stehzeit des Leitfadens, ohne Angabe gelten 14 Stunden.</param>
 public sealed record FaehrteKandidat(
     Guid FaehrteId, Guid TrainingId, Guid HundId, string Hund, Guid UserId,
-    DateTimeOffset? LegeEnde, bool Abgelaufen, bool HundPausiert, bool Erlaubt,
-    GpsTrackKind Art = GpsTrackKind.Faehrte, int? StehzeitStunden = null);
+    DateTimeOffset? LegeEnde, bool Abgelaufen, bool HundPausiert, bool Erlaubt);
 
 /// <summary>Eine Trainer:in mit ihrem selbst gewählten Rhythmus (Tage als Bitmaske, volle Stunde).</summary>
 public sealed record TrainerKandidat(Guid UserId, bool Erlaubt, int Tage, int Stunde);
@@ -97,17 +93,17 @@ public static class Erinnerungsregeln
     /// <summary>So lange nach dem Ende des Legens kommt die Fährten-Erinnerung frühestens.</summary>
     public static readonly TimeSpan FaehrteNach = TimeSpan.FromHours(3);
 
-    /// <summary>Schweißfährte ohne Angabe der Stehzeit: die Stehzeit der Übernachtfährte.</summary>
-    public const int SchweissStehzeitVorgabeStunden = 14;
-
-    /// <summary>So viele Stunden vor Fristende kommt die zweite Stufe der Schweißfährten-Erinnerung.</summary>
-    public static readonly TimeSpan SchweissLetzteStufeVorFristende = TimeSpan.FromHours(6);
+    /// <summary>
+    /// Die Frist, in der eine Fährte noch abgelaufen werden kann (<see cref="Tracking.Ablauffristen.Faehrte"/>);
+    /// danach wäre die Erinnerung sinnlos.
+    /// </summary>
+    public static readonly TimeSpan FaehrteFrist = Tracking.Ablauffristen.Faehrte;
 
     /// <summary>
     /// Sportarten, bei denen eine Fährte gelegt wird - Codes wie FAEHRTEN_SPORTARTEN in
     /// frontend/src/lib/faehrte.ts (beim Ändern beide Stellen anfassen).
     /// </summary>
-    public static readonly IReadOnlyList<string> FaehrtenSportCodes = ["FAERTE", "FPR", "IGP1", "IGP2", "IGP3", "GPR", "STOEPR", "MANTRAILING", "JAGD"];
+    public static readonly IReadOnlyList<string> FaehrtenSportCodes = ["FAERTE", "FPR", "IGP1", "IGP2", "IGP3", "GPR", "STOEPR", "MANTRAILING"];
 
     public const int AlleTage = 127;
     public const int VorgabeTage = 64; // Sonntag
@@ -250,16 +246,9 @@ public static class Erinnerungsregeln
 
     /// <summary>
     /// Eine gelegte, noch nicht abgelaufene Fährte, frühestens drei Stunden nach dem
-    /// Ende des Legens und nur solange die Frist ihrer Art läuft (<see cref="Tracking.Ablauffristen"/>).
-    /// Fällt der Zeitpunkt in die Ruhezeit, kommt die Erinnerung am nächsten Morgen, sofern die
-    /// Frist dann noch läuft - weil der Tick sie bei jedem Lauf neu prüft, gibt es dafür keine
-    /// Sonderfall-Logik.
-    ///
-    /// Die Schweißfährte steht erst: Die Erinnerung kommt ab der Stehzeit des Leitfadens (ohne
-    /// Angabe 14 Stunden) und, falls sie dann noch nicht gearbeitet ist, ein zweites Mal
-    /// <see cref="SchweissLetzteStufeVorFristende"/> vor dem Fristende. Beide Stufen haben einen
-    /// eigenen Schlüssel (<see cref="SentReminder.ZweiteStufe"/>); fällt die zweite Stufe in einen
-    /// Lauf, in dem die erste noch nie kam, kommt nur die zweite - nicht zwei Meldungen auf einmal.
+    /// Ende des Legens und nur solange die 24-Stunden-Frist läuft. Fällt der Zeitpunkt in
+    /// die Ruhezeit, kommt die Erinnerung am nächsten Morgen, sofern die Frist dann noch
+    /// läuft - weil der Tick sie bei jedem Lauf neu prüft, gibt es dafür keine Sonderfall-Logik.
     /// </summary>
     public static IReadOnlyList<FaelligeErinnerung> FaehrtenErinnerungen(
         DateTimeOffset jetzt, IEnumerable<FaehrteKandidat> kandidaten, IReadOnlySet<ErinnerungsSchluessel> gesendet,
@@ -272,31 +261,18 @@ public static class Erinnerungsregeln
             if (!ImVersandfenster(jetzt, zone)) continue;
             if (!k.Erlaubt || k.Abgelaufen || k.HundPausiert || k.LegeEnde is not { } ende) continue;
 
-            var frist = Tracking.Ablauffristen.Fuer(k.Art);
-            var schweiss = k.Art == GpsTrackKind.Schweissfaehrte;
-            var ab = schweiss ? TimeSpan.FromHours(k.StehzeitStunden ?? SchweissStehzeitVorgabeStunden) : FaehrteNach;
             var vergangen = jetzt - ende;
-            if (vergangen < ab || vergangen > frist) continue;
+            if (vergangen < FaehrteNach || vergangen > FaehrteFrist) continue;
 
-            var zweiteStufe = schweiss && vergangen >= frist - SchweissLetzteStufeVorFristende;
-            var schluessel = new ErinnerungsSchluessel(
-                ReminderType.TrackNotWalked, k.UserId, k.FaehrteId, zweiteStufe ? SentReminder.ZweiteStufe : SentReminder.KeinTag);
+            var schluessel = new ErinnerungsSchluessel(ReminderType.TrackNotWalked, k.UserId, k.FaehrteId, SentReminder.KeinTag);
             if (gesendet.Contains(schluessel)) continue;
 
-            var fristEnde = Ortszeit.Lokal(ende + frist, zone);
-            var datum = DateOnly.FromDateTime(fristEnde);
-            var zeit = fristEnde.ToString("HH:mm", CultureInfo.InvariantCulture);
-            var meldung = !schweiss
-                ? Meldung.Von(
-                    "Die Fährte von {hund} ist noch nicht abgelaufen. Du kannst sie noch bis {datum}, {zeit} Uhr ablaufen.",
-                    ("hund", k.Hund), ("datum", datum), ("zeit", zeit))
-                : zweiteStufe
-                    ? Meldung.Von(
-                        "Die Schweißfährte von {hund} kann nur noch bis {datum}, {zeit} Uhr gearbeitet werden.",
-                        ("hund", k.Hund), ("datum", datum), ("zeit", zeit))
-                    : Meldung.Von(
-                        "Die Schweißfährte von {hund} hat ihre Stehzeit erreicht. Du kannst sie noch bis {datum}, {zeit} Uhr arbeiten.",
-                        ("hund", k.Hund), ("datum", datum), ("zeit", zeit));
+            var fristEnde = Ortszeit.Lokal(ende + FaehrteFrist, zone);
+            var meldung = Meldung.Von(
+                "Die Fährte von {hund} ist noch nicht abgelaufen. Du kannst sie noch bis {datum}, {zeit} Uhr ablaufen.",
+                ("hund", k.Hund),
+                ("datum", DateOnly.FromDateTime(fristEnde)),
+                ("zeit", fristEnde.ToString("HH:mm", CultureInfo.InvariantCulture)));
             ergebnis.Add(new FaelligeErinnerung(schluessel, meldung, $"/dogs/{k.HundId}?eintrag={k.TrainingId}"));
         }
         return ergebnis;

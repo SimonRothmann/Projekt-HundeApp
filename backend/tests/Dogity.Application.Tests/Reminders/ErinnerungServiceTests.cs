@@ -218,7 +218,7 @@ public class ErinnerungServiceTests
 
         var meldung = Assert.Single(Gesendet(s));
         Assert.Equal(f.Person, meldung.UserId);
-        Assert.Equal("Die Fährte von Bello ist noch nicht abgelaufen. Du kannst sie noch bis 22.10.2026, 13:00 Uhr ablaufen.", meldung.Message);
+        Assert.Equal("Die Fährte von Bello ist noch nicht abgelaufen. Du kannst sie noch bis 23.10.2026, 09:00 Uhr ablaufen.", meldung.Message);
         Assert.Equal($"/dogs/{f.Hund}?eintrag={f.Training}", meldung.LinkPath);
 
         // Ein zweiter Lauf und ein späterer Tick: einmal je Fährte.
@@ -231,7 +231,7 @@ public class ErinnerungServiceTests
     {
         var s = Aufbauen(Utc(22, 10, 30));
         await FaehrteAsync(s, Utc(22, 9));            // erst 1,5 Stunden her
-        await FaehrteAsync(s, Utc(22, 5));            // 5,5 Stunden her: Frist von 4 Stunden vorbei
+        await FaehrteAsync(s, Utc(21, 6));            // 28,5 Stunden her: Frist vorbei
         var abgelaufen = await FaehrteAsync(s, Utc(22, 6));
         s.Db.GpsWalkRuns.Add(new GpsWalkRun { TrackId = abgelaufen.Faehrte });
         await s.Db.SaveChangesAsync();
@@ -374,45 +374,13 @@ public class ErinnerungServiceTests
     [Fact]
     public async Task Faehrte_InDerRuhezeitFaellig_KommtAmNaechstenMorgen()
     {
-        // Schweißfährte, Ende 19:00 Uhr (17:00 UTC), Stehzeit 14 Stunden: um 22:30 Uhr (zu früh und Ruhezeit) nichts,
-        // um 09:10 Uhr am nächsten Morgen nach 14 Stunden die erste Stufe.
+        // Ende 19:00 Uhr (17:00 UTC): Um 22:30 Uhr Ruhezeit, um 08:10 Uhr am nächsten Morgen nach 13 Stunden die Erinnerung.
         var s = Aufbauen(Utc(22, 20, 30));
-        var f = await FaehrteAsync(s, Utc(22, 17));
-        var spur = await s.Db.GpsTracks.FirstAsync(t => t.Id == f.Faehrte);
-        spur.Kind = GpsTrackKind.Schweissfaehrte;
-        await s.Db.SaveChangesAsync();
+        await FaehrteAsync(s, Utc(22, 17));
         Assert.Equal(0, await s.Dienst.VersendeFaelligeAsync());
 
-        s.Uhr.Jetzt = Utc(23, 7, 10);
+        s.Uhr.Jetzt = Utc(23, 6, 10);
         Assert.Equal(1, await s.Dienst.VersendeFaelligeAsync());
-        Assert.Equal("Die Schweißfährte von Bello hat ihre Stehzeit erreicht. Du kannst sie noch bis 25.10.2026, 18:00 Uhr arbeiten.", Assert.Single(Gesendet(s)).Message);
-    }
-
-    [Fact]
-    public async Task Schweissfaehrte_ZweiteStufeSechsStundenVorFristende_Einmal_UndErsteStufeNichtNochmal()
-    {
-        // Ende 18:00 Uhr (16:00 UTC) am 22.; Stehzeit 20 Stunden = 14:00 Uhr am 23.; Fristende 72 Stunden = 17:00 Uhr am 25. (Winterzeit)
-        var s = Aufbauen(Utc(23, 10, 30));
-        var f = await FaehrteAsync(s, Utc(22, 16));
-        var spur = await s.Db.GpsTracks.FirstAsync(t => t.Id == f.Faehrte);
-        spur.Kind = GpsTrackKind.Schweissfaehrte;
-        spur.StehzeitStunden = 20;
-        await s.Db.SaveChangesAsync();
-        Assert.Equal(0, await s.Dienst.VersendeFaelligeAsync());   // 18,5 Stunden: noch vor der Stehzeit
-
-        s.Uhr.Jetzt = Utc(23, 12, 30);                             // 20,5 Stunden: Stehzeit erreicht
-        Assert.Equal(1, await s.Dienst.VersendeFaelligeAsync());
-        s.Uhr.Jetzt = s.Uhr.Jetzt.AddHours(1);
-        Assert.Equal(0, await s.Dienst.VersendeFaelligeAsync());   // erste Stufe nur einmal
-
-        s.Uhr.Jetzt = Utc(25, 10, 30);                             // 66,5 Stunden: sechs Stunden vor Ende
-        Assert.Equal(1, await s.Dienst.VersendeFaelligeAsync());
-        Assert.Equal("Die Schweißfährte von Bello kann nur noch bis 25.10.2026, 17:00 Uhr gearbeitet werden.", Gesendet(s).Last().Message);
-        s.Uhr.Jetzt = s.Uhr.Jetzt.AddMinutes(20);
-        Assert.Equal(0, await s.Dienst.VersendeFaelligeAsync());   // zweite Stufe nur einmal
-
-        s.Uhr.Jetzt = Utc(25, 16, 1);                              // nach dem Fristende
-        Assert.Equal(0, await s.Dienst.VersendeFaelligeAsync());
     }
 
     [Fact]
@@ -439,7 +407,7 @@ public class ErinnerungServiceTests
         await dienst.VersendeFaelligeAsync();
 
         var glocke = Assert.Single(db.Notifications);
-        Assert.Equal("The track for Bello has not been walked yet. You can still walk it until 13:00 on 22 Oct 2026.", glocke.Message);
+        Assert.Equal("The track for Bello has not been walked yet. You can still walk it until 09:00 on 23 Oct 2026.", glocke.Message);
         Assert.Single(pushs.Auftraege);
         Assert.Empty(mails.Mails);
     }

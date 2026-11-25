@@ -205,7 +205,7 @@ public record FaehrteExportDto(
     int? AlterMinuten,
     string? Untergrund,
     string? Kommentar,
-    // Mantrailing: Spurart "Faehrte", "Mantrailing" oder "Schweissfaehrte" und die Angaben zum Trail. Bei einem
+    // Mantrailing: Spurart "Faehrte" oder "Mantrailing" und die Angaben zum Trail. Bei einem
     // Mantrailing-Trail ist AlterMinuten das Trailalter.
     string Spurart,
     bool Doppelblind,
@@ -216,12 +216,7 @@ public record FaehrteExportDto(
     // Bewusst schwere Übungsfährte: zählt nicht in die Entwicklung des Hundes.
     bool NichtInDerEntwicklung,
     // Bodenzustand beim Legen (Mehrfachauswahl als Text).
-    string? Bodenzustand = null,
-    // Schweißfährte: Verfahren, Wildart, Schweißmenge (ml) und Mindest-Stehzeit (Stunden).
-    string? Verfahren = null,
-    string? Wildart = null,
-    int? SchweissMl = null,
-    int? StehzeitStunden = null);
+    string? Bodenzustand = null);
 
 public record GpsPunktExportDto(
     double Breitengrad,

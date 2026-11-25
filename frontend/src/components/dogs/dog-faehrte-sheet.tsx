@@ -4,8 +4,7 @@ import { useState } from "react";
 import { Sheet, BottomSheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { FahrteRecorder } from "@/components/tracking/fahrte-recorder";
 import { useT } from "@/lib/i18n";
-import { hauptSpurArt, type SpurArten } from "@/lib/faehrte";
-import type { SpurArtName } from "@/lib/spurart";
+import type { SpurArten } from "@/lib/faehrte";
 import { Chip } from "@/components/ui/chip";
 
 /**
@@ -27,9 +26,9 @@ export function DogFaehrteSheet({
   open,
   onOpenChange,
   onSaved,
-  arten = { faehrte: true, mantrailing: false, schweiss: false },
+  arten = { faehrte: true, mantrailing: false },
 }: {
-  /** Was der Hund legen kann. Kann er mehrere Arten, wählt man im Fenster; sonst steht die eine Art fest. */
+  /** Was der Hund legen kann. Kann er beides, wählt man im Fenster; sonst steht die eine Art fest. */
   arten?: SpurArten;
   dogId: string;
   open: boolean;
@@ -40,16 +39,9 @@ export function DogFaehrteSheet({
   const [aufzeichnet, setAufzeichnet] = useState(false);
   // Abgeleitet statt einmal beim ersten Rendern gemerkt: Auf der Hundeseite steht
   // das Fenster schon, bevor die Sportarten des Hundes geladen sind. Gewählt wird
-  // nur, wenn der Hund mehrere Arten legen kann.
-  const moegliche = (
-    [
-      { art: "faehrte", label: t("Fährte"), moeglich: arten.faehrte },
-      { art: "trail", label: t("Trail"), moeglich: arten.mantrailing },
-      { art: "schweiss", label: t("Schweißfährte"), moeglich: arten.schweiss },
-    ] as const
-  ).filter((wahl) => wahl.moeglich);
-  const [gewaehlt, setGewaehlt] = useState<SpurArtName>("faehrte");
-  const art = moegliche.length > 1 && moegliche.some((m) => m.art === gewaehlt) ? gewaehlt : hauptSpurArt(arten);
+  // nur, wenn der Hund beides legen kann.
+  const [trailGewaehlt, setTrail] = useState(false);
+  const trail = arten.faehrte && arten.mantrailing ? trailGewaehlt : arten.mantrailing;
 
   return (
     <Sheet
@@ -64,20 +56,22 @@ export function DogFaehrteSheet({
           verwirft das Schließen) - dann gar nicht erst anbieten. */}
       <BottomSheetContent showCloseButton={!aufzeichnet}>
         <SheetHeader>
-          <SheetTitle>{art === "trail" ? t("Trail legen") : art === "schweiss" ? t("Schweißfährte legen") : t("Fährte legen")}</SheetTitle>
+          <SheetTitle>{trail ? t("Trail legen") : t("Fährte legen")}</SheetTitle>
         </SheetHeader>
         <div className="flex flex-col gap-3 px-4">
-          {/* Mehrere Arten gibt es nur bei einem Hund, der z. B. Fährte läuft UND trailt. Während der
-              Aufzeichnung verschwindet der Recorder-Inhalt ohnehin hinter dem Vollbild; gewechselt wird davor.
-              Drei Chips nebeneinander: bei 375 px bricht "Schweißfährte" im Chip um statt zu scrollen. */}
-          {moegliche.length > 1 && !aufzeichnet && (
-            <div role="group" aria-label={t("Art der Spur")} className={moegliche.length === 3 ? "grid grid-cols-3 gap-1.5" : "grid grid-cols-2 gap-1.5"}>
-              {moegliche.map((wahl) => (
+          {/* Beides geht nur bei einem Hund, der Fährte läuft UND trailt. Während der Aufzeichnung
+              verschwindet der Recorder-Inhalt ohnehin hinter dem Vollbild; gewechselt wird davor. */}
+          {arten.faehrte && arten.mantrailing && !aufzeichnet && (
+            <div role="group" aria-label={t("Art der Spur")} className="grid grid-cols-2 gap-1.5">
+              {[
+                { istTrail: false, label: t("Fährte") },
+                { istTrail: true, label: t("Trail") },
+              ].map((wahl) => (
                 <Chip
-                  key={wahl.art}
-                  gewaehlt={art === wahl.art}
-                  onClick={() => setGewaehlt(wahl.art)}
-                  className="justify-center px-2 text-center"
+                  key={String(wahl.istTrail)}
+                  gewaehlt={trail === wahl.istTrail}
+                  onClick={() => setTrail(wahl.istTrail)}
+                  className="justify-center text-center"
                 >
                   {wahl.label}
                 </Chip>
@@ -85,7 +79,7 @@ export function DogFaehrteSheet({
             </div>
           )}
           {/* key: Ein anderer Spur-Typ bekommt einen frischen Recorder statt des Zustands des vorigen. */}
-          <FahrteRecorder key={art} dogId={dogId} onSaved={onSaved} onAufzeichnung={setAufzeichnet} art={art} />
+          <FahrteRecorder key={String(trail)} dogId={dogId} onSaved={onSaved} onAufzeichnung={setAufzeichnet} mantrailing={trail} />
         </div>
       </BottomSheetContent>
     </Sheet>

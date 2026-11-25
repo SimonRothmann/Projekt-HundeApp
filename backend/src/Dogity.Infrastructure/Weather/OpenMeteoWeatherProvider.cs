@@ -25,8 +25,6 @@ public class OpenMeteoWeatherProvider(HttpClient http, ILogger<OpenMeteoWeatherP
 
     private const string HourlyVariables = "temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code";
 
-    private const string PeriodVariables = "temperature_2m,precipitation";
-
     public async Task<WeatherReading?> GetAtAsync(double latitude, double longitude, DateTimeOffset instant, CancellationToken ct = default)
     {
         var utc = instant.ToUniversalTime();
@@ -72,71 +70,6 @@ public class OpenMeteoWeatherProvider(HttpClient http, ILogger<OpenMeteoWeatherP
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
             // Bewusst nicht weiterwerfen - siehe Klassenkommentar.
-            logger.LogWarning(ex, "Wetterabruf nicht möglich");
-            return null;
-        }
-    }
-
-    public async Task<WeatherPeriod?> GetPeriodAsync(double latitude, double longitude, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
-    {
-        var start = from.ToUniversalTime();
-        var end = to.ToUniversalTime();
-        var ageDays = (DateTime.UtcNow.Date - start.UtcDateTime.Date).TotalDays;
-
-        // Gleiche Grenze wie GetAtAsync; das Fenster ist höchstens wenige Tage lang.
-        var url = ageDays <= ForecastPastDaysLimit
-            ? $"https://api.open-meteo.com/v1/forecast?latitude={Fmt(latitude)}&longitude={Fmt(longitude)}&hourly={PeriodVariables}&past_days={Math.Max(1, (int)Math.Ceiling(ageDays))}&forecast_days=1&timezone=UTC"
-            : $"https://archive-api.open-meteo.com/v1/archive?latitude={Fmt(latitude)}&longitude={Fmt(longitude)}&hourly={PeriodVariables}&start_date={start:yyyy-MM-dd}&end_date={end:yyyy-MM-dd}&timezone=UTC";
-
-        try
-        {
-            using var response = await http.GetAsync(url, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogWarning("Wetterabruf fehlgeschlagen: {Status}", response.StatusCode);
-                return null;
-            }
-
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-
-            if (!doc.RootElement.TryGetProperty("hourly", out var hourly) ||
-                !hourly.TryGetProperty("time", out var times))
-                return null;
-
-            // Stundenwerte von der Stunde des Starts bis zur Stunde des Endes (inklusive).
-            var ab = start.UtcDateTime.AddTicks(-(start.UtcDateTime.Ticks % TimeSpan.TicksPerHour));
-            var bis = end.UtcDateTime;
-            double regen = 0, min = double.MaxValue, max = double.MinValue;
-            var temperaturen = 0;
-            var i = 0;
-            foreach (var entry in times.EnumerateArray())
-            {
-                if (DateTime.TryParse(entry.GetString(), CultureInfo.InvariantCulture,
-                        DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var stunde))
-                {
-                    if (stunde >= ab && stunde <= bis && ReadDouble(hourly, "temperature_2m", i) is { } temperatur)
-                    {
-                        min = Math.Min(min, temperatur);
-                        max = Math.Max(max, temperatur);
-                        temperaturen++;
-                    }
-
-                    // Der Niederschlag eines Zeitstempels gilt für die Stunde davor: Er zählt, wenn sich diese
-                    // Stunde mit dem Fenster überschneidet - nicht die Stunde vor dem Ende des Legens.
-                    if (stunde > ab && stunde - TimeSpan.FromHours(1) < bis)
-                        regen += ReadDouble(hourly, "precipitation", i) ?? 0;
-                }
-
-                i++;
-            }
-
-            // Ohne Temperatur ist der Zeitraum nicht belegt (wie bei GetAtAsync).
-            if (temperaturen == 0) return null;
-            return new WeatherPeriod(Math.Round(regen, 1), Math.Round(min, 1), Math.Round(max, 1));
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
-        {
             logger.LogWarning(ex, "Wetterabruf nicht möglich");
             return null;
         }

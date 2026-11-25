@@ -10,13 +10,7 @@ public enum WetterZiel
     FaehrteGesucht,
 
     /// <summary>Training: Wetter zu Datum und Startzeit.</summary>
-    Training,
-
-    /// <summary>
-    /// Schweißfährte/Trail: Regen und Temperaturspanne vom Ende des Legens bis zum Beginn
-    /// des ersten Ablaufs (Zeitpunkt = Ende des Legens, Ende = Beginn des Ablaufs).
-    /// </summary>
-    FaehrteStehzeit
+    Training
 }
 
 /// <summary>
@@ -27,8 +21,7 @@ public enum WetterZiel
 /// geändert oder gelöscht, wird der Auftrag verworfen.
 /// </summary>
 /// <param name="Id">Die Fährte bzw. das Training.</param>
-/// <param name="Ende">Nur bei <see cref="WetterZiel.FaehrteStehzeit"/>: Ende des Zeitraums, der bei <c>Zeitpunkt</c> beginnt.</param>
-public record WetterAuftrag(WetterZiel Ziel, Guid Id, double Breite, double Laenge, DateTimeOffset Zeitpunkt, DateTimeOffset? Ende = null);
+public record WetterAuftrag(WetterZiel Ziel, Guid Id, double Breite, double Laenge, DateTimeOffset Zeitpunkt);
 
 /// <summary>
 /// Übergabe an die Wetterabfrage im Hintergrund. Reiht nur ein und kehrt sofort

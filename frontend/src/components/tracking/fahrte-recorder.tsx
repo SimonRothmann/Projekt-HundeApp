@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { kurzeHaptik } from "@/lib/haptik";
 import type { Goal, GpsMarkerType, GpsPoint, GpsTrack } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
-import { Bed, Check, Cookie, Droplet, MapPin, MapPinPlus, Package, Undo2, Waypoints, type LucideIcon } from "lucide-react";
+import { Check, Cookie, MapPin, MapPinPlus, Package, Undo2, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
@@ -30,22 +30,9 @@ import {
   markerEntfernen,
   type FaehrtenSicherung,
 } from "@/lib/aufzeichnung-sicherung";
-import { BODENZUSTAENDE, SCHWEISS_UNTERGRUENDE, TRAIL_UNTERGRUENDE, UNTERGRUENDE, untergrundUmschalten } from "@/lib/untergrund";
+import { BODENZUSTAENDE, TRAIL_UNTERGRUENDE, UNTERGRUENDE, untergrundUmschalten } from "@/lib/untergrund";
 import { automatischePunkte, estimateLengthMeters, markerPunkte, PUNKT_AUTOMATISCH, PUNKT_MARKER } from "@/lib/geo";
-import { ABLAUF_FRIST_STUNDEN_SCHWEISS, ABLAUF_FRIST_STUNDEN_TRAIL } from "@/lib/faehrte";
-import type { SpurArtName } from "@/lib/spurart";
-import {
-  LEERE_SCHWEISS_ANGABEN,
-  schweissFortschritt,
-  schweissLeitfadenGemerkt,
-  schweissLeitfadenMerken,
-  schweissLeitfadenNachId,
-  schweissMlAusText,
-  VERFAHREN_FAEHRTENSCHUH,
-  vorgabeSchweissLeitfaden,
-  type SchweissAngabenVorLegen,
-} from "@/lib/schweiss";
-import { SchweissLegenFormular } from "@/components/tracking/schweiss-angaben";
+import { ABLAUF_FRIST_STUNDEN_TRAIL } from "@/lib/faehrte";
 import { LEERE_TRAIL_ANGABEN, type TrailAngabenVorLegen } from "@/lib/mantrailing";
 import { TrailLegenFormular } from "@/components/tracking/trail-angaben";
 import { cn } from "@/lib/utils";
@@ -77,28 +64,17 @@ function toAutomaticPoint(position: GeolocationPosition): GpsPoint {
 // Auswahl beim Markieren: entscheidet, wie ein Halt an dieser Stelle später
 // gewertet wird (Gegenstand = Verweisen erwünscht, Leckerlipot/Verleitung =
 // erklärt und neutral) - siehe GpsTrackEvaluator im Backend.
-type MarkerWahl = { value: GpsMarkerType; label: string; icon: LucideIcon };
-
-const MARKER_TYPES: readonly MarkerWahl[] = [
+const MARKER_TYPES = [
   { value: 0, label: uebersetzbar("Gegenstand"), icon: Package },
   { value: 1, label: uebersetzbar("Leckerlipot"), icon: Cookie },
   { value: 2, label: uebersetzbar("Verleitung"), icon: Waypoints },
   { value: 3, label: uebersetzbar("Sonstiges"), icon: MapPinPlus },
-];
+] as const;
 
 // Beim Mantrailing gibt es keine Gegenstände, Leckerlipots und Verleitungen: Es bleibt ein
 // allgemeiner Marker (z. B. für einen Richtungswechsel). Er zählt wie "Sonstiges" und wirkt
 // weder auf Gegenstände noch auf erklärte Halte.
-const TRAIL_MARKER: readonly MarkerWahl[] = [{ value: 3, label: uebersetzbar("Marker"), icon: MapPinPlus }];
-
-// Schweißfährte: Wundbett und Verweiserpunkt (beim Fährtenschuh "Tropfbett") - ein Halt dort wertet der
-// Server als Verweisen. Gegenstände gibt es nicht.
-const SCHWEISS_MARKER: readonly MarkerWahl[] = [
-  { value: 4, label: uebersetzbar("Wundbett"), icon: Bed },
-  { value: 5, label: uebersetzbar("Verweiserpunkt"), icon: Droplet },
-  { value: 3, label: uebersetzbar("Sonstiges"), icon: MapPinPlus },
-];
-const TROPFBETT_MARKER: MarkerWahl = { value: 5, label: uebersetzbar("Tropfbett"), icon: Droplet };
+const TRAIL_MARKER = [{ value: 3, label: uebersetzbar("Marker"), icon: MapPinPlus }] as const;
 
 // So lange nach dem Setzen eines Markers bietet die Aufzeichnung "Zurücknehmen" an. Länger wäre der
 // Knopf im Weg, kürzer erwischte er den Fehlgriff nicht: Zwischen Tippen und Merken liegen ein paar Sekunden.
@@ -116,16 +92,16 @@ export function FahrteRecorder({
   dogId,
   onSaved,
   onAufzeichnung,
-  art = "faehrte",
+  mantrailing = false,
 }: {
   dogId: string;
   onSaved: () => Promise<void>;
   /**
-   * Die Art der Spur: ein Trail (Mantrailing) oder eine Schweißfährte (Jagd) statt einer Fährte - andere
-   * Begriffe und Angaben vor dem Legen, keine Gegenstände. Gilt für die Lebensdauer des Recorders - wer
-   * wechselt, hängt ihn mit einem anderen key neu ein (siehe DogFaehrteSheet).
+   * Ein Trail statt einer Fährte (Mantrailing): andere Begriffe, die Angaben zum Trail vor dem
+   * Legen, keine Gegenstände. Gilt für die Lebensdauer des Recorders - wer wechselt, hängt ihn
+   * mit einem anderen key neu ein (siehe DogFaehrteSheet).
    */
-  art?: SpurArtName;
+  mantrailing?: boolean;
   /**
    * Meldet, ob gerade aufgezeichnet wird. Der Recorder steht in einem Fenster
    * der Hundeseite, das sich währenddessen nicht schließen darf: Mit dem Fenster
@@ -153,13 +129,8 @@ export function FahrteRecorder({
   const [zuruecknehmbar, setZuruecknehmbar] = useState<GpsPoint | null>(null);
   // Ob dies ein Trail ist: zunächst die Wahl des Aufrufers, beim Fortsetzen einer unterbrochenen
   // Aufzeichnung aber das, was sie war.
-  const [trailModus, setTrailModus] = useState(art === "trail");
-  const [schweissModus, setSchweissModus] = useState(art === "schweiss");
+  const [trailModus, setTrailModus] = useState(mantrailing);
   const [trailAngaben, setTrailAngaben] = useState<TrailAngabenVorLegen>(LEERE_TRAIL_ANGABEN);
-  // Schweißfährte: Verfahren, Wildart und Menge vor dem Legen (alles freiwillig).
-  const [verfahrenWahl, setVerfahrenWahl] = useState<string | null>(null);
-  const [wildart, setWildart] = useState<string | null>(null);
-  const [mlText, setMlText] = useState("");
   // Leitfaden (Paket FL1): "undefined" = nicht gewählt, dann gilt die Vorgabe (aktives Ziel, sonst die
   // zuletzt gewählte Stufe dieses Hundes auf diesem Gerät); null = ausdrücklich keiner.
   const [leitfadenWahl, setLeitfadenWahl] = useState<string | null | undefined>(undefined);
@@ -167,45 +138,20 @@ export function FahrteRecorder({
   const [gemerkt, setGemerkt] = useState<string | null>(null);
   const { preferences } = usePreferences();
   useEffect(() => {
-    if (art === "trail") return;
+    if (mantrailing) return;
     // Gemerkte Stufe aus dem localStorage (externe Quelle), nur beim Mount.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setGemerkt(art === "schweiss" ? schweissLeitfadenGemerkt(dogId) : leitfadenGemerkt(dogId));
+    setGemerkt(leitfadenGemerkt(dogId));
     // Ohne Ziele fehlt nur die Vorbelegung.
     api.get<Goal[]>(`/api/goals?dogId=${dogId}`).then(setZiele, () => {});
-  }, [dogId, art]);
-  const leitfaden =
-    trailModus || schweissModus
-      ? null
-      : leitfadenWahl !== undefined
-        ? leitfadenNachId(leitfadenWahl)
-        : vorgabeLeitfaden(ziele, gemerkt);
-  const schweissLeitfaden = !schweissModus
+  }, [dogId, mantrailing]);
+  const leitfaden = trailModus
     ? null
     : leitfadenWahl !== undefined
-      ? schweissLeitfadenNachId(leitfadenWahl)
-      : vorgabeSchweissLeitfaden(ziele, gemerkt);
-  // Der Fährtenschuh-Leitfaden belegt das Verfahren vor, solange nichts anderes gewählt ist.
-  const verfahren = verfahrenWahl ?? (schweissLeitfaden?.verfahren.length === 1 ? schweissLeitfaden.verfahren[0] : null);
-  const mlWert = schweissMlAusText(mlText);
-  const schweissAngaben = useMemo<SchweissAngabenVorLegen>(
-    () => ({
-      verfahren,
-      wildart,
-      schweissMl: mlWert ?? null,
-      stehzeitStunden: schweissLeitfaden?.stehzeitStunden ?? null,
-      leitfadenId: schweissLeitfaden?.id ?? null,
-    }),
-    [verfahren, wildart, mlWert, schweissLeitfaden],
-  );
-  const markerArten = trailModus
-    ? TRAIL_MARKER
-    : schweissModus
-      ? verfahren === VERFAHREN_FAEHRTENSCHUH
-        ? [SCHWEISS_MARKER[0], TROPFBETT_MARKER, SCHWEISS_MARKER[2]]
-        : SCHWEISS_MARKER
-      : MARKER_TYPES;
-  const untergruende = trailModus ? TRAIL_UNTERGRUENDE : schweissModus ? SCHWEISS_UNTERGRUENDE : UNTERGRUENDE;
+      ? leitfadenNachId(leitfadenWahl)
+      : vorgabeLeitfaden(ziele, gemerkt);
+  const markerArten = trailModus ? TRAIL_MARKER : MARKER_TYPES;
+  const untergruende = trailModus ? TRAIL_UNTERGRUENDE : UNTERGRUENDE;
   const [isMarking, setIsMarking] = useState(false);
   const [medienMarker, setMedienMarker] = useState(medienMarkerAn);
   // Die eben gelegte Fährte: bietet direkt danach das Ablaufen an, statt dass
@@ -259,22 +205,20 @@ export function FahrteRecorder({
       ...(trailModus ? {} : { bodenzustand }),
       points,
       ...(trailModus ? { trail: trailAngaben } : {}),
-      ...(schweissModus ? { schweiss: schweissAngaben } : {}),
       ...laufend,
     });
-  }, [isRecording, points, untergrund, bodenzustand, user, dogId, trailModus, trailAngaben, schweissModus, schweissAngaben]);
+  }, [isRecording, points, untergrund, bodenzustand, user, dogId, trailModus, trailAngaben]);
 
   const markerZahl = points.filter((p) => p.pointType === PUNKT_MARKER).length;
   const medien = useMedienMarker(isRecording, {
-    weiter: () => !isMarking && markObject(trailModus ? 3 : schweissModus ? 4 : 0),
-    zurueck: trailModus ? undefined : () => !isMarking && markObject(schweissModus ? 5 : 1),
-    titel: trailModus ? t("Trail legen") : schweissModus ? t("Schweißfährte legen") : t("Fährte legen"),
+    weiter: () => !isMarking && markObject(trailModus ? 3 : 0),
+    zurueck: trailModus ? undefined : () => !isMarking && markObject(1),
+    titel: trailModus ? t("Trail legen") : t("Fährte legen"),
     zeile: t("{n} Marker", { n: markerZahl }),
   });
 
   function startRecording() {
-    if (schweissModus) schweissLeitfadenMerken(dogId, schweissLeitfaden?.id ?? null);
-    else if (!trailModus) leitfadenMerken(dogId, leitfaden?.id ?? null);
+    if (!trailModus) leitfadenMerken(dogId, leitfaden?.id ?? null);
     medien.starten();
     laufendRef.current = { trackId: crypto.randomUUID(), begonnen: Date.now(), seite: window.location.pathname };
     setZuruecknehmbar(null);
@@ -287,14 +231,9 @@ export function FahrteRecorder({
     setUntergrund(gesichert.untergrund);
     setBodenzustand(gesichert.bodenzustand ?? []);
     setZuruecknehmbar(null);
+    setLeitfadenWahl(leitfadenGemerkt(dogId));
     setTrailModus(gesichert.trail != null);
     setTrailAngaben(gesichert.trail ?? LEERE_TRAIL_ANGABEN);
-    setSchweissModus(gesichert.schweiss != null);
-    const schweiss = gesichert.schweiss ?? LEERE_SCHWEISS_ANGABEN;
-    setVerfahrenWahl(schweiss.verfahren);
-    setWildart(schweiss.wildart);
-    setMlText(schweiss.schweissMl != null ? String(schweiss.schweissMl) : "");
-    setLeitfadenWahl(gesichert.schweiss ? schweiss.leitfadenId : leitfadenGemerkt(dogId));
     setUnterbrochen(null);
     start(gesichert.points);
   }
@@ -319,7 +258,7 @@ export function FahrteRecorder({
         toast.success(
           trailModus
             ? t("Marker gesetzt.")
-            : t("{art} markiert.", { art: t(markerArten.find((m) => m.value === typ)?.label ?? uebersetzbar("Marker")) }),
+            : t("{art} markiert.", { art: t(MARKER_TYPES.find((m) => m.value === typ)?.label ?? uebersetzbar("Marker")) }),
         );
       },
       () => setIsMarking(false),
@@ -350,9 +289,7 @@ export function FahrteRecorder({
         titel: t("Aufzeichnung verwerfen?"),
         text: trailModus
           ? t("Der bisher aufgezeichnete Trail geht verloren.")
-          : schweissModus
-            ? t("Die bisher aufgezeichnete Schweißfährte geht verloren.")
-            : t("Die bisher aufgezeichnete Fährte geht verloren."),
+          : t("Die bisher aufgezeichnete Fährte geht verloren."),
         bestaetigen: t("Verwerfen"),
         gefaehrlich: true,
       }))
@@ -387,7 +324,6 @@ export function FahrteRecorder({
       ...(trailModus ? {} : { bodenzustand }),
       points,
       ...(trailModus ? { trail: trailAngaben } : {}),
-      ...(schweissModus ? { schweiss: schweissAngaben } : {}),
       trackId: laufend?.trackId ?? crypto.randomUUID(),
       begonnen: laufend?.begonnen ?? Date.now(),
       seite: laufend?.seite ?? window.location.pathname,
@@ -407,19 +343,13 @@ export function FahrteRecorder({
    */
   async function speichern(sicherung: FaehrtenSicherung) {
     setSpeichert(true);
-    const ergebnis = await sicherungSpeichern(
-      sicherung,
-      sicherung.trail ? t("Trail") : sicherung.schweiss ? t("Schweißfährte") : t("Fährte"),
-    );
+    const ergebnis = await sicherungSpeichern(sicherung, sicherung.trail ? t("Trail") : t("Fährte"));
     setSpeichert(false);
     speicherErgebnisMelden(ergebnis, t, "faehrte");
     setPoints([]);
     setUntergrund([]);
     setBodenzustand([]);
     setTrailAngaben(LEERE_TRAIL_ANGABEN);
-    setVerfahrenWahl(null);
-    setWildart(null);
-    setMlText("");
 
     if (ergebnis.ausgang === "fehler") {
       setUnterbrochen(user ? sicherung : null);
@@ -435,15 +365,6 @@ export function FahrteRecorder({
 
   const autoPunkte = automatischePunkte(points).length;
   const markerAnzahl = markerPunkte(points).length;
-  const marker = markerPunkte(points);
-  const schweissStand = schweissLeitfaden
-    ? schweissFortschritt(
-        schweissLeitfaden,
-        estimateLengthMeters(points),
-        marker.filter((p) => p.markerType === 4).length,
-        marker.filter((p) => p.markerType === 5).length,
-      )
-    : null;
   const fortschritt = leitfaden
     ? leitfadenFortschritt(
         leitfaden,
@@ -473,21 +394,17 @@ export function FahrteRecorder({
         {gelegt && (
           <div className="flex flex-col gap-2 rounded-lg border border-surface-border bg-surface p-3">
             <p className="text-sm">
-              <span className="font-medium">
-                {trailModus ? t("Trail gespeichert.") : schweissModus ? t("Schweißfährte gespeichert.") : t("Fährte gespeichert.")}
-              </span>{" "}
+              <span className="font-medium">{trailModus ? t("Trail gespeichert.") : t("Fährte gespeichert.")}</span>{" "}
               {trailModus
                 ? t("Suchen, sobald die Liegezeit um ist - die Startseite zeigt ihn, solange er sich noch suchen lässt ({stunden} Stunden nach dem Legen).", { stunden: ABLAUF_FRIST_STUNDEN_TRAIL })
-                : schweissModus
-                  ? t("Arbeiten, sobald die Stehzeit erreicht ist - die Startseite zeigt sie, solange sie sich noch arbeiten lässt ({stunden} Stunden nach dem Legen).", { stunden: ABLAUF_FRIST_STUNDEN_SCHWEISS })
-                  : t("Ablaufen, sobald sie alt genug ist - die Startseite erinnert dich daran.")}
+                : t("Ablaufen, sobald sie alt genug ist - die Startseite erinnert dich daran.")}
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <WalkRunRecorder
                 trackId={gelegt.id}
                 laidTrackPoints={gelegt.points}
                 track={gelegt}
-                label={trailModus ? t("Jetzt suchen") : schweissModus ? t("Jetzt arbeiten") : t("Jetzt ablaufen")}
+                label={trailModus ? t("Jetzt suchen") : t("Jetzt ablaufen")}
                 onAufzeichnung={setAblaufLaeuft}
                 onSaved={async () => {
                   setGelegt(null);
@@ -499,13 +416,13 @@ export function FahrteRecorder({
               </Button>
               {!weitere && (
                 <Button type="button" size="sm" variant="ghost" onClick={() => setWeitere(true)}>
-                  {trailModus ? t("Weiteren Trail legen") : schweissModus ? t("Weitere Schweißfährte legen") : t("Weitere Fährte legen")}
+                  {trailModus ? t("Weiteren Trail legen") : t("Weitere Fährte legen")}
                 </Button>
               )}
             </div>
             {/* Das Material trägt man hier nach, nicht beim Legen: Dort bleibt es bei einem Tipp je Marker.
                 Zugeklappt, damit "Jetzt ablaufen" oben bleibt; die Fährtendetails bieten dasselbe später. */}
-            {!trailModus && !schweissModus && (
+            {!trailModus && (
               <GegenstandsMaterial
                 trackId={gelegt.id}
                 punkte={gelegt.points}
@@ -567,7 +484,7 @@ export function FahrteRecorder({
                 </div>
               </div>
             )}
-            {!trailModus && !schweissModus && (
+            {!trailModus && (
               <div className="flex flex-col gap-2">
                 <span id="fahrte-leitfaden" className="text-sm font-medium">
                   {t("Leitfaden (optional)")}
@@ -592,19 +509,6 @@ export function FahrteRecorder({
               </div>
             )}
             {trailModus && <TrailLegenFormular werte={trailAngaben} onChange={setTrailAngaben} />}
-            {schweissModus && (
-              <SchweissLegenFormular
-                leitfaden={schweissLeitfaden}
-                onLeitfaden={setLeitfadenWahl}
-                verfahren={verfahren}
-                onVerfahren={setVerfahrenWahl}
-                wildart={wildart}
-                onWildart={setWildart}
-                mlText={mlText}
-                onMl={setMlText}
-                mlGueltig={mlWert !== undefined}
-              />
-            )}
             <label className="flex min-h-11 items-start gap-3 text-sm">
               <input
                 type="checkbox"
@@ -620,9 +524,7 @@ export function FahrteRecorder({
                 <span className="text-xs text-muted-foreground">
                   {trailModus
                     ? t("⏭ Weiter setzt einen Marker. Musik pausiert während der Aufnahme.")
-                    : schweissModus
-                      ? t("⏭ Weiter = Wundbett, ⏮ Zurück = Verweiserpunkt. Musik pausiert während der Aufnahme.")
-                      : t("⏭ Weiter = Gegenstand, ⏮ Zurück = Leckerlipot. Musik pausiert während der Aufnahme.")}
+                    : t("⏭ Weiter = Gegenstand, ⏮ Zurück = Leckerlipot. Musik pausiert während der Aufnahme.")}
                 </span>
                 {/* Ohne diese Uhr-Einstellung erscheint "Jetzt läuft" nicht von selbst (im Feld geprüft). */}
                 {medienMarker && (
@@ -632,7 +534,7 @@ export function FahrteRecorder({
                 )}
               </span>
             </label>
-            <Button onClick={startRecording} disabled={speichert || mlWert === undefined} className="w-full coarse:min-h-11">
+            <Button onClick={startRecording} disabled={speichert} className="w-full coarse:min-h-11">
               <MapPin className="size-4" />
               {t("Legen starten")}
             </Button>
@@ -644,7 +546,7 @@ export function FahrteRecorder({
 
   return (
     <AufzeichnungVollbild
-      titel={trailModus ? t("Trail legen") : schweissModus ? t("Schweißfährte legen") : t("Fährte legen")}
+      titel={trailModus ? t("Trail legen") : t("Fährte legen")}
       status={
         <>
           {t("{punkte} Punkte · {marker} Marker", { punkte: autoPunkte, marker: markerAnzahl })}
@@ -662,21 +564,6 @@ export function FahrteRecorder({
         </>
       }
       statusZusatz={
-        schweissLeitfaden && schweissStand ? (
-          <span className="flex flex-wrap gap-x-3 gap-y-0.5 tabular-nums">
-            <FortschrittTeil erreicht={schweissStand.meterErreicht}>
-              {t("{ist} / {soll} m", { ist: schweissStand.meterIst, soll: schweissLeitfaden.laengeMeter })}
-            </FortschrittTeil>
-            <FortschrittTeil erreicht={schweissStand.wundbettenErreicht}>
-              {t("Wundbetten {ist} / {soll}", { ist: schweissStand.wundbettenIst, soll: schweissLeitfaden.wundbetten })}
-            </FortschrittTeil>
-            {schweissLeitfaden.verweiserpunkte > 0 && (
-              <FortschrittTeil erreicht={schweissStand.verweiserErreicht}>
-                {t("Verweiserpunkte {ist} / {soll}", { ist: schweissStand.verweiserIst, soll: schweissLeitfaden.verweiserpunkte })}
-              </FortschrittTeil>
-            )}
-          </span>
-        ) : (
         leitfaden && fortschritt && (
           <span className="flex flex-wrap gap-x-3 gap-y-0.5 tabular-nums">
             <FortschrittTeil erreicht={fortschritt.schritteErreicht}>
@@ -686,7 +573,7 @@ export function FahrteRecorder({
               {t("Gegenstände {ist} / {soll}", { ist: fortschritt.gegenstaendeIst, soll: leitfaden.gegenstaende })}
             </FortschrittTeil>
           </span>
-        ))
+        )
       }
       aktionen={
         // Ein Knopf je Markerart, nebeneinander im Daumenbereich. h-16 statt
@@ -695,7 +582,7 @@ export function FahrteRecorder({
         // abgeschnitten zu werden ("Leckerlipot" muss man draußen ganz lesen
         // können); min-h-16 hält die Tippfläche bei jedem Umbruch >= 44 px.
         // hyphens-auto: Bei 375 px brach "Gegenstand" sonst ohne Strich mitten im Wort um ("Gegenstan|d").
-        <div className={cn("grid gap-2", trailModus ? "grid-cols-1" : schweissModus ? "grid-cols-3" : "grid-cols-4")}>
+        <div className={cn("grid gap-2", trailModus ? "grid-cols-1" : "grid-cols-4")}>
           {markerArten.map((markerArt) => (
             <Button
               key={markerArt.value}
@@ -712,13 +599,7 @@ export function FahrteRecorder({
         </div>
       }
       abschlussLabel={t("Legen beenden")}
-      abschlussFrage={
-        trailModus
-          ? t("Legen beenden und den Trail speichern?")
-          : schweissModus
-            ? t("Legen beenden und die Schweißfährte speichern?")
-            : t("Legen beenden und die Fährte speichern?")
-      }
+      abschlussFrage={trailModus ? t("Legen beenden und den Trail speichern?") : t("Legen beenden und die Fährte speichern?")}
       onAbschluss={stopRecording}
       onAbbrechen={abbrechen}
     >

@@ -40,15 +40,6 @@ const CHIME_OBJECT: ChimeStep[] = [
   { freq: 1500, ms: 220 },
 ];
 const CHIME_TURN: ChimeStep[] = [{ freq: 700, ms: 250 }];
-// Rückruf der Schweißfährte: dreimal tief, deutlich anders als Gegenstand und Abbiegung. Anschuss gefunden: ein kurzer Ton.
-const CHIME_RECALL: ChimeStep[] = [
-  { freq: 440, ms: 200, gap: 80 },
-  { freq: 440, ms: 200, gap: 80 },
-  { freq: 440, ms: 350 },
-];
-const CHIME_FOUND: ChimeStep[] = [{ freq: 1000, ms: 150 }];
-const VIBRATE_RECALL = [400, 100, 400, 100, 400];
-const VIBRATE_FOUND = [100];
 
 // Lazy AudioContext: der Kontext startet suspended, bis eine User-Geste
 // (start-Button-Klick beim Rekorder) den Weg freimacht - danach kann bis
@@ -181,16 +172,4 @@ export function primeHapticsAudio() {
   const ctx = getAudioCtx();
   if (!ctx) return;
   if (ctx.state === "suspended") ctx.resume().catch(() => {});
-}
-
-/** Rückruf bei der Schweißfährte: deutlicher Ton und Vibration (Paket SF2). */
-export function rueckrufSignal() {
-  playChime(CHIME_RECALL);
-  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(VIBRATE_RECALL);
-}
-
-/** Anschuss gefunden beim verdeckten Arbeiten: kurzer Ton und kurze Vibration (Paket SF2). */
-export function anschussSignal() {
-  playChime(CHIME_FOUND);
-  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(VIBRATE_FOUND);
 }

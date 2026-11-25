@@ -280,11 +280,7 @@ public class AccountDataService(IApplicationDbContext db, IUserLookupService use
                             .ToList()))
                     .ToList(),
                 faehrte.ExcludeFromStats,
-                faehrte.GroundCondition,
-                faehrte.Verfahren,
-                faehrte.Wildart,
-                faehrte.SchweissMl,
-                faehrte.StehzeitStunden))
+                faehrte.GroundCondition))
                 .ToList(),
             ziele.Select(ziel =>
             {

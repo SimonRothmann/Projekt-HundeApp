@@ -9,8 +9,6 @@ import { useT } from "@/lib/i18n";
 import { uebersetzbar } from "@/lib/i18n/sprachen";
 import { aufschluesselung, bestaetigteZahlen } from "@/lib/gegenstaende";
 import { istMantrailing, spurGrenzen } from "@/lib/mantrailing";
-import { istSchweiss } from "@/lib/spurart";
-import { RueckrufZeile } from "@/components/tracking/schweiss-angaben";
 import { ampelLabel, ampelStufe, type Ampel } from "@/lib/spur-ampel";
 import {
   abschnittsZeilen,
@@ -68,7 +66,7 @@ function WinkelUndSchenkel({ run, gross, art }: { run: GpsWalkRun; gross: boolea
   return (
     <details open={gross} className={cn("group min-w-0 rounded-md border border-input px-2.5", gross ? "text-sm" : "text-xs")}>
       <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 font-medium [&::-webkit-details-marker]:hidden">
-        {istSchweiss(art) ? t("Haken und Schenkel") : t("Winkel und Schenkel")}
+        {t("Winkel und Schenkel")}
         <ChevronRight className="size-4 shrink-0 transition-transform group-open:rotate-90" aria-hidden />
       </summary>
       <ul className="flex flex-col divide-y pb-1">
@@ -77,8 +75,7 @@ function WinkelUndSchenkel({ run, gross, art }: { run: GpsWalkRun; gross: boolea
           if (zeile.art === "schenkel") {
             const { leg } = zeile;
             const lage = wind.get(leg.number);
-            // Die Jagd misst in Metern, nicht in Schritten.
-            const schrittText = istSchweiss(art) ? null : schritte(leg.lengthMeters);
+            const schrittText = schritte(leg.lengthMeters);
             return (
               <li key={`s${leg.number}`} className={platz}>
                 <span className="font-medium">{t("Schenkel {nr}", { nr: leg.number })}</span>
@@ -106,7 +103,7 @@ function WinkelUndSchenkel({ run, gross, art }: { run: GpsWalkRun; gross: boolea
                 : "text-muted-foreground";
           return (
             <li key={`w${corner.number}`} className={platz}>
-              <span className="font-medium">{winkelBeschriftung(corner, t, istSchweiss(art))}</span>
+              <span className="font-medium">{winkelBeschriftung(corner, t)}</span>
               <span className={zustandKlasse}>· {zustandBeschriftung(corner, t)}</span>
               {corner.holdSeconds > 0 && <span>· {t("Halt {sekunden} s", { sekunden: corner.holdSeconds })}</span>}
             </li>
@@ -149,7 +146,6 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
   const stops = run.stops ?? [];
   const unexplained = stops.filter((s) => s.kind === 0).length;
   const trail = istMantrailing(art);
-  const schweiss = istSchweiss(art);
   const bestaetigt = bestaetigteZahlen(run);
   const zahl = gross ? "text-sm font-medium text-foreground" : "text-xs";
   const abweichung = t("Ø {meter} m", { meter: Math.round(avg) });
@@ -160,7 +156,7 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
       )}
       {run.onTrackPercent != null && (
         <span className={cn(zahl, gross && "w-full text-xl font-bold")}>
-          {trail || schweiss
+          {trail
             ? t("{prozent} % auf der Spur", { prozent: Math.round(run.onTrackPercent) })
             : t("{prozent} % auf Fährte", { prozent: Math.round(run.onTrackPercent) })}
         </span>
@@ -169,9 +165,10 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
         // Mit Angaben der Hundeführer:in zählen die bestätigten Gegenstände, sonst die GPS-Zahl wie bisher.
         <>
           <span className={zahl}>
-            {schweiss
-              ? t("{gefunden}/{gesamt} Betten", { gefunden: bestaetigt?.gefunden ?? run.articlesFound ?? 0, gesamt: run.articlesTotal })
-              : t("{gefunden}/{gesamt} Gegenstände", { gefunden: bestaetigt?.gefunden ?? run.articlesFound ?? 0, gesamt: run.articlesTotal })}
+            {t("{gefunden}/{gesamt} Gegenstände", {
+              gefunden: bestaetigt?.gefunden ?? run.articlesFound ?? 0,
+              gesamt: run.articlesTotal,
+            })}
             {(run.unrecordedArticleIds?.length ?? 0) > 0 &&
               ` · ${t("{n} ohne Aufzeichnung", { n: run.unrecordedArticleIds?.length ?? 0 })}`}
           </span>
@@ -203,8 +200,6 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
         </div>
       )}
 
-      {schweiss && <RueckrufZeile anzahl={run.recalls} className={gross ? "text-sm font-medium text-foreground" : "text-xs"} />}
-
       <WinkelUndSchenkel run={run} gross={gross} art={art} />
 
       {stops.length > 0 && (
@@ -230,12 +225,7 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
               gruen: spurGrenzen(art).gruenBis,
               gelb: spurGrenzen(art).gelbBis,
             })
-          : schweiss
-            ? t("Gemessen wird die Linie des Hundeführers. Bei der Schweißfährte arbeitet der Hund am langen Riemen auch neben der Linie – deshalb gelten hier {gruen} m als nah und {gelb} m als mittlere Abweichung.", {
-                gruen: spurGrenzen(art).gruenBis,
-                gelb: spurGrenzen(art).gelbBis,
-              })
-            : t("Gemessen wird die Linie des Hundeführers – der Hund kann bis Leinenlänge abweichen, ohne dass es hier sichtbar wird.")}
+          : t("Gemessen wird die Linie des Hundeführers – der Hund kann bis Leinenlänge abweichen, ohne dass es hier sichtbar wird.")}
         </p>
       </details>
       {unexplained > 0 && (

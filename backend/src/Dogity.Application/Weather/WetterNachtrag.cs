@@ -30,16 +30,10 @@ public class WetterNachtrag(
         {
             // Erst fragen, dann den Datensatz laden: Die Abfrage kann Sekunden
             // dauern, und der Vergleich soll den Stand von jetzt sehen.
-            var jetzt = time.GetUtcNow();
-            if (auftrag.Ziel == WetterZiel.FaehrteStehzeit && auftrag.Ende is { } ende)
-            {
-                var zeitraum = await weather.GetPeriodAsync(auftrag.Breite, auftrag.Laenge, auftrag.Zeitpunkt, ende, ct);
-                return zeitraum is not null && await FaehrteEintragenAsync(auftrag, zeitraum, jetzt, ct);
-            }
-
             var wetter = await weather.GetAtAsync(auftrag.Breite, auftrag.Laenge, auftrag.Zeitpunkt, ct);
             if (wetter is null) return false;
 
+            var jetzt = time.GetUtcNow();
             return auftrag.Ziel == WetterZiel.Training
                 ? await TrainingEintragenAsync(auftrag, wetter, jetzt, ct)
                 : await FaehrteEintragenAsync(auftrag, wetter, jetzt, ct);
@@ -56,13 +50,7 @@ public class WetterNachtrag(
         }
     }
 
-    private Task<bool> FaehrteEintragenAsync(WetterAuftrag auftrag, WeatherReading wetter, DateTimeOffset jetzt, CancellationToken ct) =>
-        FaehrteEintragenAsync(auftrag, t => WetterAuftraege.Eintragen(t, auftrag.Ziel, wetter, jetzt), ct);
-
-    private Task<bool> FaehrteEintragenAsync(WetterAuftrag auftrag, WeatherPeriod zeitraum, DateTimeOffset jetzt, CancellationToken ct) =>
-        FaehrteEintragenAsync(auftrag, t => WetterAuftraege.Eintragen(t, zeitraum, jetzt), ct);
-
-    private async Task<bool> FaehrteEintragenAsync(WetterAuftrag auftrag, Action<Dogity.Domain.Tracking.GpsTrack> eintragen, CancellationToken ct)
+    private async Task<bool> FaehrteEintragenAsync(WetterAuftrag auftrag, WeatherReading wetter, DateTimeOffset jetzt, CancellationToken ct)
     {
         var track = await db.GpsTracks.FirstOrDefaultAsync(t => t.Id == auftrag.Id, ct);
         if (track is null) return false;
@@ -71,7 +59,7 @@ public class WetterNachtrag(
         var aktuell = await WetterAuftraege.FuerFaehrteAsync(db, track, ct);
         if (!aktuell.Contains(auftrag)) return false;
 
-        eintragen(track);
+        WetterAuftraege.Eintragen(track, auftrag.Ziel, wetter, jetzt);
         await db.SaveChangesAsync(ct);
         return true;
     }

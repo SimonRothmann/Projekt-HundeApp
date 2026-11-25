@@ -8,7 +8,7 @@ using Dogity.Infrastructure.Persistence;
 namespace Dogity.Application.Tests.Tracking;
 
 /// <summary>
-/// Die Frist zum Ablaufen (Fährte 4, Trail 48, Schweißfährte 72 Stunden nach dem Ende des Legens)
+/// Die Frist zum Ablaufen (Fährte 24, Trail 48 Stunden nach dem Ende des Legens)
 /// gilt auch im Dienst, nicht nur am Knopf der Oberfläche. Verglichen wird der
 /// BEGINN DES ABLAUFS mit dem Ende des Legens: Ein offline aufgezeichneter Ablauf,
 /// der erst Stunden später ankommt, darf nicht scheitern.
@@ -45,11 +45,8 @@ public class AblaufFristTests
         new(null, null, [new CreateGpsWalkPointRequest(48.9, 8.5, beginn, 5), new CreateGpsWalkPointRequest(48.9, 8.5001, beginn.AddMinutes(5), 5)]);
 
     [Theory]
-    [InlineData(GpsTrackKind.Faehrte, 4, true)]
-    [InlineData(GpsTrackKind.Faehrte, 5, false)]
-    [InlineData(GpsTrackKind.Schweissfaehrte, 40, true)]
-    [InlineData(GpsTrackKind.Schweissfaehrte, 72, true)]
-    [InlineData(GpsTrackKind.Schweissfaehrte, 73, false)]
+    [InlineData(GpsTrackKind.Faehrte, 24, true)]
+    [InlineData(GpsTrackKind.Faehrte, 25, false)]
     [InlineData(GpsTrackKind.Mantrailing, 48, true)]
     [InlineData(GpsTrackKind.Mantrailing, 49, false)]
     public async Task Ablauf_NurInnerhalbDerFristNachDemLegen(GpsTrackKind art, int stundenNachDemLegen, bool erlaubt)
