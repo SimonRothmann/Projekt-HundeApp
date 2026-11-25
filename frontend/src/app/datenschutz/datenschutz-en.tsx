@@ -296,9 +296,10 @@ export function DatenschutzEn() {
         <p className="font-medium text-foreground">Place search and weather (from the server, not from your device)</p>
         <p>
           If you search for a training place, Dogity’s server queries the service{" "}
-          <span className="text-foreground">Photon</span> (komoot GmbH, Berlin). For the temperature when laying and
-          searching a track, it queries <span className="text-foreground">Open-Meteo</span>. In both cases only the
-          request itself goes out – search term or coordinates and time respectively. Your IP address and your name are
+          <span className="text-foreground">Photon</span> (komoot GmbH, Berlin). For the weather when laying and
+          searching a track and – for blood tracks and trails – for rain and temperature in the time in between, it
+          queries <span className="text-foreground">Open-Meteo</span>. In both cases only the request itself goes out –
+          search term or coordinates and time or period respectively. Your IP address and your name are
           not transmitted; the services only see Dogity’s server.
         </p>
         <p className="font-medium text-foreground">Emails</p>

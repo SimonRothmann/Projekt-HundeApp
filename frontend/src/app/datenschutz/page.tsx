@@ -306,9 +306,10 @@ function DatenschutzDe() {
         <p className="font-medium text-foreground">Ortssuche und Wetter (vom Server, nicht von deinem Gerät)</p>
         <p>
           Suchst du einen Trainingsort, fragt der Server von Dogity den Dienst{" "}
-          <span className="text-foreground">Photon</span> (komoot GmbH, Berlin). Für die Temperatur beim Fährtenlegen
-          und -suchen fragt er <span className="text-foreground">Open-Meteo</span>. In beiden Fällen geht nur die
-          Anfrage selbst hinaus – Suchbegriff beziehungsweise Koordinaten und Zeitpunkt. Deine IP-Adresse und dein Name
+          <span className="text-foreground">Photon</span> (komoot GmbH, Berlin). Für das Wetter beim Fährtenlegen
+          und -suchen und – bei Schweißfährte und Trail – für Regen und Temperatur in der Zeit dazwischen fragt er{" "}
+          <span className="text-foreground">Open-Meteo</span>. In beiden Fällen geht nur die Anfrage selbst hinaus –
+          Suchbegriff beziehungsweise Koordinaten und Zeitpunkt bzw. Zeitraum. Deine IP-Adresse und dein Name
           werden nicht übermittelt; die Dienste sehen nur den Server von Dogity.
         </p>
         <p className="font-medium text-foreground">E-Mails</p>
