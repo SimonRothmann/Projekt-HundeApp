@@ -229,7 +229,7 @@ export function legungDaten(points: KartenPunkt[], live: boolean, t: TextUeberse
  * zuletzt gezeigten Ablauf - sauber grün, überschossen nach der Ampel, nicht erreicht neutral.
  * Ohne ausgewerteten Ablauf gibt es keine Winkel zu zeigen.
  */
-export function winkelDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen: SpurGrenzen = FAEHRTE_GRENZEN): Merkmale<Punkt> {
+export function winkelDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen: SpurGrenzen = FAEHRTE_GRENZEN, haken = false): Merkmale<Punkt> {
   const lauf = [...walkRuns].reverse().find((r) => (r.corners ?? []).length > 0);
   const features = (lauf?.corners ?? []).map((corner) => {
     const zustand = winkelZustand(corner);
@@ -242,7 +242,7 @@ export function winkelDaten(walkRuns: GpsWalkRun[], t: TextUebersetzer, grenzen:
     return punkt(corner, {
       farbe,
       nummer: String(corner.number),
-      text: `${winkelBeschriftung(corner, t)} · ${zustandBeschriftung(corner, t)}`,
+      text: `${winkelBeschriftung(corner, t, haken)} · ${zustandBeschriftung(corner, t)}`,
     });
   });
   return { type: "FeatureCollection", features };

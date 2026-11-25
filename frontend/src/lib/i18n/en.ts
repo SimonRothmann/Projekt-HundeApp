@@ -2998,6 +2998,8 @@ export const EN: Record<string, string> = {
   "Winkel und Schenkel": "Turns and legs",
   "Schenkel {nr}": "Leg {nr}",
   "Winkel {nr}": "Turn {nr}",
+  "Haken {nr}": "Hook {nr}",
+  "Haken und Schenkel": "Hooks and legs",
   "{dauer} min": "{dauer} min",
   "links": "left",
   "rechts": "right",

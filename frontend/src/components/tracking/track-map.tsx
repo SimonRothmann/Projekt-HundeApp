@@ -475,7 +475,7 @@ export function TrackMap({
   useEffect(() => {
     const d = ablaufDaten(walkRuns, t, spurGrenzen({ kind: artKind }));
     // Winkel gibt es bei der Fährte und der Schweißfährte (Haken), nicht beim Trail.
-    const winkel = istMantrailing({ kind: artKind }) ? leer<never>() : winkelDaten(walkRuns, t);
+    const winkel = istMantrailing({ kind: artKind }) ? leer<never>() : winkelDaten(walkRuns, t, spurGrenzen({ kind: artKind }), istSchweiss({ kind: artKind }));
     const teil = { rueckruf: rueckrufDaten(walkRuns, t), "ablauf-bewertet": d.bewertet, "ablauf-unbewertet": d.unbewertet, "ablauf-luecke": d.luecken, halte: d.halte, winkel };
     Object.assign(datenRef.current, teil);
     datenAnwenden(mapRef.current, teil);

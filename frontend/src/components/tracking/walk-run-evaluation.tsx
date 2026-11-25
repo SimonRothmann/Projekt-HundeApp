@@ -68,7 +68,7 @@ function WinkelUndSchenkel({ run, gross, art }: { run: GpsWalkRun; gross: boolea
   return (
     <details open={gross} className={cn("group min-w-0 rounded-md border border-input px-2.5", gross ? "text-sm" : "text-xs")}>
       <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 font-medium [&::-webkit-details-marker]:hidden">
-        {t("Winkel und Schenkel")}
+        {istSchweiss(art) ? t("Haken und Schenkel") : t("Winkel und Schenkel")}
         <ChevronRight className="size-4 shrink-0 transition-transform group-open:rotate-90" aria-hidden />
       </summary>
       <ul className="flex flex-col divide-y pb-1">
@@ -77,7 +77,8 @@ function WinkelUndSchenkel({ run, gross, art }: { run: GpsWalkRun; gross: boolea
           if (zeile.art === "schenkel") {
             const { leg } = zeile;
             const lage = wind.get(leg.number);
-            const schrittText = schritte(leg.lengthMeters);
+            // Die Jagd misst in Metern, nicht in Schritten.
+            const schrittText = istSchweiss(art) ? null : schritte(leg.lengthMeters);
             return (
               <li key={`s${leg.number}`} className={platz}>
                 <span className="font-medium">{t("Schenkel {nr}", { nr: leg.number })}</span>
@@ -105,7 +106,7 @@ function WinkelUndSchenkel({ run, gross, art }: { run: GpsWalkRun; gross: boolea
                 : "text-muted-foreground";
           return (
             <li key={`w${corner.number}`} className={platz}>
-              <span className="font-medium">{winkelBeschriftung(corner, t)}</span>
+              <span className="font-medium">{winkelBeschriftung(corner, t, istSchweiss(art))}</span>
               <span className={zustandKlasse}>· {zustandBeschriftung(corner, t)}</span>
               {corner.holdSeconds > 0 && <span>· {t("Halt {sekunden} s", { sekunden: corner.holdSeconds })}</span>}
             </li>
