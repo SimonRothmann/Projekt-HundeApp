@@ -106,7 +106,9 @@ export function NeuerungenInhalt() {
           <p className="text-sm text-muted-foreground">
             {t("Die Einträge bis einschließlich Version {v} sind nachträglich aus der Entwicklungsgeschichte zusammengetragen. Die Daten stimmen, die Einteilung in Fassungen ist im Nachhinein gezogen. Ab der nächsten Fassung entsteht jeder Eintrag zusammen mit der Änderung selbst.", { v: NACHTRAEGLICH_BIS })}
           </p>
-          <InstagramHinweis />
+          <p className="mt-3">
+            <InstagramHinweis />
+          </p>
           <p className="mt-3 text-sm text-muted-foreground">
             {t("{app} ist kostenlos und werbefrei. Rückmeldungen und Wünsche sind willkommen.", { app: SITE.name })}
           </p>
