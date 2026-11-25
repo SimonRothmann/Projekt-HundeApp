@@ -113,17 +113,19 @@ public class OpenMeteoWeatherProvider(HttpClient http, ILogger<OpenMeteoWeatherP
             foreach (var entry in times.EnumerateArray())
             {
                 if (DateTime.TryParse(entry.GetString(), CultureInfo.InvariantCulture,
-                        DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var stunde)
-                    && stunde >= ab && stunde <= bis)
+                        DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var stunde))
                 {
-                    if (ReadDouble(hourly, "temperature_2m", i) is { } temperatur)
+                    if (stunde >= ab && stunde <= bis && ReadDouble(hourly, "temperature_2m", i) is { } temperatur)
                     {
                         min = Math.Min(min, temperatur);
                         max = Math.Max(max, temperatur);
                         temperaturen++;
                     }
 
-                    regen += ReadDouble(hourly, "precipitation", i) ?? 0;
+                    // Der Niederschlag eines Zeitstempels gilt für die Stunde davor: Er zählt, wenn sich diese
+                    // Stunde mit dem Fenster überschneidet - nicht die Stunde vor dem Ende des Legens.
+                    if (stunde > ab && stunde - TimeSpan.FromHours(1) < bis)
+                        regen += ReadDouble(hourly, "precipitation", i) ?? 0;
                 }
 
                 i++;

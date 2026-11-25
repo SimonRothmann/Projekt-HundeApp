@@ -48,13 +48,15 @@ public class OpenMeteoWeatherProviderTests
         string? url = null;
         var provider = Make(HttpStatusCode.OK, PeriodJson, u => url = u);
 
-        // 10:20 bis 12:40: Stunden 10, 11, 12 (die Stunde des Starts zählt mit, 13:00 liegt nach dem Ende).
+        // 10:20 bis 12:40. Temperatur: Stundenwerte 10, 11, 12 (die Stunde des Starts zählt mit, 13:00 liegt
+        // nach dem Ende). Regen gilt für die Stunde vor dem Zeitstempel: 11:00 (10-11), 12:00 (11-12) und
+        // 13:00 (12-13, überschneidet das Ende) zählen, 10:00 (9-10, vor dem Start) nicht.
         var period = await provider.GetPeriodAsync(48.9, 8.5,
             new DateTimeOffset(2026, 8, 13, 10, 20, 0, TimeSpan.Zero), new DateTimeOffset(2026, 8, 13, 12, 40, 0, TimeSpan.Zero));
 
         Assert.Contains("precipitation", url);
         Assert.NotNull(period);
-        Assert.Equal(4.2, period!.RainMm);
+        Assert.Equal(9.2, period!.RainMm);
         Assert.Equal(3.0, period.TemperatureMinC);
         Assert.Equal(9.0, period.TemperatureMaxC);
     }
