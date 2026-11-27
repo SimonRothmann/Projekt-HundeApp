@@ -205,9 +205,11 @@ export function SchweissStueckZeile({ run }: { run: Pick<GpsWalkRun, "personFoun
 }
 
 /** Die Rückrufe eines Ablaufs: Zahl, bei mehr als zwei der Hinweis auf "nicht bestanden". Nichts, wenn sie nicht berechnet sind. */
-export function RueckrufZeile({ anzahl, className }: { anzahl: number | null | undefined; className?: string }) {
+export function RueckrufZeile({ anzahl, anschussGefunden, className }: { anzahl: number | null | undefined; anschussGefunden?: boolean | null; className?: string }) {
   const t = useT();
   if (anzahl == null) return null;
+  if (anschussGefunden === false)
+    return <span className={cn("min-w-0 text-muted-foreground [overflow-wrap:anywhere]", className)}>{t("Anschuss nicht erreicht – Rückrufe nicht gezählt")}</span>;
   return (
     <span className={cn("min-w-0 [overflow-wrap:anywhere]", className)}>
       {anzahl === 0 ? t("keine Rückrufe") : t("Rückrufe: {n}", { n: anzahl })}

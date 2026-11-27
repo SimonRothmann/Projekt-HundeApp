@@ -9,7 +9,7 @@ import { istLuecke } from "@/lib/ablauf-luecken";
  * - Abgekommen ist das Gespann, solange es weiter als RUECKRUF_ABWEICHUNG_METER von der gelegten Linie weg ist.
  * - Legt es abgekommen insgesamt mehr als RUECKRUF_WEG_METER Weg zurück (Summe der Teilstrecken, die abgekommen
  *   enden), zählt ein Rückruf. Der nächste zählt erst nach einer Rückkehr auf die Fährte.
- * - Erst ab dem Finden des Anschusses (ANSCHUSS_RADIUS_METER um den ersten Punkt der Legung); Lückenstücke
+ * - Erst ab dem Finden des Anschusses (erster Ablaufpunkt höchstens ANSCHUSS_RADIUS_METER von der gelegten Linie); Lückenstücke
  *   (kein GPS, siehe lib/ablauf-luecken.ts) zählen nicht als Weg.
  *
  * Fortlaufend rechnend (ein Punkt nach dem anderen), damit die Aufzeichnung nicht bei jedem Punkt den ganzen
@@ -20,8 +20,8 @@ import { istLuecke } from "@/lib/ablauf-luecken";
 export const RUECKRUF_ABWEICHUNG_METER = 30;
 /** Backend: GpsTrackEvaluator.RueckrufWegMeters. */
 export const RUECKRUF_WEG_METER = 80;
-/** Näher als so viele Meter am Anschuss gilt er als gefunden; Backend: GpsTrackEvaluator.MarkerProximityMeters. */
-export const ANSCHUSS_RADIUS_METER = 8;
+/** Höchstens so viele Meter von der gelegten Linie gilt der Anschuss als gefunden (halbe Kante der Anschussfläche); Backend: GpsTrackEvaluator.AnschussRadiusMeters. */
+export const ANSCHUSS_RADIUS_METER = 15;
 /** Mehr Rückrufe als so viele: nicht bestanden. */
 export const MAX_RUECKRUFE = 2;
 
@@ -84,7 +84,7 @@ export function rueckrufFortsetzen(zustand: RueckrufZustand, linie: readonly Koo
   for (let i = z.verarbeitet; i < punkte.length; i++) {
     const p = punkte[i];
     if (!anschussGefunden) {
-      anschussGefunden = haversineMeters(p, linie[0]) <= ANSCHUSS_RADIUS_METER;
+      anschussGefunden = abstandZurLinie(p, linie) <= ANSCHUSS_RADIUS_METER;
     } else if (abstandZurLinie(p, linie) <= RUECKRUF_ABWEICHUNG_METER) {
       weg = 0;
       bereit = true;

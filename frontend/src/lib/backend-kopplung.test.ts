@@ -95,7 +95,7 @@ describe("Frontend und Backend meinen dieselben Zahlen", () => {
     expect(RUECKRUF_ABWEICHUNG_METER).toBe(zahl(datei, "RueckrufAbweichungMeters"));
     expect(RUECKRUF_ABWEICHUNG_METER).toBe(SCHWEISS_GRENZEN.gelbBis);
     expect(RUECKRUF_WEG_METER).toBe(zahl(datei, "RueckrufWegMeters"));
-    expect(ANSCHUSS_RADIUS_METER).toBe(zahl(datei, "MarkerProximityMeters"));
+    expect(ANSCHUSS_RADIUS_METER).toBe(zahl(datei, "AnschussRadiusMeters"));
   });
 
   it("Trailalter höchstens eine Woche (GpsTrackService)", () => {

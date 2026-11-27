@@ -557,14 +557,25 @@ public static class GpsTrackEvaluator
     public const double RueckrufWegMeters = 80.0;
 
     /// <summary>
+    /// Der Anschuss gilt als gefunden, sobald ein Ablaufpunkt höchstens so weit von der gelegten Linie
+    /// liegt: GPS zweier Handys im Wald liegt oft mehr als <see cref="MarkerProximityMeters"/> daneben;
+    /// 15 m sind die halbe Kante der Anschussfläche (30 x 30 m). Gegenstück im Frontend:
+    /// <c>ANSCHUSS_RADIUS_METER</c> in lib/rueckruf.ts.
+    /// </summary>
+    public const double AnschussRadiusMeters = 15.0;
+
+    /// <summary>Die Rückrufe eines Ablaufs und ob der Anschuss gefunden wurde (ohne ihn zählen keine Rückrufe).</summary>
+    public readonly record struct RueckrufAuswertung(IReadOnlyList<Rueckruf> Stellen, bool AnschussGefunden);
+
+    /// <summary>
     /// Die Rückrufe eines Ablaufs auf einer Schweißfährte (Regel siehe lib/rueckruf.ts, dort wie hier
-    /// dieselbe): Gezählt wird erst, nachdem der Anschuss (der erste automatische Punkt der Legung) auf
-    /// <see cref="MarkerProximityMeters"/> gefunden war - die Suche danach zählt nicht. Danach summiert
+    /// dieselbe): Gezählt wird erst, nachdem der Anschuss auf <see cref="AnschussRadiusMeters"/> an der
+    /// gelegten Linie gefunden war - die Suche davor zählt nicht. Danach summiert
     /// sich der Weg der Teilstrecken, die abgekommen enden; Lückenstücke zählen nicht als Weg. Ein
     /// weiterer Rückruf fällt erst nach einer Rückkehr auf die Fährte. Aus den vollständigen Punkten,
     /// nicht aus der Anzeige-Linie. null, wenn der Aufwand über <see cref="MaxAuswertungsAufwand"/> läge.
     /// </summary>
-    public static IReadOnlyList<Rueckruf>? Rueckrufe(IEnumerable<GpsPoint> gelegt, IEnumerable<GpsWalkPoint> ablauf)
+    public static RueckrufAuswertung? Rueckrufe(IEnumerable<GpsPoint> gelegt, IEnumerable<GpsWalkPoint> ablauf)
     {
         var line = GpsTrackSimplifier.Simplify(gelegt
             .Where(p => p.PointType != GpsPointType.Manual)
@@ -572,13 +583,12 @@ public static class GpsTrackEvaluator
             .ToList());
         var walk = ablauf.OrderBy(p => p.Timestamp).ToList();
         if (line.Count == 0 || walk.Count == 0)
-            return [];
+            return new RueckrufAuswertung([], false);
         if ((long)walk.Count * line.Count > MaxAuswertungsAufwand)
             return null;
 
         var originLat = line[0].Latitude;
         var linePlane = line.Select(p => Project(p.Latitude, p.Longitude, originLat)).ToArray();
-        var anschuss = linePlane[0];
         var nachLuecke = LueckenAnfaenge(walk).ToHashSet();
 
         var rueckrufe = new List<Rueckruf>();
@@ -591,7 +601,7 @@ public static class GpsTrackEvaluator
             var punkt = Project(walk[i].Latitude, walk[i].Longitude, originLat);
             if (!gefunden)
             {
-                gefunden = Distance(punkt, anschuss) <= MarkerProximityMeters;
+                gefunden = DistanceToPolyline(punkt, linePlane) <= AnschussRadiusMeters;
                 vorher = punkt;
                 continue;
             }
@@ -612,7 +622,7 @@ public static class GpsTrackEvaluator
             }
             vorher = punkt;
         }
-        return rueckrufe;
+        return new RueckrufAuswertung(rueckrufe, gefunden);
     }
 
     /// <summary>

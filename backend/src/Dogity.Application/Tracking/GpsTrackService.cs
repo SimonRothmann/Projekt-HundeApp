@@ -270,7 +270,7 @@ public class GpsTrackService(
         if (request.SchweissMl is < 0 or > Schweissangaben.MaxMl)
             return Result<GpsTrackDto>.Failure("Die Schweißmenge muss zwischen 0 und 1000 ml liegen.");
         if (request.StehzeitStunden is < 1 or > Schweissangaben.MaxStehzeitStunden)
-            return Result<GpsTrackDto>.Failure("Die Stehzeit muss zwischen 1 und 72 Stunden liegen.");
+            return Result<GpsTrackDto>.Failure("Die Stehzeit muss zwischen 1 und 48 Stunden liegen.");
 
         // Erst nach allen Prüfungen: Eine abgelehnte Anfrage soll weder eine
         // leere Einheit hinterlassen noch die Dauer einer bestehenden ändern.
@@ -918,11 +918,12 @@ public class GpsTrackService(
             // GPS-Hinweis, und die Oberfläche blendet ihn aus.
             ReachedArticleIds: reached,
             UnrecordedArticleIds: reached is null ? null : GpsTrackEvaluator.NichtAufgezeichneteGegenstaende(laidPoints!, r.Points, reached, kind),
-            Recalls: rueckrufe?.Count,
-            RecallPoints: rueckrufe?.Select(x => new GpsRecallPointDto(x.Latitude, x.Longitude)).ToList(),
+            Recalls: rueckrufe?.Stellen.Count,
+            RecallPoints: rueckrufe?.Stellen.Select(x => new GpsRecallPointDto(x.Latitude, x.Longitude)).ToList(),
             EndReached: kind == GpsTrackKind.Schweissfaehrte && laidPoints is not null && r.EvaluatedAt is not null
                 ? GpsTrackEvaluator.EndeErreicht(laidPoints, r.Points)
-                : null);
+                : null,
+            AnschussFound: rueckrufe?.AnschussGefunden);
     }
 
     /// <summary>

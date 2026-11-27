@@ -29,6 +29,15 @@ function lauf(...wege: [number, number][]) {
 }
 
 describe("Rückrufe (Spiegel von GpsTrackEvaluator.Rueckrufe)", () => {
+  it("Anschuss um 12 m verfehlt, 12 m parallel, dann ab: einer", () =>
+    expect(rueckrufe(linie, lauf([12, 0], [12, 20], [50, 20], [50, 110]))).toHaveLength(1));
+  it("Anschuss verfehlt, weiter hinten auf der Fährte, dann ab: einer", () =>
+    expect(rueckrufe(linie, lauf([25, 0], [25, 10], [5, 60], [45, 60], [45, 160]))).toHaveLength(1));
+  it("nie näher als 15 m an der Linie: Anschuss nicht gefunden, keine Rückrufe", () => {
+    const z = rueckrufFortsetzen(NEUER_RUECKRUF_ZUSTAND, linie, lauf([60, 100], [60, 300]));
+    expect(z.anschussGefunden).toBe(false);
+    expect(z.stellen).toHaveLength(0);
+  });
   it("gerader Weg auf der Linie: keiner", () => expect(rueckrufe(linie, lauf([0, 0], [0, 300]))).toHaveLength(0));
   it("90 m parallel in 40 m Abstand: einer", () =>
     expect(rueckrufe(linie, lauf([0, 0], [0, 20], [40, 20], [40, 110]))).toHaveLength(1));

@@ -16,7 +16,7 @@ public class SchweissPruefungTests
     // Eine lange gerade Fährte nach Norden: Abweichung = Abstand in X.
     private static List<GpsPoint> Gelegt(params GpsPoint[] marker) => Legung((0, 0), (0, 400)).Concat(marker).ToList();
 
-    private static int Rueckrufe(Lauf lauf) => GpsTrackEvaluator.Rueckrufe(Gelegt(), lauf.Punkte)!.Count;
+    private static int Rueckrufe(Lauf lauf) => GpsTrackEvaluator.Rueckrufe(Gelegt(), lauf.Punkte)!.Value.Stellen.Count;
 
     // ---- Rückrufe ----
 
@@ -61,6 +61,28 @@ public class SchweissPruefungTests
         Assert.Equal(0, Rueckrufe(new Lauf(60, 100).Gehe(60, 300)));
 
     [Fact]
+    public void Rueckrufe_AnschussUmZwoelfMeterVerfehlt_GespannParallel_ZaehltEinen()
+    {
+        var erg = GpsTrackEvaluator.Rueckrufe(Gelegt(), new Lauf(12, 0).Gehe(12, 20).Gehe(50, 20).Gehe(50, 110).Punkte)!.Value;
+
+        Assert.Single(erg.Stellen);
+        Assert.True(erg.AnschussGefunden);
+    }
+
+    [Fact]
+    public void Rueckrufe_AnschussVerfehlt_GespannTrifftWeiterHintenAufDieFaehrte_ZaehltEinen() =>
+        Assert.Equal(1, Rueckrufe(new Lauf(25, 0).Gehe(25, 10).Gehe(5, 60).Gehe(45, 60).Gehe(45, 160)));
+
+    [Fact]
+    public void Rueckrufe_NieNaeherAlsFuenfzehnMeter_AnschussNichtGefunden()
+    {
+        var erg = GpsTrackEvaluator.Rueckrufe(Gelegt(), new Lauf(60, 100).Gehe(60, 300).Punkte)!.Value;
+
+        Assert.Empty(erg.Stellen);
+        Assert.False(erg.AnschussGefunden);
+    }
+
+    [Fact]
     public void Rueckrufe_LueckenstueckZaehltNichtAlsWeg()
     {
         // Abgekommen, dann 100 m Luft ohne Aufzeichnung (Bildschirm aus): Die Luftlinie zählt nicht als Weg.
@@ -73,9 +95,9 @@ public class SchweissPruefungTests
     [Fact]
     public void Rueckrufe_PositionIstDieDesAblaufpunkts()
     {
-        var ergebnis = GpsTrackEvaluator.Rueckrufe(Gelegt(), new Lauf(0, 0).Gehe(0, 10).Gehe(40, 10).Gehe(40, 110).Punkte)!;
+        var ergebnis = GpsTrackEvaluator.Rueckrufe(Gelegt(), new Lauf(0, 0).Gehe(0, 10).Gehe(40, 10).Gehe(40, 110).Punkte)!.Value;
 
-        var ruf = Assert.Single(ergebnis);
+        var ruf = Assert.Single(ergebnis.Stellen);
         Assert.InRange(ruf.Longitude, Lon(39), Lon(41));
         Assert.InRange(ruf.Latitude, Lat(10), Lat(110));
     }
@@ -156,6 +178,7 @@ public class SchweissPruefungTests
         Assert.Equal(1, dto.Recalls);
         Assert.Single(dto.RecallPoints!);
         Assert.True(dto.EndReached);
+        Assert.True(dto.AnschussFound);
         Assert.Equal(1, dto.ArticlesTotal);
         Assert.Equal(1, dto.ArticlesFound);
         Assert.Single(dto.ReachedArticleIds!);
@@ -165,6 +188,7 @@ public class SchweissPruefungTests
         Assert.Null(fDto.Recalls);
         Assert.Null(fDto.RecallPoints);
         Assert.Null(fDto.EndReached);
+        Assert.Null(fDto.AnschussFound);
     }
 
     [Fact]

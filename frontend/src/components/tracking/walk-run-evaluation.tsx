@@ -203,7 +203,7 @@ export function WalkRunEvaluation({ run, gross = false, art }: { run: GpsWalkRun
         </div>
       )}
 
-      {schweiss && <RueckrufZeile anzahl={run.recalls} className={gross ? "text-sm font-medium text-foreground" : "text-xs"} />}
+      {schweiss && <RueckrufZeile anzahl={run.recalls} anschussGefunden={run.anschussFound} className={gross ? "text-sm font-medium text-foreground" : "text-xs"} />}
 
       <WinkelUndSchenkel run={run} gross={gross} art={art} />
 

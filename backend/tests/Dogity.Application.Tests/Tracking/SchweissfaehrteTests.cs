@@ -178,7 +178,7 @@ public class SchweissfaehrteTests
     [InlineData(null, null, -1, null)]
     [InlineData(null, null, 1001, null)]
     [InlineData(null, null, null, 0)]
-    [InlineData(null, null, null, 73)]
+    [InlineData(null, null, null, 49)]
     public async Task Anlegen_UngueltigeAngaben_WerdenAbgelehntUndLegenNichtsAn(string? verfahren, string? wildart, int? ml, int? stehzeit)
     {
         var (dienst, db, user, hund) = await AufbauenAsync();
@@ -196,7 +196,7 @@ public class SchweissfaehrteTests
         var (dienst, db, user, hund) = await AufbauenAsync();
 
         Assert.True((await dienst.CreateAsync(user, Legen(hund, ml: 0, stehzeit: 1))).Succeeded);
-        Assert.True((await dienst.CreateAsync(user, Legen(hund, ml: 1000, stehzeit: 72))).Succeeded);
+        Assert.True((await dienst.CreateAsync(user, Legen(hund, ml: 1000, stehzeit: 48))).Succeeded);
         foreach (var verfahren in Schweissangaben.Verfahren)
             Assert.True((await dienst.CreateAsync(user, Legen(hund, verfahren: verfahren))).Succeeded);
         foreach (var wildart in Schweissangaben.Wildarten)

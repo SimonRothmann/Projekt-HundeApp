@@ -88,10 +88,12 @@ public record GpsWalkRunDto(
     // Davon die Gegenstände, die in einer Lücke der Aufzeichnung liegen (null wie ReachedArticleIds).
     IReadOnlyList<Guid>? UnrecordedArticleIds = null,
     // Nur Schweißfährte (Paket SF2, sonst null): Zahl der Rückrufe und wo sie fielen, berechnet aus den
-    // vollständigen Punkten (kein gespeichertes Feld); EndReached: ein Ablaufpunkt lag am Ende der Legung.
+    // vollständigen Punkten (kein gespeichertes Feld); EndReached: ein Ablaufpunkt lag am Ende der Legung;
+    // AnschussFound: ob der Anschuss gefunden wurde (sonst zählen keine Rückrufe; null wie Recalls).
     int? Recalls = null,
     IReadOnlyList<GpsRecallPointDto>? RecallPoints = null,
-    bool? EndReached = null);
+    bool? EndReached = null,
+    bool? AnschussFound = null);
 
 /// <summary>Die Stelle, an der ein Rückruf fiel (siehe GpsTrackEvaluator.Rueckrufe).</summary>
 public record GpsRecallPointDto(double Latitude, double Longitude);

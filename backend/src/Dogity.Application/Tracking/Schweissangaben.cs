@@ -14,6 +14,6 @@ public static class Schweissangaben
 
     public const int MaxMl = 1000;
 
-    /// <summary>Längste Mindest-Stehzeit in Stunden - zugleich die Frist, bis zu der die Fährte gearbeitet werden kann.</summary>
-    public const int MaxStehzeitStunden = 72;
+    /// <summary>Längste Mindest-Stehzeit in Stunden (längste Prüfungsfährte 40 h); die Frist zum Arbeiten bleibt 72 h (<c>Ablauffristen</c>).</summary>
+    public const int MaxStehzeitStunden = 48;
 }

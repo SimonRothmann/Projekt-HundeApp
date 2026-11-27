@@ -32,7 +32,7 @@ export const SCHWEISS_WILDARTEN: readonly string[] = [
 
 /** Grenzen wie im Backend (Schweissangaben.MaxMl / MaxStehzeitStunden). */
 export const MAX_SCHWEISS_ML = 1000;
-export const MAX_STEHZEIT_STUNDEN = 72;
+export const MAX_STEHZEIT_STUNDEN = 48;
 
 /**
  * Was der Leitfaden einer Prüfung verlangt. Ein Wundbett ist die Stelle, an der das Stück sich niedergetan
