@@ -53,6 +53,37 @@ export const NACHTRAEGLICH_BIS = "0.9";
 
 export const VERSIONSHINWEISE: Versionshinweis[] = [
   {
+    version: "1.11",
+    datum: "2026-11-30",
+    titel: uebersetzbar("Jagd und Schweißfährte"),
+    aenderungen: [
+      {
+        art: "neu",
+        text: uebersetzbar("Neue Sportart Jagd mit den Prüfungen VJP, HZP, VGP, VSwP und VFsP."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Schweißfährte als dritte Spurart neben Fährte und Trail: mit Wundbett und Verweiserpunkt, Verfahren (Tupf, Tropf, Fährtenschuh), Wildart, Schweißmenge und Stehzeit – dazu Leitfäden für die Prüfungsfährten in Metern."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Die Startseite zeigt, ab wann die Stehzeit erreicht ist, und Dogity erinnert dann daran – und noch einmal 6 Stunden, bevor die Schweißfährte nach 72 Stunden abläuft."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Arbeiten wie auf der Prüfung: verdeckt mit einer Anschussfläche von 30 × 30 m, Rückrufe live und in der Auswertung, Betten verwiesen oder überlaufen, zum Stück gekommen mit Totverbellen oder Totverweisen. Der Anschuss gilt als gefunden, sobald ihr bis 15 m an der gelegten Fährte seid – auch wenn das GPS ihn im Wald verfehlt."),
+      },
+      {
+        art: "neu",
+        text: uebersetzbar("Wetter über die Stehzeit: Bei Schweißfährte und Trail zeigen die Details Regen und Temperaturspanne zwischen Legen und Ablauf."),
+      },
+      {
+        art: "verbessert",
+        text: uebersetzbar("Eine Sportfährte lässt sich jetzt bis 4 Stunden nach dem Legen ablaufen statt bis 24 Stunden – die längste Liegezeit im Leitfaden sind 3 Stunden. Danach verschwindet sie von der Startseite."),
+      },
+    ],
+  },
+  {
     version: "1.10",
     datum: "2026-11-25",
     titel: uebersetzbar("Dogity auf Instagram"),
